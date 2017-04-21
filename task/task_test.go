@@ -769,7 +769,7 @@ var _ = Describe("Deployer", func() {
 				})
 
 				It("fails without deploying", func() {
-					Expect(deployError).To(Equal(broker.NewPendingChangesError(errors.New("update called with apply-changes set to non-boolean"))))
+					Expect(deployError).To(Equal(broker.NewTaskError(errors.New("update called with apply-changes set to non-boolean"))))
 					Expect(boshClient.DeployCallCount()).To(BeZero())
 				})
 			})

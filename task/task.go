@@ -234,12 +234,7 @@ func (d deployer) validatedApplyChanges(parameters map[string]interface{}) (bool
 
 	applyChanges, ok := param.(bool)
 	if !ok {
-		err := errors.New("update called with apply-changes set to non-boolean")
-		if d.featureFlags.CFUserTriggeredUpgrades() {
-			return false, broker.NewPendingChangesError(err)
-		} else {
-			return false, broker.NewApplyChangesNotPermittedError(err)
-		}
+		return false, broker.NewTaskError(errors.New("update called with apply-changes set to non-boolean"))
 	}
 
 	delete(parameters, applyChangesKey)
