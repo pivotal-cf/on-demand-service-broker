@@ -78,7 +78,7 @@ func (b *Broker) Update(
 	case boshclient.RequestError:
 		return errs(NewBoshRequestError("update", fmt.Errorf("error deploying instance: %s", err)))
 	case TaskError:
-		return errs(NewPendingChangesError(err))
+		return errs(b.asDisplayableError(err))
 	case DisplayableError:
 		return errs(err)
 	case adapterclient.UnknownFailureError:
@@ -102,4 +102,11 @@ func (b *Broker) Update(
 	}
 
 	return brokerapi.UpdateServiceSpec{IsAsync: true, OperationData: string(operationData)}, nil
+}
+func (b *Broker) asDisplayableError(err TaskError) DisplayableError {
+	if b.featureFlags.CFUserTriggeredUpgrades() {
+		return NewPendingChangesError(err)
+	} else {
+		return NewApplyChangesNotPermittedError(err)
+	}
 }

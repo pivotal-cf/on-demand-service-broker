@@ -76,7 +76,7 @@ var _ = Describe("Update", func() {
 		})
 
 		Context("and the request is switching plan", func() {
-			Context("and the new plan's quota has not been met", func() {
+			Context("but the new plan's quota has not been met", func() {
 				It("does not error", func() {
 					Expect(updateError).NotTo(HaveOccurred())
 				})
@@ -108,7 +108,7 @@ var _ = Describe("Update", func() {
 				})
 			})
 
-			Context("and the new plan's quota has been reached", func() {
+			Context("but the new plan's quota has been reached", func() {
 				BeforeEach(func() {
 					cfClient.CountInstancesOfPlanReturns(existingPlanServiceInstanceLimit, nil)
 				})
@@ -123,7 +123,7 @@ var _ = Describe("Update", func() {
 				})
 			})
 
-			Context("and the new plan does not have a quota", func() {
+			Context("but the new plan does not have a quota", func() {
 				BeforeEach(func() {
 					newPlanID = secondPlanID
 					oldPlanID = existingPlanID
@@ -143,11 +143,26 @@ var _ = Describe("Update", func() {
 				})
 			})
 
-			Context("and there are pending changes", func() {
+			Context("but there are pending changes", func() {
 				BeforeEach(func() {
 					newPlanID = secondPlanID
 					oldPlanID = existingPlanID
 
+					fakeDeployer.UpdateReturns(0, nil, broker.NewTaskError(errors.New("deployer-error-message")))
+				})
+
+				It("reports an error", func() {
+					Expect(updateError).To(MatchError(ContainSubstring(broker.ApplyChangesNotPermittedMessage)))
+					Expect(logBuffer.String()).To(ContainSubstring("deployer-error-message"))
+				})
+			})
+
+			Context("but there are pending changes and cf_user_triggered_upgrades are enabled", func() {
+				BeforeEach(func() {
+					newPlanID = secondPlanID
+					oldPlanID = existingPlanID
+
+					fakeFeatureFlags.CFUserTriggeredUpgradesReturns(true)
 					fakeDeployer.UpdateReturns(0, nil, broker.NewTaskError(errors.New("deployer-error-message")))
 				})
 
@@ -270,15 +285,12 @@ var _ = Describe("Update", func() {
 
 			Context("and there are pending changes", func() {
 				BeforeEach(func() {
-					fakeDeployer.UpdateReturns(0, nil, broker.NewPendingChangesError(errors.New("foo")))
+					fakeDeployer.UpdateReturns(0, nil, broker.NewPendingChangesError(errors.New("pending changes error")))
 				})
 
-				It("returns a user displayable error", func() {
-					Expect(updateError).To(MatchError(ContainSubstring(`There is a pending change to your service instance, you must first run cf update-service <service_name> -c '{"apply-changes": true}', no other arbitrary parameters are allowed`)))
-				})
-
-				It("logs the error", func() {
-					Expect(logBuffer.String()).To(ContainSubstring("error: foo"))
+				It("reports the  error", func() {
+					Expect(updateError).To(MatchError(ContainSubstring(broker.PendingChangesErrorMessage)))
+					Expect(logBuffer.String()).To(ContainSubstring("error: pending changes error"))
 				})
 			})
 		})
@@ -289,15 +301,9 @@ var _ = Describe("Update", func() {
 				oldPlanID = secondPlanID
 			})
 
-			It("returns a user displayable error", func() {
+			It("reports the error without redploying", func() {
 				Expect(updateError).To(MatchError(ContainSubstring(fmt.Sprintf("plan %s not found", newPlanID))))
-			})
-
-			It("logs the error", func() {
 				Expect(logBuffer.String()).To(ContainSubstring(fmt.Sprintf("error: finding plan ID %s", newPlanID)))
-			})
-
-			It("does not redeploy", func() {
 				Expect(boshClient.GetDeploymentCallCount()).To(BeZero())
 				Expect(fakeDeployer.UpdateCallCount()).To(BeZero())
 			})

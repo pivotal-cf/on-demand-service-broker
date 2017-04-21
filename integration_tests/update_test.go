@@ -853,9 +853,7 @@ var _ = Describe("updating a service instance", func() {
 					err := json.NewDecoder(resp.Body).Decode(&body)
 					Expect(err).ToNot(HaveOccurred())
 
-					Expect(body.Description).To(ContainSubstring(
-						`Service cannot be updated at this time, please try again later or contact your operator for more information`,
-					))
+					Expect(body.Description).To(ContainSubstring(broker.ApplyChangesDisabledMessage))
 				})
 			})
 		})
