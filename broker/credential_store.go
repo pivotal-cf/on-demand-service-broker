@@ -6,14 +6,21 @@
 
 package broker
 
+import "github.com/pivotal-cf/on-demand-service-broker/credhubclient"
+
 type CredentialStore struct {
 	Enabled bool
 	CredhubClient
 }
 
-func NewCredentialStore(enabled bool, credhubclient CredhubClient) CredentialStore {
+func DisabledCredentialStore() CredentialStore {
+	var nullClient = credhubclient.Client{}
+	return CredentialStore{false, &nullClient}
+}
+
+func NewCredentialStore(credhubclient CredhubClient) CredentialStore {
 	return CredentialStore{
-		enabled,
+		true,
 		credhubclient,
 	}
 }

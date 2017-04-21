@@ -135,7 +135,7 @@ var _ = BeforeEach(func() {
 	cfClient.GetAPIVersionReturns("2.57.0", nil)
 
 	credhubClient = new(fakes.FakeCredhubClient)
-	credentialStore = broker.NewCredentialStore(false, credhubClient)
+	credentialStore = broker.CredentialStore{Enabled: false, CredhubClient: credhubClient}
 
 	serviceCatalog = config.ServiceOffering{
 		ID:               serviceOfferingID,

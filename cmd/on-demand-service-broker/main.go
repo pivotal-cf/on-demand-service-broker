@@ -109,28 +109,11 @@ func startBroker(conf config.Config, logger *log.Logger, loggerFactory *loggerfa
 		conf.ServiceDeployment.Releases,
 	)
 
-	deploymentManager := task.NewDeployer(
-		boshClient,
-		manifestGenerator,
-		features.New(conf.Features),
-	)
+	featureFlags := features.New(conf.Features)
+	deploymentManager := task.NewDeployer(boshClient, manifestGenerator, featureFlags)
+	credStore := credentialStore(conf.Credhub, conf.Broker.DisableSSLCertVerification)
 
-	credHubClient := credhubclient.Client{}
-	credhubEnabled := false
-
-	if conf.Credhub != nil {
-		credhubEnabled = true
-		credHubClient = credhubclient.NewCredhubClient(
-			conf.Credhub.APIURL,
-			conf.Credhub.ID,
-			conf.Credhub.Secret,
-			conf.Broker.DisableSSLCertVerification,
-		)
-	}
-
-	credStore := broker.NewCredentialStore(credhubEnabled, &credHubClient)
-
-	onDemandBroker, err := broker.New(boshClient, cfClient, credStore, serviceAdapter, deploymentManager, conf.ServiceCatalog, loggerFactory)
+	onDemandBroker, err := broker.New(boshClient, cfClient, credStore, serviceAdapter, deploymentManager, conf.ServiceCatalog, loggerFactory, featureFlags)
 	if err != nil {
 		logger.Fatalf("error starting broker: %s", err)
 	}
@@ -161,4 +144,18 @@ func startBroker(conf config.Config, logger *log.Logger, loggerFactory *loggerfa
 
 	server.UseHandler(authProtectedBrokerAPI)
 	server.Run(fmt.Sprintf("0.0.0.0:%d", conf.Broker.Port))
+}
+
+func credentialStore(credhub *config.Credhub, disableSSLCertVerification bool) broker.CredentialStore {
+	if credhub == nil {
+		return broker.DisabledCredentialStore()
+	} else {
+		client := credhubclient.NewCredhubClient(
+			credhub.APIURL,
+			credhub.ID,
+			credhub.Secret,
+			disableSSLCertVerification,
+		)
+		return broker.NewCredentialStore(&client)
+	}
 }
