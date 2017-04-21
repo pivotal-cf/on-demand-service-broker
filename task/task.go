@@ -224,12 +224,15 @@ func parametersFromRequest(requestParams map[string]interface{}) map[string]inte
 	return parameters
 }
 
+const applyChangesKey = "apply-changes"
+
 func (d deployer) validatedApplyChanges(parameters map[string]interface{}) (bool, error) {
-	if parameters["apply-changes"] == nil {
+	param := parameters[applyChangesKey]
+	if param == nil {
 		return false, nil
 	}
 
-	applyChanges, ok := parameters["apply-changes"].(bool)
+	applyChanges, ok := param.(bool)
 	if !ok {
 		err := errors.New("update called with apply-changes set to non-boolean")
 		if d.featureFlags.CFUserTriggeredUpgrades() {
@@ -239,7 +242,7 @@ func (d deployer) validatedApplyChanges(parameters map[string]interface{}) (bool
 		}
 	}
 
-	delete(parameters, "apply-changes")
+	delete(parameters, applyChangesKey)
 
 	return applyChanges, nil
 }

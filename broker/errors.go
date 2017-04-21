@@ -16,7 +16,12 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/brokercontext"
 )
 
-const genericErrorPrefix = "There was a problem completing your request. Please contact your operations team providing the following information:"
+const (
+	genericErrorPrefix              = "There was a problem completing your request. Please contact your operations team providing the following information:"
+	PendingChangesErrorMessage      = `There is a pending change to your service instance, you must first run cf update-service <service_name> -c '{"apply-changes": true}', no other arbitrary parameters are allowed`
+	ApplyChangesDisabledMessage     = "Service cannot be updated at this time, please try again later or contact your operator for more information"
+	ApplyChangesNotPermittedMessage = `'apply-changes' is not permitted. Contact your operator for more information`
+)
 
 type InstanceNotFoundError struct {
 	error
@@ -40,6 +45,14 @@ type OperationInProgressError struct {
 
 func NewOperationInProgressError(e error) error {
 	return OperationInProgressError{e}
+}
+
+type TaskError struct {
+	error
+}
+
+func NewTaskError(e error) error {
+	return TaskError{e}
 }
 
 var NilError = DisplayableError{nil, nil}
@@ -77,21 +90,21 @@ func NewBoshRequestError(action string, requestError error) DisplayableError {
 
 func NewPendingChangesError(errForOperator error) DisplayableError {
 	return DisplayableError{
-		errors.New(`There is a pending change to your service instance, you must first run cf update-service <service_name> -c '{"apply-changes": true}', no other arbitrary parameters are allowed`),
+		errors.New(PendingChangesErrorMessage),
 		errForOperator,
 	}
 }
 
 func NewApplyChangesDisabledError(errForOperator error) DisplayableError {
 	return DisplayableError{
-		errors.New(`Service cannot be updated at this time, please try again later or contact your operator for more information`),
+		errors.New(ApplyChangesDisabledMessage),
 		errForOperator,
 	}
 }
 
 func NewApplyChangesNotPermittedError(errForOperator error) DisplayableError {
 	return DisplayableError{
-		errors.New(`'apply-changes' is not permitted. Contact your operator for more information`),
+		errors.New(ApplyChangesNotPermittedMessage),
 		errForOperator,
 	}
 }

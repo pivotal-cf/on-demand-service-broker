@@ -148,15 +148,12 @@ var _ = Describe("Update", func() {
 					newPlanID = secondPlanID
 					oldPlanID = existingPlanID
 
-					fakeDeployer.UpdateReturns(0, nil, broker.NewPendingChangesError(errors.New("foo")))
+					fakeDeployer.UpdateReturns(0, nil, broker.NewTaskError(errors.New("deployer-error-message")))
 				})
 
-				It("returns a user displayable error", func() {
-					Expect(updateError).To(MatchError(ContainSubstring(`There is a pending change to your service instance, you must first run cf update-service <service_name> -c '{"apply-changes": true}', no other arbitrary parameters are allowed`)))
-				})
-
-				It("logs the error", func() {
-					Expect(logBuffer.String()).To(ContainSubstring("error: foo"))
+				It("reports an error", func() {
+					Expect(updateError).To(MatchError(ContainSubstring(broker.PendingChangesErrorMessage)))
+					Expect(logBuffer.String()).To(ContainSubstring("deployer-error-message"))
 				})
 			})
 		})

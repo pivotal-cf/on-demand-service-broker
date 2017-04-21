@@ -77,6 +77,8 @@ func (b *Broker) Update(
 	switch err := err.(type) {
 	case boshclient.RequestError:
 		return errs(NewBoshRequestError("update", fmt.Errorf("error deploying instance: %s", err)))
+	case TaskError:
+		return errs(NewPendingChangesError(err))
 	case DisplayableError:
 		return errs(err)
 	case adapterclient.UnknownFailureError:
