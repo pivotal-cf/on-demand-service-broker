@@ -148,12 +148,7 @@ func (d deployer) Update(
 	}
 
 	if pendingChanges && !applyChanges {
-		err = errors.New("pending changes detected")
-		if d.featureFlags.CFUserTriggeredUpgrades() {
-			return 0, nil, broker.NewPendingChangesError(err)
-		} else {
-			return 0, nil, broker.NewApplyChangesDisabledError(err)
-		}
+		return 0, nil, broker.NewTaskError(errors.New("pending changes detected"))
 	}
 
 	return d.doDeploy(
@@ -183,12 +178,12 @@ func (d deployer) getDeploymentManifest(deploymentName string, logger *log.Logge
 }
 
 func (d deployer) assertNoOperationsInProgress(deploymentName string, logger *log.Logger) error {
-	tasks, err := d.boshClient.GetTasks(deploymentName, logger)
+	clientTasks, err := d.boshClient.GetTasks(deploymentName, logger)
 	if err != nil {
 		return fmt.Errorf("error getting tasks for deployment %s: %s\n", deploymentName, err)
 	}
 
-	if incompleteTasks := tasks.IncompleteTasks(); len(incompleteTasks) != 0 {
+	if incompleteTasks := clientTasks.IncompleteTasks(); len(incompleteTasks) != 0 {
 		userError := errors.New("An operation is in progress for your service instance. Please try again later.")
 		operatorError := broker.NewOperationInProgressError(
 			fmt.Errorf("deployment %s is still in progress: tasks %s\n",
@@ -202,12 +197,12 @@ func (d deployer) assertNoOperationsInProgress(deploymentName string, logger *lo
 }
 
 func (d deployer) assertNoOperationsInProgressForUpgrade(deploymentName string, logger *log.Logger) error {
-	tasks, err := d.boshClient.GetTasks(deploymentName, logger)
+	clientTasks, err := d.boshClient.GetTasks(deploymentName, logger)
 	if err != nil {
 		return fmt.Errorf("error getting tasks for deployment %s: %s\n", deploymentName, err)
 	}
 
-	if incompleteTasks := tasks.IncompleteTasks(); len(incompleteTasks) != 0 {
+	if incompleteTasks := clientTasks.IncompleteTasks(); len(incompleteTasks) != 0 {
 		logger.Printf("deployment %s is still in progress: tasks %s\n", deploymentName, incompleteTasks.ToLog())
 		return broker.NewOperationInProgressError(errors.New("An operation is in progress for your service instance. Please try again later."))
 	}
@@ -252,13 +247,11 @@ func (d deployer) assertCanApplyChanges(
 	}
 
 	if previousPlanID != nil && planID != *previousPlanID {
-		err := errors.New("update called with apply-changes and a plan change")
-		return broker.NewPendingChangesError(err)
+		return broker.NewTaskError(errors.New("update called with apply-changes and a plan change"))
 	}
 
 	if len(parameters) > 0 {
-		err := errors.New("update called with apply-changes and arbitrary parameters set")
-		return broker.NewPendingChangesError(err)
+		return broker.NewTaskError(errors.New("update called with apply-changes and arbitrary parameters set"))
 	}
 
 	return nil

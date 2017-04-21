@@ -633,32 +633,9 @@ var _ = Describe("Deployer", func() {
 				manifestGenerator.GenerateManifestReturns(manifest, nil)
 			})
 
-			It("does call generate manifest once", func() {
-				Expect(manifestGenerator.GenerateManifestCallCount()).To(Equal(1))
-			})
-
-			It("does NOT deploy", func() {
+			It("fails without deploying", func() {
+				Expect(deployError).To(Equal(broker.NewTaskError(errors.New("pending changes detected"))))
 				Expect(boshClient.DeployCallCount()).To(BeZero())
-			})
-
-			Context("and the cf_user_triggered_upgrades feature is turned on", func() {
-				BeforeEach(func() {
-					featureFlags.CFUserTriggeredUpgradesReturns(true)
-				})
-
-				It("checks if the feature is on", func() {
-					Expect(featureFlags.CFUserTriggeredUpgradesCallCount()).To(Equal(1))
-				})
-
-				It("returns a pending changes error", func() {
-					Expect(deployError).To(Equal(broker.NewPendingChangesError(errors.New("pending changes detected"))))
-				})
-			})
-
-			Context("and the cf_user_triggered_upgrades feature is disabled", func() {
-				It("returns an apply changes disabled error", func() {
-					Expect(deployError).To(Equal(broker.NewApplyChangesDisabledError(errors.New("pending changes detected"))))
-				})
 			})
 
 			Describe("when apply-changes is", func() {
@@ -696,7 +673,7 @@ var _ = Describe("Deployer", func() {
 						})
 
 						It("fails without deploying", func() {
-							Expect(deployError).To(Equal(broker.NewPendingChangesError(errors.New("update called with apply-changes and a plan change"))))
+							Expect(deployError).To(Equal(broker.NewTaskError(errors.New("update called with apply-changes and a plan change"))))
 							Expect(boshClient.DeployCallCount()).To(BeZero())
 						})
 					})
@@ -710,7 +687,7 @@ var _ = Describe("Deployer", func() {
 						})
 
 						It("fails without deploying", func() {
-							Expect(deployError).To(Equal(broker.NewPendingChangesError(errors.New("update called with apply-changes and arbitrary parameters set"))))
+							Expect(deployError).To(Equal(broker.NewTaskError(errors.New("update called with apply-changes and arbitrary parameters set"))))
 							Expect(boshClient.DeployCallCount()).To(BeZero())
 						})
 					})
@@ -718,19 +695,8 @@ var _ = Describe("Deployer", func() {
 
 				Context("set to false", func() {
 					It("fails without deploying", func() {
-						Expect(deployError).To(Equal(broker.NewPendingChangesError(errors.New("pending changes detected"))))
+						Expect(deployError).To(Equal(broker.NewTaskError(errors.New("pending changes detected"))))
 						Expect(boshClient.DeployCallCount()).To(BeZero())
-					})
-
-					Context("and user triggered upgrades are disabled", func() {
-						BeforeEach(func() {
-							featureFlags.CFUserTriggeredUpgradesReturns(false)
-						})
-
-						It("fails without deploying", func() {
-							Expect(deployError).To(Equal(broker.NewApplyChangesDisabledError(errors.New("pending changes detected"))))
-							Expect(boshClient.DeployCallCount()).To(BeZero())
-						})
 					})
 				})
 
@@ -740,19 +706,8 @@ var _ = Describe("Deployer", func() {
 					})
 
 					It("fails without deploying", func() {
-						Expect(deployError).To(Equal(broker.NewPendingChangesError(errors.New("pending changes detected"))))
+						Expect(deployError).To(Equal(broker.NewTaskError(errors.New("pending changes detected"))))
 						Expect(boshClient.DeployCallCount()).To(BeZero())
-					})
-
-					Context("and user triggered upgrades are disabled", func() {
-						BeforeEach(func() {
-							featureFlags.CFUserTriggeredUpgradesReturns(false)
-						})
-
-						It("fails without deploying", func() {
-							Expect(deployError).To(Equal(broker.NewApplyChangesDisabledError(errors.New("pending changes detected"))))
-							Expect(boshClient.DeployCallCount()).To(BeZero())
-						})
 					})
 				})
 			})
