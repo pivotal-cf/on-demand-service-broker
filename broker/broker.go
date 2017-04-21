@@ -30,10 +30,11 @@ type Broker struct {
 	serviceOffering config.ServiceOffering
 
 	loggerFactory *loggerfactory.LoggerFactory
+	featureFlags  FeatureFlags
 }
 
 func New(boshClient BoshClient, cfClient CloudFoundryClient, credentialStore CredentialStore, serviceAdapter ServiceAdapterClient,
-	deployer Deployer, serviceOffering config.ServiceOffering, loggerFactory *loggerfactory.LoggerFactory) (*Broker, error) {
+	deployer Deployer, serviceOffering config.ServiceOffering, loggerFactory *loggerfactory.LoggerFactory, featureFlags FeatureFlags) (*Broker, error) {
 
 	b := &Broker{
 		boshClient:      boshClient,
@@ -46,6 +47,7 @@ func New(boshClient BoshClient, cfClient CloudFoundryClient, credentialStore Cre
 		serviceOffering: serviceOffering,
 
 		loggerFactory: loggerFactory,
+		featureFlags:  featureFlags,
 	}
 
 	if err := b.startupChecks(); err != nil {
