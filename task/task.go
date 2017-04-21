@@ -119,36 +119,24 @@ func (d deployer) Update(
 		return 0, nil, err
 	}
 
-	err = d.assertNoOperationsInProgress(deploymentName, logger)
-	if err != nil {
+	if err := d.assertNoOperationsInProgress(deploymentName, logger); err != nil {
 		return 0, nil, err
 	}
 
 	parameters := parametersFromRequest(requestParams)
-	applyChanges, err := d.validatedApplyChanges(parameters)
+	applyingChanges, err := d.validatedApplyChanges(parameters)
 	if err != nil {
 		return 0, nil, err
 	}
 
-	if applyChanges {
-		err = d.assertCanApplyChanges(parameters, planID, previousPlanID)
-		if err != nil {
+	if applyingChanges {
+		if err := d.assertCanApplyChanges(parameters, planID, previousPlanID); err != nil {
 			return 0, nil, err
 		}
 	}
 
-	pendingChanges, pendingChangesErr := d.hasPendingChanges(
-		deploymentName,
-		previousPlanID,
-		oldManifest,
-		logger,
-	)
-	if pendingChangesErr != nil {
-		return 0, nil, pendingChangesErr
-	}
-
-	if pendingChanges && !applyChanges {
-		return 0, nil, broker.NewTaskError(errors.New("pending changes detected"))
+	if err := d.checkForPendingChanges(applyingChanges, deploymentName, previousPlanID, oldManifest, logger); err != nil {
+		return 0, nil, err
 	}
 
 	return d.doDeploy(
@@ -257,23 +245,28 @@ func (d deployer) assertCanApplyChanges(
 	return nil
 }
 
-func (d deployer) hasPendingChanges(
+func (d deployer) checkForPendingChanges(
+	applyingChanges bool,
 	deploymentName string,
 	previousPlanID *string,
 	oldManifest BoshManifest,
 	logger *log.Logger,
-) (bool, error) {
+) error {
 	regeneratedManifest, err := d.manifestGenerator.GenerateManifest(deploymentName, *previousPlanID, map[string]interface{}{}, oldManifest, previousPlanID, logger)
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	manifestsEqual, err := regeneratedManifest.Equals(oldManifest)
 	if err != nil {
-		return false, fmt.Errorf("error detecting change in manifest: %s", err)
+		return fmt.Errorf("error detecting change in manifest: %s", err)
 	}
 
-	return !manifestsEqual, nil
+	if !manifestsEqual && !applyingChanges {
+		return broker.NewTaskError(errors.New("pending changes detected"))
+	}
+
+	return nil
 }
 
 func (d deployer) doDeploy(
