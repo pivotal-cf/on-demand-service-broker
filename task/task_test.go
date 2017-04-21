@@ -159,7 +159,7 @@ var _ = Describe("Deployer", func() {
 
 		Context("when manifest generator returns an error", func() {
 			BeforeEach(func() {
-				manifestGenerator.GenerateManifestReturns(nil, fmt.Errorf("error generating manifest"))
+				manifestGenerator.GenerateManifestReturns(nil, errors.New("error generating manifest"))
 				boshClient.GetTasksReturns([]boshclient.BoshTask{{State: boshclient.BoshTaskDone}}, nil)
 				requestParams = map[string]interface{}{"foo": "bar"}
 			})
@@ -225,7 +225,7 @@ var _ = Describe("Deployer", func() {
 
 			It("returns an error", func() {
 				Expect(deployError).To(MatchError(ContainSubstring(fmt.Sprintf("deployment %s is still in progress", deploymentName))))
-				Expect(deployError).To(MatchError((ContainSubstring("\"ID\":%d", boshTaskID))))
+				Expect(deployError).To(MatchError(ContainSubstring("\"ID\":%d", boshTaskID)))
 			})
 
 			It("returns an error for the CF user", func() {
@@ -244,7 +244,7 @@ var _ = Describe("Deployer", func() {
 
 		Context("when the last bosh task for deployment fails to fetch", func() {
 			BeforeEach(func() {
-				boshClient.GetTasksReturns(nil, fmt.Errorf("connection error"))
+				boshClient.GetTasksReturns(nil, errors.New("connection error"))
 			})
 
 			It("wraps the error", func() {
@@ -397,7 +397,7 @@ var _ = Describe("Deployer", func() {
 
 		Context("when manifest generator returns an error", func() {
 			BeforeEach(func() {
-				manifestGenerator.GenerateManifestReturns(nil, fmt.Errorf("error generating manifest"))
+				manifestGenerator.GenerateManifestReturns(nil, errors.New("error generating manifest"))
 				boshClient.GetTasksReturns([]boshclient.BoshTask{{State: boshclient.BoshTaskDone}}, nil)
 				requestParams = map[string]interface{}{"foo": "bar"}
 			})
@@ -490,7 +490,7 @@ var _ = Describe("Deployer", func() {
 
 		Context("when the last bosh task for deployment fails to fetch", func() {
 			BeforeEach(func() {
-				boshClient.GetTasksReturns(nil, fmt.Errorf("connection error"))
+				boshClient.GetTasksReturns(nil, errors.New("connection error"))
 			})
 
 			It("wraps the error", func() {
@@ -684,15 +684,8 @@ var _ = Describe("Deployer", func() {
 							featureFlags.CFUserTriggeredUpgradesReturns(false)
 						})
 
-						It("returns a descriptive error", func() {
-							Expect(deployError).To(Equal(
-								broker.NewApplyChangesNotPermittedError(
-									errors.New("'cf_user_triggered_upgrades' feature is disabled"),
-								),
-							))
-						})
-
-						It("doesn't perform deploy", func() {
+						It("fails without deploying", func() {
+							Expect(deployError).To(Equal(broker.NewApplyChangesNotPermittedError(errors.New("'cf_user_triggered_upgrades' feature is disabled"))))
 							Expect(boshClient.DeployCallCount()).To(BeZero())
 						})
 					})
@@ -702,15 +695,8 @@ var _ = Describe("Deployer", func() {
 							planID = secondPlanID
 						})
 
-						It("returns a descriptive error", func() {
-							Expect(deployError).To(Equal(
-								broker.NewPendingChangesError(
-									errors.New("update called with apply-changes and a plan change"),
-								),
-							))
-						})
-
-						It("doesn't perform deploy", func() {
+						It("fails without deploying", func() {
+							Expect(deployError).To(Equal(broker.NewPendingChangesError(errors.New("update called with apply-changes and a plan change"))))
 							Expect(boshClient.DeployCallCount()).To(BeZero())
 						})
 					})
@@ -723,28 +709,16 @@ var _ = Describe("Deployer", func() {
 							}
 						})
 
-						It("returns a descriptive error", func() {
-							Expect(deployError).To(Equal(
-								broker.NewPendingChangesError(
-									errors.New("update called with apply-changes and arbitrary parameters set"),
-								),
-							))
-						})
-
-						It("doesn't perform deploy", func() {
+						It("fails without deploying", func() {
+							Expect(deployError).To(Equal(broker.NewPendingChangesError(errors.New("update called with apply-changes and arbitrary parameters set"))))
 							Expect(boshClient.DeployCallCount()).To(BeZero())
 						})
 					})
 				})
 
 				Context("set to false", func() {
-					It("returns a pending changes error", func() {
-						Expect(deployError).To(Equal(
-							broker.NewPendingChangesError(errors.New("pending changes detected")),
-						))
-					})
-
-					It("doesn't perform deploy", func() {
+					It("fails without deploying", func() {
+						Expect(deployError).To(Equal(broker.NewPendingChangesError(errors.New("pending changes detected"))))
 						Expect(boshClient.DeployCallCount()).To(BeZero())
 					})
 
@@ -753,13 +727,8 @@ var _ = Describe("Deployer", func() {
 							featureFlags.CFUserTriggeredUpgradesReturns(false)
 						})
 
-						It("returns an apply changes disabled error", func() {
-							Expect(deployError).To(Equal(
-								broker.NewApplyChangesDisabledError(errors.New("pending changes detected")),
-							))
-						})
-
-						It("doesn't perform deploy", func() {
+						It("fails without deploying", func() {
+							Expect(deployError).To(Equal(broker.NewApplyChangesDisabledError(errors.New("pending changes detected"))))
 							Expect(boshClient.DeployCallCount()).To(BeZero())
 						})
 					})
@@ -770,13 +739,8 @@ var _ = Describe("Deployer", func() {
 						requestParams["parameters"] = map[string]interface{}{"foo": "bar"}
 					})
 
-					It("returns a pending changes error", func() {
-						Expect(deployError).To(Equal(
-							broker.NewPendingChangesError(errors.New("pending changes detected")),
-						))
-					})
-
-					It("doesn't perform deploy", func() {
+					It("fails without deploying", func() {
+						Expect(deployError).To(Equal(broker.NewPendingChangesError(errors.New("pending changes detected"))))
 						Expect(boshClient.DeployCallCount()).To(BeZero())
 					})
 
@@ -785,13 +749,8 @@ var _ = Describe("Deployer", func() {
 							featureFlags.CFUserTriggeredUpgradesReturns(false)
 						})
 
-						It("returns an apply changes disabled error", func() {
-							Expect(deployError).To(Equal(
-								broker.NewApplyChangesDisabledError(errors.New("pending changes detected")),
-							))
-						})
-
-						It("doesn't perform deploy", func() {
+						It("fails without deploying", func() {
+							Expect(deployError).To(Equal(broker.NewApplyChangesDisabledError(errors.New("pending changes detected"))))
 							Expect(boshClient.DeployCallCount()).To(BeZero())
 						})
 					})
@@ -809,15 +768,8 @@ var _ = Describe("Deployer", func() {
 					requestParams["parameters"] = map[string]interface{}{"apply-changes": 42}
 				})
 
-				It("returns a descriptive error", func() {
-					Expect(deployError).To(Equal(
-						broker.NewPendingChangesError(
-							errors.New("update called with apply-changes set to non-boolean"),
-						),
-					))
-				})
-
-				It("doesn't perform deploy", func() {
+				It("fails without deploying", func() {
+					Expect(deployError).To(Equal(broker.NewPendingChangesError(errors.New("update called with apply-changes set to non-boolean"))))
 					Expect(boshClient.DeployCallCount()).To(BeZero())
 				})
 			})
@@ -836,7 +788,7 @@ var _ = Describe("Deployer", func() {
 
 		Context("and when the last bosh task for deployment fails to fetch", func() {
 			BeforeEach(func() {
-				boshClient.GetTasksReturns(nil, fmt.Errorf("connection error"))
+				boshClient.GetTasksReturns(nil, errors.New("connection error"))
 			})
 
 			It("wraps the error", func() {

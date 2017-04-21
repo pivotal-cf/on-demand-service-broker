@@ -285,12 +285,12 @@ var _ = Describe("Update", func() {
 
 			Context("and there are pending changes", func() {
 				BeforeEach(func() {
-					fakeDeployer.UpdateReturns(0, nil, broker.NewPendingChangesError(errors.New("pending changes error")))
+					fakeDeployer.UpdateReturns(0, nil, broker.NewTaskError(errors.New("deployer-error-message")))
 				})
 
 				It("reports the  error", func() {
-					Expect(updateError).To(MatchError(ContainSubstring(broker.PendingChangesErrorMessage)))
-					Expect(logBuffer.String()).To(ContainSubstring("error: pending changes error"))
+					Expect(updateError).To(MatchError(ContainSubstring(broker.ApplyChangesNotPermittedMessage)))
+					Expect(logBuffer.String()).To(ContainSubstring("error: deployer-error-message"))
 				})
 			})
 		})
