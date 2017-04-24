@@ -1,0 +1,41 @@
+# Copyright (C) 2016-Present Pivotal Software, Inc. All rights reserved.
+# This program and the accompanying materials are made available under the terms of the under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# http://www.apache.org/licenses/LICENSE-2.0
+# Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+
+export BOSH_URL=
+export BOSH_USERNAME=
+export BOSH_PASSWORD=
+export BOSH_CA_CERT_FILE=
+
+export CF_URL=
+export CF_USERNAME=
+export CF_PASSWORD=
+export CF_SPACE_DEVELOPER_USERNAME=
+export CF_SPACE_DEVELOPER_PASSWORD=
+export CF_ORG=
+export CF_SPACE=
+export CF_DOMAIN=
+
+export EXAMPLE_APP_PATH=
+
+export TEST_ODB_METRICS=
+export DOPPLER_ADDRESS=
+export UAA_URL=
+
+export BROKER_NAME=
+export BROKER_DEPLOYMENT_NAME=
+export BROKER_URL=
+export BROKER_USERNAME=
+export BROKER_PASSWORD=
+
+export SERVICE_NAME=
+
+export LIFECYCLE_TESTS_CONFIG=
+
+export CREDHUB_API=
+export CREDHUB_USERNAME=
+export CREDHUB_PASSWORD=
+
+source_up

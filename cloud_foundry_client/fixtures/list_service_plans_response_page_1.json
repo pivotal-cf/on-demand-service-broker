@@ -1,0 +1,28 @@
+{
+   "total_results": 2,
+   "total_pages": 2,
+   "prev_url": null,
+   "next_url": "/v2/services/06df08f9-5a58-4d33-8097-32d0baf3ce1e/service_plans?order-direction=asc&page=2&results-per-page=100",
+   "resources": [
+      {
+         "metadata": {
+            "guid": "ff717e7c-afd5-4d0a-bafe-16c7eff546ec",
+            "url": "/v2/service_plans/ff717e7c-afd5-4d0a-bafe-16c7eff546ec",
+            "created_at": "2016-07-07T10:39:18Z",
+            "updated_at": "2016-07-07T10:39:18Z"
+         },
+         "entity": {
+            "name": "small",
+            "free": true,
+            "description": "A Kafka deployment with a single instance of each job and persistent disk",
+            "service_guid": "06df08f9-5a58-4d33-8097-32d0baf3ce1e",
+            "extra": "{}",
+            "unique_id": "11789210-D743-4C65-9D38-C80B29F4D9C8",
+            "public": true,
+            "active": true,
+            "service_url": "/v2/services/06df08f9-5a58-4d33-8097-32d0baf3ce1e",
+            "service_instances_url": "/v2/service_plans/ff717e7c-afd5-4d0a-bafe-16c7eff546ec/service_instances"
+         }
+      }
+   ]
+}

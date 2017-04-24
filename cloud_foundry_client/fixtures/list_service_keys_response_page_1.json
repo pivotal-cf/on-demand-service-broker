@@ -1,0 +1,24 @@
+{
+  "total_results": 2,
+  "total_pages": 2,
+  "prev_url": null,
+  "next_url": "/v2/service_instances/92d707ce-c06c-421a-a1d2-ed1e750af650/service_keys?order-direction=asc&page=2&results-per-page=100",
+  "resources": [
+    {
+      "metadata": {
+        "guid": "3c8076a6-0d85-11e7-811e-685b3585cc4e",
+        "url": "/v2/service_keys/3c8076a6-0d85-11e7-811e-685b3585cc4e",
+        "created_at": "2016-06-08T16:41:30Z",
+        "updated_at": "2016-06-08T16:41:26Z"
+      },
+      "entity": {
+        "name": "a-service-key",
+        "service_instance_guid": "92d707ce-c06c-421a-a1d2-ed1e750af650",
+        "credentials": {
+          "creds-key-43": "creds-val-43"
+        },
+        "service_instance_url": "/v2/service_instances/92d707ce-c06c-421a-a1d2-ed1e750af650"
+      }
+    }
+  ]
+}

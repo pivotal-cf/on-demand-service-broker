@@ -1,0 +1,30 @@
+{
+   "metadata": {
+      "guid": "783f8645-1ded-4161-b457-73f59423f9eb",
+      "url": "/v2/service_instances/783f8645-1ded-4161-b457-73f59423f9eb",
+      "created_at": "2016-07-13T16:47:03Z",
+      "updated_at": null
+   },
+   "entity": {
+      "name": "k1",
+      "credentials": {},
+      "service_plan_guid": "ff717e7c-afd5-4d0a-bafe-16c7eff546ec",
+      "space_guid": "a157c861-92bb-4f57-9108-f791260f66ab",
+      "gateway_data": null,
+      "dashboard_url": "http://example_dashboard.com/783f8645-1ded-4161-b457-73f59423f9eb",
+      "type": "managed_service_instance",
+      "last_operation": {
+         "type": "create",
+         "state": "succeeded",
+         "description": "Instance provisioning completed",
+         "updated_at": "2016-07-13T16:49:05Z",
+         "created_at": "2016-07-13T16:47:03Z"
+      },
+      "tags": [],
+      "space_url": "/v2/spaces/a157c861-92bb-4f57-9108-f791260f66ab",
+      "service_plan_url": "/v2/service_plans/ff717e7c-afd5-4d0a-bafe-16c7eff546ec",
+      "service_bindings_url": "/v2/service_instances/783f8645-1ded-4161-b457-73f59423f9eb/service_bindings",
+      "service_keys_url": "/v2/service_instances/783f8645-1ded-4161-b457-73f59423f9eb/service_keys",
+      "routes_url": "/v2/service_instances/783f8645-1ded-4161-b457-73f59423f9eb/routes"
+   }
+}

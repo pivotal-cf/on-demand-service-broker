@@ -1,0 +1,150 @@
+// Copyright (C) 2016-Present Pivotal Software, Inc. All rights reserved.
+// This program and the accompanying materials are made available under the terms of the under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// http://www.apache.org/licenses/LICENSE-2.0
+// Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+
+package upgrader_test
+
+import (
+	"io"
+	"log"
+	"time"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gbytes"
+	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
+	"github.com/pivotal-cf/on-demand-service-broker/upgrader"
+	"github.com/pivotal-cf/on-demand-service-broker/upgrader/broker_response"
+)
+
+const (
+	ten_seconds = time.Duration(10) * time.Second
+)
+
+var _ = Describe("LoggingListener", func() {
+	It("Shows starting message", func() {
+		Expect(logResultsFrom(func(listener upgrader.Listener) { listener.Starting() })).
+			To(Say("STARTING UPGRADES"))
+	})
+
+	It("Shows which instances to upgrade", func() {
+		Expect(logResultsFrom(func(listener upgrader.Listener) { listener.InstancesToUpgrade([]string{"one", "two"}) })).
+			To(Say("Service Instances: one two"))
+	})
+
+	It("Shows which instance has started upgrading", func() {
+		buffer := logResultsFrom(func(listener upgrader.Listener) {
+			listener.InstanceUpgradeStarting("service-instance", 1, 5)
+		})
+
+		Expect(buffer).To(Say("Service instance: service-instance, upgrade attempt starting \\(2 of 5\\)"))
+	})
+
+	Describe("instance upgrade start result", func() {
+		var (
+			result broker_response.UpgradeOperationType
+			buffer *Buffer
+		)
+
+		JustBeforeEach(func() {
+			buffer = logResultsFrom(func(listener upgrader.Listener) {
+				listener.InstanceUpgradeStartResult(result)
+			})
+		})
+
+		Context("when accepted", func() {
+			BeforeEach(func() {
+				result = broker_response.ResultAccepted
+			})
+
+			It("Shows accepted upgrade", func() {
+				Expect(buffer).To(Say("Result: accepted upgrade"))
+			})
+		})
+
+		Context("when not found", func() {
+			BeforeEach(func() {
+				result = broker_response.ResultNotFound
+			})
+
+			It("shows already deleted in CF", func() {
+				Expect(buffer).To(Say("Result: already deleted in CF"))
+			})
+		})
+
+		Context("when orphaned", func() {
+			BeforeEach(func() {
+				result = broker_response.ResultOrphan
+			})
+
+			It("shows already deleted in CF", func() {
+				Expect(buffer).To(Say("Result: orphan CF service instance detected - no corresponding bosh deployment"))
+			})
+		})
+
+		Context("when conflict", func() {
+			BeforeEach(func() {
+				result = broker_response.ResultOperationInProgress
+			})
+
+			It("shows already deleted in CF", func() {
+				Expect(buffer).To(Say("Result: operation in progress"))
+			})
+		})
+
+		Context("when error", func() {
+			BeforeEach(func() {
+				result = broker_response.UpgradeOperationType(-1)
+			})
+
+			It("shows already deleted in CF", func() {
+				Expect(buffer).To(Say("Result: unexpected result"))
+			})
+		})
+	})
+
+	It("Shows which instance is still in progress", func() {
+		Expect(logResultsFrom(func(listener upgrader.Listener) { listener.WaitingFor("one", 999) })).
+			To(Say("Waiting for upgrade to complete for one: bosh task id 999"))
+	})
+
+	It("Shows which instance has been upgraded", func() {
+		Expect(logResultsFrom(func(listener upgrader.Listener) { listener.InstanceUpgraded("one", "success") })).
+			To(Say("Result: Service Instance one upgrade success"))
+	})
+
+	It("Shows a summary of the progress so far", func() {
+		buffer := logResultsFrom(func(listener upgrader.Listener) {
+			listener.Progress(ten_seconds, 234, 345, 456, 567)
+		})
+
+		Expect(buffer).To(Say("Sleep interval until next attempt: 10s"))
+		Expect(buffer).To(Say("Number of successful upgrades so far: 345"))
+		Expect(buffer).To(Say("Number of CF service instance orphans detected so far: 234"))
+		Expect(buffer).To(Say("Number of deleted instances before upgrade could occur: 567"))
+		Expect(buffer).To(Say("Number of operations in progress \\(to retry\\) so far: 456"))
+	})
+
+	It("Shows a final summary", func() {
+		buffer := logResultsFrom(func(listener upgrader.Listener) {
+			listener.Finished(23, 34, 45)
+		})
+
+		Expect(buffer).To(Say("FINISHED UPGRADES"))
+		Expect(buffer).To(Say("Number of successful upgrades: 34"))
+		Expect(buffer).To(Say("Number of CF service instance orphans detected: 23"))
+		Expect(buffer).To(Say("Number of deleted instances before upgrade could occur: 45"))
+	})
+})
+
+func logResultsFrom(action func(listener upgrader.Listener)) *Buffer {
+	logBuffer := NewBuffer()
+	loggerFactory := loggerfactory.New(io.MultiWriter(GinkgoWriter, logBuffer), "logging-listener-tests", log.LstdFlags)
+	listener := upgrader.NewLoggingListener(loggerFactory.New())
+
+	action(listener)
+
+	return logBuffer
+}

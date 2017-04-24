@@ -1,0 +1,146 @@
+// Copyright (C) 2016-Present Pivotal Software, Inc. All rights reserved.
+// This program and the accompanying materials are made available under the terms of the under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// http://www.apache.org/licenses/LICENSE-2.0
+// Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+
+package broker
+
+import (
+	"fmt"
+	"log"
+
+	"github.com/pivotal-cf/on-demand-service-broker/boshclient"
+	"github.com/pivotal-cf/on-demand-service-broker/config"
+)
+
+type LifeCycleRunner struct {
+	boshClient BoshClient
+	plans      config.Plans
+}
+
+func NewLifeCycleRunner(
+	boshClient BoshClient,
+	plans config.Plans,
+) LifeCycleRunner {
+	return LifeCycleRunner{
+		boshClient,
+		plans,
+	}
+}
+
+func (l LifeCycleRunner) GetTask(
+	deploymentName string,
+	operationData OperationData,
+	logger *log.Logger,
+) (boshclient.BoshTask, error) {
+
+	switch {
+	case operationData.BoshContextID == "":
+		return l.boshClient.GetTask(operationData.BoshTaskID, logger)
+	case validPostDeployOpType(operationData.OperationType):
+		return l.processPostDeployment(deploymentName, operationData, logger)
+	case validPreDeleteOpType(operationData.OperationType):
+		return l.processPreDelete(deploymentName, operationData, logger)
+	default:
+		return l.boshClient.GetTask(operationData.BoshTaskID, logger)
+	}
+}
+
+func validPostDeployOpType(op OperationType) bool {
+	return op == OperationTypeCreate ||
+		op == OperationTypeUpdate ||
+		op == OperationTypeUpgrade
+}
+
+func validPreDeleteOpType(op OperationType) bool {
+	return op == OperationTypeDelete
+}
+
+func (l LifeCycleRunner) processPostDeployment(
+	deploymentName string,
+	operationData OperationData,
+	logger *log.Logger,
+) (boshclient.BoshTask, error) {
+	boshTasks, err := l.boshClient.GetNormalisedTasksByContext(deploymentName, operationData.BoshContextID, logger)
+	if err != nil {
+		return boshclient.BoshTask{}, err
+	}
+
+	switch len(boshTasks) {
+	case 0:
+		return boshclient.BoshTask{}, fmt.Errorf("no tasks found for context id: %s", operationData.BoshContextID)
+	case 1:
+		task := boshTasks[0]
+
+		if task.StateType() != boshclient.TaskDone {
+			return task, nil
+		}
+
+		plan, found := l.plans.FindByID(operationData.PlanID)
+		if !found {
+			logger.Printf("can't determine lifecycle errands, plan with id %s not found\n", operationData.PlanID)
+			return task, nil
+		}
+
+		errand := plan.PostDeployErrand()
+		if errand == "" {
+			return task, nil
+		}
+
+		return l.runErrand(deploymentName, errand, operationData.BoshContextID, logger)
+	case 2:
+		return boshTasks[0], nil
+	default:
+		return boshclient.BoshTask{},
+			fmt.Errorf("unexpected tasks found with context id: %s, tasks: %s", operationData.BoshContextID, boshTasks.ToLog())
+	}
+}
+
+func (l LifeCycleRunner) processPreDelete(
+	deploymentName string,
+	operationData OperationData,
+	logger *log.Logger,
+) (boshclient.BoshTask, error) {
+	boshTasks, err := l.boshClient.GetNormalisedTasksByContext(deploymentName, operationData.BoshContextID, logger)
+
+	if err != nil {
+		return boshclient.BoshTask{}, err
+	}
+
+	switch len(boshTasks) {
+	case 0:
+		return boshclient.BoshTask{}, fmt.Errorf("no tasks found for context id: %s", operationData.BoshContextID)
+	case 1:
+		task := boshTasks[0]
+		if task.StateType() != boshclient.TaskDone {
+			return task, nil
+		}
+
+		taskID, err := l.boshClient.DeleteDeployment(deploymentName, operationData.BoshContextID, logger)
+		if err != nil {
+			return boshclient.BoshTask{}, err
+		}
+		return l.boshClient.GetTask(taskID, logger)
+	case 2:
+		// there must be a delete deployment and it must be the first in the task list
+		return boshTasks[0], nil
+	default:
+		return boshclient.BoshTask{},
+			fmt.Errorf("unexpected tasks found with context id: %s, tasks: %s", operationData.BoshContextID, boshTasks.ToLog())
+	}
+}
+
+func (l LifeCycleRunner) runErrand(deploymentName, errand, contextID string, log *log.Logger) (boshclient.BoshTask, error) {
+	taskID, err := l.boshClient.RunErrand(deploymentName, errand, contextID, log)
+	if err != nil {
+		return boshclient.BoshTask{}, err
+	}
+
+	task, err := l.boshClient.GetTask(taskID, log)
+	if err != nil {
+		return boshclient.BoshTask{}, err
+	}
+
+	return task, nil
+}

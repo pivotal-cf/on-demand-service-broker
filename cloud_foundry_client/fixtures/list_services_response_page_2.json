@@ -1,0 +1,39 @@
+{
+  "total_results": 3,
+  "total_pages": 3,
+  "prev_url": "/v2/services?order-direction=asc&page=1&results-per-page=100",
+  "next_url": "/v2/services?order-direction=asc&page=3&results-per-page=100",
+  "resources": [
+    {
+      "metadata": {
+        "guid": "06df08f9-5a58-4d33-8097-32d0baf3ce1e",
+        "url": "/v2/services/06df08f9-5a58-4d33-8097-32d0baf3ce1e",
+        "created_at": "2016-07-07T10:39:18Z",
+        "updated_at": null
+      },
+      "entity": {
+        "label": "kafka-dev1",
+        "provider": null,
+        "url": null,
+        "description": "Kafka Service",
+        "long_description": null,
+        "version": null,
+        "info_url": null,
+        "active": true,
+        "bindable": true,
+        "unique_id": "D94A086D-203D-4966-A6F1-60A9E2300F72",
+        "extra": "{}",
+        "tags": [
+          "kafka"
+        ],
+        "requires": [
+
+        ],
+        "documentation_url": null,
+        "service_broker_guid": "cacee78a-5169-4db1-8f59-241b1c0870bd",
+        "plan_updateable": true,
+        "service_plans_url": "/v2/services/06df08f9-5a58-4d33-8097-32d0baf3ce1e/service_plans"
+      }
+    }
+  ]
+}
