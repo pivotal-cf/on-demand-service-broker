@@ -14,13 +14,9 @@ type CredentialStore struct {
 }
 
 func DisabledCredentialStore() CredentialStore {
-	var nullClient = credhubclient.Client{}
-	return CredentialStore{false, &nullClient}
+	return CredentialStore{false, new(credhubclient.Client)}
 }
 
 func NewCredentialStore(credhubclient CredhubClient) CredentialStore {
-	return CredentialStore{
-		true,
-		credhubclient,
-	}
+	return CredentialStore{true, credhubclient}
 }

@@ -22,6 +22,7 @@ type BoshClient interface {
 	GetDeployment(name string, logger *log.Logger) ([]byte, bool, error)
 }
 
+// TODO SF Why is  previousPlanID a pointer to a string?
 //go:generate counterfeiter -o fakes/fake_manifest_generator.go . ManifestGenerator
 type ManifestGenerator interface {
 	GenerateManifest(deploymentName, planID string, requestParams map[string]interface{}, oldManifest []byte, previousPlanID *string, logger *log.Logger) (BoshManifest, error)
@@ -165,6 +166,7 @@ func (d deployer) getDeploymentManifest(deploymentName string, logger *log.Logge
 	return oldManifest, nil
 }
 
+// TODO SF Why are these two methods different?
 func (d deployer) assertNoOperationsInProgress(deploymentName string, logger *log.Logger) error {
 	clientTasks, err := d.boshClient.GetTasks(deploymentName, logger)
 	if err != nil {
@@ -210,12 +212,12 @@ func parametersFromRequest(requestParams map[string]interface{}) map[string]inte
 const applyChangesKey = "apply-changes"
 
 func (d deployer) validatedApplyChanges(parameters map[string]interface{}) (bool, error) {
-	param := parameters[applyChangesKey]
-	if param == nil {
+	value := parameters[applyChangesKey]
+	if value == nil {
 		return false, nil
 	}
 
-	applyChanges, ok := param.(bool)
+	applyChanges, ok := value.(bool)
 	if !ok {
 		return false, broker.NewTaskError(errors.New("update called with apply-changes set to non-boolean"))
 	}
@@ -225,11 +227,7 @@ func (d deployer) validatedApplyChanges(parameters map[string]interface{}) (bool
 	return applyChanges, nil
 }
 
-func (d deployer) assertCanApplyChanges(
-	parameters map[string]interface{},
-	planID string,
-	previousPlanID *string,
-) error {
+func (d deployer) assertCanApplyChanges(parameters map[string]interface{}, planID string, previousPlanID *string) error {
 	if !d.featureFlags.CFUserTriggeredUpgrades() {
 		return broker.NewApplyChangesNotPermittedError(errors.New("'cf_user_triggered_upgrades' feature is disabled"))
 	}
@@ -257,12 +255,12 @@ func (d deployer) checkForPendingChanges(
 		return err
 	}
 
-	manifestsEqual, err := regeneratedManifest.Equals(oldManifest)
+	manifestsUnchanged, err := regeneratedManifest.Equals(oldManifest)
 	if err != nil {
 		return fmt.Errorf("error detecting change in manifest: %s", err)
 	}
 
-	if !manifestsEqual && !applyingChanges {
+	if !manifestsUnchanged && !applyingChanges {
 		return broker.NewTaskError(errors.New("pending changes detected"))
 	}
 
