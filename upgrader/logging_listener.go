@@ -76,9 +76,12 @@ func (ll LoggingListener) Progress(pollingInterval time.Duration, orphanCount, u
 }
 
 func (ll LoggingListener) Finished(orphanCount, upgradedCount, deletedCount int) {
-	ll.logger.Println("FINISHED UPGRADES")
-	ll.logger.Printf("Summary:")
-	ll.logger.Printf("Number of successful upgrades: %d", upgradedCount)
-	ll.logger.Printf("Number of CF service instance orphans detected: %d", orphanCount)
-	ll.logger.Printf("Number of deleted instances before upgrade could occur: %d", deletedCount)
+	ll.logger.Printf("FINISHED UPGRADES Summary: "+
+		"Number of successful upgrades: %d; "+
+		"Number of CF service instance orphans detected: %d; "+
+		"Number of deleted instances before upgrade could occur: %d",
+		upgradedCount,
+		orphanCount,
+		deletedCount,
+	)
 }
