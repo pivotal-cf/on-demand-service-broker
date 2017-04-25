@@ -47,12 +47,25 @@ func NewOperationInProgressError(e error) error {
 	return OperationInProgressError{e}
 }
 
+type TaskErrorType int // horrible interim solution until we can get the logic in the right place
+
+const (
+	ApplyChangesInvalid TaskErrorType = iota
+	ApplyChangesWithPlanChange
+	ApplyChangesWithParams
+	ApplyChangesWithPendingChanges
+)
+
 type TaskError struct {
 	error
+	taskErrorType TaskErrorType
 }
 
-func NewTaskError(e error) error {
-	return TaskError{e}
+func NewTaskError(e error, taskErrorType TaskErrorType) error {
+	return TaskError{
+		error:         e,
+		taskErrorType: taskErrorType,
+	}
 }
 
 var NilError = DisplayableError{nil, nil}

@@ -210,16 +210,16 @@ func parametersFromRequest(requestParams map[string]interface{}) map[string]inte
 }
 
 func (d deployer) validatedApplyChanges(parameters map[string]interface{}) (bool, error) {
-    const applyChangesKey = "apply-changes"
+	const applyChangesKey = "apply-changes"
 
-    value := parameters[applyChangesKey]
+	value := parameters[applyChangesKey]
 	if value == nil {
 		return false, nil
 	}
 
 	applyChanges, ok := value.(bool)
 	if !ok {
-		return false, broker.NewTaskError(errors.New("update called with apply-changes set to non-boolean"))
+		return false, broker.NewTaskError(errors.New("update called with apply-changes set to non-boolean"), broker.ApplyChangesInvalid)
 	}
 
 	delete(parameters, applyChangesKey)
@@ -233,11 +233,11 @@ func (d deployer) assertCanApplyChanges(parameters map[string]interface{}, planI
 	}
 
 	if previousPlanID != nil && planID != *previousPlanID {
-		return broker.NewTaskError(errors.New("update called with apply-changes and a plan change"))
+		return broker.NewTaskError(errors.New("update called with apply-changes and a plan change"), broker.ApplyChangesWithPlanChange)
 	}
 
 	if len(parameters) > 0 {
-		return broker.NewTaskError(errors.New("update called with apply-changes and arbitrary parameters set"))
+		return broker.NewTaskError(errors.New("update called with apply-changes and arbitrary parameters set"), broker.ApplyChangesWithParams)
 	}
 
 	return nil
@@ -255,13 +255,15 @@ func (d deployer) checkForPendingChanges(
 		return err
 	}
 
-	manifestsUnchanged, err := regeneratedManifest.Equals(oldManifest)
+	manifestsSame, err := regeneratedManifest.Equals(oldManifest)
 	if err != nil {
 		return fmt.Errorf("error detecting change in manifest: %s", err)
 	}
 
-	if !manifestsUnchanged && !applyingChanges {
-		return broker.NewTaskError(errors.New("pending changes detected"))
+	pendingChanges := !manifestsSame
+
+	if pendingChanges && !applyingChanges {
+		return broker.NewTaskError(errors.New("pending changes detected"), broker.ApplyChangesWithPendingChanges)
 	}
 
 	return nil

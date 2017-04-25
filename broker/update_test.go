@@ -148,11 +148,11 @@ var _ = Describe("Update", func() {
 					newPlanID = secondPlanID
 					oldPlanID = existingPlanID
 
-					fakeDeployer.UpdateReturns(0, nil, broker.NewTaskError(errors.New("deployer-error-message")))
+					fakeDeployer.UpdateReturns(0, nil, broker.NewTaskError(errors.New("deployer-error-message"), broker.ApplyChangesWithPendingChanges))
 				})
 
 				It("reports an error", func() {
-					Expect(updateError).To(MatchError(ContainSubstring(broker.ApplyChangesNotPermittedMessage)))
+					Expect(updateError).To(MatchError(ContainSubstring(broker.ApplyChangesDisabledMessage)))
 					Expect(logBuffer.String()).To(ContainSubstring("deployer-error-message"))
 				})
 			})
@@ -163,7 +163,7 @@ var _ = Describe("Update", func() {
 					oldPlanID = existingPlanID
 
 					fakeFeatureFlags.CFUserTriggeredUpgradesReturns(true)
-					fakeDeployer.UpdateReturns(0, nil, broker.NewTaskError(errors.New("deployer-error-message")))
+					fakeDeployer.UpdateReturns(0, nil, broker.NewTaskError(errors.New("deployer-error-message"), broker.ApplyChangesWithPendingChanges))
 				})
 
 				It("reports an error", func() {
@@ -285,7 +285,18 @@ var _ = Describe("Update", func() {
 
 			Context("and there are pending changes", func() {
 				BeforeEach(func() {
-					fakeDeployer.UpdateReturns(0, nil, broker.NewTaskError(errors.New("deployer-error-message")))
+					fakeDeployer.UpdateReturns(0, nil, broker.NewTaskError(errors.New("deployer-error-message"), broker.ApplyChangesWithPendingChanges))
+				})
+
+				It("reports the  error", func() {
+					Expect(updateError).To(MatchError(ContainSubstring(broker.ApplyChangesDisabledMessage)))
+					Expect(logBuffer.String()).To(ContainSubstring("error: deployer-error-message"))
+				})
+			})
+
+			Context("and there are arbitrary parameters set", func() {
+				BeforeEach(func() {
+					fakeDeployer.UpdateReturns(0, nil, broker.NewTaskError(errors.New("deployer-error-message"), broker.ApplyChangesInvalid))
 				})
 
 				It("reports the  error", func() {
@@ -293,6 +304,7 @@ var _ = Describe("Update", func() {
 					Expect(logBuffer.String()).To(ContainSubstring("error: deployer-error-message"))
 				})
 			})
+
 		})
 
 		Context("when the plan cannot be found in config", func() {

@@ -107,7 +107,9 @@ func (b *Broker) Update(
 func (b *Broker) asDisplayableError(err TaskError) DisplayableError {
 	if b.featureFlags.CFUserTriggeredUpgrades() {
 		return NewPendingChangesError(err)
-	} else {
-		return NewApplyChangesNotPermittedError(err)
 	}
+	if err.taskErrorType == ApplyChangesWithPendingChanges {
+		return NewApplyChangesDisabledError(err)
+	}
+	return NewApplyChangesNotPermittedError(err)
 }
