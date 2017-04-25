@@ -59,12 +59,9 @@ func (b *Broker) Bind(
 		return brokerapi.Binding{}, err
 	}
 
-	if b.credentialStore.Enabled {
-		credentialId := fmt.Sprintf("%s/%s", instanceID, bindingID)
-		err := b.credentialStore.PutCredentials(credentialId, binding.Credentials)
-		if err != nil {
-			logger.Printf("Unable to put %s in credhub: %s\n", credentialId, err)
-		}
+	credentialId := fmt.Sprintf("%s/%s", instanceID, bindingID)
+	if err := b.credentialStore.PutCredentials(credentialId, binding.Credentials); err != nil {
+		logger.Printf("Unable to put %s in credhub: %s\n", credentialId, err)
 	}
 
 	return brokerapi.Binding{

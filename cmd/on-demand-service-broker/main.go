@@ -146,14 +146,15 @@ func startBroker(conf config.Config, logger *log.Logger, loggerFactory *loggerfa
 	server.Run(fmt.Sprintf("0.0.0.0:%d", conf.Broker.Port))
 }
 
-func credentialStore(credhub *config.Credhub, disableSSLCertVerification bool) broker.CredentialStore {
+func credentialStore(credhub *config.Credhub, disableSSLCertVerification bool) broker.CredStore {
 	if credhub == nil {
-		return broker.DisabledCredentialStore()
+		return credhubclient.Noop
 	}
-	return broker.NewCredentialStore(&credhubclient.NewCredhubClient(
+
+	return credhubclient.NewCredhubClient(
 		credhub.APIURL,
 		credhub.ID,
 		credhub.Secret,
 		disableSSLCertVerification,
-	))
+	)
 }

@@ -23,7 +23,7 @@ type Broker struct {
 	boshClient      BoshClient
 	cfClient        CloudFoundryClient
 	adapterClient   ServiceAdapterClient
-	credentialStore CredentialStore
+	credentialStore CredStore
 	deployer        Deployer
 	deploymentLock  *sync.Mutex
 
@@ -33,7 +33,11 @@ type Broker struct {
 	featureFlags  FeatureFlags
 }
 
-func New(boshClient BoshClient, cfClient CloudFoundryClient, credentialStore CredentialStore, serviceAdapter ServiceAdapterClient,
+type CredStore interface {
+	PutCredentials(id string, creds map[string]interface{}) error
+}
+
+func New(boshClient BoshClient, cfClient CloudFoundryClient, credentialStore CredStore, serviceAdapter ServiceAdapterClient,
 	deployer Deployer, serviceOffering config.ServiceOffering, loggerFactory *loggerfactory.LoggerFactory, featureFlags FeatureFlags) (*Broker, error) {
 
 	b := &Broker{

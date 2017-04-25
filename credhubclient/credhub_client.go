@@ -25,8 +25,14 @@ type Client struct {
 	DisableSSLCertVerification bool
 }
 
-func NewCredhubClient(url, id, secret string, disableSSLCertVertification bool) Client {
-	return Client{
+var Noop = new(noop)
+
+type noop struct{}
+
+func (n *noop) PutCredentials(id string, creds map[string]interface{}) error { return nil }
+
+func NewCredhubClient(url, id, secret string, disableSSLCertVertification bool) *Client {
+	return &Client{
 		Url:    url,
 		Id:     id,
 		Secret: secret,

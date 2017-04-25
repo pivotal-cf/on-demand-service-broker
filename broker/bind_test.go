@@ -104,24 +104,14 @@ var _ = Describe("Bind", func() {
 		Expect(logBuffer.String()).To(MatchRegexp(fmt.Sprintf(`\[[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\] \d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2} service adapter will create binding with ID %s for instance %s`, bindingID, instanceID)))
 	})
 
-	It("does not call the credhubclient", func() {
-		Expect(credhubClient.PutCredentialsCallCount()).To(Equal(0))
+	It("calls the credhubclient", func() {
+		Expect(credhubClient.PutCredentialsCallCount()).To(Equal(1))
 	})
 
-	Context("when credhub credentials have been specified", func() {
-		BeforeEach(func() {
-			credentialStore.Enabled = true
-		})
-
-		It("does call the credhubclient", func() {
-			Expect(credhubClient.PutCredentialsCallCount()).To(Equal(1))
-		})
-
-		It("passes the adapter binding response to credhub", func() {
-			identifier, creds := credhubClient.PutCredentialsArgsForCall(0)
-			Expect(identifier).To(Equal(fmt.Sprintf("%s/%s", instanceID, bindingID)))
-			Expect(creds).To(Equal(adapterBindingResponse.Credentials))
-		})
+	It("passes the adapter binding response to credhub", func() {
+		identifier, creds := credhubClient.PutCredentialsArgsForCall(0)
+		Expect(identifier).To(Equal(fmt.Sprintf("%s/%s", instanceID, bindingID)))
+		Expect(creds).To(Equal(adapterBindingResponse.Credentials))
 	})
 
 	Context("when the request cannot be converted to json", func() {
