@@ -209,10 +209,10 @@ func parametersFromRequest(requestParams map[string]interface{}) map[string]inte
 	return parameters
 }
 
-const applyChangesKey = "apply-changes"
-
 func (d deployer) validatedApplyChanges(parameters map[string]interface{}) (bool, error) {
-	value := parameters[applyChangesKey]
+    const applyChangesKey = "apply-changes"
+
+    value := parameters[applyChangesKey]
 	if value == nil {
 		return false, nil
 	}

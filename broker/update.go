@@ -103,6 +103,7 @@ func (b *Broker) Update(
 
 	return brokerapi.UpdateServiceSpec{IsAsync: true, OperationData: string(operationData)}, nil
 }
+
 func (b *Broker) asDisplayableError(err TaskError) DisplayableError {
 	if b.featureFlags.CFUserTriggeredUpgrades() {
 		return NewPendingChangesError(err)
