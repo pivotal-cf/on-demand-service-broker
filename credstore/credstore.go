@@ -4,16 +4,15 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 // Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
-package credhubclient_test
+package credstore
 
-import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
-	"testing"
-)
-
-func TestCredhubclient(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Credhubclient Suite")
+type Client interface {
+	PutCredentials(id string, creds map[string]interface{}) error
 }
+
+// Noop is a non-operational credentials store, i.e. PutCredentials does nothing.
+var Noop = new(noop)
+
+type noop struct{}
+
+func (n *noop) PutCredentials(id string, creds map[string]interface{}) error { return nil }

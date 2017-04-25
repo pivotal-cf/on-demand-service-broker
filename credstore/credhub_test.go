@@ -4,12 +4,12 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 // Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
-package credhubclient_test
+package credstore_test
 
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf/on-demand-service-broker/credhubclient"
+	"github.com/pivotal-cf/on-demand-service-broker/credstore"
 	"github.com/pivotal-cf/on-demand-service-broker/mockcredhub"
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
 	"github.com/pivotal-cf/on-demand-service-broker/mockuaa"
@@ -45,7 +45,7 @@ var _ = Describe("Credhub Client", func() {
 		})
 
 		It("does not return an error", func() {
-			client := credhubclient.NewCredhubClient(credhub.URL, credhubClientID, credhubClientSecret, true)
+			client := credstore.NewCredhubClient(credhub.URL, credhubClientID, credhubClientSecret, true)
 
 			err := client.PutCredentials(identifier, map[string]interface{}{"secret": "things"})
 
@@ -55,7 +55,7 @@ var _ = Describe("Credhub Client", func() {
 
 	Context("when the credentials are invalid JSON", func() {
 		It("returns an error", func() {
-			client := credhubclient.NewCredhubClient(credhub.URL, credhubClientID, credhubClientSecret, true)
+			client := credstore.NewCredhubClient(credhub.URL, credhubClientID, credhubClientSecret, true)
 			invalidCredentialsMap := map[string]interface{}{
 				"key": map[float64]string{
 					1.0: "thing",
@@ -76,7 +76,7 @@ var _ = Describe("Credhub Client", func() {
 		})
 
 		It("returns an error", func() {
-			client := credhubclient.NewCredhubClient(credhub.URL, credhubClientID, "not the client secret", true)
+			client := credstore.NewCredhubClient(credhub.URL, credhubClientID, "not the client secret", true)
 
 			err := client.PutCredentials(identifier, map[string]interface{}{"secret": "things"})
 
@@ -93,7 +93,7 @@ var _ = Describe("Credhub Client", func() {
 		})
 
 		It("returns an error", func() {
-			client := credhubclient.NewCredhubClient(credhub.URL, credhubClientID, credhubClientSecret, true)
+			client := credstore.NewCredhubClient(credhub.URL, credhubClientID, credhubClientSecret, true)
 
 			err := client.PutCredentials(identifier, map[string]interface{}{"secret": "things"})
 

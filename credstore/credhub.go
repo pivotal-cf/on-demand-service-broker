@@ -4,7 +4,7 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 // Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
-package credhubclient
+package credstore
 
 import (
 	"encoding/json"
@@ -18,21 +18,15 @@ import (
 	"github.com/pivotal-cf/credhub-cli/repositories"
 )
 
-type Client struct {
+type Credhub struct {
 	Url                        string
 	Id                         string
 	Secret                     string
 	DisableSSLCertVerification bool
 }
 
-var Noop = new(noop)
-
-type noop struct{}
-
-func (n *noop) PutCredentials(id string, creds map[string]interface{}) error { return nil }
-
-func NewCredhubClient(url, id, secret string, disableSSLCertVertification bool) *Client {
-	return &Client{
+func NewCredhubClient(url, id, secret string, disableSSLCertVertification bool) *Credhub {
+	return &Credhub{
 		Url:    url,
 		Id:     id,
 		Secret: secret,
@@ -40,7 +34,7 @@ func NewCredhubClient(url, id, secret string, disableSSLCertVertification bool) 
 	}
 }
 
-func (c *Client) PutCredentials(identifier string, credentialsMap map[string]interface{}) error {
+func (c *Credhub) PutCredentials(identifier string, credentialsMap map[string]interface{}) error {
 	rawCredentials, err := json.Marshal(credentialsMap)
 	if err != nil {
 		return fmt.Errorf("error marshalling credentials")
@@ -69,7 +63,7 @@ func (c *Client) PutCredentials(identifier string, credentialsMap map[string]int
 	return nil
 }
 
-func (c *Client) getCredhubTokens(cfg config.Config, httpClient *http.Client) (string, string, error) {
+func (c *Credhub) getCredhubTokens(cfg config.Config, httpClient *http.Client) (string, string, error) {
 	token, err := actions.NewAuthToken(httpClient, cfg).GetAuthToken(c.Id, c.Secret)
 	if err != nil {
 		return "", "", err

@@ -14,6 +14,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/boshclient"
 	"github.com/pivotal-cf/on-demand-service-broker/cloud_foundry_client"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
+	"github.com/pivotal-cf/on-demand-service-broker/credstore"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
@@ -23,7 +24,7 @@ type Broker struct {
 	boshClient      BoshClient
 	cfClient        CloudFoundryClient
 	adapterClient   ServiceAdapterClient
-	credentialStore CredStore
+	credentialStore credstore.Client
 	deployer        Deployer
 	deploymentLock  *sync.Mutex
 
@@ -33,11 +34,7 @@ type Broker struct {
 	featureFlags  FeatureFlags
 }
 
-type CredStore interface {
-	PutCredentials(id string, creds map[string]interface{}) error
-}
-
-func New(boshClient BoshClient, cfClient CloudFoundryClient, credentialStore CredStore, serviceAdapter ServiceAdapterClient,
+func New(boshClient BoshClient, cfClient CloudFoundryClient, credentialStore credstore.Client, serviceAdapter ServiceAdapterClient,
 	deployer Deployer, serviceOffering config.ServiceOffering, loggerFactory *loggerfactory.LoggerFactory, featureFlags FeatureFlags) (*Broker, error) {
 
 	b := &Broker{
