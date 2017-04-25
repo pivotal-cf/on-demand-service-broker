@@ -8,6 +8,10 @@ In production, this application is deployed via a BOSH release. See its
 [repo](https://github.com/pivotal-cf/on-demand-service-broker-release) for more
 details.
 
+## User Documentation
+
+User documentation can be found [here](https://docs.pivotal.io/svc-sdk/odb). Documentation is targeted at service authors wishing to deploy their services on-demand and operators wanting to offer services on-demand.
+
 ## Development
 
 ### How are dependencies managed?
