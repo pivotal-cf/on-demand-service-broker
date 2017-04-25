@@ -19,18 +19,18 @@ import (
 )
 
 type Credhub struct {
-	Url                        string
-	Id                         string
-	Secret                     string
-	DisableSSLCertVerification bool
+	url                        string
+	id                         string
+	secret                     string
+	disableSSLCertVerification bool
 }
 
 func NewCredhubClient(url, id, secret string, disableSSLCertVertification bool) *Credhub {
 	return &Credhub{
-		Url:    url,
-		Id:     id,
-		Secret: secret,
-		DisableSSLCertVerification: disableSSLCertVertification,
+		url:    url,
+		id:     id,
+		secret: secret,
+		disableSSLCertVerification: disableSSLCertVertification,
 	}
 }
 
@@ -41,8 +41,8 @@ func (c *Credhub) PutCredentials(identifier string, credentialsMap map[string]in
 	}
 
 	cfg := config.Config{}
-	cfg.InsecureSkipVerify = c.DisableSSLCertVerification
-	commands.GetApiInfo(&cfg, c.Url, false)
+	cfg.InsecureSkipVerify = c.disableSSLCertVerification
+	commands.GetApiInfo(&cfg, c.url, false)
 
 	httpClient := client.NewHttpClient(cfg)
 	repository := repositories.NewSecretRepository(httpClient)
@@ -64,7 +64,7 @@ func (c *Credhub) PutCredentials(identifier string, credentialsMap map[string]in
 }
 
 func (c *Credhub) getCredhubTokens(cfg config.Config, httpClient *http.Client) (string, string, error) {
-	token, err := actions.NewAuthToken(httpClient, cfg).GetAuthToken(c.Id, c.Secret)
+	token, err := actions.NewAuthToken(httpClient, cfg).GetAuthToken(c.id, c.secret)
 	if err != nil {
 		return "", "", err
 	}
