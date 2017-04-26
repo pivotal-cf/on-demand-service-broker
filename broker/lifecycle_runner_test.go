@@ -23,8 +23,8 @@ var _ = Describe("Lifecycle runner", func() {
 		deploymentName       = "some-deployment"
 		contextID            = "some-uuid"
 		planID               = "some-plan-id"
-		errand               = "some-errand"
-		anotherErrand        = "another-errand"
+		errand1              = "some-errand"
+		errand2              = "another-errand"
 		anotherPlanID        = "another-plan-id"
 		planIDWithoutErrands = "without-errands-plan-id"
 	)
@@ -33,13 +33,13 @@ var _ = Describe("Lifecycle runner", func() {
 		config.Plan{
 			ID: planID,
 			LifecycleErrands: &config.LifecycleErrands{
-				PostDeploy: errand,
+				PostDeploy: errand1,
 			},
 		},
 		config.Plan{
 			ID: anotherPlanID,
 			LifecycleErrands: &config.LifecycleErrands{
-				PostDeploy: anotherErrand,
+				PostDeploy: errand2,
 			},
 		},
 		config.Plan{
@@ -74,7 +74,7 @@ var _ = Describe("Lifecycle runner", func() {
 				}
 			})
 
-			Context("when a first task is incomplete", func() {
+			Context("and the deployment task is processing", func() {
 				BeforeEach(func() {
 					boshClient.GetNormalisedTasksByContextReturns(boshclient.BoshTasks{taskProcessing}, nil)
 				})
@@ -85,7 +85,7 @@ var _ = Describe("Lifecycle runner", func() {
 				})
 			})
 
-			Context("when a first task has errored", func() {
+			Context("and the deployment task has errored", func() {
 				BeforeEach(func() {
 					boshClient.GetNormalisedTasksByContextReturns(boshclient.BoshTasks{taskErrored}, nil)
 				})
@@ -96,7 +96,7 @@ var _ = Describe("Lifecycle runner", func() {
 				})
 			})
 
-			Context("when a first task cannot be found", func() {
+			Context("when the deployment task cannot be found", func() {
 				BeforeEach(func() {
 					boshClient.GetNormalisedTasksByContextReturns(boshclient.BoshTasks{}, nil)
 				})
@@ -107,28 +107,75 @@ var _ = Describe("Lifecycle runner", func() {
 				})
 			})
 
-			Context("when a first task is complete", func() {
+			Context("when the deployment task is done", func() {
 				var task boshclient.BoshTask
 				BeforeEach(func() {
 					boshClient.GetNormalisedTasksByContextReturns(boshclient.BoshTasks{taskComplete}, nil)
 				})
 
-				Context("and a post deploy is not configured", func() {
+				Context("and the post-deploy errand and plan id are absent in operation data", func() {
 					BeforeEach(func() {
-						deployRunner = broker.NewLifeCycleRunner(boshClient, plans)
-
-						opData := operationData
-						opData.PlanID = planIDWithoutErrands
-
-						task, _ = deployRunner.GetTask(deploymentName, opData, logger)
+						operationData.PlanID = ""
+						operationData.PostDeployErrandName = ""
+						task, _ = deployRunner.GetTask(deploymentName, operationData, logger)
 					})
-
-					It("returns the completed task", func() {
-						Expect(task.State).To(Equal(boshclient.BoshTaskDone))
+					It("logs that the plan id and errand are absent", func() {
+						Expect(logBuffer.String()).To(ContainSubstring("can't determine lifecycle errands, neither PlanID nor PostDeployErrandName is present"))
 					})
 
 					It("does not run a post deploy errand", func() {
 						Expect(boshClient.RunErrandCallCount()).To(Equal(0))
+					})
+
+					It("returns the completed task", func() {
+						Expect(task).To(Equal(taskComplete))
+					})
+				})
+
+				Context("and the post-deploy errand is present in the operation data", func() {
+					BeforeEach(func() {
+						var err error
+						deployRunner = broker.NewLifeCycleRunner(boshClient, plans)
+						operationData = broker.OperationData{
+							BoshContextID:        contextID,
+							OperationType:        broker.OperationTypeCreate,
+							PostDeployErrandName: errand1,
+						}
+
+						task, err = deployRunner.GetTask(deploymentName, operationData, logger)
+						Expect(err).NotTo(HaveOccurred())
+					})
+
+					It("runs the post-deploy errand set in the operation data", func() {
+						Expect(boshClient.RunErrandCallCount()).To(Equal(1))
+						name, expectedErrand, context, _ := boshClient.RunErrandArgsForCall(0)
+						Expect(name).To(Equal(deploymentName))
+						Expect(expectedErrand).To(Equal(errand1))
+						Expect(context).To(Equal(contextID))
+					})
+				})
+
+				Context("and the plan id is present", func() {
+					Context("and the plan is configured with post deploy errand", func() {
+						BeforeEach(func() {
+							var err error
+							deployRunner = broker.NewLifeCycleRunner(boshClient, plans)
+							operationData = broker.OperationData{
+								BoshContextID: contextID,
+								OperationType: broker.OperationTypeCreate,
+								PlanID:        planID,
+							}
+
+							task, err = deployRunner.GetTask(deploymentName, operationData, logger)
+							Expect(err).NotTo(HaveOccurred())
+						})
+						It("uses the config to determine which errand to run", func() {
+							Expect(boshClient.RunErrandCallCount()).To(Equal(1))
+							name, expectedErrand, context, _ := boshClient.RunErrandArgsForCall(0)
+							Expect(name).To(Equal(deploymentName))
+							Expect(expectedErrand).To(Equal(errand1))
+							Expect(context).To(Equal(contextID))
+						})
 					})
 				})
 
@@ -145,7 +192,7 @@ var _ = Describe("Lifecycle runner", func() {
 
 					It("runs the correct errand", func() {
 						_, errandName, _, _ := boshClient.RunErrandArgsForCall(0)
-						Expect(errandName).To(Equal(errand))
+						Expect(errandName).To(Equal(errand1))
 					})
 
 					It("runs the errand with the correct contextID", func() {
@@ -231,6 +278,10 @@ var _ = Describe("Lifecycle runner", func() {
 						opData := operationData
 						opData.PlanID = "non-existent-plan"
 						task, _ = deployRunner.GetTask(deploymentName, opData, logger)
+					})
+
+					It("logs that it can't find plan", func() {
+						Expect(logBuffer.String()).To(ContainSubstring("can't determine lifecycle errands, plan with id non-existent-plan not found"))
 					})
 
 					It("does not run a post deploy errand", func() {

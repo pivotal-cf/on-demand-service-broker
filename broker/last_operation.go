@@ -40,11 +40,9 @@ var descriptions = map[brokerapi.LastOperationState]map[OperationType]string{
 	},
 }
 
-func (b *Broker) LastOperation(
-	ctx context.Context,
-	instanceID,
-	operationDataRaw string,
+func (b *Broker) LastOperation(ctx context.Context, instanceID, operationDataRaw string,
 ) (brokerapi.LastOperation, error) {
+
 	requestID := uuid.New()
 	ctx = brokercontext.New(ctx, "", requestID, b.serviceOffering.Name, instanceID)
 	logger := b.loggerFactory.NewWithContext(ctx)

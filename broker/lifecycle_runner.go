@@ -29,12 +29,8 @@ func NewLifeCycleRunner(
 	}
 }
 
-func (l LifeCycleRunner) GetTask(
-	deploymentName string,
-	operationData OperationData,
-	logger *log.Logger,
+func (l LifeCycleRunner) GetTask(deploymentName string, operationData OperationData, logger *log.Logger,
 ) (boshclient.BoshTask, error) {
-
 	switch {
 	case operationData.BoshContextID == "":
 		return l.boshClient.GetTask(operationData.BoshTaskID, logger)
@@ -62,6 +58,7 @@ func (l LifeCycleRunner) processPostDeployment(
 	operationData OperationData,
 	logger *log.Logger,
 ) (boshclient.BoshTask, error) {
+
 	boshTasks, err := l.boshClient.GetNormalisedTasksByContext(deploymentName, operationData.BoshContextID, logger)
 	if err != nil {
 		return boshclient.BoshTask{}, err
@@ -77,18 +74,16 @@ func (l LifeCycleRunner) processPostDeployment(
 			return task, nil
 		}
 
-		plan, found := l.plans.FindByID(operationData.PlanID)
-		if !found {
-			logger.Printf("can't determine lifecycle errands, plan with id %s not found\n", operationData.PlanID)
+		if errand := operationData.PostDeployErrandName; errand != "" {
+			return l.runErrand(deploymentName, errand, operationData.BoshContextID, logger)
+		}
+
+		if operationData.PlanID == "" {
+			logger.Println("can't determine lifecycle errands, neither PlanID nor PostDeployErrandName is present")
 			return task, nil
 		}
 
-		errand := plan.PostDeployErrand()
-		if errand == "" {
-			return task, nil
-		}
-
-		return l.runErrand(deploymentName, errand, operationData.BoshContextID, logger)
+		return l.runErrandFromConfig(task, deploymentName, operationData, logger)
 	case 2:
 		return boshTasks[0], nil
 	default:
@@ -143,4 +138,19 @@ func (l LifeCycleRunner) runErrand(deploymentName, errand, contextID string, log
 	}
 
 	return task, nil
+}
+
+func (l LifeCycleRunner) runErrandFromConfig(task boshclient.BoshTask, deploymentName string, operationData OperationData, logger *log.Logger) (boshclient.BoshTask, error) {
+	plan, found := l.plans.FindByID(operationData.PlanID)
+	if !found {
+		logger.Printf("can't determine lifecycle errands, plan with id %s not found\n", operationData.PlanID)
+		return task, nil
+	}
+
+	errand := plan.PostDeployErrand()
+	if errand == "" {
+		return task, nil
+	}
+
+	return l.runErrand(deploymentName, errand, operationData.BoshContextID, logger)
 }

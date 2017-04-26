@@ -124,10 +124,10 @@ func (b *Broker) provisionInstance(ctx context.Context, instanceID string, planI
 	}
 
 	var boshContextID string
-	var operationDataPlanID string
+	var operationPostDeployErrand string
 	if plan.PostDeployErrand() != "" {
 		boshContextID = uuid.New()
-		operationDataPlanID = planID
+		operationPostDeployErrand = plan.PostDeployErrand()
 	}
 
 	boshTaskID, manifest, err := b.deployer.Create(deploymentName(instanceID), plan.ID, requestParams, boshContextID, logger)
@@ -152,10 +152,10 @@ func (b *Broker) provisionInstance(ctx context.Context, instanceID string, planI
 	}
 
 	operationData := OperationData{
-		BoshTaskID:    boshTaskID,
-		OperationType: OperationTypeCreate,
-		BoshContextID: boshContextID,
-		PlanID:        operationDataPlanID,
+		BoshTaskID:           boshTaskID,
+		OperationType:        OperationTypeCreate,
+		BoshContextID:        boshContextID,
+		PostDeployErrandName: operationPostDeployErrand,
 	}
 
 	//Dashboard url optional

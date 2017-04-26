@@ -34,6 +34,7 @@ var _ = Describe("last operation", func() {
 
 	var (
 		planID                string
+		postDeployErrandName  string
 		boshDirector          *mockhttp.Server
 		cfAPI                 *mockhttp.Server
 		cfUAA                 *mockuaa.ClientCredentialsServer
@@ -68,10 +69,11 @@ var _ = Describe("last operation", func() {
 		operationData := broker.OperationData{}
 		if operationType != "" {
 			operationData = broker.OperationData{
-				BoshTaskID:    boshTaskID,
-				OperationType: operationType,
-				BoshContextID: contextID,
-				PlanID:        planID,
+				BoshTaskID:           boshTaskID,
+				OperationType:        operationType,
+				BoshContextID:        contextID,
+				PlanID:               planID,
+				PostDeployErrandName: postDeployErrandName,
 			}
 		}
 		lastOperationResponse = lastOperationForInstance(instanceID, operationData)
@@ -959,7 +961,7 @@ var _ = Describe("last operation", func() {
 		})
 	})
 
-	Context("when a lifecycle errand is added to plan config during the deployment", func() {
+	Context("when a lifecycle errand is added to plan config during the service instance deployment", func() {
 		BeforeEach(func() {
 			planID = "post-deploy-plan-id"
 			operationType = broker.OperationTypeCreate
@@ -977,36 +979,30 @@ var _ = Describe("last operation", func() {
 			runningBroker = startBrokerWithPassingStartupChecks(brokerConfig, cfAPI, boshDirector)
 		})
 
-		Context("and there is a complete task", func() {
+		Context("and the deployment task is complete", func() {
 			BeforeEach(func() {
 				boshDirector.VerifyAndMock(
 					mockbosh.Task(boshTaskID).RespondsWithTaskContainingState(boshclient.BoshTaskDone),
 				)
 			})
 
-			It("responds with 200", func() {
+			It("responds with operation succeeded", func() {
 				Expect(lastOperationResponse.StatusCode).To(Equal(http.StatusOK))
-			})
-
-			It("has a description", func() {
 				Expect(rawResponse).To(MatchJSON(toJSONString(
 					map[string]interface{}{"state": brokerapi.Succeeded, "description": "Instance provisioning completed"})),
 				)
 			})
 		})
 
-		Context("and there is an incomplete task", func() {
+		Context("and the deployment task is incomplete", func() {
 			BeforeEach(func() {
 				boshDirector.VerifyAndMock(
 					mockbosh.Task(boshTaskID).RespondsWithTaskContainingState(boshclient.BoshTaskProcessing),
 				)
 			})
 
-			It("responds with 200", func() {
+			It("responds with operation in progress", func() {
 				Expect(lastOperationResponse.StatusCode).To(Equal(http.StatusOK))
-			})
-
-			It("has a description", func() {
 				Expect(rawResponse).To(MatchJSON(toJSONString(
 					map[string]interface{}{"state": brokerapi.InProgress, "description": "Instance provisioning in progress"})),
 				)
@@ -1023,6 +1019,8 @@ var _ = Describe("last operation", func() {
 		BeforeEach(func() {
 			planID = dedicatedPlanID
 			operationType = broker.OperationTypeCreate
+			postDeployErrandName = "health-check"
+
 			contextID = "some-context-id"
 
 			taskDone = boshclient.BoshTask{ID: 1, State: boshclient.BoshTaskDone, ContextID: contextID}
@@ -1031,27 +1029,27 @@ var _ = Describe("last operation", func() {
 			runningBroker = startBrokerWithPassingStartupChecks(brokerConfig, cfAPI, boshDirector)
 		})
 
-		Context("and there is a complete task", func() {
+		Context("and the deployment task is complete", func() {
 			BeforeEach(func() {
 				boshDirector.VerifyAndMock(
 					mockbosh.TasksByContext(deploymentName(instanceID), contextID).
 						RespondsWithATask(taskDone),
 					mockbosh.TaskOutput(taskDone.ID).RespondsWith(""),
+					mockbosh.Errand(deploymentName(instanceID), postDeployErrandName).
+						WithContextID(contextID).RedirectsToTask(taskProcessing.ID),
+					mockbosh.Task(taskProcessing.ID).RespondsWithJson(taskProcessing),
 				)
 			})
 
-			It("responds with 200", func() {
+			It("responds with operation in progress", func() {
 				Expect(lastOperationResponse.StatusCode).To(Equal(http.StatusOK))
-			})
-
-			It("has a description", func() {
 				Expect(rawResponse).To(MatchJSON(toJSONString(
-					map[string]interface{}{"state": brokerapi.Succeeded, "description": "Instance provisioning completed"})),
+					map[string]interface{}{"state": brokerapi.InProgress, "description": "Instance provisioning in progress"})),
 				)
 			})
 		})
 
-		Context("and there is an incomplete task", func() {
+		Context("and the deployment task is incomplete", func() {
 			BeforeEach(func() {
 				boshDirector.VerifyAndMock(
 					mockbosh.TasksByContext(deploymentName(instanceID), contextID).
@@ -1059,11 +1057,8 @@ var _ = Describe("last operation", func() {
 				)
 			})
 
-			It("responds with 200", func() {
+			It("responds with operation in progress", func() {
 				Expect(lastOperationResponse.StatusCode).To(Equal(http.StatusOK))
-			})
-
-			It("has a description", func() {
 				Expect(rawResponse).To(MatchJSON(toJSONString(
 					map[string]interface{}{"state": brokerapi.InProgress, "description": "Instance provisioning in progress"})),
 				)

@@ -433,8 +433,8 @@ var _ = Describe("provision service instance", func() {
 			Expect(operationData.BoshTaskID).To(Equal(taskID))
 			By("including a context ID")
 			Expect(operationData.BoshContextID).NotTo(BeEmpty())
-			By("including the plan ID")
-			Expect(operationData.PlanID).To(Equal(planID))
+			By("including the post deploy errand name")
+			Expect(operationData.PostDeployErrandName).To(Equal("health-check"))
 		})
 	})
 

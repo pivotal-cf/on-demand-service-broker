@@ -70,10 +70,11 @@ const (
 type OperationType string
 
 type OperationData struct {
-	BoshTaskID    int
-	BoshContextID string `json:",omitempty"`
-	OperationType OperationType
-	PlanID        string `json:",omitempty"`
+	BoshTaskID           int
+	BoshContextID        string `json:",omitempty"`
+	OperationType        OperationType
+	PlanID               string `json:",omitempty"`
+	PostDeployErrandName string `json:",omitempty"`
 }
 
 const InstancePrefix = "service-instance_"
