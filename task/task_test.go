@@ -634,7 +634,7 @@ var _ = Describe("Deployer", func() {
 			})
 
 			It("fails without deploying", func() {
-				Expect(deployError).To(Equal(broker.NewTaskError(errors.New("pending changes detected"))))
+				Expect(deployError).To(Equal(broker.NewTaskError(errors.New("pending changes detected"), broker.ApplyChangesWithPendingChanges)))
 				Expect(boshClient.DeployCallCount()).To(BeZero())
 			})
 
@@ -673,7 +673,7 @@ var _ = Describe("Deployer", func() {
 						})
 
 						It("fails without deploying", func() {
-							Expect(deployError).To(Equal(broker.NewTaskError(errors.New("update called with apply-changes and a plan change"))))
+							Expect(deployError).To(Equal(broker.NewTaskError(errors.New("update called with apply-changes and a plan change"), broker.ApplyChangesWithPlanChange)))
 							Expect(boshClient.DeployCallCount()).To(BeZero())
 						})
 					})
@@ -687,7 +687,7 @@ var _ = Describe("Deployer", func() {
 						})
 
 						It("fails without deploying", func() {
-							Expect(deployError).To(Equal(broker.NewTaskError(errors.New("update called with apply-changes and arbitrary parameters set"))))
+							Expect(deployError).To(Equal(broker.NewTaskError(errors.New("update called with apply-changes and arbitrary parameters set"), broker.ApplyChangesWithParams)))
 							Expect(boshClient.DeployCallCount()).To(BeZero())
 						})
 					})
@@ -695,7 +695,7 @@ var _ = Describe("Deployer", func() {
 
 				Context("set to false", func() {
 					It("fails without deploying", func() {
-						Expect(deployError).To(Equal(broker.NewTaskError(errors.New("pending changes detected"))))
+						Expect(deployError).To(Equal(broker.NewTaskError(errors.New("pending changes detected"), broker.ApplyChangesWithPendingChanges)))
 						Expect(boshClient.DeployCallCount()).To(BeZero())
 					})
 				})
@@ -706,7 +706,7 @@ var _ = Describe("Deployer", func() {
 					})
 
 					It("fails without deploying", func() {
-						Expect(deployError).To(Equal(broker.NewTaskError(errors.New("pending changes detected"))))
+						Expect(deployError).To(Equal(broker.NewTaskError(errors.New("pending changes detected"), broker.ApplyChangesWithPendingChanges)))
 						Expect(boshClient.DeployCallCount()).To(BeZero())
 					})
 				})
@@ -724,7 +724,7 @@ var _ = Describe("Deployer", func() {
 				})
 
 				It("fails without deploying", func() {
-					Expect(deployError).To(Equal(broker.NewTaskError(errors.New("update called with apply-changes set to non-boolean"))))
+					Expect(deployError).To(Equal(broker.NewTaskError(errors.New("update called with apply-changes set to non-boolean"), broker.ApplyChangesInvalid)))
 					Expect(boshClient.DeployCallCount()).To(BeZero())
 				})
 			})
