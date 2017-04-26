@@ -10,8 +10,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
+	"strings"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -95,59 +95,46 @@ var _ = Describe("updating a service instance", func() {
 				updateResp = updateServiceInstanceRequest(updateArbParams, instanceID, dedicatedPlanID, highMemoryPlanID)
 			})
 
-			It("returns HTTP 202", func() {
-				Expect(updateResp.StatusCode).To(Equal(http.StatusAccepted))
-			})
-
 			It("includes the operation data in the response", func() {
-				body, err := ioutil.ReadAll(updateResp.Body)
-				Expect(err).NotTo(HaveOccurred())
+				Expect(updateResp.StatusCode).To(Equal(http.StatusAccepted))
 
-				var updateResponse brokerapi.UpdateResponse
-				err = json.Unmarshal(body, &updateResponse)
-				Expect(err).NotTo(HaveOccurred())
-
-				var operationData broker.OperationData
-				err = json.Unmarshal([]byte(updateResponse.OperationData), &operationData)
-				Expect(err).NotTo(HaveOccurred())
-
-				By("including the operation type")
-				Expect(operationData.OperationType).To(Equal(broker.OperationTypeUpdate))
-				By("including the bosh task ID")
-				Expect(operationData.BoshTaskID).To(Equal(updateTaskID))
-				By("not including a context ID")
-				Expect(operationData.BoshContextID).To(BeEmpty())
-				By("not including the plan ID")
-				Expect(operationData.PlanID).To(BeEmpty())
+				Expect(*operationDataFrom(updateResp)).To(Equal(
+					broker.OperationData{
+						OperationType: broker.OperationTypeUpdate,
+						BoshTaskID:    updateTaskID,
+					},
+				))
 			})
 
 			It("has the previous plan", func() {
-				Expect(adapter.GenerateManifest().ReceivedPreviousPlan()).To(Equal(serviceadapter.Plan{
-					Properties: serviceadapter.Properties{
-						"type":            "dedicated-plan-property",
-						"global_property": "global_value",
-					},
-					Update: dedicatedPlanUpdateBlock,
-					InstanceGroups: []serviceadapter.InstanceGroup{
-						{
-							Name:               "instance-group-name",
-							VMType:             dedicatedPlanVMType,
-							VMExtensions:       dedicatedPlanVMExtensions,
-							PersistentDiskType: dedicatedPlanDisk,
-							Instances:          dedicatedPlanInstances,
-							Networks:           dedicatedPlanNetworks,
-							AZs:                dedicatedPlanAZs},
-						{
-							Name:               "instance-group-errand",
-							Lifecycle:          "errand",
-							VMType:             dedicatedPlanVMType,
-							PersistentDiskType: dedicatedPlanDisk,
-							Instances:          dedicatedPlanInstances,
-							Networks:           dedicatedPlanNetworks,
-							AZs:                dedicatedPlanAZs,
+				Expect(adapter.GenerateManifest().ReceivedPreviousPlan()).To(Equal(
+					serviceadapter.Plan{
+						Properties: serviceadapter.Properties{
+							"type":            "dedicated-plan-property",
+							"global_property": "global_value",
+						},
+						Update: dedicatedPlanUpdateBlock,
+						InstanceGroups: []serviceadapter.InstanceGroup{
+							{
+								Name:               "instance-group-name",
+								VMType:             dedicatedPlanVMType,
+								VMExtensions:       dedicatedPlanVMExtensions,
+								PersistentDiskType: dedicatedPlanDisk,
+								Instances:          dedicatedPlanInstances,
+								Networks:           dedicatedPlanNetworks,
+								AZs:                dedicatedPlanAZs},
+							{
+								Name:               "instance-group-errand",
+								Lifecycle:          "errand",
+								VMType:             dedicatedPlanVMType,
+								PersistentDiskType: dedicatedPlanDisk,
+								Instances:          dedicatedPlanInstances,
+								Networks:           dedicatedPlanNetworks,
+								AZs:                dedicatedPlanAZs,
+							},
 						},
 					},
-				}))
+				))
 			})
 
 			It("calls the adapter with service releases", func() {
@@ -240,7 +227,7 @@ var _ = Describe("updating a service instance", func() {
 				adapter.GenerateManifest().ToReturnManifest(rawManifestWithDeploymentName(instanceID))
 			})
 
-			JustBeforeEach(func() {
+			It("includes the operation data in the response", func() {
 				boshDirector.VerifyAndMock(
 					mockbosh.GetDeployment(deploymentName(instanceID)).RespondsWithManifest(manifest),
 					mockbosh.Tasks(deploymentName(instanceID)).RespondsWithNoTasks(),
@@ -248,32 +235,20 @@ var _ = Describe("updating a service instance", func() {
 				)
 
 				updateResp = updateServiceInstanceRequest(updateArbParams, instanceID, dedicatedPlanID, postDeployErrandPlanID)
-			})
 
-			It("responds with 202", func() {
 				Expect(updateResp.StatusCode).To(Equal(http.StatusAccepted))
-			})
 
-			It("includes the operation data in the response", func() {
-				body, err := ioutil.ReadAll(updateResp.Body)
-				Expect(err).NotTo(HaveOccurred())
-
-				var updateResponse brokerapi.UpdateResponse
-				err = json.Unmarshal(body, &updateResponse)
-				Expect(err).NotTo(HaveOccurred())
-
-				var operationData broker.OperationData
-				err = json.Unmarshal([]byte(updateResponse.OperationData), &operationData)
-				Expect(err).NotTo(HaveOccurred())
-
-				By("including the operation type")
-				Expect(operationData.OperationType).To(Equal(broker.OperationTypeUpdate))
-				By("including the bosh task ID")
-				Expect(operationData.BoshTaskID).To(Equal(taskID))
-				By("including a context ID")
+				operationData := operationDataFrom(updateResp)
 				Expect(operationData.BoshContextID).NotTo(BeEmpty())
-				By("including the new plan ID")
-				Expect(operationData.PlanID).To(Equal(postDeployErrandPlanID))
+
+				Expect(*operationData).To(Equal(
+					broker.OperationData{
+						OperationType: broker.OperationTypeUpdate,
+						BoshTaskID:    taskID,
+						BoshContextID: operationData.BoshContextID,
+						PlanID:        postDeployErrandPlanID,
+					},
+				))
 			})
 		})
 
@@ -302,7 +277,7 @@ var _ = Describe("updating a service instance", func() {
 				adapter.GenerateManifest().ToReturnManifest(rawManifestWithDeploymentName(instanceID))
 			})
 
-			JustBeforeEach(func() {
+			It("includes the operation data in the response", func() {
 				boshDirector.VerifyAndMock(
 					mockbosh.GetDeployment(deploymentName(instanceID)).RespondsWithManifest(manifest),
 					mockbosh.Tasks(deploymentName(instanceID)).RespondsWithNoTasks(),
@@ -310,32 +285,14 @@ var _ = Describe("updating a service instance", func() {
 				)
 
 				updateResp = updateServiceInstanceRequest(updateArbParams, instanceID, postDeployErrandPlanID, highMemoryPlanID)
-			})
-
-			It("responds with 202", func() {
 				Expect(updateResp.StatusCode).To(Equal(http.StatusAccepted))
-			})
 
-			It("includes the operation data in the response", func() {
-				body, err := ioutil.ReadAll(updateResp.Body)
-				Expect(err).NotTo(HaveOccurred())
-
-				var updateResponse brokerapi.UpdateResponse
-				err = json.Unmarshal(body, &updateResponse)
-				Expect(err).NotTo(HaveOccurred())
-
-				var operationData broker.OperationData
-				err = json.Unmarshal([]byte(updateResponse.OperationData), &operationData)
-				Expect(err).NotTo(HaveOccurred())
-
-				By("including the operation type")
-				Expect(operationData.OperationType).To(Equal(broker.OperationTypeUpdate))
-				By("including the bosh task ID")
-				Expect(operationData.BoshTaskID).To(Equal(taskID))
-				By("not including a context ID")
-				Expect(operationData.BoshContextID).To(BeEmpty())
-				By("not including the new plan ID")
-				Expect(operationData.PlanID).To(BeEmpty())
+				Expect(*operationDataFrom(updateResp)).To(Equal(
+					broker.OperationData{
+						OperationType: broker.OperationTypeUpdate,
+						BoshTaskID:    taskID,
+					},
+				))
 			})
 		})
 
@@ -356,14 +313,9 @@ var _ = Describe("updating a service instance", func() {
 					conf.Features.CFUserTriggeredUpgrades = true
 				})
 
-				It("returns HTTP 500", func() {
+				It("reports a pending change message", func() {
 					Expect(updateResp.StatusCode).To(Equal(http.StatusInternalServerError))
-				})
-
-				It("returns a pending change message", func() {
-					var errorResponse brokerapi.ErrorResponse
-					Expect(json.NewDecoder(updateResp.Body).Decode(&errorResponse)).To(Succeed())
-					Expect(errorResponse.Description).To(ContainSubstring(broker.PendingChangesErrorMessage))
+					Expect(descriptionFrom(updateResp)).To(ContainSubstring(broker.PendingChangesErrorMessage))
 				})
 			})
 
@@ -372,14 +324,9 @@ var _ = Describe("updating a service instance", func() {
 					conf.Features.CFUserTriggeredUpgrades = false
 				})
 
-				It("returns HTTP 500", func() {
+				It("reports a apply changes disabled message", func() {
 					Expect(updateResp.StatusCode).To(Equal(http.StatusInternalServerError))
-				})
-
-				It("returns an apply changes disabled message", func() {
-					var errorResponse brokerapi.ErrorResponse
-					Expect(json.NewDecoder(updateResp.Body).Decode(&errorResponse)).To(Succeed())
-					Expect(errorResponse.Description).To(ContainSubstring(broker.ApplyChangesDisabledMessage))
+					Expect(descriptionFrom(updateResp)).To(ContainSubstring(broker.ApplyChangesDisabledMessage))
 				})
 			})
 		})
@@ -413,59 +360,17 @@ var _ = Describe("updating a service instance", func() {
 				updateResp = updateServiceInstanceRequest(updateArbParams, instanceID, dedicatedPlanID, highMemoryPlanID)
 			})
 
-			It("responds with HTTP 500", func() {
+			It("fails with description", func() {
 				Expect(updateResp.StatusCode).To(Equal(http.StatusInternalServerError))
-			})
 
-			Describe("error message", func() {
-				var errorResponse brokerapi.ErrorResponse
+				description := descriptionFrom(updateResp)
+				Expect(description).NotTo(ContainSubstring("task-id:"))
+				Expect(description).To(ContainSubstring("There was a problem completing your request. Please contact your operations team providing the following information: "))
+				Expect(description).To(MatchRegexp(`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`))
+				Expect(description).To(ContainSubstring(fmt.Sprintf("service: %s", serviceName)))
+				Expect(description).To(ContainSubstring(fmt.Sprintf("service-instance-guid: %s", instanceID)))
+				Expect(description).To(ContainSubstring("operation: update"))
 
-				JustBeforeEach(func() {
-					Expect(json.NewDecoder(updateResp.Body).Decode(&errorResponse)).To(Succeed())
-				})
-
-				AfterEach(func() {
-					defer updateResp.Body.Close()
-				})
-
-				It("contains a generic message", func() {
-					Expect(errorResponse.Description).To(ContainSubstring(
-						"There was a problem completing your request. Please contact your operations team providing the following information: ",
-					))
-				})
-
-				It("includes the request ID", func() {
-					Expect(errorResponse.Description).To(MatchRegexp(
-						`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`,
-					))
-				})
-
-				It("includes the service name", func() {
-					Expect(errorResponse.Description).To(ContainSubstring(
-						fmt.Sprintf("service: %s", serviceName),
-					))
-				})
-
-				It("includes a service instance guid", func() {
-					Expect(errorResponse.Description).To(ContainSubstring(
-						fmt.Sprintf("service-instance-guid: %s", instanceID),
-					))
-				})
-
-				It("includes the operation type", func() {
-					Expect(errorResponse.Description).To(ContainSubstring(
-						"operation: update",
-					))
-				})
-
-				It("does NOT include a bosh task ID", func() {
-					Expect(errorResponse.Description).NotTo(ContainSubstring(
-						"task-id:",
-					))
-				})
-			})
-
-			It("logs the operator error message", func() {
 				Eventually(runningBroker.Out).Should(gbytes.Say(fmt.Sprintf("error deploying instance: bosh deployment '%s' not found.", deploymentName(instanceID))))
 			})
 		})
@@ -477,14 +382,9 @@ var _ = Describe("updating a service instance", func() {
 				updateResp = updateServiceInstanceRequest(updateArbParams, instanceID, dedicatedPlanID, highMemoryPlanID)
 			})
 
-			It("responds with HTTP 500", func() {
-				Expect(updateResp.StatusCode).To(Equal(http.StatusInternalServerError))
-			})
-
 			It("responds with a try again later message", func() {
-				var errorResponse brokerapi.ErrorResponse
-				Expect(json.NewDecoder(updateResp.Body).Decode(&errorResponse)).To(Succeed())
-				Expect(errorResponse.Description).To(ContainSubstring("Currently unable to update service instance, please try again later"))
+				Expect(updateResp.StatusCode).To(Equal(http.StatusInternalServerError))
+				Expect(descriptionFrom(updateResp)).To(ContainSubstring("Currently unable to update service instance, please try again later"))
 			})
 		})
 
@@ -494,56 +394,16 @@ var _ = Describe("updating a service instance", func() {
 				updateResp = updateServiceInstanceRequest(updateArbParams, instanceID, highMemoryPlanID, dedicatedPlanID)
 			})
 
-			It("returns HTTP 500", func() {
+			It("reports a failure", func() {
 				Expect(updateResp.StatusCode).To(Equal(http.StatusInternalServerError))
-			})
 
-			Describe("error message", func() {
-				var errorResponse brokerapi.ErrorResponse
-
-				JustBeforeEach(func() {
-					Expect(json.NewDecoder(updateResp.Body).Decode(&errorResponse)).To(Succeed())
-				})
-
-				AfterEach(func() {
-					defer updateResp.Body.Close()
-				})
-
-				It("contains a generic message", func() {
-					Expect(errorResponse.Description).To(ContainSubstring(
-						"There was a problem completing your request. Please contact your operations team providing the following information: ",
-					))
-				})
-
-				It("includes the request ID", func() {
-					Expect(errorResponse.Description).To(MatchRegexp(
-						`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`,
-					))
-				})
-
-				It("includes the service name", func() {
-					Expect(errorResponse.Description).To(ContainSubstring(
-						fmt.Sprintf("service: %s", serviceName),
-					))
-				})
-
-				It("includes a service instance guid", func() {
-					Expect(errorResponse.Description).To(ContainSubstring(
-						fmt.Sprintf("service-instance-guid: %s", instanceID),
-					))
-				})
-
-				It("includes the operation type", func() {
-					Expect(errorResponse.Description).To(ContainSubstring(
-						"operation: update",
-					))
-				})
-
-				It("does NOT include a bosh task ID", func() {
-					Expect(errorResponse.Description).NotTo(ContainSubstring(
-						"task-id:",
-					))
-				})
+				description := descriptionFrom(updateResp)
+				Expect(description).To(ContainSubstring("There was a problem completing your request. Please contact your operations team providing the following information: "))
+				Expect(description).To(MatchRegexp(`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`))
+				Expect(description).To(ContainSubstring(fmt.Sprintf("service: %s", serviceName)))
+				Expect(description).To(ContainSubstring(fmt.Sprintf("service-instance-guid: %s", instanceID)))
+				Expect(description).To(ContainSubstring("operation: update"))
+				Expect(description).NotTo(ContainSubstring("task-id:"))
 			})
 		})
 
@@ -562,59 +422,17 @@ var _ = Describe("updating a service instance", func() {
 					adapter.GenerateManifest().ToFailWithOperatorError("something has gone wrong in adapter")
 				})
 
-				It("responds with HTTP 500", func() {
+				It("reports the failure", func() {
 					Expect(updateResp.StatusCode).To(Equal(http.StatusInternalServerError))
-				})
 
-				Describe("error message", func() {
-					var errorResponse brokerapi.ErrorResponse
+					description := descriptionFrom(updateResp)
+					Expect(description).To(ContainSubstring("There was a problem completing your request. Please contact your operations team providing the following information: "))
+					Expect(description).To(MatchRegexp(`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`))
+					Expect(description).To(ContainSubstring(fmt.Sprintf("service: %s", serviceName)))
+					Expect(description).To(ContainSubstring(fmt.Sprintf("service-instance-guid: %s", instanceID)))
+					Expect(description).To(ContainSubstring("operation: update"))
+					Expect(description).NotTo(ContainSubstring("task-id:"))
 
-					JustBeforeEach(func() {
-						Expect(json.NewDecoder(updateResp.Body).Decode(&errorResponse)).To(Succeed())
-					})
-
-					AfterEach(func() {
-						defer updateResp.Body.Close()
-					})
-
-					It("contains a generic message", func() {
-						Expect(errorResponse.Description).To(ContainSubstring(
-							"There was a problem completing your request. Please contact your operations team providing the following information: ",
-						))
-					})
-
-					It("includes the request ID", func() {
-						Expect(errorResponse.Description).To(MatchRegexp(
-							`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`,
-						))
-					})
-
-					It("includes the service name", func() {
-						Expect(errorResponse.Description).To(ContainSubstring(
-							fmt.Sprintf("service: %s", serviceName),
-						))
-					})
-
-					It("includes a service instance guid", func() {
-						Expect(errorResponse.Description).To(ContainSubstring(
-							fmt.Sprintf("service-instance-guid: %s", instanceID),
-						))
-					})
-
-					It("includes the operation type", func() {
-						Expect(errorResponse.Description).To(ContainSubstring(
-							"operation: update",
-						))
-					})
-
-					It("does NOT include the bosh task ID", func() {
-						Expect(errorResponse.Description).NotTo(ContainSubstring(
-							"task-id:",
-						))
-					})
-				})
-
-				It("logs the actual error", func() {
 					Eventually(runningBroker.Out).Should(gbytes.Say("something has gone wrong in adapter"))
 				})
 			})
@@ -624,17 +442,10 @@ var _ = Describe("updating a service instance", func() {
 					adapter.GenerateManifest().ToFailWithCFUserAndOperatorError("error message for cf user", "error message for operator")
 				})
 
-				It("responds with HTTP 500", func() {
+				It("reports the error message for the cf user in the response", func() {
 					Expect(updateResp.StatusCode).To(Equal(http.StatusInternalServerError))
-				})
+					Expect(descriptionFrom(updateResp)).To(ContainSubstring("error message for cf user"))
 
-				It("includes the error message for the cf user in the response", func() {
-					var errorResponse brokerapi.ErrorResponse
-					Expect(json.NewDecoder(updateResp.Body).Decode(&errorResponse)).To(Succeed())
-					Expect(errorResponse.Description).To(ContainSubstring("error message for cf user"))
-				})
-
-				It("logs both error messages", func() {
 					Eventually(runningBroker.Out).Should(gbytes.Say("error message for cf user"))
 					Eventually(runningBroker.Out).Should(gbytes.Say("error message for operator"))
 				})
@@ -648,7 +459,7 @@ var _ = Describe("updating a service instance", func() {
 				adapter.GenerateManifest().ToReturnManifest(rawManifestWithDeploymentName(instanceID))
 			})
 
-			JustBeforeEach(func() {
+			It("includes the operation data in the response", func() {
 				boshDirector.VerifyAndMock(
 					mockbosh.GetDeployment(deploymentName(instanceID)).RespondsWithManifest(manifest),
 					mockbosh.Tasks(deploymentName(instanceID)).RespondsWithNoTasks(),
@@ -656,40 +467,14 @@ var _ = Describe("updating a service instance", func() {
 				)
 
 				updateResp = updateServiceInstanceRequest(updateArbParams, instanceID, dedicatedPlanID, dedicatedPlanID)
-			})
-
-			It("returns HTTP 202", func() {
 				Expect(updateResp.StatusCode).To(Equal(http.StatusAccepted))
-			})
 
-			It("returns the task ID and operation type in operation data", func() {
-				operationData, err := json.Marshal(broker.OperationData{BoshTaskID: updateTaskID, OperationType: broker.OperationTypeUpdate})
-				Expect(err).NotTo(HaveOccurred())
-				expectedResponseBody, err := json.Marshal(brokerapi.UpdateResponse{OperationData: string(operationData)})
-				Expect(err).NotTo(HaveOccurred())
-				Expect(ioutil.ReadAll(updateResp.Body)).To(MatchJSON(expectedResponseBody))
-			})
-
-			It("includes the operation data in the response", func() {
-				body, err := ioutil.ReadAll(updateResp.Body)
-				Expect(err).NotTo(HaveOccurred())
-
-				var updateResponse brokerapi.UpdateResponse
-				err = json.Unmarshal(body, &updateResponse)
-				Expect(err).NotTo(HaveOccurred())
-
-				var operationData broker.OperationData
-				err = json.Unmarshal([]byte(updateResponse.OperationData), &operationData)
-				Expect(err).NotTo(HaveOccurred())
-
-				By("including the operation type")
-				Expect(operationData.OperationType).To(Equal(broker.OperationTypeUpdate))
-				By("including the bosh task ID")
-				Expect(operationData.BoshTaskID).To(Equal(updateTaskID))
-				By("not including a context ID")
-				Expect(operationData.BoshContextID).To(BeEmpty())
-				By("not including the plan ID")
-				Expect(operationData.PlanID).To(BeEmpty())
+				Expect(*operationDataFrom(updateResp)).To(Equal(
+					broker.OperationData{
+						OperationType: broker.OperationTypeUpdate,
+						BoshTaskID:    updateTaskID,
+					},
+				))
 			})
 		})
 
@@ -722,28 +507,22 @@ var _ = Describe("updating a service instance", func() {
 						conf.Features.CFUserTriggeredUpgrades = true
 					})
 
-					JustBeforeEach(func() {
+					It("returns the task ID and operation type in operation data", func() {
 						boshDirector.VerifyAndMock(
 							mockbosh.GetDeployment(deploymentName(instanceID)).RespondsWithManifest(manifest),
 							mockbosh.Tasks(deploymentName(instanceID)).RespondsWithNoTasks(),
 							mockbosh.Deploy().WithManifest(generatedManifest).WithoutContextID().RedirectsToTask(updateTaskID),
 						)
-					})
 
-					It("returns HTTP 202", func() {
 						resp := updateServiceInstanceRequest(arbitraryParams, instanceID, dedicatedPlanID, dedicatedPlanID)
 						Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
-					})
 
-					It("returns the task ID and operation type in operation data", func() {
-						operationData, err := json.Marshal(broker.OperationData{BoshTaskID: updateTaskID, OperationType: broker.OperationTypeUpdate})
-						Expect(err).NotTo(HaveOccurred())
-
-						expectedResponseBody, err := json.Marshal(brokerapi.UpdateResponse{OperationData: string(operationData)})
-						Expect(err).NotTo(HaveOccurred())
-
-						resp := updateServiceInstanceRequest(arbitraryParams, instanceID, dedicatedPlanID, dedicatedPlanID)
-						Expect(ioutil.ReadAll(resp.Body)).To(MatchJSON(expectedResponseBody))
+						Expect(*operationDataFrom(resp)).To(Equal(
+							broker.OperationData{
+								OperationType: broker.OperationTypeUpdate,
+								BoshTaskID:    updateTaskID,
+							},
+						))
 					})
 				})
 
@@ -752,43 +531,29 @@ var _ = Describe("updating a service instance", func() {
 						conf.Features.CFUserTriggeredUpgrades = false
 					})
 
-					JustBeforeEach(func() {
+					It("returns an apply changes not permitted message", func() {
 						boshDirector.VerifyAndMock(
 							mockbosh.GetDeployment(deploymentName(instanceID)).RespondsWithManifest(manifest),
 							mockbosh.Tasks(deploymentName(instanceID)).RespondsWithNoTasks(),
 						)
-					})
 
-					It("returns HTTP 500", func() {
 						resp := updateServiceInstanceRequest(arbitraryParams, instanceID, dedicatedPlanID, dedicatedPlanID)
 						Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
-					})
 
-					It("returns an apply changes not permitted message", func() {
-						resp := updateServiceInstanceRequest(arbitraryParams, instanceID, dedicatedPlanID, dedicatedPlanID)
-
-						var body brokerapi.ErrorResponse
-						err := json.NewDecoder(resp.Body).Decode(&body)
-						Expect(err).ToNot(HaveOccurred())
-
-						Expect(body.Description).To(ContainSubstring(
-							`'apply-changes' is not permitted. Contact your operator for more information`,
-						))
+						Expect(descriptionFrom(resp)).To(ContainSubstring(broker.ApplyChangesNotPermittedMessage))
 					})
 				})
 			})
 
 			Context("and the request params are apply-changes and a plan change", func() {
-				var parameters = map[string]interface{}{"apply-changes": true}
+				It("fails with an apply changes disabled message", func() {
+					parameters := map[string]interface{}{"apply-changes": true}
 
-				JustBeforeEach(func() {
 					boshDirector.VerifyAndMock(
 						mockbosh.GetDeployment(deploymentName(instanceID)).RespondsWithManifest(manifest),
 						mockbosh.Tasks(deploymentName(instanceID)).RespondsWithNoTasks(),
 					)
-				})
 
-				It("fails with an apply changes disabled message", func() {
 					resp := updateServiceInstanceRequest(parameters, instanceID, dedicatedPlanID, highMemoryPlanID)
 					Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 
@@ -797,56 +562,34 @@ var _ = Describe("updating a service instance", func() {
 			})
 
 			Context("and the request params are apply-changes and anything else", func() {
-				var arbitraryParams = map[string]interface{}{"apply-changes": true, "foo": "bar"}
+				It("returns an apply changes not permitted message", func() {
+					parameters := map[string]interface{}{"apply-changes": true, "foo": "bar"}
 
-				JustBeforeEach(func() {
 					boshDirector.VerifyAndMock(
 						mockbosh.GetDeployment(deploymentName(instanceID)).RespondsWithManifest(manifest),
 						mockbosh.Tasks(deploymentName(instanceID)).RespondsWithNoTasks(),
 					)
-				})
 
-				It("returns HTTP 500", func() {
-					resp := updateServiceInstanceRequest(arbitraryParams, instanceID, dedicatedPlanID, dedicatedPlanID)
+					resp := updateServiceInstanceRequest(parameters, instanceID, dedicatedPlanID, dedicatedPlanID)
 					Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
-				})
 
-				It("returns an apply changes not permitted message", func() {
-					resp := updateServiceInstanceRequest(arbitraryParams, instanceID, dedicatedPlanID, dedicatedPlanID)
-
-					var body brokerapi.ErrorResponse
-					err := json.NewDecoder(resp.Body).Decode(&body)
-					Expect(err).ToNot(HaveOccurred())
-
-					Expect(body.Description).To(ContainSubstring(
-						`'apply-changes' is not permitted. Contact your operator for more information`,
-					))
+					Expect(descriptionFrom(resp)).To(ContainSubstring(broker.ApplyChangesNotPermittedMessage))
 				})
 			})
 
 			Context("and the request params are anything else", func() {
-				var arbitraryParams = map[string]interface{}{"foo": "bar"}
+				It("returns an apply changes disabled message", func() {
+					parameters := map[string]interface{}{"foo": "bar"}
 
-				JustBeforeEach(func() {
 					boshDirector.VerifyAndMock(
 						mockbosh.GetDeployment(deploymentName(instanceID)).RespondsWithManifest(manifest),
 						mockbosh.Tasks(deploymentName(instanceID)).RespondsWithNoTasks(),
 					)
-				})
 
-				It("returns HTTP 500", func() {
-					resp := updateServiceInstanceRequest(arbitraryParams, instanceID, dedicatedPlanID, dedicatedPlanID)
+					resp := updateServiceInstanceRequest(parameters, instanceID, dedicatedPlanID, dedicatedPlanID)
 					Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
-				})
 
-				It("returns an apply changes disabled message", func() {
-					resp := updateServiceInstanceRequest(arbitraryParams, instanceID, dedicatedPlanID, dedicatedPlanID)
-
-					var body brokerapi.ErrorResponse
-					err := json.NewDecoder(resp.Body).Decode(&body)
-					Expect(err).ToNot(HaveOccurred())
-
-					Expect(body.Description).To(ContainSubstring(broker.ApplyChangesDisabledMessage))
+					Expect(descriptionFrom(resp)).To(ContainSubstring(broker.ApplyChangesDisabledMessage))
 				})
 			})
 		})
@@ -856,28 +599,20 @@ var _ = Describe("updating a service instance", func() {
 				adapter.GenerateManifest().ToReturnManifest(rawManifestWithDeploymentName(instanceID))
 			})
 
-			JustBeforeEach(func() {
+			It("returns a operation in progress message", func() {
 				boshDirector.VerifyAndMock(
 					mockbosh.GetDeployment(deploymentName(instanceID)).RespondsWithManifest(manifest),
 					mockbosh.Tasks(deploymentName(instanceID)).RespondsWithATaskContainingState(boshclient.BoshTaskProcessing, "some task"),
 				)
 
 				updateResp = updateServiceInstanceRequest(updateArbParams, instanceID, dedicatedPlanID, dedicatedPlanID)
-			})
-
-			It("returns HTTP 500", func() {
 				Expect(updateResp.StatusCode).To(Equal(http.StatusInternalServerError))
-			})
-
-			It("returns a operation in progress message", func() {
-				var errorResponse brokerapi.ErrorResponse
-				Expect(json.NewDecoder(updateResp.Body).Decode(&errorResponse)).To(Succeed())
-				Expect(errorResponse.Description).To(ContainSubstring("An operation is in progress for your service instance. Please try again later."))
+				Expect(descriptionFrom(updateResp)).To(ContainSubstring("An operation is in progress for your service instance. Please try again later."))
 			})
 		})
 
 		Context("and the plan has a post-deploy errand", func() {
-			var postDeployErrandPlanID = "post-deploy-errand-id"
+			const postDeployErrandPlanID = "post-deploy-errand-id"
 
 			BeforeEach(func() {
 				postDeployErrandPlan := config.Plan{
@@ -901,7 +636,7 @@ var _ = Describe("updating a service instance", func() {
 				adapter.GenerateManifest().ToReturnManifest(rawManifestWithDeploymentName(instanceID))
 			})
 
-			JustBeforeEach(func() {
+			It("includes the operation data in the response", func() {
 				boshDirector.VerifyAndMock(
 					mockbosh.GetDeployment(deploymentName(instanceID)).RespondsWithManifest(manifest),
 					mockbosh.Tasks(deploymentName(instanceID)).RespondsWithNoTasks(),
@@ -909,42 +644,45 @@ var _ = Describe("updating a service instance", func() {
 				)
 
 				updateResp = updateServiceInstanceRequest(updateArbParams, instanceID, postDeployErrandPlanID, postDeployErrandPlanID)
-			})
-
-			It("responds with 202", func() {
 				Expect(updateResp.StatusCode).To(Equal(http.StatusAccepted))
-			})
 
-			It("includes the operation data in the response", func() {
-				body, err := ioutil.ReadAll(updateResp.Body)
-				Expect(err).NotTo(HaveOccurred())
-
-				var updateResponse brokerapi.UpdateResponse
-				err = json.Unmarshal(body, &updateResponse)
-				Expect(err).NotTo(HaveOccurred())
-
-				var operationData broker.OperationData
-				err = json.Unmarshal([]byte(updateResponse.OperationData), &operationData)
-				Expect(err).NotTo(HaveOccurred())
-
-				By("including the operation type")
-				Expect(operationData.OperationType).To(Equal(broker.OperationTypeUpdate))
-				By("including the bosh task ID")
-				Expect(operationData.BoshTaskID).To(Equal(taskID))
-				By("including a context ID")
+				operationData := operationDataFrom(updateResp)
 				Expect(operationData.BoshContextID).NotTo(BeEmpty())
-				By("including the plan ID")
-				Expect(operationData.PlanID).To(Equal(postDeployErrandPlanID))
+				Expect(*operationData).To(Equal(broker.OperationData{
+					OperationType: broker.OperationTypeUpdate,
+					BoshTaskID:    taskID,
+					BoshContextID: operationData.BoshContextID,
+					PlanID:        postDeployErrandPlanID,
+				}))
 			})
 		})
 	})
 })
 
 func descriptionFrom(resp *http.Response) string {
+	Expect(resp).NotTo(BeNil())
+
 	var body brokerapi.ErrorResponse
+	defer resp.Body.Close()
 	err := json.NewDecoder(resp.Body).Decode(&body)
 	Expect(err).ToNot(HaveOccurred())
+
 	return body.Description
+}
+
+func operationDataFrom(resp *http.Response) *broker.OperationData {
+	Expect(resp).NotTo(BeNil())
+
+	var updateResponse brokerapi.UpdateResponse
+	defer resp.Body.Close()
+	err := json.NewDecoder(resp.Body).Decode(&updateResponse)
+	Expect(err).NotTo(HaveOccurred())
+
+	var operationData broker.OperationData
+	err = json.NewDecoder(strings.NewReader(updateResponse.OperationData)).Decode(&operationData)
+	Expect(err).NotTo(HaveOccurred())
+
+	return &operationData
 }
 
 func updateServiceInstanceRequest(updateArbParams map[string]interface{}, instanceID, oldPlanID, newPlanID string) *http.Response {
