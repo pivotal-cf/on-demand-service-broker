@@ -9,6 +9,7 @@ package broker
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/pborman/uuid"
@@ -65,9 +66,16 @@ func (b *Broker) Update(
 		operationDataPlanID = details.PlanID
 	}
 
+	parameters := parametersFromRequest(detailsMap)
+	applyingChanges, err := b.validatedApplyChanges(parameters)
+	if err != nil {
+		return errs(err.(DisplayableError))
+	}
+
 	boshTaskID, _, err := b.deployer.Update(
 		deploymentName(instanceID),
 		details.PlanID,
+		applyingChanges,
 		detailsMap,
 		&details.PreviousValues.PlanID,
 		boshContextID,
@@ -112,4 +120,31 @@ func (b *Broker) asDisplayableError(err TaskError) DisplayableError {
 		return NewApplyChangesDisabledError(err)
 	}
 	return NewApplyChangesNotPermittedError(err)
+}
+
+func parametersFromRequest(requestParams map[string]interface{}) map[string]interface{} {
+	parameters, ok := requestParams["parameters"].(map[string]interface{})
+	if !ok {
+		return nil
+	}
+
+	return parameters
+}
+
+func (b *Broker) validatedApplyChanges(parameters map[string]interface{}) (bool, error) {
+	const applyChangesKey = "apply-changes"
+
+	value := parameters[applyChangesKey]
+	if value == nil {
+		return false, nil
+	}
+
+	applyChanges, ok := value.(bool)
+	if !ok {
+		return false, b.asDisplayableError(TaskError{errors.New("update called with apply-changes set to non-boolean"), ApplyChangesInvalid})
+	}
+
+	delete(parameters, applyChangesKey)
+
+	return applyChanges, nil
 }

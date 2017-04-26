@@ -109,6 +109,7 @@ func (d deployer) Upgrade(
 func (d deployer) Update(
 	deploymentName,
 	planID string,
+	applyPendingChanges bool,
 	requestParams map[string]interface{},
 	previousPlanID *string,
 	boshContextID string,
@@ -125,18 +126,14 @@ func (d deployer) Update(
 	}
 
 	parameters := parametersFromRequest(requestParams)
-	applyingChanges, err := d.validatedApplyChanges(parameters)
-	if err != nil {
-		return 0, nil, err
-	}
 
-	if applyingChanges {
+	if applyPendingChanges {
 		if err := d.assertCanApplyChanges(parameters, planID, previousPlanID); err != nil {
 			return 0, nil, err
 		}
 	}
 
-	if err := d.checkForPendingChanges(applyingChanges, deploymentName, previousPlanID, oldManifest, logger); err != nil {
+	if err := d.checkForPendingChanges(applyPendingChanges, deploymentName, previousPlanID, oldManifest, logger); err != nil {
 		return 0, nil, err
 	}
 

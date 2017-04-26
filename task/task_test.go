@@ -21,7 +21,7 @@ import (
 
 type deployer interface {
 	Create(deploymentName, planID string, requestParams map[string]interface{}, boshContextID string, logger *log.Logger) (int, []byte, error)
-	Update(deploymentName, planID string, requestParams map[string]interface{}, previousPlanID *string, boshContextID string, logger *log.Logger) (int, []byte, error)
+	Update(deploymentName, planID string, applyPendingChanges bool, requestParams map[string]interface{}, previousPlanID *string, boshContextID string, logger *log.Logger) (int, []byte, error)
 	Upgrade(deploymentName, planID string, previousPlanID *string, boshContextID string, logger *log.Logger) (int, []byte, error)
 }
 
@@ -511,10 +511,13 @@ var _ = Describe("Deployer", func() {
 	})
 
 	Describe("Update()", func() {
+		var applyPendingChanges bool
+
 		JustBeforeEach(func() {
 			returnedTaskID, deployedManifest, deployError = deployer.Update(
 				deploymentName,
 				planID,
+				applyPendingChanges,
 				requestParams,
 				previousPlanID,
 				boshContextID,
@@ -523,6 +526,7 @@ var _ = Describe("Deployer", func() {
 		})
 
 		BeforeEach(func() {
+			applyPendingChanges = false
 			oldManifest = []byte("---\nold-manifest-fetched-from-bosh: bar")
 			previousPlanID = stringPointer(existingPlanID)
 
@@ -645,14 +649,12 @@ var _ = Describe("Deployer", func() {
 
 				Context("set to true", func() {
 					BeforeEach(func() {
-						requestParams["parameters"] = map[string]interface{}{"apply-changes": true}
-					})
-
-					It("doesn't return an error", func() {
-						Expect(deployError).NotTo(HaveOccurred())
+						requestParams["parameters"] = map[string]interface{}{}
+						applyPendingChanges = true
 					})
 
 					It("performs deploy", func() {
+						Expect(deployError).NotTo(HaveOccurred())
 						Expect(boshClient.DeployCallCount()).To(Equal(1))
 					})
 
@@ -681,8 +683,7 @@ var _ = Describe("Deployer", func() {
 					Context("when passing in arbitrary params", func() {
 						BeforeEach(func() {
 							requestParams["parameters"] = map[string]interface{}{
-								"apply-changes": true,
-								"foo":           "bar",
+								"foo": "bar",
 							}
 						})
 
@@ -709,23 +710,6 @@ var _ = Describe("Deployer", func() {
 						Expect(deployError).To(Equal(broker.NewTaskError(errors.New("pending changes detected"), broker.ApplyChangesWithPendingChanges)))
 						Expect(boshClient.DeployCallCount()).To(BeZero())
 					})
-				})
-			})
-		})
-
-		Describe("apply-changes", func() {
-			BeforeEach(func() {
-				featureFlags.CFUserTriggeredUpgradesReturns(true)
-			})
-
-			Context("set to arbitrary string", func() {
-				BeforeEach(func() {
-					requestParams["parameters"] = map[string]interface{}{"apply-changes": 42}
-				})
-
-				It("fails without deploying", func() {
-					Expect(deployError).To(Equal(broker.NewTaskError(errors.New("update called with apply-changes set to non-boolean"), broker.ApplyChangesInvalid)))
-					Expect(boshClient.DeployCallCount()).To(BeZero())
 				})
 			})
 		})

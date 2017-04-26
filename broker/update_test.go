@@ -90,7 +90,7 @@ var _ = Describe("Update", func() {
 
 				It("calls the deployer without a bosh context id", func() {
 					Expect(fakeDeployer.UpdateCallCount()).To(Equal(1))
-					_, _, _, _, actualBoshContextID, _ := fakeDeployer.UpdateArgsForCall(0)
+					_, _, _, _, _, actualBoshContextID, _ := fakeDeployer.UpdateArgsForCall(0)
 					Expect(actualBoshContextID).To(BeEmpty())
 				})
 
@@ -169,6 +169,36 @@ var _ = Describe("Update", func() {
 				It("reports an error", func() {
 					Expect(updateError).To(MatchError(ContainSubstring(broker.PendingChangesErrorMessage)))
 					Expect(logBuffer.String()).To(ContainSubstring("deployer-error-message"))
+				})
+			})
+		})
+
+		Context("and apply-changes is set to non-boolean value", func() {
+			BeforeEach(func() {
+				arbitraryParams = map[string]interface{}{"apply-changes": 42}
+			})
+
+			Context("with user-triggered upgrades disabled", func() {
+				BeforeEach(func() {
+					fakeFeatureFlags.CFUserTriggeredUpgradesReturns(false)
+				})
+
+				It("fails without deploying", func() {
+					Expect(updateError).To(MatchError(broker.ApplyChangesNotPermittedMessage))
+					Expect(logBuffer.String()).To(ContainSubstring("update called with apply-changes set to non-boolean"))
+					Expect(fakeDeployer.UpdateCallCount()).To(BeZero())
+				})
+			})
+
+			Context("with user-triggered upgrades enabled", func() {
+				BeforeEach(func() {
+					fakeFeatureFlags.CFUserTriggeredUpgradesReturns(true)
+				})
+
+				It("fails without deploying", func() {
+					Expect(updateError).To(MatchError(broker.PendingChangesErrorMessage))
+					Expect(logBuffer.String()).To(ContainSubstring("update called with apply-changes set to non-boolean"))
+					Expect(fakeDeployer.UpdateCallCount()).To(BeZero())
 				})
 			})
 		})
@@ -277,7 +307,7 @@ var _ = Describe("Update", func() {
 
 					It("calls the deployer with a bosh context id", func() {
 						Expect(fakeDeployer.UpdateCallCount()).To(Equal(1))
-						_, _, _, _, actualBoshContextID, _ := fakeDeployer.UpdateArgsForCall(0)
+						_, _, _, _, _, actualBoshContextID, _ := fakeDeployer.UpdateArgsForCall(0)
 						Expect(actualBoshContextID).NotTo(BeEmpty())
 					})
 				})

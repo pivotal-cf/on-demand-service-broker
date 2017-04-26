@@ -13,8 +13,6 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	yaml "gopkg.in/yaml.v2"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -29,6 +27,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/mockuaa"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
+	yaml "gopkg.in/yaml.v2"
 )
 
 var _ = Describe("updating a service instance", func() {
@@ -780,7 +779,7 @@ var _ = Describe("updating a service instance", func() {
 			})
 
 			Context("and the request params are apply-changes and a plan change", func() {
-				var arbitraryParams = map[string]interface{}{"apply-changes": true}
+				var parameters = map[string]interface{}{"apply-changes": true}
 
 				JustBeforeEach(func() {
 					boshDirector.VerifyAndMock(
@@ -789,21 +788,11 @@ var _ = Describe("updating a service instance", func() {
 					)
 				})
 
-				It("returns HTTP 500", func() {
-					resp := updateServiceInstanceRequest(arbitraryParams, instanceID, dedicatedPlanID, highMemoryPlanID)
+				It("fails with an apply changes disabled message", func() {
+					resp := updateServiceInstanceRequest(parameters, instanceID, dedicatedPlanID, highMemoryPlanID)
 					Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
-				})
 
-				It("returns an apply changes disabled message", func() {
-					resp := updateServiceInstanceRequest(arbitraryParams, instanceID, dedicatedPlanID, highMemoryPlanID)
-
-					var body brokerapi.ErrorResponse
-					err := json.NewDecoder(resp.Body).Decode(&body)
-					Expect(err).ToNot(HaveOccurred())
-
-					Expect(body.Description).To(ContainSubstring(
-						"'apply-changes' is not permitted. Contact your operator for more information",
-					))
+					Expect(descriptionFrom(resp)).To(ContainSubstring(broker.ApplyChangesNotPermittedMessage))
 				})
 			})
 
@@ -950,6 +939,13 @@ var _ = Describe("updating a service instance", func() {
 		})
 	})
 })
+
+func descriptionFrom(resp *http.Response) string {
+	var body brokerapi.ErrorResponse
+	err := json.NewDecoder(resp.Body).Decode(&body)
+	Expect(err).ToNot(HaveOccurred())
+	return body.Description
+}
 
 func updateServiceInstanceRequest(updateArbParams map[string]interface{}, instanceID, oldPlanID, newPlanID string) *http.Response {
 	reqBody := map[string]interface{}{
