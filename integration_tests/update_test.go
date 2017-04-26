@@ -85,7 +85,7 @@ var _ = Describe("updating a service instance", func() {
 		})
 
 		Context("and there are no pending changes", func() {
-			JustBeforeEach(func() {
+			It("includes the operation data in the response", func() {
 				boshDirector.VerifyAndMock(
 					mockbosh.GetDeployment(deploymentName(instanceID)).RespondsWithManifest(manifest),
 					mockbosh.Tasks(deploymentName(instanceID)).RespondsWithNoTasks(),
@@ -93,9 +93,7 @@ var _ = Describe("updating a service instance", func() {
 				)
 
 				updateResp = updateServiceInstanceRequest(updateArbParams, instanceID, dedicatedPlanID, highMemoryPlanID)
-			})
 
-			It("includes the operation data in the response", func() {
 				Expect(updateResp.StatusCode).To(Equal(http.StatusAccepted))
 
 				Expect(*operationDataFrom(updateResp)).To(Equal(
@@ -104,9 +102,7 @@ var _ = Describe("updating a service instance", func() {
 						BoshTaskID:    updateTaskID,
 					},
 				))
-			})
 
-			It("has the previous plan", func() {
 				Expect(adapter.GenerateManifest().ReceivedPreviousPlan()).To(Equal(
 					serviceadapter.Plan{
 						Properties: serviceadapter.Properties{
@@ -135,9 +131,7 @@ var _ = Describe("updating a service instance", func() {
 						},
 					},
 				))
-			})
 
-			It("calls the adapter with service releases", func() {
 				Expect(adapter.GenerateManifest().ReceivedDeployment()).To(Equal(
 					serviceadapter.ServiceDeployment{
 						DeploymentName: deploymentName(instanceID),
@@ -153,49 +147,46 @@ var _ = Describe("updating a service instance", func() {
 						},
 					},
 				))
-			})
 
-			It("calls the adapter with the correct plan", func() {
-				Expect(adapter.GenerateManifest().ReceivedPlan()).To(Equal(serviceadapter.Plan{
-					Properties: serviceadapter.Properties{
-						"type":            "high-memory-plan-property",
-						"global_property": "overrides_global_value",
-					},
-					InstanceGroups: []serviceadapter.InstanceGroup{
-						{
-							Name:         "instance-group-name",
-							VMType:       highMemoryPlanVMType,
-							VMExtensions: highMemoryPlanVMExtensions,
-							Instances:    highMemoryPlanInstances,
-							Networks:     highMemoryPlanNetworks,
-							AZs:          highMemoryPlanAZs,
+				Expect(adapter.GenerateManifest().ReceivedPlan()).To(Equal(
+					serviceadapter.Plan{
+						Properties: serviceadapter.Properties{
+							"type":            "high-memory-plan-property",
+							"global_property": "overrides_global_value",
+						},
+						InstanceGroups: []serviceadapter.InstanceGroup{
+							{
+								Name:         "instance-group-name",
+								VMType:       highMemoryPlanVMType,
+								VMExtensions: highMemoryPlanVMExtensions,
+								Instances:    highMemoryPlanInstances,
+								Networks:     highMemoryPlanNetworks,
+								AZs:          highMemoryPlanAZs,
+							},
 						},
 					},
-				}))
-			})
+				))
 
-			It("calls the adapter with the correct request params", func() {
-				Expect(adapter.GenerateManifest().ReceivedRequestParams()).To(Equal(map[string]interface{}{
-					"parameters": updateArbParams,
-					"service_id": serviceID,
-					"plan_id":    highMemoryPlanID,
-					"previous_values": map[string]interface{}{
-						"organization_id": organizationGUID,
-						"service_id":      serviceID,
-						"plan_id":         dedicatedPlanID,
-						"space_id":        "space-guid",
+				Expect(adapter.GenerateManifest().ReceivedRequestParams()).To(Equal(
+					map[string]interface{}{
+						"parameters": updateArbParams,
+						"service_id": serviceID,
+						"plan_id":    highMemoryPlanID,
+						"previous_values": map[string]interface{}{
+							"organization_id": organizationGUID,
+							"service_id":      serviceID,
+							"plan_id":         dedicatedPlanID,
+							"space_id":        "space-guid",
+						},
 					},
-				}))
-			})
+				))
 
-			It("calls the adapter with the correct previous manifest", func() {
 				Expect(*adapter.GenerateManifest().ReceivedPreviousManifest()).To(Equal(manifest))
-			})
 
-			It("logs the update request with a request id", func() {
 				updateRequestRegex := logRegexpStringWithRequestIDCapture(
 					`updating instance`,
 				)
+
 				Eventually(runningBroker).Should(gbytes.Say(updateRequestRegex))
 				requestID := firstMatchInOutput(runningBroker, updateRequestRegex)
 				Eventually(runningBroker).Should(gbytes.Say(requestID)) // It should use the same request ID again
@@ -332,7 +323,7 @@ var _ = Describe("updating a service instance", func() {
 		})
 
 		Context("and the new plan's quota has been reached already", func() {
-			JustBeforeEach(func() {
+			It("returns a quota message", func() {
 				cfAPI.VerifyAndMock(
 					mockcfapi.ListServiceOfferings().RespondsWith(listCFServiceOfferingsResponse(serviceID, "some-cf-service-offering-guid")),
 					mockcfapi.ListServicePlans("some-cf-service-offering-guid").RespondsWithServicePlan(dedicatedPlanID, "some-cf-plan-guid"),
@@ -340,27 +331,18 @@ var _ = Describe("updating a service instance", func() {
 				)
 
 				updateResp = updateServiceInstanceRequest(updateArbParams, instanceID, highMemoryPlanID, dedicatedPlanID)
-			})
-
-			It("returns an error when updating", func() {
 				Expect(updateResp.StatusCode).To(Equal(http.StatusInternalServerError))
-			})
-
-			It("returns an appropriate message", func() {
-				Expect(readJSONResponse(updateResp.Body)).To(Equal(map[string]string{"description": "The quota for this service plan has been exceeded. Please contact your Operator for help."}))
+				Expect(descriptionFrom(updateResp)).To(Equal("The quota for this service plan has been exceeded. Please contact your Operator for help."))
 			})
 		})
 
 		Context("and the bosh deployment cannot be found", func() {
-			JustBeforeEach(func() {
+			It("fails with description", func() {
 				boshDirector.VerifyAndMock(
 					mockbosh.GetDeployment(deploymentName(instanceID)).NotFound(),
 				)
 
 				updateResp = updateServiceInstanceRequest(updateArbParams, instanceID, dedicatedPlanID, highMemoryPlanID)
-			})
-
-			It("fails with description", func() {
 				Expect(updateResp.StatusCode).To(Equal(http.StatusInternalServerError))
 
 				description := descriptionFrom(updateResp)
@@ -389,12 +371,10 @@ var _ = Describe("updating a service instance", func() {
 		})
 
 		Context("and the cf api is unavailable", func() {
-			JustBeforeEach(func() {
+			It("reports a failure", func() {
 				cfAPI.Close()
 				updateResp = updateServiceInstanceRequest(updateArbParams, instanceID, highMemoryPlanID, dedicatedPlanID)
-			})
 
-			It("reports a failure", func() {
 				Expect(updateResp.StatusCode).To(Equal(http.StatusInternalServerError))
 
 				description := descriptionFrom(updateResp)
