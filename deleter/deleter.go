@@ -27,11 +27,17 @@ type CloudFoundryClient interface {
 	DeleteServiceInstance(instanceGUID string, logger *log.Logger) error
 }
 
+//go:generate counterfeiter -o fakes/fake_clock.go . Clock
+type Clock interface {
+	Sleep(d time.Duration)
+}
+
 type Config struct {
 	ServiceCatalog             ServiceCatalog `yaml:"service_catalog"`
 	DisableSSLCertVerification bool           `yaml:"disable_ssl_cert_verification"`
 	CF                         config.CF      `yaml:"cf"`
 	PollingInterval            int            `yaml:"polling_interval"`
+	PollingInitialOffset       int            `yaml:"polling_initial_offset"`
 }
 
 type ServiceCatalog struct {
@@ -39,16 +45,20 @@ type ServiceCatalog struct {
 }
 
 type Deleter struct {
-	logger          *log.Logger
-	pollingInterval time.Duration
-	cfClient        CloudFoundryClient
+	logger               *log.Logger
+	pollingInitialOffset time.Duration
+	pollingInterval      time.Duration
+	cfClient             CloudFoundryClient
+	clock                Clock
 }
 
-func New(cfClient CloudFoundryClient, pollingInterval int, logger *log.Logger) *Deleter {
+func New(cfClient CloudFoundryClient, clock Clock, pollingInitialOffset int, pollingInterval int, logger *log.Logger) *Deleter {
 	return &Deleter{
-		logger:          logger,
-		pollingInterval: time.Duration(pollingInterval) * time.Second,
-		cfClient:        cfClient,
+		logger:               logger,
+		pollingInitialOffset: time.Duration(pollingInitialOffset) * time.Second,
+		pollingInterval:      time.Duration(pollingInterval) * time.Second,
+		cfClient:             cfClient,
+		clock:                clock,
 	}
 }
 
@@ -64,7 +74,6 @@ func (d *Deleter) DeleteAllServiceInstances(serviceUniqueID string) error {
 	}
 
 	for _, instanceGUID := range serviceInstanceGUIDs {
-
 		err := d.deleteBindings(instanceGUID)
 		if err != nil {
 			return err
@@ -146,8 +155,10 @@ func (d Deleter) deleteServiceInstance(instanceGUID string) error {
 }
 
 func (d Deleter) pollInstanceDeleteStatus(instanceGUID string) error {
+	d.clock.Sleep(d.pollingInitialOffset)
+
 	for {
-		time.Sleep(d.pollingInterval)
+		d.clock.Sleep(d.pollingInterval)
 
 		instance, err := d.cfClient.GetInstance(instanceGUID, d.logger)
 		switch err.(type) {

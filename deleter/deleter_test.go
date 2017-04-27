@@ -22,6 +22,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/deleter"
 	"github.com/pivotal-cf/on-demand-service-broker/deleter/fakes"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
+	"time"
 )
 
 var _ = Describe("deleter", func() {
@@ -32,11 +33,14 @@ var _ = Describe("deleter", func() {
 		serviceInstance1BoundAppGUID = "service-instance-1-bound-app-guid"
 		serviceInstance1BindingGUID  = "service-instance-1-binding-guid"
 		serviceInstance1KeyGUID      = "service-instance-1-key-guid"
+		pollingInitialOffset         = 10
+		pollingInterval              = 5
 	)
 
 	var (
 		deleteTool *deleter.Deleter
 		cfClient   *fakes.FakeCloudFoundryClient
+		clock      *fakes.FakeClock
 		logger     *log.Logger
 		logBuffer  *bytes.Buffer
 
@@ -50,7 +54,7 @@ var _ = Describe("deleter", func() {
 			New(io.MultiWriter(GinkgoWriter, logBuffer), "[deleter-unit-tests] ", log.LstdFlags).
 			NewWithRequestID()
 
-		cfClient = &fakes.FakeCloudFoundryClient{}
+		cfClient = new(fakes.FakeCloudFoundryClient)
 
 		cfClient.GetInstancesOfServiceOfferingReturns([]string{serviceInstance1GUID}, nil)
 
@@ -68,8 +72,8 @@ var _ = Describe("deleter", func() {
 		notFoundError := cloud_foundry_client.NewResourceNotFoundError("service instance not found")
 		cfClient.GetInstanceReturns(cloud_foundry_client.Instance{}, notFoundError)
 
-		pollingInterval := 0
-		deleteTool = deleter.New(cfClient, pollingInterval, logger)
+		clock = new(fakes.FakeClock)
+		deleteTool = deleter.New(cfClient, clock, pollingInitialOffset, pollingInterval, logger)
 	})
 
 	Context("when no service instances exist", func() {
@@ -193,10 +197,21 @@ var _ = Describe("deleter", func() {
 				Expect(err).NotTo(HaveOccurred())
 			})
 
-			It("by deleting instances", func() {
+			It("deletes the instance", func() {
 				Expect(cfClient.GetInstanceCallCount()).To(Equal(2), "Expected to get instance two times")
 
 				Expect(logBuffer.String()).To(ContainSubstring("Result: deleted service instance %s", serviceInstance1GUID))
+			})
+
+			It("waits before starting last operation requests", func() {
+				Expect(clock.SleepCallCount()).To(Equal(3))
+				Expect(clock.SleepArgsForCall(0)).To(Equal(pollingInitialOffset * time.Second))
+			})
+
+			It("waits in between last operation requests", func() {
+				Expect(clock.SleepCallCount()).To(Equal(3))
+				Expect(clock.SleepArgsForCall(1)).To(Equal(pollingInterval * time.Second))
+				Expect(clock.SleepArgsForCall(2)).To(Equal(pollingInterval * time.Second))
 			})
 		})
 

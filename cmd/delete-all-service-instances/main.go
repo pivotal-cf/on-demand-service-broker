@@ -16,7 +16,13 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/deleter"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 	"gopkg.in/yaml.v2"
+
+	"time"
 )
+
+type realClock struct{}
+
+func (c realClock) Sleep(t time.Duration) { time.Sleep(t) }
 
 func main() {
 	loggerFactory := loggerfactory.New(os.Stdout, "delete-all-service-instances", loggerfactory.Flags)
@@ -30,29 +36,32 @@ func main() {
 		logger.Fatalf("Error reading config file: %s", err)
 	}
 
-	var deleterConfig deleter.Config
-	err = yaml.Unmarshal(rawConfig, &deleterConfig)
+	var config deleter.Config
+	err = yaml.Unmarshal(rawConfig, &config)
 	if err != nil {
 		logger.Fatalf("Invalid config file: %s", err)
 	}
 
-	cfAuthenticator, err := deleterConfig.CF.NewAuthHeaderBuilder(deleterConfig.DisableSSLCertVerification)
+	cfAuthenticator, err := config.CF.NewAuthHeaderBuilder(config.DisableSSLCertVerification)
 	if err != nil {
 		logger.Fatalf("error creating CF authorization header builder: %s", err)
 	}
 
 	cfClient, err := cloud_foundry_client.New(
-		deleterConfig.CF.URL,
+		config.CF.URL,
 		cfAuthenticator,
-		[]byte(deleterConfig.CF.TrustedCert),
-		deleterConfig.DisableSSLCertVerification,
+		[]byte(config.CF.TrustedCert),
+		config.DisableSSLCertVerification,
 	)
 	if err != nil {
 		logger.Fatalf("error creating Cloud Foundry client: %s", err)
 	}
 
-	deleteTool := deleter.New(cfClient, deleterConfig.PollingInterval, logger)
-	err = deleteTool.DeleteAllServiceInstances(deleterConfig.ServiceCatalog.ID)
+	clock := realClock{}
+
+	deleteTool := deleter.New(cfClient, clock, config.PollingInitialOffset, config.PollingInterval, logger)
+
+	err = deleteTool.DeleteAllServiceInstances(config.ServiceCatalog.ID)
 	if err != nil {
 		logger.Fatalln(err)
 	}

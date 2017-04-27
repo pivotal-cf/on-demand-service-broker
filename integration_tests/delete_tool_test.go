@@ -74,6 +74,8 @@ var _ = Describe("delete all service instances tool", func() {
 					},
 				},
 			},
+			PollingInitialOffset: 0,
+			PollingInterval:      0,
 		}
 
 		configYAML, err := yaml.Marshal(configuration)
@@ -209,7 +211,7 @@ var _ = Describe("delete all service instances tool", func() {
 		})
 	})
 
-	Context("when the polling interval is 1 second", func() {
+	Context("when polling offset and interval are configured", func() {
 		BeforeEach(func() {
 			cfAPI.VerifyAndMock(
 				mockcfapi.ListServiceOfferings().
@@ -224,10 +226,9 @@ var _ = Describe("delete all service instances tool", func() {
 				mockcfapi.DeleteServiceKey(serviceKeyGUID).RespondsNoContent(),
 				mockcfapi.DeleteServiceInstance(instanceGUID).RespondsAccepted(),
 				mockcfapi.GetServiceInstance(instanceGUID).RespondsWithDeleteInProgress(instanceGUID),
-				mockcfapi.GetServiceInstance(instanceGUID).RespondsWithDeleteInProgress(instanceGUID),
-				mockcfapi.GetServiceInstance(instanceGUID).RespondsWithDeleteInProgress(instanceGUID),
 			)
 
+			configuration.PollingInitialOffset = 1
 			configuration.PollingInterval = 1
 
 			configYAML, err := yaml.Marshal(configuration)
@@ -238,11 +239,11 @@ var _ = Describe("delete all service instances tool", func() {
 			params := []string{"-configFilePath", configFilePath}
 			deleterSession, logBuffer = startDeleteTool(params)
 
-			time.Sleep(3500 * time.Millisecond)
+			time.Sleep(2500 * time.Millisecond)
 			deleterSession.Kill()
 		})
 
-		It("polls exactly three times in 3.5 seconds", func() {
+		It("polls exactly once in 2.5 seconds", func() {
 			By("logging that it starts waiting for the instance to be deleted")
 			Expect(logBuffer).To(
 				gbytes.Say(fmt.Sprintf("Waiting for service instance %s to be deleted", instanceGUID)),
