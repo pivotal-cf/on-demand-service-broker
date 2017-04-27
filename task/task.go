@@ -206,24 +206,6 @@ func parametersFromRequest(requestParams map[string]interface{}) map[string]inte
 	return parameters
 }
 
-func (d deployer) validatedApplyChanges(parameters map[string]interface{}) (bool, error) {
-	const applyChangesKey = "apply-changes"
-
-	value := parameters[applyChangesKey]
-	if value == nil {
-		return false, nil
-	}
-
-	applyChanges, ok := value.(bool)
-	if !ok {
-		return false, broker.NewTaskError(errors.New("update called with apply-changes set to non-boolean"), broker.ApplyChangesInvalid)
-	}
-
-	delete(parameters, applyChangesKey)
-
-	return applyChanges, nil
-}
-
 func (d deployer) assertCanApplyChanges(parameters map[string]interface{}, planID string, previousPlanID *string) error {
 	if !d.featureFlags.CFUserTriggeredUpgrades() {
 		return broker.NewApplyChangesNotPermittedError(errors.New("'cf_user_triggered_upgrades' feature is disabled"))
