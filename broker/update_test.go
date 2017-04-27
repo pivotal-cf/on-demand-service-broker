@@ -9,16 +9,14 @@ package broker_test
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
-
-	"github.com/pivotal-cf/brokerapi"
-	"github.com/pivotal-cf/on-demand-service-broker/boshclient"
-	"github.com/pivotal-cf/on-demand-service-broker/broker"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/adapterclient"
+	"github.com/pivotal-cf/on-demand-service-broker/boshclient"
+	"github.com/pivotal-cf/on-demand-service-broker/broker"
 )
 
 var _ = Describe("Update", func() {
@@ -143,33 +141,31 @@ var _ = Describe("Update", func() {
 				})
 			})
 
-			Context("but there are pending changes", func() {
-				BeforeEach(func() {
-					newPlanID = secondPlanID
-					oldPlanID = existingPlanID
-
-					fakeDeployer.UpdateReturns(0, nil, broker.NewTaskError(errors.New("deployer-error-message"), broker.ApplyChangesWithPendingChanges))
-				})
-
-				It("reports an error", func() {
-					Expect(updateError).To(MatchError(ContainSubstring(broker.ApplyChangesDisabledMessage)))
-					Expect(logBuffer.String()).To(ContainSubstring("deployer-error-message"))
-				})
-			})
-
 			Context("but there are pending changes and cf_user_triggered_upgrades are enabled", func() {
 				BeforeEach(func() {
 					newPlanID = secondPlanID
 					oldPlanID = existingPlanID
 
 					fakeFeatureFlags.CFUserTriggeredUpgradesReturns(true)
-					fakeDeployer.UpdateReturns(0, nil, broker.NewTaskError(errors.New("deployer-error-message"), broker.ApplyChangesWithPendingChanges))
+					arbitraryParams = map[string]interface{}{"apply-changes": true}
 				})
 
 				It("reports an error", func() {
 					Expect(updateError).To(MatchError(ContainSubstring(broker.PendingChangesErrorMessage)))
-					Expect(logBuffer.String()).To(ContainSubstring("deployer-error-message"))
+					Expect(logBuffer.String()).To(ContainSubstring("update called with apply-changes and a plan change"))
 				})
+			})
+		})
+
+		Context("and cf_user_triggered_upgrades are disabled", func() {
+			BeforeEach(func() {
+				fakeFeatureFlags.CFUserTriggeredUpgradesReturns(false)
+				arbitraryParams = map[string]interface{}{"apply-changes": true}
+			})
+
+			It("reports an error", func() {
+				Expect(logBuffer.String()).To(ContainSubstring("'cf_user_triggered_upgrades' feature is disabled"))
+				Expect(updateError).To(MatchError(ContainSubstring(broker.ApplyChangesNotPermittedMessage)))
 			})
 		})
 
@@ -311,27 +307,23 @@ var _ = Describe("Update", func() {
 						Expect(actualBoshContextID).NotTo(BeEmpty())
 					})
 				})
-			})
 
-			Context("and there are pending changes", func() {
-				BeforeEach(func() {
-					fakeDeployer.UpdateReturns(0, nil, broker.NewTaskError(errors.New("deployer-error-message"), broker.ApplyChangesWithPendingChanges))
-				})
+				Context("and apply-changes is set to true", func() {
+					BeforeEach(func() {
 
-				It("reports the  error", func() {
-					Expect(updateError).To(MatchError(ContainSubstring(broker.ApplyChangesDisabledMessage)))
-					Expect(logBuffer.String()).To(ContainSubstring("error: deployer-error-message"))
+					})
 				})
 			})
 
-			Context("and there are arbitrary parameters set", func() {
+			Context("and there are pending changes and user triggered upgrades are enabled", func() {
 				BeforeEach(func() {
-					fakeDeployer.UpdateReturns(0, nil, broker.NewTaskError(errors.New("deployer-error-message"), broker.ApplyChangesInvalid))
+					fakeFeatureFlags.CFUserTriggeredUpgradesReturns(true)
+					arbitraryParams = map[string]interface{}{"apply-changes": true, "foo": "bar"}
 				})
 
 				It("reports the  error", func() {
-					Expect(updateError).To(MatchError(ContainSubstring(broker.ApplyChangesNotPermittedMessage)))
-					Expect(logBuffer.String()).To(ContainSubstring("error: deployer-error-message"))
+					Expect(updateError).To(MatchError(ContainSubstring(broker.PendingChangesErrorMessage)))
+					Expect(logBuffer.String()).To(ContainSubstring("update called with apply-changes and arbitrary parameters set"))
 				})
 			})
 

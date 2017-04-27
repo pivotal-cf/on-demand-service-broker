@@ -72,6 +72,12 @@ func (b *Broker) Update(
 		return errs(err.(DisplayableError))
 	}
 
+	if applyingChanges {
+		if err := b.assertCanApplyChanges(parameters, details.PlanID, &details.PreviousValues.PlanID); err.Occurred() {
+			return errs(err)
+		}
+	}
+
 	boshTaskID, _, err := b.deployer.Update(
 		deploymentName(instanceID),
 		details.PlanID,
@@ -147,4 +153,25 @@ func (b *Broker) validatedApplyChanges(parameters map[string]interface{}) (bool,
 	delete(parameters, applyChangesKey)
 
 	return applyChanges, nil
+}
+
+func (b *Broker) assertCanApplyChanges(
+	parameters map[string]interface{},
+	planID string,
+	previousPlanID *string,
+) DisplayableError {
+
+	if !b.featureFlags.CFUserTriggeredUpgrades() {
+		return NewApplyChangesNotPermittedError(errors.New("'cf_user_triggered_upgrades' feature is disabled"))
+	}
+
+	if previousPlanID != nil && planID != *previousPlanID {
+		return NewPendingChangesError(errors.New("update called with apply-changes and a plan change"))
+	}
+
+	if len(parameters) > 0 {
+		return NewPendingChangesError(errors.New("update called with apply-changes and arbitrary parameters set"))
+	}
+
+	return NilError
 }

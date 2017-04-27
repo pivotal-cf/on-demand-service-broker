@@ -512,11 +512,6 @@ var _ = Describe("updating a service instance", func() {
 					})
 
 					It("returns an apply changes not permitted message", func() {
-						boshDirector.VerifyAndMock(
-							mockbosh.GetDeployment(deploymentName(instanceID)).RespondsWithManifest(manifest),
-							mockbosh.Tasks(deploymentName(instanceID)).RespondsWithNoTasks(),
-						)
-
 						resp := updateServiceInstanceRequest(arbitraryParams, instanceID, dedicatedPlanID, dedicatedPlanID)
 						Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 
@@ -528,12 +523,6 @@ var _ = Describe("updating a service instance", func() {
 			Context("and the request params are apply-changes and a plan change", func() {
 				It("fails with an apply changes disabled message", func() {
 					parameters := map[string]interface{}{"apply-changes": true}
-
-					boshDirector.VerifyAndMock(
-						mockbosh.GetDeployment(deploymentName(instanceID)).RespondsWithManifest(manifest),
-						mockbosh.Tasks(deploymentName(instanceID)).RespondsWithNoTasks(),
-					)
-
 					resp := updateServiceInstanceRequest(parameters, instanceID, dedicatedPlanID, highMemoryPlanID)
 					Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 
@@ -544,12 +533,6 @@ var _ = Describe("updating a service instance", func() {
 			Context("and the request params are apply-changes and anything else", func() {
 				It("returns an apply changes not permitted message", func() {
 					parameters := map[string]interface{}{"apply-changes": true, "foo": "bar"}
-
-					boshDirector.VerifyAndMock(
-						mockbosh.GetDeployment(deploymentName(instanceID)).RespondsWithManifest(manifest),
-						mockbosh.Tasks(deploymentName(instanceID)).RespondsWithNoTasks(),
-					)
-
 					resp := updateServiceInstanceRequest(parameters, instanceID, dedicatedPlanID, dedicatedPlanID)
 					Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 

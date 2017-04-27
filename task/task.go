@@ -125,14 +125,6 @@ func (d deployer) Update(
 		return 0, nil, err
 	}
 
-	parameters := parametersFromRequest(requestParams)
-
-	if applyPendingChanges {
-		if err := d.assertCanApplyChanges(parameters, planID, previousPlanID); err != nil {
-			return 0, nil, err
-		}
-	}
-
 	if err := d.checkForPendingChanges(applyPendingChanges, deploymentName, previousPlanID, oldManifest, logger); err != nil {
 		return 0, nil, err
 	}
@@ -192,31 +184,6 @@ func (d deployer) assertNoOperationsInProgressForUpgrade(deploymentName string, 
 	if incompleteTasks := clientTasks.IncompleteTasks(); len(incompleteTasks) != 0 {
 		logger.Printf("deployment %s is still in progress: tasks %s\n", deploymentName, incompleteTasks.ToLog())
 		return broker.NewOperationInProgressError(errors.New("An operation is in progress for your service instance. Please try again later."))
-	}
-
-	return nil
-}
-
-func parametersFromRequest(requestParams map[string]interface{}) map[string]interface{} {
-	parameters, ok := requestParams["parameters"].(map[string]interface{})
-	if !ok {
-		return nil
-	}
-
-	return parameters
-}
-
-func (d deployer) assertCanApplyChanges(parameters map[string]interface{}, planID string, previousPlanID *string) error {
-	if !d.featureFlags.CFUserTriggeredUpgrades() {
-		return broker.NewApplyChangesNotPermittedError(errors.New("'cf_user_triggered_upgrades' feature is disabled"))
-	}
-
-	if previousPlanID != nil && planID != *previousPlanID {
-		return broker.NewTaskError(errors.New("update called with apply-changes and a plan change"), broker.ApplyChangesWithPlanChange)
-	}
-
-	if len(parameters) > 0 {
-		return broker.NewTaskError(errors.New("update called with apply-changes and arbitrary parameters set"), broker.ApplyChangesWithParams)
 	}
 
 	return nil
