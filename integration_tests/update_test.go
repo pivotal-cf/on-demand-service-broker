@@ -30,7 +30,7 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
-var _ = Describe("updating a service instance", func() {
+var _ = FDescribe("updating a service instance", func() {
 	const (
 		taskID       = 4
 		updateTaskID = 712
@@ -345,13 +345,14 @@ var _ = Describe("updating a service instance", func() {
 				updateResp = updateServiceInstanceRequest(updateArbParams, instanceID, dedicatedPlanID, highMemoryPlanID)
 				Expect(updateResp.StatusCode).To(Equal(http.StatusInternalServerError))
 
-				description := descriptionFrom(updateResp)
-				Expect(description).NotTo(ContainSubstring("task-id:"))
-				Expect(description).To(ContainSubstring("There was a problem completing your request. Please contact your operations team providing the following information: "))
-				Expect(description).To(MatchRegexp(`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`))
-				Expect(description).To(ContainSubstring(fmt.Sprintf("service: %s", serviceName)))
-				Expect(description).To(ContainSubstring(fmt.Sprintf("service-instance-guid: %s", instanceID)))
-				Expect(description).To(ContainSubstring("operation: update"))
+				Expect(descriptionFrom(updateResp)).To(SatisfyAll(
+					Not(ContainSubstring("task-id:")),
+					ContainSubstring("There was a problem completing your request. Please contact your operations team providing the following information: "),
+					MatchRegexp(`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`),
+					ContainSubstring(fmt.Sprintf("service: %s", serviceName)),
+					ContainSubstring(fmt.Sprintf("service-instance-guid: %s", instanceID)),
+					ContainSubstring("operation: update"),
+				))
 
 				Eventually(runningBroker.Out).Should(gbytes.Say(fmt.Sprintf("error deploying instance: bosh deployment '%s' not found.", deploymentName(instanceID))))
 			})
@@ -377,13 +378,14 @@ var _ = Describe("updating a service instance", func() {
 
 				Expect(updateResp.StatusCode).To(Equal(http.StatusInternalServerError))
 
-				description := descriptionFrom(updateResp)
-				Expect(description).To(ContainSubstring("There was a problem completing your request. Please contact your operations team providing the following information: "))
-				Expect(description).To(MatchRegexp(`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`))
-				Expect(description).To(ContainSubstring(fmt.Sprintf("service: %s", serviceName)))
-				Expect(description).To(ContainSubstring(fmt.Sprintf("service-instance-guid: %s", instanceID)))
-				Expect(description).To(ContainSubstring("operation: update"))
-				Expect(description).NotTo(ContainSubstring("task-id:"))
+				Expect(descriptionFrom(updateResp)).To(SatisfyAll(
+					Not(ContainSubstring("task-id:")),
+					ContainSubstring("There was a problem completing your request. Please contact your operations team providing the following information: "),
+					MatchRegexp(`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`),
+					ContainSubstring(fmt.Sprintf("service: %s", serviceName)),
+					ContainSubstring(fmt.Sprintf("service-instance-guid: %s", instanceID)),
+					ContainSubstring("operation: update"),
+				))
 			})
 		})
 
@@ -405,13 +407,14 @@ var _ = Describe("updating a service instance", func() {
 				It("reports the failure", func() {
 					Expect(updateResp.StatusCode).To(Equal(http.StatusInternalServerError))
 
-					description := descriptionFrom(updateResp)
-					Expect(description).To(ContainSubstring("There was a problem completing your request. Please contact your operations team providing the following information: "))
-					Expect(description).To(MatchRegexp(`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`))
-					Expect(description).To(ContainSubstring(fmt.Sprintf("service: %s", serviceName)))
-					Expect(description).To(ContainSubstring(fmt.Sprintf("service-instance-guid: %s", instanceID)))
-					Expect(description).To(ContainSubstring("operation: update"))
-					Expect(description).NotTo(ContainSubstring("task-id:"))
+					Expect(descriptionFrom(updateResp)).To(SatisfyAll(
+						Not(ContainSubstring("task-id:")),
+						ContainSubstring("There was a problem completing your request. Please contact your operations team providing the following information: "),
+						MatchRegexp(`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`),
+						ContainSubstring(fmt.Sprintf("service: %s", serviceName)),
+						ContainSubstring(fmt.Sprintf("service-instance-guid: %s", instanceID)),
+						ContainSubstring("operation: update"),
+					))
 
 					Eventually(runningBroker.Out).Should(gbytes.Say("something has gone wrong in adapter"))
 				})
