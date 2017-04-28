@@ -11,11 +11,36 @@ import (
 
 	"net/url"
 
+	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
 )
 
-func LastOperation(serviceInstanceGUID, operationData string) *mockhttp.MockHttp {
+type lastOperationMock struct {
+	*mockhttp.MockHttp
+}
+
+func LastOperation(serviceInstanceGUID, operationData string) *lastOperationMock {
 	operationQuery := url.QueryEscape(operationData)
 	path := fmt.Sprintf("/v2/service_instances/%s/last_operation?operation=%s", serviceInstanceGUID, operationQuery)
-	return mockhttp.NewMockedHttpRequest("GET", path)
+	return &lastOperationMock{
+		mockhttp.NewMockedHttpRequest("GET", path),
+	}
+}
+
+func (l *lastOperationMock) RespondWithOperationSucceeded() *mockhttp.MockHttp {
+	operationSucceed := brokerapi.LastOperation{
+		State:       brokerapi.Succeeded,
+		Description: "its done!",
+	}
+
+	return l.RespondsWithJson(operationSucceed)
+}
+
+func (l *lastOperationMock) RespondWithOperationInProgress() *mockhttp.MockHttp {
+	operationInProgress := brokerapi.LastOperation{
+		State:       brokerapi.InProgress,
+		Description: "its done!",
+	}
+
+	return l.RespondsWithJson(operationInProgress)
 }

@@ -58,6 +58,11 @@ func (m *serviceInstancesMock) RespondsWithDeleteInProgress(instanceGUID string)
 	return m.RespondsWith(body)
 }
 
+func (m *serviceInstancesMock) RespondsWithSucceedWithPlanUrl(instanceGUID, servicePlanUrl string) *mockhttp.MockHttp {
+	body := fmt.Sprintf(instanceResponseBodyWithPlanUrl, instanceGUID, "succeeded", servicePlanUrl)
+	return m.RespondsWith(body)
+}
+
 func (m *serviceInstancesMock) RespondsWithDeleteFailed(instanceGUID string) *mockhttp.MockHttp {
 	body := fmt.Sprintf(instanceResponseBody, instanceGUID, "failed")
 	return m.RespondsWith(body)
@@ -166,5 +171,18 @@ var instanceResponseBody string = `{
 			"type": "delete",
 			"state": "%s"
 		}
+	}
+}`
+
+var instanceResponseBodyWithPlanUrl string = `{
+	"metadata": {
+		"guid": "%s"
+	},
+	"entity": {
+		"last_operation": {
+			"type": "delete",
+			"state": "%s"
+		},
+		"service_plan_url": "%s"
 	}
 }`

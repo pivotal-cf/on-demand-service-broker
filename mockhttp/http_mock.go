@@ -80,6 +80,12 @@ func (i *MockHttp) RespondsWithJson(obj interface{}) *MockHttp {
 	return i
 }
 
+func (i *MockHttp) RespondsAcceptedWith(body string) *MockHttp {
+	i.responseStatus = http.StatusAccepted
+	i.responseBody = body
+	return i
+}
+
 func (i *MockHttp) RespondsWith(body string) *MockHttp {
 	i.responseStatus = http.StatusOK
 	i.responseBody = body

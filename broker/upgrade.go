@@ -37,10 +37,10 @@ func (b *Broker) Upgrade(ctx context.Context, instanceID string, logger *log.Log
 	}
 
 	var boshContextID string
-	var operationDataPlanID string
+	var operationPostDeployErrand string
 	if plan.LifecycleErrands != nil {
 		boshContextID = uuid.New()
-		operationDataPlanID = plan.ID
+		operationPostDeployErrand = plan.PostDeployErrand()
 	}
 
 	taskID, _, err := b.deployer.Upgrade(
@@ -65,9 +65,9 @@ func (b *Broker) Upgrade(ctx context.Context, instanceID string, logger *log.Log
 	}
 
 	return OperationData{
-		BoshContextID: boshContextID,
-		BoshTaskID:    taskID,
-		PlanID:        operationDataPlanID,
-		OperationType: OperationTypeUpgrade,
+		BoshContextID:        boshContextID,
+		BoshTaskID:           taskID,
+		PostDeployErrandName: operationPostDeployErrand,
+		OperationType:        OperationTypeUpgrade,
 	}, nil
 }

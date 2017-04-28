@@ -16,22 +16,27 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
+	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/mgmtapi"
 	"github.com/pivotal-cf/on-demand-service-broker/mockbosh"
 	"github.com/pivotal-cf/on-demand-service-broker/mockcfapi"
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
 	"github.com/pivotal-cf/on-demand-service-broker/mockuaa"
+	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
+	"io"
 )
 
 var _ = Describe("Management API", func() {
 	var (
-		conf          config.Config
-		runningBroker *gexec.Session
-		boshDirector  *mockhttp.Server
-		boshUAA       *mockuaa.ClientCredentialsServer
-		cfAPI         *mockhttp.Server
-		cfUAA         *mockuaa.ClientCredentialsServer
+		conf                   config.Config
+		runningBroker          *gexec.Session
+		boshDirector           *mockhttp.Server
+		boshUAA                *mockuaa.ClientCredentialsServer
+		cfAPI                  *mockhttp.Server
+		cfUAA                  *mockuaa.ClientCredentialsServer
+		instanceID             = "instance-id"
+		postDeployErrandPlanID = "post-deploy-plan-errand-id"
 	)
 
 	BeforeEach(func() {
@@ -405,9 +410,62 @@ var _ = Describe("Management API", func() {
 	})
 
 	Describe("upgrade instance", func() {
-		Context("when the CF API fails", func() {
-			instanceID := "instance-id"
+		Context("when the upgrade request is accepted", func() {
+			BeforeEach(func() {
+				adapter.GenerateManifest().ToReturnManifest(rawManifestWithDeploymentName(instanceID))
 
+				planWithPostDeploy := config.Plan{
+					Name: "post-deploy-errand-plan",
+					ID:   postDeployErrandPlanID,
+					InstanceGroups: []serviceadapter.InstanceGroup{
+						{
+							Name:      "instance-group-name",
+							VMType:    "post-deploy-errand-vm-type",
+							Instances: 1,
+							Networks:  []string{"net1"},
+							AZs:       []string{"az1"},
+						},
+					},
+					LifecycleErrands: &config.LifecycleErrands{
+						PostDeploy: "health-check",
+					},
+				}
+
+				conf.ServiceCatalog.Plans = []config.Plan{planWithPostDeploy}
+			})
+
+			It("responds with the correct operation data", func() {
+				upgradingTaskID := 123
+				cfAPI.VerifyAndMock(
+					mockcfapi.GetServiceInstance(instanceID).RespondsWithSucceedWithPlanUrl(instanceID, `\/v2\/service_plans\/my-plan`),
+					mockcfapi.GetServicePlan("my-plan").RespondsWith(getServicePlanResponse(postDeployErrandPlanID)),
+				)
+
+				boshDirector.VerifyAndMock(
+					mockbosh.GetDeployment("service-instance_instance-id").RespondsWith([]byte(rawManifestWithDeploymentName(instanceID))),
+					mockbosh.Tasks("service-instance_instance-id").RespondsWithNoTasks(),
+					mockbosh.Deploy().RedirectsToTask(upgradingTaskID),
+				)
+
+				upgradeReq, err := http.NewRequest("PATCH", fmt.Sprintf("http://localhost:%d/mgmt/service_instances/%s", brokerPort, instanceID), nil)
+				Expect(err).ToNot(HaveOccurred())
+				upgradeReq = basicAuthBrokerRequest(upgradeReq)
+
+				By("responding with 202")
+				upgradeResp, err := http.DefaultClient.Do(upgradeReq)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(upgradeResp.StatusCode).To(Equal(http.StatusAccepted))
+
+				operationData := decodeOperationDataFromResponseBody(upgradeResp.Body)
+
+				Expect(operationData.BoshTaskID).To(Equal(123))
+				Expect(operationData.BoshContextID).ToNot(BeEmpty())
+				Expect(operationData.OperationType).To(Equal(broker.OperationTypeUpgrade))
+				Expect(operationData.PostDeployErrandName).To(Equal("health-check"))
+			})
+		})
+
+		Context("when the upgrade request fails", func() {
 			It("responds with internal server error", func() {
 				cfAPI.VerifyAndMock(
 					mockcfapi.GetServiceInstance(instanceID).Fails("error getting service instance"),
@@ -434,3 +492,13 @@ var _ = Describe("Management API", func() {
 		})
 	})
 })
+
+func decodeOperationDataFromResponseBody(respBody io.ReadCloser) broker.OperationData {
+	body, err := ioutil.ReadAll(respBody)
+	Expect(err).NotTo(HaveOccurred())
+
+	var operationData broker.OperationData
+	err = json.Unmarshal(body, &operationData)
+	Expect(err).NotTo(HaveOccurred())
+	return operationData
+}

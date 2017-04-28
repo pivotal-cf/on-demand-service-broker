@@ -124,19 +124,10 @@ var _ = Describe("Upgrade", func() {
 				Expect(contextID).NotTo(BeEmpty())
 			})
 
-			It("returns the task ID for the upgrade task", func() {
+			It("returns the correct operation data", func() {
 				Expect(upgradeOperationData.BoshTaskID).To(Equal(boshTaskID))
-			})
-
-			It("returns the context id", func() {
 				Expect(upgradeOperationData.BoshContextID).NotTo(BeEmpty())
-			})
-
-			It("returns the plan id", func() {
-				Expect(upgradeOperationData.PlanID).To(Equal(postDeployErrandPlanID))
-			})
-
-			It("returns the operation type", func() {
+				Expect(upgradeOperationData.PostDeployErrandName).To(Equal("health-check"))
 				Expect(upgradeOperationData.OperationType).To(Equal(broker.OperationTypeUpgrade))
 			})
 		})

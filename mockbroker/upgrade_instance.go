@@ -12,6 +12,12 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
 )
 
-func UpgradeInstance(serviceInstanceGUID string) *mockhttp.MockHttp {
-	return mockhttp.NewMockedHttpRequest("PATCH", fmt.Sprintf("/mgmt/service_instances/%s", serviceInstanceGUID))
+type upgradeMock struct {
+	*mockhttp.MockHttp
+}
+
+func UpgradeInstance(serviceInstanceGUID string) *upgradeMock {
+	return &upgradeMock{
+		mockhttp.NewMockedHttpRequest("PATCH", fmt.Sprintf("/mgmt/service_instances/%s", serviceInstanceGUID)),
+	}
 }
