@@ -67,12 +67,18 @@ func (ll LoggingListener) WaitingFor(instance string, boshTaskId int) {
 }
 
 func (ll LoggingListener) Progress(pollingInterval time.Duration, orphanCount, upgradedCount, toRetryCount, deletedCount int) {
-	ll.logger.Println("Upgrade progress summary:")
-	ll.logger.Printf("Sleep interval until next attempt: %s", pollingInterval)
-	ll.logger.Printf("Number of successful upgrades so far: %d", upgradedCount)
-	ll.logger.Printf("Number of CF service instance orphans detected so far: %d", orphanCount)
-	ll.logger.Printf("Number of deleted instances before upgrade could occur: %d", deletedCount)
-	ll.logger.Printf("Number of operations in progress (to retry) so far: %d", toRetryCount)
+	ll.logger.Printf("Upgrade progress summary: "+
+		"Sleep interval until next attempt: %s"+
+		"Number of successful upgrades so far: %d"+
+		"Number of CF service instance orphans detected so far: %d"+
+		"Number of deleted instances before upgrade could occur: %d"+
+		"Number of operations in progress (to retry) so far: %d",
+		pollingInterval,
+		upgradedCount,
+		orphanCount,
+		deletedCount,
+		toRetryCount,
+	)
 }
 
 func (ll LoggingListener) Finished(orphanCount, upgradedCount, deletedCount int) {
