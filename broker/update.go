@@ -60,10 +60,10 @@ func (b *Broker) Update(
 	}
 
 	var boshContextID string
-	var operationDataPlanID string
+	var operationPostDeployErrandName string
 	if plan.PostDeployErrand() != "" {
 		boshContextID = uuid.New()
-		operationDataPlanID = details.PlanID
+		operationPostDeployErrandName = plan.PostDeployErrand()
 	}
 
 	parameters := parametersFromRequest(detailsMap)
@@ -108,10 +108,10 @@ func (b *Broker) Update(
 	ctx = brokercontext.WithBoshTaskID(ctx, boshTaskID)
 
 	operationData, err := json.Marshal(OperationData{
-		BoshTaskID:    boshTaskID,
-		OperationType: OperationTypeUpdate,
-		BoshContextID: boshContextID,
-		PlanID:        operationDataPlanID,
+		BoshTaskID:           boshTaskID,
+		OperationType:        OperationTypeUpdate,
+		BoshContextID:        boshContextID,
+		PostDeployErrandName: operationPostDeployErrandName,
 	})
 	if err != nil {
 		return errs(NewGenericError(ctx, err))

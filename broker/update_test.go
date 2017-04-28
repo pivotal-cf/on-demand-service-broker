@@ -141,6 +141,33 @@ var _ = Describe("Update", func() {
 				})
 			})
 
+			Context("and the new plan has a post-deploy errand", func() {
+				BeforeEach(func() {
+					newPlanID = postDeployErrandPlanID
+				})
+
+				It("does not error", func() {
+					Expect(updateError).NotTo(HaveOccurred())
+				})
+
+				It("returns that is operated asynchronously", func() {
+					Expect(updateSpec.IsAsync).To(BeTrue())
+				})
+
+				It("returns the correct operation data", func() {
+					data := unmarshalOperationData(updateSpec)
+					Expect(data.OperationType).To(Equal(broker.OperationTypeUpdate))
+					Expect(data.BoshContextID).NotTo(BeEmpty())
+					Expect(data.PostDeployErrandName).To(Equal("health-check"))
+				})
+
+				It("calls the deployer with a bosh context id", func() {
+					Expect(fakeDeployer.UpdateCallCount()).To(Equal(1))
+					_, _, _, _, _, actualBoshContextID, _ := fakeDeployer.UpdateArgsForCall(0)
+					Expect(actualBoshContextID).NotTo(BeEmpty())
+				})
+			})
+
 			Context("but there are pending changes and cf_user_triggered_upgrades are enabled", func() {
 				BeforeEach(func() {
 					newPlanID = secondPlanID
@@ -281,24 +308,11 @@ var _ = Describe("Update", func() {
 						Expect(updateSpec.IsAsync).To(BeTrue())
 					})
 
-					It("returns the correct operation type", func() {
+					It("returns the correct operation data", func() {
 						data := unmarshalOperationData(updateSpec)
 						Expect(data.OperationType).To(Equal(broker.OperationTypeUpdate))
-					})
-
-					It("returns the correct planID", func() {
-						data := unmarshalOperationData(updateSpec)
-						Expect(data.PlanID).To(Equal(postDeployErrandPlanID))
-					})
-
-					It("returns a context ID in the operation data", func() {
-						data := unmarshalOperationData(updateSpec)
 						Expect(data.BoshContextID).NotTo(BeEmpty())
-					})
-
-					It("returns the plan ID in the operation data", func() {
-						data := unmarshalOperationData(updateSpec)
-						Expect(data.PlanID).NotTo(BeEmpty())
+						Expect(data.PostDeployErrandName).To(Equal("health-check"))
 					})
 
 					It("calls the deployer with a bosh context id", func() {
