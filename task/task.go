@@ -153,7 +153,7 @@ func (d deployer) getDeploymentManifest(deploymentName string, logger *log.Logge
 	}
 
 	if !found {
-		return nil, broker.NewDeploymentNotFoundError(fmt.Errorf("bosh deployment '%s' not found", deploymentName))
+		return nil, fmt.Errorf("bosh deployment '%s' not found", deploymentName)
 	}
 
 	return oldManifest, nil
@@ -167,7 +167,7 @@ func (d deployer) assertNoOperationsInProgress(deploymentName string, logger *lo
 
 	if incompleteTasks := clientTasks.IncompleteTasks(); len(incompleteTasks) != 0 {
 		logger.Printf("deployment %s is still in progress: tasks %s\n", deploymentName, incompleteTasks.ToLog())
-		return broker.NewOperationInProgressError(errors.New(OperationInProgressMessage))
+		return errors.New(OperationInProgressMessage)
 	}
 
 	return nil
