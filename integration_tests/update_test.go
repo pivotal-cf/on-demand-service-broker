@@ -97,7 +97,7 @@ var _ = Describe("updating a service instance", func() {
 
 				Expect(updateResp.StatusCode).To(Equal(http.StatusAccepted))
 
-				Expect(*operationDataFrom(updateResp)).To(Equal(
+				Expect(*operationDataFromUpdateResponse(updateResp)).To(Equal(
 					broker.OperationData{
 						OperationType: broker.OperationTypeUpdate,
 						BoshTaskID:    updateTaskID,
@@ -230,7 +230,7 @@ var _ = Describe("updating a service instance", func() {
 
 				Expect(updateResp.StatusCode).To(Equal(http.StatusAccepted))
 
-				operationData := operationDataFrom(updateResp)
+				operationData := operationDataFromUpdateResponse(updateResp)
 				Expect(operationData.BoshContextID).NotTo(BeEmpty())
 				Expect(*operationData).To(Equal(
 					broker.OperationData{
@@ -278,7 +278,7 @@ var _ = Describe("updating a service instance", func() {
 				updateResp = updateServiceInstanceRequest(updateArbParams, instanceID, postDeployErrandPlanID, highMemoryPlanID)
 				Expect(updateResp.StatusCode).To(Equal(http.StatusAccepted))
 
-				Expect(*operationDataFrom(updateResp)).To(Equal(
+				Expect(*operationDataFromUpdateResponse(updateResp)).To(Equal(
 					broker.OperationData{
 						OperationType: broker.OperationTypeUpdate,
 						BoshTaskID:    taskID,
@@ -452,7 +452,7 @@ var _ = Describe("updating a service instance", func() {
 				updateResp = updateServiceInstanceRequest(updateArbParams, instanceID, dedicatedPlanID, dedicatedPlanID)
 				Expect(updateResp.StatusCode).To(Equal(http.StatusAccepted))
 
-				Expect(*operationDataFrom(updateResp)).To(Equal(
+				Expect(*operationDataFromUpdateResponse(updateResp)).To(Equal(
 					broker.OperationData{
 						OperationType: broker.OperationTypeUpdate,
 						BoshTaskID:    updateTaskID,
@@ -500,7 +500,7 @@ var _ = Describe("updating a service instance", func() {
 						resp := updateServiceInstanceRequest(arbitraryParams, instanceID, dedicatedPlanID, dedicatedPlanID)
 						Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
 
-						Expect(*operationDataFrom(resp)).To(Equal(
+						Expect(*operationDataFromUpdateResponse(resp)).To(Equal(
 							broker.OperationData{
 								OperationType: broker.OperationTypeUpdate,
 								BoshTaskID:    updateTaskID,
@@ -612,7 +612,7 @@ var _ = Describe("updating a service instance", func() {
 				updateResp = updateServiceInstanceRequest(updateArbParams, instanceID, postDeployErrandPlanID, postDeployErrandPlanID)
 				Expect(updateResp.StatusCode).To(Equal(http.StatusAccepted))
 
-				operationData := operationDataFrom(updateResp)
+				operationData := operationDataFromUpdateResponse(updateResp)
 				Expect(operationData.BoshContextID).NotTo(BeEmpty())
 				Expect(*operationData).To(Equal(broker.OperationData{
 					OperationType:        broker.OperationTypeUpdate,
@@ -636,7 +636,7 @@ func descriptionFrom(resp *http.Response) string {
 	return body.Description
 }
 
-func operationDataFrom(resp *http.Response) *broker.OperationData {
+func operationDataFromUpdateResponse(resp *http.Response) *broker.OperationData {
 	Expect(resp).NotTo(BeNil())
 
 	var updateResponse brokerapi.UpdateResponse
