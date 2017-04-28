@@ -325,9 +325,9 @@ var _ = Describe("updating a service instance", func() {
 		Context("and the new plan's quota has been reached already", func() {
 			It("returns a quota message", func() {
 				cfAPI.VerifyAndMock(
-					mockcfapi.ListServiceOfferings().RespondsWith(listCFServiceOfferingsResponse(serviceID, "some-cf-service-offering-guid")),
+					mockcfapi.ListServiceOfferings().RespondsOKWith(listCFServiceOfferingsResponse(serviceID, "some-cf-service-offering-guid")),
 					mockcfapi.ListServicePlans("some-cf-service-offering-guid").RespondsWithServicePlan(dedicatedPlanID, "some-cf-plan-guid"),
-					mockcfapi.ListServiceInstances("some-cf-plan-guid").RespondsWith(listCFServiceInstanceCountForPlanResponse(dedicatedPlanQuota)),
+					mockcfapi.ListServiceInstances("some-cf-plan-guid").RespondsOKWith(listCFServiceInstanceCountForPlanResponse(dedicatedPlanQuota)),
 				)
 
 				updateResp = updateServiceInstanceRequest(updateArbParams, instanceID, highMemoryPlanID, dedicatedPlanID)
@@ -339,7 +339,7 @@ var _ = Describe("updating a service instance", func() {
 		Context("and the bosh deployment cannot be found", func() {
 			It("fails with description", func() {
 				boshDirector.VerifyAndMock(
-					mockbosh.GetDeployment(deploymentName(instanceID)).NotFound(),
+					mockbosh.GetDeployment(deploymentName(instanceID)).RespondsNotFoundWith(""),
 				)
 
 				updateResp = updateServiceInstanceRequest(updateArbParams, instanceID, dedicatedPlanID, highMemoryPlanID)

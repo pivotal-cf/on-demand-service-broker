@@ -13,7 +13,7 @@ import (
 )
 
 type upgradeMock struct {
-	*mockhttp.MockHttp
+	*mockhttp.Handler
 }
 
 func UpgradeInstance(serviceInstanceGUID string) *upgradeMock {

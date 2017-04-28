@@ -146,7 +146,7 @@ var _ = Describe("Startup", func() {
 			It("doesn't fail at start up", func() {
 				cfAPI.VerifyAndMock(
 					mockcfapi.GetInfo().RespondsWithSufficientAPIVersion(),
-					mockcfapi.ListServiceOfferings().RespondsWith(`{
+					mockcfapi.ListServiceOfferings().RespondsOKWith(`{
 				  "next_url": null,
 				  "resources": [
 				    {
@@ -157,7 +157,7 @@ var _ = Describe("Startup", func() {
 				    }
 				  ]
 				}`),
-					mockcfapi.ListServicePlans("06df08f9-5a58-4d33-8097-32d0baf3ce1e").RespondsWith(`{
+					mockcfapi.ListServicePlans("06df08f9-5a58-4d33-8097-32d0baf3ce1e").RespondsOKWith(`{
 				   "next_url": null,
 				   "resources": [
 				      {
@@ -168,7 +168,7 @@ var _ = Describe("Startup", func() {
 				      }
 				   ]
 				}`),
-					mockcfapi.ListServiceInstances("ff717e7c-afd5-4d0a-bafe-16c7eff546ec").RespondsWith(`{
+					mockcfapi.ListServiceInstances("ff717e7c-afd5-4d0a-bafe-16c7eff546ec").RespondsOKWith(`{
 				   "total_results": 1
 				}`),
 				)
@@ -217,7 +217,7 @@ var _ = Describe("Startup", func() {
 			It("fails to start", func() {
 				cfAPI.VerifyAndMock(
 					mockcfapi.GetInfo().RespondsWithSufficientAPIVersion(),
-					mockcfapi.ListServiceOfferings().RespondsWith(`{
+					mockcfapi.ListServiceOfferings().RespondsOKWith(`{
 				  "next_url": null,
 				  "resources": [
 				    {
@@ -228,7 +228,7 @@ var _ = Describe("Startup", func() {
 				    }
 				  ]
 				}`),
-					mockcfapi.ListServicePlans("06df08f9-5a58-4d33-8097-32d0baf3ce1e").RespondsWith(`{
+					mockcfapi.ListServicePlans("06df08f9-5a58-4d33-8097-32d0baf3ce1e").RespondsOKWith(`{
 				   "next_url": null,
 				   "resources": [
 				      {
@@ -239,7 +239,7 @@ var _ = Describe("Startup", func() {
 				      }
 				   ]
 				}`),
-					mockcfapi.ListServiceInstances("ff717e7c-afd5-4d0a-bafe-16c7eff546ec").RespondsWith(`{
+					mockcfapi.ListServiceInstances("ff717e7c-afd5-4d0a-bafe-16c7eff546ec").RespondsOKWith(`{
 				   "total_results": 1
 				}`),
 				)
@@ -259,7 +259,7 @@ var _ = Describe("Startup", func() {
 		Context("when the CF api version is below 2.57.0", func() {
 			It("fails to start", func() {
 				cfAPI.VerifyAndMock(
-					mockcfapi.GetInfo().RespondsWith(`{"api_version": "2.56.0"}`),
+					mockcfapi.GetInfo().RespondsOKWith(`{"api_version": "2.56.0"}`),
 				)
 				boshDirector.VerifyAndMock(
 					mockbosh.Info().RespondsWithSufficientStemcellVersionForODB(),
@@ -276,7 +276,7 @@ var _ = Describe("Startup", func() {
 		Context("when the CF api version cannot be retrieved", func() {
 			It("fails to start", func() {
 				cfAPI.VerifyAndMock(
-					mockcfapi.GetInfo().Fails("error getting info"),
+					mockcfapi.GetInfo().RespondsInternalServerErrorWith("error getting info"),
 				)
 				boshDirector.VerifyAndMock(
 					mockbosh.Info().RespondsWithSufficientStemcellVersionForODB(),
@@ -495,7 +495,7 @@ var _ = Describe("Startup", func() {
 		Context("with an insufficient stemcell version for ODB", func() {
 			BeforeEach(func() {
 				boshDirector.VerifyAndMock(
-					mockbosh.Info().RespondsWith(`{"version":"1.3261.42.0 (00000000)"}`),
+					mockbosh.Info().RespondsOKWith(`{"version":"1.3261.42.0 (00000000)"}`),
 				)
 				cfAPI.VerifyAndMock(
 					mockcfapi.GetInfo().RespondsWithSufficientAPIVersion(),
@@ -515,7 +515,7 @@ var _ = Describe("Startup", func() {
 		Context("with an unrecognised version", func() {
 			BeforeEach(func() {
 				boshDirector.VerifyAndMock(
-					mockbosh.Info().RespondsWith(`{"version":"0000 (00000000)"}`), // e.g. bosh director 260.3
+					mockbosh.Info().RespondsOKWith(`{"version":"0000 (00000000)"}`), // e.g. bosh director 260.3
 				)
 				cfAPI.VerifyAndMock(
 					mockcfapi.GetInfo().RespondsWithSufficientAPIVersion(),
@@ -535,7 +535,7 @@ var _ = Describe("Startup", func() {
 		Context("when the version cannot be retrieved", func() {
 			BeforeEach(func() {
 				boshDirector.VerifyAndMock(
-					mockbosh.Info().Fails("no info for you"),
+					mockbosh.Info().RespondsInternalServerErrorWith("no info for you"),
 				)
 				cfAPI.VerifyAndMock(
 					mockcfapi.GetInfo().RespondsWithSufficientAPIVersion(),
@@ -555,10 +555,10 @@ var _ = Describe("Startup", func() {
 		Context("with insufficient BOSH and CF API versions", func() {
 			BeforeEach(func() {
 				boshDirector.VerifyAndMock(
-					mockbosh.Info().RespondsWith(`{"version":"1.3261.42.0 (00000000)"}`),
+					mockbosh.Info().RespondsOKWith(`{"version":"1.3261.42.0 (00000000)"}`),
 				)
 				cfAPI.VerifyAndMock(
-					mockcfapi.GetInfo().RespondsWith(`{"api_version": "2.56.0"}`),
+					mockcfapi.GetInfo().RespondsOKWith(`{"api_version": "2.56.0"}`),
 				)
 			})
 

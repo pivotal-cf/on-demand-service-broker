@@ -70,7 +70,7 @@ var _ = Describe("Broker Services HTTP Client", func() {
 
 		It("returns a list of instances", func() {
 			odb.VerifyAndMock(
-				mockbroker.ListInstances().RespondsWith(`[{"instance_id": "foo"}, {"instance_id": "bar"}]`),
+				mockbroker.ListInstances().RespondsOKWith(`[{"instance_id": "foo"}, {"instance_id": "bar"}]`),
 			)
 
 			instances, err := client.Instances()
@@ -102,7 +102,7 @@ var _ = Describe("Broker Services HTTP Client", func() {
 		Context("when the broker response is unrecognised", func() {
 			It("returns an error", func() {
 				odb.VerifyAndMock(
-					mockbroker.ListInstances().RespondsWith(`{"not": "a list"}`),
+					mockbroker.ListInstances().RespondsOKWith(`{"not": "a list"}`),
 				)
 
 				_, err := client.Instances()
@@ -120,7 +120,7 @@ var _ = Describe("Broker Services HTTP Client", func() {
 
 		It("returns an upgrade operation", func() {
 			odb.VerifyAndMock(
-				mockbroker.UpgradeInstance(serviceInstanceGUID).NotFound(),
+				mockbroker.UpgradeInstance(serviceInstanceGUID).RespondsNotFoundWith(""),
 			)
 
 			upgradeOperation, err := client.UpgradeInstance(serviceInstanceGUID)
@@ -152,7 +152,7 @@ var _ = Describe("Broker Services HTTP Client", func() {
 		Context("when the broker responds with an error", func() {
 			It("returns an error", func() {
 				odb.VerifyAndMock(
-					mockbroker.UpgradeInstance(serviceInstanceGUID).Fails("error upgrading instance"),
+					mockbroker.UpgradeInstance(serviceInstanceGUID).RespondsInternalServerErrorWith("error upgrading instance"),
 				)
 
 				_, err := client.UpgradeInstance(serviceInstanceGUID)
@@ -178,7 +178,7 @@ var _ = Describe("Broker Services HTTP Client", func() {
 			expectedOperationDataJSON := `{"BoshTaskID":1,"BoshContextID":"context-id","OperationType":"upgrade","PlanID":"plan-id"}`
 			odb.VerifyAndMock(
 				mockbroker.LastOperation(serviceInstanceGUID, expectedOperationDataJSON).
-					RespondsWith(`{"state":"in progress","description":"upgrade in progress"}`),
+					RespondsOKWith(`{"state":"in progress","description":"upgrade in progress"}`),
 			)
 
 			lastOperation, err := client.LastOperation(serviceInstanceGUID, operationData)
@@ -214,7 +214,7 @@ var _ = Describe("Broker Services HTTP Client", func() {
 				expectedOperationDataJSON := `{"BoshTaskID":0,"OperationType":""}`
 				odb.VerifyAndMock(
 					mockbroker.LastOperation(serviceInstanceGUID, expectedOperationDataJSON).
-						RespondsWith("invalid json"),
+						RespondsOKWith("invalid json"),
 				)
 
 				_, err := client.LastOperation(serviceInstanceGUID, broker.OperationData{})

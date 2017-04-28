@@ -16,22 +16,22 @@ import (
 )
 
 type deploymentMock struct {
-	*mockhttp.MockHttp
+	*mockhttp.Handler
 }
 
 func GetDeployment(deploymentName string) *deploymentMock {
 	return &deploymentMock{
-		MockHttp: mockhttp.NewMockedHttpRequest("GET", fmt.Sprintf("/deployments/%s", deploymentName)),
+		Handler: mockhttp.NewMockedHttpRequest("GET", fmt.Sprintf("/deployments/%s", deploymentName)),
 	}
 }
 
-func (t *deploymentMock) RespondsWith(manifest []byte) *mockhttp.MockHttp {
+func (t *deploymentMock) RespondsWithRawManifest(manifest []byte) *mockhttp.Handler {
 	data := map[string]string{"manifest": string(manifest)}
-	return t.RespondsWithJson(data)
+	return t.RespondsOKWithJSON(data)
 }
 
-func (t *deploymentMock) RespondsWithManifest(manifest bosh.BoshManifest) *mockhttp.MockHttp {
+func (t *deploymentMock) RespondsWithManifest(manifest bosh.BoshManifest) *mockhttp.Handler {
 	data, err := yaml.Marshal(manifest)
 	Expect(err).NotTo(HaveOccurred())
-	return t.RespondsWith(data)
+	return t.RespondsWithRawManifest(data)
 }

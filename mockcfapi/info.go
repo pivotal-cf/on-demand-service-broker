@@ -9,7 +9,7 @@ package mockcfapi
 import "github.com/pivotal-cf/on-demand-service-broker/mockhttp"
 
 type getInfoMock struct {
-	*mockhttp.MockHttp
+	*mockhttp.Handler
 }
 
 func GetInfo() *getInfoMock {
@@ -18,6 +18,6 @@ func GetInfo() *getInfoMock {
 	}
 }
 
-func (m *getInfoMock) RespondsWithSufficientAPIVersion() *mockhttp.MockHttp {
-	return m.RespondsWith(`{"api_version": "2.57.0"}`)
+func (m *getInfoMock) RespondsWithSufficientAPIVersion() *mockhttp.Handler {
+	return m.RespondsOKWith(`{"api_version": "2.57.0"}`)
 }

@@ -9,11 +9,11 @@ package mockbosh
 import "github.com/pivotal-cf/on-demand-service-broker/mockhttp"
 
 type deploymentsMock struct {
-	*mockhttp.MockHttp
+	*mockhttp.Handler
 }
 
 func Deployments() *deploymentsMock {
 	return &deploymentsMock{
-		MockHttp: mockhttp.NewMockedHttpRequest("GET", "/deployments"),
+		Handler: mockhttp.NewMockedHttpRequest("GET", "/deployments"),
 	}
 }

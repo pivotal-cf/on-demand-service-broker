@@ -36,7 +36,7 @@ var _ = Describe("deployments", func() {
 					{Name: "service-instance_three"},
 				}
 				director.VerifyAndMock(
-					mockbosh.Deployments().RespondsWithJson(expectedDeployments),
+					mockbosh.Deployments().RespondsOKWithJSON(expectedDeployments),
 				)
 			})
 
@@ -52,7 +52,7 @@ var _ = Describe("deployments", func() {
 		Context("when bosh returns a client error (HTTP 404)", func() {
 			BeforeEach(func() {
 				director.VerifyAndMock(
-					mockbosh.Deployments().NotFound(),
+					mockbosh.Deployments().RespondsNotFoundWith(""),
 				)
 			})
 
@@ -64,7 +64,7 @@ var _ = Describe("deployments", func() {
 		Context("when bosh fails to fetch the task", func() {
 			BeforeEach(func() {
 				director.VerifyAndMock(
-					mockbosh.Deployments().Fails("because reasons"),
+					mockbosh.Deployments().RespondsInternalServerErrorWith("because reasons"),
 				)
 			})
 

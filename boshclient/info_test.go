@@ -28,7 +28,7 @@ var _ = Describe("info", func() {
 			Context("and has a stemcell version", func() {
 				BeforeEach(func() {
 					director.VerifyAndMock(
-						mockbosh.Info().RespondsWith(
+						mockbosh.Info().RespondsOKWith(
 							`{
 		            "name": "garden-bosh",
 		            "uuid": "b0f9e86f-357f-409c-8f64-a2363d2d9e3b",
@@ -77,7 +77,7 @@ var _ = Describe("info", func() {
 			Context("and has a semi-semver version (bosh director 260.4)", func() {
 				BeforeEach(func() {
 					director.VerifyAndMock(
-						mockbosh.Info().RespondsWith(
+						mockbosh.Info().RespondsOKWith(
 							`{
 								"name": "garden-bosh",
 								"uuid": "b0f9e86f-357f-409c-8f64-a2363d2d9e3b",
@@ -126,7 +126,7 @@ var _ = Describe("info", func() {
 			Context("and has a semver version less than 261", func() {
 				BeforeEach(func() {
 					director.VerifyAndMock(
-						mockbosh.Info().RespondsWith(
+						mockbosh.Info().RespondsOKWith(
 							`{
 		            "name": "garden-bosh",
 		            "uuid": "b0f9e86f-357f-409c-8f64-a2363d2d9e3b",
@@ -175,7 +175,7 @@ var _ = Describe("info", func() {
 			Context("and has a semver version of 261 or greater", func() {
 				BeforeEach(func() {
 					director.VerifyAndMock(
-						mockbosh.Info().RespondsWith(
+						mockbosh.Info().RespondsOKWith(
 							`{
 		            "name": "garden-bosh",
 		            "uuid": "b0f9e86f-357f-409c-8f64-a2363d2d9e3b",
@@ -224,7 +224,7 @@ var _ = Describe("info", func() {
 			Context("and the version is all zeros (e.g. bosh director 260.3)", func() {
 				BeforeEach(func() {
 					director.VerifyAndMock(
-						mockbosh.Info().RespondsWith(
+						mockbosh.Info().RespondsOKWith(
 							`{
 								"name": "garden-bosh",
 								"uuid": "b0f9e86f-357f-409c-8f64-a2363d2d9e3b",
@@ -265,7 +265,7 @@ var _ = Describe("info", func() {
 			Context("and the version is empty", func() {
 				BeforeEach(func() {
 					director.VerifyAndMock(
-						mockbosh.Info().RespondsWith(
+						mockbosh.Info().RespondsOKWith(
 							`{
 								"name": "garden-bosh",
 								"uuid": "b0f9e86f-357f-409c-8f64-a2363d2d9e3b",
@@ -306,7 +306,7 @@ var _ = Describe("info", func() {
 			Context("and the major version is not a integer", func() {
 				BeforeEach(func() {
 					director.VerifyAndMock(
-						mockbosh.Info().RespondsWith(
+						mockbosh.Info().RespondsOKWith(
 							`{
 								"name": "garden-bosh",
 								"uuid": "b0f9e86f-357f-409c-8f64-a2363d2d9e3b",
@@ -348,7 +348,7 @@ var _ = Describe("info", func() {
 		Context("when the info request fails", func() {
 			BeforeEach(func() {
 				director.VerifyAndMock(
-					mockbosh.Info().Fails("nothing today, thank you"),
+					mockbosh.Info().RespondsInternalServerErrorWith("nothing today, thank you"),
 				)
 			})
 

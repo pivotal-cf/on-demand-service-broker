@@ -13,7 +13,7 @@ import (
 )
 
 type serviceOfferingsMock struct {
-	*mockhttp.MockHttp
+	*mockhttp.Handler
 }
 
 func ListServiceOfferings() *serviceOfferingsMock {
@@ -28,12 +28,12 @@ func ListServiceOfferingsForPage(page int) *serviceOfferingsMock {
 	}
 }
 
-func (m *serviceOfferingsMock) RespondsWithNoServiceOfferings() *mockhttp.MockHttp {
-	return m.RespondsWith(`{"next_url": null, "resources": []}`)
+func (m *serviceOfferingsMock) RespondsWithNoServiceOfferings() *mockhttp.Handler {
+	return m.RespondsOKWith(`{"next_url": null, "resources": []}`)
 }
 
-func (m *serviceOfferingsMock) RespondsWithServiceOffering(serviceOfferingID, ccServiceOfferingGUID string) *mockhttp.MockHttp {
-	return m.RespondsWith(listServiceOfferingResponse(serviceOfferingID, ccServiceOfferingGUID))
+func (m *serviceOfferingsMock) RespondsWithServiceOffering(serviceOfferingID, ccServiceOfferingGUID string) *mockhttp.Handler {
+	return m.RespondsOKWith(listServiceOfferingResponse(serviceOfferingID, ccServiceOfferingGUID))
 }
 
 func listServiceOfferingResponse(serviceOfferingID, ccServiceOfferingGUID string) string {

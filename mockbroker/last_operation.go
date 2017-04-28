@@ -16,7 +16,7 @@ import (
 )
 
 type lastOperationMock struct {
-	*mockhttp.MockHttp
+	*mockhttp.Handler
 }
 
 func LastOperation(serviceInstanceGUID, operationData string) *lastOperationMock {
@@ -27,20 +27,20 @@ func LastOperation(serviceInstanceGUID, operationData string) *lastOperationMock
 	}
 }
 
-func (l *lastOperationMock) RespondWithOperationSucceeded() *mockhttp.MockHttp {
+func (l *lastOperationMock) RespondWithOperationSucceeded() *mockhttp.Handler {
 	operationSucceed := brokerapi.LastOperation{
 		State:       brokerapi.Succeeded,
-		Description: "its done!",
+		Description: "it succeeded",
 	}
 
-	return l.RespondsWithJson(operationSucceed)
+	return l.RespondsOKWithJSON(operationSucceed)
 }
 
-func (l *lastOperationMock) RespondWithOperationInProgress() *mockhttp.MockHttp {
+func (l *lastOperationMock) RespondWithOperationInProgress() *mockhttp.Handler {
 	operationInProgress := brokerapi.LastOperation{
 		State:       brokerapi.InProgress,
-		Description: "its done!",
+		Description: "it's in progress",
 	}
 
-	return l.RespondsWithJson(operationInProgress)
+	return l.RespondsOKWithJSON(operationInProgress)
 }

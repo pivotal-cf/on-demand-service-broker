@@ -71,15 +71,15 @@ var _ = Describe("deprovisioning service instances", func() {
 
 			JustBeforeEach(func() {
 				cfAPI.VerifyAndMock(
-					mockcfapi.GetServiceInstance(instanceID).RespondsWith(getServiceInstanceResponse(
+					mockcfapi.GetServiceInstance(instanceID).RespondsOKWith(getServiceInstanceResponse(
 						dedicatedPlanID,
 						"succeeded",
 					)),
-					mockcfapi.GetServicePlan(dedicatedPlanID).RespondsWith(getServicePlanResponse(dedicatedPlanID)),
+					mockcfapi.GetServicePlan(dedicatedPlanID).RespondsOKWith(getServicePlanResponse(dedicatedPlanID)),
 				)
 
 				boshDirector.VerifyAndMock(
-					mockbosh.GetDeployment(deploymentName(instanceID)).RespondsWith([]byte(`a: b`)),
+					mockbosh.GetDeployment(deploymentName(instanceID)).RespondsWithRawManifest([]byte(`a: b`)),
 					mockbosh.Tasks(deploymentName(instanceID)).RespondsWithNoTasks(),
 					mockbosh.DeleteDeployment(deploymentName(instanceID)).
 						WithoutContextID().RedirectsToTask(deleteTaskID),
@@ -150,14 +150,14 @@ var _ = Describe("deprovisioning service instances", func() {
 			Context("and the deployment exists", func() {
 				JustBeforeEach(func() {
 					cfAPI.VerifyAndMock(
-						mockcfapi.GetServiceInstance(instanceID).RespondsWith(getServiceInstanceResponse(
+						mockcfapi.GetServiceInstance(instanceID).RespondsOKWith(getServiceInstanceResponse(
 							planID,
 							"succeeded",
 						)),
-						mockcfapi.GetServicePlan(planID).RespondsWith(getServicePlanResponse(planID)),
+						mockcfapi.GetServicePlan(planID).RespondsOKWith(getServicePlanResponse(planID)),
 					)
 					boshDirector.VerifyAndMock(
-						mockbosh.GetDeployment(deploymentName(instanceID)).RespondsWith([]byte(`a: b`)),
+						mockbosh.GetDeployment(deploymentName(instanceID)).RespondsWithRawManifest([]byte(`a: b`)),
 						mockbosh.Tasks(deploymentName(instanceID)).RespondsWithNoTasks(),
 						mockbosh.Errand(deploymentName(instanceID), errandName).
 							WithAnyContextID().RedirectsToTask(boshErrandTaskID),
@@ -224,7 +224,7 @@ var _ = Describe("deprovisioning service instances", func() {
 	Context("when the deployment does not exist", func() {
 		JustBeforeEach(func() {
 			boshDirector.VerifyAndMock(
-				mockbosh.GetDeployment(deploymentName(instanceID)).NotFound(),
+				mockbosh.GetDeployment(deploymentName(instanceID)).RespondsNotFoundWith(""),
 			)
 
 			delResp = deprovisionInstance(instanceID, true)
@@ -250,7 +250,7 @@ var _ = Describe("deprovisioning service instances", func() {
 
 		JustBeforeEach(func() {
 			boshDirector.VerifyAndMock(
-				mockbosh.GetDeployment(deploymentName(instanceID)).RespondsWith([]byte(`a: b`)),
+				mockbosh.GetDeployment(deploymentName(instanceID)).RespondsWithRawManifest([]byte(`a: b`)),
 				mockbosh.Tasks(deploymentName(instanceID)).RespondsWithATaskContainingState("processing", ""),
 			)
 
@@ -277,16 +277,16 @@ var _ = Describe("deprovisioning service instances", func() {
 	Context("when the response from bosh is not a redirect", func() {
 		JustBeforeEach(func() {
 			cfAPI.VerifyAndMock(
-				mockcfapi.GetServiceInstance(instanceID).RespondsWith(getServiceInstanceResponse(
+				mockcfapi.GetServiceInstance(instanceID).RespondsOKWith(getServiceInstanceResponse(
 					dedicatedPlanID,
 					"succeeded",
 				)),
-				mockcfapi.GetServicePlan(dedicatedPlanID).RespondsWith(getServicePlanResponse(dedicatedPlanID)),
+				mockcfapi.GetServicePlan(dedicatedPlanID).RespondsOKWith(getServicePlanResponse(dedicatedPlanID)),
 			)
 			boshDirector.VerifyAndMock(
-				mockbosh.GetDeployment(deploymentName(instanceID)).RespondsWith([]byte(`a: b`)),
+				mockbosh.GetDeployment(deploymentName(instanceID)).RespondsWithRawManifest([]byte(`a: b`)),
 				mockbosh.Tasks(deploymentName(instanceID)).RespondsWithNoTasks(),
-				mockbosh.DeleteDeployment(deploymentName(instanceID)).WithoutContextID().RespondsWith("not a redirect"),
+				mockbosh.DeleteDeployment(deploymentName(instanceID)).WithoutContextID().RespondsOKWith("not a redirect"),
 			)
 
 			delResp = deprovisionInstance(instanceID, true)

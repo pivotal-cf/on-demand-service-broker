@@ -300,7 +300,7 @@ var _ = Describe("unbinding service instances", func() {
 			BeforeEach(func() {
 				beforeUnbinding = func() {
 					boshDirector.VerifyAndMock(
-						mockbosh.VMsForDeployment(deploymentName(instanceID)).Fails("bosh error"),
+						mockbosh.VMsForDeployment(deploymentName(instanceID)).RespondsInternalServerErrorWith("bosh error"),
 					)
 				}
 			})
@@ -376,7 +376,7 @@ var _ = Describe("unbinding service instances", func() {
 			BeforeEach(func() {
 				beforeUnbinding = func() {
 					boshDirector.VerifyAndMock(
-						mockbosh.VMsForDeployment(deploymentName(instanceID)).NotFound(),
+						mockbosh.VMsForDeployment(deploymentName(instanceID)).RespondsNotFoundWith(""),
 					)
 				}
 			})

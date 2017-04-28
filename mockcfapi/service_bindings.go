@@ -13,7 +13,7 @@ import (
 )
 
 type serviceBindingsMock struct {
-	*mockhttp.MockHttp
+	*mockhttp.Handler
 }
 
 func ListServiceBindings(serviceInstanceGUID string) *serviceBindingsMock {
@@ -33,13 +33,13 @@ func ListServiceBindingsForPage(serviceInstanceGUID string, page int) *serviceBi
 	}
 }
 
-func DeleteServiceBinding(appGUID, bindingGUID string) *mockhttp.MockHttp {
+func DeleteServiceBinding(appGUID, bindingGUID string) *mockhttp.Handler {
 	path := fmt.Sprintf("/v2/apps/%s/service_bindings/%s", appGUID, bindingGUID)
 	return mockhttp.NewMockedHttpRequest("DELETE", path)
 }
 
-func (m *serviceBindingsMock) RespondsWithServiceBinding(bindingGUID, instanceGUID, appGUID string) *mockhttp.MockHttp {
-	return m.RespondsWith(fmt.Sprintf(`{
+func (m *serviceBindingsMock) RespondsWithServiceBinding(bindingGUID, instanceGUID, appGUID string) *mockhttp.Handler {
+	return m.RespondsOKWith(fmt.Sprintf(`{
 		"total_results": 1,
 		"total_pages": 1,
 		"prev_url": null,

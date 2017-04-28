@@ -16,18 +16,18 @@ import (
 
 type deployMock struct {
 	expectedManifest []byte
-	*mockhttp.MockHttp
+	*mockhttp.Handler
 }
 
 func Deploy() *deployMock {
 	mock := &deployMock{
-		MockHttp: mockhttp.NewMockedHttpRequest("POST", "/deployments"),
+		Handler: mockhttp.NewMockedHttpRequest("POST", "/deployments"),
 	}
 	mock.WithContentType("text/yaml")
 	return mock
 }
 
-func (d *deployMock) RedirectsToTask(taskID int) *mockhttp.MockHttp {
+func (d *deployMock) RedirectsToTask(taskID int) *mockhttp.Handler {
 	return d.RedirectsTo(taskURL(taskID))
 }
 

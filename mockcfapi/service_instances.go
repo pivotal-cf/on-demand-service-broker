@@ -17,7 +17,7 @@ import (
 )
 
 type serviceInstancesMock struct {
-	*mockhttp.MockHttp
+	*mockhttp.Handler
 }
 
 func ListServiceInstances(servicePlanGUID string) *serviceInstancesMock {
@@ -53,23 +53,23 @@ func GetServiceInstance(serviceInstanceGUID string) *serviceInstancesMock {
 	}
 }
 
-func (m *serviceInstancesMock) RespondsWithDeleteInProgress(instanceGUID string) *mockhttp.MockHttp {
+func (m *serviceInstancesMock) RespondsWithDeleteInProgress(instanceGUID string) *mockhttp.Handler {
 	body := fmt.Sprintf(instanceResponseBody, instanceGUID, "in progress")
-	return m.RespondsWith(body)
+	return m.RespondsOKWith(body)
 }
 
-func (m *serviceInstancesMock) RespondsWithSucceedWithPlanUrl(instanceGUID, servicePlanUrl string) *mockhttp.MockHttp {
+func (m *serviceInstancesMock) RespondsWithSucceedWithPlanUrl(instanceGUID, servicePlanUrl string) *mockhttp.Handler {
 	body := fmt.Sprintf(instanceResponseBodyWithPlanUrl, instanceGUID, "succeeded", servicePlanUrl)
-	return m.RespondsWith(body)
+	return m.RespondsOKWith(body)
 }
 
-func (m *serviceInstancesMock) RespondsWithDeleteFailed(instanceGUID string) *mockhttp.MockHttp {
+func (m *serviceInstancesMock) RespondsWithDeleteFailed(instanceGUID string) *mockhttp.Handler {
 	body := fmt.Sprintf(instanceResponseBody, instanceGUID, "failed")
-	return m.RespondsWith(body)
+	return m.RespondsOKWith(body)
 }
 
-func (m *serviceInstancesMock) RespondsWithNoServiceInstances() *mockhttp.MockHttp {
-	return m.RespondsWith(`{
+func (m *serviceInstancesMock) RespondsWithNoServiceInstances() *mockhttp.Handler {
+	return m.RespondsOKWith(`{
 			"total_results": 1,
 			"total_pages": 1,
 			"prev_url": null,
@@ -78,8 +78,8 @@ func (m *serviceInstancesMock) RespondsWithNoServiceInstances() *mockhttp.MockHt
 		}`)
 }
 
-func (m *serviceInstancesMock) RespondsWithServiceInstances(instanceIDs ...string) *mockhttp.MockHttp {
-	return m.RespondsWith(listServiceInstancesResponse(instanceIDs...))
+func (m *serviceInstancesMock) RespondsWithServiceInstances(instanceIDs ...string) *mockhttp.Handler {
+	return m.RespondsOKWith(listServiceInstancesResponse(instanceIDs...))
 }
 
 func (m *serviceInstancesMock) RespondsWithPaginatedServiceInstances(
@@ -88,8 +88,8 @@ func (m *serviceInstancesMock) RespondsWithPaginatedServiceInstances(
 	resultsPerPage,
 	totalPages int,
 	instanceIDs ...string,
-) *mockhttp.MockHttp {
-	return m.RespondsWith(paginatedListServiceInstanceResponse(
+) *mockhttp.Handler {
+	return m.RespondsOKWith(paginatedListServiceInstanceResponse(
 		planID,
 		page,
 		resultsPerPage,

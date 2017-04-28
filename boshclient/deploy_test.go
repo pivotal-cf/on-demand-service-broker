@@ -118,7 +118,7 @@ var _ = Describe("deploying a manifest", func() {
 	Context("and the bosh director responds with an error", func() {
 		BeforeEach(func() {
 			director.VerifyAndMock(
-				mockbosh.Deploy().WithoutContextID().Fails("because reasons"),
+				mockbosh.Deploy().WithoutContextID().RespondsInternalServerErrorWith("because reasons"),
 			)
 		})
 

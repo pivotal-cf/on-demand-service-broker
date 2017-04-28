@@ -13,12 +13,12 @@ import (
 )
 
 type errandMock struct {
-	*mockhttp.MockHttp
+	*mockhttp.Handler
 }
 
 func Errand(deploymentName, errandName string) *errandMock {
 	mock := errandMock{
-		MockHttp: mockhttp.NewMockedHttpRequest("POST", fmt.Sprintf("/deployments/%s/errands/%s/runs", deploymentName, errandName)),
+		Handler: mockhttp.NewMockedHttpRequest("POST", fmt.Sprintf("/deployments/%s/errands/%s/runs", deploymentName, errandName)),
 	}
 	mock.WithContentType("application/json")
 	mock.WithBody("{}")
@@ -40,6 +40,6 @@ func (e *errandMock) WithoutContextID() *errandMock {
 	return e
 }
 
-func (e *errandMock) RedirectsToTask(taskID int) *mockhttp.MockHttp {
+func (e *errandMock) RedirectsToTask(taskID int) *mockhttp.Handler {
 	return e.RedirectsTo(taskURL(taskID))
 }

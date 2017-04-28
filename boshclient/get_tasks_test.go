@@ -33,7 +33,7 @@ var _ = Describe("getting tasks", func() {
 		Context("when bosh fetches the task successfully", func() {
 			BeforeEach(func() {
 				director.VerifyAndMock(
-					mockbosh.Tasks(deploymentName).RespondsWithJson(expectedTasks),
+					mockbosh.Tasks(deploymentName).RespondsOKWithJSON(expectedTasks),
 				)
 			})
 
@@ -49,7 +49,7 @@ var _ = Describe("getting tasks", func() {
 		Context("when bosh returns a client error (HTTP 404)", func() {
 			BeforeEach(func() {
 				director.VerifyAndMock(
-					mockbosh.Tasks(deploymentName).NotFound(),
+					mockbosh.Tasks(deploymentName).RespondsNotFoundWith(""),
 				)
 			})
 
@@ -61,7 +61,7 @@ var _ = Describe("getting tasks", func() {
 		Context("when bosh fails to fetch the task", func() {
 			BeforeEach(func() {
 				director.VerifyAndMock(
-					mockbosh.Tasks(deploymentName).Fails("because reasons"),
+					mockbosh.Tasks(deploymentName).RespondsInternalServerErrorWith("because reasons"),
 				)
 			})
 
@@ -135,8 +135,8 @@ var _ = Describe("getting tasks", func() {
 
 			BeforeEach(func() {
 				director.VerifyAndMock(
-					mockbosh.TasksByContext(deploymentName, contextID).RespondsWithJson(expectedTasks),
-					mockbosh.TaskOutput(0).RespondsWith(""),
+					mockbosh.TasksByContext(deploymentName, contextID).RespondsOKWithJSON(expectedTasks),
+					mockbosh.TaskOutput(0).RespondsOKWith(""),
 				)
 			})
 
@@ -180,7 +180,7 @@ var _ = Describe("getting tasks", func() {
 								ContextID:   contextID,
 							},
 						),
-						mockbosh.TaskOutput(42).RespondsWithJson(
+						mockbosh.TaskOutput(42).RespondsOKWithJSON(
 							boshclient.BoshTaskOutput{ExitCode: 1},
 						),
 					)
@@ -212,7 +212,7 @@ var _ = Describe("getting tasks", func() {
 							ContextID:   contextID,
 						},
 					),
-					mockbosh.TaskOutput(42).Fails("you are fake news"),
+					mockbosh.TaskOutput(42).RespondsInternalServerErrorWith("you are fake news"),
 				)
 			})
 

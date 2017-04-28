@@ -20,11 +20,11 @@ import (
 	"time"
 )
 
-type MockHttp struct {
+type Handler struct {
 	expectedMethod         string
 	expectedUrl            string
 	expectedBody           string
-	expectedJsonBody       map[string]interface{}
+	expectedJSONBody       map[string]interface{}
 	expectedHeadersPresent []string
 	unexpectedHeaders      []string
 	expectedHeaders        map[string]string
@@ -37,120 +37,108 @@ type MockHttp struct {
 	matchURLWithRegex bool
 }
 
-func (i *MockHttp) Fails(message string) *MockHttp {
-	i.responseBody = message
+func (i *Handler) RespondsInternalServerErrorWith(body string) *Handler {
+	i.responseBody = body
 	i.responseStatus = http.StatusInternalServerError
 	return i
 }
 
-func (i *MockHttp) RedirectsTo(uri string) *MockHttp {
+func (i *Handler) RedirectsTo(uri string) *Handler {
 	i.responseStatus = http.StatusFound
 	i.responseRedirectToUrl = uri
 	return i
 }
 
-func (i *MockHttp) NotFound() *MockHttp {
-	i.responseBody = ""
-	i.responseStatus = http.StatusNotFound
-	return i
-}
-
-func (i *MockHttp) NotFoundWithBody(body string) *MockHttp {
+func (i *Handler) RespondsNotFoundWith(body string) *Handler {
 	i.responseBody = body
 	i.responseStatus = http.StatusNotFound
 	return i
 }
 
-func (i *MockHttp) RespondsWithUnauthorized(body string) *MockHttp {
+func (i *Handler) RespondsUnauthorizedWith(body string) *Handler {
 	i.responseBody = body
 	i.responseStatus = http.StatusUnauthorized
 	return i
 }
 
-func (i *MockHttp) RespondsWithForbidden(body string) *MockHttp {
+func (i *Handler) RespondsForbiddenWith(body string) *Handler {
 	i.responseBody = body
 	i.responseStatus = http.StatusForbidden
 	return i
 }
 
-func (i *MockHttp) RespondsWithJson(obj interface{}) *MockHttp {
+func (i *Handler) RespondsOKWithJSON(obj interface{}) *Handler {
 	data, err := json.Marshal(obj)
 	Expect(err).NotTo(HaveOccurred())
-	i.RespondsWith(string(data))
+	i.RespondsOKWith(string(data))
 	return i
 }
 
-func (i *MockHttp) RespondsAcceptedWith(body string) *MockHttp {
-	i.responseStatus = http.StatusAccepted
-	i.responseBody = body
-	return i
-}
-
-func (i *MockHttp) RespondsWith(body string) *MockHttp {
+func (i *Handler) RespondsOKWith(body string) *Handler {
 	i.responseStatus = http.StatusOK
 	i.responseBody = body
 	return i
 }
 
-func (i *MockHttp) RespondsAccepted() *MockHttp {
+func (i *Handler) RespondsAcceptedWith(body string) *Handler {
 	i.responseStatus = http.StatusAccepted
-	i.responseBody = ""
+	i.responseBody = body
 	return i
 }
 
-func (i *MockHttp) RespondsNoContent() *MockHttp {
+func (i *Handler) RespondsNoContent() *Handler {
 	i.responseStatus = http.StatusNoContent
 	i.responseBody = ""
 	return i
 }
 
-func (i *MockHttp) DelayResponse(delay time.Duration) *MockHttp {
+func (i *Handler) DelayResponse(delay time.Duration) *Handler {
 	i.delay = delay
 	return i
 }
 
-func (i *MockHttp) WithBody(body string) *MockHttp {
+func (i *Handler) WithBody(body string) *Handler {
 	i.expectedBody = body
 	return i
 }
 
-func (i *MockHttp) WithJsonBody(body map[string]interface{}) *MockHttp {
-	i.expectedJsonBody = body
+func (i *Handler) WithJSONBody(body map[string]interface{}) *Handler {
+	i.expectedJSONBody = body
 	return i
 }
 
-func (i *MockHttp) WithContentType(contentType string) *MockHttp {
+func (i *Handler) WithContentType(contentType string) *Handler {
 	i.expectedHeaders["Content-Type"] = contentType
 	return i
 }
 
-func (i *MockHttp) WithAuthorizationHeader(auth string) *MockHttp {
+func (i *Handler) WithAuthorizationHeader(auth string) *Handler {
 	i.expectedHeaders["Authorization"] = auth
 	return i
 }
 
-func (i *MockHttp) WithHeaderPresent(header string) *MockHttp {
+func (i *Handler) WithHeaderPresent(header string) *Handler {
 	i.expectedHeadersPresent = append(i.expectedHeadersPresent, header)
 	return i
 }
 
-func (i *MockHttp) WithoutHeader(header string) *MockHttp {
+func (i *Handler) WithoutHeader(header string) *Handler {
 	i.unexpectedHeaders = append(i.unexpectedHeaders, header)
 	return i
 }
 
-func (i *MockHttp) WithHeader(header, value string) *MockHttp {
+func (i *Handler) WithHeader(header, value string) *Handler {
 	i.expectedHeaders[header] = value
 	return i
 }
 
-func (i *MockHttp) WithRegexURLMatcher() *MockHttp {
+func (i *Handler) WithRegexURLMatcher() *Handler {
 	i.matchURLWithRegex = true
 	return i
 }
 
-func NewMockedHttpRequest(method, url string) *MockHttp {
-	return &MockHttp{
+func NewMockedHttpRequest(method, url string) *Handler {
+	return &Handler{
 		expectedMethod:         method,
 		expectedUrl:            url,
 		expectedHeaders:        make(map[string]string),
@@ -160,7 +148,7 @@ func NewMockedHttpRequest(method, url string) *MockHttp {
 	}
 }
 
-func (i *MockHttp) Verify(req *http.Request, s *Server) {
+func (i *Handler) Verify(req *http.Request, s *Server) {
 	if i.matchURLWithRegex == true {
 		Expect(req.Method+" "+req.URL.String()).To(MatchRegexp(i.expectedMethod+" "+i.expectedUrl), unexpectedRequestDescription(req, s))
 	} else {
@@ -184,7 +172,7 @@ func (i *MockHttp) Verify(req *http.Request, s *Server) {
 		Expect(err).NotTo(HaveOccurred(), "Expected body.\n")
 		Expect(string(rawBody)).To(Equal(i.expectedBody), "Expected body:\n\t%s\nto be equal to:\n\t%s\n", i.expectedBody)
 	}
-	if i.expectedJsonBody != nil {
+	if i.expectedJSONBody != nil {
 		rawBody, err := ioutil.ReadAll(req.Body)
 		Expect(err).NotTo(HaveOccurred(), "Expected JSON body.\n")
 
@@ -192,12 +180,12 @@ func (i *MockHttp) Verify(req *http.Request, s *Server) {
 		err = json.Unmarshal(rawBody, &jsonBody)
 		Expect(err).NotTo(HaveOccurred(), "Expected JSON body.\n")
 
-		equalBodies := reflect.DeepEqual(jsonBody, i.expectedJsonBody)
-		Expect(equalBodies).To(BeTrue(), "Expected JSON body:\n\t%+v\nto be deep equal to:\n\t%+v\n", jsonBody, i.expectedJsonBody)
+		equalBodies := reflect.DeepEqual(jsonBody, i.expectedJSONBody)
+		Expect(equalBodies).To(BeTrue(), "Expected JSON body:\n\t%+v\nto be deep equal to:\n\t%+v\n", jsonBody, i.expectedJSONBody)
 	}
 }
 
-func (i *MockHttp) Respond(writer http.ResponseWriter, logger *log.Logger) {
+func (i *Handler) Respond(writer http.ResponseWriter, logger *log.Logger) {
 	if i.delay != 0 {
 		time.Sleep(i.delay)
 	}
@@ -210,11 +198,11 @@ func (i *MockHttp) Respond(writer http.ResponseWriter, logger *log.Logger) {
 	io.WriteString(writer, i.responseBody)
 }
 
-func (i *MockHttp) For(comment string) *MockHttp {
+func (i *Handler) For(comment string) *Handler {
 	return i
 }
 
-func (i *MockHttp) Url() string {
+func (i *Handler) Url() string {
 	return i.expectedMethod + " " + i.expectedUrl
 }
 

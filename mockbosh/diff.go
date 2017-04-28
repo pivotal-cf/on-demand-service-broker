@@ -14,7 +14,7 @@ import (
 )
 
 type diffMock struct {
-	*mockhttp.MockHttp
+	*mockhttp.Handler
 }
 
 type DeploymentDiff struct {
@@ -34,10 +34,10 @@ func (d *diffMock) WithManifest(manifest bosh.BoshManifest) *diffMock {
 	return d
 }
 
-func (d *diffMock) RespondsWithNoDiff() *mockhttp.MockHttp {
-	return d.RespondsWithJson(nil)
+func (d *diffMock) RespondsWithNoDiff() *mockhttp.Handler {
+	return d.RespondsOKWithJSON(nil)
 }
 
-func (d *diffMock) RespondsWithDiff(diff DeploymentDiff) *mockhttp.MockHttp {
-	return d.RespondsWithJson(diff)
+func (d *diffMock) RespondsWithDiff(diff DeploymentDiff) *mockhttp.Handler {
+	return d.RespondsOKWithJSON(diff)
 }

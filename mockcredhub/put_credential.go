@@ -9,34 +9,34 @@ package mockcredhub
 import "github.com/pivotal-cf/on-demand-service-broker/mockhttp"
 
 type putCredentialMock struct {
-	*mockhttp.MockHttp
+	*mockhttp.Handler
 	identifier string
 }
 
 func PutCredential(identifier string) *putCredentialMock {
 	return &putCredentialMock{
-		MockHttp:   mockhttp.NewMockedHttpRequest("PUT", "/api/v1/data"),
+		Handler:    mockhttp.NewMockedHttpRequest("PUT", "/api/v1/data"),
 		identifier: identifier,
 	}
 }
 
 func (m *putCredentialMock) WithPassword(password string) *putCredentialMock {
-	decoratedMock := m.WithJsonBody(map[string]interface{}{
+	decoratedMock := m.WithJSONBody(map[string]interface{}{
 		"name":      m.identifier,
 		"type":      "password",
 		"value":     password,
 		"overwrite": false,
 	})
 	return &putCredentialMock{
-		MockHttp:   decoratedMock,
+		Handler:    decoratedMock,
 		identifier: m.identifier,
 	}
 }
 
-func (m *putCredentialMock) RespondsWithPasswordData(password string) *mockhttp.MockHttp {
+func (m *putCredentialMock) RespondsWithPasswordData(password string) *mockhttp.Handler {
 	body := map[string]interface{}{
 		"data": []map[string]interface{}{
-			map[string]interface{}{
+			{
 				"id":         m.identifier,
 				"type":       "password",
 				"value":      password,
@@ -45,5 +45,5 @@ func (m *putCredentialMock) RespondsWithPasswordData(password string) *mockhttp.
 		},
 	}
 
-	return m.RespondsWithJson(body)
+	return m.RespondsOKWithJSON(body)
 }

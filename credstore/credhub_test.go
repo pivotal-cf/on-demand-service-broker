@@ -39,7 +39,7 @@ var _ = Describe("Credhub Client", func() {
 		BeforeEach(func() {
 			secret := `{"secret":"things"}`
 			credhub.VerifyAndMock(
-				mockcredhub.GetInfo().RespondsWithCredhubUaaUrl(credhubUaa.URL),
+				mockcredhub.GetInfo().RespondsWithUAAURL(credhubUaa.URL),
 				mockcredhub.PutCredential(identifier).WithPassword(secret).RespondsWithPasswordData(secret),
 			)
 		})
@@ -71,7 +71,7 @@ var _ = Describe("Credhub Client", func() {
 	Context("when the Credhub client credentials are unauthorized", func() {
 		BeforeEach(func() {
 			credhub.VerifyAndMock(
-				mockcredhub.GetInfo().RespondsWithCredhubUaaUrl(credhubUaa.URL),
+				mockcredhub.GetInfo().RespondsWithUAAURL(credhubUaa.URL),
 			)
 		})
 
@@ -87,8 +87,8 @@ var _ = Describe("Credhub Client", func() {
 	Context("when put credential request to Credhub fails", func() {
 		BeforeEach(func() {
 			credhub.VerifyAndMock(
-				mockcredhub.GetInfo().RespondsWithCredhubUaaUrl(credhubUaa.URL),
-				mockcredhub.PutCredential(identifier).Fails("Credhub put credential error"),
+				mockcredhub.GetInfo().RespondsWithUAAURL(credhubUaa.URL),
+				mockcredhub.PutCredential(identifier).RespondsInternalServerErrorWith("Credhub put credential error"),
 			)
 		})
 

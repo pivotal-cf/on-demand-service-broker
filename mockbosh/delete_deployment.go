@@ -9,12 +9,12 @@ package mockbosh
 import "github.com/pivotal-cf/on-demand-service-broker/mockhttp"
 
 type deleteDeployMock struct {
-	*mockhttp.MockHttp
+	*mockhttp.Handler
 }
 
 func DeleteDeployment(deploymentName string) *deleteDeployMock {
 	return &deleteDeployMock{
-		MockHttp: mockhttp.NewMockedHttpRequest("DELETE", "/deployments/"+deploymentName),
+		Handler: mockhttp.NewMockedHttpRequest("DELETE", "/deployments/"+deploymentName),
 	}
 }
 
@@ -28,6 +28,6 @@ func (d *deleteDeployMock) WithContextID(value string) *deleteDeployMock {
 	return d
 }
 
-func (d *deleteDeployMock) RedirectsToTask(taskID int) *mockhttp.MockHttp {
+func (d *deleteDeployMock) RedirectsToTask(taskID int) *mockhttp.Handler {
 	return d.RedirectsTo(taskURL(taskID))
 }

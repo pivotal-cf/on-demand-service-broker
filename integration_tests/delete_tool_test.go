@@ -100,7 +100,7 @@ var _ = Describe("delete all service instances tool", func() {
 		BeforeEach(func() {
 			cfAPI.VerifyAndMock(
 				mockcfapi.ListServiceOfferings().
-					RespondsWith(`{
+					RespondsOKWith(`{
 						"total_results": 0,
 						"total_pages": 0,
 						"prev_url": null,
@@ -163,9 +163,9 @@ var _ = Describe("delete all service instances tool", func() {
 				mockcfapi.ListServiceKeys(instanceGUID).
 					RespondsWithServiceKey(serviceKeyGUID, instanceGUID),
 				mockcfapi.DeleteServiceKey(serviceKeyGUID).RespondsNoContent(),
-				mockcfapi.DeleteServiceInstance(instanceGUID).RespondsAccepted(),
+				mockcfapi.DeleteServiceInstance(instanceGUID).RespondsAcceptedWith(""),
 				mockcfapi.GetServiceInstance(instanceGUID).RespondsWithDeleteInProgress(instanceGUID),
-				mockcfapi.GetServiceInstance(instanceGUID).NotFound(),
+				mockcfapi.GetServiceInstance(instanceGUID).RespondsNotFoundWith(""),
 				mockcfapi.ListServiceOfferings().
 					RespondsWithServiceOffering(serviceID, "some-cc-service-offering-guid"),
 				mockcfapi.ListServicePlans("some-cc-service-offering-guid").
@@ -224,7 +224,7 @@ var _ = Describe("delete all service instances tool", func() {
 				mockcfapi.DeleteServiceBinding(boundAppGUID, serviceBindingGUID).RespondsNoContent(),
 				mockcfapi.ListServiceKeys(instanceGUID).RespondsWithServiceKey(serviceKeyGUID, instanceGUID),
 				mockcfapi.DeleteServiceKey(serviceKeyGUID).RespondsNoContent(),
-				mockcfapi.DeleteServiceInstance(instanceGUID).RespondsAccepted(),
+				mockcfapi.DeleteServiceInstance(instanceGUID).RespondsAcceptedWith(""),
 				mockcfapi.GetServiceInstance(instanceGUID).RespondsWithDeleteInProgress(instanceGUID),
 			)
 
@@ -304,7 +304,7 @@ var _ = Describe("delete all service instances tool", func() {
 	Context("when a CF API GET request fails", func() {
 		BeforeEach(func() {
 			cfAPI.VerifyAndMock(
-				mockcfapi.ListServiceOfferings().Fails("no services for you"),
+				mockcfapi.ListServiceOfferings().RespondsInternalServerErrorWith("no services for you"),
 			)
 
 			params := []string{"-configFilePath", configFilePath}
@@ -334,20 +334,20 @@ var _ = Describe("delete all service instances tool", func() {
 				mockcfapi.ListServiceBindings(instanceGUID).
 					RespondsWithServiceBinding(serviceBindingGUID, instanceGUID, boundAppGUID),
 				mockcfapi.DeleteServiceBinding(boundAppGUID, serviceBindingGUID).
-					NotFoundWithBody(`{
+					RespondsNotFoundWith(`{
 							"code": 111111,
 							"description": "The app could not be found: some-bound-app-guid",
 							"error_code": "CF-AppNotFound"
 						}`),
-				mockcfapi.ListServiceKeys(instanceGUID).RespondsWith(`{
+				mockcfapi.ListServiceKeys(instanceGUID).RespondsOKWith(`{
 						"total_results": 0,
 						"total_pages": 0,
 						"prev_url": null,
 						"next_url": null,
 						"resources": []
 					}`),
-				mockcfapi.DeleteServiceInstance(instanceGUID).RespondsAccepted(),
-				mockcfapi.GetServiceInstance(instanceGUID).NotFound(),
+				mockcfapi.DeleteServiceInstance(instanceGUID).RespondsAcceptedWith(""),
+				mockcfapi.GetServiceInstance(instanceGUID).RespondsNotFoundWith(""),
 				mockcfapi.ListServiceOfferings().
 					RespondsWithServiceOffering(serviceID, "some-cc-service-offering-guid"),
 				mockcfapi.ListServicePlans("some-cc-service-offering-guid").
@@ -376,20 +376,20 @@ var _ = Describe("delete all service instances tool", func() {
 				mockcfapi.ListServiceInstances("some-cc-plan-guid").
 					RespondsWithServiceInstances(instanceGUID),
 				mockcfapi.ListServiceBindings(instanceGUID).
-					NotFoundWithBody(`{
+					RespondsNotFoundWith(`{
 							"code": 111111,
 							"description": "The app could not be found: some-bound-app-guid",
 							"error_code": "CF-AppNotFound"
 						}`),
-				mockcfapi.ListServiceKeys(instanceGUID).RespondsWith(`{
+				mockcfapi.ListServiceKeys(instanceGUID).RespondsOKWith(`{
 						"total_results": 0,
 						"total_pages": 0,
 						"prev_url": null,
 						"next_url": null,
 						"resources": []
 					}`),
-				mockcfapi.DeleteServiceInstance(instanceGUID).RespondsAccepted(),
-				mockcfapi.GetServiceInstance(instanceGUID).NotFound(),
+				mockcfapi.DeleteServiceInstance(instanceGUID).RespondsAcceptedWith(""),
+				mockcfapi.GetServiceInstance(instanceGUID).RespondsNotFoundWith(""),
 				mockcfapi.ListServiceOfferings().
 					RespondsWithServiceOffering(serviceID, "some-cc-service-offering-guid"),
 				mockcfapi.ListServicePlans("some-cc-service-offering-guid").
@@ -421,13 +421,13 @@ var _ = Describe("delete all service instances tool", func() {
 					RespondsWithServiceBinding(serviceBindingGUID, instanceGUID, boundAppGUID),
 				mockcfapi.DeleteServiceBinding(boundAppGUID, serviceBindingGUID).RespondsNoContent(),
 				mockcfapi.ListServiceKeys(instanceGUID).
-					NotFoundWithBody(`{
+					RespondsNotFoundWith(`{
 							"code": 111111,
 							"description": "The app could not be found: some-bound-app-guid",
 							"error_code": "CF-AppNotFound"
 						}`),
-				mockcfapi.DeleteServiceInstance(instanceGUID).RespondsAccepted(),
-				mockcfapi.GetServiceInstance(instanceGUID).NotFound(),
+				mockcfapi.DeleteServiceInstance(instanceGUID).RespondsAcceptedWith(""),
+				mockcfapi.GetServiceInstance(instanceGUID).RespondsNotFoundWith(""),
 				mockcfapi.ListServiceOfferings().
 					RespondsWithServiceOffering(serviceID, "some-cc-service-offering-guid"),
 				mockcfapi.ListServicePlans("some-cc-service-offering-guid").
@@ -458,7 +458,7 @@ var _ = Describe("delete all service instances tool", func() {
 				mockcfapi.ListServiceBindings(instanceGUID).
 					RespondsWithServiceBinding(serviceBindingGUID, instanceGUID, boundAppGUID),
 				mockcfapi.DeleteServiceBinding(boundAppGUID, serviceBindingGUID).
-					RespondsWithForbidden(`{
+					RespondsForbiddenWith(`{
 						"code": 10003,
 						"description": "You are not authorized to perform the requested action",
 						"error_code": "CF-NotAuthorized"
@@ -496,7 +496,7 @@ var _ = Describe("delete all service instances tool", func() {
 				mockcfapi.ListServiceKeys(instanceGUID).
 					RespondsWithServiceKey(serviceKeyGUID, instanceGUID),
 				mockcfapi.DeleteServiceKey(serviceKeyGUID).RespondsNoContent(),
-				mockcfapi.DeleteServiceInstance(instanceGUID).RespondsAccepted(),
+				mockcfapi.DeleteServiceInstance(instanceGUID).RespondsAcceptedWith(""),
 				mockcfapi.GetServiceInstance(instanceGUID).RespondsWithDeleteFailed(instanceGUID),
 			)
 
@@ -529,8 +529,8 @@ var _ = Describe("delete all service instances tool", func() {
 				mockcfapi.ListServiceKeys(instanceGUID).
 					RespondsWithServiceKey(serviceKeyGUID, instanceGUID),
 				mockcfapi.DeleteServiceKey(serviceKeyGUID).RespondsNoContent(),
-				mockcfapi.DeleteServiceInstance(instanceGUID).RespondsAccepted(),
-				mockcfapi.GetServiceInstance(instanceGUID).RespondsWith("not valid json"),
+				mockcfapi.DeleteServiceInstance(instanceGUID).RespondsAcceptedWith(""),
+				mockcfapi.GetServiceInstance(instanceGUID).RespondsOKWith("not valid json"),
 			)
 
 			params := []string{"-configFilePath", configFilePath}

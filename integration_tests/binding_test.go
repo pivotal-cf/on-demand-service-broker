@@ -220,7 +220,7 @@ var _ = Describe("binding service instances", func() {
 				secretPassword := `{"secret":"dont-tell-anyone"}`
 
 				credhub.VerifyAndMock(
-					mockcredhub.GetInfo().RespondsWithCredhubUaaUrl(credhubUaa.URL),
+					mockcredhub.GetInfo().RespondsWithUAAURL(credhubUaa.URL),
 					mockcredhub.PutCredential(credhubBindingServiceId).WithPassword(secretPassword).RespondsWithPasswordData(secretPassword),
 				)
 			})
@@ -476,7 +476,7 @@ var _ = Describe("binding service instances", func() {
 
 	Context("when getting VMs for a deployment responds with an error", func() {
 		JustBeforeEach(func() {
-			boshDirector.VerifyAndMock(mockbosh.VMsForDeployment(deploymentName(instanceID)).Fails("bosh failed"))
+			boshDirector.VerifyAndMock(mockbosh.VMsForDeployment(deploymentName(instanceID)).RespondsInternalServerErrorWith("bosh failed"))
 			bindingReq, err := http.NewRequest("PUT",
 				fmt.Sprintf("http://localhost:%d/v2/service_instances/%s/service_bindings/Gjklh45ljkhn", brokerPort, instanceID),
 				strings.NewReader("{}"))
@@ -568,7 +568,7 @@ var _ = Describe("binding service instances", func() {
 		var bindingResponse *http.Response
 
 		JustBeforeEach(func() {
-			boshDirector.VerifyAndMock(mockbosh.VMsForDeployment(deploymentName(instanceID)).NotFound())
+			boshDirector.VerifyAndMock(mockbosh.VMsForDeployment(deploymentName(instanceID)).RespondsNotFoundWith(""))
 			bindingReq, err := http.NewRequest("PUT",
 				fmt.Sprintf("http://localhost:%d/v2/service_instances/%s/service_bindings/Gjklh45ljkhn", brokerPort, instanceID),
 				strings.NewReader("{}"))

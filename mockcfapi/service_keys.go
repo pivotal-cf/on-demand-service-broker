@@ -13,7 +13,7 @@ import (
 )
 
 type serviceKeysMock struct {
-	*mockhttp.MockHttp
+	*mockhttp.Handler
 }
 
 func ListServiceKeys(serviceInstanceGUID string) *serviceKeysMock {
@@ -22,7 +22,7 @@ func ListServiceKeys(serviceInstanceGUID string) *serviceKeysMock {
 	}
 }
 
-func DeleteServiceKey(serviceKeyGUID string) *mockhttp.MockHttp {
+func DeleteServiceKey(serviceKeyGUID string) *mockhttp.Handler {
 	path := fmt.Sprintf("/v2/service_keys/%s", serviceKeyGUID)
 	return mockhttp.NewMockedHttpRequest("DELETE", path)
 }
@@ -38,8 +38,8 @@ func ListServiceKeysForPage(serviceInstanceGUID string, page int) *serviceKeysMo
 	}
 }
 
-func (m *serviceKeysMock) RespondsWithServiceKey(serviceKeyGUID, instanceGUID string) *mockhttp.MockHttp {
-	return m.RespondsWith(fmt.Sprintf(`{
+func (m *serviceKeysMock) RespondsWithServiceKey(serviceKeyGUID, instanceGUID string) *mockhttp.Handler {
+	return m.RespondsOKWith(fmt.Sprintf(`{
 						"total_results": 1,
 						"total_pages": 1,
 						"prev_url": null,

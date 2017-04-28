@@ -32,7 +32,7 @@ var _ = Describe("get task", func() {
 		Context("when bosh fetches the task successfully", func() {
 			BeforeEach(func() {
 				director.VerifyAndMock(
-					mockbosh.Task(taskID).RespondsWithJson(boshclient.BoshTask{State: "a-state", Description: "a-description"}),
+					mockbosh.Task(taskID).RespondsOKWithJSON(boshclient.BoshTask{State: "a-state", Description: "a-description"}),
 				)
 			})
 
@@ -48,7 +48,7 @@ var _ = Describe("get task", func() {
 		Context("when bosh fails to fetch the task", func() {
 			BeforeEach(func() {
 				director.VerifyAndMock(
-					mockbosh.Task(taskID).Fails("because reasons"),
+					mockbosh.Task(taskID).RespondsInternalServerErrorWith("because reasons"),
 				)
 			})
 
@@ -104,7 +104,7 @@ var _ = Describe("get task", func() {
 		Context("when bosh fails to fetch the output", func() {
 			BeforeEach(func() {
 				director.VerifyAndMock(
-					mockbosh.TaskOutput(taskID).Fails("because reasons"),
+					mockbosh.TaskOutput(taskID).RespondsInternalServerErrorWith("because reasons"),
 				)
 			})
 

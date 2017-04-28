@@ -14,19 +14,19 @@ import (
 )
 
 type taskMock struct {
-	*mockhttp.MockHttp
+	*mockhttp.Handler
 	taskID int
 }
 
 func Task(taskID int) *taskMock {
 	return &taskMock{
-		MockHttp: mockhttp.NewMockedHttpRequest("GET", fmt.Sprintf("/tasks/%d", taskID)),
-		taskID:   taskID,
+		Handler: mockhttp.NewMockedHttpRequest("GET", fmt.Sprintf("/tasks/%d", taskID)),
+		taskID:  taskID,
 	}
 }
 
-func (t *taskMock) RespondsWithTaskContainingState(provisioningTaskState string) *mockhttp.MockHttp {
-	return t.RespondsWithJson(boshclient.BoshTask{
+func (t *taskMock) RespondsWithTaskContainingState(provisioningTaskState string) *mockhttp.Handler {
+	return t.RespondsOKWithJSON(boshclient.BoshTask{
 		ID:    t.taskID,
 		State: provisioningTaskState,
 	})

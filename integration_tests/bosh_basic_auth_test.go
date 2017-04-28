@@ -54,14 +54,14 @@ var _ = Describe("Basic authentication for BOSH", func() {
 			adapter.GenerateManifest().ToReturnManifest(manifestYAML)
 			runningBroker = startBrokerWithPassingStartupChecks(conf, cfAPI, boshDirector)
 			boshDirector.VerifyAndMock(
-				mockbosh.GetDeployment(deploymentName("some-instance-id")).NotFound(),
+				mockbosh.GetDeployment(deploymentName("some-instance-id")).RespondsNotFoundWith(""),
 				mockbosh.Tasks(deploymentName("some-instance-id")).RespondsWithNoTasks(),
 				mockbosh.Deploy().RedirectsToTask(101),
 			)
 			cfAPI.VerifyAndMock(
-				mockcfapi.ListServiceOfferings().RespondsWith(listCFServiceOfferingsResponse(serviceID, "21f13659-278c-4fa9-a3d7-7fe737e52895")),
+				mockcfapi.ListServiceOfferings().RespondsOKWith(listCFServiceOfferingsResponse(serviceID, "21f13659-278c-4fa9-a3d7-7fe737e52895")),
 				mockcfapi.ListServicePlans("21f13659-278c-4fa9-a3d7-7fe737e52895").RespondsWithServicePlan(dedicatedPlanID, "ff717e7c-afd5-4d0a-bafe-16c7eff546ec"),
-				mockcfapi.ListServiceInstances("ff717e7c-afd5-4d0a-bafe-16c7eff546ec").RespondsWith(listCFServiceInstanceCountForPlanResponse(0)),
+				mockcfapi.ListServiceInstances("ff717e7c-afd5-4d0a-bafe-16c7eff546ec").RespondsOKWith(listCFServiceInstanceCountForPlanResponse(0)),
 			)
 			provisionResponse = provisionInstance(instanceID, dedicatedPlanID, map[string]interface{}{})
 		})

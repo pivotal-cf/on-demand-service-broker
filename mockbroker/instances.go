@@ -8,6 +8,6 @@ package mockbroker
 
 import "github.com/pivotal-cf/on-demand-service-broker/mockhttp"
 
-func ListInstances() *mockhttp.MockHttp {
+func ListInstances() *mockhttp.Handler {
 	return mockhttp.NewMockedHttpRequest("GET", "/mgmt/service_instances")
 }

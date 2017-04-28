@@ -9,7 +9,7 @@ package mockbosh
 import "github.com/pivotal-cf/on-demand-service-broker/mockhttp"
 
 type infoMock struct {
-	*mockhttp.MockHttp
+	*mockhttp.Handler
 }
 
 func Info() *infoMock {
@@ -18,14 +18,14 @@ func Info() *infoMock {
 	}
 }
 
-func (m *infoMock) RespondsWithSufficientStemcellVersionForODB() *mockhttp.MockHttp {
-	return m.RespondsWith(`{"version":"1.3262.0.0 (00000000)"}`)
+func (m *infoMock) RespondsWithSufficientStemcellVersionForODB() *mockhttp.Handler {
+	return m.RespondsOKWith(`{"version":"1.3262.0.0 (00000000)"}`)
 }
 
-func (m *infoMock) RespondsWithSufficientSemverVersionForODB() *mockhttp.MockHttp {
-	return m.RespondsWith(`{"version":"260.0.0 (00000000)"}`)
+func (m *infoMock) RespondsWithSufficientSemverVersionForODB() *mockhttp.Handler {
+	return m.RespondsOKWith(`{"version":"260.0.0 (00000000)"}`)
 }
 
-func (m *infoMock) RespondsWithSufficientVersionForLifecycleErrands() *mockhttp.MockHttp {
-	return m.RespondsWith(`{"version":"261.0.0 (00000000)"}`)
+func (m *infoMock) RespondsWithSufficientVersionForLifecycleErrands() *mockhttp.Handler {
+	return m.RespondsOKWith(`{"version":"261.0.0 (00000000)"}`)
 }

@@ -9,7 +9,7 @@ package mockcredhub
 import "github.com/pivotal-cf/on-demand-service-broker/mockhttp"
 
 type getInfoMock struct {
-	*mockhttp.MockHttp
+	*mockhttp.Handler
 }
 
 func GetInfo() *getInfoMock {
@@ -18,8 +18,8 @@ func GetInfo() *getInfoMock {
 	}
 }
 
-func (m *getInfoMock) RespondsWithCredhubUaaUrl(url string) *mockhttp.MockHttp {
-	return m.RespondsWith(`
+func (m *getInfoMock) RespondsWithUAAURL(url string) *mockhttp.Handler {
+	return m.RespondsOKWith(`
     {
 		  "auth-server": {
 		    "url": "` + url + `"

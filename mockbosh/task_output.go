@@ -17,16 +17,16 @@ import (
 )
 
 type taskOutputMock struct {
-	*mockhttp.MockHttp
+	*mockhttp.Handler
 }
 
 func TaskOutput(taskId int) *taskOutputMock {
 	return &taskOutputMock{
-		MockHttp: mockhttp.NewMockedHttpRequest("GET", fmt.Sprintf("/tasks/%d/output?type=result", taskId)),
+		Handler: mockhttp.NewMockedHttpRequest("GET", fmt.Sprintf("/tasks/%d/output?type=result", taskId)),
 	}
 }
 
-func (t *taskOutputMock) RespondsWithVMsOutput(vms []boshclient.BoshVMsOutput) *mockhttp.MockHttp {
+func (t *taskOutputMock) RespondsWithVMsOutput(vms []boshclient.BoshVMsOutput) *mockhttp.Handler {
 	output := bytes.NewBuffer([]byte{})
 	encoder := json.NewEncoder(output)
 
@@ -34,10 +34,10 @@ func (t *taskOutputMock) RespondsWithVMsOutput(vms []boshclient.BoshVMsOutput) *
 		Expect(encoder.Encode(line)).ToNot(HaveOccurred())
 	}
 
-	return t.RespondsWith(string(output.Bytes()))
+	return t.RespondsOKWith(string(output.Bytes()))
 }
 
-func (t *taskOutputMock) RespondsWithTaskOutput(taskOutput []boshclient.BoshTaskOutput) *mockhttp.MockHttp {
+func (t *taskOutputMock) RespondsWithTaskOutput(taskOutput []boshclient.BoshTaskOutput) *mockhttp.Handler {
 	output := bytes.NewBuffer([]byte{})
 	encoder := json.NewEncoder(output)
 
@@ -45,5 +45,5 @@ func (t *taskOutputMock) RespondsWithTaskOutput(taskOutput []boshclient.BoshTask
 		Expect(encoder.Encode(line)).ToNot(HaveOccurred())
 	}
 
-	return t.RespondsWith(string(output.Bytes()))
+	return t.RespondsOKWith(string(output.Bytes()))
 }

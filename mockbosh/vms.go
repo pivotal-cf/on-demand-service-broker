@@ -13,17 +13,17 @@ import (
 )
 
 type vmsForDeploymentMock struct {
-	*mockhttp.MockHttp
+	*mockhttp.Handler
 	deploymentName string
 }
 
 func VMsForDeployment(deploymentName string) *vmsForDeploymentMock {
 	return &vmsForDeploymentMock{
-		MockHttp:       mockhttp.NewMockedHttpRequest("GET", fmt.Sprintf("/deployments/%s/vms?format=full", deploymentName)),
+		Handler:        mockhttp.NewMockedHttpRequest("GET", fmt.Sprintf("/deployments/%s/vms?format=full", deploymentName)),
 		deploymentName: deploymentName,
 	}
 }
 
-func (t *vmsForDeploymentMock) RedirectsToTask(taskID int) *mockhttp.MockHttp {
+func (t *vmsForDeploymentMock) RedirectsToTask(taskID int) *mockhttp.Handler {
 	return t.RedirectsTo(taskURL(taskID))
 }

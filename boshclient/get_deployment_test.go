@@ -34,7 +34,7 @@ var _ = Describe("getting deployment", func() {
 		Context("when the deployment exists", func() {
 			BeforeEach(func() {
 				director.VerifyAndMock(
-					mockbosh.GetDeployment(deploymentName).RespondsWith(rawManifest),
+					mockbosh.GetDeployment(deploymentName).RespondsWithRawManifest(rawManifest),
 				)
 			})
 
@@ -58,7 +58,7 @@ var _ = Describe("getting deployment", func() {
 		Context("when the deployment does not exist", func() {
 			BeforeEach(func() {
 				director.VerifyAndMock(
-					mockbosh.GetDeployment(deploymentName).NotFound(),
+					mockbosh.GetDeployment(deploymentName).RespondsNotFoundWith(""),
 				)
 			})
 

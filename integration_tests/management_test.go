@@ -89,7 +89,7 @@ var _ = Describe("Management API", func() {
 		Context("when the CF API call fails", func() {
 			It("responds with an internal server error", func() {
 				cfAPI.VerifyAndMock(
-					mockcfapi.ListServiceOfferings().Fails("error listing service offerings"),
+					mockcfapi.ListServiceOfferings().RespondsInternalServerErrorWith("error listing service offerings"),
 				)
 
 				instancesRequest, err := http.NewRequest("GET", fmt.Sprintf("http://localhost:%d/mgmt/service_instances", brokerPort), nil)
@@ -119,11 +119,11 @@ var _ = Describe("Management API", func() {
 				cfAPI.VerifyAndMock(
 					mockcfapi.ListServiceOfferings().RespondsWithServiceOffering(serviceID, "some-cc-service-offering-guid"),
 					mockcfapi.ListServicePlans("some-cc-service-offering-guid").RespondsWithServicePlan(dedicatedPlanID, "some-cc-plan-guid"),
-					mockcfapi.ListServiceInstances("some-cc-plan-guid").RespondsWith(`{"next_url": null, "resources": []}`),
+					mockcfapi.ListServiceInstances("some-cc-plan-guid").RespondsOKWith(`{"next_url": null, "resources": []}`),
 				)
 
 				boshDirector.VerifyAndMock(
-					mockbosh.Deployments().RespondsWith(`[{"name":"service-instance_123abc"}]`),
+					mockbosh.Deployments().RespondsOKWith(`[{"name":"service-instance_123abc"}]`),
 				)
 
 				orphanRequest, err := http.NewRequest("GET", fmt.Sprintf("http://localhost:%d/mgmt/orphan_deployments", brokerPort), nil)
@@ -162,7 +162,7 @@ var _ = Describe("Management API", func() {
 					)
 
 					boshDirector.VerifyAndMock(
-						mockbosh.Deployments().RespondsWith(`[{"name":"service-instance_123abc"},{"name":"service-instance_one"},{"name":"service-instance_two"}]`),
+						mockbosh.Deployments().RespondsOKWith(`[{"name":"service-instance_123abc"},{"name":"service-instance_one"},{"name":"service-instance_two"}]`),
 					)
 
 					orphanRequest, err := http.NewRequest("GET", fmt.Sprintf("http://localhost:%d/mgmt/orphan_deployments", brokerPort), nil)
@@ -184,7 +184,7 @@ var _ = Describe("Management API", func() {
 		Context("when the CF API call fails", func() {
 			It("responds with an internal server error", func() {
 				cfAPI.VerifyAndMock(
-					mockcfapi.ListServiceOfferings().Fails("error listing service offerings"),
+					mockcfapi.ListServiceOfferings().RespondsInternalServerErrorWith("error listing service offerings"),
 				)
 
 				orphanRequest, err := http.NewRequest("GET", fmt.Sprintf("http://localhost:%d/mgmt/orphan_deployments", brokerPort), nil)
@@ -212,11 +212,11 @@ var _ = Describe("Management API", func() {
 				cfAPI.VerifyAndMock(
 					mockcfapi.ListServiceOfferings().RespondsWithServiceOffering(serviceID, "some-cc-service-offering-guid"),
 					mockcfapi.ListServicePlans("some-cc-service-offering-guid").RespondsWithServicePlan(dedicatedPlanID, "some-cc-plan-guid"),
-					mockcfapi.ListServiceInstances("some-cc-plan-guid").RespondsWith(`{"next_url": null, "resources": []}`),
+					mockcfapi.ListServiceInstances("some-cc-plan-guid").RespondsOKWith(`{"next_url": null, "resources": []}`),
 				)
 
 				boshDirector.VerifyAndMock(
-					mockbosh.Deployments().Fails("error listing deployments"),
+					mockbosh.Deployments().RespondsInternalServerErrorWith("error listing deployments"),
 				)
 
 				orphanRequest, err := http.NewRequest("GET", fmt.Sprintf("http://localhost:%d/mgmt/orphan_deployments", brokerPort), nil)
@@ -255,8 +255,8 @@ var _ = Describe("Management API", func() {
 							mockcfapi.Plan{ID: dedicatedPlanID, CloudControllerGUID: "some-cc-plan-guid"},
 							mockcfapi.Plan{ID: highMemoryPlanID, CloudControllerGUID: "other-plan-guid"},
 						),
-						mockcfapi.ListServiceInstances("some-cc-plan-guid").RespondsWith(listCFServiceInstanceCountForPlanResponse(1)),
-						mockcfapi.ListServiceInstances("other-plan-guid").RespondsWith(listCFServiceInstanceCountForPlanResponse(4)),
+						mockcfapi.ListServiceInstances("some-cc-plan-guid").RespondsOKWith(listCFServiceInstanceCountForPlanResponse(1)),
+						mockcfapi.ListServiceInstances("other-plan-guid").RespondsOKWith(listCFServiceInstanceCountForPlanResponse(4)),
 					)
 
 					metricsReq, err := http.NewRequest("GET", fmt.Sprintf("http://localhost:%d/mgmt/metrics", brokerPort), nil)
@@ -311,8 +311,8 @@ var _ = Describe("Management API", func() {
 							mockcfapi.Plan{ID: dedicatedPlanID, CloudControllerGUID: "some-cc-plan-guid"},
 							mockcfapi.Plan{ID: highMemoryPlanID, CloudControllerGUID: "other-plan-guid"},
 						),
-						mockcfapi.ListServiceInstances("some-cc-plan-guid").RespondsWith(listCFServiceInstanceCountForPlanResponse(0)),
-						mockcfapi.ListServiceInstances("other-plan-guid").RespondsWith(listCFServiceInstanceCountForPlanResponse(0)),
+						mockcfapi.ListServiceInstances("some-cc-plan-guid").RespondsOKWith(listCFServiceInstanceCountForPlanResponse(0)),
+						mockcfapi.ListServiceInstances("other-plan-guid").RespondsOKWith(listCFServiceInstanceCountForPlanResponse(0)),
 					)
 
 					metricsReq, err := http.NewRequest("GET", fmt.Sprintf("http://localhost:%d/mgmt/metrics", brokerPort), nil)
@@ -385,7 +385,7 @@ var _ = Describe("Management API", func() {
 		Context("when the CF API fails", func() {
 			It("responds with 500", func() {
 				cfAPI.VerifyAndMock(
-					mockcfapi.ListServiceOfferings().Fails("error listing service offerings"),
+					mockcfapi.ListServiceOfferings().RespondsInternalServerErrorWith("error listing service offerings"),
 				)
 
 				metricsReq, err := http.NewRequest("GET", fmt.Sprintf("http://localhost:%d/mgmt/metrics", brokerPort), nil)
@@ -438,11 +438,11 @@ var _ = Describe("Management API", func() {
 				upgradingTaskID := 123
 				cfAPI.VerifyAndMock(
 					mockcfapi.GetServiceInstance(instanceID).RespondsWithSucceedWithPlanUrl(instanceID, `\/v2\/service_plans\/my-plan`),
-					mockcfapi.GetServicePlan("my-plan").RespondsWith(getServicePlanResponse(postDeployErrandPlanID)),
+					mockcfapi.GetServicePlan("my-plan").RespondsOKWith(getServicePlanResponse(postDeployErrandPlanID)),
 				)
 
 				boshDirector.VerifyAndMock(
-					mockbosh.GetDeployment("service-instance_instance-id").RespondsWith([]byte(rawManifestWithDeploymentName(instanceID))),
+					mockbosh.GetDeployment("service-instance_instance-id").RespondsWithRawManifest([]byte(rawManifestWithDeploymentName(instanceID))),
 					mockbosh.Tasks("service-instance_instance-id").RespondsWithNoTasks(),
 					mockbosh.Deploy().RedirectsToTask(upgradingTaskID),
 				)
@@ -468,7 +468,7 @@ var _ = Describe("Management API", func() {
 		Context("when the upgrade request fails", func() {
 			It("responds with internal server error", func() {
 				cfAPI.VerifyAndMock(
-					mockcfapi.GetServiceInstance(instanceID).Fails("error getting service instance"),
+					mockcfapi.GetServiceInstance(instanceID).RespondsInternalServerErrorWith("error getting service instance"),
 				)
 
 				upgradeReq, err := http.NewRequest("PATCH", fmt.Sprintf("http://localhost:%d/mgmt/service_instances/%s", brokerPort, instanceID), nil)

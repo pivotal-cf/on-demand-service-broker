@@ -63,7 +63,7 @@ var _ = Describe("deleting bosh deployments", func() {
 	Context("when bosh cannot find the deployment", func() {
 		BeforeEach(func() {
 			director.VerifyAndMock(
-				mockbosh.DeleteDeployment(deploymentName).WithoutContextID().NotFound(),
+				mockbosh.DeleteDeployment(deploymentName).WithoutContextID().RespondsNotFoundWith(""),
 			)
 		})
 
@@ -75,7 +75,7 @@ var _ = Describe("deleting bosh deployments", func() {
 	Context("when bosh cannot delete the deployment", func() {
 		BeforeEach(func() {
 			director.VerifyAndMock(
-				mockbosh.DeleteDeployment(deploymentName).WithoutContextID().Fails("because reasons"),
+				mockbosh.DeleteDeployment(deploymentName).WithoutContextID().RespondsInternalServerErrorWith("because reasons"),
 			)
 		})
 

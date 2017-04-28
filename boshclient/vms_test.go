@@ -95,7 +95,7 @@ var _ = Describe("vms", func() {
 				Context("when fetching task output from bosh fails", func() {
 					BeforeEach(func() {
 						director.VerifyAndMock(
-							mockbosh.VMsForDeployment(name).Fails("because reasons"),
+							mockbosh.VMsForDeployment(name).RespondsInternalServerErrorWith("because reasons"),
 						)
 					})
 
@@ -107,7 +107,7 @@ var _ = Describe("vms", func() {
 				Context("when the deployment is not found", func() {
 					BeforeEach(func() {
 						director.VerifyAndMock(
-							mockbosh.VMsForDeployment(name).NotFound(),
+							mockbosh.VMsForDeployment(name).RespondsNotFoundWith(""),
 						)
 					})
 
@@ -131,7 +131,7 @@ var _ = Describe("vms", func() {
 				BeforeEach(func() {
 					director.VerifyAndMock(
 						mockbosh.VMsForDeployment(name).RedirectsToTask(taskIDToReturn),
-						mockbosh.Task(taskIDToReturn).Fails("because reasons"),
+						mockbosh.Task(taskIDToReturn).RespondsInternalServerErrorWith("because reasons"),
 					)
 				})
 
@@ -144,7 +144,7 @@ var _ = Describe("vms", func() {
 		Context("when bosh fails to start VMs task", func() {
 			BeforeEach(func() {
 				director.VerifyAndMock(
-					mockbosh.VMsForDeployment(name).Fails("because reasons"),
+					mockbosh.VMsForDeployment(name).RespondsInternalServerErrorWith("because reasons"),
 				)
 			})
 
@@ -192,7 +192,7 @@ var _ = Describe("vms", func() {
 		Context("when bosh fails", func() {
 			BeforeEach(func() {
 				director.VerifyAndMock(
-					mockbosh.TaskOutput(taskID).Fails("because reasons"),
+					mockbosh.TaskOutput(taskID).RespondsInternalServerErrorWith("because reasons"),
 				)
 			})
 

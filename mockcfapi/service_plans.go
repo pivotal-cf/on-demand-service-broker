@@ -18,10 +18,10 @@ import (
 )
 
 type servicePlansMock struct {
-	*mockhttp.MockHttp
+	*mockhttp.Handler
 }
 
-func GetServicePlan(servicePlanGUID string) *mockhttp.MockHttp {
+func GetServicePlan(servicePlanGUID string) *mockhttp.Handler {
 	return mockhttp.NewMockedHttpRequest("GET", "/v2/service_plans/"+servicePlanGUID)
 }
 
@@ -37,16 +37,16 @@ func ListServicePlansForPage(serviceID string, page int) *servicePlansMock {
 	}
 }
 
-func (m *servicePlansMock) RespondsWithServicePlan(planID, cloudControllerGUID string) *mockhttp.MockHttp {
-	return m.RespondsWith(listServicePlansResponse(Plan{ID: planID, CloudControllerGUID: cloudControllerGUID}))
+func (m *servicePlansMock) RespondsWithServicePlan(planID, cloudControllerGUID string) *mockhttp.Handler {
+	return m.RespondsOKWith(listServicePlansResponse(Plan{ID: planID, CloudControllerGUID: cloudControllerGUID}))
 }
 
-func (m *servicePlansMock) RespondsWithServicePlans(plans ...Plan) *mockhttp.MockHttp {
-	return m.RespondsWith(listServicePlansResponse(plans...))
+func (m *servicePlansMock) RespondsWithServicePlans(plans ...Plan) *mockhttp.Handler {
+	return m.RespondsOKWith(listServicePlansResponse(plans...))
 }
 
-func (m *servicePlansMock) RespondsWithNoServicePlans() *mockhttp.MockHttp {
-	return m.RespondsWith(listServicePlansResponse())
+func (m *servicePlansMock) RespondsWithNoServicePlans() *mockhttp.Handler {
+	return m.RespondsOKWith(listServicePlansResponse())
 }
 
 type Plan struct {

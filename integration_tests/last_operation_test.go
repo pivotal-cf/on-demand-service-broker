@@ -446,7 +446,7 @@ var _ = Describe("last operation", func() {
 			BeforeEach(func() {
 				boshDirector.VerifyAndMock(
 					mockbosh.TasksByContext(deploymentName(instanceID), contextID).
-						RespondsWithJson(boshclient.BoshTasks{taskProcessing}),
+						RespondsOKWithJSON(boshclient.BoshTasks{taskProcessing}),
 				)
 			})
 
@@ -476,11 +476,11 @@ var _ = Describe("last operation", func() {
 			BeforeEach(func() {
 				boshDirector.VerifyAndMock(
 					mockbosh.TasksByContext(deploymentName(instanceID), contextID).
-						RespondsWithJson(boshclient.BoshTasks{taskDone}),
-					mockbosh.TaskOutput(taskDone.ID).RespondsWith(""),
+						RespondsOKWithJSON(boshclient.BoshTasks{taskDone}),
+					mockbosh.TaskOutput(taskDone.ID).RespondsOKWith(""),
 					mockbosh.Errand(deploymentName(instanceID), errandName).
 						WithContextID(contextID).RedirectsToTask(taskProcessing.ID),
-					mockbosh.Task(taskProcessing.ID).RespondsWithJson(taskProcessing),
+					mockbosh.Task(taskProcessing.ID).RespondsOKWithJSON(taskProcessing),
 				)
 			})
 
@@ -510,8 +510,8 @@ var _ = Describe("last operation", func() {
 			BeforeEach(func() {
 				boshDirector.VerifyAndMock(
 					mockbosh.TasksByContext(deploymentName(instanceID), contextID).
-						RespondsWithJson(boshclient.BoshTasks{taskProcessing, taskDone}),
-					mockbosh.TaskOutput(taskDone.ID).RespondsWith(""),
+						RespondsOKWithJSON(boshclient.BoshTasks{taskProcessing, taskDone}),
+					mockbosh.TaskOutput(taskDone.ID).RespondsOKWith(""),
 				)
 			})
 
@@ -538,8 +538,8 @@ var _ = Describe("last operation", func() {
 			BeforeEach(func() {
 				boshDirector.VerifyAndMock(
 					mockbosh.TasksByContext(deploymentName(instanceID), contextID).
-						RespondsWithJson(boshclient.BoshTasks{taskFailed, taskDone}),
-					mockbosh.TaskOutput(taskDone.ID).RespondsWith(""),
+						RespondsOKWithJSON(boshclient.BoshTasks{taskFailed, taskDone}),
+					mockbosh.TaskOutput(taskDone.ID).RespondsOKWith(""),
 				)
 			})
 
@@ -601,9 +601,9 @@ var _ = Describe("last operation", func() {
 			BeforeEach(func() {
 				boshDirector.VerifyAndMock(
 					mockbosh.TasksByContext(deploymentName(instanceID), contextID).
-						RespondsWithJson(boshclient.BoshTasks{anotherTaskDone, taskDone}),
-					mockbosh.TaskOutput(anotherTaskDone.ID).RespondsWith(""),
-					mockbosh.TaskOutput(taskDone.ID).RespondsWith(""),
+						RespondsOKWithJSON(boshclient.BoshTasks{anotherTaskDone, taskDone}),
+					mockbosh.TaskOutput(anotherTaskDone.ID).RespondsOKWith(""),
+					mockbosh.TaskOutput(taskDone.ID).RespondsOKWith(""),
 				)
 			})
 
@@ -632,12 +632,12 @@ var _ = Describe("last operation", func() {
 			BeforeEach(func() {
 				boshDirector.VerifyAndMock(
 					mockbosh.TasksByContext(deploymentName(instanceID), contextID).
-						RespondsWithJson(boshclient.BoshTasks{anotherTaskDone, taskDone}),
+						RespondsOKWithJSON(boshclient.BoshTasks{anotherTaskDone, taskDone}),
 					mockbosh.TaskOutput(anotherTaskDone.ID).
-						RespondsWithJson(boshclient.BoshTaskOutput{
+						RespondsOKWithJSON(boshclient.BoshTaskOutput{
 							ExitCode: 1,
 						}),
-					mockbosh.TaskOutput(taskDone.ID).RespondsWith(""),
+					mockbosh.TaskOutput(taskDone.ID).RespondsOKWith(""),
 				)
 			})
 
@@ -716,7 +716,7 @@ var _ = Describe("last operation", func() {
 			BeforeEach(func() {
 				boshDirector.VerifyAndMock(
 					mockbosh.TasksByContext(deploymentName(instanceID), contextID).
-						RespondsWithJson(boshclient.BoshTasks{taskProcessing}),
+						RespondsOKWithJSON(boshclient.BoshTasks{taskProcessing}),
 				)
 			})
 
@@ -749,11 +749,11 @@ var _ = Describe("last operation", func() {
 			BeforeEach(func() {
 				boshDirector.VerifyAndMock(
 					mockbosh.TasksByContext(deploymentName(instanceID), contextID).
-						RespondsWithJson(boshclient.BoshTasks{taskDone}),
-					mockbosh.TaskOutput(taskDone.ID).RespondsWith(""),
+						RespondsOKWithJSON(boshclient.BoshTasks{taskDone}),
+					mockbosh.TaskOutput(taskDone.ID).RespondsOKWith(""),
 					mockbosh.DeleteDeployment(deploymentName(instanceID)).
 						WithContextID(contextID).RedirectsToTask(taskProcessing.ID),
-					mockbosh.Task(taskProcessing.ID).RespondsWithJson(taskProcessing),
+					mockbosh.Task(taskProcessing.ID).RespondsOKWithJSON(taskProcessing),
 				)
 			})
 
@@ -783,9 +783,9 @@ var _ = Describe("last operation", func() {
 			BeforeEach(func() {
 				boshDirector.VerifyAndMock(
 					mockbosh.TasksByContext(deploymentName(instanceID), contextID).
-						RespondsWithJson(boshclient.BoshTasks{taskDone}),
+						RespondsOKWithJSON(boshclient.BoshTasks{taskDone}),
 					mockbosh.TaskOutput(taskDone.ID).
-						RespondsWithJson(boshclient.BoshTaskOutput{
+						RespondsOKWithJSON(boshclient.BoshTaskOutput{
 							ExitCode: 1,
 						}),
 				)
@@ -842,8 +842,8 @@ var _ = Describe("last operation", func() {
 			BeforeEach(func() {
 				boshDirector.VerifyAndMock(
 					mockbosh.TasksByContext(deploymentName(instanceID), contextID).
-						RespondsWithJson(boshclient.BoshTasks{taskProcessing, taskDone}),
-					mockbosh.TaskOutput(taskDone.ID).RespondsWith(""),
+						RespondsOKWithJSON(boshclient.BoshTasks{taskProcessing, taskDone}),
+					mockbosh.TaskOutput(taskDone.ID).RespondsOKWith(""),
 				)
 			})
 
@@ -870,8 +870,8 @@ var _ = Describe("last operation", func() {
 			BeforeEach(func() {
 				boshDirector.VerifyAndMock(
 					mockbosh.TasksByContext(deploymentName(instanceID), contextID).
-						RespondsWithJson(boshclient.BoshTasks{taskFailed, taskDone}),
-					mockbosh.TaskOutput(taskDone.ID).RespondsWith(""),
+						RespondsOKWithJSON(boshclient.BoshTasks{taskFailed, taskDone}),
+					mockbosh.TaskOutput(taskDone.ID).RespondsOKWith(""),
 				)
 			})
 
@@ -933,9 +933,9 @@ var _ = Describe("last operation", func() {
 			BeforeEach(func() {
 				boshDirector.VerifyAndMock(
 					mockbosh.TasksByContext(deploymentName(instanceID), contextID).
-						RespondsWithJson(boshclient.BoshTasks{anotherTaskDone, taskDone}),
-					mockbosh.TaskOutput(anotherTaskDone.ID).RespondsWith(""),
-					mockbosh.TaskOutput(taskDone.ID).RespondsWith(""),
+						RespondsOKWithJSON(boshclient.BoshTasks{anotherTaskDone, taskDone}),
+					mockbosh.TaskOutput(anotherTaskDone.ID).RespondsOKWith(""),
+					mockbosh.TaskOutput(taskDone.ID).RespondsOKWith(""),
 				)
 			})
 
@@ -1034,10 +1034,10 @@ var _ = Describe("last operation", func() {
 				boshDirector.VerifyAndMock(
 					mockbosh.TasksByContext(deploymentName(instanceID), contextID).
 						RespondsWithATask(taskDone),
-					mockbosh.TaskOutput(taskDone.ID).RespondsWith(""),
+					mockbosh.TaskOutput(taskDone.ID).RespondsOKWith(""),
 					mockbosh.Errand(deploymentName(instanceID), postDeployErrandName).
 						WithContextID(contextID).RedirectsToTask(taskProcessing.ID),
-					mockbosh.Task(taskProcessing.ID).RespondsWithJson(taskProcessing),
+					mockbosh.Task(taskProcessing.ID).RespondsOKWithJSON(taskProcessing),
 				)
 			})
 
@@ -1071,7 +1071,7 @@ var _ = Describe("last operation", func() {
 			runningBroker = startBrokerWithPassingStartupChecks(brokerConfig, cfAPI, boshDirector)
 			operationType = broker.OperationTypeCreate
 			boshDirector.VerifyAndMock(
-				mockbosh.Task(boshTaskID).Fails("bosh task failed"),
+				mockbosh.Task(boshTaskID).RespondsInternalServerErrorWith("bosh task failed"),
 			)
 		})
 

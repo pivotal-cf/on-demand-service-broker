@@ -47,7 +47,7 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 			operationData := `{"BoshTaskID":1,"OperationType":"upgrade"}`
 			instanceID := "service-instance-id"
 			odb.VerifyAndMock(
-				mockbroker.ListInstances().RespondsWith(fmt.Sprintf(`[{"instance_id": "%s"}]`, instanceID)),
+				mockbroker.ListInstances().RespondsOKWith(fmt.Sprintf(`[{"instance_id": "%s"}]`, instanceID)),
 				mockbroker.UpgradeInstance(instanceID).RespondsAcceptedWith(operationData),
 				mockbroker.LastOperation(instanceID, operationData).RespondWithOperationInProgress(),
 				mockbroker.LastOperation(instanceID, operationData).RespondWithOperationSucceeded(),
@@ -64,7 +64,7 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 	Context("when the upgrade errors", func() {
 		It("exits non-zero with the error message", func() {
 			odb.VerifyAndMock(
-				mockbroker.ListInstances().RespondsWithUnauthorized(""),
+				mockbroker.ListInstances().RespondsUnauthorizedWith(""),
 			)
 
 			runningTool := runUpgradeTool(validParams...)

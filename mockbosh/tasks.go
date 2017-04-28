@@ -14,44 +14,34 @@ import (
 )
 
 type tasksMock struct {
-	*mockhttp.MockHttp
+	*mockhttp.Handler
 }
 
 func Tasks(deploymentName string) *tasksMock {
 	return &tasksMock{
-		MockHttp: mockhttp.NewMockedHttpRequest("GET", fmt.Sprintf("/tasks?deployment=%s", deploymentName)),
+		Handler: mockhttp.NewMockedHttpRequest("GET", fmt.Sprintf("/tasks?deployment=%s", deploymentName)),
 	}
 }
 
 func TasksByContext(deploymentName, contextID string) *tasksMock {
 	return &tasksMock{
-		MockHttp: mockhttp.NewMockedHttpRequest("GET", fmt.Sprintf("/tasks?deployment=%s&context_id=%s", deploymentName, contextID)),
+		Handler: mockhttp.NewMockedHttpRequest("GET", fmt.Sprintf("/tasks?deployment=%s&context_id=%s", deploymentName, contextID)),
 	}
 }
 
-func TasksByAnyContext(deploymentName string) *tasksMock {
-	mock := mockhttp.
-		NewMockedHttpRequest("GET", `/tasks\?deployment=`+deploymentName+`&context_id=.+`).
-		WithRegexURLMatcher()
-
-	return &tasksMock{
-		MockHttp: mock,
-	}
+func (t *tasksMock) RespondsWithNoTasks() *mockhttp.Handler {
+	return t.RespondsOKWithJSON([]boshclient.BoshTask{})
 }
 
-func (t *tasksMock) RespondsWithNoTasks() *mockhttp.MockHttp {
-	return t.RespondsWithJson([]boshclient.BoshTask{})
-}
-
-func (t *tasksMock) RespondsWithATaskContainingState(state string, description string) *mockhttp.MockHttp {
+func (t *tasksMock) RespondsWithATaskContainingState(state string, description string) *mockhttp.Handler {
 	return t.RespondsWithATask(boshclient.BoshTask{
 		State:       state,
 		Description: description,
 	})
 }
 
-func (t *tasksMock) RespondsWithATask(task boshclient.BoshTask) *mockhttp.MockHttp {
-	return t.RespondsWithJson([]boshclient.BoshTask{task})
+func (t *tasksMock) RespondsWithATask(task boshclient.BoshTask) *mockhttp.Handler {
+	return t.RespondsOKWithJSON([]boshclient.BoshTask{task})
 }
 
 func taskURL(taskID int) string {

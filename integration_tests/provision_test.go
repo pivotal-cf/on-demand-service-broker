@@ -90,12 +90,12 @@ var _ = Describe("provision service instance", func() {
 			runningBroker = startBrokerWithPassingStartupChecks(conf, cfAPI, boshDirector)
 
 			cfAPI.VerifyAndMock(
-				mockcfapi.ListServiceOfferings().RespondsWith(listCFServiceOfferingsResponse(serviceID, "21f13659-278c-4fa9-a3d7-7fe737e52895")),
+				mockcfapi.ListServiceOfferings().RespondsOKWith(listCFServiceOfferingsResponse(serviceID, "21f13659-278c-4fa9-a3d7-7fe737e52895")),
 				mockcfapi.ListServicePlans("21f13659-278c-4fa9-a3d7-7fe737e52895").RespondsWithServicePlan(planID, "df717e7c-afd5-4d0a-bafe-16c7eff546ec"),
-				mockcfapi.ListServiceInstances("df717e7c-afd5-4d0a-bafe-16c7eff546ec").RespondsWith(listCFServiceInstanceCountForPlanResponse(0)),
+				mockcfapi.ListServiceInstances("df717e7c-afd5-4d0a-bafe-16c7eff546ec").RespondsOKWith(listCFServiceInstanceCountForPlanResponse(0)),
 			)
 			boshDirector.VerifyAndMock(
-				mockbosh.GetDeployment(deploymentName(instanceID)).NotFound(),
+				mockbosh.GetDeployment(deploymentName(instanceID)).RespondsNotFoundWith(""),
 				mockbosh.Tasks(deploymentName(instanceID)).RespondsWithNoTasks(),
 				mockbosh.Deploy().WithManifest(manifestForFirstDeployment).WithoutContextID().RedirectsToTask(taskID),
 			)
@@ -365,7 +365,7 @@ var _ = Describe("provision service instance", func() {
 			runningBroker = startBrokerWithPassingStartupChecks(conf, cfAPI, boshDirector)
 
 			boshDirector.VerifyAndMock(
-				mockbosh.GetDeployment(deploymentName(instanceID)).NotFound(),
+				mockbosh.GetDeployment(deploymentName(instanceID)).RespondsNotFoundWith(""),
 				mockbosh.Tasks(deploymentName(instanceID)).RespondsWithNoTasks(),
 				mockbosh.Deploy().WithManifest(manifestForFirstDeployment).WithoutContextID().RedirectsToTask(taskID),
 			)
@@ -403,7 +403,7 @@ var _ = Describe("provision service instance", func() {
 			runningBroker = startBrokerWithPassingStartupChecks(conf, cfAPI, boshDirector)
 
 			boshDirector.VerifyAndMock(
-				mockbosh.GetDeployment(deploymentName(instanceID)).NotFound(),
+				mockbosh.GetDeployment(deploymentName(instanceID)).RespondsNotFoundWith(""),
 				mockbosh.Tasks(deploymentName(instanceID)).RespondsWithNoTasks(),
 				mockbosh.Deploy().WithManifest(manifestForFirstDeployment).WithAnyContextID().RedirectsToTask(taskID),
 			)
@@ -444,7 +444,7 @@ var _ = Describe("provision service instance", func() {
 				runningBroker = startBrokerWithPassingStartupChecks(conf, cfAPI, boshDirector)
 
 				boshDirector.VerifyAndMock(
-					mockbosh.GetDeployment(deploymentName(instanceID)).RespondsWith([]byte(`a: b`)),
+					mockbosh.GetDeployment(deploymentName(instanceID)).RespondsWithRawManifest([]byte(`a: b`)),
 				)
 
 				provisionResponse = provisionInstance(instanceID, planID, arbitraryParams)
@@ -464,12 +464,12 @@ var _ = Describe("provision service instance", func() {
 				runningBroker = startBrokerWithPassingStartupChecks(conf, cfAPI, boshDirector)
 
 				cfAPI.VerifyAndMock(
-					mockcfapi.ListServiceOfferings().RespondsWith(listCFServiceOfferingsResponse(serviceID, "21f13659-278c-4fa9-a3d7-7fe737e52895")),
+					mockcfapi.ListServiceOfferings().RespondsOKWith(listCFServiceOfferingsResponse(serviceID, "21f13659-278c-4fa9-a3d7-7fe737e52895")),
 					mockcfapi.ListServicePlans("21f13659-278c-4fa9-a3d7-7fe737e52895").RespondsWithServicePlan(planID, "df717e7c-afd5-4d0a-bafe-16c7eff546ec"),
-					mockcfapi.ListServiceInstances("df717e7c-afd5-4d0a-bafe-16c7eff546ec").RespondsWith(listCFServiceInstanceCountForPlanResponse(0)),
+					mockcfapi.ListServiceInstances("df717e7c-afd5-4d0a-bafe-16c7eff546ec").RespondsOKWith(listCFServiceInstanceCountForPlanResponse(0)),
 				)
 				boshDirector.VerifyAndMock(
-					mockbosh.GetDeployment(deploymentName(instanceID)).NotFound(),
+					mockbosh.GetDeployment(deploymentName(instanceID)).RespondsNotFoundWith(""),
 					mockbosh.Tasks(deploymentName(instanceID)).RespondsWithNoTasks(),
 				)
 
@@ -582,12 +582,12 @@ var _ = Describe("provision service instance", func() {
 				runningBroker = startBrokerWithPassingStartupChecks(conf, cfAPI, boshDirector)
 
 				cfAPI.VerifyAndMock(
-					mockcfapi.ListServiceOfferings().RespondsWith(listCFServiceOfferingsResponse(serviceID, "21f13659-278c-4fa9-a3d7-7fe737e52895")),
+					mockcfapi.ListServiceOfferings().RespondsOKWith(listCFServiceOfferingsResponse(serviceID, "21f13659-278c-4fa9-a3d7-7fe737e52895")),
 					mockcfapi.ListServicePlans("21f13659-278c-4fa9-a3d7-7fe737e52895").RespondsWithServicePlan(planID, "df717e7c-afd5-4d0a-bafe-16c7eff546ec"),
-					mockcfapi.ListServiceInstances("df717e7c-afd5-4d0a-bafe-16c7eff546ec").RespondsWith(listCFServiceInstanceCountForPlanResponse(0)),
+					mockcfapi.ListServiceInstances("df717e7c-afd5-4d0a-bafe-16c7eff546ec").RespondsOKWith(listCFServiceInstanceCountForPlanResponse(0)),
 				)
 				boshDirector.VerifyAndMock(
-					mockbosh.GetDeployment(deploymentName(instanceID)).NotFound(),
+					mockbosh.GetDeployment(deploymentName(instanceID)).RespondsNotFoundWith(""),
 					mockbosh.Tasks(deploymentName(instanceID)).RespondsWithNoTasks(),
 				)
 				provisionResponse = provisionInstance(instanceID, planID, arbitraryParams)
@@ -608,12 +608,12 @@ var _ = Describe("provision service instance", func() {
 				runningBroker = startBrokerWithPassingStartupChecks(conf, cfAPI, boshDirector)
 
 				cfAPI.VerifyAndMock(
-					mockcfapi.ListServiceOfferings().RespondsWith(listCFServiceOfferingsResponse(serviceID, "21f13659-278c-4fa9-a3d7-7fe737e52895")),
+					mockcfapi.ListServiceOfferings().RespondsOKWith(listCFServiceOfferingsResponse(serviceID, "21f13659-278c-4fa9-a3d7-7fe737e52895")),
 					mockcfapi.ListServicePlans("21f13659-278c-4fa9-a3d7-7fe737e52895").RespondsWithServicePlan(planID, "df717e7c-afd5-4d0a-bafe-16c7eff546ec"),
-					mockcfapi.ListServiceInstances("df717e7c-afd5-4d0a-bafe-16c7eff546ec").RespondsWith(listCFServiceInstanceCountForPlanResponse(0)),
+					mockcfapi.ListServiceInstances("df717e7c-afd5-4d0a-bafe-16c7eff546ec").RespondsOKWith(listCFServiceInstanceCountForPlanResponse(0)),
 				)
 				boshDirector.VerifyAndMock(
-					mockbosh.GetDeployment(deploymentName(instanceID)).NotFound(),
+					mockbosh.GetDeployment(deploymentName(instanceID)).RespondsNotFoundWith(""),
 					mockbosh.Tasks(deploymentName(instanceID)).RespondsWithNoTasks(),
 				)
 				provisionResponse = provisionInstance(instanceID, planID, arbitraryParams)
@@ -634,12 +634,12 @@ var _ = Describe("provision service instance", func() {
 				runningBroker = startBrokerWithPassingStartupChecks(conf, cfAPI, boshDirector)
 
 				cfAPI.VerifyAndMock(
-					mockcfapi.ListServiceOfferings().RespondsWith(listCFServiceOfferingsResponse(serviceID, "21f13659-278c-4fa9-a3d7-7fe737e52895")),
+					mockcfapi.ListServiceOfferings().RespondsOKWith(listCFServiceOfferingsResponse(serviceID, "21f13659-278c-4fa9-a3d7-7fe737e52895")),
 					mockcfapi.ListServicePlans("21f13659-278c-4fa9-a3d7-7fe737e52895").RespondsWithServicePlan(planID, "df717e7c-afd5-4d0a-bafe-16c7eff546ec"),
-					mockcfapi.ListServiceInstances("df717e7c-afd5-4d0a-bafe-16c7eff546ec").RespondsWith(listCFServiceInstanceCountForPlanResponse(0)),
+					mockcfapi.ListServiceInstances("df717e7c-afd5-4d0a-bafe-16c7eff546ec").RespondsOKWith(listCFServiceInstanceCountForPlanResponse(0)),
 				)
 				boshDirector.VerifyAndMock(
-					mockbosh.GetDeployment(deploymentName(instanceID)).NotFound(),
+					mockbosh.GetDeployment(deploymentName(instanceID)).RespondsNotFoundWith(""),
 					mockbosh.Tasks(deploymentName(instanceID)).RespondsWithNoTasks(),
 				)
 				provisionResponse = provisionInstance(instanceID, planID, arbitraryParams)
@@ -660,14 +660,14 @@ var _ = Describe("provision service instance", func() {
 				runningBroker = startBrokerWithPassingStartupChecks(conf, cfAPI, boshDirector)
 
 				cfAPI.VerifyAndMock(
-					mockcfapi.ListServiceOfferings().RespondsWith(listCFServiceOfferingsResponse(serviceID, "21f13659-278c-4fa9-a3d7-7fe737e52895")),
+					mockcfapi.ListServiceOfferings().RespondsOKWith(listCFServiceOfferingsResponse(serviceID, "21f13659-278c-4fa9-a3d7-7fe737e52895")),
 					mockcfapi.ListServicePlans("21f13659-278c-4fa9-a3d7-7fe737e52895").RespondsWithServicePlan(planID, "df717e7c-afd5-4d0a-bafe-16c7eff546ec"),
-					mockcfapi.ListServiceInstances("df717e7c-afd5-4d0a-bafe-16c7eff546ec").RespondsWith(listCFServiceInstanceCountForPlanResponse(0)),
+					mockcfapi.ListServiceInstances("df717e7c-afd5-4d0a-bafe-16c7eff546ec").RespondsOKWith(listCFServiceInstanceCountForPlanResponse(0)),
 				)
 				boshDirector.VerifyAndMock(
-					mockbosh.GetDeployment(deploymentName(instanceID)).NotFound(),
+					mockbosh.GetDeployment(deploymentName(instanceID)).RespondsNotFoundWith(""),
 					mockbosh.Tasks(deploymentName(instanceID)).RespondsWithNoTasks(),
-					mockbosh.Deploy().WithoutContextID().Fails("cannot deploy"),
+					mockbosh.Deploy().WithoutContextID().RespondsInternalServerErrorWith("cannot deploy"),
 				)
 				provisionResponse = provisionInstance(instanceID, planID, arbitraryParams)
 			})
@@ -730,12 +730,12 @@ var _ = Describe("provision service instance", func() {
 				runningBroker = startBrokerWithPassingStartupChecks(conf, cfAPI, boshDirector)
 
 				cfAPI.VerifyAndMock(
-					mockcfapi.ListServiceOfferings().RespondsWith(listCFServiceOfferingsResponse(serviceID, "21f13659-278c-4fa9-a3d7-7fe737e52895")),
+					mockcfapi.ListServiceOfferings().RespondsOKWith(listCFServiceOfferingsResponse(serviceID, "21f13659-278c-4fa9-a3d7-7fe737e52895")),
 					mockcfapi.ListServicePlans("21f13659-278c-4fa9-a3d7-7fe737e52895").RespondsWithServicePlan(planID, "df717e7c-afd5-4d0a-bafe-16c7eff546ec"),
-					mockcfapi.ListServiceInstances("df717e7c-afd5-4d0a-bafe-16c7eff546ec").RespondsWith(listCFServiceInstanceCountForPlanResponse(dedicatedPlanQuota)),
+					mockcfapi.ListServiceInstances("df717e7c-afd5-4d0a-bafe-16c7eff546ec").RespondsOKWith(listCFServiceInstanceCountForPlanResponse(dedicatedPlanQuota)),
 				)
 				boshDirector.VerifyAndMock(
-					mockbosh.GetDeployment(deploymentName(instanceID)).NotFound(),
+					mockbosh.GetDeployment(deploymentName(instanceID)).RespondsNotFoundWith(""),
 				)
 				provisionResponse = provisionInstance(instanceID, planID, arbitraryParams)
 			})
@@ -763,18 +763,18 @@ var _ = Describe("provision service instance", func() {
 				)
 
 				cfAPI.VerifyAndMock(
-					mockcfapi.ListServiceOfferings().RespondsWith(listCFServiceOfferingsResponse),
+					mockcfapi.ListServiceOfferings().RespondsOKWith(listCFServiceOfferingsResponse),
 					mockcfapi.ListServicePlans("21f13659-278c-4fa9-a3d7-7fe737e52895").RespondsWithServicePlans(
 						mockcfapi.Plan{ID: planID, CloudControllerGUID: "df717e7c-afd5-4d0a-bafe-16c7eff546ec"},
 						mockcfapi.Plan{ID: highMemoryPlanID, CloudControllerGUID: "297a5e27-480b-4be9-96e1-c1ae4e389539"},
 					),
-					mockcfapi.ListServiceInstances("df717e7c-afd5-4d0a-bafe-16c7eff546ec").RespondsWith(
+					mockcfapi.ListServiceInstances("df717e7c-afd5-4d0a-bafe-16c7eff546ec").RespondsOKWith(
 						listCFServiceInstanceCountForPlanResponse(0)),
-					mockcfapi.ListServiceInstances("297a5e27-480b-4be9-96e1-c1ae4e389539").RespondsWith(
+					mockcfapi.ListServiceInstances("297a5e27-480b-4be9-96e1-c1ae4e389539").RespondsOKWith(
 						listCFServiceInstanceCountForPlanResponse(1)),
 				)
 				boshDirector.VerifyAndMock(
-					mockbosh.GetDeployment(deploymentName(instanceID)).NotFound(),
+					mockbosh.GetDeployment(deploymentName(instanceID)).RespondsNotFoundWith(""),
 				)
 
 				provisionResponse = provisionInstance(instanceID, planID, arbitraryParams)
@@ -807,12 +807,12 @@ var _ = Describe("provision service instance", func() {
 				)
 
 				cfAPI.VerifyAndMock(
-					mockcfapi.ListServiceOfferings().RespondsWith(listCFServiceOfferingsResponse),
+					mockcfapi.ListServiceOfferings().RespondsOKWith(listCFServiceOfferingsResponse),
 					mockcfapi.ListServicePlans("21f13659-278c-4fa9-a3d7-7fe737e52895").
 						RespondsWithNoServicePlans(),
 				)
 				boshDirector.VerifyAndMock(
-					mockbosh.GetDeployment(deploymentName(instanceID)).NotFound(),
+					mockbosh.GetDeployment(deploymentName(instanceID)).RespondsNotFoundWith(""),
 				)
 
 				provisionResponse = provisionInstance(instanceID, planID, arbitraryParams)

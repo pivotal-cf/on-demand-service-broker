@@ -35,7 +35,7 @@ var _ = Describe("running errands", func() {
 	Context("has an error", func() {
 		It("invokes BOSH to queue up an errand", func() {
 			director.VerifyAndMock(
-				mockbosh.Errand(deploymentName, errandName).WithAnyContextID().Fails("because reasons"),
+				mockbosh.Errand(deploymentName, errandName).WithAnyContextID().RespondsInternalServerErrorWith("because reasons"),
 			)
 
 			_, actualErr := c.RunErrand(deploymentName, errandName, contextID, logger)
