@@ -350,8 +350,9 @@ var _ = Describe("Update", func() {
 			})
 
 			It("reports the error without redploying", func() {
-				Expect(updateError).To(MatchError(ContainSubstring(fmt.Sprintf("plan %s not found", newPlanID))))
-				Expect(logBuffer.String()).To(ContainSubstring(fmt.Sprintf("error: finding plan ID %s", newPlanID)))
+				Expect(updateError).To(MatchError(ContainSubstring("Plan non-existant-plan-id not found")))
+
+				Expect(logBuffer.String()).To(ContainSubstring("Plan non-existant-plan-id not found"))
 				Expect(boshClient.GetDeploymentCallCount()).To(BeZero())
 				Expect(fakeDeployer.UpdateCallCount()).To(BeZero())
 			})

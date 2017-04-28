@@ -43,7 +43,9 @@ func (b *Broker) Update(
 
 	plan, found := b.serviceOffering.FindPlanByID(details.PlanID)
 	if !found {
-		return errs(NewDisplayableError(fmt.Errorf("plan %s not found", details.PlanID), fmt.Errorf("finding plan ID %s", details.PlanID)))
+		message := fmt.Sprintf("Plan %s not found", details.PlanID)
+		logger.Println(message)
+		return brokerapi.UpdateServiceSpec{IsAsync: true}, errors.New(message)
 	}
 
 	if details.PreviousValues.PlanID != plan.ID {
@@ -138,6 +140,8 @@ func parametersFromRequest(requestParams map[string]interface{}) map[string]inte
 
 	return parameters
 }
+
+// TODO SF write to logs so we can get rid of DisplayableError
 
 func (b *Broker) validatedApplyChanges(parameters map[string]interface{}) (bool, error) {
 	const applyChangesKey = "apply-changes"
