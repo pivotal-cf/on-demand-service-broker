@@ -44,16 +44,12 @@ var _ = Describe("Deployer", func() {
 		oldManifest    []byte
 
 		manifestGenerator *fakes.FakeManifestGenerator
-		featureFlags      *fakes.FakeFeatureFlags
 	)
 
 	BeforeEach(func() {
 		boshClient = new(fakes.FakeBoshClient)
 		manifestGenerator = new(fakes.FakeManifestGenerator)
-		featureFlags = new(fakes.FakeFeatureFlags)
-		featureFlags.CFUserTriggeredUpgradesReturns(false)
-
-		deployer = task.NewDeployer(boshClient, manifestGenerator, featureFlags)
+		deployer = task.NewDeployer(boshClient, manifestGenerator)
 
 		planID = existingPlanID
 		previousPlanID = nil

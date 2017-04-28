@@ -109,7 +109,7 @@ func startBroker(conf config.Config, logger *log.Logger, loggerFactory *loggerfa
 	)
 
 	featureFlags := features.New(conf.Features)
-	deploymentManager := task.NewDeployer(boshClient, manifestGenerator, featureFlags)
+	deploymentManager := task.NewDeployer(boshClient, manifestGenerator)
 	credStore := credentialStore(conf.Credhub, conf.Broker.DisableSSLCertVerification)
 
 	onDemandBroker, err := broker.New(boshClient, cfClient, credStore, serviceAdapter, deploymentManager, conf.ServiceCatalog, loggerFactory, featureFlags)

@@ -11,15 +11,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/adapterclient"
 	"github.com/pivotal-cf/on-demand-service-broker/boshclient"
 	"github.com/pivotal-cf/on-demand-service-broker/brokercontext"
-	"log"
 )
 
+//TODO SF Do all the errors/log messages have enough context to be useful?
 func (b *Broker) Update(
 	ctx context.Context,
 	instanceID string,
@@ -149,8 +150,6 @@ func parametersFromRequest(requestParams map[string]interface{}) map[string]inte
 
 	return parameters
 }
-
-// TODO SF write to logs so we can get rid of DisplayableError
 
 func (b *Broker) validatedApplyChanges(parameters map[string]interface{}) (bool, error) {
 	const applyChangesKey = "apply-changes"

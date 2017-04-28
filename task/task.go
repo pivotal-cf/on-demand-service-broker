@@ -19,7 +19,7 @@ import (
 type BoshClient interface {
 	Deploy(manifest []byte, contextID string, logger *log.Logger) (int, error)
 	GetTasks(deploymentName string, logger *log.Logger) (boshclient.BoshTasks, error)
-	GetDeployment(name string, logger *log.Logger) ([]byte, bool, error)
+	GetDeployment(name string, logger *log.Logger) ([]byte, bool, error) // TODO SF foundz = false => manifest => nil, drop the found flag?
 }
 
 // TODO SF Why is  previousPlanID a pointer to a string?
@@ -28,26 +28,15 @@ type ManifestGenerator interface {
 	GenerateManifest(deploymentName, planID string, requestParams map[string]interface{}, oldManifest []byte, previousPlanID *string, logger *log.Logger) (BoshManifest, error)
 }
 
-//go:generate counterfeiter -o fakes/fake_feature_flags.go . FeatureFlags
-type FeatureFlags interface {
-	CFUserTriggeredUpgrades() bool
-}
-
 type deployer struct {
 	boshClient        BoshClient
 	manifestGenerator ManifestGenerator
-	featureFlags      FeatureFlags
 }
 
-func NewDeployer(
-	boshClient BoshClient,
-	manifestGenerator ManifestGenerator,
-	featureFlags FeatureFlags,
-) deployer {
+func NewDeployer(boshClient BoshClient, manifestGenerator ManifestGenerator) deployer {
 	return deployer{
 		boshClient:        boshClient,
 		manifestGenerator: manifestGenerator,
-		featureFlags:      featureFlags,
 	}
 }
 
@@ -55,59 +44,27 @@ const (
 	OperationInProgressMessage = "An operation is in progress for your service instance. Please try again later."
 )
 
-func (d deployer) Create(
-	deploymentName,
-	planID string,
-	requestParams map[string]interface{},
-	boshContextID string,
-	logger *log.Logger,
-) (int, []byte, error) {
-
+func (d deployer) Create(deploymentName, planID string, requestParams map[string]interface{}, boshContextID string, logger *log.Logger) (int, []byte, error) {
 	err := d.assertNoOperationsInProgress(deploymentName, logger)
 	if err != nil {
 		return 0, nil, err
 	}
 
-	return d.doDeploy(
-		deploymentName,
-		planID,
-		"create",
-		requestParams,
-		nil,
-		nil,
-		boshContextID,
-		logger,
-	)
+	return d.doDeploy(deploymentName, planID, "create", requestParams, nil, nil, boshContextID, logger)
 }
 
-func (d deployer) Upgrade(
-	deploymentName,
-	planID string,
-	previousPlanID *string,
-	boshContextID string,
-	logger *log.Logger,
-) (int, []byte, error) {
+func (d deployer) Upgrade(deploymentName, planID string, previousPlanID *string, boshContextID string, logger *log.Logger) (int, []byte, error) {
+	err := d.assertNoOperationsInProgress(deploymentName, logger)
+	if err != nil {
+		return 0, nil, err
+	}
 
 	oldManifest, err := d.getDeploymentManifest(deploymentName, logger)
 	if err != nil {
 		return 0, nil, err
 	}
 
-	err = d.assertNoOperationsInProgress(deploymentName, logger)
-	if err != nil {
-		return 0, nil, err
-	}
-
-	return d.doDeploy(
-		deploymentName,
-		planID,
-		"upgrade",
-		nil,
-		oldManifest,
-		previousPlanID,
-		boshContextID,
-		logger,
-	)
+	return d.doDeploy(deploymentName, planID, "upgrade", nil, oldManifest, previousPlanID, boshContextID, logger)
 }
 
 func (d deployer) Update(
@@ -119,13 +76,12 @@ func (d deployer) Update(
 	boshContextID string,
 	logger *log.Logger,
 ) (boshTaskID int, manifest []byte, err error) {
-
-	oldManifest, err := d.getDeploymentManifest(deploymentName, logger)
-	if err != nil {
+	if err := d.assertNoOperationsInProgress(deploymentName, logger); err != nil {
 		return 0, nil, err
 	}
 
-	if err := d.assertNoOperationsInProgress(deploymentName, logger); err != nil {
+	oldManifest, err := d.getDeploymentManifest(deploymentName, logger)
+	if err != nil {
 		return 0, nil, err
 	}
 
@@ -133,16 +89,7 @@ func (d deployer) Update(
 		return 0, nil, err
 	}
 
-	return d.doDeploy(
-		deploymentName,
-		planID,
-		"update",
-		requestParams,
-		oldManifest,
-		previousPlanID,
-		boshContextID,
-		logger,
-	)
+	return d.doDeploy(deploymentName, planID, "update", requestParams, oldManifest, previousPlanID, boshContextID, logger)
 }
 
 func (d deployer) getDeploymentManifest(deploymentName string, logger *log.Logger) ([]byte, error) {
