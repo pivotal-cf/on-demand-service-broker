@@ -345,7 +345,7 @@ var _ = Describe("updating a service instance", func() {
 
 				updateResp = updateServiceInstanceRequest(updateArbParams, instanceID, dedicatedPlanID, highMemoryPlanID)
 				Expect(updateResp.StatusCode).To(Equal(http.StatusInternalServerError))
-				Expect(descriptionFrom(updateResp)).To(reportFailureFor(instanceID))
+				Expect(descriptionFrom(updateResp)).To(reportGenericFailureFor(instanceID))
 
 				Eventually(runningBroker.Out).Should(gbytes.Say(fmt.Sprintf("error deploying instance: bosh deployment '%s' not found.", deploymentName(instanceID))))
 			})
@@ -367,10 +367,11 @@ var _ = Describe("updating a service instance", func() {
 		Context("and the cf api is unavailable", func() {
 			It("reports a failure", func() {
 				cfAPI.Close()
+
 				updateResp = updateServiceInstanceRequest(updateArbParams, instanceID, highMemoryPlanID, dedicatedPlanID)
 
 				Expect(updateResp.StatusCode).To(Equal(http.StatusInternalServerError))
-				Expect(descriptionFrom(updateResp)).To(reportFailureFor(instanceID))
+				Expect(descriptionFrom(updateResp)).To(reportGenericFailureFor(instanceID))
 			})
 		})
 
@@ -392,7 +393,7 @@ var _ = Describe("updating a service instance", func() {
 				It("reports the failure", func() {
 					Expect(updateResp.StatusCode).To(Equal(http.StatusInternalServerError))
 
-					Expect(descriptionFrom(updateResp)).To(reportFailureFor(instanceID))
+					Expect(descriptionFrom(updateResp)).To(reportGenericFailureFor(instanceID))
 					Eventually(runningBroker.Out).Should(gbytes.Say("something has gone wrong in adapter"))
 				})
 			})
@@ -602,7 +603,7 @@ var _ = Describe("updating a service instance", func() {
 	})
 })
 
-func reportFailureFor(instanceID string) types.GomegaMatcher {
+func reportGenericFailureFor(instanceID string) types.GomegaMatcher {
 	return SatisfyAll(
 		Not(ContainSubstring("task-id:")),
 		ContainSubstring("There was a problem completing your request. Please contact your operations team providing the following information: "),

@@ -345,14 +345,14 @@ var _ = Describe("Update", func() {
 
 		Context("when the plan cannot be found in config", func() {
 			BeforeEach(func() {
-				newPlanID = "non-existant-plan-id"
-				oldPlanID = secondPlanID
+				newPlanID = "non-existent-plan-id"
 			})
 
 			It("reports the error without redploying", func() {
-				Expect(updateError).To(MatchError(ContainSubstring("Plan non-existant-plan-id not found")))
+				expectedMessage := fmt.Sprintf("Plan %s not found", newPlanID)
+				Expect(updateError).To(MatchError(ContainSubstring(expectedMessage)))
 
-				Expect(logBuffer.String()).To(ContainSubstring("Plan non-existant-plan-id not found"))
+				Expect(logBuffer.String()).To(ContainSubstring(expectedMessage))
 				Expect(boshClient.GetDeploymentCallCount()).To(BeZero())
 				Expect(fakeDeployer.UpdateCallCount()).To(BeZero())
 			})
