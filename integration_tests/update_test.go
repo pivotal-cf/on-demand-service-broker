@@ -30,7 +30,7 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
-var _ = FDescribe("updating a service instance", func() {
+var _ = Describe("updating a service instance", func() {
 	const (
 		taskID       = 4
 		updateTaskID = 712

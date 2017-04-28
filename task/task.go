@@ -114,7 +114,7 @@ func (d deployer) Update(
 	previousPlanID *string,
 	boshContextID string,
 	logger *log.Logger,
-) (int, []byte, error) {
+) (boshTaskID int, manifest []byte, err error) {
 
 	oldManifest, err := d.getDeploymentManifest(deploymentName, logger)
 	if err != nil {
