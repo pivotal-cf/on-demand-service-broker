@@ -208,7 +208,7 @@ var _ = Describe("Update", func() {
 
 				It("fails without deploying", func() {
 					Expect(updateError).To(MatchError(broker.ApplyChangesNotPermittedMessage))
-					Expect(logBuffer.String()).To(ContainSubstring("update called with apply-changes set to non-boolean"))
+					Expect(logBuffer.String()).To(ContainSubstring("apply-changes value '42' is not true or false"))
 					Expect(fakeDeployer.UpdateCallCount()).To(BeZero())
 				})
 			})
@@ -220,7 +220,7 @@ var _ = Describe("Update", func() {
 
 				It("fails without deploying", func() {
 					Expect(updateError).To(MatchError(broker.PendingChangesErrorMessage))
-					Expect(logBuffer.String()).To(ContainSubstring("update called with apply-changes set to non-boolean"))
+					Expect(logBuffer.String()).To(ContainSubstring("apply-changes value '42' is not true or false"))
 					Expect(fakeDeployer.UpdateCallCount()).To(BeZero())
 				})
 			})

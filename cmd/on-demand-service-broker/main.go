@@ -13,7 +13,9 @@ import (
 	"net/http"
 	"os"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/gorilla/mux"
+	"github.com/pivotal-cf/brokerapi"
 	apiauth "github.com/pivotal-cf/brokerapi/auth"
 	"github.com/pivotal-cf/on-demand-service-broker/adapterclient"
 	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
@@ -21,14 +23,11 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/cloud_foundry_client"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
+	"github.com/pivotal-cf/on-demand-service-broker/credstore"
 	"github.com/pivotal-cf/on-demand-service-broker/features"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 	"github.com/pivotal-cf/on-demand-service-broker/mgmtapi"
 	"github.com/pivotal-cf/on-demand-service-broker/task"
-
-	"code.cloudfoundry.org/lager"
-	"github.com/pivotal-cf/brokerapi"
-	"github.com/pivotal-cf/on-demand-service-broker/credstore"
 	"github.com/urfave/negroni"
 )
 

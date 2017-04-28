@@ -43,6 +43,10 @@ type OperationInProgressError struct {
 	error
 }
 
+func applyChangesNotABooleanError(value interface{}) error {
+	return fmt.Errorf("apply-changes value '%v' is not true or false", value)
+}
+
 func NewOperationInProgressError(e error) error {
 	return OperationInProgressError{e}
 }

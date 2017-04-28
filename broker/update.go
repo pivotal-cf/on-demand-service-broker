@@ -17,6 +17,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/adapterclient"
 	"github.com/pivotal-cf/on-demand-service-broker/boshclient"
 	"github.com/pivotal-cf/on-demand-service-broker/brokercontext"
+	"log"
 )
 
 func (b *Broker) Update(
@@ -71,12 +72,13 @@ func (b *Broker) Update(
 	parameters := parametersFromRequest(detailsMap)
 	applyingChanges, err := b.validatedApplyChanges(parameters)
 	if err != nil {
-		return errs(err.(DisplayableError))
+		logger.Println(err)
+		return brokerapi.UpdateServiceSpec{IsAsync: true}, b.asUpdateError(err)
 	}
 
 	if applyingChanges {
-		if err := b.assertCanApplyChanges(parameters, details.PlanID, &details.PreviousValues.PlanID); err.Occurred() {
-			return errs(err)
+		if err := b.assertCanApplyChanges(parameters, details.PlanID, &details.PreviousValues.PlanID, logger); err != nil {
+			return brokerapi.UpdateServiceSpec{IsAsync: true}, err
 		}
 	}
 
@@ -132,6 +134,13 @@ func (b *Broker) asDisplayableError(err TaskError) DisplayableError {
 	return NewApplyChangesNotPermittedError(err)
 }
 
+func (b *Broker) asUpdateError(err error) error {
+	if b.featureFlags.CFUserTriggeredUpgrades() {
+		return errors.New(PendingChangesErrorMessage)
+	}
+	return errors.New(ApplyChangesNotPermittedMessage)
+}
+
 func parametersFromRequest(requestParams map[string]interface{}) map[string]interface{} {
 	parameters, ok := requestParams["parameters"].(map[string]interface{})
 	if !ok {
@@ -153,7 +162,7 @@ func (b *Broker) validatedApplyChanges(parameters map[string]interface{}) (bool,
 
 	applyChanges, ok := value.(bool)
 	if !ok {
-		return false, b.asDisplayableError(TaskError{errors.New("update called with apply-changes set to non-boolean"), ApplyChangesInvalid})
+		return false, applyChangesNotABooleanError(value)
 	}
 
 	delete(parameters, applyChangesKey)
@@ -161,23 +170,21 @@ func (b *Broker) validatedApplyChanges(parameters map[string]interface{}) (bool,
 	return applyChanges, nil
 }
 
-func (b *Broker) assertCanApplyChanges(
-	parameters map[string]interface{},
-	planID string,
-	previousPlanID *string,
-) DisplayableError {
-
+func (b *Broker) assertCanApplyChanges(parameters map[string]interface{}, planID string, previousPlanID *string, logger *log.Logger) error {
 	if !b.featureFlags.CFUserTriggeredUpgrades() {
-		return NewApplyChangesNotPermittedError(errors.New("'cf_user_triggered_upgrades' feature is disabled"))
+		logger.Println("'cf_user_triggered_upgrades' feature is disabled")
+		return errors.New(ApplyChangesNotPermittedMessage)
 	}
 
 	if previousPlanID != nil && planID != *previousPlanID {
-		return NewPendingChangesError(errors.New("update called with apply-changes and a plan change"))
+		logger.Println("update called with apply-changes and a plan change")
+		return errors.New(PendingChangesErrorMessage)
 	}
 
 	if len(parameters) > 0 {
-		return NewPendingChangesError(errors.New("update called with apply-changes and arbitrary parameters set"))
+		logger.Println("update called with apply-changes and arbitrary parameters set")
+		return errors.New(PendingChangesErrorMessage)
 	}
 
-	return NilError
+	return nil
 }
