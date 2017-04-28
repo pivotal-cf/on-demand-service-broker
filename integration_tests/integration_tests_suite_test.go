@@ -20,21 +20,18 @@ import (
 	"path/filepath"
 	"regexp"
 	"strconv"
-
-	"github.com/pivotal-cf/on-demand-service-broker/broker"
-	"github.com/pivotal-cf/on-demand-service-broker/config"
-	"github.com/pivotal-cf/on-demand-service-broker/mockbosh"
-	"github.com/pivotal-cf/on-demand-service-broker/mockcfapi"
-	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
-	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
+	"testing"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
-
-	"testing"
-
+	"github.com/pivotal-cf/on-demand-service-broker/broker"
+	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/integration_tests/mock"
+	"github.com/pivotal-cf/on-demand-service-broker/mockbosh"
+	"github.com/pivotal-cf/on-demand-service-broker/mockcfapi"
+	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
+	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 	"gopkg.in/yaml.v2"
 )
 
@@ -64,7 +61,6 @@ var (
 	stemcellVersion = "1234"
 
 	serviceID                          = "service-id"
-	serviceName                        = "service-name"
 	serviceDescription                 = "the finest service available to humanity"
 	serviceBindable                    = false
 	servicePlanUpdatable               = true
@@ -111,6 +107,10 @@ var (
 
 	spaceGUID        = "space-guid"
 	organizationGUID = "organizationGuid"
+)
+
+const (
+	serviceName = "service-name"
 )
 
 var (

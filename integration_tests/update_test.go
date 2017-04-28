@@ -17,6 +17,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
+	"github.com/onsi/gomega/types"
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/boshclient"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
@@ -344,15 +345,7 @@ var _ = Describe("updating a service instance", func() {
 
 				updateResp = updateServiceInstanceRequest(updateArbParams, instanceID, dedicatedPlanID, highMemoryPlanID)
 				Expect(updateResp.StatusCode).To(Equal(http.StatusInternalServerError))
-
-				Expect(descriptionFrom(updateResp)).To(SatisfyAll(
-					Not(ContainSubstring("task-id:")),
-					ContainSubstring("There was a problem completing your request. Please contact your operations team providing the following information: "),
-					MatchRegexp(`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`),
-					ContainSubstring(fmt.Sprintf("service: %s", serviceName)),
-					ContainSubstring(fmt.Sprintf("service-instance-guid: %s", instanceID)),
-					ContainSubstring("operation: update"),
-				))
+				Expect(descriptionFrom(updateResp)).To(reportFailureFor(instanceID))
 
 				Eventually(runningBroker.Out).Should(gbytes.Say(fmt.Sprintf("error deploying instance: bosh deployment '%s' not found.", deploymentName(instanceID))))
 			})
@@ -377,15 +370,7 @@ var _ = Describe("updating a service instance", func() {
 				updateResp = updateServiceInstanceRequest(updateArbParams, instanceID, highMemoryPlanID, dedicatedPlanID)
 
 				Expect(updateResp.StatusCode).To(Equal(http.StatusInternalServerError))
-
-				Expect(descriptionFrom(updateResp)).To(SatisfyAll(
-					Not(ContainSubstring("task-id:")),
-					ContainSubstring("There was a problem completing your request. Please contact your operations team providing the following information: "),
-					MatchRegexp(`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`),
-					ContainSubstring(fmt.Sprintf("service: %s", serviceName)),
-					ContainSubstring(fmt.Sprintf("service-instance-guid: %s", instanceID)),
-					ContainSubstring("operation: update"),
-				))
+				Expect(descriptionFrom(updateResp)).To(reportFailureFor(instanceID))
 			})
 		})
 
@@ -407,15 +392,7 @@ var _ = Describe("updating a service instance", func() {
 				It("reports the failure", func() {
 					Expect(updateResp.StatusCode).To(Equal(http.StatusInternalServerError))
 
-					Expect(descriptionFrom(updateResp)).To(SatisfyAll(
-						Not(ContainSubstring("task-id:")),
-						ContainSubstring("There was a problem completing your request. Please contact your operations team providing the following information: "),
-						MatchRegexp(`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`),
-						ContainSubstring(fmt.Sprintf("service: %s", serviceName)),
-						ContainSubstring(fmt.Sprintf("service-instance-guid: %s", instanceID)),
-						ContainSubstring("operation: update"),
-					))
-
+					Expect(descriptionFrom(updateResp)).To(reportFailureFor(instanceID))
 					Eventually(runningBroker.Out).Should(gbytes.Say("something has gone wrong in adapter"))
 				})
 			})
@@ -624,6 +601,17 @@ var _ = Describe("updating a service instance", func() {
 		})
 	})
 })
+
+func reportFailureFor(instanceID string) types.GomegaMatcher {
+	return SatisfyAll(
+		Not(ContainSubstring("task-id:")),
+		ContainSubstring("There was a problem completing your request. Please contact your operations team providing the following information: "),
+		MatchRegexp(`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`),
+		ContainSubstring(fmt.Sprintf("service: %s", serviceName)),
+		ContainSubstring(fmt.Sprintf("service-instance-guid: %s", instanceID)),
+		ContainSubstring("operation: update"),
+	)
+}
 
 func descriptionFrom(resp *http.Response) string {
 	Expect(resp).NotTo(BeNil())
