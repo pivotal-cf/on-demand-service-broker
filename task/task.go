@@ -51,6 +51,10 @@ func NewDeployer(
 	}
 }
 
+const (
+	OperationInProgressMessage = "An operation is in progress for your service instance. Please try again later."
+)
+
 func (d deployer) Create(
 	deploymentName,
 	planID string,
@@ -89,7 +93,7 @@ func (d deployer) Upgrade(
 		return 0, nil, err
 	}
 
-	err = d.assertNoOperationsInProgressForUpgrade(deploymentName, logger)
+	err = d.assertNoOperationsInProgress(deploymentName, logger)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -155,7 +159,6 @@ func (d deployer) getDeploymentManifest(deploymentName string, logger *log.Logge
 	return oldManifest, nil
 }
 
-// TODO SF Why are these two methods different?
 func (d deployer) assertNoOperationsInProgress(deploymentName string, logger *log.Logger) error {
 	clientTasks, err := d.boshClient.GetTasks(deploymentName, logger)
 	if err != nil {
@@ -163,27 +166,8 @@ func (d deployer) assertNoOperationsInProgress(deploymentName string, logger *lo
 	}
 
 	if incompleteTasks := clientTasks.IncompleteTasks(); len(incompleteTasks) != 0 {
-		userError := errors.New("An operation is in progress for your service instance. Please try again later.")
-		operatorError := broker.NewOperationInProgressError(
-			fmt.Errorf("deployment %s is still in progress: tasks %s\n",
-				deploymentName,
-				incompleteTasks.ToLog()),
-		)
-		return broker.NewDisplayableError(userError, operatorError)
-	}
-
-	return nil
-}
-
-func (d deployer) assertNoOperationsInProgressForUpgrade(deploymentName string, logger *log.Logger) error {
-	clientTasks, err := d.boshClient.GetTasks(deploymentName, logger)
-	if err != nil {
-		return fmt.Errorf("error getting tasks for deployment %s: %s\n", deploymentName, err)
-	}
-
-	if incompleteTasks := clientTasks.IncompleteTasks(); len(incompleteTasks) != 0 {
 		logger.Printf("deployment %s is still in progress: tasks %s\n", deploymentName, incompleteTasks.ToLog())
-		return broker.NewOperationInProgressError(errors.New("An operation is in progress for your service instance. Please try again later."))
+		return broker.NewOperationInProgressError(errors.New(OperationInProgressMessage))
 	}
 
 	return nil

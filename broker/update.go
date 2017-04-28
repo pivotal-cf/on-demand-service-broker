@@ -93,6 +93,8 @@ func (b *Broker) Update(
 		return errs(NewBoshRequestError("update", fmt.Errorf("error deploying instance: %s", err)))
 	case TaskError:
 		return errs(b.asDisplayableError(err))
+	case OperationInProgressError:
+		return brokerapi.UpdateServiceSpec{IsAsync: true}, err
 	case DisplayableError:
 		return errs(err)
 	case adapterclient.UnknownFailureError:

@@ -192,22 +192,17 @@ var _ = Describe("Deployer", func() {
 				}, nil)
 			})
 
-			It("returns an error for the operator", func() {
-				Expect(deployError).To(MatchError(ContainSubstring(fmt.Sprintf("deployment %s is still in progress", deploymentName))))
-				Expect(deployError).To(MatchError(ContainSubstring("{\"ID\":%d", boshTaskID)))
-			})
+			It("fails because deployment is still in progress", func() {
+				Expect(deployError).To(MatchError(task.OperationInProgressMessage))
 
-			It("returns an error for the CF user", func() {
-				Expect(deployError).To(BeAssignableToTypeOf(broker.DisplayableError{}))
-				displayableErr, _ := deployError.(broker.DisplayableError)
-				Expect(displayableErr.ErrorForCFUser()).To(MatchError("An operation is in progress for your service instance. Please try again later."))
-			})
-
-			It("does not log the previous completed tasks for the deployment", func() {
-				Expect(logBuffer.String()).NotTo(ContainSubstring("done"))
-				Expect(logBuffer.String()).NotTo(ContainSubstring("\"ID\":%d", previousDoneBoshTaskID))
-				Expect(logBuffer.String()).NotTo(ContainSubstring("error"))
-				Expect(logBuffer.String()).NotTo(ContainSubstring("\"ID\":%d", previousErrorBoshTaskID))
+				Expect(logBuffer.String()).To(SatisfyAll(
+					ContainSubstring(fmt.Sprintf("deployment %s is still in progress", deploymentName)),
+					ContainSubstring("\"ID\":%d", boshTaskID),
+					Not(ContainSubstring("done")),
+					Not(ContainSubstring("\"ID\":%d", previousDoneBoshTaskID)),
+					Not(ContainSubstring("error")),
+					Not(ContainSubstring("\"ID\":%d", previousErrorBoshTaskID)),
+				))
 			})
 		})
 
@@ -223,22 +218,17 @@ var _ = Describe("Deployer", func() {
 				}, nil)
 			})
 
-			It("returns an error", func() {
-				Expect(deployError).To(MatchError(ContainSubstring(fmt.Sprintf("deployment %s is still in progress", deploymentName))))
-				Expect(deployError).To(MatchError(ContainSubstring("\"ID\":%d", boshTaskID)))
-			})
+			It("fails because deployment is still in progress", func() {
+				Expect(deployError).To(MatchError(task.OperationInProgressMessage))
 
-			It("returns an error for the CF user", func() {
-				Expect(deployError).To(BeAssignableToTypeOf(broker.DisplayableError{}))
-				displayableErr, _ := deployError.(broker.DisplayableError)
-				Expect(displayableErr.ErrorForCFUser()).To(MatchError("An operation is in progress for your service instance. Please try again later."))
-			})
-
-			It("does not log the previous tasks for the deployment", func() {
-				Expect(logBuffer.String()).NotTo(ContainSubstring("done"))
-				Expect(logBuffer.String()).NotTo(ContainSubstring("\"ID\":%d", previousDoneBoshTaskID))
-				Expect(logBuffer.String()).NotTo(ContainSubstring("error"))
-				Expect(logBuffer.String()).NotTo(ContainSubstring("\"ID\":%d", previousErrorBoshTaskID))
+				Expect(logBuffer.String()).To(SatisfyAll(
+					ContainSubstring(fmt.Sprintf("deployment %s is still in progress", deploymentName)),
+					ContainSubstring("\"ID\":%d", boshTaskID),
+					Not(ContainSubstring("done")),
+					Not(ContainSubstring("\"ID\":%d", previousDoneBoshTaskID)),
+					Not(ContainSubstring("error")),
+					Not(ContainSubstring("\"ID\":%d", previousErrorBoshTaskID)),
+				))
 			})
 		})
 

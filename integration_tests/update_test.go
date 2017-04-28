@@ -25,6 +25,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/mockcfapi"
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
 	"github.com/pivotal-cf/on-demand-service-broker/mockuaa"
+	"github.com/pivotal-cf/on-demand-service-broker/task"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 	yaml "gopkg.in/yaml.v2"
@@ -573,7 +574,7 @@ var _ = Describe("updating a service instance", func() {
 
 				updateResp = updateServiceInstanceRequest(updateArbParams, instanceID, dedicatedPlanID, dedicatedPlanID)
 				Expect(updateResp.StatusCode).To(Equal(http.StatusInternalServerError))
-				Expect(descriptionFrom(updateResp)).To(ContainSubstring("An operation is in progress for your service instance. Please try again later."))
+				Expect(descriptionFrom(updateResp)).To(ContainSubstring(task.OperationInProgressMessage))
 			})
 		})
 
