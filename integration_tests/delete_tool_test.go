@@ -164,7 +164,7 @@ var _ = Describe("delete all service instances tool", func() {
 					RespondsWithServiceKey(serviceKeyGUID, instanceGUID),
 				mockcfapi.DeleteServiceKey(serviceKeyGUID).RespondsNoContent(),
 				mockcfapi.DeleteServiceInstance(instanceGUID).RespondsAcceptedWith(""),
-				mockcfapi.GetServiceInstance(instanceGUID).RespondsWithDeleteInProgress(instanceGUID),
+				mockcfapi.GetServiceInstance(instanceGUID).RespondsWithInProgress(mockcfapi.Delete),
 				mockcfapi.GetServiceInstance(instanceGUID).RespondsNotFoundWith(""),
 				mockcfapi.ListServiceOfferings().
 					RespondsWithServiceOffering(serviceID, "some-cc-service-offering-guid"),
@@ -225,7 +225,7 @@ var _ = Describe("delete all service instances tool", func() {
 				mockcfapi.ListServiceKeys(instanceGUID).RespondsWithServiceKey(serviceKeyGUID, instanceGUID),
 				mockcfapi.DeleteServiceKey(serviceKeyGUID).RespondsNoContent(),
 				mockcfapi.DeleteServiceInstance(instanceGUID).RespondsAcceptedWith(""),
-				mockcfapi.GetServiceInstance(instanceGUID).RespondsWithDeleteInProgress(instanceGUID),
+				mockcfapi.GetServiceInstance(instanceGUID).RespondsWithInProgress(mockcfapi.Delete),
 			)
 
 			configuration.PollingInitialOffset = 1
@@ -497,7 +497,7 @@ var _ = Describe("delete all service instances tool", func() {
 					RespondsWithServiceKey(serviceKeyGUID, instanceGUID),
 				mockcfapi.DeleteServiceKey(serviceKeyGUID).RespondsNoContent(),
 				mockcfapi.DeleteServiceInstance(instanceGUID).RespondsAcceptedWith(""),
-				mockcfapi.GetServiceInstance(instanceGUID).RespondsWithDeleteFailed(instanceGUID),
+				mockcfapi.GetServiceInstance(instanceGUID).RespondsWithFailed(mockcfapi.Delete),
 			)
 
 			params := []string{"-configFilePath", configFilePath}

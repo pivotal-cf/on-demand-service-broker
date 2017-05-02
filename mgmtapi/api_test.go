@@ -170,7 +170,7 @@ var _ = Describe("Management API", func() {
 
 		Context("when the bosh deployment is not found", func() {
 			BeforeEach(func() {
-				manageableBroker.UpgradeReturns(broker.OperationData{}, broker.NewDeploymentNotFoundError(fmt.Errorf("error finding deployment")))
+				manageableBroker.UpgradeReturns(broker.OperationData{}, broker.NewDeploymentNotFoundError(errors.New("error finding deployment")))
 			})
 
 			It("responds with HTTP 410 Gone", func() {

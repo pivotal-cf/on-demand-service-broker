@@ -96,7 +96,7 @@ func (d deployer) getDeploymentManifest(deploymentName string, logger *log.Logge
 	}
 
 	if !found {
-		return nil, fmt.Errorf("bosh deployment '%s' not found", deploymentName)
+		return nil, broker.NewDeploymentNotFoundError(fmt.Errorf("bosh deployment '%s' not found", deploymentName))
 	}
 
 	return oldManifest, nil

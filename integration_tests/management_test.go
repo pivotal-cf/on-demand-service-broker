@@ -9,6 +9,7 @@ package integration_tests
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 
@@ -24,19 +25,20 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
 	"github.com/pivotal-cf/on-demand-service-broker/mockuaa"
 	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
-	"io"
 )
 
 var _ = Describe("Management API", func() {
 	var (
-		conf                   config.Config
-		runningBroker          *gexec.Session
-		boshDirector           *mockhttp.Server
-		boshUAA                *mockuaa.ClientCredentialsServer
-		cfAPI                  *mockhttp.Server
-		cfUAA                  *mockuaa.ClientCredentialsServer
-		instanceID             = "instance-id"
+		conf          config.Config
+		runningBroker *gexec.Session
+		boshDirector  *mockhttp.Server
+		boshUAA       *mockuaa.ClientCredentialsServer
+		cfAPI         *mockhttp.Server
+		cfUAA         *mockuaa.ClientCredentialsServer
+	)
+	const (
 		postDeployErrandPlanID = "post-deploy-plan-errand-id"
+		instanceID             = "instance-id"
 	)
 
 	BeforeEach(func() {
@@ -75,12 +77,8 @@ var _ = Describe("Management API", func() {
 				Expect(err).ToNot(HaveOccurred())
 				instancesRequest = basicAuthBrokerRequest(instancesRequest)
 
-				By("responding with 200")
-				instancesResponse, err := http.DefaultClient.Do(instancesRequest)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(instancesResponse.StatusCode).To(Equal(http.StatusOK))
+				instancesResponse := responseFrom(instancesRequest, http.StatusOK)
 
-				By("responding with a JSON body listing one instance")
 				defer instancesResponse.Body.Close()
 				Expect(ioutil.ReadAll(instancesResponse.Body)).To(MatchJSON(`[{"instance_id": "instance-1"}]`))
 			})
@@ -94,19 +92,13 @@ var _ = Describe("Management API", func() {
 
 				instancesRequest, err := http.NewRequest("GET", fmt.Sprintf("http://localhost:%d/mgmt/service_instances", brokerPort), nil)
 				Expect(err).ToNot(HaveOccurred())
-				instancesRequest = basicAuthBrokerRequest(instancesRequest)
 
-				By("responding with 500")
-				instancesResponse, err := http.DefaultClient.Do(instancesRequest)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(instancesResponse.StatusCode).To(Equal(http.StatusInternalServerError))
+				responseFrom(basicAuthBrokerRequest(instancesRequest), http.StatusInternalServerError)
 
-				By("logging the CF API call with the request ID")
 				cfRegexpString := logRegexpStringWithRequestIDCapture(`GET http://127.0.0.1:\d+/v2/services\?results-per-page=100`)
 				Eventually(runningBroker).Should(gbytes.Say(cfRegexpString))
 				requestID := firstMatchInOutput(runningBroker, cfRegexpString)
 
-				By("logging the error with the same request ID")
 				mgmtLogRegexpString := logRegexpString(requestID, `error occurred querying instances: Unexpected reponse status 500, "error listing service offerings"`)
 				Eventually(runningBroker).Should(gbytes.Say(mgmtLogRegexpString))
 			})
@@ -128,12 +120,8 @@ var _ = Describe("Management API", func() {
 
 				orphanRequest, err := http.NewRequest("GET", fmt.Sprintf("http://localhost:%d/mgmt/orphan_deployments", brokerPort), nil)
 				Expect(err).ToNot(HaveOccurred())
-				orphanRequest = basicAuthBrokerRequest(orphanRequest)
 
-				By("responding with 200")
-				orphanResponse, err := http.DefaultClient.Do(orphanRequest)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(orphanResponse.StatusCode).To(Equal(http.StatusOK))
+				orphanResponse := responseFrom(basicAuthBrokerRequest(orphanRequest), http.StatusOK)
 
 				By("responding with a JSON list of one orphan deployment")
 				defer orphanResponse.Body.Close()
@@ -167,12 +155,8 @@ var _ = Describe("Management API", func() {
 
 					orphanRequest, err := http.NewRequest("GET", fmt.Sprintf("http://localhost:%d/mgmt/orphan_deployments", brokerPort), nil)
 					Expect(err).ToNot(HaveOccurred())
-					orphanRequest = basicAuthBrokerRequest(orphanRequest)
 
-					By("responding with 200")
-					orphanResponse, err := http.DefaultClient.Do(orphanRequest)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(orphanResponse.StatusCode).To(Equal(http.StatusOK))
+					orphanResponse := responseFrom(basicAuthBrokerRequest(orphanRequest), http.StatusOK)
 
 					By("responding with a JSON list of one orphan deployment")
 					defer orphanResponse.Body.Close()
@@ -189,12 +173,8 @@ var _ = Describe("Management API", func() {
 
 				orphanRequest, err := http.NewRequest("GET", fmt.Sprintf("http://localhost:%d/mgmt/orphan_deployments", brokerPort), nil)
 				Expect(err).ToNot(HaveOccurred())
-				orphanRequest = basicAuthBrokerRequest(orphanRequest)
 
-				By("responding with 500")
-				orphanResponse, err := http.DefaultClient.Do(orphanRequest)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(orphanResponse.StatusCode).To(Equal(http.StatusInternalServerError))
+				responseFrom(basicAuthBrokerRequest(orphanRequest), http.StatusInternalServerError)
 
 				By("logging the CF API call with the request ID")
 				cfRegexpString := logRegexpStringWithRequestIDCapture(`GET http://127.0.0.1:\d+/v2/services\?results-per-page=100`)
@@ -221,12 +201,8 @@ var _ = Describe("Management API", func() {
 
 				orphanRequest, err := http.NewRequest("GET", fmt.Sprintf("http://localhost:%d/mgmt/orphan_deployments", brokerPort), nil)
 				Expect(err).ToNot(HaveOccurred())
-				orphanRequest = basicAuthBrokerRequest(orphanRequest)
 
-				By("responding with 500")
-				orphanResponse, err := http.DefaultClient.Do(orphanRequest)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(orphanResponse.StatusCode).To(Equal(http.StatusInternalServerError))
+				responseFrom(basicAuthBrokerRequest(orphanRequest), http.StatusInternalServerError)
 
 				By("logging the BOSH Director call with the request ID")
 				boshRegexpString := logRegexpStringWithRequestIDCapture(`getting deployments from bosh`)
@@ -261,12 +237,8 @@ var _ = Describe("Management API", func() {
 
 					metricsReq, err := http.NewRequest("GET", fmt.Sprintf("http://localhost:%d/mgmt/metrics", brokerPort), nil)
 					Expect(err).ToNot(HaveOccurred())
-					metricsReq = basicAuthBrokerRequest(metricsReq)
 
-					By("responding with 200")
-					metricsResp, err := http.DefaultClient.Do(metricsReq)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(metricsResp.StatusCode).To(Equal(http.StatusOK))
+					metricsResp := responseFrom(basicAuthBrokerRequest(metricsReq), http.StatusOK)
 
 					By("responding with a JSON body listing metrics for both plans")
 					defer metricsResp.Body.Close()
@@ -317,12 +289,8 @@ var _ = Describe("Management API", func() {
 
 					metricsReq, err := http.NewRequest("GET", fmt.Sprintf("http://localhost:%d/mgmt/metrics", brokerPort), nil)
 					Expect(err).ToNot(HaveOccurred())
-					metricsReq = basicAuthBrokerRequest(metricsReq)
 
-					By("responding with 200")
-					metricsResp, err := http.DefaultClient.Do(metricsReq)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(metricsResp.StatusCode).To(Equal(http.StatusOK))
+					metricsResp := responseFrom(basicAuthBrokerRequest(metricsReq), http.StatusOK)
 
 					By("responding with a JSON body listing zero instances for plans")
 					defer metricsResp.Body.Close()
@@ -363,12 +331,8 @@ var _ = Describe("Management API", func() {
 
 					metricsReq, err := http.NewRequest("GET", fmt.Sprintf("http://localhost:%d/mgmt/metrics", brokerPort), nil)
 					Expect(err).ToNot(HaveOccurred())
-					metricsReq = basicAuthBrokerRequest(metricsReq)
 
-					By("responding with 503")
-					metricsResp, err := http.DefaultClient.Do(metricsReq)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(metricsResp.StatusCode).To(Equal(http.StatusServiceUnavailable))
+					responseFrom(basicAuthBrokerRequest(metricsReq), http.StatusServiceUnavailable)
 
 					By("logging the CF API call with the request ID")
 					cfRegexpString := logRegexpStringWithRequestIDCapture(`GET http://127.0.0.1:\d+/v2/services\?results-per-page=100`)
@@ -390,12 +354,8 @@ var _ = Describe("Management API", func() {
 
 				metricsReq, err := http.NewRequest("GET", fmt.Sprintf("http://localhost:%d/mgmt/metrics", brokerPort), nil)
 				Expect(err).ToNot(HaveOccurred())
-				metricsReq = basicAuthBrokerRequest(metricsReq)
 
-				By("responding with 500")
-				metricsResp, err := http.DefaultClient.Do(metricsReq)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(metricsResp.StatusCode).To(Equal(http.StatusInternalServerError))
+				responseFrom(basicAuthBrokerRequest(metricsReq), http.StatusInternalServerError)
 
 				By("logging the CF API call with the request ID")
 				cfRegexpString := logRegexpStringWithRequestIDCapture(`GET http://127.0.0.1:\d+/v2/services\?results-per-page=100`)
@@ -410,7 +370,13 @@ var _ = Describe("Management API", func() {
 	})
 
 	Describe("upgrade instance", func() {
-		Context("when the upgrade request is accepted", func() {
+		const (
+			upgradingTaskID = 123
+			planGUID        = "my-plan"
+		)
+		Context("when the instance's plan has a post-deploy errand", func() {
+			const postDeployErrandName = "health-check"
+
 			BeforeEach(func() {
 				adapter.GenerateManifest().ToReturnManifest(rawManifestWithDeploymentName(instanceID))
 
@@ -427,18 +393,17 @@ var _ = Describe("Management API", func() {
 						},
 					},
 					LifecycleErrands: &config.LifecycleErrands{
-						PostDeploy: "health-check",
+						PostDeploy: postDeployErrandName,
 					},
 				}
 
 				conf.ServiceCatalog.Plans = []config.Plan{planWithPostDeploy}
 			})
 
-			It("responds with the correct operation data", func() {
-				upgradingTaskID := 123
+			It("responds with the upgrade operation data", func() {
 				cfAPI.VerifyAndMock(
-					mockcfapi.GetServiceInstance(instanceID).RespondsWithSucceedWithPlanUrl(instanceID, `\/v2\/service_plans\/my-plan`),
-					mockcfapi.GetServicePlan("my-plan").RespondsOKWith(getServicePlanResponse(postDeployErrandPlanID)),
+					mockcfapi.GetServiceInstance(instanceID).RespondsWithPlanURL(planGUID, mockcfapi.Update, mockcfapi.Succeeded),
+					mockcfapi.GetServicePlan(planGUID).RespondsOKWith(getServicePlanResponse(postDeployErrandPlanID)),
 				)
 
 				boshDirector.VerifyAndMock(
@@ -449,19 +414,81 @@ var _ = Describe("Management API", func() {
 
 				upgradeReq, err := http.NewRequest("PATCH", fmt.Sprintf("http://localhost:%d/mgmt/service_instances/%s", brokerPort, instanceID), nil)
 				Expect(err).ToNot(HaveOccurred())
-				upgradeReq = basicAuthBrokerRequest(upgradeReq)
 
-				By("responding with 202")
-				upgradeResp, err := http.DefaultClient.Do(upgradeReq)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(upgradeResp.StatusCode).To(Equal(http.StatusAccepted))
+				upgradeResp := responseFrom(basicAuthBrokerRequest(upgradeReq), http.StatusAccepted)
 
 				operationData := decodeOperationDataFromResponseBody(upgradeResp.Body)
+				Expect(operationData.BoshContextID).NotTo(BeEmpty())
+				Expect(operationData).To(Equal(broker.OperationData{
+					OperationType:        broker.OperationTypeUpgrade,
+					BoshTaskID:           upgradingTaskID,
+					BoshContextID:        operationData.BoshContextID,
+					PostDeployErrandName: postDeployErrandName,
+				}))
+			})
+		})
 
-				Expect(operationData.BoshTaskID).To(Equal(123))
-				Expect(operationData.BoshContextID).ToNot(BeEmpty())
-				Expect(operationData.OperationType).To(Equal(broker.OperationTypeUpgrade))
-				Expect(operationData.PostDeployErrandName).To(Equal("health-check"))
+		Context("when the instance cannot be found in CF", func() {
+			It("responds with not found", func() {
+				cfAPI.VerifyAndMock(
+					mockcfapi.GetServiceInstance(instanceID).RespondsNotFoundWith(`{}`),
+				)
+
+				upgradeReq, err := http.NewRequest("PATCH", fmt.Sprintf("http://localhost:%d/mgmt/service_instances/%s", brokerPort, instanceID), nil)
+				Expect(err).ToNot(HaveOccurred())
+
+				responseFrom(basicAuthBrokerRequest(upgradeReq), http.StatusNotFound)
+			})
+		})
+
+		Context("when the instance's deployment cannot be found in bosh", func() {
+			It("responds with not found", func() {
+				cfAPI.VerifyAndMock(
+					mockcfapi.GetServiceInstance(instanceID).RespondsWithPlanURL(planGUID, mockcfapi.Update, mockcfapi.Succeeded),
+					mockcfapi.GetServicePlan(planGUID).RespondsOKWith(getServicePlanResponse(dedicatedPlanID)),
+				)
+
+				boshDirector.VerifyAndMock(
+					mockbosh.Tasks("service-instance_instance-id").RespondsWithNoTasks(), // TODO: Check this is the response for a deleted deployment
+					mockbosh.GetDeployment("service-instance_instance-id").RespondsNotFoundWith("{}"),
+				)
+
+				upgradeReq, err := http.NewRequest("PATCH", fmt.Sprintf("http://localhost:%d/mgmt/service_instances/%s", brokerPort, instanceID), nil)
+				Expect(err).ToNot(HaveOccurred())
+
+				responseFrom(basicAuthBrokerRequest(upgradeReq), http.StatusGone)
+			})
+		})
+
+		Context("when there is an operation in progress on the CF instance", func() {
+			It("responds with conflict", func() {
+				cfAPI.VerifyAndMock(
+					mockcfapi.GetServiceInstance(instanceID).RespondsWithPlanURL(planGUID, mockcfapi.Update, mockcfapi.InProgress),
+					mockcfapi.GetServicePlan(planGUID).RespondsOKWith(getServicePlanResponse(dedicatedPlanID)),
+				)
+
+				upgradeReq, err := http.NewRequest("PATCH", fmt.Sprintf("http://localhost:%d/mgmt/service_instances/%s", brokerPort, instanceID), nil)
+				Expect(err).ToNot(HaveOccurred())
+
+				responseFrom(basicAuthBrokerRequest(upgradeReq), http.StatusConflict)
+			})
+		})
+
+		Context("when there are incomplete bosh tasks for the instance's deployment", func() {
+			It("responds with conflict", func() {
+				cfAPI.VerifyAndMock(
+					mockcfapi.GetServiceInstance(instanceID).RespondsWithPlanURL(planGUID, mockcfapi.Update, mockcfapi.Succeeded),
+					mockcfapi.GetServicePlan(planGUID).RespondsOKWith(getServicePlanResponse(dedicatedPlanID)),
+				)
+
+				boshDirector.VerifyAndMock(
+					mockbosh.Tasks("service-instance_instance-id").RespondsWithATaskContainingState("processing", ""),
+				)
+
+				upgradeReq, err := http.NewRequest("PATCH", fmt.Sprintf("http://localhost:%d/mgmt/service_instances/%s", brokerPort, instanceID), nil)
+				Expect(err).ToNot(HaveOccurred())
+
+				responseFrom(basicAuthBrokerRequest(upgradeReq), http.StatusConflict)
 			})
 		})
 
@@ -473,12 +500,9 @@ var _ = Describe("Management API", func() {
 
 				upgradeReq, err := http.NewRequest("PATCH", fmt.Sprintf("http://localhost:%d/mgmt/service_instances/%s", brokerPort, instanceID), nil)
 				Expect(err).ToNot(HaveOccurred())
-				upgradeReq = basicAuthBrokerRequest(upgradeReq)
 
-				By("responding with 500")
-				upgradeResp, err := http.DefaultClient.Do(upgradeReq)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(upgradeResp.StatusCode).To(Equal(http.StatusInternalServerError))
+				responseFrom(basicAuthBrokerRequest(upgradeReq), http.StatusInternalServerError)
+				// TODO Check response body (json)
 
 				By("logging the CF API call with the request ID")
 				cfRegexpString := logRegexpStringWithRequestIDCapture(fmt.Sprintf(`GET http://127.0.0.1:\d+/v2/service_instances/%s`, instanceID))
@@ -492,6 +516,13 @@ var _ = Describe("Management API", func() {
 		})
 	})
 })
+
+func responseFrom(req *http.Request, expectedStatusCode int) *http.Response {
+	response, err := http.DefaultClient.Do(req)
+	Expect(err).ToNot(HaveOccurred())
+	Expect(response.StatusCode).To(Equal(expectedStatusCode))
+	return response
+}
 
 func decodeOperationDataFromResponseBody(respBody io.ReadCloser) broker.OperationData {
 	body, err := ioutil.ReadAll(respBody)

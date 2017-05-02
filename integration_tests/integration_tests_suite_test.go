@@ -72,7 +72,6 @@ var (
 	serviceMetaDataSupportURL          = "serviceMetaDataSupportURL"
 	serviceTags                        = []string{"a", "b"}
 
-	dedicatedPlanID           = "dedicated-plan-id"
 	dedicatedPlanName         = "dedicated-plan-name"
 	dedicatedPlanDisplayName  = "dedicated-plan-display-name"
 	dedicatedPlanDescription  = "dedicatedPlanDescription"
@@ -110,7 +109,8 @@ var (
 )
 
 const (
-	serviceName = "service-name"
+	serviceName     = "service-name"
+	dedicatedPlanID = "dedicated-plan-id"
 )
 
 var (

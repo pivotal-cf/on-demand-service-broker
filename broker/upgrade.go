@@ -48,7 +48,7 @@ func (b *Broker) Upgrade(ctx context.Context, instanceID string, logger *log.Log
 		instance.PlanID,
 		&instance.PlanID,
 		boshContextID,
-		logger,z
+		logger,
 	)
 
 	if err != nil {
@@ -59,6 +59,8 @@ func (b *Broker) Upgrade(ctx context.Context, instanceID string, logger *log.Log
 			return OperationData{}, err.ErrorForCFUser()
 		case adapterclient.UnknownFailureError:
 			return OperationData{}, adapterToAPIError(ctx, err)
+		case TaskInProgressError:
+			return OperationData{}, NewOperationInProgressError(err)
 		default:
 			return OperationData{}, err
 		}

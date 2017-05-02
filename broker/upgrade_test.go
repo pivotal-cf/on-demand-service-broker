@@ -7,11 +7,10 @@
 package broker_test
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log"
-
-	"context"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -45,7 +44,6 @@ var _ = Describe("Upgrade", func() {
 
 	Context("when the deployment goes well", func() {
 		BeforeEach(func() {
-			boshClient.GetDeploymentReturns(expectedPreviousManifest, true, nil)
 			fakeDeployer.UpgradeReturns(boshTaskID, []byte("new-manifest-fetched-from-adapter"), nil)
 			cfClient.GetInstanceStateReturns(cloud_foundry_client.InstanceState{PlanID: existingPlanID}, nil)
 		})
@@ -58,11 +56,7 @@ var _ = Describe("Upgrade", func() {
 			Expect(fakeDeployer.CreateCallCount()).To(Equal(0))
 			Expect(fakeDeployer.UpgradeCallCount()).To(Equal(1))
 			Expect(fakeDeployer.UpdateCallCount()).To(Equal(0))
-			actualDeploymentName,
-				actualPlanID,
-				actualPreviousPlanID,
-				actualBoshContextID,
-				_ := fakeDeployer.UpgradeArgsForCall(0)
+			actualDeploymentName, actualPlanID, actualPreviousPlanID, actualBoshContextID, _ := fakeDeployer.UpgradeArgsForCall(0)
 			Expect(actualPlanID).To(Equal(existingPlanID))
 			Expect(actualDeploymentName).To(Equal(broker.InstancePrefix + instanceID))
 			oldPlanIDCopy := existingPlanID
@@ -73,7 +67,6 @@ var _ = Describe("Upgrade", func() {
 
 	Context("when there is a previous deployment for the service instance", func() {
 		BeforeEach(func() {
-			boshClient.GetDeploymentReturns([]byte("old-manifest"), true, nil)
 			fakeDeployer.UpgradeReturns(boshTaskID, []byte("new-manifest-fetched-from-adapter"), nil)
 			cfClient.GetInstanceStateReturns(cloud_foundry_client.InstanceState{PlanID: existingPlanID}, nil)
 		})
@@ -122,13 +115,15 @@ var _ = Describe("Upgrade", func() {
 			It("deploys with a context id", func() {
 				_, _, _, contextID, _ := fakeDeployer.UpgradeArgsForCall(0)
 				Expect(contextID).NotTo(BeEmpty())
-			})
-
-			It("returns the correct operation data", func() {
-				Expect(upgradeOperationData.BoshTaskID).To(Equal(boshTaskID))
 				Expect(upgradeOperationData.BoshContextID).NotTo(BeEmpty())
-				Expect(upgradeOperationData.PostDeployErrandName).To(Equal("health-check"))
-				Expect(upgradeOperationData.OperationType).To(Equal(broker.OperationTypeUpgrade))
+				Expect(upgradeOperationData).To(Equal(
+					broker.OperationData{
+						BoshTaskID:           boshTaskID,
+						PostDeployErrandName: "health-check",
+						OperationType:        broker.OperationTypeUpgrade,
+						BoshContextID:        upgradeOperationData.BoshContextID,
+					},
+				))
 			})
 		})
 
@@ -155,9 +150,8 @@ var _ = Describe("Upgrade", func() {
 		})
 	})
 
-	Context("when the service instance cannot be found", func() {
+	Context("when the service instance cannot be found in CF", func() {
 		BeforeEach(func() {
-			boshClient.GetDeploymentReturns([]byte("old-manifest"), true, nil)
 			cfClient.GetInstanceStateReturns(cloud_foundry_client.InstanceState{}, cloud_foundry_client.ResourceNotFoundError{})
 		})
 
@@ -166,9 +160,8 @@ var _ = Describe("Upgrade", func() {
 		})
 	})
 
-	Context("when the instance state cannot be retrieved from Cloud Controller", func() {
+	Context("when the instance state cannot be retrieved from CF", func() {
 		BeforeEach(func() {
-			boshClient.GetDeploymentReturns([]byte("old-manifest"), true, nil)
 			cfClient.GetInstanceStateReturns(cloud_foundry_client.InstanceState{}, errors.New("get instance state error"))
 		})
 
@@ -183,28 +176,19 @@ var _ = Describe("Upgrade", func() {
 		BeforeEach(func() {
 			planID = "non-existent-plan-id"
 			cfClient.GetInstanceStateReturns(cloud_foundry_client.InstanceState{PlanID: planID}, nil)
-			boshClient.GetDeploymentReturns([]byte("old-manifest"), true, nil)
 		})
 
-		It("returns a user displayable error", func() {
+		It("fails and does not redeploy", func() {
 			Expect(redeployErr).To(MatchError(ContainSubstring(fmt.Sprintf("plan %s not found", planID))))
-		})
-
-		It("logs the error", func() {
 			Expect(logBuffer.String()).To(ContainSubstring(fmt.Sprintf("error: finding plan ID %s", planID)))
-		})
-
-		It("does not redeploy", func() {
-			Expect(boshClient.GetDeploymentCallCount()).To(BeZero())
 			Expect(fakeDeployer.UpgradeCallCount()).To(BeZero())
 		})
 	})
 
 	Context("when there is a task in progress on the instance", func() {
 		BeforeEach(func() {
-			boshClient.GetDeploymentReturns([]byte("old-manifest"), true, nil)
-			fakeDeployer.UpgradeReturns(0, []byte{}, broker.NewOperationInProgressError(fmt.Errorf("deployment %s is still in progress", deploymentName(instanceID))))
 			cfClient.GetInstanceStateReturns(cloud_foundry_client.InstanceState{PlanID: existingPlanID}, nil)
+			fakeDeployer.UpgradeReturns(0, nil, broker.TaskInProgressError{})
 		})
 
 		It("returns an OperationInProgressError", func() {
