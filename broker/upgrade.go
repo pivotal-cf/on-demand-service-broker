@@ -48,7 +48,7 @@ func (b *Broker) Upgrade(ctx context.Context, instanceID string, logger *log.Log
 		instance.PlanID,
 		&instance.PlanID,
 		boshContextID,
-		logger,
+		logger,z
 	)
 
 	if err != nil {

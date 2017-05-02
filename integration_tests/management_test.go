@@ -442,8 +442,8 @@ var _ = Describe("Management API", func() {
 				)
 
 				boshDirector.VerifyAndMock(
-					mockbosh.GetDeployment("service-instance_instance-id").RespondsWithRawManifest([]byte(rawManifestWithDeploymentName(instanceID))),
 					mockbosh.Tasks("service-instance_instance-id").RespondsWithNoTasks(),
+					mockbosh.GetDeployment("service-instance_instance-id").RespondsWithRawManifest([]byte(rawManifestWithDeploymentName(instanceID))),
 					mockbosh.Deploy().RedirectsToTask(upgradingTaskID),
 				)
 

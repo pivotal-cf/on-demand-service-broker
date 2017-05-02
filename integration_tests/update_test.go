@@ -26,7 +26,6 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/mockcfapi"
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
 	"github.com/pivotal-cf/on-demand-service-broker/mockuaa"
-	"github.com/pivotal-cf/on-demand-service-broker/task"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 	yaml "gopkg.in/yaml.v2"
@@ -89,8 +88,8 @@ var _ = Describe("updating a service instance", func() {
 		Context("and there are no pending changes", func() {
 			It("includes the operation data in the response", func() {
 				boshDirector.VerifyAndMock(
-					mockbosh.GetDeployment(deploymentName(instanceID)).RespondsWithManifest(manifest),
 					mockbosh.Tasks(deploymentName(instanceID)).RespondsWithNoTasks(),
+					mockbosh.GetDeployment(deploymentName(instanceID)).RespondsWithManifest(manifest),
 					mockbosh.Deploy().WithManifest(manifest).WithoutContextID().RedirectsToTask(updateTaskID),
 				)
 
@@ -222,8 +221,8 @@ var _ = Describe("updating a service instance", func() {
 
 			It("includes the operation data in the response", func() {
 				boshDirector.VerifyAndMock(
-					mockbosh.GetDeployment(deploymentName(instanceID)).RespondsWithManifest(manifest),
 					mockbosh.Tasks(deploymentName(instanceID)).RespondsWithNoTasks(),
+					mockbosh.GetDeployment(deploymentName(instanceID)).RespondsWithManifest(manifest),
 					mockbosh.Deploy().WithManifest(manifest).WithAnyContextID().RedirectsToTask(taskID),
 				)
 
@@ -271,8 +270,8 @@ var _ = Describe("updating a service instance", func() {
 
 			It("includes the operation data in the response", func() {
 				boshDirector.VerifyAndMock(
-					mockbosh.GetDeployment(deploymentName(instanceID)).RespondsWithManifest(manifest),
 					mockbosh.Tasks(deploymentName(instanceID)).RespondsWithNoTasks(),
+					mockbosh.GetDeployment(deploymentName(instanceID)).RespondsWithManifest(manifest),
 					mockbosh.Deploy().WithManifest(manifest).WithoutContextID().RedirectsToTask(taskID),
 				)
 
@@ -293,8 +292,8 @@ var _ = Describe("updating a service instance", func() {
 				manifest.Properties = map[string]interface{}{"foo": "bar"}
 
 				boshDirector.VerifyAndMock(
-					mockbosh.GetDeployment(deploymentName(instanceID)).RespondsWithManifest(manifest),
 					mockbosh.Tasks(deploymentName(instanceID)).RespondsWithNoTasks(),
+					mockbosh.GetDeployment(deploymentName(instanceID)).RespondsWithManifest(manifest),
 				)
 
 				updateResp = updateServiceInstanceRequest(updateArbParams, instanceID, dedicatedPlanID, highMemoryPlanID)
@@ -340,6 +339,7 @@ var _ = Describe("updating a service instance", func() {
 		Context("and the bosh deployment cannot be found", func() {
 			It("fails with description", func() {
 				boshDirector.VerifyAndMock(
+					mockbosh.Tasks(deploymentName(instanceID)).RespondsWithNoTasks(),
 					mockbosh.GetDeployment(deploymentName(instanceID)).RespondsNotFoundWith(""),
 				)
 
@@ -378,8 +378,8 @@ var _ = Describe("updating a service instance", func() {
 		Context("and service adapter returns an error", func() {
 			JustBeforeEach(func() {
 				boshDirector.VerifyAndMock(
-					mockbosh.GetDeployment(deploymentName(instanceID)).RespondsWithManifest(manifest),
 					mockbosh.Tasks(deploymentName(instanceID)).RespondsWithNoTasks(),
+					mockbosh.GetDeployment(deploymentName(instanceID)).RespondsWithManifest(manifest),
 				)
 
 				updateResp = updateServiceInstanceRequest(updateArbParams, instanceID, dedicatedPlanID, highMemoryPlanID)
@@ -422,8 +422,8 @@ var _ = Describe("updating a service instance", func() {
 
 			It("includes the operation data in the response", func() {
 				boshDirector.VerifyAndMock(
-					mockbosh.GetDeployment(deploymentName(instanceID)).RespondsWithManifest(manifest),
 					mockbosh.Tasks(deploymentName(instanceID)).RespondsWithNoTasks(),
+					mockbosh.GetDeployment(deploymentName(instanceID)).RespondsWithManifest(manifest),
 					mockbosh.Deploy().WithManifest(manifest).WithoutContextID().RedirectsToTask(updateTaskID),
 				)
 
@@ -470,8 +470,8 @@ var _ = Describe("updating a service instance", func() {
 
 					It("returns the task ID and operation type in operation data", func() {
 						boshDirector.VerifyAndMock(
-							mockbosh.GetDeployment(deploymentName(instanceID)).RespondsWithManifest(manifest),
 							mockbosh.Tasks(deploymentName(instanceID)).RespondsWithNoTasks(),
+							mockbosh.GetDeployment(deploymentName(instanceID)).RespondsWithManifest(manifest),
 							mockbosh.Deploy().WithManifest(generatedManifest).WithoutContextID().RedirectsToTask(updateTaskID),
 						)
 
@@ -526,8 +526,8 @@ var _ = Describe("updating a service instance", func() {
 					parameters := map[string]interface{}{"foo": "bar"}
 
 					boshDirector.VerifyAndMock(
-						mockbosh.GetDeployment(deploymentName(instanceID)).RespondsWithManifest(manifest),
 						mockbosh.Tasks(deploymentName(instanceID)).RespondsWithNoTasks(),
+						mockbosh.GetDeployment(deploymentName(instanceID)).RespondsWithManifest(manifest),
 					)
 
 					resp := updateServiceInstanceRequest(parameters, instanceID, dedicatedPlanID, dedicatedPlanID)
@@ -545,13 +545,12 @@ var _ = Describe("updating a service instance", func() {
 
 			It("returns a operation in progress message", func() {
 				boshDirector.VerifyAndMock(
-					mockbosh.GetDeployment(deploymentName(instanceID)).RespondsWithManifest(manifest),
 					mockbosh.Tasks(deploymentName(instanceID)).RespondsWithATaskContainingState(boshclient.BoshTaskProcessing, "some task"),
 				)
 
 				updateResp = updateServiceInstanceRequest(updateArbParams, instanceID, dedicatedPlanID, dedicatedPlanID)
 				Expect(updateResp.StatusCode).To(Equal(http.StatusInternalServerError))
-				Expect(descriptionFrom(updateResp)).To(ContainSubstring(task.OperationInProgressMessage))
+				Expect(descriptionFrom(updateResp)).To(ContainSubstring(broker.OperationInProgressMessage))
 			})
 		})
 
@@ -582,8 +581,8 @@ var _ = Describe("updating a service instance", func() {
 
 			It("includes the operation data in the response", func() {
 				boshDirector.VerifyAndMock(
-					mockbosh.GetDeployment(deploymentName(instanceID)).RespondsWithManifest(manifest),
 					mockbosh.Tasks(deploymentName(instanceID)).RespondsWithNoTasks(),
+					mockbosh.GetDeployment(deploymentName(instanceID)).RespondsWithManifest(manifest),
 					mockbosh.Deploy().WithManifest(manifest).WithAnyContextID().RedirectsToTask(taskID),
 				)
 

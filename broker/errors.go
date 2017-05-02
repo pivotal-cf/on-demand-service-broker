@@ -21,6 +21,7 @@ const (
 	PendingChangesErrorMessage      = `There is a pending change to your service instance, you must first run cf update-service <service_name> -c '{"apply-changes": true}', no other arbitrary parameters are allowed`
 	ApplyChangesDisabledMessage     = "Service cannot be updated at this time, please try again later or contact your operator for more information"
 	ApplyChangesNotPermittedMessage = `'apply-changes' is not permitted. Contact your operator for more information`
+	OperationInProgressMessage      = "An operation is in progress for your service instance. Please try again later."
 )
 
 type InstanceNotFoundError struct {
@@ -70,6 +71,22 @@ func NewTaskError(e error, taskErrorType TaskErrorType) error {
 		error:         e,
 		taskErrorType: taskErrorType,
 	}
+}
+
+type TaskInProgressError struct {
+	Message string
+}
+
+func (e TaskInProgressError) Error() string {
+	return e.Message
+}
+
+type ServiceError struct {
+	error
+}
+
+func NewServiceError(e error) error {
+	return ServiceError{error: e}
 }
 
 var NilError = DisplayableError{nil, nil}

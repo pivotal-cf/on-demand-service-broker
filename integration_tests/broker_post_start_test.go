@@ -65,19 +65,10 @@ var _ = Describe("broker post start checks", func() {
 			))
 		})
 
-		It("exits with 0", func() {
+		It("exits successfully", func() {
 			Expect(session.ExitCode()).To(Equal(0))
-		})
-
-		It("calls the broker /v2/catalog endpoint once", func() {
 			Expect(server.ReceivedRequests()).To(HaveLen(1))
-		})
-
-		It("outputs a starting message", func() {
 			Expect(session).To(gbytes.Say("Starting broker post-start check, waiting for broker to start serving catalog."))
-		})
-
-		It("outputs a success message", func() {
 			Expect(session).To(gbytes.Say("Broker post-start check successful"))
 		})
 	})

@@ -189,7 +189,7 @@ var _ = Describe("Deployer", func() {
 			})
 
 			It("fails because deployment is still in progress", func() {
-				Expect(deployError).To(MatchError(task.OperationInProgressMessage))
+				Expect(deployError).To(BeAssignableToTypeOf(broker.TaskInProgressError{}))
 
 				Expect(logBuffer.String()).To(SatisfyAll(
 					ContainSubstring(fmt.Sprintf("deployment %s is still in progress", deploymentName)),
@@ -215,7 +215,7 @@ var _ = Describe("Deployer", func() {
 			})
 
 			It("fails because deployment is still in progress", func() {
-				Expect(deployError).To(MatchError(task.OperationInProgressMessage))
+				Expect(deployError).To(BeAssignableToTypeOf(broker.TaskInProgressError{}))
 
 				Expect(logBuffer.String()).To(SatisfyAll(
 					ContainSubstring(fmt.Sprintf("deployment %s is still in progress", deploymentName)),
@@ -428,7 +428,7 @@ var _ = Describe("Deployer", func() {
 			})
 
 			It("returns an error", func() {
-				Expect(deployError).To(MatchError("An operation is in progress for your service instance. Please try again later."))
+				Expect(deployError).To(BeAssignableToTypeOf(broker.TaskInProgressError{}))
 			})
 
 			It("does not log the previous completed tasks for the deployment", func() {
@@ -463,7 +463,7 @@ var _ = Describe("Deployer", func() {
 			})
 
 			It("returns an error", func() {
-				Expect(deployError).To(MatchError("An operation is in progress for your service instance. Please try again later."))
+				Expect(deployError).To(BeAssignableToTypeOf(broker.TaskInProgressError{}))
 			})
 
 			It("does not log the previous tasks for the deployment", func() {

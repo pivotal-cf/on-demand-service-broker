@@ -16,7 +16,6 @@ import (
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/adapterclient"
-	"github.com/pivotal-cf/on-demand-service-broker/boshclient"
 	"github.com/pivotal-cf/on-demand-service-broker/brokercontext"
 )
 
@@ -94,12 +93,14 @@ func (b *Broker) Update(
 	)
 
 	switch err := err.(type) {
-	case boshclient.RequestError:
+	case ServiceError:
 		return errs(NewBoshRequestError("update", fmt.Errorf("error deploying instance: %s", err)))
 	case TaskError:
 		return errs(b.asDisplayableError(err))
 	case OperationInProgressError:
 		return brokerapi.UpdateServiceSpec{IsAsync: true}, err
+	case TaskInProgressError:
+		return brokerapi.UpdateServiceSpec{IsAsync: true}, errors.New(OperationInProgressMessage)
 	case DisplayableError:
 		return errs(err)
 	case adapterclient.UnknownFailureError:

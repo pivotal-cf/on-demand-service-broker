@@ -15,7 +15,6 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/adapterclient"
-	"github.com/pivotal-cf/on-demand-service-broker/boshclient"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 )
 
@@ -418,9 +417,7 @@ var _ = Describe("Update", func() {
 
 			Context("when a deploy has a bosh request error", func() {
 				BeforeEach(func() {
-					fakeDeployer.UpdateReturns(0, []byte{}, boshclient.NewRequestError(
-						fmt.Errorf("network timeout"),
-					))
+					fakeDeployer.UpdateReturns(0, []byte{}, broker.NewServiceError(fmt.Errorf("network timeout")))
 				})
 
 				It("logs the error", func() {

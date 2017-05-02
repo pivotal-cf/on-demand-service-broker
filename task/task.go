@@ -40,10 +40,6 @@ func NewDeployer(boshClient BoshClient, manifestGenerator ManifestGenerator) dep
 	}
 }
 
-const (
-	OperationInProgressMessage = "An operation is in progress for your service instance. Please try again later."
-)
-
 func (d deployer) Create(deploymentName, planID string, requestParams map[string]interface{}, boshContextID string, logger *log.Logger) (int, []byte, error) {
 	err := d.assertNoOperationsInProgress(deploymentName, logger)
 	if err != nil {
@@ -109,12 +105,12 @@ func (d deployer) getDeploymentManifest(deploymentName string, logger *log.Logge
 func (d deployer) assertNoOperationsInProgress(deploymentName string, logger *log.Logger) error {
 	clientTasks, err := d.boshClient.GetTasks(deploymentName, logger)
 	if err != nil {
-		return fmt.Errorf("error getting tasks for deployment %s: %s\n", deploymentName, err)
+		return broker.NewServiceError(fmt.Errorf("error getting tasks for deployment %s: %s\n", deploymentName, err))
 	}
 
 	if incompleteTasks := clientTasks.IncompleteTasks(); len(incompleteTasks) != 0 {
 		logger.Printf("deployment %s is still in progress: tasks %s\n", deploymentName, incompleteTasks.ToLog())
-		return errors.New(OperationInProgressMessage)
+		return broker.TaskInProgressError{Message: "task in progress"}
 	}
 
 	return nil
@@ -156,14 +152,8 @@ func (d deployer) doDeploy(
 	boshContextID string,
 	logger *log.Logger,
 ) (int, []byte, error) {
-	manifest, err := d.manifestGenerator.GenerateManifest(
-		deploymentName,
-		planID,
-		requestParams,
-		oldManifest,
-		previousPlanID,
-		logger,
-	)
+
+	manifest, err := d.manifestGenerator.GenerateManifest(deploymentName, planID, requestParams, oldManifest, previousPlanID, logger)
 	if err != nil {
 		return 0, nil, err
 	}

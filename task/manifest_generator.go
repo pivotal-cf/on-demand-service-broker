@@ -11,11 +11,10 @@ import (
 	"log"
 	"reflect"
 
-	yaml "gopkg.in/yaml.v2"
-
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
+	yaml "gopkg.in/yaml.v2"
 )
 
 //go:generate counterfeiter -o fakes/fake_service_adapter_client.go . ServiceAdapterClient
