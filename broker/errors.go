@@ -32,14 +32,6 @@ func NewInstanceNotFoundError() InstanceNotFoundError {
 	return InstanceNotFoundError{error: errors.New("service instance not found")}
 }
 
-type DeploymentNotFoundError struct {
-	error
-}
-
-func NewDeploymentNotFoundError(e error) error {
-	return DeploymentNotFoundError{e}
-}
-
 type OperationInProgressError struct {
 	error
 }
@@ -50,51 +42,6 @@ func applyChangesNotABooleanError(value interface{}) error {
 
 func NewOperationInProgressError(e error) error {
 	return OperationInProgressError{e}
-}
-
-type TaskErrorType int // horrible interim solution until we can get the logic in the right place
-
-const (
-	ApplyChangesInvalid TaskErrorType = iota
-	ApplyChangesWithPlanChange
-	ApplyChangesWithParams
-	ApplyChangesWithPendingChanges
-)
-
-type TaskError struct {
-	error
-	taskErrorType TaskErrorType
-}
-
-func NewTaskError(e error, taskErrorType TaskErrorType) error {
-	return TaskError{
-		error:         e,
-		taskErrorType: taskErrorType,
-	}
-}
-
-type TaskInProgressError struct {
-	Message string
-}
-
-func (e TaskInProgressError) Error() string {
-	return e.Message
-}
-
-type PlanNotFoundError struct {
-	PlanGUID string
-}
-
-func (e PlanNotFoundError) Error() string {
-	return fmt.Sprintf("plan %s does not exist", e.PlanGUID)
-}
-
-type ServiceError struct {
-	error
-}
-
-func NewServiceError(e error) error {
-	return ServiceError{error: e}
 }
 
 var NilError = DisplayableError{nil, nil}

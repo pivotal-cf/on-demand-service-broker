@@ -17,6 +17,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/adapterclient"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/cloud_foundry_client"
+	"github.com/pivotal-cf/on-demand-service-broker/task"
 )
 
 var _ = Describe("Upgrade", func() {
@@ -188,7 +189,7 @@ var _ = Describe("Upgrade", func() {
 	Context("when there is a task in progress on the instance", func() {
 		BeforeEach(func() {
 			cfClient.GetInstanceStateReturns(cloud_foundry_client.InstanceState{PlanID: existingPlanID}, nil)
-			fakeDeployer.UpgradeReturns(0, nil, broker.TaskInProgressError{})
+			fakeDeployer.UpgradeReturns(0, nil, task.TaskInProgressError{})
 		})
 
 		It("returns an OperationInProgressError", func() {

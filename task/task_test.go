@@ -14,7 +14,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/on-demand-service-broker/boshclient"
-	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/task"
 	"github.com/pivotal-cf/on-demand-service-broker/task/fakes"
 )
@@ -189,7 +188,7 @@ var _ = Describe("Deployer", func() {
 			})
 
 			It("fails because deployment is still in progress", func() {
-				Expect(deployError).To(BeAssignableToTypeOf(broker.TaskInProgressError{}))
+				Expect(deployError).To(BeAssignableToTypeOf(task.TaskInProgressError{}))
 
 				Expect(logBuffer.String()).To(SatisfyAll(
 					ContainSubstring(fmt.Sprintf("deployment %s is still in progress", deploymentName)),
@@ -215,7 +214,7 @@ var _ = Describe("Deployer", func() {
 			})
 
 			It("fails because deployment is still in progress", func() {
-				Expect(deployError).To(BeAssignableToTypeOf(broker.TaskInProgressError{}))
+				Expect(deployError).To(BeAssignableToTypeOf(task.TaskInProgressError{}))
 
 				Expect(logBuffer.String()).To(SatisfyAll(
 					ContainSubstring(fmt.Sprintf("deployment %s is still in progress", deploymentName)),
@@ -428,7 +427,7 @@ var _ = Describe("Deployer", func() {
 			})
 
 			It("returns an error", func() {
-				Expect(deployError).To(BeAssignableToTypeOf(broker.TaskInProgressError{}))
+				Expect(deployError).To(BeAssignableToTypeOf(task.TaskInProgressError{}))
 			})
 
 			It("does not log the previous completed tasks for the deployment", func() {
@@ -463,7 +462,7 @@ var _ = Describe("Deployer", func() {
 			})
 
 			It("returns an error", func() {
-				Expect(deployError).To(BeAssignableToTypeOf(broker.TaskInProgressError{}))
+				Expect(deployError).To(BeAssignableToTypeOf(task.TaskInProgressError{}))
 			})
 
 			It("does not log the previous tasks for the deployment", func() {
@@ -624,7 +623,7 @@ var _ = Describe("Deployer", func() {
 			})
 
 			It("fails without deploying", func() {
-				Expect(deployError).To(Equal(broker.NewTaskError(errors.New("pending changes detected"), broker.ApplyChangesWithPendingChanges)))
+				Expect(deployError).To(Equal(task.NewTaskError(errors.New("pending changes detected"), task.ApplyChangesWithPendingChanges)))
 				Expect(boshClient.DeployCallCount()).To(BeZero())
 			})
 		})

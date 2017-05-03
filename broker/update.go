@@ -17,6 +17,7 @@ import (
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/adapterclient"
 	"github.com/pivotal-cf/on-demand-service-broker/brokercontext"
+	"github.com/pivotal-cf/on-demand-service-broker/task"
 )
 
 //TODO SF Do all the errors/log messages have enough context to be useful?
@@ -93,14 +94,14 @@ func (b *Broker) Update(
 	)
 
 	switch err := err.(type) {
-	case ServiceError:
+	case task.ServiceError:
 		return errs(NewBoshRequestError("update", fmt.Errorf("error deploying instance: %s", err)))
-	case TaskError:
+	case task.TaskError:
 		return errs(b.asDisplayableError(err))
-	case OperationInProgressError:
-		return brokerapi.UpdateServiceSpec{IsAsync: true}, err
-	case TaskInProgressError:
+	case task.TaskInProgressError:
 		return brokerapi.UpdateServiceSpec{IsAsync: true}, errors.New(OperationInProgressMessage)
+	case task.PlanNotFoundError:
+		return brokerapi.UpdateServiceSpec{IsAsync: true}, err
 	case adapterclient.UnknownFailureError:
 		return brokerapi.UpdateServiceSpec{IsAsync: true}, adapterToAPIError(ctx, err)
 	case error:
@@ -120,11 +121,11 @@ func (b *Broker) Update(
 	return brokerapi.UpdateServiceSpec{IsAsync: true, OperationData: string(operationData)}, nil
 }
 
-func (b *Broker) asDisplayableError(err TaskError) DisplayableError {
+func (b *Broker) asDisplayableError(err task.TaskError) DisplayableError {
 	if b.featureFlags.CFUserTriggeredUpgrades() {
 		return NewPendingChangesError(err)
 	}
-	if err.taskErrorType == ApplyChangesWithPendingChanges {
+	if err.TaskErrorType == task.ApplyChangesWithPendingChanges {
 		return NewApplyChangesDisabledError(err)
 	}
 	return NewApplyChangesNotPermittedError(err)

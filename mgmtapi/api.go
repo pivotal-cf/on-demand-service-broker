@@ -7,13 +7,12 @@
 package mgmtapi
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
-
-	"context"
 
 	"github.com/gorilla/mux"
 	"github.com/pborman/uuid"
@@ -23,6 +22,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/cloud_foundry_client"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
+	"github.com/pivotal-cf/on-demand-service-broker/task"
 )
 
 type api struct {
@@ -114,7 +114,7 @@ func (a *api) upgradeInstance(w http.ResponseWriter, r *http.Request) {
 		a.writeJson(w, operationData, logger)
 	case cloud_foundry_client.ResourceNotFoundError:
 		w.WriteHeader(http.StatusNotFound)
-	case broker.DeploymentNotFoundError:
+	case task.DeploymentNotFoundError:
 		w.WriteHeader(http.StatusGone)
 	case broker.OperationInProgressError:
 		w.WriteHeader(http.StatusConflict)

@@ -26,6 +26,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 	"github.com/pivotal-cf/on-demand-service-broker/mgmtapi"
 	"github.com/pivotal-cf/on-demand-service-broker/mgmtapi/fake_manageable_broker"
+	"github.com/pivotal-cf/on-demand-service-broker/task"
 )
 
 var _ = Describe("Management API", func() {
@@ -170,7 +171,7 @@ var _ = Describe("Management API", func() {
 
 		Context("when the bosh deployment is not found", func() {
 			BeforeEach(func() {
-				manageableBroker.UpgradeReturns(broker.OperationData{}, broker.NewDeploymentNotFoundError(errors.New("error finding deployment")))
+				manageableBroker.UpgradeReturns(broker.OperationData{}, task.NewDeploymentNotFoundError(errors.New("error finding deployment")))
 			})
 
 			It("responds with HTTP 410 Gone", func() {
@@ -180,7 +181,7 @@ var _ = Describe("Management API", func() {
 
 		Context("when there is an operation in progress", func() {
 			BeforeEach(func() {
-				manageableBroker.UpgradeReturns(broker.OperationData{}, broker.NewOperationInProgressError(fmt.Errorf("operation in progress error")))
+				manageableBroker.UpgradeReturns(broker.OperationData{}, broker.NewOperationInProgressError(errors.New("operation in progress error")))
 			})
 
 			It("responds with HTTP 409 Conflict", func() {
@@ -190,7 +191,7 @@ var _ = Describe("Management API", func() {
 
 		Context("when it fails", func() {
 			BeforeEach(func() {
-				manageableBroker.UpgradeReturns(broker.OperationData{}, fmt.Errorf("upgrade error"))
+				manageableBroker.UpgradeReturns(broker.OperationData{}, errors.New("upgrade error"))
 			})
 
 			It("responds with HTTP 500", func() {

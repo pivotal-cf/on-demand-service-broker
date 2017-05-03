@@ -12,7 +12,6 @@ import (
 	"log"
 
 	"github.com/pivotal-cf/on-demand-service-broker/boshclient"
-	"github.com/pivotal-cf/on-demand-service-broker/broker"
 )
 
 //go:generate counterfeiter -o fakes/fake_bosh_client.go . BoshClient
@@ -97,7 +96,7 @@ func (d deployer) getDeploymentManifest(deploymentName string, logger *log.Logge
 	}
 
 	if !found {
-		return nil, broker.NewDeploymentNotFoundError(fmt.Errorf("bosh deployment '%s' not found", deploymentName))
+		return nil, NewDeploymentNotFoundError(fmt.Errorf("bosh deployment '%s' not found", deploymentName))
 	}
 
 	return oldManifest, nil
@@ -106,12 +105,12 @@ func (d deployer) getDeploymentManifest(deploymentName string, logger *log.Logge
 func (d deployer) assertNoOperationsInProgress(deploymentName string, logger *log.Logger) error {
 	clientTasks, err := d.boshClient.GetTasks(deploymentName, logger)
 	if err != nil {
-		return broker.NewServiceError(fmt.Errorf("error getting tasks for deployment %s: %s\n", deploymentName, err))
+		return NewServiceError(fmt.Errorf("error getting tasks for deployment %s: %s\n", deploymentName, err))
 	}
 
 	if incompleteTasks := clientTasks.IncompleteTasks(); len(incompleteTasks) != 0 {
 		logger.Printf("deployment %s is still in progress: tasks %s\n", deploymentName, incompleteTasks.ToLog())
-		return broker.TaskInProgressError{Message: "task in progress"}
+		return TaskInProgressError{Message: "task in progress"}
 	}
 
 	return nil
@@ -137,7 +136,7 @@ func (d deployer) checkForPendingChanges(
 	pendingChanges := !manifestsSame
 
 	if pendingChanges && !applyingChanges {
-		return broker.NewTaskError(errors.New("pending changes detected"), broker.ApplyChangesWithPendingChanges)
+		return NewTaskError(errors.New("pending changes detected"), ApplyChangesWithPendingChanges)
 	}
 
 	return nil

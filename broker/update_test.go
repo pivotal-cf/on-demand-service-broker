@@ -11,12 +11,12 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"errors"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/adapterclient"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
+	"github.com/pivotal-cf/on-demand-service-broker/task"
 )
 
 var _ = Describe("Update", func() {
@@ -418,7 +418,7 @@ var _ = Describe("Update", func() {
 
 			Context("when a deploy has a bosh request error", func() {
 				BeforeEach(func() {
-					fakeDeployer.UpdateReturns(0, []byte{}, broker.NewServiceError(fmt.Errorf("network timeout")))
+					fakeDeployer.UpdateReturns(0, []byte{}, task.NewServiceError(fmt.Errorf("network timeout")))
 				})
 
 				It("logs the error", func() {
@@ -442,24 +442,24 @@ var _ = Describe("Update", func() {
 			})
 		})
 
-		Context("when cloud foundry is blocked", func() {
-			err := broker.NewOperationInProgressError(errors.New(""))
-			BeforeEach(func() {
-				fakeDeployer.UpdateReturns(boshTaskID, nil, err)
-			})
-
-			It("returns the error", func() {
-				Expect(updateError).To(Equal(err))
-			})
-		})
-
 		Context("when bosh is blocked", func() {
 			BeforeEach(func() {
-				fakeDeployer.UpdateReturns(boshTaskID, nil, broker.TaskInProgressError{})
+				fakeDeployer.UpdateReturns(boshTaskID, nil, task.TaskInProgressError{})
 			})
 
 			It("returns an error with the operation in progress message", func() {
 				Expect(updateError).To(MatchError(ContainSubstring(broker.OperationInProgressMessage)))
+			})
+		})
+
+		Context("when plan not found", func() {
+			planNotFoundError := task.PlanNotFoundError{PlanGUID: "plan-guid"}
+			BeforeEach(func() {
+				fakeDeployer.UpdateReturns(boshTaskID, nil, planNotFoundError)
+			})
+
+			It("returns an error with the operation in progress message", func() {
+				Expect(updateError).To(Equal(planNotFoundError))
 			})
 		})
 
