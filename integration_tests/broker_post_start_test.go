@@ -40,7 +40,7 @@ var _ = Describe("broker post start checks", func() {
 			"-brokerUsername", brokerUsername,
 			"-brokerPassword", brokerPassword,
 			"-brokerPort", port,
-			"-timeout", "5",
+			"-timeout", "3",
 		}
 		cmd = exec.Command(brokerPostStartPath, params...)
 	})
@@ -80,20 +80,14 @@ var _ = Describe("broker post start checks", func() {
 			}
 		})
 
-		It("exits with an error", func() {
-			By("exiting with 1")
+		It("retries until exits with an error", func() {
 			Expect(session.ExitCode()).To(Equal(1))
 
-			By("calling the broker /v2/catalog endpoint at least four times")
-			Expect(len(server.ReceivedRequests())).To(BeNumerically(">=", 4))
+			Expect(len(server.ReceivedRequests())).To(BeNumerically(">", 1), "retries")
 
-			By("outputting each failed attempt")
-			Expect(session).To(gbytes.Say(fmt.Sprintf("expected status 200, was 500, from http://localhost:%s/v2/catalog", port)))
-			Expect(session).To(gbytes.Say(fmt.Sprintf("expected status 200, was 500, from http://localhost:%s/v2/catalog", port)))
 			Expect(session).To(gbytes.Say(fmt.Sprintf("expected status 200, was 500, from http://localhost:%s/v2/catalog", port)))
 			Expect(session).To(gbytes.Say(fmt.Sprintf("expected status 200, was 500, from http://localhost:%s/v2/catalog", port)))
 
-			By("outputing and error message")
 			Expect(session.Out.Contents()).To(ContainSubstring("Broker post-start check failed"))
 		})
 	})
@@ -101,7 +95,7 @@ var _ = Describe("broker post start checks", func() {
 	Context("when the ODB takes longer than the timeout to respond", func() {
 		BeforeEach(func() {
 			longRequestHandler := func(w http.ResponseWriter, req *http.Request) {
-				time.Sleep(6 * time.Second)
+				time.Sleep(3 * time.Second)
 			}
 
 			server.AppendHandlers(ghttp.CombineHandlers(
@@ -111,11 +105,8 @@ var _ = Describe("broker post start checks", func() {
 			))
 		})
 
-		It("exits with error", func() {
-			By("exiting with 1")
+		It("fails with error", func() {
 			Expect(session.ExitCode()).To(Equal(1))
-
-			By("outputing and error message")
 			Expect(session).To(gbytes.Say("Broker post-start check failed"))
 		})
 	})
@@ -125,14 +116,9 @@ var _ = Describe("broker post start checks", func() {
 			server.Close()
 		})
 
-		It("exits with error", func() {
-			By("exiting with 1")
+		It("fails with network error", func() {
 			Expect(session.ExitCode()).To(Equal(1))
-
-			By("outputing the network error")
 			Expect(session).To(gbytes.Say("connection refused"))
-
-			By("outputing and error message")
 			Expect(session).To(gbytes.Say("Broker post-start check failed"))
 		})
 	})
@@ -147,12 +133,9 @@ var _ = Describe("broker post start checks", func() {
 			cmd = exec.Command(brokerPostStartPath, params...)
 		})
 
-		It("outputs an error message", func() {
-			Expect(session).To(gbytes.Say("error creating request:"))
-		})
-
-		It("exits with 1", func() {
+		It("fails to start", func() {
 			Expect(session.ExitCode()).To(Equal(1))
+			Expect(session).To(gbytes.Say("error creating request:"))
 		})
 	})
 })

@@ -32,7 +32,6 @@ var _ = Describe("UAA user credentials for CF", func() {
 		cfUAA         *mockuaa.UserCredentialsServer
 		boshDirector  *mockhttp.Server
 		boshUAA       *mockuaa.ClientCredentialsServer
-		conf          config.Config
 	)
 
 	BeforeEach(func() {
@@ -49,7 +48,7 @@ var _ = Describe("UAA user credentials for CF", func() {
 
 		cfUAA = mockuaa.NewUserCredentialsServer(cfClientID, cfClientSecret, cfUsername, cfPassword, "CF UAA token")
 
-		conf = defaultBrokerConfig(boshDirector.URL, boshUAA.URL, cfAPI.URL, cfUAA.URL)
+		conf := defaultBrokerConfig(boshDirector.URL, boshUAA.URL, cfAPI.URL, cfUAA.URL)
 		conf.CF.Authentication = config.UAAAuthentication{
 			URL: cfUAA.URL,
 			UserCredentials: config.UserCredentials{
@@ -74,12 +73,8 @@ var _ = Describe("UAA user credentials for CF", func() {
 	})
 
 	It("obtains a token from the UAA", func() {
+		Eventually(runningBroker.Out).Should(gbytes.Say("listening"))
 		Eventually(runningBroker.Terminate()).Should(gexec.Exit())
 		Expect(cfUAA.TokensIssued).To(Equal(1))
-	})
-
-	It("starts", func() {
-		Eventually(runningBroker.Out).Should(gbytes.Say("listening"))
-		Eventually(runningBroker).ShouldNot(gexec.Exit())
 	})
 })
