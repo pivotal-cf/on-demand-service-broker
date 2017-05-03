@@ -96,8 +96,8 @@ func (b *Broker) Update(
 	switch err := err.(type) {
 	case task.ServiceError:
 		return errs(NewBoshRequestError("update", fmt.Errorf("error deploying instance: %s", err)))
-	case task.TaskError:
-		return errs(b.asDisplayableError(err))
+	case task.PendingChangesNotAppliedError:
+		return brokerapi.UpdateServiceSpec{IsAsync: true}, b.asPendingChangesError()
 	case task.TaskInProgressError:
 		return brokerapi.UpdateServiceSpec{IsAsync: true}, errors.New(OperationInProgressMessage)
 	case task.PlanNotFoundError:
@@ -121,14 +121,11 @@ func (b *Broker) Update(
 	return brokerapi.UpdateServiceSpec{IsAsync: true, OperationData: string(operationData)}, nil
 }
 
-func (b *Broker) asDisplayableError(err task.TaskError) DisplayableError {
+func (b *Broker) asPendingChangesError() error {
 	if b.featureFlags.CFUserTriggeredUpgrades() {
-		return NewPendingChangesError(err)
+		return errors.New(PendingChangesErrorMessage)
 	}
-	if err.TaskErrorType == task.ApplyChangesWithPendingChanges {
-		return NewApplyChangesDisabledError(err)
-	}
-	return NewApplyChangesNotPermittedError(err)
+	return errors.New(ApplyChangesDisabledMessage)
 }
 
 func (b *Broker) asUpdateError(err error) error {

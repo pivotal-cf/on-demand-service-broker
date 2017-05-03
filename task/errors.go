@@ -40,23 +40,6 @@ func NewServiceError(e error) error {
 	return ServiceError{error: e}
 }
 
-type TaskErrorType int // horrible interim solution until we can get the logic in the right place
-
-const (
-	ApplyChangesInvalid TaskErrorType = iota
-	ApplyChangesWithPlanChange
-	ApplyChangesWithParams
-	ApplyChangesWithPendingChanges
-)
-
-type TaskError struct {
+type PendingChangesNotAppliedError struct {
 	error
-	TaskErrorType TaskErrorType
-}
-
-func NewTaskError(e error, taskErrorType TaskErrorType) error {
-	return TaskError{
-		error:         e,
-		TaskErrorType: taskErrorType,
-	}
 }

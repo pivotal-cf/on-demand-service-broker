@@ -7,7 +7,6 @@
 package task
 
 import (
-	"errors"
 	"fmt"
 	"log"
 
@@ -136,7 +135,7 @@ func (d deployer) checkForPendingChanges(
 	pendingChanges := !manifestsSame
 
 	if pendingChanges && !applyingChanges {
-		return NewTaskError(errors.New("pending changes detected"), ApplyChangesWithPendingChanges)
+		return PendingChangesNotAppliedError{}
 	}
 
 	return nil

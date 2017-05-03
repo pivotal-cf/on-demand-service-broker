@@ -623,7 +623,7 @@ var _ = Describe("Deployer", func() {
 			})
 
 			It("fails without deploying", func() {
-				Expect(deployError).To(Equal(task.NewTaskError(errors.New("pending changes detected"), task.ApplyChangesWithPendingChanges)))
+				Expect(deployError).To(BeAssignableToTypeOf(task.PendingChangesNotAppliedError{}))
 				Expect(boshClient.DeployCallCount()).To(BeZero())
 			})
 		})

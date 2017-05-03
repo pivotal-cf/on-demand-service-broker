@@ -123,6 +123,5 @@ func (m manifestGenerator) findPreviousPlan(previousPlanID string) (*serviceadap
 	}
 
 	abridgedPlan := previousPlan.AdapterPlan(m.serviceOffering.GlobalProperties)
-
 	return &abridgedPlan, nil
 }
