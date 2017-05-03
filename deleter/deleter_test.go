@@ -73,6 +73,11 @@ var _ = Describe("deleter", func() {
 		deleteTool = deleter.New(cfClient, sleeper, pollingInitialOffset, pollingInterval, logger)
 	})
 
+	It("logs its polling configuration at startup", func() {
+		deleteTool.DeleteAllServiceInstances(serviceUniqueID)
+		Expect(logBuffer.String()).To(ContainSubstring("Deleter Configuration: polling_intial_offset: %d, polling_interval: %d.", pollingInitialOffset, pollingInterval))
+	})
+
 	Context("when no service instances exist", func() {
 		It("logs that there are no instances", func() {
 			cfClient.GetInstancesOfServiceOfferingReturns([]string{}, nil)

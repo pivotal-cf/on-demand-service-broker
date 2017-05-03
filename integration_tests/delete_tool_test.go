@@ -243,11 +243,13 @@ var _ = Describe("delete all service instances tool", func() {
 			deleterSession.Kill()
 		})
 
-		It("polls exactly once in 2.5 seconds", func() {
-			By("logging that it starts waiting for the instance to be deleted")
-			Expect(logBuffer).To(
-				gbytes.Say(fmt.Sprintf("Waiting for service instance %s to be deleted", instanceGUID)),
+		It("logs that the polling interval values are as configured", func() {
+			logMessage := fmt.Sprintf(
+				"Deleter Configuration: polling_intial_offset: %d, polling_interval: %d.",
+				configuration.PollingInitialOffset,
+				configuration.PollingInterval,
 			)
+			Expect(logBuffer).To(gbytes.Say(logMessage))
 		})
 	})
 

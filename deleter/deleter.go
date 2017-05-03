@@ -64,6 +64,7 @@ func New(cfClient CloudFoundryClient, sleeper Sleeper, pollingInitialOffset int,
 }
 
 func (d *Deleter) DeleteAllServiceInstances(serviceUniqueID string) error {
+	d.logger.Printf("Deleter Configuration: polling_intial_offset: %v, polling_interval: %v.", d.pollingInitialOffset.Seconds(), d.pollingInterval.Seconds())
 	serviceInstanceGUIDs, err := d.cfClient.GetInstancesOfServiceOffering(serviceUniqueID, d.logger)
 	if err != nil {
 		return err
