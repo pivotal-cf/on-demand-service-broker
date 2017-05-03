@@ -23,6 +23,7 @@ type BoshClient interface {
 }
 
 // TODO SF Why is  previousPlanID a pointer to a string?
+// TODO SF Should we log at this level or in the generator?
 //go:generate counterfeiter -o fakes/fake_manifest_generator.go . ManifestGenerator
 type ManifestGenerator interface {
 	GenerateManifest(deploymentName, planID string, requestParams map[string]interface{}, oldManifest []byte, previousPlanID *string, logger *log.Logger) (BoshManifest, error)

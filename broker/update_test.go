@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"errors"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/brokerapi"
@@ -430,25 +431,35 @@ var _ = Describe("Update", func() {
 			})
 		})
 
-		Context("when the service adapter returns a UnknownFailureError with a user message", func() {
-			var err = adapterclient.NewUnknownFailureError("error for cf user")
+		Context("when the adapter client fails", func() {
+			unknownFailureError := adapterclient.NewUnknownFailureError("unknown failure")
+			BeforeEach(func() {
+				fakeDeployer.UpdateReturns(boshTaskID, nil, unknownFailureError)
+			})
 
+			It("returns an API error", func() {
+				Expect(updateError).To(Equal(unknownFailureError))
+			})
+		})
+
+		Context("when cloud foundry is blocked", func() {
+			err := broker.NewOperationInProgressError(errors.New(""))
 			BeforeEach(func() {
 				fakeDeployer.UpdateReturns(boshTaskID, nil, err)
 			})
 
-			It("returns the error for the user", func() {
+			It("returns the error", func() {
 				Expect(updateError).To(Equal(err))
 			})
 		})
 
-		Context("when the service adapter returns a UnknownFailureError with no message", func() {
+		Context("when bosh is blocked", func() {
 			BeforeEach(func() {
-				fakeDeployer.UpdateReturns(boshTaskID, nil, adapterclient.NewUnknownFailureError(""))
+				fakeDeployer.UpdateReturns(boshTaskID, nil, broker.TaskInProgressError{})
 			})
 
-			It("returns a generic error", func() {
-				Expect(updateError).To(MatchError(ContainSubstring("There was a problem completing your request. Please contact your operations team providing the following information")))
+			It("returns an error with the operation in progress message", func() {
+				Expect(updateError).To(MatchError(ContainSubstring(broker.OperationInProgressMessage)))
 			})
 		})
 

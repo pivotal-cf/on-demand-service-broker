@@ -7,12 +7,12 @@
 package task_test
 
 import (
-	"fmt"
-
 	"errors"
+	"fmt"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	. "github.com/pivotal-cf/on-demand-service-broker/task"
 	"github.com/pivotal-cf/on-demand-service-broker/task/fakes"
@@ -35,7 +35,7 @@ var _ = Describe("ManifestGenerator", func() {
 
 			serviceAdapter *fakes.FakeServiceAdapterClient
 			serviceCatalog config.ServiceOffering
-			planID         string
+			planGUID       string
 			previousPlanID *string
 			requestParams  map[string]interface{}
 			oldManifest    []byte
@@ -47,7 +47,7 @@ var _ = Describe("ManifestGenerator", func() {
 				globalServiceInstanceLimit = 5
 			)
 
-			planID = existingPlanID
+			planGUID = existingPlanID
 			previousPlanID = nil
 
 			requestParams = map[string]interface{}{"foo": "bar"}
@@ -139,14 +139,7 @@ var _ = Describe("ManifestGenerator", func() {
 		})
 
 		JustBeforeEach(func() {
-			manifest, err = mg.GenerateManifest(
-				deploymentName,
-				planID,
-				requestParams,
-				oldManifest,
-				previousPlanID,
-				logger,
-			)
+			manifest, err = mg.GenerateManifest(deploymentName, planGUID, requestParams, oldManifest, previousPlanID, logger)
 		})
 
 		Context("when called with correct arguments", func() {
@@ -244,15 +237,14 @@ var _ = Describe("ManifestGenerator", func() {
 
 		Context("when the plan cannot be found", func() {
 			BeforeEach(func() {
-				planID = "invalid-id"
+				planGUID = "invalid-id"
 			})
 
-			It("does not call generate manifest", func() {
+			It("fails without generating a manifest", func() {
 				Expect(serviceAdapter.GenerateManifestCallCount()).To(Equal(0))
-			})
 
-			It("returns an error", func() {
-				Expect(err).To(MatchError(ContainSubstring("plan invalid-id does not exist")))
+				Expect(err).To(Equal(broker.PlanNotFoundError{PlanGUID: planGUID}))
+				Expect(logBuffer.String()).To(ContainSubstring(planGUID))
 			})
 		})
 
@@ -262,12 +254,10 @@ var _ = Describe("ManifestGenerator", func() {
 				previousPlanID = &invalidID
 			})
 
-			It("does not call generate manifest", func() {
+			It("fails without generating a manifest", func() {
 				Expect(serviceAdapter.GenerateManifestCallCount()).To(Equal(0))
-			})
-
-			It("returns an error", func() {
-				Expect(err).To(MatchError(ContainSubstring("previous plan invalid-previous-id does not exist")))
+				Expect(err).To(Equal(broker.PlanNotFoundError{PlanGUID: *previousPlanID}))
+				Expect(logBuffer.String()).To(ContainSubstring(*previousPlanID))
 			})
 		})
 
@@ -282,7 +272,7 @@ var _ = Describe("ManifestGenerator", func() {
 		})
 	})
 
-	Describe("ManifestsEqual", func() {
+	Describe("Manifest comparison", func() {
 		manifestOne := BoshManifest(`---
 age: old
 name: old-first`)
@@ -296,40 +286,32 @@ name: old-first
 age: old`)
 
 		invalidManifest := BoshManifest(`this is wrong`)
+		var manifestOneEqualTo = func(other BoshManifest) bool {
+			result, err := manifestOne.Equals(other)
+			Expect(err).NotTo(HaveOccurred())
+			return result
+		}
 
-		Context("for two different manifests", func() {
-			It("returns false", func() {
-				result, _ := manifestOne.Equals(manifestTwo)
-				Expect(result).To(BeFalse())
-			})
+		It("returns false for two different manifests", func() {
+			Expect(manifestOneEqualTo(manifestTwo)).To(BeFalse())
 		})
 
-		Context("for the same manifests", func() {
-			It("returns true", func() {
-				result, _ := manifestOne.Equals(manifestOne)
-				Expect(result).To(BeTrue())
-			})
+		It("returns true for the same manifest", func() {
+			Expect(manifestOneEqualTo(manifestOne)).To(BeTrue())
 		})
 
-		Context("for manifest with the same values in a different order", func() {
-			It("returns true", func() {
-				result, _ := manifestOne.Equals(manifestThree)
-				Expect(result).To(BeTrue())
-			})
+		It("returns true for manifest with the same values in a different order", func() {
+			Expect(manifestOneEqualTo(manifestThree)).To(BeTrue())
 		})
 
-		Context("when first manifest is invalid yaml", func() {
-			It("returns an error", func() {
-				_, err := invalidManifest.Equals(manifestOne)
-				Expect(err).To(HaveOccurred())
-			})
+		It("fails when first manifest is invalid yaml", func() {
+			_, err := invalidManifest.Equals(manifestOne)
+			Expect(err).To(HaveOccurred())
 		})
 
-		Context("when second manifest is invalid yaml", func() {
-			It("returns an error", func() {
-				_, err := manifestOne.Equals(invalidManifest)
-				Expect(err).To(HaveOccurred())
-			})
+		It("fails when second manifest is invalid yaml", func() {
+			_, err := manifestOne.Equals(invalidManifest)
+			Expect(err).To(HaveOccurred())
 		})
 	})
 

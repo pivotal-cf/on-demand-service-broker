@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	genericErrorPrefix              = "There was a problem completing your request. Please contact your operations team providing the following information:"
+	GenericErrorPrefix              = "There was a problem completing your request. Please contact your operations team providing the following information:"
 	PendingChangesErrorMessage      = `There is a pending change to your service instance, you must first run cf update-service <service_name> -c '{"apply-changes": true}', no other arbitrary parameters are allowed`
 	ApplyChangesDisabledMessage     = "Service cannot be updated at this time, please try again later or contact your operator for more information"
 	ApplyChangesNotPermittedMessage = `'apply-changes' is not permitted. Contact your operator for more information`
@@ -79,6 +79,14 @@ type TaskInProgressError struct {
 
 func (e TaskInProgressError) Error() string {
 	return e.Message
+}
+
+type PlanNotFoundError struct {
+	PlanGUID string
+}
+
+func (e PlanNotFoundError) Error() string {
+	return fmt.Sprintf("plan %s does not exist", e.PlanGUID)
 }
 
 type ServiceError struct {
@@ -153,7 +161,7 @@ func NewGenericError(ctx context.Context, err error) DisplayableError {
 
 	message := fmt.Sprintf(
 		"%s service: %s, service-instance-guid: %s, broker-request-id: %s",
-		genericErrorPrefix,
+		GenericErrorPrefix,
 		serviceName,
 		instanceID,
 		reqID,
@@ -173,6 +181,7 @@ func NewGenericError(ctx context.Context, err error) DisplayableError {
 	}
 }
 
+// TODO test this logic
 func adapterToAPIError(ctx context.Context, err error) error {
 	if err == nil {
 		return nil

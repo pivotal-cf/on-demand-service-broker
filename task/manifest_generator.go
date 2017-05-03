@@ -7,7 +7,6 @@
 package task
 
 import (
-	"fmt"
 	"log"
 	"reflect"
 
@@ -77,20 +76,13 @@ func (m manifestGenerator) GenerateManifest(
 
 	plan, previousPlan, err := m.findPlans(planID, previousPlanID)
 	if err != nil {
+		logger.Println(err)
 		return nil, err
 	}
 
 	logger.Printf("service adapter will generate manifest for deployment %s\n", deploymentName)
 
-	manifest, err := m.adapterClient.GenerateManifest(
-		serviceDeployment,
-		plan,
-		requestParams,
-		oldManifest,
-		previousPlan,
-		logger,
-	)
-
+	manifest, err := m.adapterClient.GenerateManifest(serviceDeployment, plan, requestParams, oldManifest, previousPlan, logger)
 	if err != nil {
 		logger.Printf("generate manifest: %v\n", err)
 	}
@@ -109,7 +101,6 @@ func (m manifestGenerator) findPlans(planID string, previousPlanID *string) (ser
 	}
 
 	previousPlan, err := m.findPreviousPlan(*previousPlanID)
-
 	if err != nil {
 		return serviceadapter.Plan{}, nil, err
 	}
@@ -120,7 +111,7 @@ func (m manifestGenerator) findPlans(planID string, previousPlanID *string) (ser
 func (m manifestGenerator) findPlan(planID string) (serviceadapter.Plan, error) {
 	plan, found := m.serviceOffering.FindPlanByID(planID)
 	if !found {
-		return serviceadapter.Plan{}, broker.NewDisplayableError(fmt.Errorf("plan %s does not exist", planID), fmt.Errorf("finding plan ID: %s", planID))
+		return serviceadapter.Plan{}, broker.PlanNotFoundError{PlanGUID: planID}
 	}
 
 	return plan.AdapterPlan(m.serviceOffering.GlobalProperties), nil
@@ -129,10 +120,7 @@ func (m manifestGenerator) findPlan(planID string) (serviceadapter.Plan, error) 
 func (m manifestGenerator) findPreviousPlan(previousPlanID string) (*serviceadapter.Plan, error) {
 	previousPlan, found := m.serviceOffering.FindPlanByID(previousPlanID)
 	if !found {
-		return nil, broker.NewDisplayableError(
-			fmt.Errorf("previous plan %s does not exist", previousPlanID),
-			fmt.Errorf("finding previous plan ID: %s", previousPlanID),
-		)
+		return new(serviceadapter.Plan), broker.PlanNotFoundError{PlanGUID: previousPlanID}
 	}
 
 	abridgedPlan := previousPlan.AdapterPlan(m.serviceOffering.GlobalProperties)

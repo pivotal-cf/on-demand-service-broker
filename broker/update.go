@@ -101,17 +101,11 @@ func (b *Broker) Update(
 		return brokerapi.UpdateServiceSpec{IsAsync: true}, err
 	case TaskInProgressError:
 		return brokerapi.UpdateServiceSpec{IsAsync: true}, errors.New(OperationInProgressMessage)
-	case DisplayableError:
-		return errs(err)
 	case adapterclient.UnknownFailureError:
 		return brokerapi.UpdateServiceSpec{IsAsync: true}, adapterToAPIError(ctx, err)
 	case error:
-		return errs(
-			NewGenericError(ctx, fmt.Errorf("error deploying instance: %s", err)),
-		)
+		return errs(NewGenericError(ctx, fmt.Errorf("error deploying instance: %s", err)))
 	}
-
-	ctx = brokercontext.WithBoshTaskID(ctx, boshTaskID)
 
 	operationData, err := json.Marshal(OperationData{
 		BoshTaskID:           boshTaskID,
@@ -120,7 +114,7 @@ func (b *Broker) Update(
 		PostDeployErrandName: operationPostDeployErrandName,
 	})
 	if err != nil {
-		return errs(NewGenericError(ctx, err))
+		return errs(NewGenericError(brokercontext.WithBoshTaskID(ctx, boshTaskID), err))
 	}
 
 	return brokerapi.UpdateServiceSpec{IsAsync: true, OperationData: string(operationData)}, nil

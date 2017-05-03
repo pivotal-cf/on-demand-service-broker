@@ -7,17 +7,13 @@
 package task_test
 
 import (
+	"bytes"
 	"io"
+	"log"
+	"testing"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	"testing"
-
-	"bytes"
-
-	"log"
-
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 )
 
@@ -38,7 +34,7 @@ var (
 
 var _ = BeforeEach(func() {
 	logBuffer = new(bytes.Buffer)
-	loggerFactory = loggerfactory.New(io.MultiWriter(GinkgoWriter, logBuffer), "broker-unit-tests", log.LstdFlags)
+	loggerFactory = loggerfactory.New(io.MultiWriter(GinkgoWriter, logBuffer), "task-unit-tests", log.LstdFlags)
 	logger = loggerFactory.NewWithRequestID()
 })
 

@@ -11,9 +11,8 @@ import (
 	"log"
 	"strings"
 
-	yaml "gopkg.in/yaml.v2"
-
 	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
+	yaml "gopkg.in/yaml.v2"
 )
 
 type manifest struct {
