@@ -18,9 +18,9 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-type realClock struct{}
+type realSleeper struct{}
 
-func (c realClock) Sleep(t time.Duration) { time.Sleep(t) }
+func (c realSleeper) Sleep(t time.Duration) { time.Sleep(t) }
 
 func main() {
 	loggerFactory := loggerfactory.New(os.Stdout, "delete-all-service-instances", loggerfactory.Flags)
@@ -55,7 +55,7 @@ func main() {
 		logger.Fatalf("error creating Cloud Foundry client: %s", err)
 	}
 
-	clock := realClock{}
+	clock := realSleeper{}
 
 	deleteTool := deleter.New(cfClient, clock, config.PollingInitialOffset, config.PollingInterval, logger)
 

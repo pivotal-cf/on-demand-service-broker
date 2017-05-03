@@ -8,7 +8,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/deleter"
 )
 
-type FakeClock struct {
+type FakeSleeper struct {
 	SleepStub        func(d time.Duration)
 	sleepMutex       sync.RWMutex
 	sleepArgsForCall []struct {
@@ -18,7 +18,7 @@ type FakeClock struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeClock) Sleep(d time.Duration) {
+func (fake *FakeSleeper) Sleep(d time.Duration) {
 	fake.sleepMutex.Lock()
 	fake.sleepArgsForCall = append(fake.sleepArgsForCall, struct {
 		d time.Duration
@@ -30,19 +30,19 @@ func (fake *FakeClock) Sleep(d time.Duration) {
 	}
 }
 
-func (fake *FakeClock) SleepCallCount() int {
+func (fake *FakeSleeper) SleepCallCount() int {
 	fake.sleepMutex.RLock()
 	defer fake.sleepMutex.RUnlock()
 	return len(fake.sleepArgsForCall)
 }
 
-func (fake *FakeClock) SleepArgsForCall(i int) time.Duration {
+func (fake *FakeSleeper) SleepArgsForCall(i int) time.Duration {
 	fake.sleepMutex.RLock()
 	defer fake.sleepMutex.RUnlock()
 	return fake.sleepArgsForCall[i].d
 }
 
-func (fake *FakeClock) Invocations() map[string][][]interface{} {
+func (fake *FakeSleeper) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.sleepMutex.RLock()
@@ -50,7 +50,7 @@ func (fake *FakeClock) Invocations() map[string][][]interface{} {
 	return fake.invocations
 }
 
-func (fake *FakeClock) recordInvocation(key string, args []interface{}) {
+func (fake *FakeSleeper) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
@@ -62,4 +62,4 @@ func (fake *FakeClock) recordInvocation(key string, args []interface{}) {
 	fake.invocations[key] = append(fake.invocations[key], args)
 }
 
-var _ deleter.Clock = new(FakeClock)
+var _ deleter.Sleeper = new(FakeSleeper)

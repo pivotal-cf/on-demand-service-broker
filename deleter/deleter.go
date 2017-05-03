@@ -27,9 +27,9 @@ type CloudFoundryClient interface {
 	DeleteServiceInstance(instanceGUID string, logger *log.Logger) error
 }
 
-// TODO SF extract a poller, rather than a clock
-//go:generate counterfeiter -o fakes/fake_clock.go . Clock
-type Clock interface {
+// TODO SF extract a poller, rather than a sleeper
+//go:generate counterfeiter -o fakes/fake_sleeper.go . Sleeper
+type Sleeper interface {
 	Sleep(d time.Duration)
 }
 
@@ -50,16 +50,16 @@ type Deleter struct {
 	pollingInitialOffset time.Duration
 	pollingInterval      time.Duration
 	cfClient             CloudFoundryClient
-	clock                Clock
+	sleeper              Sleeper
 }
 
-func New(cfClient CloudFoundryClient, clock Clock, pollingInitialOffset int, pollingInterval int, logger *log.Logger) *Deleter {
+func New(cfClient CloudFoundryClient, sleeper Sleeper, pollingInitialOffset int, pollingInterval int, logger *log.Logger) *Deleter {
 	return &Deleter{
 		logger:               logger,
 		pollingInitialOffset: time.Duration(pollingInitialOffset) * time.Second,
 		pollingInterval:      time.Duration(pollingInterval) * time.Second,
 		cfClient:             cfClient,
-		clock:                clock,
+		sleeper:              sleeper,
 	}
 }
 
@@ -156,10 +156,10 @@ func (d Deleter) deleteServiceInstance(instanceGUID string) error {
 }
 
 func (d Deleter) pollInstanceDeleteStatus(instanceGUID string) error {
-	d.clock.Sleep(d.pollingInitialOffset)
+	d.sleeper.Sleep(d.pollingInitialOffset)
 
 	for {
-		d.clock.Sleep(d.pollingInterval)
+		d.sleeper.Sleep(d.pollingInterval)
 
 		instance, err := d.cfClient.GetInstance(instanceGUID, d.logger)
 		switch err.(type) {

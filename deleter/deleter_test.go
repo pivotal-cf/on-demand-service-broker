@@ -37,7 +37,7 @@ var _ = Describe("deleter", func() {
 	var (
 		deleteTool *deleter.Deleter
 		cfClient   *fakes.FakeCloudFoundryClient
-		clock      *fakes.FakeClock
+		sleeper    *fakes.FakeSleeper
 		logger     *log.Logger
 		logBuffer  *bytes.Buffer
 
@@ -69,8 +69,8 @@ var _ = Describe("deleter", func() {
 		notFoundError := cloud_foundry_client.NewResourceNotFoundError("service instance not found")
 		cfClient.GetInstanceReturns(cloud_foundry_client.Instance{}, notFoundError)
 
-		clock = new(fakes.FakeClock)
-		deleteTool = deleter.New(cfClient, clock, pollingInitialOffset, pollingInterval, logger)
+		sleeper = new(fakes.FakeSleeper)
+		deleteTool = deleter.New(cfClient, sleeper, pollingInitialOffset, pollingInterval, logger)
 	})
 
 	Context("when no service instances exist", func() {
@@ -201,14 +201,14 @@ var _ = Describe("deleter", func() {
 			})
 
 			It("waits before starting last operation requests", func() {
-				Expect(clock.SleepCallCount()).To(Equal(3))
-				Expect(clock.SleepArgsForCall(0)).To(Equal(pollingInitialOffset * time.Second))
+				Expect(sleeper.SleepCallCount()).To(Equal(3))
+				Expect(sleeper.SleepArgsForCall(0)).To(Equal(pollingInitialOffset * time.Second))
 			})
 
 			It("waits in between last operation requests", func() {
-				Expect(clock.SleepCallCount()).To(Equal(3))
-				Expect(clock.SleepArgsForCall(1)).To(Equal(pollingInterval * time.Second))
-				Expect(clock.SleepArgsForCall(2)).To(Equal(pollingInterval * time.Second))
+				Expect(sleeper.SleepCallCount()).To(Equal(3))
+				Expect(sleeper.SleepArgsForCall(1)).To(Equal(pollingInterval * time.Second))
+				Expect(sleeper.SleepArgsForCall(2)).To(Equal(pollingInterval * time.Second))
 			})
 		})
 
