@@ -8,14 +8,12 @@ package mock
 
 import (
 	"encoding/json"
+	"io/ioutil"
 	"os"
 
+	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
-
-	"io/ioutil"
-
-	. "github.com/onsi/gomega"
 )
 
 const (

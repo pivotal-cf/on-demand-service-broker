@@ -7,8 +7,6 @@
 package mockbosh
 
 import (
-	"fmt"
-
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 )
@@ -19,14 +17,6 @@ type diffMock struct {
 
 type DeploymentDiff struct {
 	Diff [][]interface{} `json:"diff"`
-}
-
-func Diff(deploymentName string) *diffMock {
-	mock := &diffMock{
-		mockhttp.NewMockedHttpRequest("POST", fmt.Sprintf("/deployments/%s/diff?redact=true", deploymentName)),
-	}
-	mock.WithContentType("text/yaml")
-	return mock
 }
 
 func (d *diffMock) WithManifest(manifest bosh.BoshManifest) *diffMock {

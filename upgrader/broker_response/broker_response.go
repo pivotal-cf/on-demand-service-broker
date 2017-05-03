@@ -9,9 +9,8 @@ package broker_response
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
-
 	"io/ioutil"
+	"net/http"
 
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"

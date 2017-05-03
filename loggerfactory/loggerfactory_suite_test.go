@@ -7,10 +7,10 @@
 package loggerfactory_test
 
 import (
+	"testing"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	"testing"
 )
 
 func TestLogger(t *testing.T) {

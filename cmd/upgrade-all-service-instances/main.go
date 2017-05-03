@@ -9,10 +9,10 @@ package main
 import (
 	"flag"
 	"os"
+	"time"
 
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 	"github.com/pivotal-cf/on-demand-service-broker/upgrader"
-	"time"
 )
 
 func main() {

@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"testing"
 	"time"
 
 	"github.com/cloudfoundry-incubator/cf-test-helpers/cf"
@@ -20,8 +21,6 @@ import (
 	"github.com/onsi/gomega/gexec"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/cf_helpers"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/credhub"
-
-	"testing"
 )
 
 var (

@@ -9,10 +9,9 @@ package brokercontext_test
 import (
 	"context"
 
-	. "github.com/pivotal-cf/on-demand-service-broker/brokercontext"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/pivotal-cf/on-demand-service-broker/brokercontext"
 )
 
 var _ = Describe("BrokerContext", func() {

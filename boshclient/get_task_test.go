@@ -7,11 +7,10 @@
 package boshclient_test
 
 import (
-	"github.com/pivotal-cf/on-demand-service-broker/boshclient"
-	"github.com/pivotal-cf/on-demand-service-broker/mockbosh"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pivotal-cf/on-demand-service-broker/boshclient"
+	"github.com/pivotal-cf/on-demand-service-broker/mockbosh"
 )
 
 var _ = Describe("get task", func() {

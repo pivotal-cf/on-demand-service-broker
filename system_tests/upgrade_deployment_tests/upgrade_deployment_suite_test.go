@@ -7,14 +7,13 @@
 package upgrade_deployment_tests
 
 import (
-	"github.com/cloudfoundry-incubator/cf-test-helpers/cf"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
 	"fmt"
 	"os"
 	"testing"
 
+	"github.com/cloudfoundry-incubator/cf-test-helpers/cf"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/bosh_helpers"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/cf_helpers"

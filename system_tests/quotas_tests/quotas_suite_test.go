@@ -9,6 +9,7 @@ package quotas_tests
 import (
 	"fmt"
 	"os"
+	"testing"
 
 	"github.com/cloudfoundry-incubator/cf-test-helpers/cf"
 	. "github.com/onsi/ginkgo"
@@ -16,9 +17,6 @@ import (
 	"github.com/onsi/gomega/gexec"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/bosh_helpers"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/cf_helpers"
-
-	"testing"
-
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 )
 

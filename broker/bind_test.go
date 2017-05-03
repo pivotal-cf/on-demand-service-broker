@@ -8,19 +8,17 @@ package broker_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/on-demand-service-broker/adapterclient"
 	"github.com/pivotal-cf/on-demand-service-broker/boshclient"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
-
-	"encoding/json"
-
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf/on-demand-service-broker/adapterclient"
 )
 
 var _ = Describe("Bind", func() {

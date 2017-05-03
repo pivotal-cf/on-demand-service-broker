@@ -9,11 +9,10 @@ package boshclient_test
 import (
 	"fmt"
 
-	. "github.com/pivotal-cf/on-demand-service-broker/boshclient"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
+	. "github.com/pivotal-cf/on-demand-service-broker/boshclient"
 )
 
 var _ = Describe("Task", func() {

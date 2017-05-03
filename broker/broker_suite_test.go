@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"io"
 	"log"
+	"testing"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -19,8 +20,6 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
-
-	"testing"
 )
 
 const (

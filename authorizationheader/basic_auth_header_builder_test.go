@@ -7,10 +7,9 @@
 package authorizationheader_test
 
 import (
-	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
 )
 
 var _ = Describe("BasicAuth Header Builder", func() {

@@ -7,11 +7,10 @@
 package integration_tests
 
 import (
+	"fmt"
 	"os/exec"
-
 	"time"
 
-	"fmt"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"

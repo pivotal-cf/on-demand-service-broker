@@ -24,14 +24,6 @@ const (
 	OperationInProgressMessage      = "An operation is in progress for your service instance. Please try again later."
 )
 
-type InstanceNotFoundError struct {
-	error
-}
-
-func NewInstanceNotFoundError() InstanceNotFoundError {
-	return InstanceNotFoundError{error: errors.New("service instance not found")}
-}
-
 type OperationInProgressError struct {
 	error
 }

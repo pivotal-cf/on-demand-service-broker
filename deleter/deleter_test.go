@@ -7,14 +7,12 @@
 package deleter_test
 
 import (
-	"log"
-
-	"errors"
-
 	"bytes"
-	"io"
-
+	"errors"
 	"fmt"
+	"io"
+	"log"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -22,7 +20,6 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/deleter"
 	"github.com/pivotal-cf/on-demand-service-broker/deleter/fakes"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
-	"time"
 )
 
 var _ = Describe("deleter", func() {

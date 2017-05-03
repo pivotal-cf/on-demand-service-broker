@@ -10,14 +10,12 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"reflect"
 	"strings"
 
-	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
-
-	"log"
-
 	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
+	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 	"gopkg.in/yaml.v2"
 )
 
@@ -185,8 +183,8 @@ type BOSHUAAAuthentication struct {
 	Secret string `yaml:"client_secret"`
 }
 
-func (cc UAAAuthentication) IsSet() bool {
-	return cc != UAAAuthentication{}
+func (a UAAAuthentication) IsSet() bool {
+	return a != UAAAuthentication{}
 }
 
 func (b Bosh) Validate() error {

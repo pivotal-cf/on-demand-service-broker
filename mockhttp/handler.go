@@ -15,9 +15,9 @@ import (
 	"net/http"
 	"reflect"
 	"strings"
+	"time"
 
 	. "github.com/onsi/gomega"
-	"time"
 )
 
 type Handler struct {

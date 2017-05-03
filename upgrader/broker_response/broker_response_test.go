@@ -7,14 +7,11 @@
 package broker_response_test
 
 import (
-	"net/http"
-
-	"io/ioutil"
-	"strings"
-
 	"encoding/json"
-
 	"io"
+	"io/ioutil"
+	"net/http"
+	"strings"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

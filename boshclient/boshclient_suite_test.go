@@ -10,16 +10,14 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"log"
+	"testing"
 
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/on-demand-service-broker/boshclient"
 	"github.com/pivotal-cf/on-demand-service-broker/boshclient/fakes"
 	"github.com/pivotal-cf/on-demand-service-broker/mockbosh"
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
-
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
-	"testing"
 )
 
 const (

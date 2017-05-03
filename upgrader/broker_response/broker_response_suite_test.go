@@ -7,10 +7,10 @@
 package broker_response_test
 
 import (
+	"testing"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	"testing"
 )
 
 func TestBrokerResponse(t *testing.T) {

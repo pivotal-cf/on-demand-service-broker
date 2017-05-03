@@ -9,15 +9,13 @@ package main
 import (
 	"flag"
 	"io/ioutil"
-
 	"os"
+	"time"
 
 	"github.com/pivotal-cf/on-demand-service-broker/cloud_foundry_client"
 	"github.com/pivotal-cf/on-demand-service-broker/deleter"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 	"gopkg.in/yaml.v2"
-
-	"time"
 )
 
 type realClock struct{}

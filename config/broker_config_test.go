@@ -7,20 +7,17 @@
 package config_test
 
 import (
+	"fmt"
+	"log"
 	"os"
 	"path/filepath"
-
-	"gopkg.in/yaml.v2"
-
-	"fmt"
-
-	"log"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/mockuaa"
 	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
+	"gopkg.in/yaml.v2"
 )
 
 var _ = Describe("BrokerConfig", func() {

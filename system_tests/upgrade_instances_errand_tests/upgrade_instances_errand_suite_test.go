@@ -9,18 +9,16 @@ package upgrade_instances_errand_tests
 import (
 	"fmt"
 	"os"
+	"testing"
 
 	"github.com/cloudfoundry-incubator/cf-test-helpers/cf"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gexec"
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/bosh_helpers"
-	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
-
-	"testing"
-
-	"github.com/onsi/gomega/gexec"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/cf_helpers"
+	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 )
 
 var (

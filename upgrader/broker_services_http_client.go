@@ -11,12 +11,12 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/craigfurman/herottp"
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/upgrader/broker_response"
-	"time"
 )
 
 type BrokerServicesHTTPClient struct {

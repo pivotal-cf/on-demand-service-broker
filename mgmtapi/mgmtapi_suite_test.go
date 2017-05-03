@@ -7,10 +7,10 @@
 package mgmtapi_test
 
 import (
+	"testing"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	"testing"
 )
 
 func TestMgmtapi(t *testing.T) {

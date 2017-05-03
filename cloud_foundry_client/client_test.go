@@ -8,12 +8,11 @@ package cloud_foundry_client_test
 
 import (
 	"errors"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
 	"path"
-
-	"io"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

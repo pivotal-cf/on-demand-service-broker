@@ -7,12 +7,10 @@
 package mockcfapi
 
 import (
+	"encoding/json"
 	"fmt"
 
 	. "github.com/onsi/gomega"
-
-	"encoding/json"
-
 	"github.com/pivotal-cf/on-demand-service-broker/cloud_foundry_client"
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
 )
