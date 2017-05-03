@@ -17,11 +17,10 @@ import (
 type BoshClient interface {
 	Deploy(manifest []byte, contextID string, logger *log.Logger) (int, error)
 	GetTasks(deploymentName string, logger *log.Logger) (boshclient.BoshTasks, error)
-	GetDeployment(name string, logger *log.Logger) ([]byte, bool, error) // TODO SF foundz = false => manifest => nil, drop the found flag?
+	GetDeployment(name string, logger *log.Logger) ([]byte, bool, error) // TODO SF found = false => manifest => nil, drop the found flag?
 }
 
-// TODO SF Why is  previousPlanID a pointer to a string?
-// TODO SF Should we log at this level or in the generator?
+// TODO SF previousPlanID is a pointer because it might not exist. Should we have a nil value instead? Should we have a specific type?
 //go:generate counterfeiter -o fakes/fake_manifest_generator.go . ManifestGenerator
 type ManifestGenerator interface {
 	GenerateManifest(deploymentName, planID string, requestParams map[string]interface{}, oldManifest []byte, previousPlanID *string, logger *log.Logger) (BoshManifest, error)
@@ -89,7 +88,6 @@ func (d deployer) Update(
 
 func (d deployer) getDeploymentManifest(deploymentName string, logger *log.Logger) ([]byte, error) {
 	oldManifest, found, err := d.boshClient.GetDeployment(deploymentName, logger)
-
 	if err != nil {
 		return nil, err
 	}

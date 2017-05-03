@@ -87,7 +87,6 @@ func instanceID(deploymentName string) string {
 	return strings.TrimPrefix(deploymentName, InstancePrefix)
 }
 
-//TODO SF attach logger to objects throughout, rather than pass in with each call?
 //TODO SF only need to return manifest from Create
 //go:generate counterfeiter -o fakes/fake_deployer.go . Deployer
 type Deployer interface {

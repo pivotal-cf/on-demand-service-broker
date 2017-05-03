@@ -20,7 +20,6 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/task"
 )
 
-//TODO SF Do all the errors/log messages have enough context to be useful?
 func (b *Broker) Update(
 	ctx context.Context,
 	instanceID string,
