@@ -26,7 +26,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/mockuaa"
 )
 
-var _ = Describe("last operation", func() {
+var _ = FDescribe("last operation", func() {
 	const (
 		instanceID = "some-instance-id"
 		boshTaskID = 10654
@@ -51,6 +51,18 @@ var _ = Describe("last operation", func() {
 		anotherTaskDone = boshclient.BoshTask{ID: 4, State: boshclient.BoshTaskDone, ContextID: contextID, Description: "another done thing"}
 		taskProcessing  = boshclient.BoshTask{ID: 2, State: boshclient.BoshTaskProcessing, ContextID: contextID, Description: "processing thing"}
 		taskFailed      = boshclient.BoshTask{ID: 3, State: boshclient.BoshTaskError, ContextID: contextID, Description: "failed thing"}
+
+		describeFailure = SatisfyAll(
+			ContainSubstring("Instance provisioning failed: There was a problem completing your request. Please contact your operations team providing the following information:"),
+			MatchRegexp(`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`),
+			ContainSubstring(fmt.Sprintf("service: %s", serviceName)),
+			ContainSubstring(fmt.Sprintf("service-instance-guid: %s", instanceID)),
+			ContainSubstring("operation: create"),
+			ContainSubstring(fmt.Sprintf("task-id: %d", boshTaskID)),
+		)
+		reportedStateRegex = func(status string) string {
+			return logRegexpStringWithRequestIDCapture(fmt.Sprintf(`BOSH task ID %d status: %s create deployment for instance %s`, boshTaskID, status, instanceID))
+		}
 	)
 
 	BeforeEach(func() {
@@ -123,8 +135,7 @@ var _ = Describe("last operation", func() {
 			})
 
 			It("logs with a request ID", func() {
-				regexpString := logRegexpStringWithRequestIDCapture(fmt.Sprintf(`BOSH task ID %d status: processing create deployment for instance %s`, boshTaskID, instanceID))
-				Eventually(runningBroker).Should(gbytes.Say(regexpString))
+				Eventually(runningBroker).Should(gbytes.Say(reportedStateRegex("processing")))
 			})
 		})
 
@@ -149,8 +160,7 @@ var _ = Describe("last operation", func() {
 			})
 
 			It("logs with a request ID", func() {
-				regexpString := logRegexpStringWithRequestIDCapture(fmt.Sprintf(`BOSH task ID %d status: done create deployment for instance %s`, boshTaskID, instanceID))
-				Eventually(runningBroker).Should(gbytes.Say(regexpString))
+				Eventually(runningBroker).Should(gbytes.Say(reportedStateRegex("done")))
 			})
 		})
 
@@ -208,8 +218,7 @@ var _ = Describe("last operation", func() {
 			})
 
 			It("logs with a request ID", func() {
-				regexpString := logRegexpStringWithRequestIDCapture(fmt.Sprintf(`BOSH task ID %d status: error create deployment for instance %s`, boshTaskID, instanceID))
-				Eventually(runningBroker).Should(gbytes.Say(regexpString))
+				Eventually(runningBroker).Should(gbytes.Say(reportedStateRegex("error")))
 			})
 		})
 
@@ -234,8 +243,7 @@ var _ = Describe("last operation", func() {
 			})
 
 			It("logs with a request ID", func() {
-				regexpString := logRegexpStringWithRequestIDCapture(fmt.Sprintf(`BOSH task ID %d status: cancelling create deployment for instance %s`, boshTaskID, instanceID))
-				Eventually(runningBroker).Should(gbytes.Say(regexpString))
+				Eventually(runningBroker).Should(gbytes.Say(reportedStateRegex("cancelling")))
 			})
 		})
 
@@ -246,55 +254,12 @@ var _ = Describe("last operation", func() {
 				)
 			})
 
-			It("responds with 200", func() {
+			It("responds with 200 with state failed", func() {
 				Expect(lastOperationResponse.StatusCode).To(Equal(http.StatusOK))
-			})
+				Expect(actualResponse["state"]).To(Equal(string(brokerapi.Failed)))
+				Expect(actualResponse["description"].(string)).To(describeFailure)
 
-			Describe("response body", func() {
-				It("has state failed", func() {
-					Expect(actualResponse["state"]).To(Equal(string(brokerapi.Failed)))
-				})
-
-				It("has generic error description", func() {
-					Expect(actualResponse["description"]).To(ContainSubstring(
-						"Instance provisioning failed: There was a problem completing your request. Please contact your operations team providing the following information:",
-					))
-				})
-
-				It("has description with broker request id", func() {
-					Expect(actualResponse["description"]).To(MatchRegexp(
-						`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`,
-					))
-				})
-
-				It("has description with service name", func() {
-					Expect(actualResponse["description"]).To(ContainSubstring(
-						fmt.Sprintf("service: %s", serviceName),
-					))
-				})
-
-				It("has description with service instance guid", func() {
-					Expect(actualResponse["description"]).To(ContainSubstring(
-						fmt.Sprintf("service-instance-guid: %s", instanceID),
-					))
-				})
-
-				It("includes the operation type", func() {
-					Expect(actualResponse["description"]).To(ContainSubstring(
-						"operation: create",
-					))
-				})
-
-				It("includes the bosh task ID", func() {
-					Expect(actualResponse["description"]).To(ContainSubstring(
-						fmt.Sprintf("task-id: %d", boshTaskID),
-					))
-				})
-			})
-
-			It("logs with a request ID", func() {
-				regexpString := logRegexpStringWithRequestIDCapture(fmt.Sprintf(`BOSH task ID %d status: cancelled create deployment for instance %s`, boshTaskID, instanceID))
-				Eventually(runningBroker).Should(gbytes.Say(regexpString))
+				Eventually(runningBroker).Should(gbytes.Say(reportedStateRegex("cancelled")))
 			})
 		})
 
@@ -305,55 +270,12 @@ var _ = Describe("last operation", func() {
 				)
 			})
 
-			It("responds with 200", func() {
+			It("responds with 200 with state failed", func() {
 				Expect(lastOperationResponse.StatusCode).To(Equal(http.StatusOK))
-			})
+				Expect(actualResponse["state"]).To(Equal(string(brokerapi.Failed)))
+				Expect(actualResponse["description"]).To(describeFailure)
 
-			Describe("response body", func() {
-				It("has state failed", func() {
-					Expect(actualResponse["state"]).To(Equal(string(brokerapi.Failed)))
-				})
-
-				It("has generic error description", func() {
-					Expect(actualResponse["description"]).To(ContainSubstring(
-						"Instance provisioning failed: There was a problem completing your request. Please contact your operations team providing the following information:",
-					))
-				})
-
-				It("has description with broker request id", func() {
-					Expect(actualResponse["description"]).To(MatchRegexp(
-						`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`,
-					))
-				})
-
-				It("has description with service name", func() {
-					Expect(actualResponse["description"]).To(ContainSubstring(
-						fmt.Sprintf("service: %s", serviceName),
-					))
-				})
-
-				It("has description with service instance guid", func() {
-					Expect(actualResponse["description"]).To(ContainSubstring(
-						fmt.Sprintf("service-instance-guid: %s", instanceID),
-					))
-				})
-
-				It("includes the operation type", func() {
-					Expect(actualResponse["description"]).To(ContainSubstring(
-						"operation: create",
-					))
-				})
-
-				It("includes the bosh task ID", func() {
-					Expect(actualResponse["description"]).To(ContainSubstring(
-						fmt.Sprintf("task-id: %d", boshTaskID),
-					))
-				})
-			})
-
-			It("logs with a request ID", func() {
-				regexpString := logRegexpStringWithRequestIDCapture(fmt.Sprintf(`BOSH task ID %d status: timeout create deployment for instance %s`, boshTaskID, instanceID))
-				Eventually(runningBroker).Should(gbytes.Say(regexpString))
+				Eventually(runningBroker).Should(gbytes.Say(reportedStateRegex("timeout")))
 			})
 		})
 
@@ -364,57 +286,14 @@ var _ = Describe("last operation", func() {
 				)
 			})
 
-			It("responds with 200", func() {
+			It("responds with 200 with state failed", func() {
 				Expect(lastOperationResponse.StatusCode).To(Equal(http.StatusOK))
-			})
+				Expect(actualResponse["state"]).To(Equal(string(brokerapi.Failed)))
+				Expect(actualResponse["description"]).To(describeFailure)
 
-			Describe("response body", func() {
-				It("has state failed", func() {
-					Expect(actualResponse["state"]).To(Equal(string(brokerapi.Failed)))
-				})
-
-				It("has generic error description", func() {
-					Expect(actualResponse["description"]).To(ContainSubstring(
-						"Instance provisioning failed: There was a problem completing your request. Please contact your operations team providing the following information:",
-					))
-				})
-
-				It("has description with broker request id", func() {
-					Expect(actualResponse["description"]).To(MatchRegexp(
-						`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`,
-					))
-				})
-
-				It("has description with service name", func() {
-					Expect(actualResponse["description"]).To(ContainSubstring(
-						fmt.Sprintf("service: %s", serviceName),
-					))
-				})
-
-				It("has description with service instance guid", func() {
-					Expect(actualResponse["description"]).To(ContainSubstring(
-						fmt.Sprintf("service-instance-guid: %s", instanceID),
-					))
-				})
-
-				It("includes the operation type", func() {
-					Expect(actualResponse["description"]).To(ContainSubstring(
-						"operation: create",
-					))
-				})
-
-				It("includes the bosh task ID", func() {
-					Expect(actualResponse["description"]).To(ContainSubstring(
-						fmt.Sprintf("task-id: %d", boshTaskID),
-					))
-				})
-			})
-
-			It("logs with a request ID", func() {
 				regexpString := logRegexpStringWithRequestIDCapture(`Unrecognised BOSH task state: unrecognised-state`)
 				Eventually(runningBroker).Should(gbytes.Say(regexpString))
-				regexpString = logRegexpStringWithRequestIDCapture(fmt.Sprintf(`BOSH task ID %d status: unrecognised-state create deployment for instance %s`, boshTaskID, instanceID))
-				Eventually(runningBroker).Should(gbytes.Say(regexpString))
+				Eventually(runningBroker).Should(gbytes.Say(reportedStateRegex("unrecognised-state")))
 			})
 		})
 	})
