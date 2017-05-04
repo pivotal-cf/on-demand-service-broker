@@ -26,7 +26,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/mockuaa"
 )
 
-var _ = FDescribe("last operation", func() {
+var _ = Describe("last operation", func() {
 	const (
 		instanceID = "some-instance-id"
 		boshTaskID = 10654
@@ -123,18 +123,8 @@ var _ = FDescribe("last operation", func() {
 
 			It("responds with 200", func() {
 				Expect(lastOperationResponse.StatusCode).To(Equal(http.StatusOK))
-			})
 
-			It("has a description", func() {
-				Expect(rawResponse).To(MatchJSON(toJSONString(
-					map[string]interface{}{
-						"state":       brokerapi.InProgress,
-						"description": "Instance provisioning in progress",
-					},
-				)))
-			})
-
-			It("logs with a request ID", func() {
+				Expect(rawResponse).To(MatchJSON(fmt.Sprintf(`{"state" : "%s", "description": "Instance provisioning in progress"}`, brokerapi.InProgress)))
 				Eventually(runningBroker).Should(gbytes.Say(reportedStateRegex("processing")))
 			})
 		})
@@ -148,18 +138,7 @@ var _ = FDescribe("last operation", func() {
 
 			It("responds with 200", func() {
 				Expect(lastOperationResponse.StatusCode).To(Equal(http.StatusOK))
-			})
-
-			It("has a description", func() {
-				Expect(rawResponse).To(MatchJSON(toJSONString(
-					map[string]interface{}{
-						"state":       brokerapi.Succeeded,
-						"description": "Instance provisioning completed",
-					},
-				)))
-			})
-
-			It("logs with a request ID", func() {
+				Expect(rawResponse).To(MatchJSON(fmt.Sprintf(`{"state" : "%s", "description": "Instance provisioning completed"}`, brokerapi.Succeeded)))
 				Eventually(runningBroker).Should(gbytes.Say(reportedStateRegex("done")))
 			})
 		})
@@ -173,51 +152,9 @@ var _ = FDescribe("last operation", func() {
 
 			It("responds with 200", func() {
 				Expect(lastOperationResponse.StatusCode).To(Equal(http.StatusOK))
-			})
+				Expect(actualResponse["state"]).To(Equal(string(brokerapi.Failed)))
+				Expect(actualResponse["description"].(string)).To(describeFailure)
 
-			Describe("response body", func() {
-				It("has state failed", func() {
-					Expect(actualResponse["state"]).To(Equal(string(brokerapi.Failed)))
-				})
-
-				It("has generic error description", func() {
-					Expect(actualResponse["description"]).To(ContainSubstring(
-						"Instance provisioning failed: There was a problem completing your request. Please contact your operations team providing the following information:",
-					))
-				})
-
-				It("has description with broker request id", func() {
-					Expect(actualResponse["description"]).To(MatchRegexp(
-						`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`,
-					))
-				})
-
-				It("has description with service name", func() {
-					Expect(actualResponse["description"]).To(ContainSubstring(
-						fmt.Sprintf("service: %s", serviceName),
-					))
-				})
-
-				It("has description with service instance guid", func() {
-					Expect(actualResponse["description"]).To(ContainSubstring(
-						fmt.Sprintf("service-instance-guid: %s", instanceID),
-					))
-				})
-
-				It("includes the operation type", func() {
-					Expect(actualResponse["description"]).To(ContainSubstring(
-						"operation: create",
-					))
-				})
-
-				It("includes the bosh task ID", func() {
-					Expect(actualResponse["description"]).To(ContainSubstring(
-						fmt.Sprintf("task-id: %d", boshTaskID),
-					))
-				})
-			})
-
-			It("logs with a request ID", func() {
 				Eventually(runningBroker).Should(gbytes.Say(reportedStateRegex("error")))
 			})
 		})
