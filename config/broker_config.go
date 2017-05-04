@@ -50,7 +50,7 @@ func (c Config) Validate() error {
 	}
 
 	if err := checkIsExecutableFile(c.ServiceAdapter.Path); err != nil {
-		return err
+		return fmt.Errorf("checking for executable service adapter file: %s", err)
 	}
 
 	if err := c.ServiceDeployment.Validate(); err != nil {

@@ -180,11 +180,8 @@ var _ = Describe("BrokerConfig", func() {
 			})
 
 			It("returns config with the broker password", func() {
-				Expect(conf.Broker.Password).To(Equal(`%te'"st:%$!`))
-			})
-
-			It("returns no error", func() {
 				Expect(parseErr).NotTo(HaveOccurred())
+				Expect(conf.Broker.Password).To(Equal(`%te'"st:%$!`))
 			})
 		})
 
@@ -194,11 +191,8 @@ var _ = Describe("BrokerConfig", func() {
 			})
 
 			It("returns config with the flag", func() {
-				Expect(conf.Features.CFUserTriggeredUpgrades).To(BeTrue())
-			})
-
-			It("returns no error", func() {
 				Expect(parseErr).NotTo(HaveOccurred())
+				Expect(conf.Features.CFUserTriggeredUpgrades).To(BeTrue())
 			})
 		})
 
@@ -209,9 +203,6 @@ var _ = Describe("BrokerConfig", func() {
 
 			It("returns config with the requires field", func() {
 				Expect(conf.ServiceCatalog.Requires).To(Equal([]string{"syslog_drain", "route_forwarding"}))
-			})
-
-			It("returns no error", func() {
 				Expect(parseErr).NotTo(HaveOccurred())
 			})
 		})
@@ -221,11 +212,8 @@ var _ = Describe("BrokerConfig", func() {
 				configFileName = "bosh_uaa_config.yml"
 			})
 
-			It("returns no error", func() {
-				Expect(parseErr).NotTo(HaveOccurred())
-			})
-
 			It("returns a config object", func() {
+				Expect(parseErr).NotTo(HaveOccurred())
 				Expect(conf.Bosh.Authentication.UAA).To(Equal(config.BOSHUAAAuthentication{
 					UAAURL: "http://some-uaa-server:99",
 					ID:     "some-client-id",
@@ -234,13 +222,23 @@ var _ = Describe("BrokerConfig", func() {
 			})
 		})
 
-		Context("when the configuration contains a non-executable service adapter", func() {
+		Context("when the configuration contains a non-executable service adapter path", func() {
 			BeforeEach(func() {
-				configFileName = "config_without_executable_adapter.yml"
+				configFileName = "config_with_non_executable_adapter_path.yml"
 			})
 
 			It("returns an error", func() {
-				Expect(parseErr).To(MatchError(ContainSubstring("not executable")))
+				Expect(parseErr).To(MatchError("checking for executable service adapter file: 'test_assets/good_config.yml' is not executable"))
+			})
+		})
+
+		Context("when the configuration contains an empty service adapter path", func() {
+			BeforeEach(func() {
+				configFileName = "config_with_missing_adapter_path.yml"
+			})
+
+			It("returns an error", func() {
+				Expect(parseErr).To(MatchError("checking for executable service adapter file: path is empty"))
 			})
 		})
 

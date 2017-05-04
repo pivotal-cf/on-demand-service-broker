@@ -7,22 +7,27 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"os"
 )
 
 func checkIsExecutableFile(path string) error {
+	if path == "" {
+		return errors.New("path is empty")
+	}
+
 	info, err := os.Stat(path)
 	if err != nil {
 		return err
 	}
 
 	if info.IsDir() {
-		return fmt.Errorf("service adapter '%s' is a directory", path)
+		return fmt.Errorf("'%s' is a directory", path)
 	}
 
 	if !isExecutable(info) {
-		return fmt.Errorf("service adapter '%s' is not executable", path)
+		return fmt.Errorf("'%s' is not executable", path)
 	}
 
 	return nil
