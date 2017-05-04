@@ -57,10 +57,30 @@ func NewBasicAuth(boshURL, boshUsername, boshPassword, boshCACert string, disabl
 
 func (b *BoshHelperClient) RunErrand(deploymentName, errandName, contextID string) boshclient.BoshTaskOutput {
 	logger := systemTestLogger()
+	taskID := b.runErrandAndWait(deploymentName, errandName, contextID, logger)
+	output := b.getTaskOutput(taskID, logger)
+	Expect(output.ExitCode).To(BeZero(), fmt.Sprintf("STDOUT: ------------\n%s\n--------------------\nSTDERR: ------------\n%s\n--------------------\n", output.StdOut, output.StdErr))
+	return output
+}
+
+func (b *BoshHelperClient) RunErrandWithoutCheckingSuccess(deploymentName, errandName, contextID string) boshclient.BoshTaskOutput {
+	logger := systemTestLogger()
+	taskID := b.runErrandAndWait(deploymentName, errandName, contextID, logger)
+	return b.getTaskOutput(taskID, logger)
+}
+
+func (b *BoshHelperClient) runErrandAndWait(deploymentName, errandName, contextID string, logger *log.Logger) int {
 	taskID, err := b.Client.RunErrand(deploymentName, errandName, contextID, logger)
 	Expect(err).NotTo(HaveOccurred())
-	b.WaitForTaskToFinish(taskID)
-	return b.CheckErrandTaskSuccess(taskID)
+	b.waitForTaskToFinish(taskID)
+	return taskID
+}
+
+func (b *BoshHelperClient) getTaskOutput(taskID int, logger *log.Logger) boshclient.BoshTaskOutput {
+	output, err := b.Client.GetTaskOutput(taskID, logger)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(output).To(HaveLen(1))
+	return output[0]
 }
 
 func (b *BoshHelperClient) GetTasksForDeployment(deploymentName string) boshclient.BoshTasks {
@@ -70,16 +90,7 @@ func (b *BoshHelperClient) GetTasksForDeployment(deploymentName string) boshclie
 	return boshTasks
 }
 
-func (b *BoshHelperClient) CheckErrandTaskSuccess(taskID int) boshclient.BoshTaskOutput {
-	logger := systemTestLogger()
-	output, err := b.Client.GetTaskOutput(taskID, logger)
-	Expect(err).NotTo(HaveOccurred())
-	Expect(output).To(HaveLen(1))
-	Expect(output[0].ExitCode).To(BeZero(), fmt.Sprintf("STDOUT: ------------\n%s\n--------------------\nSTDERR: ------------\n%s\n--------------------\n", output[0].StdOut, output[0].StdErr))
-	return output[0]
-}
-
-func (b *BoshHelperClient) WaitForTaskToFinish(taskID int) {
+func (b *BoshHelperClient) waitForTaskToFinish(taskID int) {
 	logger := systemTestLogger()
 	for {
 		taskState, err := b.Client.GetTask(taskID, logger)
@@ -123,7 +134,7 @@ func (b *BoshHelperClient) DeployODB(manifest bosh.BoshManifest) {
 	deployTaskID, err := b.Client.Deploy(manifestBytes, "", logger)
 	Expect(err).NotTo(HaveOccurred())
 
-	b.WaitForTaskToFinish(deployTaskID)
+	b.waitForTaskToFinish(deployTaskID)
 
 	// wait for Broker Route Registration Interval
 	time.Sleep(20 * time.Second)
@@ -140,7 +151,7 @@ func (b *BoshHelperClient) DeleteDeployment(deploymentName string) {
 	logger := systemTestLogger()
 	deleteTaskID, err := b.Client.DeleteDeployment(deploymentName, "", logger)
 	Expect(err).NotTo(HaveOccurred())
-	b.WaitForTaskToFinish(deleteTaskID)
+	b.waitForTaskToFinish(deleteTaskID)
 }
 
 func systemTestLogger() *log.Logger {

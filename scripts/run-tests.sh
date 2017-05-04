@@ -12,4 +12,4 @@ set -o pipefail
 if [[ $# -eq 0 ]]; then
   LIFECYCLE_TESTS_CONFIG=<(echo "[{}]") ginkgo -r -dryRun system_tests
 fi
-ginkgo -randomizeSuites=true -randomizeAllSpecs=true -keepGoing=true -r -cover -p -skipPackage system_tests,load_tests,cmd "$@"
+ginkgo -randomizeSuites=true -randomizeAllSpecs=true -keepGoing=true -r -cover -p -skipPackage system_tests,load_tests "$@"
