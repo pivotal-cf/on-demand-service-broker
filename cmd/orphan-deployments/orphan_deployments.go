@@ -48,7 +48,7 @@ func main() {
 	defer response.Body.Close()
 	body, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		log.Fatalf("error reading response body: %s", err)
+		log.Fatalf("error reading response body: %s. status code: %d.", err, response.StatusCode)
 	}
 
 	if response.StatusCode != http.StatusOK {
@@ -62,7 +62,7 @@ func main() {
 	var orphanDeployments []mgmtapi.Deployment
 	err = json.Unmarshal(body, &orphanDeployments)
 	if err != nil {
-		log.Fatalf("error decoding JSON response: %s", err)
+		log.Fatalf("error decoding JSON response: %s. status code: %d.", err, response.StatusCode)
 	}
 
 	fmt.Fprint(os.Stdout, string(body))

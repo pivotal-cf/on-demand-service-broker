@@ -117,6 +117,7 @@ var _ = Describe("Orphan Deployments", func() {
 		Expect(session.Err).To(SatisfyAll(
 			gbytes.Say("error decoding JSON response"),
 			gbytes.Say("invalid character 'i'"),
+			gbytes.Say("status code: %d.", http.StatusOK),
 		))
 	})
 })
