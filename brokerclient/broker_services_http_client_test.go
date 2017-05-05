@@ -15,7 +15,6 @@ import (
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/brokerclient"
-	"github.com/pivotal-cf/on-demand-service-broker/brokerclient/broker_response"
 	"github.com/pivotal-cf/on-demand-service-broker/mockbroker"
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
 )
@@ -126,7 +125,7 @@ var _ = Describe("Broker Services HTTP Client", func() {
 			upgradeOperation, err := client.UpgradeInstance(serviceInstanceGUID)
 
 			Expect(err).NotTo(HaveOccurred())
-			Expect(upgradeOperation.Type).To(Equal(broker_response.ResultNotFound))
+			Expect(upgradeOperation.Type).To(Equal(brokerclient.ResultNotFound))
 		})
 
 		Context("when the url is invalid", func() {

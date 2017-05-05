@@ -16,14 +16,14 @@ import (
 	"github.com/craigfurman/herottp"
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
-	"github.com/pivotal-cf/on-demand-service-broker/brokerclient/broker_response"
 )
 
 type BrokerServicesHTTPClient struct {
-	username string
-	password string
-	url      string
-	client   *herottp.Client
+	username  string
+	password  string
+	url       string
+	client    *herottp.Client
+	converter ResponseConverter
 }
 
 func NewBrokerServicesHTTPClient(username, password, url string, timeout time.Duration) BrokerServicesHTTPClient {
@@ -31,50 +31,51 @@ func NewBrokerServicesHTTPClient(username, password, url string, timeout time.Du
 		Timeout: timeout,
 	}
 	return BrokerServicesHTTPClient{
-		username: username,
-		password: password,
-		url:      url,
-		client:   herottp.New(config),
+		username:  username,
+		password:  password,
+		url:       url,
+		client:    herottp.New(config),
+		converter: ResponseConverter{},
 	}
 }
 
-func (u BrokerServicesHTTPClient) Instances() ([]string, error) {
-	response, err := u.responseTo("GET", "/mgmt/service_instances")
+func (b BrokerServicesHTTPClient) Instances() ([]string, error) {
+	response, err := b.responseTo("GET", "/mgmt/service_instances")
 	if err != nil {
 		return nil, err
 	}
-	return broker_response.ListInstancesFrom(response)
+	return b.converter.ListInstancesFrom(response)
 }
 
-func (u BrokerServicesHTTPClient) UpgradeInstance(instanceGUID string) (broker_response.UpgradeOperation, error) {
-	response, err := u.responseTo("PATCH", fmt.Sprintf("/mgmt/service_instances/%s", instanceGUID))
+func (b BrokerServicesHTTPClient) UpgradeInstance(instanceGUID string) (UpgradeOperation, error) {
+	response, err := b.responseTo("PATCH", fmt.Sprintf("/mgmt/service_instances/%s", instanceGUID))
 	if err != nil {
-		return broker_response.UpgradeOperation{}, err
+		return UpgradeOperation{}, err
 	}
-	return broker_response.UpgradeOperationFrom(response)
+	return b.converter.UpgradeOperationFrom(response)
 }
 
-func (u BrokerServicesHTTPClient) LastOperation(instanceGUID string, operationData broker.OperationData) (brokerapi.LastOperation, error) {
+func (b BrokerServicesHTTPClient) LastOperation(instanceGUID string, operationData broker.OperationData) (brokerapi.LastOperation, error) {
 	asJSON, err := json.Marshal(operationData)
 	if err != nil {
 		return brokerapi.LastOperation{}, err
 	}
 
 	operationQueryStr := url.QueryEscape(string(asJSON))
-	response, err := u.responseTo("GET", fmt.Sprintf("/v2/service_instances/%s/last_operation?operation=%s", instanceGUID, operationQueryStr))
+	response, err := b.responseTo("GET", fmt.Sprintf("/v2/service_instances/%s/last_operation?operation=%s", instanceGUID, operationQueryStr))
 	if err != nil {
 		return brokerapi.LastOperation{}, err
 	}
-	return broker_response.LastOperationFrom(response)
+	return b.converter.LastOperationFrom(response)
 }
 
-func (u BrokerServicesHTTPClient) responseTo(verb, path string) (*http.Response, error) {
-	request, err := http.NewRequest(verb, fmt.Sprintf("%s%s", u.url, path), nil)
+func (b BrokerServicesHTTPClient) responseTo(verb, path string) (*http.Response, error) {
+	request, err := http.NewRequest(verb, fmt.Sprintf("%s%s", b.url, path), nil)
 	if err != nil {
 		return nil, err
 	}
 
-	request.SetBasicAuth(u.username, u.password)
+	request.SetBasicAuth(b.username, b.password)
 
-	return u.client.Do(request)
+	return b.client.Do(request)
 }

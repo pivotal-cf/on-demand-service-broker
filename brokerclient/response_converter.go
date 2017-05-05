@@ -4,7 +4,7 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 // Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
-package broker_response
+package brokerclient
 
 import (
 	"encoding/json"
@@ -31,7 +31,9 @@ const (
 	ResultOrphan              UpgradeOperationType = iota
 )
 
-func UpgradeOperationFrom(response *http.Response) (UpgradeOperation, error) {
+type ResponseConverter struct{}
+
+func (r ResponseConverter) UpgradeOperationFrom(response *http.Response) (UpgradeOperation, error) {
 	defer response.Body.Close()
 
 	switch response.StatusCode {
@@ -67,7 +69,7 @@ func UpgradeOperationFrom(response *http.Response) (UpgradeOperation, error) {
 	}
 }
 
-func ListInstancesFrom(response *http.Response) ([]string, error) {
+func (r ResponseConverter) ListInstancesFrom(response *http.Response) ([]string, error) {
 	var instances []mgmtapi.Instance
 	err := decodeBodyInto(response, &instances)
 	if err != nil {
@@ -77,7 +79,7 @@ func ListInstancesFrom(response *http.Response) ([]string, error) {
 	return instanceIDsIn(instances), nil
 }
 
-func LastOperationFrom(response *http.Response) (brokerapi.LastOperation, error) {
+func (r ResponseConverter) LastOperationFrom(response *http.Response) (brokerapi.LastOperation, error) {
 	var lastOperation brokerapi.LastOperation
 	err := decodeBodyInto(response, &lastOperation)
 	if err != nil {

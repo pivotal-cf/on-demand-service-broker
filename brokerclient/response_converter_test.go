@@ -4,7 +4,7 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 // Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
-package broker_response_test
+package brokerclient_test
 
 import (
 	"encoding/json"
@@ -17,11 +17,17 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
-	"github.com/pivotal-cf/on-demand-service-broker/brokerclient/broker_response"
+	"github.com/pivotal-cf/on-demand-service-broker/brokerclient"
 	"github.com/pivotal-cf/on-demand-service-broker/mgmtapi"
 )
 
-var _ = Describe("BrokerResponse", func() {
+var _ = Describe("Response Converter", func() {
+	var converter brokerclient.ResponseConverter
+
+	BeforeEach(func() {
+		converter = brokerclient.ResponseConverter{}
+	})
+
 	Context("list instances", func() {
 		It("returns service instance IDs", func() {
 			response := http.Response{
@@ -29,7 +35,7 @@ var _ = Describe("BrokerResponse", func() {
 				Body:       asBody(listInstancesJSON("instance1-guid", "instance2-guid")),
 			}
 
-			instances, err := broker_response.ListInstancesFrom(&response)
+			instances, err := converter.ListInstancesFrom(&response)
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(instances).To(ConsistOf("instance1-guid", "instance2-guid"))
@@ -42,7 +48,7 @@ var _ = Describe("BrokerResponse", func() {
 				Body:       asBody(""),
 			}
 
-			_, err := broker_response.ListInstancesFrom(&response)
+			_, err := converter.ListInstancesFrom(&response)
 
 			Expect(err).To(MatchError(
 				ContainSubstring("HTTP response status: 500 Internal Server Error"),
@@ -55,7 +61,7 @@ var _ = Describe("BrokerResponse", func() {
 				Body:       asBody("{ invalid json }"),
 			}
 
-			_, err := broker_response.ListInstancesFrom(&response)
+			_, err := converter.ListInstancesFrom(&response)
 
 			Expect(err).To(MatchError(
 				ContainSubstring("invalid character"),
@@ -74,7 +80,7 @@ var _ = Describe("BrokerResponse", func() {
 				Body:       asBody(lastOperationJSON(expectedOperation)),
 			}
 
-			lastOperation, err := broker_response.LastOperationFrom(&response)
+			lastOperation, err := converter.LastOperationFrom(&response)
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(lastOperation).To(Equal(expectedOperation))
@@ -87,7 +93,7 @@ var _ = Describe("BrokerResponse", func() {
 				Body:       asBody(""),
 			}
 
-			_, err := broker_response.LastOperationFrom(&response)
+			_, err := converter.LastOperationFrom(&response)
 
 			Expect(err).To(MatchError(
 				ContainSubstring("HTTP response status: 500 Internal Server Error"),
@@ -100,7 +106,7 @@ var _ = Describe("BrokerResponse", func() {
 				Body:       asBody("{ invalid json }"),
 			}
 
-			_, err := broker_response.LastOperationFrom(&response)
+			_, err := converter.LastOperationFrom(&response)
 
 			Expect(err).To(MatchError(ContainSubstring("invalid character")))
 		})
@@ -114,11 +120,11 @@ var _ = Describe("BrokerResponse", func() {
 					Body:       asBody(upgradeOperationJSON()),
 				}
 
-				result, err := broker_response.UpgradeOperationFrom(&response)
+				result, err := converter.UpgradeOperationFrom(&response)
 
 				Expect(err).NotTo(HaveOccurred())
 				Expect(result.Data.OperationType).To(Equal(broker.OperationTypeUpgrade))
-				Expect(result.Type).To(Equal(broker_response.ResultAccepted))
+				Expect(result.Type).To(Equal(brokerclient.ResultAccepted))
 			})
 
 			It("returns an error when the response body cannot be decoded", func() {
@@ -127,7 +133,7 @@ var _ = Describe("BrokerResponse", func() {
 					Body:       asBody("{ invalid json }"),
 				}
 
-				_, err := broker_response.UpgradeOperationFrom(&response)
+				_, err := converter.UpgradeOperationFrom(&response)
 
 				Expect(err).To(MatchError(SatisfyAll(
 					ContainSubstring("cannot parse upgrade response"),
@@ -143,10 +149,10 @@ var _ = Describe("BrokerResponse", func() {
 					Body:       asBody(""),
 				}
 
-				result, err := broker_response.UpgradeOperationFrom(&response)
+				result, err := converter.UpgradeOperationFrom(&response)
 
 				Expect(err).NotTo(HaveOccurred())
-				Expect(result.Type).To(Equal(broker_response.ResultNotFound))
+				Expect(result.Type).To(Equal(brokerclient.ResultNotFound))
 			})
 		})
 
@@ -157,10 +163,10 @@ var _ = Describe("BrokerResponse", func() {
 					Body:       asBody(""),
 				}
 
-				result, err := broker_response.UpgradeOperationFrom(&response)
+				result, err := converter.UpgradeOperationFrom(&response)
 
 				Expect(err).NotTo(HaveOccurred())
-				Expect(result.Type).To(Equal(broker_response.ResultOrphan))
+				Expect(result.Type).To(Equal(brokerclient.ResultOrphan))
 			})
 		})
 
@@ -171,10 +177,10 @@ var _ = Describe("BrokerResponse", func() {
 					Body:       asBody(""),
 				}
 
-				result, err := broker_response.UpgradeOperationFrom(&response)
+				result, err := converter.UpgradeOperationFrom(&response)
 
 				Expect(err).NotTo(HaveOccurred())
-				Expect(result.Type).To(Equal(broker_response.ResultOperationInProgress))
+				Expect(result.Type).To(Equal(brokerclient.ResultOperationInProgress))
 			})
 		})
 
@@ -185,7 +191,7 @@ var _ = Describe("BrokerResponse", func() {
 					Body:       asBody(upgradeErrorJSON("upgrade failed")),
 				}
 
-				_, err := broker_response.UpgradeOperationFrom(&response)
+				_, err := converter.UpgradeOperationFrom(&response)
 
 				Expect(err).To(MatchError(SatisfyAll(
 					ContainSubstring("unexpected status code: 500"),
@@ -199,7 +205,7 @@ var _ = Describe("BrokerResponse", func() {
 					Body:       asBody("{invalid json}"),
 				}
 
-				_, err := broker_response.UpgradeOperationFrom(&response)
+				_, err := converter.UpgradeOperationFrom(&response)
 
 				Expect(err).To(MatchError(SatisfyAll(
 					ContainSubstring("unexpected status code: 500"),
@@ -215,7 +221,7 @@ var _ = Describe("BrokerResponse", func() {
 					Body:       asBody("an unexpected error occurred"),
 				}
 
-				_, err := broker_response.UpgradeOperationFrom(&response)
+				_, err := converter.UpgradeOperationFrom(&response)
 
 				Expect(err).To(MatchError(SatisfyAll(
 					ContainSubstring("unexpected status code: 418"),

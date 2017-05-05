@@ -14,9 +14,9 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gbytes"
+	"github.com/pivotal-cf/on-demand-service-broker/brokerclient"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 	"github.com/pivotal-cf/on-demand-service-broker/upgrader"
-	"github.com/pivotal-cf/on-demand-service-broker/brokerclient/broker_response"
 )
 
 const (
@@ -44,7 +44,7 @@ var _ = Describe("LoggingListener", func() {
 
 	Describe("instance upgrade start result", func() {
 		var (
-			result broker_response.UpgradeOperationType
+			result brokerclient.UpgradeOperationType
 			buffer *Buffer
 		)
 
@@ -56,7 +56,7 @@ var _ = Describe("LoggingListener", func() {
 
 		Context("when accepted", func() {
 			BeforeEach(func() {
-				result = broker_response.ResultAccepted
+				result = brokerclient.ResultAccepted
 			})
 
 			It("Shows accepted upgrade", func() {
@@ -66,7 +66,7 @@ var _ = Describe("LoggingListener", func() {
 
 		Context("when not found", func() {
 			BeforeEach(func() {
-				result = broker_response.ResultNotFound
+				result = brokerclient.ResultNotFound
 			})
 
 			It("shows already deleted in CF", func() {
@@ -76,7 +76,7 @@ var _ = Describe("LoggingListener", func() {
 
 		Context("when orphaned", func() {
 			BeforeEach(func() {
-				result = broker_response.ResultOrphan
+				result = brokerclient.ResultOrphan
 			})
 
 			It("shows already deleted in CF", func() {
@@ -86,7 +86,7 @@ var _ = Describe("LoggingListener", func() {
 
 		Context("when conflict", func() {
 			BeforeEach(func() {
-				result = broker_response.ResultOperationInProgress
+				result = brokerclient.ResultOperationInProgress
 			})
 
 			It("shows already deleted in CF", func() {
@@ -96,7 +96,7 @@ var _ = Describe("LoggingListener", func() {
 
 		Context("when error", func() {
 			BeforeEach(func() {
-				result = broker_response.UpgradeOperationType(-1)
+				result = brokerclient.UpgradeOperationType(-1)
 			})
 
 			It("shows already deleted in CF", func() {

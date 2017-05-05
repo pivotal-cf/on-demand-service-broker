@@ -6,7 +6,7 @@ import (
 
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
-	"github.com/pivotal-cf/on-demand-service-broker/brokerclient/broker_response"
+	"github.com/pivotal-cf/on-demand-service-broker/brokerclient"
 	"github.com/pivotal-cf/on-demand-service-broker/upgrader"
 )
 
@@ -22,17 +22,17 @@ type FakeBrokerServices struct {
 		result1 []string
 		result2 error
 	}
-	UpgradeInstanceStub        func(instance string) (broker_response.UpgradeOperation, error)
+	UpgradeInstanceStub        func(instance string) (brokerclient.UpgradeOperation, error)
 	upgradeInstanceMutex       sync.RWMutex
 	upgradeInstanceArgsForCall []struct {
 		instance string
 	}
 	upgradeInstanceReturns struct {
-		result1 broker_response.UpgradeOperation
+		result1 brokerclient.UpgradeOperation
 		result2 error
 	}
 	upgradeInstanceReturnsOnCall map[int]struct {
-		result1 broker_response.UpgradeOperation
+		result1 brokerclient.UpgradeOperation
 		result2 error
 	}
 	LastOperationStub        func(instance string, operationData broker.OperationData) (brokerapi.LastOperation, error)
@@ -96,7 +96,7 @@ func (fake *FakeBrokerServices) InstancesReturnsOnCall(i int, result1 []string, 
 	}{result1, result2}
 }
 
-func (fake *FakeBrokerServices) UpgradeInstance(instance string) (broker_response.UpgradeOperation, error) {
+func (fake *FakeBrokerServices) UpgradeInstance(instance string) (brokerclient.UpgradeOperation, error) {
 	fake.upgradeInstanceMutex.Lock()
 	ret, specificReturn := fake.upgradeInstanceReturnsOnCall[len(fake.upgradeInstanceArgsForCall)]
 	fake.upgradeInstanceArgsForCall = append(fake.upgradeInstanceArgsForCall, struct {
@@ -125,24 +125,24 @@ func (fake *FakeBrokerServices) UpgradeInstanceArgsForCall(i int) string {
 	return fake.upgradeInstanceArgsForCall[i].instance
 }
 
-func (fake *FakeBrokerServices) UpgradeInstanceReturns(result1 broker_response.UpgradeOperation, result2 error) {
+func (fake *FakeBrokerServices) UpgradeInstanceReturns(result1 brokerclient.UpgradeOperation, result2 error) {
 	fake.UpgradeInstanceStub = nil
 	fake.upgradeInstanceReturns = struct {
-		result1 broker_response.UpgradeOperation
+		result1 brokerclient.UpgradeOperation
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeBrokerServices) UpgradeInstanceReturnsOnCall(i int, result1 broker_response.UpgradeOperation, result2 error) {
+func (fake *FakeBrokerServices) UpgradeInstanceReturnsOnCall(i int, result1 brokerclient.UpgradeOperation, result2 error) {
 	fake.UpgradeInstanceStub = nil
 	if fake.upgradeInstanceReturnsOnCall == nil {
 		fake.upgradeInstanceReturnsOnCall = make(map[int]struct {
-			result1 broker_response.UpgradeOperation
+			result1 brokerclient.UpgradeOperation
 			result2 error
 		})
 	}
 	fake.upgradeInstanceReturnsOnCall[i] = struct {
-		result1 broker_response.UpgradeOperation
+		result1 brokerclient.UpgradeOperation
 		result2 error
 	}{result1, result2}
 }
