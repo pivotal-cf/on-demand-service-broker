@@ -7,70 +7,46 @@
 package brokerclient_test
 
 import (
-	"net"
-	"time"
+	"encoding/base64"
+	"errors"
+	"io/ioutil"
+	"net/http"
+	"strings"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/brokerclient"
-	"github.com/pivotal-cf/on-demand-service-broker/mockbroker"
-	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
 )
 
 var _ = Describe("Broker Services HTTP Client", func() {
 	const (
+		brokerURL           = "http://example.com:8080"
 		brokerUsername      = "username"
 		brokerPassword      = "password"
 		serviceInstanceGUID = "my-service-instance"
 		invalidURL          = "Q#$%#$%^&&*$%^#$FGRTYW${T:WED:AWSD)E@#PE{:QS:{QLWD"
-		clientTimeout       = 1 * time.Second
 	)
 
 	var (
-		odb    *mockhttp.Server
-		client brokerclient.BrokerServicesHTTPClient
+		client     brokerclient.BrokerServices
+		httpClient *fakeClient
 	)
 
 	BeforeEach(func() {
-		odb = mockbroker.New()
-		odb.ExpectedBasicAuth(brokerUsername, brokerPassword)
-		client = brokerclient.NewBrokerServicesHTTPClient(brokerUsername, brokerPassword, odb.URL, clientTimeout)
-	})
-
-	Describe("client timeout", func() {
-		AfterEach(func() {
-			odb.Close()
-		})
-
-		Context("when the broker does not respond", func() {
-			It("returns a timeout error", func() {
-				odb.VerifyAndMock(
-					mockbroker.ListInstances().DelayResponse(1 * time.Millisecond),
-				)
-				client = brokerclient.NewBrokerServicesHTTPClient(brokerUsername, brokerPassword, odb.URL, 1*time.Millisecond)
-
-				_, err := client.Instances()
-
-				Expect(err).To(HaveOccurred())
-				netErr, ok := err.(net.Error)
-				Expect(ok).To(BeTrue(), "is not a net.Error")
-				Expect(netErr.Timeout()).To(BeTrue())
-			})
-		})
+		httpClient = new(fakeClient)
+		httpClient.ExpectsBasicAuth(brokerUsername, brokerPassword)
+		client = brokerclient.NewBrokerServices(brokerUsername, brokerPassword, brokerURL, httpClient)
 	})
 
 	Describe("Instances", func() {
-		AfterEach(func() {
-			odb.VerifyMocks()
-			odb.Close()
+		BeforeEach(func() {
+			httpClient.ExpectsRequest("GET", brokerURL, "/mgmt/service_instances")
 		})
 
 		It("returns a list of instances", func() {
-			odb.VerifyAndMock(
-				mockbroker.ListInstances().RespondsOKWith(`[{"instance_id": "foo"}, {"instance_id": "bar"}]`),
-			)
+			httpClient.DoReturnsResponse(http.StatusOK, `[{"instance_id": "foo"}, {"instance_id": "bar"}]`)
 
 			instances, err := client.Instances()
 
@@ -80,7 +56,7 @@ var _ = Describe("Broker Services HTTP Client", func() {
 
 		Context("when the url is invalid", func() {
 			It("returns an error", func() {
-				client := brokerclient.NewBrokerServicesHTTPClient(brokerUsername, brokerPassword, invalidURL, clientTimeout)
+				client := brokerclient.NewBrokerServices(brokerUsername, brokerPassword, invalidURL, httpClient)
 
 				_, err := client.Instances()
 
@@ -90,7 +66,7 @@ var _ = Describe("Broker Services HTTP Client", func() {
 
 		Context("when the request fails", func() {
 			It("returns an error", func() {
-				odb.Close()
+				httpClient.DoReturnsError(errors.New("connection error"))
 
 				_, err := client.Instances()
 
@@ -100,9 +76,7 @@ var _ = Describe("Broker Services HTTP Client", func() {
 
 		Context("when the broker response is unrecognised", func() {
 			It("returns an error", func() {
-				odb.VerifyAndMock(
-					mockbroker.ListInstances().RespondsOKWith(`{"not": "a list"}`),
-				)
+				httpClient.DoReturnsResponse(http.StatusOK, `{"not": "a list"}`)
 
 				_, err := client.Instances()
 
@@ -112,15 +86,12 @@ var _ = Describe("Broker Services HTTP Client", func() {
 	})
 
 	Describe("UpgradeInstance", func() {
-		AfterEach(func() {
-			odb.VerifyMocks()
-			odb.Close()
+		BeforeEach(func() {
+			httpClient.ExpectsRequest("PATCH", brokerURL, "/mgmt/service_instances/"+serviceInstanceGUID)
 		})
 
 		It("returns an upgrade operation", func() {
-			odb.VerifyAndMock(
-				mockbroker.UpgradeInstance(serviceInstanceGUID).RespondsNotFoundWith(""),
-			)
+			httpClient.DoReturnsResponse(http.StatusNotFound, "")
 
 			upgradeOperation, err := client.UpgradeInstance(serviceInstanceGUID)
 
@@ -130,7 +101,7 @@ var _ = Describe("Broker Services HTTP Client", func() {
 
 		Context("when the url is invalid", func() {
 			It("returns an error", func() {
-				client := brokerclient.NewBrokerServicesHTTPClient(brokerUsername, brokerPassword, invalidURL, clientTimeout)
+				client := brokerclient.NewBrokerServices(brokerUsername, brokerPassword, invalidURL, httpClient)
 
 				_, err := client.UpgradeInstance(serviceInstanceGUID)
 
@@ -140,7 +111,7 @@ var _ = Describe("Broker Services HTTP Client", func() {
 
 		Context("when the request fails", func() {
 			It("returns an error", func() {
-				odb.Close()
+				httpClient.DoReturnsError(errors.New("connection error"))
 
 				_, err := client.UpgradeInstance(serviceInstanceGUID)
 
@@ -150,9 +121,7 @@ var _ = Describe("Broker Services HTTP Client", func() {
 
 		Context("when the broker responds with an error", func() {
 			It("returns an error", func() {
-				odb.VerifyAndMock(
-					mockbroker.UpgradeInstance(serviceInstanceGUID).RespondsInternalServerErrorWith("error upgrading instance"),
-				)
+				httpClient.DoReturnsResponse(http.StatusInternalServerError, "error upgrading instance")
 
 				_, err := client.UpgradeInstance(serviceInstanceGUID)
 
@@ -162,9 +131,8 @@ var _ = Describe("Broker Services HTTP Client", func() {
 	})
 
 	Describe("LastOperation", func() {
-		AfterEach(func() {
-			odb.VerifyMocks()
-			odb.Close()
+		BeforeEach(func() {
+			httpClient.ExpectsRequest("GET", brokerURL, "/v2/service_instances/"+serviceInstanceGUID+"/last_operation")
 		})
 
 		It("returns a last operation", func() {
@@ -175,10 +143,8 @@ var _ = Describe("Broker Services HTTP Client", func() {
 				PlanID:        "plan-id",
 			}
 			expectedOperationDataJSON := `{"BoshTaskID":1,"BoshContextID":"context-id","OperationType":"upgrade","PlanID":"plan-id"}`
-			odb.VerifyAndMock(
-				mockbroker.LastOperation(serviceInstanceGUID, expectedOperationDataJSON).
-					RespondsOKWith(`{"state":"in progress","description":"upgrade in progress"}`),
-			)
+			httpClient.DoReturnsResponse(http.StatusOK, `{"state":"in progress","description":"upgrade in progress"}`)
+			httpClient.ExpectsRequestWithQueryParam("GET", brokerURL, "/v2/service_instances/"+serviceInstanceGUID+"/last_operation", "operation", expectedOperationDataJSON)
 
 			lastOperation, err := client.LastOperation(serviceInstanceGUID, operationData)
 
@@ -190,7 +156,7 @@ var _ = Describe("Broker Services HTTP Client", func() {
 
 		Context("when the url is invalid", func() {
 			It("returns an error", func() {
-				client := brokerclient.NewBrokerServicesHTTPClient(brokerUsername, brokerPassword, invalidURL, clientTimeout)
+				client := brokerclient.NewBrokerServices(brokerUsername, brokerPassword, invalidURL, httpClient)
 
 				_, err := client.LastOperation(serviceInstanceGUID, broker.OperationData{})
 
@@ -200,7 +166,7 @@ var _ = Describe("Broker Services HTTP Client", func() {
 
 		Context("when the request fails", func() {
 			It("returns an error", func() {
-				odb.Close()
+				httpClient.DoReturnsError(errors.New("connection error"))
 
 				_, err := client.LastOperation(serviceInstanceGUID, broker.OperationData{})
 
@@ -210,11 +176,7 @@ var _ = Describe("Broker Services HTTP Client", func() {
 
 		Context("when the broker response is unrecognised", func() {
 			It("returns an error", func() {
-				expectedOperationDataJSON := `{"BoshTaskID":0,"OperationType":""}`
-				odb.VerifyAndMock(
-					mockbroker.LastOperation(serviceInstanceGUID, expectedOperationDataJSON).
-						RespondsOKWith("invalid json"),
-				)
+				httpClient.DoReturnsResponse(http.StatusOK, "invalid json")
 
 				_, err := client.LastOperation(serviceInstanceGUID, broker.OperationData{})
 
@@ -223,3 +185,50 @@ var _ = Describe("Broker Services HTTP Client", func() {
 		})
 	})
 })
+
+type fakeClient struct {
+	response                    *http.Response
+	err                         error
+	expectedAuthorizationHeader string
+	expectedMethod              string
+	expectedURL                 string
+	expectedQueryParam          string
+	expectedQueryValue          string
+}
+
+func (f *fakeClient) ExpectsBasicAuth(username, password string) {
+	rawBasicAuth := username + ":" + password
+	f.expectedAuthorizationHeader = "Basic " + base64.StdEncoding.EncodeToString([]byte(rawBasicAuth))
+}
+
+func (f *fakeClient) ExpectsRequest(method, baseURL, path string) {
+	f.expectedMethod = method
+	f.expectedURL = baseURL + path
+}
+
+func (f *fakeClient) ExpectsRequestWithQueryParam(method, baseURL, path, param, value string) {
+	f.ExpectsRequest(method, baseURL, path)
+	f.expectedQueryParam = param
+	f.expectedQueryValue = value
+}
+
+func (f *fakeClient) Do(request *http.Request) (*http.Response, error) {
+	Expect(request.Header.Get("Authorization")).To(Equal(f.expectedAuthorizationHeader))
+	Expect(request.Method).To(Equal(f.expectedMethod))
+	Expect(strings.HasPrefix(request.URL.String(), f.expectedURL)).To(BeTrue())
+	if f.expectedQueryParam != "" {
+		Expect(request.URL.Query().Get(f.expectedQueryParam)).To(Equal(f.expectedQueryValue))
+	}
+	return f.response, f.err
+}
+
+func (f *fakeClient) DoReturnsResponse(statusCode int, body string) {
+	f.response = &http.Response{
+		StatusCode: statusCode,
+		Body:       ioutil.NopCloser(strings.NewReader(body)),
+	}
+}
+
+func (f *fakeClient) DoReturnsError(err error) {
+	f.err = err
+}
