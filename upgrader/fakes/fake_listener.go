@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/pivotal-cf/on-demand-service-broker/brokerclient/broker_response"
 	"github.com/pivotal-cf/on-demand-service-broker/upgrader"
-	"github.com/pivotal-cf/on-demand-service-broker/upgrader/broker_response"
 )
 
 type FakeListener struct {

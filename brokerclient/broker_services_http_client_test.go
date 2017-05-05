@@ -4,7 +4,7 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 // Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
-package upgrader_test
+package brokerclient_test
 
 import (
 	"net"
@@ -14,10 +14,10 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
+	"github.com/pivotal-cf/on-demand-service-broker/brokerclient"
+	"github.com/pivotal-cf/on-demand-service-broker/brokerclient/broker_response"
 	"github.com/pivotal-cf/on-demand-service-broker/mockbroker"
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
-	"github.com/pivotal-cf/on-demand-service-broker/upgrader"
-	"github.com/pivotal-cf/on-demand-service-broker/upgrader/broker_response"
 )
 
 var _ = Describe("Broker Services HTTP Client", func() {
@@ -31,13 +31,13 @@ var _ = Describe("Broker Services HTTP Client", func() {
 
 	var (
 		odb    *mockhttp.Server
-		client upgrader.BrokerServicesHTTPClient
+		client brokerclient.BrokerServicesHTTPClient
 	)
 
 	BeforeEach(func() {
 		odb = mockbroker.New()
 		odb.ExpectedBasicAuth(brokerUsername, brokerPassword)
-		client = upgrader.NewBrokerServicesHTTPClient(brokerUsername, brokerPassword, odb.URL, clientTimeout)
+		client = brokerclient.NewBrokerServicesHTTPClient(brokerUsername, brokerPassword, odb.URL, clientTimeout)
 	})
 
 	Describe("client timeout", func() {
@@ -50,7 +50,7 @@ var _ = Describe("Broker Services HTTP Client", func() {
 				odb.VerifyAndMock(
 					mockbroker.ListInstances().DelayResponse(1 * time.Millisecond),
 				)
-				client = upgrader.NewBrokerServicesHTTPClient(brokerUsername, brokerPassword, odb.URL, 1*time.Millisecond)
+				client = brokerclient.NewBrokerServicesHTTPClient(brokerUsername, brokerPassword, odb.URL, 1*time.Millisecond)
 
 				_, err := client.Instances()
 
@@ -81,7 +81,7 @@ var _ = Describe("Broker Services HTTP Client", func() {
 
 		Context("when the url is invalid", func() {
 			It("returns an error", func() {
-				client := upgrader.NewBrokerServicesHTTPClient(brokerUsername, brokerPassword, invalidURL, clientTimeout)
+				client := brokerclient.NewBrokerServicesHTTPClient(brokerUsername, brokerPassword, invalidURL, clientTimeout)
 
 				_, err := client.Instances()
 
@@ -131,7 +131,7 @@ var _ = Describe("Broker Services HTTP Client", func() {
 
 		Context("when the url is invalid", func() {
 			It("returns an error", func() {
-				client := upgrader.NewBrokerServicesHTTPClient(brokerUsername, brokerPassword, invalidURL, clientTimeout)
+				client := brokerclient.NewBrokerServicesHTTPClient(brokerUsername, brokerPassword, invalidURL, clientTimeout)
 
 				_, err := client.UpgradeInstance(serviceInstanceGUID)
 
@@ -191,7 +191,7 @@ var _ = Describe("Broker Services HTTP Client", func() {
 
 		Context("when the url is invalid", func() {
 			It("returns an error", func() {
-				client := upgrader.NewBrokerServicesHTTPClient(brokerUsername, brokerPassword, invalidURL, clientTimeout)
+				client := brokerclient.NewBrokerServicesHTTPClient(brokerUsername, brokerPassword, invalidURL, clientTimeout)
 
 				_, err := client.LastOperation(serviceInstanceGUID, broker.OperationData{})
 

@@ -11,6 +11,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/pivotal-cf/on-demand-service-broker/brokerclient"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 	"github.com/pivotal-cf/on-demand-service-broker/upgrader"
 )
@@ -34,7 +35,7 @@ func main() {
 	}
 
 	listener := upgrader.NewLoggingListener(logger)
-	brokerServices := upgrader.NewBrokerServicesHTTPClient(*brokerUsername, *brokerPassword, *brokerUrl, 30*time.Second)
+	brokerServices := brokerclient.NewBrokerServicesHTTPClient(*brokerUsername, *brokerPassword, *brokerUrl, 30*time.Second)
 	upgradeTool := upgrader.New(brokerServices, *pollingInterval, listener)
 
 	err := upgradeTool.Upgrade()

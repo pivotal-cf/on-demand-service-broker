@@ -4,7 +4,7 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 // Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
-package upgrader
+package brokerclient
 
 import (
 	"encoding/json"
@@ -16,7 +16,7 @@ import (
 	"github.com/craigfurman/herottp"
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
-	"github.com/pivotal-cf/on-demand-service-broker/upgrader/broker_response"
+	"github.com/pivotal-cf/on-demand-service-broker/brokerclient/broker_response"
 )
 
 type BrokerServicesHTTPClient struct {

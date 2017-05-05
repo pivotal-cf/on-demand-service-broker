@@ -12,7 +12,7 @@ import (
 
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
-	"github.com/pivotal-cf/on-demand-service-broker/upgrader/broker_response"
+	"github.com/pivotal-cf/on-demand-service-broker/brokerclient/broker_response"
 )
 
 //go:generate counterfeiter -o fakes/fake_listener.go . Listener

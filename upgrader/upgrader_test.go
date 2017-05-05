@@ -15,8 +15,8 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
+	"github.com/pivotal-cf/on-demand-service-broker/brokerclient/broker_response"
 	"github.com/pivotal-cf/on-demand-service-broker/upgrader"
-	"github.com/pivotal-cf/on-demand-service-broker/upgrader/broker_response"
 	"github.com/pivotal-cf/on-demand-service-broker/upgrader/fakes"
 )
 
