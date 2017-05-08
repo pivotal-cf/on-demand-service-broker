@@ -15,7 +15,7 @@ import (
 
 func TestAdapterClient(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "AdapterClient Suite")
+	RunSpecs(t, "Adapter Client Suite")
 }
 
 func intPtr(i int) *int {

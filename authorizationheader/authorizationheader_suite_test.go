@@ -14,9 +14,9 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestAuthorizationheader(t *testing.T) {
+func TestAuthorizationHeader(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Authorizationheader Suite")
+	RunSpecs(t, "Authorization Header Suite")
 }
 
 var logger *log.Logger

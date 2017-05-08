@@ -14,7 +14,7 @@ import (
 	"net/url"
 )
 
-var _ = Describe("BasicAuthHTTPClient", func() {
+var _ = Describe("Basic Auth HTTP Client", func() {
 	const (
 		username    = "username"
 		password    = "password"

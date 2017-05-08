@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-var _ = Describe("DefaultHTTPClient", func() {
+var _ = Describe("Default HTTP Client", func() {
 	It("has a client timeout", func() {
 		client := network.NewDefaultHTTPClient()
 		Expect(client.Timeout).To(Equal(30 * time.Second))

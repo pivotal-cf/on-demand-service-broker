@@ -22,7 +22,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 )
 
-var _ = Describe("deleter", func() {
+var _ = Describe("Deleter", func() {
 	const (
 		serviceUniqueID              = "some-unique-service-id"
 		serviceInstance1GUID         = "service-instance-1-guid"

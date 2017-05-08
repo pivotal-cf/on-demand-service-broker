@@ -192,7 +192,7 @@ var _ = AfterEach(func() {
 
 func TestIntegrationTests(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "IntegrationTests Suite")
+	RunSpecs(t, "Integration Tests Suite")
 }
 
 func startBrokerWithPassingStartupChecks(

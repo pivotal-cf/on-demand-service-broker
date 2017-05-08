@@ -16,7 +16,7 @@ import (
 	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
 
-var _ = Describe("Adapter client", func() {
+var _ = Describe("Adapter Client", func() {
 
 	DescribeTable("ErrorForExitCode",
 		func(code int, msg string, matchErr types.GomegaMatcher, matchMsg types.GomegaMatcher) {

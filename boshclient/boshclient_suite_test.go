@@ -60,5 +60,5 @@ var _ = JustBeforeEach(func() {
 
 func TestBoshclient(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Boshclient Suite")
+	RunSpecs(t, "Bosh Client Suite")
 }

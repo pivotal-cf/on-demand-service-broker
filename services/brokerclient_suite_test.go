@@ -9,5 +9,5 @@ import (
 
 func TestBrokerclient(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Broker Client Suite")
+	RunSpecs(t, "Broker Services Suite")
 }

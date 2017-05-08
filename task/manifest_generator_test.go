@@ -18,7 +18,7 @@ import (
 	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
 
-var _ = Describe("ManifestGenerator", func() {
+var _ = Describe("Manifest Generator", func() {
 	Describe("GenerateManifest", func() {
 		var (
 			mg              ManifestGenerator

@@ -12,7 +12,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
 )
 
-var _ = Describe("BasicAuth Header Builder", func() {
+var _ = Describe("Basic Auth Header Builder", func() {
 	It("builds basic auth header", func() {
 		authBuilder := authorizationheader.NewBasicAuthHeaderBuilder("username", "password")
 		authHeader, err := authBuilder.Build(logger)

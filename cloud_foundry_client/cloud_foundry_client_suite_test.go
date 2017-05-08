@@ -15,5 +15,5 @@ import (
 
 func TestCloudFoundryClient(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "CloudFoundryClient Suite")
+	RunSpecs(t, "Cloud Foundry Client Suite")
 }

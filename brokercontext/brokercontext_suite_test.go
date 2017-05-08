@@ -15,5 +15,5 @@ import (
 
 func TestBrokerContext(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "BrokerContext Suite")
+	RunSpecs(t, "Broker Context Suite")
 }

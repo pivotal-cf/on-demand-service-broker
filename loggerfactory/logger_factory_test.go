@@ -17,7 +17,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 )
 
-var _ = Describe("LoggerFactory", func() {
+var _ = Describe("Logger Factory", func() {
 	It("defines default flags", func() {
 		expectedFlags := log.Ldate | log.Ltime | log.Lmicroseconds | log.LUTC
 		Expect(loggerfactory.Flags).To(Equal(expectedFlags))

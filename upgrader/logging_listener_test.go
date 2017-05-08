@@ -23,7 +23,7 @@ const (
 	ten_seconds = time.Duration(10) * time.Second
 )
 
-var _ = Describe("LoggingListener", func() {
+var _ = Describe("Logging Listener", func() {
 	It("Shows starting message", func() {
 		Expect(logResultsFrom(func(listener upgrader.Listener) { listener.Starting() })).
 			To(Say("STARTING UPGRADES"))

@@ -15,5 +15,5 @@ import (
 
 func TestLogger(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "LoggerFactory Suite")
+	RunSpecs(t, "Logger Factory Suite")
 }
