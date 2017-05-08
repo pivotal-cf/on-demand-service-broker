@@ -116,7 +116,6 @@ const (
 var (
 	brokerBinPath             string
 	serviceAdapterPath        string
-	upgradeToolPath           string
 	deleteToolPath            string
 	collectServiceMetricsPath string
 	brokerPostStartPath       string
@@ -126,7 +125,6 @@ var (
 type binPaths struct {
 	Broker          string
 	Adapter         string
-	Upgrader        string
 	Deleter         string
 	BrokerMetrics   string
 	BrokerPostStart string
@@ -138,9 +136,6 @@ var _ = SynchronizedBeforeSuite(
 		Expect(err).NotTo(HaveOccurred())
 
 		adapter, err := gexec.Build("github.com/pivotal-cf/on-demand-service-broker/integration_tests/mock/adapter")
-		Expect(err).NotTo(HaveOccurred())
-
-		upgrader, err := gexec.Build("github.com/pivotal-cf/on-demand-service-broker/cmd/upgrade-all-service-instances")
 		Expect(err).NotTo(HaveOccurred())
 
 		deleter, err := gexec.Build("github.com/pivotal-cf/on-demand-service-broker/cmd/delete-all-service-instances")
@@ -155,7 +150,6 @@ var _ = SynchronizedBeforeSuite(
 		compiledBinaries, err := json.Marshal(binPaths{
 			Broker:          broker,
 			Adapter:         adapter,
-			Upgrader:        upgrader,
 			Deleter:         deleter,
 			BrokerMetrics:   brokerMetrics,
 			BrokerPostStart: brokerPostStart,
@@ -169,7 +163,6 @@ var _ = SynchronizedBeforeSuite(
 		Expect(json.Unmarshal(fromFirstNode, &compiledBinaries)).To(Succeed())
 		brokerBinPath = compiledBinaries.Broker
 		serviceAdapterPath = compiledBinaries.Adapter
-		upgradeToolPath = compiledBinaries.Upgrader
 		deleteToolPath = compiledBinaries.Deleter
 		collectServiceMetricsPath = compiledBinaries.BrokerMetrics
 		brokerPostStartPath = compiledBinaries.BrokerPostStart
