@@ -7,7 +7,6 @@
 package services_test
 
 import (
-	"encoding/base64"
 	"errors"
 	"io/ioutil"
 	"net/http"
@@ -18,57 +17,39 @@ import (
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/services"
+	"github.com/pivotal-cf/on-demand-service-broker/services/fakes"
 )
 
-var _ = Describe("Broker Services HTTP Client", func() {
-	const (
-		brokerURL           = "http://example.com:8080"
-		brokerUsername      = "username"
-		brokerPassword      = "password"
-		serviceInstanceGUID = "my-service-instance"
-		invalidURL          = "Q#$%#$%^&&*$%^#$FGRTYW${T:WED:AWSD)E@#PE{:QS:{QLWD"
-	)
+var _ = Describe("Broker Services", func() {
+	const serviceInstanceGUID = "my-service-instance"
 
 	var (
-		client     services.BrokerServices
-		httpClient *fakeClient
+		brokerServices services.BrokerServices
+		client         *fakes.FakeClient
 	)
 
 	BeforeEach(func() {
-		httpClient = new(fakeClient)
-		httpClient.ExpectsBasicAuth(brokerUsername, brokerPassword)
-		client = services.NewBrokerServices(brokerUsername, brokerPassword, brokerURL, httpClient)
+		client = new(fakes.FakeClient)
+		brokerServices = services.NewBrokerServices(client)
 	})
 
 	Describe("Instances", func() {
-		BeforeEach(func() {
-			httpClient.ExpectsRequest("GET", brokerURL, "/mgmt/service_instances")
-		})
-
 		It("returns a list of instances", func() {
-			httpClient.DoReturnsResponse(http.StatusOK, `[{"instance_id": "foo"}, {"instance_id": "bar"}]`)
+			client.GetReturns(response(http.StatusOK, `[{"instance_id": "foo"}, {"instance_id": "bar"}]`), nil)
 
-			instances, err := client.Instances()
+			instances, err := brokerServices.Instances()
 
 			Expect(err).NotTo(HaveOccurred())
+			actualPath, _ := client.GetArgsForCall(0)
+			Expect(actualPath).To(Equal("/mgmt/service_instances"))
 			Expect(instances).To(ConsistOf("foo", "bar"))
-		})
-
-		Context("when the url is invalid", func() {
-			It("returns an error", func() {
-				client := services.NewBrokerServices(brokerUsername, brokerPassword, invalidURL, httpClient)
-
-				_, err := client.Instances()
-
-				Expect(err).To(HaveOccurred())
-			})
 		})
 
 		Context("when the request fails", func() {
 			It("returns an error", func() {
-				httpClient.DoReturnsError(errors.New("connection error"))
+				client.GetReturns(nil, errors.New("connection error"))
 
-				_, err := client.Instances()
+				_, err := brokerServices.Instances()
 
 				Expect(err).To(HaveOccurred())
 			})
@@ -76,9 +57,9 @@ var _ = Describe("Broker Services HTTP Client", func() {
 
 		Context("when the broker response is unrecognised", func() {
 			It("returns an error", func() {
-				httpClient.DoReturnsResponse(http.StatusOK, `{"not": "a list"}`)
+				client.GetReturns(response(http.StatusOK, `{"not": "a list"}`), nil)
 
-				_, err := client.Instances()
+				_, err := brokerServices.Instances()
 
 				Expect(err).To(HaveOccurred())
 			})
@@ -86,34 +67,22 @@ var _ = Describe("Broker Services HTTP Client", func() {
 	})
 
 	Describe("UpgradeInstance", func() {
-		BeforeEach(func() {
-			httpClient.ExpectsRequest("PATCH", brokerURL, "/mgmt/service_instances/"+serviceInstanceGUID)
-		})
-
 		It("returns an upgrade operation", func() {
-			httpClient.DoReturnsResponse(http.StatusNotFound, "")
+			client.PatchReturns(response(http.StatusNotFound, ""), nil)
 
-			upgradeOperation, err := client.UpgradeInstance(serviceInstanceGUID)
+			upgradeOperation, err := brokerServices.UpgradeInstance(serviceInstanceGUID)
 
 			Expect(err).NotTo(HaveOccurred())
+			actualPath := client.PatchArgsForCall(0)
+			Expect(actualPath).To(Equal("/mgmt/service_instances/" + serviceInstanceGUID))
 			Expect(upgradeOperation.Type).To(Equal(services.InstanceNotFound))
-		})
-
-		Context("when the url is invalid", func() {
-			It("returns an error", func() {
-				client := services.NewBrokerServices(brokerUsername, brokerPassword, invalidURL, httpClient)
-
-				_, err := client.UpgradeInstance(serviceInstanceGUID)
-
-				Expect(err).To(HaveOccurred())
-			})
 		})
 
 		Context("when the request fails", func() {
 			It("returns an error", func() {
-				httpClient.DoReturnsError(errors.New("connection error"))
+				client.PatchReturns(nil, errors.New("connection error"))
 
-				_, err := client.UpgradeInstance(serviceInstanceGUID)
+				_, err := brokerServices.UpgradeInstance(serviceInstanceGUID)
 
 				Expect(err).To(HaveOccurred())
 			})
@@ -121,9 +90,9 @@ var _ = Describe("Broker Services HTTP Client", func() {
 
 		Context("when the broker responds with an error", func() {
 			It("returns an error", func() {
-				httpClient.DoReturnsResponse(http.StatusInternalServerError, "error upgrading instance")
+				client.PatchReturns(response(http.StatusInternalServerError, "error upgrading instance"), nil)
 
-				_, err := client.UpgradeInstance(serviceInstanceGUID)
+				_, err := brokerServices.UpgradeInstance(serviceInstanceGUID)
 
 				Expect(err).To(HaveOccurred())
 			})
@@ -131,10 +100,6 @@ var _ = Describe("Broker Services HTTP Client", func() {
 	})
 
 	Describe("LastOperation", func() {
-		BeforeEach(func() {
-			httpClient.ExpectsRequest("GET", brokerURL, "/v2/service_instances/"+serviceInstanceGUID+"/last_operation")
-		})
-
 		It("returns a last operation", func() {
 			operationData := broker.OperationData{
 				BoshTaskID:    1,
@@ -142,33 +107,26 @@ var _ = Describe("Broker Services HTTP Client", func() {
 				OperationType: broker.OperationTypeUpgrade,
 				PlanID:        "plan-id",
 			}
-			expectedOperationDataJSON := `{"BoshTaskID":1,"BoshContextID":"context-id","OperationType":"upgrade","PlanID":"plan-id"}`
-			httpClient.DoReturnsResponse(http.StatusOK, `{"state":"in progress","description":"upgrade in progress"}`)
-			httpClient.ExpectsRequestWithQueryParam("GET", brokerURL, "/v2/service_instances/"+serviceInstanceGUID+"/last_operation", "operation", expectedOperationDataJSON)
+			client.GetReturns(response(http.StatusOK, `{"state":"in progress","description":"upgrade in progress"}`), nil)
 
-			lastOperation, err := client.LastOperation(serviceInstanceGUID, operationData)
+			lastOperation, err := brokerServices.LastOperation(serviceInstanceGUID, operationData)
 
 			Expect(err).NotTo(HaveOccurred())
+			actualPath, actualQuery := client.GetArgsForCall(0)
+			Expect(actualPath).To(Equal("/v2/service_instances/" + serviceInstanceGUID + "/last_operation"))
+			Expect(actualQuery).To(Equal(map[string]string{
+				"operation": `{"BoshTaskID":1,"BoshContextID":"context-id","OperationType":"upgrade","PlanID":"plan-id"}`,
+			}))
 			Expect(lastOperation).To(Equal(
 				brokerapi.LastOperation{State: brokerapi.InProgress, Description: "upgrade in progress"}),
 			)
 		})
 
-		Context("when the url is invalid", func() {
-			It("returns an error", func() {
-				client := services.NewBrokerServices(brokerUsername, brokerPassword, invalidURL, httpClient)
-
-				_, err := client.LastOperation(serviceInstanceGUID, broker.OperationData{})
-
-				Expect(err).To(HaveOccurred())
-			})
-		})
-
 		Context("when the request fails", func() {
 			It("returns an error", func() {
-				httpClient.DoReturnsError(errors.New("connection error"))
+				client.GetReturns(nil, errors.New("connection error"))
 
-				_, err := client.LastOperation(serviceInstanceGUID, broker.OperationData{})
+				_, err := brokerServices.LastOperation(serviceInstanceGUID, broker.OperationData{})
 
 				Expect(err).To(HaveOccurred())
 			})
@@ -176,9 +134,9 @@ var _ = Describe("Broker Services HTTP Client", func() {
 
 		Context("when the broker response is unrecognised", func() {
 			It("returns an error", func() {
-				httpClient.DoReturnsResponse(http.StatusOK, "invalid json")
+				client.GetReturns(response(http.StatusOK, "invalid json"), nil)
 
-				_, err := client.LastOperation(serviceInstanceGUID, broker.OperationData{})
+				_, err := brokerServices.LastOperation(serviceInstanceGUID, broker.OperationData{})
 
 				Expect(err).To(HaveOccurred())
 			})
@@ -186,49 +144,9 @@ var _ = Describe("Broker Services HTTP Client", func() {
 	})
 })
 
-type fakeClient struct {
-	response                    *http.Response
-	err                         error
-	expectedAuthorizationHeader string
-	expectedMethod              string
-	expectedURL                 string
-	expectedQueryParam          string
-	expectedQueryValue          string
-}
-
-func (f *fakeClient) ExpectsBasicAuth(username, password string) {
-	rawBasicAuth := username + ":" + password
-	f.expectedAuthorizationHeader = "Basic " + base64.StdEncoding.EncodeToString([]byte(rawBasicAuth))
-}
-
-func (f *fakeClient) ExpectsRequest(method, baseURL, path string) {
-	f.expectedMethod = method
-	f.expectedURL = baseURL + path
-}
-
-func (f *fakeClient) ExpectsRequestWithQueryParam(method, baseURL, path, param, value string) {
-	f.ExpectsRequest(method, baseURL, path)
-	f.expectedQueryParam = param
-	f.expectedQueryValue = value
-}
-
-func (f *fakeClient) Do(request *http.Request) (*http.Response, error) {
-	Expect(request.Header.Get("Authorization")).To(Equal(f.expectedAuthorizationHeader))
-	Expect(request.Method).To(Equal(f.expectedMethod))
-	Expect(strings.HasPrefix(request.URL.String(), f.expectedURL)).To(BeTrue())
-	if f.expectedQueryParam != "" {
-		Expect(request.URL.Query().Get(f.expectedQueryParam)).To(Equal(f.expectedQueryValue))
-	}
-	return f.response, f.err
-}
-
-func (f *fakeClient) DoReturnsResponse(statusCode int, body string) {
-	f.response = &http.Response{
+func response(statusCode int, body string) *http.Response {
+	return &http.Response{
 		StatusCode: statusCode,
 		Body:       ioutil.NopCloser(strings.NewReader(body)),
 	}
-}
-
-func (f *fakeClient) DoReturnsError(err error) {
-	f.err = err
 }

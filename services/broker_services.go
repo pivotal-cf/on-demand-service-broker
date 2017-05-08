@@ -9,37 +9,31 @@ package services
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
-	"net/url"
-
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
+	"net/http"
 )
 
-type HTTPClient interface {
-	Do(request *http.Request) (*http.Response, error)
+//go:generate counterfeiter -o fakes/fake_client.go . Client
+type Client interface {
+	Get(path string, query map[string]string) (*http.Response, error)
+	Patch(path string) (*http.Response, error)
 }
 
 type BrokerServices struct {
-	username  string
-	password  string
-	url       string
-	client    HTTPClient
+	client    Client
 	converter ResponseConverter
 }
 
-func NewBrokerServices(username, password, url string, client HTTPClient) BrokerServices {
+func NewBrokerServices(client Client) BrokerServices {
 	return BrokerServices{
-		username:  username,
-		password:  password,
-		url:       url,
 		client:    client,
 		converter: ResponseConverter{},
 	}
 }
 
 func (b BrokerServices) Instances() ([]string, error) {
-	response, err := b.responseTo("GET", "/mgmt/service_instances")
+	response, err := b.client.Get("/mgmt/service_instances", nil)
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +41,7 @@ func (b BrokerServices) Instances() ([]string, error) {
 }
 
 func (b BrokerServices) UpgradeInstance(instanceGUID string) (UpgradeOperation, error) {
-	response, err := b.responseTo("PATCH", fmt.Sprintf("/mgmt/service_instances/%s", instanceGUID))
+	response, err := b.client.Patch(fmt.Sprintf("/mgmt/service_instances/%s", instanceGUID))
 	if err != nil {
 		return UpgradeOperation{}, err
 	}
@@ -60,21 +54,10 @@ func (b BrokerServices) LastOperation(instanceGUID string, operationData broker.
 		return brokerapi.LastOperation{}, err
 	}
 
-	operationQueryStr := url.QueryEscape(string(asJSON))
-	response, err := b.responseTo("GET", fmt.Sprintf("/v2/service_instances/%s/last_operation?operation=%s", instanceGUID, operationQueryStr))
+	query := map[string]string{"operation": string(asJSON)}
+	response, err := b.client.Get(fmt.Sprintf("/v2/service_instances/%s/last_operation", instanceGUID), query)
 	if err != nil {
 		return brokerapi.LastOperation{}, err
 	}
 	return b.converter.LastOperationFrom(response)
-}
-
-func (b BrokerServices) responseTo(verb, path string) (*http.Response, error) {
-	request, err := http.NewRequest(verb, fmt.Sprintf("%s%s", b.url, path), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	request.SetBasicAuth(b.username, b.password)
-
-	return b.client.Do(request)
 }

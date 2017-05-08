@@ -13,6 +13,7 @@ import (
 
 	"github.com/craigfurman/herottp"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
+	"github.com/pivotal-cf/on-demand-service-broker/network"
 	"github.com/pivotal-cf/on-demand-service-broker/services"
 	"github.com/pivotal-cf/on-demand-service-broker/upgrader"
 )
@@ -36,7 +37,8 @@ func main() {
 	}
 
 	httpClient := herottp.New(herottp.Config{Timeout: 30 * time.Second})
-	brokerServices := services.NewBrokerServices(*brokerUsername, *brokerPassword, *brokerUrl, httpClient)
+	basicAuthClient := network.NewBasicAuthHTTPClient(httpClient, *brokerUsername, *brokerPassword, *brokerUrl)
+	brokerServices := services.NewBrokerServices(basicAuthClient)
 	listener := upgrader.NewLoggingListener(logger)
 	upgradeTool := upgrader.New(brokerServices, *pollingInterval, listener)
 
