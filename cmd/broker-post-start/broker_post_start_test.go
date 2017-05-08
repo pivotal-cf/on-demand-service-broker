@@ -4,7 +4,7 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 // Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
-package integration_tests
+package main_test
 
 import (
 	"fmt"
@@ -22,11 +22,18 @@ import (
 	"github.com/onsi/gomega/ghttp"
 )
 
-var _ = Describe("broker post start checks", func() {
-	var session *gexec.Session
-	var server *ghttp.Server
-	var cmd *exec.Cmd
-	var port string
+var _ = Describe("Broker Post-start Check", func() {
+	const (
+		brokerUsername = "broker username"
+		brokerPassword = "broker password"
+	)
+
+	var (
+		session *gexec.Session
+		server  *ghttp.Server
+		cmd     *exec.Cmd
+		port    string
+	)
 
 	BeforeEach(func() {
 		server = ghttp.NewServer()
@@ -40,9 +47,9 @@ var _ = Describe("broker post start checks", func() {
 			"-brokerUsername", brokerUsername,
 			"-brokerPassword", brokerPassword,
 			"-brokerPort", port,
-			"-timeout", "3",
+			"-timeout", "1",
 		}
-		cmd = exec.Command(brokerPostStartPath, params...)
+		cmd = exec.Command(binaryPath, params...)
 	})
 
 	JustBeforeEach(func() {
@@ -75,34 +82,37 @@ var _ = Describe("broker post start checks", func() {
 
 	Context("when the ODB responds with 500", func() {
 		BeforeEach(func() {
-			for i := 0; i < 5; i++ {
-				server.AppendHandlers(ghttp.RespondWith(http.StatusInternalServerError, nil))
+			server.AppendHandlers(
+				ghttp.RespondWith(http.StatusInternalServerError, nil),
+				ghttp.RespondWith(http.StatusInternalServerError, nil),
+				ghttp.RespondWith(http.StatusOK, nil),
+			)
+
+			params := []string{
+				"-brokerUsername", brokerUsername,
+				"-brokerPassword", brokerPassword,
+				"-brokerPort", port,
+				"-timeout", "3",
 			}
+			cmd = exec.Command(binaryPath, params...)
 		})
 
-		It("retries until exits with an error", func() {
-			Expect(session.ExitCode()).To(Equal(1))
-
-			Expect(len(server.ReceivedRequests())).To(BeNumerically(">", 1), "retries")
-
+		It("retries", func() {
+			Expect(session.ExitCode()).To(Equal(0))
+			Expect(server.ReceivedRequests()).To(HaveLen(3), "retries")
 			Expect(session).To(gbytes.Say(fmt.Sprintf("expected status 200, was 500, from http://localhost:%s/v2/catalog", port)))
 			Expect(session).To(gbytes.Say(fmt.Sprintf("expected status 200, was 500, from http://localhost:%s/v2/catalog", port)))
-
-			Expect(session.Out.Contents()).To(ContainSubstring("Broker post-start check failed"))
+			Expect(session).To(gbytes.Say("Broker post-start check successful"))
 		})
 	})
 
 	Context("when the ODB takes longer than the timeout to respond", func() {
 		BeforeEach(func() {
 			longRequestHandler := func(w http.ResponseWriter, req *http.Request) {
-				time.Sleep(3 * time.Second)
+				time.Sleep(1 * time.Second)
 			}
 
-			server.AppendHandlers(ghttp.CombineHandlers(
-				ghttp.VerifyRequest("GET", "/v2/catalog"),
-				ghttp.VerifyBasicAuth(brokerUsername, brokerPassword),
-				longRequestHandler,
-			))
+			server.AppendHandlers(longRequestHandler)
 		})
 
 		It("fails with error", func() {
@@ -130,7 +140,7 @@ var _ = Describe("broker post start checks", func() {
 				"-brokerPassword", brokerPassword,
 				"-brokerPort", "$%#$%##$@#$#%$^&%^&$##$%@#",
 			}
-			cmd = exec.Command(brokerPostStartPath, params...)
+			cmd = exec.Command(binaryPath, params...)
 		})
 
 		It("fails to start", func() {
