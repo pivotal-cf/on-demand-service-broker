@@ -10,12 +10,11 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
-	"log"
-	"net/http"
 	"os"
-	"github.com/pivotal-cf/on-demand-service-broker/mgmtapi"
+
+	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 	"github.com/pivotal-cf/on-demand-service-broker/network"
+	"github.com/pivotal-cf/on-demand-service-broker/services"
 )
 
 const (
@@ -24,49 +23,32 @@ const (
 )
 
 func main() {
+	loggerFactory := loggerfactory.New(os.Stderr, "orphan-deployments", loggerfactory.Flags)
+	logger := loggerFactory.New()
+
 	brokerUsername := flag.String("brokerUsername", "", "username for the broker")
 	brokerPassword := flag.String("brokerPassword", "", "password for the broker")
 	brokerURL := flag.String("brokerUrl", "", "url of the broker")
 	flag.Parse()
 
-	orphanDeploymentsURL := fmt.Sprintf("%s/mgmt/orphan_deployments", *brokerURL)
-	request, err := http.NewRequest("GET", orphanDeploymentsURL, nil)
+	httpClient := network.NewDefaultHTTPClient()
+	basicAuthClient := network.NewBasicAuthHTTPClient(httpClient, *brokerUsername, *brokerPassword, *brokerURL)
+	brokerServices := services.NewBrokerServices(basicAuthClient)
+
+	orphans, err := brokerServices.OrphanDeployments()
 	if err != nil {
-		log.Fatalf("invalid broker URL: %s", *brokerURL)
+		logger.Fatalf("error retrieving orphan deployments: %s", err)
 	}
-	request.SetBasicAuth(*brokerUsername, *brokerPassword)
 
-	client := network.NewDefaultHTTPClient()
-
-	response, err := client.Do(request)
+	rawJSON, err := json.Marshal(orphans)
 	if err != nil {
-		log.Fatalf("orphan deployments request error: %s", err)
+		logger.Fatalf("error marshalling orphan deployments: %s", err)
 	}
 
-	defer response.Body.Close()
-	body, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		log.Fatalf("error reading response body: %s. status code: %d.", err, response.StatusCode)
-	}
+	fmt.Fprint(os.Stdout, string(rawJSON))
 
-	if response.StatusCode != http.StatusOK {
-		log.Fatalf(
-			"orphan deployments request error. status code: %d. body: '%s'.",
-			response.StatusCode,
-			body,
-		)
-	}
-
-	var orphanDeployments []mgmtapi.Deployment
-	err = json.Unmarshal(body, &orphanDeployments)
-	if err != nil {
-		log.Fatalf("error decoding JSON response: %s. status code: %d.", err, response.StatusCode)
-	}
-
-	fmt.Fprint(os.Stdout, string(body))
-
-	if len(orphanDeployments) > 0 {
-		fmt.Fprint(os.Stderr, OrphanBoshDeploymentsDetectedMessage)
+	if len(orphans) > 0 {
+		logger.Println(OrphanBoshDeploymentsDetectedMessage)
 		os.Exit(OrphanDeploymentsDetectedExitCode)
 	}
 }

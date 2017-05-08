@@ -16,6 +16,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
+	"github.com/pivotal-cf/on-demand-service-broker/mgmtapi"
 	"github.com/pivotal-cf/on-demand-service-broker/services"
 	"github.com/pivotal-cf/on-demand-service-broker/services/fakes"
 )
@@ -24,7 +25,7 @@ var _ = Describe("Broker Services", func() {
 	const serviceInstanceGUID = "my-service-instance"
 
 	var (
-		brokerServices services.BrokerServices
+		brokerServices *services.BrokerServices
 		client         *fakes.FakeClient
 	)
 
@@ -137,6 +138,43 @@ var _ = Describe("Broker Services", func() {
 				client.GetReturns(response(http.StatusOK, "invalid json"), nil)
 
 				_, err := brokerServices.LastOperation(serviceInstanceGUID, broker.OperationData{})
+
+				Expect(err).To(HaveOccurred())
+			})
+		})
+	})
+
+	Describe("OrphanDeployments", func() {
+		It("returns a list of orphan deployments", func() {
+			listOfDeployments := `[{"deployment_name":"service-instance_one"},{"deployment_name":"service-instance_two"}]`
+			client.GetReturns(response(http.StatusOK, listOfDeployments), nil)
+
+			instances, err := brokerServices.OrphanDeployments()
+
+			Expect(err).NotTo(HaveOccurred())
+			actualPath, _ := client.GetArgsForCall(0)
+			Expect(actualPath).To(Equal("/mgmt/orphan_deployments"))
+			Expect(instances).To(ConsistOf(
+				mgmtapi.Deployment{Name: "service-instance_one"},
+				mgmtapi.Deployment{Name: "service-instance_two"},
+			))
+		})
+
+		Context("when the request fails", func() {
+			It("returns an error", func() {
+				client.GetReturns(nil, errors.New("connection error"))
+
+				_, err := brokerServices.OrphanDeployments()
+
+				Expect(err).To(HaveOccurred())
+			})
+		})
+
+		Context("when the broker response is unrecognised", func() {
+			It("returns an error", func() {
+				client.GetReturns(response(http.StatusOK, "invalid json"), nil)
+
+				_, err := brokerServices.OrphanDeployments()
 
 				Expect(err).To(HaveOccurred())
 			})

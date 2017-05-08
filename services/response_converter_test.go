@@ -17,8 +17,8 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
-	"github.com/pivotal-cf/on-demand-service-broker/services"
 	"github.com/pivotal-cf/on-demand-service-broker/mgmtapi"
+	"github.com/pivotal-cf/on-demand-service-broker/services"
 )
 
 var _ = Describe("Response Converter", func() {
@@ -230,6 +230,47 @@ var _ = Describe("Response Converter", func() {
 			})
 		})
 	})
+
+	Context("orphan deployments", func() {
+		It("returns orphan deployments", func() {
+			response := http.Response{
+				StatusCode: http.StatusOK,
+				Body:       asBody(orphanDeploymentsJSON("deployment1", "deployment2")),
+			}
+
+			orphans, err := converter.OrphanDeploymentsFrom(&response)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(orphans).To(ConsistOf(mgmtapi.Deployment{Name: "deployment1"}, mgmtapi.Deployment{Name: "deployment2"}))
+		})
+
+		It("returns an error when the response status is not OK", func() {
+			response := http.Response{
+				Status:     "500 Internal Server Error",
+				StatusCode: 500,
+				Body:       asBody(""),
+			}
+
+			_, err := converter.OrphanDeploymentsFrom(&response)
+
+			Expect(err).To(MatchError(
+				ContainSubstring("HTTP response status: 500 Internal Server Error"),
+			))
+		})
+
+		It("returns an error when the response body cannot be decoded", func() {
+			response := http.Response{
+				StatusCode: http.StatusOK,
+				Body:       asBody("{ invalid json }"),
+			}
+
+			_, err := converter.OrphanDeploymentsFrom(&response)
+
+			Expect(err).To(MatchError(
+				ContainSubstring("invalid character"),
+			))
+		})
+	})
 })
 
 func upgradeOperationJSON() string {
@@ -260,6 +301,16 @@ func listInstancesJSON(instanceIDs ...string) string {
 	list := []mgmtapi.Instance{}
 	for _, instanceID := range instanceIDs {
 		list = append(list, mgmtapi.Instance{InstanceID: instanceID})
+	}
+	content, err := json.Marshal(list)
+	Expect(err).NotTo(HaveOccurred())
+	return string(content)
+}
+
+func orphanDeploymentsJSON(deploymentNames ...string) string {
+	list := []mgmtapi.Deployment{}
+	for _, name := range deploymentNames {
+		list = append(list, mgmtapi.Deployment{Name: name})
 	}
 	content, err := json.Marshal(list)
 	Expect(err).NotTo(HaveOccurred())

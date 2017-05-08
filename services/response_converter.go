@@ -89,6 +89,16 @@ func (r ResponseConverter) LastOperationFrom(response *http.Response) (brokerapi
 	return lastOperation, nil
 }
 
+func (r ResponseConverter) OrphanDeploymentsFrom(response *http.Response) ([]mgmtapi.Deployment, error) {
+	var orphans []mgmtapi.Deployment
+	err := decodeBodyInto(response, &orphans)
+	if err != nil {
+		return nil, err
+	}
+
+	return orphans, nil
+}
+
 func decodeBodyInto(response *http.Response, contents interface{}) error {
 	defer response.Body.Close()
 

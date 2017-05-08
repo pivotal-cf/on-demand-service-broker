@@ -7,7 +7,6 @@
 package main_test
 
 import (
-	"fmt"
 	"net/http"
 	"os/exec"
 
@@ -22,6 +21,7 @@ import (
 const (
 	brokerUsername = "broker-username"
 	brokerPassword = "broker-password"
+	errorMessage   = "error retrieving orphan deployments"
 )
 
 var _ = Describe("Orphan Deployments", func() {
@@ -59,30 +59,26 @@ var _ = Describe("Orphan Deployments", func() {
 	})
 
 	It("fails when the broker credentials are unauthorised", func() {
-		unauthorizedMessage := "unauthorized request"
-		odb.AppendMocks(mockbroker.OrphanDeployments().RespondsUnauthorizedWith(unauthorizedMessage))
+		odb.AppendMocks(mockbroker.OrphanDeployments().RespondsUnauthorizedWith("unauthorized request"))
 
 		session := startOrphanDeploymentsCmd(odb.URL)
 
 		Eventually(session).Should(gexec.Exit(1))
 		Expect(session.Err).To(SatisfyAll(
-			gbytes.Say("orphan deployments request error"),
-			gbytes.Say("status code: %d", http.StatusUnauthorized),
-			gbytes.Say("body: '%s'", unauthorizedMessage),
+			gbytes.Say(errorMessage),
+			gbytes.Say("%d", http.StatusUnauthorized),
 		))
 	})
 
 	It("fails when the broker has an internal server error", func() {
-		internalServerErrorMessage := "error occurred querying orphan deployments: something went wrong"
-		odb.AppendMocks(mockbroker.OrphanDeployments().RespondsInternalServerErrorWith(internalServerErrorMessage))
+		odb.AppendMocks(mockbroker.OrphanDeployments().RespondsInternalServerErrorWith("error message"))
 
 		session := startOrphanDeploymentsCmd(odb.URL)
 
 		Eventually(session).Should(gexec.Exit(1))
 		Expect(session.Err).To(SatisfyAll(
-			gbytes.Say("orphan deployments request error"),
-			gbytes.Say("status code: %d", http.StatusInternalServerError),
-			gbytes.Say("body: '%s'", internalServerErrorMessage),
+			gbytes.Say(errorMessage),
+			gbytes.Say("%d", http.StatusInternalServerError),
 		))
 	})
 
@@ -93,7 +89,7 @@ var _ = Describe("Orphan Deployments", func() {
 
 		Eventually(session).Should(gexec.Exit(1))
 		Expect(session.Err).To(SatisfyAll(
-			gbytes.Say("orphan deployments request error"),
+			gbytes.Say(errorMessage),
 			gbytes.Say("connection refused"),
 		))
 	})
@@ -103,9 +99,10 @@ var _ = Describe("Orphan Deployments", func() {
 		session := startOrphanDeploymentsCmd(invalidURL)
 
 		Eventually(session).Should(gexec.Exit(1))
-		Expect(string(session.Err.Contents())).To(
-			ContainSubstring(fmt.Sprintf("invalid broker URL: %s", invalidURL)),
-		)
+		Expect(string(session.Err.Contents())).To(SatisfyAll(
+			ContainSubstring(errorMessage),
+			ContainSubstring("invalid URL"),
+		))
 	})
 
 	It("fails when the response is invalid JSON", func() {
@@ -115,9 +112,8 @@ var _ = Describe("Orphan Deployments", func() {
 
 		Eventually(session).Should(gexec.Exit(1))
 		Expect(session.Err).To(SatisfyAll(
-			gbytes.Say("error decoding JSON response"),
+			gbytes.Say(errorMessage),
 			gbytes.Say("invalid character 'i'"),
-			gbytes.Say("status code: %d.", http.StatusOK),
 		))
 	})
 })

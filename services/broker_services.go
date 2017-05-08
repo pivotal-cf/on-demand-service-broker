@@ -9,9 +9,11 @@ package services
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
+
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
-	"net/http"
+	"github.com/pivotal-cf/on-demand-service-broker/mgmtapi"
 )
 
 //go:generate counterfeiter -o fakes/fake_client.go . Client
@@ -25,14 +27,14 @@ type BrokerServices struct {
 	converter ResponseConverter
 }
 
-func NewBrokerServices(client Client) BrokerServices {
-	return BrokerServices{
+func NewBrokerServices(client Client) *BrokerServices {
+	return &BrokerServices{
 		client:    client,
 		converter: ResponseConverter{},
 	}
 }
 
-func (b BrokerServices) Instances() ([]string, error) {
+func (b *BrokerServices) Instances() ([]string, error) {
 	response, err := b.client.Get("/mgmt/service_instances", nil)
 	if err != nil {
 		return nil, err
@@ -40,7 +42,7 @@ func (b BrokerServices) Instances() ([]string, error) {
 	return b.converter.ListInstancesFrom(response)
 }
 
-func (b BrokerServices) UpgradeInstance(instanceGUID string) (UpgradeOperation, error) {
+func (b *BrokerServices) UpgradeInstance(instanceGUID string) (UpgradeOperation, error) {
 	response, err := b.client.Patch(fmt.Sprintf("/mgmt/service_instances/%s", instanceGUID))
 	if err != nil {
 		return UpgradeOperation{}, err
@@ -48,7 +50,7 @@ func (b BrokerServices) UpgradeInstance(instanceGUID string) (UpgradeOperation, 
 	return b.converter.UpgradeOperationFrom(response)
 }
 
-func (b BrokerServices) LastOperation(instanceGUID string, operationData broker.OperationData) (brokerapi.LastOperation, error) {
+func (b *BrokerServices) LastOperation(instanceGUID string, operationData broker.OperationData) (brokerapi.LastOperation, error) {
 	asJSON, err := json.Marshal(operationData)
 	if err != nil {
 		return brokerapi.LastOperation{}, err
@@ -60,4 +62,13 @@ func (b BrokerServices) LastOperation(instanceGUID string, operationData broker.
 		return brokerapi.LastOperation{}, err
 	}
 	return b.converter.LastOperationFrom(response)
+}
+
+func (b *BrokerServices) OrphanDeployments() ([]mgmtapi.Deployment, error) {
+	response, err := b.client.Get("/mgmt/orphan_deployments", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return b.converter.OrphanDeploymentsFrom(response)
 }
