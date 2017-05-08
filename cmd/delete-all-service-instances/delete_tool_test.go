@@ -4,7 +4,7 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 // Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
-package integration_tests
+package main_test
 
 import (
 	"fmt"
@@ -20,7 +20,6 @@ import (
 	"github.com/onsi/gomega/gexec"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/deleter"
-	"github.com/pivotal-cf/on-demand-service-broker/mockbosh"
 	"github.com/pivotal-cf/on-demand-service-broker/mockcfapi"
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
 	"github.com/pivotal-cf/on-demand-service-broker/mockuaa"
@@ -29,7 +28,11 @@ import (
 
 var _ = Describe("delete all service instances tool", func() {
 	const (
+		serviceID          = "service-id"
+		planID             = "plan-id"
 		cfAccessToken      = "cf-oauth-token"
+		cfUaaClientID      = "cf-uaa-client-id"
+		cfUaaClientSecret  = "cf-uaa-client-secret"
 		instanceGUID       = "some-instance-guid"
 		boundAppGUID       = "some-bound-app-guid"
 		serviceBindingGUID = "some-binding-guid"
@@ -37,11 +40,8 @@ var _ = Describe("delete all service instances tool", func() {
 	)
 
 	var (
-		boshDirector   *mockhttp.Server
-		boshUAA        *mockuaa.ClientCredentialsServer
 		cfAPI          *mockhttp.Server
 		cfUAA          *mockuaa.ClientCredentialsServer
-		brokerSession  *gexec.Session
 		deleterSession *gexec.Session
 		logBuffer      *gbytes.Buffer
 		configuration  deleter.Config
@@ -49,15 +49,8 @@ var _ = Describe("delete all service instances tool", func() {
 	)
 
 	BeforeEach(func() {
-		boshDirector = mockbosh.New()
-		boshUAA = mockuaa.NewClientCredentialsServer(boshClientID, boshClientSecret, "bosh uaa token")
-		boshDirector.ExpectedAuthorizationHeader(boshUAA.ExpectedAuthorizationHeader())
-
 		cfAPI = mockcfapi.New()
 		cfUAA = mockuaa.NewClientCredentialsServer(cfUaaClientID, cfUaaClientSecret, cfAccessToken)
-
-		brokerConfig := defaultBrokerConfig(boshDirector.URL, boshUAA.URL, cfAPI.URL, cfUAA.URL)
-		brokerSession = startBrokerWithPassingStartupChecks(brokerConfig, cfAPI, boshDirector)
 
 		configuration = deleter.Config{
 			ServiceCatalog: deleter.ServiceCatalog{
@@ -85,12 +78,6 @@ var _ = Describe("delete all service instances tool", func() {
 	})
 
 	AfterEach(func() {
-		killBrokerAndCheckForOpenConnections(brokerSession, boshDirector.URL)
-
-		boshDirector.VerifyMocks()
-		boshDirector.Close()
-		boshUAA.Close()
-
 		cfAPI.VerifyMocks()
 		cfAPI.Close()
 		cfUAA.Close()
@@ -124,9 +111,17 @@ var _ = Describe("delete all service instances tool", func() {
 		BeforeEach(func() {
 			cfAPI.VerifyAndMock(
 				mockcfapi.ListServiceOfferings().RespondsWithServiceOffering(serviceID, "some-cc-service-offering-guid"),
-				mockcfapi.ListServicePlans("some-cc-service-offering-guid").RespondsWithServicePlan(dedicatedPlanID, "some-cc-plan-guid"),
+				mockcfapi.ListServicePlans("some-cc-service-offering-guid").RespondsWithServicePlan(planID, "some-cc-plan-guid"),
 				mockcfapi.ListServiceInstances("some-cc-plan-guid").RespondsWithNoServiceInstances(),
 			)
+
+			configuration.PollingInitialOffset = 1
+			configuration.PollingInterval = 1
+
+			configYAML, err := yaml.Marshal(configuration)
+			Expect(err).ToNot(HaveOccurred())
+
+			configFilePath = writeDeleteToolConfig(configYAML)
 
 			params := []string{"-configFilePath", configFilePath}
 			deleterSession, logBuffer = startDeleteTool(params)
@@ -137,13 +132,17 @@ var _ = Describe("delete all service instances tool", func() {
 			Expect(deleterSession.ExitCode()).To(Equal(0))
 			Expect(logBuffer).To(gbytes.Say("No service instances found."))
 		})
+
+		It("logs that the polling interval values are as configured", func() {
+			Expect(logBuffer).To(gbytes.Say("Deleter Configuration: polling_intial_offset: 1, polling_interval: 1."))
+		})
 	})
 
 	Context("when there is one service instance", func() {
 		BeforeEach(func() {
 			cfAPI.VerifyAndMock(
 				mockcfapi.ListServiceOfferings().RespondsWithServiceOffering(serviceID, "some-cc-service-offering-guid"),
-				mockcfapi.ListServicePlans("some-cc-service-offering-guid").RespondsWithServicePlan(dedicatedPlanID, "some-cc-plan-guid"),
+				mockcfapi.ListServicePlans("some-cc-service-offering-guid").RespondsWithServicePlan(planID, "some-cc-plan-guid"),
 				mockcfapi.ListServiceInstances("some-cc-plan-guid").RespondsWithServiceInstances(instanceGUID),
 				mockcfapi.ListServiceBindings(instanceGUID).RespondsWithServiceBinding(serviceBindingGUID, instanceGUID, boundAppGUID),
 				mockcfapi.DeleteServiceBinding(boundAppGUID, serviceBindingGUID).RespondsNoContent(),
@@ -153,7 +152,7 @@ var _ = Describe("delete all service instances tool", func() {
 				mockcfapi.GetServiceInstance(instanceGUID).RespondsWithInProgress(mockcfapi.Delete),
 				mockcfapi.GetServiceInstance(instanceGUID).RespondsNotFoundWith(""),
 				mockcfapi.ListServiceOfferings().RespondsWithServiceOffering(serviceID, "some-cc-service-offering-guid"),
-				mockcfapi.ListServicePlans("some-cc-service-offering-guid").RespondsWithServicePlan(dedicatedPlanID, "some-cc-plan-guid"),
+				mockcfapi.ListServicePlans("some-cc-service-offering-guid").RespondsWithServicePlan(planID, "some-cc-plan-guid"),
 				mockcfapi.ListServiceInstances("some-cc-plan-guid").RespondsWithNoServiceInstances(),
 			)
 
@@ -170,45 +169,6 @@ var _ = Describe("delete all service instances tool", func() {
 			Expect(logBuffer).To(gbytes.Say(fmt.Sprintf("Deleting service instance %s", instanceGUID)))
 			Expect(logBuffer).To(gbytes.Say(fmt.Sprintf("Waiting for service instance %s to be deleted", instanceGUID)))
 			Expect(logBuffer).To(gbytes.Say("FINISHED DELETES"))
-		})
-	})
-
-	Context("when polling offset and interval are configured", func() {
-		BeforeEach(func() {
-			cfAPI.VerifyAndMock(
-				mockcfapi.ListServiceOfferings().RespondsWithServiceOffering(serviceID, "some-cc-service-offering-guid"),
-				mockcfapi.ListServicePlans("some-cc-service-offering-guid").RespondsWithServicePlan(dedicatedPlanID, "some-cc-plan-guid"),
-				mockcfapi.ListServiceInstances("some-cc-plan-guid").RespondsWithServiceInstances(instanceGUID),
-				mockcfapi.ListServiceBindings(instanceGUID).RespondsWithServiceBinding(serviceBindingGUID, instanceGUID, boundAppGUID),
-				mockcfapi.DeleteServiceBinding(boundAppGUID, serviceBindingGUID).RespondsNoContent(),
-				mockcfapi.ListServiceKeys(instanceGUID).RespondsWithServiceKey(serviceKeyGUID, instanceGUID),
-				mockcfapi.DeleteServiceKey(serviceKeyGUID).RespondsNoContent(),
-				mockcfapi.DeleteServiceInstance(instanceGUID).RespondsAcceptedWith(""),
-				mockcfapi.GetServiceInstance(instanceGUID).RespondsWithInProgress(mockcfapi.Delete),
-			)
-
-			configuration.PollingInitialOffset = 1
-			configuration.PollingInterval = 1
-
-			configYAML, err := yaml.Marshal(configuration)
-			Expect(err).ToNot(HaveOccurred())
-
-			configFilePath = writeDeleteToolConfig(configYAML)
-
-			params := []string{"-configFilePath", configFilePath}
-			deleterSession, logBuffer = startDeleteTool(params)
-
-			time.Sleep(2500 * time.Millisecond)
-			deleterSession.Kill()
-		})
-
-		It("logs that the polling interval values are as configured", func() {
-			logMessage := fmt.Sprintf(
-				"Deleter Configuration: polling_intial_offset: %d, polling_interval: %d.",
-				configuration.PollingInitialOffset,
-				configuration.PollingInterval,
-			)
-			Expect(logBuffer).To(gbytes.Say(logMessage))
 		})
 	})
 
@@ -275,7 +235,7 @@ var _ = Describe("delete all service instances tool", func() {
 		BeforeEach(func() {
 			cfAPI.VerifyAndMock(
 				mockcfapi.ListServiceOfferings().RespondsWithServiceOffering(serviceID, "some-cc-service-offering-guid"),
-				mockcfapi.ListServicePlans("some-cc-service-offering-guid").RespondsWithServicePlan(dedicatedPlanID, "some-cc-plan-guid"),
+				mockcfapi.ListServicePlans("some-cc-service-offering-guid").RespondsWithServicePlan(planID, "some-cc-plan-guid"),
 				mockcfapi.ListServiceInstances("some-cc-plan-guid").RespondsWithServiceInstances(instanceGUID),
 				mockcfapi.ListServiceBindings(instanceGUID).RespondsWithServiceBinding(serviceBindingGUID, instanceGUID, boundAppGUID),
 				mockcfapi.DeleteServiceBinding(boundAppGUID, serviceBindingGUID).RespondsNotFoundWith(`{
@@ -293,7 +253,7 @@ var _ = Describe("delete all service instances tool", func() {
 				mockcfapi.DeleteServiceInstance(instanceGUID).RespondsAcceptedWith(""),
 				mockcfapi.GetServiceInstance(instanceGUID).RespondsNotFoundWith(""),
 				mockcfapi.ListServiceOfferings().RespondsWithServiceOffering(serviceID, "some-cc-service-offering-guid"),
-				mockcfapi.ListServicePlans("some-cc-service-offering-guid").RespondsWithServicePlan(dedicatedPlanID, "some-cc-plan-guid"),
+				mockcfapi.ListServicePlans("some-cc-service-offering-guid").RespondsWithServicePlan(planID, "some-cc-plan-guid"),
 				mockcfapi.ListServiceInstances("some-cc-plan-guid").RespondsWithNoServiceInstances(),
 			)
 
@@ -311,7 +271,7 @@ var _ = Describe("delete all service instances tool", func() {
 		BeforeEach(func() {
 			cfAPI.VerifyAndMock(
 				mockcfapi.ListServiceOfferings().RespondsWithServiceOffering(serviceID, "some-cc-service-offering-guid"),
-				mockcfapi.ListServicePlans("some-cc-service-offering-guid").RespondsWithServicePlan(dedicatedPlanID, "some-cc-plan-guid"),
+				mockcfapi.ListServicePlans("some-cc-service-offering-guid").RespondsWithServicePlan(planID, "some-cc-plan-guid"),
 				mockcfapi.ListServiceInstances("some-cc-plan-guid").RespondsWithServiceInstances(instanceGUID),
 				mockcfapi.ListServiceBindings(instanceGUID).RespondsNotFoundWith(`{
 							"code": 111111,
@@ -328,7 +288,7 @@ var _ = Describe("delete all service instances tool", func() {
 				mockcfapi.DeleteServiceInstance(instanceGUID).RespondsAcceptedWith(""),
 				mockcfapi.GetServiceInstance(instanceGUID).RespondsNotFoundWith(""),
 				mockcfapi.ListServiceOfferings().RespondsWithServiceOffering(serviceID, "some-cc-service-offering-guid"),
-				mockcfapi.ListServicePlans("some-cc-service-offering-guid").RespondsWithServicePlan(dedicatedPlanID, "some-cc-plan-guid"),
+				mockcfapi.ListServicePlans("some-cc-service-offering-guid").RespondsWithServicePlan(planID, "some-cc-plan-guid"),
 				mockcfapi.ListServiceInstances("some-cc-plan-guid").RespondsWithNoServiceInstances(),
 			)
 
@@ -346,7 +306,7 @@ var _ = Describe("delete all service instances tool", func() {
 		BeforeEach(func() {
 			cfAPI.VerifyAndMock(
 				mockcfapi.ListServiceOfferings().RespondsWithServiceOffering(serviceID, "some-cc-service-offering-guid"),
-				mockcfapi.ListServicePlans("some-cc-service-offering-guid").RespondsWithServicePlan(dedicatedPlanID, "some-cc-plan-guid"),
+				mockcfapi.ListServicePlans("some-cc-service-offering-guid").RespondsWithServicePlan(planID, "some-cc-plan-guid"),
 				mockcfapi.ListServiceInstances("some-cc-plan-guid").RespondsWithServiceInstances(instanceGUID),
 				mockcfapi.ListServiceBindings(instanceGUID).RespondsWithServiceBinding(serviceBindingGUID, instanceGUID, boundAppGUID),
 				mockcfapi.DeleteServiceBinding(boundAppGUID, serviceBindingGUID).RespondsNoContent(),
@@ -358,7 +318,7 @@ var _ = Describe("delete all service instances tool", func() {
 				mockcfapi.DeleteServiceInstance(instanceGUID).RespondsAcceptedWith(""),
 				mockcfapi.GetServiceInstance(instanceGUID).RespondsNotFoundWith(""),
 				mockcfapi.ListServiceOfferings().RespondsWithServiceOffering(serviceID, "some-cc-service-offering-guid"),
-				mockcfapi.ListServicePlans("some-cc-service-offering-guid").RespondsWithServicePlan(dedicatedPlanID, "some-cc-plan-guid"),
+				mockcfapi.ListServicePlans("some-cc-service-offering-guid").RespondsWithServicePlan(planID, "some-cc-plan-guid"),
 				mockcfapi.ListServiceInstances("some-cc-plan-guid").RespondsWithNoServiceInstances(),
 			)
 
@@ -376,7 +336,7 @@ var _ = Describe("delete all service instances tool", func() {
 		BeforeEach(func() {
 			cfAPI.VerifyAndMock(
 				mockcfapi.ListServiceOfferings().RespondsWithServiceOffering(serviceID, "some-cc-service-offering-guid"),
-				mockcfapi.ListServicePlans("some-cc-service-offering-guid").RespondsWithServicePlan(dedicatedPlanID, "some-cc-plan-guid"),
+				mockcfapi.ListServicePlans("some-cc-service-offering-guid").RespondsWithServicePlan(planID, "some-cc-plan-guid"),
 				mockcfapi.ListServiceInstances("some-cc-plan-guid").RespondsWithServiceInstances(instanceGUID),
 				mockcfapi.ListServiceBindings(instanceGUID).RespondsWithServiceBinding(serviceBindingGUID, instanceGUID, boundAppGUID),
 				mockcfapi.DeleteServiceBinding(boundAppGUID, serviceBindingGUID).RespondsForbiddenWith(`{
@@ -403,7 +363,7 @@ var _ = Describe("delete all service instances tool", func() {
 		BeforeEach(func() {
 			cfAPI.VerifyAndMock(
 				mockcfapi.ListServiceOfferings().RespondsWithServiceOffering(serviceID, "some-cc-service-offering-guid"),
-				mockcfapi.ListServicePlans("some-cc-service-offering-guid").RespondsWithServicePlan(dedicatedPlanID, "some-cc-plan-guid"),
+				mockcfapi.ListServicePlans("some-cc-service-offering-guid").RespondsWithServicePlan(planID, "some-cc-plan-guid"),
 				mockcfapi.ListServiceInstances("some-cc-plan-guid").RespondsWithServiceInstances(instanceGUID),
 				mockcfapi.ListServiceBindings(instanceGUID).RespondsWithServiceBinding(serviceBindingGUID, instanceGUID, boundAppGUID),
 				mockcfapi.DeleteServiceBinding(boundAppGUID, serviceBindingGUID).RespondsNoContent(),
@@ -428,7 +388,7 @@ var _ = Describe("delete all service instances tool", func() {
 		BeforeEach(func() {
 			cfAPI.VerifyAndMock(
 				mockcfapi.ListServiceOfferings().RespondsWithServiceOffering(serviceID, "some-cc-service-offering-guid"),
-				mockcfapi.ListServicePlans("some-cc-service-offering-guid").RespondsWithServicePlan(dedicatedPlanID, "some-cc-plan-guid"),
+				mockcfapi.ListServicePlans("some-cc-service-offering-guid").RespondsWithServicePlan(planID, "some-cc-plan-guid"),
 				mockcfapi.ListServiceInstances("some-cc-plan-guid").RespondsWithServiceInstances(instanceGUID),
 				mockcfapi.ListServiceBindings(instanceGUID).RespondsWithServiceBinding(serviceBindingGUID, instanceGUID, boundAppGUID),
 				mockcfapi.DeleteServiceBinding(boundAppGUID, serviceBindingGUID).RespondsNoContent(),
@@ -451,7 +411,7 @@ var _ = Describe("delete all service instances tool", func() {
 })
 
 func startDeleteTool(params []string) (*gexec.Session, *gbytes.Buffer) {
-	cmd := exec.Command(deleteToolPath, params...)
+	cmd := exec.Command(binaryPath, params...)
 	logBuffer := gbytes.NewBuffer()
 
 	session, err := gexec.Start(cmd, io.MultiWriter(GinkgoWriter, logBuffer), GinkgoWriter)
@@ -460,7 +420,7 @@ func startDeleteTool(params []string) (*gexec.Session, *gbytes.Buffer) {
 }
 
 func writeDeleteToolConfig(config []byte) string {
-	configFilePath := filepath.Join(tempDirPath, "delete_all_test_config.yml")
+	configFilePath := filepath.Join(tempDir, "delete_all_test_config.yml")
 	Expect(ioutil.WriteFile(configFilePath, config, 0644)).To(Succeed())
 	return configFilePath
 }

@@ -116,7 +116,6 @@ const (
 var (
 	brokerBinPath             string
 	serviceAdapterPath        string
-	deleteToolPath            string
 	collectServiceMetricsPath string
 	brokerPostStartPath       string
 	tempDirPath               string
@@ -138,9 +137,6 @@ var _ = SynchronizedBeforeSuite(
 		adapter, err := gexec.Build("github.com/pivotal-cf/on-demand-service-broker/integration_tests/mock/adapter")
 		Expect(err).NotTo(HaveOccurred())
 
-		deleter, err := gexec.Build("github.com/pivotal-cf/on-demand-service-broker/cmd/delete-all-service-instances")
-		Expect(err).NotTo(HaveOccurred())
-
 		brokerMetrics, err := gexec.Build("github.com/pivotal-cf/on-demand-service-broker/cmd/collect-service-metrics")
 		Expect(err).NotTo(HaveOccurred())
 
@@ -150,7 +146,6 @@ var _ = SynchronizedBeforeSuite(
 		compiledBinaries, err := json.Marshal(binPaths{
 			Broker:          broker,
 			Adapter:         adapter,
-			Deleter:         deleter,
 			BrokerMetrics:   brokerMetrics,
 			BrokerPostStart: brokerPostStart,
 		})
@@ -163,7 +158,6 @@ var _ = SynchronizedBeforeSuite(
 		Expect(json.Unmarshal(fromFirstNode, &compiledBinaries)).To(Succeed())
 		brokerBinPath = compiledBinaries.Broker
 		serviceAdapterPath = compiledBinaries.Adapter
-		deleteToolPath = compiledBinaries.Deleter
 		collectServiceMetricsPath = compiledBinaries.BrokerMetrics
 		brokerPostStartPath = compiledBinaries.BrokerPostStart
 
