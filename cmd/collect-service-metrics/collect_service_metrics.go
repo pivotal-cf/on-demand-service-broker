@@ -9,10 +9,11 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/pivotal-cf/on-demand-service-broker/network"
 	"io/ioutil"
 	"net/http"
 	"os"
+
+	"github.com/pivotal-cf/on-demand-service-broker/network"
 )
 
 const (

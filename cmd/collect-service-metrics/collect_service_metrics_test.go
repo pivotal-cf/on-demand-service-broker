@@ -4,7 +4,7 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 // Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
-package integration_tests
+package main_test
 
 import (
 	"net/http"
@@ -18,10 +18,16 @@ import (
 	"github.com/onsi/gomega/ghttp"
 )
 
-var _ = Describe("collect service metrics", func() {
-	var session *gexec.Session
-	var server *ghttp.Server
-	var cmd *exec.Cmd
+var _ = Describe("Collect Service Metrics", func() {
+	const (
+		brokerUsername = "broker username"
+		brokerPassword = "broker password"
+	)
+	var (
+		session *gexec.Session
+		server  *ghttp.Server
+		cmd     *exec.Cmd
+	)
 
 	BeforeEach(func() {
 		server = ghttp.NewServer()
@@ -30,7 +36,7 @@ var _ = Describe("collect service metrics", func() {
 			"-brokerPassword", brokerPassword,
 			"-brokerUrl", server.URL(),
 		}
-		cmd = exec.Command(collectServiceMetricsPath, params...)
+		cmd = exec.Command(binaryPath, params...)
 	})
 
 	JustBeforeEach(func() {
@@ -125,7 +131,7 @@ var _ = Describe("collect service metrics", func() {
 				"-brokerPassword", brokerPassword,
 				"-brokerUrl", "$%#$%##$@#$#%$^&%^&$##$%@#",
 			}
-			cmd = exec.Command(collectServiceMetricsPath, params...)
+			cmd = exec.Command(binaryPath, params...)
 		})
 
 		It("exits with 1", func() {
