@@ -4,7 +4,7 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 // Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
-package brokerclient_test
+package services_test
 
 import (
 	"encoding/json"
@@ -17,15 +17,15 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
-	"github.com/pivotal-cf/on-demand-service-broker/brokerclient"
+	"github.com/pivotal-cf/on-demand-service-broker/services"
 	"github.com/pivotal-cf/on-demand-service-broker/mgmtapi"
 )
 
 var _ = Describe("Response Converter", func() {
-	var converter brokerclient.ResponseConverter
+	var converter services.ResponseConverter
 
 	BeforeEach(func() {
-		converter = brokerclient.ResponseConverter{}
+		converter = services.ResponseConverter{}
 	})
 
 	Context("list instances", func() {
@@ -124,7 +124,7 @@ var _ = Describe("Response Converter", func() {
 
 				Expect(err).NotTo(HaveOccurred())
 				Expect(result.Data.OperationType).To(Equal(broker.OperationTypeUpgrade))
-				Expect(result.Type).To(Equal(brokerclient.ResultAccepted))
+				Expect(result.Type).To(Equal(services.UpgradeAccepted))
 			})
 
 			It("returns an error when the response body cannot be decoded", func() {
@@ -152,7 +152,7 @@ var _ = Describe("Response Converter", func() {
 				result, err := converter.UpgradeOperationFrom(&response)
 
 				Expect(err).NotTo(HaveOccurred())
-				Expect(result.Type).To(Equal(brokerclient.ResultNotFound))
+				Expect(result.Type).To(Equal(services.InstanceNotFound))
 			})
 		})
 
@@ -166,7 +166,7 @@ var _ = Describe("Response Converter", func() {
 				result, err := converter.UpgradeOperationFrom(&response)
 
 				Expect(err).NotTo(HaveOccurred())
-				Expect(result.Type).To(Equal(brokerclient.ResultOrphan))
+				Expect(result.Type).To(Equal(services.OrphanDeployment))
 			})
 		})
 
@@ -180,7 +180,7 @@ var _ = Describe("Response Converter", func() {
 				result, err := converter.UpgradeOperationFrom(&response)
 
 				Expect(err).NotTo(HaveOccurred())
-				Expect(result.Type).To(Equal(brokerclient.ResultOperationInProgress))
+				Expect(result.Type).To(Equal(services.OperationInProgress))
 			})
 		})
 

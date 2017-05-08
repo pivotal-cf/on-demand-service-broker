@@ -12,7 +12,7 @@ import (
 
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
-	"github.com/pivotal-cf/on-demand-service-broker/brokerclient"
+	"github.com/pivotal-cf/on-demand-service-broker/services"
 )
 
 //go:generate counterfeiter -o fakes/fake_listener.go . Listener
@@ -20,7 +20,7 @@ type Listener interface {
 	Starting()
 	InstancesToUpgrade(instances []string)
 	InstanceUpgradeStarting(instance string, index, totalInstances int)
-	InstanceUpgradeStartResult(status brokerclient.UpgradeOperationType)
+	InstanceUpgradeStartResult(status services.UpgradeOperationType)
 	InstanceUpgraded(instance string, result string)
 	WaitingFor(instance string, boshTaskId int)
 	Progress(pollingInterval time.Duration, orphanCount, upgradedCount, upgradesLeftCount, deletedCount int)
@@ -30,7 +30,7 @@ type Listener interface {
 //go:generate counterfeiter -o fakes/fake_broker_services.go . BrokerServices
 type BrokerServices interface {
 	Instances() ([]string, error)
-	UpgradeInstance(instance string) (brokerclient.UpgradeOperation, error)
+	UpgradeInstance(instance string) (services.UpgradeOperation, error)
 	LastOperation(instance string, operationData broker.OperationData) (brokerapi.LastOperation, error)
 }
 
@@ -106,13 +106,13 @@ func (u upgrader) upgradeInstances(instances []string) (int, int, int, []string,
 		u.listener.InstanceUpgradeStartResult(operation.Type)
 
 		switch operation.Type {
-		case brokerclient.ResultOrphan:
+		case services.OrphanDeployment:
 			orphanCount++
-		case brokerclient.ResultNotFound:
+		case services.InstanceNotFound:
 			deletedCount++
-		case brokerclient.ResultOperationInProgress:
+		case services.OperationInProgress:
 			idsToRetry = append(idsToRetry, instance)
-		case brokerclient.ResultAccepted:
+		case services.UpgradeAccepted:
 			if err := u.pollLastOperation(instance, operation.Data); err != nil {
 				u.listener.InstanceUpgraded(instance, "failure")
 				return 0, 0, 0, nil, err

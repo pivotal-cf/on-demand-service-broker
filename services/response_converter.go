@@ -4,7 +4,7 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 // Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
-package brokerclient
+package services
 
 import (
 	"encoding/json"
@@ -25,10 +25,10 @@ type UpgradeOperation struct {
 type UpgradeOperationType int
 
 const (
-	ResultAccepted            UpgradeOperationType = iota
-	ResultOperationInProgress UpgradeOperationType = iota
-	ResultNotFound            UpgradeOperationType = iota
-	ResultOrphan              UpgradeOperationType = iota
+	UpgradeAccepted     UpgradeOperationType = iota
+	OperationInProgress UpgradeOperationType = iota
+	InstanceNotFound    UpgradeOperationType = iota
+	OrphanDeployment    UpgradeOperationType = iota
 )
 
 type ResponseConverter struct{}
@@ -42,13 +42,13 @@ func (r ResponseConverter) UpgradeOperationFrom(response *http.Response) (Upgrad
 		if err := json.NewDecoder(response.Body).Decode(&operationData); err != nil {
 			return UpgradeOperation{}, fmt.Errorf("cannot parse upgrade response: %s", err)
 		}
-		return UpgradeOperation{Type: ResultAccepted, Data: operationData}, nil
+		return UpgradeOperation{Type: UpgradeAccepted, Data: operationData}, nil
 	case http.StatusNotFound:
-		return UpgradeOperation{Type: ResultNotFound}, nil
+		return UpgradeOperation{Type: InstanceNotFound}, nil
 	case http.StatusGone:
-		return UpgradeOperation{Type: ResultOrphan}, nil
+		return UpgradeOperation{Type: OrphanDeployment}, nil
 	case http.StatusConflict:
-		return UpgradeOperation{Type: ResultOperationInProgress}, nil
+		return UpgradeOperation{Type: OperationInProgress}, nil
 	case http.StatusInternalServerError:
 		var errorResponse brokerapi.ErrorResponse
 		body, _ := ioutil.ReadAll(response.Body)

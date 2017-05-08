@@ -1,4 +1,4 @@
-package brokerclient_test
+package services_test
 
 import (
 	. "github.com/onsi/ginkgo"

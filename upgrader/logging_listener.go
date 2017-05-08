@@ -11,7 +11,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/pivotal-cf/on-demand-service-broker/brokerclient"
+	"github.com/pivotal-cf/on-demand-service-broker/services"
 )
 
 type LoggingListener struct {
@@ -39,17 +39,17 @@ func (ll LoggingListener) InstanceUpgradeStarting(instance string, index, totalI
 	ll.logger.Printf("Service instance: %s, upgrade attempt starting (%d of %d)", instance, index+1, totalInstances)
 }
 
-func (ll LoggingListener) InstanceUpgradeStartResult(resultType brokerclient.UpgradeOperationType) {
+func (ll LoggingListener) InstanceUpgradeStartResult(resultType services.UpgradeOperationType) {
 	var message string
 
 	switch resultType {
-	case brokerclient.ResultAccepted:
+	case services.UpgradeAccepted:
 		message = "accepted upgrade"
-	case brokerclient.ResultNotFound:
+	case services.InstanceNotFound:
 		message = "already deleted in CF"
-	case brokerclient.ResultOrphan:
+	case services.OrphanDeployment:
 		message = "orphan CF service instance detected - no corresponding bosh deployment"
-	case brokerclient.ResultOperationInProgress:
+	case services.OperationInProgress:
 		message = "operation in progress"
 	default:
 		message = "unexpected result"

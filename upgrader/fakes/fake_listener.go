@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pivotal-cf/on-demand-service-broker/brokerclient"
+	"github.com/pivotal-cf/on-demand-service-broker/services"
 	"github.com/pivotal-cf/on-demand-service-broker/upgrader"
 )
 
@@ -25,10 +25,10 @@ type FakeListener struct {
 		index          int
 		totalInstances int
 	}
-	InstanceUpgradeStartResultStub        func(status brokerclient.UpgradeOperationType)
+	InstanceUpgradeStartResultStub        func(status services.UpgradeOperationType)
 	instanceUpgradeStartResultMutex       sync.RWMutex
 	instanceUpgradeStartResultArgsForCall []struct {
-		status brokerclient.UpgradeOperationType
+		status services.UpgradeOperationType
 	}
 	InstanceUpgradedStub        func(instance string, result string)
 	instanceUpgradedMutex       sync.RWMutex
@@ -133,10 +133,10 @@ func (fake *FakeListener) InstanceUpgradeStartingArgsForCall(i int) (string, int
 	return fake.instanceUpgradeStartingArgsForCall[i].instance, fake.instanceUpgradeStartingArgsForCall[i].index, fake.instanceUpgradeStartingArgsForCall[i].totalInstances
 }
 
-func (fake *FakeListener) InstanceUpgradeStartResult(status brokerclient.UpgradeOperationType) {
+func (fake *FakeListener) InstanceUpgradeStartResult(status services.UpgradeOperationType) {
 	fake.instanceUpgradeStartResultMutex.Lock()
 	fake.instanceUpgradeStartResultArgsForCall = append(fake.instanceUpgradeStartResultArgsForCall, struct {
-		status brokerclient.UpgradeOperationType
+		status services.UpgradeOperationType
 	}{status})
 	fake.recordInvocation("InstanceUpgradeStartResult", []interface{}{status})
 	fake.instanceUpgradeStartResultMutex.Unlock()
@@ -151,7 +151,7 @@ func (fake *FakeListener) InstanceUpgradeStartResultCallCount() int {
 	return len(fake.instanceUpgradeStartResultArgsForCall)
 }
 
-func (fake *FakeListener) InstanceUpgradeStartResultArgsForCall(i int) brokerclient.UpgradeOperationType {
+func (fake *FakeListener) InstanceUpgradeStartResultArgsForCall(i int) services.UpgradeOperationType {
 	fake.instanceUpgradeStartResultMutex.RLock()
 	defer fake.instanceUpgradeStartResultMutex.RUnlock()
 	return fake.instanceUpgradeStartResultArgsForCall[i].status

@@ -4,7 +4,7 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 // Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
-package brokerclient_test
+package services_test
 
 import (
 	"encoding/base64"
@@ -17,7 +17,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
-	"github.com/pivotal-cf/on-demand-service-broker/brokerclient"
+	"github.com/pivotal-cf/on-demand-service-broker/services"
 )
 
 var _ = Describe("Broker Services HTTP Client", func() {
@@ -30,14 +30,14 @@ var _ = Describe("Broker Services HTTP Client", func() {
 	)
 
 	var (
-		client     brokerclient.BrokerServices
+		client     services.BrokerServices
 		httpClient *fakeClient
 	)
 
 	BeforeEach(func() {
 		httpClient = new(fakeClient)
 		httpClient.ExpectsBasicAuth(brokerUsername, brokerPassword)
-		client = brokerclient.NewBrokerServices(brokerUsername, brokerPassword, brokerURL, httpClient)
+		client = services.NewBrokerServices(brokerUsername, brokerPassword, brokerURL, httpClient)
 	})
 
 	Describe("Instances", func() {
@@ -56,7 +56,7 @@ var _ = Describe("Broker Services HTTP Client", func() {
 
 		Context("when the url is invalid", func() {
 			It("returns an error", func() {
-				client := brokerclient.NewBrokerServices(brokerUsername, brokerPassword, invalidURL, httpClient)
+				client := services.NewBrokerServices(brokerUsername, brokerPassword, invalidURL, httpClient)
 
 				_, err := client.Instances()
 
@@ -96,12 +96,12 @@ var _ = Describe("Broker Services HTTP Client", func() {
 			upgradeOperation, err := client.UpgradeInstance(serviceInstanceGUID)
 
 			Expect(err).NotTo(HaveOccurred())
-			Expect(upgradeOperation.Type).To(Equal(brokerclient.ResultNotFound))
+			Expect(upgradeOperation.Type).To(Equal(services.InstanceNotFound))
 		})
 
 		Context("when the url is invalid", func() {
 			It("returns an error", func() {
-				client := brokerclient.NewBrokerServices(brokerUsername, brokerPassword, invalidURL, httpClient)
+				client := services.NewBrokerServices(brokerUsername, brokerPassword, invalidURL, httpClient)
 
 				_, err := client.UpgradeInstance(serviceInstanceGUID)
 
@@ -156,7 +156,7 @@ var _ = Describe("Broker Services HTTP Client", func() {
 
 		Context("when the url is invalid", func() {
 			It("returns an error", func() {
-				client := brokerclient.NewBrokerServices(brokerUsername, brokerPassword, invalidURL, httpClient)
+				client := services.NewBrokerServices(brokerUsername, brokerPassword, invalidURL, httpClient)
 
 				_, err := client.LastOperation(serviceInstanceGUID, broker.OperationData{})
 

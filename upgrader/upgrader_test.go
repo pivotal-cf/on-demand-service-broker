@@ -15,8 +15,8 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
-	"github.com/pivotal-cf/on-demand-service-broker/brokerclient"
 	"github.com/pivotal-cf/on-demand-service-broker/upgrader"
+	"github.com/pivotal-cf/on-demand-service-broker/services"
 	"github.com/pivotal-cf/on-demand-service-broker/upgrader/fakes"
 )
 
@@ -32,8 +32,8 @@ var _ = Describe("Upgrader", func() {
 		fakeListener         *fakes.FakeListener
 		brokerServicesClient *fakes.FakeBrokerServices
 
-		upgradeOperationAccepted = brokerclient.UpgradeOperation{
-			Type: brokerclient.ResultAccepted,
+		upgradeOperationAccepted = services.UpgradeOperation{
+			Type: services.UpgradeAccepted,
 		}
 		lastOperationSucceeded  = brokerapi.LastOperation{State: brokerapi.Succeeded}
 		lastOperationInProgress = brokerapi.LastOperation{State: brokerapi.InProgress}
@@ -64,7 +64,7 @@ var _ = Describe("Upgrader", func() {
 
 			It("returns the list of successful upgrades", func() {
 				hasReportedInstanceUpgradeStarted(fakeListener, serviceInstanceId, 0, 1)
-				hasReportedInstanceUpgradeStartResult(fakeListener, brokerclient.ResultAccepted)
+				hasReportedInstanceUpgradeStartResult(fakeListener, services.UpgradeAccepted)
 				hasReportedUpgraded(fakeListener, serviceInstanceId)
 				Expect(actualErr).NotTo(HaveOccurred())
 			})
@@ -84,7 +84,7 @@ var _ = Describe("Upgrader", func() {
 			Context("due to a malformed service instance guid", func() {
 				BeforeEach(func() {
 					brokerServicesClient.InstancesReturns([]string{"not a guid Q#$%#$%^&&*$%^#$FGRTYW${T:WED:AWSD)E@#PE{:QS:{QLWD"}, nil)
-					brokerServicesClient.UpgradeInstanceReturns(brokerclient.UpgradeOperation{}, errors.New("failed"))
+					brokerServicesClient.UpgradeInstanceReturns(services.UpgradeOperation{}, errors.New("failed"))
 				})
 
 				It("returns an error", func() {
@@ -116,15 +116,15 @@ var _ = Describe("Upgrader", func() {
 	Context("when the CF service instance has been deleted", func() {
 		BeforeEach(func() {
 			brokerServicesClient.InstancesReturns([]string{serviceInstanceId}, nil)
-			brokerServicesClient.UpgradeInstanceReturns(brokerclient.UpgradeOperation{
-				Type: brokerclient.ResultNotFound,
+			brokerServicesClient.UpgradeInstanceReturns(services.UpgradeOperation{
+				Type: services.InstanceNotFound,
 			}, nil)
 		})
 
 		It("ignores the deleted instance instance", func() {
 			Expect(actualErr).NotTo(HaveOccurred())
 
-			hasReportedInstanceUpgradeStartResult(fakeListener, brokerclient.ResultNotFound)
+			hasReportedInstanceUpgradeStartResult(fakeListener, services.InstanceNotFound)
 			hasReportedProgress(fakeListener, zeroSeconds, 0, 0, 0, 1)
 			hasReportedFinished(fakeListener, 0, 0, 1)
 		})
@@ -133,15 +133,15 @@ var _ = Describe("Upgrader", func() {
 	Context("when the bosh deployment cannot be found", func() {
 		BeforeEach(func() {
 			brokerServicesClient.InstancesReturns([]string{serviceInstanceId}, nil)
-			brokerServicesClient.UpgradeInstanceReturns(brokerclient.UpgradeOperation{
-				Type: brokerclient.ResultOrphan,
+			brokerServicesClient.UpgradeInstanceReturns(services.UpgradeOperation{
+				Type: services.OrphanDeployment,
 			}, nil)
 		})
 
 		It("detects one orphan instance", func() {
 			Expect(actualErr).NotTo(HaveOccurred())
 
-			hasReportedInstanceUpgradeStartResult(fakeListener, brokerclient.ResultOrphan)
+			hasReportedInstanceUpgradeStartResult(fakeListener, services.OrphanDeployment)
 			hasReportedProgress(fakeListener, zeroSeconds, 1, 0, 0, 0)
 			hasReportedFinished(fakeListener, 1, 0, 0)
 		})
@@ -152,8 +152,8 @@ var _ = Describe("Upgrader", func() {
 		BeforeEach(func() {
 			brokerServicesClient.InstancesReturns([]string{serviceInstanceId}, nil)
 
-			brokerServicesClient.UpgradeInstanceReturns(brokerclient.UpgradeOperation{
-				Type: brokerclient.ResultOperationInProgress,
+			brokerServicesClient.UpgradeInstanceReturns(services.UpgradeOperation{
+				Type: services.OperationInProgress,
 			}, nil)
 			brokerServicesClient.UpgradeInstanceReturnsOnCall(3, upgradeOperationAccepted, nil)
 
@@ -166,10 +166,10 @@ var _ = Describe("Upgrader", func() {
 			Expect(brokerServicesClient.UpgradeInstanceCallCount()).To(Equal(4), "number of service requests")
 			hasReportedInstanceUpgradeStartResult(
 				fakeListener,
-				brokerclient.ResultOperationInProgress,
-				brokerclient.ResultOperationInProgress,
-				brokerclient.ResultOperationInProgress,
-				brokerclient.ResultAccepted,
+				services.OperationInProgress,
+				services.OperationInProgress,
+				services.OperationInProgress,
+				services.UpgradeAccepted,
 			)
 			hasReportedRetries(fakeListener, 1, 1, 1, 0)
 			hasReportedFinished(fakeListener, 0, 1, 0)
@@ -181,11 +181,11 @@ var _ = Describe("Upgrader", func() {
 		BeforeEach(func() {
 			brokerServicesClient.InstancesReturns([]string{serviceInstanceId}, nil)
 
-			brokerServicesClient.UpgradeInstanceReturns(brokerclient.UpgradeOperation{
-				Type: brokerclient.ResultOperationInProgress,
+			brokerServicesClient.UpgradeInstanceReturns(services.UpgradeOperation{
+				Type: services.OperationInProgress,
 			}, nil)
-			brokerServicesClient.UpgradeInstanceReturnsOnCall(3, brokerclient.UpgradeOperation{
-				Type: brokerclient.ResultOrphan,
+			brokerServicesClient.UpgradeInstanceReturnsOnCall(3, services.UpgradeOperation{
+				Type: services.OrphanDeployment,
 			}, nil)
 
 			brokerServicesClient.LastOperationReturns(lastOperationSucceeded, nil)
@@ -213,16 +213,16 @@ var _ = Describe("Upgrader", func() {
 			BeforeEach(func() {
 				brokerServicesClient.InstancesReturns([]string{serviceInstance1, serviceInstance2, serviceInstance3}, nil)
 
-				brokerServicesClient.UpgradeInstanceReturnsOnCall(0, brokerclient.UpgradeOperation{
-					Type: brokerclient.ResultAccepted,
+				brokerServicesClient.UpgradeInstanceReturnsOnCall(0, services.UpgradeOperation{
+					Type: services.UpgradeAccepted,
 					Data: upgradeResponse(upgradeTaskID1),
 				}, nil)
-				brokerServicesClient.UpgradeInstanceReturnsOnCall(1, brokerclient.UpgradeOperation{
-					Type: brokerclient.ResultAccepted,
+				brokerServicesClient.UpgradeInstanceReturnsOnCall(1, services.UpgradeOperation{
+					Type: services.UpgradeAccepted,
 					Data: upgradeResponse(upgradeTaskID2),
 				}, nil)
-				brokerServicesClient.UpgradeInstanceReturnsOnCall(2, brokerclient.UpgradeOperation{
-					Type: brokerclient.ResultAccepted,
+				brokerServicesClient.UpgradeInstanceReturnsOnCall(2, services.UpgradeOperation{
+					Type: services.UpgradeAccepted,
 					Data: upgradeResponse(upgradeTaskID3),
 				}, nil)
 
@@ -250,7 +250,7 @@ var _ = Describe("Upgrader", func() {
 				brokerServicesClient.InstancesReturns([]string{serviceInstance1, serviceInstance2, serviceInstance3}, nil)
 
 				brokerServicesClient.UpgradeInstanceReturnsOnCall(0, upgradeOperationAccepted, nil)
-				brokerServicesClient.UpgradeInstanceReturnsOnCall(1, brokerclient.UpgradeOperation{}, errors.New("upgrade failed"))
+				brokerServicesClient.UpgradeInstanceReturnsOnCall(1, services.UpgradeOperation{}, errors.New("upgrade failed"))
 
 				brokerServicesClient.LastOperationReturns(lastOperationSucceeded, nil)
 			})
@@ -274,12 +274,12 @@ var _ = Describe("Upgrader", func() {
 			BeforeEach(func() {
 				brokerServicesClient.InstancesReturns([]string{serviceInstance1, serviceInstance2, serviceInstance3}, nil)
 
-				brokerServicesClient.UpgradeInstanceReturnsOnCall(0, brokerclient.UpgradeOperation{
-					Type: brokerclient.ResultAccepted,
+				brokerServicesClient.UpgradeInstanceReturnsOnCall(0, services.UpgradeOperation{
+					Type: services.UpgradeAccepted,
 					Data: upgradeResponse(upgradeTaskID1),
 				}, nil)
-				brokerServicesClient.UpgradeInstanceReturnsOnCall(1, brokerclient.UpgradeOperation{
-					Type: brokerclient.ResultAccepted,
+				brokerServicesClient.UpgradeInstanceReturnsOnCall(1, services.UpgradeOperation{
+					Type: services.UpgradeAccepted,
 					Data: upgradeResponse(upgradeTaskID2),
 				}, nil)
 
@@ -312,8 +312,8 @@ var _ = Describe("Upgrader", func() {
 				brokerServicesClient.InstancesReturns([]string{serviceInstance1, serviceInstance2, serviceInstance3}, nil)
 
 				brokerServicesClient.UpgradeInstanceReturnsOnCall(0, upgradeOperationAccepted, nil)
-				brokerServicesClient.UpgradeInstanceReturnsOnCall(1, brokerclient.UpgradeOperation{
-					Type: brokerclient.ResultOrphan,
+				brokerServicesClient.UpgradeInstanceReturnsOnCall(1, services.UpgradeOperation{
+					Type: services.OrphanDeployment,
 				}, nil)
 				brokerServicesClient.UpgradeInstanceReturnsOnCall(2, upgradeOperationAccepted, nil)
 				brokerServicesClient.LastOperationReturns(lastOperationSucceeded, nil)
@@ -334,8 +334,8 @@ var _ = Describe("Upgrader", func() {
 				brokerServicesClient.InstancesReturns([]string{serviceInstance1, serviceInstance2, serviceInstance3}, nil)
 
 				brokerServicesClient.UpgradeInstanceReturnsOnCall(0, upgradeOperationAccepted, nil)
-				brokerServicesClient.UpgradeInstanceReturns(brokerclient.UpgradeOperation{
-					Type: brokerclient.ResultOperationInProgress,
+				brokerServicesClient.UpgradeInstanceReturns(services.UpgradeOperation{
+					Type: services.OperationInProgress,
 				}, nil)
 				brokerServicesClient.UpgradeInstanceReturnsOnCall(2, upgradeOperationAccepted, nil)
 				brokerServicesClient.UpgradeInstanceReturnsOnCall(5, upgradeOperationAccepted, nil)
@@ -397,7 +397,7 @@ func hasReportedInstanceUpgradeStarted(fakeListener *fakes.FakeListener, expecte
 	Expect(actualTotalInstances).To(Equal(expectedTotalInstances), "expected total num of instances for instance upgrade started")
 }
 
-func hasReportedInstanceUpgradeStartResult(fakeListener *fakes.FakeListener, expectedStatuses ...brokerclient.UpgradeOperationType) {
+func hasReportedInstanceUpgradeStartResult(fakeListener *fakes.FakeListener, expectedStatuses ...services.UpgradeOperationType) {
 	Expect(fakeListener.InstanceUpgradeStartResultCallCount()).To(
 		Equal(len(expectedStatuses)), "instance upgrade start result call count",
 	)
