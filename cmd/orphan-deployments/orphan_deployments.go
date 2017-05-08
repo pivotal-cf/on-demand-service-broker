@@ -14,10 +14,8 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"time"
-
-	"github.com/craigfurman/herottp"
 	"github.com/pivotal-cf/on-demand-service-broker/mgmtapi"
+	"github.com/pivotal-cf/on-demand-service-broker/network"
 )
 
 const (
@@ -38,7 +36,7 @@ func main() {
 	}
 	request.SetBasicAuth(*brokerUsername, *brokerPassword)
 
-	client := herottp.New(herottp.Config{Timeout: 30 * time.Second})
+	client := network.NewDefaultHTTPClient()
 
 	response, err := client.Do(request)
 	if err != nil {

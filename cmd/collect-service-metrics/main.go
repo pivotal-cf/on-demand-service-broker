@@ -12,9 +12,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"time"
-
-	"github.com/craigfurman/herottp"
+	"github.com/pivotal-cf/on-demand-service-broker/network"
 )
 
 const (
@@ -29,7 +27,7 @@ func main() {
 	flag.Parse()
 
 	brokerMetricsUrl := *brokerUrl + "/mgmt/metrics"
-	client := herottp.New(herottp.Config{Timeout: 30 * time.Second})
+	client := network.NewDefaultHTTPClient()
 
 	request, err := http.NewRequest("GET", brokerMetricsUrl, nil)
 	if err != nil {
