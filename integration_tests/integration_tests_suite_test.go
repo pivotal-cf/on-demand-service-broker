@@ -114,17 +114,14 @@ const (
 )
 
 var (
-	brokerBinPath       string
-	serviceAdapterPath  string
-	brokerPostStartPath string
-	tempDirPath         string
+	brokerBinPath      string
+	serviceAdapterPath string
+	tempDirPath        string
 )
 
 type binPaths struct {
-	Broker          string
-	Adapter         string
-	Deleter         string
-	BrokerPostStart string
+	Broker  string
+	Adapter string
 }
 
 var _ = SynchronizedBeforeSuite(
@@ -135,13 +132,9 @@ var _ = SynchronizedBeforeSuite(
 		adapter, err := gexec.Build("github.com/pivotal-cf/on-demand-service-broker/integration_tests/mock/adapter")
 		Expect(err).NotTo(HaveOccurred())
 
-		brokerPostStart, err := gexec.Build("github.com/pivotal-cf/on-demand-service-broker/cmd/broker-post-start")
-		Expect(err).NotTo(HaveOccurred())
-
 		compiledBinaries, err := json.Marshal(binPaths{
-			Broker:          broker,
-			Adapter:         adapter,
-			BrokerPostStart: brokerPostStart,
+			Broker:  broker,
+			Adapter: adapter,
 		})
 		Expect(err).NotTo(HaveOccurred())
 
@@ -152,7 +145,6 @@ var _ = SynchronizedBeforeSuite(
 		Expect(json.Unmarshal(fromFirstNode, &compiledBinaries)).To(Succeed())
 		brokerBinPath = compiledBinaries.Broker
 		serviceAdapterPath = compiledBinaries.Adapter
-		brokerPostStartPath = compiledBinaries.BrokerPostStart
 
 		brokerPort = 37890 + GinkgoParallelNode()
 
