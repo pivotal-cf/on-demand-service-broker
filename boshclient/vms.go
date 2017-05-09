@@ -31,22 +31,12 @@ func (c *Client) VMs(name string, logger *log.Logger) (bosh.BoshVMs, error) {
 		return errs(err)
 	}
 
-	for {
-		task, getTaskErr := c.GetTask(taskID, logger)
-		if getTaskErr != nil {
-			return errs(getTaskErr)
-		}
-
-		if task.State == BoshTaskError {
-			return nil, fmt.Errorf("task %d failed", taskID)
-		}
-
-		if task.State == BoshTaskDone {
-			logger.Printf("Task %d finished: %s\n", taskID, task.ToLog())
-			break
-		}
-
-		time.Sleep(time.Second * c.BoshPollingInterval)
+	err = untilTrue(
+		func() (bool, error) { return c.checkTaskComplete(taskID, logger) },
+		time.Second*c.BoshPollingInterval,
+	)
+	if err != nil {
+		return nil, err
 	}
 
 	vmsOutputForEachJob, err := c.VMsOutput(taskID, logger)
@@ -60,6 +50,39 @@ func (c *Client) VMs(name string, logger *log.Logger) (bosh.BoshVMs, error) {
 	}
 
 	return vms, nil
+}
+
+func (c *Client) checkTaskComplete(taskID int, logger *log.Logger) (bool, error) {
+	task, getTaskErr := c.GetTask(taskID, logger)
+	if getTaskErr != nil {
+		return false, getTaskErr
+	}
+
+	if task.State == BoshTaskError {
+		return false, fmt.Errorf("task %d failed", taskID)
+	}
+
+	if task.State == BoshTaskDone {
+		logger.Printf("Task %d finished: %s\n", taskID, task.ToLog())
+		return true, nil
+	}
+
+	return false, nil
+}
+
+func untilTrue(probe func() (bool, error), pollingInterval time.Duration) error {
+	for {
+		done, err := probe()
+		if err != nil {
+			return err
+		}
+
+		if done {
+			return nil
+		}
+
+		time.Sleep(pollingInterval)
+	}
 }
 
 type BoshVMsOutput struct {
