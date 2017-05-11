@@ -16,7 +16,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
-	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter/fake_command_runner"
+	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter/fakes"
 	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
 
@@ -25,7 +25,7 @@ var _ = Describe("dashboard url", func() {
 
 	var (
 		a          *serviceadapter.Client
-		cmdRunner  *fake_command_runner.FakeCommandRunner
+		cmdRunner  *fakes.FakeCommandRunner
 		logs       *gbytes.Buffer
 		logger     *log.Logger
 		instanceID string
@@ -39,7 +39,7 @@ var _ = Describe("dashboard url", func() {
 	BeforeEach(func() {
 		logs = gbytes.NewBuffer()
 		logger = log.New(io.MultiWriter(GinkgoWriter, logs), "[unit-tests] ", log.LstdFlags)
-		cmdRunner = new(fake_command_runner.FakeCommandRunner)
+		cmdRunner = new(fakes.FakeCommandRunner)
 		a = &serviceadapter.Client{
 			CommandRunner:   cmdRunner,
 			ExternalBinPath: externalBinPath,

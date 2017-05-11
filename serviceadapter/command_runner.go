@@ -12,11 +12,6 @@ import (
 	"syscall"
 )
 
-//go:generate counterfeiter -o fake_command_runner/fake_command_runner.go . CommandRunner
-type CommandRunner interface {
-	Run(arg ...string) ([]byte, []byte, *int, error)
-}
-
 func NewCommandRunner() CommandRunner {
 	return commandRunner{}
 }
