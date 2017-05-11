@@ -8,7 +8,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/services"
 )
 
-type FakeClient struct {
+type FakeHTTPClient struct {
 	GetStub        func(path string, query map[string]string) (*http.Response, error)
 	getMutex       sync.RWMutex
 	getArgsForCall []struct {
@@ -40,7 +40,7 @@ type FakeClient struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeClient) Get(path string, query map[string]string) (*http.Response, error) {
+func (fake *FakeHTTPClient) Get(path string, query map[string]string) (*http.Response, error) {
 	fake.getMutex.Lock()
 	ret, specificReturn := fake.getReturnsOnCall[len(fake.getArgsForCall)]
 	fake.getArgsForCall = append(fake.getArgsForCall, struct {
@@ -58,19 +58,19 @@ func (fake *FakeClient) Get(path string, query map[string]string) (*http.Respons
 	return fake.getReturns.result1, fake.getReturns.result2
 }
 
-func (fake *FakeClient) GetCallCount() int {
+func (fake *FakeHTTPClient) GetCallCount() int {
 	fake.getMutex.RLock()
 	defer fake.getMutex.RUnlock()
 	return len(fake.getArgsForCall)
 }
 
-func (fake *FakeClient) GetArgsForCall(i int) (string, map[string]string) {
+func (fake *FakeHTTPClient) GetArgsForCall(i int) (string, map[string]string) {
 	fake.getMutex.RLock()
 	defer fake.getMutex.RUnlock()
 	return fake.getArgsForCall[i].path, fake.getArgsForCall[i].query
 }
 
-func (fake *FakeClient) GetReturns(result1 *http.Response, result2 error) {
+func (fake *FakeHTTPClient) GetReturns(result1 *http.Response, result2 error) {
 	fake.GetStub = nil
 	fake.getReturns = struct {
 		result1 *http.Response
@@ -78,7 +78,7 @@ func (fake *FakeClient) GetReturns(result1 *http.Response, result2 error) {
 	}{result1, result2}
 }
 
-func (fake *FakeClient) GetReturnsOnCall(i int, result1 *http.Response, result2 error) {
+func (fake *FakeHTTPClient) GetReturnsOnCall(i int, result1 *http.Response, result2 error) {
 	fake.GetStub = nil
 	if fake.getReturnsOnCall == nil {
 		fake.getReturnsOnCall = make(map[int]struct {
@@ -92,7 +92,7 @@ func (fake *FakeClient) GetReturnsOnCall(i int, result1 *http.Response, result2 
 	}{result1, result2}
 }
 
-func (fake *FakeClient) Patch(path string) (*http.Response, error) {
+func (fake *FakeHTTPClient) Patch(path string) (*http.Response, error) {
 	fake.patchMutex.Lock()
 	ret, specificReturn := fake.patchReturnsOnCall[len(fake.patchArgsForCall)]
 	fake.patchArgsForCall = append(fake.patchArgsForCall, struct {
@@ -109,19 +109,19 @@ func (fake *FakeClient) Patch(path string) (*http.Response, error) {
 	return fake.patchReturns.result1, fake.patchReturns.result2
 }
 
-func (fake *FakeClient) PatchCallCount() int {
+func (fake *FakeHTTPClient) PatchCallCount() int {
 	fake.patchMutex.RLock()
 	defer fake.patchMutex.RUnlock()
 	return len(fake.patchArgsForCall)
 }
 
-func (fake *FakeClient) PatchArgsForCall(i int) string {
+func (fake *FakeHTTPClient) PatchArgsForCall(i int) string {
 	fake.patchMutex.RLock()
 	defer fake.patchMutex.RUnlock()
 	return fake.patchArgsForCall[i].path
 }
 
-func (fake *FakeClient) PatchReturns(result1 *http.Response, result2 error) {
+func (fake *FakeHTTPClient) PatchReturns(result1 *http.Response, result2 error) {
 	fake.PatchStub = nil
 	fake.patchReturns = struct {
 		result1 *http.Response
@@ -129,7 +129,7 @@ func (fake *FakeClient) PatchReturns(result1 *http.Response, result2 error) {
 	}{result1, result2}
 }
 
-func (fake *FakeClient) PatchReturnsOnCall(i int, result1 *http.Response, result2 error) {
+func (fake *FakeHTTPClient) PatchReturnsOnCall(i int, result1 *http.Response, result2 error) {
 	fake.PatchStub = nil
 	if fake.patchReturnsOnCall == nil {
 		fake.patchReturnsOnCall = make(map[int]struct {
@@ -143,7 +143,7 @@ func (fake *FakeClient) PatchReturnsOnCall(i int, result1 *http.Response, result
 	}{result1, result2}
 }
 
-func (fake *FakeClient) Invocations() map[string][][]interface{} {
+func (fake *FakeHTTPClient) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.getMutex.RLock()
@@ -153,7 +153,7 @@ func (fake *FakeClient) Invocations() map[string][][]interface{} {
 	return fake.invocations
 }
 
-func (fake *FakeClient) recordInvocation(key string, args []interface{}) {
+func (fake *FakeHTTPClient) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
@@ -165,4 +165,4 @@ func (fake *FakeClient) recordInvocation(key string, args []interface{}) {
 	fake.invocations[key] = append(fake.invocations[key], args)
 }
 
-var _ services.Client = new(FakeClient)
+var _ services.HTTPClient = new(FakeHTTPClient)

@@ -26,11 +26,11 @@ var _ = Describe("Broker Services", func() {
 
 	var (
 		brokerServices *services.BrokerServices
-		client         *fakes.FakeClient
+		client         *fakes.FakeHTTPClient
 	)
 
 	BeforeEach(func() {
-		client = new(fakes.FakeClient)
+		client = new(fakes.FakeHTTPClient)
 		brokerServices = services.NewBrokerServices(client)
 	})
 

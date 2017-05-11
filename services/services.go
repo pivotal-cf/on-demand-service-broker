@@ -16,18 +16,18 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/mgmtapi"
 )
 
-//go:generate counterfeiter -o fakes/fake_client.go . Client
-type Client interface {
+//go:generate counterfeiter -o fakes/fake_http_client.go . HTTPClient
+type HTTPClient interface {
 	Get(path string, query map[string]string) (*http.Response, error)
 	Patch(path string) (*http.Response, error)
 }
 
 type BrokerServices struct {
-	client    Client
+	client    HTTPClient
 	converter ResponseConverter
 }
 
-func NewBrokerServices(client Client) *BrokerServices {
+func NewBrokerServices(client HTTPClient) *BrokerServices {
 	return &BrokerServices{
 		client:    client,
 		converter: ResponseConverter{},
