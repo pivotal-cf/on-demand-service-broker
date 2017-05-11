@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/pivotal-cf/on-demand-service-broker/services"
+	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
 )
 
 type FakeHTTPClient struct {
