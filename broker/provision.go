@@ -14,7 +14,7 @@ import (
 
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/brokerapi"
-	"github.com/pivotal-cf/on-demand-service-broker/adapterclient"
+	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	"github.com/pivotal-cf/on-demand-service-broker/boshclient"
 	"github.com/pivotal-cf/on-demand-service-broker/brokercontext"
 )
@@ -136,7 +136,7 @@ func (b *Broker) provisionInstance(ctx context.Context, instanceID string, planI
 		return errs(NewBoshRequestError("create", err))
 	case DisplayableError:
 		return errs(err)
-	case adapterclient.UnknownFailureError:
+	case serviceadapter.UnknownFailureError:
 		return errs(adapterToAPIError(ctx, err))
 	case error:
 		return errs(NewGenericError(ctx, err))
@@ -159,7 +159,7 @@ func (b *Broker) provisionInstance(ctx context.Context, instanceID string, planI
 	}
 
 	//Dashboard url optional
-	if _, ok := err.(adapterclient.NotImplementedError); ok {
+	if _, ok := err.(serviceadapter.NotImplementedError); ok {
 		return operationData, dashboardUrl, nil
 	}
 

@@ -4,7 +4,7 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 // Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
-package adapterclient
+package serviceadapter
 
 import (
 	"encoding/json"
@@ -13,7 +13,7 @@ import (
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 )
 
-func (a *Adapter) DeleteBinding(bindingID string, deploymentTopology bosh.BoshVMs, manifest []byte, requestParams map[string]interface{}, logger *log.Logger) error {
+func (c *Client) DeleteBinding(bindingID string, deploymentTopology bosh.BoshVMs, manifest []byte, requestParams map[string]interface{}, logger *log.Logger) error {
 	serialisedBoshVMs, err := json.Marshal(deploymentTopology)
 	if err != nil {
 		return err
@@ -24,13 +24,13 @@ func (a *Adapter) DeleteBinding(bindingID string, deploymentTopology bosh.BoshVM
 		return err
 	}
 
-	stdout, stderr, exitCode, err := a.CommandRunner.Run(a.ExternalBinPath, "delete-binding", bindingID, string(serialisedBoshVMs), string(manifest), string(serialisedRequestParams))
+	stdout, stderr, exitCode, err := c.CommandRunner.Run(c.ExternalBinPath, "delete-binding", bindingID, string(serialisedBoshVMs), string(manifest), string(serialisedRequestParams))
 	if err != nil {
-		return adapterError(a.ExternalBinPath, stdout, stderr, err)
+		return adapterError(c.ExternalBinPath, stdout, stderr, err)
 	}
 
 	if err := ErrorForExitCode(*exitCode, string(stdout)); err != nil {
-		logger.Printf(adapterFailedMessage(*exitCode, a.ExternalBinPath, stdout, stderr))
+		logger.Printf(adapterFailedMessage(*exitCode, c.ExternalBinPath, stdout, stderr))
 		return err
 	}
 

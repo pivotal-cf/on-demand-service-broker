@@ -4,7 +4,7 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 // Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
-package adapterclient_test
+package serviceadapter_test
 
 import (
 	"encoding/json"
@@ -15,21 +15,21 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
-	"github.com/pivotal-cf/on-demand-service-broker/adapterclient"
-	"github.com/pivotal-cf/on-demand-service-broker/adapterclient/fake_command_runner"
-	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
+	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
+	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter/fake_command_runner"
+	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
 
 var _ = Describe("dashboard url", func() {
 	const externalBinPath = "/thing"
 
 	var (
-		a          *adapterclient.Adapter
+		a          *serviceadapter.Client
 		cmdRunner  *fake_command_runner.FakeCommandRunner
 		logs       *gbytes.Buffer
 		logger     *log.Logger
 		instanceID string
-		plan       serviceadapter.Plan
+		plan       sdk.Plan
 		manifest   []byte
 
 		actualDashboardUrl string
@@ -40,12 +40,12 @@ var _ = Describe("dashboard url", func() {
 		logs = gbytes.NewBuffer()
 		logger = log.New(io.MultiWriter(GinkgoWriter, logs), "[unit-tests] ", log.LstdFlags)
 		cmdRunner = new(fake_command_runner.FakeCommandRunner)
-		a = &adapterclient.Adapter{
+		a = &serviceadapter.Client{
 			CommandRunner:   cmdRunner,
 			ExternalBinPath: externalBinPath,
 		}
-		plan = serviceadapter.Plan{
-			Properties: serviceadapter.Properties{
+		plan = sdk.Plan{
+			Properties: sdk.Properties{
 				"foo": "bar",
 				"baz": map[string]interface{}{
 					"qux": "quux",
@@ -55,14 +55,14 @@ var _ = Describe("dashboard url", func() {
 
 		manifest = []byte("a manifest")
 
-		cmdRunner.RunReturns([]byte(""), []byte(""), intPtr(adapterclient.SuccessExitCode), nil)
+		cmdRunner.RunReturns([]byte(""), []byte(""), intPtr(serviceadapter.SuccessExitCode), nil)
 
 		instanceID = "the-instance-id"
 		manifest = []byte("a-manifest")
 
 		dashboardUrlJSON := []byte(`{ "dashboard_url": "https://someurl.com"}`)
 
-		cmdRunner.RunReturns(dashboardUrlJSON, []byte("I'm stderr"), intPtr(adapterclient.SuccessExitCode), nil)
+		cmdRunner.RunReturns(dashboardUrlJSON, []byte("I'm stderr"), intPtr(serviceadapter.SuccessExitCode), nil)
 	})
 
 	JustBeforeEach(func() {
@@ -91,8 +91,8 @@ var _ = Describe("dashboard url", func() {
 
 	Context("when plan properties are formatted as map[interface][interface]", func() {
 		BeforeEach(func() {
-			plan = serviceadapter.Plan{
-				Properties: serviceadapter.Properties{
+			plan = sdk.Plan{
+				Properties: sdk.Properties{
 					"foo": "bar",
 					"baz": map[interface{}]interface{}{
 						"qux": "quux",
@@ -106,8 +106,8 @@ var _ = Describe("dashboard url", func() {
 			Expect(cmdRunner.RunCallCount()).To(Equal(1))
 			argsPassed := cmdRunner.RunArgsForCall(0)
 
-			convertedPlan := serviceadapter.Plan{
-				Properties: serviceadapter.Properties{
+			convertedPlan := sdk.Plan{
+				Properties: sdk.Properties{
 					"foo": "bar",
 					"baz": map[string]interface{}{
 						"qux": "quux",
@@ -123,11 +123,11 @@ var _ = Describe("dashboard url", func() {
 
 	Context("adapter did not implement the dashboard url subcommand", func() {
 		BeforeEach(func() {
-			cmdRunner.RunReturns([]byte("stdout"), []byte("stderr"), intPtr(serviceadapter.NotImplementedExitCode), nil)
+			cmdRunner.RunReturns([]byte("stdout"), []byte("stderr"), intPtr(sdk.NotImplementedExitCode), nil)
 		})
 
 		It("returns the correct error", func() {
-			Expect(actualError).To(BeAssignableToTypeOf(adapterclient.NotImplementedError{}))
+			Expect(actualError).To(BeAssignableToTypeOf(serviceadapter.NotImplementedError{}))
 			Expect(actualError.Error()).NotTo(ContainSubstring("stdout"))
 			Expect(actualError.Error()).NotTo(ContainSubstring("stderr"))
 		})
@@ -152,11 +152,11 @@ var _ = Describe("dashboard url", func() {
 	Context("when the external service adapter fails", func() {
 		Context("when there is a operator error message and a user error message", func() {
 			BeforeEach(func() {
-				cmdRunner.RunReturns([]byte("I'm stdout"), []byte("I'm stderr"), intPtr(serviceadapter.ErrorExitCode), nil)
+				cmdRunner.RunReturns([]byte("I'm stdout"), []byte("I'm stderr"), intPtr(sdk.ErrorExitCode), nil)
 			})
 
 			It("returns an UnknownFailureError", func() {
-				Expect(actualError).To(BeAssignableToTypeOf(adapterclient.UnknownFailureError{}))
+				Expect(actualError).To(BeAssignableToTypeOf(serviceadapter.UnknownFailureError{}))
 				Expect(actualError.Error()).To(Equal("I'm stdout"))
 			})
 
@@ -168,7 +168,7 @@ var _ = Describe("dashboard url", func() {
 
 	Context("cannot deserialise response", func() {
 		BeforeEach(func() {
-			cmdRunner.RunReturns([]byte("invalid json"), []byte("I'm stderr"), intPtr(adapterclient.SuccessExitCode), nil)
+			cmdRunner.RunReturns([]byte("invalid json"), []byte("I'm stderr"), intPtr(serviceadapter.SuccessExitCode), nil)
 		})
 
 		It("returns an error", func() {

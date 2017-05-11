@@ -4,7 +4,7 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 // Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
-package adapterclient_test
+package serviceadapter_test
 
 import (
 	"encoding/json"
@@ -16,9 +16,9 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 
-	"github.com/pivotal-cf/on-demand-service-broker/adapterclient"
-	"github.com/pivotal-cf/on-demand-service-broker/adapterclient/fake_command_runner"
-	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
+	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
+	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter/fake_command_runner"
+	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
 
 var _ = Describe("external service adapter", func() {
@@ -26,13 +26,13 @@ var _ = Describe("external service adapter", func() {
 	const validManifestContent = "name: a-service-deployment"
 
 	var (
-		a                 *adapterclient.Adapter
+		a                 *serviceadapter.Client
 		cmdRunner         *fake_command_runner.FakeCommandRunner
 		logs              *gbytes.Buffer
 		logger            *log.Logger
-		serviceDeployment serviceadapter.ServiceDeployment
-		plan              serviceadapter.Plan
-		previousPlan      *serviceadapter.Plan
+		serviceDeployment sdk.ServiceDeployment
+		plan              sdk.Plan
+		previousPlan      *sdk.Plan
 		params            map[string]interface{}
 		previousManifest  []byte
 
@@ -44,25 +44,25 @@ var _ = Describe("external service adapter", func() {
 		logs = gbytes.NewBuffer()
 		logger = log.New(io.MultiWriter(GinkgoWriter, logs), "[unit-tests] ", log.LstdFlags)
 		cmdRunner = new(fake_command_runner.FakeCommandRunner)
-		a = &adapterclient.Adapter{
+		a = &serviceadapter.Client{
 			CommandRunner:   cmdRunner,
 			ExternalBinPath: externalBinPath,
 		}
-		cmdRunner.RunReturns([]byte(validManifestContent), []byte(""), intPtr(adapterclient.SuccessExitCode), nil)
+		cmdRunner.RunReturns([]byte(validManifestContent), []byte(""), intPtr(serviceadapter.SuccessExitCode), nil)
 
-		serviceDeployment = serviceadapter.ServiceDeployment{
+		serviceDeployment = sdk.ServiceDeployment{
 			DeploymentName: "a-service-deployment",
-			Releases: serviceadapter.ServiceReleases{
+			Releases: sdk.ServiceReleases{
 				{Name: "a-bosh-release"},
 			},
-			Stemcell: serviceadapter.Stemcell{
+			Stemcell: sdk.Stemcell{
 				OS:      "BeOS",
 				Version: "2",
 			},
 		}
 
-		plan = serviceadapter.Plan{
-			Properties: serviceadapter.Properties{
+		plan = sdk.Plan{
+			Properties: sdk.Properties{
 				"foo": "bar",
 				"baz": map[interface{}]interface{}{
 					"qux": "quux",
@@ -76,8 +76,8 @@ var _ = Describe("external service adapter", func() {
 			},
 		}
 		previousManifest = []byte("a-manifest")
-		previousPlan = &serviceadapter.Plan{
-			Properties: serviceadapter.Properties{
+		previousPlan = &sdk.Plan{
+			Properties: sdk.Properties{
 				"previous": "props",
 				"baz": map[interface{}]interface{}{
 					"qux": "quux",
@@ -94,7 +94,7 @@ var _ = Describe("external service adapter", func() {
 		serialisedServiceDeployment, err := json.Marshal(serviceDeployment)
 		Expect(err).NotTo(HaveOccurred())
 
-		plan.Properties = adapterclient.SanitiseForJSON(plan.Properties)
+		plan.Properties = serviceadapter.SanitiseForJSON(plan.Properties)
 		serialisedPlan, err := json.Marshal(plan)
 		Expect(err).NotTo(HaveOccurred())
 
@@ -126,7 +126,7 @@ var _ = Describe("external service adapter", func() {
 			Context("with an incorrect deployment name", func() {
 				BeforeEach(func() {
 					invalidManifestContent := "name: not-the-deployment-name-given-to-the-adapter"
-					cmdRunner.RunReturns([]byte(invalidManifestContent), []byte(""), intPtr(adapterclient.SuccessExitCode), nil)
+					cmdRunner.RunReturns([]byte(invalidManifestContent), []byte(""), intPtr(serviceadapter.SuccessExitCode), nil)
 				})
 
 				It("returns an error", func() {
@@ -140,7 +140,7 @@ var _ = Describe("external service adapter", func() {
 name: a-service-deployment
 releases:
 - version: 42.latest`
-					cmdRunner.RunReturns([]byte(invalidManifestContent), []byte(""), intPtr(adapterclient.SuccessExitCode), nil)
+					cmdRunner.RunReturns([]byte(invalidManifestContent), []byte(""), intPtr(serviceadapter.SuccessExitCode), nil)
 				})
 
 				It("returns an error", func() {
@@ -154,7 +154,7 @@ releases:
 name: a-service-deployment
 stemcells:
 - version: 42.latest`
-					cmdRunner.RunReturns([]byte(invalidManifestContent), []byte(""), intPtr(adapterclient.SuccessExitCode), nil)
+					cmdRunner.RunReturns([]byte(invalidManifestContent), []byte(""), intPtr(serviceadapter.SuccessExitCode), nil)
 				})
 
 				It("returns an error", func() {
@@ -164,7 +164,7 @@ stemcells:
 
 			Context("that cannot be unmarshalled", func() {
 				BeforeEach(func() {
-					cmdRunner.RunReturns([]byte("unparseable"), []byte(""), intPtr(adapterclient.SuccessExitCode), nil)
+					cmdRunner.RunReturns([]byte("unparseable"), []byte(""), intPtr(serviceadapter.SuccessExitCode), nil)
 				})
 
 				It("returns an error", func() {
@@ -176,11 +176,11 @@ stemcells:
 
 	Context("when the external service adapter exits with status 10", func() {
 		BeforeEach(func() {
-			cmdRunner.RunReturns([]byte("I'm stdout"), []byte("I'm stderr"), intPtr(serviceadapter.NotImplementedExitCode), nil)
+			cmdRunner.RunReturns([]byte("I'm stdout"), []byte("I'm stderr"), intPtr(sdk.NotImplementedExitCode), nil)
 		})
 
 		It("returns an error", func() {
-			Expect(generateErr).To(BeAssignableToTypeOf(adapterclient.NotImplementedError{}))
+			Expect(generateErr).To(BeAssignableToTypeOf(serviceadapter.NotImplementedError{}))
 			Expect(generateErr.Error()).NotTo(ContainSubstring("stdout"))
 			Expect(generateErr.Error()).NotTo(ContainSubstring("stderr"))
 		})
@@ -193,11 +193,11 @@ stemcells:
 	Context("when the external service adapter fails", func() {
 		Context("when there is a operator error message and a user error message", func() {
 			BeforeEach(func() {
-				cmdRunner.RunReturns([]byte("I'm stdout"), []byte("I'm stderr"), intPtr(serviceadapter.ErrorExitCode), nil)
+				cmdRunner.RunReturns([]byte("I'm stdout"), []byte("I'm stderr"), intPtr(sdk.ErrorExitCode), nil)
 			})
 
 			It("returns an UnknownFailureError", func() {
-				commandError, ok := generateErr.(adapterclient.UnknownFailureError)
+				commandError, ok := generateErr.(serviceadapter.UnknownFailureError)
 				Expect(ok).To(BeTrue(), "error should be an SDK GenericError")
 				Expect(commandError.Error()).To(Equal("I'm stdout"))
 			})

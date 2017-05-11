@@ -4,7 +4,7 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 // Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
-package adapterclient
+package serviceadapter
 
 import (
 	"encoding/json"
@@ -14,7 +14,7 @@ import (
 	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
 
-func (a *Adapter) CreateBinding(bindingID string, deploymentTopology bosh.BoshVMs, manifest []byte, requestParams map[string]interface{}, logger *log.Logger) (sdk.Binding, error) {
+func (c *Client) CreateBinding(bindingID string, deploymentTopology bosh.BoshVMs, manifest []byte, requestParams map[string]interface{}, logger *log.Logger) (sdk.Binding, error) {
 	var binding sdk.Binding
 
 	serialisedBoshVMs, err := json.Marshal(deploymentTopology)
@@ -27,20 +27,20 @@ func (a *Adapter) CreateBinding(bindingID string, deploymentTopology bosh.BoshVM
 		return binding, err
 	}
 
-	stdout, stderr, exitCode, err := a.CommandRunner.Run(a.ExternalBinPath, "create-binding", bindingID, string(serialisedBoshVMs), string(manifest), string(serialisedRequestParams))
+	stdout, stderr, exitCode, err := c.CommandRunner.Run(c.ExternalBinPath, "create-binding", bindingID, string(serialisedBoshVMs), string(manifest), string(serialisedRequestParams))
 	if err != nil {
-		return binding, adapterError(a.ExternalBinPath, stdout, stderr, err)
+		return binding, adapterError(c.ExternalBinPath, stdout, stderr, err)
 	}
 
 	if err := ErrorForExitCode(*exitCode, string(stdout)); err != nil {
-		logger.Printf(adapterFailedMessage(*exitCode, a.ExternalBinPath, stdout, stderr))
+		logger.Printf(adapterFailedMessage(*exitCode, c.ExternalBinPath, stdout, stderr))
 		return binding, err
 	}
 
 	logger.Printf("service adapter ran create-binding successfully, stderr logs: %s", string(stderr))
 
 	if err := json.Unmarshal(stdout, &binding); err != nil {
-		return binding, invalidJSONError(a.ExternalBinPath, stdout, stderr, err)
+		return binding, invalidJSONError(c.ExternalBinPath, stdout, stderr, err)
 	}
 
 	return binding, nil

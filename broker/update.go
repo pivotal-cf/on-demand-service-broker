@@ -15,7 +15,7 @@ import (
 
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/brokerapi"
-	"github.com/pivotal-cf/on-demand-service-broker/adapterclient"
+	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	"github.com/pivotal-cf/on-demand-service-broker/brokercontext"
 	"github.com/pivotal-cf/on-demand-service-broker/task"
 )
@@ -101,7 +101,7 @@ func (b *Broker) Update(
 		return brokerapi.UpdateServiceSpec{IsAsync: true}, errors.New(OperationInProgressMessage)
 	case task.PlanNotFoundError:
 		return brokerapi.UpdateServiceSpec{IsAsync: true}, err
-	case adapterclient.UnknownFailureError:
+	case serviceadapter.UnknownFailureError:
 		return brokerapi.UpdateServiceSpec{IsAsync: true}, adapterToAPIError(ctx, err)
 	case error:
 		return errs(NewGenericError(ctx, fmt.Errorf("error deploying instance: %s", err)))

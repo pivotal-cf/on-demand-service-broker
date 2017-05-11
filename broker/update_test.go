@@ -14,7 +14,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/brokerapi"
-	"github.com/pivotal-cf/on-demand-service-broker/adapterclient"
+	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/task"
 )
@@ -432,7 +432,7 @@ var _ = Describe("Update", func() {
 		})
 
 		Context("when the adapter client fails", func() {
-			unknownFailureError := adapterclient.NewUnknownFailureError("unknown failure")
+			unknownFailureError := serviceadapter.NewUnknownFailureError("unknown failure")
 			BeforeEach(func() {
 				fakeDeployer.UpdateReturns(boshTaskID, nil, unknownFailureError)
 			})

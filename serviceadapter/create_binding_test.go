@@ -4,7 +4,7 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 // Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
-package adapterclient_test
+package serviceadapter_test
 
 import (
 	"encoding/json"
@@ -16,17 +16,17 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 
-	"github.com/pivotal-cf/on-demand-service-broker/adapterclient"
-	"github.com/pivotal-cf/on-demand-service-broker/adapterclient/fake_command_runner"
+	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
+	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter/fake_command_runner"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
-	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
+	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
 
 var _ = Describe("external service adapter", func() {
 	const externalBinPath = "/thing"
 
 	var (
-		a                  *adapterclient.Adapter
+		a                  *serviceadapter.Client
 		cmdRunner          *fake_command_runner.FakeCommandRunner
 		logs               *gbytes.Buffer
 		logger             *log.Logger
@@ -35,7 +35,7 @@ var _ = Describe("external service adapter", func() {
 		manifest           []byte
 		requestParams      map[string]interface{}
 
-		adapterBinding   serviceadapter.Binding
+		adapterBinding   sdk.Binding
 		createBindingErr error
 	)
 
@@ -43,7 +43,7 @@ var _ = Describe("external service adapter", func() {
 		logs = gbytes.NewBuffer()
 		logger = log.New(io.MultiWriter(GinkgoWriter, logs), "[unit-tests] ", log.LstdFlags)
 		cmdRunner = new(fake_command_runner.FakeCommandRunner)
-		a = &adapterclient.Adapter{
+		a = &serviceadapter.Client{
 			CommandRunner:   cmdRunner,
 			ExternalBinPath: externalBinPath,
 		}
@@ -54,7 +54,7 @@ var _ = Describe("external service adapter", func() {
   				},
   				"syslog_drain_url": "some-url",
   				"route_service_url": "route-url"
-  			}`), []byte(""), intPtr(adapterclient.SuccessExitCode), nil)
+  			}`), []byte(""), intPtr(serviceadapter.SuccessExitCode), nil)
 
 		bindingID = "the-binding"
 		deploymentTopology = bosh.BoshVMs{"the-deployment": []string{"a-vm"}}
@@ -83,7 +83,7 @@ var _ = Describe("external service adapter", func() {
 			Expect(createBindingErr).ToNot(HaveOccurred())
 
 			Expect(adapterBinding).To(Equal(
-				serviceadapter.Binding{
+				sdk.Binding{
 					Credentials:     map[string]interface{}{"username": "user1", "password": "reallysecret"},
 					SyslogDrainURL:  "some-url",
 					RouteServiceURL: "route-url",
@@ -94,7 +94,7 @@ var _ = Describe("external service adapter", func() {
 
 	Context("when the external adapter returns an invalid binding", func() {
 		BeforeEach(func() {
-			cmdRunner.RunReturns([]byte("invalid json"), []byte("stderr"), intPtr(adapterclient.SuccessExitCode), nil)
+			cmdRunner.RunReturns([]byte("invalid json"), []byte("stderr"), intPtr(serviceadapter.SuccessExitCode), nil)
 		})
 
 		It("returns the service-specific binding output", func() {
@@ -110,11 +110,11 @@ var _ = Describe("external service adapter", func() {
 	Context("when the external service adapter fails", func() {
 		Context("when there is an operator error message and a user error message", func() {
 			BeforeEach(func() {
-				cmdRunner.RunReturns([]byte("stdout"), []byte("stderr"), intPtr(serviceadapter.ErrorExitCode), nil)
+				cmdRunner.RunReturns([]byte("stdout"), []byte("stderr"), intPtr(sdk.ErrorExitCode), nil)
 			})
 
 			It("returns an UnknownFailureError", func() {
-				commandError, ok := createBindingErr.(adapterclient.UnknownFailureError)
+				commandError, ok := createBindingErr.(serviceadapter.UnknownFailureError)
 				Expect(ok).To(BeTrue(), "error should be a Generic Error")
 				Expect(commandError.Error()).To(Equal("stdout"))
 			})
@@ -127,11 +127,11 @@ var _ = Describe("external service adapter", func() {
 
 	Context("when the external adapter fails with exit code 49", func() {
 		BeforeEach(func() {
-			cmdRunner.RunReturns([]byte("stdout"), []byte("stderr"), intPtr(serviceadapter.BindingAlreadyExistsErrorExitCode), nil)
+			cmdRunner.RunReturns([]byte("stdout"), []byte("stderr"), intPtr(sdk.BindingAlreadyExistsErrorExitCode), nil)
 		})
 
 		It("returns the correct error", func() {
-			Expect(createBindingErr).To(BeAssignableToTypeOf(adapterclient.BindingAlreadyExistsError{}))
+			Expect(createBindingErr).To(BeAssignableToTypeOf(serviceadapter.BindingAlreadyExistsError{}))
 			Expect(createBindingErr.Error()).NotTo(ContainSubstring("stdout"))
 			Expect(createBindingErr.Error()).NotTo(ContainSubstring("stderr"))
 		})
@@ -143,11 +143,11 @@ var _ = Describe("external service adapter", func() {
 
 	Context("when the external adapter fails with exit code 42", func() {
 		BeforeEach(func() {
-			cmdRunner.RunReturns([]byte("stdout"), []byte("stderr"), intPtr(serviceadapter.AppGuidNotProvidedErrorExitCode), nil)
+			cmdRunner.RunReturns([]byte("stdout"), []byte("stderr"), intPtr(sdk.AppGuidNotProvidedErrorExitCode), nil)
 		})
 
 		It("returns the correct error", func() {
-			Expect(createBindingErr).To(BeAssignableToTypeOf(adapterclient.AppGuidNotProvidedError{}))
+			Expect(createBindingErr).To(BeAssignableToTypeOf(serviceadapter.AppGuidNotProvidedError{}))
 			Expect(createBindingErr.Error()).NotTo(ContainSubstring("stdout"))
 			Expect(createBindingErr.Error()).NotTo(ContainSubstring("stderr"))
 		})
@@ -159,11 +159,11 @@ var _ = Describe("external service adapter", func() {
 
 	Context("when the external adapter fails with exit code 10", func() {
 		BeforeEach(func() {
-			cmdRunner.RunReturns([]byte("stdout"), []byte("stderr"), intPtr(serviceadapter.NotImplementedExitCode), nil)
+			cmdRunner.RunReturns([]byte("stdout"), []byte("stderr"), intPtr(sdk.NotImplementedExitCode), nil)
 		})
 
 		It("returns the correct error", func() {
-			Expect(createBindingErr).To(BeAssignableToTypeOf(adapterclient.NotImplementedError{}))
+			Expect(createBindingErr).To(BeAssignableToTypeOf(serviceadapter.NotImplementedError{}))
 			Expect(createBindingErr.Error()).NotTo(ContainSubstring("stdout"))
 			Expect(createBindingErr.Error()).NotTo(ContainSubstring("stderr"))
 		})

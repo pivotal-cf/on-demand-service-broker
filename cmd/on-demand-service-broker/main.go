@@ -17,7 +17,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/pivotal-cf/brokerapi"
 	apiauth "github.com/pivotal-cf/brokerapi/auth"
-	"github.com/pivotal-cf/on-demand-service-broker/adapterclient"
+	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
 	"github.com/pivotal-cf/on-demand-service-broker/boshclient"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
@@ -96,9 +96,9 @@ func startBroker(conf config.Config, logger *log.Logger, loggerFactory *loggerfa
 		logger.Fatalf("error creating Cloud Foundry client: %s", err)
 	}
 
-	serviceAdapter := &adapterclient.Adapter{
+	serviceAdapter := &serviceadapter.Client{
 		ExternalBinPath: conf.ServiceAdapter.Path,
-		CommandRunner:   adapterclient.NewCommandRunner(),
+		CommandRunner:   serviceadapter.NewCommandRunner(),
 	}
 
 	manifestGenerator := task.NewManifestGenerator(

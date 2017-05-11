@@ -11,17 +11,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-
 	"log"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/brokerapi"
-	"github.com/pivotal-cf/on-demand-service-broker/adapterclient"
 	"github.com/pivotal-cf/on-demand-service-broker/boshclient"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
-	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
+	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
+	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
 
 var _ = Describe("provisioning", func() {
@@ -117,8 +116,8 @@ var _ = Describe("provisioning", func() {
 			Expect(serviceAdapter.GenerateDashboardUrlCallCount()).To(Equal(1))
 			instanceID, plan, boshManifest, _ := serviceAdapter.GenerateDashboardUrlArgsForCall(0)
 			Expect(instanceID).To(Equal(instanceID))
-			expectedProperties := serviceadapter.Properties{"super": "no", "a_global_property": "global_value", "some_other_global_property": "other_global_value"}
-			Expect(plan).To(Equal(serviceadapter.Plan{
+			expectedProperties := sdk.Properties{"super": "no", "a_global_property": "global_value", "some_other_global_property": "other_global_value"}
+			Expect(plan).To(Equal(sdk.Plan{
 				Properties:     expectedProperties,
 				InstanceGroups: existingPlan.InstanceGroups,
 				Update:         existingPlan.Update,
@@ -142,7 +141,7 @@ var _ = Describe("provisioning", func() {
 
 		Context("adapter has not implemented the dashboard url", func() {
 			BeforeEach(func() {
-				serviceAdapter.GenerateDashboardUrlReturns("", adapterclient.NewNotImplementedError("no dashboard!"))
+				serviceAdapter.GenerateDashboardUrlReturns("", serviceadapter.NewNotImplementedError("no dashboard!"))
 			})
 
 			It("returns the dashboard as blank", func() {
@@ -213,7 +212,7 @@ var _ = Describe("provisioning", func() {
 		Context("adapter returns an AdapterCommandError", func() {
 			BeforeEach(func() {
 				serviceAdapter.GenerateDashboardUrlReturns("",
-					adapterclient.NewUnknownFailureError(
+					serviceadapter.NewUnknownFailureError(
 						"it failed, but all is not lost dear user",
 					),
 				)
@@ -235,7 +234,7 @@ var _ = Describe("provisioning", func() {
 				LifecycleErrands: &config.LifecycleErrands{
 					PostDeploy: errandName,
 				},
-				InstanceGroups: []serviceadapter.InstanceGroup{
+				InstanceGroups: []sdk.InstanceGroup{
 					{
 						Name:               "post-deploy-instance-group-name",
 						VMType:             "post-deploy-vm-type",
@@ -427,7 +426,7 @@ var _ = Describe("provisioning", func() {
 	})
 
 	Context("when the deploy returns an adapter error with a user message", func() {
-		var err = adapterclient.NewUnknownFailureError("it failed, but all is not lost dear user")
+		var err = serviceadapter.NewUnknownFailureError("it failed, but all is not lost dear user")
 
 		BeforeEach(func() {
 			fakeDeployer.CreateReturns(0, nil, err)
@@ -439,7 +438,7 @@ var _ = Describe("provisioning", func() {
 	})
 
 	Context("when the deploy returns an adapter error with no message", func() {
-		var err = adapterclient.NewUnknownFailureError("")
+		var err = serviceadapter.NewUnknownFailureError("")
 
 		BeforeEach(func() {
 			fakeDeployer.CreateReturns(0, nil, err)

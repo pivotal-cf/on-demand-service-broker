@@ -15,10 +15,10 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/brokerapi"
-	"github.com/pivotal-cf/on-demand-service-broker/adapterclient"
 	"github.com/pivotal-cf/on-demand-service-broker/boshclient"
+	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
-	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
+	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
 
 var _ = Describe("Bind", func() {
@@ -26,7 +26,7 @@ var _ = Describe("Bind", func() {
 		instanceID             = "a-very-impressive-instance"
 		bindingID              = "binding-id"
 		serviceDeploymentName  = deploymentName(instanceID)
-		adapterBindingResponse = serviceadapter.Binding{
+		adapterBindingResponse = sdk.Binding{
 			Credentials:     map[string]interface{}{"foo": "bar"},
 			RouteServiceURL: "route",
 			SyslogDrainURL:  "syslog",
@@ -230,7 +230,7 @@ var _ = Describe("Bind", func() {
 		Context("with a generic error", func() {
 			Context("with no message for the user", func() {
 				BeforeEach(func() {
-					serviceAdapter.CreateBindingReturns(serviceadapter.Binding{}, errors.New("binding fail"))
+					serviceAdapter.CreateBindingReturns(sdk.Binding{}, errors.New("binding fail"))
 				})
 
 				Describe("returned error", func() {
@@ -277,10 +277,10 @@ var _ = Describe("Bind", func() {
 			})
 
 			Context("with an error message for the user", func() {
-				var err = adapterclient.NewUnknownFailureError("it failed, but all is not lost dear user")
+				var err = serviceadapter.NewUnknownFailureError("it failed, but all is not lost dear user")
 
 				BeforeEach(func() {
-					serviceAdapter.CreateBindingReturns(serviceadapter.Binding{}, err)
+					serviceAdapter.CreateBindingReturns(sdk.Binding{}, err)
 				})
 
 				It("returns the user error", func() {
@@ -291,7 +291,7 @@ var _ = Describe("Bind", func() {
 
 		Context("with a binding already exists error", func() {
 			BeforeEach(func() {
-				serviceAdapter.CreateBindingReturns(serviceadapter.Binding{}, adapterclient.BindingAlreadyExistsError{})
+				serviceAdapter.CreateBindingReturns(sdk.Binding{}, serviceadapter.BindingAlreadyExistsError{})
 			})
 
 			It("returns a binding already exists error", func() {
@@ -301,7 +301,7 @@ var _ = Describe("Bind", func() {
 
 		Context("with the app_guid not provided", func() {
 			BeforeEach(func() {
-				serviceAdapter.CreateBindingReturns(serviceadapter.Binding{}, adapterclient.AppGuidNotProvidedError{})
+				serviceAdapter.CreateBindingReturns(sdk.Binding{}, serviceadapter.AppGuidNotProvidedError{})
 			})
 
 			It("returns an 'app guid not provided' error", func() {

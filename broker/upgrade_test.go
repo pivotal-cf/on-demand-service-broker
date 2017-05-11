@@ -14,7 +14,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf/on-demand-service-broker/adapterclient"
+	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/cloud_foundry_client"
 	"github.com/pivotal-cf/on-demand-service-broker/task"
@@ -129,7 +129,7 @@ var _ = Describe("Upgrade", func() {
 		})
 
 		Context("and the service adapter returns a UnknownFailureError with a user message", func() {
-			var err = adapterclient.NewUnknownFailureError("error for cf user")
+			var err = serviceadapter.NewUnknownFailureError("error for cf user")
 
 			BeforeEach(func() {
 				fakeDeployer.UpgradeReturns(boshTaskID, nil, err)
@@ -142,7 +142,7 @@ var _ = Describe("Upgrade", func() {
 
 		Context("and the service adapter returns a UnknownFailureError with no message", func() {
 			BeforeEach(func() {
-				fakeDeployer.UpgradeReturns(boshTaskID, nil, adapterclient.NewUnknownFailureError(""))
+				fakeDeployer.UpgradeReturns(boshTaskID, nil, serviceadapter.NewUnknownFailureError(""))
 			})
 
 			It("returns a generic error", func() {

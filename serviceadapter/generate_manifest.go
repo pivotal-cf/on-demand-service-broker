@@ -4,7 +4,7 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 // Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
-package adapterclient
+package serviceadapter
 
 import (
 	"encoding/json"
@@ -29,7 +29,7 @@ type manifestValidator struct {
 	deploymentName string
 }
 
-func (a *Adapter) GenerateManifest(serviceDeployment sdk.ServiceDeployment, plan sdk.Plan, requestParams map[string]interface{}, previousManifest []byte, previousPlan *sdk.Plan, logger *log.Logger) ([]byte, error) {
+func (c *Client) GenerateManifest(serviceDeployment sdk.ServiceDeployment, plan sdk.Plan, requestParams map[string]interface{}, previousManifest []byte, previousPlan *sdk.Plan, logger *log.Logger) ([]byte, error) {
 	serialisedServiceDeployment, err := json.Marshal(serviceDeployment)
 	if err != nil {
 		return nil, err
@@ -54,25 +54,25 @@ func (a *Adapter) GenerateManifest(serviceDeployment sdk.ServiceDeployment, plan
 		return nil, err
 	}
 
-	stdout, stderr, exitCode, err := a.CommandRunner.Run(
-		a.ExternalBinPath, "generate-manifest", string(serialisedServiceDeployment),
+	stdout, stderr, exitCode, err := c.CommandRunner.Run(
+		c.ExternalBinPath, "generate-manifest", string(serialisedServiceDeployment),
 		string(serialisedPlan), string(serialisedRequestParams),
 		string(previousManifest), string(serialisedPreviousPlan),
 	)
 
 	if err != nil {
-		return nil, adapterError(a.ExternalBinPath, stdout, stderr, err)
+		return nil, adapterError(c.ExternalBinPath, stdout, stderr, err)
 	}
 
 	if err := ErrorForExitCode(*exitCode, string(stdout)); err != nil {
-		logger.Printf(adapterFailedMessage(*exitCode, a.ExternalBinPath, stdout, stderr))
+		logger.Printf(adapterFailedMessage(*exitCode, c.ExternalBinPath, stdout, stderr))
 		return nil, err
 	}
 
 	logger.Printf("service adapter ran generate-manifest successfully, stderr logs: %s", string(stderr))
 
 	validator := manifestValidator{deploymentName: serviceDeployment.DeploymentName}
-	if err := validator.validateManifest(a.ExternalBinPath, stdout, stderr); err != nil {
+	if err := validator.validateManifest(c.ExternalBinPath, stdout, stderr); err != nil {
 		return nil, err
 	}
 

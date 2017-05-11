@@ -4,7 +4,7 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 // Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
-package adapterclient_test
+package serviceadapter_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -12,15 +12,15 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
 
-	"github.com/pivotal-cf/on-demand-service-broker/adapterclient"
-	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
+	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
+	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
 
 var _ = Describe("Adapter Client", func() {
 
 	DescribeTable("ErrorForExitCode",
 		func(code int, msg string, matchErr types.GomegaMatcher, matchMsg types.GomegaMatcher) {
-			err := adapterclient.ErrorForExitCode(code, msg)
+			err := serviceadapter.ErrorForExitCode(code, msg)
 			Expect(err).To(matchErr)
 
 			if err != nil {
@@ -29,44 +29,44 @@ var _ = Describe("Adapter Client", func() {
 		},
 		Entry(
 			"success",
-			adapterclient.SuccessExitCode, "",
+			serviceadapter.SuccessExitCode, "",
 			BeNil(),
 			nil,
 		),
 		Entry(
 			"not implemented",
-			serviceadapter.NotImplementedExitCode, "should not appear",
-			BeAssignableToTypeOf(adapterclient.NotImplementedError{}),
+			sdk.NotImplementedExitCode, "should not appear",
+			BeAssignableToTypeOf(serviceadapter.NotImplementedError{}),
 			Equal("command not implemented by service adapter"),
 		),
 		Entry(
 			"app guid not provided",
-			serviceadapter.AppGuidNotProvidedErrorExitCode, "should not appear",
-			BeAssignableToTypeOf(adapterclient.AppGuidNotProvidedError{}),
+			sdk.AppGuidNotProvidedErrorExitCode, "should not appear",
+			BeAssignableToTypeOf(serviceadapter.AppGuidNotProvidedError{}),
 			Equal("app GUID not provided"),
 		),
 		Entry(
 			"binding already exists",
-			serviceadapter.BindingAlreadyExistsErrorExitCode, "should not appear",
-			BeAssignableToTypeOf(adapterclient.BindingAlreadyExistsError{}),
+			sdk.BindingAlreadyExistsErrorExitCode, "should not appear",
+			BeAssignableToTypeOf(serviceadapter.BindingAlreadyExistsError{}),
 			Equal("binding already exists"),
 		),
 		Entry(
 			"binding not found",
-			serviceadapter.BindingNotFoundErrorExitCode, "should not appear",
-			BeAssignableToTypeOf(adapterclient.BindingNotFoundError{}),
+			sdk.BindingNotFoundErrorExitCode, "should not appear",
+			BeAssignableToTypeOf(serviceadapter.BindingNotFoundError{}),
 			Equal("binding not found"),
 		),
 		Entry(
 			"standard error exit code",
-			serviceadapter.ErrorExitCode, "some error",
-			BeAssignableToTypeOf(adapterclient.UnknownFailureError{}),
+			sdk.ErrorExitCode, "some error",
+			BeAssignableToTypeOf(serviceadapter.UnknownFailureError{}),
 			Equal("some error"),
 		),
 		Entry(
 			"some other non-zero exit code",
 			12345, "some other error",
-			BeAssignableToTypeOf(adapterclient.UnknownFailureError{}),
+			BeAssignableToTypeOf(serviceadapter.UnknownFailureError{}),
 			Equal("some other error"),
 		),
 	)

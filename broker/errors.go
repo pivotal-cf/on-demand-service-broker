@@ -12,7 +12,7 @@ import (
 	"fmt"
 
 	"github.com/pivotal-cf/brokerapi"
-	"github.com/pivotal-cf/on-demand-service-broker/adapterclient"
+	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	"github.com/pivotal-cf/on-demand-service-broker/brokercontext"
 )
 
@@ -127,13 +127,13 @@ func adapterToAPIError(ctx context.Context, err error) error {
 	}
 
 	switch err.(type) {
-	case adapterclient.BindingAlreadyExistsError:
+	case serviceadapter.BindingAlreadyExistsError:
 		return brokerapi.ErrBindingAlreadyExists
-	case adapterclient.BindingNotFoundError:
+	case serviceadapter.BindingNotFoundError:
 		return brokerapi.ErrBindingDoesNotExist
-	case adapterclient.AppGuidNotProvidedError:
+	case serviceadapter.AppGuidNotProvidedError:
 		return brokerapi.ErrAppGuidNotProvided
-	case adapterclient.UnknownFailureError:
+	case serviceadapter.UnknownFailureError:
 		if err.Error() == "" {
 			//Adapter returns an unknown error with no message
 			err = NewGenericError(ctx, err).ErrorForCFUser()

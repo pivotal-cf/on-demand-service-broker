@@ -4,7 +4,7 @@ package fake_command_runner
 import (
 	"sync"
 
-	"github.com/pivotal-cf/on-demand-service-broker/adapterclient"
+	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 )
 
 type FakeCommandRunner struct {
@@ -106,4 +106,4 @@ func (fake *FakeCommandRunner) recordInvocation(key string, args []interface{}) 
 	fake.invocations[key] = append(fake.invocations[key], args)
 }
 
-var _ adapterclient.CommandRunner = new(FakeCommandRunner)
+var _ serviceadapter.CommandRunner = new(FakeCommandRunner)

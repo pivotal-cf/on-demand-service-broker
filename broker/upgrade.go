@@ -12,7 +12,7 @@ import (
 	"log"
 
 	"github.com/pborman/uuid"
-	"github.com/pivotal-cf/on-demand-service-broker/adapterclient"
+	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	"github.com/pivotal-cf/on-demand-service-broker/task"
 )
 
@@ -58,7 +58,7 @@ func (b *Broker) Upgrade(ctx context.Context, instanceID string, logger *log.Log
 		switch err := err.(type) {
 		case DisplayableError:
 			return OperationData{}, err.ErrorForCFUser()
-		case adapterclient.UnknownFailureError:
+		case serviceadapter.UnknownFailureError:
 			return OperationData{}, adapterToAPIError(ctx, err)
 		case task.TaskInProgressError:
 			return OperationData{}, NewOperationInProgressError(err)
