@@ -70,7 +70,7 @@ func (l LifeCycleRunner) processPostDeployment(
 	case 1:
 		task := boshTasks[0]
 
-		if task.StateType() != boshdirector.TaskDone {
+		if task.StateType() != boshdirector.TaskComplete {
 			return task, nil
 		}
 
@@ -108,7 +108,7 @@ func (l LifeCycleRunner) processPreDelete(
 		return boshdirector.BoshTask{}, fmt.Errorf("no tasks found for context id: %s", operationData.BoshContextID)
 	case 1:
 		task := boshTasks[0]
-		if task.StateType() != boshdirector.TaskDone {
+		if task.StateType() != boshdirector.TaskComplete {
 			return task, nil
 		}
 

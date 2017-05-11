@@ -12,12 +12,12 @@ import (
 	"net/http"
 )
 
-func (c *Client) GetDeployments(logger *log.Logger) ([]BoshDeployment, error) {
+func (c *Client) GetDeployments(logger *log.Logger) ([]Deployment, error) {
 	logger.Println("getting deployments from bosh")
 
-	var deployments []BoshDeployment
-	url := fmt.Sprintf("%s/deployments", c.boshURL)
-	if err := c.getDataFromBoshCheckingForErrors(url, http.StatusOK, &deployments, logger); err != nil {
+	var deployments []Deployment
+	url := fmt.Sprintf("%s/deployments", c.url)
+	if err := c.getDataCheckingForErrors(url, http.StatusOK, &deployments, logger); err != nil {
 		return nil, err
 	}
 

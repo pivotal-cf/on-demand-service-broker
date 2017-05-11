@@ -287,7 +287,7 @@ var _ = Describe("deprovisioning instances", func() {
 	})
 
 	Context("when a bosh task is in flight for the deployment", func() {
-		incompleteTasks := boshdirector.BoshTasks{{ID: 1337, State: boshdirector.BoshTaskProcessing}}
+		incompleteTasks := boshdirector.BoshTasks{{ID: 1337, State: boshdirector.TaskProcessing}}
 		BeforeEach(func() {
 			boshClient.GetTasksReturns(incompleteTasks, nil)
 		})

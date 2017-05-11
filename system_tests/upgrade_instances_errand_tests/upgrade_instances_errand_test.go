@@ -36,16 +36,16 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 				boshTasks := boshClient.GetTasksForDeployment(getServiceDeploymentName(instanceName))
 				Expect(boshTasks).To(HaveLen(4))
 
-				Expect(boshTasks[0].State).To(Equal(boshdirector.BoshTaskDone))
+				Expect(boshTasks[0].State).To(Equal(boshdirector.TaskDone))
 				Expect(boshTasks[0].Description).To(ContainSubstring("run errand"))
 
-				Expect(boshTasks[1].State).To(Equal(boshdirector.BoshTaskDone))
+				Expect(boshTasks[1].State).To(Equal(boshdirector.TaskDone))
 				Expect(boshTasks[1].Description).To(ContainSubstring("create deployment"))
 
-				Expect(boshTasks[2].State).To(Equal(boshdirector.BoshTaskDone))
+				Expect(boshTasks[2].State).To(Equal(boshdirector.TaskDone))
 				Expect(boshTasks[2].Description).To(ContainSubstring("run errand"))
 
-				Expect(boshTasks[3].State).To(Equal(boshdirector.BoshTaskDone))
+				Expect(boshTasks[3].State).To(Equal(boshdirector.TaskDone))
 				Expect(boshTasks[3].Description).To(ContainSubstring("create deployment"))
 			}
 		}

@@ -56,10 +56,10 @@ var _ = Describe("lifecycle errand tests", func() {
 					boshTasks := boshClient.GetTasksForDeployment(getServiceDeploymentName(serviceInstanceName))
 					Expect(boshTasks).To(HaveLen(2))
 
-					Expect(boshTasks[0].State).To(Equal(boshdirector.BoshTaskDone))
+					Expect(boshTasks[0].State).To(Equal(boshdirector.TaskDone))
 					Expect(boshTasks[0].Description).To(ContainSubstring("run errand"))
 
-					Expect(boshTasks[1].State).To(Equal(boshdirector.BoshTaskDone))
+					Expect(boshTasks[1].State).To(Equal(boshdirector.TaskDone))
 					Expect(boshTasks[1].Description).To(ContainSubstring("create deployment"))
 				})
 
@@ -71,16 +71,16 @@ var _ = Describe("lifecycle errand tests", func() {
 					boshTasks := boshClient.GetTasksForDeployment(getServiceDeploymentName(serviceInstanceName))
 					Expect(boshTasks).To(HaveLen(4))
 
-					Expect(boshTasks[0].State).To(Equal(boshdirector.BoshTaskDone))
+					Expect(boshTasks[0].State).To(Equal(boshdirector.TaskDone))
 					Expect(boshTasks[0].Description).To(ContainSubstring("run errand"))
 
-					Expect(boshTasks[1].State).To(Equal(boshdirector.BoshTaskDone))
+					Expect(boshTasks[1].State).To(Equal(boshdirector.TaskDone))
 					Expect(boshTasks[1].Description).To(ContainSubstring("create deployment"))
 
-					Expect(boshTasks[2].State).To(Equal(boshdirector.BoshTaskDone))
+					Expect(boshTasks[2].State).To(Equal(boshdirector.TaskDone))
 					Expect(boshTasks[2].Description).To(ContainSubstring("run errand"))
 
-					Expect(boshTasks[3].State).To(Equal(boshdirector.BoshTaskDone))
+					Expect(boshTasks[3].State).To(Equal(boshdirector.TaskDone))
 					Expect(boshTasks[3].Description).To(ContainSubstring("create deployment"))
 				})
 
@@ -93,13 +93,13 @@ var _ = Describe("lifecycle errand tests", func() {
 						boshTasks := boshClient.GetTasksForDeployment(getServiceDeploymentName(serviceInstanceName))
 						Expect(boshTasks).To(HaveLen(3))
 
-						Expect(boshTasks[0].State).To(Equal(boshdirector.BoshTaskDone))
+						Expect(boshTasks[0].State).To(Equal(boshdirector.TaskDone))
 						Expect(boshTasks[0].Description).To(ContainSubstring("create deployment"))
 
-						Expect(boshTasks[1].State).To(Equal(boshdirector.BoshTaskDone))
+						Expect(boshTasks[1].State).To(Equal(boshdirector.TaskDone))
 						Expect(boshTasks[1].Description).To(ContainSubstring("run errand"))
 
-						Expect(boshTasks[2].State).To(Equal(boshdirector.BoshTaskDone))
+						Expect(boshTasks[2].State).To(Equal(boshdirector.TaskDone))
 						Expect(boshTasks[2].Description).To(ContainSubstring("create deployment"))
 					})
 				})
@@ -116,10 +116,10 @@ var _ = Describe("lifecycle errand tests", func() {
 					boshTasks := boshClient.GetTasksForDeployment(getServiceDeploymentName(serviceInstanceName))
 					Expect(boshTasks).To(HaveLen(2))
 
-					Expect(boshTasks[0].State).To(Equal(boshdirector.BoshTaskDone))
+					Expect(boshTasks[0].State).To(Equal(boshdirector.TaskDone))
 					Expect(boshTasks[0].Description).To(ContainSubstring("run errand"))
 
-					Expect(boshTasks[1].State).To(Equal(boshdirector.BoshTaskDone))
+					Expect(boshTasks[1].State).To(Equal(boshdirector.TaskDone))
 					Expect(boshTasks[1].Description).To(ContainSubstring("create deployment"))
 				})
 			})
@@ -138,7 +138,7 @@ var _ = Describe("lifecycle errand tests", func() {
 				boshTasks := boshClient.GetTasksForDeployment(getServiceDeploymentName(serviceInstanceName))
 				Expect(boshTasks).To(HaveLen(1))
 
-				Expect(boshTasks[0].State).To(Equal(boshdirector.BoshTaskDone))
+				Expect(boshTasks[0].State).To(Equal(boshdirector.TaskDone))
 				Expect(boshTasks[0].Description).To(ContainSubstring("create deployment"))
 			})
 
@@ -150,10 +150,10 @@ var _ = Describe("lifecycle errand tests", func() {
 				boshTasks := boshClient.GetTasksForDeployment(getServiceDeploymentName(serviceInstanceName))
 				Expect(boshTasks).To(HaveLen(2))
 
-				Expect(boshTasks[0].State).To(Equal(boshdirector.BoshTaskDone))
+				Expect(boshTasks[0].State).To(Equal(boshdirector.TaskDone))
 				Expect(boshTasks[0].Description).To(ContainSubstring("create deployment"))
 
-				Expect(boshTasks[1].State).To(Equal(boshdirector.BoshTaskDone))
+				Expect(boshTasks[1].State).To(Equal(boshdirector.TaskDone))
 				Expect(boshTasks[1].Description).To(ContainSubstring("create deployment"))
 			})
 
@@ -166,13 +166,13 @@ var _ = Describe("lifecycle errand tests", func() {
 					boshTasks := boshClient.GetTasksForDeployment(getServiceDeploymentName(serviceInstanceName))
 					Expect(boshTasks).To(HaveLen(3))
 
-					Expect(boshTasks[0].State).To(Equal(boshdirector.BoshTaskDone))
+					Expect(boshTasks[0].State).To(Equal(boshdirector.TaskDone))
 					Expect(boshTasks[0].Description).To(ContainSubstring("run errand"))
 
-					Expect(boshTasks[1].State).To(Equal(boshdirector.BoshTaskDone))
+					Expect(boshTasks[1].State).To(Equal(boshdirector.TaskDone))
 					Expect(boshTasks[1].Description).To(ContainSubstring("create deployment"))
 
-					Expect(boshTasks[2].State).To(Equal(boshdirector.BoshTaskDone))
+					Expect(boshTasks[2].State).To(Equal(boshdirector.TaskDone))
 					Expect(boshTasks[2].Description).To(ContainSubstring("create deployment"))
 				})
 			})
@@ -211,10 +211,10 @@ var _ = Describe("lifecycle errand tests", func() {
 			It("runs pre-delete errand before delete", func() {
 				boshTasks := boshClient.GetTasksForDeployment(deploymentName)
 
-				Expect(boshTasks[0].State).To(Equal(boshdirector.BoshTaskDone))
+				Expect(boshTasks[0].State).To(Equal(boshdirector.TaskDone))
 				Expect(boshTasks[0].Description).To(ContainSubstring("delete deployment"))
 
-				Expect(boshTasks[1].State).To(Equal(boshdirector.BoshTaskDone))
+				Expect(boshTasks[1].State).To(Equal(boshdirector.TaskDone))
 				Expect(boshTasks[1].Description).To(ContainSubstring("run errand"))
 			})
 		})
@@ -247,7 +247,7 @@ var _ = Describe("lifecycle errand tests", func() {
 				By("ensuring only the errand bosh task ran")
 				boshTasks := boshClient.GetTasksForDeployment(deploymentName)
 
-				Expect(boshTasks[0].State).To(Equal(boshdirector.BoshTaskDone))
+				Expect(boshTasks[0].State).To(Equal(boshdirector.TaskDone))
 				Expect(boshTasks[0].Description).To(ContainSubstring("run errand"))
 			})
 		})
@@ -264,10 +264,10 @@ var _ = Describe("lifecycle errand tests", func() {
 			It("only runs delete deployment (after create)", func() {
 				boshTasks := boshClient.GetTasksForDeployment(deploymentName)
 
-				Expect(boshTasks[0].State).To(Equal(boshdirector.BoshTaskDone))
+				Expect(boshTasks[0].State).To(Equal(boshdirector.TaskDone))
 				Expect(boshTasks[0].Description).To(ContainSubstring("delete deployment"))
 
-				Expect(boshTasks[1].State).To(Equal(boshdirector.BoshTaskDone))
+				Expect(boshTasks[1].State).To(Equal(boshdirector.TaskDone))
 				Expect(boshTasks[1].Description).To(ContainSubstring("create deployment"))
 			})
 		})

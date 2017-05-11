@@ -20,32 +20,32 @@ const (
 	stemcellVersionLength   = 4
 )
 
-func (c *Client) GetDirectorVersion(logger *log.Logger) (BoshDirectorVersion, error) {
-	var boshInfo BoshInfo
+func (c *Client) GetDirectorVersion(logger *log.Logger) (Version, error) {
+	var boshInfo Info
 
-	err := c.getDataFromBoshCheckingForErrors(fmt.Sprintf("%s/info", c.boshURL), http.StatusOK, &boshInfo, logger)
+	err := c.getDataCheckingForErrors(fmt.Sprintf("%s/info", c.url), http.StatusOK, &boshInfo, logger)
 	if err != nil {
-		return BoshDirectorVersion{}, err
+		return Version{}, err
 	}
 
 	version, err := newBoshDirectorVersion(boshInfo.Version)
 	if err != nil {
-		return BoshDirectorVersion{}, err
+		return Version{}, err
 	}
 
 	return version, nil
 }
 
-func newBoshDirectorVersion(rawVersion string) (BoshDirectorVersion, error) {
+func newBoshDirectorVersion(rawVersion string) (Version, error) {
 	trimmedVersion := strings.Fields(rawVersion)
 	if len(trimmedVersion) == 0 {
-		return BoshDirectorVersion{}, unrecognisedBoshDirectorVersionError(rawVersion)
+		return Version{}, unrecognisedBoshDirectorVersionError(rawVersion)
 	}
 
 	versionPart := trimmedVersion[0]
 	versionNumbers := strings.Split(versionPart, ".")
 
-	var versionType BoshDirectorVersionType
+	var versionType VersionType
 
 	switch len(versionNumbers) {
 	case semiSemverVersionLength, semverVersionLength:
@@ -54,15 +54,15 @@ func newBoshDirectorVersion(rawVersion string) (BoshDirectorVersion, error) {
 		versionType = StemcellDirectorVersionType
 		versionNumbers = versionNumbers[1:4]
 	default:
-		return BoshDirectorVersion{}, unrecognisedBoshDirectorVersionError(rawVersion)
+		return Version{}, unrecognisedBoshDirectorVersionError(rawVersion)
 	}
 
 	majorVersion, err := strconv.Atoi(versionNumbers[0])
 	if err != nil {
-		return BoshDirectorVersion{}, unrecognisedBoshDirectorVersionError(rawVersion)
+		return Version{}, unrecognisedBoshDirectorVersionError(rawVersion)
 	}
 
-	return BoshDirectorVersion{majorVersion: majorVersion, versionType: versionType}, nil
+	return Version{majorVersion: majorVersion, versionType: versionType}, nil
 }
 
 func unrecognisedBoshDirectorVersionError(rawVersion string) error {

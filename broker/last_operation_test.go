@@ -316,7 +316,7 @@ var _ = Describe("LastOperation", func() {
 		Describe("while creating", func() {
 			Describe("last operation is Processing",
 				testLastOperation(testCase{
-					ActualBoshTask:      boshdirector.BoshTask{State: boshdirector.BoshTaskProcessing, Description: "it's a task", ID: taskID},
+					ActualBoshTask:      boshdirector.BoshTask{State: boshdirector.TaskProcessing, Description: "it's a task", ID: taskID},
 					ActualOperationType: broker.OperationTypeCreate,
 
 					ExpectedLastOperationState:       brokerapi.InProgress,
@@ -326,7 +326,7 @@ var _ = Describe("LastOperation", func() {
 
 			Describe("last operation is Queued",
 				testLastOperation(testCase{
-					ActualBoshTask:      boshdirector.BoshTask{State: boshdirector.BoshTaskQueued, Description: "it's a task", ID: taskID},
+					ActualBoshTask:      boshdirector.BoshTask{State: boshdirector.TaskQueued, Description: "it's a task", ID: taskID},
 					ActualOperationType: broker.OperationTypeCreate,
 
 					ExpectedLastOperationState:       brokerapi.InProgress,
@@ -337,7 +337,7 @@ var _ = Describe("LastOperation", func() {
 			Describe("last operation is Error",
 				testLastOperation(testCase{
 					ActualBoshTask: boshdirector.BoshTask{
-						State:       boshdirector.BoshTaskError,
+						State:       boshdirector.TaskError,
 						Result:      "result from error",
 						Description: "it's a task",
 						ID:          taskID,
@@ -383,7 +383,7 @@ var _ = Describe("LastOperation", func() {
 			Describe("last operation is Cancelled",
 				testLastOperation(testCase{
 					ActualBoshTask: boshdirector.BoshTask{
-						State:       boshdirector.BoshTaskCancelled,
+						State:       boshdirector.TaskCancelled,
 						Result:      "result from error",
 						Description: "it's a task",
 						ID:          taskID,
@@ -406,7 +406,7 @@ var _ = Describe("LastOperation", func() {
 			Describe("last operation is Cancelling",
 				testLastOperation(testCase{
 					ActualBoshTask: boshdirector.BoshTask{
-						State:       boshdirector.BoshTaskCancelling,
+						State:       boshdirector.TaskCancelling,
 						Result:      "result from error",
 						Description: "it's a task",
 						ID:          taskID,
@@ -422,7 +422,7 @@ var _ = Describe("LastOperation", func() {
 			Describe("last operation is Timed out",
 				testLastOperation(testCase{
 					ActualBoshTask: boshdirector.BoshTask{
-						State:       boshdirector.BoshTaskTimeout,
+						State:       boshdirector.TaskTimeout,
 						Result:      "result from error",
 						Description: "it's a task",
 						ID:          taskID,
@@ -443,7 +443,7 @@ var _ = Describe("LastOperation", func() {
 
 			Describe("last operation is Successful",
 				testLastOperation(testCase{
-					ActualBoshTask:      boshdirector.BoshTask{State: boshdirector.BoshTaskDone, Description: "it's a task", ID: taskID},
+					ActualBoshTask:      boshdirector.BoshTask{State: boshdirector.TaskDone, Description: "it's a task", ID: taskID},
 					ActualOperationType: broker.OperationTypeCreate,
 
 					ExpectedLastOperationState:       brokerapi.Succeeded,
@@ -459,7 +459,7 @@ var _ = Describe("LastOperation", func() {
 
 			Describe("last operation is Processing",
 				testLastOperation(testCase{
-					ActualBoshTask:      boshdirector.BoshTask{State: boshdirector.BoshTaskProcessing, Description: "it's a task" + "-" + instanceID, ID: taskID},
+					ActualBoshTask:      boshdirector.BoshTask{State: boshdirector.TaskProcessing, Description: "it's a task" + "-" + instanceID, ID: taskID},
 					ActualOperationType: broker.OperationTypeDelete,
 
 					ExpectedLastOperationState:       brokerapi.InProgress,
@@ -469,7 +469,7 @@ var _ = Describe("LastOperation", func() {
 
 			Describe("last operation is Queued",
 				testLastOperation(testCase{
-					ActualBoshTask:      boshdirector.BoshTask{State: boshdirector.BoshTaskQueued, Description: "it's a task" + "-" + instanceID, ID: taskID},
+					ActualBoshTask:      boshdirector.BoshTask{State: boshdirector.TaskQueued, Description: "it's a task" + "-" + instanceID, ID: taskID},
 					ActualOperationType: broker.OperationTypeDelete,
 
 					ExpectedLastOperationState:       brokerapi.InProgress,
@@ -480,7 +480,7 @@ var _ = Describe("LastOperation", func() {
 			Describe("last operation is Error",
 				testLastOperation(testCase{
 					ActualBoshTask: boshdirector.BoshTask{
-						State:       boshdirector.BoshTaskError,
+						State:       boshdirector.TaskError,
 						Result:      "result from error",
 						Description: "it's a task" + "-" + instanceID,
 						ID:          taskID,
@@ -503,7 +503,7 @@ var _ = Describe("LastOperation", func() {
 			Describe("last operation is Cancelled",
 				testLastOperation(testCase{
 					ActualBoshTask: boshdirector.BoshTask{
-						State:       boshdirector.BoshTaskCancelled,
+						State:       boshdirector.TaskCancelled,
 						Result:      "result from error",
 						Description: "it's a task" + "-" + instanceID,
 						ID:          taskID,
@@ -526,7 +526,7 @@ var _ = Describe("LastOperation", func() {
 			Describe("last operation is Cancelling",
 				testLastOperation(testCase{
 					ActualBoshTask: boshdirector.BoshTask{
-						State:       boshdirector.BoshTaskCancelling,
+						State:       boshdirector.TaskCancelling,
 						Result:      "result from error",
 						Description: "it's a task" + "-" + instanceID,
 						ID:          taskID,
@@ -542,7 +542,7 @@ var _ = Describe("LastOperation", func() {
 			Describe("last operation is Timed out",
 				testLastOperation(testCase{
 					ActualBoshTask: boshdirector.BoshTask{
-						State:       boshdirector.BoshTaskTimeout,
+						State:       boshdirector.TaskTimeout,
 						Result:      "result from error",
 						Description: "it's a task" + "-" + instanceID,
 						ID:          taskID,
@@ -587,7 +587,7 @@ var _ = Describe("LastOperation", func() {
 
 			Describe("last operation is Successful",
 				testLastOperation(testCase{
-					ActualBoshTask:      boshdirector.BoshTask{State: boshdirector.BoshTaskDone, Description: "it's a task" + "-" + instanceID, ID: taskID},
+					ActualBoshTask:      boshdirector.BoshTask{State: boshdirector.TaskDone, Description: "it's a task" + "-" + instanceID, ID: taskID},
 					ActualOperationType: broker.OperationTypeDelete,
 
 					ExpectedLastOperationState:       brokerapi.Succeeded,
@@ -599,7 +599,7 @@ var _ = Describe("LastOperation", func() {
 		Describe("while updating", func() {
 			Describe("last operation is Processing",
 				testLastOperation(testCase{
-					ActualBoshTask:      boshdirector.BoshTask{State: boshdirector.BoshTaskProcessing, Description: "it's a task", ID: taskID},
+					ActualBoshTask:      boshdirector.BoshTask{State: boshdirector.TaskProcessing, Description: "it's a task", ID: taskID},
 					ActualOperationType: broker.OperationTypeUpdate,
 
 					ExpectedLastOperationState:       brokerapi.InProgress,
@@ -609,7 +609,7 @@ var _ = Describe("LastOperation", func() {
 
 			Describe("last operation is Queued",
 				testLastOperation(testCase{
-					ActualBoshTask:      boshdirector.BoshTask{State: boshdirector.BoshTaskQueued, Description: "it's a task", ID: taskID},
+					ActualBoshTask:      boshdirector.BoshTask{State: boshdirector.TaskQueued, Description: "it's a task", ID: taskID},
 					ActualOperationType: broker.OperationTypeUpdate,
 
 					ExpectedLastOperationState:       brokerapi.InProgress,
@@ -620,7 +620,7 @@ var _ = Describe("LastOperation", func() {
 			Describe("last operation is Error",
 				testLastOperation(testCase{
 					ActualBoshTask: boshdirector.BoshTask{
-						State:       boshdirector.BoshTaskError,
+						State:       boshdirector.TaskError,
 						Result:      "result from error",
 						Description: "it's a task",
 						ID:          taskID,
@@ -643,7 +643,7 @@ var _ = Describe("LastOperation", func() {
 			Describe("last operation is Cancelled",
 				testLastOperation(testCase{
 					ActualBoshTask: boshdirector.BoshTask{
-						State:       boshdirector.BoshTaskCancelled,
+						State:       boshdirector.TaskCancelled,
 						Result:      "result from error",
 						Description: "it's a task",
 						ID:          taskID,
@@ -666,7 +666,7 @@ var _ = Describe("LastOperation", func() {
 			Describe("last operation is Cancelling",
 				testLastOperation(testCase{
 					ActualBoshTask: boshdirector.BoshTask{
-						State:       boshdirector.BoshTaskCancelling,
+						State:       boshdirector.TaskCancelling,
 						Result:      "result from error",
 						Description: "it's a task",
 						ID:          taskID,
@@ -682,7 +682,7 @@ var _ = Describe("LastOperation", func() {
 			Describe("last operation is Timed out",
 				testLastOperation(testCase{
 					ActualBoshTask: boshdirector.BoshTask{
-						State:       boshdirector.BoshTaskTimeout,
+						State:       boshdirector.TaskTimeout,
 						Result:      "result from error",
 						Description: "it's a task",
 						ID:          taskID,
@@ -727,7 +727,7 @@ var _ = Describe("LastOperation", func() {
 
 			Describe("last operation is Successful",
 				testLastOperation(testCase{
-					ActualBoshTask:      boshdirector.BoshTask{State: boshdirector.BoshTaskDone, Description: "it's a task", ID: taskID},
+					ActualBoshTask:      boshdirector.BoshTask{State: boshdirector.TaskDone, Description: "it's a task", ID: taskID},
 					ActualOperationType: broker.OperationTypeUpdate,
 
 					ExpectedLastOperationState:       brokerapi.Succeeded,
@@ -739,7 +739,7 @@ var _ = Describe("LastOperation", func() {
 		Describe("while upgrading", func() {
 			Describe("last operation is Processing",
 				testLastOperation(testCase{
-					ActualBoshTask:      boshdirector.BoshTask{State: boshdirector.BoshTaskProcessing, Description: "it's a task", ID: taskID},
+					ActualBoshTask:      boshdirector.BoshTask{State: boshdirector.TaskProcessing, Description: "it's a task", ID: taskID},
 					ActualOperationType: broker.OperationTypeUpgrade,
 
 					ExpectedLastOperationState:       brokerapi.InProgress,
@@ -749,7 +749,7 @@ var _ = Describe("LastOperation", func() {
 
 			Describe("last operation is Queued",
 				testLastOperation(testCase{
-					ActualBoshTask:      boshdirector.BoshTask{State: boshdirector.BoshTaskQueued, Description: "it's a task", ID: taskID},
+					ActualBoshTask:      boshdirector.BoshTask{State: boshdirector.TaskQueued, Description: "it's a task", ID: taskID},
 					ActualOperationType: broker.OperationTypeUpgrade,
 
 					ExpectedLastOperationState:       brokerapi.InProgress,
@@ -759,7 +759,7 @@ var _ = Describe("LastOperation", func() {
 
 			Describe("last operation is Error",
 				testLastOperation(testCase{
-					ActualBoshTask:      boshdirector.BoshTask{State: boshdirector.BoshTaskError, Result: "result from error", Description: "it's a task", ID: taskID},
+					ActualBoshTask:      boshdirector.BoshTask{State: boshdirector.TaskError, Result: "result from error", Description: "it's a task", ID: taskID},
 					ActualOperationType: broker.OperationTypeUpgrade,
 
 					ExpectedLastOperationState:       brokerapi.Failed,
@@ -769,7 +769,7 @@ var _ = Describe("LastOperation", func() {
 
 			Describe("last operation is Cancelled",
 				testLastOperation(testCase{
-					ActualBoshTask:      boshdirector.BoshTask{State: boshdirector.BoshTaskCancelled, Result: "result from error", Description: "it's a task", ID: taskID},
+					ActualBoshTask:      boshdirector.BoshTask{State: boshdirector.TaskCancelled, Result: "result from error", Description: "it's a task", ID: taskID},
 					ActualOperationType: broker.OperationTypeUpgrade,
 
 					ExpectedLastOperationState:       brokerapi.Failed,
@@ -779,7 +779,7 @@ var _ = Describe("LastOperation", func() {
 
 			Describe("last operation is Cancelling",
 				testLastOperation(testCase{
-					ActualBoshTask:      boshdirector.BoshTask{State: boshdirector.BoshTaskCancelling, Result: "result from error", Description: "it's a task", ID: taskID},
+					ActualBoshTask:      boshdirector.BoshTask{State: boshdirector.TaskCancelling, Result: "result from error", Description: "it's a task", ID: taskID},
 					ActualOperationType: broker.OperationTypeUpgrade,
 
 					ExpectedLastOperationState:       brokerapi.InProgress,
@@ -789,7 +789,7 @@ var _ = Describe("LastOperation", func() {
 
 			Describe("last operation is Timed out",
 				testLastOperation(testCase{
-					ActualBoshTask:      boshdirector.BoshTask{State: boshdirector.BoshTaskTimeout, Result: "result from error", Description: "it's a task", ID: taskID},
+					ActualBoshTask:      boshdirector.BoshTask{State: boshdirector.TaskTimeout, Result: "result from error", Description: "it's a task", ID: taskID},
 					ActualOperationType: broker.OperationTypeUpgrade,
 
 					ExpectedLastOperationState:       brokerapi.Failed,
@@ -810,7 +810,7 @@ var _ = Describe("LastOperation", func() {
 
 			Describe("last operation is Successful",
 				testLastOperation(testCase{
-					ActualBoshTask:      boshdirector.BoshTask{State: boshdirector.BoshTaskDone, Description: "it's a task", ID: taskID},
+					ActualBoshTask:      boshdirector.BoshTask{State: boshdirector.TaskDone, Description: "it's a task", ID: taskID},
 					ActualOperationType: broker.OperationTypeUpgrade,
 
 					ExpectedLastOperationState:       brokerapi.Succeeded,

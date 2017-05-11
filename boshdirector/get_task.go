@@ -16,8 +16,8 @@ func (c *Client) GetTask(taskID int, logger *log.Logger) (BoshTask, error) {
 	logger.Printf("getting task %d from bosh\n", taskID)
 	var getTaskResponse BoshTask
 
-	if err := c.getDataFromBoshCheckingForErrors(
-		fmt.Sprintf("%s/tasks/%d", c.boshURL, taskID),
+	if err := c.getDataCheckingForErrors(
+		fmt.Sprintf("%s/tasks/%d", c.url, taskID),
 		http.StatusOK,
 		&getTaskResponse,
 		logger,
@@ -45,8 +45,8 @@ func (c *Client) GetTaskOutput(taskID int, logger *log.Logger) ([]BoshTaskOutput
 		// else you will override your previous values with the current one
 	}
 
-	err := c.getMultipleDataFromBoshCheckingForErrors(
-		fmt.Sprintf("%s/tasks/%d/output?type=result", c.boshURL, taskID),
+	err := c.getMultipleDataCheckingForErrors(
+		fmt.Sprintf("%s/tasks/%d/output?type=result", c.url, taskID),
 		http.StatusOK,
 		&output,
 		outputReadyCallback,

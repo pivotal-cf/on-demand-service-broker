@@ -21,8 +21,8 @@ var _ = Describe("getting tasks", func() {
 			actualTasksError error
 
 			expectedTasks = boshdirector.BoshTasks{
-				{State: boshdirector.BoshTaskProcessing, Description: "snapshot deployment", Result: "result-1"},
-				{State: boshdirector.BoshTaskDone, Description: "snapshot deployment", Result: "result-2"},
+				{State: boshdirector.TaskProcessing, Description: "snapshot deployment", Result: "result-1"},
+				{State: boshdirector.TaskDone, Description: "snapshot deployment", Result: "result-2"},
 			}
 		)
 
@@ -101,7 +101,7 @@ var _ = Describe("getting tasks", func() {
 		})
 
 		Context("when there is one task with the context id", func() {
-			expectedTask := boshdirector.BoshTask{State: boshdirector.BoshTaskProcessing, Description: "snapshot deployment", Result: "result-1", ContextID: contextID}
+			expectedTask := boshdirector.BoshTask{State: boshdirector.TaskProcessing, Description: "snapshot deployment", Result: "result-1", ContextID: contextID}
 
 			BeforeEach(func() {
 				director.VerifyAndMock(
@@ -128,9 +128,9 @@ var _ = Describe("getting tasks", func() {
 
 		Context("when there are many tasks with the context id", func() {
 			expectedTasks := boshdirector.BoshTasks{
-				{State: boshdirector.BoshTaskProcessing, Description: "snapshot deployment", Result: "result-1", ContextID: contextID},
-				{State: boshdirector.BoshTaskDone, Description: "something finished", Result: "result-1", ContextID: contextID},
-				{State: boshdirector.BoshTaskProcessing, Description: "snapshot deployment", Result: "result-1", ContextID: contextID},
+				{State: boshdirector.TaskProcessing, Description: "snapshot deployment", Result: "result-1", ContextID: contextID},
+				{State: boshdirector.TaskDone, Description: "something finished", Result: "result-1", ContextID: contextID},
+				{State: boshdirector.TaskProcessing, Description: "snapshot deployment", Result: "result-1", ContextID: contextID},
 			}
 
 			BeforeEach(func() {
@@ -162,7 +162,7 @@ var _ = Describe("getting tasks", func() {
 				expectedTasks := boshdirector.BoshTasks{
 					{
 						ID:          42,
-						State:       boshdirector.BoshTaskError,
+						State:       boshdirector.TaskError,
 						Description: "errand completed",
 						Result:      "result-1",
 						ContextID:   contextID,
@@ -174,7 +174,7 @@ var _ = Describe("getting tasks", func() {
 						mockbosh.TasksByContext(deploymentName, contextID).RespondsWithATask(
 							boshdirector.BoshTask{
 								ID:          42,
-								State:       boshdirector.BoshTaskDone,
+								State:       boshdirector.TaskDone,
 								Description: "errand completed",
 								Result:      "result-1",
 								ContextID:   contextID,
@@ -206,7 +206,7 @@ var _ = Describe("getting tasks", func() {
 					mockbosh.TasksByContext(deploymentName, contextID).RespondsWithATask(
 						boshdirector.BoshTask{
 							ID:          42,
-							State:       boshdirector.BoshTaskDone,
+							State:       boshdirector.TaskDone,
 							Description: "errand completed",
 							Result:      "result-1",
 							ContextID:   contextID,

@@ -19,7 +19,15 @@ type BoshTask struct {
 type TaskStateType int
 
 const (
-	TaskDone TaskStateType = iota
+	TaskQueued     = "queued"
+	TaskProcessing = "processing"
+	TaskDone       = "done"
+	TaskError      = "error"
+	TaskCancelled  = "cancelled"
+	TaskCancelling = "cancelling"
+	TaskTimeout    = "timeout"
+
+	TaskComplete TaskStateType = iota
 	TaskIncomplete
 	TaskFailed
 	TaskUnknown
@@ -32,11 +40,11 @@ func (t BoshTask) ToLog() string {
 
 func (t BoshTask) StateType() TaskStateType {
 	switch t.State {
-	case BoshTaskDone:
-		return TaskDone
-	case BoshTaskProcessing, BoshTaskQueued, BoshTaskCancelling:
+	case TaskDone:
+		return TaskComplete
+	case TaskProcessing, TaskQueued, TaskCancelling:
 		return TaskIncomplete
-	case BoshTaskCancelled, BoshTaskError, BoshTaskTimeout:
+	case TaskCancelled, TaskError, TaskTimeout:
 		return TaskFailed
 	default:
 		return TaskUnknown

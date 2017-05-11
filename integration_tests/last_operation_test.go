@@ -47,10 +47,10 @@ var _ = Describe("last operation", func() {
 		actualResponse        map[string]interface{}
 		rawResponse           []byte
 
-		taskDone        = boshdirector.BoshTask{ID: 1, State: boshdirector.BoshTaskDone, ContextID: contextID, Description: "done thing"}
-		anotherTaskDone = boshdirector.BoshTask{ID: 4, State: boshdirector.BoshTaskDone, ContextID: contextID, Description: "another done thing"}
-		taskProcessing  = boshdirector.BoshTask{ID: 2, State: boshdirector.BoshTaskProcessing, ContextID: contextID, Description: "processing thing"}
-		taskFailed      = boshdirector.BoshTask{ID: 3, State: boshdirector.BoshTaskError, ContextID: contextID, Description: "failed thing"}
+		taskDone        = boshdirector.BoshTask{ID: 1, State: boshdirector.TaskDone, ContextID: contextID, Description: "done thing"}
+		anotherTaskDone = boshdirector.BoshTask{ID: 4, State: boshdirector.TaskDone, ContextID: contextID, Description: "another done thing"}
+		taskProcessing  = boshdirector.BoshTask{ID: 2, State: boshdirector.TaskProcessing, ContextID: contextID, Description: "processing thing"}
+		taskFailed      = boshdirector.BoshTask{ID: 3, State: boshdirector.TaskError, ContextID: contextID, Description: "failed thing"}
 
 		describeFailure = SatisfyAll(
 			ContainSubstring("Instance provisioning failed: There was a problem completing your request. Please contact your operations team providing the following information:"),
@@ -117,7 +117,7 @@ var _ = Describe("last operation", func() {
 		Context("when the task is processing", func() {
 			BeforeEach(func() {
 				boshDirector.VerifyAndMock(
-					mockbosh.Task(boshTaskID).RespondsWithTaskContainingState(boshdirector.BoshTaskProcessing),
+					mockbosh.Task(boshTaskID).RespondsWithTaskContainingState(boshdirector.TaskProcessing),
 				)
 			})
 
@@ -132,7 +132,7 @@ var _ = Describe("last operation", func() {
 		Context("when the task is done", func() {
 			BeforeEach(func() {
 				boshDirector.VerifyAndMock(
-					mockbosh.Task(boshTaskID).RespondsWithTaskContainingState(boshdirector.BoshTaskDone),
+					mockbosh.Task(boshTaskID).RespondsWithTaskContainingState(boshdirector.TaskDone),
 				)
 			})
 
@@ -146,7 +146,7 @@ var _ = Describe("last operation", func() {
 		Context("when the task has errored", func() {
 			BeforeEach(func() {
 				boshDirector.VerifyAndMock(
-					mockbosh.Task(boshTaskID).RespondsWithTaskContainingState(boshdirector.BoshTaskError),
+					mockbosh.Task(boshTaskID).RespondsWithTaskContainingState(boshdirector.TaskError),
 				)
 			})
 
@@ -162,7 +162,7 @@ var _ = Describe("last operation", func() {
 		Context("when the task is cancelling", func() {
 			BeforeEach(func() {
 				boshDirector.VerifyAndMock(
-					mockbosh.Task(boshTaskID).RespondsWithTaskContainingState(boshdirector.BoshTaskCancelling),
+					mockbosh.Task(boshTaskID).RespondsWithTaskContainingState(boshdirector.TaskCancelling),
 				)
 			})
 
@@ -187,7 +187,7 @@ var _ = Describe("last operation", func() {
 		Context("when the task is cancelled", func() {
 			BeforeEach(func() {
 				boshDirector.VerifyAndMock(
-					mockbosh.Task(boshTaskID).RespondsWithTaskContainingState(boshdirector.BoshTaskCancelled),
+					mockbosh.Task(boshTaskID).RespondsWithTaskContainingState(boshdirector.TaskCancelled),
 				)
 			})
 
@@ -203,7 +203,7 @@ var _ = Describe("last operation", func() {
 		Context("when the task has timed out", func() {
 			BeforeEach(func() {
 				boshDirector.VerifyAndMock(
-					mockbosh.Task(boshTaskID).RespondsWithTaskContainingState(boshdirector.BoshTaskTimeout),
+					mockbosh.Task(boshTaskID).RespondsWithTaskContainingState(boshdirector.TaskTimeout),
 				)
 			})
 
@@ -798,7 +798,7 @@ var _ = Describe("last operation", func() {
 		Context("and the deployment task is complete", func() {
 			BeforeEach(func() {
 				boshDirector.VerifyAndMock(
-					mockbosh.Task(boshTaskID).RespondsWithTaskContainingState(boshdirector.BoshTaskDone),
+					mockbosh.Task(boshTaskID).RespondsWithTaskContainingState(boshdirector.TaskDone),
 				)
 			})
 
@@ -813,7 +813,7 @@ var _ = Describe("last operation", func() {
 		Context("and the deployment task is incomplete", func() {
 			BeforeEach(func() {
 				boshDirector.VerifyAndMock(
-					mockbosh.Task(boshTaskID).RespondsWithTaskContainingState(boshdirector.BoshTaskProcessing),
+					mockbosh.Task(boshTaskID).RespondsWithTaskContainingState(boshdirector.TaskProcessing),
 				)
 			})
 
@@ -839,8 +839,8 @@ var _ = Describe("last operation", func() {
 
 			contextID = "some-context-id"
 
-			taskDone = boshdirector.BoshTask{ID: 1, State: boshdirector.BoshTaskDone, ContextID: contextID}
-			taskProcessing = boshdirector.BoshTask{ID: 2, State: boshdirector.BoshTaskProcessing, ContextID: contextID}
+			taskDone = boshdirector.BoshTask{ID: 1, State: boshdirector.TaskDone, ContextID: contextID}
+			taskProcessing = boshdirector.BoshTask{ID: 2, State: boshdirector.TaskProcessing, ContextID: contextID}
 
 			runningBroker = startBrokerWithPassingStartupChecks(brokerConfig, cfAPI, boshDirector)
 		})
@@ -1001,7 +1001,7 @@ var _ = Describe("last operation", func() {
 		Context("while the task is in progress", func() {
 			BeforeEach(func() {
 				boshDirector.VerifyAndMock(
-					mockbosh.Task(boshTaskID).RespondsWithTaskContainingState(boshdirector.BoshTaskProcessing),
+					mockbosh.Task(boshTaskID).RespondsWithTaskContainingState(boshdirector.TaskProcessing),
 				)
 			})
 
@@ -1034,7 +1034,7 @@ var _ = Describe("last operation", func() {
 		Context("while the task is in progress", func() {
 			BeforeEach(func() {
 				boshDirector.VerifyAndMock(
-					mockbosh.Task(boshTaskID).RespondsWithTaskContainingState(boshdirector.BoshTaskProcessing),
+					mockbosh.Task(boshTaskID).RespondsWithTaskContainingState(boshdirector.TaskProcessing),
 				)
 			})
 
@@ -1067,7 +1067,7 @@ var _ = Describe("last operation", func() {
 		Context("while the task is in progress", func() {
 			BeforeEach(func() {
 				boshDirector.VerifyAndMock(
-					mockbosh.Task(boshTaskID).RespondsWithTaskContainingState(boshdirector.BoshTaskProcessing),
+					mockbosh.Task(boshTaskID).RespondsWithTaskContainingState(boshdirector.TaskProcessing),
 				)
 			})
 
@@ -1100,7 +1100,7 @@ var _ = Describe("last operation", func() {
 		Context("while the task is in progress", func() {
 			BeforeEach(func() {
 				boshDirector.VerifyAndMock(
-					mockbosh.Task(boshTaskID).RespondsWithTaskContainingState(boshdirector.BoshTaskProcessing),
+					mockbosh.Task(boshTaskID).RespondsWithTaskContainingState(boshdirector.TaskProcessing),
 				)
 			})
 

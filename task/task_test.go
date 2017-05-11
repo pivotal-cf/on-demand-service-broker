@@ -139,7 +139,7 @@ var _ = Describe("Deployer", func() {
 		Context("logging", func() {
 			BeforeEach(func() {
 				boshClient.DeployReturns(42, nil)
-				boshClient.GetTasksReturns([]boshdirector.BoshTask{{State: boshdirector.BoshTaskDone}}, nil)
+				boshClient.GetTasksReturns([]boshdirector.BoshTask{{State: boshdirector.TaskDone}}, nil)
 
 				oldManifest = nil
 				manifestGenerator.GenerateManifestReturns(manifest, nil)
@@ -155,7 +155,7 @@ var _ = Describe("Deployer", func() {
 		Context("when manifest generator returns an error", func() {
 			BeforeEach(func() {
 				manifestGenerator.GenerateManifestReturns(nil, errors.New("error generating manifest"))
-				boshClient.GetTasksReturns([]boshdirector.BoshTask{{State: boshdirector.BoshTaskDone}}, nil)
+				boshClient.GetTasksReturns([]boshdirector.BoshTask{{State: boshdirector.TaskDone}}, nil)
 				requestParams = map[string]interface{}{"foo": "bar"}
 			})
 
@@ -181,9 +181,9 @@ var _ = Describe("Deployer", func() {
 
 			BeforeEach(func() {
 				boshClient.GetTasksReturns([]boshdirector.BoshTask{
-					{State: boshdirector.BoshTaskQueued, ID: boshTaskID},
-					{State: boshdirector.BoshTaskDone, ID: previousDoneBoshTaskID},
-					{State: boshdirector.BoshTaskError, ID: previousErrorBoshTaskID},
+					{State: boshdirector.TaskQueued, ID: boshTaskID},
+					{State: boshdirector.TaskDone, ID: previousDoneBoshTaskID},
+					{State: boshdirector.TaskError, ID: previousErrorBoshTaskID},
 				}, nil)
 			})
 
@@ -207,9 +207,9 @@ var _ = Describe("Deployer", func() {
 
 			BeforeEach(func() {
 				boshClient.GetTasksReturns([]boshdirector.BoshTask{
-					{State: boshdirector.BoshTaskProcessing, ID: boshTaskID},
-					{State: boshdirector.BoshTaskDone, ID: previousDoneBoshTaskID},
-					{State: boshdirector.BoshTaskError, ID: previousErrorBoshTaskID},
+					{State: boshdirector.TaskProcessing, ID: boshTaskID},
+					{State: boshdirector.TaskDone, ID: previousDoneBoshTaskID},
+					{State: boshdirector.TaskError, ID: previousErrorBoshTaskID},
 				}, nil)
 			})
 
@@ -239,7 +239,7 @@ var _ = Describe("Deployer", func() {
 
 		Context("when bosh fails to deploy the release", func() {
 			BeforeEach(func() {
-				boshClient.GetTasksReturns([]boshdirector.BoshTask{{State: boshdirector.BoshTaskDone}}, nil)
+				boshClient.GetTasksReturns([]boshdirector.BoshTask{{State: boshdirector.TaskDone}}, nil)
 				boshClient.DeployReturns(0, errors.New("error deploying"))
 			})
 
@@ -340,7 +340,7 @@ var _ = Describe("Deployer", func() {
 		Context("logging", func() {
 			BeforeEach(func() {
 				boshClient.DeployReturns(42, nil)
-				boshClient.GetTasksReturns([]boshdirector.BoshTask{{State: boshdirector.BoshTaskDone}}, nil)
+				boshClient.GetTasksReturns([]boshdirector.BoshTask{{State: boshdirector.TaskDone}}, nil)
 			})
 
 			It("logs the bosh task ID returned by the director", func() {
@@ -383,7 +383,7 @@ var _ = Describe("Deployer", func() {
 		Context("when manifest generator returns an error", func() {
 			BeforeEach(func() {
 				manifestGenerator.GenerateManifestReturns(nil, errors.New("error generating manifest"))
-				boshClient.GetTasksReturns([]boshdirector.BoshTask{{State: boshdirector.BoshTaskDone}}, nil)
+				boshClient.GetTasksReturns([]boshdirector.BoshTask{{State: boshdirector.TaskDone}}, nil)
 				requestParams = map[string]interface{}{"foo": "bar"}
 			})
 
@@ -407,13 +407,13 @@ var _ = Describe("Deployer", func() {
 			var previousDoneBoshTaskID = 41
 			var previousErrorBoshTaskID = 40
 
-			var queuedTask = boshdirector.BoshTask{State: boshdirector.BoshTaskQueued, ID: boshTaskID}
+			var queuedTask = boshdirector.BoshTask{State: boshdirector.TaskQueued, ID: boshTaskID}
 
 			BeforeEach(func() {
 				boshClient.GetTasksReturns([]boshdirector.BoshTask{
 					queuedTask,
-					{State: boshdirector.BoshTaskDone, ID: previousDoneBoshTaskID},
-					{State: boshdirector.BoshTaskError, ID: previousErrorBoshTaskID},
+					{State: boshdirector.TaskDone, ID: previousDoneBoshTaskID},
+					{State: boshdirector.TaskError, ID: previousErrorBoshTaskID},
 				}, nil)
 			})
 
@@ -442,13 +442,13 @@ var _ = Describe("Deployer", func() {
 			var previousDoneBoshTaskID = 41
 			var previousErrorBoshTaskID = 40
 
-			var inProgressTask = boshdirector.BoshTask{State: boshdirector.BoshTaskProcessing, ID: boshTaskID}
+			var inProgressTask = boshdirector.BoshTask{State: boshdirector.TaskProcessing, ID: boshTaskID}
 
 			BeforeEach(func() {
 				boshClient.GetTasksReturns([]boshdirector.BoshTask{
 					inProgressTask,
-					{State: boshdirector.BoshTaskDone, ID: previousDoneBoshTaskID},
-					{State: boshdirector.BoshTaskError, ID: previousErrorBoshTaskID},
+					{State: boshdirector.TaskDone, ID: previousDoneBoshTaskID},
+					{State: boshdirector.TaskError, ID: previousErrorBoshTaskID},
 				}, nil)
 			})
 
@@ -485,7 +485,7 @@ var _ = Describe("Deployer", func() {
 
 		Context("when bosh fails to deploy the release", func() {
 			BeforeEach(func() {
-				boshClient.GetTasksReturns([]boshdirector.BoshTask{{State: boshdirector.BoshTaskDone}}, nil)
+				boshClient.GetTasksReturns([]boshdirector.BoshTask{{State: boshdirector.TaskDone}}, nil)
 				boshClient.DeployReturns(0, errors.New("error deploying"))
 			})
 
@@ -516,7 +516,7 @@ var _ = Describe("Deployer", func() {
 			previousPlanID = stringPointer(existingPlanID)
 
 			boshClient.GetDeploymentReturns(oldManifest, true, nil)
-			boshClient.GetTasksReturns([]boshdirector.BoshTask{{State: boshdirector.BoshTaskDone}}, nil)
+			boshClient.GetTasksReturns([]boshdirector.BoshTask{{State: boshdirector.TaskDone}}, nil)
 		})
 
 		Context("and the manifest generator fails to generate the manifest the first time", func() {

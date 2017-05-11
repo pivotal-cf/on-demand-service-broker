@@ -545,7 +545,7 @@ var _ = Describe("updating a service instance", func() {
 
 			It("returns a operation in progress message", func() {
 				boshDirector.VerifyAndMock(
-					mockbosh.Tasks(deploymentName(instanceID)).RespondsWithATaskContainingState(boshdirector.BoshTaskProcessing, "some task"),
+					mockbosh.Tasks(deploymentName(instanceID)).RespondsWithATaskContainingState(boshdirector.TaskProcessing, "some task"),
 				)
 
 				updateResp = updateServiceInstanceRequest(updateArbParams, instanceID, dedicatedPlanID, dedicatedPlanID)

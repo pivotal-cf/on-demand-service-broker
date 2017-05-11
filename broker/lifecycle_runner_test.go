@@ -47,9 +47,9 @@ var _ = Describe("Lifecycle runner", func() {
 		},
 	}
 
-	taskProcessing := boshdirector.BoshTask{ID: 1, State: boshdirector.BoshTaskProcessing, Description: "snapshot deployment", Result: "result-1", ContextID: contextID}
-	taskErrored := boshdirector.BoshTask{ID: 2, State: boshdirector.BoshTaskError, Description: "snapshot deployment", Result: "result-1", ContextID: contextID}
-	taskComplete := boshdirector.BoshTask{ID: 3, State: boshdirector.BoshTaskDone, Description: "snapshot deployment", Result: "result-1", ContextID: contextID}
+	taskProcessing := boshdirector.BoshTask{ID: 1, State: boshdirector.TaskProcessing, Description: "snapshot deployment", Result: "result-1", ContextID: contextID}
+	taskErrored := boshdirector.BoshTask{ID: 2, State: boshdirector.TaskError, Description: "snapshot deployment", Result: "result-1", ContextID: contextID}
+	taskComplete := boshdirector.BoshTask{ID: 3, State: boshdirector.TaskDone, Description: "snapshot deployment", Result: "result-1", ContextID: contextID}
 
 	var deployRunner broker.LifeCycleRunner
 	var logger *log.Logger
@@ -81,7 +81,7 @@ var _ = Describe("Lifecycle runner", func() {
 
 				It("returns the processing task", func() {
 					task, _ := deployRunner.GetTask(deploymentName, operationData, logger)
-					Expect(task.State).To(Equal(boshdirector.BoshTaskProcessing))
+					Expect(task.State).To(Equal(boshdirector.TaskProcessing))
 				})
 			})
 
@@ -92,7 +92,7 @@ var _ = Describe("Lifecycle runner", func() {
 
 				It("returns the errored task", func() {
 					task, _ := deployRunner.GetTask(deploymentName, operationData, logger)
-					Expect(task.State).To(Equal(boshdirector.BoshTaskError))
+					Expect(task.State).To(Equal(boshdirector.TaskError))
 				})
 			})
 
@@ -202,7 +202,7 @@ var _ = Describe("Lifecycle runner", func() {
 
 					It("returns the post deploy errand processing task", func() {
 						Expect(task.ID).To(Equal(taskProcessing.ID))
-						Expect(task.State).To(Equal(boshdirector.BoshTaskProcessing))
+						Expect(task.State).To(Equal(boshdirector.TaskProcessing))
 					})
 
 					Context("and a post deploy errand is incomplete", func() {
@@ -212,7 +212,7 @@ var _ = Describe("Lifecycle runner", func() {
 						})
 
 						It("returns the processing task", func() {
-							Expect(task.State).To(Equal(boshdirector.BoshTaskProcessing))
+							Expect(task.State).To(Equal(boshdirector.TaskProcessing))
 						})
 
 						It("does not run a post deploy errand again", func() {
@@ -227,7 +227,7 @@ var _ = Describe("Lifecycle runner", func() {
 						})
 
 						It("returns the complete task", func() {
-							Expect(task.State).To(Equal(boshdirector.BoshTaskDone))
+							Expect(task.State).To(Equal(boshdirector.TaskDone))
 						})
 
 						It("does not run a post deploy errand again", func() {
@@ -242,7 +242,7 @@ var _ = Describe("Lifecycle runner", func() {
 						})
 
 						It("returns the failed task", func() {
-							Expect(task.State).To(Equal(boshdirector.BoshTaskError))
+							Expect(task.State).To(Equal(boshdirector.TaskError))
 						})
 
 						It("does not run a post deploy errand again", func() {
@@ -381,7 +381,7 @@ var _ = Describe("Lifecycle runner", func() {
 
 			It("returns the processing task", func() {
 				task, _ := deployRunner.GetTask(deploymentName, operationData, logger)
-				Expect(task.State).To(Equal(boshdirector.BoshTaskProcessing))
+				Expect(task.State).To(Equal(boshdirector.TaskProcessing))
 			})
 		})
 
@@ -392,7 +392,7 @@ var _ = Describe("Lifecycle runner", func() {
 
 			It("returns the errored task", func() {
 				task, _ := deployRunner.GetTask(deploymentName, operationData, logger)
-				Expect(task.State).To(Equal(boshdirector.BoshTaskError))
+				Expect(task.State).To(Equal(boshdirector.TaskError))
 			})
 		})
 
@@ -433,7 +433,7 @@ var _ = Describe("Lifecycle runner", func() {
 
 			It("returns the post deploy errand processing task", func() {
 				Expect(task.ID).To(Equal(taskProcessing.ID))
-				Expect(task.State).To(Equal(boshdirector.BoshTaskProcessing))
+				Expect(task.State).To(Equal(boshdirector.TaskProcessing))
 			})
 
 			Context("and running bosh delete deployment fails", func() {

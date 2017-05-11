@@ -15,8 +15,8 @@ import (
 func (c *Client) RunErrand(deploymentName, errandName, contextID string, logger *log.Logger) (int, error) {
 	logger.Printf("running errand %s from deployment %s\n", errandName, deploymentName)
 
-	return c.postAndGetTaskIdFromBoshCheckingForErrors(
-		fmt.Sprintf("%s/deployments/%s/errands/%s/runs", c.boshURL, deploymentName, errandName),
+	return c.postAndGetTaskIDCheckingForErrors(
+		fmt.Sprintf("%s/deployments/%s/errands/%s/runs", c.url, deploymentName, errandName),
 		http.StatusFound,
 		[]byte("{}"),
 		"application/json",

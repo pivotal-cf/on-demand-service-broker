@@ -113,7 +113,7 @@ var _ = Describe("binding service instances", func() {
 		JustBeforeEach(func() {
 			boshDirector.VerifyAndMock(
 				mockbosh.VMsForDeployment(deploymentName(instanceID)).RedirectsToTask(2015),
-				mockbosh.Task(2015).RespondsWithTaskContainingState(boshdirector.BoshTaskDone),
+				mockbosh.Task(2015).RespondsWithTaskContainingState(boshdirector.TaskDone),
 				mockbosh.TaskOutput(2015).RespondsWithVMsOutput([]boshdirector.BoshVMsOutput{{IPs: []string{"ip.from.bosh"}, InstanceGroup: "some-instance-group"}}),
 				mockbosh.GetDeployment(deploymentName(instanceID)).RespondsWithManifest(manifestForFirstDeployment),
 			)
@@ -238,7 +238,7 @@ var _ = Describe("binding service instances", func() {
 		JustBeforeEach(func() {
 			boshDirector.VerifyAndMock(
 				mockbosh.VMsForDeployment(deploymentName(instanceID)).RedirectsToTask(2015),
-				mockbosh.Task(2015).RespondsWithTaskContainingState(boshdirector.BoshTaskDone),
+				mockbosh.Task(2015).RespondsWithTaskContainingState(boshdirector.TaskDone),
 				mockbosh.TaskOutput(2015).RespondsWithVMsOutput([]boshdirector.BoshVMsOutput{{IPs: []string{"ip.from.bosh"}, InstanceGroup: "some-instance-group"}}),
 				mockbosh.GetDeployment(deploymentName(instanceID)).RespondsWithManifest(manifestForFirstDeployment),
 			)

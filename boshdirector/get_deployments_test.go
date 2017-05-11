@@ -18,7 +18,7 @@ import (
 var _ = Describe("deployments", func() {
 	Context("gets deployments", func() {
 		var (
-			actualDeployments      []boshdirector.BoshDeployment
+			actualDeployments      []boshdirector.Deployment
 			actualDeploymentsError error
 		)
 
@@ -27,10 +27,10 @@ var _ = Describe("deployments", func() {
 		})
 
 		Context("when bosh fetches the deployments successfully", func() {
-			var expectedDeployments []boshdirector.BoshDeployment
+			var expectedDeployments []boshdirector.Deployment
 
 			BeforeEach(func() {
-				expectedDeployments = []boshdirector.BoshDeployment{
+				expectedDeployments = []boshdirector.Deployment{
 					{Name: "service-instance_one"},
 					{Name: "service-instance_two"},
 					{Name: "service-instance_three"},
@@ -110,10 +110,10 @@ var _ = Describe("deployments", func() {
 			    ]
 			  }
 			]`)
-			var deployments []boshdirector.BoshDeployment
+			var deployments []boshdirector.Deployment
 			Expect(json.Unmarshal(data, &deployments)).To(Succeed())
 
-			Expect(deployments).To(Equal([]boshdirector.BoshDeployment{
+			Expect(deployments).To(Equal([]boshdirector.Deployment{
 				{Name: "service-instance_one"},
 				{Name: "service-instance_two"},
 			}))

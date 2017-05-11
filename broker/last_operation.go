@@ -103,7 +103,7 @@ func lastOperationState(task boshdirector.BoshTask, logger *log.Logger) brokerap
 	switch task.StateType() {
 	case boshdirector.TaskIncomplete:
 		return brokerapi.InProgress
-	case boshdirector.TaskDone:
+	case boshdirector.TaskComplete:
 		return brokerapi.Succeeded
 	case boshdirector.TaskFailed:
 		return brokerapi.Failed

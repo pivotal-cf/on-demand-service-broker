@@ -17,7 +17,7 @@ var _ = Describe("info", func() {
 	Describe("GetDirectorVersion", func() {
 		var (
 			directorVersionErr error
-			directorVersion    boshdirector.BoshDirectorVersion
+			directorVersion    boshdirector.Version
 		)
 
 		JustBeforeEach(func() {

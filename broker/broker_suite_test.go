@@ -40,7 +40,7 @@ var (
 	b                   *broker.Broker
 	brokerCreationErr   error
 	boshClient          *fakes.FakeBoshClient
-	boshDirectorVersion boshdirector.BoshDirectorVersion
+	boshDirectorVersion boshdirector.Version
 	cfClient            *fakes.FakeCloudFoundryClient
 	credhubClient       *fakes.FakeCredhubClient
 	serviceAdapter      *fakes.FakeServiceAdapterClient
@@ -125,7 +125,7 @@ var _ = BeforeEach(func() {
 	}
 
 	boshClient = new(fakes.FakeBoshClient)
-	boshDirectorVersion = boshdirector.NewBoshDirectorVersion(boshdirector.MinimumMajorSemverDirectorVersionForLifecycleErrands, boshdirector.SemverDirectorVersionType)
+	boshDirectorVersion = boshdirector.NewVersion(boshdirector.MinimumMajorSemverDirectorVersionForLifecycleErrands, boshdirector.SemverDirectorVersionType)
 	boshClient.GetDirectorVersionReturns(boshDirectorVersion, nil)
 	serviceAdapter = new(fakes.FakeServiceAdapterClient)
 	fakeDeployer = new(fakes.FakeDeployer)

@@ -96,15 +96,15 @@ func (b *BoshHelperClient) waitForTaskToFinish(taskID int) {
 		taskState, err := b.Client.GetTask(taskID, logger)
 		Expect(err).NotTo(HaveOccurred())
 
-		if taskState.State == boshdirector.BoshTaskError {
+		if taskState.State == boshdirector.TaskError {
 			Fail(fmt.Sprintf("task %d failed: %s", taskID, taskState.Description))
 		}
 
-		if taskState.State == boshdirector.BoshTaskDone {
+		if taskState.State == boshdirector.TaskDone {
 			break
 		}
 
-		time.Sleep(time.Second * b.BoshPollingInterval)
+		time.Sleep(time.Second * b.PollingInterval)
 	}
 }
 

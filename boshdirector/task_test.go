@@ -20,14 +20,14 @@ var _ = Describe("Task", func() {
 		It("Returns a JSON serialised string representing the task", func() {
 			task := BoshTask{
 				ID:          1,
-				State:       BoshTaskProcessing,
+				State:       TaskProcessing,
 				Description: "snapshot deployment",
 				Result:      "result-1",
 			}
 
 			Expect(task.ToLog()).To(Equal(fmt.Sprintf(
 				`{"ID":1,"State":"%s","Description":"snapshot deployment","Result":"result-1"}`,
-				BoshTaskProcessing,
+				TaskProcessing,
 			)))
 		})
 	})
@@ -37,13 +37,13 @@ var _ = Describe("Task", func() {
 			t := BoshTask{State: state}
 			Expect(t.StateType()).To(Equal(expected))
 		},
-		Entry("when done", BoshTaskDone, TaskDone),
-		Entry("when processing", BoshTaskProcessing, TaskIncomplete),
-		Entry("when queued", BoshTaskQueued, TaskIncomplete),
-		Entry("when cancelled", BoshTaskCancelled, TaskFailed),
-		Entry("when cancelling", BoshTaskCancelling, TaskIncomplete),
-		Entry("when error", BoshTaskError, TaskFailed),
-		Entry("when timeout", BoshTaskTimeout, TaskFailed),
+		Entry("when done", TaskDone, TaskComplete),
+		Entry("when processing", TaskProcessing, TaskIncomplete),
+		Entry("when queued", TaskQueued, TaskIncomplete),
+		Entry("when cancelled", TaskCancelled, TaskFailed),
+		Entry("when cancelling", TaskCancelling, TaskIncomplete),
+		Entry("when error", TaskError, TaskFailed),
+		Entry("when timeout", TaskTimeout, TaskFailed),
 		Entry("when something unknown", "nonsense", TaskUnknown),
 	)
 })

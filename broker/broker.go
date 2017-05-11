@@ -114,9 +114,9 @@ type BoshClient interface {
 	GetNormalisedTasksByContext(deploymentName, contextID string, logger *log.Logger) (boshdirector.BoshTasks, error)
 	VMs(deploymentName string, logger *log.Logger) (bosh.BoshVMs, error)
 	GetDeployment(name string, logger *log.Logger) ([]byte, bool, error)
-	GetDeployments(logger *log.Logger) ([]boshdirector.BoshDeployment, error)
+	GetDeployments(logger *log.Logger) ([]boshdirector.Deployment, error)
 	DeleteDeployment(name, contextID string, logger *log.Logger) (int, error)
-	GetDirectorVersion(logger *log.Logger) (boshdirector.BoshDirectorVersion, error)
+	GetDirectorVersion(logger *log.Logger) (boshdirector.Version, error)
 	RunErrand(deploymentName, errandName, contextID string, logger *log.Logger) (int, error)
 }
 

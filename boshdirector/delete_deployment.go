@@ -14,8 +14,8 @@ import (
 
 func (c *Client) DeleteDeployment(name, contextID string, logger *log.Logger) (int, error) {
 	logger.Printf("deleting deployment %s\n", name)
-	return c.deleteAndGetTaskIdFromBoshCheckingForErrors(
-		fmt.Sprintf("%s/deployments/%s", c.boshURL, name),
+	return c.deleteAndGetTaskIDCheckingForErrors(
+		fmt.Sprintf("%s/deployments/%s", c.url, name),
 		contextID,
 		http.StatusFound,
 		logger,

@@ -38,7 +38,7 @@ var _ = Describe("vms", func() {
 					BeforeEach(func() {
 						director.VerifyAndMock(
 							mockbosh.VMsForDeployment(name).RedirectsToTask(taskIDToReturn),
-							mockbosh.Task(taskIDToReturn).RespondsWithTaskContainingState(boshdirector.BoshTaskDone),
+							mockbosh.Task(taskIDToReturn).RespondsWithTaskContainingState(boshdirector.TaskDone),
 							mockbosh.TaskOutput(taskIDToReturn).RespondsWithVMsOutput([]boshdirector.BoshVMsOutput{
 								{IPs: []string{"ip1", "ip2"}, InstanceGroup: "an-instance-group"},
 							}),
@@ -63,7 +63,7 @@ var _ = Describe("vms", func() {
 					BeforeEach(func() {
 						director.VerifyAndMock(
 							mockbosh.VMsForDeployment(name).RedirectsToTask(taskIDToReturn),
-							mockbosh.Task(taskIDToReturn).RespondsWithTaskContainingState(boshdirector.BoshTaskDone),
+							mockbosh.Task(taskIDToReturn).RespondsWithTaskContainingState(boshdirector.TaskDone),
 							mockbosh.TaskOutput(taskIDToReturn).RespondsWithVMsOutput([]boshdirector.BoshVMsOutput{
 								{IPs: []string{"ip1"}, InstanceGroup: "kafka-broker"},
 								{IPs: []string{"ip2"}, InstanceGroup: "kafka-broker"},
@@ -83,7 +83,7 @@ var _ = Describe("vms", func() {
 					BeforeEach(func() {
 						director.VerifyAndMock(
 							mockbosh.VMsForDeployment(name).RedirectsToTask(taskIDToReturn),
-							mockbosh.Task(taskIDToReturn).RespondsWithTaskContainingState(boshdirector.BoshTaskError),
+							mockbosh.Task(taskIDToReturn).RespondsWithTaskContainingState(boshdirector.TaskError),
 						)
 					})
 

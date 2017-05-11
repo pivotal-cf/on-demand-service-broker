@@ -16,8 +16,8 @@ func (c *Client) GetDeployment(name string, logger *log.Logger) ([]byte, bool, e
 	logger.Printf("getting manifest from bosh for deployment %s", name)
 	respJSON := make(map[string]string)
 
-	err := c.getDataFromBoshCheckingForErrors(
-		fmt.Sprintf("%s/deployments/%s", c.boshURL, name),
+	err := c.getDataCheckingForErrors(
+		fmt.Sprintf("%s/deployments/%s", c.url, name),
 		http.StatusOK,
 		&respJSON,
 		logger,

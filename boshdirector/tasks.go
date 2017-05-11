@@ -19,7 +19,7 @@ func (t BoshTasks) FailedTasks() BoshTasks {
 }
 
 func (t BoshTasks) DoneTasks() BoshTasks {
-	return t.findTasksInStates(TaskDone)
+	return t.findTasksInStates(TaskComplete)
 }
 
 func (t BoshTasks) findTasksInStates(stateType TaskStateType) BoshTasks {

@@ -13,8 +13,8 @@ import (
 )
 
 func (c *Client) Deploy(manifest []byte, contextID string, logger *log.Logger) (int, error) {
-	return c.postAndGetTaskIdFromBoshCheckingForErrors(
-		fmt.Sprintf("%s/deployments", c.boshURL),
+	return c.postAndGetTaskIDCheckingForErrors(
+		fmt.Sprintf("%s/deployments", c.url),
 		http.StatusFound,
 		manifest,
 		"text/yaml",

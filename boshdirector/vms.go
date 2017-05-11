@@ -21,8 +21,8 @@ func (c *Client) VMs(name string, logger *log.Logger) (bosh.BoshVMs, error) {
 		return nil, err
 	}
 
-	taskID, err := c.getTaskIdFromBoshCheckingForErrors(
-		fmt.Sprintf("%s/deployments/%s/vms?format=full", c.boshURL, name),
+	taskID, err := c.getTaskIDCheckingForErrors(
+		fmt.Sprintf("%s/deployments/%s/vms?format=full", c.url, name),
 		http.StatusFound,
 		logger,
 	)
@@ -33,7 +33,7 @@ func (c *Client) VMs(name string, logger *log.Logger) (bosh.BoshVMs, error) {
 
 	err = untilTrue(
 		func() (bool, error) { return c.checkTaskComplete(taskID, logger) },
-		time.Second*c.BoshPollingInterval,
+		time.Second*c.PollingInterval,
 	)
 	if err != nil {
 		return nil, err
@@ -58,11 +58,11 @@ func (c *Client) checkTaskComplete(taskID int, logger *log.Logger) (bool, error)
 		return false, getTaskErr
 	}
 
-	if task.State == BoshTaskError {
+	if task.State == TaskError {
 		return false, fmt.Errorf("task %d failed", taskID)
 	}
 
-	if task.State == BoshTaskDone {
+	if task.State == TaskDone {
 		logger.Printf("Task %d finished: %s\n", taskID, task.ToLog())
 		return true, nil
 	}
@@ -100,8 +100,8 @@ func (c *Client) VMsOutput(taskID int, logger *log.Logger) ([]BoshVMsOutput, err
 		// else you will override your previous values with the current one
 	}
 
-	err := c.getMultipleDataFromBoshCheckingForErrors(
-		fmt.Sprintf("%s/tasks/%d/output?type=result", c.boshURL, taskID),
+	err := c.getMultipleDataCheckingForErrors(
+		fmt.Sprintf("%s/tasks/%d/output?type=result", c.url, taskID),
 		http.StatusOK,
 		&output,
 		outputReadyCallback,

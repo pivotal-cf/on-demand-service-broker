@@ -84,17 +84,17 @@ type FakeBoshClient struct {
 		result2 bool
 		result3 error
 	}
-	GetDeploymentsStub        func(logger *log.Logger) ([]boshdirector.BoshDeployment, error)
+	GetDeploymentsStub        func(logger *log.Logger) ([]boshdirector.Deployment, error)
 	getDeploymentsMutex       sync.RWMutex
 	getDeploymentsArgsForCall []struct {
 		logger *log.Logger
 	}
 	getDeploymentsReturns struct {
-		result1 []boshdirector.BoshDeployment
+		result1 []boshdirector.Deployment
 		result2 error
 	}
 	getDeploymentsReturnsOnCall map[int]struct {
-		result1 []boshdirector.BoshDeployment
+		result1 []boshdirector.Deployment
 		result2 error
 	}
 	DeleteDeploymentStub        func(name, contextID string, logger *log.Logger) (int, error)
@@ -112,17 +112,17 @@ type FakeBoshClient struct {
 		result1 int
 		result2 error
 	}
-	GetDirectorVersionStub        func(logger *log.Logger) (boshdirector.BoshDirectorVersion, error)
+	GetDirectorVersionStub        func(logger *log.Logger) (boshdirector.Version, error)
 	getDirectorVersionMutex       sync.RWMutex
 	getDirectorVersionArgsForCall []struct {
 		logger *log.Logger
 	}
 	getDirectorVersionReturns struct {
-		result1 boshdirector.BoshDirectorVersion
+		result1 boshdirector.Version
 		result2 error
 	}
 	getDirectorVersionReturnsOnCall map[int]struct {
-		result1 boshdirector.BoshDirectorVersion
+		result1 boshdirector.Version
 		result2 error
 	}
 	RunErrandStub        func(deploymentName, errandName, contextID string, logger *log.Logger) (int, error)
@@ -409,7 +409,7 @@ func (fake *FakeBoshClient) GetDeploymentReturnsOnCall(i int, result1 []byte, re
 	}{result1, result2, result3}
 }
 
-func (fake *FakeBoshClient) GetDeployments(logger *log.Logger) ([]boshdirector.BoshDeployment, error) {
+func (fake *FakeBoshClient) GetDeployments(logger *log.Logger) ([]boshdirector.Deployment, error) {
 	fake.getDeploymentsMutex.Lock()
 	ret, specificReturn := fake.getDeploymentsReturnsOnCall[len(fake.getDeploymentsArgsForCall)]
 	fake.getDeploymentsArgsForCall = append(fake.getDeploymentsArgsForCall, struct {
@@ -438,24 +438,24 @@ func (fake *FakeBoshClient) GetDeploymentsArgsForCall(i int) *log.Logger {
 	return fake.getDeploymentsArgsForCall[i].logger
 }
 
-func (fake *FakeBoshClient) GetDeploymentsReturns(result1 []boshdirector.BoshDeployment, result2 error) {
+func (fake *FakeBoshClient) GetDeploymentsReturns(result1 []boshdirector.Deployment, result2 error) {
 	fake.GetDeploymentsStub = nil
 	fake.getDeploymentsReturns = struct {
-		result1 []boshdirector.BoshDeployment
+		result1 []boshdirector.Deployment
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeBoshClient) GetDeploymentsReturnsOnCall(i int, result1 []boshdirector.BoshDeployment, result2 error) {
+func (fake *FakeBoshClient) GetDeploymentsReturnsOnCall(i int, result1 []boshdirector.Deployment, result2 error) {
 	fake.GetDeploymentsStub = nil
 	if fake.getDeploymentsReturnsOnCall == nil {
 		fake.getDeploymentsReturnsOnCall = make(map[int]struct {
-			result1 []boshdirector.BoshDeployment
+			result1 []boshdirector.Deployment
 			result2 error
 		})
 	}
 	fake.getDeploymentsReturnsOnCall[i] = struct {
-		result1 []boshdirector.BoshDeployment
+		result1 []boshdirector.Deployment
 		result2 error
 	}{result1, result2}
 }
@@ -513,7 +513,7 @@ func (fake *FakeBoshClient) DeleteDeploymentReturnsOnCall(i int, result1 int, re
 	}{result1, result2}
 }
 
-func (fake *FakeBoshClient) GetDirectorVersion(logger *log.Logger) (boshdirector.BoshDirectorVersion, error) {
+func (fake *FakeBoshClient) GetDirectorVersion(logger *log.Logger) (boshdirector.Version, error) {
 	fake.getDirectorVersionMutex.Lock()
 	ret, specificReturn := fake.getDirectorVersionReturnsOnCall[len(fake.getDirectorVersionArgsForCall)]
 	fake.getDirectorVersionArgsForCall = append(fake.getDirectorVersionArgsForCall, struct {
@@ -542,24 +542,24 @@ func (fake *FakeBoshClient) GetDirectorVersionArgsForCall(i int) *log.Logger {
 	return fake.getDirectorVersionArgsForCall[i].logger
 }
 
-func (fake *FakeBoshClient) GetDirectorVersionReturns(result1 boshdirector.BoshDirectorVersion, result2 error) {
+func (fake *FakeBoshClient) GetDirectorVersionReturns(result1 boshdirector.Version, result2 error) {
 	fake.GetDirectorVersionStub = nil
 	fake.getDirectorVersionReturns = struct {
-		result1 boshdirector.BoshDirectorVersion
+		result1 boshdirector.Version
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeBoshClient) GetDirectorVersionReturnsOnCall(i int, result1 boshdirector.BoshDirectorVersion, result2 error) {
+func (fake *FakeBoshClient) GetDirectorVersionReturnsOnCall(i int, result1 boshdirector.Version, result2 error) {
 	fake.GetDirectorVersionStub = nil
 	if fake.getDirectorVersionReturnsOnCall == nil {
 		fake.getDirectorVersionReturnsOnCall = make(map[int]struct {
-			result1 boshdirector.BoshDirectorVersion
+			result1 boshdirector.Version
 			result2 error
 		})
 	}
 	fake.getDirectorVersionReturnsOnCall[i] = struct {
-		result1 boshdirector.BoshDirectorVersion
+		result1 boshdirector.Version
 		result2 error
 	}{result1, result2}
 }

@@ -31,13 +31,13 @@ func (c *Client) GetNormalisedTasksByContext(deploymentName, contextID string, l
 // https://github.com/cloudfoundry/bosh/issues/1592
 func (c *Client) resolveErrandState(tasks BoshTasks, logger *log.Logger) (BoshTasks, error) {
 	for i, task := range tasks {
-		if task.State == BoshTaskDone {
+		if task.State == TaskDone {
 			taskOutputs, err := c.GetTaskOutput(task.ID, logger)
 			if err != nil {
 				return nil, err
 			}
 			if len(taskOutputs) > 0 && taskOutputs[0].ExitCode != 0 {
-				tasks[i].State = BoshTaskError
+				tasks[i].State = TaskError
 			}
 		}
 	}
@@ -46,14 +46,14 @@ func (c *Client) resolveErrandState(tasks BoshTasks, logger *log.Logger) (BoshTa
 }
 
 func (c *Client) getTasks(deploymentName string, contextID string, logger *log.Logger) (BoshTasks, error) {
-	url := fmt.Sprintf("%s/tasks?deployment=%s", c.boshURL, deploymentName)
+	url := fmt.Sprintf("%s/tasks?deployment=%s", c.url, deploymentName)
 
 	if contextID != "" {
 		url = url + fmt.Sprintf("&context_id=%s", contextID)
 	}
 
 	var tasks BoshTasks
-	if err := c.getDataFromBoshCheckingForErrors(
+	if err := c.getDataCheckingForErrors(
 		fmt.Sprintf(url),
 		http.StatusOK,
 		&tasks,

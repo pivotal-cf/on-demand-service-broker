@@ -55,7 +55,7 @@ var _ = JustBeforeEach(func() {
 	var err error
 	c, err = boshdirector.New(director.URL, authHeaderBuilder, false, certPEM)
 	Expect(err).NotTo(HaveOccurred())
-	c.BoshPollingInterval = 0
+	c.PollingInterval = 0
 })
 
 func TestBoshDirector(t *testing.T) {

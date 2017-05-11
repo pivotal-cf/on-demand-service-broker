@@ -23,9 +23,9 @@ import (
 )
 
 type Client struct {
-	boshURL string
+	url string
 
-	BoshPollingInterval time.Duration
+	PollingInterval time.Duration
 
 	authHeaderBuilder AuthHeaderBuilder
 	httpClient        HTTPClient
@@ -40,14 +40,14 @@ type HTTPClient interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
-func New(boshURL string, authHeaderBuilder AuthHeaderBuilder, disableSSLCertVerification bool, trustedCertPEM []byte) (*Client, error) {
+func New(url string, authHeaderBuilder AuthHeaderBuilder, disableSSLCertVerification bool, trustedCertPEM []byte) (*Client, error) {
 	rootCAs, err := x509.SystemCertPool()
 	if err != nil {
 		return nil, err
 	}
 	rootCAs.AppendCertsFromPEM(trustedCertPEM)
 	return &Client{
-		boshURL:           boshURL,
+		url:               url,
 		authHeaderBuilder: authHeaderBuilder,
 		httpClient: herottp.New(herottp.Config{
 			NoFollowRedirect:                  true,
@@ -55,33 +55,33 @@ func New(boshURL string, authHeaderBuilder AuthHeaderBuilder, disableSSLCertVeri
 			RootCAs: rootCAs,
 			Timeout: 30 * time.Second,
 		}),
-		BoshPollingInterval: 5,
+		PollingInterval: 5,
 	}, nil
 }
 
-type BoshInfo struct {
+type Info struct {
 	Version string
 }
 
-type BoshDeployment struct {
+type Deployment struct {
 	Name string
 }
 
 const (
-	StemcellDirectorVersionType                          = BoshDirectorVersionType("stemcell")
-	SemverDirectorVersionType                            = BoshDirectorVersionType("semver")
+	StemcellDirectorVersionType                          = VersionType("stemcell")
+	SemverDirectorVersionType                            = VersionType("semver")
 	MinimumMajorStemcellDirectorVersionForODB            = 3262
 	MinimumMajorSemverDirectorVersionForLifecycleErrands = 261
 )
 
-type BoshDirectorVersionType string
+type VersionType string
 
-type BoshDirectorVersion struct {
+type Version struct {
 	majorVersion int
-	versionType  BoshDirectorVersionType
+	versionType  VersionType
 }
 
-func (v BoshDirectorVersion) SupportsODB() bool {
+func (v Version) SupportsODB() bool {
 	if v.versionType == SemverDirectorVersionType {
 		return true // First bosh director version in semver format was 260
 	}
@@ -89,7 +89,7 @@ func (v BoshDirectorVersion) SupportsODB() bool {
 	return v.majorVersion >= MinimumMajorStemcellDirectorVersionForODB
 }
 
-func (v BoshDirectorVersion) SupportsLifecycleErrands() bool {
+func (v Version) SupportsLifecycleErrands() bool {
 	if v.versionType == StemcellDirectorVersionType {
 		return false // Last bosh director version in stemcell format was 259
 	}
@@ -97,22 +97,12 @@ func (v BoshDirectorVersion) SupportsLifecycleErrands() bool {
 	return v.majorVersion >= MinimumMajorSemverDirectorVersionForLifecycleErrands
 }
 
-func NewBoshDirectorVersion(majorVersion int, versionType BoshDirectorVersionType) BoshDirectorVersion {
-	return BoshDirectorVersion{
+func NewVersion(majorVersion int, versionType VersionType) Version {
+	return Version{
 		majorVersion: majorVersion,
 		versionType:  versionType,
 	}
 }
-
-const (
-	BoshTaskQueued     = "queued"
-	BoshTaskProcessing = "processing"
-	BoshTaskDone       = "done"
-	BoshTaskError      = "error"
-	BoshTaskCancelled  = "cancelled"
-	BoshTaskCancelling = "cancelling"
-	BoshTaskTimeout    = "timeout"
-)
 
 type DeploymentNotFoundError struct {
 	error
@@ -138,25 +128,25 @@ func (u unexpectedStatusError) Error() string {
 
 type resultExtractor func(*http.Response) error
 
-func (c *Client) getDataFromBoshCheckingForErrors(url string, expectedStatus int, result interface{}, logger *log.Logger) error {
+func (c *Client) getDataCheckingForErrors(url string, expectedStatus int, result interface{}, logger *log.Logger) error {
 	request, err := prepareGet(url)
 	if err != nil {
 		return err
 	}
-	return c.getResultFromBoshCheckingForErrors(request, expectedStatus, decodeJson(result), logger)
+	return c.getResultCheckingForErrors(request, expectedStatus, decodeJson(result), logger)
 }
 
-func (c *Client) getTaskIdFromBoshCheckingForErrors(url string, expectedStatus int, logger *log.Logger) (int, error) {
+func (c *Client) getTaskIDCheckingForErrors(url string, expectedStatus int, logger *log.Logger) (int, error) {
 	request, err := prepareGet(url)
 	if err != nil {
 		return 0, err
 	}
 	var taskId int
-	err = c.getDeploymentResultFromBoshCheckingForErrors(request, expectedStatus, extractTaskId(&taskId), logger)
+	err = c.getDeploymentResultCheckingForErrors(request, expectedStatus, extractTaskId(&taskId), logger)
 	return taskId, err
 }
 
-func (c *Client) getMultipleDataFromBoshCheckingForErrors(
+func (c *Client) getMultipleDataCheckingForErrors(
 	url string,
 	expectedStatus int,
 	result interface{},
@@ -167,7 +157,7 @@ func (c *Client) getMultipleDataFromBoshCheckingForErrors(
 	if err != nil {
 		return err
 	}
-	return c.getResultFromBoshCheckingForErrors(
+	return c.getResultCheckingForErrors(
 		request,
 		expectedStatus,
 		decodeMultipleJson(result, resultReady),
@@ -175,23 +165,23 @@ func (c *Client) getMultipleDataFromBoshCheckingForErrors(
 	)
 }
 
-func (c *Client) postAndGetTaskIdFromBoshCheckingForErrors(url string, expectedStatus int, body []byte, contentType, contextID string, logger *log.Logger) (int, error) {
+func (c *Client) postAndGetTaskIDCheckingForErrors(url string, expectedStatus int, body []byte, contentType, contextID string, logger *log.Logger) (int, error) {
 	request, err := preparePost(url, body, contentType, contextID)
 	if err != nil {
 		return 0, err
 	}
 	var taskId int
-	err = c.getResultFromBoshCheckingForErrors(request, expectedStatus, extractTaskId(&taskId), logger)
+	err = c.getResultCheckingForErrors(request, expectedStatus, extractTaskId(&taskId), logger)
 	return taskId, err
 }
 
-func (c *Client) deleteAndGetTaskIdFromBoshCheckingForErrors(url string, contextID string, expectedStatus int, logger *log.Logger) (int, error) {
+func (c *Client) deleteAndGetTaskIDCheckingForErrors(url string, contextID string, expectedStatus int, logger *log.Logger) (int, error) {
 	request, err := prepareDelete(url, contextID)
 	if err != nil {
 		return 0, err
 	}
 	var taskId int
-	err = c.getDeploymentResultFromBoshCheckingForErrors(request, expectedStatus, extractTaskId(&taskId), logger)
+	err = c.getDeploymentResultCheckingForErrors(request, expectedStatus, extractTaskId(&taskId), logger)
 	return taskId, err
 }
 
@@ -253,8 +243,8 @@ func prepareDelete(url, contextID string) (*http.Request, error) {
 	return req, nil
 }
 
-func (c *Client) getDeploymentResultFromBoshCheckingForErrors(request *http.Request, expectedStatus int, handler resultExtractor, logger *log.Logger) error {
-	err := c.getResultFromBoshCheckingForErrors(request, expectedStatus, handler, logger)
+func (c *Client) getDeploymentResultCheckingForErrors(request *http.Request, expectedStatus int, handler resultExtractor, logger *log.Logger) error {
+	err := c.getResultCheckingForErrors(request, expectedStatus, handler, logger)
 	switch err := err.(type) {
 	case unexpectedStatusError:
 		if err.actualStatus == http.StatusNotFound {
@@ -266,7 +256,7 @@ func (c *Client) getDeploymentResultFromBoshCheckingForErrors(request *http.Requ
 	}
 }
 
-func (c *Client) getResultFromBoshCheckingForErrors(request *http.Request, expectedStatus int, handler resultExtractor, logger *log.Logger) error {
+func (c *Client) getResultCheckingForErrors(request *http.Request, expectedStatus int, handler resultExtractor, logger *log.Logger) error {
 	authHeader, err := c.authHeaderBuilder.Build(logger)
 	if err != nil {
 		return err
