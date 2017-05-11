@@ -14,7 +14,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf/on-demand-service-broker/boshclient"
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/fakes"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
@@ -40,7 +40,7 @@ var (
 	b                   *broker.Broker
 	brokerCreationErr   error
 	boshClient          *fakes.FakeBoshClient
-	boshDirectorVersion boshclient.BoshDirectorVersion
+	boshDirectorVersion boshdirector.BoshDirectorVersion
 	cfClient            *fakes.FakeCloudFoundryClient
 	credhubClient       *fakes.FakeCredhubClient
 	serviceAdapter      *fakes.FakeServiceAdapterClient
@@ -125,7 +125,7 @@ var _ = BeforeEach(func() {
 	}
 
 	boshClient = new(fakes.FakeBoshClient)
-	boshDirectorVersion = boshclient.NewBoshDirectorVersion(boshclient.MinimumMajorSemverDirectorVersionForLifecycleErrands, boshclient.SemverDirectorVersionType)
+	boshDirectorVersion = boshdirector.NewBoshDirectorVersion(boshdirector.MinimumMajorSemverDirectorVersionForLifecycleErrands, boshdirector.SemverDirectorVersionType)
 	boshClient.GetDirectorVersionReturns(boshDirectorVersion, nil)
 	serviceAdapter = new(fakes.FakeServiceAdapterClient)
 	fakeDeployer = new(fakes.FakeDeployer)

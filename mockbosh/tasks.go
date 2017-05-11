@@ -9,7 +9,7 @@ package mockbosh
 import (
 	"fmt"
 
-	"github.com/pivotal-cf/on-demand-service-broker/boshclient"
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
 )
 
@@ -30,18 +30,18 @@ func TasksByContext(deploymentName, contextID string) *tasksMock {
 }
 
 func (t *tasksMock) RespondsWithNoTasks() *mockhttp.Handler {
-	return t.RespondsOKWithJSON([]boshclient.BoshTask{})
+	return t.RespondsOKWithJSON([]boshdirector.BoshTask{})
 }
 
 func (t *tasksMock) RespondsWithATaskContainingState(state string, description string) *mockhttp.Handler {
-	return t.RespondsWithATask(boshclient.BoshTask{
+	return t.RespondsWithATask(boshdirector.BoshTask{
 		State:       state,
 		Description: description,
 	})
 }
 
-func (t *tasksMock) RespondsWithATask(task boshclient.BoshTask) *mockhttp.Handler {
-	return t.RespondsOKWithJSON([]boshclient.BoshTask{task})
+func (t *tasksMock) RespondsWithATask(task boshdirector.BoshTask) *mockhttp.Handler {
+	return t.RespondsOKWithJSON([]boshdirector.BoshTask{task})
 }
 
 func taskURL(taskID int) string {

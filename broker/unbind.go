@@ -12,7 +12,7 @@ import (
 
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/brokerapi"
-	"github.com/pivotal-cf/on-demand-service-broker/boshclient"
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/brokercontext"
 )
 
@@ -34,9 +34,9 @@ func (b *Broker) Unbind(
 
 	vms, manifest, err := b.getDeploymentInfo(instanceID, logger)
 	switch err.(type) {
-	case boshclient.RequestError:
+	case boshdirector.RequestError:
 		return errs(NewBoshRequestError("unbind", fmt.Errorf("could not get deployment info: %s", err)))
-	case boshclient.DeploymentNotFoundError:
+	case boshdirector.DeploymentNotFoundError:
 		return errs(NewDisplayableError(brokerapi.ErrInstanceDoesNotExist, fmt.Errorf("error unbinding: instance %s, not found", instanceID)))
 	case error:
 		return errs(NewGenericError(ctx, fmt.Errorf("gathering unbinding info %s", err)))

@@ -12,7 +12,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf/on-demand-service-broker/boshclient"
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 )
 
 var _ = Describe("Orphan Deployments", func() {
@@ -40,7 +40,7 @@ var _ = Describe("Orphan Deployments", func() {
 	Context("when there is an instance with a deployment", func() {
 		BeforeEach(func() {
 			cfClient.GetInstancesOfServiceOfferingReturns([]string{"one"}, nil)
-			boshClient.GetDeploymentsReturns([]boshclient.BoshDeployment{{Name: "service-instance_one"}}, nil)
+			boshClient.GetDeploymentsReturns([]boshdirector.BoshDeployment{{Name: "service-instance_one"}}, nil)
 		})
 
 		It("returns an empty list", func() {
@@ -52,7 +52,7 @@ var _ = Describe("Orphan Deployments", func() {
 	Context("when there are no instances and one deployment", func() {
 		BeforeEach(func() {
 			cfClient.GetInstancesOfServiceOfferingReturns([]string{}, nil)
-			boshClient.GetDeploymentsReturns([]boshclient.BoshDeployment{{Name: "service-instance_one"}}, nil)
+			boshClient.GetDeploymentsReturns([]boshdirector.BoshDeployment{{Name: "service-instance_one"}}, nil)
 		})
 
 		It("returns a list of one orphan deployment", func() {
@@ -64,7 +64,7 @@ var _ = Describe("Orphan Deployments", func() {
 	Context("when there is one instance and no deployments", func() {
 		BeforeEach(func() {
 			cfClient.GetInstancesOfServiceOfferingReturns([]string{"one"}, nil)
-			boshClient.GetDeploymentsReturns([]boshclient.BoshDeployment{}, nil)
+			boshClient.GetDeploymentsReturns([]boshdirector.BoshDeployment{}, nil)
 		})
 
 		It("returns a list of one orphan deployment", func() {
@@ -76,7 +76,7 @@ var _ = Describe("Orphan Deployments", func() {
 	Context("when there is one orphan deployment and two non-ODB deployments", func() {
 		BeforeEach(func() {
 			cfClient.GetInstancesOfServiceOfferingReturns([]string{"one"}, nil)
-			deployments := []boshclient.BoshDeployment{
+			deployments := []boshdirector.BoshDeployment{
 				{Name: "service-instance_one"},
 				{Name: "not-a-service-instance"},
 				{Name: "acme-deployment"},
@@ -105,7 +105,7 @@ var _ = Describe("Orphan Deployments", func() {
 	Context("when the getting the list of deployments fails", func() {
 		BeforeEach(func() {
 			cfClient.GetInstancesOfServiceOfferingReturns([]string{"one"}, nil)
-			boshClient.GetDeploymentsReturns([]boshclient.BoshDeployment{}, errors.New("error getting deployments: get deployment error"))
+			boshClient.GetDeploymentsReturns([]boshdirector.BoshDeployment{}, errors.New("error getting deployments: get deployment error"))
 		})
 
 		It("broker logs an error", func() {

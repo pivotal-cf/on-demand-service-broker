@@ -15,7 +15,7 @@ import (
 
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/brokerapi"
-	"github.com/pivotal-cf/on-demand-service-broker/boshclient"
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/brokercontext"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 )
@@ -64,7 +64,7 @@ func (b *Broker) assertDeploymentExists(ctx context.Context, instanceID string, 
 	_, deploymentFound, err := b.boshClient.GetDeployment(deploymentName(instanceID), logger)
 
 	switch err.(type) {
-	case boshclient.RequestError:
+	case boshdirector.RequestError:
 		return NewBoshRequestError("delete", err)
 	case error:
 		return NewGenericError(
@@ -87,7 +87,7 @@ func (b *Broker) assertNoOperationsInProgress(ctx context.Context, instanceID st
 
 	tasks, err := b.boshClient.GetTasks(deploymentName(instanceID), logger)
 	switch err.(type) {
-	case boshclient.RequestError:
+	case boshdirector.RequestError:
 		return NewBoshRequestError("delete", err)
 	case error:
 		return NewGenericError(
@@ -152,7 +152,7 @@ func (b *Broker) deleteInstance(
 	logger.Printf("deleting deployment for instance %s\n", instanceID)
 	taskID, err := b.boshClient.DeleteDeployment(deploymentName(instanceID), "", logger)
 	switch err.(type) {
-	case boshclient.RequestError:
+	case boshdirector.RequestError:
 		return deprovisionErr(NewBoshRequestError("delete", err), logger)
 	case error:
 		return deprovisionErr(NewGenericError(

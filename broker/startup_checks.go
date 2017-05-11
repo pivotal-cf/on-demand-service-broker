@@ -13,7 +13,7 @@ import (
 	"strings"
 
 	"github.com/coreos/go-semver/semver"
-	"github.com/pivotal-cf/on-demand-service-broker/boshclient"
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 )
 
 func (b *Broker) startupChecks() error {
@@ -91,7 +91,7 @@ func (b *Broker) checkBoshDirectorVersion(logger *log.Logger) error {
 	}
 
 	if b.serviceOffering.HasLifecycleErrands() && !directorVersion.SupportsLifecycleErrands() {
-		errMsg := fmt.Sprintf("API version is insufficient, one or more plans are configured with lifecycle_errands which require BOSH v%d+.", boshclient.MinimumMajorSemverDirectorVersionForLifecycleErrands)
+		errMsg := fmt.Sprintf("API version is insufficient, one or more plans are configured with lifecycle_errands which require BOSH v%d+.", boshdirector.MinimumMajorSemverDirectorVersionForLifecycleErrands)
 		return errors.New(errMsg)
 	}
 

@@ -12,7 +12,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf/on-demand-service-broker/boshclient"
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
@@ -92,7 +92,7 @@ var _ = Describe("Initializing the broker", func() {
 	Describe("check BOSH director version", func() {
 		Context("when the BOSH director version supports ODB and lifecycle errands are not configured", func() {
 			BeforeEach(func() {
-				boshDirectorVersion = boshclient.NewBoshDirectorVersion(boshclient.MinimumMajorStemcellDirectorVersionForODB, boshclient.StemcellDirectorVersionType)
+				boshDirectorVersion = boshdirector.NewBoshDirectorVersion(boshdirector.MinimumMajorStemcellDirectorVersionForODB, boshdirector.StemcellDirectorVersionType)
 				boshClient.GetDirectorVersionReturns(boshDirectorVersion, nil)
 				serviceCatalog.Plans = config.Plans{
 					existingPlan,
@@ -111,7 +111,7 @@ var _ = Describe("Initializing the broker", func() {
 
 		Context("when the BOSH director version does not support ODB", func() {
 			BeforeEach(func() {
-				boshDirectorVersion = boshclient.NewBoshDirectorVersion(boshclient.MinimumMajorStemcellDirectorVersionForODB-1, boshclient.StemcellDirectorVersionType)
+				boshDirectorVersion = boshdirector.NewBoshDirectorVersion(boshdirector.MinimumMajorStemcellDirectorVersionForODB-1, boshdirector.StemcellDirectorVersionType)
 				boshClient.GetDirectorVersionReturns(boshDirectorVersion, nil)
 			})
 
@@ -127,7 +127,7 @@ var _ = Describe("Initializing the broker", func() {
 
 		Context("when the BOSH director version supports lifecycle errands", func() {
 			BeforeEach(func() {
-				boshDirectorVersion = boshclient.NewBoshDirectorVersion(boshclient.MinimumMajorSemverDirectorVersionForLifecycleErrands, boshclient.SemverDirectorVersionType)
+				boshDirectorVersion = boshdirector.NewBoshDirectorVersion(boshdirector.MinimumMajorSemverDirectorVersionForLifecycleErrands, boshdirector.SemverDirectorVersionType)
 				boshClient.GetDirectorVersionReturns(boshDirectorVersion, nil)
 			})
 
@@ -142,7 +142,7 @@ var _ = Describe("Initializing the broker", func() {
 
 		Context("when the BOSH director version does not support lifecycle errands and lifecycle errands are configured", func() {
 			BeforeEach(func() {
-				boshDirectorVersion = boshclient.NewBoshDirectorVersion(boshclient.MinimumMajorStemcellDirectorVersionForODB, boshclient.StemcellDirectorVersionType)
+				boshDirectorVersion = boshdirector.NewBoshDirectorVersion(boshdirector.MinimumMajorStemcellDirectorVersionForODB, boshdirector.StemcellDirectorVersionType)
 				boshClient.GetDirectorVersionReturns(boshDirectorVersion, nil)
 			})
 
@@ -158,7 +158,7 @@ var _ = Describe("Initializing the broker", func() {
 
 		Context("when the BOSH director version does not support lifecycle errands and lifecycle errands are not configured", func() {
 			BeforeEach(func() {
-				boshDirectorVersion = boshclient.NewBoshDirectorVersion(boshclient.MinimumMajorStemcellDirectorVersionForODB, boshclient.StemcellDirectorVersionType)
+				boshDirectorVersion = boshdirector.NewBoshDirectorVersion(boshdirector.MinimumMajorStemcellDirectorVersionForODB, boshdirector.StemcellDirectorVersionType)
 				boshClient.GetDirectorVersionReturns(boshDirectorVersion, nil)
 
 				emptyLifecycleErrandsPlan := config.Plan{
@@ -187,7 +187,7 @@ var _ = Describe("Initializing the broker", func() {
 
 		Context("when getting the BOSH director version fails", func() {
 			BeforeEach(func() {
-				boshClient.GetDirectorVersionReturns(boshclient.BoshDirectorVersion{}, fmt.Errorf("bosh request error"))
+				boshClient.GetDirectorVersionReturns(boshdirector.BoshDirectorVersion{}, fmt.Errorf("bosh request error"))
 			})
 
 			It("calls the BOSH director", func() {
@@ -202,7 +202,7 @@ var _ = Describe("Initializing the broker", func() {
 
 		Context("when the BOSH director version is unrecognised (e.g. bosh director 260.3)", func() {
 			BeforeEach(func() {
-				boshClient.GetDirectorVersionReturns(boshclient.BoshDirectorVersion{}, fmt.Errorf(`unrecognised BOSH Director version: "0000 (00000000)"`))
+				boshClient.GetDirectorVersionReturns(boshdirector.BoshDirectorVersion{}, fmt.Errorf(`unrecognised BOSH Director version: "0000 (00000000)"`))
 			})
 
 			It("calls the BOSH director", func() {

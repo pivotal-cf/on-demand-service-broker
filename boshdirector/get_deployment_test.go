@@ -4,7 +4,7 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 // Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
-package boshclient_test
+package boshdirector_test
 
 import (
 	"errors"
@@ -12,7 +12,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
-	"github.com/pivotal-cf/on-demand-service-broker/boshclient"
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/mockbosh"
 )
 
@@ -87,13 +87,13 @@ var _ = Describe("getting deployment", func() {
 
 	Context("when the BOSH director cannot be reached", func() {
 		It("returns a bosh request error", func() {
-			c, err := boshclient.New("http://localhost", authorizationheader.NewBasicAuthHeaderBuilder("", ""), false, nil)
+			c, err := boshdirector.New("http://localhost", authorizationheader.NewBasicAuthHeaderBuilder("", ""), false, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			_, deploymentFound, manifestFetchErr = c.GetDeployment(deploymentName, logger)
 
 			Expect(manifestFetchErr).To(MatchError(ContainSubstring("error reaching bosh director")))
-			Expect(manifestFetchErr).To(BeAssignableToTypeOf(boshclient.RequestError{}))
+			Expect(manifestFetchErr).To(BeAssignableToTypeOf(boshdirector.RequestError{}))
 			Expect(deploymentFound).To(BeFalse())
 		})
 	})

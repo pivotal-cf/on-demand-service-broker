@@ -15,7 +15,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/brokerapi"
-	"github.com/pivotal-cf/on-demand-service-broker/boshclient"
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
@@ -132,7 +132,7 @@ var _ = Describe("Bind", func() {
 
 	Context("when binding to a non existent instance", func() {
 		BeforeEach(func() {
-			boshClient.VMsReturns(nil, boshclient.DeploymentNotFoundError{})
+			boshClient.VMsReturns(nil, boshdirector.DeploymentNotFoundError{})
 		})
 
 		It("returns a standard error message", func() {
@@ -214,7 +214,7 @@ var _ = Describe("Bind", func() {
 
 	Context("when bind has a bosh request error", func() {
 		BeforeEach(func() {
-			boshClient.VMsReturns(nil, boshclient.NewRequestError(errors.New("bosh down.")))
+			boshClient.VMsReturns(nil, boshdirector.NewRequestError(errors.New("bosh down.")))
 		})
 
 		It("logs the error", func() {

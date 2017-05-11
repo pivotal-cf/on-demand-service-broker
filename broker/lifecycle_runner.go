@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/pivotal-cf/on-demand-service-broker/boshclient"
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 )
 
@@ -30,7 +30,7 @@ func NewLifeCycleRunner(
 }
 
 func (l LifeCycleRunner) GetTask(deploymentName string, operationData OperationData, logger *log.Logger,
-) (boshclient.BoshTask, error) {
+) (boshdirector.BoshTask, error) {
 	switch {
 	case operationData.BoshContextID == "":
 		return l.boshClient.GetTask(operationData.BoshTaskID, logger)
@@ -57,20 +57,20 @@ func (l LifeCycleRunner) processPostDeployment(
 	deploymentName string,
 	operationData OperationData,
 	logger *log.Logger,
-) (boshclient.BoshTask, error) {
+) (boshdirector.BoshTask, error) {
 
 	boshTasks, err := l.boshClient.GetNormalisedTasksByContext(deploymentName, operationData.BoshContextID, logger)
 	if err != nil {
-		return boshclient.BoshTask{}, err
+		return boshdirector.BoshTask{}, err
 	}
 
 	switch len(boshTasks) {
 	case 0:
-		return boshclient.BoshTask{}, fmt.Errorf("no tasks found for context id: %s", operationData.BoshContextID)
+		return boshdirector.BoshTask{}, fmt.Errorf("no tasks found for context id: %s", operationData.BoshContextID)
 	case 1:
 		task := boshTasks[0]
 
-		if task.StateType() != boshclient.TaskDone {
+		if task.StateType() != boshdirector.TaskDone {
 			return task, nil
 		}
 
@@ -87,7 +87,7 @@ func (l LifeCycleRunner) processPostDeployment(
 	case 2:
 		return boshTasks[0], nil
 	default:
-		return boshclient.BoshTask{},
+		return boshdirector.BoshTask{},
 			fmt.Errorf("unexpected tasks found with context id: %s, tasks: %s", operationData.BoshContextID, boshTasks.ToLog())
 	}
 }
@@ -96,51 +96,51 @@ func (l LifeCycleRunner) processPreDelete(
 	deploymentName string,
 	operationData OperationData,
 	logger *log.Logger,
-) (boshclient.BoshTask, error) {
+) (boshdirector.BoshTask, error) {
 	boshTasks, err := l.boshClient.GetNormalisedTasksByContext(deploymentName, operationData.BoshContextID, logger)
 
 	if err != nil {
-		return boshclient.BoshTask{}, err
+		return boshdirector.BoshTask{}, err
 	}
 
 	switch len(boshTasks) {
 	case 0:
-		return boshclient.BoshTask{}, fmt.Errorf("no tasks found for context id: %s", operationData.BoshContextID)
+		return boshdirector.BoshTask{}, fmt.Errorf("no tasks found for context id: %s", operationData.BoshContextID)
 	case 1:
 		task := boshTasks[0]
-		if task.StateType() != boshclient.TaskDone {
+		if task.StateType() != boshdirector.TaskDone {
 			return task, nil
 		}
 
 		taskID, err := l.boshClient.DeleteDeployment(deploymentName, operationData.BoshContextID, logger)
 		if err != nil {
-			return boshclient.BoshTask{}, err
+			return boshdirector.BoshTask{}, err
 		}
 		return l.boshClient.GetTask(taskID, logger)
 	case 2:
 		// there must be a delete deployment and it must be the first in the task list
 		return boshTasks[0], nil
 	default:
-		return boshclient.BoshTask{},
+		return boshdirector.BoshTask{},
 			fmt.Errorf("unexpected tasks found with context id: %s, tasks: %s", operationData.BoshContextID, boshTasks.ToLog())
 	}
 }
 
-func (l LifeCycleRunner) runErrand(deploymentName, errand, contextID string, log *log.Logger) (boshclient.BoshTask, error) {
+func (l LifeCycleRunner) runErrand(deploymentName, errand, contextID string, log *log.Logger) (boshdirector.BoshTask, error) {
 	taskID, err := l.boshClient.RunErrand(deploymentName, errand, contextID, log)
 	if err != nil {
-		return boshclient.BoshTask{}, err
+		return boshdirector.BoshTask{}, err
 	}
 
 	task, err := l.boshClient.GetTask(taskID, log)
 	if err != nil {
-		return boshclient.BoshTask{}, err
+		return boshdirector.BoshTask{}, err
 	}
 
 	return task, nil
 }
 
-func (l LifeCycleRunner) runErrandFromConfig(task boshclient.BoshTask, deploymentName string, operationData OperationData, logger *log.Logger) (boshclient.BoshTask, error) {
+func (l LifeCycleRunner) runErrandFromConfig(task boshdirector.BoshTask, deploymentName string, operationData OperationData, logger *log.Logger) (boshdirector.BoshTask, error) {
 	plan, found := l.plans.FindByID(operationData.PlanID)
 	if !found {
 		logger.Printf("can't determine lifecycle errands, plan with id %s not found\n", operationData.PlanID)

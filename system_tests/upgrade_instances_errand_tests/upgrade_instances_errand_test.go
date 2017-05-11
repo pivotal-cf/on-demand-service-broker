@@ -14,7 +14,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
-	"github.com/pivotal-cf/on-demand-service-broker/boshclient"
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/cf_helpers"
 )
 
@@ -36,16 +36,16 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 				boshTasks := boshClient.GetTasksForDeployment(getServiceDeploymentName(instanceName))
 				Expect(boshTasks).To(HaveLen(4))
 
-				Expect(boshTasks[0].State).To(Equal(boshclient.BoshTaskDone))
+				Expect(boshTasks[0].State).To(Equal(boshdirector.BoshTaskDone))
 				Expect(boshTasks[0].Description).To(ContainSubstring("run errand"))
 
-				Expect(boshTasks[1].State).To(Equal(boshclient.BoshTaskDone))
+				Expect(boshTasks[1].State).To(Equal(boshdirector.BoshTaskDone))
 				Expect(boshTasks[1].Description).To(ContainSubstring("create deployment"))
 
-				Expect(boshTasks[2].State).To(Equal(boshclient.BoshTaskDone))
+				Expect(boshTasks[2].State).To(Equal(boshdirector.BoshTaskDone))
 				Expect(boshTasks[2].Description).To(ContainSubstring("run errand"))
 
-				Expect(boshTasks[3].State).To(Equal(boshclient.BoshTaskDone))
+				Expect(boshTasks[3].State).To(Equal(boshdirector.BoshTaskDone))
 				Expect(boshTasks[3].Description).To(ContainSubstring("create deployment"))
 			}
 		}

@@ -4,21 +4,21 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 // Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
-package boshclient_test
+package boshdirector_test
 
 import (
 	"encoding/json"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf/on-demand-service-broker/boshclient"
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/mockbosh"
 )
 
 var _ = Describe("deployments", func() {
 	Context("gets deployments", func() {
 		var (
-			actualDeployments      []boshclient.BoshDeployment
+			actualDeployments      []boshdirector.BoshDeployment
 			actualDeploymentsError error
 		)
 
@@ -27,10 +27,10 @@ var _ = Describe("deployments", func() {
 		})
 
 		Context("when bosh fetches the deployments successfully", func() {
-			var expectedDeployments []boshclient.BoshDeployment
+			var expectedDeployments []boshdirector.BoshDeployment
 
 			BeforeEach(func() {
-				expectedDeployments = []boshclient.BoshDeployment{
+				expectedDeployments = []boshdirector.BoshDeployment{
 					{Name: "service-instance_one"},
 					{Name: "service-instance_two"},
 					{Name: "service-instance_three"},
@@ -110,10 +110,10 @@ var _ = Describe("deployments", func() {
 			    ]
 			  }
 			]`)
-			var deployments []boshclient.BoshDeployment
+			var deployments []boshdirector.BoshDeployment
 			Expect(json.Unmarshal(data, &deployments)).To(Succeed())
 
-			Expect(deployments).To(Equal([]boshclient.BoshDeployment{
+			Expect(deployments).To(Equal([]boshdirector.BoshDeployment{
 				{Name: "service-instance_one"},
 				{Name: "service-instance_two"},
 			}))

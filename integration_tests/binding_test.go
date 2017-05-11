@@ -20,7 +20,7 @@ import (
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/pivotal-cf/brokerapi"
-	"github.com/pivotal-cf/on-demand-service-broker/boshclient"
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/mockbosh"
 	"github.com/pivotal-cf/on-demand-service-broker/mockcfapi"
@@ -113,8 +113,8 @@ var _ = Describe("binding service instances", func() {
 		JustBeforeEach(func() {
 			boshDirector.VerifyAndMock(
 				mockbosh.VMsForDeployment(deploymentName(instanceID)).RedirectsToTask(2015),
-				mockbosh.Task(2015).RespondsWithTaskContainingState(boshclient.BoshTaskDone),
-				mockbosh.TaskOutput(2015).RespondsWithVMsOutput([]boshclient.BoshVMsOutput{{IPs: []string{"ip.from.bosh"}, InstanceGroup: "some-instance-group"}}),
+				mockbosh.Task(2015).RespondsWithTaskContainingState(boshdirector.BoshTaskDone),
+				mockbosh.TaskOutput(2015).RespondsWithVMsOutput([]boshdirector.BoshVMsOutput{{IPs: []string{"ip.from.bosh"}, InstanceGroup: "some-instance-group"}}),
 				mockbosh.GetDeployment(deploymentName(instanceID)).RespondsWithManifest(manifestForFirstDeployment),
 			)
 			reqBody := map[string]interface{}{
@@ -238,8 +238,8 @@ var _ = Describe("binding service instances", func() {
 		JustBeforeEach(func() {
 			boshDirector.VerifyAndMock(
 				mockbosh.VMsForDeployment(deploymentName(instanceID)).RedirectsToTask(2015),
-				mockbosh.Task(2015).RespondsWithTaskContainingState(boshclient.BoshTaskDone),
-				mockbosh.TaskOutput(2015).RespondsWithVMsOutput([]boshclient.BoshVMsOutput{{IPs: []string{"ip.from.bosh"}, InstanceGroup: "some-instance-group"}}),
+				mockbosh.Task(2015).RespondsWithTaskContainingState(boshdirector.BoshTaskDone),
+				mockbosh.TaskOutput(2015).RespondsWithVMsOutput([]boshdirector.BoshVMsOutput{{IPs: []string{"ip.from.bosh"}, InstanceGroup: "some-instance-group"}}),
 				mockbosh.GetDeployment(deploymentName(instanceID)).RespondsWithManifest(manifestForFirstDeployment),
 			)
 			bindingReq, err := http.NewRequest("PUT",

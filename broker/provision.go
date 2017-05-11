@@ -15,7 +15,7 @@ import (
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
-	"github.com/pivotal-cf/on-demand-service-broker/boshclient"
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/brokercontext"
 )
 
@@ -86,7 +86,7 @@ func (b *Broker) provisionInstance(ctx context.Context, instanceID string, planI
 
 	_, found, err := b.boshClient.GetDeployment(deploymentName(instanceID), logger)
 	switch err := err.(type) {
-	case boshclient.RequestError:
+	case boshdirector.RequestError:
 		return errs(NewBoshRequestError("create", fmt.Errorf("could not get manifest: %s", err)))
 	case error:
 		return errs(NewGenericError(ctx, fmt.Errorf("could not get manifest: %s", err)))
@@ -132,7 +132,7 @@ func (b *Broker) provisionInstance(ctx context.Context, instanceID string, planI
 
 	boshTaskID, manifest, err := b.deployer.Create(deploymentName(instanceID), plan.ID, requestParams, boshContextID, logger)
 	switch err := err.(type) {
-	case boshclient.RequestError:
+	case boshdirector.RequestError:
 		return errs(NewBoshRequestError("create", err))
 	case DisplayableError:
 		return errs(err)

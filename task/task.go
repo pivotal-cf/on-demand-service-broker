@@ -10,13 +10,13 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/pivotal-cf/on-demand-service-broker/boshclient"
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 )
 
 //go:generate counterfeiter -o fakes/fake_bosh_client.go . BoshClient
 type BoshClient interface {
 	Deploy(manifest []byte, contextID string, logger *log.Logger) (int, error)
-	GetTasks(deploymentName string, logger *log.Logger) (boshclient.BoshTasks, error)
+	GetTasks(deploymentName string, logger *log.Logger) (boshdirector.BoshTasks, error)
 	GetDeployment(name string, logger *log.Logger) ([]byte, bool, error) // TODO SF found = false => manifest => nil, drop the found flag?
 }
 

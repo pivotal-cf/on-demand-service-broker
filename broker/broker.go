@@ -11,7 +11,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/pivotal-cf/on-demand-service-broker/boshclient"
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/cloud_foundry_client"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/credstore"
@@ -109,14 +109,14 @@ type ServiceAdapterClient interface {
 
 //go:generate counterfeiter -o fakes/fake_bosh_client.go . BoshClient
 type BoshClient interface {
-	GetTask(taskID int, logger *log.Logger) (boshclient.BoshTask, error)
-	GetTasks(deploymentName string, logger *log.Logger) (boshclient.BoshTasks, error)
-	GetNormalisedTasksByContext(deploymentName, contextID string, logger *log.Logger) (boshclient.BoshTasks, error)
+	GetTask(taskID int, logger *log.Logger) (boshdirector.BoshTask, error)
+	GetTasks(deploymentName string, logger *log.Logger) (boshdirector.BoshTasks, error)
+	GetNormalisedTasksByContext(deploymentName, contextID string, logger *log.Logger) (boshdirector.BoshTasks, error)
 	VMs(deploymentName string, logger *log.Logger) (bosh.BoshVMs, error)
 	GetDeployment(name string, logger *log.Logger) ([]byte, bool, error)
-	GetDeployments(logger *log.Logger) ([]boshclient.BoshDeployment, error)
+	GetDeployments(logger *log.Logger) ([]boshdirector.BoshDeployment, error)
 	DeleteDeployment(name, contextID string, logger *log.Logger) (int, error)
-	GetDirectorVersion(logger *log.Logger) (boshclient.BoshDirectorVersion, error)
+	GetDirectorVersion(logger *log.Logger) (boshdirector.BoshDirectorVersion, error)
 	RunErrand(deploymentName, errandName, contextID string, logger *log.Logger) (int, error)
 }
 

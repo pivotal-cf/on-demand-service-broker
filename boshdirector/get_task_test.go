@@ -4,12 +4,12 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 // Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
-package boshclient_test
+package boshdirector_test
 
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf/on-demand-service-broker/boshclient"
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/mockbosh"
 )
 
@@ -20,7 +20,7 @@ var _ = Describe("get task", func() {
 
 	Context("getting task state", func() {
 		var (
-			taskState  boshclient.BoshTask
+			taskState  boshdirector.BoshTask
 			getTaskErr error
 		)
 
@@ -31,12 +31,12 @@ var _ = Describe("get task", func() {
 		Context("when bosh fetches the task successfully", func() {
 			BeforeEach(func() {
 				director.VerifyAndMock(
-					mockbosh.Task(taskID).RespondsOKWithJSON(boshclient.BoshTask{State: "a-state", Description: "a-description"}),
+					mockbosh.Task(taskID).RespondsOKWithJSON(boshdirector.BoshTask{State: "a-state", Description: "a-description"}),
 				)
 			})
 
 			It("returns the task state", func() {
-				Expect(taskState).To(Equal(boshclient.BoshTask{State: "a-state", Description: "a-description"}))
+				Expect(taskState).To(Equal(boshdirector.BoshTask{State: "a-state", Description: "a-description"}))
 			})
 
 			It("does not error", func() {
@@ -59,9 +59,9 @@ var _ = Describe("get task", func() {
 
 	Context("getting task output", func() {
 		var (
-			actualTaskOutput    []boshclient.BoshTaskOutput
+			actualTaskOutput    []boshdirector.BoshTaskOutput
 			actualTaskOutputErr error
-			expectedTaskOutputs []boshclient.BoshTaskOutput
+			expectedTaskOutputs []boshdirector.BoshTaskOutput
 		)
 
 		JustBeforeEach(func() {
@@ -70,7 +70,7 @@ var _ = Describe("get task", func() {
 
 		Context("when the client fetches task output of a valid errand task", func() {
 			BeforeEach(func() {
-				expectedTaskOutputs = []boshclient.BoshTaskOutput{
+				expectedTaskOutputs = []boshdirector.BoshTaskOutput{
 					{ExitCode: 1, StdOut: "a-description", StdErr: "err"},
 					{ExitCode: 2, StdOut: "a-description", StdErr: "err"},
 					{ExitCode: 3, StdOut: "a-description", StdErr: "err"},
@@ -90,7 +90,7 @@ var _ = Describe("get task", func() {
 		Context("when there is no output", func() {
 			BeforeEach(func() {
 				director.VerifyAndMock(
-					mockbosh.TaskOutput(taskID).RespondsWithTaskOutput([]boshclient.BoshTaskOutput{}),
+					mockbosh.TaskOutput(taskID).RespondsWithTaskOutput([]boshdirector.BoshTaskOutput{}),
 				)
 			})
 

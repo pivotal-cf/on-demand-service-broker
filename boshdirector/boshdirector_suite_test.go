@@ -4,7 +4,7 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 // Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
-package boshclient_test
+package boshdirector_test
 
 import (
 	"crypto/x509"
@@ -14,8 +14,8 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf/on-demand-service-broker/boshclient"
-	"github.com/pivotal-cf/on-demand-service-broker/boshclient/fakes"
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector/fakes"
 	"github.com/pivotal-cf/on-demand-service-broker/mockbosh"
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
 )
@@ -25,7 +25,7 @@ const (
 )
 
 var (
-	c *boshclient.Client
+	c *boshdirector.Client
 
 	authHeaderBuilder *fakes.FakeAuthHeaderBuilder
 	director          *mockhttp.Server
@@ -37,7 +37,7 @@ var _ = BeforeEach(func() {
 	authHeaderBuilder.BuildReturns(expectedAuthHeader, nil)
 	director = mockbosh.New()
 	director.ExpectedAuthorizationHeader(expectedAuthHeader)
-	logger = log.New(GinkgoWriter, "[boshclient unit test]", log.LstdFlags)
+	logger = log.New(GinkgoWriter, "[boshdirector unit test]", log.LstdFlags)
 })
 
 var _ = AfterEach(func() {
@@ -53,12 +53,12 @@ var _ = JustBeforeEach(func() {
 		certPEM = pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: cert.Raw})
 	}
 	var err error
-	c, err = boshclient.New(director.URL, authHeaderBuilder, false, certPEM)
+	c, err = boshdirector.New(director.URL, authHeaderBuilder, false, certPEM)
 	Expect(err).NotTo(HaveOccurred())
 	c.BoshPollingInterval = 0
 })
 
-func TestBoshclient(t *testing.T) {
+func TestBoshDirector(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Bosh Client Suite")
+	RunSpecs(t, "Bosh Director Suite")
 }

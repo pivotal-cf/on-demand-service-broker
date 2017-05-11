@@ -15,7 +15,7 @@ import (
 
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/brokerapi"
-	"github.com/pivotal-cf/on-demand-service-broker/boshclient"
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/brokercontext"
 )
 
@@ -92,20 +92,20 @@ func (b *Broker) LastOperation(ctx context.Context, instanceID, operationDataRaw
 	return lastOperation, nil
 }
 
-func constructLastOperation(ctx context.Context, boshTask boshclient.BoshTask, operationData OperationData, logger *log.Logger) brokerapi.LastOperation {
+func constructLastOperation(ctx context.Context, boshTask boshdirector.BoshTask, operationData OperationData, logger *log.Logger) brokerapi.LastOperation {
 	taskState := lastOperationState(boshTask, logger)
 	description := descriptionForOperationTask(ctx, taskState, operationData, boshTask.ID)
 
 	return brokerapi.LastOperation{State: taskState, Description: description}
 }
 
-func lastOperationState(task boshclient.BoshTask, logger *log.Logger) brokerapi.LastOperationState {
+func lastOperationState(task boshdirector.BoshTask, logger *log.Logger) brokerapi.LastOperationState {
 	switch task.StateType() {
-	case boshclient.TaskIncomplete:
+	case boshdirector.TaskIncomplete:
 		return brokerapi.InProgress
-	case boshclient.TaskDone:
+	case boshdirector.TaskDone:
 		return brokerapi.Succeeded
-	case boshclient.TaskFailed:
+	case boshdirector.TaskFailed:
 		return brokerapi.Failed
 	default:
 		logger.Printf("Unrecognised BOSH task state: %s", task.State)
@@ -127,7 +127,7 @@ func descriptionForOperationTask(ctx context.Context, taskState brokerapi.LastOp
 	return description
 }
 
-func logLastOperation(instanceID string, boshTask boshclient.BoshTask, operationData OperationData, logger *log.Logger) {
+func logLastOperation(instanceID string, boshTask boshdirector.BoshTask, operationData OperationData, logger *log.Logger) {
 	logger.Printf(
 		"BOSH task ID %d status: %s %s deployment for instance %s: Description: %s Result: %s\n",
 		boshTask.ID,

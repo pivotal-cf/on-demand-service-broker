@@ -5,7 +5,7 @@ import (
 	"log"
 	"sync"
 
-	"github.com/pivotal-cf/on-demand-service-broker/boshclient"
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/task"
 )
 
@@ -25,18 +25,18 @@ type FakeBoshClient struct {
 		result1 int
 		result2 error
 	}
-	GetTasksStub        func(deploymentName string, logger *log.Logger) (boshclient.BoshTasks, error)
+	GetTasksStub        func(deploymentName string, logger *log.Logger) (boshdirector.BoshTasks, error)
 	getTasksMutex       sync.RWMutex
 	getTasksArgsForCall []struct {
 		deploymentName string
 		logger         *log.Logger
 	}
 	getTasksReturns struct {
-		result1 boshclient.BoshTasks
+		result1 boshdirector.BoshTasks
 		result2 error
 	}
 	getTasksReturnsOnCall map[int]struct {
-		result1 boshclient.BoshTasks
+		result1 boshdirector.BoshTasks
 		result2 error
 	}
 	GetDeploymentStub        func(name string, logger *log.Logger) ([]byte, bool, error)
@@ -117,7 +117,7 @@ func (fake *FakeBoshClient) DeployReturnsOnCall(i int, result1 int, result2 erro
 	}{result1, result2}
 }
 
-func (fake *FakeBoshClient) GetTasks(deploymentName string, logger *log.Logger) (boshclient.BoshTasks, error) {
+func (fake *FakeBoshClient) GetTasks(deploymentName string, logger *log.Logger) (boshdirector.BoshTasks, error) {
 	fake.getTasksMutex.Lock()
 	ret, specificReturn := fake.getTasksReturnsOnCall[len(fake.getTasksArgsForCall)]
 	fake.getTasksArgsForCall = append(fake.getTasksArgsForCall, struct {
@@ -147,24 +147,24 @@ func (fake *FakeBoshClient) GetTasksArgsForCall(i int) (string, *log.Logger) {
 	return fake.getTasksArgsForCall[i].deploymentName, fake.getTasksArgsForCall[i].logger
 }
 
-func (fake *FakeBoshClient) GetTasksReturns(result1 boshclient.BoshTasks, result2 error) {
+func (fake *FakeBoshClient) GetTasksReturns(result1 boshdirector.BoshTasks, result2 error) {
 	fake.GetTasksStub = nil
 	fake.getTasksReturns = struct {
-		result1 boshclient.BoshTasks
+		result1 boshdirector.BoshTasks
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeBoshClient) GetTasksReturnsOnCall(i int, result1 boshclient.BoshTasks, result2 error) {
+func (fake *FakeBoshClient) GetTasksReturnsOnCall(i int, result1 boshdirector.BoshTasks, result2 error) {
 	fake.GetTasksStub = nil
 	if fake.getTasksReturnsOnCall == nil {
 		fake.getTasksReturnsOnCall = make(map[int]struct {
-			result1 boshclient.BoshTasks
+			result1 boshdirector.BoshTasks
 			result2 error
 		})
 	}
 	fake.getTasksReturnsOnCall[i] = struct {
-		result1 boshclient.BoshTasks
+		result1 boshdirector.BoshTasks
 		result2 error
 	}{result1, result2}
 }

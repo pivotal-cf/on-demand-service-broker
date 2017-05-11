@@ -19,7 +19,7 @@ import (
 	"github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/types"
 	"github.com/pivotal-cf/brokerapi"
-	"github.com/pivotal-cf/on-demand-service-broker/boshclient"
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/mockbosh"
@@ -545,7 +545,7 @@ var _ = Describe("updating a service instance", func() {
 
 			It("returns a operation in progress message", func() {
 				boshDirector.VerifyAndMock(
-					mockbosh.Tasks(deploymentName(instanceID)).RespondsWithATaskContainingState(boshclient.BoshTaskProcessing, "some task"),
+					mockbosh.Tasks(deploymentName(instanceID)).RespondsWithATaskContainingState(boshdirector.BoshTaskProcessing, "some task"),
 				)
 
 				updateResp = updateServiceInstanceRequest(updateArbParams, instanceID, dedicatedPlanID, dedicatedPlanID)

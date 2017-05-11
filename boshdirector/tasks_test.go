@@ -4,7 +4,7 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 // Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
-package boshclient_test
+package boshdirector_test
 
 import (
 	"encoding/json"
@@ -12,7 +12,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf/on-demand-service-broker/boshclient"
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 )
 
 var _ = Describe("tasks", func() {
@@ -46,10 +46,10 @@ var _ = Describe("tasks", func() {
 	    "user": "scheduler",
 	    "deployment": "redis-on-demand-broker-dev2"
 	  }]`)
-			var tasks boshclient.BoshTasks
+			var tasks boshdirector.BoshTasks
 			Expect(json.Unmarshal(data, &tasks)).To(Succeed())
 
-			Expect(tasks).To(Equal(boshclient.BoshTasks{
+			Expect(tasks).To(Equal(boshdirector.BoshTasks{
 				{
 					ID:          12986,
 					State:       "done",
@@ -73,10 +73,10 @@ var _ = Describe("tasks", func() {
 	})
 	Describe("IncompleteTasks", func() {
 		Context("when one task is inprogress", func() {
-			boshTasks := boshclient.BoshTasks{
-				boshclient.BoshTask{ID: 1, State: boshclient.BoshTaskProcessing},
-				boshclient.BoshTask{State: boshclient.BoshTaskDone},
-				boshclient.BoshTask{State: boshclient.BoshTaskDone},
+			boshTasks := boshdirector.BoshTasks{
+				boshdirector.BoshTask{ID: 1, State: boshdirector.BoshTaskProcessing},
+				boshdirector.BoshTask{State: boshdirector.BoshTaskDone},
+				boshdirector.BoshTask{State: boshdirector.BoshTaskDone},
 			}
 
 			It("reports one incomplete task", func() {
@@ -89,10 +89,10 @@ var _ = Describe("tasks", func() {
 		})
 
 		Context("when one task is queued", func() {
-			boshTasks := boshclient.BoshTasks{
-				boshclient.BoshTask{ID: 1, State: boshclient.BoshTaskQueued},
-				boshclient.BoshTask{State: boshclient.BoshTaskDone},
-				boshclient.BoshTask{State: boshclient.BoshTaskDone},
+			boshTasks := boshdirector.BoshTasks{
+				boshdirector.BoshTask{ID: 1, State: boshdirector.BoshTaskQueued},
+				boshdirector.BoshTask{State: boshdirector.BoshTaskDone},
+				boshdirector.BoshTask{State: boshdirector.BoshTaskDone},
 			}
 
 			It("reports one incomplete task", func() {
@@ -105,10 +105,10 @@ var _ = Describe("tasks", func() {
 		})
 
 		Context("when one task is cancelling", func() {
-			boshTasks := boshclient.BoshTasks{
-				boshclient.BoshTask{ID: 1, State: boshclient.BoshTaskCancelling},
-				boshclient.BoshTask{State: boshclient.BoshTaskError},
-				boshclient.BoshTask{State: boshclient.BoshTaskError},
+			boshTasks := boshdirector.BoshTasks{
+				boshdirector.BoshTask{ID: 1, State: boshdirector.BoshTaskCancelling},
+				boshdirector.BoshTask{State: boshdirector.BoshTaskError},
+				boshdirector.BoshTask{State: boshdirector.BoshTaskError},
 			}
 
 			It("reports one incomplete task", func() {
@@ -121,10 +121,10 @@ var _ = Describe("tasks", func() {
 		})
 
 		Context("when all tasks are inprogress", func() {
-			boshTasks := boshclient.BoshTasks{
-				boshclient.BoshTask{ID: 1, State: boshclient.BoshTaskProcessing},
-				boshclient.BoshTask{ID: 2, State: boshclient.BoshTaskProcessing},
-				boshclient.BoshTask{ID: 3, State: boshclient.BoshTaskProcessing},
+			boshTasks := boshdirector.BoshTasks{
+				boshdirector.BoshTask{ID: 1, State: boshdirector.BoshTaskProcessing},
+				boshdirector.BoshTask{ID: 2, State: boshdirector.BoshTaskProcessing},
+				boshdirector.BoshTask{ID: 3, State: boshdirector.BoshTaskProcessing},
 			}
 
 			It("returns all incomplete tasks", func() {
@@ -134,10 +134,10 @@ var _ = Describe("tasks", func() {
 		})
 
 		Context("on a list of done tasks", func() {
-			boshTasks := boshclient.BoshTasks{
-				boshclient.BoshTask{State: boshclient.BoshTaskDone},
-				boshclient.BoshTask{State: boshclient.BoshTaskDone},
-				boshclient.BoshTask{State: boshclient.BoshTaskDone},
+			boshTasks := boshdirector.BoshTasks{
+				boshdirector.BoshTask{State: boshdirector.BoshTaskDone},
+				boshdirector.BoshTask{State: boshdirector.BoshTaskDone},
+				boshdirector.BoshTask{State: boshdirector.BoshTaskDone},
 			}
 
 			It("returns no incomplete tasks", func() {
@@ -146,10 +146,10 @@ var _ = Describe("tasks", func() {
 		})
 
 		Context("on a list of cancelled tasks", func() {
-			boshTasks := boshclient.BoshTasks{
-				boshclient.BoshTask{State: boshclient.BoshTaskCancelled},
-				boshclient.BoshTask{State: boshclient.BoshTaskCancelled},
-				boshclient.BoshTask{State: boshclient.BoshTaskCancelled},
+			boshTasks := boshdirector.BoshTasks{
+				boshdirector.BoshTask{State: boshdirector.BoshTaskCancelled},
+				boshdirector.BoshTask{State: boshdirector.BoshTaskCancelled},
+				boshdirector.BoshTask{State: boshdirector.BoshTaskCancelled},
 			}
 
 			It("returns no incomplete tasks", func() {
@@ -158,10 +158,10 @@ var _ = Describe("tasks", func() {
 		})
 
 		Context("on a list of timed out tasks", func() {
-			boshTasks := boshclient.BoshTasks{
-				boshclient.BoshTask{State: boshclient.BoshTaskTimeout},
-				boshclient.BoshTask{State: boshclient.BoshTaskTimeout},
-				boshclient.BoshTask{State: boshclient.BoshTaskTimeout},
+			boshTasks := boshdirector.BoshTasks{
+				boshdirector.BoshTask{State: boshdirector.BoshTaskTimeout},
+				boshdirector.BoshTask{State: boshdirector.BoshTaskTimeout},
+				boshdirector.BoshTask{State: boshdirector.BoshTaskTimeout},
 			}
 
 			It("returns no incomplete tasks", func() {
@@ -170,10 +170,10 @@ var _ = Describe("tasks", func() {
 		})
 
 		Context("on a list of errored tasks", func() {
-			boshTasks := boshclient.BoshTasks{
-				boshclient.BoshTask{State: boshclient.BoshTaskError},
-				boshclient.BoshTask{State: boshclient.BoshTaskError},
-				boshclient.BoshTask{State: boshclient.BoshTaskError},
+			boshTasks := boshdirector.BoshTasks{
+				boshdirector.BoshTask{State: boshdirector.BoshTaskError},
+				boshdirector.BoshTask{State: boshdirector.BoshTaskError},
+				boshdirector.BoshTask{State: boshdirector.BoshTaskError},
 			}
 
 			It("returns no incomplete tasks", func() {
@@ -182,7 +182,7 @@ var _ = Describe("tasks", func() {
 		})
 
 		Context("when there are no tasks", func() {
-			boshTasks := boshclient.BoshTasks{}
+			boshTasks := boshdirector.BoshTasks{}
 
 			It("return no tasks", func() {
 				Expect(boshTasks.IncompleteTasks()).To(HaveLen(0))
@@ -192,10 +192,10 @@ var _ = Describe("tasks", func() {
 
 	Describe("DoneTasks", func() {
 		Context("when all tasks are done", func() {
-			boshTasks := boshclient.BoshTasks{
-				boshclient.BoshTask{State: boshclient.BoshTaskDone},
-				boshclient.BoshTask{State: boshclient.BoshTaskDone},
-				boshclient.BoshTask{State: boshclient.BoshTaskDone},
+			boshTasks := boshdirector.BoshTasks{
+				boshdirector.BoshTask{State: boshdirector.BoshTaskDone},
+				boshdirector.BoshTask{State: boshdirector.BoshTaskDone},
+				boshdirector.BoshTask{State: boshdirector.BoshTaskDone},
 			}
 
 			It("returns all done tasks", func() {
@@ -204,10 +204,10 @@ var _ = Describe("tasks", func() {
 		})
 
 		Context("when no tasks are done", func() {
-			boshTasks := boshclient.BoshTasks{
-				boshclient.BoshTask{State: boshclient.BoshTaskError},
-				boshclient.BoshTask{State: boshclient.BoshTaskError},
-				boshclient.BoshTask{State: boshclient.BoshTaskError},
+			boshTasks := boshdirector.BoshTasks{
+				boshdirector.BoshTask{State: boshdirector.BoshTaskError},
+				boshdirector.BoshTask{State: boshdirector.BoshTaskError},
+				boshdirector.BoshTask{State: boshdirector.BoshTaskError},
 			}
 
 			It("returns no tasks", func() {
@@ -216,9 +216,9 @@ var _ = Describe("tasks", func() {
 		})
 
 		Context("when one task is done", func() {
-			boshTasks := boshclient.BoshTasks{
-				boshclient.BoshTask{State: boshclient.BoshTaskDone},
-				boshclient.BoshTask{State: boshclient.BoshTaskError},
+			boshTasks := boshdirector.BoshTasks{
+				boshdirector.BoshTask{State: boshdirector.BoshTaskDone},
+				boshdirector.BoshTask{State: boshdirector.BoshTaskError},
 			}
 
 			It("returns one task", func() {
@@ -227,7 +227,7 @@ var _ = Describe("tasks", func() {
 		})
 
 		Context("when there are no tasks", func() {
-			boshTasks := boshclient.BoshTasks{}
+			boshTasks := boshdirector.BoshTasks{}
 
 			It("return no tasks", func() {
 				Expect(boshTasks.DoneTasks()).To(HaveLen(0))
@@ -237,10 +237,10 @@ var _ = Describe("tasks", func() {
 
 	Describe("ErrorTasks", func() {
 		Context("when all tasks have errored", func() {
-			boshTasks := boshclient.BoshTasks{
-				boshclient.BoshTask{State: boshclient.BoshTaskError},
-				boshclient.BoshTask{State: boshclient.BoshTaskError},
-				boshclient.BoshTask{State: boshclient.BoshTaskError},
+			boshTasks := boshdirector.BoshTasks{
+				boshdirector.BoshTask{State: boshdirector.BoshTaskError},
+				boshdirector.BoshTask{State: boshdirector.BoshTaskError},
+				boshdirector.BoshTask{State: boshdirector.BoshTaskError},
 			}
 
 			It("returns all error tasks", func() {
@@ -249,10 +249,10 @@ var _ = Describe("tasks", func() {
 		})
 
 		Context("when no tasks have errored", func() {
-			boshTasks := boshclient.BoshTasks{
-				boshclient.BoshTask{State: boshclient.BoshTaskDone},
-				boshclient.BoshTask{State: boshclient.BoshTaskDone},
-				boshclient.BoshTask{State: boshclient.BoshTaskDone},
+			boshTasks := boshdirector.BoshTasks{
+				boshdirector.BoshTask{State: boshdirector.BoshTaskDone},
+				boshdirector.BoshTask{State: boshdirector.BoshTaskDone},
+				boshdirector.BoshTask{State: boshdirector.BoshTaskDone},
 			}
 
 			It("returns no tasks", func() {
@@ -261,9 +261,9 @@ var _ = Describe("tasks", func() {
 		})
 
 		Context("when one task has errored", func() {
-			boshTasks := boshclient.BoshTasks{
-				boshclient.BoshTask{State: boshclient.BoshTaskDone},
-				boshclient.BoshTask{State: boshclient.BoshTaskError},
+			boshTasks := boshdirector.BoshTasks{
+				boshdirector.BoshTask{State: boshdirector.BoshTaskDone},
+				boshdirector.BoshTask{State: boshdirector.BoshTaskError},
 			}
 
 			It("returns one task", func() {
@@ -272,9 +272,9 @@ var _ = Describe("tasks", func() {
 		})
 
 		Context("when a task has been cancelled", func() {
-			boshTasks := boshclient.BoshTasks{
-				boshclient.BoshTask{State: boshclient.BoshTaskDone},
-				boshclient.BoshTask{State: boshclient.BoshTaskCancelled},
+			boshTasks := boshdirector.BoshTasks{
+				boshdirector.BoshTask{State: boshdirector.BoshTaskDone},
+				boshdirector.BoshTask{State: boshdirector.BoshTaskCancelled},
 			}
 
 			It("returns one task", func() {
@@ -283,9 +283,9 @@ var _ = Describe("tasks", func() {
 		})
 
 		Context("when a task has timed out", func() {
-			boshTasks := boshclient.BoshTasks{
-				boshclient.BoshTask{State: boshclient.BoshTaskDone},
-				boshclient.BoshTask{State: boshclient.BoshTaskTimeout},
+			boshTasks := boshdirector.BoshTasks{
+				boshdirector.BoshTask{State: boshdirector.BoshTaskDone},
+				boshdirector.BoshTask{State: boshdirector.BoshTaskTimeout},
 			}
 
 			It("returns one task", func() {
@@ -294,7 +294,7 @@ var _ = Describe("tasks", func() {
 		})
 
 		Context("when there are no tasks", func() {
-			boshTasks := boshclient.BoshTasks{}
+			boshTasks := boshdirector.BoshTasks{}
 
 			It("return no tasks", func() {
 				Expect(boshTasks.FailedTasks()).To(HaveLen(0))
@@ -304,7 +304,7 @@ var _ = Describe("tasks", func() {
 
 	Describe("ToLog", func() {
 		Context("when there are no tasks", func() {
-			boshTasks := boshclient.BoshTasks{}
+			boshTasks := boshdirector.BoshTasks{}
 
 			It("returns one task in log format", func() {
 				Expect(boshTasks.ToLog()).To(Equal("[]"))
@@ -312,8 +312,8 @@ var _ = Describe("tasks", func() {
 		})
 
 		Context("when there is one task", func() {
-			boshTasks := boshclient.BoshTasks{
-				boshclient.BoshTask{ID: 1, State: boshclient.BoshTaskProcessing},
+			boshTasks := boshdirector.BoshTasks{
+				boshdirector.BoshTask{ID: 1, State: boshdirector.BoshTaskProcessing},
 			}
 
 			It("returns one task in log format", func() {
@@ -324,10 +324,10 @@ var _ = Describe("tasks", func() {
 		})
 
 		Context("when there are several tasks", func() {
-			boshTasks := boshclient.BoshTasks{
-				boshclient.BoshTask{ID: 1, State: boshclient.BoshTaskDone},
-				boshclient.BoshTask{ID: 2, State: boshclient.BoshTaskTimeout},
-				boshclient.BoshTask{ID: 3, State: boshclient.BoshTaskProcessing},
+			boshTasks := boshdirector.BoshTasks{
+				boshdirector.BoshTask{ID: 1, State: boshdirector.BoshTaskDone},
+				boshdirector.BoshTask{ID: 2, State: boshdirector.BoshTaskTimeout},
+				boshdirector.BoshTask{ID: 3, State: boshdirector.BoshTaskProcessing},
 			}
 
 			It("returns all three tasks in log format", func() {

@@ -4,36 +4,41 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 // Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
-package boshclient
+package boshdirector
 
-import (
-	"fmt"
-	"log"
-	"net/http"
-)
+import "encoding/json"
 
-func (c *Client) GetDeployment(name string, logger *log.Logger) ([]byte, bool, error) {
-	logger.Printf("getting manifest from bosh for deployment %s", name)
-	respJSON := make(map[string]string)
-
-	err := c.getDataFromBoshCheckingForErrors(
-		fmt.Sprintf("%s/deployments/%s", c.boshURL, name),
-		http.StatusOK,
-		&respJSON,
-		logger,
-	)
-
-	if err != nil {
-		if deploymentDoesNotExistYet(err) {
-			return nil, false, nil
-		}
-		return nil, false, err
-	}
-
-	return []byte(respJSON["manifest"]), true, nil
+type BoshTask struct {
+	ID          int
+	State       string
+	Description string
+	Result      string
+	ContextID   string `json:"context_id,omitempty"`
 }
 
-func deploymentDoesNotExistYet(err error) bool {
-	e, ok := err.(unexpectedStatusError)
-	return ok && e.actualStatus == http.StatusNotFound
+type TaskStateType int
+
+const (
+	TaskDone TaskStateType = iota
+	TaskIncomplete
+	TaskFailed
+	TaskUnknown
+)
+
+func (t BoshTask) ToLog() string {
+	output, _ := json.Marshal(t)
+	return string(output)
+}
+
+func (t BoshTask) StateType() TaskStateType {
+	switch t.State {
+	case BoshTaskDone:
+		return TaskDone
+	case BoshTaskProcessing, BoshTaskQueued, BoshTaskCancelling:
+		return TaskIncomplete
+	case BoshTaskCancelled, BoshTaskError, BoshTaskTimeout:
+		return TaskFailed
+	default:
+		return TaskUnknown
+	}
 }

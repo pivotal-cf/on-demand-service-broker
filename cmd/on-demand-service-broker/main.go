@@ -19,7 +19,7 @@ import (
 	apiauth "github.com/pivotal-cf/brokerapi/auth"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
-	"github.com/pivotal-cf/on-demand-service-broker/boshclient"
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/cloud_foundry_client"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
@@ -53,7 +53,7 @@ func main() {
 
 func startBroker(conf config.Config, logger *log.Logger, loggerFactory *loggerfactory.LoggerFactory) {
 	var (
-		boshAuthenticator boshclient.AuthHeaderBuilder
+		boshAuthenticator boshdirector.AuthHeaderBuilder
 		err               error
 	)
 
@@ -76,7 +76,7 @@ func startBroker(conf config.Config, logger *log.Logger, loggerFactory *loggerfa
 		}
 	}
 
-	boshClient, err := boshclient.New(conf.Bosh.URL, boshAuthenticator, conf.Broker.DisableSSLCertVerification, []byte(conf.Bosh.TrustedCert))
+	boshClient, err := boshdirector.New(conf.Bosh.URL, boshAuthenticator, conf.Broker.DisableSSLCertVerification, []byte(conf.Bosh.TrustedCert))
 	if err != nil {
 		logger.Fatalf("error creating bosh client: %s", err)
 	}

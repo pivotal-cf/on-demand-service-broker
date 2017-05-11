@@ -4,25 +4,25 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 // Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
-package boshclient_test
+package boshdirector_test
 
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf/on-demand-service-broker/boshclient"
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/mockbosh"
 )
 
 var _ = Describe("getting tasks", func() {
 	Describe("GetTasks", func() {
 		var (
-			deploymentName   = "an-amazing-deployment"
-			actualTasks      boshclient.BoshTasks
+			deploymentName      = "an-amazing-deployment"
+			actualTasks      boshdirector.BoshTasks
 			actualTasksError error
 
-			expectedTasks = boshclient.BoshTasks{
-				{State: boshclient.BoshTaskProcessing, Description: "snapshot deployment", Result: "result-1"},
-				{State: boshclient.BoshTaskDone, Description: "snapshot deployment", Result: "result-2"},
+			expectedTasks = boshdirector.BoshTasks{
+				{State: boshdirector.BoshTaskProcessing, Description: "snapshot deployment", Result: "result-1"},
+				{State: boshdirector.BoshTaskDone, Description: "snapshot deployment", Result: "result-2"},
 			}
 		)
 
@@ -77,7 +77,7 @@ var _ = Describe("getting tasks", func() {
 			deploymentName = "some-deployment"
 		)
 		var (
-			actualTasks boshclient.BoshTasks
+			actualTasks boshdirector.BoshTasks
 			actualError error
 		)
 		Context("when there are no tasks with the context id", func() {
@@ -101,7 +101,7 @@ var _ = Describe("getting tasks", func() {
 		})
 
 		Context("when there is one task with the context id", func() {
-			expectedTask := boshclient.BoshTask{State: boshclient.BoshTaskProcessing, Description: "snapshot deployment", Result: "result-1", ContextID: contextID}
+			expectedTask := boshdirector.BoshTask{State: boshdirector.BoshTaskProcessing, Description: "snapshot deployment", Result: "result-1", ContextID: contextID}
 
 			BeforeEach(func() {
 				director.VerifyAndMock(
@@ -127,10 +127,10 @@ var _ = Describe("getting tasks", func() {
 		})
 
 		Context("when there are many tasks with the context id", func() {
-			expectedTasks := boshclient.BoshTasks{
-				{State: boshclient.BoshTaskProcessing, Description: "snapshot deployment", Result: "result-1", ContextID: contextID},
-				{State: boshclient.BoshTaskDone, Description: "something finished", Result: "result-1", ContextID: contextID},
-				{State: boshclient.BoshTaskProcessing, Description: "snapshot deployment", Result: "result-1", ContextID: contextID},
+			expectedTasks := boshdirector.BoshTasks{
+				{State: boshdirector.BoshTaskProcessing, Description: "snapshot deployment", Result: "result-1", ContextID: contextID},
+				{State: boshdirector.BoshTaskDone, Description: "something finished", Result: "result-1", ContextID: contextID},
+				{State: boshdirector.BoshTaskProcessing, Description: "snapshot deployment", Result: "result-1", ContextID: contextID},
 			}
 
 			BeforeEach(func() {
@@ -159,10 +159,10 @@ var _ = Describe("getting tasks", func() {
 
 		Context("when an errand task has finished with a non-zero exit code",
 			func() {
-				expectedTasks := boshclient.BoshTasks{
+				expectedTasks := boshdirector.BoshTasks{
 					{
 						ID:          42,
-						State:       boshclient.BoshTaskError,
+						State:       boshdirector.BoshTaskError,
 						Description: "errand completed",
 						Result:      "result-1",
 						ContextID:   contextID,
@@ -172,16 +172,16 @@ var _ = Describe("getting tasks", func() {
 				BeforeEach(func() {
 					director.VerifyAndMock(
 						mockbosh.TasksByContext(deploymentName, contextID).RespondsWithATask(
-							boshclient.BoshTask{
+							boshdirector.BoshTask{
 								ID:          42,
-								State:       boshclient.BoshTaskDone,
+								State:       boshdirector.BoshTaskDone,
 								Description: "errand completed",
 								Result:      "result-1",
 								ContextID:   contextID,
 							},
 						),
 						mockbosh.TaskOutput(42).RespondsOKWithJSON(
-							boshclient.BoshTaskOutput{ExitCode: 1},
+							boshdirector.BoshTaskOutput{ExitCode: 1},
 						),
 					)
 				})
@@ -204,9 +204,9 @@ var _ = Describe("getting tasks", func() {
 			BeforeEach(func() {
 				director.VerifyAndMock(
 					mockbosh.TasksByContext(deploymentName, contextID).RespondsWithATask(
-						boshclient.BoshTask{
+						boshdirector.BoshTask{
 							ID:          42,
-							State:       boshclient.BoshTaskDone,
+							State:       boshdirector.BoshTaskDone,
 							Description: "errand completed",
 							Result:      "result-1",
 							ContextID:   contextID,

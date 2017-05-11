@@ -16,13 +16,13 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
-	"github.com/pivotal-cf/on-demand-service-broker/boshclient"
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 	"gopkg.in/yaml.v2"
 )
 
 type BoshHelperClient struct {
-	*boshclient.Client
+	*boshdirector.Client
 }
 
 func New(boshURL, uaaURL, boshUsername, boshPassword, boshCACert string) *BoshHelperClient {
@@ -35,7 +35,7 @@ func New(boshURL, uaaURL, boshUsername, boshPassword, boshCACert string) *BoshHe
 
 	authHeaderBuilder, err := authorizationheader.NewClientTokenAuthHeaderBuilder(uaaURL, boshUsername, boshPassword, false, boshCACertContents)
 	Expect(err).NotTo(HaveOccurred())
-	boshClient, err := boshclient.New(boshURL, authHeaderBuilder, false, boshCACertContents)
+	boshClient, err := boshdirector.New(boshURL, authHeaderBuilder, false, boshCACertContents)
 	Expect(err).NotTo(HaveOccurred())
 	return &BoshHelperClient{Client: boshClient}
 }
@@ -50,12 +50,12 @@ func NewBasicAuth(boshURL, boshUsername, boshPassword, boshCACert string, disabl
 
 	basicAuthHeaderBuilder := authorizationheader.NewBasicAuthHeaderBuilder(boshUsername, boshPassword)
 	var err error
-	boshClient, err := boshclient.New(boshURL, basicAuthHeaderBuilder, disableTLSVerification, boshCACertContents)
+	boshClient, err := boshdirector.New(boshURL, basicAuthHeaderBuilder, disableTLSVerification, boshCACertContents)
 	Expect(err).NotTo(HaveOccurred())
 	return &BoshHelperClient{Client: boshClient}
 }
 
-func (b *BoshHelperClient) RunErrand(deploymentName, errandName, contextID string) boshclient.BoshTaskOutput {
+func (b *BoshHelperClient) RunErrand(deploymentName, errandName, contextID string) boshdirector.BoshTaskOutput {
 	logger := systemTestLogger()
 	taskID := b.runErrandAndWait(deploymentName, errandName, contextID, logger)
 	output := b.getTaskOutput(taskID, logger)
@@ -63,7 +63,7 @@ func (b *BoshHelperClient) RunErrand(deploymentName, errandName, contextID strin
 	return output
 }
 
-func (b *BoshHelperClient) RunErrandWithoutCheckingSuccess(deploymentName, errandName, contextID string) boshclient.BoshTaskOutput {
+func (b *BoshHelperClient) RunErrandWithoutCheckingSuccess(deploymentName, errandName, contextID string) boshdirector.BoshTaskOutput {
 	logger := systemTestLogger()
 	taskID := b.runErrandAndWait(deploymentName, errandName, contextID, logger)
 	return b.getTaskOutput(taskID, logger)
@@ -76,14 +76,14 @@ func (b *BoshHelperClient) runErrandAndWait(deploymentName, errandName, contextI
 	return taskID
 }
 
-func (b *BoshHelperClient) getTaskOutput(taskID int, logger *log.Logger) boshclient.BoshTaskOutput {
+func (b *BoshHelperClient) getTaskOutput(taskID int, logger *log.Logger) boshdirector.BoshTaskOutput {
 	output, err := b.Client.GetTaskOutput(taskID, logger)
 	Expect(err).NotTo(HaveOccurred())
 	Expect(output).To(HaveLen(1))
 	return output[0]
 }
 
-func (b *BoshHelperClient) GetTasksForDeployment(deploymentName string) boshclient.BoshTasks {
+func (b *BoshHelperClient) GetTasksForDeployment(deploymentName string) boshdirector.BoshTasks {
 	logger := systemTestLogger()
 	boshTasks, err := b.Client.GetTasks(deploymentName, logger)
 	Expect(err).NotTo(HaveOccurred())
@@ -96,11 +96,11 @@ func (b *BoshHelperClient) waitForTaskToFinish(taskID int) {
 		taskState, err := b.Client.GetTask(taskID, logger)
 		Expect(err).NotTo(HaveOccurred())
 
-		if taskState.State == boshclient.BoshTaskError {
+		if taskState.State == boshdirector.BoshTaskError {
 			Fail(fmt.Sprintf("task %d failed: %s", taskID, taskState.Description))
 		}
 
-		if taskState.State == boshclient.BoshTaskDone {
+		if taskState.State == boshdirector.BoshTaskDone {
 			break
 		}
 
@@ -155,5 +155,5 @@ func (b *BoshHelperClient) DeleteDeployment(deploymentName string) {
 }
 
 func systemTestLogger() *log.Logger {
-	return log.New(GinkgoWriter, "[system tests boshclient] ", log.LstdFlags)
+	return log.New(GinkgoWriter, "[system tests boshdirector] ", log.LstdFlags)
 }

@@ -5,7 +5,7 @@ import (
 	"log"
 	"sync"
 
-	"github.com/pivotal-cf/on-demand-service-broker/boshclient"
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 )
 
 type FakeAuthHeaderBuilder struct {
@@ -97,4 +97,4 @@ func (fake *FakeAuthHeaderBuilder) recordInvocation(key string, args []interface
 	fake.invocations[key] = append(fake.invocations[key], args)
 }
 
-var _ boshclient.AuthHeaderBuilder = new(FakeAuthHeaderBuilder)
+var _ boshdirector.AuthHeaderBuilder = new(FakeAuthHeaderBuilder)

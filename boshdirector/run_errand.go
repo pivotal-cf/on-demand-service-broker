@@ -4,7 +4,7 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 // Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
-package boshclient
+package boshdirector
 
 import (
 	"fmt"
@@ -12,14 +12,15 @@ import (
 	"net/http"
 )
 
-func (c *Client) GetDeployments(logger *log.Logger) ([]BoshDeployment, error) {
-	logger.Println("getting deployments from bosh")
+func (c *Client) RunErrand(deploymentName, errandName, contextID string, logger *log.Logger) (int, error) {
+	logger.Printf("running errand %s from deployment %s\n", errandName, deploymentName)
 
-	var deployments []BoshDeployment
-	url := fmt.Sprintf("%s/deployments", c.boshURL)
-	if err := c.getDataFromBoshCheckingForErrors(url, http.StatusOK, &deployments, logger); err != nil {
-		return nil, err
-	}
-
-	return deployments, nil
+	return c.postAndGetTaskIdFromBoshCheckingForErrors(
+		fmt.Sprintf("%s/deployments/%s/errands/%s/runs", c.boshURL, deploymentName, errandName),
+		http.StatusFound,
+		[]byte("{}"),
+		"application/json",
+		contextID,
+		logger,
+	)
 }

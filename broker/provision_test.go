@@ -16,7 +16,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/brokerapi"
-	"github.com/pivotal-cf/on-demand-service-broker/boshclient"
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
@@ -381,7 +381,7 @@ var _ = Describe("provisioning", func() {
 
 	Context("when getting the manifest has a bosh request error", func() {
 		BeforeEach(func() {
-			boshClient.GetDeploymentReturns([]byte{}, false, boshclient.NewRequestError(
+			boshClient.GetDeploymentReturns([]byte{}, false, boshdirector.NewRequestError(
 				fmt.Errorf("network timeout"),
 			))
 		})
@@ -397,7 +397,7 @@ var _ = Describe("provisioning", func() {
 
 	Context("when a deploy has a bosh request error", func() {
 		BeforeEach(func() {
-			fakeDeployer.CreateReturns(0, []byte{}, boshclient.NewRequestError(
+			fakeDeployer.CreateReturns(0, []byte{}, boshdirector.NewRequestError(
 				fmt.Errorf("error deploying instance: network timeout"),
 			))
 		})

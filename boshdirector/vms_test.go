@@ -4,7 +4,7 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 // Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
-package boshclient_test
+package boshdirector_test
 
 import (
 	"errors"
@@ -12,7 +12,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf/on-demand-service-broker/boshclient"
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/mockbosh"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 )
@@ -38,8 +38,8 @@ var _ = Describe("vms", func() {
 					BeforeEach(func() {
 						director.VerifyAndMock(
 							mockbosh.VMsForDeployment(name).RedirectsToTask(taskIDToReturn),
-							mockbosh.Task(taskIDToReturn).RespondsWithTaskContainingState(boshclient.BoshTaskDone),
-							mockbosh.TaskOutput(taskIDToReturn).RespondsWithVMsOutput([]boshclient.BoshVMsOutput{
+							mockbosh.Task(taskIDToReturn).RespondsWithTaskContainingState(boshdirector.BoshTaskDone),
+							mockbosh.TaskOutput(taskIDToReturn).RespondsWithVMsOutput([]boshdirector.BoshVMsOutput{
 								{IPs: []string{"ip1", "ip2"}, InstanceGroup: "an-instance-group"},
 							}),
 						)
@@ -63,8 +63,8 @@ var _ = Describe("vms", func() {
 					BeforeEach(func() {
 						director.VerifyAndMock(
 							mockbosh.VMsForDeployment(name).RedirectsToTask(taskIDToReturn),
-							mockbosh.Task(taskIDToReturn).RespondsWithTaskContainingState(boshclient.BoshTaskDone),
-							mockbosh.TaskOutput(taskIDToReturn).RespondsWithVMsOutput([]boshclient.BoshVMsOutput{
+							mockbosh.Task(taskIDToReturn).RespondsWithTaskContainingState(boshdirector.BoshTaskDone),
+							mockbosh.TaskOutput(taskIDToReturn).RespondsWithVMsOutput([]boshdirector.BoshVMsOutput{
 								{IPs: []string{"ip1"}, InstanceGroup: "kafka-broker"},
 								{IPs: []string{"ip2"}, InstanceGroup: "kafka-broker"},
 								{IPs: []string{"ip3"}, InstanceGroup: "zookeeper"},
@@ -83,7 +83,7 @@ var _ = Describe("vms", func() {
 					BeforeEach(func() {
 						director.VerifyAndMock(
 							mockbosh.VMsForDeployment(name).RedirectsToTask(taskIDToReturn),
-							mockbosh.Task(taskIDToReturn).RespondsWithTaskContainingState(boshclient.BoshTaskError),
+							mockbosh.Task(taskIDToReturn).RespondsWithTaskContainingState(boshdirector.BoshTaskError),
 						)
 					})
 
@@ -112,7 +112,7 @@ var _ = Describe("vms", func() {
 					})
 
 					It("returns an error", func() {
-						Expect(vmsErr).To(BeAssignableToTypeOf(boshclient.DeploymentNotFoundError{}))
+						Expect(vmsErr).To(BeAssignableToTypeOf(boshdirector.DeploymentNotFoundError{}))
 					})
 				})
 			})
@@ -157,11 +157,11 @@ var _ = Describe("vms", func() {
 	Describe("getting output from a BOSH VMs task", func() {
 		var (
 			taskID            = 2
-			expectedVMsOutput = []boshclient.BoshVMsOutput{
+			expectedVMsOutput = []boshdirector.BoshVMsOutput{
 				{IPs: []string{"a-nice-ip"}, InstanceGroup: "a-nice-instance-group"},
 			}
 
-			boshOutput []boshclient.BoshVMsOutput
+			boshOutput []boshdirector.BoshVMsOutput
 			outputErr  error
 		)
 

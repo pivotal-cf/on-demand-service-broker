@@ -13,7 +13,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf/on-demand-service-broker/boshclient"
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 )
@@ -47,9 +47,9 @@ var _ = Describe("Lifecycle runner", func() {
 		},
 	}
 
-	taskProcessing := boshclient.BoshTask{ID: 1, State: boshclient.BoshTaskProcessing, Description: "snapshot deployment", Result: "result-1", ContextID: contextID}
-	taskErrored := boshclient.BoshTask{ID: 2, State: boshclient.BoshTaskError, Description: "snapshot deployment", Result: "result-1", ContextID: contextID}
-	taskComplete := boshclient.BoshTask{ID: 3, State: boshclient.BoshTaskDone, Description: "snapshot deployment", Result: "result-1", ContextID: contextID}
+	taskProcessing := boshdirector.BoshTask{ID: 1, State: boshdirector.BoshTaskProcessing, Description: "snapshot deployment", Result: "result-1", ContextID: contextID}
+	taskErrored := boshdirector.BoshTask{ID: 2, State: boshdirector.BoshTaskError, Description: "snapshot deployment", Result: "result-1", ContextID: contextID}
+	taskComplete := boshdirector.BoshTask{ID: 3, State: boshdirector.BoshTaskDone, Description: "snapshot deployment", Result: "result-1", ContextID: contextID}
 
 	var deployRunner broker.LifeCycleRunner
 	var logger *log.Logger
@@ -76,29 +76,29 @@ var _ = Describe("Lifecycle runner", func() {
 
 			Context("and the deployment task is processing", func() {
 				BeforeEach(func() {
-					boshClient.GetNormalisedTasksByContextReturns(boshclient.BoshTasks{taskProcessing}, nil)
+					boshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{taskProcessing}, nil)
 				})
 
 				It("returns the processing task", func() {
 					task, _ := deployRunner.GetTask(deploymentName, operationData, logger)
-					Expect(task.State).To(Equal(boshclient.BoshTaskProcessing))
+					Expect(task.State).To(Equal(boshdirector.BoshTaskProcessing))
 				})
 			})
 
 			Context("and the deployment task has errored", func() {
 				BeforeEach(func() {
-					boshClient.GetNormalisedTasksByContextReturns(boshclient.BoshTasks{taskErrored}, nil)
+					boshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{taskErrored}, nil)
 				})
 
 				It("returns the errored task", func() {
 					task, _ := deployRunner.GetTask(deploymentName, operationData, logger)
-					Expect(task.State).To(Equal(boshclient.BoshTaskError))
+					Expect(task.State).To(Equal(boshdirector.BoshTaskError))
 				})
 			})
 
 			Context("when the deployment task cannot be found", func() {
 				BeforeEach(func() {
-					boshClient.GetNormalisedTasksByContextReturns(boshclient.BoshTasks{}, nil)
+					boshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{}, nil)
 				})
 
 				It("returns an error", func() {
@@ -108,9 +108,9 @@ var _ = Describe("Lifecycle runner", func() {
 			})
 
 			Context("when the deployment task is done", func() {
-				var task boshclient.BoshTask
+				var task boshdirector.BoshTask
 				BeforeEach(func() {
-					boshClient.GetNormalisedTasksByContextReturns(boshclient.BoshTasks{taskComplete}, nil)
+					boshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{taskComplete}, nil)
 				})
 
 				Context("and the post-deploy errand and plan id are absent in operation data", func() {
@@ -202,17 +202,17 @@ var _ = Describe("Lifecycle runner", func() {
 
 					It("returns the post deploy errand processing task", func() {
 						Expect(task.ID).To(Equal(taskProcessing.ID))
-						Expect(task.State).To(Equal(boshclient.BoshTaskProcessing))
+						Expect(task.State).To(Equal(boshdirector.BoshTaskProcessing))
 					})
 
 					Context("and a post deploy errand is incomplete", func() {
 						BeforeEach(func() {
-							boshClient.GetNormalisedTasksByContextReturns(boshclient.BoshTasks{taskProcessing, taskComplete}, nil)
+							boshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{taskProcessing, taskComplete}, nil)
 							task, _ = deployRunner.GetTask(deploymentName, operationData, logger)
 						})
 
 						It("returns the processing task", func() {
-							Expect(task.State).To(Equal(boshclient.BoshTaskProcessing))
+							Expect(task.State).To(Equal(boshdirector.BoshTaskProcessing))
 						})
 
 						It("does not run a post deploy errand again", func() {
@@ -222,12 +222,12 @@ var _ = Describe("Lifecycle runner", func() {
 
 					Context("and a post deploy errand is complete", func() {
 						BeforeEach(func() {
-							boshClient.GetNormalisedTasksByContextReturns(boshclient.BoshTasks{taskComplete, taskComplete}, nil)
+							boshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{taskComplete, taskComplete}, nil)
 							task, _ = deployRunner.GetTask(deploymentName, operationData, logger)
 						})
 
 						It("returns the complete task", func() {
-							Expect(task.State).To(Equal(boshclient.BoshTaskDone))
+							Expect(task.State).To(Equal(boshdirector.BoshTaskDone))
 						})
 
 						It("does not run a post deploy errand again", func() {
@@ -237,12 +237,12 @@ var _ = Describe("Lifecycle runner", func() {
 
 					Context("and the post deploy errand fails", func() {
 						BeforeEach(func() {
-							boshClient.GetNormalisedTasksByContextReturns(boshclient.BoshTasks{taskErrored, taskComplete}, nil)
+							boshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{taskErrored, taskComplete}, nil)
 							task, _ = deployRunner.GetTask(deploymentName, operationData, logger)
 						})
 
 						It("returns the failed task", func() {
-							Expect(task.State).To(Equal(boshclient.BoshTaskError))
+							Expect(task.State).To(Equal(boshdirector.BoshTaskError))
 						})
 
 						It("does not run a post deploy errand again", func() {
@@ -263,7 +263,7 @@ var _ = Describe("Lifecycle runner", func() {
 
 					Context("and the errand task cannot be found", func() {
 						BeforeEach(func() {
-							boshClient.GetTaskReturns(boshclient.BoshTask{}, errors.New("some err"))
+							boshClient.GetTaskReturns(boshdirector.BoshTask{}, errors.New("some err"))
 						})
 
 						It("returns an error", func() {
@@ -296,7 +296,7 @@ var _ = Describe("Lifecycle runner", func() {
 
 			Context("when getting tasks errors", func() {
 				BeforeEach(func() {
-					boshClient.GetNormalisedTasksByContextReturns(boshclient.BoshTasks{}, errors.New("some err"))
+					boshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{}, errors.New("some err"))
 				})
 
 				It("returns an error", func() {
@@ -335,7 +335,7 @@ var _ = Describe("Lifecycle runner", func() {
 
 			Context("and bosh client returns an error", func() {
 				BeforeEach(func() {
-					boshClient.GetTaskReturns(boshclient.BoshTask{}, errors.New("error getting tasks"))
+					boshClient.GetTaskReturns(boshdirector.BoshTask{}, errors.New("error getting tasks"))
 				})
 
 				It("returns the error", func() {
@@ -349,7 +349,7 @@ var _ = Describe("Lifecycle runner", func() {
 		DescribeTable("for different operation types",
 			func(operationType broker.OperationType, errandRuns bool) {
 				operationData := broker.OperationData{OperationType: operationType, BoshContextID: contextID, PlanID: planID}
-				boshClient.GetNormalisedTasksByContextReturns(boshclient.BoshTasks{taskComplete}, nil)
+				boshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{taskComplete}, nil)
 				deployRunner.GetTask(deploymentName, operationData, logger)
 
 				if errandRuns {
@@ -376,29 +376,29 @@ var _ = Describe("Lifecycle runner", func() {
 
 		Context("when a first task is incomplete", func() {
 			BeforeEach(func() {
-				boshClient.GetNormalisedTasksByContextReturns(boshclient.BoshTasks{taskProcessing}, nil)
+				boshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{taskProcessing}, nil)
 			})
 
 			It("returns the processing task", func() {
 				task, _ := deployRunner.GetTask(deploymentName, operationData, logger)
-				Expect(task.State).To(Equal(boshclient.BoshTaskProcessing))
+				Expect(task.State).To(Equal(boshdirector.BoshTaskProcessing))
 			})
 		})
 
 		Context("when the first task has errored", func() {
 			BeforeEach(func() {
-				boshClient.GetNormalisedTasksByContextReturns(boshclient.BoshTasks{taskErrored}, nil)
+				boshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{taskErrored}, nil)
 			})
 
 			It("returns the errored task", func() {
 				task, _ := deployRunner.GetTask(deploymentName, operationData, logger)
-				Expect(task.State).To(Equal(boshclient.BoshTaskError))
+				Expect(task.State).To(Equal(boshdirector.BoshTaskError))
 			})
 		})
 
 		Context("when a first task cannot be found", func() {
 			BeforeEach(func() {
-				boshClient.GetNormalisedTasksByContextReturns(boshclient.BoshTasks{}, nil)
+				boshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{}, nil)
 			})
 
 			It("returns an error", func() {
@@ -408,10 +408,10 @@ var _ = Describe("Lifecycle runner", func() {
 		})
 
 		Context("when a first task is complete", func() {
-			var task boshclient.BoshTask
+			var task boshdirector.BoshTask
 
 			BeforeEach(func() {
-				boshClient.GetNormalisedTasksByContextReturns(boshclient.BoshTasks{taskComplete}, nil)
+				boshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{taskComplete}, nil)
 				boshClient.DeleteDeploymentReturns(taskProcessing.ID, nil)
 				boshClient.GetTaskReturns(taskProcessing, nil)
 				task, _ = deployRunner.GetTask(deploymentName, operationData, logger)
@@ -433,7 +433,7 @@ var _ = Describe("Lifecycle runner", func() {
 
 			It("returns the post deploy errand processing task", func() {
 				Expect(task.ID).To(Equal(taskProcessing.ID))
-				Expect(task.State).To(Equal(boshclient.BoshTaskProcessing))
+				Expect(task.State).To(Equal(boshdirector.BoshTaskProcessing))
 			})
 
 			Context("and running bosh delete deployment fails", func() {
@@ -450,7 +450,7 @@ var _ = Describe("Lifecycle runner", func() {
 
 		Context("when there are two tasks for the context id", func() {
 			BeforeEach(func() {
-				boshClient.GetNormalisedTasksByContextReturns(boshclient.BoshTasks{taskProcessing, taskComplete}, nil)
+				boshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{taskProcessing, taskComplete}, nil)
 			})
 
 			It("returns the latest task", func() {
@@ -461,7 +461,7 @@ var _ = Describe("Lifecycle runner", func() {
 
 		Context("when there are more than two tasks for the context id", func() {
 			BeforeEach(func() {
-				boshClient.GetNormalisedTasksByContextReturns(boshclient.BoshTasks{
+				boshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{
 					taskProcessing,
 					taskComplete,
 					taskComplete,
@@ -476,7 +476,7 @@ var _ = Describe("Lifecycle runner", func() {
 
 		Context("when getting tasks errors", func() {
 			BeforeEach(func() {
-				boshClient.GetNormalisedTasksByContextReturns(boshclient.BoshTasks{}, errors.New("some err"))
+				boshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{}, errors.New("some err"))
 			})
 
 			It("returns an error", func() {

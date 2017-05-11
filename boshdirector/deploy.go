@@ -4,30 +4,21 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 // Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
-package mockbosh
+package boshdirector
 
 import (
 	"fmt"
-
-	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
-	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
+	"log"
+	"net/http"
 )
 
-type taskMock struct {
-	*mockhttp.Handler
-	taskID int
-}
-
-func Task(taskID int) *taskMock {
-	return &taskMock{
-		Handler: mockhttp.NewMockedHttpRequest("GET", fmt.Sprintf("/tasks/%d", taskID)),
-		taskID:  taskID,
-	}
-}
-
-func (t *taskMock) RespondsWithTaskContainingState(provisioningTaskState string) *mockhttp.Handler {
-	return t.RespondsOKWithJSON(boshdirector.BoshTask{
-		ID:    t.taskID,
-		State: provisioningTaskState,
-	})
+func (c *Client) Deploy(manifest []byte, contextID string, logger *log.Logger) (int, error) {
+	return c.postAndGetTaskIdFromBoshCheckingForErrors(
+		fmt.Sprintf("%s/deployments", c.boshURL),
+		http.StatusFound,
+		manifest,
+		"text/yaml",
+		contextID,
+		logger,
+	)
 }
