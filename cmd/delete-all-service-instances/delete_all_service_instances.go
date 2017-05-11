@@ -12,7 +12,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/pivotal-cf/on-demand-service-broker/cloud_foundry_client"
+	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/deleter"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 	"gopkg.in/yaml.v2"
@@ -45,7 +45,7 @@ func main() {
 		logger.Fatalf("error creating CF authorization header builder: %s", err)
 	}
 
-	cfClient, err := cloud_foundry_client.New(
+	cfClient, err := cf.New(
 		config.CF.URL,
 		cfAuthenticator,
 		[]byte(config.CF.TrustedCert),

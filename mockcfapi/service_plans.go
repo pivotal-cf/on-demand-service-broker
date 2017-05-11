@@ -11,7 +11,7 @@ import (
 	"fmt"
 
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf/on-demand-service-broker/cloud_foundry_client"
+	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
 )
 
@@ -53,19 +53,19 @@ type Plan struct {
 }
 
 func listServicePlansResponse(plans ...Plan) string {
-	servicePlans := []cloud_foundry_client.ServicePlan{}
+	servicePlans := []cf.ServicePlan{}
 
 	for _, plan := range plans {
-		servicePlans = append(servicePlans, cloud_foundry_client.ServicePlan{
-			Metadata: cloud_foundry_client.Metadata{GUID: plan.CloudControllerGUID},
-			ServicePlanEntity: cloud_foundry_client.ServicePlanEntity{
+		servicePlans = append(servicePlans, cf.ServicePlan{
+			Metadata: cf.Metadata{GUID: plan.CloudControllerGUID},
+			ServicePlanEntity: cf.ServicePlanEntity{
 				UniqueID:            plan.ID,
 				ServiceInstancesUrl: "/v2/service_plans/" + plan.CloudControllerGUID + "/service_instances",
 			},
 		})
 	}
 
-	response, err := json.Marshal(cloud_foundry_client.ServicePlanResponse{ServicePlans: servicePlans})
+	response, err := json.Marshal(cf.ServicePlanResponse{ServicePlans: servicePlans})
 	Expect(err).NotTo(HaveOccurred())
 	return string(response)
 }

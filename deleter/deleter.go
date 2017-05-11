@@ -12,18 +12,18 @@ import (
 
 	"time"
 
-	"github.com/pivotal-cf/on-demand-service-broker/cloud_foundry_client"
+	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 )
 
 //go:generate counterfeiter -o fakes/fake_cloud_foundry_client.go . CloudFoundryClient
 type CloudFoundryClient interface {
 	GetInstancesOfServiceOffering(serviceOfferingID string, logger *log.Logger) ([]string, error)
-	GetInstance(instanceGUID string, logger *log.Logger) (cloud_foundry_client.Instance, error)
-	GetBindingsForInstance(instanceGUID string, logger *log.Logger) ([]cloud_foundry_client.Binding, error)
-	DeleteBinding(binding cloud_foundry_client.Binding, logger *log.Logger) error
-	GetServiceKeysForInstance(instanceGUID string, logger *log.Logger) ([]cloud_foundry_client.ServiceKey, error)
-	DeleteServiceKey(serviceKey cloud_foundry_client.ServiceKey, logger *log.Logger) error
+	GetInstance(instanceGUID string, logger *log.Logger) (cf.Instance, error)
+	GetBindingsForInstance(instanceGUID string, logger *log.Logger) ([]cf.Binding, error)
+	DeleteBinding(binding cf.Binding, logger *log.Logger) error
+	GetServiceKeysForInstance(instanceGUID string, logger *log.Logger) ([]cf.ServiceKey, error)
+	DeleteServiceKey(serviceKey cf.ServiceKey, logger *log.Logger) error
 	DeleteServiceInstance(instanceGUID string, logger *log.Logger) error
 }
 
@@ -114,7 +114,7 @@ func (d *Deleter) DeleteAllServiceInstances(serviceUniqueID string) error {
 func (d Deleter) deleteBindings(instanceGUID string) error {
 	bindings, err := d.cfClient.GetBindingsForInstance(instanceGUID, d.logger)
 	switch err.(type) {
-	case cloud_foundry_client.ResourceNotFoundError:
+	case cf.ResourceNotFoundError:
 		return nil
 	case error:
 		return err
@@ -134,7 +134,7 @@ func (d Deleter) deleteBindings(instanceGUID string) error {
 func (d Deleter) deleteServiceKeys(instanceGUID string) error {
 	serviceKeys, err := d.cfClient.GetServiceKeysForInstance(instanceGUID, d.logger)
 	switch err.(type) {
-	case cloud_foundry_client.ResourceNotFoundError:
+	case cf.ResourceNotFoundError:
 		return nil
 	case error:
 		return err
@@ -164,12 +164,12 @@ func (d Deleter) pollInstanceDeleteStatus(instanceGUID string) error {
 
 		instance, err := d.cfClient.GetInstance(instanceGUID, d.logger)
 		switch err.(type) {
-		case cloud_foundry_client.ResourceNotFoundError:
+		case cf.ResourceNotFoundError:
 			d.logger.Printf("Result: deleted service instance %s", instanceGUID)
 			return nil
-		case cloud_foundry_client.UnauthorizedError,
-			cloud_foundry_client.ForbiddenError,
-			cloud_foundry_client.InvalidResponseError:
+		case cf.UnauthorizedError,
+			cf.ForbiddenError,
+			cf.InvalidResponseError:
 			return fmt.Errorf("Result: failed to delete service instance %s. Error: %s.", instanceGUID, err)
 		case error:
 			continue

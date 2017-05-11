@@ -5,7 +5,7 @@ import (
 	"log"
 	"sync"
 
-	"github.com/pivotal-cf/on-demand-service-broker/cloud_foundry_client"
+	"github.com/pivotal-cf/on-demand-service-broker/cf"
 )
 
 type FakeAuthHeaderBuilder struct {
@@ -97,4 +97,4 @@ func (fake *FakeAuthHeaderBuilder) recordInvocation(key string, args []interface
 	fake.invocations[key] = append(fake.invocations[key], args)
 }
 
-var _ cloud_foundry_client.AuthHeaderBuilder = new(FakeAuthHeaderBuilder)
+var _ cf.AuthHeaderBuilder = new(FakeAuthHeaderBuilder)

@@ -19,7 +19,7 @@ import (
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/brokercontext"
-	"github.com/pivotal-cf/on-demand-service-broker/cloud_foundry_client"
+	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 	"github.com/pivotal-cf/on-demand-service-broker/task"
@@ -112,7 +112,7 @@ func (a *api) upgradeInstance(w http.ResponseWriter, r *http.Request) {
 	case nil:
 		w.WriteHeader(http.StatusAccepted)
 		a.writeJson(w, operationData, logger)
-	case cloud_foundry_client.ResourceNotFoundError:
+	case cf.ResourceNotFoundError:
 		w.WriteHeader(http.StatusNotFound)
 	case task.DeploymentNotFoundError:
 		w.WriteHeader(http.StatusGone)

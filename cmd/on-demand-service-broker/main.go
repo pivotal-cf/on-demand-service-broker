@@ -21,7 +21,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
-	"github.com/pivotal-cf/on-demand-service-broker/cloud_foundry_client"
+	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/credstore"
 	"github.com/pivotal-cf/on-demand-service-broker/features"
@@ -86,7 +86,7 @@ func startBroker(conf config.Config, logger *log.Logger, loggerFactory *loggerfa
 		logger.Fatalf("error creating CF authorization header builder: %s", err)
 	}
 
-	cfClient, err := cloud_foundry_client.New(
+	cfClient, err := cf.New(
 		conf.CF.URL,
 		cfAuthenticator,
 		[]byte(conf.CF.TrustedCert),

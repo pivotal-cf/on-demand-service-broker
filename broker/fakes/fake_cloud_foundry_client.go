@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
-	"github.com/pivotal-cf/on-demand-service-broker/cloud_foundry_client"
+	"github.com/pivotal-cf/on-demand-service-broker/cf"
 )
 
 type FakeCloudFoundryClient struct {
@@ -52,18 +52,18 @@ type FakeCloudFoundryClient struct {
 		result1 map[string]int
 		result2 error
 	}
-	GetInstanceStateStub        func(serviceInstanceGUID string, logger *log.Logger) (cloud_foundry_client.InstanceState, error)
+	GetInstanceStateStub        func(serviceInstanceGUID string, logger *log.Logger) (cf.InstanceState, error)
 	getInstanceStateMutex       sync.RWMutex
 	getInstanceStateArgsForCall []struct {
 		serviceInstanceGUID string
 		logger              *log.Logger
 	}
 	getInstanceStateReturns struct {
-		result1 cloud_foundry_client.InstanceState
+		result1 cf.InstanceState
 		result2 error
 	}
 	getInstanceStateReturnsOnCall map[int]struct {
-		result1 cloud_foundry_client.InstanceState
+		result1 cf.InstanceState
 		result2 error
 	}
 	GetInstancesOfServiceOfferingStub        func(serviceOfferingID string, logger *log.Logger) ([]string, error)
@@ -240,7 +240,7 @@ func (fake *FakeCloudFoundryClient) CountInstancesOfServiceOfferingReturnsOnCall
 	}{result1, result2}
 }
 
-func (fake *FakeCloudFoundryClient) GetInstanceState(serviceInstanceGUID string, logger *log.Logger) (cloud_foundry_client.InstanceState, error) {
+func (fake *FakeCloudFoundryClient) GetInstanceState(serviceInstanceGUID string, logger *log.Logger) (cf.InstanceState, error) {
 	fake.getInstanceStateMutex.Lock()
 	ret, specificReturn := fake.getInstanceStateReturnsOnCall[len(fake.getInstanceStateArgsForCall)]
 	fake.getInstanceStateArgsForCall = append(fake.getInstanceStateArgsForCall, struct {
@@ -270,24 +270,24 @@ func (fake *FakeCloudFoundryClient) GetInstanceStateArgsForCall(i int) (string, 
 	return fake.getInstanceStateArgsForCall[i].serviceInstanceGUID, fake.getInstanceStateArgsForCall[i].logger
 }
 
-func (fake *FakeCloudFoundryClient) GetInstanceStateReturns(result1 cloud_foundry_client.InstanceState, result2 error) {
+func (fake *FakeCloudFoundryClient) GetInstanceStateReturns(result1 cf.InstanceState, result2 error) {
 	fake.GetInstanceStateStub = nil
 	fake.getInstanceStateReturns = struct {
-		result1 cloud_foundry_client.InstanceState
+		result1 cf.InstanceState
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeCloudFoundryClient) GetInstanceStateReturnsOnCall(i int, result1 cloud_foundry_client.InstanceState, result2 error) {
+func (fake *FakeCloudFoundryClient) GetInstanceStateReturnsOnCall(i int, result1 cf.InstanceState, result2 error) {
 	fake.GetInstanceStateStub = nil
 	if fake.getInstanceStateReturnsOnCall == nil {
 		fake.getInstanceStateReturnsOnCall = make(map[int]struct {
-			result1 cloud_foundry_client.InstanceState
+			result1 cf.InstanceState
 			result2 error
 		})
 	}
 	fake.getInstanceStateReturnsOnCall[i] = struct {
-		result1 cloud_foundry_client.InstanceState
+		result1 cf.InstanceState
 		result2 error
 	}{result1, result2}
 }

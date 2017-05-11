@@ -12,7 +12,7 @@ import (
 	"sync"
 
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
-	"github.com/pivotal-cf/on-demand-service-broker/cloud_foundry_client"
+	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/credstore"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
@@ -125,7 +125,7 @@ type CloudFoundryClient interface {
 	GetAPIVersion(logger *log.Logger) (string, error)
 	CountInstancesOfPlan(serviceOfferingID, planID string, logger *log.Logger) (int, error)
 	CountInstancesOfServiceOffering(serviceOfferingID string, logger *log.Logger) (instanceCountByPlanID map[string]int, err error)
-	GetInstanceState(serviceInstanceGUID string, logger *log.Logger) (cloud_foundry_client.InstanceState, error)
+	GetInstanceState(serviceInstanceGUID string, logger *log.Logger) (cf.InstanceState, error)
 	GetInstancesOfServiceOffering(serviceOfferingID string, logger *log.Logger) ([]string, error)
 }
 

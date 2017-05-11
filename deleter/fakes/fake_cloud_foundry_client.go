@@ -5,7 +5,7 @@ import (
 	"log"
 	"sync"
 
-	"github.com/pivotal-cf/on-demand-service-broker/cloud_foundry_client"
+	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/deleter"
 )
 
@@ -24,38 +24,38 @@ type FakeCloudFoundryClient struct {
 		result1 []string
 		result2 error
 	}
-	GetInstanceStub        func(instanceGUID string, logger *log.Logger) (cloud_foundry_client.Instance, error)
+	GetInstanceStub        func(instanceGUID string, logger *log.Logger) (cf.Instance, error)
 	getInstanceMutex       sync.RWMutex
 	getInstanceArgsForCall []struct {
 		instanceGUID string
 		logger       *log.Logger
 	}
 	getInstanceReturns struct {
-		result1 cloud_foundry_client.Instance
+		result1 cf.Instance
 		result2 error
 	}
 	getInstanceReturnsOnCall map[int]struct {
-		result1 cloud_foundry_client.Instance
+		result1 cf.Instance
 		result2 error
 	}
-	GetBindingsForInstanceStub        func(instanceGUID string, logger *log.Logger) ([]cloud_foundry_client.Binding, error)
+	GetBindingsForInstanceStub        func(instanceGUID string, logger *log.Logger) ([]cf.Binding, error)
 	getBindingsForInstanceMutex       sync.RWMutex
 	getBindingsForInstanceArgsForCall []struct {
 		instanceGUID string
 		logger       *log.Logger
 	}
 	getBindingsForInstanceReturns struct {
-		result1 []cloud_foundry_client.Binding
+		result1 []cf.Binding
 		result2 error
 	}
 	getBindingsForInstanceReturnsOnCall map[int]struct {
-		result1 []cloud_foundry_client.Binding
+		result1 []cf.Binding
 		result2 error
 	}
-	DeleteBindingStub        func(binding cloud_foundry_client.Binding, logger *log.Logger) error
+	DeleteBindingStub        func(binding cf.Binding, logger *log.Logger) error
 	deleteBindingMutex       sync.RWMutex
 	deleteBindingArgsForCall []struct {
-		binding cloud_foundry_client.Binding
+		binding cf.Binding
 		logger  *log.Logger
 	}
 	deleteBindingReturns struct {
@@ -64,24 +64,24 @@ type FakeCloudFoundryClient struct {
 	deleteBindingReturnsOnCall map[int]struct {
 		result1 error
 	}
-	GetServiceKeysForInstanceStub        func(instanceGUID string, logger *log.Logger) ([]cloud_foundry_client.ServiceKey, error)
+	GetServiceKeysForInstanceStub        func(instanceGUID string, logger *log.Logger) ([]cf.ServiceKey, error)
 	getServiceKeysForInstanceMutex       sync.RWMutex
 	getServiceKeysForInstanceArgsForCall []struct {
 		instanceGUID string
 		logger       *log.Logger
 	}
 	getServiceKeysForInstanceReturns struct {
-		result1 []cloud_foundry_client.ServiceKey
+		result1 []cf.ServiceKey
 		result2 error
 	}
 	getServiceKeysForInstanceReturnsOnCall map[int]struct {
-		result1 []cloud_foundry_client.ServiceKey
+		result1 []cf.ServiceKey
 		result2 error
 	}
-	DeleteServiceKeyStub        func(serviceKey cloud_foundry_client.ServiceKey, logger *log.Logger) error
+	DeleteServiceKeyStub        func(serviceKey cf.ServiceKey, logger *log.Logger) error
 	deleteServiceKeyMutex       sync.RWMutex
 	deleteServiceKeyArgsForCall []struct {
-		serviceKey cloud_foundry_client.ServiceKey
+		serviceKey cf.ServiceKey
 		logger     *log.Logger
 	}
 	deleteServiceKeyReturns struct {
@@ -158,7 +158,7 @@ func (fake *FakeCloudFoundryClient) GetInstancesOfServiceOfferingReturnsOnCall(i
 	}{result1, result2}
 }
 
-func (fake *FakeCloudFoundryClient) GetInstance(instanceGUID string, logger *log.Logger) (cloud_foundry_client.Instance, error) {
+func (fake *FakeCloudFoundryClient) GetInstance(instanceGUID string, logger *log.Logger) (cf.Instance, error) {
 	fake.getInstanceMutex.Lock()
 	ret, specificReturn := fake.getInstanceReturnsOnCall[len(fake.getInstanceArgsForCall)]
 	fake.getInstanceArgsForCall = append(fake.getInstanceArgsForCall, struct {
@@ -188,29 +188,29 @@ func (fake *FakeCloudFoundryClient) GetInstanceArgsForCall(i int) (string, *log.
 	return fake.getInstanceArgsForCall[i].instanceGUID, fake.getInstanceArgsForCall[i].logger
 }
 
-func (fake *FakeCloudFoundryClient) GetInstanceReturns(result1 cloud_foundry_client.Instance, result2 error) {
+func (fake *FakeCloudFoundryClient) GetInstanceReturns(result1 cf.Instance, result2 error) {
 	fake.GetInstanceStub = nil
 	fake.getInstanceReturns = struct {
-		result1 cloud_foundry_client.Instance
+		result1 cf.Instance
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeCloudFoundryClient) GetInstanceReturnsOnCall(i int, result1 cloud_foundry_client.Instance, result2 error) {
+func (fake *FakeCloudFoundryClient) GetInstanceReturnsOnCall(i int, result1 cf.Instance, result2 error) {
 	fake.GetInstanceStub = nil
 	if fake.getInstanceReturnsOnCall == nil {
 		fake.getInstanceReturnsOnCall = make(map[int]struct {
-			result1 cloud_foundry_client.Instance
+			result1 cf.Instance
 			result2 error
 		})
 	}
 	fake.getInstanceReturnsOnCall[i] = struct {
-		result1 cloud_foundry_client.Instance
+		result1 cf.Instance
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeCloudFoundryClient) GetBindingsForInstance(instanceGUID string, logger *log.Logger) ([]cloud_foundry_client.Binding, error) {
+func (fake *FakeCloudFoundryClient) GetBindingsForInstance(instanceGUID string, logger *log.Logger) ([]cf.Binding, error) {
 	fake.getBindingsForInstanceMutex.Lock()
 	ret, specificReturn := fake.getBindingsForInstanceReturnsOnCall[len(fake.getBindingsForInstanceArgsForCall)]
 	fake.getBindingsForInstanceArgsForCall = append(fake.getBindingsForInstanceArgsForCall, struct {
@@ -240,33 +240,33 @@ func (fake *FakeCloudFoundryClient) GetBindingsForInstanceArgsForCall(i int) (st
 	return fake.getBindingsForInstanceArgsForCall[i].instanceGUID, fake.getBindingsForInstanceArgsForCall[i].logger
 }
 
-func (fake *FakeCloudFoundryClient) GetBindingsForInstanceReturns(result1 []cloud_foundry_client.Binding, result2 error) {
+func (fake *FakeCloudFoundryClient) GetBindingsForInstanceReturns(result1 []cf.Binding, result2 error) {
 	fake.GetBindingsForInstanceStub = nil
 	fake.getBindingsForInstanceReturns = struct {
-		result1 []cloud_foundry_client.Binding
+		result1 []cf.Binding
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeCloudFoundryClient) GetBindingsForInstanceReturnsOnCall(i int, result1 []cloud_foundry_client.Binding, result2 error) {
+func (fake *FakeCloudFoundryClient) GetBindingsForInstanceReturnsOnCall(i int, result1 []cf.Binding, result2 error) {
 	fake.GetBindingsForInstanceStub = nil
 	if fake.getBindingsForInstanceReturnsOnCall == nil {
 		fake.getBindingsForInstanceReturnsOnCall = make(map[int]struct {
-			result1 []cloud_foundry_client.Binding
+			result1 []cf.Binding
 			result2 error
 		})
 	}
 	fake.getBindingsForInstanceReturnsOnCall[i] = struct {
-		result1 []cloud_foundry_client.Binding
+		result1 []cf.Binding
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeCloudFoundryClient) DeleteBinding(binding cloud_foundry_client.Binding, logger *log.Logger) error {
+func (fake *FakeCloudFoundryClient) DeleteBinding(binding cf.Binding, logger *log.Logger) error {
 	fake.deleteBindingMutex.Lock()
 	ret, specificReturn := fake.deleteBindingReturnsOnCall[len(fake.deleteBindingArgsForCall)]
 	fake.deleteBindingArgsForCall = append(fake.deleteBindingArgsForCall, struct {
-		binding cloud_foundry_client.Binding
+		binding cf.Binding
 		logger  *log.Logger
 	}{binding, logger})
 	fake.recordInvocation("DeleteBinding", []interface{}{binding, logger})
@@ -286,7 +286,7 @@ func (fake *FakeCloudFoundryClient) DeleteBindingCallCount() int {
 	return len(fake.deleteBindingArgsForCall)
 }
 
-func (fake *FakeCloudFoundryClient) DeleteBindingArgsForCall(i int) (cloud_foundry_client.Binding, *log.Logger) {
+func (fake *FakeCloudFoundryClient) DeleteBindingArgsForCall(i int) (cf.Binding, *log.Logger) {
 	fake.deleteBindingMutex.RLock()
 	defer fake.deleteBindingMutex.RUnlock()
 	return fake.deleteBindingArgsForCall[i].binding, fake.deleteBindingArgsForCall[i].logger
@@ -311,7 +311,7 @@ func (fake *FakeCloudFoundryClient) DeleteBindingReturnsOnCall(i int, result1 er
 	}{result1}
 }
 
-func (fake *FakeCloudFoundryClient) GetServiceKeysForInstance(instanceGUID string, logger *log.Logger) ([]cloud_foundry_client.ServiceKey, error) {
+func (fake *FakeCloudFoundryClient) GetServiceKeysForInstance(instanceGUID string, logger *log.Logger) ([]cf.ServiceKey, error) {
 	fake.getServiceKeysForInstanceMutex.Lock()
 	ret, specificReturn := fake.getServiceKeysForInstanceReturnsOnCall[len(fake.getServiceKeysForInstanceArgsForCall)]
 	fake.getServiceKeysForInstanceArgsForCall = append(fake.getServiceKeysForInstanceArgsForCall, struct {
@@ -341,33 +341,33 @@ func (fake *FakeCloudFoundryClient) GetServiceKeysForInstanceArgsForCall(i int) 
 	return fake.getServiceKeysForInstanceArgsForCall[i].instanceGUID, fake.getServiceKeysForInstanceArgsForCall[i].logger
 }
 
-func (fake *FakeCloudFoundryClient) GetServiceKeysForInstanceReturns(result1 []cloud_foundry_client.ServiceKey, result2 error) {
+func (fake *FakeCloudFoundryClient) GetServiceKeysForInstanceReturns(result1 []cf.ServiceKey, result2 error) {
 	fake.GetServiceKeysForInstanceStub = nil
 	fake.getServiceKeysForInstanceReturns = struct {
-		result1 []cloud_foundry_client.ServiceKey
+		result1 []cf.ServiceKey
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeCloudFoundryClient) GetServiceKeysForInstanceReturnsOnCall(i int, result1 []cloud_foundry_client.ServiceKey, result2 error) {
+func (fake *FakeCloudFoundryClient) GetServiceKeysForInstanceReturnsOnCall(i int, result1 []cf.ServiceKey, result2 error) {
 	fake.GetServiceKeysForInstanceStub = nil
 	if fake.getServiceKeysForInstanceReturnsOnCall == nil {
 		fake.getServiceKeysForInstanceReturnsOnCall = make(map[int]struct {
-			result1 []cloud_foundry_client.ServiceKey
+			result1 []cf.ServiceKey
 			result2 error
 		})
 	}
 	fake.getServiceKeysForInstanceReturnsOnCall[i] = struct {
-		result1 []cloud_foundry_client.ServiceKey
+		result1 []cf.ServiceKey
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeCloudFoundryClient) DeleteServiceKey(serviceKey cloud_foundry_client.ServiceKey, logger *log.Logger) error {
+func (fake *FakeCloudFoundryClient) DeleteServiceKey(serviceKey cf.ServiceKey, logger *log.Logger) error {
 	fake.deleteServiceKeyMutex.Lock()
 	ret, specificReturn := fake.deleteServiceKeyReturnsOnCall[len(fake.deleteServiceKeyArgsForCall)]
 	fake.deleteServiceKeyArgsForCall = append(fake.deleteServiceKeyArgsForCall, struct {
-		serviceKey cloud_foundry_client.ServiceKey
+		serviceKey cf.ServiceKey
 		logger     *log.Logger
 	}{serviceKey, logger})
 	fake.recordInvocation("DeleteServiceKey", []interface{}{serviceKey, logger})
@@ -387,7 +387,7 @@ func (fake *FakeCloudFoundryClient) DeleteServiceKeyCallCount() int {
 	return len(fake.deleteServiceKeyArgsForCall)
 }
 
-func (fake *FakeCloudFoundryClient) DeleteServiceKeyArgsForCall(i int) (cloud_foundry_client.ServiceKey, *log.Logger) {
+func (fake *FakeCloudFoundryClient) DeleteServiceKeyArgsForCall(i int) (cf.ServiceKey, *log.Logger) {
 	fake.deleteServiceKeyMutex.RLock()
 	defer fake.deleteServiceKeyMutex.RUnlock()
 	return fake.deleteServiceKeyArgsForCall[i].serviceKey, fake.deleteServiceKeyArgsForCall[i].logger

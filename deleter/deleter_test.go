@@ -16,7 +16,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf/on-demand-service-broker/cloud_foundry_client"
+	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/deleter"
 	"github.com/pivotal-cf/on-demand-service-broker/deleter/fakes"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
@@ -41,8 +41,8 @@ var _ = Describe("Deleter", func() {
 		logger     *log.Logger
 		logBuffer  *bytes.Buffer
 
-		serviceKey cloud_foundry_client.ServiceKey
-		binding    cloud_foundry_client.Binding
+		serviceKey cf.ServiceKey
+		binding    cf.Binding
 	)
 
 	BeforeEach(func() {
@@ -55,19 +55,19 @@ var _ = Describe("Deleter", func() {
 
 		cfClient.GetInstancesOfServiceOfferingReturns([]string{serviceInstance1GUID}, nil)
 
-		binding = cloud_foundry_client.Binding{
+		binding = cf.Binding{
 			GUID:    serviceInstance1BindingGUID,
 			AppGUID: serviceInstance1BoundAppGUID,
 		}
-		cfClient.GetBindingsForInstanceReturns([]cloud_foundry_client.Binding{binding}, nil)
+		cfClient.GetBindingsForInstanceReturns([]cf.Binding{binding}, nil)
 
-		serviceKey = cloud_foundry_client.ServiceKey{
+		serviceKey = cf.ServiceKey{
 			GUID: serviceInstance1KeyGUID,
 		}
-		cfClient.GetServiceKeysForInstanceReturns([]cloud_foundry_client.ServiceKey{serviceKey}, nil)
+		cfClient.GetServiceKeysForInstanceReturns([]cf.ServiceKey{serviceKey}, nil)
 
-		notFoundError := cloud_foundry_client.NewResourceNotFoundError("service instance not found")
-		cfClient.GetInstanceReturns(cloud_foundry_client.Instance{}, notFoundError)
+		notFoundError := cf.NewResourceNotFoundError("service instance not found")
+		cfClient.GetInstanceReturns(cf.Instance{}, notFoundError)
 
 		sleeper = new(fakes.FakeSleeper)
 		deleteTool = deleter.New(cfClient, sleeper, pollingInitialOffset, pollingInterval, logger)
@@ -99,10 +99,10 @@ var _ = Describe("Deleter", func() {
 					serviceInstance2GUID,
 				}, nil)
 				cfClient.GetInstancesOfServiceOfferingReturnsOnCall(1, []string{}, nil)
-				cfClient.GetBindingsForInstanceReturnsOnCall(0, []cloud_foundry_client.Binding{binding}, nil)
-				cfClient.GetBindingsForInstanceReturnsOnCall(1, []cloud_foundry_client.Binding{}, nil)
-				cfClient.GetServiceKeysForInstanceReturnsOnCall(0, []cloud_foundry_client.ServiceKey{serviceKey}, nil)
-				cfClient.GetServiceKeysForInstanceReturnsOnCall(1, []cloud_foundry_client.ServiceKey{}, nil)
+				cfClient.GetBindingsForInstanceReturnsOnCall(0, []cf.Binding{binding}, nil)
+				cfClient.GetBindingsForInstanceReturnsOnCall(1, []cf.Binding{}, nil)
+				cfClient.GetServiceKeysForInstanceReturnsOnCall(0, []cf.ServiceKey{serviceKey}, nil)
+				cfClient.GetServiceKeysForInstanceReturnsOnCall(1, []cf.ServiceKey{}, nil)
 
 				err := deleteTool.DeleteAllServiceInstances(serviceUniqueID)
 				Expect(err).NotTo(HaveOccurred())
@@ -185,15 +185,15 @@ var _ = Describe("Deleter", func() {
 				cfClient.GetInstancesOfServiceOfferingReturnsOnCall(0, []string{serviceInstance1GUID}, nil)
 				cfClient.GetInstancesOfServiceOfferingReturnsOnCall(1, []string{}, nil)
 
-				instance := cloud_foundry_client.Instance{
-					LastOperation: cloud_foundry_client.LastOperation{
-						Type:  cloud_foundry_client.OperationTypeDelete,
-						State: cloud_foundry_client.OperationState("in progress"),
+				instance := cf.Instance{
+					LastOperation: cf.LastOperation{
+						Type:  cf.OperationTypeDelete,
+						State: cf.OperationState("in progress"),
 					},
 				}
 				cfClient.GetInstanceReturnsOnCall(0, instance, nil)
-				notFoundError := cloud_foundry_client.NewResourceNotFoundError("service instance not found")
-				cfClient.GetInstanceReturnsOnCall(1, cloud_foundry_client.Instance{}, notFoundError)
+				notFoundError := cf.NewResourceNotFoundError("service instance not found")
+				cfClient.GetInstanceReturnsOnCall(1, cf.Instance{}, notFoundError)
 
 				err := deleteTool.DeleteAllServiceInstances(serviceUniqueID)
 				Expect(err).NotTo(HaveOccurred())
@@ -222,15 +222,15 @@ var _ = Describe("Deleter", func() {
 				cfClient.GetInstancesOfServiceOfferingReturnsOnCall(0, []string{serviceInstance1GUID}, nil)
 				cfClient.GetInstancesOfServiceOfferingReturnsOnCall(1, []string{}, nil)
 
-				instance := cloud_foundry_client.Instance{
-					LastOperation: cloud_foundry_client.LastOperation{
-						Type:  cloud_foundry_client.OperationTypeDelete,
-						State: cloud_foundry_client.OperationState("succeeded"),
+				instance := cf.Instance{
+					LastOperation: cf.LastOperation{
+						Type:  cf.OperationTypeDelete,
+						State: cf.OperationState("succeeded"),
 					},
 				}
 				cfClient.GetInstanceReturnsOnCall(0, instance, nil)
-				notFoundError := cloud_foundry_client.NewResourceNotFoundError("service instance not found")
-				cfClient.GetInstanceReturnsOnCall(1, cloud_foundry_client.Instance{}, notFoundError)
+				notFoundError := cf.NewResourceNotFoundError("service instance not found")
+				cfClient.GetInstanceReturnsOnCall(1, cf.Instance{}, notFoundError)
 
 				err := deleteTool.DeleteAllServiceInstances(serviceUniqueID)
 				Expect(err).NotTo(HaveOccurred())
@@ -249,8 +249,8 @@ var _ = Describe("Deleter", func() {
 				cfClient.GetInstancesOfServiceOfferingReturnsOnCall(1, []string{}, nil)
 
 				cfClient.GetBindingsForInstanceReturns(
-					[]cloud_foundry_client.Binding{},
-					cloud_foundry_client.NewResourceNotFoundError("no instance!"),
+					[]cf.Binding{},
+					cf.NewResourceNotFoundError("no instance!"),
 				)
 
 				err := deleteTool.DeleteAllServiceInstances(serviceUniqueID)
@@ -266,8 +266,8 @@ var _ = Describe("Deleter", func() {
 				cfClient.GetInstancesOfServiceOfferingReturnsOnCall(1, []string{}, nil)
 
 				cfClient.GetServiceKeysForInstanceReturns(
-					[]cloud_foundry_client.ServiceKey{},
-					cloud_foundry_client.NewResourceNotFoundError("no instance!"),
+					[]cf.ServiceKey{},
+					cf.NewResourceNotFoundError("no instance!"),
 				)
 
 				err := deleteTool.DeleteAllServiceInstances(serviceUniqueID)
@@ -282,9 +282,9 @@ var _ = Describe("Deleter", func() {
 				cfClient.GetInstancesOfServiceOfferingReturnsOnCall(0, []string{serviceInstance1GUID}, nil)
 				cfClient.GetInstancesOfServiceOfferingReturnsOnCall(1, []string{}, nil)
 
-				cfClient.GetInstanceReturnsOnCall(0, cloud_foundry_client.Instance{}, errors.New("request failed"))
-				notFoundError := cloud_foundry_client.NewResourceNotFoundError("service instance not found")
-				cfClient.GetInstanceReturnsOnCall(1, cloud_foundry_client.Instance{}, notFoundError)
+				cfClient.GetInstanceReturnsOnCall(0, cf.Instance{}, errors.New("request failed"))
+				notFoundError := cf.NewResourceNotFoundError("service instance not found")
+				cfClient.GetInstanceReturnsOnCall(1, cf.Instance{}, notFoundError)
 
 				err := deleteTool.DeleteAllServiceInstances(serviceUniqueID)
 				Expect(err).NotTo(HaveOccurred())
@@ -310,7 +310,7 @@ var _ = Describe("Deleter", func() {
 
 	Context("when get bindings returns a non-ResourceNotFound error", func() {
 		It("returns an error", func() {
-			cfClient.GetBindingsForInstanceReturns([]cloud_foundry_client.Binding{}, errors.New("error getting bindings"))
+			cfClient.GetBindingsForInstanceReturns([]cf.Binding{}, errors.New("error getting bindings"))
 
 			err := deleteTool.DeleteAllServiceInstances(serviceUniqueID)
 			Expect(err).To(HaveOccurred())
@@ -330,7 +330,7 @@ var _ = Describe("Deleter", func() {
 
 	Context("when get service keys returns an error", func() {
 		It("returns an error", func() {
-			cfClient.GetServiceKeysForInstanceReturns([]cloud_foundry_client.ServiceKey{}, errors.New("error getting service keys"))
+			cfClient.GetServiceKeysForInstanceReturns([]cf.ServiceKey{}, errors.New("error getting service keys"))
 
 			err := deleteTool.DeleteAllServiceInstances(serviceUniqueID)
 			Expect(err).To(HaveOccurred())
@@ -360,10 +360,10 @@ var _ = Describe("Deleter", func() {
 
 	Context("when get service instance returns delete failed", func() {
 		It("returns an error", func() {
-			instance := cloud_foundry_client.Instance{
-				LastOperation: cloud_foundry_client.LastOperation{
-					Type:  cloud_foundry_client.OperationTypeDelete,
-					State: cloud_foundry_client.OperationStateFailed,
+			instance := cf.Instance{
+				LastOperation: cf.LastOperation{
+					Type:  cf.OperationTypeDelete,
+					State: cf.OperationStateFailed,
 				},
 			}
 			cfClient.GetInstanceReturns(instance, nil)
@@ -376,10 +376,10 @@ var _ = Describe("Deleter", func() {
 
 	Context("when get service instance returns the wrong last operation type", func() {
 		It("returns an error", func() {
-			instance := cloud_foundry_client.Instance{
-				LastOperation: cloud_foundry_client.LastOperation{
-					Type:  cloud_foundry_client.OperationType("update"),
-					State: cloud_foundry_client.OperationStateFailed,
+			instance := cf.Instance{
+				LastOperation: cf.LastOperation{
+					Type:  cf.OperationType("update"),
+					State: cf.OperationStateFailed,
 				},
 			}
 			cfClient.GetInstanceReturns(instance, nil)
@@ -392,7 +392,7 @@ var _ = Describe("Deleter", func() {
 
 	Context("when get service instance returns an unauthorized error", func() {
 		It("returns an error", func() {
-			cfClient.GetInstanceReturns(cloud_foundry_client.Instance{}, cloud_foundry_client.NewUnauthorizedError("not logged in"))
+			cfClient.GetInstanceReturns(cf.Instance{}, cf.NewUnauthorizedError("not logged in"))
 
 			err := deleteTool.DeleteAllServiceInstances(serviceUniqueID)
 			Expect(err).To(HaveOccurred())
@@ -402,7 +402,7 @@ var _ = Describe("Deleter", func() {
 
 	Context("when get service instance returns a forbidden error", func() {
 		It("returns an error", func() {
-			cfClient.GetInstanceReturns(cloud_foundry_client.Instance{}, cloud_foundry_client.NewForbiddenError("not permitted"))
+			cfClient.GetInstanceReturns(cf.Instance{}, cf.NewForbiddenError("not permitted"))
 
 			err := deleteTool.DeleteAllServiceInstances(serviceUniqueID)
 			Expect(err).To(HaveOccurred())
@@ -412,7 +412,7 @@ var _ = Describe("Deleter", func() {
 
 	Context("when get service instance returns an invalid response error", func() {
 		It("returns an error", func() {
-			cfClient.GetInstanceReturns(cloud_foundry_client.Instance{}, cloud_foundry_client.NewInvalidResponseError("not valid json"))
+			cfClient.GetInstanceReturns(cf.Instance{}, cf.NewInvalidResponseError("not valid json"))
 
 			err := deleteTool.DeleteAllServiceInstances(serviceUniqueID)
 			Expect(err).To(HaveOccurred())

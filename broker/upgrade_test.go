@@ -16,7 +16,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
-	"github.com/pivotal-cf/on-demand-service-broker/cloud_foundry_client"
+	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/task"
 )
 
@@ -46,7 +46,7 @@ var _ = Describe("Upgrade", func() {
 	Context("when the deployment goes well", func() {
 		BeforeEach(func() {
 			fakeDeployer.UpgradeReturns(boshTaskID, []byte("new-manifest-fetched-from-adapter"), nil)
-			cfClient.GetInstanceStateReturns(cloud_foundry_client.InstanceState{PlanID: existingPlanID}, nil)
+			cfClient.GetInstanceStateReturns(cf.InstanceState{PlanID: existingPlanID}, nil)
 		})
 
 		It("does not error", func() {
@@ -69,7 +69,7 @@ var _ = Describe("Upgrade", func() {
 	Context("when there is a previous deployment for the service instance", func() {
 		BeforeEach(func() {
 			fakeDeployer.UpgradeReturns(boshTaskID, []byte("new-manifest-fetched-from-adapter"), nil)
-			cfClient.GetInstanceStateReturns(cloud_foundry_client.InstanceState{PlanID: existingPlanID}, nil)
+			cfClient.GetInstanceStateReturns(cf.InstanceState{PlanID: existingPlanID}, nil)
 		})
 
 		It("returns the task ID for the upgrade task", func() {
@@ -100,7 +100,7 @@ var _ = Describe("Upgrade", func() {
 
 		Context("and there is an operation in progress on the instance", func() {
 			BeforeEach(func() {
-				cfClient.GetInstanceStateReturns(cloud_foundry_client.InstanceState{PlanID: existingPlanID, OperationInProgress: true}, nil)
+				cfClient.GetInstanceStateReturns(cf.InstanceState{PlanID: existingPlanID, OperationInProgress: true}, nil)
 			})
 
 			It("returns an OperationInProgressError", func() {
@@ -110,7 +110,7 @@ var _ = Describe("Upgrade", func() {
 
 		Context("and post-deploy errand is configured", func() {
 			BeforeEach(func() {
-				cfClient.GetInstanceStateReturns(cloud_foundry_client.InstanceState{PlanID: postDeployErrandPlanID}, nil)
+				cfClient.GetInstanceStateReturns(cf.InstanceState{PlanID: postDeployErrandPlanID}, nil)
 			})
 
 			It("deploys with a context id", func() {
@@ -153,7 +153,7 @@ var _ = Describe("Upgrade", func() {
 
 	Context("when the service instance cannot be found in CF", func() {
 		BeforeEach(func() {
-			cfClient.GetInstanceStateReturns(cloud_foundry_client.InstanceState{}, cloud_foundry_client.ResourceNotFoundError{})
+			cfClient.GetInstanceStateReturns(cf.InstanceState{}, cf.ResourceNotFoundError{})
 		})
 
 		It("returns an error", func() {
@@ -163,7 +163,7 @@ var _ = Describe("Upgrade", func() {
 
 	Context("when the instance state cannot be retrieved from CF", func() {
 		BeforeEach(func() {
-			cfClient.GetInstanceStateReturns(cloud_foundry_client.InstanceState{}, errors.New("get instance state error"))
+			cfClient.GetInstanceStateReturns(cf.InstanceState{}, errors.New("get instance state error"))
 		})
 
 		It("returns the error to the cf user", func() {
@@ -176,7 +176,7 @@ var _ = Describe("Upgrade", func() {
 
 		BeforeEach(func() {
 			planID = "non-existent-plan-id"
-			cfClient.GetInstanceStateReturns(cloud_foundry_client.InstanceState{PlanID: planID}, nil)
+			cfClient.GetInstanceStateReturns(cf.InstanceState{PlanID: planID}, nil)
 		})
 
 		It("fails and does not redeploy", func() {
@@ -188,7 +188,7 @@ var _ = Describe("Upgrade", func() {
 
 	Context("when there is a task in progress on the instance", func() {
 		BeforeEach(func() {
-			cfClient.GetInstanceStateReturns(cloud_foundry_client.InstanceState{PlanID: existingPlanID}, nil)
+			cfClient.GetInstanceStateReturns(cf.InstanceState{PlanID: existingPlanID}, nil)
 			fakeDeployer.UpgradeReturns(0, nil, task.TaskInProgressError{})
 		})
 

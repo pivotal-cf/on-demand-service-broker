@@ -17,7 +17,7 @@ import (
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
-	"github.com/pivotal-cf/on-demand-service-broker/cloud_foundry_client"
+	"github.com/pivotal-cf/on-demand-service-broker/cf"
 )
 
 var _ = Describe("deprovisioning instances", func() {
@@ -34,7 +34,7 @@ var _ = Describe("deprovisioning instances", func() {
 	BeforeEach(func() {
 		asyncAllowed = true
 		boshClient.GetDeploymentReturns([]byte(`manifest: true`), true, nil)
-		cfClient.GetInstanceStateReturns(cloud_foundry_client.InstanceState{
+		cfClient.GetInstanceStateReturns(cf.InstanceState{
 			PlanID:              existingPlanID,
 			OperationInProgress: false,
 		}, nil)
@@ -146,7 +146,7 @@ var _ = Describe("deprovisioning instances", func() {
 
 		BeforeEach(func() {
 			instanceID = "an-instance-with-pre-delete-errand"
-			cfClient.GetInstanceStateReturns(cloud_foundry_client.InstanceState{
+			cfClient.GetInstanceStateReturns(cf.InstanceState{
 				PlanID:              preDeleteErrandPlanID,
 				OperationInProgress: false,
 			}, nil)
@@ -199,7 +199,7 @@ var _ = Describe("deprovisioning instances", func() {
 		Context("when the cf client returns an error from get instance state", func() {
 			BeforeEach(func() {
 				cfClient.GetInstanceStateReturns(
-					cloud_foundry_client.InstanceState{},
+					cf.InstanceState{},
 					errors.New("service instance error"),
 				)
 			})

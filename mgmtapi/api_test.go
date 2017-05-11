@@ -21,7 +21,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
-	"github.com/pivotal-cf/on-demand-service-broker/cloud_foundry_client"
+	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 	"github.com/pivotal-cf/on-demand-service-broker/mgmtapi"
@@ -161,7 +161,7 @@ var _ = Describe("Management API", func() {
 
 		Context("when the CF service instance is not found", func() {
 			BeforeEach(func() {
-				manageableBroker.UpgradeReturns(broker.OperationData{}, cloud_foundry_client.ResourceNotFoundError{})
+				manageableBroker.UpgradeReturns(broker.OperationData{}, cf.ResourceNotFoundError{})
 			})
 
 			It("responds with HTTP 404 Not Found", func() {

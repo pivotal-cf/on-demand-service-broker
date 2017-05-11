@@ -4,7 +4,7 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 // Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
-package cloud_foundry_client_test
+package cf_test
 
 import (
 	"errors"
@@ -17,8 +17,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
-	"github.com/pivotal-cf/on-demand-service-broker/cloud_foundry_client"
-	"github.com/pivotal-cf/on-demand-service-broker/cloud_foundry_client/fakes"
+	"github.com/pivotal-cf/on-demand-service-broker/cf"
+	"github.com/pivotal-cf/on-demand-service-broker/cf/fakes"
 	"github.com/pivotal-cf/on-demand-service-broker/mockcfapi"
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
 )
@@ -52,7 +52,7 @@ var _ = Describe("Client", func() {
 				mockcfapi.ListServiceInstances("2777ad05-8114-4169-8188-2ef5f39e0c6b").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_instances_for_plan_2_response.json")),
 			)
 
-			client, err := cloud_foundry_client.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(client.CountInstancesOfServiceOffering("D94A086D-203D-4966-A6F1-60A9E2300F72", testLogger)).To(Equal(map[string]int{
@@ -66,7 +66,7 @@ var _ = Describe("Client", func() {
 				mockcfapi.ListServiceOfferings().WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_services_empty_response.json")),
 			)
 
-			client, err := cloud_foundry_client.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(client.CountInstancesOfServiceOffering("D94A086D-203D-4966-A6F1-60A9E2300F72", testLogger)).To(Equal(map[string]int{}))
@@ -79,7 +79,7 @@ var _ = Describe("Client", func() {
 				mockcfapi.ListServiceInstances("ff717e7c-afd5-4d0a-bafe-16c7eff546ec").WithAuthorizationHeader(cfAuthorizationHeader).RespondsUnauthorizedWith(`{"code": 1000,"description": "Invalid Auth Token","error_code": "CF-InvalidAuthToken"}`),
 			)
 
-			client, err := cloud_foundry_client.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 			Expect(err).NotTo(HaveOccurred())
 
 			_, err = client.CountInstancesOfServiceOffering("D94A086D-203D-4966-A6F1-60A9E2300F72", testLogger)
@@ -95,7 +95,7 @@ var _ = Describe("Client", func() {
 				mockcfapi.ListServiceInstances("2777ad05-8114-4169-8188-2ef5f39e0c6b").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_instances_for_plan_2_response.json")),
 			)
 
-			client, err := cloud_foundry_client.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(client.CountInstancesOfServiceOffering("D94A086D-203D-4966-A6F1-60A9E2300F72", testLogger)).To(Equal(map[string]int{
@@ -125,7 +125,7 @@ var _ = Describe("Client", func() {
 				mockcfapi.ListServiceInstances("2777ad05-8114-4169-8188-2ef5f39e0c6b").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_instances_for_plan_2_response.json")),
 			)
 
-			client, err := cloud_foundry_client.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(client.CountInstancesOfServiceOffering("D94A086D-203D-4966-A6F1-60A9E2300F72", testLogger)).To(Equal(map[string]int{
@@ -143,7 +143,7 @@ var _ = Describe("Client", func() {
 				mockcfapi.ListServiceInstances("2777ad05-8114-4169-8188-2ef5f39e0c6b").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_instances_for_plan_2_response.json")),
 			)
 
-			client, err := cloud_foundry_client.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(client.CountInstancesOfServiceOffering("D94A086D-203D-4966-A6F1-60A9E2300F72", testLogger)).To(Equal(map[string]int{
@@ -155,7 +155,7 @@ var _ = Describe("Client", func() {
 		It("fails, if fetching auth token fails", func() {
 			authHeaderBuilder.BuildReturns("", errors.New("niet goed"))
 
-			client, err := cloud_foundry_client.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 			Expect(err).NotTo(HaveOccurred())
 
 			_, err = client.GetInstancesOfServiceOffering("some-offering", testLogger)
@@ -167,7 +167,7 @@ var _ = Describe("Client", func() {
 				mockcfapi.ListServiceOfferings().RespondsInternalServerErrorWith("niet goed"),
 			)
 
-			client, err := cloud_foundry_client.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 			Expect(err).NotTo(HaveOccurred())
 
 			_, err = client.CountInstancesOfServiceOffering("D94A086D-203D-4966-A6F1-60A9E2300F72", testLogger)
@@ -179,7 +179,7 @@ var _ = Describe("Client", func() {
 				mockcfapi.ListServiceOfferings().RespondsInternalServerErrorWith("niet goed"),
 			)
 
-			client, err := cloud_foundry_client.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 			Expect(err).NotTo(HaveOccurred())
 
 			_, err = client.CountInstancesOfServiceOffering("D94A086D-203D-4966-A6F1-60A9E2300F72", testLogger)
@@ -192,7 +192,7 @@ var _ = Describe("Client", func() {
 				mockcfapi.ListServicePlans("06df08f9-5a58-4d33-8097-32d0baf3ce1e").RespondsInternalServerErrorWith("niet goed"),
 			)
 
-			client, err := cloud_foundry_client.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 			Expect(err).NotTo(HaveOccurred())
 
 			_, err = client.CountInstancesOfServiceOffering("D94A086D-203D-4966-A6F1-60A9E2300F72", testLogger)
@@ -206,7 +206,7 @@ var _ = Describe("Client", func() {
 				mockcfapi.ListServiceInstances("ff717e7c-afd5-4d0a-bafe-16c7eff546ec").RespondsInternalServerErrorWith("niet goed"),
 			)
 
-			client, err := cloud_foundry_client.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 			Expect(err).NotTo(HaveOccurred())
 
 			_, err = client.CountInstancesOfServiceOffering("D94A086D-203D-4966-A6F1-60A9E2300F72", testLogger)
@@ -222,7 +222,7 @@ var _ = Describe("Client", func() {
 				mockcfapi.ListServiceInstances("2777ad05-8114-4169-8188-2ef5f39e0c6b").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_instances_for_plan_2_response.json")),
 			)
 
-			client, err := cloud_foundry_client.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(client.CountInstancesOfPlan("D94A086D-203D-4966-A6F1-60A9E2300F72", "22789210-D743-4C65-9D38-C80B29F4D9C8", testLogger)).To(Equal(2))
@@ -234,7 +234,7 @@ var _ = Describe("Client", func() {
 				mockcfapi.ListServicePlans("06df08f9-5a58-4d33-8097-32d0baf3ce1e").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_plans_response.json")),
 			)
 
-			client, err := cloud_foundry_client.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 			Expect(err).NotTo(HaveOccurred())
 
 			count, err := client.CountInstancesOfPlan("D94A086D-203D-4966-A6F1-60A9E2300F72", "does-not-exist", testLogger)
@@ -247,7 +247,7 @@ var _ = Describe("Client", func() {
 				mockcfapi.ListServiceOfferings().WithAuthorizationHeader(cfAuthorizationHeader).RespondsInternalServerErrorWith("no services for you"),
 			)
 
-			client, err := cloud_foundry_client.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 			Expect(err).NotTo(HaveOccurred())
 
 			count, err := client.CountInstancesOfPlan("D94A086D-203D-4966-A6F1-60A9E2300F72", "22789210-D743-4C65-9D38-C80B29F4D9C8", testLogger)
@@ -261,7 +261,7 @@ var _ = Describe("Client", func() {
 				mockcfapi.ListServicePlans("06df08f9-5a58-4d33-8097-32d0baf3ce1e").RespondsInternalServerErrorWith("no service plans for you"),
 			)
 
-			client, err := cloud_foundry_client.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 			Expect(err).NotTo(HaveOccurred())
 
 			count, err := client.CountInstancesOfPlan("D94A086D-203D-4966-A6F1-60A9E2300F72", "22789210-D743-4C65-9D38-C80B29F4D9C8", testLogger)
@@ -276,7 +276,7 @@ var _ = Describe("Client", func() {
 				mockcfapi.ListServiceInstances("2777ad05-8114-4169-8188-2ef5f39e0c6b").RespondsInternalServerErrorWith("no instances for you"),
 			)
 
-			client, err := cloud_foundry_client.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 			Expect(err).NotTo(HaveOccurred())
 
 			count, err := client.CountInstancesOfPlan("D94A086D-203D-4966-A6F1-60A9E2300F72", "22789210-D743-4C65-9D38-C80B29F4D9C8", testLogger)
@@ -292,14 +292,14 @@ var _ = Describe("Client", func() {
 					RespondsOKWith(fixture("get_service_instance_response.json")),
 			)
 
-			client, err := cloud_foundry_client.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 			Expect(err).NotTo(HaveOccurred())
 
 			instance, err := client.GetInstance("783f8645-1ded-4161-b457-73f59423f9eb", testLogger)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(instance.LastOperation.Type).To(Equal(cloud_foundry_client.OperationType("create")))
-			Expect(instance.LastOperation.State).To(Equal(cloud_foundry_client.OperationState("succeeded")))
+			Expect(instance.LastOperation.Type).To(Equal(cf.OperationType("create")))
+			Expect(instance.LastOperation.State).To(Equal(cf.OperationState("succeeded")))
 		})
 
 		Context("when the service instance does not exist", func() {
@@ -312,11 +312,11 @@ var _ = Describe("Client", func() {
    				}`),
 				)
 
-				client, err := cloud_foundry_client.New(server.URL, authHeaderBuilder, nil, true)
+				client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 				Expect(err).NotTo(HaveOccurred())
 
 				_, err = client.GetInstance("783f8645-1ded-4161-b457-73f59423f9eb", testLogger)
-				Expect(err).To(BeAssignableToTypeOf(cloud_foundry_client.ResourceNotFoundError{}))
+				Expect(err).To(BeAssignableToTypeOf(cf.ResourceNotFoundError{}))
 				Expect(err).To(MatchError("The service instance could not be found: 783f8645-1ded-4161-b457-73f59423f9eb"))
 			})
 		})
@@ -327,12 +327,12 @@ var _ = Describe("Client", func() {
 					mockcfapi.GetServiceInstance("783f8645-1ded-4161-b457-73f59423f9eb").RespondsInternalServerErrorWith("er ma gerd"),
 				)
 
-				client, err := cloud_foundry_client.New(server.URL, authHeaderBuilder, nil, true)
+				client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 				Expect(err).NotTo(HaveOccurred())
 
 				_, err = client.GetInstance("783f8645-1ded-4161-b457-73f59423f9eb", testLogger)
 				Expect(err).To(MatchError(ContainSubstring("er ma gerd")))
-				Expect(err).NotTo(BeAssignableToTypeOf(cloud_foundry_client.ResourceNotFoundError{}))
+				Expect(err).NotTo(BeAssignableToTypeOf(cf.ResourceNotFoundError{}))
 			})
 		})
 
@@ -348,12 +348,12 @@ var _ = Describe("Client", func() {
 							}`),
 					)
 
-					client, err := cloud_foundry_client.New(server.URL, authHeaderBuilder, nil, true)
+					client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 					Expect(err).NotTo(HaveOccurred())
 
 					_, err = client.GetInstance("783f8645-1ded-4161-b457-73f59423f9eb", testLogger)
 					Expect(err).To(MatchError(ContainSubstring("Authentication error")))
-					Expect(err).To(BeAssignableToTypeOf(cloud_foundry_client.UnauthorizedError{}))
+					Expect(err).To(BeAssignableToTypeOf(cf.UnauthorizedError{}))
 				})
 			})
 
@@ -364,12 +364,12 @@ var _ = Describe("Client", func() {
 							RespondsUnauthorizedWith("not valid json"),
 					)
 
-					client, err := cloud_foundry_client.New(server.URL, authHeaderBuilder, nil, true)
+					client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 					Expect(err).NotTo(HaveOccurred())
 
 					_, err = client.GetInstance("783f8645-1ded-4161-b457-73f59423f9eb", testLogger)
 					Expect(err).To(MatchError(ContainSubstring("not valid json")))
-					Expect(err).To(BeAssignableToTypeOf(cloud_foundry_client.UnauthorizedError{}))
+					Expect(err).To(BeAssignableToTypeOf(cf.UnauthorizedError{}))
 				})
 			})
 		})
@@ -386,12 +386,12 @@ var _ = Describe("Client", func() {
 							}`),
 					)
 
-					client, err := cloud_foundry_client.New(server.URL, authHeaderBuilder, nil, true)
+					client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 					Expect(err).NotTo(HaveOccurred())
 
 					_, err = client.GetInstance("783f8645-1ded-4161-b457-73f59423f9eb", testLogger)
 					Expect(err).To(MatchError(ContainSubstring("You are not authorized to perform the requested action")))
-					Expect(err).To(BeAssignableToTypeOf(cloud_foundry_client.ForbiddenError{}))
+					Expect(err).To(BeAssignableToTypeOf(cf.ForbiddenError{}))
 				})
 			})
 
@@ -402,12 +402,12 @@ var _ = Describe("Client", func() {
 							RespondsForbiddenWith("not valid json"),
 					)
 
-					client, err := cloud_foundry_client.New(server.URL, authHeaderBuilder, nil, true)
+					client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 					Expect(err).NotTo(HaveOccurred())
 
 					_, err = client.GetInstance("783f8645-1ded-4161-b457-73f59423f9eb", testLogger)
 					Expect(err).To(MatchError(ContainSubstring("not valid json")))
-					Expect(err).To(BeAssignableToTypeOf(cloud_foundry_client.ForbiddenError{}))
+					Expect(err).To(BeAssignableToTypeOf(cf.ForbiddenError{}))
 				})
 			})
 		})
@@ -419,13 +419,13 @@ var _ = Describe("Client", func() {
 						RespondsOKWith("not valid json"),
 				)
 
-				client, err := cloud_foundry_client.New(server.URL, authHeaderBuilder, nil, true)
+				client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 				Expect(err).NotTo(HaveOccurred())
 
 				_, err = client.GetInstance("783f8645-1ded-4161-b457-73f59423f9eb", testLogger)
 				Expect(err).To(MatchError(ContainSubstring("Invalid response body")))
 				Expect(err).To(MatchError(ContainSubstring("invalid character 'o'")))
-				Expect(err).To(BeAssignableToTypeOf(cloud_foundry_client.InvalidResponseError{}))
+				Expect(err).To(BeAssignableToTypeOf(cf.InvalidResponseError{}))
 			})
 		})
 	})
@@ -437,7 +437,7 @@ var _ = Describe("Client", func() {
 				mockcfapi.GetServicePlan("ff717e7c-afd5-4d0a-bafe-16c7eff546ec").RespondsOKWith(fixture("get_service_plan_response.json")),
 			)
 
-			client, err := cloud_foundry_client.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 			Expect(err).NotTo(HaveOccurred())
 
 			state, err := client.GetInstanceState("783f8645-1ded-4161-b457-73f59423f9eb", testLogger)
@@ -452,7 +452,7 @@ var _ = Describe("Client", func() {
 				mockcfapi.GetServicePlan("ff717e7c-afd5-4d0a-bafe-16c7eff546ec").RespondsOKWith(fixture("get_service_plan_response.json")),
 			)
 
-			client, err := cloud_foundry_client.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 			Expect(err).NotTo(HaveOccurred())
 
 			state, err := client.GetInstanceState("783f8645-1ded-4161-b457-73f59423f9eb", testLogger)
@@ -467,12 +467,12 @@ var _ = Describe("Client", func() {
 					mockcfapi.GetServiceInstance("783f8645-1ded-4161-b457-73f59423f9eb").RespondsInternalServerErrorWith("er ma gerd"),
 				)
 
-				client, err := cloud_foundry_client.New(server.URL, authHeaderBuilder, nil, true)
+				client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 				Expect(err).NotTo(HaveOccurred())
 
 				_, err = client.GetInstanceState("783f8645-1ded-4161-b457-73f59423f9eb", testLogger)
 				Expect(err).To(MatchError(ContainSubstring("er ma gerd")))
-				Expect(err).NotTo(BeAssignableToTypeOf(cloud_foundry_client.ResourceNotFoundError{}))
+				Expect(err).NotTo(BeAssignableToTypeOf(cf.ResourceNotFoundError{}))
 			})
 		})
 
@@ -487,11 +487,11 @@ var _ = Describe("Client", func() {
             }`),
 					)
 
-					client, err := cloud_foundry_client.New(server.URL, authHeaderBuilder, nil, true)
+					client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 					Expect(err).NotTo(HaveOccurred())
 
 					_, err = client.GetInstanceState("783f8645-1ded-4161-b457-73f59423f9eb", testLogger)
-					Expect(err).To(BeAssignableToTypeOf(cloud_foundry_client.ResourceNotFoundError{}))
+					Expect(err).To(BeAssignableToTypeOf(cf.ResourceNotFoundError{}))
 					Expect(err).To(MatchError("The service instance could not be found: 783f8645-1ded-4161-b457-73f59423f9eb"))
 				})
 			})
@@ -503,11 +503,11 @@ var _ = Describe("Client", func() {
 							RespondsNotFoundWith("not valid json"),
 					)
 
-					client, err := cloud_foundry_client.New(server.URL, authHeaderBuilder, nil, true)
+					client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 					Expect(err).NotTo(HaveOccurred())
 
 					_, err = client.GetInstanceState("783f8645-1ded-4161-b457-73f59423f9eb", testLogger)
-					Expect(err).To(BeAssignableToTypeOf(cloud_foundry_client.ResourceNotFoundError{}))
+					Expect(err).To(BeAssignableToTypeOf(cf.ResourceNotFoundError{}))
 					Expect(err).To(MatchError("not valid json"))
 				})
 			})
@@ -520,12 +520,12 @@ var _ = Describe("Client", func() {
 					mockcfapi.GetServicePlan("ff717e7c-afd5-4d0a-bafe-16c7eff546ec").RespondsInternalServerErrorWith("er ma gerd"),
 				)
 
-				client, err := cloud_foundry_client.New(server.URL, authHeaderBuilder, nil, true)
+				client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 				Expect(err).NotTo(HaveOccurred())
 
 				_, err = client.GetInstanceState("783f8645-1ded-4161-b457-73f59423f9eb", testLogger)
 				Expect(err).To(MatchError(ContainSubstring("er ma gerd")))
-				Expect(err).NotTo(BeAssignableToTypeOf(cloud_foundry_client.ResourceNotFoundError{}))
+				Expect(err).NotTo(BeAssignableToTypeOf(cf.ResourceNotFoundError{}))
 			})
 		})
 
@@ -540,11 +540,11 @@ var _ = Describe("Client", func() {
    				}`),
 				)
 
-				client, err := cloud_foundry_client.New(server.URL, authHeaderBuilder, nil, true)
+				client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 				Expect(err).NotTo(HaveOccurred())
 
 				_, err = client.GetInstanceState("783f8645-1ded-4161-b457-73f59423f9eb", testLogger)
-				Expect(err).To(BeAssignableToTypeOf(cloud_foundry_client.ResourceNotFoundError{}))
+				Expect(err).To(BeAssignableToTypeOf(cf.ResourceNotFoundError{}))
 				Expect(err).To(MatchError("The service plan could not be found: 783f8645-1ded-4161-b457-73f59423f9eb"))
 			})
 		})
@@ -561,7 +561,7 @@ var _ = Describe("Client", func() {
 				mockcfapi.ListServiceInstances("2777ad05-8114-4169-8188-2ef5f39e0c6b").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_instances_for_plan_2_response.json")),
 			)
 
-			client, err := cloud_foundry_client.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 			Expect(err).NotTo(HaveOccurred())
 
 			instances, err := client.GetInstancesOfServiceOffering(offeringID, testLogger)
@@ -581,7 +581,7 @@ var _ = Describe("Client", func() {
 					mockcfapi.ListServiceInstances("2777ad05-8114-4169-8188-2ef5f39e0c6b").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_instances_for_plan_2_response.json")),
 				)
 
-				client, err := cloud_foundry_client.New(server.URL, authHeaderBuilder, nil, true)
+				client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 				Expect(err).NotTo(HaveOccurred())
 
 				instances, err := client.GetInstancesOfServiceOffering(offeringID, testLogger)
@@ -602,7 +602,7 @@ var _ = Describe("Client", func() {
 					mockcfapi.ListServiceInstances("2777ad05-8114-4169-8188-2ef5f39e0c6b").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_instances_for_plan_2_response.json")),
 				)
 
-				client, err := cloud_foundry_client.New(server.URL, authHeaderBuilder, nil, true)
+				client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 				Expect(err).NotTo(HaveOccurred())
 
 				instances, err := client.GetInstancesOfServiceOffering(offeringID, testLogger)
@@ -623,7 +623,7 @@ var _ = Describe("Client", func() {
 					mockcfapi.ListServiceInstancesForPage("2777ad05-8114-4169-8188-2ef5f39e0c6b", 2).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_instances_for_plan_2_page_2.json")),
 				)
 
-				client, err := cloud_foundry_client.New(server.URL, authHeaderBuilder, nil, true)
+				client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 				Expect(err).NotTo(HaveOccurred())
 
 				instances, err := client.GetInstancesOfServiceOffering(offeringID, testLogger)
@@ -641,7 +641,7 @@ var _ = Describe("Client", func() {
 					mockcfapi.ListServiceOfferings().WithAuthorizationHeader(cfAuthorizationHeader).RespondsInternalServerErrorWith("oops"),
 				)
 
-				client, err := cloud_foundry_client.New(server.URL, authHeaderBuilder, nil, true)
+				client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 				Expect(err).NotTo(HaveOccurred())
 
 				_, err = client.GetInstancesOfServiceOffering(offeringID, testLogger)
@@ -659,7 +659,7 @@ var _ = Describe("Client", func() {
 					mockcfapi.ListServicePlans("34c08156-5b5d-4cc1-9af1-29cda9ec056f").WithAuthorizationHeader(cfAuthorizationHeader).RespondsInternalServerErrorWith("oops"),
 				)
 
-				client, err := cloud_foundry_client.New(server.URL, authHeaderBuilder, nil, true)
+				client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 				Expect(err).NotTo(HaveOccurred())
 
 				_, err = client.GetInstancesOfServiceOffering(offeringID, testLogger)
@@ -678,7 +678,7 @@ var _ = Describe("Client", func() {
 					mockcfapi.ListServiceInstances("ff717e7c-afd5-4d0a-bafe-16c7eff546ec").WithAuthorizationHeader(cfAuthorizationHeader).RespondsInternalServerErrorWith("oops"),
 				)
 
-				client, err := cloud_foundry_client.New(server.URL, authHeaderBuilder, nil, true)
+				client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 				Expect(err).NotTo(HaveOccurred())
 
 				_, err = client.GetInstancesOfServiceOffering(offeringID, testLogger)
@@ -700,7 +700,7 @@ var _ = Describe("Client", func() {
 					RespondsOKWith(fixture("list_bindings_response_page_2.json")),
 			)
 
-			client, err := cloud_foundry_client.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 			Expect(err).NotTo(HaveOccurred())
 
 			bindings, err := client.GetBindingsForInstance(serviceInstanceGUID, testLogger)
@@ -720,7 +720,7 @@ var _ = Describe("Client", func() {
 					mockcfapi.ListServiceBindings(serviceInstanceGUID).RespondsInternalServerErrorWith("no bindings for you"),
 				)
 
-				client, err := cloud_foundry_client.New(server.URL, authHeaderBuilder, nil, true)
+				client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 				Expect(err).NotTo(HaveOccurred())
 
 				_, err = client.GetBindingsForInstance(serviceInstanceGUID, testLogger)
@@ -743,7 +743,7 @@ var _ = Describe("Client", func() {
 					RespondsOKWith(fixture("list_service_keys_response_page_2.json")),
 			)
 
-			client, err := cloud_foundry_client.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 			Expect(err).NotTo(HaveOccurred())
 
 			serviceKeys, err := client.GetServiceKeysForInstance(serviceInstanceGUID, testLogger)
@@ -760,7 +760,7 @@ var _ = Describe("Client", func() {
 					mockcfapi.ListServiceKeys(serviceInstanceGUID).RespondsInternalServerErrorWith("no service keys for you"),
 				)
 
-				client, err := cloud_foundry_client.New(server.URL, authHeaderBuilder, nil, true)
+				client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 				Expect(err).NotTo(HaveOccurred())
 
 				_, err = client.GetServiceKeysForInstance(serviceInstanceGUID, testLogger)
@@ -771,10 +771,10 @@ var _ = Describe("Client", func() {
 	})
 
 	Describe("DeleteBinding", func() {
-		var binding cloud_foundry_client.Binding
+		var binding cf.Binding
 
 		BeforeEach(func() {
-			binding = cloud_foundry_client.Binding{
+			binding = cf.Binding{
 				GUID:    "596736f1-eee4-4249-a201-e21f00a55209",
 				AppGUID: "65bdd3a3-f471-4108-a7e8-67627ba76d6a",
 			}
@@ -791,8 +791,8 @@ var _ = Describe("Client", func() {
 						RespondsNoContent(),
 				)
 
-				var client cloud_foundry_client.Client
-				client, err = cloud_foundry_client.New(server.URL, authHeaderBuilder, nil, true)
+				var client cf.Client
+				client, err = cf.New(server.URL, authHeaderBuilder, nil, true)
 				Expect(err).NotTo(HaveOccurred())
 				err = client.DeleteBinding(binding, testLogger)
 			})
@@ -815,7 +815,7 @@ var _ = Describe("Client", func() {
 						RespondsNotFoundWith(`{"foo":"bar"}`),
 				)
 
-				client, err := cloud_foundry_client.New(server.URL, authHeaderBuilder, nil, true)
+				client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 				Expect(err).NotTo(HaveOccurred())
 
 				err = client.DeleteBinding(binding, testLogger)
@@ -825,7 +825,7 @@ var _ = Describe("Client", func() {
 
 		Context("when the auth header builder returns an error", func() {
 			It("returns the error", func() {
-				client, err := cloud_foundry_client.New(server.URL, authHeaderBuilder, nil, true)
+				client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 				Expect(err).NotTo(HaveOccurred())
 
 				authHeaderBuilder.BuildReturns(cfAuthorizationHeader, errors.New("no header for you"))
@@ -844,7 +844,7 @@ var _ = Describe("Client", func() {
 						RespondsForbiddenWith(`{"foo":"bar"}`),
 				)
 
-				client, err := cloud_foundry_client.New(server.URL, authHeaderBuilder, nil, true)
+				client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 				Expect(err).NotTo(HaveOccurred())
 
 				err = client.DeleteBinding(binding, testLogger)
@@ -856,10 +856,10 @@ var _ = Describe("Client", func() {
 	})
 
 	Describe("DeleteServiceKey", func() {
-		var serviceKey cloud_foundry_client.ServiceKey
+		var serviceKey cf.ServiceKey
 
 		BeforeEach(func() {
-			serviceKey = cloud_foundry_client.ServiceKey{
+			serviceKey = cf.ServiceKey{
 				GUID: "596736f1-eee4-4249-a201-e21f00a55209",
 			}
 		})
@@ -875,8 +875,8 @@ var _ = Describe("Client", func() {
 						RespondsNoContent(),
 				)
 
-				var client cloud_foundry_client.Client
-				client, err = cloud_foundry_client.New(server.URL, authHeaderBuilder, nil, true)
+				var client cf.Client
+				client, err = cf.New(server.URL, authHeaderBuilder, nil, true)
 				Expect(err).NotTo(HaveOccurred())
 
 				err = client.DeleteServiceKey(serviceKey, testLogger)
@@ -900,7 +900,7 @@ var _ = Describe("Client", func() {
 						RespondsNotFoundWith(`{"foo":"bar"}`),
 				)
 
-				client, err := cloud_foundry_client.New(server.URL, authHeaderBuilder, nil, true)
+				client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 				Expect(err).NotTo(HaveOccurred())
 
 				err = client.DeleteServiceKey(serviceKey, testLogger)
@@ -910,7 +910,7 @@ var _ = Describe("Client", func() {
 
 		Context("when the auth header builder returns an error", func() {
 			It("returns the error", func() {
-				client, err := cloud_foundry_client.New(server.URL, authHeaderBuilder, nil, true)
+				client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 				Expect(err).NotTo(HaveOccurred())
 
 				authHeaderBuilder.BuildReturns(cfAuthorizationHeader, errors.New("no header for you"))
@@ -929,7 +929,7 @@ var _ = Describe("Client", func() {
 						RespondsForbiddenWith(`{"foo":"bar"}`),
 				)
 
-				client, err := cloud_foundry_client.New(server.URL, authHeaderBuilder, nil, true)
+				client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 				Expect(err).NotTo(HaveOccurred())
 
 				err = client.DeleteServiceKey(serviceKey, testLogger)
@@ -954,8 +954,8 @@ var _ = Describe("Client", func() {
 						RespondsAcceptedWith(""),
 				)
 
-				var client cloud_foundry_client.Client
-				client, err = cloud_foundry_client.New(server.URL, authHeaderBuilder, nil, true)
+				var client cf.Client
+				client, err = cf.New(server.URL, authHeaderBuilder, nil, true)
 				Expect(err).NotTo(HaveOccurred())
 
 				err = client.DeleteServiceInstance(serviceInstanceGUID, testLogger)
@@ -979,7 +979,7 @@ var _ = Describe("Client", func() {
 						RespondsNotFoundWith(`{"foo":"bar"}`),
 				)
 
-				client, err := cloud_foundry_client.New(server.URL, authHeaderBuilder, nil, true)
+				client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 				Expect(err).NotTo(HaveOccurred())
 
 				err = client.DeleteServiceInstance(serviceInstanceGUID, testLogger)
@@ -996,7 +996,7 @@ var _ = Describe("Client", func() {
 						RespondsForbiddenWith(`{"foo":"bar"}`),
 				)
 
-				client, err := cloud_foundry_client.New(server.URL, authHeaderBuilder, nil, true)
+				client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 				Expect(err).NotTo(HaveOccurred())
 
 				err = client.DeleteServiceInstance(serviceInstanceGUID, testLogger)
@@ -1008,7 +1008,7 @@ var _ = Describe("Client", func() {
 
 		Context("when the auth header builder returns an error", func() {
 			It("returns the error", func() {
-				client, err := cloud_foundry_client.New(server.URL, authHeaderBuilder, nil, true)
+				client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 				Expect(err).NotTo(HaveOccurred())
 
 				authHeaderBuilder.BuildReturns(cfAuthorizationHeader, errors.New("no header for you"))
@@ -1042,7 +1042,7 @@ var _ = Describe("Client", func() {
 					}`,
 				),
 			)
-			client, err := cloud_foundry_client.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(client.GetAPIVersion(testLogger)).To(Equal("2.57.0"))
@@ -1053,7 +1053,7 @@ var _ = Describe("Client", func() {
 				mockcfapi.GetInfo().RespondsInternalServerErrorWith("nothing today, thank you"),
 			)
 
-			client, err := cloud_foundry_client.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 			Expect(err).NotTo(HaveOccurred())
 
 			_, getVersionErr := client.GetAPIVersion(testLogger)
