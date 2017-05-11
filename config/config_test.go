@@ -72,7 +72,7 @@ var _ = Describe("Config", func() {
 						},
 					},
 					Features: config.Features{
-						CFUserTriggeredUpgrades: false,
+						UserTriggeredUpgrades: false,
 					},
 					ServiceAdapter: config.ServiceAdapter{
 						Path: "test_assets/executable.sh",
@@ -192,7 +192,7 @@ var _ = Describe("Config", func() {
 
 			It("returns config with the flag", func() {
 				Expect(parseErr).NotTo(HaveOccurred())
-				Expect(conf.Features.CFUserTriggeredUpgrades).To(BeTrue())
+				Expect(conf.Features.UserTriggeredUpgrades).To(BeTrue())
 			})
 		})
 

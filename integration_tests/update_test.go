@@ -301,7 +301,7 @@ var _ = Describe("updating a service instance", func() {
 
 			Context("and the cf_user_triggered_upgrades feature is turned on", func() {
 				BeforeEach(func() {
-					conf.Features.CFUserTriggeredUpgrades = true
+					conf.Features.UserTriggeredUpgrades = true
 				})
 
 				It("reports a pending change message", func() {
@@ -312,7 +312,7 @@ var _ = Describe("updating a service instance", func() {
 
 			Context("and the cf_user_triggered_upgrades feature is off", func() {
 				BeforeEach(func() {
-					conf.Features.CFUserTriggeredUpgrades = false
+					conf.Features.UserTriggeredUpgrades = false
 				})
 
 				It("reports a apply changes disabled message", func() {
@@ -465,7 +465,7 @@ var _ = Describe("updating a service instance", func() {
 
 				Context("and the cf_user_triggered_upgrades feature is turned on", func() {
 					BeforeEach(func() {
-						conf.Features.CFUserTriggeredUpgrades = true
+						conf.Features.UserTriggeredUpgrades = true
 					})
 
 					It("returns the task ID and operation type in operation data", func() {
@@ -489,7 +489,7 @@ var _ = Describe("updating a service instance", func() {
 
 				Context("and the cf_user_triggered_upgrades feature is off", func() {
 					BeforeEach(func() {
-						conf.Features.CFUserTriggeredUpgrades = false
+						conf.Features.UserTriggeredUpgrades = false
 					})
 
 					It("returns an apply changes not permitted message", func() {

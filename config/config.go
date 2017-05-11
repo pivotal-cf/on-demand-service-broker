@@ -268,10 +268,6 @@ func (a BOSHAuthentication) Validate() error {
 	return err
 }
 
-type Features struct {
-	CFUserTriggeredUpgrades bool `yaml:"cf_user_triggered_upgrades"`
-}
-
 type ServiceAdapter struct {
 	Path string
 }

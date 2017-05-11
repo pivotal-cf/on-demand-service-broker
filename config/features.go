@@ -4,18 +4,12 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 // Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
-package features
+package config
 
-import "github.com/pivotal-cf/on-demand-service-broker/config"
-
-type FeatureFlags struct {
-	features config.Features
+type Features struct {
+	UserTriggeredUpgrades bool `yaml:"cf_user_triggered_upgrades"`
 }
 
-func New(f config.Features) FeatureFlags {
-	return FeatureFlags{features: f}
-}
-
-func (f FeatureFlags) CFUserTriggeredUpgrades() bool {
-	return f.features.CFUserTriggeredUpgrades
+func (f Features) CFUserTriggeredUpgrades() bool {
+	return f.UserTriggeredUpgrades
 }

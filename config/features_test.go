@@ -4,16 +4,26 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 // Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
-package features_test
+package config_test
 
 import (
-	"testing"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pivotal-cf/on-demand-service-broker/config"
 )
 
-func TestFeatures(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Features Suite")
-}
+var _ = Describe("Features", func() {
+	Context("when the cf_user_triggered_upgrades feature is on", func() {
+		It("returns true", func() {
+			featureFlags := config.Features{UserTriggeredUpgrades: true}
+			Expect(featureFlags.CFUserTriggeredUpgrades()).To(BeTrue())
+		})
+	})
+
+	Context("when the cf_user_triggered_upgrades feature is off", func() {
+		It("returns false", func() {
+			featureFlags := config.Features{UserTriggeredUpgrades: false}
+			Expect(featureFlags.CFUserTriggeredUpgrades()).To(BeFalse())
+		})
+	})
+})

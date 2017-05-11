@@ -17,16 +17,15 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/pivotal-cf/brokerapi"
 	apiauth "github.com/pivotal-cf/brokerapi/auth"
-	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/credstore"
-	"github.com/pivotal-cf/on-demand-service-broker/features"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 	"github.com/pivotal-cf/on-demand-service-broker/mgmtapi"
+	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	"github.com/pivotal-cf/on-demand-service-broker/task"
 	"github.com/urfave/negroni"
 )
@@ -108,11 +107,10 @@ func startBroker(conf config.Config, logger *log.Logger, loggerFactory *loggerfa
 		conf.ServiceDeployment.Releases,
 	)
 
-	featureFlags := features.New(conf.Features)
 	deploymentManager := task.NewDeployer(boshClient, manifestGenerator)
 	credStore := credentialStore(conf.Credhub, conf.Broker.DisableSSLCertVerification)
 
-	onDemandBroker, err := broker.New(boshClient, cfClient, credStore, serviceAdapter, deploymentManager, conf.ServiceCatalog, loggerFactory, featureFlags)
+	onDemandBroker, err := broker.New(boshClient, cfClient, credStore, serviceAdapter, deploymentManager, conf.ServiceCatalog, loggerFactory, conf.Features)
 	if err != nil {
 		logger.Fatalf("error starting broker: %s", err)
 	}
