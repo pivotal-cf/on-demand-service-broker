@@ -13,7 +13,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/pivotal-cf/on-demand-service-broker/integration_tests/mock"
+	"github.com/pivotal-cf/on-demand-service-broker/integration_tests/on_demand_service_broker/mock"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 	"gopkg.in/yaml.v2"
