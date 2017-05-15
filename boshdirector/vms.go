@@ -15,6 +15,31 @@ import (
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 )
 
+type Probe func() (bool, error)
+
+type Poller interface {
+	PollUntil(Probe) error
+}
+
+type SleepingPoller struct {
+	pollingInterval time.Duration
+}
+
+func (p *SleepingPoller) PollUntil(probe Probe) error {
+	for {
+		done, err := probe()
+		if err != nil {
+			return err
+		}
+
+		if done {
+			return nil
+		}
+
+		time.Sleep(p.pollingInterval)
+	}
+}
+
 func (c *Client) VMs(name string, logger *log.Logger) (bosh.BoshVMs, error) {
 	logger.Printf("retrieving VMs for deployment %s from bosh\n", name)
 	errs := func(err error) (bosh.BoshVMs, error) {
@@ -31,9 +56,10 @@ func (c *Client) VMs(name string, logger *log.Logger) (bosh.BoshVMs, error) {
 		return errs(err)
 	}
 
-	err = untilTrue(
+	poller := &SleepingPoller{pollingInterval: c.PollingInterval}
+
+	err = poller.PollUntil(
 		func() (bool, error) { return c.checkTaskComplete(taskID, logger) },
-		time.Second*c.PollingInterval,
 	)
 	if err != nil {
 		return nil, err
@@ -68,21 +94,6 @@ func (c *Client) checkTaskComplete(taskID int, logger *log.Logger) (bool, error)
 	}
 
 	return false, nil
-}
-
-func untilTrue(probe func() (bool, error), pollingInterval time.Duration) error {
-	for {
-		done, err := probe()
-		if err != nil {
-			return err
-		}
-
-		if done {
-			return nil
-		}
-
-		time.Sleep(pollingInterval)
-	}
 }
 
 type BoshVMsOutput struct {
