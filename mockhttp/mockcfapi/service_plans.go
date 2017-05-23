@@ -35,6 +35,17 @@ func ListServicePlansForPage(serviceID string, page int) *servicePlansMock {
 	}
 }
 
+func DisablePlanAccess(planID string) *servicePlansMock {
+	mock := &servicePlansMock{
+		mockhttp.NewMockedHttpRequest("PUT", fmt.Sprintf("/v2/service_plans/%s", planID)),
+	}
+
+	mock.WithContentType("application/x-www-form-urlencoded")
+	mock.WithBody(`{"public":false}`)
+
+	return mock
+}
+
 func (m *servicePlansMock) RespondsWithServicePlan(planID, cloudControllerGUID string) *mockhttp.Handler {
 	return m.RespondsOKWith(listServicePlansResponse(Plan{ID: planID, CloudControllerGUID: cloudControllerGUID}))
 }

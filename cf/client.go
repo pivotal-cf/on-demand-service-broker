@@ -224,6 +224,55 @@ func (c Client) GetAPIVersion(logger *log.Logger) (string, error) {
 	return infoResponse.APIVersion, nil
 }
 
+func (c Client) ListServiceBrokers(logger *log.Logger) ([]ServiceBroker, error) {
+	var (
+		brokers []ServiceBroker
+		err     error
+	)
+
+	path := "/v2/service_brokers"
+	for path != "" {
+		var response serviceBrokerResponse
+		fullPath := fmt.Sprintf("%s%s", c.url, path)
+
+		err = c.Get(fullPath, &response, logger)
+		if err != nil {
+			return []ServiceBroker{}, err
+		}
+
+		for _, r := range response.Resources {
+			brokers = append(brokers, ServiceBroker{
+				GUID: r.Metadata.GUID,
+				Name: r.Entity.Name,
+			})
+		}
+
+		path = response.NextPath
+	}
+
+	return brokers, nil
+}
+
+func (c Client) DisableServiceAccessForServiceOffering(serviceOfferingID string, logger *log.Logger) error {
+	plans, err := c.getPlansForServiceID(serviceOfferingID, logger)
+	if err != nil {
+		return err
+	}
+
+	publicFalse := `{"public":false}`
+	for _, p := range plans {
+		err := c.Put(fmt.Sprintf("%s/v2/service_plans/%s", c.url, p.Metadata.GUID), publicFalse, logger)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (c Client) DeregisterBroker(brokerGUID string, logger *log.Logger) error {
+	return c.Delete(fmt.Sprintf("%s/v2/service_brokers/%s", c.url, brokerGUID), logger)
+}
+
 func (c Client) getPlansForServiceID(serviceID string, logger *log.Logger) ([]ServicePlan, error) {
 	requiredService, err := c.findServiceByUniqueID(serviceID, logger)
 	if err != nil {

@@ -137,6 +137,25 @@ type bindingResourceEntity struct {
 	ServiceInstanceGUID string `json:"service_instance_guid"`
 }
 
+type ServiceBroker struct {
+	GUID string
+	Name string
+}
+
+type serviceBrokerResponse struct {
+	pagination
+	Resources []serviceBrokerResource
+}
+
+type serviceBrokerResource struct {
+	Metadata Metadata
+	Entity   serviceBrokerEntity
+}
+
+type serviceBrokerEntity struct {
+	Name string
+}
+
 type ServiceKey struct {
 	GUID string
 }

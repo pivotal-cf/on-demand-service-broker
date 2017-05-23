@@ -86,6 +86,12 @@ func (i *Handler) RespondsAcceptedWith(body string) *Handler {
 	return i
 }
 
+func (i *Handler) RespondsCreated() *Handler {
+	i.responseStatus = http.StatusCreated
+	i.responseBody = ""
+	return i
+}
+
 func (i *Handler) RespondsNoContent() *Handler {
 	i.responseStatus = http.StatusNoContent
 	i.responseBody = ""

@@ -15,6 +15,8 @@ import (
 	"net/http"
 	"time"
 
+	"bytes"
+
 	"github.com/craigfurman/herottp"
 )
 
@@ -33,10 +35,12 @@ func (w httpJsonClient) Get(path string, body interface{}, logger *log.Logger) e
 	if err != nil {
 		return err
 	}
+
 	authHeader, err := w.AuthHeaderBuilder.Build(logger)
 	if err != nil {
 		return err
 	}
+
 	req.Header.Add("Authorization", authHeader)
 	logger.Printf(fmt.Sprintf("GET %s", path))
 
@@ -47,6 +51,38 @@ func (w httpJsonClient) Get(path string, body interface{}, logger *log.Logger) e
 	return w.readResponse(response, body)
 }
 
+func (c httpJsonClient) Put(path, reqBody string, logger *log.Logger) error {
+
+	req, err := http.NewRequest(http.MethodPut, path, bytes.NewBufferString(reqBody))
+	if err != nil {
+		return err
+	}
+
+	authHeader, err := c.AuthHeaderBuilder.Build(logger)
+	if err != nil {
+		return err
+	}
+
+	req.Header.Add("Authorization", authHeader)
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+
+	logger.Printf(fmt.Sprintf("PUT %s", path))
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return err
+	}
+
+	switch resp.StatusCode {
+	case http.StatusCreated:
+		return nil
+	}
+
+	body, _ := ioutil.ReadAll(resp.Body)
+	return fmt.Errorf("Unexpected reponse status %d, %q", resp.StatusCode, string(body))
+}
+
+// TODO can this be private?
 func (c httpJsonClient) Delete(path string, logger *log.Logger) error {
 	req, err := http.NewRequest(http.MethodDelete, path, nil)
 	if err != nil {

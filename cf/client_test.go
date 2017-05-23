@@ -29,7 +29,10 @@ var _ = Describe("Client", func() {
 	var logBuffer *gbytes.Buffer
 	var authHeaderBuilder *fakes.FakeAuthHeaderBuilder
 
-	const cfAuthorizationHeader = "auth-header"
+	const (
+		cfAuthorizationHeader = "auth-header"
+		serviceGUID           = "06df08f9-5a58-4d33-8097-32d0baf3ce1e"
+	)
 
 	BeforeEach(func() {
 		authHeaderBuilder = new(fakes.FakeAuthHeaderBuilder)
@@ -43,11 +46,138 @@ var _ = Describe("Client", func() {
 		server.VerifyMocks()
 	})
 
+	Describe("ListServiceBrokers", func() {
+		It("returns a list of brokers, across pages", func() {
+			server.VerifyAndMock(
+				mockcfapi.ListServiceBrokers().
+					WithAuthorizationHeader(cfAuthorizationHeader).
+					RespondsOKWith(fixture("list_brokers_page_1_response.json")),
+				mockcfapi.ListServiceBrokersForPage(2).
+					WithAuthorizationHeader(cfAuthorizationHeader).
+					RespondsOKWith(fixture("list_brokers_page_2_response.json")),
+			)
+
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+			Expect(err).NotTo(HaveOccurred())
+
+			var brokers []cf.ServiceBroker
+			brokers, err = client.ListServiceBrokers(testLogger)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(len(brokers)).To(Equal(2))
+			Expect(brokers).To(Equal([]cf.ServiceBroker{
+				{
+					GUID: "service-broker-guid-1",
+					Name: "service-broker-name-1",
+				},
+				{
+					GUID: "service-broker-guid-2",
+					Name: "service-broker-name-2",
+				},
+			}))
+
+		})
+
+		It("returns an error if it fails to get service brokers", func() {
+			server.VerifyAndMock(
+				mockcfapi.ListServiceBrokers().
+					WithAuthorizationHeader(cfAuthorizationHeader).
+					RespondsInternalServerErrorWith("niet goed"),
+			)
+
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+			Expect(err).NotTo(HaveOccurred())
+
+			_, err = client.ListServiceBrokers(testLogger)
+			Expect(err).To(MatchError(ContainSubstring("niet goed")))
+		})
+	})
+
+	Describe("DisableServiceAccessForServiceOffering", func() {
+		It("disables all the plans across pages", func() {
+			offeringID := "D94A086D-203D-4966-A6F1-60A9E2300F72"
+
+			server.VerifyAndMock(
+				mockcfapi.ListServiceOfferings().WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_services_response.json")),
+				mockcfapi.ListServicePlans(serviceGUID).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_plans_response_page_1.json")),
+				mockcfapi.ListServicePlansForPage(serviceGUID, 2).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_plans_response_page_2.json")),
+				mockcfapi.DisablePlanAccess("ff717e7c-afd5-4d0a-bafe-16c7eff546ec").RespondsCreated(),
+				mockcfapi.DisablePlanAccess("2777ad05-8114-4169-8188-2ef5f39e0c6b").RespondsCreated(),
+			)
+
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = client.DisableServiceAccessForServiceOffering(offeringID, testLogger)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("returns an error if it fails to get plans for service offering", func() {
+			offeringID := "D94A086D-203D-4966-A6F1-60A9E2300F72"
+
+			server.VerifyAndMock(
+				mockcfapi.ListServiceOfferings().WithAuthorizationHeader(cfAuthorizationHeader).RespondsInternalServerErrorWith("failed"),
+			)
+
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = client.DisableServiceAccessForServiceOffering(offeringID, testLogger)
+			Expect(err).To(MatchError(ContainSubstring("failed")))
+		})
+
+		It("returns an error if it fails to update the service plan", func() {
+			offeringID := "D94A086D-203D-4966-A6F1-60A9E2300F72"
+
+			server.VerifyAndMock(
+				mockcfapi.ListServiceOfferings().WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_services_response.json")),
+				mockcfapi.ListServicePlans(serviceGUID).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_plans_response_page_1.json")),
+				mockcfapi.ListServicePlansForPage(serviceGUID, 2).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_plans_response_page_2.json")),
+				mockcfapi.DisablePlanAccess("ff717e7c-afd5-4d0a-bafe-16c7eff546ec").RespondsInternalServerErrorWith("failed"),
+			)
+
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = client.DisableServiceAccessForServiceOffering(offeringID, testLogger)
+			Expect(err).To(MatchError(ContainSubstring("failed")))
+		})
+	})
+
+	Describe("Deregister", func() {
+		const brokerGUID = "broker-guid"
+
+		It("does not return an error", func() {
+			server.VerifyAndMock(
+				mockcfapi.DeregisterBroker(brokerGUID).WithAuthorizationHeader(cfAuthorizationHeader).RespondsNoContent(),
+			)
+
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = client.DeregisterBroker(brokerGUID, testLogger)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("returns an error when the deregister fails", func() {
+			server.VerifyAndMock(
+				mockcfapi.DeregisterBroker(brokerGUID).WithAuthorizationHeader(cfAuthorizationHeader).RespondsInternalServerErrorWith("failed"),
+			)
+
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = client.DeregisterBroker(brokerGUID, testLogger)
+			Expect(err).To(MatchError(ContainSubstring("failed")))
+
+		})
+	})
+
 	Describe("CountInstancesOfServiceOffering", func() {
 		It("fetches instance counts per plan", func() {
 			server.VerifyAndMock(
 				mockcfapi.ListServiceOfferings().WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_services_response.json")),
-				mockcfapi.ListServicePlans("06df08f9-5a58-4d33-8097-32d0baf3ce1e").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_plans_response.json")),
+				mockcfapi.ListServicePlans(serviceGUID).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_plans_response.json")),
 				mockcfapi.ListServiceInstances("ff717e7c-afd5-4d0a-bafe-16c7eff546ec").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_instances_for_plan_1_response.json")),
 				mockcfapi.ListServiceInstances("2777ad05-8114-4169-8188-2ef5f39e0c6b").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_instances_for_plan_2_response.json")),
 			)
@@ -75,7 +205,7 @@ var _ = Describe("Client", func() {
 		It("fails if getting a new token fails", func() {
 			server.VerifyAndMock(
 				mockcfapi.ListServiceOfferings().WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_services_response.json")),
-				mockcfapi.ListServicePlans("06df08f9-5a58-4d33-8097-32d0baf3ce1e").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_plans_response.json")),
+				mockcfapi.ListServicePlans(serviceGUID).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_plans_response.json")),
 				mockcfapi.ListServiceInstances("ff717e7c-afd5-4d0a-bafe-16c7eff546ec").WithAuthorizationHeader(cfAuthorizationHeader).RespondsUnauthorizedWith(`{"code": 1000,"description": "Invalid Auth Token","error_code": "CF-InvalidAuthToken"}`),
 			)
 
@@ -90,7 +220,7 @@ var _ = Describe("Client", func() {
 		It("reuses tokens", func() {
 			server.VerifyAndMock(
 				mockcfapi.ListServiceOfferings().WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_services_response.json")),
-				mockcfapi.ListServicePlans("06df08f9-5a58-4d33-8097-32d0baf3ce1e").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_plans_response.json")),
+				mockcfapi.ListServicePlans(serviceGUID).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_plans_response.json")),
 				mockcfapi.ListServiceInstances("ff717e7c-afd5-4d0a-bafe-16c7eff546ec").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_instances_for_plan_1_response.json")),
 				mockcfapi.ListServiceInstances("2777ad05-8114-4169-8188-2ef5f39e0c6b").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_instances_for_plan_2_response.json")),
 			)
@@ -105,7 +235,7 @@ var _ = Describe("Client", func() {
 
 			server.VerifyAndMock(
 				mockcfapi.ListServiceOfferings().WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_services_response.json")),
-				mockcfapi.ListServicePlans("06df08f9-5a58-4d33-8097-32d0baf3ce1e").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_plans_response.json")),
+				mockcfapi.ListServicePlans(serviceGUID).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_plans_response.json")),
 				mockcfapi.ListServiceInstances("ff717e7c-afd5-4d0a-bafe-16c7eff546ec").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_instances_for_plan_1_response.json")),
 				mockcfapi.ListServiceInstances("2777ad05-8114-4169-8188-2ef5f39e0c6b").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_instances_for_plan_2_response.json")),
 			)
@@ -120,7 +250,7 @@ var _ = Describe("Client", func() {
 			server.VerifyAndMock(
 				mockcfapi.ListServiceOfferings().WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_services_response_page_1.json")),
 				mockcfapi.ListServiceOfferingsForPage(2).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_services_response_page_2.json")),
-				mockcfapi.ListServicePlans("06df08f9-5a58-4d33-8097-32d0baf3ce1e").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_plans_response.json")),
+				mockcfapi.ListServicePlans(serviceGUID).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_plans_response.json")),
 				mockcfapi.ListServiceInstances("ff717e7c-afd5-4d0a-bafe-16c7eff546ec").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_instances_for_plan_1_response.json")),
 				mockcfapi.ListServiceInstances("2777ad05-8114-4169-8188-2ef5f39e0c6b").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_instances_for_plan_2_response.json")),
 			)
@@ -137,8 +267,8 @@ var _ = Describe("Client", func() {
 		It("fetches instance counts per plan, across plan pages", func() {
 			server.VerifyAndMock(
 				mockcfapi.ListServiceOfferings().WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_services_response.json")),
-				mockcfapi.ListServicePlans("06df08f9-5a58-4d33-8097-32d0baf3ce1e").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_plans_response_page_1.json")),
-				mockcfapi.ListServicePlansForPage("06df08f9-5a58-4d33-8097-32d0baf3ce1e", 2).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_plans_response_page_2.json")),
+				mockcfapi.ListServicePlans(serviceGUID).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_plans_response_page_1.json")),
+				mockcfapi.ListServicePlansForPage(serviceGUID, 2).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_plans_response_page_2.json")),
 				mockcfapi.ListServiceInstances("ff717e7c-afd5-4d0a-bafe-16c7eff546ec").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_instances_for_plan_1_response.json")),
 				mockcfapi.ListServiceInstances("2777ad05-8114-4169-8188-2ef5f39e0c6b").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_instances_for_plan_2_response.json")),
 			)
@@ -189,7 +319,7 @@ var _ = Describe("Client", func() {
 		It("fails if fetching service plans fails", func() {
 			server.VerifyAndMock(
 				mockcfapi.ListServiceOfferings().WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_services_response.json")),
-				mockcfapi.ListServicePlans("06df08f9-5a58-4d33-8097-32d0baf3ce1e").RespondsInternalServerErrorWith("niet goed"),
+				mockcfapi.ListServicePlans(serviceGUID).RespondsInternalServerErrorWith("niet goed"),
 			)
 
 			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
@@ -202,7 +332,7 @@ var _ = Describe("Client", func() {
 		It("fails if fetching service instances fails", func() {
 			server.VerifyAndMock(
 				mockcfapi.ListServiceOfferings().WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_services_response.json")),
-				mockcfapi.ListServicePlans("06df08f9-5a58-4d33-8097-32d0baf3ce1e").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_plans_response.json")),
+				mockcfapi.ListServicePlans(serviceGUID).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_plans_response.json")),
 				mockcfapi.ListServiceInstances("ff717e7c-afd5-4d0a-bafe-16c7eff546ec").RespondsInternalServerErrorWith("niet goed"),
 			)
 
@@ -218,7 +348,7 @@ var _ = Describe("Client", func() {
 		It("fetches instance counts for the plan", func() {
 			server.VerifyAndMock(
 				mockcfapi.ListServiceOfferings().WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_services_response.json")),
-				mockcfapi.ListServicePlans("06df08f9-5a58-4d33-8097-32d0baf3ce1e").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_plans_response.json")),
+				mockcfapi.ListServicePlans(serviceGUID).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_plans_response.json")),
 				mockcfapi.ListServiceInstances("2777ad05-8114-4169-8188-2ef5f39e0c6b").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_instances_for_plan_2_response.json")),
 			)
 
@@ -231,7 +361,7 @@ var _ = Describe("Client", func() {
 		It("fail if service instance not found", func() {
 			server.VerifyAndMock(
 				mockcfapi.ListServiceOfferings().WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_services_response.json")),
-				mockcfapi.ListServicePlans("06df08f9-5a58-4d33-8097-32d0baf3ce1e").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_plans_response.json")),
+				mockcfapi.ListServicePlans(serviceGUID).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_plans_response.json")),
 			)
 
 			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
@@ -258,7 +388,7 @@ var _ = Describe("Client", func() {
 		It("fails when it can't retrieve service plans", func() {
 			server.VerifyAndMock(
 				mockcfapi.ListServiceOfferings().WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_services_response.json")),
-				mockcfapi.ListServicePlans("06df08f9-5a58-4d33-8097-32d0baf3ce1e").RespondsInternalServerErrorWith("no service plans for you"),
+				mockcfapi.ListServicePlans(serviceGUID).RespondsInternalServerErrorWith("no service plans for you"),
 			)
 
 			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
@@ -272,7 +402,7 @@ var _ = Describe("Client", func() {
 		It("fails when it can't retrieve service instnaces for the plan", func() {
 			server.VerifyAndMock(
 				mockcfapi.ListServiceOfferings().WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_services_response.json")),
-				mockcfapi.ListServicePlans("06df08f9-5a58-4d33-8097-32d0baf3ce1e").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_plans_response.json")),
+				mockcfapi.ListServicePlans(serviceGUID).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_plans_response.json")),
 				mockcfapi.ListServiceInstances("2777ad05-8114-4169-8188-2ef5f39e0c6b").RespondsInternalServerErrorWith("no instances for you"),
 			)
 
@@ -576,7 +706,7 @@ var _ = Describe("Client", func() {
 				server.VerifyAndMock(
 					mockcfapi.ListServiceOfferings().WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_services_response_page_1.json")),
 					mockcfapi.ListServiceOfferingsForPage(2).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_services_response_page_2.json")),
-					mockcfapi.ListServicePlans("06df08f9-5a58-4d33-8097-32d0baf3ce1e").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_plans_response.json")),
+					mockcfapi.ListServicePlans(serviceGUID).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_plans_response.json")),
 					mockcfapi.ListServiceInstances("ff717e7c-afd5-4d0a-bafe-16c7eff546ec").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_instances_for_plan_1_response.json")),
 					mockcfapi.ListServiceInstances("2777ad05-8114-4169-8188-2ef5f39e0c6b").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_instances_for_plan_2_response.json")),
 				)
@@ -596,8 +726,8 @@ var _ = Describe("Client", func() {
 
 				server.VerifyAndMock(
 					mockcfapi.ListServiceOfferings().WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_services_response.json")),
-					mockcfapi.ListServicePlans("06df08f9-5a58-4d33-8097-32d0baf3ce1e").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_plans_response_page_1.json")),
-					mockcfapi.ListServicePlansForPage("06df08f9-5a58-4d33-8097-32d0baf3ce1e", 2).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_plans_response_page_2.json")),
+					mockcfapi.ListServicePlans(serviceGUID).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_plans_response_page_1.json")),
+					mockcfapi.ListServicePlansForPage(serviceGUID, 2).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_plans_response_page_2.json")),
 					mockcfapi.ListServiceInstances("ff717e7c-afd5-4d0a-bafe-16c7eff546ec").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_instances_for_plan_1_response.json")),
 					mockcfapi.ListServiceInstances("2777ad05-8114-4169-8188-2ef5f39e0c6b").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_instances_for_plan_2_response.json")),
 				)
@@ -617,7 +747,7 @@ var _ = Describe("Client", func() {
 
 				server.VerifyAndMock(
 					mockcfapi.ListServiceOfferings().WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_services_response.json")),
-					mockcfapi.ListServicePlans("06df08f9-5a58-4d33-8097-32d0baf3ce1e").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_plans_response.json")),
+					mockcfapi.ListServicePlans(serviceGUID).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_plans_response.json")),
 					mockcfapi.ListServiceInstances("ff717e7c-afd5-4d0a-bafe-16c7eff546ec").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_instances_for_plan_1_response.json")),
 					mockcfapi.ListServiceInstances("2777ad05-8114-4169-8188-2ef5f39e0c6b").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_instances_for_plan_2_page_1.json")),
 					mockcfapi.ListServiceInstancesForPage("2777ad05-8114-4169-8188-2ef5f39e0c6b", 2).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_instances_for_plan_2_page_2.json")),
