@@ -8,12 +8,12 @@ package orphan_deployments_test
 
 import (
 	"net/http"
-	"os/exec"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
+	"github.com/pivotal-cf/on-demand-service-broker/integration_tests/helpers"
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp/mockbroker"
 )
@@ -25,11 +25,19 @@ const (
 )
 
 var _ = Describe("Orphan Deployments", func() {
-	var odb *mockhttp.Server
+	var (
+		odb    *mockhttp.Server
+		params []string
+	)
 
 	BeforeEach(func() {
 		odb = mockbroker.New()
 		odb.ExpectedBasicAuth(brokerUsername, brokerPassword)
+		params = []string{
+			"-brokerUsername", brokerUsername,
+			"-brokerPassword", brokerPassword,
+			"-brokerUrl", odb.URL,
+		}
 	})
 
 	AfterEach(func() {
@@ -40,7 +48,7 @@ var _ = Describe("Orphan Deployments", func() {
 	It("succeeds when no orphan deployments are detected", func() {
 		odb.AppendMocks(mockbroker.OrphanDeployments().RespondsOKWith("[]"))
 
-		session := startOrphanDeploymentsCmd(odb.URL)
+		session := helpers.StartBinaryWithParams(binaryPath, params)
 
 		Eventually(session).Should(gexec.Exit(0))
 		Expect(string(session.Out.Contents())).To(Equal("[]"))
@@ -51,7 +59,7 @@ var _ = Describe("Orphan Deployments", func() {
 		listOfDeployments := `[{"deployment_name":"service-instance_one"},{"deployment_name":"service-instance_two"}]`
 		odb.AppendMocks(mockbroker.OrphanDeployments().RespondsOKWith(listOfDeployments))
 
-		session := startOrphanDeploymentsCmd(odb.URL)
+		session := helpers.StartBinaryWithParams(binaryPath, params)
 
 		Eventually(session).Should(gexec.Exit(10))
 		Expect(string(session.Out.Contents())).To(Equal(listOfDeployments))
@@ -61,7 +69,7 @@ var _ = Describe("Orphan Deployments", func() {
 	It("fails when the broker credentials are unauthorised", func() {
 		odb.AppendMocks(mockbroker.OrphanDeployments().RespondsUnauthorizedWith("unauthorized request"))
 
-		session := startOrphanDeploymentsCmd(odb.URL)
+		session := helpers.StartBinaryWithParams(binaryPath, params)
 
 		Eventually(session).Should(gexec.Exit(1))
 		Expect(session.Err).To(SatisfyAll(
@@ -73,7 +81,7 @@ var _ = Describe("Orphan Deployments", func() {
 	It("fails when the broker has an internal server error", func() {
 		odb.AppendMocks(mockbroker.OrphanDeployments().RespondsInternalServerErrorWith("error message"))
 
-		session := startOrphanDeploymentsCmd(odb.URL)
+		session := helpers.StartBinaryWithParams(binaryPath, params)
 
 		Eventually(session).Should(gexec.Exit(1))
 		Expect(session.Err).To(SatisfyAll(
@@ -85,7 +93,7 @@ var _ = Describe("Orphan Deployments", func() {
 	It("fails when the broker is unavailable", func() {
 		odb.Close()
 
-		session := startOrphanDeploymentsCmd(odb.URL)
+		session := helpers.StartBinaryWithParams(binaryPath, params)
 
 		Eventually(session).Should(gexec.Exit(1))
 		Expect(session.Err).To(SatisfyAll(
@@ -96,7 +104,12 @@ var _ = Describe("Orphan Deployments", func() {
 
 	It("fails when the broker URL is invalid", func() {
 		invalidURL := "$%#$%##$@#$#%$^&%^&$##$%@#"
-		session := startOrphanDeploymentsCmd(invalidURL)
+		params = []string{
+			"-brokerUsername", brokerUsername,
+			"-brokerPassword", brokerPassword,
+			"-brokerUrl", invalidURL,
+		}
+		session := helpers.StartBinaryWithParams(binaryPath, params)
 
 		Eventually(session).Should(gexec.Exit(1))
 		Expect(string(session.Err.Contents())).To(SatisfyAll(
@@ -108,7 +121,7 @@ var _ = Describe("Orphan Deployments", func() {
 	It("fails when the response is invalid JSON", func() {
 		odb.AppendMocks(mockbroker.OrphanDeployments().RespondsOKWith("invalid json"))
 
-		session := startOrphanDeploymentsCmd(odb.URL)
+		session := helpers.StartBinaryWithParams(binaryPath, params)
 
 		Eventually(session).Should(gexec.Exit(1))
 		Expect(session.Err).To(SatisfyAll(
@@ -117,16 +130,3 @@ var _ = Describe("Orphan Deployments", func() {
 		))
 	})
 })
-
-func startOrphanDeploymentsCmd(url string) *gexec.Session {
-	params := []string{
-		"-brokerUsername", brokerUsername,
-		"-brokerPassword", brokerPassword,
-		"-brokerUrl", url,
-	}
-	cmd := exec.Command(binaryPath, params...)
-
-	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
-	Expect(err).NotTo(HaveOccurred())
-	return session
-}

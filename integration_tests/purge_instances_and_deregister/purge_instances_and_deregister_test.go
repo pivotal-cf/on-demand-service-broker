@@ -1,14 +1,9 @@
 package purge_instances_and_deregister_test
 
 import (
-	"io"
-	"os/exec"
-	"time"
-
 	yaml "gopkg.in/yaml.v2"
 
-	"io/ioutil"
-	"path/filepath"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -16,6 +11,7 @@ import (
 	"github.com/onsi/gomega/gexec"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/deleter"
+	"github.com/pivotal-cf/on-demand-service-broker/integration_tests/helpers"
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp/mockcfapi"
 	"github.com/pivotal-cf/on-demand-service-broker/mockuaa"
@@ -39,13 +35,14 @@ var _ = Describe("purge instances and deregister tool", func() {
 
 		serviceBrokerGUID = "some-service-broker-guid"
 		serviceBrokerName = "some-broker-name"
+
+		timeout = time.Second * 5
 	)
 
 	var (
 		cfAPI          *mockhttp.Server
 		cfUAA          *mockuaa.ClientCredentialsServer
 		purgerSession  *gexec.Session
-		logBuffer      *gbytes.Buffer
 		configuration  deleter.Config
 		configFilePath string
 	)
@@ -76,7 +73,7 @@ var _ = Describe("purge instances and deregister tool", func() {
 		configYAML, err := yaml.Marshal(configuration)
 		Expect(err).ToNot(HaveOccurred())
 
-		configFilePath = writePurgeAndDeregisterToolConfig(configYAML)
+		configFilePath = helpers.WriteConfig(configYAML, tempDir)
 	})
 
 	AfterEach(func() {
@@ -87,10 +84,11 @@ var _ = Describe("purge instances and deregister tool", func() {
 
 	It("deletes the service instance and deregisters the service broker", func() {
 		cfAPI.VerifyAndMock(
+			//Step 1 of the purger, Disabling service access
 			mockcfapi.ListServiceOfferings().RespondsWithServiceOffering(serviceOfferingName, serviceOfferingGUID),
 			mockcfapi.ListServicePlans(serviceOfferingGUID).RespondsWithServicePlan(planID, planGUID),
 			mockcfapi.DisablePlanAccess(planGUID).RespondsCreated(),
-
+			//Step 2 of the purger, deleting all service instances
 			mockcfapi.ListServiceOfferings().RespondsWithServiceOffering(serviceOfferingName, serviceOfferingGUID),
 			mockcfapi.ListServicePlans(serviceOfferingGUID).RespondsWithServicePlan(planID, planGUID),
 			mockcfapi.ListServiceInstances(planGUID).RespondsWithServiceInstances(instanceGUID),
@@ -104,16 +102,16 @@ var _ = Describe("purge instances and deregister tool", func() {
 			mockcfapi.ListServiceOfferings().RespondsWithServiceOffering(serviceOfferingName, serviceOfferingGUID),
 			mockcfapi.ListServicePlans(serviceOfferingGUID).RespondsWithServicePlan(planID, planGUID),
 			mockcfapi.ListServiceInstances(planGUID).RespondsWithNoServiceInstances(),
-
+			//Step 3 of the purger, deregistering the broker
 			mockcfapi.ListServiceBrokers().RespondsWithBrokers(serviceBrokerName, serviceBrokerGUID),
 			mockcfapi.DeregisterBroker(serviceBrokerGUID).RespondsNoContent(),
 		)
 
 		params := []string{"-configFilePath", configFilePath, "-brokerName", serviceBrokerName}
-		purgerSession, logBuffer = startPurgeAndDeregisterTool(params)
-		Eventually(purgerSession, 10*time.Second).Should(gexec.Exit(0))
+		purgerSession = helpers.StartBinaryWithParams(binaryPath, params)
+		Eventually(purgerSession, timeout).Should(gexec.Exit(0))
 
-		Expect(logBuffer).To(gbytes.Say("FINISHED PURGE INSTANCES AND DEREGISTER BROKER"))
+		Expect(purgerSession).To(gbytes.Say("FINISHED PURGE INSTANCES AND DEREGISTER BROKER"))
 	})
 
 	It("fails when the purger fails", func() {
@@ -122,60 +120,43 @@ var _ = Describe("purge instances and deregister tool", func() {
 		)
 
 		params := []string{"-configFilePath", configFilePath, "-brokerName", serviceBrokerName}
-		purgerSession, logBuffer = startPurgeAndDeregisterTool(params)
-		Eventually(purgerSession, 10*time.Second).Should(gexec.Exit(1))
-		Eventually(logBuffer).Should(gbytes.Say("Purger Failed:"))
+		purgerSession = helpers.StartBinaryWithParams(binaryPath, params)
+		Eventually(purgerSession, timeout).Should(gexec.Exit(1))
+		Eventually(purgerSession).Should(gbytes.Say("Purger Failed:"))
 
 	})
 
 	It("fails when broker name is not provided", func() {
 		params := []string{"-configFilePath", configFilePath}
-		purgerSession, logBuffer = startPurgeAndDeregisterTool(params)
+		purgerSession = helpers.StartBinaryWithParams(binaryPath, params)
 
-		Eventually(purgerSession).Should(gexec.Exit(1))
-		Eventually(logBuffer).Should(gbytes.Say("Missing argument -brokerName"))
+		Eventually(purgerSession, timeout).Should(gexec.Exit(1))
+		Eventually(purgerSession).Should(gbytes.Say("Missing argument -brokerName"))
 	})
 
 	It("fails when config file path is not provided", func() {
 		params := []string{"-brokerName", serviceBrokerName}
-		purgerSession, logBuffer = startPurgeAndDeregisterTool(params)
+		purgerSession = helpers.StartBinaryWithParams(binaryPath, params)
 
-		Eventually(purgerSession).Should(gexec.Exit(1))
-		Eventually(logBuffer).Should(gbytes.Say("Missing argument -configFilePath"))
+		Eventually(purgerSession, timeout).Should(gexec.Exit(1))
+		Eventually(purgerSession).Should(gbytes.Say("Missing argument -configFilePath"))
 	})
 
 	It("fails when configFilePath cannot be read", func() {
 		params := []string{"-configFilePath", "/tmp/foo/bar", "-brokerName", serviceBrokerName}
-		purgerSession, logBuffer = startPurgeAndDeregisterTool(params)
+		purgerSession = helpers.StartBinaryWithParams(binaryPath, params)
 
-		Eventually(purgerSession).Should(gexec.Exit(1))
-		Eventually(logBuffer).Should(gbytes.Say("Error reading config file:"))
+		Eventually(purgerSession, timeout).Should(gexec.Exit(1))
+		Eventually(purgerSession).Should(gbytes.Say("Error reading config file:"))
 	})
 
 	It("fails when the config is not valid yaml", func() {
-		configFilePath := writePurgeAndDeregisterToolConfig([]byte("not valid yaml"))
+		configFilePath := helpers.WriteConfig([]byte("not valid yaml"), tempDir)
 		params := []string{"-configFilePath", configFilePath, "-brokerName", serviceBrokerName}
-		purgerSession, logBuffer = startPurgeAndDeregisterTool(params)
+		purgerSession = helpers.StartBinaryWithParams(binaryPath, params)
 
-		Eventually(purgerSession).Should(gexec.Exit(1))
-		Eventually(logBuffer).Should(gbytes.Say("Invalid config file:"))
+		Eventually(purgerSession, timeout).Should(gexec.Exit(1))
+		Eventually(purgerSession).Should(gbytes.Say("Invalid config file:"))
 	})
 
 })
-
-// TODO: dedup with delete all
-func startPurgeAndDeregisterTool(params []string) (*gexec.Session, *gbytes.Buffer) {
-	cmd := exec.Command(binaryPath, params...)
-	logBuffer := gbytes.NewBuffer()
-
-	session, err := gexec.Start(cmd, io.MultiWriter(GinkgoWriter, logBuffer), GinkgoWriter)
-	Expect(err).NotTo(HaveOccurred())
-	return session, logBuffer
-}
-
-// TODO: dedup with delete all
-func writePurgeAndDeregisterToolConfig(config []byte) string {
-	configFilePath := filepath.Join(tempDir, "purge_and_deregister_test_config.yml")
-	Expect(ioutil.WriteFile(configFilePath, config, 0644)).To(Succeed())
-	return configFilePath
-}

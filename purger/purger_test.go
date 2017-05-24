@@ -51,7 +51,7 @@ var _ = Describe("purger", func() {
 
 		Expect(logBuffer).To(gbytes.Say("Deleting all service instances"))
 		Expect(fakeDeleter.DeleteAllServiceInstancesCallCount()).To(Equal(1))
-		Expect(fakeDeleter.DeleteAllServiceInstancesArgsForCall(0)).To(Equal(serviceOfferingGUID)) //TODO test logger
+		Expect(fakeDeleter.DeleteAllServiceInstancesArgsForCall(0)).To(Equal(serviceOfferingGUID))
 
 		Expect(logBuffer).To(gbytes.Say("Deregistering service broker"))
 		Expect(fakeRegistrar.DeregisterCallCount()).To(Equal(1))

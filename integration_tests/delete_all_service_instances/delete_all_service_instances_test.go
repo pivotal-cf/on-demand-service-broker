@@ -8,10 +8,6 @@ package delete_all_service_instances_test
 
 import (
 	"fmt"
-	"io"
-	"io/ioutil"
-	"os/exec"
-	"path/filepath"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -20,8 +16,9 @@ import (
 	"github.com/onsi/gomega/gexec"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/deleter"
-	"github.com/pivotal-cf/on-demand-service-broker/mockhttp/mockcfapi"
+	"github.com/pivotal-cf/on-demand-service-broker/integration_tests/helpers"
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
+	"github.com/pivotal-cf/on-demand-service-broker/mockhttp/mockcfapi"
 	"github.com/pivotal-cf/on-demand-service-broker/mockuaa"
 	"gopkg.in/yaml.v2"
 )
@@ -43,7 +40,6 @@ var _ = Describe("delete all service instances tool", func() {
 		cfAPI          *mockhttp.Server
 		cfUAA          *mockuaa.ClientCredentialsServer
 		deleterSession *gexec.Session
-		logBuffer      *gbytes.Buffer
 		configuration  deleter.Config
 		configFilePath string
 	)
@@ -74,7 +70,7 @@ var _ = Describe("delete all service instances tool", func() {
 		configYAML, err := yaml.Marshal(configuration)
 		Expect(err).ToNot(HaveOccurred())
 
-		configFilePath = writeDeleteToolConfig(configYAML)
+		configFilePath = helpers.WriteConfig(configYAML, tempDir)
 	})
 
 	AfterEach(func() {
@@ -97,13 +93,13 @@ var _ = Describe("delete all service instances tool", func() {
 			)
 
 			params := []string{"-configFilePath", configFilePath}
-			deleterSession, logBuffer = startDeleteTool(params)
+			deleterSession = helpers.StartBinaryWithParams(binaryPath, params)
 			Eventually(deleterSession, 10*time.Second).Should(gexec.Exit())
 		})
 
 		It("does nothing", func() {
 			Expect(deleterSession.ExitCode()).To(Equal(0))
-			Expect(logBuffer).To(gbytes.Say("No service instances found."))
+			Expect(deleterSession).To(gbytes.Say("No service instances found."))
 		})
 	})
 
@@ -121,20 +117,20 @@ var _ = Describe("delete all service instances tool", func() {
 			configYAML, err := yaml.Marshal(configuration)
 			Expect(err).ToNot(HaveOccurred())
 
-			configFilePath = writeDeleteToolConfig(configYAML)
+			configFilePath = helpers.WriteConfig(configYAML, tempDir)
 
 			params := []string{"-configFilePath", configFilePath}
-			deleterSession, logBuffer = startDeleteTool(params)
+			deleterSession = helpers.StartBinaryWithParams(binaryPath, params)
 			Eventually(deleterSession, 10*time.Second).Should(gexec.Exit())
 		})
 
 		It("does nothing", func() {
 			Expect(deleterSession.ExitCode()).To(Equal(0))
-			Expect(logBuffer).To(gbytes.Say("No service instances found."))
+			Expect(deleterSession).To(gbytes.Say("No service instances found."))
 		})
 
 		It("logs that the polling interval values are as configured", func() {
-			Expect(logBuffer).To(gbytes.Say("Deleter Configuration: polling_intial_offset: 1, polling_interval: 1."))
+			Expect(deleterSession).To(gbytes.Say("Deleter Configuration: polling_intial_offset: 1, polling_interval: 1."))
 		})
 	})
 
@@ -157,18 +153,18 @@ var _ = Describe("delete all service instances tool", func() {
 			)
 
 			params := []string{"-configFilePath", configFilePath}
-			deleterSession, logBuffer = startDeleteTool(params)
+			deleterSession = helpers.StartBinaryWithParams(binaryPath, params)
 			Eventually(deleterSession, 10*time.Second).Should(gexec.Exit())
 		})
 
 		It("deletes the service instance", func() {
 			Expect(deleterSession.ExitCode()).To(BeZero())
 
-			Expect(logBuffer).To(gbytes.Say("Deleting binding some-binding-guid of service instance some-instance-guid to app some-bound-app-guid"))
-			Expect(logBuffer).To(gbytes.Say(fmt.Sprintf("Deleting service key %s of service instance %s", serviceKeyGUID, instanceGUID)))
-			Expect(logBuffer).To(gbytes.Say(fmt.Sprintf("Deleting service instance %s", instanceGUID)))
-			Expect(logBuffer).To(gbytes.Say(fmt.Sprintf("Waiting for service instance %s to be deleted", instanceGUID)))
-			Expect(logBuffer).To(gbytes.Say("FINISHED DELETES"))
+			Expect(deleterSession).To(gbytes.Say("Deleting binding some-binding-guid of service instance some-instance-guid to app some-bound-app-guid"))
+			Expect(deleterSession).To(gbytes.Say(fmt.Sprintf("Deleting service key %s of service instance %s", serviceKeyGUID, instanceGUID)))
+			Expect(deleterSession).To(gbytes.Say(fmt.Sprintf("Deleting service instance %s", instanceGUID)))
+			Expect(deleterSession).To(gbytes.Say(fmt.Sprintf("Waiting for service instance %s to be deleted", instanceGUID)))
+			Expect(deleterSession).To(gbytes.Say("FINISHED DELETES"))
 		})
 	})
 
@@ -176,25 +172,25 @@ var _ = Describe("delete all service instances tool", func() {
 		BeforeEach(func() {
 			configFilePath := "no/file/here"
 			params := []string{"-configFilePath", configFilePath}
-			deleterSession, logBuffer = startDeleteTool(params)
+			deleterSession = helpers.StartBinaryWithParams(binaryPath, params)
 		})
 
 		It("fails with error", func() {
 			Eventually(deleterSession).Should(gexec.Exit(1))
-			Eventually(logBuffer).Should(gbytes.Say("Error reading config file"))
+			Eventually(deleterSession).Should(gbytes.Say("Error reading config file"))
 		})
 	})
 
 	Context("when the configuration file is invalid yaml", func() {
 		BeforeEach(func() {
-			configFilePath := writeDeleteToolConfig([]byte("not:valid:yaml"))
+			configFilePath := helpers.WriteConfig([]byte("not:valid:yaml"), tempDir)
 			params := []string{"-configFilePath", configFilePath}
-			deleterSession, logBuffer = startDeleteTool(params)
+			deleterSession = helpers.StartBinaryWithParams(binaryPath, params)
 		})
 
 		It("fails with error", func() {
 			Eventually(deleterSession).Should(gexec.Exit(1))
-			Eventually(logBuffer).Should(gbytes.Say("Invalid config file"))
+			Eventually(deleterSession).Should(gbytes.Say("Invalid config file"))
 		})
 	})
 
@@ -203,13 +199,13 @@ var _ = Describe("delete all service instances tool", func() {
 			cfAPI.Close()
 
 			params := []string{"-configFilePath", configFilePath}
-			deleterSession, logBuffer = startDeleteTool(params)
+			deleterSession = helpers.StartBinaryWithParams(binaryPath, params)
 			Eventually(deleterSession, 10*time.Second).Should(gexec.Exit())
 		})
 
 		It("fails to connect", func() {
 			Expect(deleterSession.ExitCode()).To(Equal(1))
-			Expect(logBuffer).To(gbytes.Say("connection refused"))
+			Expect(deleterSession).To(gbytes.Say("connection refused"))
 		})
 	})
 
@@ -220,14 +216,14 @@ var _ = Describe("delete all service instances tool", func() {
 			)
 
 			params := []string{"-configFilePath", configFilePath}
-			deleterSession, logBuffer = startDeleteTool(params)
+			deleterSession = helpers.StartBinaryWithParams(binaryPath, params)
 			Eventually(deleterSession, 10*time.Second).Should(gexec.Exit())
 		})
 
 		It("fails and does nothing", func() {
 			Expect(deleterSession.ExitCode()).To(Equal(1))
-			Expect(logBuffer).To(gbytes.Say("Unexpected reponse status 500"))
-			Expect(logBuffer).To(gbytes.Say("no services for you"))
+			Expect(deleterSession).To(gbytes.Say("Unexpected reponse status 500"))
+			Expect(deleterSession).To(gbytes.Say("no services for you"))
 		})
 	})
 
@@ -258,7 +254,7 @@ var _ = Describe("delete all service instances tool", func() {
 			)
 
 			params := []string{"-configFilePath", configFilePath}
-			deleterSession, logBuffer = startDeleteTool(params)
+			deleterSession = helpers.StartBinaryWithParams(binaryPath, params)
 			Eventually(deleterSession, 10*time.Second).Should(gexec.Exit())
 		})
 
@@ -293,7 +289,7 @@ var _ = Describe("delete all service instances tool", func() {
 			)
 
 			params := []string{"-configFilePath", configFilePath}
-			deleterSession, logBuffer = startDeleteTool(params)
+			deleterSession = helpers.StartBinaryWithParams(binaryPath, params)
 			Eventually(deleterSession, 10*time.Second).Should(gexec.Exit())
 		})
 
@@ -323,7 +319,7 @@ var _ = Describe("delete all service instances tool", func() {
 			)
 
 			params := []string{"-configFilePath", configFilePath}
-			deleterSession, logBuffer = startDeleteTool(params)
+			deleterSession = helpers.StartBinaryWithParams(binaryPath, params)
 			Eventually(deleterSession, 10*time.Second).Should(gexec.Exit())
 		})
 
@@ -347,15 +343,15 @@ var _ = Describe("delete all service instances tool", func() {
 			)
 
 			params := []string{"-configFilePath", configFilePath}
-			deleterSession, logBuffer = startDeleteTool(params)
+			deleterSession = helpers.StartBinaryWithParams(binaryPath, params)
 			Eventually(deleterSession, 10*time.Second).Should(gexec.Exit())
 		})
 
 		It("fails to authorize", func() {
 			Eventually(deleterSession).Should(gexec.Exit(1))
 
-			Expect(logBuffer).To(gbytes.Say("Unexpected reponse status 403"))
-			Expect(logBuffer).To(gbytes.Say("You are not authorized to perform the requested action"))
+			Expect(deleterSession).To(gbytes.Say("Unexpected reponse status 403"))
+			Expect(deleterSession).To(gbytes.Say("You are not authorized to perform the requested action"))
 		})
 	})
 
@@ -374,13 +370,13 @@ var _ = Describe("delete all service instances tool", func() {
 			)
 
 			params := []string{"-configFilePath", configFilePath}
-			deleterSession, logBuffer = startDeleteTool(params)
+			deleterSession = helpers.StartBinaryWithParams(binaryPath, params)
 			Eventually(deleterSession, 1*time.Second).Should(gexec.Exit())
 		})
 
 		It("reports the failure", func() {
 			Eventually(deleterSession).Should(gexec.Exit(1))
-			Expect(logBuffer).To(gbytes.Say("Result: failed to delete service instance %s. Delete operation failed.", instanceGUID))
+			Expect(deleterSession).To(gbytes.Say("Result: failed to delete service instance %s. Delete operation failed.", instanceGUID))
 		})
 	})
 
@@ -399,28 +395,13 @@ var _ = Describe("delete all service instances tool", func() {
 			)
 
 			params := []string{"-configFilePath", configFilePath}
-			deleterSession, logBuffer = startDeleteTool(params)
+			deleterSession = helpers.StartBinaryWithParams(binaryPath, params)
 			Eventually(deleterSession, 1*time.Second).Should(gexec.Exit())
 		})
 
 		It("fails to delete", func() {
 			Eventually(deleterSession).Should(gexec.Exit(1))
-			Expect(logBuffer).To(gbytes.Say("Result: failed to delete service instance %s. Error: Invalid response body", instanceGUID))
+			Expect(deleterSession).To(gbytes.Say("Result: failed to delete service instance %s. Error: Invalid response body", instanceGUID))
 		})
 	})
 })
-
-func startDeleteTool(params []string) (*gexec.Session, *gbytes.Buffer) {
-	cmd := exec.Command(binaryPath, params...)
-	logBuffer := gbytes.NewBuffer()
-
-	session, err := gexec.Start(cmd, io.MultiWriter(GinkgoWriter, logBuffer), GinkgoWriter)
-	Expect(err).NotTo(HaveOccurred())
-	return session, logBuffer
-}
-
-func writeDeleteToolConfig(config []byte) string {
-	configFilePath := filepath.Join(tempDir, "delete_all_test_config.yml")
-	Expect(ioutil.WriteFile(configFilePath, config, 0644)).To(Succeed())
-	return configFilePath
-}
