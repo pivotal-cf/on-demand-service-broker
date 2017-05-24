@@ -112,7 +112,7 @@ func (c Client) GetInstancesOfServiceOffering(serviceOfferingID string, logger *
 
 			instancesURL := fmt.Sprintf("%s%s", c.url, path)
 
-			err := c.Get(instancesURL, &serviceInstancesResp, logger)
+			err := c.get(instancesURL, &serviceInstancesResp, logger)
 			if err != nil {
 				return nil, err
 			}
@@ -137,7 +137,7 @@ func (c Client) GetBindingsForInstance(instanceGUID string, logger *log.Logger) 
 		var bindingResponse bindingsResponse
 		bindingsURL := fmt.Sprintf("%s%s", c.url, path)
 
-		err := c.Get(bindingsURL, &bindingResponse, logger)
+		err := c.get(bindingsURL, &bindingResponse, logger)
 		if err != nil {
 			return nil, err
 		}
@@ -163,7 +163,7 @@ func (c Client) DeleteBinding(binding Binding, logger *log.Logger) error {
 		binding.GUID,
 	)
 
-	return c.Delete(url, logger)
+	return c.delete(url, logger)
 }
 
 func (c Client) GetServiceKeysForInstance(instanceGUID string, logger *log.Logger) ([]ServiceKey, error) {
@@ -178,7 +178,7 @@ func (c Client) GetServiceKeysForInstance(instanceGUID string, logger *log.Logge
 		var serviceKeyResponse serviceKeysResponse
 		serviceKeysURL := fmt.Sprintf("%s%s", c.url, path)
 
-		err := c.Get(serviceKeysURL, &serviceKeyResponse, logger)
+		err := c.get(serviceKeysURL, &serviceKeyResponse, logger)
 		if err != nil {
 			return nil, err
 		}
@@ -202,7 +202,7 @@ func (c Client) DeleteServiceKey(serviceKey ServiceKey, logger *log.Logger) erro
 		serviceKey.GUID,
 	)
 
-	return c.Delete(url, logger)
+	return c.delete(url, logger)
 }
 
 func (c Client) DeleteServiceInstance(instanceGUID string, logger *log.Logger) error {
@@ -212,12 +212,12 @@ func (c Client) DeleteServiceInstance(instanceGUID string, logger *log.Logger) e
 		instanceGUID,
 	)
 
-	return c.Delete(url, logger)
+	return c.delete(url, logger)
 }
 
 func (c Client) GetAPIVersion(logger *log.Logger) (string, error) {
 	var infoResponse infoResponse
-	err := c.Get(fmt.Sprintf("%s/v2/info", c.url), &infoResponse, logger)
+	err := c.get(fmt.Sprintf("%s/v2/info", c.url), &infoResponse, logger)
 	if err != nil {
 		return "", err
 	}
@@ -235,7 +235,7 @@ func (c Client) ListServiceBrokers(logger *log.Logger) ([]ServiceBroker, error) 
 		var response serviceBrokerResponse
 		fullPath := fmt.Sprintf("%s%s", c.url, path)
 
-		err = c.Get(fullPath, &response, logger)
+		err = c.get(fullPath, &response, logger)
 		if err != nil {
 			return []ServiceBroker{}, err
 		}
@@ -261,7 +261,7 @@ func (c Client) DisableServiceAccessForServiceOffering(serviceOfferingID string,
 
 	publicFalse := `{"public":false}`
 	for _, p := range plans {
-		err := c.Put(fmt.Sprintf("%s/v2/service_plans/%s", c.url, p.Metadata.GUID), publicFalse, logger)
+		err := c.put(fmt.Sprintf("%s/v2/service_plans/%s", c.url, p.Metadata.GUID), publicFalse, logger)
 		if err != nil {
 			return err
 		}
@@ -270,7 +270,7 @@ func (c Client) DisableServiceAccessForServiceOffering(serviceOfferingID string,
 }
 
 func (c Client) DeregisterBroker(brokerGUID string, logger *log.Logger) error {
-	return c.Delete(fmt.Sprintf("%s/v2/service_brokers/%s", c.url, brokerGUID), logger)
+	return c.delete(fmt.Sprintf("%s/v2/service_brokers/%s", c.url, brokerGUID), logger)
 }
 
 func (c Client) getPlansForServiceID(serviceID string, logger *log.Logger) ([]ServicePlan, error) {
@@ -288,7 +288,7 @@ func (c Client) getPlansForServiceID(serviceID string, logger *log.Logger) ([]Se
 
 func (c Client) listServices(path string, logger *log.Logger) (serviceResponse, error) {
 	resp := serviceResponse{}
-	return resp, c.Get(fmt.Sprintf("%s%s", c.url, path), &resp, logger)
+	return resp, c.get(fmt.Sprintf("%s%s", c.url, path), &resp, logger)
 }
 
 func (c Client) findServiceByUniqueID(uniqueID string, logger *log.Logger) (*service, error) {
@@ -310,13 +310,13 @@ func (c Client) findServiceByUniqueID(uniqueID string, logger *log.Logger) (*ser
 func (c Client) getServiceInstance(serviceInstanceGUID string, logger *log.Logger) (serviceInstanceResource, error) {
 	path := fmt.Sprintf("/v2/service_instances/%s", serviceInstanceGUID)
 	var instance serviceInstanceResource
-	err := c.Get(fmt.Sprintf("%s%s", c.url, path), &instance, logger)
+	err := c.get(fmt.Sprintf("%s%s", c.url, path), &instance, logger)
 	return instance, err
 }
 
 func (c Client) getServicePlan(servicePlanPath string, logger *log.Logger) (ServicePlan, error) {
 	var plan ServicePlan
-	err := c.Get(fmt.Sprintf("%s%s", c.url, servicePlanPath), &plan, logger)
+	err := c.get(fmt.Sprintf("%s%s", c.url, servicePlanPath), &plan, logger)
 	return plan, err
 }
 
@@ -337,12 +337,12 @@ func (c Client) listAllPlans(path string, logger *log.Logger) ([]ServicePlan, er
 
 func (c Client) listPlans(path string, logger *log.Logger) (ServicePlanResponse, error) {
 	servicePlanResponse := ServicePlanResponse{}
-	return servicePlanResponse, c.Get(fmt.Sprintf("%s%s", c.url, path), &servicePlanResponse, logger)
+	return servicePlanResponse, c.get(fmt.Sprintf("%s%s", c.url, path), &servicePlanResponse, logger)
 }
 
 func (c Client) countServiceInstancesOfServicePlan(path string, logger *log.Logger) (int, error) {
 	resp := serviceInstancesResponse{}
-	err := c.Get(fmt.Sprintf("%s%s?results-per-page=%d", c.url, path, defaultPerPage), &resp, logger)
+	err := c.get(fmt.Sprintf("%s%s?results-per-page=%d", c.url, path, defaultPerPage), &resp, logger)
 	if err != nil {
 		return 0, err
 	}

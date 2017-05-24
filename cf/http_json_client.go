@@ -30,7 +30,7 @@ type AuthHeaderBuilder interface {
 	Build(logger *log.Logger) (string, error)
 }
 
-func (w httpJsonClient) Get(path string, body interface{}, logger *log.Logger) error {
+func (w httpJsonClient) get(path string, body interface{}, logger *log.Logger) error {
 	req, err := http.NewRequest(http.MethodGet, path, nil)
 	if err != nil {
 		return err
@@ -51,7 +51,7 @@ func (w httpJsonClient) Get(path string, body interface{}, logger *log.Logger) e
 	return w.readResponse(response, body)
 }
 
-func (c httpJsonClient) Put(path, reqBody string, logger *log.Logger) error {
+func (c httpJsonClient) put(path, reqBody string, logger *log.Logger) error {
 
 	req, err := http.NewRequest(http.MethodPut, path, bytes.NewBufferString(reqBody))
 	if err != nil {
@@ -82,8 +82,7 @@ func (c httpJsonClient) Put(path, reqBody string, logger *log.Logger) error {
 	return fmt.Errorf("Unexpected reponse status %d, %q", resp.StatusCode, string(body))
 }
 
-// TODO can this be private?
-func (c httpJsonClient) Delete(path string, logger *log.Logger) error {
+func (c httpJsonClient) delete(path string, logger *log.Logger) error {
 	req, err := http.NewRequest(http.MethodDelete, path, nil)
 	if err != nil {
 		return err
