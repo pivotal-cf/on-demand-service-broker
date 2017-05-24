@@ -94,8 +94,9 @@ var _ = Describe("Client", func() {
 	})
 
 	Describe("DisableServiceAccessForServiceOffering", func() {
+		const offeringID = "D94A086D-203D-4966-A6F1-60A9E2300F72"
+
 		It("disables all the plans across pages", func() {
-			offeringID := "D94A086D-203D-4966-A6F1-60A9E2300F72"
 
 			server.VerifyAndMock(
 				mockcfapi.ListServiceOfferings().WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_services_response.json")),
@@ -113,8 +114,6 @@ var _ = Describe("Client", func() {
 		})
 
 		It("returns an error if it fails to get plans for service offering", func() {
-			offeringID := "D94A086D-203D-4966-A6F1-60A9E2300F72"
-
 			server.VerifyAndMock(
 				mockcfapi.ListServiceOfferings().WithAuthorizationHeader(cfAuthorizationHeader).RespondsInternalServerErrorWith("failed"),
 			)
@@ -127,8 +126,6 @@ var _ = Describe("Client", func() {
 		})
 
 		It("returns an error if it fails to update the service plan", func() {
-			offeringID := "D94A086D-203D-4966-A6F1-60A9E2300F72"
-
 			server.VerifyAndMock(
 				mockcfapi.ListServiceOfferings().WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_services_response.json")),
 				mockcfapi.ListServicePlans(serviceGUID).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_plans_response_page_1.json")),

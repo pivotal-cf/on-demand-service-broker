@@ -53,5 +53,4 @@ func DeregisterBroker(serviceBrokerGUID string) *serviceBrokersMock {
 
 func (m *serviceBrokersMock) RespondsWithBrokers(brokerName, brokerID string) *mockhttp.Handler {
 	return m.RespondsOKWith(fmt.Sprintf(ServiceBrokersResponseTemplate, brokerID, brokerName))
-
 }
