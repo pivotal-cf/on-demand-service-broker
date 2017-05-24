@@ -21,7 +21,7 @@ var _ = Describe("purger", func() {
 
 	var (
 		fakeDeleter   *fakes.FakeDeleter
-		fakeRegistrar *fakes.FakeRegistrar
+		fakeRegistrar *fakes.FakeDeregistrar
 		fakeCFClient  *fakes.FakeCloudFoundryClient
 		purgeTool     *purger.Purger
 		logger        *log.Logger
@@ -34,7 +34,7 @@ var _ = Describe("purger", func() {
 			NewWithRequestID()
 
 		fakeDeleter = new(fakes.FakeDeleter)
-		fakeRegistrar = new(fakes.FakeRegistrar)
+		fakeRegistrar = new(fakes.FakeDeregistrar)
 		fakeCFClient = new(fakes.FakeCloudFoundryClient)
 		purgeTool = purger.New(fakeDeleter, fakeRegistrar, fakeCFClient, logger)
 
@@ -68,7 +68,7 @@ var _ = Describe("purger", func() {
 		Expect(purgeTool.DeleteInstancesAndDeregister(serviceOfferingGUID, brokerName)).To(MatchError("Purger Failed: failed to delete stuff"))
 	})
 
-	It("returns an error when the registrar fails", func() {
+	It("returns an error when the deregistrar fails", func() {
 		fakeRegistrar.DeregisterReturns(errors.New("failed to deregister"))
 		Expect(purgeTool.DeleteInstancesAndDeregister(serviceOfferingGUID, brokerName)).To(MatchError("Purger Failed: failed to deregister"))
 	})

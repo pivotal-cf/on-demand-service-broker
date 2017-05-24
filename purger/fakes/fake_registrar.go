@@ -7,7 +7,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/purger"
 )
 
-type FakeRegistrar struct {
+type FakeDeregistrar struct {
 	DeregisterStub        func(string) error
 	deregisterMutex       sync.RWMutex
 	deregisterArgsForCall []struct {
@@ -23,7 +23,7 @@ type FakeRegistrar struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeRegistrar) Deregister(arg1 string) error {
+func (fake *FakeDeregistrar) Deregister(arg1 string) error {
 	fake.deregisterMutex.Lock()
 	ret, specificReturn := fake.deregisterReturnsOnCall[len(fake.deregisterArgsForCall)]
 	fake.deregisterArgsForCall = append(fake.deregisterArgsForCall, struct {
@@ -40,26 +40,26 @@ func (fake *FakeRegistrar) Deregister(arg1 string) error {
 	return fake.deregisterReturns.result1
 }
 
-func (fake *FakeRegistrar) DeregisterCallCount() int {
+func (fake *FakeDeregistrar) DeregisterCallCount() int {
 	fake.deregisterMutex.RLock()
 	defer fake.deregisterMutex.RUnlock()
 	return len(fake.deregisterArgsForCall)
 }
 
-func (fake *FakeRegistrar) DeregisterArgsForCall(i int) string {
+func (fake *FakeDeregistrar) DeregisterArgsForCall(i int) string {
 	fake.deregisterMutex.RLock()
 	defer fake.deregisterMutex.RUnlock()
 	return fake.deregisterArgsForCall[i].arg1
 }
 
-func (fake *FakeRegistrar) DeregisterReturns(result1 error) {
+func (fake *FakeDeregistrar) DeregisterReturns(result1 error) {
 	fake.DeregisterStub = nil
 	fake.deregisterReturns = struct {
 		result1 error
 	}{result1}
 }
 
-func (fake *FakeRegistrar) DeregisterReturnsOnCall(i int, result1 error) {
+func (fake *FakeDeregistrar) DeregisterReturnsOnCall(i int, result1 error) {
 	fake.DeregisterStub = nil
 	if fake.deregisterReturnsOnCall == nil {
 		fake.deregisterReturnsOnCall = make(map[int]struct {
@@ -71,7 +71,7 @@ func (fake *FakeRegistrar) DeregisterReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeRegistrar) Invocations() map[string][][]interface{} {
+func (fake *FakeDeregistrar) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.deregisterMutex.RLock()
@@ -79,7 +79,7 @@ func (fake *FakeRegistrar) Invocations() map[string][][]interface{} {
 	return fake.invocations
 }
 
-func (fake *FakeRegistrar) recordInvocation(key string, args []interface{}) {
+func (fake *FakeDeregistrar) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
@@ -91,4 +91,4 @@ func (fake *FakeRegistrar) recordInvocation(key string, args []interface{}) {
 	fake.invocations[key] = append(fake.invocations[key], args)
 }
 
-var _ purger.Registrar = new(FakeRegistrar)
+var _ purger.Deregistrar = new(FakeDeregistrar)

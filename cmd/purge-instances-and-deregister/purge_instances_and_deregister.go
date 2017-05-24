@@ -11,7 +11,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/deleter"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 	"github.com/pivotal-cf/on-demand-service-broker/purger"
-	"github.com/pivotal-cf/on-demand-service-broker/registrar"
+	"github.com/pivotal-cf/on-demand-service-broker/deregistrar"
 	"gopkg.in/yaml.v2"
 )
 
@@ -65,11 +65,11 @@ func main() {
 
 	deleteTool := deleter.New(cfClient, clock, config.PollingInitialOffset, config.PollingInterval, logger)
 
-	registrarTool := registrar.New(cfClient, logger)
+	registrarTool := deregistrar.New(cfClient, logger)
 
 	purgerTool := purger.New(deleteTool, registrarTool, cfClient, logger)
 
-	err = purgerTool.DeleteInstancesAndDeregister(config.ServiceCatalog.ID, *brokerName)
+	err =	purgerTool.DeleteInstancesAndDeregister(config.ServiceCatalog.ID, *brokerName)
 	if err != nil {
 		logger.Fatalf(err.Error())
 	}

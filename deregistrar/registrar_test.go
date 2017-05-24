@@ -1,10 +1,10 @@
-package registrar_test
+package deregistrar_test
 
 import (
 	"fmt"
 
-	"github.com/pivotal-cf/on-demand-service-broker/registrar"
-	"github.com/pivotal-cf/on-demand-service-broker/registrar/fakes"
+	"github.com/pivotal-cf/on-demand-service-broker/deregistrar"
+	"github.com/pivotal-cf/on-demand-service-broker/deregistrar/fakes"
 
 	"errors"
 
@@ -13,7 +13,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 )
 
-var _ = Describe("Registrar", func() {
+var _ = Describe("Deregistrar", func() {
 	const (
 		brokerGUID = "broker-guid"
 		brokerName = "broker-name"
@@ -34,7 +34,7 @@ var _ = Describe("Registrar", func() {
 			},
 		}, nil)
 
-		registrar := registrar.New(fakeCFClient, nil)
+		registrar := deregistrar.New(fakeCFClient, nil)
 
 		Expect(registrar.Deregister(brokerName)).NotTo(HaveOccurred())
 		Expect(fakeCFClient.ListServiceBrokersCallCount()).To(Equal(1))
@@ -45,7 +45,7 @@ var _ = Describe("Registrar", func() {
 	It("returns an error when cf client fails to list service brokers", func() {
 		fakeCFClient.ListServiceBrokersReturns([]cf.ServiceBroker{}, errors.New("list service broker failed"))
 
-		registrar := registrar.New(fakeCFClient, nil)
+		registrar := deregistrar.New(fakeCFClient, nil)
 
 		Expect(registrar.Deregister(brokerName)).To(MatchError("list service broker failed"))
 	})
@@ -56,7 +56,7 @@ var _ = Describe("Registrar", func() {
 			Name: "different-broker-name",
 		}}, nil)
 
-		registrar := registrar.New(fakeCFClient, nil)
+		registrar := deregistrar.New(fakeCFClient, nil)
 
 		Expect(registrar.Deregister(brokerName)).To(MatchError(fmt.Sprintf("Failed to find broker with name: %s", brokerName)))
 	})
@@ -70,7 +70,7 @@ var _ = Describe("Registrar", func() {
 		}, nil)
 		fakeCFClient.DeregisterBrokerReturns(errors.New("failed"))
 
-		registrar := registrar.New(fakeCFClient, nil)
+		registrar := deregistrar.New(fakeCFClient, nil)
 
 		errMsg := fmt.Sprintf("Failed to deregister broker with %s with guid %s, err: failed", brokerName, brokerGUID)
 		Expect(registrar.Deregister(brokerName)).To(MatchError(errMsg))

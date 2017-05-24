@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
-	"github.com/pivotal-cf/on-demand-service-broker/registrar"
+	"github.com/pivotal-cf/on-demand-service-broker/deregistrar"
 )
 
 type FakeCloudFoundryClient struct {
@@ -161,4 +161,4 @@ func (fake *FakeCloudFoundryClient) recordInvocation(key string, args []interfac
 	fake.invocations[key] = append(fake.invocations[key], args)
 }
 
-var _ registrar.CloudFoundryClient = new(FakeCloudFoundryClient)
+var _ deregistrar.CloudFoundryClient = new(FakeCloudFoundryClient)

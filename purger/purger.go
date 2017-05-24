@@ -8,10 +8,10 @@ import (
 const errorMessageTemplate = "Purger Failed: %s"
 
 type Purger struct {
-	deleter   Deleter
-	registrar Registrar
-	cfClient  CloudFoundryClient
-	logger    *log.Logger
+	deleter     Deleter
+	deregistrar Deregistrar
+	cfClient    CloudFoundryClient
+	logger      *log.Logger
 }
 
 //go:generate counterfeiter -o fakes/fake_deleter.go . Deleter
@@ -19,8 +19,8 @@ type Deleter interface {
 	DeleteAllServiceInstances(string) error
 }
 
-//go:generate counterfeiter -o fakes/fake_registrar.go . Registrar
-type Registrar interface {
+//go:generate counterfeiter -o fakes/fake_registrar.go . Deregistrar
+type Deregistrar interface {
 	Deregister(string) error
 }
 
@@ -29,12 +29,12 @@ type CloudFoundryClient interface {
 	DisableServiceAccessForServiceOffering(serviceOfferingID string, logger *log.Logger) error
 }
 
-func New(d Deleter, r Registrar, cfClient CloudFoundryClient, logger *log.Logger) *Purger {
+func New(d Deleter, r Deregistrar, cfClient CloudFoundryClient, logger *log.Logger) *Purger {
 	return &Purger{
-		deleter:   d,
-		registrar: r,
-		cfClient:  cfClient,
-		logger:    logger,
+		deleter:     d,
+		deregistrar: r,
+		cfClient:    cfClient,
+		logger:      logger,
 	}
 }
 
@@ -53,7 +53,7 @@ func (p Purger) DeleteInstancesAndDeregister(serviceCatalogID, brokerName string
 	}
 
 	p.logger.Println("Deregistering service brokers")
-	err = p.registrar.Deregister(brokerName)
+	err = p.deregistrar.Deregister(brokerName)
 	if err != nil {
 		return fmt.Errorf(errorMessageTemplate, err.Error())
 	}

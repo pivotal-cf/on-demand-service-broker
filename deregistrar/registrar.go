@@ -1,4 +1,4 @@
-package registrar
+package deregistrar
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 )
 
-type Registrar struct {
+type Deregistrar struct {
 	client CloudFoundryClient
 	logger *log.Logger
 }
@@ -18,14 +18,14 @@ type CloudFoundryClient interface {
 	DeregisterBroker(string, 	*log.Logger) error
 }
 
-func New(client CloudFoundryClient, logger *log.Logger) *Registrar {
-	return &Registrar{
+func New(client CloudFoundryClient, logger *log.Logger) *Deregistrar {
+	return &Deregistrar{
 		client: client,
 		logger: logger,
 	}
 }
 
-func (r *Registrar) Deregister(brokerName string) error {
+func (r *Deregistrar) Deregister(brokerName string) error {
 	var brokerGUID string
 
 	brokers, err := r.client.ListServiceBrokers(r.logger)

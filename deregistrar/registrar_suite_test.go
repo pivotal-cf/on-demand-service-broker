@@ -1,4 +1,4 @@
-package registrar_test
+package deregistrar_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -9,5 +9,5 @@ import (
 
 func TestRegistrar(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Registrar Suite")
+	RunSpecs(t, "Deregistrar Suite")
 }
