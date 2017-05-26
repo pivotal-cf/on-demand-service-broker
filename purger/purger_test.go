@@ -44,8 +44,8 @@ var _ = Describe("purger", func() {
 		Expect(purgeTool.DeleteInstancesAndDeregister(serviceOfferingGUID, brokerName)).NotTo(HaveOccurred())
 
 		Expect(logBuffer).To(gbytes.Say("Disabling service access for all plans"))
-		Expect(fakeCFClient.DisableServiceAccessForServiceOfferingCallCount()).To(Equal(1))
-		expectedServiceOfferingGUID, expectedLogger := fakeCFClient.DisableServiceAccessForServiceOfferingArgsForCall(0)
+		Expect(fakeCFClient.DisableServiceAccessCallCount()).To(Equal(1))
+		expectedServiceOfferingGUID, expectedLogger := fakeCFClient.DisableServiceAccessArgsForCall(0)
 		Expect(expectedServiceOfferingGUID).To(Equal(serviceOfferingGUID))
 		Expect(expectedLogger).To(Equal(logger))
 
@@ -59,7 +59,7 @@ var _ = Describe("purger", func() {
 	})
 
 	It("returns an error when disabling the service access fails", func() {
-		fakeCFClient.DisableServiceAccessForServiceOfferingReturns(errors.New("failed to disable service access"))
+		fakeCFClient.DisableServiceAccessReturns(errors.New("failed to disable service access"))
 		Expect(purgeTool.DeleteInstancesAndDeregister(serviceOfferingGUID, brokerName)).To(MatchError("Purger Failed: failed to disable service access"))
 	})
 

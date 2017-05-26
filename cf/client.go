@@ -253,7 +253,7 @@ func (c Client) ListServiceBrokers(logger *log.Logger) ([]ServiceBroker, error) 
 	return brokers, nil
 }
 
-func (c Client) DisableServiceAccessForServiceOffering(serviceOfferingID string, logger *log.Logger) error {
+func (c Client) DisableServiceAccess(serviceOfferingID string, logger *log.Logger) error {
 	plans, err := c.getPlansForServiceID(serviceOfferingID, logger)
 	if err != nil {
 		return err

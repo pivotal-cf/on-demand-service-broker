@@ -9,67 +9,67 @@ import (
 )
 
 type FakeCloudFoundryClient struct {
-	DisableServiceAccessForServiceOfferingStub        func(serviceOfferingID string, logger *log.Logger) error
-	disableServiceAccessForServiceOfferingMutex       sync.RWMutex
-	disableServiceAccessForServiceOfferingArgsForCall []struct {
+	DisableServiceAccessStub        func(serviceOfferingID string, logger *log.Logger) error
+	disableServiceAccessMutex       sync.RWMutex
+	disableServiceAccessArgsForCall []struct {
 		serviceOfferingID string
 		logger            *log.Logger
 	}
-	disableServiceAccessForServiceOfferingReturns struct {
+	disableServiceAccessReturns struct {
 		result1 error
 	}
-	disableServiceAccessForServiceOfferingReturnsOnCall map[int]struct {
+	disableServiceAccessReturnsOnCall map[int]struct {
 		result1 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeCloudFoundryClient) DisableServiceAccessForServiceOffering(serviceOfferingID string, logger *log.Logger) error {
-	fake.disableServiceAccessForServiceOfferingMutex.Lock()
-	ret, specificReturn := fake.disableServiceAccessForServiceOfferingReturnsOnCall[len(fake.disableServiceAccessForServiceOfferingArgsForCall)]
-	fake.disableServiceAccessForServiceOfferingArgsForCall = append(fake.disableServiceAccessForServiceOfferingArgsForCall, struct {
+func (fake *FakeCloudFoundryClient) DisableServiceAccess(serviceOfferingID string, logger *log.Logger) error {
+	fake.disableServiceAccessMutex.Lock()
+	ret, specificReturn := fake.disableServiceAccessReturnsOnCall[len(fake.disableServiceAccessArgsForCall)]
+	fake.disableServiceAccessArgsForCall = append(fake.disableServiceAccessArgsForCall, struct {
 		serviceOfferingID string
 		logger            *log.Logger
 	}{serviceOfferingID, logger})
-	fake.recordInvocation("DisableServiceAccessForServiceOffering", []interface{}{serviceOfferingID, logger})
-	fake.disableServiceAccessForServiceOfferingMutex.Unlock()
-	if fake.DisableServiceAccessForServiceOfferingStub != nil {
-		return fake.DisableServiceAccessForServiceOfferingStub(serviceOfferingID, logger)
+	fake.recordInvocation("DisableServiceAccess", []interface{}{serviceOfferingID, logger})
+	fake.disableServiceAccessMutex.Unlock()
+	if fake.DisableServiceAccessStub != nil {
+		return fake.DisableServiceAccessStub(serviceOfferingID, logger)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.disableServiceAccessForServiceOfferingReturns.result1
+	return fake.disableServiceAccessReturns.result1
 }
 
-func (fake *FakeCloudFoundryClient) DisableServiceAccessForServiceOfferingCallCount() int {
-	fake.disableServiceAccessForServiceOfferingMutex.RLock()
-	defer fake.disableServiceAccessForServiceOfferingMutex.RUnlock()
-	return len(fake.disableServiceAccessForServiceOfferingArgsForCall)
+func (fake *FakeCloudFoundryClient) DisableServiceAccessCallCount() int {
+	fake.disableServiceAccessMutex.RLock()
+	defer fake.disableServiceAccessMutex.RUnlock()
+	return len(fake.disableServiceAccessArgsForCall)
 }
 
-func (fake *FakeCloudFoundryClient) DisableServiceAccessForServiceOfferingArgsForCall(i int) (string, *log.Logger) {
-	fake.disableServiceAccessForServiceOfferingMutex.RLock()
-	defer fake.disableServiceAccessForServiceOfferingMutex.RUnlock()
-	return fake.disableServiceAccessForServiceOfferingArgsForCall[i].serviceOfferingID, fake.disableServiceAccessForServiceOfferingArgsForCall[i].logger
+func (fake *FakeCloudFoundryClient) DisableServiceAccessArgsForCall(i int) (string, *log.Logger) {
+	fake.disableServiceAccessMutex.RLock()
+	defer fake.disableServiceAccessMutex.RUnlock()
+	return fake.disableServiceAccessArgsForCall[i].serviceOfferingID, fake.disableServiceAccessArgsForCall[i].logger
 }
 
-func (fake *FakeCloudFoundryClient) DisableServiceAccessForServiceOfferingReturns(result1 error) {
-	fake.DisableServiceAccessForServiceOfferingStub = nil
-	fake.disableServiceAccessForServiceOfferingReturns = struct {
+func (fake *FakeCloudFoundryClient) DisableServiceAccessReturns(result1 error) {
+	fake.DisableServiceAccessStub = nil
+	fake.disableServiceAccessReturns = struct {
 		result1 error
 	}{result1}
 }
 
-func (fake *FakeCloudFoundryClient) DisableServiceAccessForServiceOfferingReturnsOnCall(i int, result1 error) {
-	fake.DisableServiceAccessForServiceOfferingStub = nil
-	if fake.disableServiceAccessForServiceOfferingReturnsOnCall == nil {
-		fake.disableServiceAccessForServiceOfferingReturnsOnCall = make(map[int]struct {
+func (fake *FakeCloudFoundryClient) DisableServiceAccessReturnsOnCall(i int, result1 error) {
+	fake.DisableServiceAccessStub = nil
+	if fake.disableServiceAccessReturnsOnCall == nil {
+		fake.disableServiceAccessReturnsOnCall = make(map[int]struct {
 			result1 error
 		})
 	}
-	fake.disableServiceAccessForServiceOfferingReturnsOnCall[i] = struct {
+	fake.disableServiceAccessReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }
@@ -77,8 +77,8 @@ func (fake *FakeCloudFoundryClient) DisableServiceAccessForServiceOfferingReturn
 func (fake *FakeCloudFoundryClient) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.disableServiceAccessForServiceOfferingMutex.RLock()
-	defer fake.disableServiceAccessForServiceOfferingMutex.RUnlock()
+	fake.disableServiceAccessMutex.RLock()
+	defer fake.disableServiceAccessMutex.RUnlock()
 	return fake.invocations
 }
 

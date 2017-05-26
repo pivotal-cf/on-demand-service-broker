@@ -93,7 +93,7 @@ var _ = Describe("Client", func() {
 		})
 	})
 
-	Describe("DisableServiceAccessForServiceOffering", func() {
+	Describe("DisableServiceAccess", func() {
 		const offeringID = "D94A086D-203D-4966-A6F1-60A9E2300F72"
 
 		It("disables all the plans across pages", func() {
@@ -109,7 +109,7 @@ var _ = Describe("Client", func() {
 			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 			Expect(err).NotTo(HaveOccurred())
 
-			err = client.DisableServiceAccessForServiceOffering(offeringID, testLogger)
+			err = client.DisableServiceAccess(offeringID, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -121,7 +121,7 @@ var _ = Describe("Client", func() {
 			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 			Expect(err).NotTo(HaveOccurred())
 
-			err = client.DisableServiceAccessForServiceOffering(offeringID, testLogger)
+			err = client.DisableServiceAccess(offeringID, testLogger)
 			Expect(err).To(MatchError(ContainSubstring("failed")))
 		})
 
@@ -136,7 +136,7 @@ var _ = Describe("Client", func() {
 			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 			Expect(err).NotTo(HaveOccurred())
 
-			err = client.DisableServiceAccessForServiceOffering(offeringID, testLogger)
+			err = client.DisableServiceAccess(offeringID, testLogger)
 			Expect(err).To(MatchError(ContainSubstring("failed")))
 		})
 	})
