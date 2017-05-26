@@ -126,7 +126,7 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 
 			Eventually(runningTool).Should(gexec.Exit(1))
 			Expect(runningTool).To(gbytes.Say("the brokerUsername, brokerPassword and brokerUrl are required to function"))
-		})	
+		})
 
 		It("fails without brokerPassword flag", func() {
 			runningTool := helpers.StartBinaryWithParams(binaryPath, []string{"-brokerUsername", "bar", "-brokerUrl", "bar", "-pollingInterval", "1"})

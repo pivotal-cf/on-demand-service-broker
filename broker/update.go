@@ -15,8 +15,8 @@ import (
 
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/brokerapi"
-	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	"github.com/pivotal-cf/on-demand-service-broker/brokercontext"
+	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	"github.com/pivotal-cf/on-demand-service-broker/task"
 )
 
@@ -81,7 +81,6 @@ func (b *Broker) Update(
 			return brokerapi.UpdateServiceSpec{IsAsync: true}, err
 		}
 	}
-
 	boshTaskID, _, err := b.deployer.Update(
 		deploymentName(instanceID),
 		details.PlanID,

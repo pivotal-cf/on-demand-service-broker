@@ -12,9 +12,9 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 	"github.com/pivotal-cf/on-demand-service-broker/network"
-	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
 )
 
 const (

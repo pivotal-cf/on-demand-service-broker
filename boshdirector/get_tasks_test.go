@@ -16,7 +16,7 @@ import (
 var _ = Describe("getting tasks", func() {
 	Describe("GetTasks", func() {
 		var (
-			deploymentName      = "an-amazing-deployment"
+			deploymentName   = "an-amazing-deployment"
 			actualTasks      boshdirector.BoshTasks
 			actualTasksError error
 
