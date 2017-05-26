@@ -305,7 +305,7 @@ var _ = Describe("updating a service instance", func() {
 				})
 
 				It("reports a pending change message", func() {
-					Expect(updateResp.StatusCode).To(Equal(http.StatusInternalServerError))
+					Expect(updateResp.StatusCode).To(Equal(http.StatusUnprocessableEntity))
 					Expect(descriptionFrom(updateResp)).To(ContainSubstring(broker.PendingChangesErrorMessage))
 				})
 			})
@@ -316,7 +316,7 @@ var _ = Describe("updating a service instance", func() {
 				})
 
 				It("reports a apply changes disabled message", func() {
-					Expect(updateResp.StatusCode).To(Equal(http.StatusInternalServerError))
+					Expect(updateResp.StatusCode).To(Equal(http.StatusUnprocessableEntity))
 					Expect(descriptionFrom(updateResp)).To(ContainSubstring(broker.ApplyChangesDisabledMessage))
 				})
 			})
@@ -531,7 +531,8 @@ var _ = Describe("updating a service instance", func() {
 					)
 
 					resp := updateServiceInstanceRequest(parameters, instanceID, dedicatedPlanID, dedicatedPlanID)
-					Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
+
+					Expect(resp.StatusCode).To(Equal(http.StatusUnprocessableEntity))
 
 					Expect(descriptionFrom(resp)).To(ContainSubstring(broker.ApplyChangesDisabledMessage))
 				})

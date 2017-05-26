@@ -178,8 +178,29 @@ var _ = Describe("Update", func() {
 				})
 
 				It("reports an error", func() {
-					Expect(updateError).To(MatchError(ContainSubstring(broker.PendingChangesErrorMessage)))
+					expectedFailureResponse := brokerapi.NewFailureResponse(
+						errors.New(broker.PendingChangesErrorMessage),
+						http.StatusUnprocessableEntity,
+						broker.UpdateLoggerAction,
+					)
+					Expect(updateError).To(Equal(expectedFailureResponse))
 					Expect(logBuffer.String()).To(ContainSubstring("update called with apply-changes and a plan change"))
+				})
+			})
+
+			Context("but there are pending changes and cf_user_triggered_upgrades are disabled", func() {
+				BeforeEach(func() {
+					fakeDeployer.UpdateReturns(boshTaskID, nil, task.PendingChangesNotAppliedError{})
+					fakeFeatureFlags.CFUserTriggeredUpgradesReturns(false)
+				})
+
+				It("reports an apply changes not permitted error", func() {
+					expectedFailureResponse := brokerapi.NewFailureResponse(
+						errors.New(broker.ApplyChangesDisabledMessage),
+						http.StatusUnprocessableEntity,
+						broker.UpdateLoggerAction,
+					)
+					Expect(updateError).To(Equal(expectedFailureResponse))
 				})
 			})
 		})
@@ -340,7 +361,6 @@ var _ = Describe("Update", func() {
 					Expect(logBuffer.String()).To(ContainSubstring("update called with apply-changes and arbitrary parameters set"))
 				})
 			})
-
 		})
 
 		Context("when the plan cannot be found in config", func() {

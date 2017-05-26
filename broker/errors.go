@@ -22,6 +22,8 @@ const (
 	ApplyChangesDisabledMessage     = "Service cannot be updated at this time, please try again later or contact your operator for more information"
 	ApplyChangesNotPermittedMessage = `'apply-changes' is not permitted. Contact your operator for more information`
 	OperationInProgressMessage      = "An operation is in progress for your service instance. Please try again later."
+
+	UpdateLoggerAction = ""
 )
 
 type OperationInProgressError struct {

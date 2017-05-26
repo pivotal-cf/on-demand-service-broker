@@ -95,7 +95,11 @@ func (b *Broker) Update(
 	case task.ServiceError:
 		return errs(NewBoshRequestError("update", fmt.Errorf("error deploying instance: %s", err)))
 	case task.PendingChangesNotAppliedError:
-		return brokerapi.UpdateServiceSpec{IsAsync: true}, b.asPendingChangesError()
+		return brokerapi.UpdateServiceSpec{IsAsync: true}, brokerapi.NewFailureResponse(
+			b.asPendingChangesError(),
+			http.StatusUnprocessableEntity,
+			UpdateLoggerAction, // TODO where is this logged that we can verify?
+		)
 	case task.TaskInProgressError:
 		return brokerapi.UpdateServiceSpec{IsAsync: true}, errors.New(OperationInProgressMessage)
 	case task.PlanNotFoundError:
@@ -168,7 +172,11 @@ func (b *Broker) assertCanApplyChanges(parameters map[string]interface{}, planID
 
 	if previousPlanID != nil && planID != *previousPlanID {
 		logger.Println("update called with apply-changes and a plan change")
-		return errors.New(PendingChangesErrorMessage)
+		return brokerapi.NewFailureResponse(
+			errors.New(PendingChangesErrorMessage),
+			http.StatusUnprocessableEntity,
+			UpdateLoggerAction,
+		)
 	}
 
 	if len(parameters) > 0 {
