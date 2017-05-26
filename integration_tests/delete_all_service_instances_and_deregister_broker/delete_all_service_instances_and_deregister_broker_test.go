@@ -1,4 +1,4 @@
-package purge_instances_and_deregister_test
+package delete_all_service_instances_and_deregister_broker_test
 
 import (
 	yaml "gopkg.in/yaml.v2"

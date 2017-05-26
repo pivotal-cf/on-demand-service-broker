@@ -1,4 +1,4 @@
-package purge_instances_and_deregister_test
+package delete_all_service_instances_and_deregister_broker_test
 
 import (
 	"fmt"
@@ -17,7 +17,7 @@ var (
 )
 
 var _ = SynchronizedBeforeSuite(func() []byte {
-	binary, err := gexec.Build("github.com/pivotal-cf/on-demand-service-broker/cmd/purge-instances-and-deregister")
+	binary, err := gexec.Build("github.com/pivotal-cf/on-demand-service-broker/cmd/delete-all-service-instances-and-deregister-broker")
 	Expect(err).NotTo(HaveOccurred())
 
 	return []byte(binary)

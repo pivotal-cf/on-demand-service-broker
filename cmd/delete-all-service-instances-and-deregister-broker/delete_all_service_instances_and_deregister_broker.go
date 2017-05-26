@@ -9,9 +9,9 @@ import (
 
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/deleter"
+	"github.com/pivotal-cf/on-demand-service-broker/deregistrar"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 	"github.com/pivotal-cf/on-demand-service-broker/purger"
-	"github.com/pivotal-cf/on-demand-service-broker/deregistrar"
 	"gopkg.in/yaml.v2"
 )
 
@@ -20,7 +20,7 @@ type realSleeper struct{}
 func (c realSleeper) Sleep(t time.Duration) { time.Sleep(t) }
 
 func main() {
-	loggerFactory := loggerfactory.New(os.Stdout, "purge-instances-and-deregister-broker", loggerfactory.Flags)
+	loggerFactory := loggerfactory.New(os.Stdout, "delete-all-service-instances-and-deregister-broker", loggerfactory.Flags)
 	logger := loggerFactory.New()
 
 	configFilePath := flag.String("configFilePath", "", "path to config file")
@@ -69,7 +69,7 @@ func main() {
 
 	purgerTool := purger.New(deleteTool, registrarTool, cfClient, logger)
 
-	err =	purgerTool.DeleteInstancesAndDeregister(config.ServiceCatalog.ID, *brokerName)
+	err = purgerTool.DeleteInstancesAndDeregister(config.ServiceCatalog.ID, *brokerName)
 	if err != nil {
 		logger.Fatalf(err.Error())
 	}
