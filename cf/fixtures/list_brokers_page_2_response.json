@@ -6,7 +6,7 @@
   "resources": [
     {
       "metadata": {
-        "guid": "service-broker-guid-2",
+        "guid": "service-broker-guid-2-guid",
         "url": "/v2/service_brokers/90a413fd-a636-4133-8bfb-a94b07839e96",
         "created_at": "2016-06-08T16:41:22Z",
         "updated_at": "2016-06-08T16:41:22Z"

@@ -5,22 +5,22 @@ import (
 	"log"
 	"sync"
 
-	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/deregistrar"
 )
 
 type FakeCloudFoundryClient struct {
-	ListServiceBrokersStub        func(*log.Logger) ([]cf.ServiceBroker, error)
-	listServiceBrokersMutex       sync.RWMutex
-	listServiceBrokersArgsForCall []struct {
-		arg1 *log.Logger
+	GetServiceOfferingGUIDStub        func(string, *log.Logger) (string, error)
+	getServiceOfferingGUIDMutex       sync.RWMutex
+	getServiceOfferingGUIDArgsForCall []struct {
+		arg1 string
+		arg2 *log.Logger
 	}
-	listServiceBrokersReturns struct {
-		result1 []cf.ServiceBroker
+	getServiceOfferingGUIDReturns struct {
+		result1 string
 		result2 error
 	}
-	listServiceBrokersReturnsOnCall map[int]struct {
-		result1 []cf.ServiceBroker
+	getServiceOfferingGUIDReturnsOnCall map[int]struct {
+		result1 string
 		result2 error
 	}
 	DeregisterBrokerStub        func(string, *log.Logger) error
@@ -39,53 +39,54 @@ type FakeCloudFoundryClient struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeCloudFoundryClient) ListServiceBrokers(arg1 *log.Logger) ([]cf.ServiceBroker, error) {
-	fake.listServiceBrokersMutex.Lock()
-	ret, specificReturn := fake.listServiceBrokersReturnsOnCall[len(fake.listServiceBrokersArgsForCall)]
-	fake.listServiceBrokersArgsForCall = append(fake.listServiceBrokersArgsForCall, struct {
-		arg1 *log.Logger
-	}{arg1})
-	fake.recordInvocation("ListServiceBrokers", []interface{}{arg1})
-	fake.listServiceBrokersMutex.Unlock()
-	if fake.ListServiceBrokersStub != nil {
-		return fake.ListServiceBrokersStub(arg1)
+func (fake *FakeCloudFoundryClient) GetServiceOfferingGUID(arg1 string, arg2 *log.Logger) (string, error) {
+	fake.getServiceOfferingGUIDMutex.Lock()
+	ret, specificReturn := fake.getServiceOfferingGUIDReturnsOnCall[len(fake.getServiceOfferingGUIDArgsForCall)]
+	fake.getServiceOfferingGUIDArgsForCall = append(fake.getServiceOfferingGUIDArgsForCall, struct {
+		arg1 string
+		arg2 *log.Logger
+	}{arg1, arg2})
+	fake.recordInvocation("GetServiceOfferingGUID", []interface{}{arg1, arg2})
+	fake.getServiceOfferingGUIDMutex.Unlock()
+	if fake.GetServiceOfferingGUIDStub != nil {
+		return fake.GetServiceOfferingGUIDStub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.listServiceBrokersReturns.result1, fake.listServiceBrokersReturns.result2
+	return fake.getServiceOfferingGUIDReturns.result1, fake.getServiceOfferingGUIDReturns.result2
 }
 
-func (fake *FakeCloudFoundryClient) ListServiceBrokersCallCount() int {
-	fake.listServiceBrokersMutex.RLock()
-	defer fake.listServiceBrokersMutex.RUnlock()
-	return len(fake.listServiceBrokersArgsForCall)
+func (fake *FakeCloudFoundryClient) GetServiceOfferingGUIDCallCount() int {
+	fake.getServiceOfferingGUIDMutex.RLock()
+	defer fake.getServiceOfferingGUIDMutex.RUnlock()
+	return len(fake.getServiceOfferingGUIDArgsForCall)
 }
 
-func (fake *FakeCloudFoundryClient) ListServiceBrokersArgsForCall(i int) *log.Logger {
-	fake.listServiceBrokersMutex.RLock()
-	defer fake.listServiceBrokersMutex.RUnlock()
-	return fake.listServiceBrokersArgsForCall[i].arg1
+func (fake *FakeCloudFoundryClient) GetServiceOfferingGUIDArgsForCall(i int) (string, *log.Logger) {
+	fake.getServiceOfferingGUIDMutex.RLock()
+	defer fake.getServiceOfferingGUIDMutex.RUnlock()
+	return fake.getServiceOfferingGUIDArgsForCall[i].arg1, fake.getServiceOfferingGUIDArgsForCall[i].arg2
 }
 
-func (fake *FakeCloudFoundryClient) ListServiceBrokersReturns(result1 []cf.ServiceBroker, result2 error) {
-	fake.ListServiceBrokersStub = nil
-	fake.listServiceBrokersReturns = struct {
-		result1 []cf.ServiceBroker
+func (fake *FakeCloudFoundryClient) GetServiceOfferingGUIDReturns(result1 string, result2 error) {
+	fake.GetServiceOfferingGUIDStub = nil
+	fake.getServiceOfferingGUIDReturns = struct {
+		result1 string
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeCloudFoundryClient) ListServiceBrokersReturnsOnCall(i int, result1 []cf.ServiceBroker, result2 error) {
-	fake.ListServiceBrokersStub = nil
-	if fake.listServiceBrokersReturnsOnCall == nil {
-		fake.listServiceBrokersReturnsOnCall = make(map[int]struct {
-			result1 []cf.ServiceBroker
+func (fake *FakeCloudFoundryClient) GetServiceOfferingGUIDReturnsOnCall(i int, result1 string, result2 error) {
+	fake.GetServiceOfferingGUIDStub = nil
+	if fake.getServiceOfferingGUIDReturnsOnCall == nil {
+		fake.getServiceOfferingGUIDReturnsOnCall = make(map[int]struct {
+			result1 string
 			result2 error
 		})
 	}
-	fake.listServiceBrokersReturnsOnCall[i] = struct {
-		result1 []cf.ServiceBroker
+	fake.getServiceOfferingGUIDReturnsOnCall[i] = struct {
+		result1 string
 		result2 error
 	}{result1, result2}
 }
@@ -142,8 +143,8 @@ func (fake *FakeCloudFoundryClient) DeregisterBrokerReturnsOnCall(i int, result1
 func (fake *FakeCloudFoundryClient) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.listServiceBrokersMutex.RLock()
-	defer fake.listServiceBrokersMutex.RUnlock()
+	fake.getServiceOfferingGUIDMutex.RLock()
+	defer fake.getServiceOfferingGUIDMutex.RUnlock()
 	fake.deregisterBrokerMutex.RLock()
 	defer fake.deregisterBrokerMutex.RUnlock()
 	return fake.invocations

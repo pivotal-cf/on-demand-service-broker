@@ -224,10 +224,11 @@ func (c Client) GetAPIVersion(logger *log.Logger) (string, error) {
 	return infoResponse.APIVersion, nil
 }
 
-func (c Client) ListServiceBrokers(logger *log.Logger) ([]ServiceBroker, error) {
+func (c Client) GetServiceOfferingGUID(brokerName string, logger *log.Logger) (string, error) {
 	var (
-		brokers []ServiceBroker
-		err     error
+		brokers    []ServiceBroker
+		brokerGUID string
+		err        error
 	)
 
 	path := "/v2/service_brokers"
@@ -237,7 +238,7 @@ func (c Client) ListServiceBrokers(logger *log.Logger) ([]ServiceBroker, error) 
 
 		err = c.get(fullPath, &response, logger)
 		if err != nil {
-			return []ServiceBroker{}, err
+			return "", err
 		}
 
 		for _, r := range response.Resources {
@@ -250,7 +251,17 @@ func (c Client) ListServiceBrokers(logger *log.Logger) ([]ServiceBroker, error) 
 		path = response.NextPath
 	}
 
-	return brokers, nil
+	for _, broker := range brokers {
+		if broker.Name == brokerName {
+			brokerGUID = broker.GUID
+		}
+	}
+
+	if brokerGUID == "" {
+		return "", fmt.Errorf("Failed to find broker with name: %s", brokerName)
+	}
+
+	return brokerGUID, nil
 }
 
 func (c Client) DisableServiceAccess(serviceOfferingID string, logger *log.Logger) error {

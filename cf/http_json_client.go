@@ -52,7 +52,6 @@ func (w httpJsonClient) get(path string, body interface{}, logger *log.Logger) e
 }
 
 func (c httpJsonClient) put(path, reqBody string, logger *log.Logger) error {
-
 	req, err := http.NewRequest(http.MethodPut, path, bytes.NewBufferString(reqBody))
 	if err != nil {
 		return err

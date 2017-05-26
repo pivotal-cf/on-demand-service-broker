@@ -46,8 +46,8 @@ var _ = Describe("Client", func() {
 		server.VerifyMocks()
 	})
 
-	Describe("ListServiceBrokers", func() {
-		It("returns a list of brokers, across pages", func() {
+	Describe("GetServiceOfferingGUID", func() {
+		It("returns the broker guid", func() {
 			server.VerifyAndMock(
 				mockcfapi.ListServiceBrokers().
 					WithAuthorizationHeader(cfAuthorizationHeader).
@@ -60,21 +60,11 @@ var _ = Describe("Client", func() {
 			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 			Expect(err).NotTo(HaveOccurred())
 
-			var brokers []cf.ServiceBroker
-			brokers, err = client.ListServiceBrokers(testLogger)
+			var brokerGUID string
+			brokerGUID, err = client.GetServiceOfferingGUID("service-broker-name-2", testLogger)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(len(brokers)).To(Equal(2))
-			Expect(brokers).To(Equal([]cf.ServiceBroker{
-				{
-					GUID: "service-broker-guid-1",
-					Name: "service-broker-name-1",
-				},
-				{
-					GUID: "service-broker-guid-2",
-					Name: "service-broker-name-2",
-				},
-			}))
+			Expect(brokerGUID).To(Equal("service-broker-guid-2-guid"))
 
 		})
 
@@ -82,14 +72,31 @@ var _ = Describe("Client", func() {
 			server.VerifyAndMock(
 				mockcfapi.ListServiceBrokers().
 					WithAuthorizationHeader(cfAuthorizationHeader).
-					RespondsInternalServerErrorWith("niet goed"),
+					RespondsInternalServerErrorWith("failed"),
 			)
 
 			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 			Expect(err).NotTo(HaveOccurred())
 
-			_, err = client.ListServiceBrokers(testLogger)
-			Expect(err).To(MatchError(ContainSubstring("niet goed")))
+			_, err = client.GetServiceOfferingGUID("service-broker-name-2", testLogger)
+			Expect(err).To(MatchError(ContainSubstring("failed")))
+		})
+
+		It("returns an error if it fails to find a broker with the corect name", func() {
+			server.VerifyAndMock(
+				mockcfapi.ListServiceBrokers().
+					WithAuthorizationHeader(cfAuthorizationHeader).
+					RespondsOKWith(fixture("list_brokers_page_1_response.json")),
+				mockcfapi.ListServiceBrokersForPage(2).
+					WithAuthorizationHeader(cfAuthorizationHeader).
+					RespondsOKWith(fixture("list_brokers_page_2_response.json")),
+			)
+
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+			Expect(err).NotTo(HaveOccurred())
+
+			_, err = client.GetServiceOfferingGUID("not-a-real-broker", testLogger)
+			Expect(err).To(MatchError("Failed to find broker with name: not-a-real-broker"))
 		})
 	})
 
