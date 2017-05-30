@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net/http"
 
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/brokerapi"
