@@ -90,7 +90,7 @@ func testConfigFromEnv() testConfig {
 		cFUAAURL:        envMustHave("CF_UAA_URL"),
 		cfUser:          envMustHave("CF_USERNAME"),
 		cfPassword:      envMustHave("CF_PASSWORD"),
-		serviceGUID:     envMustHave("SERVICE_NAME"),
+		serviceGUID:     envMustHave("SERVICE_GUID"),
 		serviceOffering: envMustHave("SERVICE_NAME"),
 		brokerName:      envMustHave("BROKER_NAME"),
 		brokerURL:       envMustHave("BROKER_URL"),
