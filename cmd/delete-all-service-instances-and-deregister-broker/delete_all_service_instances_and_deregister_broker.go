@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"time"
@@ -73,5 +72,5 @@ func main() {
 	if err != nil {
 		logger.Fatalf(err.Error())
 	}
-	fmt.Println("FINISHED PURGE INSTANCES AND DEREGISTER BROKER")
+	logger.Println("FINISHED PURGE INSTANCES AND DEREGISTER BROKER")
 }
