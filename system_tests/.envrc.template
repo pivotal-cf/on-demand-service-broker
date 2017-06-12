@@ -8,6 +8,8 @@ export BOSH_URL=
 export BOSH_USERNAME=
 export BOSH_PASSWORD=
 export BOSH_CA_CERT_FILE=
+# BOSH uaa url, normally https://<director-ip>:<director-uaa-port>
+export UAA_URL=
 
 export CF_URL=
 export CF_USERNAME=
@@ -22,7 +24,6 @@ export EXAMPLE_APP_PATH=
 
 export TEST_ODB_METRICS=
 export DOPPLER_ADDRESS=
-export UAA_URL=
 
 export BROKER_NAME=
 export BROKER_DEPLOYMENT_NAME=
