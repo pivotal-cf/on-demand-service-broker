@@ -26,6 +26,8 @@ var (
 	cfAdminPassword          string
 	cfSpaceDeveloperUsername string
 	cfSpaceDeveloperPassword string
+	cfOrg                    string
+	cfSpace                  string
 	boshClient               *bosh_helpers.BoshHelperClient
 )
 
@@ -44,6 +46,8 @@ var _ = BeforeSuite(func() {
 	cfAdminPassword = envMustHave("CF_PASSWORD")
 	cfSpaceDeveloperUsername = envMustHave("CF_SPACE_DEVELOPER_USERNAME")
 	cfSpaceDeveloperPassword = envMustHave("CF_SPACE_DEVELOPER_PASSWORD")
+	cfOrg = envMustHave("CF_ORG")
+	cfSpace = envMustHave("CF_SPACE")
 
 	if uaaURL == "" {
 		boshClient = bosh_helpers.NewBasicAuth(boshURL, boshUsername, boshPassword, boshCACert, disableTLSVerification)
@@ -74,7 +78,7 @@ func envMustHave(key string) string {
 
 func cfCreateSpaceDevUser() {
 	Eventually(cf.Cf("create-user", cfSpaceDeveloperUsername, cfSpaceDeveloperPassword)).Should(gexec.Exit(0))
-	Eventually(cf.Cf("set-space-role", cfSpaceDeveloperUsername, "enablement", "dev1", "SpaceDeveloper")).Should(gexec.Exit(0))
+	Eventually(cf.Cf("set-space-role", cfSpaceDeveloperUsername, cfOrg, cfSpace, "SpaceDeveloper")).Should(gexec.Exit(0))
 }
 
 func cfDeleteSpaceDevUser() {
@@ -83,10 +87,10 @@ func cfDeleteSpaceDevUser() {
 
 func cfLogInAsSpaceDev() {
 	Eventually(cf.Cf("auth", cfSpaceDeveloperUsername, cfSpaceDeveloperPassword)).Should(gexec.Exit(0))
-	Eventually(cf.Cf("target", "-o", "enablement", "-s", "dev1")).Should(gexec.Exit(0))
+	Eventually(cf.Cf("target", "-o", cfOrg, "-s", cfSpace)).Should(gexec.Exit(0))
 }
 
 func cfLogInAsAdmin() {
 	Eventually(cf.Cf("auth", "admin", cfAdminPassword)).Should(gexec.Exit(0))
-	Eventually(cf.Cf("target", "-o", "enablement", "-s", "dev1")).Should(gexec.Exit(0))
+	Eventually(cf.Cf("target", "-o", cfOrg, "-s", cfSpace)).Should(gexec.Exit(0))
 }
