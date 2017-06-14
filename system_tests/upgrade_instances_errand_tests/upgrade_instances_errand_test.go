@@ -14,12 +14,26 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
-	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/cf_helpers"
+	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 )
 
 var _ = Describe("upgrade-all-service-instances errand", func() {
+	AfterEach(func() {
+		boshClient.DeployODB(*originalBrokerManifest)
+	})
+
 	It("upgrades all service instances", func() {
+		By("causing pending changes for the service instance")
+		brokerManifest := boshClient.GetManifest(brokerBoshDeploymentName)
+
+		testPlan := extractPlanProperty(currentPlan, brokerManifest)
+		testPlan["properties"] = map[interface{}]interface{}{"persistence": false}
+
+		By("deploying the modified broker manifest")
+		boshClient.DeployODB(*brokerManifest)
+
 		By("logging stdout to the errand output")
 		boshOutput := boshClient.RunErrand(brokerBoshDeploymentName, "upgrade-all-service-instances", "")
 		Expect(boshOutput.StdOut).To(ContainSubstring("STARTING UPGRADES"))
@@ -44,13 +58,42 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 
 				Expect(boshTasks[2].State).To(Equal(boshdirector.TaskDone))
 				Expect(boshTasks[2].Description).To(ContainSubstring("run errand"))
-
 				Expect(boshTasks[3].State).To(Equal(boshdirector.TaskDone))
 				Expect(boshTasks[3].Description).To(ContainSubstring("create deployment"))
 			}
 		}
 	})
+
+	It("exits 1 when the upgrader fails", func() {
+		By("causing an upgrade error")
+		brokerManifest := boshClient.GetManifest(brokerBoshDeploymentName)
+		testPlan := extractPlanProperty(currentPlan, brokerManifest)
+
+		redisServer := testPlan["instance_groups"].([]interface{})[0].(map[interface{}]interface{})
+		redisServer["vm_type"] = "doesntexist"
+
+		By("deploying the broken broker manifest")
+		boshClient.DeployODB(*brokerManifest)
+		boshOutput := boshClient.RunErrandWithoutCheckingSuccess(brokerBoshDeploymentName, "upgrade-all-service-instances", "")
+		Expect(boshOutput.ExitCode).To(Equal(1))
+		Expect(boshOutput.StdOut).To(ContainSubstring("Upgrade failed for service instance"))
+	})
 })
+
+func extractPlanProperty(planName string, manifest *bosh.BoshManifest) map[interface{}]interface{} {
+	var testPlan map[interface{}]interface{}
+
+	brokerJob := manifest.InstanceGroups[0].Jobs[0]
+	serviceCatalog := brokerJob.Properties["service_catalog"].(map[interface{}]interface{})
+
+	for _, plan := range serviceCatalog["plans"].([]interface{}) {
+		if plan.(map[interface{}]interface{})["name"] == currentPlan {
+			testPlan = plan.(map[interface{}]interface{})
+		}
+	}
+
+	return testPlan
+}
 
 func getServiceDeploymentName(serviceInstanceName string) string {
 	getInstanceDetailsCmd := cf.Cf("service", serviceInstanceName, "--guid")

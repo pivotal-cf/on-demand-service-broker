@@ -35,6 +35,7 @@ var (
 	originalBrokerManifest       *bosh.BoshManifest
 	boshSupportsLifecycleErrands bool
 	boshClient                   *bosh_helpers.BoshHelperClient
+	currentPlan                  string
 
 	serviceInstances = []string{uuid.New(), uuid.New()}
 )
@@ -68,34 +69,21 @@ var _ = BeforeSuite(func() {
 	Eventually(cf.Cf("enable-service-access", serviceOffering), cf_helpers.CfTimeout).Should(gexec.Exit(0))
 
 	By("creating service instances")
-	var plan string
+
 	if boshSupportsLifecycleErrands {
-		plan = "lifecycle-post-deploy-plan"
+		currentPlan = "lifecycle-post-deploy-plan"
 	} else {
-		plan = "dedicated-vm"
+		currentPlan = "dedicated-vm"
 	}
 	for _, i := range serviceInstances {
-		Eventually(cf.Cf("create-service", serviceOffering, plan, i), cf_helpers.CfTimeout).Should(gexec.Exit(0))
+		Eventually(cf.Cf("create-service", serviceOffering, currentPlan, i), cf_helpers.CfTimeout).Should(gexec.Exit(0))
 	}
 	for _, i := range serviceInstances {
 		cf_helpers.AwaitServiceCreation(i)
 	}
-
-	By("causing pending changes for the service instance")
-	newBrokerManifest := boshClient.GetManifest(brokerBoshDeploymentName)
-	persistenceProperty := map[interface{}]interface{}{"persistence": false}
-
-	brokerJob := newBrokerManifest.InstanceGroups[0].Jobs[0]
-	serviceCatalog := brokerJob.Properties["service_catalog"].(map[interface{}]interface{})
-	dedicatedVMPlan := serviceCatalog["plans"].([]interface{})[0].(map[interface{}]interface{})
-	dedicatedVMPlan["properties"] = persistenceProperty
-
-	By("deploying the modified broker manifest")
-	boshClient.DeployODB(*newBrokerManifest)
 })
 
 var _ = AfterSuite(func() {
-
 	By("deleting service instances")
 	for _, i := range serviceInstances {
 		Eventually(cf.Cf("delete-service", i, "-f"), cf_helpers.CfTimeout).Should(gexec.Exit(0))
@@ -106,9 +94,6 @@ var _ = AfterSuite(func() {
 
 	By("deregistering the broker")
 	Eventually(cf.Cf("delete-service-broker", brokerName, "-f"), cf_helpers.CfTimeout).Should(gexec.Exit(0))
-
-	By("deploying the original broker manifest")
-	boshClient.DeployODB(*originalBrokerManifest)
 })
 
 func TestUpgradeInstancesErrandTests(t *testing.T) {
