@@ -14,14 +14,37 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
+	"github.com/pborman/uuid"
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/cf_helpers"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
-	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 )
 
+var serviceInstances = []string{uuid.New(), uuid.New()}
+
 var _ = Describe("upgrade-all-service-instances errand", func() {
+	BeforeEach(func() {
+		createServiceInstances()
+	})
+
 	AfterEach(func() {
+		deleteServiceInstances()
 		boshClient.DeployODB(*originalBrokerManifest)
+	})
+
+	It("exits 1 when the upgrader fails", func() {
+		By("causing an upgrade error")
+		brokerManifest := boshClient.GetManifest(brokerBoshDeploymentName)
+		testPlan := extractPlanProperty(currentPlan, brokerManifest)
+
+		redisServer := testPlan["instance_groups"].([]interface{})[0].(map[interface{}]interface{})
+		redisServer["vm_type"] = "doesntexist"
+
+		By("deploying the broken broker manifest")
+		boshClient.DeployODB(*brokerManifest)
+		boshOutput := boshClient.RunErrandWithoutCheckingSuccess(brokerBoshDeploymentName, "upgrade-all-service-instances", "")
+		Expect(boshOutput.ExitCode).To(Equal(1))
+		Expect(boshOutput.StdOut).To(ContainSubstring("Upgrade failed for service instance"))
 	})
 
 	It("upgrades all service instances", func() {
@@ -58,27 +81,36 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 
 				Expect(boshTasks[2].State).To(Equal(boshdirector.TaskDone))
 				Expect(boshTasks[2].Description).To(ContainSubstring("run errand"))
+
 				Expect(boshTasks[3].State).To(Equal(boshdirector.TaskDone))
 				Expect(boshTasks[3].Description).To(ContainSubstring("create deployment"))
 			}
 		}
 	})
-
-	It("exits 1 when the upgrader fails", func() {
-		By("causing an upgrade error")
-		brokerManifest := boshClient.GetManifest(brokerBoshDeploymentName)
-		testPlan := extractPlanProperty(currentPlan, brokerManifest)
-
-		redisServer := testPlan["instance_groups"].([]interface{})[0].(map[interface{}]interface{})
-		redisServer["vm_type"] = "doesntexist"
-
-		By("deploying the broken broker manifest")
-		boshClient.DeployODB(*brokerManifest)
-		boshOutput := boshClient.RunErrandWithoutCheckingSuccess(brokerBoshDeploymentName, "upgrade-all-service-instances", "")
-		Expect(boshOutput.ExitCode).To(Equal(1))
-		Expect(boshOutput.StdOut).To(ContainSubstring("Upgrade failed for service instance"))
-	})
 })
+
+func createServiceInstances() {
+	if boshSupportsLifecycleErrands {
+		currentPlan = "lifecycle-post-deploy-plan"
+	} else {
+		currentPlan = "dedicated-vm"
+	}
+	for _, i := range serviceInstances {
+		Eventually(cf.Cf("create-service", serviceOffering, currentPlan, i), cf_helpers.CfTimeout).Should(gexec.Exit(0))
+	}
+	for _, i := range serviceInstances {
+		cf_helpers.AwaitServiceCreation(i)
+	}
+}
+
+func deleteServiceInstances() {
+	for _, i := range serviceInstances {
+		Eventually(cf.Cf("delete-service", i, "-f"), cf_helpers.CfTimeout).Should(gexec.Exit(0))
+	}
+	for _, i := range serviceInstances {
+		cf_helpers.AwaitServiceDeletion(i)
+	}
+}
 
 func extractPlanProperty(planName string, manifest *bosh.BoshManifest) map[interface{}]interface{} {
 	var testPlan map[interface{}]interface{}

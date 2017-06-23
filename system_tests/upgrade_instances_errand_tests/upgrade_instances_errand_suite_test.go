@@ -15,7 +15,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
-	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/bosh_helpers"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/cf_helpers"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
@@ -36,8 +35,6 @@ var (
 	boshSupportsLifecycleErrands bool
 	boshClient                   *bosh_helpers.BoshHelperClient
 	currentPlan                  string
-
-	serviceInstances = []string{uuid.New(), uuid.New()}
 )
 
 var _ = BeforeSuite(func() {
@@ -67,31 +64,9 @@ var _ = BeforeSuite(func() {
 	By("registering the broker")
 	Eventually(cf.Cf("create-service-broker", brokerName, brokerUsername, brokerPassword, brokerURL), cf_helpers.CfTimeout).Should(gexec.Exit(0))
 	Eventually(cf.Cf("enable-service-access", serviceOffering), cf_helpers.CfTimeout).Should(gexec.Exit(0))
-
-	By("creating service instances")
-
-	if boshSupportsLifecycleErrands {
-		currentPlan = "lifecycle-post-deploy-plan"
-	} else {
-		currentPlan = "dedicated-vm"
-	}
-	for _, i := range serviceInstances {
-		Eventually(cf.Cf("create-service", serviceOffering, currentPlan, i), cf_helpers.CfTimeout).Should(gexec.Exit(0))
-	}
-	for _, i := range serviceInstances {
-		cf_helpers.AwaitServiceCreation(i)
-	}
 })
 
 var _ = AfterSuite(func() {
-	By("deleting service instances")
-	for _, i := range serviceInstances {
-		Eventually(cf.Cf("delete-service", i, "-f"), cf_helpers.CfTimeout).Should(gexec.Exit(0))
-	}
-	for _, i := range serviceInstances {
-		cf_helpers.AwaitServiceDeletion(i)
-	}
-
 	By("deregistering the broker")
 	Eventually(cf.Cf("delete-service-broker", brokerName, "-f"), cf_helpers.CfTimeout).Should(gexec.Exit(0))
 })
