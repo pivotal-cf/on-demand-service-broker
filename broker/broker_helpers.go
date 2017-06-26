@@ -29,30 +29,33 @@ func (b *Broker) getDeploymentInfo(instanceID string, logger *log.Logger) (bosh.
 }
 
 func convertDetailsToMap(details brokerapi.DetailsWithRawParameters) (map[string]interface{}, error) {
+	var arbitraryParams map[string]interface{}
+
+	if len(details.GetRawParameters()) > 0 {
+		arbitraryParams = map[string]interface{}{}
+		if err := json.Unmarshal(details.GetRawParameters(), &arbitraryParams); err != nil {
+			return nil, brokerapi.ErrRawParamsInvalid
+		}
+	}
+
 	requestParams, err := convertToMap(details)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(details.GetRawParameters()) > 0 {
-		arbitraryParams := map[string]interface{}{}
-		if err := json.Unmarshal(details.GetRawParameters(), &arbitraryParams); err != nil {
-			return nil, brokerapi.ErrRawParamsInvalid
-		}
-		requestParams["parameters"] = arbitraryParams
-	}
+	requestParams["parameters"] = arbitraryParams
 
 	return requestParams, nil
 }
 
 func convertToMap(object interface{}) (map[string]interface{}, error) {
-	genericMap := map[string]interface{}{}
 	data, err := json.Marshal(object)
 	if err != nil {
 		return nil, err
 	}
-	err = json.Unmarshal(data, &genericMap)
 
+	genericMap := map[string]interface{}{}
+	err = json.Unmarshal(data, &genericMap)
 	if err != nil {
 		return nil, err
 	}
