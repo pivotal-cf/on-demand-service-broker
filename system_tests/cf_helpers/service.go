@@ -91,11 +91,13 @@ func AwaitServiceDeletionFailure(serviceName string) {
 }
 
 func awaitServicesOperation(serviceName string, successMessageMatcher types.GomegaMatcher) {
-	cfCommand := cfServices()
+	cfCommand := func() *gexec.Session {
+		return cf.Cf("services")
+	}
 
 	Eventually(func() bool {
 		session := cfCommand()
-		Eventually(session, CfTimeout).Should(gexec.Exit(0))
+		Eventually(session, CfTimeout).Should(gexec.Exit(0), "'cf services' command timed out")
 
 		contents := session.Buffer().Contents()
 
@@ -164,11 +166,5 @@ func awaitServiceOperation(
 func cfService(serviceName string) func() *gexec.Session {
 	return func() *gexec.Session {
 		return cf.Cf("service", serviceName)
-	}
-}
-
-func cfServices() func() *gexec.Session {
-	return func() *gexec.Session {
-		return cf.Cf("services")
 	}
 }
