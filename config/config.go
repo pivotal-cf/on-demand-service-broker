@@ -21,7 +21,6 @@ import (
 
 type Config struct {
 	Broker            Broker
-	Credhub           *Credhub `yaml:",omitempty"`
 	Bosh              Bosh
 	CF                CF
 	Features          Features
@@ -41,12 +40,6 @@ func (c Config) Validate() error {
 
 	if err := c.CF.Validate(); err != nil {
 		return err
-	}
-
-	if c.Credhub != nil {
-		if err := c.Credhub.Validate(); err != nil {
-			return err
-		}
 	}
 
 	if err := checkIsExecutableFile(c.ServiceAdapter.Path); err != nil {
@@ -112,12 +105,6 @@ type Bosh struct {
 	URL            string
 	TrustedCert    string `yaml:"root_ca_cert"`
 	Authentication BOSHAuthentication
-}
-
-type Credhub struct {
-	APIURL string `yaml:"api_url"`
-	ID     string `yaml:"client_id"`
-	Secret string `yaml:"client_secret"`
 }
 
 type BOSHAuthentication struct {
@@ -223,22 +210,6 @@ func (a UAAAuthentication) Validate() error {
 	}
 
 	return err
-}
-
-func (c Credhub) Validate() error {
-	if c.APIURL == "" {
-		return fmt.Errorf("Must specify a Credhub api_url")
-	}
-
-	if c.ID == "" {
-		return fmt.Errorf("Must specify a Credhub client_id")
-	}
-
-	if c.Secret == "" {
-		return fmt.Errorf("Must specify a Credhub client_secret")
-	}
-
-	return nil
 }
 
 func (cc BOSHUAAAuthentication) IsSet() bool {

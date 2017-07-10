@@ -51,9 +51,6 @@ var (
 	cfUaaClientID     = "cfAdminUsername"
 	cfUaaClientSecret = "cfAdminPassword"
 
-	credhubClientID     = "credhubAdminUsername"
-	credhubClientSecret = "credhubAdminPassword"
-
 	serviceReleaseName    = "bosh-release-that-provides-job"
 	serviceReleaseVersion = "0+dev.42"
 
@@ -293,19 +290,6 @@ func lastOperationForInstance(instanceID string, operationData broker.OperationD
 	lastOperationResponse, err := http.DefaultClient.Do(req)
 	Expect(err).NotTo(HaveOccurred())
 	return lastOperationResponse
-}
-
-func defaultBrokerConfigWithCredhub(boshURL, uaaURL, cfURL, cfUAAURL, credhubURL string) config.Config {
-	brokerConfig := defaultBrokerConfig(boshURL, uaaURL, cfURL, cfUAAURL)
-	if credhubURL != "" {
-		brokerConfig.Credhub = &config.Credhub{
-			APIURL: credhubURL,
-			ID:     credhubClientID,
-			Secret: credhubClientSecret,
-		}
-	}
-
-	return brokerConfig
 }
 
 func defaultBrokerConfig(boshURL, uaaURL, cfURL, cfUAAURL string) config.Config {

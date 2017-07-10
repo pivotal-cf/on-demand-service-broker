@@ -42,7 +42,6 @@ var (
 	boshClient          *fakes.FakeBoshClient
 	boshDirectorVersion boshdirector.Version
 	cfClient            *fakes.FakeCloudFoundryClient
-	credhubClient       *fakes.FakeCredhubClient
 	serviceAdapter      *fakes.FakeServiceAdapterClient
 	fakeDeployer        *fakes.FakeDeployer
 	serviceCatalog      config.ServiceOffering
@@ -132,8 +131,6 @@ var _ = BeforeEach(func() {
 	cfClient = new(fakes.FakeCloudFoundryClient)
 	cfClient.GetAPIVersionReturns("2.57.0", nil)
 
-	credhubClient = new(fakes.FakeCredhubClient)
-
 	serviceCatalog = config.ServiceOffering{
 		ID:               serviceOfferingID,
 		Name:             "a-cool-redis-service",
@@ -160,7 +157,6 @@ var _ = JustBeforeEach(func() {
 	b, brokerCreationErr = broker.New(
 		boshClient,
 		cfClient,
-		credhubClient,
 		serviceAdapter,
 		fakeDeployer,
 		serviceCatalog,

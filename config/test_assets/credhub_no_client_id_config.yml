@@ -9,10 +9,6 @@ broker:
   port: 8080
   username: username
   password: password
-credhub:
-    api_url: example.com
-    # client_id: myclient
-    client_secret: mysecret
 service_adapter:
   path: test_assets/executable.sh
 service_deployment:

@@ -22,7 +22,6 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
-	"github.com/pivotal-cf/on-demand-service-broker/credstore"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 	"github.com/pivotal-cf/on-demand-service-broker/mgmtapi"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
@@ -108,9 +107,8 @@ func startBroker(conf config.Config, logger *log.Logger, loggerFactory *loggerfa
 	)
 
 	deploymentManager := task.NewDeployer(boshClient, manifestGenerator)
-	credStore := credentialStore(conf.Credhub, conf.Broker.DisableSSLCertVerification)
 
-	onDemandBroker, err := broker.New(boshClient, cfClient, credStore, serviceAdapter, deploymentManager, conf.ServiceCatalog, loggerFactory, conf.Features)
+	onDemandBroker, err := broker.New(boshClient, cfClient, serviceAdapter, deploymentManager, conf.ServiceCatalog, loggerFactory, conf.Features)
 	if err != nil {
 		logger.Fatalf("error starting broker: %s", err)
 	}
@@ -141,17 +139,4 @@ func startBroker(conf config.Config, logger *log.Logger, loggerFactory *loggerfa
 
 	server.UseHandler(authProtectedBrokerAPI)
 	server.Run(fmt.Sprintf("0.0.0.0:%d", conf.Broker.Port))
-}
-
-func credentialStore(credhub *config.Credhub, disableSSLCertVerification bool) credstore.Client {
-	if credhub == nil {
-		return credstore.Noop
-	}
-
-	return credstore.NewCredhubClient(
-		credhub.APIURL,
-		credhub.ID,
-		credhub.Secret,
-		disableSSLCertVerification,
-	)
 }

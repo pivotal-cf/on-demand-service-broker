@@ -59,11 +59,6 @@ func (b *Broker) Bind(
 		return brokerapi.Binding{}, err
 	}
 
-	credentialId := fmt.Sprintf("%s/%s", instanceID, bindingID)
-	if err := b.credentialStore.PutCredentials(credentialId, binding.Credentials); err != nil {
-		logger.Printf("Unable to put %s in credhub: %s\n", credentialId, err)
-	}
-
 	return brokerapi.Binding{
 		Credentials:     binding.Credentials,
 		SyslogDrainURL:  binding.SyslogDrainURL,

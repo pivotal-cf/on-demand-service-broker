@@ -8,7 +8,6 @@ package lifecycle_tests
 
 import (
 	"crypto/tls"
-	"encoding/json"
 	"fmt"
 	"regexp"
 	"strings"
@@ -107,33 +106,6 @@ var _ = Describe("On-demand service broker", func() {
 		}
 	}
 
-	testCredhub := func(appName, serviceOffering, serviceName string) {
-		appCreds, err := cf_helpers.AppBindingCreds(appName, serviceOffering)
-		Expect(err).NotTo(HaveOccurred())
-
-		credhub, err := credhubClient()
-		if err == errCredhubNotConfigured {
-			fmt.Println("credhub not configured, skipping credhub test")
-			return
-		}
-		Expect(err).NotTo(HaveOccurred())
-
-		serviceGUID := cf_helpers.ServiceInstanceGUID(serviceName)
-		credPaths, err := credhub.Find(serviceGUID)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(credPaths).To(HaveLen(1))
-
-		credhubBinding, err := credhub.Get(credPaths[0])
-		Expect(err).NotTo(HaveOccurred())
-
-		var credhubCreds interface{}
-		if err := json.Unmarshal([]byte(credhubBinding), &credhubCreds); err != nil {
-			Expect(err).NotTo(HaveOccurred())
-		}
-
-		Expect(appCreds).To(Equal(credhubCreds))
-	}
-
 	lifecycle := func(t LifecycleTest) {
 		It("supports the lifecycle of a service instance", func() {
 			By(fmt.Sprintf("allowing creation of a service instance with plan: '%s' and arbitrary params: '%s'", t.Plan, string(t.ArbitraryParams)))
@@ -154,9 +126,6 @@ var _ = Describe("On-demand service broker", func() {
 
 			By("providing a functional service instance")
 			testServiceWithExampleApp(exampleAppType, testAppURL)
-
-			By("storing binding credentials in Credhub")
-			testCredhub(testAppName, serviceOffering, serviceName)
 
 			if shouldTestODBMetrics {
 				By("emitting metrics to the CF firehose")

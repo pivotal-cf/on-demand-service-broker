@@ -36,8 +36,4 @@ export SERVICE_GUID=
 
 export LIFECYCLE_TESTS_CONFIG=
 
-export CREDHUB_API=
-export CREDHUB_USERNAME=
-export CREDHUB_PASSWORD=
-
 source_up

@@ -25,20 +25,16 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp/mockbosh"
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp/mockcfapi"
-	"github.com/pivotal-cf/on-demand-service-broker/mockhttp/mockcredhub"
 	"github.com/pivotal-cf/on-demand-service-broker/mockuaa"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 )
 
 var _ = Describe("binding service instances", func() {
 	var (
-		boshDirector   *mockhttp.Server
-		cfAPI          *mockhttp.Server
-		boshUAA        *mockuaa.ClientCredentialsServer
-		cfUAA          *mockuaa.ClientCredentialsServer
-		credhubUaa     *mockuaa.UserCredentialsServer
-		credhub        *mockhttp.Server
-		credhubEnabled bool
+		boshDirector *mockhttp.Server
+		cfAPI        *mockhttp.Server
+		boshUAA      *mockuaa.ClientCredentialsServer
+		cfUAA        *mockuaa.ClientCredentialsServer
 
 		runningBroker   *gexec.Session
 		bindingResponse *http.Response
@@ -52,24 +48,14 @@ var _ = Describe("binding service instances", func() {
 		}
 	)
 
-	BeforeEach(func() {
-		credhubEnabled = false
-	})
-
 	JustBeforeEach(func() {
 		boshDirector = mockbosh.New()
 		boshUAA = mockuaa.NewClientCredentialsServer(boshClientID, boshClientSecret, "bosh uaa token")
 		cfUAA = mockuaa.NewClientCredentialsServer(cfUaaClientID, cfUaaClientSecret, "CF UAA token")
-		credhubUaa = mockuaa.NewUserCredentialsServer("credhub", "", credhubClientID, credhubClientSecret, "Credhub token")
 		cfAPI = mockcfapi.New()
-		credhub = mockcredhub.New()
 
 		var brokerConfig config.Config
-		if credhubEnabled == true {
-			brokerConfig = defaultBrokerConfigWithCredhub(boshDirector.URL, boshUAA.URL, cfAPI.URL, cfUAA.URL, credhub.URL)
-		} else {
-			brokerConfig = defaultBrokerConfig(boshDirector.URL, boshUAA.URL, cfAPI.URL, cfUAA.URL)
-		}
+		brokerConfig = defaultBrokerConfig(boshDirector.URL, boshUAA.URL, cfAPI.URL, cfUAA.URL)
 
 		runningBroker = startBrokerWithPassingStartupChecks(brokerConfig, cfAPI, boshDirector)
 	})
@@ -80,10 +66,6 @@ var _ = Describe("binding service instances", func() {
 		boshDirector.VerifyMocks()
 		boshDirector.Close()
 		boshUAA.Close()
-
-		credhub.VerifyMocks()
-		credhub.Close()
-		credhubUaa.Close()
 
 		cfAPI.VerifyMocks()
 		cfAPI.Close()
@@ -136,98 +118,75 @@ var _ = Describe("binding service instances", func() {
 			bindingReq = basicAuthBrokerRequest(bindingReq)
 		})
 
-		Context("without credhub", func() {
-			JustBeforeEach(func() {
-				var err error
-				bindingResponse, err = http.DefaultClient.Do(bindingReq)
-				Expect(err).ToNot(HaveOccurred())
+		JustBeforeEach(func() {
+			var err error
+			bindingResponse, err = http.DefaultClient.Do(bindingReq)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("returns HTTP 201", func() {
+			Expect(bindingResponse.StatusCode).To(Equal(http.StatusCreated))
+		})
+
+		It("returns credentials, syslog drain URL, and route service URL from service adapter", func() {
+			var binding brokerapi.Binding
+			defer bindingResponse.Body.Close()
+			Expect(json.NewDecoder(bindingResponse.Body).Decode(&binding)).To(Succeed())
+
+			credentials := binding.Credentials.(map[string]interface{})
+			Expect(credentials).To(Equal(map[string]interface{}{"secret": "dont-tell-anyone"}))
+			Expect(binding.RouteServiceURL).To(Equal("excellent route"))
+			Expect(binding.SyslogDrainURL).To(Equal("syslog-url"))
+		})
+
+		It("calls the adapter with expected binding ID", func() {
+			Expect(adapter.CreateBinding().ReceivedID()).To(Equal("Gjklh45ljkhn"))
+		})
+
+		It("calls the adapter with expected bosh VMS", func() {
+			Expect(adapter.CreateBinding().ReceivedBoshVms()).To(Equal(bosh.BoshVMs{"some-instance-group": []string{"ip.from.bosh"}}))
+		})
+
+		It("calls the adapter with the correct request params", func() {
+			Expect(adapter.CreateBinding().ReceivedRequestParameters()).To(Equal(map[string]interface{}{
+				"plan_id":    bindingPlanID,
+				"service_id": bindingServiceID,
+				"app_guid":   appGUID,
+				"bind_resource": map[string]interface{}{
+					"app_guid": appGUID,
+				},
+				"parameters": bindingParams,
+			}))
+		})
+
+		It("calls the adapter with the bosh manifest", func() {
+			Expect(adapter.CreateBinding().ReceivedManifest()).To(Equal(manifestForFirstDeployment))
+		})
+
+		It("logs the bind request with a request id", func() {
+			bindRequestRegex := logRegexpStringWithRequestIDCapture(`service adapter will create binding with ID`)
+			Eventually(runningBroker).Should(gbytes.Say(bindRequestRegex))
+			requestID := firstMatchInOutput(runningBroker, bindRequestRegex)
+			Eventually(runningBroker).Should(gbytes.Say(requestID)) // It should use the same request ID again
+		})
+
+		Context("when the service adapter returns no syslog drain url and no route service url", func() {
+			BeforeEach(func() {
+				adapter.CreateBinding().ReturnsBinding(`{
+									"credentials": {"secret": "dont-tell-anyone"}
+								}`)
 			})
 
 			It("returns HTTP 201", func() {
 				Expect(bindingResponse.StatusCode).To(Equal(http.StatusCreated))
 			})
 
-			It("returns credentials, syslog drain URL, and route service URL from service adapter", func() {
-				var binding brokerapi.Binding
+			It("does not send JSON keys for any missing optional fields", func() {
 				defer bindingResponse.Body.Close()
-				Expect(json.NewDecoder(bindingResponse.Body).Decode(&binding)).To(Succeed())
-
-				credentials := binding.Credentials.(map[string]interface{})
-				Expect(credentials).To(Equal(map[string]interface{}{"secret": "dont-tell-anyone"}))
-				Expect(binding.RouteServiceURL).To(Equal("excellent route"))
-				Expect(binding.SyslogDrainURL).To(Equal("syslog-url"))
-			})
-
-			It("calls the adapter with expected binding ID", func() {
-				Expect(adapter.CreateBinding().ReceivedID()).To(Equal("Gjklh45ljkhn"))
-			})
-
-			It("calls the adapter with expected bosh VMS", func() {
-				Expect(adapter.CreateBinding().ReceivedBoshVms()).To(Equal(bosh.BoshVMs{"some-instance-group": []string{"ip.from.bosh"}}))
-			})
-
-			It("calls the adapter with the correct request params", func() {
-				Expect(adapter.CreateBinding().ReceivedRequestParameters()).To(Equal(map[string]interface{}{
-					"plan_id":    bindingPlanID,
-					"service_id": bindingServiceID,
-					"app_guid":   appGUID,
-					"bind_resource": map[string]interface{}{
-						"app_guid": appGUID,
-					},
-					"parameters": bindingParams,
-				}))
-			})
-
-			It("calls the adapter with the bosh manifest", func() {
-				Expect(adapter.CreateBinding().ReceivedManifest()).To(Equal(manifestForFirstDeployment))
-			})
-
-			It("logs the bind request with a request id", func() {
-				bindRequestRegex := logRegexpStringWithRequestIDCapture(`service adapter will create binding with ID`)
-				Eventually(runningBroker).Should(gbytes.Say(bindRequestRegex))
-				requestID := firstMatchInOutput(runningBroker, bindRequestRegex)
-				Eventually(runningBroker).Should(gbytes.Say(requestID)) // It should use the same request ID again
-			})
-
-			Context("when the service adapter returns no syslog drain url and no route service url", func() {
-				BeforeEach(func() {
-					adapter.CreateBinding().ReturnsBinding(`{
-									"credentials": {"secret": "dont-tell-anyone"}
-								}`)
-				})
-
-				It("returns HTTP 201", func() {
-					Expect(bindingResponse.StatusCode).To(Equal(http.StatusCreated))
-				})
-
-				It("does not send JSON keys for any missing optional fields", func() {
-					defer bindingResponse.Body.Close()
-					bodyBytes, err := ioutil.ReadAll(bindingResponse.Body)
-					Expect(err).ToNot(HaveOccurred())
-					Expect(bodyBytes).NotTo(ContainSubstring("syslog_drain_url"))
-					Expect(bodyBytes).NotTo(ContainSubstring("route_service_url"))
-				})
-			})
-		})
-
-		Context("with credhub", func() {
-			BeforeEach(func() {
-				credhubEnabled = true
-			})
-
-			JustBeforeEach(func() {
-				credhubBindingServiceId := fmt.Sprintf("%s/%s", instanceID, bindingId)
-				secretPassword := `{"secret":"dont-tell-anyone"}`
-
-				credhub.VerifyAndMock(
-					mockcredhub.GetInfo().RespondsWithUAAURL(credhubUaa.URL),
-					mockcredhub.PutCredential(credhubBindingServiceId).WithPassword(secretPassword).RespondsWithPasswordData(secretPassword),
-				)
-			})
-
-			It("calls the credhub set password endpoint", func() {
-				_, err := http.DefaultClient.Do(bindingReq)
+				bodyBytes, err := ioutil.ReadAll(bindingResponse.Body)
 				Expect(err).ToNot(HaveOccurred())
+				Expect(bodyBytes).NotTo(ContainSubstring("syslog_drain_url"))
+				Expect(bodyBytes).NotTo(ContainSubstring("route_service_url"))
 			})
 		})
 	})

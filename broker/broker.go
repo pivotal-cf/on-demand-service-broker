@@ -14,19 +14,17 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
-	"github.com/pivotal-cf/on-demand-service-broker/credstore"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
 
 type Broker struct {
-	boshClient      BoshClient
-	cfClient        CloudFoundryClient
-	adapterClient   ServiceAdapterClient
-	credentialStore credstore.Client
-	deployer        Deployer
-	deploymentLock  *sync.Mutex
+	boshClient     BoshClient
+	cfClient       CloudFoundryClient
+	adapterClient  ServiceAdapterClient
+	deployer       Deployer
+	deploymentLock *sync.Mutex
 
 	serviceOffering config.ServiceOffering
 
@@ -34,16 +32,22 @@ type Broker struct {
 	featureFlags  FeatureFlags
 }
 
-func New(boshClient BoshClient, cfClient CloudFoundryClient, credentialStore credstore.Client, serviceAdapter ServiceAdapterClient,
-	deployer Deployer, serviceOffering config.ServiceOffering, loggerFactory *loggerfactory.LoggerFactory, featureFlags FeatureFlags) (*Broker, error) {
+func New(
+	boshClient BoshClient,
+	cfClient CloudFoundryClient,
+	serviceAdapter ServiceAdapterClient,
+	deployer Deployer,
+	serviceOffering config.ServiceOffering,
+	loggerFactory *loggerfactory.LoggerFactory,
+	featureFlags FeatureFlags,
+) (*Broker, error) {
 
 	b := &Broker{
-		boshClient:      boshClient,
-		cfClient:        cfClient,
-		credentialStore: credentialStore,
-		adapterClient:   serviceAdapter,
-		deployer:        deployer,
-		deploymentLock:  &sync.Mutex{},
+		boshClient:     boshClient,
+		cfClient:       cfClient,
+		adapterClient:  serviceAdapter,
+		deployer:       deployer,
+		deploymentLock: &sync.Mutex{},
 
 		serviceOffering: serviceOffering,
 
@@ -127,9 +131,4 @@ type CloudFoundryClient interface {
 	CountInstancesOfServiceOffering(serviceOfferingID string, logger *log.Logger) (instanceCountByPlanID map[string]int, err error)
 	GetInstanceState(serviceInstanceGUID string, logger *log.Logger) (cf.InstanceState, error)
 	GetInstancesOfServiceOffering(serviceOfferingID string, logger *log.Logger) ([]string, error)
-}
-
-//go:generate counterfeiter -o fakes/fake_credhub_client.go . CredhubClient
-type CredhubClient interface {
-	PutCredentials(identifier string, credentialsMap map[string]interface{}) error
 }

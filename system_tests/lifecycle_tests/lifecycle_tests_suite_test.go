@@ -8,7 +8,6 @@ package lifecycle_tests
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -20,7 +19,6 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/cf_helpers"
-	"github.com/pivotal-cf/on-demand-service-broker/system_tests/credhub"
 )
 
 var (
@@ -129,23 +127,4 @@ func envMustHave(key string) string {
 	value := os.Getenv(key)
 	Expect(value).ToNot(BeEmpty(), fmt.Sprintf("must set %s", key))
 	return value
-}
-
-var errCredhubNotConfigured = errors.New("could not retrieve credhub credentials")
-
-type CredhubClient interface {
-	Find(string) ([]string, error)
-	Get(string) (string, error)
-}
-
-func credhubClient() (CredhubClient, error) {
-	api := os.Getenv("CREDHUB_API")
-	username := os.Getenv("CREDHUB_USERNAME")
-	password := os.Getenv("CREDHUB_PASSWORD")
-
-	if api == "" {
-		return nil, errCredhubNotConfigured
-	}
-
-	return credhub.Login(api, username, password)
 }
