@@ -25,6 +25,12 @@ var _ = Describe("broker registration errands", func() {
 			boshClient.RunErrand(brokerBoshDeploymentName, "register-broker", "")
 		})
 
+		AfterEach(func() {
+			cfLogInAsAdmin()
+			Eventually(cf.Cf("disable-service-access", serviceOffering)).Should(gexec.Exit(0))
+			Eventually(cf.Cf("purge-service-offering", serviceOffering, "-f")).Should(gexec.Exit(0))
+		})
+
 		Context("when the broker is not registered", func() {
 			Context("and the user is admin", func() {
 				It("registers the broker with CF", func() {
