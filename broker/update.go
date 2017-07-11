@@ -11,7 +11,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/pborman/uuid"
@@ -70,22 +69,9 @@ func (b *Broker) Update(
 		operationPostDeployErrandName = plan.PostDeployErrand()
 	}
 
-	parameters := parametersFromRequest(detailsMap)
-	applyingChanges, err := b.validatedApplyChanges(parameters)
-	if err != nil {
-		logger.Println(err)
-		return brokerapi.UpdateServiceSpec{IsAsync: true}, b.asUpdateError(err)
-	}
-
-	if applyingChanges {
-		if err := b.assertCanApplyChanges(parameters, details.PlanID, &details.PreviousValues.PlanID, logger); err != nil {
-			return brokerapi.UpdateServiceSpec{IsAsync: true}, err
-		}
-	}
 	boshTaskID, _, err := b.deployer.Update(
 		deploymentName(instanceID),
 		details.PlanID,
-		applyingChanges,
 		detailsMap,
 		&details.PreviousValues.PlanID,
 		boshContextID,
@@ -97,7 +83,7 @@ func (b *Broker) Update(
 		return errs(NewBoshRequestError("update", fmt.Errorf("error deploying instance: %s", err)))
 	case task.PendingChangesNotAppliedError:
 		return brokerapi.UpdateServiceSpec{IsAsync: true}, brokerapi.NewFailureResponse(
-			b.asPendingChangesError(),
+			errors.New(PendingChangesErrorMessage),
 			http.StatusUnprocessableEntity,
 			UpdateLoggerAction, // TODO where is this logged that we can verify?
 		)
@@ -122,68 +108,4 @@ func (b *Broker) Update(
 	}
 
 	return brokerapi.UpdateServiceSpec{IsAsync: true, OperationData: string(operationData)}, nil
-}
-
-func (b *Broker) asPendingChangesError() error {
-	if b.featureFlags.CFUserTriggeredUpgrades() {
-		return errors.New(PendingChangesErrorMessage)
-	}
-	return errors.New(ApplyChangesDisabledMessage)
-}
-
-func (b *Broker) asUpdateError(err error) error {
-	if b.featureFlags.CFUserTriggeredUpgrades() {
-		return errors.New(PendingChangesErrorMessage)
-	}
-	return errors.New(ApplyChangesNotPermittedMessage)
-}
-
-func parametersFromRequest(requestParams map[string]interface{}) map[string]interface{} {
-	parameters, ok := requestParams["parameters"].(map[string]interface{})
-	if !ok {
-		return nil
-	}
-
-	return parameters
-}
-
-func (b *Broker) validatedApplyChanges(parameters map[string]interface{}) (bool, error) {
-	const applyChangesKey = "apply-changes"
-
-	value := parameters[applyChangesKey]
-	if value == nil {
-		return false, nil
-	}
-
-	applyChanges, ok := value.(bool)
-	if !ok {
-		return false, applyChangesNotABooleanError(value)
-	}
-
-	delete(parameters, applyChangesKey)
-
-	return applyChanges, nil
-}
-
-func (b *Broker) assertCanApplyChanges(parameters map[string]interface{}, planID string, previousPlanID *string, logger *log.Logger) error {
-	if !b.featureFlags.CFUserTriggeredUpgrades() {
-		logger.Println("'cf_user_triggered_upgrades' feature is disabled")
-		return errors.New(ApplyChangesNotPermittedMessage)
-	}
-
-	if previousPlanID != nil && planID != *previousPlanID {
-		logger.Println("update called with apply-changes and a plan change")
-		return brokerapi.NewFailureResponse(
-			errors.New(PendingChangesErrorMessage),
-			http.StatusUnprocessableEntity,
-			UpdateLoggerAction,
-		)
-	}
-
-	if len(parameters) > 0 {
-		logger.Println("update called with apply-changes and arbitrary parameters set")
-		return errors.New(PendingChangesErrorMessage)
-	}
-
-	return nil
 }

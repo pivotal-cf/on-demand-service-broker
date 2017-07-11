@@ -64,7 +64,6 @@ func (d deployer) Upgrade(deploymentName, planID string, previousPlanID *string,
 func (d deployer) Update(
 	deploymentName,
 	planID string,
-	applyPendingChanges bool,
 	requestParams map[string]interface{},
 	previousPlanID *string,
 	boshContextID string,
@@ -79,7 +78,7 @@ func (d deployer) Update(
 		return 0, nil, err
 	}
 
-	if err := d.checkForPendingChanges(applyPendingChanges, deploymentName, previousPlanID, oldManifest, logger); err != nil {
+	if err := d.checkForPendingChanges(deploymentName, previousPlanID, oldManifest, logger); err != nil {
 		return 0, nil, err
 	}
 
@@ -114,7 +113,6 @@ func (d deployer) assertNoOperationsInProgress(deploymentName string, logger *lo
 }
 
 func (d deployer) checkForPendingChanges(
-	applyingChanges bool,
 	deploymentName string,
 	previousPlanID *string,
 	oldManifest BoshManifest,
@@ -132,7 +130,7 @@ func (d deployer) checkForPendingChanges(
 
 	pendingChanges := !manifestsSame
 
-	if pendingChanges && !applyingChanges {
+	if pendingChanges {
 		return PendingChangesNotAppliedError{}
 	}
 

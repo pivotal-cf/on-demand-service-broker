@@ -16,41 +16,17 @@ import (
 )
 
 var _ = Describe("service instance with pending changes", func() {
-	Context("when the app dev does NOT specify apply-changes", func() {
-		var expectedErrMsg = "Service cannot be updated at this time, please try again later or contact your operator for more information"
+	var expectedErrMsg = "Service cannot be updated at this time, please try again later or contact your operator for more information"
 
-		It("prevents a plan change", func() {
-			session := cf.Cf("update-service", serviceInstanceName, "-p", "dedicated-high-memory-vm")
-			Eventually(session, cf_helpers.CfTimeout).Should(gexec.Exit())
-			Expect(session).To(gbytes.Say(expectedErrMsg))
-		})
-
-		It("prevents setting arbitrary params", func() {
-			session := cf.Cf("update-service", serviceInstanceName, "-c", `{"foo": "bar"}`)
-			Eventually(session, cf_helpers.CfTimeout).Should(gexec.Exit())
-			Expect(session).To(gbytes.Say(expectedErrMsg))
-		})
+	It("prevents a plan change", func() {
+		session := cf.Cf("update-service", serviceInstanceName, "-p", "dedicated-high-memory-vm")
+		Eventually(session, cf_helpers.CfTimeout).Should(gexec.Exit())
+		Expect(session).To(gbytes.Say(expectedErrMsg))
 	})
 
-	Context("when the app dev specifies apply-changes", func() {
-		var expectedErrMsg = "'apply-changes' is not permitted. Contact your operator for more information"
-
-		It("prevents a plan change", func() {
-			session := cf.Cf("update-service", serviceInstanceName, "-p", "dedicated-high-memory-vm", "-c", `{"apply-changes": true}`)
-			Eventually(session, cf_helpers.CfTimeout).Should(gexec.Exit())
-			Expect(session).To(gbytes.Say(expectedErrMsg))
-		})
-
-		It("prevents setting arbitrary params", func() {
-			session := cf.Cf("update-service", serviceInstanceName, "-c", `{"apply-changes": true, "foo": "bar"}`)
-			Eventually(session, cf_helpers.CfTimeout).Should(gexec.Exit())
-			Expect(session).To(gbytes.Say(expectedErrMsg))
-		})
-
-		It("prevents user from applying pending changes", func() {
-			session := cf.Cf("update-service", serviceInstanceName, "-c", `{"apply-changes": true}`)
-			Eventually(session, cf_helpers.CfTimeout).Should(gexec.Exit())
-			Expect(session).To(gbytes.Say(expectedErrMsg))
-		})
+	It("prevents setting arbitrary params", func() {
+		session := cf.Cf("update-service", serviceInstanceName, "-c", `{"foo": "bar"}`)
+		Eventually(session, cf_helpers.CfTimeout).Should(gexec.Exit())
+		Expect(session).To(gbytes.Say(expectedErrMsg))
 	})
 })

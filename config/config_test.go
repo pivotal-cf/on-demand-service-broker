@@ -71,9 +71,6 @@ var _ = Describe("Config", func() {
 							},
 						},
 					},
-					Features: config.Features{
-						UserTriggeredUpgrades: false,
-					},
 					ServiceAdapter: config.ServiceAdapter{
 						Path: "test_assets/executable.sh",
 					},
@@ -182,17 +179,6 @@ var _ = Describe("Config", func() {
 			It("returns config with the broker password", func() {
 				Expect(parseErr).NotTo(HaveOccurred())
 				Expect(conf.Broker.Password).To(Equal(`%te'"st:%$!`))
-			})
-		})
-
-		Context("when the features has optional 'cf_user_triggered_upgrades' flag", func() {
-			BeforeEach(func() {
-				configFileName = "config_with_cf_user_triggered_upgrades.yml"
-			})
-
-			It("returns config with the flag", func() {
-				Expect(parseErr).NotTo(HaveOccurred())
-				Expect(conf.Features.UserTriggeredUpgrades).To(BeTrue())
 			})
 		})
 

@@ -90,7 +90,7 @@ var _ = Describe("Update", func() {
 
 				It("calls the deployer without a bosh context id", func() {
 					Expect(fakeDeployer.UpdateCallCount()).To(Equal(1))
-					_, _, _, _, _, actualBoshContextID, _ := fakeDeployer.UpdateArgsForCall(0)
+					_, _, _, _, actualBoshContextID, _ := fakeDeployer.UpdateArgsForCall(0)
 					Expect(actualBoshContextID).To(BeEmpty())
 				})
 
@@ -165,86 +165,23 @@ var _ = Describe("Update", func() {
 
 				It("calls the deployer with a bosh context id", func() {
 					Expect(fakeDeployer.UpdateCallCount()).To(Equal(1))
-					_, _, _, _, _, actualBoshContextID, _ := fakeDeployer.UpdateArgsForCall(0)
+					_, _, _, _, actualBoshContextID, _ := fakeDeployer.UpdateArgsForCall(0)
 					Expect(actualBoshContextID).NotTo(BeEmpty())
 				})
 			})
 
-			Context("but there are pending changes and cf_user_triggered_upgrades are enabled", func() {
+			Context("but there are pending changes", func() {
 				BeforeEach(func() {
-					newPlanID = secondPlanID
-					oldPlanID = existingPlanID
-
-					fakeFeatureFlags.CFUserTriggeredUpgradesReturns(true)
-					arbitraryParams = map[string]interface{}{"apply-changes": true}
+					fakeDeployer.UpdateReturns(boshTaskID, nil, task.PendingChangesNotAppliedError{})
 				})
 
-				It("reports an error", func() {
+				It("reports a pending changes are present error", func() {
 					expectedFailureResponse := brokerapi.NewFailureResponse(
 						errors.New(broker.PendingChangesErrorMessage),
 						http.StatusUnprocessableEntity,
 						broker.UpdateLoggerAction,
 					)
 					Expect(updateError).To(Equal(expectedFailureResponse))
-					Expect(logBuffer.String()).To(ContainSubstring("update called with apply-changes and a plan change"))
-				})
-			})
-
-			Context("but there are pending changes and cf_user_triggered_upgrades are disabled", func() {
-				BeforeEach(func() {
-					fakeDeployer.UpdateReturns(boshTaskID, nil, task.PendingChangesNotAppliedError{})
-					fakeFeatureFlags.CFUserTriggeredUpgradesReturns(false)
-				})
-
-				It("reports an apply changes not permitted error", func() {
-					expectedFailureResponse := brokerapi.NewFailureResponse(
-						errors.New(broker.ApplyChangesDisabledMessage),
-						http.StatusUnprocessableEntity,
-						broker.UpdateLoggerAction,
-					)
-					Expect(updateError).To(Equal(expectedFailureResponse))
-				})
-			})
-		})
-
-		Context("and cf_user_triggered_upgrades are disabled", func() {
-			BeforeEach(func() {
-				fakeFeatureFlags.CFUserTriggeredUpgradesReturns(false)
-				arbitraryParams = map[string]interface{}{"apply-changes": true}
-			})
-
-			It("reports an error", func() {
-				Expect(logBuffer.String()).To(ContainSubstring("'cf_user_triggered_upgrades' feature is disabled"))
-				Expect(updateError).To(MatchError(ContainSubstring(broker.ApplyChangesNotPermittedMessage)))
-			})
-		})
-
-		Context("and apply-changes is set to non-boolean value", func() {
-			BeforeEach(func() {
-				arbitraryParams = map[string]interface{}{"apply-changes": 42}
-			})
-
-			Context("with user-triggered upgrades disabled", func() {
-				BeforeEach(func() {
-					fakeFeatureFlags.CFUserTriggeredUpgradesReturns(false)
-				})
-
-				It("fails without deploying", func() {
-					Expect(updateError).To(MatchError(broker.ApplyChangesNotPermittedMessage))
-					Expect(logBuffer.String()).To(ContainSubstring("apply-changes value '42' is not true or false"))
-					Expect(fakeDeployer.UpdateCallCount()).To(BeZero())
-				})
-			})
-
-			Context("with user-triggered upgrades enabled", func() {
-				BeforeEach(func() {
-					fakeFeatureFlags.CFUserTriggeredUpgradesReturns(true)
-				})
-
-				It("fails without deploying", func() {
-					Expect(updateError).To(MatchError(broker.PendingChangesErrorMessage))
-					Expect(logBuffer.String()).To(ContainSubstring("apply-changes value '42' is not true or false"))
-					Expect(fakeDeployer.UpdateCallCount()).To(BeZero())
 				})
 			})
 		})
@@ -340,27 +277,9 @@ var _ = Describe("Update", func() {
 
 					It("calls the deployer with a bosh context id", func() {
 						Expect(fakeDeployer.UpdateCallCount()).To(Equal(1))
-						_, _, _, _, _, actualBoshContextID, _ := fakeDeployer.UpdateArgsForCall(0)
+						_, _, _, _, actualBoshContextID, _ := fakeDeployer.UpdateArgsForCall(0)
 						Expect(actualBoshContextID).NotTo(BeEmpty())
 					})
-				})
-
-				Context("and apply-changes is set to true", func() {
-					BeforeEach(func() {
-
-					})
-				})
-			})
-
-			Context("and there are pending changes and user triggered upgrades are enabled", func() {
-				BeforeEach(func() {
-					fakeFeatureFlags.CFUserTriggeredUpgradesReturns(true)
-					arbitraryParams = map[string]interface{}{"apply-changes": true, "foo": "bar"}
-				})
-
-				It("reports the  error", func() {
-					Expect(updateError).To(MatchError(ContainSubstring(broker.PendingChangesErrorMessage)))
-					Expect(logBuffer.String()).To(ContainSubstring("update called with apply-changes and arbitrary parameters set"))
 				})
 			})
 		})

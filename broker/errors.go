@@ -17,21 +17,15 @@ import (
 )
 
 const (
-	GenericErrorPrefix              = "There was a problem completing your request. Please contact your operations team providing the following information:"
-	PendingChangesErrorMessage      = `There is a pending change to your service instance, you must first run cf update-service <service_name> -c '{"apply-changes": true}', no other arbitrary parameters are allowed`
-	ApplyChangesDisabledMessage     = "Service cannot be updated at this time, please try again later or contact your operator for more information"
-	ApplyChangesNotPermittedMessage = `'apply-changes' is not permitted. Contact your operator for more information`
-	OperationInProgressMessage      = "An operation is in progress for your service instance. Please try again later."
+	GenericErrorPrefix         = "There was a problem completing your request. Please contact your operations team providing the following information:"
+	PendingChangesErrorMessage = "Service cannot be updated at this time, please try again later or contact your operator for more information"
+	OperationInProgressMessage = "An operation is in progress for your service instance. Please try again later."
 
 	UpdateLoggerAction = ""
 )
 
 type OperationInProgressError struct {
 	error
-}
-
-func applyChangesNotABooleanError(value interface{}) error {
-	return fmt.Errorf("apply-changes value '%v' is not true or false", value)
 }
 
 func NewOperationInProgressError(e error) error {
@@ -69,27 +63,6 @@ func NewBoshRequestError(action string, requestError error) DisplayableError {
 	return DisplayableError{
 		fmt.Errorf("Currently unable to %s service instance, please try again later", action),
 		requestError,
-	}
-}
-
-func NewPendingChangesError(errForOperator error) DisplayableError {
-	return DisplayableError{
-		errors.New(PendingChangesErrorMessage),
-		errForOperator,
-	}
-}
-
-func NewApplyChangesDisabledError(errForOperator error) DisplayableError {
-	return DisplayableError{
-		errors.New(ApplyChangesDisabledMessage),
-		errForOperator,
-	}
-}
-
-func NewApplyChangesNotPermittedError(errForOperator error) DisplayableError {
-	return DisplayableError{
-		errors.New(ApplyChangesNotPermittedMessage),
-		errForOperator,
 	}
 }
 

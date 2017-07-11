@@ -29,7 +29,6 @@ type Broker struct {
 	serviceOffering config.ServiceOffering
 
 	loggerFactory *loggerfactory.LoggerFactory
-	featureFlags  FeatureFlags
 }
 
 func New(
@@ -39,7 +38,6 @@ func New(
 	deployer Deployer,
 	serviceOffering config.ServiceOffering,
 	loggerFactory *loggerfactory.LoggerFactory,
-	featureFlags FeatureFlags,
 ) (*Broker, error) {
 
 	b := &Broker{
@@ -52,7 +50,6 @@ func New(
 		serviceOffering: serviceOffering,
 
 		loggerFactory: loggerFactory,
-		featureFlags:  featureFlags,
 	}
 
 	if err := b.startupChecks(); err != nil {
@@ -95,13 +92,8 @@ func instanceID(deploymentName string) string {
 //go:generate counterfeiter -o fakes/fake_deployer.go . Deployer
 type Deployer interface {
 	Create(deploymentName, planID string, requestParams map[string]interface{}, boshContextID string, logger *log.Logger) (int, []byte, error)
-	Update(deploymentName, planID string, applyPendingChanges bool, requestParams map[string]interface{}, previousPlanID *string, boshContextID string, logger *log.Logger) (int, []byte, error)
+	Update(deploymentName, planID string, requestParams map[string]interface{}, previousPlanID *string, boshContextID string, logger *log.Logger) (int, []byte, error)
 	Upgrade(deploymentName, planID string, previousPlanID *string, boshContextID string, logger *log.Logger) (int, []byte, error)
-}
-
-//go:generate counterfeiter -o fakes/fake_feature_flags.go . FeatureFlags
-type FeatureFlags interface {
-	CFUserTriggeredUpgrades() bool
 }
 
 //go:generate counterfeiter -o fakes/fake_service_adapter_client.go . ServiceAdapterClient

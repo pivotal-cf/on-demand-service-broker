@@ -47,7 +47,6 @@ var (
 	serviceCatalog      config.ServiceOffering
 	logBuffer           *bytes.Buffer
 	loggerFactory       *loggerfactory.LoggerFactory
-	fakeFeatureFlags    *fakes.FakeFeatureFlags
 
 	existingPlanServiceInstanceLimit    = 3
 	serviceOfferingServiceInstanceLimit = 5
@@ -148,9 +147,6 @@ var _ = BeforeEach(func() {
 
 	logBuffer = new(bytes.Buffer)
 	loggerFactory = loggerfactory.New(io.MultiWriter(GinkgoWriter, logBuffer), "broker-unit-tests", log.LstdFlags)
-
-	fakeFeatureFlags = new(fakes.FakeFeatureFlags)
-	fakeFeatureFlags.CFUserTriggeredUpgradesReturns(false)
 })
 
 var _ = JustBeforeEach(func() {
@@ -161,7 +157,6 @@ var _ = JustBeforeEach(func() {
 		fakeDeployer,
 		serviceCatalog,
 		loggerFactory,
-		fakeFeatureFlags,
 	)
 })
 

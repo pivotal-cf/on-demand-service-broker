@@ -55,11 +55,6 @@ var _ = BeforeSuite(func() {
 
 	originalBrokerManifest = boshClient.GetManifest(brokerBoshDeploymentName)
 
-	originalBrokerJob := originalBrokerManifest.InstanceGroups[0].Jobs[0]
-	if features, ok := originalBrokerJob.Properties["features"].(map[interface{}]interface{}); ok {
-		Expect(features["cf_user_triggered_upgrades"]).To(BeNil(), `Expected "cf_user_triggered_upgrades" not to be configured`)
-	}
-
 	By("registering the broker")
 	Eventually(cf.Cf("create-service-broker", brokerName, brokerUsername, brokerPassword, brokerURL), cf_helpers.CfTimeout).Should(gexec.Exit(0))
 	Eventually(cf.Cf("enable-service-access", serviceOffering), cf_helpers.CfTimeout).Should(gexec.Exit(0))

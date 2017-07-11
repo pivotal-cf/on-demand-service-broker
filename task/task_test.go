@@ -20,7 +20,7 @@ import (
 
 type deployer interface {
 	Create(deploymentName, planID string, requestParams map[string]interface{}, boshContextID string, logger *log.Logger) (int, []byte, error)
-	Update(deploymentName, planID string, applyPendingChanges bool, requestParams map[string]interface{}, previousPlanID *string, boshContextID string, logger *log.Logger) (int, []byte, error)
+	Update(deploymentName, planID string, requestParams map[string]interface{}, previousPlanID *string, boshContextID string, logger *log.Logger) (int, []byte, error)
 	Upgrade(deploymentName, planID string, previousPlanID *string, boshContextID string, logger *log.Logger) (int, []byte, error)
 }
 
@@ -496,13 +496,10 @@ var _ = Describe("Deployer", func() {
 	})
 
 	Describe("Update()", func() {
-		var applyPendingChanges bool
-
 		JustBeforeEach(func() {
 			returnedTaskID, deployedManifest, deployError = deployer.Update(
 				deploymentName,
 				planID,
-				applyPendingChanges,
 				requestParams,
 				previousPlanID,
 				boshContextID,
@@ -511,7 +508,6 @@ var _ = Describe("Deployer", func() {
 		})
 
 		BeforeEach(func() {
-			applyPendingChanges = false
 			oldManifest = []byte("---\nold-manifest-fetched-from-bosh: bar")
 			previousPlanID = stringPointer(existingPlanID)
 

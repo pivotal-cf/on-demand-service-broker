@@ -23,7 +23,6 @@ type Config struct {
 	Broker            Broker
 	Bosh              Bosh
 	CF                CF
-	Features          Features
 	ServiceAdapter    ServiceAdapter    `yaml:"service_adapter"`
 	ServiceDeployment ServiceDeployment `yaml:"service_deployment"`
 	ServiceCatalog    ServiceOffering   `yaml:"service_catalog"`

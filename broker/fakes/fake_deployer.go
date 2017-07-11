@@ -28,16 +28,15 @@ type FakeDeployer struct {
 		result2 []byte
 		result3 error
 	}
-	UpdateStub        func(deploymentName, planID string, applyPendingChanges bool, requestParams map[string]interface{}, previousPlanID *string, boshContextID string, logger *log.Logger) (int, []byte, error)
+	UpdateStub        func(deploymentName, planID string, requestParams map[string]interface{}, previousPlanID *string, boshContextID string, logger *log.Logger) (int, []byte, error)
 	updateMutex       sync.RWMutex
 	updateArgsForCall []struct {
-		deploymentName      string
-		planID              string
-		applyPendingChanges bool
-		requestParams       map[string]interface{}
-		previousPlanID      *string
-		boshContextID       string
-		logger              *log.Logger
+		deploymentName string
+		planID         string
+		requestParams  map[string]interface{}
+		previousPlanID *string
+		boshContextID  string
+		logger         *log.Logger
 	}
 	updateReturns struct {
 		result1 int
@@ -130,22 +129,21 @@ func (fake *FakeDeployer) CreateReturnsOnCall(i int, result1 int, result2 []byte
 	}{result1, result2, result3}
 }
 
-func (fake *FakeDeployer) Update(deploymentName string, planID string, applyPendingChanges bool, requestParams map[string]interface{}, previousPlanID *string, boshContextID string, logger *log.Logger) (int, []byte, error) {
+func (fake *FakeDeployer) Update(deploymentName string, planID string, requestParams map[string]interface{}, previousPlanID *string, boshContextID string, logger *log.Logger) (int, []byte, error) {
 	fake.updateMutex.Lock()
 	ret, specificReturn := fake.updateReturnsOnCall[len(fake.updateArgsForCall)]
 	fake.updateArgsForCall = append(fake.updateArgsForCall, struct {
-		deploymentName      string
-		planID              string
-		applyPendingChanges bool
-		requestParams       map[string]interface{}
-		previousPlanID      *string
-		boshContextID       string
-		logger              *log.Logger
-	}{deploymentName, planID, applyPendingChanges, requestParams, previousPlanID, boshContextID, logger})
-	fake.recordInvocation("Update", []interface{}{deploymentName, planID, applyPendingChanges, requestParams, previousPlanID, boshContextID, logger})
+		deploymentName string
+		planID         string
+		requestParams  map[string]interface{}
+		previousPlanID *string
+		boshContextID  string
+		logger         *log.Logger
+	}{deploymentName, planID, requestParams, previousPlanID, boshContextID, logger})
+	fake.recordInvocation("Update", []interface{}{deploymentName, planID, requestParams, previousPlanID, boshContextID, logger})
 	fake.updateMutex.Unlock()
 	if fake.UpdateStub != nil {
-		return fake.UpdateStub(deploymentName, planID, applyPendingChanges, requestParams, previousPlanID, boshContextID, logger)
+		return fake.UpdateStub(deploymentName, planID, requestParams, previousPlanID, boshContextID, logger)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
@@ -159,10 +157,10 @@ func (fake *FakeDeployer) UpdateCallCount() int {
 	return len(fake.updateArgsForCall)
 }
 
-func (fake *FakeDeployer) UpdateArgsForCall(i int) (string, string, bool, map[string]interface{}, *string, string, *log.Logger) {
+func (fake *FakeDeployer) UpdateArgsForCall(i int) (string, string, map[string]interface{}, *string, string, *log.Logger) {
 	fake.updateMutex.RLock()
 	defer fake.updateMutex.RUnlock()
-	return fake.updateArgsForCall[i].deploymentName, fake.updateArgsForCall[i].planID, fake.updateArgsForCall[i].applyPendingChanges, fake.updateArgsForCall[i].requestParams, fake.updateArgsForCall[i].previousPlanID, fake.updateArgsForCall[i].boshContextID, fake.updateArgsForCall[i].logger
+	return fake.updateArgsForCall[i].deploymentName, fake.updateArgsForCall[i].planID, fake.updateArgsForCall[i].requestParams, fake.updateArgsForCall[i].previousPlanID, fake.updateArgsForCall[i].boshContextID, fake.updateArgsForCall[i].logger
 }
 
 func (fake *FakeDeployer) UpdateReturns(result1 int, result2 []byte, result3 error) {
