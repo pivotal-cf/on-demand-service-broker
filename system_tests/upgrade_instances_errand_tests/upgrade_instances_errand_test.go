@@ -8,7 +8,9 @@ package upgrade_instances_errand_tests
 
 import (
 	"fmt"
+	"path"
 	"strings"
+	"sync"
 
 	"github.com/cloudfoundry-incubator/cf-test-helpers/cf"
 	. "github.com/onsi/ginkgo"
@@ -20,7 +22,16 @@ import (
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 )
 
-var serviceInstances = []string{uuid.New(), uuid.New()}
+type testService struct {
+	Name    string
+	AppName string
+	AppURL  string
+}
+
+var serviceInstances = []*testService{
+	{Name: uuid.New(), AppName: uuid.New()},
+	{Name: uuid.New(), AppName: uuid.New()},
+}
 
 var _ = Describe("upgrade-all-service-instances errand", func() {
 	BeforeEach(func() {
@@ -61,16 +72,20 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 		boshOutput := boshClient.RunErrand(brokerBoshDeploymentName, "upgrade-all-service-instances", "")
 		Expect(boshOutput.StdOut).To(ContainSubstring("STARTING UPGRADES"))
 
-		for _, instanceName := range serviceInstances {
-			deploymentName := getServiceDeploymentName(instanceName)
+		for _, service := range serviceInstances {
+			deploymentName := getServiceDeploymentName(service.Name)
 			manifest := boshClient.GetManifest(deploymentName)
 
-			By(fmt.Sprintf("upgrading instance '%s'", instanceName))
+			By("ensuring data still exists", func() {
+				Expect(cf_helpers.GetFromTestApp(service.AppURL, "foo")).To(Equal("bar"))
+			})
+
+			By(fmt.Sprintf("upgrading instance '%s'", service.Name))
 			Expect(manifest.InstanceGroups[0].Properties["redis"].(map[interface{}]interface{})["persistence"]).To(Equal("no"))
 
 			if boshSupportsLifecycleErrands {
-				By(fmt.Sprintf("running the post-deploy errand for instance '%s'", instanceName))
-				boshTasks := boshClient.GetTasksForDeployment(getServiceDeploymentName(instanceName))
+				By(fmt.Sprintf("running the post-deploy errand for instance '%s'", service.Name))
+				boshTasks := boshClient.GetTasksForDeployment(getServiceDeploymentName(service.Name))
 				Expect(boshTasks).To(HaveLen(4))
 
 				Expect(boshTasks[0].State).To(Equal(boshdirector.TaskDone))
@@ -95,21 +110,55 @@ func createServiceInstances() {
 	} else {
 		currentPlan = "dedicated-vm"
 	}
-	for _, i := range serviceInstances {
-		Eventually(cf.Cf("create-service", serviceOffering, currentPlan, i), cf_helpers.CfTimeout).Should(gexec.Exit(0))
+
+	var wg sync.WaitGroup
+
+	for _, service := range serviceInstances {
+		wg.Add(1)
+		go func(ts *testService, wg *sync.WaitGroup) {
+			Eventually(cf.Cf("create-service", serviceOffering, currentPlan, ts.Name), cf_helpers.CfTimeout).Should(
+				gexec.Exit(0),
+			)
+			cf_helpers.AwaitServiceCreation(ts.Name)
+
+			By("pushing an app and binding to it")
+			ts.AppURL = cf_helpers.PushAndBindApp(
+				ts.AppName,
+				ts.Name,
+				path.Join(ciRootPath, exampleAppDirName),
+			)
+
+			By("adding data to the service instance")
+			cf_helpers.PutToTestApp(ts.AppURL, "foo", "bar")
+
+			wg.Done()
+		}(service, &wg)
 	}
-	for _, i := range serviceInstances {
-		cf_helpers.AwaitServiceCreation(i)
-	}
+
+	wg.Wait()
 }
 
 func deleteServiceInstances() {
-	for _, i := range serviceInstances {
-		Eventually(cf.Cf("delete-service", i, "-f"), cf_helpers.CfTimeout).Should(gexec.Exit(0))
+	By("running the delete all errand")
+	taskOutput := boshClient.RunErrand(brokerBoshDeploymentName, "delete-all-service-instances", "")
+	Expect(taskOutput.ExitCode).To(Equal(0))
+
+	var wg sync.WaitGroup
+
+	for _, service := range serviceInstances {
+		wg.Add(1)
+		go func(ts *testService, wg *sync.WaitGroup) {
+			By("deleting the corresponding app")
+			Eventually(cf.Cf("delete", ts.AppName, "-f", "-r"), cf_helpers.CfTimeout).Should(gexec.Exit(0))
+
+			By("ensuring the service instance is deleted")
+			cf_helpers.AwaitServiceDeletion(service.Name)
+
+			wg.Done()
+		}(service, &wg)
 	}
-	for _, i := range serviceInstances {
-		cf_helpers.AwaitServiceDeletion(i)
-	}
+
+	wg.Wait()
 }
 
 func extractPlanProperty(planName string, manifest *bosh.BoshManifest) map[interface{}]interface{} {

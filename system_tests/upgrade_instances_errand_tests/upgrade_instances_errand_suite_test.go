@@ -33,6 +33,8 @@ var (
 	boshCACert                   string
 	originalBrokerManifest       *bosh.BoshManifest
 	boshSupportsLifecycleErrands bool
+	ciRootPath                   string
+	exampleAppDirName            string
 	boshClient                   *bosh_helpers.BoshHelperClient
 	currentPlan                  string
 )
@@ -52,6 +54,9 @@ var _ = BeforeSuite(func() {
 	uaaURL := os.Getenv("UAA_URL")
 	boshCACert = os.Getenv("BOSH_CA_CERT_FILE")
 	boshSupportsLifecycleErrands = os.Getenv("BOSH_SUPPORTS_LIFECYCLE_ERRANDS") == "true"
+
+	ciRootPath = envMustHave("CI_ROOT_PATH")
+	exampleAppDirName = envMustHave("EXAMPLE_APP_DIR_NAME")
 
 	if uaaURL == "" {
 		boshClient = bosh_helpers.NewBasicAuth(boshURL, boshUsername, boshPassword, boshCACert, boshCACert == "")
