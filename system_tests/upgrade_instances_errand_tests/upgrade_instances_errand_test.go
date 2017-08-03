@@ -65,6 +65,22 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 		testPlan := extractPlanProperty(currentPlan, brokerManifest)
 		testPlan["properties"] = map[interface{}]interface{}{"persistence": false}
 
+		brokerJobs := brokerManifest.InstanceGroups[0].Jobs
+		serviceAdapterJob := extractServiceAdapterJob(brokerJobs)
+		Expect(serviceAdapterJob).ToNot(BeNil(), "Couldn't find service adapter job in existing manifest")
+
+		newRedisServerName := "redis"
+		serviceAdapterJob.Properties["redis_instance_group_name"] = newRedisServerName
+
+		testPlanInstanceGroup := testPlan["instance_groups"].([]interface{})[0].(map[interface{}]interface{})
+
+		oldRedisServerName := testPlanInstanceGroup["name"]
+
+		testPlanInstanceGroup["name"] = newRedisServerName
+		testPlanInstanceGroup["migrated_from"] = []map[interface{}]interface{}{
+			{"name": oldRedisServerName},
+		}
+
 		By("deploying the modified broker manifest")
 		boshClient.DeployODB(*brokerManifest)
 
@@ -115,6 +131,7 @@ func createServiceInstances() {
 
 	for _, service := range serviceInstances {
 		wg.Add(1)
+
 		go func(ts *testService, wg *sync.WaitGroup) {
 			Eventually(cf.Cf("create-service", serviceOffering, currentPlan, ts.Name), cf_helpers.CfTimeout).Should(
 				gexec.Exit(0),
@@ -168,12 +185,22 @@ func extractPlanProperty(planName string, manifest *bosh.BoshManifest) map[inter
 	serviceCatalog := brokerJob.Properties["service_catalog"].(map[interface{}]interface{})
 
 	for _, plan := range serviceCatalog["plans"].([]interface{}) {
-		if plan.(map[interface{}]interface{})["name"] == currentPlan {
+		if plan.(map[interface{}]interface{})["name"] == planName {
 			testPlan = plan.(map[interface{}]interface{})
 		}
 	}
 
 	return testPlan
+}
+
+func extractServiceAdapterJob(jobs []bosh.Job) bosh.Job {
+	for _, j := range jobs {
+		if j.Name == "service-adapter" {
+			return j
+		}
+	}
+
+	return bosh.Job{}
 }
 
 func getServiceDeploymentName(serviceInstanceName string) string {
