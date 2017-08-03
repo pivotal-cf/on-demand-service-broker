@@ -179,7 +179,7 @@ func deleteServiceInstances() {
 			}
 
 			By("ensuring the service instance is deleted")
-			cf_helpers.AwaitServiceDeletion(service.Name)
+			cf_helpers.AwaitServiceDeletion(ts.Name)
 
 			wg.Done()
 		}(service, &wg)
