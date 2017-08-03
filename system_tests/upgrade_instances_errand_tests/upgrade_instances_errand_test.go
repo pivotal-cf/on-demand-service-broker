@@ -33,6 +33,8 @@ var serviceInstances = []*testService{
 	{Name: uuid.New(), AppName: uuid.New()},
 }
 
+var checkDataPersistence bool
+
 var _ = Describe("upgrade-all-service-instances errand", func() {
 	BeforeEach(func() {
 		createServiceInstances()
@@ -92,9 +94,11 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 			deploymentName := getServiceDeploymentName(service.Name)
 			manifest := boshClient.GetManifest(deploymentName)
 
-			By("ensuring data still exists", func() {
-				Expect(cf_helpers.GetFromTestApp(service.AppURL, "foo")).To(Equal("bar"))
-			})
+			if checkDataPersistence {
+				By("ensuring data still exists", func() {
+					Expect(cf_helpers.GetFromTestApp(service.AppURL, "foo")).To(Equal("bar"))
+				})
+			}
 
 			By(fmt.Sprintf("upgrading instance '%s'", service.Name))
 			Expect(manifest.InstanceGroups[0].Properties["redis"].(map[interface{}]interface{})["persistence"]).To(Equal("no"))
@@ -123,8 +127,10 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 func createServiceInstances() {
 	if boshSupportsLifecycleErrands {
 		currentPlan = "lifecycle-post-deploy-plan"
+		checkDataPersistence = false
 	} else {
 		currentPlan = "dedicated-vm"
+		checkDataPersistence = true
 	}
 
 	var wg sync.WaitGroup
@@ -138,15 +144,17 @@ func createServiceInstances() {
 			)
 			cf_helpers.AwaitServiceCreation(ts.Name)
 
-			By("pushing an app and binding to it")
-			ts.AppURL = cf_helpers.PushAndBindApp(
-				ts.AppName,
-				ts.Name,
-				path.Join(ciRootPath, exampleAppDirName),
-			)
+			if checkDataPersistence {
+				By("pushing an app and binding to it")
+				ts.AppURL = cf_helpers.PushAndBindApp(
+					ts.AppName,
+					ts.Name,
+					path.Join(ciRootPath, exampleAppDirName),
+				)
 
-			By("adding data to the service instance")
-			cf_helpers.PutToTestApp(ts.AppURL, "foo", "bar")
+				By("adding data to the service instance")
+				cf_helpers.PutToTestApp(ts.AppURL, "foo", "bar")
+			}
 
 			wg.Done()
 		}(service, &wg)
@@ -165,8 +173,10 @@ func deleteServiceInstances() {
 	for _, service := range serviceInstances {
 		wg.Add(1)
 		go func(ts *testService, wg *sync.WaitGroup) {
-			By("deleting the corresponding app")
-			Eventually(cf.Cf("delete", ts.AppName, "-f", "-r"), cf_helpers.CfTimeout).Should(gexec.Exit(0))
+			if checkDataPersistence {
+				By("deleting the corresponding app")
+				Eventually(cf.Cf("delete", ts.AppName, "-f", "-r"), cf_helpers.CfTimeout).Should(gexec.Exit(0))
+			}
 
 			By("ensuring the service instance is deleted")
 			cf_helpers.AwaitServiceDeletion(service.Name)
