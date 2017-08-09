@@ -460,6 +460,10 @@ stemcells:
 `, deploymentName(instanceID))
 }
 
+func rawManifestFromBoshManifest(manifest bosh.BoshManifest) string {
+	return string(toYaml(manifest))
+}
+
 func listCFServiceOfferingsResponse(serviceOfferingID, ccServiceOfferingGUID string) string {
 	return `{
 		"next_url": null,
@@ -529,8 +533,4 @@ func toYaml(obj interface{}) []byte {
 	data, err := yaml.Marshal(obj)
 	Expect(err).NotTo(HaveOccurred())
 	return data
-}
-
-func rawManifestFromBoshManifest(manifest bosh.BoshManifest) string {
-	return string(toYaml(manifest))
 }

@@ -550,9 +550,7 @@ var _ = Describe("updating a service instance", func() {
 				)
 
 				updateResp = updateServiceInstanceRequest(updateArbParams, instanceID, dedicatedPlanID, dedicatedPlanID)
-
 				Expect(updateResp.StatusCode).To(Equal(http.StatusAccepted))
-
 				Expect(*operationDataFromUpdateResponse(updateResp)).To(Equal(
 					broker.OperationData{
 						OperationType: broker.OperationTypeUpdate,

@@ -126,21 +126,15 @@ func (d deployer) checkForPendingChanges(
 		return err
 	}
 
-	var convertedOldManifest bosh.BoshManifest
-	err = yaml.Unmarshal(oldManifest, &convertedOldManifest)
+	convertedRegeneratedManifest, err := ignoreUpdateBlock(regeneratedManifest)
 	if err != nil {
-		return fmt.Errorf("error detecting change in manifest, unable to unmarshal old manifest: %s", err)
+		return err
 	}
 
-	var convertedRegeneratedManifest bosh.BoshManifest
-	err = yaml.Unmarshal(regeneratedManifest, &convertedRegeneratedManifest)
+	convertedOldManifest, err := ignoreUpdateBlock(oldManifest)
 	if err != nil {
-		return fmt.Errorf("error detecting change in manifest, unable to unmarshal generated manifest: %s", err)
+		return err
 	}
-
-	// ignore Update block
-	convertedOldManifest.Update = bosh.Update{}
-	convertedRegeneratedManifest.Update = bosh.Update{}
 
 	manifestsSame := reflect.DeepEqual(convertedRegeneratedManifest, convertedOldManifest)
 
@@ -176,4 +170,17 @@ func (d deployer) doDeploy(
 	logger.Printf("Bosh task ID for %s deployment %s is %d\n", operationType, deploymentName, boshTaskID)
 
 	return boshTaskID, manifest, nil
+}
+
+func ignoreUpdateBlock(rawManifest []byte) (bosh.BoshManifest, error) {
+	var boshManifest bosh.BoshManifest
+	err := yaml.Unmarshal(rawManifest, &boshManifest)
+
+	if err != nil {
+		return bosh.BoshManifest{}, fmt.Errorf("error detecting change in manifest, unable to unmarshal manifest: %s", err)
+	}
+
+	boshManifest.Update = bosh.Update{}
+
+	return boshManifest, nil
 }
