@@ -202,7 +202,7 @@ func startBrokerWithoutPortCheck(conf config.Config) *gexec.Session {
 
 	// ensure that any previous instance of the broker has stopped
 	// if this assertion fails, look for running instances of on-demand-broker and kill them!
-	Eventually(dialBroker).Should(BeFalse(), "an old instance of the broker is still running")
+	Eventually(dialBroker, "15s").Should(BeFalse(), "an old instance of the broker is still running")
 
 	params := []string{"-configFilePath", testConfigFilePath}
 	cmd := exec.Command(brokerBinPath, params...)
