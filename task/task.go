@@ -9,8 +9,11 @@ package task
 import (
 	"fmt"
 	"log"
+	"reflect"
 
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
+	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
+	"gopkg.in/yaml.v2"
 )
 
 //go:generate counterfeiter -o fakes/fake_bosh_client.go . BoshClient
@@ -123,10 +126,23 @@ func (d deployer) checkForPendingChanges(
 		return err
 	}
 
-	manifestsSame, err := regeneratedManifest.Equals(oldManifest)
+	var convertedOldManifest bosh.BoshManifest
+	err = yaml.Unmarshal(oldManifest, &convertedOldManifest)
 	if err != nil {
-		return fmt.Errorf("error detecting change in manifest: %s", err)
+		return fmt.Errorf("error detecting change in manifest, unable to unmarshal old manifest: %s", err)
 	}
+
+	var convertedRegeneratedManifest bosh.BoshManifest
+	err = yaml.Unmarshal(regeneratedManifest, &convertedRegeneratedManifest)
+	if err != nil {
+		return fmt.Errorf("error detecting change in manifest, unable to unmarshal generated manifest: %s", err)
+	}
+
+	// ignore Update block
+	convertedOldManifest.Update = bosh.Update{}
+	convertedRegeneratedManifest.Update = bosh.Update{}
+
+	manifestsSame := reflect.DeepEqual(convertedRegeneratedManifest, convertedOldManifest)
 
 	pendingChanges := !manifestsSame
 

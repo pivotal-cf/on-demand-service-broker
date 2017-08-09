@@ -25,14 +25,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/mockuaa"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
-	"gopkg.in/yaml.v2"
 )
-
-func toYaml(obj interface{}) []byte {
-	data, err := yaml.Marshal(obj)
-	Expect(err).NotTo(HaveOccurred())
-	return data
-}
 
 var _ = Describe("provision service instance", func() {
 	const (
@@ -68,7 +61,7 @@ var _ = Describe("provision service instance", func() {
 		conf = defaultBrokerConfig(boshDirector.URL, boshUAA.URL, cfAPI.URL, cfUAA.URL)
 		planID = dedicatedPlanID
 		adapter.DashboardUrlGenerator().NotImplemented()
-		adapter.GenerateManifest().ToReturnManifest(string(toYaml(manifestForFirstDeployment)))
+		adapter.GenerateManifest().ToReturnManifest(rawManifestFromBoshManifest(manifestForFirstDeployment))
 	})
 
 	AfterEach(func() {
@@ -655,7 +648,7 @@ var _ = Describe("provision service instance", func() {
 
 		Context("when the bosh deploy fails", func() {
 			BeforeEach(func() {
-				adapter.GenerateManifest().ToReturnManifest(string(toYaml(manifestForFirstDeployment)))
+				adapter.GenerateManifest().ToReturnManifest(rawManifestFromBoshManifest(manifestForFirstDeployment))
 				runningBroker = startBrokerWithPassingStartupChecks(conf, cfAPI, boshDirector)
 
 				cfAPI.VerifyAndMock(
@@ -853,7 +846,7 @@ var _ = Describe("provision service instance", func() {
 			runningBroker = startBrokerWithPassingStartupChecks(conf, cfAPI, boshDirector)
 
 			boshDirector.Close()
-			adapter.GenerateManifest().ToReturnManifest(string(toYaml(manifestForFirstDeployment)))
+			adapter.GenerateManifest().ToReturnManifest(rawManifestFromBoshManifest(manifestForFirstDeployment))
 
 			provisionResponse = provisionInstance(instanceID, planID, arbitraryParams)
 		})

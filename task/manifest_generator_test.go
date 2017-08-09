@@ -270,48 +270,4 @@ var _ = Describe("Manifest Generator", func() {
 			})
 		})
 	})
-
-	Describe("Manifest comparison", func() {
-		manifestOne := BoshManifest(`---
-age: old
-name: old-first`)
-
-		manifestTwo := BoshManifest(`---
-age: old
-name: old-second`)
-
-		manifestThree := BoshManifest(`---
-name: old-first
-age: old`)
-
-		invalidManifest := BoshManifest(`this is wrong`)
-		var manifestOneEqualTo = func(other BoshManifest) bool {
-			result, err := manifestOne.Equals(other)
-			Expect(err).NotTo(HaveOccurred())
-			return result
-		}
-
-		It("returns false for two different manifests", func() {
-			Expect(manifestOneEqualTo(manifestTwo)).To(BeFalse())
-		})
-
-		It("returns true for the same manifest", func() {
-			Expect(manifestOneEqualTo(manifestOne)).To(BeTrue())
-		})
-
-		It("returns true for manifest with the same values in a different order", func() {
-			Expect(manifestOneEqualTo(manifestThree)).To(BeTrue())
-		})
-
-		It("fails when first manifest is invalid yaml", func() {
-			_, err := invalidManifest.Equals(manifestOne)
-			Expect(err).To(HaveOccurred())
-		})
-
-		It("fails when second manifest is invalid yaml", func() {
-			_, err := manifestOne.Equals(invalidManifest)
-			Expect(err).To(HaveOccurred())
-		})
-	})
-
 })

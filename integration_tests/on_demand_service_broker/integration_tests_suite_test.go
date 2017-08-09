@@ -31,6 +31,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp/mockbosh"
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp/mockcfapi"
+	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 	"gopkg.in/yaml.v2"
 )
@@ -522,4 +523,14 @@ func logRegexpString(requestID, message string) string {
 func firstMatchInOutput(session *gexec.Session, regexpString string) string {
 	logs := string(session.Buffer().Contents())
 	return regexp.MustCompile(regexpString).FindStringSubmatch(logs)[1]
+}
+
+func toYaml(obj interface{}) []byte {
+	data, err := yaml.Marshal(obj)
+	Expect(err).NotTo(HaveOccurred())
+	return data
+}
+
+func rawManifestFromBoshManifest(manifest bosh.BoshManifest) string {
+	return string(toYaml(manifest))
 }

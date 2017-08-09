@@ -39,7 +39,7 @@ var _ = Describe("Deployer", func() {
 		planID         string
 		previousPlanID *string
 		requestParams  map[string]interface{}
-		manifest       = []byte("---\nmanifest: deployment")
+		manifest       = []byte("---\nproperties:\n foo: bar")
 		oldManifest    []byte
 
 		manifestGenerator *fakes.FakeManifestGenerator
@@ -495,6 +495,90 @@ var _ = Describe("Deployer", func() {
 		})
 	})
 
+	It("ignores the update block when the manifest generator generates a new manifest with a different update block", func() {
+		previousPlanID = stringPointer(existingPlanID)
+
+		oldManifest := []byte("---\nupdate:\n canaries: 5")
+		generatedManifest := []byte("---\nupdate:\n canaries: 2")
+
+		requestParams = map[string]interface{}{"foo": "bar"}
+
+		boshClient.GetDeploymentReturns(oldManifest, true, nil)
+		manifestGenerator.GenerateManifestReturns(generatedManifest, nil)
+		boshClient.GetTasksReturns([]boshdirector.BoshTask{{State: boshdirector.TaskDone}}, nil)
+		boshClient.DeployReturns(42, nil)
+
+		returnedTaskID, deployedManifest, deployError = deployer.Update(
+			deploymentName,
+			planID,
+			requestParams,
+			previousPlanID,
+			boshContextID,
+			logger,
+		)
+
+		Expect(deployError).To(BeNil())
+
+		Expect(manifestGenerator.GenerateManifestCallCount()).To(Equal(2))
+		_, _, passedRequestParams, _, _, _ := manifestGenerator.GenerateManifestArgsForCall(1)
+		Expect(passedRequestParams).To(Equal(requestParams))
+
+		manifestToDeploy, _, _ := boshClient.DeployArgsForCall(0)
+		Expect(string(manifestToDeploy)).To(Equal(string(generatedManifest)))
+	})
+
+	It("returns an error when old manifest contains invalid YAML", func() {
+		previousPlanID = stringPointer(existingPlanID)
+
+		oldManifestWithInvalidYAML := []byte("{")
+		generatedManifest := []byte("---\nupdate:\n canaries: 2")
+
+		requestParams = map[string]interface{}{"foo": "bar"}
+
+		boshClient.GetDeploymentReturns(oldManifestWithInvalidYAML, true, nil)
+		manifestGenerator.GenerateManifestReturns(generatedManifest, nil)
+		boshClient.GetTasksReturns([]boshdirector.BoshTask{{State: boshdirector.TaskDone}}, nil)
+		boshClient.DeployReturns(42, nil)
+
+		returnedTaskID, deployedManifest, deployError = deployer.Update(
+			deploymentName,
+			planID,
+			requestParams,
+			previousPlanID,
+			boshContextID,
+			logger,
+		)
+
+		Expect(deployError.Error()).To(ContainSubstring("error detecting change in manifest, unable to unmarshal old manifest"))
+		Expect(manifestGenerator.GenerateManifestCallCount()).To(Equal(1))
+	})
+
+	It("returns an error when the generated manifest returns invalid YAML", func() {
+		previousPlanID = stringPointer(existingPlanID)
+
+		oldManifest := []byte("---\nupdate:\n canaries: 5")
+		generatedManifestWithInvalidYAML := []byte("{")
+
+		requestParams = map[string]interface{}{"foo": "bar"}
+
+		boshClient.GetDeploymentReturns(oldManifest, true, nil)
+		manifestGenerator.GenerateManifestReturns(generatedManifestWithInvalidYAML, nil)
+		boshClient.GetTasksReturns([]boshdirector.BoshTask{{State: boshdirector.TaskDone}}, nil)
+		boshClient.DeployReturns(42, nil)
+
+		returnedTaskID, deployedManifest, deployError = deployer.Update(
+			deploymentName,
+			planID,
+			requestParams,
+			previousPlanID,
+			boshContextID,
+			logger,
+		)
+
+		Expect(deployError.Error()).To(ContainSubstring("error detecting change in manifest, unable to unmarshal generated manifest"))
+		Expect(manifestGenerator.GenerateManifestCallCount()).To(Equal(1))
+	})
+
 	Describe("Update()", func() {
 		JustBeforeEach(func() {
 			returnedTaskID, deployedManifest, deployError = deployer.Update(
@@ -509,6 +593,7 @@ var _ = Describe("Deployer", func() {
 
 		BeforeEach(func() {
 			oldManifest = []byte("---\nold-manifest-fetched-from-bosh: bar")
+
 			previousPlanID = stringPointer(existingPlanID)
 
 			boshClient.GetDeploymentReturns(oldManifest, true, nil)
@@ -619,6 +704,7 @@ var _ = Describe("Deployer", func() {
 			})
 
 			It("fails without deploying", func() {
+				Expect(deployError).To(HaveOccurred())
 				Expect(deployError).To(BeAssignableToTypeOf(task.PendingChangesNotAppliedError{}))
 				Expect(boshClient.DeployCallCount()).To(BeZero())
 			})

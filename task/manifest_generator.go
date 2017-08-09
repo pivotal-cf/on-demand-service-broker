@@ -8,11 +8,9 @@ package task
 
 import (
 	"log"
-	"reflect"
 
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
-	yaml "gopkg.in/yaml.v2"
 )
 
 //go:generate counterfeiter -o fakes/fake_service_adapter_client.go . ServiceAdapterClient
@@ -42,22 +40,6 @@ func NewManifestGenerator(
 }
 
 type BoshManifest []byte
-
-func (m BoshManifest) Equals(other BoshManifest) (bool, error) {
-	var thisMap map[string]interface{}
-	var thatMap map[string]interface{}
-
-	err := yaml.Unmarshal(m, &thisMap)
-	if err != nil {
-		return false, err
-	}
-	err = yaml.Unmarshal(other, &thatMap)
-	if err != nil {
-		return false, err
-	}
-
-	return reflect.DeepEqual(thisMap, thatMap), nil
-}
 
 func (m manifestGenerator) GenerateManifest(
 	deploymentName, planID string,

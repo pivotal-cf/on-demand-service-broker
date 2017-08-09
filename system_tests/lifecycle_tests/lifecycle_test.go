@@ -8,6 +8,7 @@ package lifecycle_tests
 
 import (
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	"regexp"
 	"strings"
@@ -47,6 +48,12 @@ var _ = Describe("On-demand service broker", func() {
 
 	updatePlan := func(serviceName, updatedPlanName string) {
 		Eventually(cf.Cf("update-service", serviceName, "-p", updatedPlanName), cf_helpers.CfTimeout).Should(gexec.Exit(0))
+		cf_helpers.AssertProgress(serviceName, "update")
+		cf_helpers.AwaitServiceUpdate(serviceName)
+	}
+
+	updateServiceWithArbParams := func(serviceName string, arbitraryParams json.RawMessage) {
+		Eventually(cf.Cf("update-service", serviceName, "-c", string(arbitraryParams)), cf_helpers.CfTimeout).Should(gexec.Exit(0))
 		cf_helpers.AssertProgress(serviceName, "update")
 		cf_helpers.AwaitServiceUpdate(serviceName)
 	}
@@ -135,6 +142,14 @@ var _ = Describe("On-demand service broker", func() {
 			if t.UpdateToPlan != "" {
 				By(fmt.Sprintf("allowing to update the service instance to plan: '%s'", t.UpdateToPlan))
 				updatePlan(serviceName, t.UpdateToPlan)
+
+				By("providing a functional service instance post-update")
+				testServiceWithExampleApp(exampleAppType, testAppURL)
+			}
+
+			if len(t.ArbitraryParams) > 0 {
+				By(fmt.Sprintf("allowing to update the service instance with arbitrary params: '%s'", string(t.ArbitraryParams)))
+				updateServiceWithArbParams(serviceName, t.ArbitraryParams)
 
 				By("providing a functional service instance post-update")
 				testServiceWithExampleApp(exampleAppType, testAppURL)
