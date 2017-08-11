@@ -17,6 +17,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/fakes"
+	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
@@ -167,4 +168,17 @@ func TestBroker(t *testing.T) {
 
 func deploymentName(instanceID string) string {
 	return "service-instance_" + instanceID
+}
+
+func cfServicePlan(guid, uniqueID, servicePlanUrl, name string) cf.ServicePlan {
+	return cf.ServicePlan{
+		Metadata: cf.Metadata{
+			GUID: guid,
+		},
+		ServicePlanEntity: cf.ServicePlanEntity{
+			UniqueID:            uniqueID,
+			ServiceInstancesUrl: servicePlanUrl,
+			Name:                name,
+		},
+	}
 }

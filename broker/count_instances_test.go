@@ -12,25 +12,28 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pivotal-cf/on-demand-service-broker/cf"
 )
 
 var _ = Describe("counting instances of a service offering by plan", func() {
 	var (
-		counts   map[string]int
+		counts   map[cf.ServicePlan]int
 		countErr error
 
-		expectedCounts      = map[string]int{"foo": 4}
+		expectedCounts = map[cf.ServicePlan]int{
+			cfServicePlan("1234", "foo", "url", "bar"): 4,
+		}
 		countInstancesCalls int
 		logger              *log.Logger
 	)
 
 	BeforeEach(func() {
 		countInstancesCalls = 0
-		cfClient.CountInstancesOfServiceOfferingStub = func(id string, _ *log.Logger) (map[string]int, error) {
+		cfClient.CountInstancesOfServiceOfferingStub = func(id string, _ *log.Logger) (map[cf.ServicePlan]int, error) {
 			countInstancesCalls++
 
 			if countInstancesCalls == 1 {
-				return map[string]int{}, nil
+				return map[cf.ServicePlan]int{}, nil
 			}
 
 			Expect(id).To(Equal(serviceOfferingID))

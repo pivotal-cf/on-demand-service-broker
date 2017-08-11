@@ -234,7 +234,8 @@ var _ = Describe("Startup", func() {
 				      {
 				         "entity": {
 								 		"unique_id": "not_in_service_catalog",
-				            "service_instances_url": "/v2/service_plans/ff717e7c-afd5-4d0a-bafe-16c7eff546ec/service_instances"
+				            "service_instances_url": "/v2/service_plans/ff717e7c-afd5-4d0a-bafe-16c7eff546ec/service_instances",
+				                             "name": "plan_not_in_catalog"
 				         }
 				      }
 				   ]
@@ -250,7 +251,7 @@ var _ = Describe("Startup", func() {
 
 				runningBroker = startBrokerWithoutPortCheck(conf)
 
-				Eventually(runningBroker.Out).Should(gbytes.Say("cannot change the plan_id of a plan that has existing service instances"))
+				Eventually(runningBroker.Out).Should(gbytes.Say(`plan plan_not_in_catalog \(not_in_service_catalog\) was expected but is now missing. You cannot remove or change the plan_id of a plan which has existing service instances`))
 				Expect(runningBroker.ExitCode()).ToNot(Equal(0))
 				Eventually(runningBroker).Should(gexec.Exit())
 			})

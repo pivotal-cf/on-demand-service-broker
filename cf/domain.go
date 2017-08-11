@@ -74,6 +74,7 @@ type ServicePlan struct {
 type ServicePlanEntity struct {
 	UniqueID            string `json:"unique_id"`
 	ServiceInstancesUrl string `json:"service_instances_url"`
+	Name                string `json:"name"`
 }
 
 type serviceInstanceResource struct {

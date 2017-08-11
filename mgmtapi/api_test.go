@@ -220,7 +220,9 @@ var _ = Describe("Management API", func() {
 		Context("when no quota is set", func() {
 			Context("when there is one plan with instance count", func() {
 				BeforeEach(func() {
-					manageableBroker.CountInstancesOfPlansReturns(map[string]int{"foo_id": 2}, nil)
+					manageableBroker.CountInstancesOfPlansReturns(map[cf.ServicePlan]int{
+						cfServicePlan("1234", "foo_id", "url", "name"): 2,
+					}, nil)
 				})
 
 				It("returns HTTP 200", func() {
@@ -253,7 +255,10 @@ var _ = Describe("Management API", func() {
 
 			Context("when there are multiple plans with instance counts", func() {
 				BeforeEach(func() {
-					manageableBroker.CountInstancesOfPlansReturns(map[string]int{"foo_id": 2, "bar_id": 3}, nil)
+					manageableBroker.CountInstancesOfPlansReturns(map[cf.ServicePlan]int{
+						cfServicePlan("1234", "foo_id", "url", "name"): 2,
+						cfServicePlan("1234", "bar_id", "url", "name"): 3,
+					}, nil)
 				})
 
 				It("returns HTTP 200", func() {
@@ -301,7 +306,7 @@ var _ = Describe("Management API", func() {
 
 			Context("when the broker is not registered with CF", func() {
 				BeforeEach(func() {
-					manageableBroker.CountInstancesOfPlansReturns(map[string]int{}, nil)
+					manageableBroker.CountInstancesOfPlansReturns(map[cf.ServicePlan]int{}, nil)
 				})
 
 				It("returns HTTP 503", func() {
@@ -318,7 +323,9 @@ var _ = Describe("Management API", func() {
 
 			Context("when the instance count can be retrieved", func() {
 				BeforeEach(func() {
-					manageableBroker.CountInstancesOfPlansReturns(map[string]int{"foo_id": 2}, nil)
+					manageableBroker.CountInstancesOfPlansReturns(map[cf.ServicePlan]int{
+						cfServicePlan("1234", "foo_id", "url", "name"): 2,
+					}, nil)
 				})
 
 				It("returns HTTP 200", func() {
@@ -363,7 +370,10 @@ var _ = Describe("Management API", func() {
 
 			Context("when the instance count can be retrieved", func() {
 				BeforeEach(func() {
-					manageableBroker.CountInstancesOfPlansReturns(map[string]int{"foo_id": 2, "bar_id": 3}, nil)
+					manageableBroker.CountInstancesOfPlansReturns(map[cf.ServicePlan]int{
+						cfServicePlan("1234", "foo_id", "url", "name"): 2,
+						cfServicePlan("1234", "bar_id", "url", "name"): 3,
+					}, nil)
 				})
 
 				It("returns HTTP 200", func() {
@@ -407,7 +417,10 @@ var _ = Describe("Management API", func() {
 
 		Context("when there are no service instances", func() {
 			BeforeEach(func() {
-				manageableBroker.CountInstancesOfPlansReturns(map[string]int{"foo_id": 0, "bar_id": 0}, nil)
+				manageableBroker.CountInstancesOfPlansReturns(map[cf.ServicePlan]int{
+					cfServicePlan("1234", "foo_id", "url", "name"): 0,
+					cfServicePlan("1234", "bar_id", "url", "name"): 0,
+				}, nil)
 			})
 
 			It("returns HTTP 200", func() {
@@ -520,4 +533,17 @@ func Patch(url string) (resp *http.Response, err error) {
 		return nil, err
 	}
 	return http.DefaultClient.Do(req)
+}
+
+func cfServicePlan(guid, uniqueID, servicePlanUrl, name string) cf.ServicePlan {
+	return cf.ServicePlan{
+		Metadata: cf.Metadata{
+			GUID: guid,
+		},
+		ServicePlanEntity: cf.ServicePlanEntity{
+			UniqueID:            uniqueID,
+			ServiceInstancesUrl: servicePlanUrl,
+			Name:                name,
+		},
+	}
 }

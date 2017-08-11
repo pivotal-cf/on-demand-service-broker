@@ -6,8 +6,12 @@
 
 package broker
 
-import "log"
+import (
+	"log"
 
-func (b *Broker) CountInstancesOfPlans(logger *log.Logger) (map[string]int, error) {
+	"github.com/pivotal-cf/on-demand-service-broker/cf"
+)
+
+func (b *Broker) CountInstancesOfPlans(logger *log.Logger) (map[cf.ServicePlan]int, error) {
 	return b.cfClient.CountInstancesOfServiceOffering(b.serviceOffering.ID, logger)
 }

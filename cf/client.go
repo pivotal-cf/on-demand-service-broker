@@ -29,19 +29,19 @@ func New(
 	return Client{httpJsonClient: httpClient, url: url}, nil
 }
 
-func (c Client) CountInstancesOfServiceOffering(serviceID string, logger *log.Logger) (map[string]int, error) {
+func (c Client) CountInstancesOfServiceOffering(serviceID string, logger *log.Logger) (map[ServicePlan]int, error) {
 	plans, err := c.getPlansForServiceID(serviceID, logger)
 	if err != nil {
-		return map[string]int{}, err
+		return map[ServicePlan]int{}, err
 	}
 
-	output := map[string]int{}
+	output := map[ServicePlan]int{}
 	for _, plan := range plans {
 		count, err := c.countServiceInstancesOfServicePlan(plan.ServicePlanEntity.ServiceInstancesUrl, logger)
 		if err != nil {
 			return nil, err
 		}
-		output[plan.ServicePlanEntity.UniqueID] = count
+		output[plan] = count
 	}
 
 	return output, nil

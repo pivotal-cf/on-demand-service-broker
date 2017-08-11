@@ -36,7 +36,7 @@ type ManageableBroker interface {
 	Instances(logger *log.Logger) ([]string, error)
 	OrphanDeployments(logger *log.Logger) ([]string, error)
 	Upgrade(ctx context.Context, instanceID string, logger *log.Logger) (broker.OperationData, error)
-	CountInstancesOfPlans(logger *log.Logger) (map[string]int, error)
+	CountInstancesOfPlans(logger *log.Logger) (map[cf.ServicePlan]int, error)
 }
 
 type Instance struct {
@@ -145,8 +145,8 @@ func (a *api) metrics(w http.ResponseWriter, r *http.Request) {
 
 	totalInstances := 0
 
-	for planID, instanceCount := range instanceCountsByPlan {
-		plan, err := a.getPlan(planID)
+	for plan, instanceCount := range instanceCountsByPlan {
+		serviceOfferingPlan, err := a.getPlan(plan.ServicePlanEntity.UniqueID)
 		if err != nil {
 			logger.Println(err)
 			a.writeJson(w, []interface{}{}, logger)
@@ -154,16 +154,16 @@ func (a *api) metrics(w http.ResponseWriter, r *http.Request) {
 		}
 
 		countMetric := Metric{
-			Key:   fmt.Sprintf("/on-demand-broker/%s/%s/total_instances", a.serviceOffering.Name, plan.Name),
+			Key:   fmt.Sprintf("/on-demand-broker/%s/%s/total_instances", a.serviceOffering.Name, serviceOfferingPlan.Name),
 			Unit:  "count",
 			Value: float64(instanceCount),
 		}
 		brokerMetrics = append(brokerMetrics, countMetric)
 
-		if plan.Quotas.ServiceInstanceLimit != nil {
-			limit := *plan.Quotas.ServiceInstanceLimit
+		if serviceOfferingPlan.Quotas.ServiceInstanceLimit != nil {
+			limit := *serviceOfferingPlan.Quotas.ServiceInstanceLimit
 			quotaMetric := Metric{
-				Key:   fmt.Sprintf("/on-demand-broker/%s/%s/quota_remaining", a.serviceOffering.Name, plan.Name),
+				Key:   fmt.Sprintf("/on-demand-broker/%s/%s/quota_remaining", a.serviceOffering.Name, serviceOfferingPlan.Name),
 				Unit:  "count",
 				Value: float64(limit - instanceCount),
 			}

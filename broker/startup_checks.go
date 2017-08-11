@@ -35,11 +35,15 @@ func (b *Broker) verifyExistingInstancePlanIDsUnchanged(logger *log.Logger) erro
 		return err
 	}
 
-	for planID, count := range instanceCountByPlanID {
-		_, found := b.serviceOffering.Plans.FindByID(planID)
+	for plan, count := range instanceCountByPlanID {
+		_, found := b.serviceOffering.Plans.FindByID(plan.ServicePlanEntity.UniqueID)
 
 		if !found && count > 0 {
-			return fmt.Errorf("You cannot change the plan_id of a plan that has existing service instances")
+			return fmt.Errorf(
+				"plan %s (%s) was expected but is now missing. You cannot remove or change the plan_id of a plan which has existing service instances",
+				plan.ServicePlanEntity.Name,
+				plan.ServicePlanEntity.UniqueID,
+			)
 		}
 	}
 

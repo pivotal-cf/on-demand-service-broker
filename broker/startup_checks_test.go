@@ -13,6 +13,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
+	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
@@ -220,7 +221,7 @@ var _ = Describe("Initializing the broker", func() {
 		Context("when there are no pre-existing instances", func() {
 			BeforeEach(func() {
 				cfClient.GetAPIVersionReturns("2.57.0", nil)
-				cfClient.CountInstancesOfServiceOfferingReturns(map[string]int{}, nil)
+				cfClient.CountInstancesOfServiceOfferingReturns(map[cf.ServicePlan]int{}, nil)
 			})
 
 			It("returns no error", func() {
@@ -231,7 +232,9 @@ var _ = Describe("Initializing the broker", func() {
 		Context("when there are no pre-existing instances of configured plans", func() {
 			Context("service catalog contains the existing instance's plan", func() {
 				BeforeEach(func() {
-					cfClient.CountInstancesOfServiceOfferingReturns(map[string]int{existingPlanID: 1}, nil)
+					cfClient.CountInstancesOfServiceOfferingReturns(map[cf.ServicePlan]int{
+						cfServicePlan("1234", existingPlanID, "url", existingPlanName): 1,
+					}, nil)
 				})
 
 				It("returns no error", func() {
@@ -241,7 +244,10 @@ var _ = Describe("Initializing the broker", func() {
 
 			Context("service catalog does not contain a plan with zero instances", func() {
 				BeforeEach(func() {
-					cfClient.CountInstancesOfServiceOfferingReturns(map[string]int{existingPlanID: 1, "non-existing-plan": 0}, nil)
+					cfClient.CountInstancesOfServiceOfferingReturns(map[cf.ServicePlan]int{
+						cfServicePlan("1234", existingPlanID, "url", existingPlanName):            1,
+						cfServicePlan("1234", "non-existent-plan-id", "url", "non-existent-plan"): 0,
+					}, nil)
 				})
 
 				It("returns no error", func() {
@@ -251,11 +257,15 @@ var _ = Describe("Initializing the broker", func() {
 
 			Context("service catalog does not contain the existing instance's plan", func() {
 				BeforeEach(func() {
-					cfClient.CountInstancesOfServiceOfferingReturns(map[string]int{"non-existent-plan": 1}, nil)
+					cfClient.CountInstancesOfServiceOfferingReturns(map[cf.ServicePlan]int{
+						cfServicePlan("1234", "non-existent-plan-id", "url", "non-existent-plan"): 1,
+					}, nil)
 				})
 
 				It("returns an error", func() {
-					Expect(brokerCreationErr).To(MatchError(ContainSubstring("You cannot change the plan_id of a plan that has existing service instances")))
+					Expect(brokerCreationErr).To(MatchError(ContainSubstring(
+						fmt.Sprintf("plan non-existent-plan (non-existent-plan-id) was expected but is now missing. You cannot remove or change the plan_id of a plan which has existing service instances"),
+					)))
 				})
 			})
 

@@ -18,6 +18,7 @@ import (
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
+	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
@@ -614,9 +615,9 @@ var _ = Describe("provisioning", func() {
 
 	Context("when the global quota is reached", func() {
 		BeforeEach(func() {
-			planCounts := map[string]int{
-				existingPlanID: serviceOfferingServiceInstanceLimit,
-				secondPlanID:   0,
+			planCounts := map[cf.ServicePlan]int{
+				cfServicePlan("1234", existingPlanID, "url", "name"): serviceOfferingServiceInstanceLimit,
+				cfServicePlan("1234", secondPlanID, "url", "name"):   0,
 			}
 			cfClient.CountInstancesOfServiceOfferingReturns(planCounts, nil)
 		})
@@ -652,7 +653,7 @@ var _ = Describe("provisioning", func() {
 		Context("and the instances of all plans cannot be counted", func() {
 			BeforeEach(func() {
 				callCount := 0
-				cfClient.CountInstancesOfServiceOfferingStub = func(_ string, _ *log.Logger) (map[string]int, error) {
+				cfClient.CountInstancesOfServiceOfferingStub = func(_ string, _ *log.Logger) (map[cf.ServicePlan]int, error) {
 					callCount++
 					if callCount > 1 {
 						return nil, errors.New("count fail")

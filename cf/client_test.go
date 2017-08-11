@@ -189,9 +189,19 @@ var _ = Describe("Client", func() {
 			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(client.CountInstancesOfServiceOffering("D94A086D-203D-4966-A6F1-60A9E2300F72", testLogger)).To(Equal(map[string]int{
-				"11789210-D743-4C65-9D38-C80B29F4D9C8": 1,
-				"22789210-D743-4C65-9D38-C80B29F4D9C8": 2,
+			Expect(client.CountInstancesOfServiceOffering("D94A086D-203D-4966-A6F1-60A9E2300F72", testLogger)).To(Equal(map[cf.ServicePlan]int{
+				servicePlan(
+					"ff717e7c-afd5-4d0a-bafe-16c7eff546ec",
+					"11789210-D743-4C65-9D38-C80B29F4D9C8",
+					"/v2/service_plans/ff717e7c-afd5-4d0a-bafe-16c7eff546ec/service_instances",
+					"small",
+				): 1,
+				servicePlan(
+					"2777ad05-8114-4169-8188-2ef5f39e0c6b",
+					"22789210-D743-4C65-9D38-C80B29F4D9C8",
+					"/v2/service_plans/2777ad05-8114-4169-8188-2ef5f39e0c6b/service_instances",
+					"big",
+				): 2,
 			}))
 		})
 
@@ -203,7 +213,7 @@ var _ = Describe("Client", func() {
 			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(client.CountInstancesOfServiceOffering("D94A086D-203D-4966-A6F1-60A9E2300F72", testLogger)).To(Equal(map[string]int{}))
+			Expect(client.CountInstancesOfServiceOffering("D94A086D-203D-4966-A6F1-60A9E2300F72", testLogger)).To(Equal(map[cf.ServicePlan]int{}))
 		})
 
 		It("fails if getting a new token fails", func() {
@@ -232,9 +242,19 @@ var _ = Describe("Client", func() {
 			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(client.CountInstancesOfServiceOffering("D94A086D-203D-4966-A6F1-60A9E2300F72", testLogger)).To(Equal(map[string]int{
-				"11789210-D743-4C65-9D38-C80B29F4D9C8": 1,
-				"22789210-D743-4C65-9D38-C80B29F4D9C8": 2,
+			Expect(client.CountInstancesOfServiceOffering("D94A086D-203D-4966-A6F1-60A9E2300F72", testLogger)).To(Equal(map[cf.ServicePlan]int{
+				servicePlan(
+					"ff717e7c-afd5-4d0a-bafe-16c7eff546ec",
+					"11789210-D743-4C65-9D38-C80B29F4D9C8",
+					"/v2/service_plans/ff717e7c-afd5-4d0a-bafe-16c7eff546ec/service_instances",
+					"small",
+				): 1,
+				servicePlan(
+					"2777ad05-8114-4169-8188-2ef5f39e0c6b",
+					"22789210-D743-4C65-9D38-C80B29F4D9C8",
+					"/v2/service_plans/2777ad05-8114-4169-8188-2ef5f39e0c6b/service_instances",
+					"big",
+				): 2,
 			}))
 
 			server.VerifyAndMock(
@@ -244,9 +264,19 @@ var _ = Describe("Client", func() {
 				mockcfapi.ListServiceInstances("2777ad05-8114-4169-8188-2ef5f39e0c6b").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_instances_for_plan_2_response.json")),
 			)
 
-			Expect(client.CountInstancesOfServiceOffering("D94A086D-203D-4966-A6F1-60A9E2300F72", testLogger)).To(Equal(map[string]int{
-				"11789210-D743-4C65-9D38-C80B29F4D9C8": 1,
-				"22789210-D743-4C65-9D38-C80B29F4D9C8": 2,
+			Expect(client.CountInstancesOfServiceOffering("D94A086D-203D-4966-A6F1-60A9E2300F72", testLogger)).To(Equal(map[cf.ServicePlan]int{
+				servicePlan(
+					"ff717e7c-afd5-4d0a-bafe-16c7eff546ec",
+					"11789210-D743-4C65-9D38-C80B29F4D9C8",
+					"/v2/service_plans/ff717e7c-afd5-4d0a-bafe-16c7eff546ec/service_instances",
+					"small",
+				): 1,
+				servicePlan(
+					"2777ad05-8114-4169-8188-2ef5f39e0c6b",
+					"22789210-D743-4C65-9D38-C80B29F4D9C8",
+					"/v2/service_plans/2777ad05-8114-4169-8188-2ef5f39e0c6b/service_instances",
+					"big",
+				): 2,
 			}))
 		})
 
@@ -262,9 +292,19 @@ var _ = Describe("Client", func() {
 			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(client.CountInstancesOfServiceOffering("D94A086D-203D-4966-A6F1-60A9E2300F72", testLogger)).To(Equal(map[string]int{
-				"11789210-D743-4C65-9D38-C80B29F4D9C8": 1,
-				"22789210-D743-4C65-9D38-C80B29F4D9C8": 2,
+			Expect(client.CountInstancesOfServiceOffering("D94A086D-203D-4966-A6F1-60A9E2300F72", testLogger)).To(Equal(map[cf.ServicePlan]int{
+				servicePlan(
+					"ff717e7c-afd5-4d0a-bafe-16c7eff546ec",
+					"11789210-D743-4C65-9D38-C80B29F4D9C8",
+					"/v2/service_plans/ff717e7c-afd5-4d0a-bafe-16c7eff546ec/service_instances",
+					"small",
+				): 1,
+				servicePlan(
+					"2777ad05-8114-4169-8188-2ef5f39e0c6b",
+					"22789210-D743-4C65-9D38-C80B29F4D9C8",
+					"/v2/service_plans/2777ad05-8114-4169-8188-2ef5f39e0c6b/service_instances",
+					"big",
+				): 2,
 			}))
 		})
 
@@ -280,9 +320,19 @@ var _ = Describe("Client", func() {
 			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(client.CountInstancesOfServiceOffering("D94A086D-203D-4966-A6F1-60A9E2300F72", testLogger)).To(Equal(map[string]int{
-				"11789210-D743-4C65-9D38-C80B29F4D9C8": 1,
-				"22789210-D743-4C65-9D38-C80B29F4D9C8": 2,
+			Expect(client.CountInstancesOfServiceOffering("D94A086D-203D-4966-A6F1-60A9E2300F72", testLogger)).To(Equal(map[cf.ServicePlan]int{
+				servicePlan(
+					"ff717e7c-afd5-4d0a-bafe-16c7eff546ec",
+					"11789210-D743-4C65-9D38-C80B29F4D9C8",
+					"/v2/service_plans/ff717e7c-afd5-4d0a-bafe-16c7eff546ec/service_instances",
+					"small",
+				): 1,
+				servicePlan(
+					"2777ad05-8114-4169-8188-2ef5f39e0c6b",
+					"22789210-D743-4C65-9D38-C80B29F4D9C8",
+					"/v2/service_plans/2777ad05-8114-4169-8188-2ef5f39e0c6b/service_instances",
+					"big",
+				): 2,
 			}))
 		})
 
@@ -1195,6 +1245,19 @@ var _ = Describe("Client", func() {
 		})
 	})
 })
+
+func servicePlan(guid, uniqueID, servicePlanUrl, name string) cf.ServicePlan {
+	return cf.ServicePlan{
+		Metadata: cf.Metadata{
+			GUID: guid,
+		},
+		ServicePlanEntity: cf.ServicePlanEntity{
+			UniqueID:            uniqueID,
+			ServiceInstancesUrl: servicePlanUrl,
+			Name:                name,
+		},
+	}
+}
 
 func fixture(filename string) string {
 	file, err := os.Open(path.Join("fixtures", filename))
