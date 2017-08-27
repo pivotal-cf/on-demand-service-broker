@@ -37,7 +37,7 @@ listed in system_tests/.envrc.template. The values for these variables can be
 taken from the pipeline.yml and adjusted for your local environment
 
 ### Dev / test tools
-* go 1.6
+* go 1.8
 * [counterfeiter](https://github.com/maxbrunsfeld/counterfeiter) (for re-generating fakes)
 * CF CLI (for system tests. See below)
 
