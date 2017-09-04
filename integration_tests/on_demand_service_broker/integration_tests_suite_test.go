@@ -227,11 +227,15 @@ func basicAuthBrokerRequest(req *http.Request) *http.Request {
 }
 
 func provisionInstance(instanceID, planID string, arbitraryParams map[string]interface{}) *http.Response {
-	return provisionInstanceWithAsyncFlag(instanceID, planID, arbitraryParams, true)
+	instance, err := provisionInstanceWithAsyncFlag(instanceID, planID, arbitraryParams, true)
+	Expect(err).NotTo(HaveOccurred())
+	return instance
 }
 
 func provisionInstanceSynchronously(instanceID, planID string, arbitraryParams map[string]interface{}) *http.Response {
-	return provisionInstanceWithAsyncFlag(instanceID, planID, arbitraryParams, false)
+	instance, err := provisionInstanceWithAsyncFlag(instanceID, planID, arbitraryParams, false)
+	Expect(err).NotTo(HaveOccurred())
+	return instance
 }
 
 func deprovisionInstance(instanceID string, asyncAllowed bool) *http.Response {
@@ -245,7 +249,7 @@ func deprovisionInstance(instanceID string, asyncAllowed bool) *http.Response {
 	return deprovisionResponse
 }
 
-func provisionInstanceWithAsyncFlag(instanceID, planID string, arbitraryParams map[string]interface{}, async bool) *http.Response {
+func provisionInstanceWithAsyncFlag(instanceID, planID string, arbitraryParams map[string]interface{}, async bool) (*http.Response, error) {
 	reqBody := map[string]interface{}{
 		"plan_id":           planID,
 		"space_guid":        spaceGUID,
@@ -254,7 +258,9 @@ func provisionInstanceWithAsyncFlag(instanceID, planID string, arbitraryParams m
 		"service_id":        serviceID,
 	}
 	bodyBytes, err := json.Marshal(reqBody)
-	Expect(err).ToNot(HaveOccurred())
+	if err != nil {
+		return &http.Response{}, err
+	}
 
 	asyncFlag := "true"
 	if !async {
@@ -266,12 +272,12 @@ func provisionInstanceWithAsyncFlag(instanceID, planID string, arbitraryParams m
 		fmt.Sprintf("http://localhost:%d/v2/service_instances/%s?accepts_incomplete="+asyncFlag, brokerPort, instanceID),
 		bytes.NewReader(bodyBytes),
 	)
-	Expect(err).ToNot(HaveOccurred())
+	if err != nil {
+		return &http.Response{}, err
+	}
 	provisionReq = basicAuthBrokerRequest(provisionReq)
 
-	provisionResponse, err := http.DefaultClient.Do(provisionReq)
-	Expect(err).ToNot(HaveOccurred())
-	return provisionResponse
+	return http.DefaultClient.Do(provisionReq)
 }
 
 func lastOperationForInstance(instanceID string, operationData broker.OperationData) *http.Response {
@@ -296,10 +302,11 @@ func lastOperationForInstance(instanceID string, operationData broker.OperationD
 func defaultBrokerConfig(boshURL, uaaURL, cfURL, cfUAAURL string) config.Config {
 	return config.Config{
 		Broker: config.Broker{
-			Port:          brokerPort,
-			Username:      brokerUsername,
-			Password:      brokerPassword,
-			StartUpBanner: startUpBanner,
+			Port:                        brokerPort,
+			Username:                    brokerUsername,
+			Password:                    brokerPassword,
+			StartUpBanner:               startUpBanner,
+			GracefulHTTPShutdownTimeout: 1,
 		},
 		Bosh: config.Bosh{
 			URL: boshURL,

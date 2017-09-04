@@ -9,7 +9,6 @@ package integration_tests
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
@@ -73,7 +72,6 @@ var _ = Describe("UAA user credentials for CF", func() {
 	})
 
 	It("obtains a token from the UAA", func() {
-		Eventually(runningBroker.Out).Should(gbytes.Say("listening"))
 		Eventually(runningBroker.Terminate()).Should(gexec.Exit())
 		Expect(cfUAA.TokensIssued).To(Equal(1))
 	})

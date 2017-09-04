@@ -33,6 +33,7 @@ type Handler struct {
 	responseStatus        int
 	responseBody          string
 	delay                 time.Duration
+	functions             []func()
 
 	matchURLWithRegex bool
 }
@@ -143,6 +144,11 @@ func (i *Handler) WithRegexURLMatcher() *Handler {
 	return i
 }
 
+func (i *Handler) RunsFunction(expectedFunction func()) *Handler {
+	i.functions = append(i.functions, expectedFunction)
+	return i
+}
+
 func NewMockedHttpRequest(method, url string) *Handler {
 	return &Handler{
 		expectedMethod:         method,
@@ -192,6 +198,9 @@ func (i *Handler) Verify(req *http.Request, s *Server) {
 }
 
 func (i *Handler) Respond(writer http.ResponseWriter, logger *log.Logger) {
+	for _, function := range i.functions {
+		function()
+	}
 	if i.delay != 0 {
 		time.Sleep(i.delay)
 	}

@@ -13,6 +13,12 @@ import (
 	"net/http"
 	"os"
 
+	"context"
+	"os/signal"
+	"syscall"
+
+	"time"
+
 	"code.cloudfoundry.org/lager"
 	"github.com/gorilla/mux"
 	"github.com/pivotal-cf/brokerapi"
@@ -29,8 +35,10 @@ import (
 	"github.com/urfave/negroni"
 )
 
+const componentName = "on-demand-service-broker"
+
 func main() {
-	loggerFactory := loggerfactory.New(os.Stdout, "on-demand-service-broker", loggerfactory.Flags)
+	loggerFactory := loggerfactory.New(os.Stdout, componentName, loggerfactory.Flags)
 
 	logger := loggerFactory.New()
 	logger.Println("Starting broker")
@@ -130,14 +138,58 @@ func startBroker(conf config.Config, logger *log.Logger, loggerFactory *loggerfa
 								`)
 	}
 
+	h := setupServer(onDemandBroker, conf, loggerFactory, logger)
+
+	go func() {
+		logger.Println("Listening on", h.Addr)
+		h.ListenAndServe()
+	}()
+
+	shutdownTimeout := time.Second * time.Duration(conf.Broker.GracefulHTTPShutdownTimeout)
+	gracefulShutdown(h, shutdownTimeout, logger)
+}
+
+func setupServer(
+	broker *broker.Broker,
+	conf config.Config,
+	loggerFactory *loggerfactory.LoggerFactory,
+	logger *log.Logger,
+) *http.Server {
+
 	brokerRouter := mux.NewRouter()
-	mgmtapi.AttachRoutes(brokerRouter, onDemandBroker, conf.ServiceCatalog, loggerFactory)
-	brokerapi.AttachRoutes(brokerRouter, onDemandBroker, lager.NewLogger("on-demand-service-broker"))
-	authProtectedBrokerAPI := apiauth.NewWrapper(conf.Broker.Username, conf.Broker.Password).Wrap(brokerRouter)
+	mgmtapi.AttachRoutes(brokerRouter, broker, conf.ServiceCatalog, loggerFactory)
+	brokerapi.AttachRoutes(brokerRouter, broker, lager.NewLogger(componentName))
+	authProtectedBrokerAPI := apiauth.
+		NewWrapper(conf.Broker.Username, conf.Broker.Password).
+		Wrap(brokerRouter)
 
 	negroniLogger := &negroni.Logger{ALogger: logger}
-	server := negroni.New(negroni.NewRecovery(), negroniLogger, negroni.NewStatic(http.Dir("public")))
+	server := negroni.New(
+		negroni.NewRecovery(),
+		negroniLogger,
+		negroni.NewStatic(http.Dir("public")),
+	)
 
 	server.UseHandler(authProtectedBrokerAPI)
-	server.Run(fmt.Sprintf("0.0.0.0:%d", conf.Broker.Port))
+	return &http.Server{
+		Addr:    fmt.Sprintf(":%d", conf.Broker.Port),
+		Handler: server,
+	}
+}
+
+func gracefulShutdown(
+	h *http.Server,
+	shutdownTimeout time.Duration,
+	logger *log.Logger,
+) {
+
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
+
+	<-stop
+	logger.Println("Broker shutting down on signal...")
+	ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+	defer cancel()
+	h.Shutdown(ctx)
+	logger.Println("Shut down")
 }

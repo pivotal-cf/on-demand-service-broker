@@ -26,8 +26,16 @@ func Deploy() *deployMock {
 	return mock
 }
 
-func (d *deployMock) RedirectsToTask(taskID int) *mockhttp.Handler {
-	return d.RedirectsTo(taskURL(taskID))
+func DeploysWithManifestAndRedirectsToTask(manifest bosh.BoshManifest, taskID int) *deployMock {
+	return Deploy().
+		WithManifest(manifest).
+		WithoutContextID().
+		RedirectsToTask(taskID)
+}
+
+func (d *deployMock) RedirectsToTask(taskID int) *deployMock {
+	d.Handler = d.Handler.RedirectsTo(taskURL(taskID))
+	return d
 }
 
 func (d *deployMock) WithRawManifest(manifest []byte) *deployMock {
@@ -52,6 +60,20 @@ func (d *deployMock) WithContextID(value string) *deployMock {
 
 func (d *deployMock) WithoutContextID() *deployMock {
 	d.WithoutHeader(BoshContextIDHeader)
+	return d
+}
+
+func (d *deployMock) WaitForChannel(trigger chan bool) *deployMock {
+	d.RunsFunction(func() {
+		<-trigger
+	})
+	return d
+}
+
+func (d *deployMock) SendToChannel(trigger chan bool) *deployMock {
+	d.RunsFunction(func() {
+		trigger <- true
+	})
 	return d
 }
 

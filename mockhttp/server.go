@@ -69,9 +69,10 @@ func (s *Server) ServeHTTP(writer http.ResponseWriter, req *http.Request) {
 	}
 
 	s.logger.Printf("%s %s\n", req.Method, req.URL.String())
-	s.mockHandlers[s.currentHandler].Verify(req, s)
-	s.mockHandlers[s.currentHandler].Respond(writer, s.logger)
+	currentHandlerIndex := s.currentHandler
 	s.currentHandler += 1
+	s.mockHandlers[currentHandlerIndex].Verify(req, s)
+	s.mockHandlers[currentHandlerIndex].Respond(writer, s.logger)
 }
 
 func (s *Server) completedMocks() []string {

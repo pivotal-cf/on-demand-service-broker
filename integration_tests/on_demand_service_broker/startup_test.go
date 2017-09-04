@@ -11,6 +11,8 @@ import (
 
 	"time"
 
+	"fmt"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -134,10 +136,11 @@ var _ = Describe("Startup", func() {
 
 				runningBroker = startBroker(conf)
 
-				Eventually(runningBroker.Out).Should(gbytes.Say(`\[on-demand-service-broker\] \d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}\.\d{6} Starting broker`))
+				odbLogPattern := `\[on-demand-service-broker\] \d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}\.\d{6}`
+
+				Eventually(runningBroker.Out).Should(gbytes.Say(fmt.Sprintf(`%s Starting broker`, odbLogPattern)))
 				Eventually(runningBroker.Out).Should(gbytes.Say(`-------./ssssssssssssssssssss:.-------`))
-				// negroni hard codes this log tag for this one line
-				Eventually(runningBroker.Out).Should(gbytes.Say(`\[negroni\] listening`))
+				Eventually(runningBroker.Out).Should(gbytes.Say(fmt.Sprintf(`%s Listening on :%d`, odbLogPattern, conf.Broker.Port)))
 				Eventually(runningBroker).ShouldNot(gexec.Exit())
 			})
 		})
@@ -177,8 +180,6 @@ var _ = Describe("Startup", func() {
 				)
 
 				runningBroker = startBroker(conf)
-
-				Eventually(runningBroker.Out).Should(gbytes.Say("listening"))
 				Eventually(runningBroker).ShouldNot(gexec.Exit())
 			})
 		})
@@ -341,8 +342,6 @@ var _ = Describe("Startup", func() {
 
 				It("does not fail at start up", func() {
 					runningBroker = startBroker(conf)
-
-					Eventually(runningBroker.Out).Should(gbytes.Say("listening"))
 					Eventually(runningBroker).ShouldNot(gexec.Exit())
 				})
 			})
@@ -397,8 +396,6 @@ var _ = Describe("Startup", func() {
 				})
 				It("does not fail at start up", func() {
 					runningBroker = startBroker(conf)
-
-					Eventually(runningBroker.Out).Should(gbytes.Say("listening"))
 					Eventually(runningBroker).ShouldNot(gexec.Exit())
 				})
 			})
@@ -456,8 +453,6 @@ var _ = Describe("Startup", func() {
 			Context("and no lifecycle errands configured", func() {
 				It("does not fail at start up", func() {
 					runningBroker = startBroker(conf)
-
-					Eventually(runningBroker.Out).Should(gbytes.Say("listening"))
 					Eventually(runningBroker).ShouldNot(gexec.Exit())
 				})
 			})
@@ -486,8 +481,6 @@ var _ = Describe("Startup", func() {
 
 				It("does not fail at start up", func() {
 					runningBroker = startBroker(conf)
-
-					Eventually(runningBroker.Out).Should(gbytes.Say("listening"))
 					Eventually(runningBroker).ShouldNot(gexec.Exit())
 				})
 			})
