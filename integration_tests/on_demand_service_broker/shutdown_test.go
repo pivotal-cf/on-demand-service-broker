@@ -90,18 +90,26 @@ var _ = Describe("Stopping the broker", func() {
 			terminateTriggered,
 		)
 
+		var provisionMu sync.Mutex
 		var provisionResponse *http.Response
 
 		go func() {
 			defer GinkgoRecover()
+
+			provisionMu.Lock()
+			defer provisionMu.Unlock()
+
 			provisionResponse = provisionInstance(instanceID, highMemoryPlanID, map[string]interface{}{})
 		}()
 
 		terminateWhenTriggered(runningBroker, deployTriggered)
 		terminateTriggered <- true
 
-		Eventually(func() *http.Response { return provisionResponse }).ShouldNot(BeNil())
+		provisionMu.Lock()
+		defer provisionMu.Unlock()
+		Eventually(provisionResponse).ShouldNot(BeNil())
 		Eventually(provisionResponse.StatusCode).Should(Equal(http.StatusAccepted))
+
 		assertNoRunningBroker()
 	})
 
