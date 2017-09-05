@@ -65,6 +65,8 @@ var _ = BeforeSuite(func() {
 	}
 
 	originalBrokerManifest = boshClient.GetManifest(brokerBoshDeploymentName)
+	Expect(originalBrokerManifest).NotTo(BeNil(),
+		fmt.Sprintf("Deployment '%s' does not exist", brokerBoshDeploymentName))
 
 	By("registering the broker")
 	Eventually(cf.Cf("create-service-broker", brokerName, brokerUsername, brokerPassword, brokerURL), cf_helpers.CfTimeout).Should(gexec.Exit(0))

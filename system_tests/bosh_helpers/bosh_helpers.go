@@ -56,9 +56,7 @@ func NewBasicAuth(boshURL, boshUsername, boshPassword, boshCACert string, disabl
 }
 
 func (b *BoshHelperClient) RunErrand(deploymentName, errandName, contextID string) boshdirector.BoshTaskOutput {
-	logger := systemTestLogger()
-	taskID := b.runErrandAndWait(deploymentName, errandName, contextID, logger)
-	output := b.getTaskOutput(taskID, logger)
+	output := b.RunErrandWithoutCheckingSuccess(deploymentName, errandName, contextID)
 	Expect(output.ExitCode).To(BeZero(), fmt.Sprintf("STDOUT: ------------\n%s\n--------------------\nSTDERR: ------------\n%s\n--------------------\n", output.StdOut, output.StdErr))
 	return output
 }

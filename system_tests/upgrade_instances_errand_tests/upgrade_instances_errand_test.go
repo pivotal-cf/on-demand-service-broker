@@ -33,11 +33,12 @@ var serviceInstances = []*testService{
 	{Name: uuid.New(), AppName: uuid.New()},
 }
 
-var checkDataPersistence bool
+var dataPersistenceEnabled bool
 
 var _ = Describe("upgrade-all-service-instances errand", func() {
 	BeforeEach(func() {
-		createServiceInstances()
+		currentPlan = selectPlanName()
+		dataPersistenceEnabled = checkDataPersistence()
 	})
 
 	AfterEach(func() {
@@ -46,6 +47,8 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 	})
 
 	It("exits 1 when the upgrader fails", func() {
+		createServiceInstances()
+
 		By("causing an upgrade error")
 		brokerManifest := boshClient.GetManifest(brokerBoshDeploymentName)
 		testPlan := extractPlanProperty(currentPlan, brokerManifest)
@@ -55,33 +58,32 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 
 		By("deploying the broken broker manifest")
 		boshClient.DeployODB(*brokerManifest)
+
 		boshOutput := boshClient.RunErrandWithoutCheckingSuccess(brokerBoshDeploymentName, "upgrade-all-service-instances", "")
 		Expect(boshOutput.ExitCode).To(Equal(1))
 		Expect(boshOutput.StdOut).To(ContainSubstring("Upgrade failed for service instance"))
 	})
 
-	It("upgrades all service instances", func() {
-		By("causing pending changes for the service instance")
+	It("when there are no service instances provisioned, upgrade-all-service-instances runs successfully", func() {
 		brokerManifest := boshClient.GetManifest(brokerBoshDeploymentName)
+		updatePlanProperties(brokerManifest)
+		migrateJobProperty(brokerManifest)
 
-		testPlan := extractPlanProperty(currentPlan, brokerManifest)
-		testPlan["properties"] = map[interface{}]interface{}{"persistence": false}
+		By("deploying the modified broker manifest")
+		boshClient.DeployODB(*brokerManifest)
 
-		brokerJobs := brokerManifest.InstanceGroups[0].Jobs
-		serviceAdapterJob := extractServiceAdapterJob(brokerJobs)
-		Expect(serviceAdapterJob).ToNot(BeNil(), "Couldn't find service adapter job in existing manifest")
+		By("logging stdout to the errand output")
+		boshOutput := boshClient.RunErrand(brokerBoshDeploymentName, "upgrade-all-service-instances", "")
+		Expect(boshOutput.ExitCode).To(Equal(0))
+		Expect(boshOutput.StdOut).To(ContainSubstring("STARTING UPGRADES"))
+	})
 
-		newRedisServerName := "redis"
-		serviceAdapterJob.Properties["redis_instance_group_name"] = newRedisServerName
+	It("when there are two service instances provisioned, upgrade-all-service-instances runs successfully", func() {
+		createServiceInstances()
 
-		testPlanInstanceGroup := testPlan["instance_groups"].([]interface{})[0].(map[interface{}]interface{})
-
-		oldRedisServerName := testPlanInstanceGroup["name"]
-
-		testPlanInstanceGroup["name"] = newRedisServerName
-		testPlanInstanceGroup["migrated_from"] = []map[interface{}]interface{}{
-			{"name": oldRedisServerName},
-		}
+		brokerManifest := boshClient.GetManifest(brokerBoshDeploymentName)
+		updatePlanProperties(brokerManifest)
+		migrateJobProperty(brokerManifest)
 
 		By("deploying the modified broker manifest")
 		boshClient.DeployODB(*brokerManifest)
@@ -94,7 +96,7 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 			deploymentName := getServiceDeploymentName(service.Name)
 			manifest := boshClient.GetManifest(deploymentName)
 
-			if checkDataPersistence {
+			if dataPersistenceEnabled {
 				By("ensuring data still exists", func() {
 					Expect(cf_helpers.GetFromTestApp(service.AppURL, "foo")).To(Equal("bar"))
 				})
@@ -124,27 +126,43 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 	})
 })
 
-func createServiceInstances() {
-	if boshSupportsLifecycleErrands {
-		currentPlan = "lifecycle-post-deploy-plan"
-		checkDataPersistence = false
-	} else {
-		currentPlan = "dedicated-vm"
-		checkDataPersistence = true
-	}
+func updatePlanProperties(brokerManifest *bosh.BoshManifest) {
+	testPlan := extractPlanProperty(currentPlan, brokerManifest)
+	testPlan["properties"] = map[interface{}]interface{}{"persistence": false}
+}
 
+func migrateJobProperty(brokerManifest *bosh.BoshManifest) {
+	testPlan := extractPlanProperty(currentPlan, brokerManifest)
+	brokerJobs := brokerManifest.InstanceGroups[0].Jobs
+	serviceAdapterJob := extractServiceAdapterJob(brokerJobs)
+	Expect(serviceAdapterJob).ToNot(BeNil(), "Couldn't find service adapter job in existing manifest")
+
+	newRedisServerName := "redis"
+	serviceAdapterJob.Properties["redis_instance_group_name"] = newRedisServerName
+
+	testPlanInstanceGroup := testPlan["instance_groups"].([]interface{})[0].(map[interface{}]interface{})
+
+	oldRedisServerName := testPlanInstanceGroup["name"]
+
+	testPlanInstanceGroup["name"] = newRedisServerName
+	testPlanInstanceGroup["migrated_from"] = []map[interface{}]interface{}{
+		{"name": oldRedisServerName},
+	}
+}
+
+func createServiceInstances() {
 	var wg sync.WaitGroup
 
 	for _, service := range serviceInstances {
 		wg.Add(1)
 
-		go func(ts *testService, wg *sync.WaitGroup) {
+		go func(ts *testService) {
 			Eventually(cf.Cf("create-service", serviceOffering, currentPlan, ts.Name), cf_helpers.CfTimeout).Should(
 				gexec.Exit(0),
 			)
 			cf_helpers.AwaitServiceCreation(ts.Name)
 
-			if checkDataPersistence {
+			if dataPersistenceEnabled {
 				By("pushing an app and binding to it")
 				ts.AppURL = cf_helpers.PushAndBindApp(
 					ts.AppName,
@@ -157,7 +175,7 @@ func createServiceInstances() {
 			}
 
 			wg.Done()
-		}(service, &wg)
+		}(service)
 	}
 
 	wg.Wait()
@@ -172,8 +190,8 @@ func deleteServiceInstances() {
 
 	for _, service := range serviceInstances {
 		wg.Add(1)
-		go func(ts *testService, wg *sync.WaitGroup) {
-			if checkDataPersistence {
+		go func(ts *testService) {
+			if dataPersistenceEnabled {
 				By("deleting the corresponding app")
 				Eventually(cf.Cf("delete", ts.AppName, "-f", "-r"), cf_helpers.CfTimeout).Should(gexec.Exit(0))
 			}
@@ -182,25 +200,23 @@ func deleteServiceInstances() {
 			cf_helpers.AwaitServiceDeletion(ts.Name)
 
 			wg.Done()
-		}(service, &wg)
+		}(service)
 	}
 
 	wg.Wait()
 }
 
 func extractPlanProperty(planName string, manifest *bosh.BoshManifest) map[interface{}]interface{} {
-	var testPlan map[interface{}]interface{}
-
 	brokerJob := manifest.InstanceGroups[0].Jobs[0]
 	serviceCatalog := brokerJob.Properties["service_catalog"].(map[interface{}]interface{})
 
 	for _, plan := range serviceCatalog["plans"].([]interface{}) {
 		if plan.(map[interface{}]interface{})["name"] == planName {
-			testPlan = plan.(map[interface{}]interface{})
+			return plan.(map[interface{}]interface{})
 		}
 	}
 
-	return testPlan
+	return nil
 }
 
 func extractServiceAdapterJob(jobs []bosh.Job) bosh.Job {
@@ -218,4 +234,16 @@ func getServiceDeploymentName(serviceInstanceName string) string {
 	Eventually(getInstanceDetailsCmd, cf_helpers.CfTimeout).Should(gexec.Exit(0))
 	serviceInstanceID := strings.TrimSpace(string(getInstanceDetailsCmd.Out.Contents()))
 	return fmt.Sprintf("%s%s", "service-instance_", serviceInstanceID)
+}
+
+func selectPlanName() string {
+	if boshSupportsLifecycleErrands {
+		return "lifecycle-post-deploy-plan"
+	} else {
+		return "dedicated-vm"
+	}
+}
+
+func checkDataPersistence() bool {
+	return !boshSupportsLifecycleErrands
 }
