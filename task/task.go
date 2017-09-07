@@ -20,7 +20,7 @@ import (
 type BoshClient interface {
 	Deploy(manifest []byte, contextID string, logger *log.Logger) (int, error)
 	GetTasks(deploymentName string, logger *log.Logger) (boshdirector.BoshTasks, error)
-	GetDeployment(name string, logger *log.Logger) ([]byte, bool, error) // TODO SF found = false => manifest => nil, drop the found flag?
+	GetDeployment(name string, logger *log.Logger) ([]byte, bool, error)
 }
 
 // TODO SF previousPlanID is a pointer because it might not exist. Should we have a nil value instead? Should we have a specific type?
