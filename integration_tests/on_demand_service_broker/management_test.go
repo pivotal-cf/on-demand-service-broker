@@ -449,7 +449,7 @@ var _ = Describe("Management API", func() {
 				)
 
 				boshDirector.VerifyAndMock(
-					mockbosh.Tasks("service-instance_instance-id").RespondsWithNoTasks(), // TODO: Check this is the response for a deleted deployment
+					mockbosh.Tasks("service-instance_instance-id").RespondsWithNoTasks(),
 					mockbosh.GetDeployment("service-instance_instance-id").RespondsNotFoundWith("{}"),
 				)
 
