@@ -501,8 +501,9 @@ var _ = Describe("Management API", func() {
 				upgradeReq, err := http.NewRequest("PATCH", fmt.Sprintf("http://localhost:%d/mgmt/service_instances/%s", brokerPort, instanceID), nil)
 				Expect(err).ToNot(HaveOccurred())
 
-				responseFrom(basicAuthBrokerRequest(upgradeReq), http.StatusInternalServerError)
-				// TODO Check response body (json)
+				response := responseFrom(basicAuthBrokerRequest(upgradeReq), http.StatusInternalServerError)
+				defer response.Body.Close()
+				Expect(ioutil.ReadAll(response.Body)).To(ContainSubstring(`Unexpected reponse status 500, \"error getting service instance\"`))
 
 				By("logging the CF API call with the request ID")
 				cfRegexpString := logRegexpStringWithRequestIDCapture(fmt.Sprintf(`GET http://127.0.0.1:\d+/v2/service_instances/%s`, instanceID))
