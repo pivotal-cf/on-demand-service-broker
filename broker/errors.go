@@ -94,7 +94,6 @@ func NewGenericError(ctx context.Context, err error) DisplayableError {
 	}
 }
 
-// TODO test this logic
 func adapterToAPIError(ctx context.Context, err error) error {
 	if err == nil {
 		return nil
