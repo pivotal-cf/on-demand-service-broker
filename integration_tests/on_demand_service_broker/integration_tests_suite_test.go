@@ -302,11 +302,11 @@ func lastOperationForInstance(instanceID string, operationData broker.OperationD
 func defaultBrokerConfig(boshURL, uaaURL, cfURL, cfUAAURL string) config.Config {
 	return config.Config{
 		Broker: config.Broker{
-			Port:                        brokerPort,
-			Username:                    brokerUsername,
-			Password:                    brokerPassword,
-			StartUpBanner:               startUpBanner,
-			GracefulHTTPShutdownTimeout: 1,
+			Port:                brokerPort,
+			Username:            brokerUsername,
+			Password:            brokerPassword,
+			StartUpBanner:       startUpBanner,
+			ShutdownTimeoutSecs: 2,
 		},
 		Bosh: config.Bosh{
 			URL: boshURL,

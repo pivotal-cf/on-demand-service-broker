@@ -7,13 +7,12 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
-
-	"context"
 	"os/signal"
 	"syscall"
 
@@ -138,15 +137,41 @@ func startBroker(conf config.Config, logger *log.Logger, loggerFactory *loggerfa
 								`)
 	}
 
-	h := setupServer(onDemandBroker, conf, loggerFactory, logger)
+	server := setupServer(onDemandBroker, conf, loggerFactory, logger)
+
+	stopped := make(chan struct{})
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
 
 	go func() {
-		logger.Println("Listening on", h.Addr)
-		h.ListenAndServe()
+		<-stop
+
+		timeoutSecs := conf.Broker.ShutdownTimeoutSecs
+		logger.Printf("Broker shutting down on signal (timeout %d secs)...\n", timeoutSecs)
+
+		ctx, cancel := context.WithTimeout(
+			context.Background(),
+			time.Second*time.Duration(timeoutSecs),
+		)
+		defer cancel()
+
+		if err := server.Shutdown(ctx); err != nil {
+			logger.Printf("Error gracefully shutting down server: %v\n", err)
+		} else {
+			logger.Println("Server gracefully shut down")
+		}
+
+		close(stopped)
 	}()
 
-	shutdownTimeout := time.Second * time.Duration(conf.Broker.GracefulHTTPShutdownTimeout)
-	gracefulShutdown(h, shutdownTimeout, logger)
+	logger.Println("Listening on", server.Addr)
+
+	err = server.ListenAndServe()
+	if err != http.ErrServerClosed {
+		logger.Fatalf("Error listening and serving: %v\n", err)
+	}
+
+	<-stopped
 }
 
 func setupServer(
@@ -175,21 +200,4 @@ func setupServer(
 		Addr:    fmt.Sprintf(":%d", conf.Broker.Port),
 		Handler: server,
 	}
-}
-
-func gracefulShutdown(
-	h *http.Server,
-	shutdownTimeout time.Duration,
-	logger *log.Logger,
-) {
-
-	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
-
-	<-stop
-	logger.Println("Broker shutting down on signal...")
-	ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
-	defer cancel()
-	h.Shutdown(ctx)
-	logger.Println("Shut down")
 }

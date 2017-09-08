@@ -11,7 +11,7 @@ broker:
   password: password
   disable_ssl_cert_verification: true
   startup_banner: false
-  graceful_http_shutdown_timeout: 10
+  shutdown_timeout_in_seconds: 10
 bosh:
   url: some-url
   root_ca_cert: some-cert

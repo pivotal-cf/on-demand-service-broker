@@ -7,7 +7,7 @@
 package integration_tests
 
 import (
-	"net/http"
+	"syscall"
 	"time"
 
 	"sync"
@@ -24,7 +24,7 @@ import (
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 )
 
-var _ = Describe("Stopping the broker", func() {
+var _ = Describe("broker process", func() {
 
 	const instanceID = "some-instance-id"
 
@@ -66,51 +66,53 @@ var _ = Describe("Stopping the broker", func() {
 		assertNoRunningBroker()
 	})
 
-	It("when broker is running sending SIGTERM should stop it", func() {
+	It("handles SIGTERM and exits gracefully", func() {
 		runningBroker = startBrokerWithPassingStartupChecks(brokerConfig, cfAPI, boshDirector)
-		runningBroker.Terminate()
+		runningBroker.Signal(syscall.SIGTERM)
 		Eventually(runningBroker.Out).Should(gbytes.Say("Broker shutting down on signal..."))
-		Eventually(runningBroker.Out).Should(gbytes.Say("Shut down"))
-		assertNoRunningBroker()
+		Eventually(runningBroker.Out).Should(gbytes.Say("Server gracefully shut down"))
+		Eventually(runningBroker).Should(gexec.Exit(0))
 	})
 
-	It("when broker is processing a provision request sending SIGTERM should allow it to finish", func() {
+	It("waits for in-progress requests before exiting", func() {
 		runningBroker = startBrokerWithPassingStartupChecks(brokerConfig, cfAPI, boshDirector)
 
-		taskID := 4
-		deployTriggered := make(chan bool)
-		terminateTriggered := make(chan bool)
+		deployStarted := make(chan bool, 1)
+		deployFinished := make(chan bool, 1)
+		pauseDeploy := make(chan bool)
 
-		mockBoshDeployWithStartAndStopTriggers(
-			boshDirector,
-			instanceID,
-			manifest,
-			taskID,
-			deployTriggered,
-			terminateTriggered,
+		boshDirector.VerifyAndMock(
+			respondsWithDeploymentNotFound(instanceID),
+			respondsWithNoTasks(instanceID),
+			mockbosh.
+				DeploysWithManifestAndRedirectsToTask(manifest, 666).
+				SendToChannel(deployStarted).
+				WaitForChannel(pauseDeploy).
+				SendToChannel(deployFinished),
 		)
-
-		var provisionMu sync.Mutex
-		var provisionResponse *http.Response
 
 		go func() {
 			defer GinkgoRecover()
-
-			provisionMu.Lock()
-			defer provisionMu.Unlock()
-
-			provisionResponse = provisionInstance(instanceID, highMemoryPlanID, map[string]interface{}{})
+			provisionInstance(instanceID, highMemoryPlanID, map[string]interface{}{})
 		}()
 
-		terminateWhenTriggered(runningBroker, deployTriggered)
-		terminateTriggered <- true
+		// make sure we are inside the bosh deploy request
+		Eventually(deployStarted).Should(Receive())
 
-		provisionMu.Lock()
-		defer provisionMu.Unlock()
-		Eventually(provisionResponse).ShouldNot(BeNil())
-		Eventually(provisionResponse.StatusCode).Should(Equal(http.StatusAccepted))
+		runningBroker.Signal(syscall.SIGTERM)
 
-		assertNoRunningBroker()
+		// broker should not exit because deploy is in progress
+		shutdownTimeout := time.Second * time.Duration(brokerConfig.Broker.ShutdownTimeoutSecs)
+		justBeforeTimeout := shutdownTimeout - time.Millisecond*10
+		Consistently(runningBroker, justBeforeTimeout, 10*time.Millisecond).ShouldNot(gexec.Exit())
+
+		// deploy should still be waiting
+		Expect(deployFinished).NotTo(Receive())
+
+		close(pauseDeploy)
+
+		Eventually(deployFinished).Should(Receive())
+		Eventually(runningBroker).Should(gexec.Exit(0))
 	})
 
 	It("when broker is processing a long running provision request sending SIGTERM should cancel the request after the timeout period", func() {
@@ -118,7 +120,8 @@ var _ = Describe("Stopping the broker", func() {
 
 		taskID := 4
 		deployTriggered := make(chan bool)
-		delay := time.Second * 2
+		shutdownTimeout := time.Second * time.Duration(brokerConfig.Broker.ShutdownTimeoutSecs)
+		delay := shutdownTimeout + time.Second
 
 		mockBoshDeployWithTriggerAndDelay(
 			boshDirector,
@@ -137,25 +140,6 @@ var _ = Describe("Stopping the broker", func() {
 		wg.Wait()
 	})
 })
-
-func mockBoshDeployWithStartAndStopTriggers(
-	director *mockhttp.Server,
-	instanceID string,
-	manifest bosh.BoshManifest,
-	taskID int,
-	startTrigger chan bool,
-	stopTrigger chan bool,
-) {
-
-	director.VerifyAndMock(
-		respondsWithDeploymentNotFound(instanceID),
-		respondsWithNoTasks(instanceID),
-		mockbosh.
-			DeploysWithManifestAndRedirectsToTask(manifest, taskID).
-			SendToChannel(startTrigger).
-			WaitForChannel(stopTrigger),
-	)
-}
 
 func mockBoshDeployWithTriggerAndDelay(
 	director *mockhttp.Server,

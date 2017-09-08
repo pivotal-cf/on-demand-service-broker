@@ -44,12 +44,12 @@ var _ = Describe("Config", func() {
 				instanceLimit := 1
 				expected := config.Config{
 					Broker: config.Broker{
-						Port:                        8080,
-						Username:                    "username",
-						Password:                    "password",
-						DisableSSLCertVerification:  true,
-						StartUpBanner:               false,
-						GracefulHTTPShutdownTimeout: 10,
+						Port:                       8080,
+						Username:                   "username",
+						Password:                   "password",
+						DisableSSLCertVerification: true,
+						StartUpBanner:              false,
+						ShutdownTimeoutSecs:        10,
 					},
 					Bosh: config.Bosh{
 						URL:         "some-url",

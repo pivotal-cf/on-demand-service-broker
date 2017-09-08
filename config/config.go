@@ -53,12 +53,12 @@ func (c Config) Validate() error {
 }
 
 type Broker struct {
-	Port                        int
-	Username                    string
-	Password                    string
-	DisableSSLCertVerification  bool `yaml:"disable_ssl_cert_verification"`
-	StartUpBanner               bool `yaml:"startup_banner"`
-	GracefulHTTPShutdownTimeout int  `yaml:"graceful_http_shutdown_timeout"`
+	Port                       int
+	Username                   string
+	Password                   string
+	DisableSSLCertVerification bool `yaml:"disable_ssl_cert_verification"`
+	StartUpBanner              bool `yaml:"startup_banner"`
+	ShutdownTimeoutSecs        int  `yaml:"shutdown_timeout_in_seconds"`
 }
 
 func (b Broker) Validate() error {
