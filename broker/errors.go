@@ -34,7 +34,6 @@ func NewOperationInProgressError(e error) error {
 
 var NilError = DisplayableError{nil, nil}
 
-// TODO SF Remove by logging operator messages when raising the error?
 type DisplayableError struct {
 	errorForCFUser   error
 	errorForOperator error
