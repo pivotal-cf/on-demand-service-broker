@@ -85,7 +85,7 @@ func (b *Broker) Update(
 		return brokerapi.UpdateServiceSpec{IsAsync: true}, brokerapi.NewFailureResponse(
 			errors.New(PendingChangesErrorMessage),
 			http.StatusUnprocessableEntity,
-			UpdateLoggerAction, // TODO where is this logged that we can verify?
+			UpdateLoggerAction,
 		)
 	case task.TaskInProgressError:
 		return brokerapi.UpdateServiceSpec{IsAsync: true}, errors.New(OperationInProgressMessage)
