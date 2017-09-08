@@ -27,7 +27,6 @@ type CloudFoundryClient interface {
 	DeleteServiceInstance(instanceGUID string, logger *log.Logger) error
 }
 
-// TODO SF extract a poller, rather than a sleeper
 //go:generate counterfeiter -o fakes/fake_sleeper.go . Sleeper
 type Sleeper interface {
 	Sleep(d time.Duration)
