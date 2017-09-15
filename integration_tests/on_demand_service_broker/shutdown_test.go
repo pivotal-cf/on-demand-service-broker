@@ -121,7 +121,7 @@ var _ = Describe("broker process", func() {
 		taskID := 4
 		deployTriggered := make(chan bool)
 		shutdownTimeout := time.Second * time.Duration(brokerConfig.Broker.ShutdownTimeoutSecs)
-		delay := shutdownTimeout + time.Second
+		delay := shutdownTimeout + (2 * time.Second)
 
 		mockBoshDeployWithTriggerAndDelay(
 			boshDirector,

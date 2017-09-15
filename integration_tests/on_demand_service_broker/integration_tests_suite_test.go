@@ -306,7 +306,7 @@ func defaultBrokerConfig(boshURL, uaaURL, cfURL, cfUAAURL string) config.Config 
 			Username:            brokerUsername,
 			Password:            brokerPassword,
 			StartUpBanner:       startUpBanner,
-			ShutdownTimeoutSecs: 2,
+			ShutdownTimeoutSecs: 3,
 		},
 		Bosh: config.Bosh{
 			URL: boshURL,
