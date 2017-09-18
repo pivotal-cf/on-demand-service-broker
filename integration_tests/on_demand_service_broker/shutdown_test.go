@@ -103,7 +103,7 @@ var _ = Describe("broker process", func() {
 
 		// broker should not exit because deploy is in progress
 		shutdownTimeout := time.Second * time.Duration(brokerConfig.Broker.ShutdownTimeoutSecs)
-		justBeforeTimeout := shutdownTimeout - time.Millisecond*50
+		justBeforeTimeout := shutdownTimeout - time.Millisecond*100
 		Consistently(runningBroker, justBeforeTimeout, 10*time.Millisecond).ShouldNot(gexec.Exit())
 
 		// deploy should still be waiting
