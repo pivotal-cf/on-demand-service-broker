@@ -138,7 +138,7 @@ func (a *api) metrics(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(instanceCountsByPlan) == 0 {
-		logger.Printf("service %s not registered with Cloud Foundry", a.serviceOffering.Name)
+		logger.Printf("The %s service broker must be registered with Cloud Foundry before metrics can be collected", a.serviceOffering.Name)
 		w.WriteHeader(http.StatusServiceUnavailable)
 		return
 	}

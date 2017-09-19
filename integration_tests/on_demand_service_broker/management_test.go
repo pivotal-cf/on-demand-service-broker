@@ -340,7 +340,7 @@ var _ = Describe("Management API", func() {
 					requestID := firstMatchInOutput(runningBroker, cfRegexpString)
 
 					By("logging the error with the same request ID")
-					mgmtLogRegexpString := logRegexpString(requestID, fmt.Sprintf(`service %s not registered with Cloud Foundry`, serviceName))
+					mgmtLogRegexpString := logRegexpString(requestID, fmt.Sprintf(`The %s service broker must be registered with Cloud Foundry before metrics can be collected`, serviceName))
 					Eventually(runningBroker).Should(gbytes.Say(mgmtLogRegexpString))
 				})
 			})

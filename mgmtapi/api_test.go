@@ -309,8 +309,9 @@ var _ = Describe("Management API", func() {
 					manageableBroker.CountInstancesOfPlansReturns(map[cf.ServicePlan]int{}, nil)
 				})
 
-				It("returns HTTP 503", func() {
+				It("returns HTTP 503 and logs why", func() {
 					Expect(instancesForPlanResponse.StatusCode).To(Equal(http.StatusServiceUnavailable))
+					Expect(logs).To(gbytes.Say("The some_service_offering service broker must be registered with Cloud Foundry before metrics can be collected"))
 				})
 			})
 		})
