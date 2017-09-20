@@ -3,11 +3,18 @@ package deregistrar
 import (
 	"fmt"
 	"log"
+
+	"github.com/pivotal-cf/on-demand-service-broker/config"
 )
 
 type Deregistrar struct {
 	cfClient CloudFoundryClient
 	logger   *log.Logger
+}
+
+type Config struct {
+	DisableSSLCertVerification bool `yaml:"disable_ssl_cert_verification"`
+	CF                         config.CF
 }
 
 //go:generate counterfeiter -o fakes/fake_cloud_foundry_client.go . CloudFoundryClient

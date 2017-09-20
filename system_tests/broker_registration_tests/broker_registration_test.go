@@ -120,20 +120,14 @@ var _ = Describe("broker registration errands", func() {
 	})
 
 	Describe("deregister-broker", func() {
-		Context("when the broker is not registered", func() {
-			It("deregisters the broker from CF", func() {
-				boshClient.RunErrand(brokerBoshDeploymentName, "deregister-broker", "")
+		It("removes the service from the CF", func() {
+			boshClient.RunErrand(brokerBoshDeploymentName, "register-broker", "")
+			serviceBrokersSession := cf.Cf("service-brokers")
+			Eventually(serviceBrokersSession).Should(gbytes.Say(brokerName))
 
-				By("disabling access to all plans")
-				marketplaceSession := cf.Cf("marketplace")
-				Eventually(marketplaceSession).Should(gexec.Exit(0))
-				Expect(marketplaceSession).NotTo(gbytes.Say(serviceOffering))
-
-				By("deleting the service broker")
-				serviceBrokersSession := cf.Cf("service-brokers")
-				Eventually(serviceBrokersSession).Should(gexec.Exit(0))
-				Expect(serviceBrokersSession).NotTo(gbytes.Say(brokerName))
-			})
+			boshClient.RunErrand(brokerBoshDeploymentName, "deregister-broker", "")
+			serviceBrokersSession = cf.Cf("service-brokers")
+			Eventually(serviceBrokersSession).ShouldNot(gbytes.Say(brokerName))
 		})
 	})
 })

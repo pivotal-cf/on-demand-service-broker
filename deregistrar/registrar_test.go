@@ -2,15 +2,56 @@ package deregistrar_test
 
 import (
 	"fmt"
+	"path/filepath"
 
+	yaml "gopkg.in/yaml.v2"
+
+	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/deregistrar"
 	"github.com/pivotal-cf/on-demand-service-broker/deregistrar/fakes"
 
 	"errors"
 
+	"os"
+
+	"io/ioutil"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
+
+var _ = Describe("Deregistrar Config", func() {
+	It("loads valid config", func() {
+		cwd, err := os.Getwd()
+		Expect(err).NotTo(HaveOccurred())
+
+		configFilePath := filepath.Join(cwd, "fixtures", "deregister_config.yml")
+
+		configFileBytes, err := ioutil.ReadFile(configFilePath)
+		Expect(err).NotTo(HaveOccurred())
+
+		var deregistrarConfig deregistrar.Config
+		err = yaml.Unmarshal(configFileBytes, &deregistrarConfig)
+		Expect(err).NotTo(HaveOccurred())
+
+		expected := deregistrar.Config{
+			DisableSSLCertVerification: true,
+			CF: config.CF{
+				URL:         "some-cf-url",
+				TrustedCert: "some-cf-cert",
+				Authentication: config.UAAAuthentication{
+					URL: "a-uaa-url",
+					UserCredentials: config.UserCredentials{
+						Username: "some-cf-username",
+						Password: "some-cf-password",
+					},
+				},
+			},
+		}
+
+		Expect(expected).To(Equal(deregistrarConfig))
+	})
+})
 
 var _ = Describe("Deregistrar", func() {
 	const (
@@ -22,7 +63,6 @@ var _ = Describe("Deregistrar", func() {
 
 	BeforeEach(func() {
 		fakeCFClient = new(fakes.FakeCloudFoundryClient)
-
 	})
 
 	It("does not return an error when deregistering", func() {

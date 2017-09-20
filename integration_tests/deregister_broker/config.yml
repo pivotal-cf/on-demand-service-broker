@@ -1,0 +1,16 @@
+service_catalog:
+  id: ""
+disable_ssl_cert_verification: true
+cf:
+  url: http://127.0.0.1:58603
+  root_ca_cert: ""
+  authentication:
+    url: http://127.0.0.1:58604
+    client_credentials:
+      client_id: cf-uaa-client-id
+      secret: cf-uaa-client-secret
+    user_credentials:
+      username: ""
+      password: ""
+polling_interval: 0
+polling_initial_offset: 0
