@@ -25,7 +25,13 @@ type BoshClient interface {
 
 //go:generate counterfeiter -o fakes/fake_manifest_generator.go . ManifestGenerator
 type ManifestGenerator interface {
-	GenerateManifest(deploymentName, planID string, requestParams map[string]interface{}, oldManifest []byte, previousPlanID *string, logger *log.Logger) (BoshManifest, error)
+	GenerateManifest(
+		deploymentName,
+		planID string,
+		requestParams map[string]interface{},
+		oldManifest []byte,
+		previousPlanID *string, logger *log.Logger,
+	) (RawBoshManifest, error)
 }
 
 type deployer struct {
@@ -117,25 +123,27 @@ func (d deployer) assertNoOperationsInProgress(deploymentName string, logger *lo
 func (d deployer) checkForPendingChanges(
 	deploymentName string,
 	previousPlanID *string,
-	oldManifest BoshManifest,
+	rawOldManifest RawBoshManifest,
 	logger *log.Logger,
 ) error {
-	regeneratedManifest, err := d.manifestGenerator.GenerateManifest(deploymentName, *previousPlanID, map[string]interface{}{}, oldManifest, previousPlanID, logger)
+	regeneratedManifestContent, err := d.manifestGenerator.GenerateManifest(deploymentName, *previousPlanID, map[string]interface{}{}, rawOldManifest, previousPlanID, logger)
 	if err != nil {
 		return err
 	}
 
-	convertedRegeneratedManifest, err := ignoreUpdateBlock(regeneratedManifest)
+	regeneratedManifest, err := marshalBoshManifest(regeneratedManifestContent)
 	if err != nil {
 		return err
 	}
+	ignoreUpdateBlock(&regeneratedManifest)
 
-	convertedOldManifest, err := ignoreUpdateBlock(oldManifest)
+	oldManifest, err := marshalBoshManifest(rawOldManifest)
 	if err != nil {
 		return err
 	}
+	ignoreUpdateBlock(&oldManifest)
 
-	manifestsSame := reflect.DeepEqual(convertedRegeneratedManifest, convertedOldManifest)
+	manifestsSame := reflect.DeepEqual(regeneratedManifest, oldManifest)
 
 	pendingChanges := !manifestsSame
 
@@ -171,15 +179,16 @@ func (d deployer) doDeploy(
 	return boshTaskID, manifest, nil
 }
 
-func ignoreUpdateBlock(rawManifest []byte) (bosh.BoshManifest, error) {
+func marshalBoshManifest(rawManifest []byte) (bosh.BoshManifest, error) {
 	var boshManifest bosh.BoshManifest
 	err := yaml.Unmarshal(rawManifest, &boshManifest)
 
 	if err != nil {
 		return bosh.BoshManifest{}, fmt.Errorf("error detecting change in manifest, unable to unmarshal manifest: %s", err)
 	}
-
-	boshManifest.Update = bosh.Update{}
-
 	return boshManifest, nil
+}
+
+func ignoreUpdateBlock(manifest *bosh.BoshManifest) {
+	manifest.Update = bosh.Update{}
 }

@@ -534,7 +534,7 @@ var _ = Describe("Deployer", func() {
 						previousManifest []byte,
 						_ *string,
 						_ *log.Logger,
-					) (task.BoshManifest, error) {
+					) (task.RawBoshManifest, error) {
 						if len(requestParams) > 0 {
 							return manifest, nil
 						}
@@ -603,7 +603,7 @@ var _ = Describe("Deployer", func() {
 						previousManifest []byte,
 						_ *string,
 						_ *log.Logger,
-					) (task.BoshManifest, error) {
+					) (task.RawBoshManifest, error) {
 						if len(requestParams) > 0 {
 							return nil, errors.New("manifest fail")
 						}
@@ -734,6 +734,26 @@ var _ = Describe("Deployer", func() {
 
 			manifestToDeploy, _, _ := boshClient.DeployArgsForCall(0)
 			Expect(string(manifestToDeploy)).To(Equal(string(generatedManifest)))
+		})
+
+		It("detects changes to the tags block in a manifest and prevents deployment", func() {
+			previousPlanID = stringPointer(existingPlanID)
+
+			generatedManifest := []byte("---\ntags:\n  product: some-tag")
+			manifestGenerator.GenerateManifestReturns(generatedManifest, nil)
+
+			_, _, deployError = deployer.Update(
+				deploymentName,
+				planID,
+				requestParams,
+				previousPlanID,
+				boshContextID,
+				logger,
+			)
+
+			Expect(deployError).To(HaveOccurred())
+			Expect(deployError).To(BeAssignableToTypeOf(task.PendingChangesNotAppliedError{}))
+			Expect(boshClient.DeployCallCount()).To(BeZero())
 		})
 
 		It("returns an error when old manifest contains invalid YAML", func() {

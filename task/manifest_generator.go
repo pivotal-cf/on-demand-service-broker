@@ -15,7 +15,13 @@ import (
 
 //go:generate counterfeiter -o fakes/fake_service_adapter_client.go . ServiceAdapterClient
 type ServiceAdapterClient interface {
-	GenerateManifest(serviceReleases serviceadapter.ServiceDeployment, plan serviceadapter.Plan, requestParams map[string]interface{}, previousManifest []byte, previousPlan *serviceadapter.Plan, logger *log.Logger) ([]byte, error)
+	GenerateManifest(
+		serviceReleases serviceadapter.ServiceDeployment,
+		plan serviceadapter.Plan,
+		requestParams map[string]interface{},
+		previousManifest []byte,
+		previousPlan *serviceadapter.Plan, logger *log.Logger,
+	) ([]byte, error)
 }
 
 type manifestGenerator struct {
@@ -39,7 +45,7 @@ func NewManifestGenerator(
 	}
 }
 
-type BoshManifest []byte
+type RawBoshManifest []byte
 
 func (m manifestGenerator) GenerateManifest(
 	deploymentName, planID string,
@@ -47,7 +53,7 @@ func (m manifestGenerator) GenerateManifest(
 	oldManifest []byte,
 	previousPlanID *string,
 	logger *log.Logger,
-) (BoshManifest, error) {
+) (RawBoshManifest, error) {
 
 	serviceDeployment := serviceadapter.ServiceDeployment{
 		DeploymentName: deploymentName,

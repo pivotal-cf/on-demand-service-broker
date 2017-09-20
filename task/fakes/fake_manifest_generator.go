@@ -9,7 +9,7 @@ import (
 )
 
 type FakeManifestGenerator struct {
-	GenerateManifestStub        func(deploymentName, planID string, requestParams map[string]interface{}, oldManifest []byte, previousPlanID *string, logger *log.Logger) (task.BoshManifest, error)
+	GenerateManifestStub        func(deploymentName, planID string, requestParams map[string]interface{}, oldManifest []byte, previousPlanID *string, logger *log.Logger) (task.RawBoshManifest, error)
 	generateManifestMutex       sync.RWMutex
 	generateManifestArgsForCall []struct {
 		deploymentName string
@@ -20,18 +20,18 @@ type FakeManifestGenerator struct {
 		logger         *log.Logger
 	}
 	generateManifestReturns struct {
-		result1 task.BoshManifest
+		result1 task.RawBoshManifest
 		result2 error
 	}
 	generateManifestReturnsOnCall map[int]struct {
-		result1 task.BoshManifest
+		result1 task.RawBoshManifest
 		result2 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeManifestGenerator) GenerateManifest(deploymentName string, planID string, requestParams map[string]interface{}, oldManifest []byte, previousPlanID *string, logger *log.Logger) (task.BoshManifest, error) {
+func (fake *FakeManifestGenerator) GenerateManifest(deploymentName string, planID string, requestParams map[string]interface{}, oldManifest []byte, previousPlanID *string, logger *log.Logger) (task.RawBoshManifest, error) {
 	var oldManifestCopy []byte
 	if oldManifest != nil {
 		oldManifestCopy = make([]byte, len(oldManifest))
@@ -70,24 +70,24 @@ func (fake *FakeManifestGenerator) GenerateManifestArgsForCall(i int) (string, s
 	return fake.generateManifestArgsForCall[i].deploymentName, fake.generateManifestArgsForCall[i].planID, fake.generateManifestArgsForCall[i].requestParams, fake.generateManifestArgsForCall[i].oldManifest, fake.generateManifestArgsForCall[i].previousPlanID, fake.generateManifestArgsForCall[i].logger
 }
 
-func (fake *FakeManifestGenerator) GenerateManifestReturns(result1 task.BoshManifest, result2 error) {
+func (fake *FakeManifestGenerator) GenerateManifestReturns(result1 task.RawBoshManifest, result2 error) {
 	fake.GenerateManifestStub = nil
 	fake.generateManifestReturns = struct {
-		result1 task.BoshManifest
+		result1 task.RawBoshManifest
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeManifestGenerator) GenerateManifestReturnsOnCall(i int, result1 task.BoshManifest, result2 error) {
+func (fake *FakeManifestGenerator) GenerateManifestReturnsOnCall(i int, result1 task.RawBoshManifest, result2 error) {
 	fake.GenerateManifestStub = nil
 	if fake.generateManifestReturnsOnCall == nil {
 		fake.generateManifestReturnsOnCall = make(map[int]struct {
-			result1 task.BoshManifest
+			result1 task.RawBoshManifest
 			result2 error
 		})
 	}
 	fake.generateManifestReturnsOnCall[i] = struct {
-		result1 task.BoshManifest
+		result1 task.RawBoshManifest
 		result2 error
 	}{result1, result2}
 }
