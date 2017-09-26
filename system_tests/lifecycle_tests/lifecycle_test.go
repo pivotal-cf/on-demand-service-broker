@@ -48,13 +48,11 @@ var _ = Describe("On-demand service broker", func() {
 
 	updatePlan := func(serviceName, updatedPlanName string) {
 		Eventually(cf.Cf("update-service", serviceName, "-p", updatedPlanName), cf_helpers.CfTimeout).Should(gexec.Exit(0))
-		cf_helpers.AssertProgress(serviceName, "update")
 		cf_helpers.AwaitServiceUpdate(serviceName)
 	}
 
 	updateServiceWithArbParams := func(serviceName string, arbitraryParams json.RawMessage) {
 		Eventually(cf.Cf("update-service", serviceName, "-c", string(arbitraryParams)), cf_helpers.CfTimeout).Should(gexec.Exit(0))
-		cf_helpers.AssertProgress(serviceName, "update")
 		cf_helpers.AwaitServiceUpdate(serviceName)
 	}
 

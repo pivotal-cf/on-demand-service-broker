@@ -14,7 +14,6 @@ import (
 	"github.com/cloudfoundry-incubator/cf-test-helpers/cf"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/types"
 )
@@ -36,14 +35,7 @@ func CreateService(serviceOffering, servicePlan, serviceName, arbitraryParams st
 
 func DeleteService(serviceName string) {
 	Eventually(cf.Cf("delete-service", serviceName, "-f"), CfTimeout).Should(gexec.Exit(0))
-	AssertProgress(serviceName, "delete")
 	AwaitServiceDeletion(serviceName)
-}
-
-func AssertProgress(serviceName, operation string) {
-	session := cf.Cf("service", serviceName)
-	Eventually(session, CfTimeout).Should(gexec.Exit(0))
-	Expect(session).To(gbytes.Say(operation + " in progress"))
 }
 
 func AwaitServiceCreation(serviceName string) {
