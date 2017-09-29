@@ -63,17 +63,19 @@ func NewClientTokenAuthHeaderBuilder(
 	}, nil
 }
 
-func (hb *ClientTokenAuthHeaderBuilder) Build(logger *log.Logger) (string, error) {
+func (hb *ClientTokenAuthHeaderBuilder) AddAuthHeader(request *http.Request, logger *log.Logger) error {
 	hb.tokenLock.Lock()
 	defer hb.tokenLock.Unlock()
 
 	var err error
 	hb.cachedToken, hb.cachedTokenExpiry, err = getValidToken(hb.cachedToken, hb.cachedTokenExpiry, logger, hb.obtainToken)
 	if err != nil {
-		return "", err
+		return err
 	}
 
-	return bearerToken(hb.cachedToken), nil
+	bearerTokenHeader := bearerToken(hb.cachedToken)
+	request.Header.Add("Authorization", bearerTokenHeader)
+	return nil
 }
 
 func (hb *ClientTokenAuthHeaderBuilder) obtainToken(logger *log.Logger) (string, int, error) {

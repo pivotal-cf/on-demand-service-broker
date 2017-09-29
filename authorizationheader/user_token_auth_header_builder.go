@@ -13,6 +13,8 @@ import (
 	"sync"
 	"time"
 
+	"net/http"
+
 	"github.com/craigfurman/herottp"
 )
 
@@ -57,17 +59,19 @@ func NewUserTokenAuthHeaderBuilder(
 	}, nil
 }
 
-func (hb *UserTokenAuthHeaderBuilder) Build(logger *log.Logger) (string, error) {
+func (hb *UserTokenAuthHeaderBuilder) AddAuthHeader(request *http.Request, logger *log.Logger) error {
 	hb.tokenLock.Lock()
 	defer hb.tokenLock.Unlock()
 
 	var err error
 	hb.cachedToken, hb.cachedTokenExpiry, err = getValidToken(hb.cachedToken, hb.cachedTokenExpiry, logger, hb.obtainToken)
 	if err != nil {
-		return "", err
+		return err
 	}
 
-	return bearerToken(hb.cachedToken), nil
+	bearerTokenHeader := bearerToken(hb.cachedToken)
+	request.Header.Add("Authorization", bearerTokenHeader)
+	return nil
 }
 
 func (hb *UserTokenAuthHeaderBuilder) obtainToken(logger *log.Logger) (string, int, error) {

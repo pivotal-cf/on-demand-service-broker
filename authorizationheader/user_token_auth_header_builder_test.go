@@ -12,6 +12,8 @@ import (
 	"fmt"
 	"time"
 
+	"net/http"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
@@ -21,7 +23,7 @@ import (
 var _ = Describe("User Token Auth Header Builder", func() {
 	var (
 		mockUAA              *mockuaa.UserCredentialsServer
-		authorizer           *authorizationheader.UserTokenAuthHeaderBuilder
+		req                  *http.Request
 		actualClientID       = "cf"
 		actualClientSecret   = ""
 		suppliedClientID     string
@@ -31,8 +33,6 @@ var _ = Describe("User Token Auth Header Builder", func() {
 		suppliedCFUsername   string
 		suppliedCFPassword   string
 		tokenToReturn        = "some-token"
-		buildErr             error
-		header               string
 	)
 
 	BeforeEach(func() {
@@ -43,133 +43,108 @@ var _ = Describe("User Token Auth Header Builder", func() {
 		suppliedClientSecret = actualClientSecret
 		suppliedCFUsername = actualCFUsername
 		suppliedCFPassword = actualCFPassword
+
+		var err error
+		req, err = http.NewRequest("GET", "some-url-to-authorize", nil)
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	AfterEach(func() {
 		mockUAA.Close()
 	})
 
-	JustBeforeEach(func() {
-		var certPEM []byte
-		if mockUAA.TLS != nil {
-			cert, err := x509.ParseCertificate(mockUAA.TLS.Certificates[0].Certificate[0])
-			Expect(err).NotTo(HaveOccurred())
-			certPEM = pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: cert.Raw})
-		}
-		var err error
-		authorizer, err = authorizationheader.NewUserTokenAuthHeaderBuilder(mockUAA.URL, suppliedClientID, suppliedClientSecret, suppliedCFUsername, suppliedCFPassword, false, certPEM)
+	It("gets exactly one token from UAA", func() {
+		authorizer := createUserTokenAuthorizer(mockUAA, suppliedClientID, suppliedClientSecret, suppliedCFUsername, suppliedCFPassword)
+		err := authorizer.AddAuthHeader(req, logger)
 		Expect(err).NotTo(HaveOccurred())
-		header, buildErr = authorizer.Build(logger)
+
+		authHeader := req.Header.Get("Authorization")
+		Expect(authHeader).To(Equal(fmt.Sprintf("Bearer %s", tokenToReturn)))
+		Expect(mockUAA.TokensIssued).To(Equal(1))
 	})
 
-	Context("valid client and user credentials", func() {
-		It("succeeds", func() {
-			Expect(buildErr).NotTo(HaveOccurred())
-		})
-
-		It("gets a token from UAA", func() {
-			Expect(header).To(Equal(fmt.Sprintf("Bearer %s", tokenToReturn)))
-		})
-
-		It("obtains exactly one token from the UAA", func() {
-			Expect(mockUAA.TokensIssued).To(Equal(1))
-		})
-
-		Context("when the UAA server is using HTTPS with a self-signed cert", func() {
-			BeforeEach(func() {
-				mockUAA.Close()
-				mockUAA = mockuaa.NewUserCredentialsServerTLS(actualClientID, actualClientSecret, actualCFUsername, actualCFPassword, tokenToReturn)
-			})
-
-			It("succeeds", func() {
-				Expect(buildErr).NotTo(HaveOccurred())
-			})
-		})
-
-		Context("when a second authorization header is built", func() {
-			var (
-				secondHeader string
-				secondErr    error
-			)
-
-			JustBeforeEach(func() {
-				secondHeader, secondErr = authorizer.Build(logger)
-			})
-
-			It("succeeds", func() {
-				Expect(secondErr).NotTo(HaveOccurred())
-			})
-
-			It("builds the same header", func() {
-				Expect(secondHeader).To(Equal(header))
-			})
-
-			It("caches the first token and does not obtain a 2nd one from UAA", func() {
-				Expect(mockUAA.TokensIssued).To(Equal(1))
-			})
-
-			Context("when the cached token has expired", func() {
-				JustBeforeEach(func() {
-					time.Sleep(time.Second * 2)
-				})
-
-				Context("when a third authorization header is built", func() {
-					JustBeforeEach(func() {
-						_, err := authorizer.Build(logger)
-						Expect(err).ToNot(HaveOccurred())
-					})
-
-					It("obtains a new token from UAA", func() {
-						Expect(mockUAA.TokensIssued).To(Equal(2))
-					})
-				})
-			})
-		})
+	It("succeeds when the UAA server is using HTTPS with a self-signed cert", func() {
+		mockUAA.Close()
+		mockUAA = mockuaa.NewUserCredentialsServerTLS(actualClientID, actualClientSecret, actualCFUsername, actualCFPassword, tokenToReturn)
+		authorizer := createUserTokenAuthorizer(mockUAA, suppliedClientID, suppliedClientSecret, suppliedCFUsername, suppliedCFPassword)
+		err := authorizer.AddAuthHeader(req, logger)
+		Expect(err).NotTo(HaveOccurred())
 	})
 
-	Context("invalid clientID and secret", func() {
-		BeforeEach(func() {
-			suppliedClientID = "invalid-username"
-			suppliedClientSecret = "invalid-password"
-		})
+	It("caches a token", func() {
+		authorizer := createUserTokenAuthorizer(mockUAA, suppliedClientID, suppliedClientSecret, suppliedCFUsername, suppliedCFPassword)
+		err := authorizer.AddAuthHeader(req, logger)
+		Expect(err).NotTo(HaveOccurred())
 
-		It("fails", func() {
-			Expect(buildErr).To(MatchError(ContainSubstring(mockuaa.UnauthorizedError)))
-			Expect(buildErr).To(MatchError(ContainSubstring(mockuaa.UnauthorizedErrorDescription)))
-		})
+		authHeader := req.Header.Get("Authorization")
+		Expect(authHeader).To(Equal(fmt.Sprintf("Bearer %s", tokenToReturn)))
+
+		err = authorizer.AddAuthHeader(req, logger)
+		Expect(err).NotTo(HaveOccurred())
+		secondHeader := req.Header.Get("Authorization")
+		Expect(secondHeader).To(Equal(authHeader))
+		Expect(mockUAA.TokensIssued).To(Equal(1))
 	})
 
-	Context("invalid username and password", func() {
-		BeforeEach(func() {
-			suppliedCFUsername = "invalid-username"
-			suppliedCFPassword = "invalid-password"
-		})
+	It("gets a new token if the previous token has expired", func() {
+		authorizer := createUserTokenAuthorizer(mockUAA, suppliedClientID, suppliedClientSecret, suppliedCFUsername, suppliedCFPassword)
+		err := authorizer.AddAuthHeader(req, logger)
+		Expect(err).NotTo(HaveOccurred())
 
-		It("fails", func() {
-			Expect(buildErr).To(MatchError(ContainSubstring(mockuaa.UnauthorizedError)))
-			Expect(buildErr).To(MatchError(ContainSubstring(mockuaa.UnauthorizedErrorDescription)))
-		})
+		authHeader := req.Header.Get("Authorization")
+		Expect(authHeader).To(Equal(fmt.Sprintf("Bearer %s", tokenToReturn)))
+
+		time.Sleep(time.Second * 2)
+
+		err = authorizer.AddAuthHeader(req, logger)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(mockUAA.TokensIssued).To(Equal(2))
 	})
 
-	Context("malformed response", func() {
-		BeforeEach(func() {
-			suppliedCFUsername = mockuaa.MalformedResponseUser
-			suppliedCFPassword = ""
-		})
-
-		It("fails", func() {
-			Expect(buildErr).To(MatchError(ContainSubstring("no access token in grant")))
-		})
+	It("fails when invalid clientID and secret are supplied", func() {
+		suppliedClientID = "invalid-username"
+		suppliedClientSecret = "invalid-password"
+		authorizer := createUserTokenAuthorizer(mockUAA, suppliedClientID, suppliedClientSecret, suppliedCFUsername, suppliedCFPassword)
+		err := authorizer.AddAuthHeader(req, logger)
+		Expect(err).To(MatchError(ContainSubstring(mockuaa.UnauthorizedError)))
+		Expect(err).To(MatchError(ContainSubstring(mockuaa.UnauthorizedErrorDescription)))
 	})
 
-	Context("uaa 500", func() {
-		BeforeEach(func() {
-			suppliedCFUsername = mockuaa.InternalServerErrorUser
-			suppliedCFPassword = ""
-		})
+	It("fails when invalid username and password are supplied", func() {
+		suppliedCFUsername = "invalid-username"
+		suppliedCFPassword = "invalid-password"
+		authorizer := createUserTokenAuthorizer(mockUAA, suppliedClientID, suppliedClientSecret, suppliedCFUsername, suppliedCFPassword)
+		err := authorizer.AddAuthHeader(req, logger)
+		Expect(err).To(MatchError(ContainSubstring(mockuaa.UnauthorizedError)))
+		Expect(err).To(MatchError(ContainSubstring(mockuaa.UnauthorizedErrorDescription)))
+	})
 
-		It("fails", func() {
-			Expect(buildErr).To(MatchError(ContainSubstring(mockuaa.InternalServerErrorMessage)))
-		})
+	It("fails when receiving a malformed response from UAA", func() {
+		suppliedCFUsername = mockuaa.MalformedResponseUser
+		suppliedCFPassword = ""
+		authorizer := createUserTokenAuthorizer(mockUAA, suppliedClientID, suppliedClientSecret, suppliedCFUsername, suppliedCFPassword)
+		err := authorizer.AddAuthHeader(req, logger)
+		Expect(err).To(MatchError(ContainSubstring("no access token in grant")))
+	})
+
+	It("fails when receiving an Internal Server Error from UAA", func() {
+		suppliedCFUsername = mockuaa.InternalServerErrorUser
+		suppliedCFPassword = ""
+
+		authorizer := createUserTokenAuthorizer(mockUAA, suppliedClientID, suppliedClientSecret, suppliedCFUsername, suppliedCFPassword)
+		err := authorizer.AddAuthHeader(req, logger)
+		Expect(err).To(MatchError(ContainSubstring(mockuaa.InternalServerErrorMessage)))
 	})
 })
+
+func createUserTokenAuthorizer(mockUAA *mockuaa.UserCredentialsServer, clientID string, secret string, username string, password string) *authorizationheader.UserTokenAuthHeaderBuilder {
+	var certPEM []byte
+	if mockUAA.TLS != nil {
+		cert, err := x509.ParseCertificate(mockUAA.TLS.Certificates[0].Certificate[0])
+		Expect(err).NotTo(HaveOccurred())
+		certPEM = pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: cert.Raw})
+	}
+	authorizer, err := authorizationheader.NewUserTokenAuthHeaderBuilder(mockUAA.URL, clientID, secret, username, password, false, certPEM)
+	Expect(err).NotTo(HaveOccurred())
+	return authorizer
+}

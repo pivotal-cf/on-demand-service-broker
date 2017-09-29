@@ -14,6 +14,8 @@ import (
 	"os"
 	"path"
 
+	"net/http"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -36,7 +38,10 @@ var _ = Describe("Client", func() {
 
 	BeforeEach(func() {
 		authHeaderBuilder = new(fakes.FakeAuthHeaderBuilder)
-		authHeaderBuilder.BuildReturns(cfAuthorizationHeader, nil)
+		authHeaderBuilder.AddAuthHeaderStub = func(req *http.Request, logger *log.Logger) error {
+			req.Header.Set("Authorization", cfAuthorizationHeader)
+			return nil
+		}
 		server = mockcfapi.New()
 		logBuffer = gbytes.NewBuffer()
 		testLogger = log.New(io.MultiWriter(logBuffer, GinkgoWriter), "my-app", log.LstdFlags)
@@ -337,7 +342,7 @@ var _ = Describe("Client", func() {
 		})
 
 		It("fails, if fetching auth token fails", func() {
-			authHeaderBuilder.BuildReturns("", errors.New("niet goed"))
+			authHeaderBuilder.AddAuthHeaderReturns(errors.New("niet goed"))
 
 			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 			Expect(err).NotTo(HaveOccurred())
@@ -1012,7 +1017,7 @@ var _ = Describe("Client", func() {
 				client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 				Expect(err).NotTo(HaveOccurred())
 
-				authHeaderBuilder.BuildReturns(cfAuthorizationHeader, errors.New("no header for you"))
+				authHeaderBuilder.AddAuthHeaderReturns(errors.New("no header for you"))
 
 				err = client.DeleteBinding(binding, testLogger)
 				Expect(err).To(MatchError("no header for you"))
@@ -1097,7 +1102,7 @@ var _ = Describe("Client", func() {
 				client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 				Expect(err).NotTo(HaveOccurred())
 
-				authHeaderBuilder.BuildReturns(cfAuthorizationHeader, errors.New("no header for you"))
+				authHeaderBuilder.AddAuthHeaderReturns(errors.New("no header for you"))
 
 				err = client.DeleteServiceKey(serviceKey, testLogger)
 				Expect(err).To(MatchError("no header for you"))
@@ -1195,7 +1200,7 @@ var _ = Describe("Client", func() {
 				client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
 				Expect(err).NotTo(HaveOccurred())
 
-				authHeaderBuilder.BuildReturns(cfAuthorizationHeader, errors.New("no header for you"))
+				authHeaderBuilder.AddAuthHeaderReturns(errors.New("no header for you"))
 
 				err = client.DeleteServiceInstance(serviceInstanceGUID, testLogger)
 				Expect(err).To(MatchError("no header for you"))

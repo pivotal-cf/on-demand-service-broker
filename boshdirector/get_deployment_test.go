@@ -38,7 +38,7 @@ var _ = Describe("getting deployment", func() {
 			})
 
 			It("calls the authorization header builder", func() {
-				Expect(authHeaderBuilder.BuildCallCount()).To(BeNumerically(">", 0))
+				Expect(authHeaderBuilder.AddAuthHeaderCallCount()).To(BeNumerically(">", 0))
 			})
 
 			It("returns deployment found", func() {
@@ -76,7 +76,7 @@ var _ = Describe("getting deployment", func() {
 
 		Context("when the Authorization header cannot be generated", func() {
 			BeforeEach(func() {
-				authHeaderBuilder.BuildReturns("", errors.New("some-error"))
+				authHeaderBuilder.AddAuthHeaderReturns(errors.New("some-error"))
 			})
 
 			It("returns an error", func() {

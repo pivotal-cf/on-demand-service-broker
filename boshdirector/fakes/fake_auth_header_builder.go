@@ -3,85 +3,83 @@ package fakes
 
 import (
 	"log"
+	"net/http"
 	"sync"
 
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 )
 
 type FakeAuthHeaderBuilder struct {
-	BuildStub        func(logger *log.Logger) (string, error)
-	buildMutex       sync.RWMutex
-	buildArgsForCall []struct {
-		logger *log.Logger
+	AddAuthHeaderStub        func(request *http.Request, logger *log.Logger) error
+	addAuthHeaderMutex       sync.RWMutex
+	addAuthHeaderArgsForCall []struct {
+		request *http.Request
+		logger  *log.Logger
 	}
-	buildReturns struct {
-		result1 string
-		result2 error
+	addAuthHeaderReturns struct {
+		result1 error
 	}
-	buildReturnsOnCall map[int]struct {
-		result1 string
-		result2 error
+	addAuthHeaderReturnsOnCall map[int]struct {
+		result1 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeAuthHeaderBuilder) Build(logger *log.Logger) (string, error) {
-	fake.buildMutex.Lock()
-	ret, specificReturn := fake.buildReturnsOnCall[len(fake.buildArgsForCall)]
-	fake.buildArgsForCall = append(fake.buildArgsForCall, struct {
-		logger *log.Logger
-	}{logger})
-	fake.recordInvocation("Build", []interface{}{logger})
-	fake.buildMutex.Unlock()
-	if fake.BuildStub != nil {
-		return fake.BuildStub(logger)
+func (fake *FakeAuthHeaderBuilder) AddAuthHeader(request *http.Request, logger *log.Logger) error {
+	fake.addAuthHeaderMutex.Lock()
+	ret, specificReturn := fake.addAuthHeaderReturnsOnCall[len(fake.addAuthHeaderArgsForCall)]
+	fake.addAuthHeaderArgsForCall = append(fake.addAuthHeaderArgsForCall, struct {
+		request *http.Request
+		logger  *log.Logger
+	}{request, logger})
+	fake.recordInvocation("AddAuthHeader", []interface{}{request, logger})
+	fake.addAuthHeaderMutex.Unlock()
+	if fake.AddAuthHeaderStub != nil {
+		return fake.AddAuthHeaderStub(request, logger)
 	}
 	if specificReturn {
-		return ret.result1, ret.result2
+		return ret.result1
 	}
-	return fake.buildReturns.result1, fake.buildReturns.result2
+	return fake.addAuthHeaderReturns.result1
 }
 
-func (fake *FakeAuthHeaderBuilder) BuildCallCount() int {
-	fake.buildMutex.RLock()
-	defer fake.buildMutex.RUnlock()
-	return len(fake.buildArgsForCall)
+func (fake *FakeAuthHeaderBuilder) AddAuthHeaderCallCount() int {
+	fake.addAuthHeaderMutex.RLock()
+	defer fake.addAuthHeaderMutex.RUnlock()
+	return len(fake.addAuthHeaderArgsForCall)
 }
 
-func (fake *FakeAuthHeaderBuilder) BuildArgsForCall(i int) *log.Logger {
-	fake.buildMutex.RLock()
-	defer fake.buildMutex.RUnlock()
-	return fake.buildArgsForCall[i].logger
+func (fake *FakeAuthHeaderBuilder) AddAuthHeaderArgsForCall(i int) (*http.Request, *log.Logger) {
+	fake.addAuthHeaderMutex.RLock()
+	defer fake.addAuthHeaderMutex.RUnlock()
+	return fake.addAuthHeaderArgsForCall[i].request, fake.addAuthHeaderArgsForCall[i].logger
 }
 
-func (fake *FakeAuthHeaderBuilder) BuildReturns(result1 string, result2 error) {
-	fake.BuildStub = nil
-	fake.buildReturns = struct {
-		result1 string
-		result2 error
-	}{result1, result2}
+func (fake *FakeAuthHeaderBuilder) AddAuthHeaderReturns(result1 error) {
+	fake.AddAuthHeaderStub = nil
+	fake.addAuthHeaderReturns = struct {
+		result1 error
+	}{result1}
 }
 
-func (fake *FakeAuthHeaderBuilder) BuildReturnsOnCall(i int, result1 string, result2 error) {
-	fake.BuildStub = nil
-	if fake.buildReturnsOnCall == nil {
-		fake.buildReturnsOnCall = make(map[int]struct {
-			result1 string
-			result2 error
+func (fake *FakeAuthHeaderBuilder) AddAuthHeaderReturnsOnCall(i int, result1 error) {
+	fake.AddAuthHeaderStub = nil
+	if fake.addAuthHeaderReturnsOnCall == nil {
+		fake.addAuthHeaderReturnsOnCall = make(map[int]struct {
+			result1 error
 		})
 	}
-	fake.buildReturnsOnCall[i] = struct {
-		result1 string
-		result2 error
-	}{result1, result2}
+	fake.addAuthHeaderReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
 }
 
 func (fake *FakeAuthHeaderBuilder) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.buildMutex.RLock()
-	defer fake.buildMutex.RUnlock()
+	fake.addAuthHeaderMutex.RLock()
+	defer fake.addAuthHeaderMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

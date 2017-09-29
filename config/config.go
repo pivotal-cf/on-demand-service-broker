@@ -14,6 +14,8 @@ import (
 	"reflect"
 	"strings"
 
+	"net/http"
+
 	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
 	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 	"gopkg.in/yaml.v2"
@@ -119,7 +121,7 @@ type CF struct {
 }
 
 type AuthHeaderBuilder interface {
-	Build(logger *log.Logger) (string, error)
+	AddAuthHeader(request *http.Request, logger *log.Logger) error
 }
 
 func (cf CF) NewAuthHeaderBuilder(disableSSLCertVerification bool) (AuthHeaderBuilder, error) {

@@ -10,14 +10,17 @@ import (
 	"encoding/base64"
 	"fmt"
 	"log"
+	"net/http"
 )
 
 type BasicAuthHeaderBuilder struct {
 	username, password string
 }
 
-func (hb BasicAuthHeaderBuilder) Build(logger *log.Logger) (string, error) {
-	return fmt.Sprintf("Basic %s", base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", hb.username, hb.password)))), nil
+func (hb BasicAuthHeaderBuilder) AddAuthHeader(request *http.Request, logger *log.Logger) error {
+	basicAuthHeader := fmt.Sprintf("Basic %s", base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", hb.username, hb.password))))
+	request.Header.Add("Authorization", basicAuthHeader)
+	return nil
 }
 
 func NewBasicAuthHeaderBuilder(username, password string) BasicAuthHeaderBuilder {

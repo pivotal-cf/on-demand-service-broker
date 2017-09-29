@@ -33,7 +33,7 @@ type Client struct {
 
 //go:generate counterfeiter -o fakes/fake_auth_header_builder.go . AuthHeaderBuilder
 type AuthHeaderBuilder interface {
-	Build(logger *log.Logger) (string, error)
+	AddAuthHeader(request *http.Request, logger *log.Logger) error
 }
 
 type HTTPClient interface {
@@ -257,11 +257,10 @@ func (c *Client) getDeploymentResultCheckingForErrors(request *http.Request, exp
 }
 
 func (c *Client) getResultCheckingForErrors(request *http.Request, expectedStatus int, handler resultExtractor, logger *log.Logger) error {
-	authHeader, err := c.authHeaderBuilder.Build(logger)
+	err := c.authHeaderBuilder.AddAuthHeader(request, logger)
 	if err != nil {
 		return err
 	}
-	request.Header.Set("Authorization", authHeader)
 
 	response, err := c.httpClient.Do(request)
 	if err != nil {

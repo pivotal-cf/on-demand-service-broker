@@ -12,6 +12,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"net/http"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
@@ -599,8 +601,7 @@ var _ = Describe("CF#NewAuthHeaderBuilder", func() {
 			builder, err := cfConfig.NewAuthHeaderBuilder(true)
 			Expect(err).NotTo(HaveOccurred())
 
-			header, err := builder.Build(logger)
-			Expect(err).NotTo(HaveOccurred())
+			header := getAuthHeader(builder, logger)
 			Expect(header).To(Equal(fmt.Sprintf("Bearer %s", tokenToReturn)))
 
 			mockUAA.Close()
@@ -629,8 +630,7 @@ var _ = Describe("CF#NewAuthHeaderBuilder", func() {
 			builder, err := cfConfig.NewAuthHeaderBuilder(true)
 			Expect(err).NotTo(HaveOccurred())
 
-			header, err := builder.Build(logger)
-			Expect(err).NotTo(HaveOccurred())
+			header := getAuthHeader(builder, logger)
 			Expect(header).To(Equal(fmt.Sprintf("Bearer %s", tokenToReturn)))
 
 			mockUAA.Close()
@@ -640,4 +640,12 @@ var _ = Describe("CF#NewAuthHeaderBuilder", func() {
 
 func booleanPointer(val bool) *bool {
 	return &val
+}
+
+func getAuthHeader(builder config.AuthHeaderBuilder, logger *log.Logger) string {
+	req, err := http.NewRequest("GET", "some-url-to-authorize", nil)
+	Expect(err).NotTo(HaveOccurred())
+	err = builder.AddAuthHeader(req, logger)
+	Expect(err).NotTo(HaveOccurred())
+	return req.Header.Get("Authorization")
 }

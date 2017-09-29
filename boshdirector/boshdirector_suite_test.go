@@ -20,10 +20,6 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp/mockbosh"
 )
 
-const (
-	expectedAuthHeader = "some-auth-header"
-)
-
 var (
 	c *boshdirector.Client
 
@@ -34,9 +30,7 @@ var (
 
 var _ = BeforeEach(func() {
 	authHeaderBuilder = new(fakes.FakeAuthHeaderBuilder)
-	authHeaderBuilder.BuildReturns(expectedAuthHeader, nil)
 	director = mockbosh.New()
-	director.ExpectedAuthorizationHeader(expectedAuthHeader)
 	logger = log.New(GinkgoWriter, "[boshdirector unit test]", log.LstdFlags)
 })
 

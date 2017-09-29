@@ -27,7 +27,7 @@ type httpJsonClient struct {
 
 //go:generate counterfeiter -o fakes/fake_auth_header_builder.go . AuthHeaderBuilder
 type AuthHeaderBuilder interface {
-	Build(logger *log.Logger) (string, error)
+	AddAuthHeader(request *http.Request, logger *log.Logger) error
 }
 
 func (w httpJsonClient) get(path string, body interface{}, logger *log.Logger) error {
@@ -36,12 +36,11 @@ func (w httpJsonClient) get(path string, body interface{}, logger *log.Logger) e
 		return err
 	}
 
-	authHeader, err := w.AuthHeaderBuilder.Build(logger)
+	err = w.AuthHeaderBuilder.AddAuthHeader(req, logger)
 	if err != nil {
 		return err
 	}
 
-	req.Header.Add("Authorization", authHeader)
 	logger.Printf(fmt.Sprintf("GET %s", path))
 
 	response, err := w.client.Do(req)
@@ -57,12 +56,10 @@ func (c httpJsonClient) put(path, reqBody string, logger *log.Logger) error {
 		return err
 	}
 
-	authHeader, err := c.AuthHeaderBuilder.Build(logger)
+	err = c.AuthHeaderBuilder.AddAuthHeader(req, logger)
 	if err != nil {
 		return err
 	}
-
-	req.Header.Add("Authorization", authHeader)
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
 	logger.Printf(fmt.Sprintf("PUT %s", path))
@@ -87,12 +84,11 @@ func (c httpJsonClient) delete(path string, logger *log.Logger) error {
 		return err
 	}
 
-	authHeader, err := c.AuthHeaderBuilder.Build(logger)
+	err = c.AuthHeaderBuilder.AddAuthHeader(req, logger)
 	if err != nil {
 		return err
 	}
 
-	req.Header.Add("Authorization", authHeader)
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
 	logger.Printf(fmt.Sprintf("DELETE %s", path))

@@ -7,16 +7,30 @@
 package authorizationheader_test
 
 import (
+	"net/http"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
 )
 
 var _ = Describe("Basic Auth Header Builder", func() {
-	It("builds basic auth header", func() {
-		authBuilder := authorizationheader.NewBasicAuthHeaderBuilder("username", "password")
-		authHeader, err := authBuilder.Build(logger)
+	var (
+		req *http.Request
+	)
+
+	BeforeEach(func() {
+		var err error
+		req, err = http.NewRequest("GET", "some-url-to-authorize", nil)
 		Expect(err).NotTo(HaveOccurred())
+	})
+
+	It("builds basic auth header", func() {
+		authorizer := authorizationheader.NewBasicAuthHeaderBuilder("username", "password")
+		err := authorizer.AddAuthHeader(req, logger)
+		Expect(err).NotTo(HaveOccurred())
+
+		authHeader := req.Header.Get("Authorization")
 		Expect(authHeader).To(Equal("Basic dXNlcm5hbWU6cGFzc3dvcmQ="))
 	})
 })
