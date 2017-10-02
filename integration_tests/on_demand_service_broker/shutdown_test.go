@@ -30,7 +30,7 @@ var _ = Describe("broker process", func() {
 
 	var (
 		runningBroker *gexec.Session
-		boshDirector  *mockhttp.Server
+		boshDirector  *mockbosh.MockBOSH
 		cfAPI         *mockhttp.Server
 		boshUAA       *mockuaa.ClientCredentialsServer
 		cfUAA         *mockuaa.ClientCredentialsServer
@@ -42,8 +42,10 @@ var _ = Describe("broker process", func() {
 		assertNoRunningBroker()
 
 		boshUAA = mockuaa.NewClientCredentialsServer(boshClientID, boshClientSecret, "bosh uaa token")
-		boshDirector = mockbosh.New()
+		boshDirector = mockbosh.NewWithUAA(boshUAA.URL)
 		boshDirector.ExpectedAuthorizationHeader(boshUAA.ExpectedAuthorizationHeader())
+		boshDirector.ExcludeAuthorizationCheck("/info")
+
 		cfAPI = mockcfapi.New()
 		cfUAA = mockuaa.NewClientCredentialsServer(cfUaaClientID, cfUaaClientSecret, "CF UAA token")
 		brokerConfig = defaultBrokerConfig(boshDirector.URL, boshUAA.URL, cfAPI.URL, cfUAA.URL)
@@ -142,7 +144,7 @@ var _ = Describe("broker process", func() {
 })
 
 func mockBoshDeployWithTriggerAndDelay(
-	director *mockhttp.Server,
+	director *mockbosh.MockBOSH,
 	instanceID string,
 	manifest bosh.BoshManifest,
 	taskID int,

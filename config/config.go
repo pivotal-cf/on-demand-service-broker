@@ -17,6 +17,7 @@ import (
 	"net/http"
 
 	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 	"gopkg.in/yaml.v2"
 )
@@ -112,6 +113,26 @@ type Bosh struct {
 type BOSHAuthentication struct {
 	Basic UserCredentials
 	UAA   BOSHUAAAuthentication
+}
+
+func (boshConfig Bosh) NewAuthHeaderBuilder(boshInfo *boshdirector.Info, disableSSLCertVerification bool) (AuthHeaderBuilder, error) {
+	boshAuthConfig := boshConfig.Authentication
+	if boshAuthConfig.Basic.IsSet() {
+		return authorizationheader.NewBasicAuthHeaderBuilder(
+			boshAuthConfig.Basic.Username,
+			boshAuthConfig.Basic.Password,
+		), nil
+	} else if boshAuthConfig.UAA.IsSet() {
+		return authorizationheader.NewClientTokenAuthHeaderBuilder(
+			boshInfo.UserAuthentication.Options.URL,
+			boshAuthConfig.UAA.ID,
+			boshAuthConfig.UAA.Secret,
+			disableSSLCertVerification,
+			[]byte(boshConfig.TrustedCert),
+		)
+	} else {
+		return nil, errors.New("No BOSH authentication configured")
+	}
 }
 
 type CF struct {

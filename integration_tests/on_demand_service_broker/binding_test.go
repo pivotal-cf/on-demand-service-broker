@@ -31,7 +31,7 @@ import (
 
 var _ = Describe("binding service instances", func() {
 	var (
-		boshDirector *mockhttp.Server
+		boshDirector *mockbosh.MockBOSH
 		cfAPI        *mockhttp.Server
 		boshUAA      *mockuaa.ClientCredentialsServer
 		cfUAA        *mockuaa.ClientCredentialsServer
@@ -49,8 +49,8 @@ var _ = Describe("binding service instances", func() {
 	)
 
 	JustBeforeEach(func() {
-		boshDirector = mockbosh.New()
 		boshUAA = mockuaa.NewClientCredentialsServer(boshClientID, boshClientSecret, "bosh uaa token")
+		boshDirector = mockbosh.NewWithUAA(boshUAA.URL)
 		cfUAA = mockuaa.NewClientCredentialsServer(cfUaaClientID, cfUaaClientSecret, "CF UAA token")
 		cfAPI = mockcfapi.New()
 

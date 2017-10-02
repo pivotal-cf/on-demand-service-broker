@@ -175,14 +175,15 @@ func TestIntegrationTests(t *testing.T) {
 func startBrokerWithPassingStartupChecks(
 	conf config.Config,
 	cfAPI *mockhttp.Server,
-	boshDirector *mockhttp.Server,
+	boshDirector *mockbosh.MockBOSH,
 ) *gexec.Session {
 	cfAPI.VerifyAndMock(
 		mockcfapi.GetInfo().RespondsWithSufficientAPIVersion(),
 		mockcfapi.ListServiceOfferings().RespondsWithNoServiceOfferings(),
 	)
 	boshDirector.VerifyAndMock(
-		mockbosh.Info().RespondsWithSufficientVersionForLifecycleErrands(),
+		mockbosh.Info().RespondsWithSufficientVersionForLifecycleErrands(boshDirector.UAAURL),
+		mockbosh.Info().RespondsWithSufficientVersionForLifecycleErrands(boshDirector.UAAURL),
 	)
 	return startBroker(conf)
 }

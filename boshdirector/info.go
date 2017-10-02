@@ -20,6 +20,16 @@ const (
 	stemcellVersionLength   = 4
 )
 
+func (c *Client) GetInfo(logger *log.Logger) (*Info, error) {
+	var boshInfo Info
+
+	err := c.getDataCheckingForErrors(fmt.Sprintf("%s/info", c.url), http.StatusOK, &boshInfo, logger)
+	if err != nil {
+		return &Info{}, err
+	}
+	return &boshInfo, nil
+}
+
 func (c *Client) GetDirectorVersion(logger *log.Logger) (Version, error) {
 	var boshInfo Info
 

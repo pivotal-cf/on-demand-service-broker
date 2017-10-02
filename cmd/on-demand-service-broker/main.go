@@ -62,23 +62,16 @@ func startBroker(conf config.Config, logger *log.Logger, loggerFactory *loggerfa
 		err               error
 	)
 
-	boshAuthConfig := conf.Bosh.Authentication
-	if boshAuthConfig.Basic.IsSet() {
-		boshAuthenticator = authorizationheader.NewBasicAuthHeaderBuilder(
-			boshAuthConfig.Basic.Username,
-			boshAuthConfig.Basic.Password,
-		)
-	} else if boshAuthConfig.UAA.IsSet() {
-		boshAuthenticator, err = authorizationheader.NewClientTokenAuthHeaderBuilder(
-			boshAuthConfig.UAA.UAAURL,
-			boshAuthConfig.UAA.ID,
-			boshAuthConfig.UAA.Secret,
-			conf.Broker.DisableSSLCertVerification,
-			[]byte(conf.Bosh.TrustedCert),
-		)
-		if err != nil {
-			logger.Fatalf("error creating BOSH authorization header builder: %s", err)
-		}
+	noAuthHeaderBuilder := authorizationheader.NewNoAuthHeaderBuilder()
+	unauthenticatedClient, err := boshdirector.New(conf.Bosh.URL, noAuthHeaderBuilder, conf.Broker.DisableSSLCertVerification, []byte(conf.Bosh.TrustedCert))
+	boshInfo, err := unauthenticatedClient.GetInfo(logger)
+	if err != nil {
+		logger.Fatalf("error fetching BOSH director information: %s", err)
+	}
+
+	boshAuthenticator, err = conf.Bosh.NewAuthHeaderBuilder(boshInfo, conf.Broker.DisableSSLCertVerification)
+	if err != nil {
+		logger.Fatalf("error creating BOSH authorization header builder: %s", err)
 	}
 
 	boshClient, err := boshdirector.New(conf.Bosh.URL, boshAuthenticator, conf.Broker.DisableSSLCertVerification, []byte(conf.Bosh.TrustedCert))

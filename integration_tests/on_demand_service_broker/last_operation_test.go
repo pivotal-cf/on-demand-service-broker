@@ -35,7 +35,7 @@ var _ = Describe("last operation", func() {
 	var (
 		planID                string
 		postDeployErrandName  string
-		boshDirector          *mockhttp.Server
+		boshDirector          *mockbosh.MockBOSH
 		cfAPI                 *mockhttp.Server
 		cfUAA                 *mockuaa.ClientCredentialsServer
 		boshUAA               *mockuaa.ClientCredentialsServer
@@ -69,8 +69,10 @@ var _ = Describe("last operation", func() {
 		contextID = ""
 		planID = dedicatedPlanID
 		boshUAA = mockuaa.NewClientCredentialsServer(boshClientID, boshClientSecret, "bosh uaa token")
-		boshDirector = mockbosh.New()
+		boshDirector = mockbosh.NewWithUAA(boshUAA.URL)
 		boshDirector.ExpectedAuthorizationHeader(boshUAA.ExpectedAuthorizationHeader())
+		boshDirector.ExcludeAuthorizationCheck("/info")
+
 		cfAPI = mockcfapi.New()
 		cfUAA = mockuaa.NewClientCredentialsServer(cfUaaClientID, cfUaaClientSecret, "CF UAA token")
 		adapter.GenerateManifest().ToReturnManifest(rawManifestWithDeploymentName(instanceID))

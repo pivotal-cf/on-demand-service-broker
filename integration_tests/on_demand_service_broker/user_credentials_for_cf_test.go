@@ -29,20 +29,21 @@ var _ = Describe("UAA user credentials for CF", func() {
 		runningBroker *gexec.Session
 		cfAPI         *mockhttp.Server
 		cfUAA         *mockuaa.UserCredentialsServer
-		boshDirector  *mockhttp.Server
+		boshDirector  *mockbosh.MockBOSH
 		boshUAA       *mockuaa.ClientCredentialsServer
 	)
 
 	BeforeEach(func() {
-		boshDirector = mockbosh.New()
 		boshUAA = mockuaa.NewClientCredentialsServer(boshClientID, boshClientSecret, "bosh uaa token")
+		boshDirector = mockbosh.NewWithUAA(boshUAA.URL)
 		cfAPI = mockcfapi.New()
 		cfAPI.VerifyAndMock(
 			mockcfapi.GetInfo().RespondsWithSufficientAPIVersion(),
 			mockcfapi.ListServiceOfferings().RespondsWithNoServiceOfferings(),
 		)
 		boshDirector.VerifyAndMock(
-			mockbosh.Info().RespondsWithSufficientStemcellVersionForODB(),
+			mockbosh.Info().RespondsWithSufficientStemcellVersionForODB(boshDirector.UAAURL),
+			mockbosh.Info().RespondsWithSufficientStemcellVersionForODB(boshDirector.UAAURL),
 		)
 
 		cfUAA = mockuaa.NewUserCredentialsServer(cfClientID, cfClientSecret, cfUsername, cfPassword, "CF UAA token")

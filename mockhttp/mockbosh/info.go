@@ -6,7 +6,11 @@
 
 package mockbosh
 
-import "github.com/pivotal-cf/on-demand-service-broker/mockhttp"
+import (
+	"fmt"
+
+	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
+)
 
 type infoMock struct {
 	*mockhttp.Handler
@@ -18,14 +22,52 @@ func Info() *infoMock {
 	}
 }
 
-func (m *infoMock) RespondsWithSufficientStemcellVersionForODB() *mockhttp.Handler {
-	return m.RespondsOKWith(`{"version":"1.3262.0.0 (00000000)"}`)
+func (m *infoMock) RespondsWithSufficientStemcellVersionForODB(uaaUrl string) *mockhttp.Handler {
+	return m.RespondsOKWith(fmt.Sprintf(`{
+		"version":"1.3262.0.0 (00000000)",
+		"user_authentication": {
+			"type": "uaa",
+			"options": {
+				"url": "%s"
+			}
+		}
+	}`, uaaUrl))
 }
 
-func (m *infoMock) RespondsWithSufficientSemverVersionForODB() *mockhttp.Handler {
-	return m.RespondsOKWith(`{"version":"260.0.0 (00000000)"}`)
+func (m *infoMock) RespondsWithSufficientSemverVersionForODB(uaaUrl string) *mockhttp.Handler {
+	return m.RespondsOKWith(fmt.Sprintf(`{
+		"version":"260.0.0 (00000000)",
+		"user_authentication": {
+			"type": "uaa",
+			"options": {
+				"url": "%s"
+			}
+		}
+	}`, uaaUrl))
 }
 
-func (m *infoMock) RespondsWithSufficientVersionForLifecycleErrands() *mockhttp.Handler {
-	return m.RespondsOKWith(`{"version":"261.0.0 (00000000)"}`)
+func (m *infoMock) RespondsWithSufficientVersionForLifecycleErrands(uaaUrl string) *mockhttp.Handler {
+	content := fmt.Sprintf(`{
+		"version":"261.0.0 (00000000)",
+		"user_authentication": {
+			"type": "uaa",
+			"options": {
+				"url": "%s"
+			}
+		}
+	}`, uaaUrl)
+	return m.RespondsOKWith(content)
+}
+
+func (m *infoMock) RespondsWithVersion(version string, uaaUrl string) *mockhttp.Handler {
+	content := fmt.Sprintf(`{
+		"version":"%s",
+		"user_authentication": {
+			"type": "uaa",
+			"options": {
+				"url": "%s"
+			}
+		}
+	}`, version, uaaUrl)
+	return m.RespondsOKWith(content)
 }

@@ -16,7 +16,6 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector/fakes"
-	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp/mockbosh"
 )
 
@@ -24,7 +23,7 @@ var (
 	c *boshdirector.Client
 
 	authHeaderBuilder *fakes.FakeAuthHeaderBuilder
-	director          *mockhttp.Server
+	director          *mockbosh.MockBOSH
 	logger            *log.Logger
 )
 

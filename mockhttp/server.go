@@ -21,6 +21,7 @@ import (
 
 type Server struct {
 	name, expectedAuthorizationHeader string
+	excludedAuthPaths                 map[string]bool
 
 	*httptest.Server
 	*sync.Mutex
@@ -33,8 +34,9 @@ type Server struct {
 
 func StartServer(name string) *Server {
 	s := &Server{
-		name:  name,
-		Mutex: new(sync.Mutex),
+		name:              name,
+		Mutex:             new(sync.Mutex),
+		excludedAuthPaths: make(map[string]bool),
 	}
 	s.Server = httptest.NewServer(s)
 
@@ -50,8 +52,16 @@ func (s *Server) ExpectedBasicAuth(username, password string) {
 	s.ExpectedAuthorizationHeader(basicAuth(username, password))
 }
 
+func (s *Server) ExcludeAuthorizationCheck(path string) {
+	s.excludedAuthPaths[path] = true
+}
+
+func (s *Server) checkAuthHeaderForPath(path string) bool {
+	return !s.excludedAuthPaths[path]
+}
+
 func (s *Server) verifyCommonServerExpectations(r *http.Request) {
-	if s.expectedAuthorizationHeader != "" {
+	if s.expectedAuthorizationHeader != "" && s.checkAuthHeaderForPath(r.URL.Path) {
 		Expect(r.Header.Get("Authorization")).To(Equal(s.expectedAuthorizationHeader), "Expected 'Authorization' header to be equal to:\n    %+v\n", s.expectedAuthorizationHeader)
 	}
 }

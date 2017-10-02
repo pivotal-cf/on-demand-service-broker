@@ -43,7 +43,7 @@ var _ = Describe("provision service instance", func() {
 	var (
 		conf              config.Config
 		runningBroker     *gexec.Session
-		boshDirector      *mockhttp.Server
+		boshDirector      *mockbosh.MockBOSH
 		cfAPI             *mockhttp.Server
 		boshUAA           *mockuaa.ClientCredentialsServer
 		cfUAA             *mockuaa.ClientCredentialsServer
@@ -54,8 +54,10 @@ var _ = Describe("provision service instance", func() {
 
 	BeforeEach(func() {
 		boshUAA = mockuaa.NewClientCredentialsServer(boshClientID, boshClientSecret, "bosh uaa token")
-		boshDirector = mockbosh.New()
+		boshDirector = mockbosh.NewWithUAA(boshUAA.URL)
 		boshDirector.ExpectedAuthorizationHeader(boshUAA.ExpectedAuthorizationHeader())
+		boshDirector.ExcludeAuthorizationCheck("/info")
+
 		cfAPI = mockcfapi.New()
 		cfUAA = mockuaa.NewClientCredentialsServer(cfUaaClientID, cfUaaClientSecret, "CF UAA token")
 		conf = defaultBrokerConfig(boshDirector.URL, boshUAA.URL, cfAPI.URL, cfUAA.URL)

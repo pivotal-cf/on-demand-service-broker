@@ -60,7 +60,16 @@ func New(url string, authHeaderBuilder AuthHeaderBuilder, disableSSLCertVerifica
 }
 
 type Info struct {
-	Version string
+	Version            string
+	UserAuthentication UserAuthentication `json:"user_authentication"`
+}
+
+type UserAuthentication struct {
+	Options AuthenticationOptions
+}
+
+type AuthenticationOptions struct {
+	URL string
 }
 
 type Deployment struct {

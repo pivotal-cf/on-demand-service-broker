@@ -4,27 +4,21 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 // Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
-package mockbosh
+package authorizationheader_test
 
-import "github.com/pivotal-cf/on-demand-service-broker/mockhttp"
+import (
+	"net/http"
 
-const (
-	BoshContextIDHeader = "X-Bosh-Context-Id"
-	serverName          = "mock-bosh"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
 )
 
-type MockBOSH struct {
-	*mockhttp.Server
-	UAAURL string
-}
-
-func NewWithUAA(uaaUrl string) *MockBOSH {
-	return &MockBOSH{
-		UAAURL: uaaUrl,
-		Server: mockhttp.StartServer(serverName),
-	}
-}
-
-func New() *MockBOSH {
-	return &MockBOSH{Server: mockhttp.StartServer(serverName)}
-}
+var _ = Describe("Basic No Header Builder", func() {
+	It("builds empty string as auth header", func() {
+		authBuilder := authorizationheader.NewNoAuthHeaderBuilder()
+		req := &http.Request{}
+		err := authBuilder.AddAuthHeader(req, logger)
+		Expect(err).NotTo(HaveOccurred())
+	})
+})

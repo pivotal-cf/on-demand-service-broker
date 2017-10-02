@@ -14,6 +14,47 @@ import (
 )
 
 var _ = Describe("info", func() {
+	Describe("GetInfo", func() {
+		It("returns a info object with a UAA URL", func() {
+			director.VerifyAndMock(
+				mockbosh.Info().RespondsOKWith(
+					`{
+						"name": "garden-bosh",
+						"uuid": "b0f9e86f-357f-409c-8f64-a2363d2d9e3b",
+						"version": "1.3262.0.0 (00000000)",
+						"user": null,
+						"cpi": "warden_cpi",
+						"user_authentication": {
+							"type": "uaa",
+							"options": {
+								"url": "https://this-is-the-uaa-url.example.com"
+							}
+						}
+					}`,
+				),
+			)
+			info, err := c.GetInfo(logger)
+			Expect(err).NotTo(HaveOccurred())
+			expectedInfo := boshdirector.Info{
+				Version: "1.3262.0.0 (00000000)",
+				UserAuthentication: boshdirector.UserAuthentication{
+					Options: boshdirector.AuthenticationOptions{
+						URL: "https://this-is-the-uaa-url.example.com",
+					},
+				},
+			}
+			Expect(info).To(Equal(&expectedInfo))
+		})
+
+		It("returns an error if the request fails", func() {
+			director.VerifyAndMock(
+				mockbosh.Info().RespondsInternalServerErrorWith("nothing today, thank you"),
+			)
+			_, err := c.GetInfo(logger)
+			Expect(err).To(HaveOccurred())
+		})
+	})
+
 	Describe("GetDirectorVersion", func() {
 		var (
 			directorVersionErr error

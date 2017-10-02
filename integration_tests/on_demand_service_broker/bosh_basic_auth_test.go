@@ -22,7 +22,7 @@ import (
 var _ = Describe("Basic authentication for BOSH", func() {
 	Context("when the broker is configured to use basic authentication for BOSH", func() {
 		var (
-			boshDirector      *mockhttp.Server
+			boshDirector      *mockbosh.MockBOSH
 			cfAPI             *mockhttp.Server
 			cfUAA             *mockuaa.ClientCredentialsServer
 			conf              config.Config
@@ -36,6 +36,8 @@ var _ = Describe("Basic authentication for BOSH", func() {
 			cfAPI = mockcfapi.New()
 			cfUAA = mockuaa.NewClientCredentialsServer(cfUaaClientID, cfUaaClientSecret, "CF UAA token")
 			boshDirector.ExpectedBasicAuth(boshUsername, boshPassword)
+			boshDirector.ExcludeAuthorizationCheck("/info")
+
 			adapter.DashboardUrlGenerator().NotImplemented()
 
 			conf = defaultBrokerConfig(boshDirector.URL, "UAA is not used", cfAPI.URL, cfUAA.URL)

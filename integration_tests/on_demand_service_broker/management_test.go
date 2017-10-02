@@ -31,7 +31,7 @@ var _ = Describe("Management API", func() {
 	var (
 		conf          config.Config
 		runningBroker *gexec.Session
-		boshDirector  *mockhttp.Server
+		boshDirector  *mockbosh.MockBOSH
 		boshUAA       *mockuaa.ClientCredentialsServer
 		cfAPI         *mockhttp.Server
 		cfUAA         *mockuaa.ClientCredentialsServer
@@ -42,9 +42,11 @@ var _ = Describe("Management API", func() {
 	)
 
 	BeforeEach(func() {
-		boshDirector = mockbosh.New()
 		boshUAA = mockuaa.NewClientCredentialsServer(boshClientID, boshClientSecret, "bosh uaa token")
+		boshDirector = mockbosh.NewWithUAA(boshUAA.URL)
 		boshDirector.ExpectedAuthorizationHeader(boshUAA.ExpectedAuthorizationHeader())
+		boshDirector.ExcludeAuthorizationCheck("/info")
+
 		cfAPI = mockcfapi.New()
 		cfUAA = mockuaa.NewClientCredentialsServer(cfUaaClientID, cfUaaClientSecret, "CF UAA token")
 		conf = defaultBrokerConfig(boshDirector.URL, boshUAA.URL, cfAPI.URL, cfUAA.URL)

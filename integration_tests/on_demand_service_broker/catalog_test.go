@@ -26,16 +26,17 @@ var _ = Describe("Catalog", func() {
 	var (
 		runningBroker *gexec.Session
 		config        config.Config
-		boshDirector  *mockhttp.Server
+		boshDirector  *mockbosh.MockBOSH
 		boshUAA       *mockuaa.ClientCredentialsServer
 		cfAPI         *mockhttp.Server
 		cfUAA         *mockuaa.ClientCredentialsServer
 	)
 
 	BeforeEach(func() {
-		boshDirector = mockbosh.New()
 		boshUAA = mockuaa.NewClientCredentialsServer(boshClientID, boshClientSecret, "bosh uaa token")
+		boshDirector = mockbosh.NewWithUAA(boshUAA.URL)
 		boshDirector.ExpectedAuthorizationHeader(boshUAA.ExpectedAuthorizationHeader())
+		boshDirector.ExcludeAuthorizationCheck("/info")
 		cfAPI = mockcfapi.New()
 		cfUAA = mockuaa.NewClientCredentialsServer(cfUaaClientID, cfUaaClientSecret, "CF UAA token")
 	})

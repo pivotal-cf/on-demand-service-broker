@@ -16,6 +16,8 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/mockuaa"
 	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
@@ -635,6 +637,74 @@ var _ = Describe("CF#NewAuthHeaderBuilder", func() {
 
 			mockUAA.Close()
 		})
+	})
+})
+
+var _ = Describe("Bosh#NewAuthHeaderBuilder", func() {
+	var logger *log.Logger
+
+	BeforeEach(func() {
+		logger = log.New(GinkgoWriter, "[config test] ", log.LstdFlags)
+	})
+
+	It("returns a BasicAuthHeaderBuilder when BOSH config has a basic auth user", func() {
+		boshConfig := config.Bosh{
+			Authentication: config.BOSHAuthentication{
+				Basic: config.UserCredentials{
+					Username: "test-user",
+					Password: "super-secret",
+				},
+			},
+		}
+
+		builder, err := boshConfig.NewAuthHeaderBuilder(&boshdirector.Info{}, true)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(builder).To(BeAssignableToTypeOf(authorizationheader.BasicAuthHeaderBuilder{}))
+
+		header := getAuthHeader(builder, logger)
+		Expect(header).To(ContainSubstring("Basic"))
+	})
+
+	It("returns a ClientAuthHeaderBuilder when BOSH config has a UAA property", func() {
+		boshConfig := config.Bosh{
+			Authentication: config.BOSHAuthentication{
+				UAA: config.BOSHUAAAuthentication{
+					ID:     "test-id",
+					Secret: "super-secret",
+				},
+			},
+			TrustedCert: "test-cert",
+		}
+
+		tokenToReturn := "test-token"
+		mockuaa := mockuaa.NewClientCredentialsServer(
+			boshConfig.Authentication.UAA.ID,
+			boshConfig.Authentication.UAA.Secret,
+			tokenToReturn,
+		)
+
+		boshInfo := &boshdirector.Info{
+			UserAuthentication: boshdirector.UserAuthentication{
+				Options: boshdirector.AuthenticationOptions{
+					URL: mockuaa.URL,
+				},
+			},
+		}
+
+		builder, err := boshConfig.NewAuthHeaderBuilder(boshInfo, true)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(builder).To(BeAssignableToTypeOf(&authorizationheader.ClientTokenAuthHeaderBuilder{}))
+
+		header := getAuthHeader(builder, logger)
+		Expect(header).To(Equal("Bearer test-token"))
+	})
+
+	It("returns an error if no credentials are specified", func() {
+		boshConfig := config.Bosh{}
+
+		_, err := boshConfig.NewAuthHeaderBuilder(&boshdirector.Info{}, true)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(Equal("No BOSH authentication configured"))
 	})
 })
 

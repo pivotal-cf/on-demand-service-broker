@@ -30,7 +30,7 @@ var _ = Describe("deprovisioning service instances", func() {
 	const instanceID = "some-deprovisioning-instance"
 
 	var (
-		boshDirector *mockhttp.Server
+		boshDirector *mockbosh.MockBOSH
 		cfAPI        *mockhttp.Server
 		boshUAA      *mockuaa.ClientCredentialsServer
 		cfUAA        *mockuaa.ClientCredentialsServer
@@ -42,8 +42,8 @@ var _ = Describe("deprovisioning service instances", func() {
 	)
 
 	BeforeEach(func() {
-		boshDirector = mockbosh.New()
 		boshUAA = mockuaa.NewClientCredentialsServer(boshClientID, boshClientSecret, "bosh uaa token")
+		boshDirector = mockbosh.NewWithUAA(boshUAA.URL)
 		cfUAA = mockuaa.NewClientCredentialsServer(cfUaaClientID, cfUaaClientSecret, "CF UAA token")
 		cfAPI = mockcfapi.New()
 		conf = defaultBrokerConfig(boshDirector.URL, boshUAA.URL, cfAPI.URL, cfUAA.URL)
