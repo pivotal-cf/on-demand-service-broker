@@ -188,7 +188,6 @@ type UAAAuthentication struct {
 }
 
 type BOSHUAAAuthentication struct {
-	UAAURL string `yaml:"url"`
 	ID     string `yaml:"client_id"`
 	Secret string `yaml:"client_secret"`
 }

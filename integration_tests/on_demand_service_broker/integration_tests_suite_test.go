@@ -312,7 +312,7 @@ func defaultBrokerConfig(boshURL, uaaURL, cfURL, cfUAAURL string) config.Config 
 		Bosh: config.Bosh{
 			URL: boshURL,
 			Authentication: config.BOSHAuthentication{
-				UAA: config.BOSHUAAAuthentication{UAAURL: uaaURL, ID: boshClientID, Secret: boshClientSecret},
+				UAA: config.BOSHUAAAuthentication{ID: boshClientID, Secret: boshClientSecret},
 			},
 		},
 		CF: config.CF{

@@ -17,7 +17,6 @@ service_deployment:
 bosh:
   authentication:
     uaa:
-      url: http://some-uaa-server:99
       client_id: some-client-id
       client_secret: some-client-secret
 cf:

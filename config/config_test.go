@@ -206,7 +206,6 @@ var _ = Describe("Config", func() {
 			It("returns a config object", func() {
 				Expect(parseErr).NotTo(HaveOccurred())
 				Expect(conf.Bosh.Authentication.UAA).To(Equal(config.BOSHUAAAuthentication{
-					UAAURL: "http://some-uaa-server:99",
 					ID:     "some-client-id",
 					Secret: "some-client-secret",
 				}))
