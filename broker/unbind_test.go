@@ -39,6 +39,7 @@ var _ = Describe("Unbind", func() {
 	})
 
 	JustBeforeEach(func() {
+		b = createDefaultBroker()
 		unbindErr = b.Unbind(context.Background(), instanceID, bindingID, brokerapi.UnbindDetails{ServiceID: serviceID, PlanID: planID})
 	})
 

@@ -24,6 +24,7 @@ var _ = Describe("Instances", func() {
 		})
 
 		It("returns a list of instance IDs", func() {
+			b = createDefaultBroker()
 			Expect(b.Instances(logger)).To(ConsistOf("red", "green", "blue"))
 		})
 
@@ -33,6 +34,7 @@ var _ = Describe("Instances", func() {
 			})
 
 			It("returns an error", func() {
+				b = createDefaultBroker()
 				_, err := b.Instances(logger)
 				Expect(err).To(MatchError(ContainSubstring("an error occurred")))
 			})

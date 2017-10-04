@@ -8,8 +8,10 @@ package broker_test
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"log"
+	"strconv"
 	"testing"
 
 	. "github.com/onsi/ginkgo"
@@ -40,6 +42,7 @@ const (
 var (
 	b                   *broker.Broker
 	brokerCreationErr   error
+	boshInfo            *boshdirector.Info
 	boshClient          *fakes.FakeBoshClient
 	boshDirectorVersion boshdirector.Version
 	cfClient            *fakes.FakeCloudFoundryClient
@@ -124,8 +127,6 @@ var _ = BeforeEach(func() {
 	}
 
 	boshClient = new(fakes.FakeBoshClient)
-	boshDirectorVersion = boshdirector.NewVersion(boshdirector.MinimumMajorSemverDirectorVersionForLifecycleErrands, boshdirector.SemverDirectorVersionType)
-	boshClient.GetDirectorVersionReturns(boshDirectorVersion, nil)
 	serviceAdapter = new(fakes.FakeServiceAdapterClient)
 	fakeDeployer = new(fakes.FakeDeployer)
 	cfClient = new(fakes.FakeCloudFoundryClient)
@@ -150,17 +151,6 @@ var _ = BeforeEach(func() {
 	loggerFactory = loggerfactory.New(io.MultiWriter(GinkgoWriter, logBuffer), "broker-unit-tests", log.LstdFlags)
 })
 
-var _ = JustBeforeEach(func() {
-	b, brokerCreationErr = broker.New(
-		boshClient,
-		cfClient,
-		serviceAdapter,
-		fakeDeployer,
-		serviceCatalog,
-		loggerFactory,
-	)
-})
-
 func TestBroker(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Broker Suite")
@@ -181,4 +171,36 @@ func cfServicePlan(guid, uniqueID, servicePlanUrl, name string) cf.ServicePlan {
 			Name:                name,
 		},
 	}
+}
+
+func createDefaultBroker() *broker.Broker {
+	boshInfo = createBOSHInfoWithMajorVersion(
+		boshdirector.MinimumMajorSemverDirectorVersionForLifecycleErrands,
+		boshdirector.VersionType("semver"),
+	)
+	b, brokerCreationErr = createBroker(boshInfo)
+	Expect(brokerCreationErr).NotTo(HaveOccurred())
+	return b
+}
+
+func createBroker(info *boshdirector.Info) (*broker.Broker, error) {
+	return broker.New(
+		info,
+		boshClient,
+		cfClient,
+		serviceAdapter,
+		fakeDeployer,
+		serviceCatalog,
+		loggerFactory,
+	)
+}
+
+func createBOSHInfoWithMajorVersion(majorVersion int, versionType boshdirector.VersionType) *boshdirector.Info {
+	var version string
+	if versionType == "semver" {
+		version = fmt.Sprintf("%s.0.0", strconv.Itoa(majorVersion))
+	} else if versionType == "stemcell" {
+		version = fmt.Sprintf("1.%s.0.0", strconv.Itoa(majorVersion))
+	}
+	return &boshdirector.Info{Version: version}
 }

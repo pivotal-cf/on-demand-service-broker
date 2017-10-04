@@ -31,6 +31,11 @@ type Client struct {
 	httpClient        HTTPClient
 }
 
+func (c *Client) VerifyAuth(logger *log.Logger) error {
+	_, err := c.GetInfo(logger)
+	return err
+}
+
 //go:generate counterfeiter -o fakes/fake_auth_header_builder.go . AuthHeaderBuilder
 type AuthHeaderBuilder interface {
 	AddAuthHeader(request *http.Request, logger *log.Logger) error

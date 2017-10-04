@@ -15,7 +15,7 @@ import (
 
 var _ = Describe("info", func() {
 	Describe("GetInfo", func() {
-		It("returns a info object with a UAA URL", func() {
+		It("returns a info object data structure", func() {
 			director.VerifyAndMock(
 				mockbosh.Info().RespondsOKWith(
 					`{
@@ -56,346 +56,63 @@ var _ = Describe("info", func() {
 	})
 
 	Describe("GetDirectorVersion", func() {
-		var (
-			directorVersionErr error
-			directorVersion    boshdirector.Version
-		)
-
-		JustBeforeEach(func() {
-			directorVersion, directorVersionErr = c.GetDirectorVersion(logger)
+		It("supports ODB but not lifecycle errands when it has a stemcell version", func() {
+			boshInfo := createBoshInfoWithVersion("1.3262.0.0 (00000000)")
+			directorVersion, directorVersionErr := boshInfo.GetDirectorVersion(logger)
+			Expect(directorVersionErr).NotTo(HaveOccurred())
+			Expect(directorVersion.SupportsODB()).To(BeTrue())
+			Expect(directorVersion.SupportsLifecycleErrands()).To(BeFalse())
 		})
 
-		Context("when the info request succeeds", func() {
-			Context("and has a stemcell version", func() {
-				BeforeEach(func() {
-					director.VerifyAndMock(
-						mockbosh.Info().RespondsOKWith(
-							`{
-		            "name": "garden-bosh",
-		            "uuid": "b0f9e86f-357f-409c-8f64-a2363d2d9e3b",
-		            "version": "1.3262.0.0 (00000000)",
-		            "user": null,
-		            "cpi": "warden_cpi",
-		            "user_authentication": {
-		              "type": "basic",
-		              "options": {}
-		            },
-		            "features": {
-		              "dns": {
-		                "status": false,
-		                "extras": {
-		                  "domain_name": "bosh"
-		                }
-		              },
-		              "compiled_package_cache": {
-		                "status": false,
-		                "extras": {
-		                  "provider": null
-		                }
-		              },
-		              "snapshots": {
-		                "status": false
-		              }
-		            }
-		          }`,
-						),
-					)
-				})
-
-				It("does not return an error", func() {
-					Expect(directorVersionErr).NotTo(HaveOccurred())
-				})
-
-				It("supports ODB", func() {
-					Expect(directorVersion.SupportsODB()).To(BeTrue())
-				})
-
-				It("does not support lifecycle errands", func() {
-					Expect(directorVersion.SupportsLifecycleErrands()).To(BeFalse())
-				})
-			})
-
-			Context("and has a semi-semver version (bosh director 260.4)", func() {
-				BeforeEach(func() {
-					director.VerifyAndMock(
-						mockbosh.Info().RespondsOKWith(
-							`{
-								"name": "garden-bosh",
-								"uuid": "b0f9e86f-357f-409c-8f64-a2363d2d9e3b",
-								"version": "260.4 (00000000)",
-								"user": null,
-								"cpi": "warden_cpi",
-								"user_authentication": {
-									"type": "basic",
-									"options": {}
-								},
-								"features": {
-									"dns": {
-										"status": false,
-										"extras": {
-											"domain_name": "bosh"
-										}
-									},
-									"compiled_package_cache": {
-										"status": false,
-										"extras": {
-											"provider": null
-										}
-									},
-									"snapshots": {
-										"status": false
-									}
-								}
-							}`,
-						),
-					)
-				})
-
-				It("does not return an error", func() {
-					Expect(directorVersionErr).NotTo(HaveOccurred())
-				})
-
-				It("returns a version that supports ODB", func() {
-					Expect(directorVersion.SupportsODB()).To(BeTrue())
-				})
-
-				It("does not support lifecycle errands", func() {
-					Expect(directorVersion.SupportsLifecycleErrands()).To(BeFalse())
-				})
-			})
-
-			Context("and has a semver version less than 261", func() {
-				BeforeEach(func() {
-					director.VerifyAndMock(
-						mockbosh.Info().RespondsOKWith(
-							`{
-		            "name": "garden-bosh",
-		            "uuid": "b0f9e86f-357f-409c-8f64-a2363d2d9e3b",
-		            "version": "260.5.0 (00000000)",
-		            "user": null,
-		            "cpi": "warden_cpi",
-		            "user_authentication": {
-		              "type": "basic",
-		              "options": {}
-		            },
-		            "features": {
-		              "dns": {
-		                "status": false,
-		                "extras": {
-		                  "domain_name": "bosh"
-		                }
-		              },
-		              "compiled_package_cache": {
-		                "status": false,
-		                "extras": {
-		                  "provider": null
-		                }
-		              },
-		              "snapshots": {
-		                "status": false
-		              }
-		            }
-		          }`,
-						),
-					)
-				})
-
-				It("does not return an error", func() {
-					Expect(directorVersionErr).NotTo(HaveOccurred())
-				})
-
-				It("returns a version that supports ODB", func() {
-					Expect(directorVersion.SupportsODB()).To(BeTrue())
-				})
-
-				It("does not support lifecycle errands", func() {
-					Expect(directorVersion.SupportsLifecycleErrands()).To(BeFalse())
-				})
-			})
-
-			Context("and has a semver version of 261 or greater", func() {
-				BeforeEach(func() {
-					director.VerifyAndMock(
-						mockbosh.Info().RespondsOKWith(
-							`{
-		            "name": "garden-bosh",
-		            "uuid": "b0f9e86f-357f-409c-8f64-a2363d2d9e3b",
-		            "version": "261.0.0 (00000000)",
-		            "user": null,
-		            "cpi": "warden_cpi",
-		            "user_authentication": {
-		              "type": "basic",
-		              "options": {}
-		            },
-		            "features": {
-		              "dns": {
-		                "status": false,
-		                "extras": {
-		                  "domain_name": "bosh"
-		                }
-		              },
-		              "compiled_package_cache": {
-		                "status": false,
-		                "extras": {
-		                  "provider": null
-		                }
-		              },
-		              "snapshots": {
-		                "status": false
-		              }
-		            }
-		          }`,
-						),
-					)
-				})
-
-				It("does not return an error", func() {
-					Expect(directorVersionErr).NotTo(HaveOccurred())
-				})
-
-				It("returns a version that supports ODB", func() {
-					Expect(directorVersion.SupportsODB()).To(BeTrue())
-				})
-
-				It("does not support lifecycle errands", func() {
-					Expect(directorVersion.SupportsLifecycleErrands()).To(BeTrue())
-				})
-			})
-
-			Context("and the version is all zeros (e.g. bosh director 260.3)", func() {
-				BeforeEach(func() {
-					director.VerifyAndMock(
-						mockbosh.Info().RespondsOKWith(
-							`{
-								"name": "garden-bosh",
-								"uuid": "b0f9e86f-357f-409c-8f64-a2363d2d9e3b",
-								"version": "0000 (00000000)",
-								"user": null,
-								"cpi": "warden_cpi",
-								"user_authentication": {
-									"type": "basic",
-									"options": {}
-								},
-								"features": {
-									"dns": {
-										"status": false,
-										"extras": {
-											"domain_name": "bosh"
-										}
-									},
-									"compiled_package_cache": {
-										"status": false,
-										"extras": {
-											"provider": null
-										}
-									},
-									"snapshots": {
-										"status": false
-									}
-								}
-							}`,
-						),
-					)
-				})
-
-				It("returns an error", func() {
-					Expect(directorVersionErr).To(MatchError(`unrecognised BOSH Director version: "0000 (00000000)"`))
-				})
-			})
-
-			Context("and the version is empty", func() {
-				BeforeEach(func() {
-					director.VerifyAndMock(
-						mockbosh.Info().RespondsOKWith(
-							`{
-								"name": "garden-bosh",
-								"uuid": "b0f9e86f-357f-409c-8f64-a2363d2d9e3b",
-								"version": "",
-								"user": null,
-								"cpi": "warden_cpi",
-								"user_authentication": {
-									"type": "basic",
-									"options": {}
-								},
-								"features": {
-									"dns": {
-										"status": false,
-										"extras": {
-											"domain_name": "bosh"
-										}
-									},
-									"compiled_package_cache": {
-										"status": false,
-										"extras": {
-											"provider": null
-										}
-									},
-									"snapshots": {
-										"status": false
-									}
-								}
-							}`,
-						),
-					)
-				})
-
-				It("returns an error", func() {
-					Expect(directorVersionErr).To(MatchError(`unrecognised BOSH Director version: ""`))
-				})
-			})
-
-			Context("and the major version is not a integer", func() {
-				BeforeEach(func() {
-					director.VerifyAndMock(
-						mockbosh.Info().RespondsOKWith(
-							`{
-								"name": "garden-bosh",
-								"uuid": "b0f9e86f-357f-409c-8f64-a2363d2d9e3b",
-								"version": "drone.ver",
-								"user": null,
-								"cpi": "warden_cpi",
-								"user_authentication": {
-									"type": "basic",
-									"options": {}
-								},
-								"features": {
-									"dns": {
-										"status": false,
-										"extras": {
-											"domain_name": "bosh"
-										}
-									},
-									"compiled_package_cache": {
-										"status": false,
-										"extras": {
-											"provider": null
-										}
-									},
-									"snapshots": {
-										"status": false
-									}
-								}
-							}`,
-						),
-					)
-				})
-
-				It("returns an error", func() {
-					Expect(directorVersionErr).To(MatchError(`unrecognised BOSH Director version: "drone.ver"`))
-				})
-			})
+		It("supports ODB but not lifecycle errands when it has a semi-semver version (bosh director 260.4)", func() {
+			boshInfo := createBoshInfoWithVersion("260.4 (00000000)")
+			directorVersion, directorVersionErr := boshInfo.GetDirectorVersion(logger)
+			Expect(directorVersionErr).NotTo(HaveOccurred())
+			Expect(directorVersion.SupportsODB()).To(BeTrue())
+			Expect(directorVersion.SupportsLifecycleErrands()).To(BeFalse())
 		})
 
-		Context("when the info request fails", func() {
-			BeforeEach(func() {
-				director.VerifyAndMock(
-					mockbosh.Info().RespondsInternalServerErrorWith("nothing today, thank you"),
-				)
-			})
+		It("supports ODB but not lifecycle errands when it has a semver version less than 261", func() {
+			boshInfo := createBoshInfoWithVersion("260.5.0 (00000000)")
+			directorVersion, directorVersionErr := boshInfo.GetDirectorVersion(logger)
+			Expect(directorVersionErr).NotTo(HaveOccurred())
+			Expect(directorVersion.SupportsODB()).To(BeTrue())
+			Expect(directorVersion.SupportsLifecycleErrands()).To(BeFalse())
+		})
 
-			It("returns an error", func() {
-				Expect(directorVersionErr).To(MatchError("expected status 200, was 500. Response Body: nothing today, thank you"))
-			})
+		It("supports ODB and lifecycle errands when it has a semver version of 261 or greater", func() {
+			boshInfo := createBoshInfoWithVersion("261.0.0 (00000000)")
+			directorVersion, directorVersionErr := boshInfo.GetDirectorVersion(logger)
+			Expect(directorVersionErr).NotTo(HaveOccurred())
+			Expect(directorVersion.SupportsODB()).To(BeTrue())
+			Expect(directorVersion.SupportsLifecycleErrands()).To(BeTrue())
+		})
+
+		It("returns an error if version is all zeros", func() {
+			boshInfo := createBoshInfoWithVersion("0000 (00000000)")
+			_, directorVersionErr := boshInfo.GetDirectorVersion(logger)
+			Expect(directorVersionErr).To(HaveOccurred())
+			Expect(directorVersionErr).To(MatchError(`unrecognised BOSH Director version: "0000 (00000000)"`))
+		})
+
+		It("returns an error if version is empty", func() {
+			boshInfo := createBoshInfoWithVersion("")
+			_, directorVersionErr := boshInfo.GetDirectorVersion(logger)
+			Expect(directorVersionErr).To(HaveOccurred())
+			Expect(directorVersionErr).To(MatchError(`unrecognised BOSH Director version: ""`))
+		})
+
+		It("returns an error if the major version is not an integer", func() {
+			boshInfo := createBoshInfoWithVersion("drone.ver")
+			_, directorVersionErr := boshInfo.GetDirectorVersion(logger)
+			Expect(directorVersionErr).To(HaveOccurred())
+			Expect(directorVersionErr).To(MatchError(`unrecognised BOSH Director version: "drone.ver"`))
 		})
 	})
 })
+
+func createBoshInfoWithVersion(version string) *boshdirector.Info {
+	return &boshdirector.Info{
+		Version: version,
+	}
+}

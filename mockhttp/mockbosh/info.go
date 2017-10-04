@@ -71,3 +71,10 @@ func (m *infoMock) RespondsWithVersion(version string, uaaUrl string) *mockhttp.
 	}`, version, uaaUrl)
 	return m.RespondsOKWith(content)
 }
+
+func (m *infoMock) RespondsOKForBasicAuth() *mockhttp.Handler {
+	content := `{
+		"version":"261.0.0 (00000000)"
+	}`
+	return m.RespondsOKWith(content)
+}

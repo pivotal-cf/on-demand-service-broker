@@ -18,13 +18,23 @@ import (
 
 func (b *Broker) startupChecks() error {
 	logger := b.loggerFactory.New()
-
 	if err := b.checkAPIVersions(logger); err != nil {
+		return err
+	}
+
+	if err := b.checkAuthentication(logger); err != nil {
 		return err
 	}
 
 	if err := b.verifyExistingInstancePlanIDsUnchanged(logger); err != nil {
 		return err
+	}
+	return nil
+}
+
+func (b *Broker) checkAuthentication(logger *log.Logger) error {
+	if err := b.boshClient.VerifyAuth(logger); err != nil {
+		return errors.New("BOSH Director error: " + err.Error())
 	}
 	return nil
 }
@@ -85,7 +95,7 @@ func (b *Broker) checkCFAPIVersion(logger *log.Logger) error {
 }
 
 func (b *Broker) checkBoshDirectorVersion(logger *log.Logger) error {
-	directorVersion, err := b.boshClient.GetDirectorVersion(logger)
+	directorVersion, err := b.boshInfo.GetDirectorVersion(logger)
 	if err != nil {
 		return fmt.Errorf("%s. ODB requires BOSH v257+.", err)
 	}

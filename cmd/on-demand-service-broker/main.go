@@ -108,8 +108,7 @@ func startBroker(conf config.Config, logger *log.Logger, loggerFactory *loggerfa
 
 	deploymentManager := task.NewDeployer(boshClient, manifestGenerator)
 
-	onDemandBroker, err := broker.New(boshClient, cfClient, serviceAdapter, deploymentManager, conf.ServiceCatalog, loggerFactory)
-
+	onDemandBroker, err := broker.New(boshInfo, boshClient, cfClient, serviceAdapter, deploymentManager, conf.ServiceCatalog, loggerFactory)
 	if err != nil {
 		logger.Fatalf("error starting broker: %s", err)
 	}

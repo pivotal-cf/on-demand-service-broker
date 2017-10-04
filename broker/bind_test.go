@@ -60,6 +60,7 @@ var _ = Describe("Bind", func() {
 	})
 
 	JustBeforeEach(func() {
+		b = createDefaultBroker()
 		bindResult, bindErr = b.Bind(context.Background(), instanceID, bindingID, bindRequest)
 	})
 

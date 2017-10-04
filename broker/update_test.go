@@ -72,6 +72,7 @@ var _ = Describe("Update", func() {
 					SpaceID:   spaceGUID,
 				},
 			}
+			b = createDefaultBroker()
 			updateSpec, updateError = b.Update(context.Background(), instanceID, updateDetails, async)
 		})
 

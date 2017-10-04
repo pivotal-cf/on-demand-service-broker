@@ -35,22 +35,13 @@ var _ = Describe("Basic authentication for BOSH", func() {
 			boshDirector = mockbosh.New()
 			cfAPI = mockcfapi.New()
 			cfUAA = mockuaa.NewClientCredentialsServer(cfUaaClientID, cfUaaClientSecret, "CF UAA token")
-			boshDirector.ExpectedBasicAuth(boshUsername, boshPassword)
-			boshDirector.ExcludeAuthorizationCheck("/info")
 
 			adapter.DashboardUrlGenerator().NotImplemented()
 
 			conf = defaultBrokerConfig(boshDirector.URL, "UAA is not used", cfAPI.URL, cfUAA.URL)
-			conf.Bosh.Authentication = config.BOSHAuthentication{
-				Basic: config.UserCredentials{
-					Username: boshUsername,
-					Password: boshPassword,
-				},
-			}
 		})
 
 		AfterEach(func() {
-			killBrokerAndCheckForOpenConnections(runningBroker, boshDirector.URL)
 			boshDirector.VerifyMocks()
 			boshDirector.Close()
 
@@ -59,24 +50,61 @@ var _ = Describe("Basic authentication for BOSH", func() {
 			cfUAA.Close()
 		})
 
-		It("obtains a token from the UAA", func() {
+		Context("happy path", func() {
+			AfterEach(func() {
+				killBrokerAndCheckForOpenConnections(runningBroker, boshDirector.URL)
+			})
+
+			It("starts and obtains a token only for CF", func() {
+				boshDirector.ExpectedBasicAuth(boshUsername, boshPassword)
+				boshDirector.ExcludeAuthorizationCheck("/info")
+				conf.Bosh.Authentication = config.BOSHAuthentication{
+					Basic: config.UserCredentials{
+						Username: boshUsername,
+						Password: boshPassword,
+					},
+				}
+				manifestYAML := rawManifestWithDeploymentName(instanceID)
+				adapter.GenerateManifest().ToReturnManifest(manifestYAML)
+				runningBroker = startBrokerWithPassingStartupChecks(conf, cfAPI, boshDirector)
+				boshDirector.VerifyAndMock(
+					mockbosh.GetDeployment(deploymentName("some-instance-id")).RespondsNotFoundWith(""),
+					mockbosh.Tasks(deploymentName("some-instance-id")).RespondsWithNoTasks(),
+					mockbosh.Deploy().RedirectsToTask(101),
+				)
+				cfAPI.VerifyAndMock(
+					mockcfapi.ListServiceOfferings().RespondsOKWith(listCFServiceOfferingsResponse(serviceID, "21f13659-278c-4fa9-a3d7-7fe737e52895")),
+					mockcfapi.ListServicePlans("21f13659-278c-4fa9-a3d7-7fe737e52895").RespondsWithServicePlan(dedicatedPlanID, "ff717e7c-afd5-4d0a-bafe-16c7eff546ec"),
+					mockcfapi.ListServiceInstances("ff717e7c-afd5-4d0a-bafe-16c7eff546ec").RespondsOKWith(listCFServiceInstanceCountForPlanResponse(0)),
+				)
+				provisionResponse = provisionInstance(instanceID, dedicatedPlanID, map[string]interface{}{})
+
+				Expect(cfUAA.TokensIssued).To(Equal(1))
+				Expect(provisionResponse.StatusCode).To(Equal(http.StatusAccepted))
+			})
+		})
+
+		It("fails to start if the Basic Auth credentials are incorrect", func() {
+			conf.Bosh.Authentication = config.BOSHAuthentication{
+				Basic: config.UserCredentials{
+					Username: "bad-username",
+					Password: "bad-password",
+				},
+			}
 			manifestYAML := rawManifestWithDeploymentName(instanceID)
 			adapter.GenerateManifest().ToReturnManifest(manifestYAML)
-			runningBroker = startBrokerWithPassingStartupChecks(conf, cfAPI, boshDirector)
 			boshDirector.VerifyAndMock(
-				mockbosh.GetDeployment(deploymentName("some-instance-id")).RespondsNotFoundWith(""),
-				mockbosh.Tasks(deploymentName("some-instance-id")).RespondsWithNoTasks(),
-				mockbosh.Deploy().RedirectsToTask(101),
+				mockbosh.Info().RespondsOKForBasicAuth(),
+				mockbosh.Info().RespondsUnauthorizedWith("{}"),
 			)
 			cfAPI.VerifyAndMock(
-				mockcfapi.ListServiceOfferings().RespondsOKWith(listCFServiceOfferingsResponse(serviceID, "21f13659-278c-4fa9-a3d7-7fe737e52895")),
-				mockcfapi.ListServicePlans("21f13659-278c-4fa9-a3d7-7fe737e52895").RespondsWithServicePlan(dedicatedPlanID, "ff717e7c-afd5-4d0a-bafe-16c7eff546ec"),
-				mockcfapi.ListServiceInstances("ff717e7c-afd5-4d0a-bafe-16c7eff546ec").RespondsOKWith(listCFServiceInstanceCountForPlanResponse(0)),
+				mockcfapi.GetInfo().RespondsWithSufficientAPIVersion(),
 			)
-			provisionResponse = provisionInstance(instanceID, dedicatedPlanID, map[string]interface{}{})
 
-			Expect(cfUAA.TokensIssued).To(Equal(1))
-			Expect(provisionResponse.StatusCode).To(Equal(http.StatusAccepted))
+			runningBroker = startBrokerWithoutPortCheck(conf)
+
+			Eventually(runningBroker).Should(gexec.Exit())
+			Expect(runningBroker.ExitCode()).ToNot(Equal(0))
 		})
 	})
 })

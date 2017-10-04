@@ -21,6 +21,7 @@ import (
 
 type Broker struct {
 	boshClient     BoshClient
+	boshInfo       *boshdirector.Info
 	cfClient       CloudFoundryClient
 	adapterClient  ServiceAdapterClient
 	deployer       Deployer
@@ -32,6 +33,7 @@ type Broker struct {
 }
 
 func New(
+	boshInfo *boshdirector.Info,
 	boshClient BoshClient,
 	cfClient CloudFoundryClient,
 	serviceAdapter ServiceAdapterClient,
@@ -39,9 +41,9 @@ func New(
 	serviceOffering config.ServiceOffering,
 	loggerFactory *loggerfactory.LoggerFactory,
 ) (*Broker, error) {
-
 	b := &Broker{
 		boshClient:     boshClient,
+		boshInfo:       boshInfo,
 		cfClient:       cfClient,
 		adapterClient:  serviceAdapter,
 		deployer:       deployer,
@@ -111,8 +113,9 @@ type BoshClient interface {
 	GetDeployment(name string, logger *log.Logger) ([]byte, bool, error)
 	GetDeployments(logger *log.Logger) ([]boshdirector.Deployment, error)
 	DeleteDeployment(name, contextID string, logger *log.Logger) (int, error)
-	GetDirectorVersion(logger *log.Logger) (boshdirector.Version, error)
+	GetInfo(logger *log.Logger) (*boshdirector.Info, error)
 	RunErrand(deploymentName, errandName, contextID string, logger *log.Logger) (int, error)
+	VerifyAuth(logger *log.Logger) error
 }
 
 //go:generate counterfeiter -o fakes/fake_cloud_foundry_client.go . CloudFoundryClient

@@ -51,6 +51,7 @@ var _ = Describe("provisioning", func() {
 	})
 
 	JustBeforeEach(func() {
+		b = createDefaultBroker()
 		serviceSpec, provisionErr = b.Provision(
 			context.Background(),
 			instanceID,

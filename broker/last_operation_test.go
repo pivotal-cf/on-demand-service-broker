@@ -29,6 +29,7 @@ var _ = Describe("LastOperation", func() {
 		)
 
 		JustBeforeEach(func() {
+			b = createDefaultBroker()
 			_, lastOpErr = b.LastOperation(context.Background(), instanceID, operationData)
 		})
 
@@ -272,6 +273,7 @@ var _ = Describe("LastOperation", func() {
 					Expect(err).NotTo(HaveOccurred())
 
 					boshClient.GetTaskReturns(testCase.ActualBoshTask, nil)
+					b = createDefaultBroker()
 					actualLastOperation, actualLastOperationError = b.LastOperation(context.Background(), instanceID, string(operationData))
 				})
 

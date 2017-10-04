@@ -42,6 +42,7 @@ var _ = Describe("deprovisioning instances", func() {
 	})
 
 	JustBeforeEach(func() {
+		b = createDefaultBroker()
 		deprovisionSpec, deprovisionErr = b.Deprovision(
 			context.Background(),
 			instanceID,

@@ -43,6 +43,7 @@ var _ = Describe("counting instances of a service offering by plan", func() {
 
 	JustBeforeEach(func() {
 		logger = loggerFactory.NewWithRequestID()
+		b = createDefaultBroker()
 		counts, countErr = b.CountInstancesOfPlans(logger)
 	})
 

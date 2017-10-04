@@ -112,17 +112,17 @@ type FakeBoshClient struct {
 		result1 int
 		result2 error
 	}
-	GetDirectorVersionStub        func(logger *log.Logger) (boshdirector.Version, error)
-	getDirectorVersionMutex       sync.RWMutex
-	getDirectorVersionArgsForCall []struct {
+	GetInfoStub        func(logger *log.Logger) (*boshdirector.Info, error)
+	getInfoMutex       sync.RWMutex
+	getInfoArgsForCall []struct {
 		logger *log.Logger
 	}
-	getDirectorVersionReturns struct {
-		result1 boshdirector.Version
+	getInfoReturns struct {
+		result1 *boshdirector.Info
 		result2 error
 	}
-	getDirectorVersionReturnsOnCall map[int]struct {
-		result1 boshdirector.Version
+	getInfoReturnsOnCall map[int]struct {
+		result1 *boshdirector.Info
 		result2 error
 	}
 	RunErrandStub        func(deploymentName, errandName, contextID string, logger *log.Logger) (int, error)
@@ -140,6 +140,17 @@ type FakeBoshClient struct {
 	runErrandReturnsOnCall map[int]struct {
 		result1 int
 		result2 error
+	}
+	VerifyAuthStub        func(logger *log.Logger) error
+	verifyAuthMutex       sync.RWMutex
+	verifyAuthArgsForCall []struct {
+		logger *log.Logger
+	}
+	verifyAuthReturns struct {
+		result1 error
+	}
+	verifyAuthReturnsOnCall map[int]struct {
+		result1 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -513,53 +524,53 @@ func (fake *FakeBoshClient) DeleteDeploymentReturnsOnCall(i int, result1 int, re
 	}{result1, result2}
 }
 
-func (fake *FakeBoshClient) GetDirectorVersion(logger *log.Logger) (boshdirector.Version, error) {
-	fake.getDirectorVersionMutex.Lock()
-	ret, specificReturn := fake.getDirectorVersionReturnsOnCall[len(fake.getDirectorVersionArgsForCall)]
-	fake.getDirectorVersionArgsForCall = append(fake.getDirectorVersionArgsForCall, struct {
+func (fake *FakeBoshClient) GetInfo(logger *log.Logger) (*boshdirector.Info, error) {
+	fake.getInfoMutex.Lock()
+	ret, specificReturn := fake.getInfoReturnsOnCall[len(fake.getInfoArgsForCall)]
+	fake.getInfoArgsForCall = append(fake.getInfoArgsForCall, struct {
 		logger *log.Logger
 	}{logger})
-	fake.recordInvocation("GetDirectorVersion", []interface{}{logger})
-	fake.getDirectorVersionMutex.Unlock()
-	if fake.GetDirectorVersionStub != nil {
-		return fake.GetDirectorVersionStub(logger)
+	fake.recordInvocation("GetInfo", []interface{}{logger})
+	fake.getInfoMutex.Unlock()
+	if fake.GetInfoStub != nil {
+		return fake.GetInfoStub(logger)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.getDirectorVersionReturns.result1, fake.getDirectorVersionReturns.result2
+	return fake.getInfoReturns.result1, fake.getInfoReturns.result2
 }
 
-func (fake *FakeBoshClient) GetDirectorVersionCallCount() int {
-	fake.getDirectorVersionMutex.RLock()
-	defer fake.getDirectorVersionMutex.RUnlock()
-	return len(fake.getDirectorVersionArgsForCall)
+func (fake *FakeBoshClient) GetInfoCallCount() int {
+	fake.getInfoMutex.RLock()
+	defer fake.getInfoMutex.RUnlock()
+	return len(fake.getInfoArgsForCall)
 }
 
-func (fake *FakeBoshClient) GetDirectorVersionArgsForCall(i int) *log.Logger {
-	fake.getDirectorVersionMutex.RLock()
-	defer fake.getDirectorVersionMutex.RUnlock()
-	return fake.getDirectorVersionArgsForCall[i].logger
+func (fake *FakeBoshClient) GetInfoArgsForCall(i int) *log.Logger {
+	fake.getInfoMutex.RLock()
+	defer fake.getInfoMutex.RUnlock()
+	return fake.getInfoArgsForCall[i].logger
 }
 
-func (fake *FakeBoshClient) GetDirectorVersionReturns(result1 boshdirector.Version, result2 error) {
-	fake.GetDirectorVersionStub = nil
-	fake.getDirectorVersionReturns = struct {
-		result1 boshdirector.Version
+func (fake *FakeBoshClient) GetInfoReturns(result1 *boshdirector.Info, result2 error) {
+	fake.GetInfoStub = nil
+	fake.getInfoReturns = struct {
+		result1 *boshdirector.Info
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeBoshClient) GetDirectorVersionReturnsOnCall(i int, result1 boshdirector.Version, result2 error) {
-	fake.GetDirectorVersionStub = nil
-	if fake.getDirectorVersionReturnsOnCall == nil {
-		fake.getDirectorVersionReturnsOnCall = make(map[int]struct {
-			result1 boshdirector.Version
+func (fake *FakeBoshClient) GetInfoReturnsOnCall(i int, result1 *boshdirector.Info, result2 error) {
+	fake.GetInfoStub = nil
+	if fake.getInfoReturnsOnCall == nil {
+		fake.getInfoReturnsOnCall = make(map[int]struct {
+			result1 *boshdirector.Info
 			result2 error
 		})
 	}
-	fake.getDirectorVersionReturnsOnCall[i] = struct {
-		result1 boshdirector.Version
+	fake.getInfoReturnsOnCall[i] = struct {
+		result1 *boshdirector.Info
 		result2 error
 	}{result1, result2}
 }
@@ -618,6 +629,54 @@ func (fake *FakeBoshClient) RunErrandReturnsOnCall(i int, result1 int, result2 e
 	}{result1, result2}
 }
 
+func (fake *FakeBoshClient) VerifyAuth(logger *log.Logger) error {
+	fake.verifyAuthMutex.Lock()
+	ret, specificReturn := fake.verifyAuthReturnsOnCall[len(fake.verifyAuthArgsForCall)]
+	fake.verifyAuthArgsForCall = append(fake.verifyAuthArgsForCall, struct {
+		logger *log.Logger
+	}{logger})
+	fake.recordInvocation("VerifyAuth", []interface{}{logger})
+	fake.verifyAuthMutex.Unlock()
+	if fake.VerifyAuthStub != nil {
+		return fake.VerifyAuthStub(logger)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.verifyAuthReturns.result1
+}
+
+func (fake *FakeBoshClient) VerifyAuthCallCount() int {
+	fake.verifyAuthMutex.RLock()
+	defer fake.verifyAuthMutex.RUnlock()
+	return len(fake.verifyAuthArgsForCall)
+}
+
+func (fake *FakeBoshClient) VerifyAuthArgsForCall(i int) *log.Logger {
+	fake.verifyAuthMutex.RLock()
+	defer fake.verifyAuthMutex.RUnlock()
+	return fake.verifyAuthArgsForCall[i].logger
+}
+
+func (fake *FakeBoshClient) VerifyAuthReturns(result1 error) {
+	fake.VerifyAuthStub = nil
+	fake.verifyAuthReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeBoshClient) VerifyAuthReturnsOnCall(i int, result1 error) {
+	fake.VerifyAuthStub = nil
+	if fake.verifyAuthReturnsOnCall == nil {
+		fake.verifyAuthReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.verifyAuthReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeBoshClient) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -635,10 +694,12 @@ func (fake *FakeBoshClient) Invocations() map[string][][]interface{} {
 	defer fake.getDeploymentsMutex.RUnlock()
 	fake.deleteDeploymentMutex.RLock()
 	defer fake.deleteDeploymentMutex.RUnlock()
-	fake.getDirectorVersionMutex.RLock()
-	defer fake.getDirectorVersionMutex.RUnlock()
+	fake.getInfoMutex.RLock()
+	defer fake.getInfoMutex.RUnlock()
 	fake.runErrandMutex.RLock()
 	defer fake.runErrandMutex.RUnlock()
+	fake.verifyAuthMutex.RLock()
+	defer fake.verifyAuthMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

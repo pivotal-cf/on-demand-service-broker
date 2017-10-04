@@ -40,6 +40,7 @@ var _ = Describe("Upgrade", func() {
 
 	JustBeforeEach(func() {
 		logger = loggerFactory.NewWithRequestID()
+		b = createDefaultBroker()
 		upgradeOperationData, redeployErr = b.Upgrade(context.Background(), instanceID, logger)
 	})
 

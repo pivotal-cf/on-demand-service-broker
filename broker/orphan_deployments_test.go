@@ -27,6 +27,7 @@ var _ = Describe("Orphan Deployments", func() {
 	})
 
 	JustBeforeEach(func() {
+		b = createDefaultBroker()
 		orphans, orphanDeploymentsErr = b.OrphanDeployments(logger)
 	})
 
