@@ -49,7 +49,17 @@ var _ = Describe("Basic authentication for BOSH", func() {
 			}
 		})
 
-		JustBeforeEach(func() {
+		AfterEach(func() {
+			killBrokerAndCheckForOpenConnections(runningBroker, boshDirector.URL)
+			boshDirector.VerifyMocks()
+			boshDirector.Close()
+
+			cfAPI.VerifyMocks()
+			cfAPI.Close()
+			cfUAA.Close()
+		})
+
+		It("obtains a token from the UAA", func() {
 			manifestYAML := rawManifestWithDeploymentName(instanceID)
 			adapter.GenerateManifest().ToReturnManifest(manifestYAML)
 			runningBroker = startBrokerWithPassingStartupChecks(conf, cfAPI, boshDirector)
@@ -64,23 +74,8 @@ var _ = Describe("Basic authentication for BOSH", func() {
 				mockcfapi.ListServiceInstances("ff717e7c-afd5-4d0a-bafe-16c7eff546ec").RespondsOKWith(listCFServiceInstanceCountForPlanResponse(0)),
 			)
 			provisionResponse = provisionInstance(instanceID, dedicatedPlanID, map[string]interface{}{})
-		})
 
-		AfterEach(func() {
-			killBrokerAndCheckForOpenConnections(runningBroker, boshDirector.URL)
-			boshDirector.VerifyMocks()
-			boshDirector.Close()
-
-			cfAPI.VerifyMocks()
-			cfAPI.Close()
-			cfUAA.Close()
-		})
-
-		It("obtains a token from the UAA", func() {
 			Expect(cfUAA.TokensIssued).To(Equal(1))
-		})
-
-		It("succeeds", func() {
 			Expect(provisionResponse.StatusCode).To(Equal(http.StatusAccepted))
 		})
 	})
