@@ -346,6 +346,26 @@ var _ = Describe("Config", func() {
 			})
 		})
 
+		Context("No CF config", func() {
+			BeforeEach(func() {
+				configFileName = "no_cf_config.yml"
+			})
+
+			It("returns an error", func() {
+				Expect(parseErr).To(MatchError(ContainSubstring("Must specify CF")))
+			})
+
+			Context("and CF checks are disabled", func() {
+				BeforeEach(func() {
+					configFileName = "cf_checks_disabled_config.yml"
+				})
+
+				It("succeeds", func() {
+					Expect(parseErr).To(BeNil())
+				})
+			})
+		})
+
 		Context("free flag is not specified", func() {
 			BeforeEach(func() {
 				configFileName = "config_with_no_free_flag.yml"

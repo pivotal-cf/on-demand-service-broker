@@ -40,8 +40,10 @@ func (c Config) Validate() error {
 		return err
 	}
 
-	if err := c.CF.Validate(); err != nil {
-		return err
+	if !c.Broker.DisableCFStartupChecks {
+		if err := c.CF.Validate(); err != nil {
+			return err
+		}
 	}
 
 	if err := checkIsExecutableFile(c.ServiceAdapter.Path); err != nil {
