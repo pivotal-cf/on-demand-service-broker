@@ -66,21 +66,19 @@ var _ = Describe("Initializing the broker", func() {
 			Expect(brokerCreationErr.Error()).To(ContainSubstring("Cloud Foundry API version couldn't be parsed. Expected a semver, got: 1.invalid.0"))
 		})
 
-		Context("when CF startup checks are disabled", func() {
-			It("does not verify CF API version", func() {
-				_, brokerCreationErr := broker.New(
-					boshInfo,
-					boshClient,
-					cfClient,
-					serviceAdapter,
-					fakeDeployer,
-					serviceCatalog,
-					true,
-					loggerFactory,
-				)
-				Expect(brokerCreationErr).NotTo(HaveOccurred())
-				Expect(cfClient.GetAPIVersionCallCount()).To(Equal(0))
-			})
+		It("does not verify CF API version when CF startup checks are disabled", func() {
+			_, brokerCreationErr := broker.New(
+				boshInfo,
+				boshClient,
+				cfClient,
+				serviceAdapter,
+				fakeDeployer,
+				serviceCatalog,
+				true,
+				loggerFactory,
+			)
+			Expect(brokerCreationErr).NotTo(HaveOccurred())
+			Expect(cfClient.GetAPIVersionCallCount()).To(Equal(0))
 		})
 	})
 
@@ -155,22 +153,20 @@ var _ = Describe("Initializing the broker", func() {
 			Expect(brokerCreationErr).To(MatchError(`BOSH Director error: unrecognised BOSH Director version: "0000 (00000000)". ODB requires BOSH v257+.`))
 		})
 
-		Context("when CF startup checks are disabled", func() {
-			It("still verifies BOSH version", func() {
-				boshInfo := &boshdirector.Info{Version: "0000 (00000000)"}
+		It("still verifies BOSH version when CF startup checks are disabled", func() {
+			boshInfo := &boshdirector.Info{Version: "0000 (00000000)"}
 
-				_, brokerCreationErr := broker.New(
-					boshInfo,
-					boshClient,
-					cfClient,
-					serviceAdapter,
-					fakeDeployer,
-					serviceCatalog,
-					true,
-					loggerFactory,
-				)
-				Expect(brokerCreationErr).To(HaveOccurred())
-			})
+			_, brokerCreationErr := broker.New(
+				boshInfo,
+				boshClient,
+				cfClient,
+				serviceAdapter,
+				fakeDeployer,
+				serviceCatalog,
+				true,
+				loggerFactory,
+			)
+			Expect(brokerCreationErr).To(HaveOccurred())
 		})
 	})
 
@@ -226,21 +222,19 @@ var _ = Describe("Initializing the broker", func() {
 			Expect(brokerCreationErr).To(HaveOccurred())
 		})
 
-		Context("when CF startup checks are disabled", func() {
-			It("does not check preexisting versions", func() {
-				_, brokerCreationErr := broker.New(
-					boshInfo,
-					boshClient,
-					cfClient,
-					serviceAdapter,
-					fakeDeployer,
-					serviceCatalog,
-					true,
-					loggerFactory,
-				)
-				Expect(brokerCreationErr).NotTo(HaveOccurred())
-				Expect(cfClient.CountInstancesOfServiceOfferingCallCount()).To(Equal(0))
-			})
+		It("does not check preexisting versions when CF startup checks are disabled", func() {
+			_, brokerCreationErr := broker.New(
+				boshInfo,
+				boshClient,
+				cfClient,
+				serviceAdapter,
+				fakeDeployer,
+				serviceCatalog,
+				true,
+				loggerFactory,
+			)
+			Expect(brokerCreationErr).NotTo(HaveOccurred())
+			Expect(cfClient.CountInstancesOfServiceOfferingCallCount()).To(Equal(0))
 		})
 
 	})

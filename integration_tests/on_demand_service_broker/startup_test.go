@@ -304,7 +304,9 @@ var _ = Describe("Startup", func() {
 				conf.Broker.DisableCFStartupChecks = true
 			})
 
-			It("does not fail", func() {
+			It("does not fail and does not contact CF", func() {
+				cfAPI.Close()
+				cfUAA.Close()
 				boshDirector.VerifyAndMock(
 					mockbosh.Info().RespondsWithSufficientStemcellVersionForODB(boshDirector.UAAURL),
 					mockbosh.Info().RespondsWithSufficientStemcellVersionForODB(boshDirector.UAAURL),
@@ -317,18 +319,6 @@ var _ = Describe("Startup", func() {
 				Eventually(runningBroker.Out).Should(gbytes.Say(fmt.Sprintf(`%s Starting broker`, odbLogPattern)))
 				Eventually(runningBroker.Out).Should(gbytes.Say(`-------./ssssssssssssssssssss:.-------`))
 				Eventually(runningBroker.Out).Should(gbytes.Say(fmt.Sprintf(`%s Listening on :%d`, odbLogPattern, conf.Broker.Port)))
-				Eventually(runningBroker).ShouldNot(gexec.Exit())
-			})
-
-			It("does not contact CF", func() {
-				cfAPI.Close()
-				cfUAA.Close()
-				boshDirector.VerifyAndMock(
-					mockbosh.Info().RespondsWithSufficientStemcellVersionForODB(boshDirector.UAAURL),
-					mockbosh.Info().RespondsWithSufficientStemcellVersionForODB(boshDirector.UAAURL),
-				)
-
-				runningBroker = startBroker(conf)
 				Eventually(runningBroker).ShouldNot(gexec.Exit())
 			})
 		})

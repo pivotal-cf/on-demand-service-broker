@@ -361,7 +361,7 @@ var _ = Describe("Config", func() {
 				})
 
 				It("succeeds", func() {
-					Expect(parseErr).To(BeNil())
+					Expect(parseErr).NotTo(HaveOccurred())
 				})
 			})
 		})
