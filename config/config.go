@@ -62,6 +62,7 @@ type Broker struct {
 	DisableSSLCertVerification bool `yaml:"disable_ssl_cert_verification"`
 	StartUpBanner              bool `yaml:"startup_banner"`
 	ShutdownTimeoutSecs        int  `yaml:"shutdown_timeout_in_seconds"`
+	DisableCFStartupChecks     bool `yaml:"disable_cf_startup_checks"`
 }
 
 func (b Broker) Validate() error {
