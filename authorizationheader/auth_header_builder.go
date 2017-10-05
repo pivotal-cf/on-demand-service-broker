@@ -53,7 +53,7 @@ func getValidToken(token string, tokenExpiry time.Time, logger *log.Logger, obta
 func doObtainTokenRequest(httpClient HTTPClient, logger *log.Logger, request *http.Request) (string, int, error) {
 	response, err := httpClient.Do(request)
 	if err != nil {
-		return "", 0, fmt.Errorf("Error reaching UAA: %s. Please ensure that the UAA urls under properties.<broker-job> are correct and reachable.", err)
+		return "", 0, fmt.Errorf("Error reaching UAA: %s. Please ensure that the UAA urls and credentials under properties.<broker-job> are correct and reachable.", err)
 	}
 	defer response.Body.Close()
 
@@ -62,7 +62,7 @@ func doObtainTokenRequest(httpClient HTTPClient, logger *log.Logger, request *ht
 		if err != nil {
 			bodyBytes = []byte("<error reading body>")
 		}
-		return "", 0, fmt.Errorf("Error authenticating (%d): %s. Please ensure that the UAA urls under properties.<broker-job> are correct and try again.", response.StatusCode, strings.TrimRight(string(bodyBytes), "\r\n"))
+		return "", 0, fmt.Errorf("Error authenticating (%d): %s. Please ensure that the UAA urls and credentials under properties.<broker-job> are correct and try again.", response.StatusCode, strings.TrimRight(string(bodyBytes), "\r\n"))
 	}
 
 	var responseContent ObtainTokenResponse
