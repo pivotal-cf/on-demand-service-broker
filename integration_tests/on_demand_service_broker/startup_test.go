@@ -319,6 +319,18 @@ var _ = Describe("Startup", func() {
 				Eventually(runningBroker.Out).Should(gbytes.Say(fmt.Sprintf(`%s Listening on :%d`, odbLogPattern, conf.Broker.Port)))
 				Eventually(runningBroker).ShouldNot(gexec.Exit())
 			})
+
+			It("does not contact CF", func() {
+				cfAPI.Close()
+				cfUAA.Close()
+				boshDirector.VerifyAndMock(
+					mockbosh.Info().RespondsWithSufficientStemcellVersionForODB(boshDirector.UAAURL),
+					mockbosh.Info().RespondsWithSufficientStemcellVersionForODB(boshDirector.UAAURL),
+				)
+
+				runningBroker = startBroker(conf)
+				Eventually(runningBroker).ShouldNot(gexec.Exit())
+			})
 		})
 	})
 
