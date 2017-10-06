@@ -79,11 +79,12 @@ const (
 type OperationType string
 
 type OperationData struct {
-	BoshTaskID           int
-	BoshContextID        string `json:",omitempty"`
-	OperationType        OperationType
-	PlanID               string `json:",omitempty"`
-	PostDeployErrandName string `json:",omitempty"`
+	BoshTaskID                int
+	BoshContextID             string `json:",omitempty"`
+	OperationType             OperationType
+	PlanID                    string   `json:",omitempty"`
+	PostDeployErrandName      string   `json:",omitempty"`
+	PostDeployErrandInstances []string `json:",omitempty"`
 }
 
 const InstancePrefix = "service-instance_"
@@ -120,7 +121,7 @@ type BoshClient interface {
 	GetDeployments(logger *log.Logger) ([]boshdirector.Deployment, error)
 	DeleteDeployment(name, contextID string, logger *log.Logger) (int, error)
 	GetInfo(logger *log.Logger) (*boshdirector.Info, error)
-	RunErrand(deploymentName, errandName, contextID string, logger *log.Logger) (int, error)
+	RunErrand(deploymentName, errandName string, errandInstances []string, contextID string, logger *log.Logger) (int, error)
 	VerifyAuth(logger *log.Logger) error
 }
 

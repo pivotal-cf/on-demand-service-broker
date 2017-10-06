@@ -118,6 +118,7 @@ func (b *Broker) runPreDeleteErrand(
 	taskID, err := b.boshClient.RunErrand(
 		deploymentName(instanceID),
 		preDeleteErrand,
+		[]string{},
 		boshContextID,
 		logger,
 	)

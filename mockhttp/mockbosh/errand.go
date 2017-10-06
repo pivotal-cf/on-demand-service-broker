@@ -16,12 +16,12 @@ type errandMock struct {
 	*mockhttp.Handler
 }
 
-func Errand(deploymentName, errandName string) *errandMock {
+func Errand(deploymentName, errandName, body string) *errandMock {
 	mock := errandMock{
 		Handler: mockhttp.NewMockedHttpRequest("POST", fmt.Sprintf("/deployments/%s/errands/%s/runs", deploymentName, errandName)),
 	}
 	mock.WithContentType("application/json")
-	mock.WithBody("{}")
+	mock.WithJSONBody(body)
 	return &mock
 }
 

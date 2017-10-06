@@ -75,7 +75,7 @@ func (l LifeCycleRunner) processPostDeployment(
 		}
 
 		if errand := operationData.PostDeployErrandName; errand != "" {
-			return l.runErrand(deploymentName, errand, operationData.BoshContextID, logger)
+			return l.runErrand(deploymentName, errand, operationData.PostDeployErrandInstances, operationData.BoshContextID, logger)
 		}
 
 		if operationData.PlanID == "" {
@@ -126,8 +126,8 @@ func (l LifeCycleRunner) processPreDelete(
 	}
 }
 
-func (l LifeCycleRunner) runErrand(deploymentName, errand, contextID string, log *log.Logger) (boshdirector.BoshTask, error) {
-	taskID, err := l.boshClient.RunErrand(deploymentName, errand, contextID, log)
+func (l LifeCycleRunner) runErrand(deploymentName, errand string, errandInstances []string, contextID string, log *log.Logger) (boshdirector.BoshTask, error) {
+	taskID, err := l.boshClient.RunErrand(deploymentName, errand, errandInstances, contextID, log)
 	if err != nil {
 		return boshdirector.BoshTask{}, err
 	}
@@ -152,5 +152,5 @@ func (l LifeCycleRunner) runErrandFromConfig(task boshdirector.BoshTask, deploym
 		return task, nil
 	}
 
-	return l.runErrand(deploymentName, errand, operationData.BoshContextID, logger)
+	return l.runErrand(deploymentName, errand, plan.PostDeployErrandInstances(), operationData.BoshContextID, logger)
 }

@@ -200,7 +200,7 @@ var _ = Describe("deprovisioning instances", func() {
 
 		It("executes the specified errand", func() {
 			Expect(boshClient.RunErrandCallCount()).To(Equal(1))
-			argDeploymentName, argErrandName, contextID, _ := boshClient.RunErrandArgsForCall(0)
+			argDeploymentName, argErrandName, _, contextID, _ := boshClient.RunErrandArgsForCall(0)
 			Expect(argDeploymentName).To(Equal(broker.InstancePrefix + instanceID))
 			Expect(argErrandName).To(Equal("cleanup-resources"))
 			Expect(contextID).To(MatchRegexp(
@@ -215,7 +215,7 @@ var _ = Describe("deprovisioning instances", func() {
 		It("includes the operation type, task id, and context id in the operation data", func() {
 			var operationData broker.OperationData
 
-			_, _, contextID, _ := boshClient.RunErrandArgsForCall(0)
+			_, _, _, contextID, _ := boshClient.RunErrandArgsForCall(0)
 
 			Expect(json.Unmarshal([]byte(deprovisionSpec.OperationData), &operationData)).To(Succeed())
 			Expect(operationData).To(Equal(broker.OperationData{

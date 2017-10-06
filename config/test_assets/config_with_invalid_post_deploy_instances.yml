@@ -54,7 +54,6 @@ service_catalog:
     provider_display_name: "some name"
     documentation_url: "some url"
     support_url: "some url"
-    shareable: true
   tags:
     - some-tag
     - some-other-tag
@@ -92,7 +91,7 @@ service_catalog:
         persistence: true
       lifecycle_errands:
         post_deploy: health-check
-        post_deploy_instances: [redis-errand/0, redis-errand/1]
+        post_deploy_instances: [some/invalid/instance]
       instance_groups:
         - name: redis-server
           vm_type: some-vm

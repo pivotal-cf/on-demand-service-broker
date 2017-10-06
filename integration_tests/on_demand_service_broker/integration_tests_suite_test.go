@@ -297,7 +297,7 @@ func provisionInstanceWithAsyncFlag(instanceID, planID string, arbitraryParams m
 
 func lastOperationForInstance(instanceID string, operationData broker.OperationData) *http.Response {
 	lastOperationURL := fmt.Sprintf("http://localhost:%d/v2/service_instances/%s/last_operation", brokerPort, instanceID)
-	if operationData != (broker.OperationData{}) {
+	if operationData.PlanID != "" {
 		operationDataBytes, err := json.Marshal(operationData)
 		Expect(err).NotTo(HaveOccurred())
 		lastOperationURL = fmt.Sprintf("%s?operation=%s", lastOperationURL, url.QueryEscape(string(operationDataBytes)))

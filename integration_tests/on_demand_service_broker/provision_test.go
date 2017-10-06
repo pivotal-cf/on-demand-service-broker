@@ -431,7 +431,8 @@ var _ = Describe("provision service instance", func() {
 					},
 				},
 				LifecycleErrands: &config.LifecycleErrands{
-					PostDeploy: "health-check",
+					PostDeploy:          "health-check",
+					PostDeployInstances: []string{"health-check-instance/0", "health-check-instance/1"},
 				},
 			}
 			conf.ServiceCatalog.Plans = config.Plans{postDeployErrandPlan}
@@ -471,6 +472,8 @@ var _ = Describe("provision service instance", func() {
 			Expect(operationData.BoshContextID).NotTo(BeEmpty())
 			By("including the post deploy errand name")
 			Expect(operationData.PostDeployErrandName).To(Equal("health-check"))
+			By("including the post deploy errand instances")
+			Expect(operationData.PostDeployErrandInstances).To(Equal([]string{"health-check-instance/0", "health-check-instance/1"}))
 		})
 	})
 

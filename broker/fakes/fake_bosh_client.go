@@ -125,13 +125,14 @@ type FakeBoshClient struct {
 		result1 *boshdirector.Info
 		result2 error
 	}
-	RunErrandStub        func(deploymentName, errandName, contextID string, logger *log.Logger) (int, error)
+	RunErrandStub        func(deploymentName, errandName string, errandInstances []string, contextID string, logger *log.Logger) (int, error)
 	runErrandMutex       sync.RWMutex
 	runErrandArgsForCall []struct {
-		deploymentName string
-		errandName     string
-		contextID      string
-		logger         *log.Logger
+		deploymentName  string
+		errandName      string
+		errandInstances []string
+		contextID       string
+		logger          *log.Logger
 	}
 	runErrandReturns struct {
 		result1 int
@@ -575,19 +576,25 @@ func (fake *FakeBoshClient) GetInfoReturnsOnCall(i int, result1 *boshdirector.In
 	}{result1, result2}
 }
 
-func (fake *FakeBoshClient) RunErrand(deploymentName string, errandName string, contextID string, logger *log.Logger) (int, error) {
+func (fake *FakeBoshClient) RunErrand(deploymentName string, errandName string, errandInstances []string, contextID string, logger *log.Logger) (int, error) {
+	var errandInstancesCopy []string
+	if errandInstances != nil {
+		errandInstancesCopy = make([]string, len(errandInstances))
+		copy(errandInstancesCopy, errandInstances)
+	}
 	fake.runErrandMutex.Lock()
 	ret, specificReturn := fake.runErrandReturnsOnCall[len(fake.runErrandArgsForCall)]
 	fake.runErrandArgsForCall = append(fake.runErrandArgsForCall, struct {
-		deploymentName string
-		errandName     string
-		contextID      string
-		logger         *log.Logger
-	}{deploymentName, errandName, contextID, logger})
-	fake.recordInvocation("RunErrand", []interface{}{deploymentName, errandName, contextID, logger})
+		deploymentName  string
+		errandName      string
+		errandInstances []string
+		contextID       string
+		logger          *log.Logger
+	}{deploymentName, errandName, errandInstancesCopy, contextID, logger})
+	fake.recordInvocation("RunErrand", []interface{}{deploymentName, errandName, errandInstancesCopy, contextID, logger})
 	fake.runErrandMutex.Unlock()
 	if fake.RunErrandStub != nil {
-		return fake.RunErrandStub(deploymentName, errandName, contextID, logger)
+		return fake.RunErrandStub(deploymentName, errandName, errandInstances, contextID, logger)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -601,10 +608,10 @@ func (fake *FakeBoshClient) RunErrandCallCount() int {
 	return len(fake.runErrandArgsForCall)
 }
 
-func (fake *FakeBoshClient) RunErrandArgsForCall(i int) (string, string, string, *log.Logger) {
+func (fake *FakeBoshClient) RunErrandArgsForCall(i int) (string, string, []string, string, *log.Logger) {
 	fake.runErrandMutex.RLock()
 	defer fake.runErrandMutex.RUnlock()
-	return fake.runErrandArgsForCall[i].deploymentName, fake.runErrandArgsForCall[i].errandName, fake.runErrandArgsForCall[i].contextID, fake.runErrandArgsForCall[i].logger
+	return fake.runErrandArgsForCall[i].deploymentName, fake.runErrandArgsForCall[i].errandName, fake.runErrandArgsForCall[i].errandInstances, fake.runErrandArgsForCall[i].contextID, fake.runErrandArgsForCall[i].logger
 }
 
 func (fake *FakeBoshClient) RunErrandReturns(result1 int, result2 error) {

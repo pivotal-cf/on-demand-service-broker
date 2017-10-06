@@ -167,7 +167,7 @@ var _ = Describe("deprovisioning service instances", func() {
 					boshDirector.VerifyAndMock(
 						mockbosh.GetDeployment(deploymentName(instanceID)).RespondsWithRawManifest([]byte(`a: b`)),
 						mockbosh.Tasks(deploymentName(instanceID)).RespondsWithNoTasks(),
-						mockbosh.Errand(deploymentName(instanceID), errandName).
+						mockbosh.Errand(deploymentName(instanceID), errandName, `{}`).
 							WithAnyContextID().RedirectsToTask(boshErrandTaskID),
 					)
 
