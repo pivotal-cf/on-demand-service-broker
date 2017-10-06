@@ -35,14 +35,18 @@ var _ = Describe("Lifecycle runner", func() {
 		config.Plan{
 			ID: planID,
 			LifecycleErrands: &config.LifecycleErrands{
-				PostDeploy: errand1,
-				PostDeployInstances: errandInstances,
+				PostDeploy: config.Errand{
+					Name:      errand1,
+					Instances: errandInstances,
+				},
 			},
 		},
 		config.Plan{
 			ID: anotherPlanID,
 			LifecycleErrands: &config.LifecycleErrands{
-				PostDeploy: errand2,
+				PostDeploy: config.Errand{
+					Name: errand2,
+				},
 			},
 		},
 		config.Plan{
@@ -140,9 +144,9 @@ var _ = Describe("Lifecycle runner", func() {
 						var err error
 						deployRunner = broker.NewLifeCycleRunner(boshClient, plans)
 						operationData = broker.OperationData{
-							BoshContextID:        contextID,
-							OperationType:        broker.OperationTypeCreate,
-							PostDeployErrandName: errand1,
+							BoshContextID:             contextID,
+							OperationType:             broker.OperationTypeCreate,
+							PostDeployErrandName:      errand1,
 							PostDeployErrandInstances: errandInstances,
 						}
 

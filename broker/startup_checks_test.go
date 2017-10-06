@@ -115,7 +115,7 @@ var _ = Describe("Initializing the broker", func() {
 			emptyLifecycleErrandsPlan := config.Plan{
 				ID: "empty-lifecycle-errands-plan-id",
 				LifecycleErrands: &config.LifecycleErrands{
-					PostDeploy: "",
+					PostDeploy: config.Errand{},
 					PreDelete:  "",
 				},
 			}

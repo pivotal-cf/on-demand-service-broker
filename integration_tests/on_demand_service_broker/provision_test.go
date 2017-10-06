@@ -431,8 +431,10 @@ var _ = Describe("provision service instance", func() {
 					},
 				},
 				LifecycleErrands: &config.LifecycleErrands{
-					PostDeploy:          "health-check",
-					PostDeployInstances: []string{"health-check-instance/0", "health-check-instance/1"},
+					PostDeploy: config.Errand{
+						Name:      "health-check",
+						Instances: []string{"health-check-instance/0", "health-check-instance/1"},
+					},
 				},
 			}
 			conf.ServiceCatalog.Plans = config.Plans{postDeployErrandPlan}

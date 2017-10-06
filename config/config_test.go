@@ -130,8 +130,10 @@ var _ = Describe("Config", func() {
 									"persistence": true,
 								},
 								LifecycleErrands: &config.LifecycleErrands{
-									PostDeploy:          "health-check",
-									PostDeployInstances: []string{"redis-errand/0", "redis-errand/1"},
+									PostDeploy: config.Errand{
+										Name:      "health-check",
+										Instances: []string{"redis-errand/0", "redis-errand/1"},
+									},
 								},
 								InstanceGroups: []serviceadapter.InstanceGroup{
 									{

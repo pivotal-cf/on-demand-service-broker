@@ -113,7 +113,9 @@ var _ = BeforeEach(func() {
 	postDeployErrandPlan := config.Plan{
 		ID: postDeployErrandPlanID,
 		LifecycleErrands: &config.LifecycleErrands{
-			PostDeploy: "health-check",
+			PostDeploy: config.Errand{
+				Name: "health-check",
+			},
 		},
 		InstanceGroups: []serviceadapter.InstanceGroup{},
 	}

@@ -237,8 +237,10 @@ var _ = Describe("provisioning", func() {
 			postDeployErrandPlan := config.Plan{
 				ID: planID,
 				LifecycleErrands: &config.LifecycleErrands{
-					PostDeploy:          errandName,
-					PostDeployInstances: []string{errandInstance},
+					PostDeploy: config.Errand{
+						Name:      errandName,
+						Instances: []string{errandInstance},
+					},
 				},
 				InstanceGroups: []sdk.InstanceGroup{
 					{
