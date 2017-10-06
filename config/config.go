@@ -54,6 +54,10 @@ func (c Config) Validate() error {
 		return err
 	}
 
+	if err := c.ServiceCatalog.Validate(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -332,6 +336,31 @@ func (s ServiceOffering) HasLifecycleErrands() bool {
 	return false
 }
 
+func (s ServiceOffering) Validate() error {
+	for _, plan := range s.Plans {
+		if plan.LifecycleErrands != nil {
+			for _, instanceName := range plan.LifecycleErrands.PostDeployInstances {
+				pieces := strings.Split(instanceName, "/")
+				if len(pieces) != 1 && len(pieces) != 2 {
+					return fmt.Errorf("Must specify pool or instance '%s' in format 'name' or 'name/id-or-index'", instanceName)
+				}
+
+				if len(pieces[0]) == 0 {
+					return fmt.Errorf("Must specify pool or instance '%s' in format 'name' or 'name/id-or-index'", instanceName)
+				}
+
+				if len(pieces) == 2 {
+					if len(pieces[1]) == 0 {
+						return fmt.Errorf("Must specify pool or instance '%s' in format 'name' or 'name/id-or-index'", instanceName)
+					}
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
 type Plans []Plan
 
 func (p Plans) FindByID(id string) (Plan, bool) {
@@ -383,6 +412,13 @@ func (p Plan) PostDeployErrand() string {
 
 	return p.LifecycleErrands.PostDeploy
 }
+func (p Plan) PostDeployErrandInstances() []string {
+	if p.LifecycleErrands == nil {
+		return nil
+	}
+
+	return p.LifecycleErrands.PostDeployInstances
+}
 
 func (p Plan) PreDeleteErrand() string {
 	if p.LifecycleErrands == nil {
@@ -393,8 +429,9 @@ func (p Plan) PreDeleteErrand() string {
 }
 
 type LifecycleErrands struct {
-	PostDeploy string `yaml:"post_deploy"`
-	PreDelete  string `yaml:"pre_delete"`
+	PostDeploy          string   `yaml:"post_deploy"`
+	PostDeployInstances []string `yaml:"post_deploy_instances,omitempty"`
+	PreDelete           string   `yaml:"pre_delete"`
 }
 
 type PlanMetadata struct {

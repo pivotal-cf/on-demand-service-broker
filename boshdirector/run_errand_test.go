@@ -13,32 +13,81 @@ import (
 )
 
 var _ = Describe("running errands", func() {
-	const (
-		deploymentName = "deploymentName"
-		errandName     = "errandName"
-		contextID      = "some-context-id"
+	var (
+		deploymentName  = "deploymentName"
+		errandName      = "errandName"
+		contextID       = "some-context-id"
 	)
 
 	Context("successfully", func() {
 		It("invokes BOSH to queue up an errand", func() {
 			taskID := 5
 			director.VerifyAndMock(
-				mockbosh.Errand(deploymentName, errandName).WithContextID(contextID).RedirectsToTask(taskID),
+				mockbosh.Errand(deploymentName, errandName, `{}`).WithContextID(contextID).RedirectsToTask(taskID),
 			)
 
-			actualTaskID, actualErr := c.RunErrand(deploymentName, errandName, contextID, logger)
+			actualTaskID, actualErr := c.RunErrand(deploymentName, errandName, nil, contextID, logger)
+			Expect(actualTaskID).To(Equal(taskID))
+			Expect(actualErr).NotTo(HaveOccurred())
+		})
+	})
+
+	Context("successfully with instances", func() {
+		It("invokes BOSH to queue up an errand with instances", func() {
+			taskID := 5
+			errandInstances := []string{"errand_instance/4529480d-9770-4c32-b9bb-d936c0a908ca"}
+			expectedBody := `{
+			"instances":[
+			  {
+			    "group": "errand_instance",
+			    "id": "4529480d-9770-4c32-b9bb-d936c0a908ca"
+			  }
+			]}`
+
+			director.VerifyAndMock(
+				mockbosh.Errand(deploymentName, errandName, expectedBody).WithContextID(contextID).RedirectsToTask(taskID),
+			)
+
+			actualTaskID, actualErr := c.RunErrand(deploymentName, errandName, errandInstances, contextID, logger)
+			Expect(actualTaskID).To(Equal(taskID))
+			Expect(actualErr).NotTo(HaveOccurred())
+		})
+
+		It("invokes BOSH to queue up an errand with instances", func() {
+			taskID := 5
+			errandInstances := []string{"errand_instance"}
+			expectedBody := `{
+			"instances":[
+			  {
+			    "group": "errand_instance"
+			  }
+			]}`
+
+			director.VerifyAndMock(
+				mockbosh.Errand(deploymentName, errandName, expectedBody).WithContextID(contextID).RedirectsToTask(taskID),
+			)
+
+			actualTaskID, actualErr := c.RunErrand(deploymentName, errandName, errandInstances, contextID, logger)
 			Expect(actualTaskID).To(Equal(taskID))
 			Expect(actualErr).NotTo(HaveOccurred())
 		})
 	})
 
 	Context("has an error", func() {
+		It("returns an error when the errandInstance names are invalid", func() {
+			errandInstances := []string{"some/invalid/errand"}
+
+			_, actualErr := c.RunErrand(deploymentName, errandName, errandInstances, contextID, logger)
+			Expect(actualErr).To(HaveOccurred())
+		})
+
+
 		It("invokes BOSH to queue up an errand", func() {
 			director.VerifyAndMock(
-				mockbosh.Errand(deploymentName, errandName).WithAnyContextID().RespondsInternalServerErrorWith("because reasons"),
+				mockbosh.Errand(deploymentName, errandName, `{}`).WithAnyContextID().RespondsInternalServerErrorWith("because reasons"),
 			)
 
-			_, actualErr := c.RunErrand(deploymentName, errandName, contextID, logger)
+			_, actualErr := c.RunErrand(deploymentName, errandName, nil, contextID, logger)
 			Expect(actualErr).To(HaveOccurred())
 		})
 	})

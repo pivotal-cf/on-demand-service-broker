@@ -26,8 +26,9 @@ import (
 
 var _ = Describe("provisioning", func() {
 	var (
-		planID     string
-		errandName string
+		planID         string
+		errandName     string
+		errandInstance string
 
 		serviceSpec  brokerapi.ProvisionedServiceSpec
 		provisionErr error
@@ -230,11 +231,13 @@ var _ = Describe("provisioning", func() {
 		BeforeEach(func() {
 			planID = "post-deploy-errand-plan-id"
 			errandName = "health-check"
+			errandInstance = "post-deploy-instance-group-name/0"
 
 			postDeployErrandPlan := config.Plan{
 				ID: planID,
 				LifecycleErrands: &config.LifecycleErrands{
-					PostDeploy: errandName,
+					PostDeploy:          errandName,
+					PostDeployInstances: []string{errandInstance},
 				},
 				InstanceGroups: []sdk.InstanceGroup{
 					{
@@ -261,6 +264,7 @@ var _ = Describe("provisioning", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(data.BoshContextID).NotTo(BeEmpty())
 			Expect(data.PostDeployErrandName).To(Equal(errandName))
+			Expect(data.PostDeployErrandInstances).To(Equal([]string{errandInstance}))
 		})
 
 		It("calls the deployer with a bosh context id", func() {

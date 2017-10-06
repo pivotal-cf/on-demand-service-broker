@@ -13,7 +13,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"reflect"
 	"strings"
 	"time"
 
@@ -24,7 +23,7 @@ type Handler struct {
 	expectedMethod         string
 	expectedUrl            string
 	expectedBody           string
-	expectedJSONBody       map[string]interface{}
+	expectedJSONBody       string
 	expectedHeadersPresent []string
 	unexpectedHeaders      []string
 	expectedHeaders        map[string]string
@@ -109,7 +108,7 @@ func (i *Handler) WithBody(body string) *Handler {
 	return i
 }
 
-func (i *Handler) WithJSONBody(body map[string]interface{}) *Handler {
+func (i *Handler) WithJSONBody(body string) *Handler {
 	i.expectedJSONBody = body
 	return i
 }
@@ -184,16 +183,11 @@ func (i *Handler) Verify(req *http.Request, s *Server) {
 		Expect(err).NotTo(HaveOccurred(), "Expected body.\n")
 		Expect(string(rawBody)).To(Equal(i.expectedBody), "Expected body:\n\t%s\nto be equal to:\n\t%s\n", i.expectedBody)
 	}
-	if i.expectedJSONBody != nil {
+	if i.expectedJSONBody != "" {
 		rawBody, err := ioutil.ReadAll(req.Body)
-		Expect(err).NotTo(HaveOccurred(), "Expected JSON body.\n")
+		Expect(err).NotTo(HaveOccurred())
 
-		var jsonBody map[string]interface{}
-		err = json.Unmarshal(rawBody, &jsonBody)
-		Expect(err).NotTo(HaveOccurred(), "Expected JSON body.\n")
-
-		equalBodies := reflect.DeepEqual(jsonBody, i.expectedJSONBody)
-		Expect(equalBodies).To(BeTrue(), "Expected JSON body:\n\t%+v\nto be deep equal to:\n\t%+v\n", jsonBody, i.expectedJSONBody)
+		Expect(rawBody).To(MatchJSON(i.expectedJSONBody), "Expected JSON body:\n\t%+v\nto match json to:\n\t%+v\n", rawBody, i.expectedJSONBody)
 	}
 }
 

@@ -296,7 +296,7 @@ var _ = Describe("last operation", func() {
 					mockbosh.TasksByContext(deploymentName(instanceID), contextID).
 						RespondsOKWithJSON(boshdirector.BoshTasks{taskDone}),
 					mockbosh.TaskOutput(taskDone.ID).RespondsOKWith(""),
-					mockbosh.Errand(deploymentName(instanceID), errandName).
+					mockbosh.Errand(deploymentName(instanceID), errandName, `{}`).
 						WithContextID(contextID).RedirectsToTask(taskProcessing.ID),
 					mockbosh.Task(taskProcessing.ID).RespondsOKWithJSON(taskProcessing),
 				)
@@ -853,7 +853,7 @@ var _ = Describe("last operation", func() {
 					mockbosh.TasksByContext(deploymentName(instanceID), contextID).
 						RespondsWithATask(taskDone),
 					mockbosh.TaskOutput(taskDone.ID).RespondsOKWith(""),
-					mockbosh.Errand(deploymentName(instanceID), postDeployErrandName).
+					mockbosh.Errand(deploymentName(instanceID), postDeployErrandName, `{}`).
 						WithContextID(contextID).RedirectsToTask(taskProcessing.ID),
 					mockbosh.Task(taskProcessing.ID).RespondsOKWithJSON(taskProcessing),
 				)

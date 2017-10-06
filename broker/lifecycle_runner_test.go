@@ -29,11 +29,14 @@ var _ = Describe("Lifecycle runner", func() {
 		planIDWithoutErrands = "without-errands-plan-id"
 	)
 
+	var errandInstances = []string{"some-instance/0"}
+
 	plans := config.Plans{
 		config.Plan{
 			ID: planID,
 			LifecycleErrands: &config.LifecycleErrands{
 				PostDeploy: errand1,
+				PostDeployInstances: errandInstances,
 			},
 		},
 		config.Plan{
@@ -140,6 +143,7 @@ var _ = Describe("Lifecycle runner", func() {
 							BoshContextID:        contextID,
 							OperationType:        broker.OperationTypeCreate,
 							PostDeployErrandName: errand1,
+							PostDeployErrandInstances: errandInstances,
 						}
 
 						task, err = deployRunner.GetTask(deploymentName, operationData, logger)
@@ -148,9 +152,10 @@ var _ = Describe("Lifecycle runner", func() {
 
 					It("runs the post-deploy errand set in the operation data", func() {
 						Expect(boshClient.RunErrandCallCount()).To(Equal(1))
-						name, expectedErrand, context, _ := boshClient.RunErrandArgsForCall(0)
+						name, expectedErrand, expectedErrandInstances, context, _ := boshClient.RunErrandArgsForCall(0)
 						Expect(name).To(Equal(deploymentName))
 						Expect(expectedErrand).To(Equal(errand1))
+						Expect(expectedErrandInstances).To(Equal(errandInstances))
 						Expect(context).To(Equal(contextID))
 					})
 				})
@@ -171,9 +176,10 @@ var _ = Describe("Lifecycle runner", func() {
 						})
 						It("uses the config to determine which errand to run", func() {
 							Expect(boshClient.RunErrandCallCount()).To(Equal(1))
-							name, expectedErrand, context, _ := boshClient.RunErrandArgsForCall(0)
+							name, expectedErrand, expectedErrandInstances, context, _ := boshClient.RunErrandArgsForCall(0)
 							Expect(name).To(Equal(deploymentName))
 							Expect(expectedErrand).To(Equal(errand1))
+							Expect(expectedErrandInstances).To(Equal(errandInstances))
 							Expect(context).To(Equal(contextID))
 						})
 					})
@@ -191,13 +197,18 @@ var _ = Describe("Lifecycle runner", func() {
 					})
 
 					It("runs the correct errand", func() {
-						_, errandName, _, _ := boshClient.RunErrandArgsForCall(0)
+						_, errandName, _, _, _ := boshClient.RunErrandArgsForCall(0)
 						Expect(errandName).To(Equal(errand1))
 					})
 
 					It("runs the errand with the correct contextID", func() {
-						_, _, ctxID, _ := boshClient.RunErrandArgsForCall(0)
+						_, _, _, ctxID, _ := boshClient.RunErrandArgsForCall(0)
 						Expect(ctxID).To(Equal(contextID))
+					})
+
+					It("runs the errand with the correct errandInstances", func() {
+						_, _, expectedErrandInstances, _, _ := boshClient.RunErrandArgsForCall(0)
+						Expect(expectedErrandInstances).To(Equal(errandInstances))
 					})
 
 					It("returns the post deploy errand processing task", func() {

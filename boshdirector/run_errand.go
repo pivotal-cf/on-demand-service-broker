@@ -7,18 +7,49 @@
 package boshdirector
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 )
 
-func (c *Client) RunErrand(deploymentName, errandName, contextID string, logger *log.Logger) (int, error) {
-	logger.Printf("running errand %s from deployment %s\n", errandName, deploymentName)
+type Instance struct {
+	Group string `json:"group"`
+	ID    string `json:"id,omitempty"`
+}
+
+func (c *Client) RunErrand(deploymentName, errandName string, errandInstances []string, contextID string, logger *log.Logger) (int, error) {
+	logger.Printf("running errand %s on colocated instances %v from deployment %s\n", errandName, errandInstances, deploymentName)
+
+	var errandBody struct {
+		Instances []Instance `json:"instances,omitempty"`
+	}
+
+	for _, errandInstance := range errandInstances {
+		collection := strings.Split(errandInstance, "/")
+		switch len(collection) {
+		case 1:
+			group := collection[0]
+			errandBody.Instances = append(errandBody.Instances, Instance{Group: group})
+		case 2:
+			group := collection[0]
+			id := collection[1]
+			errandBody.Instances = append(errandBody.Instances, Instance{Group: group, ID: id})
+		default:
+			return 0, fmt.Errorf("invalid errand instances names passed in: %v", errandInstances)
+		}
+	}
+
+	body, err := json.Marshal(errandBody)
+	if err != nil {
+		return 0, err
+	}
 
 	return c.postAndGetTaskIDCheckingForErrors(
 		fmt.Sprintf("%s/deployments/%s/errands/%s/runs", c.url, deploymentName, errandName),
 		http.StatusFound,
-		[]byte("{}"),
+		body,
 		"application/json",
 		contextID,
 		logger,

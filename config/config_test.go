@@ -129,7 +129,8 @@ var _ = Describe("Config", func() {
 									"persistence": true,
 								},
 								LifecycleErrands: &config.LifecycleErrands{
-									PostDeploy: "health-check",
+									PostDeploy:          "health-check",
+									PostDeployInstances: []string{"redis-errand/0", "redis-errand/1"},
 								},
 								InstanceGroups: []serviceadapter.InstanceGroup{
 									{
@@ -150,7 +151,7 @@ var _ = Describe("Config", func() {
 									{
 										Name:         "redis-errand",
 										VMType:       "some-vm-3",
-										Instances:    1,
+										Instances:    2,
 										Networks:     []string{"net5", "net6"},
 										Lifecycle:    "errand",
 										VMExtensions: []string{},
@@ -391,6 +392,36 @@ var _ = Describe("Config", func() {
 
 			It("parses free as false", func() {
 				Expect(*conf.ServiceCatalog.Plans[0].Free).To(BeFalse())
+			})
+		})
+
+		Context("when the post deploy errand instances property is specified as a/b/c", func() {
+			BeforeEach(func() {
+				configFileName = "config_with_invalid_post_deploy_instances.yml"
+			})
+
+			It("returns an error", func() {
+				Expect(parseErr).To(MatchError(MatchRegexp("Must specify pool or instance '.*' in format 'name' or 'name/id-or-index'")))
+			})
+		})
+
+		Context("when the post deploy errand instances property is specified as /b", func() {
+			BeforeEach(func() {
+				configFileName = "config_with_invalid_post_deploy_instances_1.yml"
+			})
+
+			It("returns an error", func() {
+				Expect(parseErr).To(MatchError(MatchRegexp("Must specify pool or instance '.*' in format 'name' or 'name/id-or-index'")))
+			})
+		})
+
+		Context("when the post deploy errand instances property is specified as a/", func() {
+			BeforeEach(func() {
+				configFileName = "config_with_invalid_post_deploy_instances_2.yml"
+			})
+
+			It("returns an error", func() {
+				Expect(parseErr).To(MatchError(MatchRegexp("Must specify pool or instance '.*' in format 'name' or 'name/id-or-index'")))
 			})
 		})
 
