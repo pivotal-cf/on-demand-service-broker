@@ -213,7 +213,9 @@ var _ = Describe("updating a service instance", func() {
 						},
 					},
 					LifecycleErrands: &config.LifecycleErrands{
-						PostDeploy: "health-check",
+						PostDeploy: config.Errand{
+							Name: "health-check",
+						},
 					},
 				}
 				conf.ServiceCatalog.Plans = append(conf.ServiceCatalog.Plans, postDeployErrandPlan)
@@ -262,7 +264,9 @@ var _ = Describe("updating a service instance", func() {
 						},
 					},
 					LifecycleErrands: &config.LifecycleErrands{
-						PostDeploy: "health-check",
+						PostDeploy: config.Errand{
+							Name: "health-check",
+						},
 					},
 				}
 				conf.ServiceCatalog.Plans = append(conf.ServiceCatalog.Plans, postDeployErrandPlan)
@@ -491,7 +495,9 @@ var _ = Describe("updating a service instance", func() {
 						},
 					},
 					LifecycleErrands: &config.LifecycleErrands{
-						PostDeploy: "health-check",
+						PostDeploy: config.Errand{
+							Name: "health-check",
+						},
 					},
 				}
 				conf.ServiceCatalog.Plans = config.Plans{postDeployErrandPlan}

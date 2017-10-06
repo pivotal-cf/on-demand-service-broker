@@ -394,7 +394,9 @@ var _ = Describe("Startup", func() {
 							},
 						},
 						LifecycleErrands: &config.LifecycleErrands{
-							PostDeploy: "health-check",
+							PostDeploy: config.Errand{
+								Name: "health-check",
+							},
 						},
 					}
 
@@ -449,7 +451,9 @@ var _ = Describe("Startup", func() {
 							},
 						},
 						LifecycleErrands: &config.LifecycleErrands{
-							PostDeploy: "health-check",
+							PostDeploy: config.Errand{
+								Name: "health-check",
+							},
 						},
 					}
 
@@ -507,7 +511,9 @@ var _ = Describe("Startup", func() {
 							},
 						},
 						LifecycleErrands: &config.LifecycleErrands{
-							PostDeploy: "health-check",
+							PostDeploy: config.Errand{
+								Name: "health-check",
+							},
 						},
 					}
 

@@ -395,7 +395,9 @@ var _ = Describe("Management API", func() {
 						},
 					},
 					LifecycleErrands: &config.LifecycleErrands{
-						PostDeploy: postDeployErrandName,
+						PostDeploy: config.Errand{
+							Name: postDeployErrandName,
+						},
 					},
 				}
 

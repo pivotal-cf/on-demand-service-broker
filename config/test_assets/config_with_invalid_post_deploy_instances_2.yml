@@ -90,8 +90,9 @@ service_catalog:
       properties:
         persistence: true
       lifecycle_errands:
-        post_deploy: health-check
-        post_deploy_instances: [some/invalid/]
+        post_deploy:
+          name: health-check
+          instances: [some/invalid/]
       instance_groups:
         - name: redis-server
           vm_type: some-vm

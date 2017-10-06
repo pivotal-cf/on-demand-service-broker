@@ -251,7 +251,9 @@ var _ = Describe("last operation", func() {
 				ID:   planID,
 				Name: "post-deploy-plan",
 				LifecycleErrands: &config.LifecycleErrands{
-					PostDeploy: errandName,
+					PostDeploy: config.Errand{
+						Name: errandName,
+					},
 				},
 			}
 
@@ -788,7 +790,9 @@ var _ = Describe("last operation", func() {
 				ID:   planID,
 				Name: "post-deploy-plan",
 				LifecycleErrands: &config.LifecycleErrands{
-					PostDeploy: "health-check",
+					PostDeploy: config.Errand{
+						Name: "health-check",
+					},
 				},
 			}
 
