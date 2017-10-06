@@ -298,6 +298,30 @@ var _ = Describe("Startup", func() {
 				Expect(runningBroker.ExitCode()).ToNot(Equal(0))
 			})
 		})
+
+		Context("when disable_cf_startup_checks is set to true", func() {
+			BeforeEach(func() {
+				conf.Broker.DisableCFStartupChecks = true
+			})
+
+			It("does not fail and does not contact CF", func() {
+				cfAPI.Close()
+				cfUAA.Close()
+				boshDirector.VerifyAndMock(
+					mockbosh.Info().RespondsWithSufficientStemcellVersionForODB(boshDirector.UAAURL),
+					mockbosh.Info().RespondsWithSufficientStemcellVersionForODB(boshDirector.UAAURL),
+				)
+
+				runningBroker = startBroker(conf)
+
+				odbLogPattern := `\[on-demand-service-broker\] \d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}\.\d{6}`
+
+				Eventually(runningBroker.Out).Should(gbytes.Say(fmt.Sprintf(`%s Starting broker`, odbLogPattern)))
+				Eventually(runningBroker.Out).Should(gbytes.Say(`-------./ssssssssssssssssssss:.-------`))
+				Eventually(runningBroker.Out).Should(gbytes.Say(fmt.Sprintf(`%s Listening on :%d`, odbLogPattern, conf.Broker.Port)))
+				Eventually(runningBroker).ShouldNot(gexec.Exit())
+			})
+		})
 	})
 
 	Describe("BOSH Director API version", func() {

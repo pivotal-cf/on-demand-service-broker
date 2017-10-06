@@ -40,8 +40,10 @@ func (c Config) Validate() error {
 		return err
 	}
 
-	if err := c.CF.Validate(); err != nil {
-		return err
+	if !c.Broker.DisableCFStartupChecks {
+		if err := c.CF.Validate(); err != nil {
+			return err
+		}
 	}
 
 	if err := checkIsExecutableFile(c.ServiceAdapter.Path); err != nil {
@@ -62,6 +64,7 @@ type Broker struct {
 	DisableSSLCertVerification bool `yaml:"disable_ssl_cert_verification"`
 	StartUpBanner              bool `yaml:"startup_banner"`
 	ShutdownTimeoutSecs        int  `yaml:"shutdown_timeout_in_seconds"`
+	DisableCFStartupChecks     bool `yaml:"disable_cf_startup_checks"`
 }
 
 func (b Broker) Validate() error {

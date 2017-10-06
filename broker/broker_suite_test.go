@@ -191,6 +191,7 @@ func createBroker(info *boshdirector.Info) (*broker.Broker, error) {
 		serviceAdapter,
 		fakeDeployer,
 		serviceCatalog,
+		false,
 		loggerFactory,
 	)
 }
