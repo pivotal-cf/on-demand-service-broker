@@ -196,18 +196,17 @@ func startBroker(conf config.Config) *gexec.Session {
 
 func startBrokerWithoutPortCheck(conf config.Config) *gexec.Session {
 	killCmd := exec.Command("pkill", "-9", "-f", "on-demand-service-broker")
-	_, err := gexec.Start(killCmd, GinkgoWriter, GinkgoWriter)
+	killSession, err := gexec.Start(killCmd, GinkgoWriter, GinkgoWriter)
 	Expect(err).NotTo(HaveOccurred())
-	Eventually(dialBroker, "15s").Should(BeFalse(), "an old instance of the broker is still running")
+	killSession.Wait()
 
 	configContents, err := yaml.Marshal(conf)
-	Expect(err).ToNot(HaveOccurred())
+	Expect(err).NotTo(HaveOccurred())
 
 	testConfigFilePath := filepath.Join(tempDirPath, "broker.yml")
 	Expect(ioutil.WriteFile(testConfigFilePath, configContents, 0644)).To(Succeed())
 
-	params := []string{"-configFilePath", testConfigFilePath}
-	cmd := exec.Command(brokerBinPath, params...)
+	cmd := exec.Command(brokerBinPath, "-configFilePath", testConfigFilePath)
 	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
 	Expect(err).NotTo(HaveOccurred())
 
