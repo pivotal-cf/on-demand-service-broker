@@ -173,6 +173,17 @@ func TestIntegrationTests(t *testing.T) {
 	RunSpecs(t, "Integration Tests Suite")
 }
 
+func startBrokerInDummyCFModeWithPassingStartupChecks(
+	conf config.Config,
+	boshDirector *mockbosh.MockBOSH,
+) *gexec.Session {
+	boshDirector.VerifyAndMock(
+		mockbosh.Info().RespondsWithSufficientVersionForLifecycleErrands(boshDirector.UAAURL),
+		mockbosh.Info().RespondsWithSufficientVersionForLifecycleErrands(boshDirector.UAAURL),
+	)
+	return startBroker(conf)
+}
+
 func startBrokerWithPassingStartupChecks(
 	conf config.Config,
 	cfAPI *mockhttp.Server,
