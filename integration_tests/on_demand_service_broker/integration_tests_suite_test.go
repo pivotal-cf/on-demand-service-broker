@@ -195,7 +195,8 @@ func startBroker(conf config.Config) *gexec.Session {
 }
 
 func startBrokerWithoutPortCheck(conf config.Config) *gexec.Session {
-	killCmd := exec.Command("pkill", "-9", "-f", "on-demand-service-broker")
+	linuxCompatibleProcessName := "on-demand-servi"
+	killCmd := exec.Command("pkill", "-9", linuxCompatibleProcessName)
 	killSession, err := gexec.Start(killCmd, GinkgoWriter, GinkgoWriter)
 	Expect(err).NotTo(HaveOccurred())
 	killSession.Wait()
