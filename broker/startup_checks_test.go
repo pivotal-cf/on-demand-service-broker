@@ -66,20 +66,6 @@ var _ = Describe("Initializing the broker", func() {
 			Expect(brokerCreationErr.Error()).To(ContainSubstring("Cloud Foundry API version couldn't be parsed. Expected a semver, got: 1.invalid.0"))
 		})
 
-		It("does not verify CF API version when CF startup checks are disabled", func() {
-			_, brokerCreationErr := broker.New(
-				boshInfo,
-				boshClient,
-				cfClient,
-				serviceAdapter,
-				fakeDeployer,
-				serviceCatalog,
-				true,
-				loggerFactory,
-			)
-			Expect(brokerCreationErr).NotTo(HaveOccurred())
-			Expect(cfClient.GetAPIVersionCallCount()).To(Equal(0))
-		})
 	})
 
 	Describe("check BOSH director version", func() {
@@ -220,21 +206,6 @@ var _ = Describe("Initializing the broker", func() {
 			cfClient.CountInstancesOfServiceOfferingReturns(nil, errors.New("error counting instances"))
 			_, brokerCreationErr = createBroker(boshInfo)
 			Expect(brokerCreationErr).To(HaveOccurred())
-		})
-
-		It("does not check preexisting versions when CF startup checks are disabled", func() {
-			_, brokerCreationErr := broker.New(
-				boshInfo,
-				boshClient,
-				cfClient,
-				serviceAdapter,
-				fakeDeployer,
-				serviceCatalog,
-				true,
-				loggerFactory,
-			)
-			Expect(brokerCreationErr).NotTo(HaveOccurred())
-			Expect(cfClient.CountInstancesOfServiceOfferingCallCount()).To(Equal(0))
 		})
 
 	})

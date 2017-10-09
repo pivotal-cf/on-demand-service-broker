@@ -28,10 +28,8 @@ func (b *Broker) startupChecks() error {
 		return err
 	}
 
-	if !b.disableCfStartupChecks {
-		if err := b.verifyExistingInstancePlanIDsUnchanged(logger); err != nil {
-			return err
-		}
+	if err := b.verifyExistingInstancePlanIDsUnchanged(logger); err != nil {
+		return err
 	}
 
 	return nil
@@ -68,10 +66,8 @@ func (b *Broker) verifyExistingInstancePlanIDsUnchanged(logger *log.Logger) erro
 func (b *Broker) checkAPIVersions(logger *log.Logger) error {
 	var apiErrorMessages []string
 
-	if !b.disableCfStartupChecks {
-		if err := b.checkCFAPIVersion(logger); err != nil {
-			apiErrorMessages = append(apiErrorMessages, "CF API error: "+err.Error())
-		}
+	if err := b.checkCFAPIVersion(logger); err != nil {
+		apiErrorMessages = append(apiErrorMessages, "CF API error: "+err.Error())
 	}
 
 	if err := b.checkBoshDirectorVersion(logger); err != nil {
