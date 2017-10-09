@@ -79,6 +79,48 @@ var _ = Describe("provision service instance", func() {
 		cfUAA.Close()
 	})
 
+	Context("when CF integration is disabled", func() {
+
+		JustBeforeEach(func() {
+
+			conf.Broker.DisableCFStartupChecks = true
+			arbitraryParams = map[string]interface{}{"foo": "bar"}
+
+		})
+
+		It("succeeds for no quota", func() {
+
+			boshDirector.VerifyAndMock(
+				mockbosh.Info().RespondsWithSufficientVersionForLifecycleErrands(boshDirector.UAAURL),
+				mockbosh.Info().RespondsWithSufficientVersionForLifecycleErrands(boshDirector.UAAURL),
+				mockbosh.GetDeployment(deploymentName(instanceID)).RespondsNotFoundWith(""),
+				mockbosh.Tasks(deploymentName(instanceID)).RespondsWithNoTasks(),
+				mockbosh.Deploy().WithManifest(manifestForFirstDeployment).WithoutContextID().RedirectsToTask(taskID),
+			)
+
+			runningBroker = startBroker(conf)
+
+			planID = highMemoryPlanID
+			provisionResponse = provisionInstance(instanceID, planID, arbitraryParams)
+			Expect(provisionResponse.StatusCode).To(Equal(http.StatusAccepted))
+		})
+
+		It("fails with quota", func() {
+
+			boshDirector.VerifyAndMock(
+				mockbosh.Info().RespondsWithSufficientVersionForLifecycleErrands(boshDirector.UAAURL),
+				mockbosh.Info().RespondsWithSufficientVersionForLifecycleErrands(boshDirector.UAAURL),
+				mockbosh.GetDeployment(deploymentName(instanceID)).RespondsNotFoundWith(""),
+			)
+
+			runningBroker = startBroker(conf)
+
+			provisionResponse = provisionInstance(instanceID, planID, arbitraryParams)
+			Expect(provisionResponse.StatusCode).To(Equal(http.StatusInternalServerError))
+		})
+
+	})
+
 	Context("when the plan has a quota", func() {
 		JustBeforeEach(func() {
 			runningBroker = startBrokerWithPassingStartupChecks(conf, cfAPI, boshDirector)
