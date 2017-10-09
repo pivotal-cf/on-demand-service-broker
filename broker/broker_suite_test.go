@@ -183,11 +183,16 @@ func createDefaultBroker() *broker.Broker {
 	return b
 }
 
-func createBroker(info *boshdirector.Info) (*broker.Broker, error) {
+func createBroker(info *boshdirector.Info, overrideClient ...broker.CloudFoundryClient) (*broker.Broker, error) {
+
+	var client broker.CloudFoundryClient = cfClient
+	if len(overrideClient) > 0 {
+		client = overrideClient[0]
+	}
 	return broker.New(
 		info,
 		boshClient,
-		cfClient,
+		client,
 		serviceAdapter,
 		fakeDeployer,
 		serviceCatalog,

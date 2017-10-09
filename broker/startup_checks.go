@@ -16,6 +16,8 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 )
 
+const MinimunCFVersion string = "2.57.0"
+
 func (b *Broker) startupChecks() error {
 	logger := b.loggerFactory.New()
 	if err := b.checkAPIVersions(logger); err != nil {
@@ -93,7 +95,7 @@ func (b *Broker) checkCFAPIVersion(logger *log.Logger) error {
 	if err != nil {
 		return fmt.Errorf("Cloud Foundry API version couldn't be parsed. Expected a semver, got: %s.", rawCFAPIVersion)
 	}
-	if version.LessThan(*semver.New("2.57.0")) {
+	if version.LessThan(*semver.New(MinimunCFVersion)) {
 		return errors.New("Cloud Foundry API version is insufficient, ODB requires CF v238+.")
 	}
 
