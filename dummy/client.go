@@ -17,7 +17,7 @@ type Client struct {
 }
 
 func (Client) GetAPIVersion(logger *log.Logger) (string, error) {
-	return broker.MinimunCFVersion, nil
+	return broker.MinimumCFVersion, nil
 }
 
 func (Client) CountInstancesOfPlan(serviceOfferingID, planID string, logger *log.Logger) (int, error) {

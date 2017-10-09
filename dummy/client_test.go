@@ -40,7 +40,7 @@ var _ = Describe("Client", func() {
 			client := dummy.New()
 			version, err := client.GetAPIVersion(testLogger)
 			Expect(err).To(BeNil())
-			Expect(version).To(Equal(broker.MinimunCFVersion))
+			Expect(version).To(Equal(broker.MinimumCFVersion))
 		})
 	})
 
