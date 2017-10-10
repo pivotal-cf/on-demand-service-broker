@@ -7,16 +7,22 @@
 package main
 
 import (
+	"context"
 	"flag"
+	"fmt"
 	"log"
+	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
+	"github.com/pivotal-cf/on-demand-service-broker/apiserver"
 	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
-	"github.com/pivotal-cf/on-demand-service-broker/grapefruit"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	"github.com/pivotal-cf/on-demand-service-broker/task"
@@ -101,6 +107,55 @@ func startBroker(conf config.Config, logger *log.Logger, loggerFactory *loggerfa
 		logger.Fatalf("error starting broker: %s", err)
 	}
 
-	grapefruitThing := grapefruit.New(onDemandBroker, componentName)
-	grapefruitThing.StartupServer(conf, loggerFactory, logger)
+	if conf.Broker.StartUpBanner {
+		fmt.Println(`
+                  .//\
+        \\      .+ssso/\     \\
+      \---.\  .+ssssssso/.  \----\         ____     ______     ______
+    .--------+ssssssssssso+--------\      / __ \   (_  __ \   (_   _ \
+  .-------:+ssssssssssssssss+--------\   / /  \ \    ) ) \ \    ) (_) )
+ -------./ssssssssssssssssssss:.------- ( ()  () )  ( (   ) )   \   _/
+  \--------+ssssssssssssssso+--------/  ( ()  () )   ) )  ) )   /  _ \
+    \-------.+osssssssssso/.-------/     \ \__/ /   / /__/ /   _) (_) )
+      \---./  ./osssssso/   \.---/        \____/   (______/   (______/
+        \/      \/osso/       \/
+                  \/:/
+								`)
+	}
+
+	server := apiserver.New(conf, onDemandBroker, componentName, loggerFactory, logger)
+
+	stopped := make(chan struct{})
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
+
+	go func() {
+		<-stop
+
+		timeoutSecs := conf.Broker.ShutdownTimeoutSecs
+		logger.Printf("Broker shutting down on signal (timeout %d secs)...\n", timeoutSecs)
+
+		ctx, cancel := context.WithTimeout(
+			context.Background(),
+			time.Second*time.Duration(timeoutSecs),
+		)
+		defer cancel()
+
+		if err := server.Shutdown(ctx); err != nil {
+			logger.Printf("Error gracefully shutting down server: %v\n", err)
+		} else {
+			logger.Println("Server gracefully shut down")
+		}
+
+		close(stopped)
+	}()
+
+	logger.Println("Listening on", server.Addr)
+
+	err = server.ListenAndServe()
+	if err != http.ErrServerClosed {
+		logger.Fatalf("Error listening and serving: %v\n", err)
+	}
+
+	<-stopped
 }
