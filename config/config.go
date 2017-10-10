@@ -26,6 +26,7 @@ type Config struct {
 	Broker            Broker
 	Bosh              Bosh
 	CF                CF
+	CredHub           CredHub           `yaml:"credhub"`
 	ServiceAdapter    ServiceAdapter    `yaml:"service_adapter"`
 	ServiceDeployment ServiceDeployment `yaml:"service_deployment"`
 	ServiceCatalog    ServiceOffering   `yaml:"service_catalog"`
@@ -55,6 +56,10 @@ func (c Config) Validate() error {
 	}
 
 	return nil
+}
+
+func (c Config) HasCredHub() bool {
+	return c.CredHub != CredHub{}
 }
 
 type Broker struct {
@@ -262,6 +267,12 @@ func (a BOSHAuthentication) Validate() error {
 	}
 
 	return err
+}
+
+type CredHub struct {
+	APIURL       string `yaml:"api_url"`
+	ClientID     string `yaml:"client_id"`
+	ClientSecret string `yaml:"client_secret"`
 }
 
 type ServiceAdapter struct {

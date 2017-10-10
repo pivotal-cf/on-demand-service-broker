@@ -123,7 +123,7 @@ func startBroker(conf config.Config, logger *log.Logger, loggerFactory *loggerfa
 								`)
 	}
 
-	server := apiserver.New(conf, onDemandBroker, componentName, loggerFactory, logger)
+	server := apiserver.New(conf, onDemandBroker, nil, componentName, loggerFactory, logger)
 
 	stopped := make(chan struct{})
 	stop := make(chan os.Signal, 1)

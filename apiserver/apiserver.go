@@ -28,13 +28,18 @@ type CombinedBrokers interface {
 
 func New(
 	conf config.Config,
-	broker CombinedBrokers,
+	baseBroker CombinedBrokers,
+	credhubBroker CombinedBrokers,
 	componentName string,
 	mgmtapiLoggerFactory *loggerfactory.LoggerFactory,
 	serverLogger *log.Logger,
 ) *http.Server {
 
 	brokerRouter := mux.NewRouter()
+	broker := baseBroker
+	if conf.HasCredHub() {
+		broker = credhubBroker
+	}
 	mgmtapi.AttachRoutes(brokerRouter, broker, conf.ServiceCatalog, mgmtapiLoggerFactory)
 	brokerapi.AttachRoutes(brokerRouter, broker, lager.NewLogger(componentName))
 	authProtectedBrokerAPI := apiauth.
