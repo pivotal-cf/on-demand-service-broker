@@ -116,10 +116,7 @@ var _ = Describe("binding service instances", func() {
 				bytes.NewReader(bodyBytes))
 			Expect(err).ToNot(HaveOccurred())
 			bindingReq = basicAuthBrokerRequest(bindingReq)
-		})
 
-		JustBeforeEach(func() {
-			var err error
 			bindingResponse, err = http.DefaultClient.Do(bindingReq)
 			Expect(err).ToNot(HaveOccurred())
 		})
