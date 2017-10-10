@@ -17,7 +17,7 @@ import (
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
-	"github.com/pivotal-cf/on-demand-service-broker/cf"
+	"github.com/pivotal-cf/on-demand-service-broker/dummy"
 )
 
 var _ = Describe("deprovisioning instances", func() {
@@ -28,17 +28,15 @@ var _ = Describe("deprovisioning instances", func() {
 		deprovisionSpec brokerapi.DeprovisionServiceSpec
 		deprovisionErr  error
 
-		deleteTaskID = 88
+		deleteTaskID       = 88
+		deprovisionDetails brokerapi.DeprovisionDetails
 	)
 
 	BeforeEach(func() {
 		asyncAllowed = true
 		boshClient.GetDeploymentReturns([]byte(`manifest: true`), true, nil)
-		cfClient.GetInstanceStateReturns(cf.InstanceState{
-			PlanID:              existingPlanID,
-			OperationInProgress: false,
-		}, nil)
 		boshClient.DeleteDeploymentReturns(deleteTaskID, nil)
+		deprovisionDetails = brokerapi.DeprovisionDetails{PlanID: existingPlanID}
 	})
 
 	JustBeforeEach(func() {
@@ -46,9 +44,48 @@ var _ = Describe("deprovisioning instances", func() {
 		deprovisionSpec, deprovisionErr = b.Deprovision(
 			context.Background(),
 			instanceID,
-			brokerapi.DeprovisionDetails{},
+			deprovisionDetails,
 			asyncAllowed,
 		)
+	})
+
+	Context("when CF integration is disabled", func() {
+
+		JustBeforeEach(func() {
+			boshInfo = createBOSHInfoWithMajorVersion(
+				boshdirector.MinimumMajorSemverDirectorVersionForLifecycleErrands,
+				boshdirector.VersionType("semver"),
+			)
+			var err error
+			b, err = createBroker(boshInfo, dummy.New())
+			Expect(err).To(BeNil())
+
+		})
+
+		It("returns that is deprovisioning asynchronously", func() {
+			deprovisionSpec, deprovisionErr = b.Deprovision(
+				context.Background(),
+				instanceID,
+				deprovisionDetails,
+				asyncAllowed,
+			)
+			Expect(deprovisionSpec.IsAsync).To(BeTrue())
+		})
+
+		It("logs that it run the pre-delete errand", func() {
+			deprovisionDetails.PlanID = preDeleteErrandPlanID
+			deprovisionSpec, deprovisionErr = b.Deprovision(
+				context.Background(),
+				instanceID,
+				deprovisionDetails,
+				asyncAllowed,
+			)
+			Expect(logBuffer.String()).To(ContainSubstring(
+				fmt.Sprintf("running pre-delete errand for instance %s", instanceID),
+			))
+
+		})
+
 	})
 
 	It("returns that is deprovisioning asynchronously", func() {
@@ -147,21 +184,12 @@ var _ = Describe("deprovisioning instances", func() {
 
 		BeforeEach(func() {
 			instanceID = "an-instance-with-pre-delete-errand"
-			cfClient.GetInstanceStateReturns(cf.InstanceState{
-				PlanID:              preDeleteErrandPlanID,
-				OperationInProgress: false,
-			}, nil)
+			deprovisionDetails.PlanID = preDeleteErrandPlanID
 			boshClient.RunErrandReturns(errandTaskID, nil)
 		})
 
 		It("returns that is deprovisioning asynchronously", func() {
 			Expect(deprovisionSpec.IsAsync).To(BeTrue())
-		})
-
-		It("calls get instance state with expected instance ID", func() {
-			Expect(cfClient.GetInstanceStateCallCount()).To(Equal(1))
-			argInstanceID, _ := cfClient.GetInstanceStateArgsForCall(0)
-			Expect(argInstanceID).To(Equal(instanceID))
 		})
 
 		It("logs that it run the pre-delete errand", func() {
@@ -195,19 +223,6 @@ var _ = Describe("deprovisioning instances", func() {
 				BoshContextID: contextID,
 				OperationType: broker.OperationTypeDelete,
 			}))
-		})
-
-		Context("when the cf client returns an error from get instance state", func() {
-			BeforeEach(func() {
-				cfClient.GetInstanceStateReturns(
-					cf.InstanceState{},
-					errors.New("service instance error"),
-				)
-			})
-
-			It("returns an error", func() {
-				Expect(deprovisionErr).To(HaveOccurred())
-			})
 		})
 
 		Context("when bosh returns an error attempting to run errand", func() {
