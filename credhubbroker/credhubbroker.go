@@ -22,7 +22,13 @@ func New(broker apiserver.CombinedBrokers, credStore CredentialStore) *CredHubBr
 
 func (b *CredHubBroker) Bind(ctx context.Context, instanceID, bindingID string, details brokerapi.BindDetails) (brokerapi.Binding, error) {
 	binding, err := b.CombinedBrokers.Bind(ctx, instanceID, bindingID, details)
+	if err != nil {
+		return brokerapi.Binding{}, err
+	}
 	key := fmt.Sprintf("/c/%s/%s/%s/credentials", details.ServiceID, instanceID, bindingID)
-	b.credStore.Set(key, binding.Credentials)
-	return binding, err
+	err = b.credStore.Set(key, binding.Credentials)
+	if err != nil {
+		return brokerapi.Binding{}, err
+	}
+	return binding, nil
 }
