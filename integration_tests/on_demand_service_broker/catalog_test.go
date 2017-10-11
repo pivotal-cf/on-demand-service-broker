@@ -89,6 +89,7 @@ var _ = Describe("Catalog", func() {
 							ProviderDisplayName: serviceMetaDataProviderDisplayName,
 							DocumentationUrl:    serviceMetaDataDocumentationURL,
 							SupportUrl:          serviceMetaDataSupportURL,
+							Shareable:           booleanPointer(serviceMetaDataShareable),
 						},
 						DashboardClient: nil,
 						Tags:            serviceTags,
@@ -160,6 +161,7 @@ var _ = Describe("Catalog", func() {
 							ProviderDisplayName: serviceMetaDataProviderDisplayName,
 							DocumentationUrl:    serviceMetaDataDocumentationURL,
 							SupportUrl:          serviceMetaDataSupportURL,
+							Shareable:           booleanPointer(serviceMetaDataShareable),
 						},
 						DashboardClient: &brokerapi.ServiceDashboardClient{
 							ID:          "client-id-1",

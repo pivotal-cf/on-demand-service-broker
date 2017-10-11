@@ -68,6 +68,7 @@ var (
 	serviceMetaDataProviderDisplayName = "serviceMetaDataProviderDisplayName"
 	serviceMetaDataDocumentationURL    = "serviceMetaDataDocumentationURL"
 	serviceMetaDataSupportURL          = "serviceMetaDataSupportURL"
+	serviceMetaDataShareable           = true
 	serviceTags                        = []string{"a", "b"}
 
 	dedicatedPlanName         = "dedicated-plan-name"
@@ -355,6 +356,7 @@ func defaultBrokerConfig(boshURL, uaaURL, cfURL, cfUAAURL string) config.Config 
 				ProviderDisplayName: serviceMetaDataProviderDisplayName,
 				DocumentationURL:    serviceMetaDataDocumentationURL,
 				SupportURL:          serviceMetaDataSupportURL,
+				Shareable:           serviceMetaDataShareable,
 			},
 			DashboardClient: &config.DashboardClient{
 				ID:          "client-id-1",

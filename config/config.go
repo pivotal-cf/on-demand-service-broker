@@ -426,6 +426,7 @@ type ServiceMetadata struct {
 	ProviderDisplayName string `yaml:"provider_display_name"`
 	DocumentationURL    string `yaml:"documentation_url"`
 	SupportURL          string `yaml:"support_url"`
+	Shareable           bool   `yaml:"shareable"`
 }
 
 type DashboardClient struct {

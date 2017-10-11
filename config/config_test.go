@@ -100,6 +100,7 @@ var _ = Describe("Config", func() {
 							ProviderDisplayName: "some name",
 							DocumentationURL:    "some url",
 							SupportURL:          "some url",
+							Shareable:           true,
 						},
 						DashboardClient: &config.DashboardClient{
 							ID:          "client-id-1",

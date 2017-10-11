@@ -54,6 +54,7 @@ service_catalog:
     provider_display_name: "some name"
     documentation_url: "some url"
     support_url: "some url"
+    shareable: true
   tags:
     - some-tag
     - some-other-tag
