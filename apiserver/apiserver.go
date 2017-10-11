@@ -21,6 +21,7 @@ import (
 	"github.com/urfave/negroni"
 )
 
+//go:generate counterfeiter -o fakes/combined_brokers.go . CombinedBrokers
 type CombinedBrokers interface {
 	mgmtapi.ManageableBroker
 	brokerapi.ServiceBroker
