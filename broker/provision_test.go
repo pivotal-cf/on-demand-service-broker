@@ -722,7 +722,7 @@ var _ = Describe("provisioning", func() {
 			)
 			noopCFClient := noopservicescontroller.New()
 			broker, err := createBroker(boshInfo, noopCFClient)
-			Expect(err).To(BeNil())
+			Expect(err).NotTo(HaveOccurred())
 			serviceSpec, provisionErr = broker.Provision(
 				context.Background(),
 				instanceID,

@@ -39,7 +39,7 @@ var _ = Describe("Client", func() {
 		It("return a valid version", func() {
 			client := noopservicescontroller.New()
 			version, err := client.GetAPIVersion(testLogger)
-			Expect(err).To(BeNil())
+			Expect(err).NotTo(HaveOccurred())
 			Expect(version).To(Equal(broker.MinimumCFVersion))
 		})
 	})
@@ -48,7 +48,7 @@ var _ = Describe("Client", func() {
 		It("always returns 1", func() {
 			client := noopservicescontroller.New()
 			planCount, err := client.CountInstancesOfPlan("offeringId", "planId", testLogger)
-			Expect(err).To(BeNil())
+			Expect(err).NotTo(HaveOccurred())
 			Expect(planCount).To(Equal(1))
 		})
 	})
@@ -57,7 +57,7 @@ var _ = Describe("Client", func() {
 		It("returns empty map", func() {
 			client := noopservicescontroller.New()
 			instanceCountByPlanID, err := client.CountInstancesOfServiceOffering("offeringId", testLogger)
-			Expect(err).To(BeNil())
+			Expect(err).NotTo(HaveOccurred())
 			Expect(instanceCountByPlanID).ToNot(BeNil())
 		})
 	})
@@ -66,7 +66,7 @@ var _ = Describe("Client", func() {
 		It("return default state", func() {
 			client := noopservicescontroller.New()
 			instanceState, err := client.GetInstanceState("serviceInstanceGUID", testLogger)
-			Expect(err).To(BeNil())
+			Expect(err).NotTo(HaveOccurred())
 			Expect(instanceState).ToNot(BeNil())
 		})
 	})
@@ -75,7 +75,7 @@ var _ = Describe("Client", func() {
 		It("gets empty instances of service offerings", func() {
 			client := noopservicescontroller.New()
 			instances, err := client.GetInstancesOfServiceOffering("serviceInstanceGUID", testLogger)
-			Expect(err).To(BeNil())
+			Expect(err).NotTo(HaveOccurred())
 			Expect(instances).ToNot(BeNil())
 		})
 	})

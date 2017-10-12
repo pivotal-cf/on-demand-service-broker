@@ -58,7 +58,7 @@ var _ = Describe("deprovisioning instances", func() {
 			)
 			var err error
 			b, err = createBroker(boshInfo, noopservicescontroller.New())
-			Expect(err).To(BeNil())
+			Expect(err).NotTo(HaveOccurred())
 
 		})
 
