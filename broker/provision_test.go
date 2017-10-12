@@ -20,7 +20,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
-	"github.com/pivotal-cf/on-demand-service-broker/noopcf"
+	"github.com/pivotal-cf/on-demand-service-broker/noopservicescontroller"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
@@ -720,7 +720,7 @@ var _ = Describe("provisioning", func() {
 				boshdirector.MinimumMajorSemverDirectorVersionForLifecycleErrands,
 				boshdirector.VersionType("semver"),
 			)
-			noopCFClient := noopcf.New()
+			noopCFClient := noopservicescontroller.New()
 			broker, err := createBroker(boshInfo, noopCFClient)
 			Expect(err).To(BeNil())
 			serviceSpec, provisionErr = broker.Provision(

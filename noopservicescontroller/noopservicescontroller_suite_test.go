@@ -1,4 +1,4 @@
-package noopcf_test
+package noopservicescontroller_test
 
 import (
 	. "github.com/onsi/ginkgo"
