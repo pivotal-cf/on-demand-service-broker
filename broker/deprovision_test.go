@@ -17,7 +17,7 @@ import (
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
-	"github.com/pivotal-cf/on-demand-service-broker/dummy"
+	"github.com/pivotal-cf/on-demand-service-broker/noopcf"
 )
 
 var _ = Describe("deprovisioning instances", func() {
@@ -57,7 +57,7 @@ var _ = Describe("deprovisioning instances", func() {
 				boshdirector.VersionType("semver"),
 			)
 			var err error
-			b, err = createBroker(boshInfo, dummy.New())
+			b, err = createBroker(boshInfo, noopcf.New())
 			Expect(err).To(BeNil())
 
 		})

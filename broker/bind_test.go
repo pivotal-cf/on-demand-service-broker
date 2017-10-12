@@ -16,7 +16,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
-	"github.com/pivotal-cf/on-demand-service-broker/dummy"
+	"github.com/pivotal-cf/on-demand-service-broker/noopcf"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
@@ -68,7 +68,7 @@ var _ = Describe("Bind", func() {
 				boshdirector.MinimumMajorSemverDirectorVersionForLifecycleErrands,
 				boshdirector.VersionType("semver"),
 			)
-			b, brokerCreationErr = createBroker(boshInfo, dummy.New())
+			b, brokerCreationErr = createBroker(boshInfo, noopcf.New())
 			Expect(brokerCreationErr).NotTo(HaveOccurred())
 
 			bindResult, bindErr = b.Bind(context.Background(), instanceID, bindingID, bindRequest)

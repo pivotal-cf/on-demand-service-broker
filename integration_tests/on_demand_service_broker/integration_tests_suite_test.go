@@ -173,7 +173,7 @@ func TestIntegrationTests(t *testing.T) {
 	RunSpecs(t, "Integration Tests Suite")
 }
 
-func startBrokerInDummyCFModeWithPassingStartupChecks(
+func startBrokerInNoopCFModeWithPassingStartupChecks(
 	conf config.Config,
 	boshDirector *mockbosh.MockBOSH,
 ) *gexec.Session {

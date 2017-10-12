@@ -23,8 +23,8 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
-	"github.com/pivotal-cf/on-demand-service-broker/dummy"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
+	"github.com/pivotal-cf/on-demand-service-broker/noopcf"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	"github.com/pivotal-cf/on-demand-service-broker/task"
 )
@@ -92,7 +92,7 @@ func startBroker(conf config.Config, logger *log.Logger, loggerFactory *loggerfa
 			logger.Fatalf("error creating Cloud Foundry client: %s", err)
 		}
 	} else {
-		cfClient = dummy.New()
+		cfClient = noopcf.New()
 	}
 
 	serviceAdapter := &serviceadapter.Client{

@@ -1,7 +1,7 @@
-package dummy_test
+package noopcf_test
 
 import (
-	"github.com/pivotal-cf/on-demand-service-broker/dummy"
+	"github.com/pivotal-cf/on-demand-service-broker/noopcf"
 
 	"io"
 	"log"
@@ -24,11 +24,11 @@ var _ = Describe("Client", func() {
 
 	Describe("New", func() {
 		It("should create client", func() {
-			Expect(dummy.New()).ToNot(BeNil())
+			Expect(noopcf.New()).ToNot(BeNil())
 		})
 
 		It("should be CloudFoundry", func() {
-			client := dummy.New()
+			client := noopcf.New()
 			var i interface{} = client
 			_, ok := i.(broker.CloudFoundryClient)
 			Expect(ok).To(BeTrue())
@@ -37,7 +37,7 @@ var _ = Describe("Client", func() {
 
 	Describe("GetAPIVersion", func() {
 		It("return a valid version", func() {
-			client := dummy.New()
+			client := noopcf.New()
 			version, err := client.GetAPIVersion(testLogger)
 			Expect(err).To(BeNil())
 			Expect(version).To(Equal(broker.MinimumCFVersion))
@@ -46,7 +46,7 @@ var _ = Describe("Client", func() {
 
 	Describe("CountInstancesOfPlan", func() {
 		It("always returns 1", func() {
-			client := dummy.New()
+			client := noopcf.New()
 			planCount, err := client.CountInstancesOfPlan("offeringId", "planId", testLogger)
 			Expect(err).To(BeNil())
 			Expect(planCount).To(Equal(1))
@@ -55,7 +55,7 @@ var _ = Describe("Client", func() {
 
 	Describe("CountInstancesOfServiceOffering", func() {
 		It("returns empty map", func() {
-			client := dummy.New()
+			client := noopcf.New()
 			instanceCountByPlanID, err := client.CountInstancesOfServiceOffering("offeringId", testLogger)
 			Expect(err).To(BeNil())
 			Expect(instanceCountByPlanID).ToNot(BeNil())
@@ -64,7 +64,7 @@ var _ = Describe("Client", func() {
 
 	Describe("GetInstanceState", func() {
 		It("return default state", func() {
-			client := dummy.New()
+			client := noopcf.New()
 			instanceState, err := client.GetInstanceState("serviceInstanceGUID", testLogger)
 			Expect(err).To(BeNil())
 			Expect(instanceState).ToNot(BeNil())
@@ -73,7 +73,7 @@ var _ = Describe("Client", func() {
 
 	Describe("GetInstancesOfServiceOffering", func() {
 		It("gets empty instances of service offerings", func() {
-			client := dummy.New()
+			client := noopcf.New()
 			instances, err := client.GetInstancesOfServiceOffering("serviceInstanceGUID", testLogger)
 			Expect(err).To(BeNil())
 			Expect(instances).ToNot(BeNil())

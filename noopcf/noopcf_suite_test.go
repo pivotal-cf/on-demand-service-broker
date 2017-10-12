@@ -1,4 +1,4 @@
-package dummy_test
+package noopcf_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -9,5 +9,5 @@ import (
 
 func TestDummy(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Dummy Suite")
+	RunSpecs(t, "NoopCF Client Suite")
 }

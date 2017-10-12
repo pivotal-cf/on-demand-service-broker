@@ -64,9 +64,9 @@ var _ = Describe("binding service instances", func() {
 		brokerConfig = defaultBrokerConfig(boshDirector.URL, boshUAA.URL, cfAPI.URL, cfUAA.URL)
 
 		switch cfClient {
-		case "dummy":
+		case "noopcf":
 			brokerConfig.Broker.DisableCFStartupChecks = true
-			runningBroker = startBrokerInDummyCFModeWithPassingStartupChecks(brokerConfig, boshDirector)
+			runningBroker = startBrokerInNoopCFModeWithPassingStartupChecks(brokerConfig, boshDirector)
 		default:
 			runningBroker = startBrokerWithPassingStartupChecks(brokerConfig, cfAPI, boshDirector)
 		}
@@ -139,7 +139,7 @@ var _ = Describe("binding service instances", func() {
 		Context("when CF is disabled", func() {
 
 			BeforeEach(func() {
-				cfClient = "dummy"
+				cfClient = "noopcf"
 			})
 
 			It("returns HTTP 201", func() {
