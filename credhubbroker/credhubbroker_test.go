@@ -106,16 +106,6 @@ var _ = Describe("CredHub broker", func() {
 			Expect(key).To(Equal(credhubKey))
 			Expect(receivedCreds).To(Equal(creds))
 		})
-
-		XContext("when cannot store credentials in credhub", func() {
-			It("calls unbind on the wrapped broker", func() {
-
-			})
-
-			It("returns an error", func() {
-
-			})
-		})
 	})
 
 	Describe("binding with CredHub store", func() {
