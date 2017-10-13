@@ -173,6 +173,17 @@ func TestIntegrationTests(t *testing.T) {
 	RunSpecs(t, "Integration Tests Suite")
 }
 
+func startBrokerInNoopCFModeWithPassingStartupChecks(
+	conf config.Config,
+	boshDirector *mockbosh.MockBOSH,
+) *gexec.Session {
+	boshDirector.VerifyAndMock(
+		mockbosh.Info().RespondsWithSufficientVersionForLifecycleErrands(boshDirector.UAAURL),
+		mockbosh.Info().RespondsWithSufficientVersionForLifecycleErrands(boshDirector.UAAURL),
+	)
+	return startBroker(conf)
+}
+
 func startBrokerWithPassingStartupChecks(
 	conf config.Config,
 	cfAPI *mockhttp.Server,
@@ -241,10 +252,11 @@ func provisionInstanceSynchronously(instanceID, planID string, arbitraryParams m
 	return instance
 }
 
-func deprovisionInstance(instanceID string, asyncAllowed bool) *http.Response {
+func deprovisionInstance(instanceID string, planID string, serviceID string, asyncAllowed bool) *http.Response {
 	deprovisionReq, err := http.NewRequest(
 		"DELETE",
-		fmt.Sprintf("http://localhost:%d/v2/service_instances/%s?accepts_incomplete=%t", brokerPort, instanceID, asyncAllowed), bytes.NewReader([]byte{}))
+		fmt.Sprintf("http://localhost:%d/v2/service_instances/%s?accepts_incomplete=%t&plan_id=%s&service_id=%s",
+			brokerPort, instanceID, asyncAllowed, planID, serviceID), bytes.NewReader([]byte{}))
 	Expect(err).ToNot(HaveOccurred())
 	deprovisionReq = basicAuthBrokerRequest(deprovisionReq)
 	deprovisionResponse, err := http.DefaultClient.Do(deprovisionReq)

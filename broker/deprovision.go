@@ -23,7 +23,7 @@ import (
 func (b *Broker) Deprovision(
 	ctx context.Context,
 	instanceID string,
-	_ brokerapi.DeprovisionDetails,
+	deprovisionDetails brokerapi.DeprovisionDetails,
 	asyncAllowed bool,
 ) (brokerapi.DeprovisionServiceSpec, error) {
 	b.deploymentLock.Lock()
@@ -45,12 +45,7 @@ func (b *Broker) Deprovision(
 		return deprovisionErr(err, logger)
 	}
 
-	instanceState, err := b.cfClient.GetInstanceState(instanceID, logger)
-	if err != nil {
-		return deprovisionErr(NewGenericError(ctx, err), logger)
-	}
-
-	plan, found := b.serviceOffering.FindPlanByID(instanceState.PlanID)
+	plan, found := b.serviceOffering.FindPlanByID(deprovisionDetails.PlanID)
 	if found {
 		if errand := plan.PreDeleteErrand(); errand != "" {
 			return b.runPreDeleteErrand(ctx, instanceID, errand, logger)
