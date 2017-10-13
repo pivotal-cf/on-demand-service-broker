@@ -20,6 +20,26 @@ type FakeCredentialStore struct {
 	setReturnsOnCall map[int]struct {
 		result1 error
 	}
+	DeleteStub        func(key string) error
+	deleteMutex       sync.RWMutex
+	deleteArgsForCall []struct {
+		key string
+	}
+	deleteReturns struct {
+		result1 error
+	}
+	deleteReturnsOnCall map[int]struct {
+		result1 error
+	}
+	AuthenticateStub        func() error
+	authenticateMutex       sync.RWMutex
+	authenticateArgsForCall []struct{}
+	authenticateReturns     struct {
+		result1 error
+	}
+	authenticateReturnsOnCall map[int]struct {
+		result1 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -73,11 +93,103 @@ func (fake *FakeCredentialStore) SetReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
+func (fake *FakeCredentialStore) Delete(key string) error {
+	fake.deleteMutex.Lock()
+	ret, specificReturn := fake.deleteReturnsOnCall[len(fake.deleteArgsForCall)]
+	fake.deleteArgsForCall = append(fake.deleteArgsForCall, struct {
+		key string
+	}{key})
+	fake.recordInvocation("Delete", []interface{}{key})
+	fake.deleteMutex.Unlock()
+	if fake.DeleteStub != nil {
+		return fake.DeleteStub(key)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.deleteReturns.result1
+}
+
+func (fake *FakeCredentialStore) DeleteCallCount() int {
+	fake.deleteMutex.RLock()
+	defer fake.deleteMutex.RUnlock()
+	return len(fake.deleteArgsForCall)
+}
+
+func (fake *FakeCredentialStore) DeleteArgsForCall(i int) string {
+	fake.deleteMutex.RLock()
+	defer fake.deleteMutex.RUnlock()
+	return fake.deleteArgsForCall[i].key
+}
+
+func (fake *FakeCredentialStore) DeleteReturns(result1 error) {
+	fake.DeleteStub = nil
+	fake.deleteReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeCredentialStore) DeleteReturnsOnCall(i int, result1 error) {
+	fake.DeleteStub = nil
+	if fake.deleteReturnsOnCall == nil {
+		fake.deleteReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.deleteReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeCredentialStore) Authenticate() error {
+	fake.authenticateMutex.Lock()
+	ret, specificReturn := fake.authenticateReturnsOnCall[len(fake.authenticateArgsForCall)]
+	fake.authenticateArgsForCall = append(fake.authenticateArgsForCall, struct{}{})
+	fake.recordInvocation("Authenticate", []interface{}{})
+	fake.authenticateMutex.Unlock()
+	if fake.AuthenticateStub != nil {
+		return fake.AuthenticateStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.authenticateReturns.result1
+}
+
+func (fake *FakeCredentialStore) AuthenticateCallCount() int {
+	fake.authenticateMutex.RLock()
+	defer fake.authenticateMutex.RUnlock()
+	return len(fake.authenticateArgsForCall)
+}
+
+func (fake *FakeCredentialStore) AuthenticateReturns(result1 error) {
+	fake.AuthenticateStub = nil
+	fake.authenticateReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeCredentialStore) AuthenticateReturnsOnCall(i int, result1 error) {
+	fake.AuthenticateStub = nil
+	if fake.authenticateReturnsOnCall == nil {
+		fake.authenticateReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.authenticateReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeCredentialStore) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.setMutex.RLock()
 	defer fake.setMutex.RUnlock()
+	fake.deleteMutex.RLock()
+	defer fake.deleteMutex.RUnlock()
+	fake.authenticateMutex.RLock()
+	defer fake.authenticateMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
