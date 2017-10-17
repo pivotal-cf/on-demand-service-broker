@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"strings"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -37,11 +36,11 @@ var _ = Describe("binding service instances", func() {
 		boshUAA      *mockuaa.ClientCredentialsServer
 		cfUAA        *mockuaa.ClientCredentialsServer
 
-		runningBroker   *gexec.Session
-		bindingResponse *http.Response
-		brokerConfig    config.Config
+		runningBroker *gexec.Session
+		brokerConfig  config.Config
 
 		instanceID                 = "some-binding-instance-ID"
+		bindingID                  = "Gjklh45ljkhn"
 		manifestForFirstDeployment = bosh.BoshManifest{
 			Name:           deploymentName(instanceID),
 			Releases:       []bosh.Release{},
@@ -52,17 +51,16 @@ var _ = Describe("binding service instances", func() {
 
 	BeforeEach(func() {
 		cfClient = "cf"
-	})
-
-	JustBeforeEach(func() {
-
 		boshUAA = mockuaa.NewClientCredentialsServer(boshClientID, boshClientSecret, "bosh uaa token")
 		boshDirector = mockbosh.NewWithUAA(boshUAA.URL)
+
 		cfUAA = mockuaa.NewClientCredentialsServer(cfUaaClientID, cfUaaClientSecret, "CF UAA token")
 		cfAPI = mockcfapi.New()
 
 		brokerConfig = defaultBrokerConfig(boshDirector.URL, boshUAA.URL, cfAPI.URL, cfUAA.URL)
+	})
 
+	JustBeforeEach(func() {
 		switch cfClient {
 		case "noopservicescontroller":
 			brokerConfig.Broker.DisableCFStartupChecks = true
@@ -70,11 +68,9 @@ var _ = Describe("binding service instances", func() {
 		default:
 			runningBroker = startBrokerWithPassingStartupChecks(brokerConfig, cfAPI, boshDirector)
 		}
-
 	})
 
 	AfterEach(func() {
-
 		killBrokerAndCheckForOpenConnections(runningBroker, boshDirector.URL)
 
 		boshDirector.VerifyMocks()
@@ -89,32 +85,14 @@ var _ = Describe("binding service instances", func() {
 
 	Describe("a successful binding", func() {
 		var (
-			bindingReq      *http.Request
-			bindingResponse *http.Response
-			bindingParams   = map[string]interface{}{"baz": "bar"}
+			bindingParams = map[string]interface{}{"baz": "bar"}
 
 			bindingPlanID    = "plan-guid-from-cc"
 			bindingServiceID = "service-guid-from-cc"
-			bindingId        = "Gjklh45ljkhn"
-			appGUID          = "app-guid-from-cc"
-		)
 
-		BeforeEach(func() {
-			adapter.CreateBinding().ReturnsBinding(`{
-					"credentials": {"secret": "dont-tell-anyone"},
-					"syslog_drain_url": "syslog-url",
-					"route_service_url": "excellent route"
-					}`)
-		})
+			appGUID = "app-guid-from-cc"
 
-		JustBeforeEach(func() {
-			boshDirector.VerifyAndMock(
-				mockbosh.VMsForDeployment(deploymentName(instanceID)).RedirectsToTask(2015),
-				mockbosh.Task(2015).RespondsWithTaskContainingState(boshdirector.TaskDone),
-				mockbosh.TaskOutput(2015).RespondsWithVMsOutput([]boshdirector.BoshVMsOutput{{IPs: []string{"ip.from.bosh"}, InstanceGroup: "some-instance-group"}}),
-				mockbosh.GetDeployment(deploymentName(instanceID)).RespondsWithManifest(manifestForFirstDeployment),
-			)
-			reqBody := map[string]interface{}{
+			bindingRequestDetails = map[string]interface{}{
 				"plan_id":    bindingPlanID,
 				"service_id": bindingServiceID,
 				"app_guid":   appGUID,
@@ -123,39 +101,47 @@ var _ = Describe("binding service instances", func() {
 				},
 				"parameters": bindingParams,
 			}
-			bodyBytes, err := json.Marshal(reqBody)
-			Expect(err).ToNot(HaveOccurred())
+			bindingRequestBody []byte
+		)
 
-			bindingReq, err = http.NewRequest("PUT",
-				fmt.Sprintf("http://localhost:%d/v2/service_instances/%s/service_bindings/%s", brokerPort, instanceID, bindingId),
-				bytes.NewReader(bodyBytes))
-			Expect(err).ToNot(HaveOccurred())
-			bindingReq = basicAuthBrokerRequest(bindingReq)
+		BeforeEach(func() {
+			adapter.CreateBinding().ReturnsBinding(`{
+					"credentials": {"secret": "dont-tell-anyone"},
+					"syslog_drain_url": "syslog-url",
+					"route_service_url": "excellent route"
+					}`)
 
-			bindingResponse, err = http.DefaultClient.Do(bindingReq)
+			var err error
+			bindingRequestBody, err = json.Marshal(bindingRequestDetails)
 			Expect(err).ToNot(HaveOccurred())
 		})
-    
-    Context("when CF is disabled", func() {
+
+		Context("when CF is disabled", func() {
 
 			BeforeEach(func() {
 				cfClient = "noopservicescontroller"
 			})
 
 			It("returns HTTP 201", func() {
+				mockBoshForBinding(boshDirector, instanceID, manifestForFirstDeployment)
+
+				bindingResponse := makeBindingRequest(instanceID, bindingID, bindingRequestBody)
 				Expect(bindingResponse.StatusCode).To(Equal(http.StatusCreated))
 			})
 
 		})
 
 		It("exhibits success", func() {
+			mockBoshForBinding(boshDirector, instanceID, manifestForFirstDeployment)
+
+			bindingResponse := makeBindingRequest(instanceID, bindingID, bindingRequestBody)
+			defer bindingResponse.Body.Close()
+
 			By("responding with HTTP 201")
 			Expect(bindingResponse.StatusCode).To(Equal(http.StatusCreated))
 
 			By("including credentials, syslog drain URL and route service URL in response body")
-
 			var binding brokerapi.Binding
-			defer bindingResponse.Body.Close()
 			Expect(json.NewDecoder(bindingResponse.Body).Decode(&binding)).To(Succeed())
 
 			credentials := binding.Credentials.(map[string]interface{})
@@ -164,27 +150,15 @@ var _ = Describe("binding service instances", func() {
 			Expect(binding.SyslogDrainURL).To(Equal("syslog-url"))
 
 			By("calling the adapter with expected binding ID")
-
 			Expect(adapter.CreateBinding().ReceivedID()).To(Equal("Gjklh45ljkhn"))
 
 			By("calling the adapter with expected bosh VMS")
-
 			Expect(adapter.CreateBinding().ReceivedBoshVms()).To(Equal(bosh.BoshVMs{"some-instance-group": []string{"ip.from.bosh"}}))
 
 			By("calling the adapter with the correct request params")
-
-			Expect(adapter.CreateBinding().ReceivedRequestParameters()).To(Equal(map[string]interface{}{
-				"plan_id":    bindingPlanID,
-				"service_id": bindingServiceID,
-				"app_guid":   appGUID,
-				"bind_resource": map[string]interface{}{
-					"app_guid": appGUID,
-				},
-				"parameters": bindingParams,
-			}))
+			Expect(adapter.CreateBinding().ReceivedRequestParameters()).To(Equal(bindingRequestDetails))
 
 			By("calling the adapter with the bosh manifest")
-
 			Expect(adapter.CreateBinding().ReceivedManifest()).To(Equal(manifestForFirstDeployment))
 
 			By("logging the bind request with a request id")
@@ -202,36 +176,25 @@ var _ = Describe("binding service instances", func() {
 			})
 
 			It("responds with 201 but doesn't include JSON keys for any missing optional fields", func() {
+				mockBoshForBinding(boshDirector, instanceID, manifestForFirstDeployment)
+
+				bindingResponse := makeBindingRequest(instanceID, bindingID, bindingRequestBody)
+				defer bindingResponse.Body.Close()
+
 				Expect(bindingResponse.StatusCode).To(Equal(http.StatusCreated))
 
-				defer bindingResponse.Body.Close()
 				bodyBytes, err := ioutil.ReadAll(bindingResponse.Body)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(bodyBytes).NotTo(ContainSubstring("syslog_drain_url"))
-				Expect(bodyBytes).NotTo(ContainSubstring("route_service_url"))
+				Expect(bodyBytes).NotTo(SatisfyAny(
+					ContainSubstring("syslog_drain_url"),
+					ContainSubstring("route_service_url"),
+				))
 			})
 		})
 	})
 
 	Context("when the binding fails due to an adapter error", func() {
 		var bindingResponse *http.Response
-
-		JustBeforeEach(func() {
-			boshDirector.VerifyAndMock(
-				mockbosh.VMsForDeployment(deploymentName(instanceID)).RedirectsToTask(2015),
-				mockbosh.Task(2015).RespondsWithTaskContainingState(boshdirector.TaskDone),
-				mockbosh.TaskOutput(2015).RespondsWithVMsOutput([]boshdirector.BoshVMsOutput{{IPs: []string{"ip.from.bosh"}, InstanceGroup: "some-instance-group"}}),
-				mockbosh.GetDeployment(deploymentName(instanceID)).RespondsWithManifest(manifestForFirstDeployment),
-			)
-			bindingReq, err := http.NewRequest("PUT",
-				fmt.Sprintf("http://localhost:%d/v2/service_instances/%s/service_bindings/Gjklh45ljkhn", brokerPort, instanceID),
-				strings.NewReader("{}"))
-			Expect(err).ToNot(HaveOccurred())
-			bindingReq = basicAuthBrokerRequest(bindingReq)
-
-			bindingResponse, err = http.DefaultClient.Do(bindingReq)
-			Expect(err).ToNot(HaveOccurred())
-		})
 
 		Context("with code 49", func() {
 			Context("but without a stderr message", func() {
@@ -240,9 +203,13 @@ var _ = Describe("binding service instances", func() {
 				})
 
 				It("responds with 409 and a generic error message", func() {
-					Expect(bindingResponse.StatusCode).To(Equal(409))
+					adapter.CreateBinding().FailsWithBindingAlreadyExistsError()
+					mockBoshForBinding(boshDirector, instanceID, manifestForFirstDeployment)
 
+					bindingResponse = makeBindingRequest(instanceID, bindingID, []byte("{}"))
+					Expect(bindingResponse.StatusCode).To(Equal(409))
 					defer bindingResponse.Body.Close()
+
 					Expect(ioutil.ReadAll(bindingResponse.Body)).To(MatchJSON(`{"description":"binding already exists"}`))
 				})
 			})
@@ -253,11 +220,13 @@ var _ = Describe("binding service instances", func() {
 				})
 
 				It("responds with 409 and an appropriate message, and logs", func() {
+					mockBoshForBinding(boshDirector, instanceID, manifestForFirstDeployment)
+
+					bindingResponse = makeBindingRequest(instanceID, bindingID, []byte("{}"))
 					Expect(bindingResponse.StatusCode).To(Equal(409))
-
 					defer bindingResponse.Body.Close()
-					Expect(ioutil.ReadAll(bindingResponse.Body)).To(MatchJSON(`{"description":"binding already exists"}`))
 
+					Expect(ioutil.ReadAll(bindingResponse.Body)).To(MatchJSON(`{"description":"binding already exists"}`))
 					Eventually(runningBroker.Out).Should(gbytes.Say(`stderr error message`))
 				})
 			})
@@ -270,9 +239,12 @@ var _ = Describe("binding service instances", func() {
 				})
 
 				It("responds with 422 and a generic error message", func() {
-					Expect(bindingResponse.StatusCode).To(Equal(422))
+					mockBoshForBinding(boshDirector, instanceID, manifestForFirstDeployment)
 
+					bindingResponse = makeBindingRequest(instanceID, bindingID, []byte("{}"))
+					Expect(bindingResponse.StatusCode).To(Equal(422))
 					defer bindingResponse.Body.Close()
+
 					Expect(ioutil.ReadAll(bindingResponse.Body)).To(MatchJSON(`{"description":"app_guid is a required field but was not provided"}`))
 				})
 			})
@@ -283,85 +255,82 @@ var _ = Describe("binding service instances", func() {
 				})
 
 				It("responds with 422 and an appropriate message, and logs", func() {
+					mockBoshForBinding(boshDirector, instanceID, manifestForFirstDeployment)
+
+					bindingResponse = makeBindingRequest(instanceID, bindingID, []byte("{}"))
+					defer bindingResponse.Body.Close()
+
 					Expect(bindingResponse.StatusCode).To(Equal(422))
 
-					defer bindingResponse.Body.Close()
 					Expect(ioutil.ReadAll(bindingResponse.Body)).To(MatchJSON(`{"description":"app_guid is a required field but was not provided"}`))
-
 					Eventually(runningBroker.Out).Should(gbytes.Say(`stderr error message`))
 				})
 			})
 		})
 
 		Context("when the adapter does not implement binder, code 10", func() {
-			var errorResponse brokerapi.ErrorResponse
 
 			BeforeEach(func() {
 				adapter.Binder().NotImplemented()
 			})
 
-			JustBeforeEach(func() {
-				Expect(json.NewDecoder(bindingResponse.Body).Decode(&errorResponse)).To(Succeed())
-			})
-
-			AfterEach(func() {
-				defer bindingResponse.Body.Close()
-			})
-
 			It("responds with a 500 error", func() {
+				mockBoshForBinding(boshDirector, instanceID, manifestForFirstDeployment)
+
+				bindingResponse = makeBindingRequest(instanceID, bindingID, []byte("{}"))
 				Expect(bindingResponse.StatusCode).To(Equal(http.StatusInternalServerError))
-				Expect(errorResponse.Description).To(ContainSubstring(
-					"There was a problem completing your request. Please contact your operations team providing the following information: ",
+				defer bindingResponse.Body.Close()
+
+				var errorResponse brokerapi.ErrorResponse
+				Expect(json.NewDecoder(bindingResponse.Body).Decode(&errorResponse)).To(Succeed())
+
+				Expect(errorResponse.Description).To(SatisfyAll(
+					ContainSubstring(
+						"There was a problem completing your request. Please contact your operations team providing the following information: ",
+					),
+					MatchRegexp(
+						`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`,
+					),
+					ContainSubstring(fmt.Sprintf("service: %s", serviceName)),
+					ContainSubstring(fmt.Sprintf("service-instance-guid: %s", instanceID)),
+					ContainSubstring("operation: bind"),
+					Not(ContainSubstring("task-id:")),
 				))
-				Expect(errorResponse.Description).To(MatchRegexp(
-					`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`,
-				))
-				Expect(errorResponse.Description).To(ContainSubstring(
-					fmt.Sprintf("service: %s", serviceName),
-				))
-				Expect(errorResponse.Description).To(ContainSubstring(
-					fmt.Sprintf("service-instance-guid: %s", instanceID),
-				))
-				Expect(errorResponse.Description).To(ContainSubstring("operation: bind"))
-				Expect(errorResponse.Description).NotTo(ContainSubstring("task-id:"))
-				Eventually(runningBroker).Should(gbytes.Say(
-					"creating binding: command not implemented",
-				))
+
+				Eventually(runningBroker).Should(gbytes.Say("creating binding: command not implemented"))
 			})
 		})
 
 		Context("when binding fails due to unknown adapter error", func() {
 			Context("when there is operator error message and no user error message", func() {
-				var errorResponse brokerapi.ErrorResponse
 
 				BeforeEach(func() {
 					adapter.CreateBinding().FailsWithOperatorError("adapter completely failed")
 				})
 
-				JustBeforeEach(func() {
-					Expect(json.NewDecoder(bindingResponse.Body).Decode(&errorResponse)).To(Succeed())
-				})
-
-				AfterEach(func() {
-					defer bindingResponse.Body.Close()
-				})
-
 				It("responds with a 500 error", func() {
+					mockBoshForBinding(boshDirector, instanceID, manifestForFirstDeployment)
+
+					bindingResponse = makeBindingRequest(instanceID, bindingID, []byte("{}"))
 					Expect(bindingResponse.StatusCode).To(Equal(500))
-					Expect(errorResponse.Description).To(ContainSubstring(
-						"There was a problem completing your request. Please contact your operations team providing the following information: ",
+					defer bindingResponse.Body.Close()
+
+					var errorResponse brokerapi.ErrorResponse
+					Expect(json.NewDecoder(bindingResponse.Body).Decode(&errorResponse)).To(Succeed())
+
+					Expect(errorResponse.Description).To(SatisfyAll(
+						ContainSubstring(
+							"There was a problem completing your request. Please contact your operations team providing the following information: ",
+						),
+						MatchRegexp(
+							`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`,
+						),
+						ContainSubstring(fmt.Sprintf("service: %s", serviceName)),
+						ContainSubstring(fmt.Sprintf("service-instance-guid: %s", instanceID)),
+						ContainSubstring("operation: bind"),
+						Not(ContainSubstring("task-id:")),
 					))
-					Expect(errorResponse.Description).To(MatchRegexp(
-						`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`,
-					))
-					Expect(errorResponse.Description).To(ContainSubstring(
-						fmt.Sprintf("service: %s", serviceName),
-					))
-					Expect(errorResponse.Description).To(ContainSubstring(
-						fmt.Sprintf("service-instance-guid: %s", instanceID),
-					))
-					Expect(errorResponse.Description).To(ContainSubstring("operation: bind"))
-					Expect(errorResponse.Description).NotTo(ContainSubstring("task-id:"))
+
 					Eventually(runningBroker).Should(gbytes.Say("adapter completely failed"))
 				})
 			})
@@ -372,13 +341,18 @@ var _ = Describe("binding service instances", func() {
 				})
 
 				It("responds with a 500 error, including the user's error message", func() {
-					Expect(bindingResponse.StatusCode).To(Equal(500))
+					mockBoshForBinding(boshDirector, instanceID, manifestForFirstDeployment)
 
+					bindingResponse = makeBindingRequest(instanceID, bindingID, []byte("{}"))
+					Expect(bindingResponse.StatusCode).To(Equal(500))
 					defer bindingResponse.Body.Close()
+
 					var errorResponse brokerapi.ErrorResponse
 					Expect(json.NewDecoder(bindingResponse.Body).Decode(&errorResponse)).To(Succeed())
-					Expect(errorResponse.Description).To(ContainSubstring("error message for user"))
-					Expect(errorResponse.Description).NotTo(ContainSubstring("error message for operator"))
+					Expect(errorResponse.Description).To(SatisfyAll(
+						ContainSubstring("error message for user"),
+						Not(ContainSubstring("error message for operator")),
+					))
 
 					Eventually(runningBroker.Out).Should(gbytes.Say("error message for user"))
 					Eventually(runningBroker.Out).Should(gbytes.Say("error message for operator"))
@@ -387,92 +361,79 @@ var _ = Describe("binding service instances", func() {
 		})
 	})
 
-	Context("when getting VMs for a deployment responds with an error", func() {
+	It("responds with status 500 and an error when getting VMs for a deployment responds with an error", func() {
+		boshDirector.VerifyAndMock(mockbosh.VMsForDeployment(deploymentName(instanceID)).RespondsInternalServerErrorWith("bosh failed"))
+
+		bindingResponse := makeBindingRequest(instanceID, bindingID, []byte("{}"))
+		defer bindingResponse.Body.Close()
+		Expect(bindingResponse.StatusCode).To(Equal(http.StatusInternalServerError))
+
 		var errorResponse brokerapi.ErrorResponse
+		Expect(json.NewDecoder(bindingResponse.Body).Decode(&errorResponse)).To(Succeed())
 
-		JustBeforeEach(func() {
-			boshDirector.VerifyAndMock(mockbosh.VMsForDeployment(deploymentName(instanceID)).RespondsInternalServerErrorWith("bosh failed"))
-			bindingReq, err := http.NewRequest("PUT",
-				fmt.Sprintf("http://localhost:%d/v2/service_instances/%s/service_bindings/Gjklh45ljkhn", brokerPort, instanceID),
-				strings.NewReader("{}"))
-			Expect(err).ToNot(HaveOccurred())
-			bindingReq = basicAuthBrokerRequest(bindingReq)
-
-			bindingResponse, err = http.DefaultClient.Do(bindingReq)
-			Expect(err).ToNot(HaveOccurred())
-
-			Expect(json.NewDecoder(bindingResponse.Body).Decode(&errorResponse)).To(Succeed())
-		})
-
-		AfterEach(func() {
-			defer bindingResponse.Body.Close()
-		})
-
-		It("responds with a 500 error", func() {
-			Expect(bindingResponse.StatusCode).To(Equal(http.StatusInternalServerError))
-			Expect(errorResponse.Description).To(ContainSubstring(
+		Expect(errorResponse.Description).To(SatisfyAll(
+			ContainSubstring(
 				"There was a problem completing your request. Please contact your operations team providing the following information: ",
-			))
-			Expect(errorResponse.Description).To(MatchRegexp(
+			),
+			MatchRegexp(
 				`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`,
-			))
-			Expect(errorResponse.Description).To(ContainSubstring(
-				fmt.Sprintf("service: %s", serviceName),
-			))
-			Expect(errorResponse.Description).To(ContainSubstring(
-				fmt.Sprintf("service-instance-guid: %s", instanceID),
-			))
-			Expect(errorResponse.Description).To(ContainSubstring(
-				"operation: bind",
-			))
-			Expect(errorResponse.Description).NotTo(ContainSubstring(
-				"task-id:",
-			))
-		})
+			),
+			ContainSubstring(fmt.Sprintf("service: %s", serviceName)),
+			ContainSubstring(fmt.Sprintf("service-instance-guid: %s", instanceID)),
+			ContainSubstring("operation: bind"),
+			Not(ContainSubstring("task-id:")),
+		))
 	})
 
-	Context("when the bosh director is unavailable", func() {
-		JustBeforeEach(func() {
-			boshDirector.Close()
-			bindingReq, err := http.NewRequest("PUT",
-				fmt.Sprintf("http://localhost:%d/v2/service_instances/%s/service_bindings/Gjklh45ljkhn", brokerPort, instanceID),
-				strings.NewReader("{}"))
-			Expect(err).ToNot(HaveOccurred())
-			bindingReq = basicAuthBrokerRequest(bindingReq)
+	It("responds with status 500 and a try-again-later message when the bosh director is unavailable", func() {
+		boshDirector.Close()
 
-			bindingResponse, err = http.DefaultClient.Do(bindingReq)
-			Expect(err).ToNot(HaveOccurred())
-		})
+		bindingResponse := makeBindingRequest(instanceID, bindingID, []byte("{}"))
+		defer bindingResponse.Body.Close()
 
-		It("responds with a 500 error with a try-again-later message in the response", func() {
-			Expect(bindingResponse.StatusCode).To(Equal(http.StatusInternalServerError))
+		Expect(bindingResponse.StatusCode).To(Equal(http.StatusInternalServerError))
 
-			var errorResponse brokerapi.ErrorResponse
-			Expect(json.NewDecoder(bindingResponse.Body).Decode(&errorResponse)).To(Succeed())
-			Expect(errorResponse.Description).To(ContainSubstring("Currently unable to bind service instance, please try again later"))
-		})
+		var errorResponse brokerapi.ErrorResponse
+		Expect(json.NewDecoder(bindingResponse.Body).Decode(&errorResponse)).To(Succeed())
+
+		Expect(errorResponse.Description).To(ContainSubstring("Currently unable to bind service instance, please try again later"))
 	})
 
-	Context("when the instance being bound doesn't exist", func() {
-		var bindingResponse *http.Response
+	It("responds with status 404 when the instance being bound doesn't exist", func() {
+		boshDirector.VerifyAndMock(mockbosh.VMsForDeployment(deploymentName(instanceID)).RespondsNotFoundWith(""))
 
-		JustBeforeEach(func() {
-			boshDirector.VerifyAndMock(mockbosh.VMsForDeployment(deploymentName(instanceID)).RespondsNotFoundWith(""))
-			bindingReq, err := http.NewRequest("PUT",
-				fmt.Sprintf("http://localhost:%d/v2/service_instances/%s/service_bindings/Gjklh45ljkhn", brokerPort, instanceID),
-				strings.NewReader("{}"))
-			Expect(err).ToNot(HaveOccurred())
-			bindingReq = basicAuthBrokerRequest(bindingReq)
+		bindingResponse := makeBindingRequest(instanceID, bindingID, []byte("{}"))
+		defer bindingResponse.Body.Close()
 
-			bindingResponse, err = http.DefaultClient.Do(bindingReq)
-			Expect(err).ToNot(HaveOccurred())
-		})
+		Expect(bindingResponse.StatusCode).To(Equal(http.StatusNotFound))
 
-		It("responds with a 404 error", func() {
-			Expect(bindingResponse.StatusCode).To(Equal(http.StatusNotFound))
-
-			defer bindingResponse.Body.Close()
-			Expect(ioutil.ReadAll(bindingResponse.Body)).To(MatchJSON(`{"description":"instance does not exist"}`))
-		})
+		Expect(ioutil.ReadAll(bindingResponse.Body)).To(MatchJSON(`{"description":"instance does not exist"}`))
 	})
 })
+
+func makeBindingRequest(instanceID, bindingID string, body []byte) *http.Response {
+	bindingReq, err := http.NewRequest("PUT",
+		fmt.Sprintf(
+			"http://localhost:%d/v2/service_instances/%s/service_bindings/%s",
+			brokerPort,
+			instanceID,
+			bindingID,
+		),
+		bytes.NewReader(body))
+	Expect(err).ToNot(HaveOccurred())
+	bindingReq = basicAuthBrokerRequest(bindingReq)
+
+	bindingResponse, err := http.DefaultClient.Do(bindingReq)
+	Expect(err).ToNot(HaveOccurred())
+
+	return bindingResponse
+}
+
+func mockBoshForBinding(boshDirector *mockbosh.MockBOSH, instanceID string, deploymentManifest bosh.BoshManifest) {
+	boshDirector.AppendMocks(
+		mockbosh.VMsForDeployment(deploymentName(instanceID)).RedirectsToTask(2015),
+		mockbosh.Task(2015).RespondsWithTaskContainingState(boshdirector.TaskDone),
+		mockbosh.TaskOutput(2015).RespondsWithVMsOutput([]boshdirector.BoshVMsOutput{{IPs: []string{"ip.from.bosh"}, InstanceGroup: "some-instance-group"}}),
+		mockbosh.GetDeployment(deploymentName(instanceID)).RespondsWithManifest(deploymentManifest),
+	)
+}
