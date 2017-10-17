@@ -109,7 +109,7 @@ var _ = Describe("Broker Post-start Check", func() {
 	Context("when the ODB takes longer than the timeout to respond", func() {
 		BeforeEach(func() {
 			longRequestHandler := func(w http.ResponseWriter, req *http.Request) {
-				time.Sleep(1 * time.Second)
+				time.Sleep(1100 * time.Millisecond)
 			}
 
 			server.AppendHandlers(longRequestHandler)

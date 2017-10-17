@@ -59,6 +59,7 @@ func (b *Broker) Services(_ context.Context) []brokerapi.Service {
 				ProviderDisplayName: b.serviceOffering.Metadata.ProviderDisplayName,
 				DocumentationUrl:    b.serviceOffering.Metadata.DocumentationURL,
 				SupportUrl:          b.serviceOffering.Metadata.SupportURL,
+				Shareable:           &b.serviceOffering.Metadata.Shareable,
 			},
 			DashboardClient: dashboardClient,
 			Requires:        requiredPermissions(b.serviceOffering.Requires),

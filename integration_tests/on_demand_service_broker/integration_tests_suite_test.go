@@ -68,6 +68,7 @@ var (
 	serviceMetaDataProviderDisplayName = "serviceMetaDataProviderDisplayName"
 	serviceMetaDataDocumentationURL    = "serviceMetaDataDocumentationURL"
 	serviceMetaDataSupportURL          = "serviceMetaDataSupportURL"
+	serviceMetaDataShareable           = true
 	serviceTags                        = []string{"a", "b"}
 
 	dedicatedPlanName         = "dedicated-plan-name"
@@ -172,6 +173,17 @@ func TestIntegrationTests(t *testing.T) {
 	RunSpecs(t, "Integration Tests Suite")
 }
 
+func startBrokerInNoopCFModeWithPassingStartupChecks(
+	conf config.Config,
+	boshDirector *mockbosh.MockBOSH,
+) *gexec.Session {
+	boshDirector.VerifyAndMock(
+		mockbosh.Info().RespondsWithSufficientVersionForLifecycleErrands(boshDirector.UAAURL),
+		mockbosh.Info().RespondsWithSufficientVersionForLifecycleErrands(boshDirector.UAAURL),
+	)
+	return startBroker(conf)
+}
+
 func startBrokerWithPassingStartupChecks(
 	conf config.Config,
 	cfAPI *mockhttp.Server,
@@ -195,19 +207,19 @@ func startBroker(conf config.Config) *gexec.Session {
 }
 
 func startBrokerWithoutPortCheck(conf config.Config) *gexec.Session {
-	killCmd := exec.Command("pkill", "-9", "-f", "on-demand-service-broker")
-	_, err := gexec.Start(killCmd, GinkgoWriter, GinkgoWriter)
+	linuxCompatibleProcessName := "on-demand-servi"
+	killCmd := exec.Command("pkill", "-9", linuxCompatibleProcessName)
+	killSession, err := gexec.Start(killCmd, GinkgoWriter, GinkgoWriter)
 	Expect(err).NotTo(HaveOccurred())
-	Eventually(dialBroker, "15s").Should(BeFalse(), "an old instance of the broker is still running")
+	killSession.Wait()
 
 	configContents, err := yaml.Marshal(conf)
-	Expect(err).ToNot(HaveOccurred())
+	Expect(err).NotTo(HaveOccurred())
 
 	testConfigFilePath := filepath.Join(tempDirPath, "broker.yml")
 	Expect(ioutil.WriteFile(testConfigFilePath, configContents, 0644)).To(Succeed())
 
-	params := []string{"-configFilePath", testConfigFilePath}
-	cmd := exec.Command(brokerBinPath, params...)
+	cmd := exec.Command(brokerBinPath, "-configFilePath", testConfigFilePath)
 	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
 	Expect(err).NotTo(HaveOccurred())
 
@@ -240,10 +252,11 @@ func provisionInstanceSynchronously(instanceID, planID string, arbitraryParams m
 	return instance
 }
 
-func deprovisionInstance(instanceID string, asyncAllowed bool) *http.Response {
+func deprovisionInstance(instanceID string, planID string, serviceID string, asyncAllowed bool) *http.Response {
 	deprovisionReq, err := http.NewRequest(
 		"DELETE",
-		fmt.Sprintf("http://localhost:%d/v2/service_instances/%s?accepts_incomplete=%t", brokerPort, instanceID, asyncAllowed), bytes.NewReader([]byte{}))
+		fmt.Sprintf("http://localhost:%d/v2/service_instances/%s?accepts_incomplete=%t&plan_id=%s&service_id=%s",
+			brokerPort, instanceID, asyncAllowed, planID, serviceID), bytes.NewReader([]byte{}))
 	Expect(err).ToNot(HaveOccurred())
 	deprovisionReq = basicAuthBrokerRequest(deprovisionReq)
 	deprovisionResponse, err := http.DefaultClient.Do(deprovisionReq)
@@ -355,6 +368,7 @@ func defaultBrokerConfig(boshURL, uaaURL, cfURL, cfUAAURL string) config.Config 
 				ProviderDisplayName: serviceMetaDataProviderDisplayName,
 				DocumentationURL:    serviceMetaDataDocumentationURL,
 				SupportURL:          serviceMetaDataSupportURL,
+				Shareable:           serviceMetaDataShareable,
 			},
 			DashboardClient: &config.DashboardClient{
 				ID:          "client-id-1",

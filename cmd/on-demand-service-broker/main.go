@@ -15,23 +15,18 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-
 	"time"
 
-	"code.cloudfoundry.org/lager"
-	"github.com/gorilla/mux"
-	"github.com/pivotal-cf/brokerapi"
-	apiauth "github.com/pivotal-cf/brokerapi/auth"
+	"github.com/pivotal-cf/on-demand-service-broker/apiserver"
 	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
-	"github.com/pivotal-cf/on-demand-service-broker/mgmtapi"
+	"github.com/pivotal-cf/on-demand-service-broker/noopservicescontroller"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	"github.com/pivotal-cf/on-demand-service-broker/task"
-	"github.com/urfave/negroni"
 )
 
 const componentName = "on-demand-service-broker"
@@ -84,14 +79,20 @@ func startBroker(conf config.Config, logger *log.Logger, loggerFactory *loggerfa
 		logger.Fatalf("error creating CF authorization header builder: %s", err)
 	}
 
-	cfClient, err := cf.New(
-		conf.CF.URL,
-		cfAuthenticator,
-		[]byte(conf.CF.TrustedCert),
-		conf.Broker.DisableSSLCertVerification,
-	)
-	if err != nil {
-		logger.Fatalf("error creating Cloud Foundry client: %s", err)
+	var cfClient broker.CloudFoundryClient
+
+	if !conf.Broker.DisableCFStartupChecks {
+		cfClient, err = cf.New(
+			conf.CF.URL,
+			cfAuthenticator,
+			[]byte(conf.CF.TrustedCert),
+			conf.Broker.DisableSSLCertVerification,
+		)
+		if err != nil {
+			logger.Fatalf("error creating Cloud Foundry client: %s", err)
+		}
+	} else {
+		cfClient = noopservicescontroller.New()
 	}
 
 	serviceAdapter := &serviceadapter.Client{
@@ -129,7 +130,7 @@ func startBroker(conf config.Config, logger *log.Logger, loggerFactory *loggerfa
 								`)
 	}
 
-	server := setupServer(onDemandBroker, conf, loggerFactory, logger)
+	server := apiserver.New(conf, onDemandBroker, nil, componentName, loggerFactory, logger)
 
 	stopped := make(chan struct{})
 	stop := make(chan os.Signal, 1)
@@ -164,32 +165,4 @@ func startBroker(conf config.Config, logger *log.Logger, loggerFactory *loggerfa
 	}
 
 	<-stopped
-}
-
-func setupServer(
-	broker *broker.Broker,
-	conf config.Config,
-	loggerFactory *loggerfactory.LoggerFactory,
-	logger *log.Logger,
-) *http.Server {
-
-	brokerRouter := mux.NewRouter()
-	mgmtapi.AttachRoutes(brokerRouter, broker, conf.ServiceCatalog, loggerFactory)
-	brokerapi.AttachRoutes(brokerRouter, broker, lager.NewLogger(componentName))
-	authProtectedBrokerAPI := apiauth.
-		NewWrapper(conf.Broker.Username, conf.Broker.Password).
-		Wrap(brokerRouter)
-
-	negroniLogger := &negroni.Logger{ALogger: logger}
-	server := negroni.New(
-		negroni.NewRecovery(),
-		negroniLogger,
-		negroni.NewStatic(http.Dir("public")),
-	)
-
-	server.UseHandler(authProtectedBrokerAPI)
-	return &http.Server{
-		Addr:    fmt.Sprintf(":%d", conf.Broker.Port),
-		Handler: server,
-	}
 }

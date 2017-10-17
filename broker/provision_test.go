@@ -20,6 +20,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
+	"github.com/pivotal-cf/on-demand-service-broker/noopservicescontroller"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
@@ -711,6 +712,34 @@ var _ = Describe("provisioning", func() {
 		})
 	})
 
+	Context("when CF Integration is disabled", func() {
+
+		It("succeeds", func() {
+
+			boshInfo = createBOSHInfoWithMajorVersion(
+				boshdirector.MinimumMajorSemverDirectorVersionForLifecycleErrands,
+				boshdirector.VersionType("semver"),
+			)
+			noopCFClient := noopservicescontroller.New()
+			broker, err := createBroker(boshInfo, noopCFClient)
+			Expect(err).NotTo(HaveOccurred())
+			serviceSpec, provisionErr = broker.Provision(
+				context.Background(),
+				instanceID,
+				brokerapi.ProvisionDetails{
+					PlanID:           planID,
+					RawParameters:    jsonParams,
+					OrganizationGUID: organizationGUID,
+					SpaceGUID:        spaceGUID,
+					ServiceID:        serviceOfferingID,
+				},
+				asyncAllowed,
+			)
+			Expect(provisionErr).NotTo(HaveOccurred())
+		})
+
+	})
+
 	Context("when no quotas are specified", func() {
 		BeforeEach(func() {
 			planID = secondPlanID
@@ -727,6 +756,7 @@ var _ = Describe("provisioning", func() {
 		It("doesn't count number of instaces", func() {
 			Expect(cfClient.CountInstancesOfPlanCallCount()).To(Equal(0))
 		})
+
 	})
 
 	Context("when plan id given is not configured", func() {

@@ -31,6 +31,7 @@ import (
 
 var _ = Describe("binding service instances", func() {
 	var (
+		cfClient     string
 		boshDirector *mockbosh.MockBOSH
 		cfAPI        *mockhttp.Server
 		boshUAA      *mockuaa.ClientCredentialsServer
@@ -38,6 +39,7 @@ var _ = Describe("binding service instances", func() {
 
 		runningBroker   *gexec.Session
 		bindingResponse *http.Response
+		brokerConfig    config.Config
 
 		instanceID                 = "some-binding-instance-ID"
 		manifestForFirstDeployment = bosh.BoshManifest{
@@ -48,19 +50,31 @@ var _ = Describe("binding service instances", func() {
 		}
 	)
 
+	BeforeEach(func() {
+		cfClient = "cf"
+	})
+
 	JustBeforeEach(func() {
+
 		boshUAA = mockuaa.NewClientCredentialsServer(boshClientID, boshClientSecret, "bosh uaa token")
 		boshDirector = mockbosh.NewWithUAA(boshUAA.URL)
 		cfUAA = mockuaa.NewClientCredentialsServer(cfUaaClientID, cfUaaClientSecret, "CF UAA token")
 		cfAPI = mockcfapi.New()
 
-		var brokerConfig config.Config
 		brokerConfig = defaultBrokerConfig(boshDirector.URL, boshUAA.URL, cfAPI.URL, cfUAA.URL)
 
-		runningBroker = startBrokerWithPassingStartupChecks(brokerConfig, cfAPI, boshDirector)
+		switch cfClient {
+		case "noopservicescontroller":
+			brokerConfig.Broker.DisableCFStartupChecks = true
+			runningBroker = startBrokerInNoopCFModeWithPassingStartupChecks(brokerConfig, boshDirector)
+		default:
+			runningBroker = startBrokerWithPassingStartupChecks(brokerConfig, cfAPI, boshDirector)
+		}
+
 	})
 
 	AfterEach(func() {
+
 		killBrokerAndCheckForOpenConnections(runningBroker, boshDirector.URL)
 
 		boshDirector.VerifyMocks()
@@ -70,6 +84,7 @@ var _ = Describe("binding service instances", func() {
 		cfAPI.VerifyMocks()
 		cfAPI.Close()
 		cfUAA.Close()
+
 	})
 
 	Describe("a successful binding", func() {
@@ -120,10 +135,21 @@ var _ = Describe("binding service instances", func() {
 			bindingResponse, err = http.DefaultClient.Do(bindingReq)
 			Expect(err).ToNot(HaveOccurred())
 		})
+    
+    Context("when CF is disabled", func() {
+
+			BeforeEach(func() {
+				cfClient = "noopservicescontroller"
+			})
+
+			It("returns HTTP 201", func() {
+				Expect(bindingResponse.StatusCode).To(Equal(http.StatusCreated))
+			})
+
+		})
 
 		It("exhibits success", func() {
 			By("responding with HTTP 201")
-
 			Expect(bindingResponse.StatusCode).To(Equal(http.StatusCreated))
 
 			By("including credentials, syslog drain URL and route service URL in response body")
