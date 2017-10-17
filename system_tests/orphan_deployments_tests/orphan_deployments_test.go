@@ -58,7 +58,7 @@ var _ = Describe("orphan deployments errand", func() {
 			Eventually(cf.Cf("purge-service-instance", orphanInstanceName, "-f"), cf_helpers.CfTimeout).Should(gexec.Exit(0))
 
 			By("running the orphan-deployments errand")
-			taskOutput := boshClient.RunErrandWithoutCheckingSuccess(brokerBoshDeploymentName, "orphan-deployments", "")
+			taskOutput := boshClient.RunErrandWithoutCheckingSuccess(brokerBoshDeploymentName, "orphan-deployments", []string{}, "")
 
 			By("checking the errand task output")
 			Expect(taskOutput.ExitCode).To(Equal(10))

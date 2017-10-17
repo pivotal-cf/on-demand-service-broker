@@ -46,7 +46,7 @@ var _ = Describe("purge instances and deregister broker", func() {
 		Eventually(cf.Cf("bind-service", testAppName, serviceInstance1), cf_helpers.CfTimeout).Should(gexec.Exit(0))
 		Eventually(cf.Cf("create-service-key", serviceInstance1, serviceKeyName), cf_helpers.CfTimeout).Should(gexec.Exit(0))
 
-		output := boshClient.RunErrand(brokerBoshDeploymentName, "delete-all-service-instances-and-deregister-broker", "")
+		output := boshClient.RunErrand(brokerBoshDeploymentName, "delete-all-service-instances-and-deregister-broker", []string{}, "")
 
 		Expect(output.StdOut).To(ContainSubstring("FINISHED PURGE INSTANCES AND DEREGISTER BROKER"))
 		Expect(output.ExitCode).To(Equal(0))

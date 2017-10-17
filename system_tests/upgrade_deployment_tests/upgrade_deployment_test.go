@@ -66,12 +66,12 @@ var _ = Describe("Upgrading deployment", func() {
 		cf_helpers.PutToTestApp(testAppURL, "foo", "bar")
 
 		By("running the upgrade errand")
-		taskOutput := boshClient.RunErrand(brokerBoshDeploymentName, "upgrade-all-service-instances", "")
+		taskOutput := boshClient.RunErrand(brokerBoshDeploymentName, "upgrade-all-service-instances", []string{}, "")
 		Expect(taskOutput.ExitCode).To(Equal(0))
 		Expect(taskOutput.StdOut).To(ContainSubstring("Number of successful upgrades: 1"))
 
 		By("running the delete all errand")
-		taskOutput = boshClient.RunErrand(brokerBoshDeploymentName, "delete-all-service-instances", "")
+		taskOutput = boshClient.RunErrand(brokerBoshDeploymentName, "delete-all-service-instances", []string{}, "")
 		Expect(taskOutput.ExitCode).To(Equal(0))
 		cf_helpers.AwaitServiceDeletion(serviceInstanceName)
 	})

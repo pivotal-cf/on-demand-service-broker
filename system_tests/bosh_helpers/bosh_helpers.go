@@ -55,20 +55,20 @@ func NewBasicAuth(boshURL, boshUsername, boshPassword, boshCACert string, disabl
 	return &BoshHelperClient{Client: boshClient}
 }
 
-func (b *BoshHelperClient) RunErrand(deploymentName, errandName, contextID string) boshdirector.BoshTaskOutput {
-	output := b.RunErrandWithoutCheckingSuccess(deploymentName, errandName, contextID)
+func (b *BoshHelperClient) RunErrand(deploymentName string, errandName string, errandInstances []string, contextID string) boshdirector.BoshTaskOutput {
+	output := b.RunErrandWithoutCheckingSuccess(deploymentName, errandName, errandInstances, contextID)
 	Expect(output.ExitCode).To(BeZero(), fmt.Sprintf("STDOUT: ------------\n%s\n--------------------\nSTDERR: ------------\n%s\n--------------------\n", output.StdOut, output.StdErr))
 	return output
 }
 
-func (b *BoshHelperClient) RunErrandWithoutCheckingSuccess(deploymentName, errandName, contextID string) boshdirector.BoshTaskOutput {
+func (b *BoshHelperClient) RunErrandWithoutCheckingSuccess(deploymentName string, errandName string, errandInstances []string, contextID string) boshdirector.BoshTaskOutput {
 	logger := systemTestLogger()
-	taskID := b.runErrandAndWait(deploymentName, errandName, contextID, logger)
+	taskID := b.runErrandAndWait(deploymentName, errandName, errandInstances, contextID, logger)
 	return b.getTaskOutput(taskID, logger)
 }
 
-func (b *BoshHelperClient) runErrandAndWait(deploymentName, errandName, contextID string, logger *log.Logger) int {
-	taskID, err := b.Client.RunErrand(deploymentName, errandName, contextID, logger)
+func (b *BoshHelperClient) runErrandAndWait(deploymentName string, errandName string, errandInstances []string, contextID string, logger *log.Logger) int {
+	taskID, err := b.Client.RunErrand(deploymentName, errandName, errandInstances, contextID, logger)
 	Expect(err).NotTo(HaveOccurred())
 	b.waitForTaskToFinish(taskID)
 	return taskID

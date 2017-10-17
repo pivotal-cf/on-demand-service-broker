@@ -22,7 +22,7 @@ var _ = Describe("broker registration errands", func() {
 
 	Describe("register-broker", func() {
 		BeforeEach(func() {
-			boshClient.RunErrand(brokerBoshDeploymentName, "register-broker", "")
+			boshClient.RunErrand(brokerBoshDeploymentName, "register-broker", []string{}, "")
 		})
 
 		AfterEach(func() {
@@ -84,7 +84,7 @@ var _ = Describe("broker registration errands", func() {
 				Eventually(allEnabledMarketplaceSession).Should(gbytes.Say("manual-plan"))
 
 				By("re-registering the broker")
-				boshClient.RunErrand(brokerBoshDeploymentName, "register-broker", "")
+				boshClient.RunErrand(brokerBoshDeploymentName, "register-broker", []string{}, "")
 
 				By("confirming the manual plan is still visible to space devs in the marketplace")
 				allButInactiveMarketplaceSession := cf.Cf("marketplace", "-s", serviceOffering)
@@ -109,7 +109,7 @@ var _ = Describe("broker registration errands", func() {
 				Eventually(allEnabledMarketplaceSession).Should(gbytes.Say("inactive-plan"))
 
 				By("re-registering the broker")
-				boshClient.RunErrand(brokerBoshDeploymentName, "register-broker", "")
+				boshClient.RunErrand(brokerBoshDeploymentName, "register-broker", []string{}, "")
 
 				By("confirming the inactive plan is no longer visible to space devs in the marketplace, while an active plan is")
 				allButInactiveMarketplaceSession := cf.Cf("marketplace", "-s", serviceOffering)
@@ -121,11 +121,11 @@ var _ = Describe("broker registration errands", func() {
 
 	Describe("deregister-broker", func() {
 		It("removes the service from the CF", func() {
-			boshClient.RunErrand(brokerBoshDeploymentName, "register-broker", "")
+			boshClient.RunErrand(brokerBoshDeploymentName, "register-broker", []string{}, "")
 			serviceBrokersSession := cf.Cf("service-brokers")
 			Eventually(serviceBrokersSession).Should(gbytes.Say(brokerName))
 
-			boshClient.RunErrand(brokerBoshDeploymentName, "deregister-broker", "")
+			boshClient.RunErrand(brokerBoshDeploymentName, "deregister-broker", []string{}, "")
 			serviceBrokersSession = cf.Cf("service-brokers")
 			Eventually(serviceBrokersSession).ShouldNot(gbytes.Say(brokerName))
 		})

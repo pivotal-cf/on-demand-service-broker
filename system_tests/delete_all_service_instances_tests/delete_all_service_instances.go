@@ -45,7 +45,7 @@ var _ = Describe("deleting all service instances", func() {
 		Eventually(cf.Cf("bind-service", testAppName, serviceInstance1), cf_helpers.CfTimeout).Should(gexec.Exit(0))
 		Eventually(cf.Cf("create-service-key", serviceInstance1, serviceKeyName), cf_helpers.CfTimeout).Should(gexec.Exit(0))
 
-		boshClient.RunErrand(brokerBoshDeploymentName, "delete-all-service-instances", "")
+		boshClient.RunErrand(brokerBoshDeploymentName, "delete-all-service-instances", []string{}, "")
 		cf_helpers.AwaitServiceDeletion(serviceInstance1)
 		cf_helpers.AwaitServiceDeletion(serviceInstance2)
 	})

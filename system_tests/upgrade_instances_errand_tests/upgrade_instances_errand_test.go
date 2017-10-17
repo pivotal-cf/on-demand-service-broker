@@ -59,7 +59,7 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 		By("deploying the broken broker manifest")
 		boshClient.DeployODB(*brokerManifest)
 
-		boshOutput := boshClient.RunErrandWithoutCheckingSuccess(brokerBoshDeploymentName, "upgrade-all-service-instances", "")
+		boshOutput := boshClient.RunErrandWithoutCheckingSuccess(brokerBoshDeploymentName, "upgrade-all-service-instances", []string{}, "")
 		Expect(boshOutput.ExitCode).To(Equal(1))
 		Expect(boshOutput.StdOut).To(ContainSubstring("Upgrade failed for service instance"))
 	})
@@ -73,7 +73,7 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 		boshClient.DeployODB(*brokerManifest)
 
 		By("logging stdout to the errand output")
-		boshOutput := boshClient.RunErrand(brokerBoshDeploymentName, "upgrade-all-service-instances", "")
+		boshOutput := boshClient.RunErrand(brokerBoshDeploymentName, "upgrade-all-service-instances", []string{}, "")
 		Expect(boshOutput.ExitCode).To(Equal(0))
 		Expect(boshOutput.StdOut).To(ContainSubstring("STARTING UPGRADES"))
 	})
@@ -89,7 +89,7 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 		boshClient.DeployODB(*brokerManifest)
 
 		By("logging stdout to the errand output")
-		boshOutput := boshClient.RunErrand(brokerBoshDeploymentName, "upgrade-all-service-instances", "")
+		boshOutput := boshClient.RunErrand(brokerBoshDeploymentName, "upgrade-all-service-instances", []string{}, "")
 		Expect(boshOutput.StdOut).To(ContainSubstring("STARTING UPGRADES"))
 
 		for _, service := range serviceInstances {
@@ -183,7 +183,7 @@ func createServiceInstances() {
 
 func deleteServiceInstances() {
 	By("running the delete all errand")
-	taskOutput := boshClient.RunErrand(brokerBoshDeploymentName, "delete-all-service-instances", "")
+	taskOutput := boshClient.RunErrand(brokerBoshDeploymentName, "delete-all-service-instances", []string{}, "")
 	Expect(taskOutput.ExitCode).To(Equal(0))
 
 	var wg sync.WaitGroup
