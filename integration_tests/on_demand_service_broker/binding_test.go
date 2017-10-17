@@ -87,7 +87,7 @@ var _ = Describe("binding service instances", func() {
 
 	})
 
-	Describe("successful bindings", func() {
+	Describe("a successful binding", func() {
 		var (
 			bindingReq      *http.Request
 			bindingResponse *http.Response
@@ -135,8 +135,8 @@ var _ = Describe("binding service instances", func() {
 			bindingResponse, err = http.DefaultClient.Do(bindingReq)
 			Expect(err).ToNot(HaveOccurred())
 		})
-
-		Context("when CF is disabled", func() {
+    
+    Context("when CF is disabled", func() {
 
 			BeforeEach(func() {
 				cfClient = "noopservicescontroller"
@@ -148,11 +148,12 @@ var _ = Describe("binding service instances", func() {
 
 		})
 
-		It("returns HTTP 201", func() {
+		It("exhibits success", func() {
+			By("responding with HTTP 201")
 			Expect(bindingResponse.StatusCode).To(Equal(http.StatusCreated))
-		})
 
-		It("returns credentials, syslog drain URL, and route service URL from service adapter", func() {
+			By("including credentials, syslog drain URL and route service URL in response body")
+
 			var binding brokerapi.Binding
 			defer bindingResponse.Body.Close()
 			Expect(json.NewDecoder(bindingResponse.Body).Decode(&binding)).To(Succeed())
@@ -161,17 +162,17 @@ var _ = Describe("binding service instances", func() {
 			Expect(credentials).To(Equal(map[string]interface{}{"secret": "dont-tell-anyone"}))
 			Expect(binding.RouteServiceURL).To(Equal("excellent route"))
 			Expect(binding.SyslogDrainURL).To(Equal("syslog-url"))
-		})
 
-		It("calls the adapter with expected binding ID", func() {
+			By("calling the adapter with expected binding ID")
+
 			Expect(adapter.CreateBinding().ReceivedID()).To(Equal("Gjklh45ljkhn"))
-		})
 
-		It("calls the adapter with expected bosh VMS", func() {
+			By("calling the adapter with expected bosh VMS")
+
 			Expect(adapter.CreateBinding().ReceivedBoshVms()).To(Equal(bosh.BoshVMs{"some-instance-group": []string{"ip.from.bosh"}}))
-		})
 
-		It("calls the adapter with the correct request params", func() {
+			By("calling the adapter with the correct request params")
+
 			Expect(adapter.CreateBinding().ReceivedRequestParameters()).To(Equal(map[string]interface{}{
 				"plan_id":    bindingPlanID,
 				"service_id": bindingServiceID,
@@ -181,13 +182,12 @@ var _ = Describe("binding service instances", func() {
 				},
 				"parameters": bindingParams,
 			}))
-		})
 
-		It("calls the adapter with the bosh manifest", func() {
+			By("calling the adapter with the bosh manifest")
+
 			Expect(adapter.CreateBinding().ReceivedManifest()).To(Equal(manifestForFirstDeployment))
-		})
 
-		It("logs the bind request with a request id", func() {
+			By("logging the bind request with a request id")
 			bindRequestRegex := logRegexpStringWithRequestIDCapture(`service adapter will create binding with ID`)
 			Eventually(runningBroker).Should(gbytes.Say(bindRequestRegex))
 			requestID := firstMatchInOutput(runningBroker, bindRequestRegex)
@@ -201,11 +201,9 @@ var _ = Describe("binding service instances", func() {
 								}`)
 			})
 
-			It("returns HTTP 201", func() {
+			It("responds with 201 but doesn't include JSON keys for any missing optional fields", func() {
 				Expect(bindingResponse.StatusCode).To(Equal(http.StatusCreated))
-			})
 
-			It("does not send JSON keys for any missing optional fields", func() {
 				defer bindingResponse.Body.Close()
 				bodyBytes, err := ioutil.ReadAll(bindingResponse.Body)
 				Expect(err).ToNot(HaveOccurred())
@@ -215,7 +213,7 @@ var _ = Describe("binding service instances", func() {
 		})
 	})
 
-	Context("when the binding fails due to a adapter error", func() {
+	Context("when the binding fails due to an adapter error", func() {
 		var bindingResponse *http.Response
 
 		JustBeforeEach(func() {
@@ -235,89 +233,110 @@ var _ = Describe("binding service instances", func() {
 			Expect(err).ToNot(HaveOccurred())
 		})
 
-		Context("when binding fails due to adapter error, code 49", func() {
-			Context("fails with binding already exists error message only", func() {
+		Context("with code 49", func() {
+			Context("but without a stderr message", func() {
 				BeforeEach(func() {
 					adapter.CreateBinding().FailsWithBindingAlreadyExistsError()
 				})
 
-				It("returns HTTP 409", func() {
+				It("responds with 409 and a generic error message", func() {
 					Expect(bindingResponse.StatusCode).To(Equal(409))
-				})
 
-				It("returns a generic error response to the user", func() {
 					defer bindingResponse.Body.Close()
 					Expect(ioutil.ReadAll(bindingResponse.Body)).To(MatchJSON(`{"description":"binding already exists"}`))
 				})
 			})
 
-			Context("fails with binding already exists and stderr error messages", func() {
+			Context("with a stderr error message", func() {
 				BeforeEach(func() {
 					adapter.CreateBinding().FailsWithBindingAlreadyExistsErrorAndStderr("stderr error message")
 				})
 
-				It("returns HTTP 409", func() {
+				It("responds with 409 and an appropriate message, and logs", func() {
 					Expect(bindingResponse.StatusCode).To(Equal(409))
-				})
 
-				It("returns a binding already exists error to the user", func() {
 					defer bindingResponse.Body.Close()
 					Expect(ioutil.ReadAll(bindingResponse.Body)).To(MatchJSON(`{"description":"binding already exists"}`))
-				})
 
-				It("logs the stdout and stderr error messages", func() {
 					Eventually(runningBroker.Out).Should(gbytes.Say(`stderr error message`))
 				})
 			})
 		})
 
-		Context("when binding fails due to adapter error, code 42", func() {
-			Context("fails with binding already exists error message only", func() {
+		Context("with code 42", func() {
+			Context("but without a stderr message", func() {
 				BeforeEach(func() {
 					adapter.CreateBinding().FailsWithAppGuidNotProvidedError()
 				})
 
-				It("returns HTTP 422", func() {
+				It("responds with 422 and a generic error message", func() {
 					Expect(bindingResponse.StatusCode).To(Equal(422))
-				})
 
-				It("returns an error response to the user", func() {
 					defer bindingResponse.Body.Close()
 					Expect(ioutil.ReadAll(bindingResponse.Body)).To(MatchJSON(`{"description":"app_guid is a required field but was not provided"}`))
 				})
 			})
 
-			Context("fails with binding already exists and stderr error messages", func() {
+			Context("with stderr error messages", func() {
 				BeforeEach(func() {
 					adapter.CreateBinding().FailsWithAppGuidNotProvidedErrorAndStderr("stderr error message")
 				})
 
-				It("returns HTTP 422", func() {
+				It("responds with 422 and an appropriate message, and logs", func() {
 					Expect(bindingResponse.StatusCode).To(Equal(422))
-				})
 
-				It("returns an error response to the user", func() {
 					defer bindingResponse.Body.Close()
 					Expect(ioutil.ReadAll(bindingResponse.Body)).To(MatchJSON(`{"description":"app_guid is a required field but was not provided"}`))
-				})
 
-				It("logs the stdout and stderr error messages", func() {
 					Eventually(runningBroker.Out).Should(gbytes.Say(`stderr error message`))
 				})
 			})
 		})
 
 		Context("when the adapter does not implement binder, code 10", func() {
+			var errorResponse brokerapi.ErrorResponse
+
 			BeforeEach(func() {
 				adapter.Binder().NotImplemented()
 			})
 
-			It("returns HTTP 500", func() {
-				Expect(bindingResponse.StatusCode).To(Equal(http.StatusInternalServerError))
+			JustBeforeEach(func() {
+				Expect(json.NewDecoder(bindingResponse.Body).Decode(&errorResponse)).To(Succeed())
 			})
 
-			Describe("error message", func() {
+			AfterEach(func() {
+				defer bindingResponse.Body.Close()
+			})
+
+			It("responds with a 500 error", func() {
+				Expect(bindingResponse.StatusCode).To(Equal(http.StatusInternalServerError))
+				Expect(errorResponse.Description).To(ContainSubstring(
+					"There was a problem completing your request. Please contact your operations team providing the following information: ",
+				))
+				Expect(errorResponse.Description).To(MatchRegexp(
+					`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`,
+				))
+				Expect(errorResponse.Description).To(ContainSubstring(
+					fmt.Sprintf("service: %s", serviceName),
+				))
+				Expect(errorResponse.Description).To(ContainSubstring(
+					fmt.Sprintf("service-instance-guid: %s", instanceID),
+				))
+				Expect(errorResponse.Description).To(ContainSubstring("operation: bind"))
+				Expect(errorResponse.Description).NotTo(ContainSubstring("task-id:"))
+				Eventually(runningBroker).Should(gbytes.Say(
+					"creating binding: command not implemented",
+				))
+			})
+		})
+
+		Context("when binding fails due to unknown adapter error", func() {
+			Context("when there is operator error message and no user error message", func() {
 				var errorResponse brokerapi.ErrorResponse
+
+				BeforeEach(func() {
+					adapter.CreateBinding().FailsWithOperatorError("adapter completely failed")
+				})
 
 				JustBeforeEach(func() {
 					Expect(json.NewDecoder(bindingResponse.Body).Decode(&errorResponse)).To(Succeed())
@@ -327,107 +346,22 @@ var _ = Describe("binding service instances", func() {
 					defer bindingResponse.Body.Close()
 				})
 
-				It("contains a generic message", func() {
+				It("responds with a 500 error", func() {
+					Expect(bindingResponse.StatusCode).To(Equal(500))
 					Expect(errorResponse.Description).To(ContainSubstring(
 						"There was a problem completing your request. Please contact your operations team providing the following information: ",
 					))
-				})
-
-				It("includes the request ID", func() {
 					Expect(errorResponse.Description).To(MatchRegexp(
 						`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`,
 					))
-				})
-
-				It("includes the service name", func() {
 					Expect(errorResponse.Description).To(ContainSubstring(
 						fmt.Sprintf("service: %s", serviceName),
 					))
-				})
-
-				It("includes a service instance guid", func() {
 					Expect(errorResponse.Description).To(ContainSubstring(
 						fmt.Sprintf("service-instance-guid: %s", instanceID),
 					))
-				})
-
-				It("includes the operation type", func() {
-					Expect(errorResponse.Description).To(ContainSubstring(
-						"operation: bind",
-					))
-				})
-
-				It("does NOT include a bosh task ID", func() {
-					Expect(errorResponse.Description).NotTo(ContainSubstring(
-						"task-id:",
-					))
-				})
-			})
-
-			It("logs that the adapter does not implement create-binding", func() {
-				Eventually(runningBroker).Should(gbytes.Say("creating binding: command not implemented"))
-			})
-		})
-
-		Context("when binding fails due to unknown adapter error", func() {
-			Context("when there is operator error message and no user error message", func() {
-				BeforeEach(func() {
-					adapter.CreateBinding().FailsWithOperatorError("adapter completely failed")
-				})
-
-				It("returns HTTP 500", func() {
-					Expect(bindingResponse.StatusCode).To(Equal(500))
-				})
-
-				Describe("error message", func() {
-					var errorResponse brokerapi.ErrorResponse
-
-					JustBeforeEach(func() {
-						Expect(json.NewDecoder(bindingResponse.Body).Decode(&errorResponse)).To(Succeed())
-					})
-
-					AfterEach(func() {
-						defer bindingResponse.Body.Close()
-					})
-
-					It("contains a generic message", func() {
-						Expect(errorResponse.Description).To(ContainSubstring(
-							"There was a problem completing your request. Please contact your operations team providing the following information: ",
-						))
-					})
-
-					It("includes the request ID", func() {
-						Expect(errorResponse.Description).To(MatchRegexp(
-							`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`,
-						))
-					})
-
-					It("includes the service name", func() {
-						Expect(errorResponse.Description).To(ContainSubstring(
-							fmt.Sprintf("service: %s", serviceName),
-						))
-					})
-
-					It("includes a service instance guid", func() {
-						Expect(errorResponse.Description).To(ContainSubstring(
-							fmt.Sprintf("service-instance-guid: %s", instanceID),
-						))
-					})
-
-					It("includes the operation type", func() {
-						Expect(errorResponse.Description).To(ContainSubstring(
-							"operation: bind",
-						))
-					})
-
-					It("does NOT include a bosh task ID", func() {
-						Expect(errorResponse.Description).NotTo(ContainSubstring(
-							"task-id:",
-						))
-					})
-				})
-
-				It("logs the adapter error", func() {
+					Expect(errorResponse.Description).To(ContainSubstring("operation: bind"))
+					Expect(errorResponse.Description).NotTo(ContainSubstring("task-id:"))
 					Eventually(runningBroker).Should(gbytes.Say("adapter completely failed"))
 				})
 			})
@@ -437,19 +371,15 @@ var _ = Describe("binding service instances", func() {
 					adapter.CreateBinding().FailsWithCFUserAndOperatorError("error message for user", "error message for operator")
 				})
 
-				It("returns HTTP 500", func() {
+				It("responds with a 500 error, including the user's error message", func() {
 					Expect(bindingResponse.StatusCode).To(Equal(500))
-				})
 
-				It("returns the user error message in the response", func() {
 					defer bindingResponse.Body.Close()
 					var errorResponse brokerapi.ErrorResponse
 					Expect(json.NewDecoder(bindingResponse.Body).Decode(&errorResponse)).To(Succeed())
 					Expect(errorResponse.Description).To(ContainSubstring("error message for user"))
 					Expect(errorResponse.Description).NotTo(ContainSubstring("error message for operator"))
-				})
 
-				It("logs both error messages", func() {
 					Eventually(runningBroker.Out).Should(gbytes.Say("error message for user"))
 					Eventually(runningBroker.Out).Should(gbytes.Say("error message for operator"))
 				})
@@ -458,6 +388,8 @@ var _ = Describe("binding service instances", func() {
 	})
 
 	Context("when getting VMs for a deployment responds with an error", func() {
+		var errorResponse brokerapi.ErrorResponse
+
 		JustBeforeEach(func() {
 			boshDirector.VerifyAndMock(mockbosh.VMsForDeployment(deploymentName(instanceID)).RespondsInternalServerErrorWith("bosh failed"))
 			bindingReq, err := http.NewRequest("PUT",
@@ -468,58 +400,34 @@ var _ = Describe("binding service instances", func() {
 
 			bindingResponse, err = http.DefaultClient.Do(bindingReq)
 			Expect(err).ToNot(HaveOccurred())
+
+			Expect(json.NewDecoder(bindingResponse.Body).Decode(&errorResponse)).To(Succeed())
 		})
 
-		It("returns HTTP 500", func() {
+		AfterEach(func() {
+			defer bindingResponse.Body.Close()
+		})
+
+		It("responds with a 500 error", func() {
 			Expect(bindingResponse.StatusCode).To(Equal(http.StatusInternalServerError))
-		})
-
-		Describe("error message", func() {
-			var errorResponse brokerapi.ErrorResponse
-
-			JustBeforeEach(func() {
-				Expect(json.NewDecoder(bindingResponse.Body).Decode(&errorResponse)).To(Succeed())
-			})
-
-			AfterEach(func() {
-				defer bindingResponse.Body.Close()
-			})
-
-			It("contains a generic message", func() {
-				Expect(errorResponse.Description).To(ContainSubstring(
-					"There was a problem completing your request. Please contact your operations team providing the following information: ",
-				))
-			})
-
-			It("includes the request ID", func() {
-				Expect(errorResponse.Description).To(MatchRegexp(
-					`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`,
-				))
-			})
-
-			It("includes the service name", func() {
-				Expect(errorResponse.Description).To(ContainSubstring(
-					fmt.Sprintf("service: %s", serviceName),
-				))
-			})
-
-			It("includes a service instance guid", func() {
-				Expect(errorResponse.Description).To(ContainSubstring(
-					fmt.Sprintf("service-instance-guid: %s", instanceID),
-				))
-			})
-
-			It("includes the operation type", func() {
-				Expect(errorResponse.Description).To(ContainSubstring(
-					"operation: bind",
-				))
-			})
-
-			It("does NOT include a bosh task ID", func() {
-				Expect(errorResponse.Description).NotTo(ContainSubstring(
-					"task-id:",
-				))
-			})
+			Expect(errorResponse.Description).To(ContainSubstring(
+				"There was a problem completing your request. Please contact your operations team providing the following information: ",
+			))
+			Expect(errorResponse.Description).To(MatchRegexp(
+				`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`,
+			))
+			Expect(errorResponse.Description).To(ContainSubstring(
+				fmt.Sprintf("service: %s", serviceName),
+			))
+			Expect(errorResponse.Description).To(ContainSubstring(
+				fmt.Sprintf("service-instance-guid: %s", instanceID),
+			))
+			Expect(errorResponse.Description).To(ContainSubstring(
+				"operation: bind",
+			))
+			Expect(errorResponse.Description).NotTo(ContainSubstring(
+				"task-id:",
+			))
 		})
 	})
 
@@ -536,11 +444,9 @@ var _ = Describe("binding service instances", func() {
 			Expect(err).ToNot(HaveOccurred())
 		})
 
-		It("responds with HTTP 500", func() {
+		It("responds with a 500 error with a try-again-later message in the response", func() {
 			Expect(bindingResponse.StatusCode).To(Equal(http.StatusInternalServerError))
-		})
 
-		It("includes a try again later message in the response", func() {
 			var errorResponse brokerapi.ErrorResponse
 			Expect(json.NewDecoder(bindingResponse.Body).Decode(&errorResponse)).To(Succeed())
 			Expect(errorResponse.Description).To(ContainSubstring("Currently unable to bind service instance, please try again later"))
@@ -562,11 +468,9 @@ var _ = Describe("binding service instances", func() {
 			Expect(err).ToNot(HaveOccurred())
 		})
 
-		It("returns HTTP gone", func() {
+		It("responds with a 404 error", func() {
 			Expect(bindingResponse.StatusCode).To(Equal(http.StatusNotFound))
-		})
 
-		It("returns an error response to the user", func() {
 			defer bindingResponse.Body.Close()
 			Expect(ioutil.ReadAll(bindingResponse.Body)).To(MatchJSON(`{"description":"instance does not exist"}`))
 		})
