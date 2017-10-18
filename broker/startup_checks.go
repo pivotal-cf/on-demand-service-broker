@@ -8,11 +8,9 @@ package broker
 
 import (
 	"errors"
-	"fmt"
 	"log"
 	"strings"
 
-	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/startupchecker"
 )
 
@@ -24,13 +22,15 @@ func (b *Broker) startupChecks() error {
 	startupErrors := []string{}
 
 	cfChecker := startupchecker.NewCFChecker(b.cfClient, MinimumCFVersion, b.serviceOffering, logger)
+	boshChecker := startupchecker.NewBOSHDirectorVersionChecker(b.boshInfo, b.serviceOffering, logger)
+
 	err := cfChecker.Check()
 	if err != nil {
 		startupErrors = append(startupErrors, err.Error())
 	}
-
-	if err = b.checkBoshDirectorVersion(logger); err != nil {
-		startupErrors = append(startupErrors, "BOSH Director error: "+err.Error())
+	err = boshChecker.Check()
+	if err != nil {
+		startupErrors = append(startupErrors, err.Error())
 	}
 
 	if len(startupErrors) > 0 {
@@ -48,23 +48,5 @@ func (b *Broker) checkAuthentication(logger *log.Logger) error {
 	if err := b.boshClient.VerifyAuth(logger); err != nil {
 		return errors.New("BOSH Director error: " + err.Error())
 	}
-	return nil
-}
-
-func (b *Broker) checkBoshDirectorVersion(logger *log.Logger) error {
-	directorVersion, err := b.boshInfo.GetDirectorVersion(logger)
-	if err != nil {
-		return fmt.Errorf("%s. ODB requires BOSH v257+.", err)
-	}
-
-	if !directorVersion.SupportsODB() {
-		return errors.New("API version is insufficient, ODB requires BOSH v257+.")
-	}
-
-	if b.serviceOffering.HasLifecycleErrands() && !directorVersion.SupportsLifecycleErrands() {
-		errMsg := fmt.Sprintf("API version is insufficient, one or more plans are configured with lifecycle_errands which require BOSH v%d+.", boshdirector.MinimumMajorSemverDirectorVersionForLifecycleErrands)
-		return errors.New(errMsg)
-	}
-
 	return nil
 }
