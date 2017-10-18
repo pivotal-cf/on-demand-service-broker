@@ -72,7 +72,8 @@ func (b *Broker) Upgrade(ctx context.Context, instanceID string, logger *log.Log
 		BoshTaskID:    taskID,
 		OperationType: OperationTypeUpgrade,
 		PostDeployErrand: PostDeployErrand{
-			Name: operationPostDeployErrand,
+			Name:      operationPostDeployErrand,
+			Instances: plan.PostDeployErrandInstances(),
 		},
 	}, nil
 }

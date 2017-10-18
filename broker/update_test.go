@@ -274,6 +274,7 @@ var _ = Describe("Update", func() {
 						Expect(data.OperationType).To(Equal(broker.OperationTypeUpdate))
 						Expect(data.BoshContextID).NotTo(BeEmpty())
 						Expect(data.PostDeployErrand.Name).To(Equal("health-check"))
+						Expect(data.PostDeployErrand.Instances).To(Equal([]string{"redis-server/0"}))
 					})
 
 					It("calls the deployer with a bosh context id", func() {

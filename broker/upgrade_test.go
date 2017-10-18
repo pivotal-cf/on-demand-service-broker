@@ -124,7 +124,8 @@ var _ = Describe("Upgrade", func() {
 						OperationType: broker.OperationTypeUpgrade,
 						BoshContextID: upgradeOperationData.BoshContextID,
 						PostDeployErrand: broker.PostDeployErrand{
-							Name: "health-check",
+							Name:      "health-check",
+							Instances: []string{"redis-server/0"},
 						},
 					},
 				))

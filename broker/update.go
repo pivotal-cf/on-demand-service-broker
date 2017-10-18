@@ -102,7 +102,8 @@ func (b *Broker) Update(
 		OperationType: OperationTypeUpdate,
 		BoshContextID: boshContextID,
 		PostDeployErrand: PostDeployErrand{
-			Name: operationPostDeployErrandName,
+			Name:      operationPostDeployErrandName,
+			Instances: plan.PostDeployErrandInstances(),
 		},
 	})
 	if err != nil {

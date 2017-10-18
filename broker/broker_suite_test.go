@@ -114,7 +114,8 @@ var _ = BeforeEach(func() {
 		ID: postDeployErrandPlanID,
 		LifecycleErrands: &config.LifecycleErrands{
 			PostDeploy: config.Errand{
-				Name: "health-check",
+				Name:      "health-check",
+				Instances: []string{"redis-server/0"},
 			},
 		},
 		InstanceGroups: []serviceadapter.InstanceGroup{},
