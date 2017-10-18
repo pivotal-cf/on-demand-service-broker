@@ -12,23 +12,32 @@ import (
 	"log"
 	"strings"
 
-	"github.com/coreos/go-semver/semver"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
+	"github.com/pivotal-cf/on-demand-service-broker/startupchecker"
 )
 
 const MinimumCFVersion string = "2.57.0"
 
 func (b *Broker) startupChecks() error {
 	logger := b.loggerFactory.New()
-	if err := b.checkAPIVersions(logger); err != nil {
-		return err
+
+	startupErrors := []string{}
+
+	cfChecker := startupchecker.NewCFChecker(b.cfClient, MinimumCFVersion, b.serviceOffering, logger)
+	err := cfChecker.Check()
+	if err != nil {
+		startupErrors = append(startupErrors, err.Error())
+	}
+
+	if err = b.checkBoshDirectorVersion(logger); err != nil {
+		startupErrors = append(startupErrors, "BOSH Director error: "+err.Error())
+	}
+
+	if len(startupErrors) > 0 {
+		return errors.New(strings.Join(startupErrors, " "))
 	}
 
 	if err := b.checkAuthentication(logger); err != nil {
-		return err
-	}
-
-	if err := b.verifyExistingInstancePlanIDsUnchanged(logger); err != nil {
 		return err
 	}
 
@@ -39,62 +48,6 @@ func (b *Broker) checkAuthentication(logger *log.Logger) error {
 	if err := b.boshClient.VerifyAuth(logger); err != nil {
 		return errors.New("BOSH Director error: " + err.Error())
 	}
-	return nil
-}
-
-func (b *Broker) verifyExistingInstancePlanIDsUnchanged(logger *log.Logger) error {
-	instanceCountByPlanID, err := b.cfClient.CountInstancesOfServiceOffering(b.serviceOffering.ID, logger)
-	if err != nil {
-		return err
-	}
-
-	for plan, count := range instanceCountByPlanID {
-		_, found := b.serviceOffering.Plans.FindByID(plan.ServicePlanEntity.UniqueID)
-
-		if !found && count > 0 {
-			return fmt.Errorf(
-				"plan %s (%s) was expected but is now missing. You cannot remove or change the plan_id of a plan which has existing service instances",
-				plan.ServicePlanEntity.Name,
-				plan.ServicePlanEntity.UniqueID,
-			)
-		}
-	}
-
-	return nil
-}
-
-func (b *Broker) checkAPIVersions(logger *log.Logger) error {
-	var apiErrorMessages []string
-
-	if err := b.checkCFAPIVersion(logger); err != nil {
-		apiErrorMessages = append(apiErrorMessages, "CF API error: "+err.Error())
-	}
-
-	if err := b.checkBoshDirectorVersion(logger); err != nil {
-		apiErrorMessages = append(apiErrorMessages, "BOSH Director error: "+err.Error())
-	}
-
-	if len(apiErrorMessages) > 0 {
-		return errors.New(strings.Join(apiErrorMessages, " "))
-	}
-
-	return nil
-}
-
-func (b *Broker) checkCFAPIVersion(logger *log.Logger) error {
-	rawCFAPIVersion, err := b.cfClient.GetAPIVersion(logger)
-	if err != nil {
-		return fmt.Errorf("%s. ODB requires CF v238+.", err)
-	}
-
-	version, err := semver.NewVersion(rawCFAPIVersion)
-	if err != nil {
-		return fmt.Errorf("Cloud Foundry API version couldn't be parsed. Expected a semver, got: %s.", rawCFAPIVersion)
-	}
-	if version.LessThan(*semver.New(MinimumCFVersion)) {
-		return errors.New("Cloud Foundry API version is insufficient, ODB requires CF v238+.")
-	}
-
 	return nil
 }
 

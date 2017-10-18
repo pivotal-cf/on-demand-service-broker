@@ -207,6 +207,7 @@ var _ = Describe("Startup", func() {
 
 				cfAPI.VerifyAndMock(
 					mockcfapi.GetInfo().RespondsWithSufficientAPIVersion(),
+					mockcfapi.ListServiceOfferings().RespondsWithNoServiceOfferings(),
 				)
 				boshDirector.VerifyAndMock(
 					mockbosh.Info().RespondsWithSufficientStemcellVersionForODB(boshDirector.UAAURL),
@@ -252,7 +253,6 @@ var _ = Describe("Startup", func() {
 				}`),
 				)
 				boshDirector.VerifyAndMock(
-					mockbosh.Info().RespondsWithSufficientStemcellVersionForODB(boshDirector.UAAURL),
 					mockbosh.Info().RespondsWithSufficientStemcellVersionForODB(boshDirector.UAAURL),
 				)
 				conf.ServiceCatalog.Plans = []config.Plan{}
@@ -404,6 +404,7 @@ var _ = Describe("Startup", func() {
 
 					cfAPI.VerifyAndMock(
 						mockcfapi.GetInfo().RespondsWithSufficientAPIVersion(),
+						mockcfapi.ListServiceOfferings().RespondsWithNoServiceOfferings(),
 					)
 				})
 
@@ -463,6 +464,7 @@ var _ = Describe("Startup", func() {
 					)
 					cfAPI.VerifyAndMock(
 						mockcfapi.GetInfo().RespondsWithSufficientAPIVersion(),
+						mockcfapi.ListServiceOfferings().RespondsWithNoServiceOfferings(),
 					)
 				})
 
@@ -534,6 +536,7 @@ var _ = Describe("Startup", func() {
 				)
 				cfAPI.VerifyAndMock(
 					mockcfapi.GetInfo().RespondsWithSufficientAPIVersion(),
+					mockcfapi.ListServiceOfferings().RespondsWithNoServiceOfferings(),
 				)
 			})
 
@@ -554,6 +557,7 @@ var _ = Describe("Startup", func() {
 				)
 				cfAPI.VerifyAndMock(
 					mockcfapi.GetInfo().RespondsWithSufficientAPIVersion(),
+					mockcfapi.ListServiceOfferings().RespondsWithNoServiceOfferings(),
 				)
 			})
 

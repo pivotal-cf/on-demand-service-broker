@@ -99,6 +99,7 @@ var _ = Describe("Basic authentication for BOSH", func() {
 			)
 			cfAPI.VerifyAndMock(
 				mockcfapi.GetInfo().RespondsWithSufficientAPIVersion(),
+				mockcfapi.ListServiceOfferings().RespondsWithNoServiceOfferings(),
 			)
 
 			runningBroker = startBrokerWithoutPortCheck(conf)
