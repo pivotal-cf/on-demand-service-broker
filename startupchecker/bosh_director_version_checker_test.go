@@ -26,7 +26,9 @@ var _ = Describe("BOSH Director Version Checker", func() {
 		postDeployErrandPlan = config.Plan{
 			ID: "post-deploy",
 			LifecycleErrands: &config.LifecycleErrands{
-				PostDeploy: "health-check",
+				PostDeploy: config.Errand{
+					Name: "health-check",
+				},
 			},
 			InstanceGroups: []serviceadapter.InstanceGroup{},
 		}
@@ -77,7 +79,7 @@ var _ = Describe("BOSH Director Version Checker", func() {
 		emptyLifecycleErrandsPlan := config.Plan{
 			ID: "empty-lifecycle-errands-plan-id",
 			LifecycleErrands: &config.LifecycleErrands{
-				PostDeploy: "",
+				PostDeploy: config.Errand{},
 				PreDelete:  "",
 			},
 		}
