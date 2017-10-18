@@ -154,11 +154,13 @@ func (b *Broker) provisionInstance(ctx context.Context, instanceID string, planI
 	}
 
 	operationData := OperationData{
-		BoshTaskID:                boshTaskID,
-		OperationType:             OperationTypeCreate,
-		BoshContextID:             boshContextID,
-		PostDeployErrandName:      operationPostDeployErrand,
-		PostDeployErrandInstances: operationPostDeployErrandInstances,
+		BoshTaskID:    boshTaskID,
+		OperationType: OperationTypeCreate,
+		BoshContextID: boshContextID,
+		PostDeployErrand: PostDeployErrand{
+			Name:      operationPostDeployErrand,
+			Instances: operationPostDeployErrandInstances,
+		},
 	}
 
 	//Dashboard url optional

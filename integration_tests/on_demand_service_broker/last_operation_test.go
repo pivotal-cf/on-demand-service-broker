@@ -83,11 +83,13 @@ var _ = Describe("last operation", func() {
 		operationData := broker.OperationData{}
 		if operationType != "" {
 			operationData = broker.OperationData{
-				BoshTaskID:           boshTaskID,
-				OperationType:        operationType,
-				BoshContextID:        contextID,
-				PlanID:               planID,
-				PostDeployErrandName: postDeployErrandName,
+				BoshTaskID:    boshTaskID,
+				OperationType: operationType,
+				BoshContextID: contextID,
+				PlanID:        planID,
+				PostDeployErrand: broker.PostDeployErrand{
+					Name: postDeployErrandName,
+				},
 			}
 		}
 		lastOperationResponse = lastOperationForInstance(instanceID, operationData)

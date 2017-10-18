@@ -74,12 +74,12 @@ func (l LifeCycleRunner) processPostDeployment(
 			return task, nil
 		}
 
-		if errand := operationData.PostDeployErrandName; errand != "" {
-			return l.runErrand(deploymentName, errand, operationData.PostDeployErrandInstances, operationData.BoshContextID, logger)
+		if errand := operationData.PostDeployErrand.Name; errand != "" {
+			return l.runErrand(deploymentName, errand, operationData.PostDeployErrand.Instances, operationData.BoshContextID, logger)
 		}
 
 		if operationData.PlanID == "" {
-			logger.Println("can't determine lifecycle errands, neither PlanID nor PostDeployErrandName is present")
+			logger.Println("can't determine lifecycle errands, neither PlanID nor PostDeployErrand.Name is present")
 			return task, nil
 		}
 

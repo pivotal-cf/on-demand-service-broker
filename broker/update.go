@@ -98,10 +98,12 @@ func (b *Broker) Update(
 	}
 
 	operationData, err := json.Marshal(OperationData{
-		BoshTaskID:           boshTaskID,
-		OperationType:        OperationTypeUpdate,
-		BoshContextID:        boshContextID,
-		PostDeployErrandName: operationPostDeployErrandName,
+		BoshTaskID:    boshTaskID,
+		OperationType: OperationTypeUpdate,
+		BoshContextID: boshContextID,
+		PostDeployErrand: PostDeployErrand{
+			Name: operationPostDeployErrandName,
+		},
 	})
 	if err != nil {
 		return errs(NewGenericError(brokercontext.WithBoshTaskID(ctx, boshTaskID), err))

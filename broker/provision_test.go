@@ -266,8 +266,8 @@ var _ = Describe("provisioning", func() {
 			err := json.Unmarshal([]byte(serviceSpec.OperationData), &data)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(data.BoshContextID).NotTo(BeEmpty())
-			Expect(data.PostDeployErrandName).To(Equal(errandName))
-			Expect(data.PostDeployErrandInstances).To(Equal([]string{errandInstance}))
+			Expect(data.PostDeployErrand.Name).To(Equal(errandName))
+			Expect(data.PostDeployErrand.Instances).To(Equal([]string{errandInstance}))
 		})
 
 		It("calls the deployer with a bosh context id", func() {

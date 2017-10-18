@@ -48,7 +48,7 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 
 	Context("when there is one service instance", func() {
 		It("exits successfully with one instance upgraded message", func() {
-			operationData := `{"BoshTaskID":1,"OperationType":"upgrade"}`
+			operationData := `{"BoshTaskID":1,"OperationType":"upgrade","PostDeployErrand":{}}`
 			instanceID := "service-instance-id"
 			odb.VerifyAndMock(
 				mockbroker.ListInstances().RespondsOKWith(fmt.Sprintf(`[{"instance_id": "%s"}]`, instanceID)),

@@ -238,10 +238,12 @@ var _ = Describe("updating a service instance", func() {
 				Expect(operationData.BoshContextID).NotTo(BeEmpty())
 				Expect(*operationData).To(Equal(
 					broker.OperationData{
-						OperationType:        broker.OperationTypeUpdate,
-						BoshTaskID:           taskID,
-						BoshContextID:        operationData.BoshContextID,
-						PostDeployErrandName: "health-check",
+						OperationType: broker.OperationTypeUpdate,
+						BoshTaskID:    taskID,
+						BoshContextID: operationData.BoshContextID,
+						PostDeployErrand: broker.PostDeployErrand{
+							Name: "health-check",
+						},
 					},
 				))
 			})
@@ -518,10 +520,12 @@ var _ = Describe("updating a service instance", func() {
 				operationData := operationDataFromUpdateResponse(updateResp)
 				Expect(operationData.BoshContextID).NotTo(BeEmpty())
 				Expect(*operationData).To(Equal(broker.OperationData{
-					OperationType:        broker.OperationTypeUpdate,
-					BoshTaskID:           taskID,
-					BoshContextID:        operationData.BoshContextID,
-					PostDeployErrandName: "health-check",
+					OperationType: broker.OperationTypeUpdate,
+					BoshTaskID:    taskID,
+					BoshContextID: operationData.BoshContextID,
+					PostDeployErrand: broker.PostDeployErrand{
+						Name: "health-check",
+					},
 				}))
 			})
 		})

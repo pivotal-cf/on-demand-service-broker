@@ -123,11 +123,11 @@ var _ = Describe("Lifecycle runner", func() {
 				Context("and the post-deploy errand and plan id are absent in operation data", func() {
 					BeforeEach(func() {
 						operationData.PlanID = ""
-						operationData.PostDeployErrandName = ""
+						operationData.PostDeployErrand.Name = ""
 						task, _ = deployRunner.GetTask(deploymentName, operationData, logger)
 					})
 					It("logs that the plan id and errand are absent", func() {
-						Expect(logBuffer.String()).To(ContainSubstring("can't determine lifecycle errands, neither PlanID nor PostDeployErrandName is present"))
+						Expect(logBuffer.String()).To(ContainSubstring("can't determine lifecycle errands, neither PlanID nor PostDeployErrand.Name is present"))
 					})
 
 					It("does not run a post deploy errand", func() {
@@ -144,10 +144,12 @@ var _ = Describe("Lifecycle runner", func() {
 						var err error
 						deployRunner = broker.NewLifeCycleRunner(boshClient, plans)
 						operationData = broker.OperationData{
-							BoshContextID:             contextID,
-							OperationType:             broker.OperationTypeCreate,
-							PostDeployErrandName:      errand1,
-							PostDeployErrandInstances: errandInstances,
+							BoshContextID: contextID,
+							OperationType: broker.OperationTypeCreate,
+							PostDeployErrand: broker.PostDeployErrand{
+								Name:      errand1,
+								Instances: errandInstances,
+							},
 						}
 
 						task, err = deployRunner.GetTask(deploymentName, operationData, logger)

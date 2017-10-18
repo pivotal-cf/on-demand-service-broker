@@ -120,10 +120,12 @@ var _ = Describe("Upgrade", func() {
 				Expect(upgradeOperationData.BoshContextID).NotTo(BeEmpty())
 				Expect(upgradeOperationData).To(Equal(
 					broker.OperationData{
-						BoshTaskID:           boshTaskID,
-						PostDeployErrandName: "health-check",
-						OperationType:        broker.OperationTypeUpgrade,
-						BoshContextID:        upgradeOperationData.BoshContextID,
+						BoshTaskID:    boshTaskID,
+						OperationType: broker.OperationTypeUpgrade,
+						BoshContextID: upgradeOperationData.BoshContextID,
+						PostDeployErrand: broker.PostDeployErrand{
+							Name: "health-check",
+						},
 					},
 				))
 			})

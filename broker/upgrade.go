@@ -68,9 +68,11 @@ func (b *Broker) Upgrade(ctx context.Context, instanceID string, logger *log.Log
 	}
 
 	return OperationData{
-		BoshContextID:        boshContextID,
-		BoshTaskID:           taskID,
-		PostDeployErrandName: operationPostDeployErrand,
-		OperationType:        OperationTypeUpgrade,
+		BoshContextID: boshContextID,
+		BoshTaskID:    taskID,
+		OperationType: OperationTypeUpgrade,
+		PostDeployErrand: PostDeployErrand{
+			Name: operationPostDeployErrand,
+		},
 	}, nil
 }

@@ -424,10 +424,12 @@ var _ = Describe("Management API", func() {
 				operationData := decodeOperationDataFromResponseBody(upgradeResp.Body)
 				Expect(operationData.BoshContextID).NotTo(BeEmpty())
 				Expect(operationData).To(Equal(broker.OperationData{
-					OperationType:        broker.OperationTypeUpgrade,
-					BoshTaskID:           upgradingTaskID,
-					BoshContextID:        operationData.BoshContextID,
-					PostDeployErrandName: postDeployErrandName,
+					OperationType: broker.OperationTypeUpgrade,
+					BoshTaskID:    upgradingTaskID,
+					BoshContextID: operationData.BoshContextID,
+					PostDeployErrand: broker.PostDeployErrand{
+						Name: postDeployErrandName,
+					},
 				}))
 			})
 		})

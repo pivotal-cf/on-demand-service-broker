@@ -116,7 +116,7 @@ var _ = Describe("Broker Services", func() {
 			actualPath, actualQuery := client.GetArgsForCall(0)
 			Expect(actualPath).To(Equal("/v2/service_instances/" + serviceInstanceGUID + "/last_operation"))
 			Expect(actualQuery).To(Equal(map[string]string{
-				"operation": `{"BoshTaskID":1,"BoshContextID":"context-id","OperationType":"upgrade","PlanID":"plan-id"}`,
+				"operation": `{"BoshTaskID":1,"BoshContextID":"context-id","OperationType":"upgrade","PlanID":"plan-id","PostDeployErrand":{}}`,
 			}))
 			Expect(lastOperation).To(Equal(
 				brokerapi.LastOperation{State: brokerapi.InProgress, Description: "upgrade in progress"}),

@@ -161,7 +161,7 @@ var _ = Describe("Update", func() {
 					data := unmarshalOperationData(updateSpec)
 					Expect(data.OperationType).To(Equal(broker.OperationTypeUpdate))
 					Expect(data.BoshContextID).NotTo(BeEmpty())
-					Expect(data.PostDeployErrandName).To(Equal("health-check"))
+					Expect(data.PostDeployErrand.Name).To(Equal("health-check"))
 				})
 
 				It("calls the deployer with a bosh context id", func() {
@@ -273,7 +273,7 @@ var _ = Describe("Update", func() {
 						data := unmarshalOperationData(updateSpec)
 						Expect(data.OperationType).To(Equal(broker.OperationTypeUpdate))
 						Expect(data.BoshContextID).NotTo(BeEmpty())
-						Expect(data.PostDeployErrandName).To(Equal("health-check"))
+						Expect(data.PostDeployErrand.Name).To(Equal("health-check"))
 					})
 
 					It("calls the deployer with a bosh context id", func() {
