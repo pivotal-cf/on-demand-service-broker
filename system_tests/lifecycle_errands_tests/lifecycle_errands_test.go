@@ -23,11 +23,12 @@ var _ = Describe("lifecycle errand tests", func() {
 	var serviceInstanceName, planName string
 
 	const (
-		postDeployPlan      = "lifecycle-post-deploy-plan"
-		postDeployFailsPlan = "lifecycle-failing-health-check-plan"
-		cleanupPlan         = "lifecycle-cleanup-data-plan"
-		cleanupFailsPlan    = "lifecycle-failing-cleanup-data-plan"
-		dedicatedVMPlan     = "dedicated-vm"
+		postDeployPlan          = "lifecycle-post-deploy-plan"
+		postDeployFailsPlan     = "lifecycle-failing-health-check-plan"
+		cleanupPlan             = "lifecycle-cleanup-data-plan"
+		cleanupFailsPlan        = "lifecycle-failing-cleanup-data-plan"
+		colocatedPostDeployPlan = "lifecycle-colocated-post-deploy-plan"
+		dedicatedVMPlan         = "dedicated-vm"
 	)
 
 	BeforeEach(func() {
@@ -40,6 +41,25 @@ var _ = Describe("lifecycle errand tests", func() {
 			By("deleting the service instance")
 			Eventually(cf.Cf("delete-service", serviceInstanceName, "-f"), cf_helpers.CfTimeout).Should(gexec.Exit(0))
 			cf_helpers.AwaitServiceDeletion(serviceInstanceName)
+		})
+
+		Context("for a plan with a colocated post-deploy errand", func() {
+			It("runs the post-deploy errand after create", func() {
+				planName = colocatedPostDeployPlan
+
+				By("creating an instance")
+				Eventually(cf.Cf("create-service", serviceOffering, planName, serviceInstanceName), cf_helpers.CfTimeout).Should(gexec.Exit(0))
+				cf_helpers.AwaitServiceCreation(serviceInstanceName)
+
+				boshTasks := boshClient.GetTasksForDeployment(getServiceDeploymentName(serviceInstanceName))
+				Expect(boshTasks).To(HaveLen(2))
+
+				Expect(boshTasks[0].State).To(Equal(boshdirector.TaskDone))
+				Expect(boshTasks[0].Description).To(ContainSubstring("run errand"))
+
+				Expect(boshTasks[1].State).To(Equal(boshdirector.TaskDone))
+				Expect(boshTasks[1].Description).To(ContainSubstring("create deployment"))
+			})
 		})
 
 		Context("for a plan with a post-deploy errand", func() {
