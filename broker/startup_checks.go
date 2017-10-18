@@ -8,7 +8,6 @@ package broker
 
 import (
 	"errors"
-	"log"
 	"strings"
 
 	"github.com/pivotal-cf/on-demand-service-broker/startupchecker"
@@ -23,6 +22,7 @@ func (b *Broker) startupChecks() error {
 
 	cfChecker := startupchecker.NewCFChecker(b.cfClient, MinimumCFVersion, b.serviceOffering, logger)
 	boshChecker := startupchecker.NewBOSHDirectorVersionChecker(b.boshInfo, b.serviceOffering, logger)
+	boshAuthChecker := startupchecker.NewBOSHAuthChecker(b.boshClient, logger)
 
 	err := cfChecker.Check()
 	if err != nil {
@@ -37,16 +37,10 @@ func (b *Broker) startupChecks() error {
 		return errors.New(strings.Join(startupErrors, " "))
 	}
 
-	if err := b.checkAuthentication(logger); err != nil {
+	err = boshAuthChecker.Check()
+	if err != nil {
 		return err
 	}
 
-	return nil
-}
-
-func (b *Broker) checkAuthentication(logger *log.Logger) error {
-	if err := b.boshClient.VerifyAuth(logger); err != nil {
-		return errors.New("BOSH Director error: " + err.Error())
-	}
 	return nil
 }
