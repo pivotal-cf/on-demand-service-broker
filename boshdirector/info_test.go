@@ -58,7 +58,7 @@ var _ = Describe("info", func() {
 	Describe("GetDirectorVersion", func() {
 		It("supports ODB but not lifecycle errands when it has a stemcell version", func() {
 			boshInfo := createBoshInfoWithVersion("1.3262.0.0 (00000000)")
-			directorVersion, directorVersionErr := boshInfo.GetDirectorVersion(logger)
+			directorVersion, directorVersionErr := boshInfo.GetDirectorVersion()
 			Expect(directorVersionErr).NotTo(HaveOccurred())
 			Expect(directorVersion.SupportsODB()).To(BeTrue())
 			Expect(directorVersion.SupportsLifecycleErrands()).To(BeFalse())
@@ -66,7 +66,7 @@ var _ = Describe("info", func() {
 
 		It("supports ODB but not lifecycle errands when it has a semi-semver version (bosh director 260.4)", func() {
 			boshInfo := createBoshInfoWithVersion("260.4 (00000000)")
-			directorVersion, directorVersionErr := boshInfo.GetDirectorVersion(logger)
+			directorVersion, directorVersionErr := boshInfo.GetDirectorVersion()
 			Expect(directorVersionErr).NotTo(HaveOccurred())
 			Expect(directorVersion.SupportsODB()).To(BeTrue())
 			Expect(directorVersion.SupportsLifecycleErrands()).To(BeFalse())
@@ -74,7 +74,7 @@ var _ = Describe("info", func() {
 
 		It("supports ODB but not lifecycle errands when it has a semver version less than 261", func() {
 			boshInfo := createBoshInfoWithVersion("260.5.0 (00000000)")
-			directorVersion, directorVersionErr := boshInfo.GetDirectorVersion(logger)
+			directorVersion, directorVersionErr := boshInfo.GetDirectorVersion()
 			Expect(directorVersionErr).NotTo(HaveOccurred())
 			Expect(directorVersion.SupportsODB()).To(BeTrue())
 			Expect(directorVersion.SupportsLifecycleErrands()).To(BeFalse())
@@ -82,7 +82,7 @@ var _ = Describe("info", func() {
 
 		It("supports ODB and lifecycle errands when it has a semver version of 261 or greater", func() {
 			boshInfo := createBoshInfoWithVersion("261.0.0 (00000000)")
-			directorVersion, directorVersionErr := boshInfo.GetDirectorVersion(logger)
+			directorVersion, directorVersionErr := boshInfo.GetDirectorVersion()
 			Expect(directorVersionErr).NotTo(HaveOccurred())
 			Expect(directorVersion.SupportsODB()).To(BeTrue())
 			Expect(directorVersion.SupportsLifecycleErrands()).To(BeTrue())
@@ -90,21 +90,21 @@ var _ = Describe("info", func() {
 
 		It("returns an error if version is all zeros", func() {
 			boshInfo := createBoshInfoWithVersion("0000 (00000000)")
-			_, directorVersionErr := boshInfo.GetDirectorVersion(logger)
+			_, directorVersionErr := boshInfo.GetDirectorVersion()
 			Expect(directorVersionErr).To(HaveOccurred())
 			Expect(directorVersionErr).To(MatchError(`unrecognised BOSH Director version: "0000 (00000000)"`))
 		})
 
 		It("returns an error if version is empty", func() {
 			boshInfo := createBoshInfoWithVersion("")
-			_, directorVersionErr := boshInfo.GetDirectorVersion(logger)
+			_, directorVersionErr := boshInfo.GetDirectorVersion()
 			Expect(directorVersionErr).To(HaveOccurred())
 			Expect(directorVersionErr).To(MatchError(`unrecognised BOSH Director version: ""`))
 		})
 
 		It("returns an error if the major version is not an integer", func() {
 			boshInfo := createBoshInfoWithVersion("drone.ver")
-			_, directorVersionErr := boshInfo.GetDirectorVersion(logger)
+			_, directorVersionErr := boshInfo.GetDirectorVersion()
 			Expect(directorVersionErr).To(HaveOccurred())
 			Expect(directorVersionErr).To(MatchError(`unrecognised BOSH Director version: "drone.ver"`))
 		})

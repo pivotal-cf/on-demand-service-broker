@@ -30,7 +30,7 @@ func (c *Client) GetInfo(logger *log.Logger) (*Info, error) {
 	return &boshInfo, nil
 }
 
-func (boshInfo *Info) GetDirectorVersion(logger *log.Logger) (Version, error) {
+func (boshInfo *Info) GetDirectorVersion() (Version, error) {
 	version, err := newBoshDirectorVersion(boshInfo.Version)
 	if err != nil {
 		return Version{}, err

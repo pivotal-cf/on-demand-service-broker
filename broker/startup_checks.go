@@ -21,7 +21,7 @@ func (b *Broker) startupChecks() error {
 	startupErrors := []string{}
 
 	cfChecker := startupchecker.NewCFChecker(b.cfClient, MinimumCFVersion, b.serviceOffering, logger)
-	boshChecker := startupchecker.NewBOSHDirectorVersionChecker(b.boshInfo, b.serviceOffering, logger)
+	boshChecker := startupchecker.NewBOSHDirectorVersionChecker(b.boshInfo, b.serviceOffering)
 	boshAuthChecker := startupchecker.NewBOSHAuthChecker(b.boshClient, logger)
 
 	err := cfChecker.Check()
