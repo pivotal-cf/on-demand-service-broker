@@ -17,12 +17,13 @@ import (
 
 var _ = Describe("BOSH Director Version Checker", func() {
 	var (
-		serviceCatalog       = config.ServiceOffering{}
+		serviceCatalog       config.ServiceOffering
 		noLogTesting         *log.Logger
 		postDeployErrandPlan config.Plan
 	)
 
 	BeforeEach(func() {
+		serviceCatalog = config.ServiceOffering{}
 		postDeployErrandPlan = config.Plan{
 			ID: "post-deploy",
 			LifecycleErrands: &config.LifecycleErrands{
