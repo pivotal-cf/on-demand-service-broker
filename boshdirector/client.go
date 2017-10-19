@@ -57,8 +57,8 @@ func New(url string, authHeaderBuilder AuthHeaderBuilder, disableSSLCertVerifica
 		httpClient: herottp.New(herottp.Config{
 			NoFollowRedirect:                  true,
 			DisableTLSCertificateVerification: disableSSLCertVerification,
-			RootCAs: rootCAs,
-			Timeout: 30 * time.Second,
+			RootCAs:                           rootCAs,
+			Timeout:                           30 * time.Second,
 		}),
 		PollingInterval: 5,
 	}, nil
@@ -95,20 +95,13 @@ type Version struct {
 	versionType  VersionType
 }
 
+// First bosh director version in semver format was 260
 func (v Version) SupportsODB() bool {
-	if v.versionType == SemverDirectorVersionType {
-		return true // First bosh director version in semver format was 260
-	}
-
-	return v.majorVersion >= MinimumMajorStemcellDirectorVersionForODB
+	return v.versionType == SemverDirectorVersionType || v.majorVersion >= MinimumMajorStemcellDirectorVersionForODB
 }
 
 func (v Version) SupportsLifecycleErrands() bool {
-	if v.versionType == StemcellDirectorVersionType {
-		return false // Last bosh director version in stemcell format was 259
-	}
-
-	return v.majorVersion >= MinimumMajorSemverDirectorVersionForLifecycleErrands
+	return v.versionType == SemverDirectorVersionType && v.majorVersion >= MinimumMajorSemverDirectorVersionForLifecycleErrands
 }
 
 func NewVersion(majorVersion int, versionType VersionType) Version {
