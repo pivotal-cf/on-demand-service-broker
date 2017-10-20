@@ -8,7 +8,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/credhubbroker"
 )
 
-func New(conf config.Config, baseBroker apiserver.CombinedBrokers) (apiserver.CombinedBrokers, error) {
+func New(conf config.Config, baseBroker apiserver.CombinedBroker) (apiserver.CombinedBroker, error) {
 	if !conf.HasCredHub() {
 		return baseBroker, nil
 	}

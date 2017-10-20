@@ -9,19 +9,19 @@ import (
 )
 
 type CredHubBroker struct {
-	apiserver.CombinedBrokers
+	apiserver.CombinedBroker
 	credStore CredentialStore
 }
 
-func New(broker apiserver.CombinedBrokers, credStore CredentialStore) *CredHubBroker {
+func New(broker apiserver.CombinedBroker, credStore CredentialStore) *CredHubBroker {
 	return &CredHubBroker{
-		CombinedBrokers: broker,
-		credStore:       credStore,
+		CombinedBroker: broker,
+		credStore:      credStore,
 	}
 }
 
 func (b *CredHubBroker) Bind(ctx context.Context, instanceID, bindingID string, details brokerapi.BindDetails) (brokerapi.Binding, error) {
-	binding, err := b.CombinedBrokers.Bind(ctx, instanceID, bindingID, details)
+	binding, err := b.CombinedBroker.Bind(ctx, instanceID, bindingID, details)
 	if err != nil {
 		return brokerapi.Binding{}, err
 	}

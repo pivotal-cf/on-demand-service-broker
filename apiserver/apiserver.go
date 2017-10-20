@@ -21,15 +21,15 @@ import (
 	"github.com/urfave/negroni"
 )
 
-//go:generate counterfeiter -o fakes/combined_brokers.go . CombinedBrokers
-type CombinedBrokers interface {
+//go:generate counterfeiter -o fakes/combined_broker.go . CombinedBroker
+type CombinedBroker interface {
 	mgmtapi.ManageableBroker
 	brokerapi.ServiceBroker
 }
 
 func New(
 	conf config.Config,
-	broker CombinedBrokers,
+	broker CombinedBroker,
 	componentName string,
 	mgmtapiLoggerFactory *loggerfactory.LoggerFactory,
 	serverLogger *log.Logger,

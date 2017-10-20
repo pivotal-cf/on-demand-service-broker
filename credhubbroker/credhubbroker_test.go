@@ -13,7 +13,7 @@ import (
 
 var _ = Describe("CredHub broker", func() {
 	var (
-		fakeBroker *apifakes.FakeCombinedBrokers
+		fakeBroker *apifakes.FakeCombinedBroker
 		ctx        context.Context
 		instanceID string
 		bindingID  string
@@ -22,7 +22,7 @@ var _ = Describe("CredHub broker", func() {
 	)
 
 	BeforeEach(func() {
-		fakeBroker = new(apifakes.FakeCombinedBrokers)
+		fakeBroker = new(apifakes.FakeCombinedBroker)
 		ctx = context.Background()
 		instanceID = "ohai"
 		bindingID = "rofl"
