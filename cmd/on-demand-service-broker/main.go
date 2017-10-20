@@ -21,6 +21,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
+	"github.com/pivotal-cf/on-demand-service-broker/brokerupgrader"
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
@@ -130,7 +131,17 @@ func startBroker(conf config.Config, logger *log.Logger, loggerFactory *loggerfa
 								`)
 	}
 
-	server := apiserver.New(conf, onDemandBroker, nil, componentName, loggerFactory, logger)
+	broker, err := brokerupgrader.New(conf, onDemandBroker)
+	if err != nil {
+		logger.Fatalf("Error constructing the CredHub broker: %s", err)
+	}
+	server := apiserver.New(
+		conf,
+		broker,
+		componentName,
+		loggerFactory,
+		logger,
+	)
 
 	stopped := make(chan struct{})
 	stop := make(chan os.Signal, 1)

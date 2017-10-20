@@ -18,5 +18,5 @@ ginkgo \
   -keepGoing=true \
   -r \
   -cover \
-  -skipPackage system_tests,load_tests \
+  -skipPackage contract_tests,system_tests,load_tests \
   "$@"

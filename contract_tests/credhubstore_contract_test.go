@@ -2,7 +2,6 @@ package contract_tests
 
 import (
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/cloudfoundry-incubator/credhub-cli/credhub"
@@ -96,9 +95,13 @@ var _ = Describe("Credential store", func() {
 		return credentialStore
 	}
 
-	if _, ok := os.LookupEnv("TEST_CREDHUB_CLIENT_SECRET"); ok {
-		BehavesLikeACredentialStore(credhubCorrectAuth(), credhubIncorrectAuth(), credhubNoUAAConfig())
-	} else {
-		log.Println("SKIPPING 'REAL' CREDHUB CONTRACT TEST - set TEST_CREDHUB_CLIENT_SECRET to enable")
-	}
+	BehavesLikeACredentialStore(credhubCorrectAuth(), credhubIncorrectAuth(), credhubNoUAAConfig())
+
+	Describe("CredHub credential store", func() {
+		It("can't be constructed with a bad URI", func() {
+			_, err := credhubbroker.NewCredHubStore("💩://hi.there#you", credhub.SkipTLSValidation(true))
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("cannot contain colon"))
+		})
+	})
 })
