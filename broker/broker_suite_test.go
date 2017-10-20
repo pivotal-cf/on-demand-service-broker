@@ -42,7 +42,7 @@ const (
 var (
 	b                   *broker.Broker
 	brokerCreationErr   error
-	boshInfo            *boshdirector.Info
+	boshInfo            boshdirector.Info
 	boshClient          *fakes.FakeBoshClient
 	boshDirectorVersion boshdirector.Version
 	cfClient            *fakes.FakeCloudFoundryClient
@@ -178,7 +178,7 @@ func cfServicePlan(guid, uniqueID, servicePlanUrl, name string) cf.ServicePlan {
 
 func createDefaultBroker() *broker.Broker {
 	boshInfo = createBOSHInfoWithMajorVersion(
-		boshdirector.MinimumMajorSemverDirectorVersionForLifecycleErrands,
+		broker.MinimumMajorSemverDirectorVersionForLifecycleErrands,
 		boshdirector.VersionType("semver"),
 	)
 	b, brokerCreationErr = createBroker(boshInfo)
@@ -186,7 +186,7 @@ func createDefaultBroker() *broker.Broker {
 	return b
 }
 
-func createBroker(info *boshdirector.Info, overrideClient ...broker.CloudFoundryClient) (*broker.Broker, error) {
+func createBroker(info boshdirector.Info, overrideClient ...broker.CloudFoundryClient) (*broker.Broker, error) {
 
 	var client broker.CloudFoundryClient = cfClient
 	if len(overrideClient) > 0 {
@@ -204,12 +204,12 @@ func createBroker(info *boshdirector.Info, overrideClient ...broker.CloudFoundry
 	)
 }
 
-func createBOSHInfoWithMajorVersion(majorVersion int, versionType boshdirector.VersionType) *boshdirector.Info {
+func createBOSHInfoWithMajorVersion(majorVersion int, versionType boshdirector.VersionType) boshdirector.Info {
 	var version string
 	if versionType == "semver" {
 		version = fmt.Sprintf("%s.0.0", strconv.Itoa(majorVersion))
 	} else if versionType == "stemcell" {
 		version = fmt.Sprintf("1.%s.0.0", strconv.Itoa(majorVersion))
 	}
-	return &boshdirector.Info{Version: version}
+	return boshdirector.Info{Version: version}
 }

@@ -53,7 +53,7 @@ var _ = Describe("deprovisioning instances", func() {
 
 		JustBeforeEach(func() {
 			boshInfo = createBOSHInfoWithMajorVersion(
-				boshdirector.MinimumMajorSemverDirectorVersionForLifecycleErrands,
+				broker.MinimumMajorSemverDirectorVersionForLifecycleErrands,
 				boshdirector.VersionType("semver"),
 			)
 			var err error

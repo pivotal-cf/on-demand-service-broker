@@ -21,7 +21,7 @@ import (
 
 type Broker struct {
 	boshClient     BoshClient
-	boshInfo       *boshdirector.Info
+	boshInfo       boshdirector.Info
 	cfClient       CloudFoundryClient
 	adapterClient  ServiceAdapterClient
 	deployer       Deployer
@@ -35,7 +35,7 @@ type Broker struct {
 }
 
 func New(
-	boshInfo *boshdirector.Info,
+	boshInfo boshdirector.Info,
 	boshClient BoshClient,
 	cfClient CloudFoundryClient,
 	serviceAdapter ServiceAdapterClient,
@@ -124,7 +124,7 @@ type BoshClient interface {
 	GetDeployment(name string, logger *log.Logger) ([]byte, bool, error)
 	GetDeployments(logger *log.Logger) ([]boshdirector.Deployment, error)
 	DeleteDeployment(name, contextID string, logger *log.Logger) (int, error)
-	GetInfo(logger *log.Logger) (*boshdirector.Info, error)
+	GetInfo(logger *log.Logger) (boshdirector.Info, error)
 	RunErrand(deploymentName, errandName string, errandInstances []string, contextID string, logger *log.Logger) (int, error)
 	VerifyAuth(logger *log.Logger) error
 }

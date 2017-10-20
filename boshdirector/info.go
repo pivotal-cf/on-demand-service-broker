@@ -20,14 +20,14 @@ const (
 	stemcellVersionLength   = 4
 )
 
-func (c *Client) GetInfo(logger *log.Logger) (*Info, error) {
+func (c *Client) GetInfo(logger *log.Logger) (Info, error) {
 	var boshInfo Info
 
 	err := c.getDataCheckingForErrors(fmt.Sprintf("%s/info", c.url), http.StatusOK, &boshInfo, logger)
 	if err != nil {
-		return &Info{}, err
+		return Info{}, err
 	}
-	return &boshInfo, nil
+	return boshInfo, nil
 }
 
 func (boshInfo *Info) GetDirectorVersion() (Version, error) {
@@ -65,7 +65,7 @@ func newBoshDirectorVersion(rawVersion string) (Version, error) {
 		return Version{}, unrecognisedBoshDirectorVersionError(rawVersion)
 	}
 
-	return Version{majorVersion: majorVersion, versionType: versionType}, nil
+	return Version{MajorVersion: majorVersion, VersionType: versionType}, nil
 }
 
 func unrecognisedBoshDirectorVersionError(rawVersion string) error {

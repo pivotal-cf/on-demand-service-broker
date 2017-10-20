@@ -710,7 +710,7 @@ var _ = Describe("Bosh#NewAuthHeaderBuilder", func() {
 			},
 		}
 
-		builder, err := boshConfig.NewAuthHeaderBuilder(&boshdirector.Info{}, true)
+		builder, err := boshConfig.NewAuthHeaderBuilder(boshdirector.Info{}, true)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(builder).To(BeAssignableToTypeOf(authorizationheader.BasicAuthHeaderBuilder{}))
 
@@ -736,7 +736,7 @@ var _ = Describe("Bosh#NewAuthHeaderBuilder", func() {
 			tokenToReturn,
 		)
 
-		boshInfo := &boshdirector.Info{
+		boshInfo := boshdirector.Info{
 			UserAuthentication: boshdirector.UserAuthentication{
 				Options: boshdirector.AuthenticationOptions{
 					URL: mockuaa.URL,
@@ -755,7 +755,7 @@ var _ = Describe("Bosh#NewAuthHeaderBuilder", func() {
 	It("returns an error if no credentials are specified", func() {
 		boshConfig := config.Bosh{}
 
-		_, err := boshConfig.NewAuthHeaderBuilder(&boshdirector.Info{}, true)
+		_, err := boshConfig.NewAuthHeaderBuilder(boshdirector.Info{}, true)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(Equal("No BOSH authentication configured"))
 	})

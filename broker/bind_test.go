@@ -20,6 +20,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
+	"github.com/pivotal-cf/on-demand-service-broker/broker"
 )
 
 var _ = Describe("Bind", func() {
@@ -65,7 +66,7 @@ var _ = Describe("Bind", func() {
 		It("returns that is deprovisioning asynchronously", func() {
 
 			boshInfo = createBOSHInfoWithMajorVersion(
-				boshdirector.MinimumMajorSemverDirectorVersionForLifecycleErrands,
+				broker.MinimumMajorSemverDirectorVersionForLifecycleErrands,
 				boshdirector.VersionType("semver"),
 			)
 			b, brokerCreationErr = createBroker(boshInfo, noopservicescontroller.New())

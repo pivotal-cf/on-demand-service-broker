@@ -112,17 +112,17 @@ type FakeBoshClient struct {
 		result1 int
 		result2 error
 	}
-	GetInfoStub        func(logger *log.Logger) (*boshdirector.Info, error)
+	GetInfoStub        func(logger *log.Logger) (boshdirector.Info, error)
 	getInfoMutex       sync.RWMutex
 	getInfoArgsForCall []struct {
 		logger *log.Logger
 	}
 	getInfoReturns struct {
-		result1 *boshdirector.Info
+		result1 boshdirector.Info
 		result2 error
 	}
 	getInfoReturnsOnCall map[int]struct {
-		result1 *boshdirector.Info
+		result1 boshdirector.Info
 		result2 error
 	}
 	RunErrandStub        func(deploymentName, errandName string, errandInstances []string, contextID string, logger *log.Logger) (int, error)
@@ -525,7 +525,7 @@ func (fake *FakeBoshClient) DeleteDeploymentReturnsOnCall(i int, result1 int, re
 	}{result1, result2}
 }
 
-func (fake *FakeBoshClient) GetInfo(logger *log.Logger) (*boshdirector.Info, error) {
+func (fake *FakeBoshClient) GetInfo(logger *log.Logger) (boshdirector.Info, error) {
 	fake.getInfoMutex.Lock()
 	ret, specificReturn := fake.getInfoReturnsOnCall[len(fake.getInfoArgsForCall)]
 	fake.getInfoArgsForCall = append(fake.getInfoArgsForCall, struct {
@@ -554,24 +554,24 @@ func (fake *FakeBoshClient) GetInfoArgsForCall(i int) *log.Logger {
 	return fake.getInfoArgsForCall[i].logger
 }
 
-func (fake *FakeBoshClient) GetInfoReturns(result1 *boshdirector.Info, result2 error) {
+func (fake *FakeBoshClient) GetInfoReturns(result1 boshdirector.Info, result2 error) {
 	fake.GetInfoStub = nil
 	fake.getInfoReturns = struct {
-		result1 *boshdirector.Info
+		result1 boshdirector.Info
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeBoshClient) GetInfoReturnsOnCall(i int, result1 *boshdirector.Info, result2 error) {
+func (fake *FakeBoshClient) GetInfoReturnsOnCall(i int, result1 boshdirector.Info, result2 error) {
 	fake.GetInfoStub = nil
 	if fake.getInfoReturnsOnCall == nil {
 		fake.getInfoReturnsOnCall = make(map[int]struct {
-			result1 *boshdirector.Info
+			result1 boshdirector.Info
 			result2 error
 		})
 	}
 	fake.getInfoReturnsOnCall[i] = struct {
-		result1 *boshdirector.Info
+		result1 boshdirector.Info
 		result2 error
 	}{result1, result2}
 }

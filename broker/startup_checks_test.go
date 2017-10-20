@@ -20,11 +20,11 @@ import (
 
 var _ = Describe("Initializing the broker", func() {
 	Describe("check CF API version", func() {
-		var boshInfo *boshdirector.Info
+		var boshInfo boshdirector.Info
 
 		BeforeEach(func() {
 			boshInfo = createBOSHInfoWithMajorVersion(
-				boshdirector.MinimumMajorSemverDirectorVersionForLifecycleErrands,
+				broker.MinimumMajorSemverDirectorVersionForLifecycleErrands,
 				boshdirector.VersionType("semver"),
 			)
 		})
@@ -75,7 +75,7 @@ var _ = Describe("Initializing the broker", func() {
 				secondPlan,
 			}
 			boshInfo := createBOSHInfoWithMajorVersion(
-				boshdirector.MinimumMajorStemcellDirectorVersionForODB,
+				broker.MinimumMajorStemcellDirectorVersionForODB,
 				boshdirector.VersionType("stemcell"),
 			)
 			_, brokerCreationErr = createBroker(boshInfo)
@@ -84,7 +84,7 @@ var _ = Describe("Initializing the broker", func() {
 
 		It("returns an error when the BOSH director version does not support ODB", func() {
 			boshInfo := createBOSHInfoWithMajorVersion(
-				boshdirector.MinimumMajorStemcellDirectorVersionForODB-1,
+				broker.MinimumMajorStemcellDirectorVersionForODB-1,
 				boshdirector.VersionType("stemcell"),
 			)
 			_, brokerCreationErr = createBroker(boshInfo)
@@ -94,7 +94,7 @@ var _ = Describe("Initializing the broker", func() {
 
 		It("returns no error when BOSH director supports lifecycle errands", func() {
 			boshInfo := createBOSHInfoWithMajorVersion(
-				boshdirector.MinimumMajorSemverDirectorVersionForLifecycleErrands,
+				broker.MinimumMajorSemverDirectorVersionForLifecycleErrands,
 				boshdirector.VersionType("semver"),
 			)
 			_, brokerCreationErr = createBroker(boshInfo)
@@ -103,7 +103,7 @@ var _ = Describe("Initializing the broker", func() {
 
 		It("returns an error when the BOSH director version does not support lifecycle errands and lifecycle errands are configured", func() {
 			boshInfo := createBOSHInfoWithMajorVersion(
-				boshdirector.MinimumMajorStemcellDirectorVersionForODB,
+				broker.MinimumMajorStemcellDirectorVersionForODB,
 				boshdirector.VersionType("stemcell"),
 			)
 			_, brokerCreationErr = createBroker(boshInfo)
@@ -125,7 +125,7 @@ var _ = Describe("Initializing the broker", func() {
 				emptyLifecycleErrandsPlan,
 			}
 			boshInfo := createBOSHInfoWithMajorVersion(
-				boshdirector.MinimumMajorStemcellDirectorVersionForODB,
+				broker.MinimumMajorStemcellDirectorVersionForODB,
 				boshdirector.VersionType("stemcell"),
 			)
 			_, brokerCreationErr = createBroker(boshInfo)
@@ -133,14 +133,14 @@ var _ = Describe("Initializing the broker", func() {
 		})
 
 		It("returns an error when the BOSH director version in unrecognised", func() {
-			boshInfo := &boshdirector.Info{Version: "0000 (00000000)"}
+			boshInfo := boshdirector.Info{Version: "0000 (00000000)"}
 			_, brokerCreationErr = createBroker(boshInfo)
 			Expect(brokerCreationErr).To(HaveOccurred())
 			Expect(brokerCreationErr).To(MatchError(`BOSH Director error: unrecognised BOSH Director version: "0000 (00000000)". ODB requires BOSH v257+.`))
 		})
 
 		It("still verifies BOSH version when CF startup checks are disabled", func() {
-			boshInfo := &boshdirector.Info{Version: "0000 (00000000)"}
+			boshInfo := boshdirector.Info{Version: "0000 (00000000)"}
 
 			_, brokerCreationErr := broker.New(
 				boshInfo,
@@ -157,11 +157,11 @@ var _ = Describe("Initializing the broker", func() {
 	})
 
 	Describe("check CF service instances", func() {
-		var boshInfo *boshdirector.Info
+		var boshInfo boshdirector.Info
 
 		BeforeEach(func() {
 			boshInfo = createBOSHInfoWithMajorVersion(
-				boshdirector.MinimumMajorSemverDirectorVersionForLifecycleErrands,
+				broker.MinimumMajorSemverDirectorVersionForLifecycleErrands,
 				boshdirector.VersionType("semver"),
 			)
 		})

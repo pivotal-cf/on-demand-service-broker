@@ -82,32 +82,21 @@ type Deployment struct {
 }
 
 const (
-	StemcellDirectorVersionType                          = VersionType("stemcell")
-	SemverDirectorVersionType                            = VersionType("semver")
-	MinimumMajorStemcellDirectorVersionForODB            = 3262
-	MinimumMajorSemverDirectorVersionForLifecycleErrands = 261
+	StemcellDirectorVersionType = VersionType("stemcell")
+	SemverDirectorVersionType   = VersionType("semver")
 )
 
 type VersionType string
 
 type Version struct {
-	majorVersion int
-	versionType  VersionType
-}
-
-// First bosh director version in semver format was 260
-func (v Version) SupportsODB() bool {
-	return v.versionType == SemverDirectorVersionType || v.majorVersion >= MinimumMajorStemcellDirectorVersionForODB
-}
-
-func (v Version) SupportsLifecycleErrands() bool {
-	return v.versionType == SemverDirectorVersionType && v.majorVersion >= MinimumMajorSemverDirectorVersionForLifecycleErrands
+	MajorVersion int
+	VersionType  VersionType
 }
 
 func NewVersion(majorVersion int, versionType VersionType) Version {
 	return Version{
-		majorVersion: majorVersion,
-		versionType:  versionType,
+		MajorVersion: majorVersion,
+		VersionType:  versionType,
 	}
 }
 

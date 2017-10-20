@@ -8,15 +8,21 @@ import (
 )
 
 type BOSHDirectorVersionChecker struct {
-	boshInfo        *boshdirector.Info
-	serviceOffering config.ServiceOffering
+	minimumMajorStemcellDirectorVersionForODB            int
+	minimumMajorSemverDirectorVersionForLifecycleErrands int
+	boshInfo                                             boshdirector.Info
+	serviceOffering                                      config.ServiceOffering
 }
 
 func NewBOSHDirectorVersionChecker(
-	boshInfo *boshdirector.Info,
+	minimumMajorStemcellDirectorVersionForODB int,
+	minimumMajorSemverDirectorVersionForLifecycleErrands int,
+	boshInfo boshdirector.Info,
 	serviceOffering config.ServiceOffering,
 ) *BOSHDirectorVersionChecker {
 	return &BOSHDirectorVersionChecker{
+		minimumMajorStemcellDirectorVersionForODB:            minimumMajorStemcellDirectorVersionForODB,
+		minimumMajorSemverDirectorVersionForLifecycleErrands: minimumMajorSemverDirectorVersionForLifecycleErrands,
 		boshInfo:        boshInfo,
 		serviceOffering: serviceOffering,
 	}
@@ -29,12 +35,26 @@ func (c *BOSHDirectorVersionChecker) Check() error {
 	if err != nil {
 		return fmt.Errorf("%s%s. ODB requires BOSH v257+.", errPrefix, err)
 	}
-	if !directorVersion.SupportsODB() {
+	if !c.directorVersionSufficientForODB(directorVersion) {
 		return fmt.Errorf("%sAPI version is insufficient, ODB requires BOSH v257+.", errPrefix)
 	}
-	if c.serviceOffering.HasLifecycleErrands() && !directorVersion.SupportsLifecycleErrands() {
-		return fmt.Errorf("%sAPI version is insufficient, one or more plans are configured with lifecycle_errands which require BOSH v%d+.", errPrefix, boshdirector.MinimumMajorSemverDirectorVersionForLifecycleErrands)
+	if c.serviceOffering.HasLifecycleErrands() && !c.directorVersionSufficientForLifecycleErrands(directorVersion) {
+		return fmt.Errorf(
+			"%sAPI version is insufficient, one or more plans are configured with lifecycle_errands which require BOSH v%d+.",
+			errPrefix,
+			c.minimumMajorSemverDirectorVersionForLifecycleErrands,
+		)
 	}
 
 	return nil
+}
+
+func (c *BOSHDirectorVersionChecker) directorVersionSufficientForODB(directorVersion boshdirector.Version) bool {
+	return directorVersion.VersionType == boshdirector.SemverDirectorVersionType ||
+		directorVersion.MajorVersion >= c.minimumMajorStemcellDirectorVersionForODB
+}
+
+func (c *BOSHDirectorVersionChecker) directorVersionSufficientForLifecycleErrands(directorVersion boshdirector.Version) bool {
+	return directorVersion.VersionType == boshdirector.SemverDirectorVersionType &&
+		directorVersion.MajorVersion >= c.minimumMajorSemverDirectorVersionForLifecycleErrands
 }

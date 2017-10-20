@@ -127,7 +127,7 @@ type BOSHAuthentication struct {
 	UAA   BOSHUAAAuthentication
 }
 
-func (boshConfig Bosh) NewAuthHeaderBuilder(boshInfo *boshdirector.Info, disableSSLCertVerification bool) (AuthHeaderBuilder, error) {
+func (boshConfig Bosh) NewAuthHeaderBuilder(boshInfo boshdirector.Info, disableSSLCertVerification bool) (AuthHeaderBuilder, error) {
 	boshAuthConfig := boshConfig.Authentication
 	if boshAuthConfig.Basic.IsSet() {
 		return authorizationheader.NewBasicAuthHeaderBuilder(

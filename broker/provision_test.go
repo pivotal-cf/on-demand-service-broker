@@ -723,7 +723,7 @@ var _ = Describe("provisioning", func() {
 		It("succeeds", func() {
 
 			boshInfo = createBOSHInfoWithMajorVersion(
-				boshdirector.MinimumMajorSemverDirectorVersionForLifecycleErrands,
+				broker.MinimumMajorSemverDirectorVersionForLifecycleErrands,
 				boshdirector.VersionType("semver"),
 			)
 			noopCFClient := noopservicescontroller.New()

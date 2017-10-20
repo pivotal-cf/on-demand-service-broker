@@ -13,7 +13,11 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/startupchecker"
 )
 
-const MinimumCFVersion string = "2.57.0"
+const (
+	MinimumCFVersion                                     string = "2.57.0"
+	MinimumMajorStemcellDirectorVersionForODB                   = 3262
+	MinimumMajorSemverDirectorVersionForLifecycleErrands        = 261
+)
 
 func (b *Broker) startupChecks() error {
 	logger := b.loggerFactory.New()
@@ -21,7 +25,12 @@ func (b *Broker) startupChecks() error {
 	startupErrors := []string{}
 
 	cfChecker := startupchecker.NewCFChecker(b.cfClient, MinimumCFVersion, b.serviceOffering, logger)
-	boshChecker := startupchecker.NewBOSHDirectorVersionChecker(b.boshInfo, b.serviceOffering)
+	boshChecker := startupchecker.NewBOSHDirectorVersionChecker(
+		MinimumMajorStemcellDirectorVersionForODB,
+		MinimumMajorSemverDirectorVersionForLifecycleErrands,
+		b.boshInfo,
+		b.serviceOffering,
+	)
 	boshAuthChecker := startupchecker.NewBOSHAuthChecker(b.boshClient, logger)
 
 	err := cfChecker.Check()

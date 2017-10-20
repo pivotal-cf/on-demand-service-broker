@@ -43,7 +43,7 @@ var _ = Describe("info", func() {
 					},
 				},
 			}
-			Expect(info).To(Equal(&expectedInfo))
+			Expect(info).To(Equal(expectedInfo))
 		})
 
 		It("returns an error if the request fails", func() {
@@ -56,36 +56,32 @@ var _ = Describe("info", func() {
 	})
 
 	Describe("GetDirectorVersion", func() {
-		It("supports ODB but not lifecycle errands when it has a stemcell version", func() {
+		It("returns stemcell version when it has a stemcell version", func() {
 			boshInfo := createBoshInfoWithVersion("1.3262.0.0 (00000000)")
 			directorVersion, directorVersionErr := boshInfo.GetDirectorVersion()
 			Expect(directorVersionErr).NotTo(HaveOccurred())
-			Expect(directorVersion.SupportsODB()).To(BeTrue())
-			Expect(directorVersion.SupportsLifecycleErrands()).To(BeFalse())
+			Expect(directorVersion).To(Equal(boshdirector.Version{VersionType: "stemcell", MajorVersion: 3262}))
 		})
 
-		It("supports ODB but not lifecycle errands when it has a semi-semver version (bosh director 260.4)", func() {
+		It("returns a semver version when it has a semi-semver version (bosh director 260.4)", func() {
 			boshInfo := createBoshInfoWithVersion("260.4 (00000000)")
 			directorVersion, directorVersionErr := boshInfo.GetDirectorVersion()
 			Expect(directorVersionErr).NotTo(HaveOccurred())
-			Expect(directorVersion.SupportsODB()).To(BeTrue())
-			Expect(directorVersion.SupportsLifecycleErrands()).To(BeFalse())
+			Expect(directorVersion).To(Equal(boshdirector.Version{VersionType: "semver", MajorVersion: 260}))
 		})
 
-		It("supports ODB but not lifecycle errands when it has a semver version less than 261", func() {
+		It("returns a semver version when it has a semver version less than 261", func() {
 			boshInfo := createBoshInfoWithVersion("260.5.0 (00000000)")
 			directorVersion, directorVersionErr := boshInfo.GetDirectorVersion()
 			Expect(directorVersionErr).NotTo(HaveOccurred())
-			Expect(directorVersion.SupportsODB()).To(BeTrue())
-			Expect(directorVersion.SupportsLifecycleErrands()).To(BeFalse())
+			Expect(directorVersion).To(Equal(boshdirector.Version{VersionType: "semver", MajorVersion: 260}))
 		})
 
-		It("supports ODB and lifecycle errands when it has a semver version of 261 or greater", func() {
+		It("returns a semver version when it has a semver version of 261 or greater", func() {
 			boshInfo := createBoshInfoWithVersion("261.0.0 (00000000)")
 			directorVersion, directorVersionErr := boshInfo.GetDirectorVersion()
 			Expect(directorVersionErr).NotTo(HaveOccurred())
-			Expect(directorVersion.SupportsODB()).To(BeTrue())
-			Expect(directorVersion.SupportsLifecycleErrands()).To(BeTrue())
+			Expect(directorVersion).To(Equal(boshdirector.Version{VersionType: "semver", MajorVersion: 261}))
 		})
 
 		It("returns an error if version is all zeros", func() {
