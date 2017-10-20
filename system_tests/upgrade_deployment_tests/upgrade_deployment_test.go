@@ -57,11 +57,6 @@ var _ = Describe("Upgrading deployment", func() {
 		changeBrokerReleaseVersion(manifest, latestODBVersion)
 		boshClient.DeployODB(*manifest)
 
-		By("updating the service instance")
-		session := cf.Cf("update-service", serviceInstanceName, "-c", `{"maxclients": 60}`)
-		Eventually(session, cf_helpers.CfTimeout).Should(gexec.Exit(0))
-		cf_helpers.AwaitServiceUpdate(serviceInstanceName)
-
 		By("exercising the service instance")
 		cf_helpers.PutToTestApp(testAppURL, "foo", "bar")
 
@@ -69,6 +64,11 @@ var _ = Describe("Upgrading deployment", func() {
 		taskOutput := boshClient.RunErrand(brokerBoshDeploymentName, "upgrade-all-service-instances", []string{}, "")
 		Expect(taskOutput.ExitCode).To(Equal(0))
 		Expect(taskOutput.StdOut).To(ContainSubstring("Number of successful upgrades: 1"))
+
+		By("updating the service instance")
+		session := cf.Cf("update-service", serviceInstanceName, "-c", `{"maxclients": 60}`)
+		Eventually(session, cf_helpers.CfTimeout).Should(gexec.Exit(0))
+		cf_helpers.AwaitServiceUpdate(serviceInstanceName)
 
 		By("running the delete all errand")
 		taskOutput = boshClient.RunErrand(brokerBoshDeploymentName, "delete-all-service-instances", []string{}, "")
