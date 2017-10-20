@@ -43,3 +43,7 @@ func NewServiceError(e error) error {
 type PendingChangesNotAppliedError struct {
 	error
 }
+
+func NewPendingChangesNotAppliedError(e error) error {
+	return PendingChangesNotAppliedError{error: e}
+}

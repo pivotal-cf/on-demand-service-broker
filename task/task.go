@@ -11,6 +11,8 @@ import (
 	"log"
 	"reflect"
 
+	"errors"
+
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 	"gopkg.in/yaml.v2"
@@ -148,7 +150,7 @@ func (d deployer) checkForPendingChanges(
 	pendingChanges := !manifestsSame
 
 	if pendingChanges {
-		return PendingChangesNotAppliedError{}
+		return NewPendingChangesNotAppliedError(errors.New("There are pending changes"))
 	}
 
 	return nil
