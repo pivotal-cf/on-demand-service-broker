@@ -1,4 +1,4 @@
-package brokerupgrader
+package brokeraugmenter
 
 import (
 	"github.com/cloudfoundry-incubator/credhub-cli/credhub"

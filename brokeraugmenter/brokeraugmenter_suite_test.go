@@ -1,4 +1,4 @@
-package brokerupgrader_test
+package brokeraugmenter_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestBrokerupgrader(t *testing.T) {
+func TestBrokeraugmenter(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Brokerupgrader Suite")
+	RunSpecs(t, "Brokeraugmenter Suite")
 }

@@ -1,8 +1,8 @@
-package brokerupgrader_test
+package brokeraugmenter_test
 
 import (
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
-	"github.com/pivotal-cf/on-demand-service-broker/brokerupgrader"
+	"github.com/pivotal-cf/on-demand-service-broker/brokeraugmenter"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/credhubbroker"
 
@@ -10,13 +10,13 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Broker CredHub Upgrader", func() {
+var _ = Describe("Broker CredHub Augmenter", func() {
 	It("returns a base broker when CredHub is not configured", func() {
 		var conf config.Config
 
 		baseBroker := &broker.Broker{}
 
-		Expect(brokerupgrader.New(conf, baseBroker)).To(Equal(baseBroker))
+		Expect(brokeraugmenter.New(conf, baseBroker)).To(Equal(baseBroker))
 	})
 
 	It("returns a credhub broker when Credhub is configured", func() {
@@ -32,7 +32,7 @@ var _ = Describe("Broker CredHub Upgrader", func() {
 			ClientSecret: "test-secret",
 		}
 
-		broker, err := brokerupgrader.New(conf, &broker.Broker{})
+		broker, err := brokeraugmenter.New(conf, &broker.Broker{})
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(broker).To(BeAssignableToTypeOf(&credhubbroker.CredHubBroker{}))
@@ -46,7 +46,7 @@ var _ = Describe("Broker CredHub Upgrader", func() {
 			ClientSecret: "test-secret",
 		}
 
-		broker, err := brokerupgrader.New(conf, &broker.Broker{})
+		broker, err := brokeraugmenter.New(conf, &broker.Broker{})
 
 		Expect(err).To(HaveOccurred())
 		Expect(broker).To(BeNil())
