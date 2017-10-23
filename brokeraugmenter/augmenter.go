@@ -17,6 +17,7 @@ func New(conf config.Config, baseBroker apiserver.CombinedBroker) (apiserver.Com
 		conf.CredHub.APIURL,
 		credhub.AuthURL(conf.CF.Authentication.URL),
 		credhub.Auth(auth.UaaClientCredentials(conf.CredHub.ClientID, conf.CredHub.ClientSecret)),
+		credhub.SkipTLSValidation(true),
 	)
 	if err != nil {
 		return nil, err
