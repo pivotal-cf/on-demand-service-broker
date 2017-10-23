@@ -19,6 +19,10 @@ const (
 	MinimumMajorSemverDirectorVersionForLifecycleErrands        = 261
 )
 
+type StartupChecker interface {
+	Check() error
+}
+
 func (b *Broker) startupChecks() error {
 	logger := b.loggerFactory.New()
 
@@ -34,30 +38,17 @@ func (b *Broker) startupChecks() error {
 	)
 	boshAuthChecker := startupchecker.NewBOSHAuthChecker(b.boshClient, logger)
 
-	err := cfAPIVersionChecker.Check()
-	if err != nil {
-		startupErrors = append(startupErrors, err.Error())
-	}
+	checks := []StartupChecker{cfAPIVersionChecker, cfPlanConsistencyChecker, boshChecker, boshAuthChecker}
 
-	if len(startupErrors) == 0 {
-		err = cfPlanConsistencyChecker.Check()
+	for _, checker := range checks {
+		err := checker.Check()
 		if err != nil {
 			startupErrors = append(startupErrors, err.Error())
 		}
 	}
 
-	err = boshChecker.Check()
-	if err != nil {
-		startupErrors = append(startupErrors, err.Error())
-	}
-
 	if len(startupErrors) > 0 {
 		return errors.New(strings.Join(startupErrors, " "))
-	}
-
-	err = boshAuthChecker.Check()
-	if err != nil {
-		return err
 	}
 
 	return nil

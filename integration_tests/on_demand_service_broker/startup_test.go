@@ -191,6 +191,7 @@ var _ = Describe("Startup", func() {
 				conf.CF.Authentication.ClientCredentials.Secret = "wrong-secret"
 				boshDirector.VerifyAndMock(
 					mockbosh.Info().RespondsWithSufficientStemcellVersionForODB(boshDirector.UAAURL),
+					mockbosh.Info().RespondsWithSufficientStemcellVersionForODB(boshDirector.UAAURL),
 				)
 
 				runningBroker = startBrokerWithoutPortCheck(conf)
@@ -254,6 +255,7 @@ var _ = Describe("Startup", func() {
 				)
 				boshDirector.VerifyAndMock(
 					mockbosh.Info().RespondsWithSufficientStemcellVersionForODB(boshDirector.UAAURL),
+					mockbosh.Info().RespondsWithSufficientStemcellVersionForODB(boshDirector.UAAURL),
 				)
 				conf.ServiceCatalog.Plans = []config.Plan{}
 
@@ -269,8 +271,10 @@ var _ = Describe("Startup", func() {
 			It("fails to start", func() {
 				cfAPI.VerifyAndMock(
 					mockcfapi.GetInfo().RespondsOKWith(`{"api_version": "2.56.0"}`),
+					mockcfapi.ListServiceOfferings().RespondsWithNoServiceOfferings(),
 				)
 				boshDirector.VerifyAndMock(
+					mockbosh.Info().RespondsWithSufficientStemcellVersionForODB(boshDirector.UAAURL),
 					mockbosh.Info().RespondsWithSufficientStemcellVersionForODB(boshDirector.UAAURL),
 				)
 
@@ -286,8 +290,10 @@ var _ = Describe("Startup", func() {
 			It("fails to start", func() {
 				cfAPI.VerifyAndMock(
 					mockcfapi.GetInfo().RespondsInternalServerErrorWith("error getting info"),
+					mockcfapi.ListServiceOfferings().RespondsInternalServerErrorWith("I wouldn't even give you info, and you're asking for service offerings?"),
 				)
 				boshDirector.VerifyAndMock(
+					mockbosh.Info().RespondsWithSufficientStemcellVersionForODB(boshDirector.UAAURL),
 					mockbosh.Info().RespondsWithSufficientStemcellVersionForODB(boshDirector.UAAURL),
 				)
 
@@ -380,6 +386,7 @@ var _ = Describe("Startup", func() {
 				BeforeEach(func() {
 					boshDirector.VerifyAndMock(
 						mockbosh.Info().RespondsWithSufficientStemcellVersionForODB(boshDirector.UAAURL),
+						mockbosh.Info().RespondsWithSufficientStemcellVersionForODB(boshDirector.UAAURL),
 					)
 					postDeployErrandPlan := config.Plan{
 						Name: "post-deploy-errand-plan",
@@ -461,6 +468,7 @@ var _ = Describe("Startup", func() {
 					conf.ServiceCatalog.Plans = config.Plans{postDeployErrandPlan}
 					boshDirector.VerifyAndMock(
 						mockbosh.Info().RespondsWithSufficientSemverVersionForODB(boshDirector.UAAURL),
+						mockbosh.Info().RespondsWithSufficientSemverVersionForODB(boshDirector.UAAURL),
 					)
 					cfAPI.VerifyAndMock(
 						mockcfapi.GetInfo().RespondsWithSufficientAPIVersion(),
@@ -533,6 +541,7 @@ var _ = Describe("Startup", func() {
 			BeforeEach(func() {
 				boshDirector.VerifyAndMock(
 					mockbosh.Info().RespondsWithVersion("1.3261.42.0 (00000000)", boshDirector.UAAURL),
+					mockbosh.Info().RespondsWithVersion("1.3261.42.0 (00000000)", boshDirector.UAAURL),
 				)
 				cfAPI.VerifyAndMock(
 					mockcfapi.GetInfo().RespondsWithSufficientAPIVersion(),
@@ -553,6 +562,7 @@ var _ = Describe("Startup", func() {
 		Context("with an unrecognised version", func() {
 			BeforeEach(func() {
 				boshDirector.VerifyAndMock(
+					mockbosh.Info().RespondsWithVersion("0000 (00000000)", boshDirector.UAAURL), // e.g. bosh director 260.3
 					mockbosh.Info().RespondsWithVersion("0000 (00000000)", boshDirector.UAAURL), // e.g. bosh director 260.3
 				)
 				cfAPI.VerifyAndMock(
@@ -592,9 +602,11 @@ var _ = Describe("Startup", func() {
 			BeforeEach(func() {
 				boshDirector.VerifyAndMock(
 					mockbosh.Info().RespondsWithVersion("1.3261.42.0 (00000000)", boshDirector.UAAURL),
+					mockbosh.Info().RespondsWithVersion("1.3261.42.0 (00000000)", boshDirector.UAAURL),
 				)
 				cfAPI.VerifyAndMock(
 					mockcfapi.GetInfo().RespondsOKWith(`{"api_version": "2.56.0"}`),
+					mockcfapi.ListServiceOfferings().RespondsWithNoServiceOfferings(),
 				)
 			})
 
