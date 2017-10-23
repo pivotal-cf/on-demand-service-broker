@@ -57,8 +57,8 @@ func New(url string, authHeaderBuilder AuthHeaderBuilder, disableSSLCertVerifica
 		httpClient: herottp.New(herottp.Config{
 			NoFollowRedirect:                  true,
 			DisableTLSCertificateVerification: disableSSLCertVerification,
-			RootCAs:                           rootCAs,
-			Timeout:                           30 * time.Second,
+			RootCAs: rootCAs,
+			Timeout: 30 * time.Second,
 		}),
 		PollingInterval: 5,
 	}, nil

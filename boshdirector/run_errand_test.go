@@ -14,9 +14,9 @@ import (
 
 var _ = Describe("running errands", func() {
 	var (
-		deploymentName  = "deploymentName"
-		errandName      = "errandName"
-		contextID       = "some-context-id"
+		deploymentName = "deploymentName"
+		errandName     = "errandName"
+		contextID      = "some-context-id"
 	)
 
 	Context("successfully", func() {
@@ -80,7 +80,6 @@ var _ = Describe("running errands", func() {
 			_, actualErr := c.RunErrand(deploymentName, errandName, errandInstances, contextID, logger)
 			Expect(actualErr).To(HaveOccurred())
 		})
-
 
 		It("invokes BOSH to queue up an errand", func() {
 			director.VerifyAndMock(

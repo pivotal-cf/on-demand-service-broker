@@ -24,7 +24,8 @@ func (b *Broker) startupChecks() error {
 
 	startupErrors := []string{}
 
-	cfChecker := startupchecker.NewCFChecker(b.cfClient, MinimumCFVersion, b.serviceOffering, logger)
+	cfAPIVersionChecker := startupchecker.NewCFAPIVersionChecker(b.cfClient, MinimumCFVersion, logger)
+	cfPlanConsistencyChecker := startupchecker.NewCFPlanConsistencyChecker(b.cfClient, b.serviceOffering, logger)
 	boshChecker := startupchecker.NewBOSHDirectorVersionChecker(
 		MinimumMajorStemcellDirectorVersionForODB,
 		MinimumMajorSemverDirectorVersionForLifecycleErrands,
@@ -33,10 +34,18 @@ func (b *Broker) startupChecks() error {
 	)
 	boshAuthChecker := startupchecker.NewBOSHAuthChecker(b.boshClient, logger)
 
-	err := cfChecker.Check()
+	err := cfAPIVersionChecker.Check()
 	if err != nil {
 		startupErrors = append(startupErrors, err.Error())
 	}
+
+	if len(startupErrors) == 0 {
+		err = cfPlanConsistencyChecker.Check()
+		if err != nil {
+			startupErrors = append(startupErrors, err.Error())
+		}
+	}
+
 	err = boshChecker.Check()
 	if err != nil {
 		startupErrors = append(startupErrors, err.Error())

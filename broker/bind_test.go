@@ -16,11 +16,11 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
+	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/noopservicescontroller"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
-	"github.com/pivotal-cf/on-demand-service-broker/broker"
 )
 
 var _ = Describe("Bind", func() {

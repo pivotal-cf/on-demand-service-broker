@@ -9,20 +9,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/startupchecker"
 )
 
-type FakeCloudFoundryClient struct {
-	GetAPIVersionStub        func(logger *log.Logger) (string, error)
-	getAPIVersionMutex       sync.RWMutex
-	getAPIVersionArgsForCall []struct {
-		logger *log.Logger
-	}
-	getAPIVersionReturns struct {
-		result1 string
-		result2 error
-	}
-	getAPIVersionReturnsOnCall map[int]struct {
-		result1 string
-		result2 error
-	}
+type FakeServiceInstanceCounter struct {
 	CountInstancesOfServiceOfferingStub        func(serviceOfferingID string, logger *log.Logger) (instanceCountByPlanID map[cf.ServicePlan]int, err error)
 	countInstancesOfServiceOfferingMutex       sync.RWMutex
 	countInstancesOfServiceOfferingArgsForCall []struct {
@@ -41,58 +28,7 @@ type FakeCloudFoundryClient struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeCloudFoundryClient) GetAPIVersion(logger *log.Logger) (string, error) {
-	fake.getAPIVersionMutex.Lock()
-	ret, specificReturn := fake.getAPIVersionReturnsOnCall[len(fake.getAPIVersionArgsForCall)]
-	fake.getAPIVersionArgsForCall = append(fake.getAPIVersionArgsForCall, struct {
-		logger *log.Logger
-	}{logger})
-	fake.recordInvocation("GetAPIVersion", []interface{}{logger})
-	fake.getAPIVersionMutex.Unlock()
-	if fake.GetAPIVersionStub != nil {
-		return fake.GetAPIVersionStub(logger)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	return fake.getAPIVersionReturns.result1, fake.getAPIVersionReturns.result2
-}
-
-func (fake *FakeCloudFoundryClient) GetAPIVersionCallCount() int {
-	fake.getAPIVersionMutex.RLock()
-	defer fake.getAPIVersionMutex.RUnlock()
-	return len(fake.getAPIVersionArgsForCall)
-}
-
-func (fake *FakeCloudFoundryClient) GetAPIVersionArgsForCall(i int) *log.Logger {
-	fake.getAPIVersionMutex.RLock()
-	defer fake.getAPIVersionMutex.RUnlock()
-	return fake.getAPIVersionArgsForCall[i].logger
-}
-
-func (fake *FakeCloudFoundryClient) GetAPIVersionReturns(result1 string, result2 error) {
-	fake.GetAPIVersionStub = nil
-	fake.getAPIVersionReturns = struct {
-		result1 string
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeCloudFoundryClient) GetAPIVersionReturnsOnCall(i int, result1 string, result2 error) {
-	fake.GetAPIVersionStub = nil
-	if fake.getAPIVersionReturnsOnCall == nil {
-		fake.getAPIVersionReturnsOnCall = make(map[int]struct {
-			result1 string
-			result2 error
-		})
-	}
-	fake.getAPIVersionReturnsOnCall[i] = struct {
-		result1 string
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeCloudFoundryClient) CountInstancesOfServiceOffering(serviceOfferingID string, logger *log.Logger) (instanceCountByPlanID map[cf.ServicePlan]int, err error) {
+func (fake *FakeServiceInstanceCounter) CountInstancesOfServiceOffering(serviceOfferingID string, logger *log.Logger) (instanceCountByPlanID map[cf.ServicePlan]int, err error) {
 	fake.countInstancesOfServiceOfferingMutex.Lock()
 	ret, specificReturn := fake.countInstancesOfServiceOfferingReturnsOnCall[len(fake.countInstancesOfServiceOfferingArgsForCall)]
 	fake.countInstancesOfServiceOfferingArgsForCall = append(fake.countInstancesOfServiceOfferingArgsForCall, struct {
@@ -110,19 +46,19 @@ func (fake *FakeCloudFoundryClient) CountInstancesOfServiceOffering(serviceOffer
 	return fake.countInstancesOfServiceOfferingReturns.result1, fake.countInstancesOfServiceOfferingReturns.result2
 }
 
-func (fake *FakeCloudFoundryClient) CountInstancesOfServiceOfferingCallCount() int {
+func (fake *FakeServiceInstanceCounter) CountInstancesOfServiceOfferingCallCount() int {
 	fake.countInstancesOfServiceOfferingMutex.RLock()
 	defer fake.countInstancesOfServiceOfferingMutex.RUnlock()
 	return len(fake.countInstancesOfServiceOfferingArgsForCall)
 }
 
-func (fake *FakeCloudFoundryClient) CountInstancesOfServiceOfferingArgsForCall(i int) (string, *log.Logger) {
+func (fake *FakeServiceInstanceCounter) CountInstancesOfServiceOfferingArgsForCall(i int) (string, *log.Logger) {
 	fake.countInstancesOfServiceOfferingMutex.RLock()
 	defer fake.countInstancesOfServiceOfferingMutex.RUnlock()
 	return fake.countInstancesOfServiceOfferingArgsForCall[i].serviceOfferingID, fake.countInstancesOfServiceOfferingArgsForCall[i].logger
 }
 
-func (fake *FakeCloudFoundryClient) CountInstancesOfServiceOfferingReturns(result1 map[cf.ServicePlan]int, result2 error) {
+func (fake *FakeServiceInstanceCounter) CountInstancesOfServiceOfferingReturns(result1 map[cf.ServicePlan]int, result2 error) {
 	fake.CountInstancesOfServiceOfferingStub = nil
 	fake.countInstancesOfServiceOfferingReturns = struct {
 		result1 map[cf.ServicePlan]int
@@ -130,7 +66,7 @@ func (fake *FakeCloudFoundryClient) CountInstancesOfServiceOfferingReturns(resul
 	}{result1, result2}
 }
 
-func (fake *FakeCloudFoundryClient) CountInstancesOfServiceOfferingReturnsOnCall(i int, result1 map[cf.ServicePlan]int, result2 error) {
+func (fake *FakeServiceInstanceCounter) CountInstancesOfServiceOfferingReturnsOnCall(i int, result1 map[cf.ServicePlan]int, result2 error) {
 	fake.CountInstancesOfServiceOfferingStub = nil
 	if fake.countInstancesOfServiceOfferingReturnsOnCall == nil {
 		fake.countInstancesOfServiceOfferingReturnsOnCall = make(map[int]struct {
@@ -144,11 +80,9 @@ func (fake *FakeCloudFoundryClient) CountInstancesOfServiceOfferingReturnsOnCall
 	}{result1, result2}
 }
 
-func (fake *FakeCloudFoundryClient) Invocations() map[string][][]interface{} {
+func (fake *FakeServiceInstanceCounter) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.getAPIVersionMutex.RLock()
-	defer fake.getAPIVersionMutex.RUnlock()
 	fake.countInstancesOfServiceOfferingMutex.RLock()
 	defer fake.countInstancesOfServiceOfferingMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
@@ -158,7 +92,7 @@ func (fake *FakeCloudFoundryClient) Invocations() map[string][][]interface{} {
 	return copiedInvocations
 }
 
-func (fake *FakeCloudFoundryClient) recordInvocation(key string, args []interface{}) {
+func (fake *FakeServiceInstanceCounter) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
@@ -170,4 +104,4 @@ func (fake *FakeCloudFoundryClient) recordInvocation(key string, args []interfac
 	fake.invocations[key] = append(fake.invocations[key], args)
 }
 
-var _ startupchecker.CloudFoundryClient = new(FakeCloudFoundryClient)
+var _ startupchecker.ServiceInstanceCounter = new(FakeServiceInstanceCounter)
