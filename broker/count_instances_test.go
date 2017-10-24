@@ -8,7 +8,6 @@ package broker_test
 
 import (
 	"errors"
-	"log"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -16,42 +15,26 @@ import (
 )
 
 var _ = Describe("counting instances of a service offering by plan", func() {
-	var (
-		counts   map[cf.ServicePlan]int
-		countErr error
-
-		expectedCounts = map[cf.ServicePlan]int{
+	It("returns the instance count when the request is successful", func() {
+		expectedCounts := map[cf.ServicePlan]int{
 			cfServicePlan("1234", "foo", "url", "bar"): 4,
 		}
-		countInstancesCalls int
-		logger              *log.Logger
-	)
 
-	BeforeEach(func() {
-		countInstancesCalls = 0
-		cfClient.CountInstancesOfServiceOfferingStub = func(id string, _ *log.Logger) (map[cf.ServicePlan]int, error) {
-			countInstancesCalls++
-
-			if countInstancesCalls == 1 {
-				return map[cf.ServicePlan]int{}, nil
-			}
-
-			Expect(id).To(Equal(serviceOfferingID))
-			return expectedCounts, errors.New("oh dear")
-		}
-	})
-
-	JustBeforeEach(func() {
-		logger = loggerFactory.NewWithRequestID()
+		cfClient.CountInstancesOfServiceOfferingReturns(expectedCounts, nil)
 		b = createDefaultBroker()
-		counts, countErr = b.CountInstancesOfPlans(logger)
-	})
-
-	It("returns the instance count", func() {
+		logger := loggerFactory.NewWithRequestID()
+		counts, err := b.CountInstancesOfPlans(logger)
+		Expect(err).NotTo(HaveOccurred())
 		Expect(counts).To(Equal(expectedCounts))
+		instanceID, _ := cfClient.CountInstancesOfServiceOfferingArgsForCall(0)
+		Expect(instanceID).To(Equal(serviceOfferingID))
 	})
 
-	It("returns the error from CF client", func() {
-		Expect(countErr).To(MatchError("oh dear"))
+	It("returns an error when the request fails", func() {
+		cfClient.CountInstancesOfServiceOfferingReturns(nil, errors.New("Something bad happened"))
+		b = createDefaultBroker()
+		logger := loggerFactory.NewWithRequestID()
+		_, err := b.CountInstancesOfPlans(logger)
+		Expect(err).To(MatchError("Something bad happened"))
 	})
 })

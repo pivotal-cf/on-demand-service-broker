@@ -11,7 +11,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -634,10 +633,6 @@ var _ = Describe("provisioning", func() {
 			Expect(cfClient.CountInstancesOfPlanCallCount()).To(BeZero())
 		})
 
-		It("counts the instances of all plans", func() {
-			Expect(cfClient.CountInstancesOfServiceOfferingCallCount()).To(Equal(2))
-		})
-
 		It("returns an error", func() {
 			Expect(provisionErr).To(HaveOccurred())
 		})
@@ -660,14 +655,7 @@ var _ = Describe("provisioning", func() {
 
 		Context("and the instances of all plans cannot be counted", func() {
 			BeforeEach(func() {
-				callCount := 0
-				cfClient.CountInstancesOfServiceOfferingStub = func(_ string, _ *log.Logger) (map[cf.ServicePlan]int, error) {
-					callCount++
-					if callCount > 1 {
-						return nil, errors.New("count fail")
-					}
-					return nil, nil
-				}
+				cfClient.CountInstancesOfServiceOfferingReturns(nil, errors.New("count fail"))
 			})
 
 			Describe("returned error", func() {
@@ -721,13 +709,8 @@ var _ = Describe("provisioning", func() {
 	Context("when CF Integration is disabled", func() {
 
 		It("succeeds", func() {
-
-			boshInfo = createBOSHInfoWithMajorVersion(
-				broker.MinimumMajorSemverDirectorVersionForLifecycleErrands,
-				boshdirector.VersionType("semver"),
-			)
 			noopCFClient := noopservicescontroller.New()
-			broker, err := createBroker(boshInfo, noopCFClient)
+			broker, err := createBroker([]broker.StartupChecker{}, noopCFClient)
 			Expect(err).NotTo(HaveOccurred())
 			serviceSpec, provisionErr = broker.Provision(
 				context.Background(),

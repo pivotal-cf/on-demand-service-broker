@@ -8,15 +8,12 @@ package broker_test
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"log"
-	"strconv"
 	"testing"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/fakes"
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
@@ -40,17 +37,15 @@ const (
 )
 
 var (
-	b                   *broker.Broker
-	brokerCreationErr   error
-	boshInfo            boshdirector.Info
-	boshClient          *fakes.FakeBoshClient
-	boshDirectorVersion boshdirector.Version
-	cfClient            *fakes.FakeCloudFoundryClient
-	serviceAdapter      *fakes.FakeServiceAdapterClient
-	fakeDeployer        *fakes.FakeDeployer
-	serviceCatalog      config.ServiceOffering
-	logBuffer           *bytes.Buffer
-	loggerFactory       *loggerfactory.LoggerFactory
+	b                 *broker.Broker
+	brokerCreationErr error
+	boshClient        *fakes.FakeBoshClient
+	cfClient          *fakes.FakeCloudFoundryClient
+	serviceAdapter    *fakes.FakeServiceAdapterClient
+	fakeDeployer      *fakes.FakeDeployer
+	serviceCatalog    config.ServiceOffering
+	logBuffer         *bytes.Buffer
+	loggerFactory     *loggerfactory.LoggerFactory
 
 	existingPlanServiceInstanceLimit    = 3
 	serviceOfferingServiceInstanceLimit = 5
@@ -177,39 +172,24 @@ func cfServicePlan(guid, uniqueID, servicePlanUrl, name string) cf.ServicePlan {
 }
 
 func createDefaultBroker() *broker.Broker {
-	boshInfo = createBOSHInfoWithMajorVersion(
-		broker.MinimumMajorSemverDirectorVersionForLifecycleErrands,
-		boshdirector.VersionType("semver"),
-	)
-	b, brokerCreationErr = createBroker(boshInfo)
+	b, brokerCreationErr = createBroker([]broker.StartupChecker{})
 	Expect(brokerCreationErr).NotTo(HaveOccurred())
 	return b
 }
 
-func createBroker(info boshdirector.Info, overrideClient ...broker.CloudFoundryClient) (*broker.Broker, error) {
+func createBroker(startupCheckers []broker.StartupChecker, overrideClient ...broker.CloudFoundryClient) (*broker.Broker, error) {
 
 	var client broker.CloudFoundryClient = cfClient
 	if len(overrideClient) > 0 {
 		client = overrideClient[0]
 	}
 	return broker.New(
-		info,
 		boshClient,
 		client,
+		serviceCatalog,
+		startupCheckers,
 		serviceAdapter,
 		fakeDeployer,
-		serviceCatalog,
-		false,
 		loggerFactory,
 	)
-}
-
-func createBOSHInfoWithMajorVersion(majorVersion int, versionType boshdirector.VersionType) boshdirector.Info {
-	var version string
-	if versionType == "semver" {
-		version = fmt.Sprintf("%s.0.0", strconv.Itoa(majorVersion))
-	} else if versionType == "stemcell" {
-		version = fmt.Sprintf("1.%s.0.0", strconv.Itoa(majorVersion))
-	}
-	return boshdirector.Info{Version: version}
 }

@@ -11,6 +11,8 @@ import (
 	"strings"
 	"sync"
 
+	"fmt"
+
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
@@ -21,7 +23,6 @@ import (
 
 type Broker struct {
 	boshClient     BoshClient
-	boshInfo       boshdirector.Info
 	cfClient       CloudFoundryClient
 	adapterClient  ServiceAdapterClient
 	deployer       Deployer
@@ -30,24 +31,19 @@ type Broker struct {
 	serviceOffering config.ServiceOffering
 
 	loggerFactory *loggerfactory.LoggerFactory
-
-	disableCfStartupChecks bool
 }
 
 func New(
-	boshInfo boshdirector.Info,
 	boshClient BoshClient,
 	cfClient CloudFoundryClient,
+	serviceOffering config.ServiceOffering,
+	startupCheckers []StartupChecker,
 	serviceAdapter ServiceAdapterClient,
 	deployer Deployer,
-	serviceOffering config.ServiceOffering,
-	disableCfStartupChecks bool,
 	loggerFactory *loggerfactory.LoggerFactory,
-
 ) (*Broker, error) {
 	b := &Broker{
 		boshClient:     boshClient,
-		boshInfo:       boshInfo,
 		cfClient:       cfClient,
 		adapterClient:  serviceAdapter,
 		deployer:       deployer,
@@ -56,12 +52,18 @@ func New(
 		serviceOffering: serviceOffering,
 
 		loggerFactory: loggerFactory,
-
-		disableCfStartupChecks: disableCfStartupChecks,
 	}
 
-	if err := b.startupChecks(); err != nil {
-		return nil, err
+	var startupCheckErrMessages []string
+
+	for _, checker := range startupCheckers {
+		if err := checker.Check(); err != nil {
+			startupCheckErrMessages = append(startupCheckErrMessages, err.Error())
+		}
+	}
+
+	if len(startupCheckErrMessages) > 0 {
+		return nil, fmt.Errorf("The following broker startup checks failed: %s", strings.Join(startupCheckErrMessages, "; "))
 	}
 
 	return b, nil
@@ -74,6 +76,10 @@ const (
 	OperationTypeDelete  = OperationType("delete")
 	OperationTypeBind    = OperationType("bind")
 	OperationTypeUnbind  = OperationType("unbind")
+
+	MinimumCFVersion                                     string = "2.57.0"
+	MinimumMajorStemcellDirectorVersionForODB                   = 3262
+	MinimumMajorSemverDirectorVersionForLifecycleErrands        = 261
 )
 
 type OperationType string
@@ -99,6 +105,11 @@ func deploymentName(instanceID string) string {
 
 func instanceID(deploymentName string) string {
 	return strings.TrimPrefix(deploymentName, InstancePrefix)
+}
+
+//go:generate counterfeiter -o fakes/fake_startup_checker.go . StartupChecker
+type StartupChecker interface {
+	Check() error
 }
 
 //go:generate counterfeiter -o fakes/fake_deployer.go . Deployer

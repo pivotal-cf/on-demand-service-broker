@@ -52,12 +52,8 @@ var _ = Describe("deprovisioning instances", func() {
 	Context("when CF integration is disabled", func() {
 
 		JustBeforeEach(func() {
-			boshInfo = createBOSHInfoWithMajorVersion(
-				broker.MinimumMajorSemverDirectorVersionForLifecycleErrands,
-				boshdirector.VersionType("semver"),
-			)
 			var err error
-			b, err = createBroker(boshInfo, noopservicescontroller.New())
+			b, err = createBroker([]broker.StartupChecker{}, noopservicescontroller.New())
 			Expect(err).NotTo(HaveOccurred())
 
 		})

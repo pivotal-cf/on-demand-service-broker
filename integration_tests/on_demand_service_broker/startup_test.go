@@ -196,7 +196,7 @@ var _ = Describe("Startup", func() {
 
 				runningBroker = startBrokerWithoutPortCheck(conf)
 
-				Eventually(runningBroker.Out).Should(gbytes.Say("error starting broker: CF API error: Error authenticating"))
+				Eventually(runningBroker.Out).Should(gbytes.Say("error starting broker: The following broker startup checks failed: CF API error: Error authenticating"))
 				Eventually(runningBroker).Should(gexec.Exit())
 				Expect(runningBroker.ExitCode()).ToNot(Equal(0))
 			})
@@ -280,7 +280,7 @@ var _ = Describe("Startup", func() {
 
 				runningBroker = startBrokerWithoutPortCheck(conf)
 
-				Eventually(runningBroker.Out).Should(gbytes.Say("error starting broker: CF API error: Cloud Foundry API version is insufficient, ODB requires CF v238+."))
+				Eventually(runningBroker.Out).Should(gbytes.Say("error starting broker: The following broker startup checks failed: CF API error: Cloud Foundry API version is insufficient, ODB requires CF v238+."))
 				Eventually(runningBroker).Should(gexec.Exit())
 				Expect(runningBroker.ExitCode()).ToNot(Equal(0))
 			})
@@ -299,7 +299,7 @@ var _ = Describe("Startup", func() {
 
 				runningBroker = startBrokerWithoutPortCheck(conf)
 
-				Eventually(runningBroker.Out).Should(gbytes.Say(`error starting broker: CF API error: Unexpected reponse status 500, "error getting info". ODB requires CF v238+.`))
+				Eventually(runningBroker.Out).Should(gbytes.Say(`error starting broker: The following broker startup checks failed: CF API error: Unexpected reponse status 500, "error getting info". ODB requires CF v238+.`))
 				Eventually(runningBroker).Should(gexec.Exit())
 				Expect(runningBroker.ExitCode()).ToNot(Equal(0))
 			})
@@ -418,7 +418,7 @@ var _ = Describe("Startup", func() {
 				It("fails to start", func() {
 					runningBroker = startBrokerWithoutPortCheck(conf)
 
-					Eventually(runningBroker.Out).Should(gbytes.Say("error starting broker: BOSH Director error: API version is insufficient, one or more plans are configured with lifecycle_errands which require BOSH v261+."))
+					Eventually(runningBroker.Out).Should(gbytes.Say("error starting broker: The following broker startup checks failed: BOSH Director error: API version is insufficient, one or more plans are configured with lifecycle_errands which require BOSH v261+."))
 
 					Eventually(runningBroker).Should(gexec.Exit())
 					Expect(runningBroker.ExitCode()).ToNot(Equal(0))
@@ -479,7 +479,7 @@ var _ = Describe("Startup", func() {
 				It("fails to start", func() {
 					runningBroker = startBrokerWithoutPortCheck(conf)
 
-					Eventually(runningBroker.Out).Should(gbytes.Say("error starting broker: BOSH Director error: API version is insufficient, one or more plans are configured with lifecycle_errands which require BOSH v261+."))
+					Eventually(runningBroker.Out).Should(gbytes.Say("error starting broker: The following broker startup checks failed: BOSH Director error: API version is insufficient, one or more plans are configured with lifecycle_errands which require BOSH v261+."))
 
 					Eventually(runningBroker).Should(gexec.Exit())
 					Expect(runningBroker.ExitCode()).ToNot(Equal(0))
@@ -552,7 +552,7 @@ var _ = Describe("Startup", func() {
 			It("fails to start", func() {
 				runningBroker = startBrokerWithoutPortCheck(conf)
 
-				Eventually(runningBroker.Out).Should(gbytes.Say("error starting broker: BOSH Director error: API version is insufficient, ODB requires BOSH v257+."))
+				Eventually(runningBroker.Out).Should(gbytes.Say("error starting broker: The following broker startup checks failed: BOSH Director error: API version is insufficient, ODB requires BOSH v257+."))
 
 				Eventually(runningBroker).Should(gexec.Exit())
 				Expect(runningBroker.ExitCode()).ToNot(Equal(0))
@@ -574,7 +574,7 @@ var _ = Describe("Startup", func() {
 			It("fails to start", func() {
 				runningBroker = startBrokerWithoutPortCheck(conf)
 
-				Eventually(runningBroker.Out).Should(gbytes.Say(`error starting broker: BOSH Director error: unrecognised BOSH Director version: "0000 \(00000000\)". ODB requires BOSH v257+.`))
+				Eventually(runningBroker.Out).Should(gbytes.Say(`error starting broker: The following broker startup checks failed: BOSH Director error: unrecognised BOSH Director version: "0000 \(00000000\)". ODB requires BOSH v257+.`))
 
 				Eventually(runningBroker).Should(gexec.Exit())
 				Expect(runningBroker.ExitCode()).ToNot(Equal(0))

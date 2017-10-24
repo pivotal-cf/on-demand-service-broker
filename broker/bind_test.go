@@ -65,11 +65,7 @@ var _ = Describe("Bind", func() {
 
 		It("returns that is deprovisioning asynchronously", func() {
 
-			boshInfo = createBOSHInfoWithMajorVersion(
-				broker.MinimumMajorSemverDirectorVersionForLifecycleErrands,
-				boshdirector.VersionType("semver"),
-			)
-			b, brokerCreationErr = createBroker(boshInfo, noopservicescontroller.New())
+			b, brokerCreationErr = createBroker([]broker.StartupChecker{}, noopservicescontroller.New())
 			Expect(brokerCreationErr).NotTo(HaveOccurred())
 
 			bindResult, bindErr = b.Bind(context.Background(), instanceID, bindingID, bindRequest)

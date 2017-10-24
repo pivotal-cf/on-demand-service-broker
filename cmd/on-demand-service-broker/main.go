@@ -27,6 +27,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 	"github.com/pivotal-cf/on-demand-service-broker/noopservicescontroller"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
+	"github.com/pivotal-cf/on-demand-service-broker/startupchecker"
 	"github.com/pivotal-cf/on-demand-service-broker/task"
 )
 
@@ -82,6 +83,8 @@ func startBroker(conf config.Config, logger *log.Logger, loggerFactory *loggerfa
 
 	var cfClient broker.CloudFoundryClient
 
+	var startupChecks []broker.StartupChecker
+
 	if !conf.Broker.DisableCFStartupChecks {
 		cfClient, err = cf.New(
 			conf.CF.URL,
@@ -92,6 +95,11 @@ func startBroker(conf config.Config, logger *log.Logger, loggerFactory *loggerfa
 		if err != nil {
 			logger.Fatalf("error creating Cloud Foundry client: %s", err)
 		}
+		startupChecks = append(
+			startupChecks,
+			startupchecker.NewCFAPIVersionChecker(cfClient, broker.MinimumCFVersion, logger),
+			startupchecker.NewCFPlanConsistencyChecker(cfClient, conf.ServiceCatalog, logger),
+		)
 	} else {
 		cfClient = noopservicescontroller.New()
 	}
@@ -110,7 +118,17 @@ func startBroker(conf config.Config, logger *log.Logger, loggerFactory *loggerfa
 
 	deploymentManager := task.NewDeployer(boshClient, manifestGenerator)
 
-	onDemandBroker, err := broker.New(boshInfo, boshClient, cfClient, serviceAdapter, deploymentManager, conf.ServiceCatalog, conf.Broker.DisableCFStartupChecks, loggerFactory)
+	startupChecks = append(startupChecks,
+		startupchecker.NewBOSHDirectorVersionChecker(
+			broker.MinimumMajorStemcellDirectorVersionForODB,
+			broker.MinimumMajorSemverDirectorVersionForLifecycleErrands,
+			boshInfo,
+			conf.ServiceCatalog,
+		),
+		startupchecker.NewBOSHAuthChecker(boshClient, logger),
+	)
+
+	onDemandBroker, err := broker.New(boshClient, cfClient, conf.ServiceCatalog, startupChecks, serviceAdapter, deploymentManager, loggerFactory)
 	if err != nil {
 		logger.Fatalf("error starting broker: %s", err)
 	}
