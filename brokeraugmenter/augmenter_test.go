@@ -5,6 +5,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/brokeraugmenter"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/credhubbroker"
+	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -15,8 +16,9 @@ var _ = Describe("Broker CredHub Augmenter", func() {
 		var conf config.Config
 
 		baseBroker := &broker.Broker{}
+		loggerFactory := loggerfactory.New(GinkgoWriter, "broker-augmenter", loggerfactory.Flags)
 
-		Expect(brokeraugmenter.New(conf, baseBroker)).To(Equal(baseBroker))
+		Expect(brokeraugmenter.New(conf, baseBroker, loggerFactory)).To(Equal(baseBroker))
 	})
 
 	It("returns a credhub broker when Credhub is configured", func() {
@@ -32,7 +34,8 @@ var _ = Describe("Broker CredHub Augmenter", func() {
 			ClientSecret: "test-secret",
 		}
 
-		broker, err := brokeraugmenter.New(conf, &broker.Broker{})
+		loggerFactory := loggerfactory.New(GinkgoWriter, "broker-augmenter", loggerfactory.Flags)
+		broker, err := brokeraugmenter.New(conf, &broker.Broker{}, loggerFactory)
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(broker).To(BeAssignableToTypeOf(&credhubbroker.CredHubBroker{}))
@@ -46,7 +49,8 @@ var _ = Describe("Broker CredHub Augmenter", func() {
 			ClientSecret: "test-secret",
 		}
 
-		broker, err := brokeraugmenter.New(conf, &broker.Broker{})
+		loggerFactory := loggerfactory.New(GinkgoWriter, "broker-augmenter", loggerfactory.Flags)
+		broker, err := brokeraugmenter.New(conf, &broker.Broker{}, loggerFactory)
 
 		Expect(err).To(HaveOccurred())
 		Expect(broker).To(BeNil())

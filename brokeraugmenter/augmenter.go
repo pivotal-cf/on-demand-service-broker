@@ -6,9 +6,10 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/apiserver"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/credhubbroker"
+	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 )
 
-func New(conf config.Config, baseBroker apiserver.CombinedBroker) (apiserver.CombinedBroker, error) {
+func New(conf config.Config, baseBroker apiserver.CombinedBroker, loggerFactory *loggerfactory.LoggerFactory) (apiserver.CombinedBroker, error) {
 	if !conf.HasCredHub() {
 		return baseBroker, nil
 	}
@@ -23,5 +24,5 @@ func New(conf config.Config, baseBroker apiserver.CombinedBroker) (apiserver.Com
 		return nil, err
 	}
 
-	return credhubbroker.New(baseBroker, credhubStore), nil
+	return credhubbroker.New(baseBroker, credhubStore, loggerFactory), nil
 }
