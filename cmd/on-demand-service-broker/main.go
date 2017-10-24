@@ -149,7 +149,7 @@ func startBroker(conf config.Config, logger *log.Logger, loggerFactory *loggerfa
 								`)
 	}
 
-	broker, err := brokeraugmenter.New(conf, onDemandBroker)
+	broker, err := brokeraugmenter.New(conf, onDemandBroker, loggerFactory)
 	if err != nil {
 		logger.Fatalf("Error constructing the CredHub broker: %s", err)
 	}

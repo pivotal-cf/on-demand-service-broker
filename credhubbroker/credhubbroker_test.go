@@ -11,15 +11,17 @@ import (
 	apifakes "github.com/pivotal-cf/on-demand-service-broker/apiserver/fakes"
 	"github.com/pivotal-cf/on-demand-service-broker/credhubbroker"
 	credfakes "github.com/pivotal-cf/on-demand-service-broker/credhubbroker/fakes"
+	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 )
 
 var _ = Describe("CredHub broker", func() {
 	var (
-		fakeBroker *apifakes.FakeCombinedBroker
-		ctx        context.Context
-		instanceID string
-		bindingID  string
-		details    brokerapi.BindDetails
+		fakeBroker    *apifakes.FakeCombinedBroker
+		ctx           context.Context
+		instanceID    string
+		bindingID     string
+		details       brokerapi.BindDetails
+		loggerFactory *loggerfactory.LoggerFactory
 	)
 
 	BeforeEach(func() {
@@ -30,16 +32,17 @@ var _ = Describe("CredHub broker", func() {
 		details = brokerapi.BindDetails{
 			ServiceID: "big-hybrid-cloud-of-things",
 		}
+		loggerFactory = loggerfactory.New(GinkgoWriter, "unit-test", loggerfactory.Flags)
 	})
 
-	It("passes the return value through from the wrapped broker", func() {
+	FIt("passes the return value through from the wrapped broker", func() {
 		expectedBindingResponse := brokerapi.Binding{
 			Credentials: "anything",
 		}
 		fakeBroker.BindReturns(expectedBindingResponse, nil)
 
 		fakeCredStore := new(credfakes.FakeCredentialStore)
-		credhubBroker := credhubbroker.New(fakeBroker, fakeCredStore)
+		credhubBroker := credhubbroker.New(fakeBroker, fakeCredStore, loggerFactory)
 		Expect(credhubBroker.Bind(ctx, instanceID, bindingID, details)).To(Equal(expectedBindingResponse))
 	})
 
