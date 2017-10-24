@@ -14,9 +14,11 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
+	"github.com/pivotal-cf/on-demand-service-broker/brokercontext"
 	"github.com/pivotal-cf/on-demand-service-broker/noopservicescontroller"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
@@ -59,6 +61,30 @@ var _ = Describe("Bind", func() {
 			},
 			RawParameters: serialisedArbitraryParameters,
 		}
+	})
+
+	Context("request ID", func() {
+		It("generates a new request ID when not request ID is present in the ctx", func() {
+			b, brokerCreationErr = createBroker([]broker.StartupChecker{}, noopservicescontroller.New())
+			Expect(brokerCreationErr).NotTo(HaveOccurred())
+
+			contextWithoutRequestID := context.Background()
+			bindResult, bindErr = b.Bind(contextWithoutRequestID, instanceID, bindingID, bindRequest)
+
+			Expect(logBuffer.String()).To(MatchRegexp(
+				`\[[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\]`))
+		})
+
+		It("does not generate a new uuid when one is provided through the ctx", func() {
+			b, brokerCreationErr = createBroker([]broker.StartupChecker{}, noopservicescontroller.New())
+			Expect(brokerCreationErr).NotTo(HaveOccurred())
+
+			requestID := uuid.New()
+			contextWithReqID := brokercontext.WithReqID(context.Background(), requestID)
+			bindResult, bindErr = b.Bind(contextWithReqID, instanceID, bindingID, bindRequest)
+
+			Expect(logBuffer.String()).To(ContainSubstring(requestID))
+		})
 	})
 
 	Context("when CF integration is disabled", func() {
