@@ -2,6 +2,8 @@ package credhubbroker_test
 
 import (
 	"context"
+	"errors"
+	"fmt"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -18,7 +20,6 @@ var _ = Describe("CredHub broker", func() {
 		instanceID string
 		bindingID  string
 		details    brokerapi.BindDetails
-		credhubKey string
 	)
 
 	BeforeEach(func() {
@@ -29,7 +30,6 @@ var _ = Describe("CredHub broker", func() {
 		details = brokerapi.BindDetails{
 			ServiceID: "big-hybrid-cloud-of-things",
 		}
-		credhubKey = "/c/big-hybrid-cloud-of-things/ohai/rofl/credentials"
 	})
 
 	It("passes the return value through from the wrapped broker", func() {
@@ -43,7 +43,7 @@ var _ = Describe("CredHub broker", func() {
 		Expect(credhubBroker.Bind(ctx, instanceID, bindingID, details)).To(Equal(expectedBindingResponse))
 	})
 
-	It("stores credentials", func() {
+	It("stores credentials and constructs the key", func() {
 		fakeCredStore := new(credfakes.FakeCredentialStore)
 		creds := "justAString"
 		bindingResponse := brokerapi.Binding{
@@ -54,8 +54,36 @@ var _ = Describe("CredHub broker", func() {
 		credhubBroker := credhubbroker.New(fakeBroker, fakeCredStore)
 		credhubBroker.Bind(ctx, instanceID, bindingID, details)
 
+		credhubKey := fmt.Sprintf("/c/%s/%s/%s/credentials", details.ServiceID, instanceID, bindingID)
 		key, receivedCreds := fakeCredStore.SetArgsForCall(0)
 		Expect(key).To(Equal(credhubKey))
 		Expect(receivedCreds).To(Equal(creds))
+	})
+
+	It("produces an error if it cannot retrieve the binding from the wrapped broker", func() {
+		fakeCredStore := new(credfakes.FakeCredentialStore)
+		emptyCreds := brokerapi.Binding{}
+		fakeBroker.BindReturns(emptyCreds, errors.New("unable to create binding"))
+
+		credhubBroker := credhubbroker.New(fakeBroker, fakeCredStore)
+		receivedCreds, bindErr := credhubBroker.Bind(ctx, instanceID, bindingID, details)
+
+		Expect(receivedCreds).To(Equal(emptyCreds))
+		Expect(bindErr).To(MatchError("unable to create binding"))
+	})
+
+	It("produces an error if it cannot store the credential", func() {
+		fakeCredStore := new(credfakes.FakeCredentialStore)
+		creds := "justAString"
+		bindingResponse := brokerapi.Binding{
+			Credentials: creds,
+		}
+		fakeBroker.BindReturns(bindingResponse, nil)
+
+		credhubBroker := credhubbroker.New(fakeBroker, fakeCredStore)
+		fakeCredStore.SetReturns(errors.New("unable to set credentials in credential store"))
+		_, bindErr := credhubBroker.Bind(ctx, instanceID, bindingID, details)
+
+		Expect(bindErr).To(MatchError("unable to set credentials in credential store"))
 	})
 })
