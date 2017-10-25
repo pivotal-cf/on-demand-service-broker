@@ -31,7 +31,6 @@ func (b *CredHubBroker) Bind(ctx context.Context, instanceID, bindingID string, 
 
 	binding, err := b.CombinedBroker.Bind(ctx, instanceID, bindingID, details)
 	if err != nil {
-		logger.Printf("failed to fetch bindings from broker for instance ID: %s, with binding ID: %s", instanceID, bindingID)
 		return brokerapi.Binding{}, err
 	}
 

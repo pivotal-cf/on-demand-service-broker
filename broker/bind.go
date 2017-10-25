@@ -22,6 +22,7 @@ func (b *Broker) Bind(
 	bindingID string,
 	details brokerapi.BindDetails,
 ) (brokerapi.Binding, error) {
+
 	requestID := uuid.New()
 	if len(brokercontext.GetReqID(ctx)) > 0 {
 		requestID = brokercontext.GetReqID(ctx)

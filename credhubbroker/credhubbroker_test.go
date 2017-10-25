@@ -91,16 +91,13 @@ var _ = Describe("CredHub broker", func() {
 	It("produces an error if it cannot retrieve the binding from the wrapped broker", func() {
 		fakeCredStore := new(credfakes.FakeCredentialStore)
 		emptyCreds := brokerapi.Binding{}
-		fakeBroker.BindReturns(emptyCreds, errors.New("failed to create binding"))
+		fakeBroker.BindReturns(emptyCreds, errors.New("error message from base broker"))
 
 		credhubBroker := credhubbroker.New(fakeBroker, fakeCredStore, loggerFactory)
 		receivedCreds, bindErr := credhubBroker.Bind(ctx, instanceID, bindingID, details)
 
 		Expect(receivedCreds).To(Equal(emptyCreds))
-		Expect(bindErr).To(MatchError("failed to create binding"))
-
-		Expect(logBuffer.String()).To(ContainSubstring(
-			fmt.Sprintf("failed to fetch bindings from broker for instance ID: %s, with binding ID: %s", instanceID, bindingID)))
+		Expect(bindErr).To(MatchError("error message from base broker"))
 	})
 
 	It("produces an error if it cannot store the credential", func() {
