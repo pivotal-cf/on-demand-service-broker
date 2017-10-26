@@ -24,5 +24,5 @@ func New(conf config.Config, baseBroker apiserver.CombinedBroker, loggerFactory 
 		return nil, err
 	}
 
-	return credhubbroker.New(baseBroker, credhubStore, loggerFactory), nil
+	return credhubbroker.New(baseBroker, credhubStore, conf.ServiceCatalog.Name, loggerFactory), nil
 }
