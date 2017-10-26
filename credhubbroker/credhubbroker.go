@@ -49,9 +49,9 @@ func (b *CredHubBroker) Bind(ctx context.Context, instanceID, bindingID string, 
 	err = b.credStore.Set(key, binding.Credentials)
 	if err != nil {
 		ctx = brokercontext.New(ctx, string(broker.OperationTypeBind), requestID, b.serviceName, instanceID)
-		err = (broker.NewGenericError(ctx, fmt.Errorf("failed to set credentials in credential store: %v", err)))
-		logger.Print(err)
-		return brokerapi.Binding{}, err
+		setErr := broker.NewGenericError(ctx, fmt.Errorf("failed to set credentials in credential store: %v", err))
+		logger.Print(setErr)
+		return brokerapi.Binding{}, setErr.ErrorForCFUser()
 	}
 
 	return binding, nil

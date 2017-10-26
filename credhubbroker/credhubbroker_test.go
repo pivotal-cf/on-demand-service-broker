@@ -112,7 +112,7 @@ var _ = Describe("CredHub broker", func() {
 		fakeCredStore.SetReturns(errors.New("credential store unavailable"))
 		_, bindErr := credhubBroker.Bind(ctx, instanceID, bindingID, details)
 
-		Expect(bindErr.Error()).To(ContainSubstring("credential store unavailable"))
+		Expect(bindErr.Error()).NotTo(ContainSubstring("credential store unavailable"))
 		Expect(bindErr.Error()).To(ContainSubstring(instanceID))
 
 		brokerctx, _, _, _ := fakeBroker.BindArgsForCall(0)
