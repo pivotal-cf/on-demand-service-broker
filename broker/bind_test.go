@@ -64,7 +64,7 @@ var _ = Describe("Bind", func() {
 	})
 
 	Context("request ID", func() {
-		It("generates a new request ID when not request ID is present in the ctx", func() {
+		It("generates a new request ID when no request ID is present in the ctx", func() {
 			b, brokerCreationErr = createBroker([]broker.StartupChecker{}, noopservicescontroller.New())
 			Expect(brokerCreationErr).NotTo(HaveOccurred())
 

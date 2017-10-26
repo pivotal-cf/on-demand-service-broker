@@ -13,9 +13,11 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
+	"github.com/pivotal-cf/on-demand-service-broker/brokercontext"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 )
@@ -62,8 +64,27 @@ var _ = Describe("Unbind", func() {
 		Expect(unbindErr).NotTo(HaveOccurred())
 	})
 
-	It("logs using a request ID", func() {
-		Expect(logBuffer.String()).To(MatchRegexp(fmt.Sprintf(`\[[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\] \d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2} service adapter will delete binding with ID %s for instance %s`, bindingID, instanceID)))
+	Context("request ID", func() {
+		It("generates a new request ID when no request ID is present in the ctx", func() {
+			Expect(logBuffer.String()).To(MatchRegexp(
+				`\[[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\]`))
+		})
+
+		It("does not generate a new uuid when one is provided through the ctx", func() {
+			requestID := uuid.New()
+			contextWithReqID := brokercontext.WithReqID(context.Background(), requestID)
+			unbindDetails := brokerapi.UnbindDetails{
+				ServiceID: serviceID,
+				PlanID:    planID,
+			}
+			b.Unbind(contextWithReqID, instanceID, bindingID, unbindDetails)
+
+			Expect(logBuffer.String()).To(ContainSubstring(requestID))
+		})
+
+		It("logs using a request ID", func() {
+			Expect(logBuffer.String()).To(MatchRegexp(fmt.Sprintf(`\[[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\] \d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2} service adapter will delete binding with ID %s for instance %s`, bindingID, instanceID)))
+		})
 	})
 
 	Context("when bosh fails to get VMs", func() {

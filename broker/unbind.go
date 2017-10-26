@@ -24,6 +24,10 @@ func (b *Broker) Unbind(
 ) error {
 
 	requestID := uuid.New()
+	if len(brokercontext.GetReqID(ctx)) > 0 {
+		requestID = brokercontext.GetReqID(ctx)
+	}
+
 	ctx = brokercontext.New(ctx, string(OperationTypeUnbind), requestID, b.serviceOffering.Name, instanceID)
 	logger := b.loggerFactory.NewWithContext(ctx)
 
