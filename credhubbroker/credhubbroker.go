@@ -54,5 +54,6 @@ func (b *CredHubBroker) Bind(ctx context.Context, instanceID, bindingID string, 
 		return brokerapi.Binding{}, setErr.ErrorForCFUser()
 	}
 
+	binding.Credentials = map[string]string{"credhub-ref": key}
 	return binding, nil
 }

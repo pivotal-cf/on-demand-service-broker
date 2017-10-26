@@ -43,16 +43,21 @@ var _ = Describe("CredHub broker", func() {
 		requestIDRegex = `\[[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\]`
 	})
 
-	It("passes the return value through from the wrapped broker", func() {
-		expectedBindingResponse := brokerapi.Binding{
+	It("returns the credhub reference on Bind", func() {
+		bindingResponse := brokerapi.Binding{
 			Credentials: "anything",
 		}
-		fakeBroker.BindReturns(expectedBindingResponse, nil)
+		fakeBroker.BindReturns(bindingResponse, nil)
+
+		key := fmt.Sprintf("/c/%s/%s/%s/credentials", details.ServiceID, instanceID, bindingID)
+		expectedBindingCredentials := map[string]string{"credhub-ref": key}
 
 		fakeCredStore := new(credfakes.FakeCredentialStore)
 		credhubBroker := credhubbroker.New(fakeBroker, fakeCredStore, serviceName, loggerFactory)
 
-		Expect(credhubBroker.Bind(ctx, instanceID, bindingID, details)).To(Equal(expectedBindingResponse))
+		response, err := credhubBroker.Bind(ctx, instanceID, bindingID, details)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(response.Credentials).To(Equal(expectedBindingCredentials))
 		Expect(logBuffer.String()).To(MatchRegexp(requestIDRegex))
 		Expect(logBuffer.String()).To(ContainSubstring(
 			fmt.Sprintf("storing credentials for instance ID: %s, with binding ID: %s", instanceID, bindingID)))
