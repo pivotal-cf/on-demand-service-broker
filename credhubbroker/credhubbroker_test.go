@@ -27,6 +27,7 @@ var _ = Describe("CredHub broker", func() {
 		logBuffer      *bytes.Buffer
 		loggerFactory  *loggerfactory.LoggerFactory
 		requestIDRegex string
+		serviceName    string
 	)
 
 	BeforeEach(func() {
@@ -49,7 +50,7 @@ var _ = Describe("CredHub broker", func() {
 		fakeBroker.BindReturns(expectedBindingResponse, nil)
 
 		fakeCredStore := new(credfakes.FakeCredentialStore)
-		credhubBroker := credhubbroker.New(fakeBroker, fakeCredStore, loggerFactory)
+		credhubBroker := credhubbroker.New(fakeBroker, fakeCredStore, serviceName, loggerFactory)
 
 		Expect(credhubBroker.Bind(ctx, instanceID, bindingID, details)).To(Equal(expectedBindingResponse))
 		Expect(logBuffer.String()).To(MatchRegexp(requestIDRegex))
@@ -65,7 +66,7 @@ var _ = Describe("CredHub broker", func() {
 		}
 		fakeBroker.BindReturns(bindingResponse, nil)
 
-		credhubBroker := credhubbroker.New(fakeBroker, fakeCredStore, loggerFactory)
+		credhubBroker := credhubbroker.New(fakeBroker, fakeCredStore, serviceName, loggerFactory)
 		credhubBroker.Bind(ctx, instanceID, bindingID, details)
 
 		credhubKey := fmt.Sprintf("/c/%s/%s/%s/credentials", details.ServiceID, instanceID, bindingID)
@@ -77,7 +78,7 @@ var _ = Describe("CredHub broker", func() {
 	It("set a request ID and pass it through to the broker via the context", func() {
 		fakeCredStore := new(credfakes.FakeCredentialStore)
 
-		credhubBroker := credhubbroker.New(fakeBroker, fakeCredStore, loggerFactory)
+		credhubBroker := credhubbroker.New(fakeBroker, fakeCredStore, serviceName, loggerFactory)
 		credhubBroker.Bind(ctx, instanceID, bindingID, details)
 
 		brokerctx, _, _, _ := fakeBroker.BindArgsForCall(0)
@@ -93,7 +94,7 @@ var _ = Describe("CredHub broker", func() {
 		emptyCreds := brokerapi.Binding{}
 		fakeBroker.BindReturns(emptyCreds, errors.New("error message from base broker"))
 
-		credhubBroker := credhubbroker.New(fakeBroker, fakeCredStore, loggerFactory)
+		credhubBroker := credhubbroker.New(fakeBroker, fakeCredStore, serviceName, loggerFactory)
 		receivedCreds, bindErr := credhubBroker.Bind(ctx, instanceID, bindingID, details)
 
 		Expect(receivedCreds).To(Equal(emptyCreds))
@@ -107,12 +108,18 @@ var _ = Describe("CredHub broker", func() {
 		}
 		fakeBroker.BindReturns(bindingResponse, nil)
 
-		credhubBroker := credhubbroker.New(fakeBroker, fakeCredStore, loggerFactory)
-		fakeCredStore.SetReturns(errors.New("failed to set credentials in credential store"))
+		credhubBroker := credhubbroker.New(fakeBroker, fakeCredStore, serviceName, loggerFactory)
+		fakeCredStore.SetReturns(errors.New("credential store unavailable"))
 		_, bindErr := credhubBroker.Bind(ctx, instanceID, bindingID, details)
 
-		Expect(bindErr).To(MatchError("failed to set credentials in credential store"))
+		Expect(bindErr.Error()).To(ContainSubstring("credential store unavailable"))
+		Expect(bindErr.Error()).To(ContainSubstring(instanceID))
+
+		brokerctx, _, _, _ := fakeBroker.BindArgsForCall(0)
+		requestID := brokercontext.GetReqID(brokerctx)
+		Expect(bindErr.Error()).To(ContainSubstring(requestID))
+
 		Expect(logBuffer.String()).To(ContainSubstring(
-			fmt.Sprintf("failed to set credentials in credential store for instance ID: %s, with binding ID: %s", instanceID, bindingID)))
+			"failed to set credentials in credential store:"))
 	})
 })

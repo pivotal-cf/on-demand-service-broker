@@ -7,6 +7,7 @@ import (
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/apiserver"
+	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/brokercontext"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 )
@@ -14,19 +15,28 @@ import (
 type CredHubBroker struct {
 	apiserver.CombinedBroker
 	credStore     CredentialStore
+	serviceName   string
 	loggerFactory *loggerfactory.LoggerFactory
 }
 
-func New(broker apiserver.CombinedBroker, credStore CredentialStore, loggerFactory *loggerfactory.LoggerFactory) *CredHubBroker {
+func New(broker apiserver.CombinedBroker,
+	credStore CredentialStore,
+	serviceName string,
+	loggerFactory *loggerfactory.LoggerFactory,
+) *CredHubBroker {
+
 	return &CredHubBroker{
 		CombinedBroker: broker,
 		credStore:      credStore,
+		serviceName:    serviceName,
 		loggerFactory:  loggerFactory,
 	}
 }
 
 func (b *CredHubBroker) Bind(ctx context.Context, instanceID, bindingID string, details brokerapi.BindDetails) (brokerapi.Binding, error) {
-	ctx = brokercontext.WithReqID(ctx, uuid.New())
+
+	requestID := uuid.New()
+	ctx = brokercontext.WithReqID(ctx, requestID)
 	logger := b.loggerFactory.NewWithContext(ctx)
 
 	binding, err := b.CombinedBroker.Bind(ctx, instanceID, bindingID, details)
@@ -38,7 +48,9 @@ func (b *CredHubBroker) Bind(ctx context.Context, instanceID, bindingID string, 
 	logger.Printf("storing credentials for instance ID: %s, with binding ID: %s", instanceID, bindingID)
 	err = b.credStore.Set(key, binding.Credentials)
 	if err != nil {
-		logger.Printf("failed to set credentials in credential store for instance ID: %s, with binding ID: %s", instanceID, bindingID)
+		ctx = brokercontext.New(ctx, string(broker.OperationTypeBind), requestID, b.serviceName, instanceID)
+		err = (broker.NewGenericError(ctx, fmt.Errorf("failed to set credentials in credential store: %v", err)))
+		logger.Print(err)
 		return brokerapi.Binding{}, err
 	}
 
