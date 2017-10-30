@@ -7,18 +7,18 @@
 package boshdirector_test
 
 import (
+	"net/http"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
-	"github.com/pivotal-cf/on-demand-service-broker/mockhttp/mockbosh"
 )
 
 var _ = Describe("info", func() {
 	Describe("GetInfo", func() {
 		It("returns a info object data structure", func() {
-			director.VerifyAndMock(
-				mockbosh.Info().RespondsOKWith(
-					`{
+			fakeHTTPClient.DoReturns(responseOKWithRawBody(
+				[]byte(`{
 						"name": "garden-bosh",
 						"uuid": "b0f9e86f-357f-409c-8f64-a2363d2d9e3b",
 						"version": "1.3262.0.0 (00000000)",
@@ -30,9 +30,8 @@ var _ = Describe("info", func() {
 								"url": "https://this-is-the-uaa-url.example.com"
 							}
 						}
-					}`,
-				),
-			)
+					}`)), nil)
+
 			info, err := c.GetInfo(logger)
 			Expect(err).NotTo(HaveOccurred())
 			expectedInfo := boshdirector.Info{
@@ -44,12 +43,17 @@ var _ = Describe("info", func() {
 				},
 			}
 			Expect(info).To(Equal(expectedInfo))
+
+			By("calling the right endpoint")
+			Expect(fakeHTTPClient).To(HaveReceivedHttpRequestAtIndex(
+				receivedHttpRequest{
+					Path:   "/info",
+					Method: "GET",
+				}, 1))
 		})
 
 		It("returns an error if the request fails", func() {
-			director.VerifyAndMock(
-				mockbosh.Info().RespondsInternalServerErrorWith("nothing today, thank you"),
-			)
+			fakeHTTPClient.DoReturns(responseWithEmptyBodyAndStatus(http.StatusInternalServerError), nil)
 			_, err := c.GetInfo(logger)
 			Expect(err).To(HaveOccurred())
 		})

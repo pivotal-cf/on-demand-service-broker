@@ -8,91 +8,62 @@ package boshdirector_test
 
 import (
 	"errors"
+	"net/http"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
-	"github.com/pivotal-cf/on-demand-service-broker/mockhttp/mockbosh"
 )
 
 var _ = Describe("deleting bosh deployments", func() {
 	const deploymentName = "some-deployment"
 
-	var (
-		taskID    int
-		deleteErr error
-
-		contextID string
-	)
-
-	BeforeEach(func() {
-		contextID = ""
+	It("returns an error when the authorization header cannot be generated", func() {
+		authHeaderBuilder.AddAuthHeaderReturns(errors.New("some-error"))
+		_, deleteErr := c.DeleteDeployment(deploymentName, "", logger)
+		Expect(deleteErr).To(MatchError(ContainSubstring("some-error")))
 	})
 
-	JustBeforeEach(func() {
-		taskID, deleteErr = c.DeleteDeployment(deploymentName, contextID, logger)
+	It("returns the bosh task ID when bosh accepts the delete request", func() {
+		fakeHTTPClient.DoReturns(responseWithRedirectToTaskID(90), nil)
+		taskID, deleteErr := c.DeleteDeployment(deploymentName, "", logger)
+		Expect(deleteErr).NotTo(HaveOccurred())
+		Expect(taskID).To(Equal(90))
+
+		By("calling the appropriate endpoint")
+		Expect(fakeHTTPClient).To(HaveReceivedHttpRequestAtIndex(
+			receivedHttpRequest{
+				Path:   "/deployments/some-deployment",
+				Method: "DELETE",
+			}, 1))
+		Expect(authHeaderBuilder.AddAuthHeaderCallCount()).To(BeNumerically(">", 0))
 	})
 
-	Context("when the authorization header cannot be generated", func() {
-		BeforeEach(func() {
-			authHeaderBuilder.AddAuthHeaderReturns(errors.New("some-error"))
-		})
-
-		It("returns an error", func() {
-			Expect(deleteErr).To(MatchError(ContainSubstring("some-error")))
-		})
+	It("returns an error when bosh cannot find the deployment", func() {
+		fakeHTTPClient.DoReturns(responseWithEmptyBodyAndStatus(http.StatusNotFound), nil)
+		_, deleteErr := c.DeleteDeployment(deploymentName, "", logger)
+		Expect(deleteErr).To(BeAssignableToTypeOf(boshdirector.DeploymentNotFoundError{}))
 	})
 
-	Context("when bosh accepts the delete request", func() {
-		BeforeEach(func() {
-			director.VerifyAndMock(
-				mockbosh.DeleteDeployment(deploymentName).WithoutContextID().RedirectsToTask(90),
-			)
-		})
-
-		It("calls the authorization header builder", func() {
-			Expect(authHeaderBuilder.AddAuthHeaderCallCount()).To(BeNumerically(">", 0))
-		})
-
-		It("returns the bosh task ID", func() {
-			Expect(taskID).To(Equal(90))
-		})
+	It("returns an error when bosh cannot delete the deployment", func() {
+		fakeHTTPClient.DoReturns(responseWithEmptyBodyAndStatus(http.StatusInternalServerError), nil)
+		_, deleteErr := c.DeleteDeployment(deploymentName, "", logger)
+		Expect(deleteErr).To(MatchError(ContainSubstring("expected status 302, was 500")))
 	})
 
-	Context("when bosh cannot find the deployment", func() {
-		BeforeEach(func() {
-			director.VerifyAndMock(
-				mockbosh.DeleteDeployment(deploymentName).WithoutContextID().RespondsNotFoundWith(""),
-			)
-		})
+	It("includes the bosh context id header in delete request when bosh context ID is provided", func() {
+		fakeHTTPClient.DoReturns(responseWithRedirectToTaskID(90), nil)
+		taskID, deleteErr := c.DeleteDeployment(deploymentName, "some-context-id", logger)
+		Expect(deleteErr).NotTo(HaveOccurred())
+		Expect(taskID).To(Equal(90))
 
-		It("returns an error", func() {
-			Expect(deleteErr).To(BeAssignableToTypeOf(boshdirector.DeploymentNotFoundError{}))
-		})
-	})
-
-	Context("when bosh cannot delete the deployment", func() {
-		BeforeEach(func() {
-			director.VerifyAndMock(
-				mockbosh.DeleteDeployment(deploymentName).WithoutContextID().RespondsInternalServerErrorWith("because reasons"),
-			)
-		})
-
-		It("returns an error", func() {
-			Expect(deleteErr).To(MatchError(ContainSubstring("expected status 302, was 500")))
-		})
-	})
-
-	Context("when bosh context ID is provided", func() {
-		BeforeEach(func() {
-			contextID = "some-context-id"
-			director.VerifyAndMock(
-				mockbosh.DeleteDeployment(deploymentName).WithContextID(contextID).RedirectsToTask(90),
-			)
-		})
-
-		It("includes the bosh context id header in delete request", func() {
-			director.VerifyMocks()
-		})
+		Expect(fakeHTTPClient).To(HaveReceivedHttpRequestAtIndex(
+			receivedHttpRequest{
+				Path:   "/deployments/some-deployment",
+				Method: "DELETE",
+				Header: http.Header{
+					"X-Bosh-Context-Id": []string{"some-context-id"},
+				},
+			}, 1))
 	})
 })

@@ -8,7 +8,6 @@ package boshdirector
 
 import (
 	"bytes"
-	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -19,16 +18,17 @@ import (
 	"strings"
 	"time"
 
-	"github.com/craigfurman/herottp"
+	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
 )
 
 type Client struct {
 	url string
 
 	PollingInterval time.Duration
+	BoshInfo        Info
 
 	authHeaderBuilder AuthHeaderBuilder
-	httpClient        HTTPClient
+	httpClient        NetworkDoer
 }
 
 func (c *Client) VerifyAuth(logger *log.Logger) error {
@@ -41,27 +41,48 @@ type AuthHeaderBuilder interface {
 	AddAuthHeader(request *http.Request, logger *log.Logger) error
 }
 
-type HTTPClient interface {
+//go:generate counterfeiter -o fakes/fake_network_doer.go . NetworkDoer
+type NetworkDoer interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
-func New(url string, authHeaderBuilder AuthHeaderBuilder, disableSSLCertVerification bool, trustedCertPEM []byte) (*Client, error) {
-	rootCAs, err := x509.SystemCertPool()
-	if err != nil {
-		return nil, err
+//go:generate counterfeiter -o fakes/fake_authenticator_builder.go . AuthenticatorBuilder
+type AuthenticatorBuilder interface {
+	NewAuthHeaderBuilder(boshInfo Info, disableSSLCertVerification bool) (AuthHeaderBuilder, error)
+}
+
+//go:generate counterfeiter -o fakes/fake_cert_appender.go . CertAppender
+type CertAppender interface {
+	AppendCertsFromPEM(pemCerts []byte) (ok bool)
+}
+
+func New(url string, disableSSLCertVerification bool, trustedCertPEM []byte, httpClient NetworkDoer, authBuilder AuthenticatorBuilder, certAppender CertAppender, logger *log.Logger) (*Client, error) {
+	noAuthClient := &Client{
+		url:        url,
+		httpClient: httpClient,
+
+		authHeaderBuilder: authorizationheader.NewNoAuthHeaderBuilder(),
 	}
-	rootCAs.AppendCertsFromPEM(trustedCertPEM)
+
+	boshInfo, err := noAuthClient.GetInfo(logger)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching BOSH director information: %s", err)
+	}
+
+	authHeaderBuilder, err := authBuilder.NewAuthHeaderBuilder(boshInfo, disableSSLCertVerification)
+	if err != nil {
+		return nil, fmt.Errorf("error creating BOSH authorization header builder: %s", err)
+	}
+
+	certAppender.AppendCertsFromPEM(trustedCertPEM)
+
 	return &Client{
-		url:               url,
-		authHeaderBuilder: authHeaderBuilder,
-		httpClient: herottp.New(herottp.Config{
-			NoFollowRedirect:                  true,
-			DisableTLSCertificateVerification: disableSSLCertVerification,
-			RootCAs: rootCAs,
-			Timeout: 30 * time.Second,
-		}),
-		PollingInterval: 5,
-	}, nil
+			BoshInfo:          boshInfo,
+			PollingInterval:   5,
+			url:               url,
+			httpClient:        httpClient,
+			authHeaderBuilder: authHeaderBuilder},
+		nil
 }
 
 type Info struct {
@@ -183,7 +204,13 @@ func (c *Client) deleteAndGetTaskIDCheckingForErrors(url string, contextID strin
 
 func decodeJson(result interface{}) resultExtractor {
 	return func(response *http.Response) error {
-		return json.NewDecoder(response.Body).Decode(result)
+
+		var err error
+		bytes, err := ioutil.ReadAll(response.Body)
+		if err != nil {
+			return err
+		}
+		return json.Unmarshal(bytes, result)
 	}
 }
 

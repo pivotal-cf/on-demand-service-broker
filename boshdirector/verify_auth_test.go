@@ -8,19 +8,42 @@ package boshdirector_test
 
 import (
 	"errors"
+	"io/ioutil"
+	"net/http"
+	"strings"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector/fakes"
-	"github.com/pivotal-cf/on-demand-service-broker/mockhttp/mockbosh"
 )
 
 var _ = Describe("verifying authentication credentials are correct", func() {
+	var (
+		fakeHTTPClient           *fakes.FakeNetworkDoer
+		fakeAuthenticatorBuilder *fakes.FakeAuthenticatorBuilder
+		fakeAuthHeaderBuilder    *fakes.FakeAuthHeaderBuilder
+		fakeCertAppender         *fakes.FakeCertAppender
+	)
+
+	BeforeEach(func() {
+		fakeHTTPClient = new(fakes.FakeNetworkDoer)
+		fakeAuthenticatorBuilder = new(fakes.FakeAuthenticatorBuilder)
+		fakeAuthHeaderBuilder = new(fakes.FakeAuthHeaderBuilder)
+		fakeCertAppender = new(fakes.FakeCertAppender)
+
+		fakeAuthenticatorBuilder.NewAuthHeaderBuilderReturns(fakeAuthHeaderBuilder, nil)
+
+		fakeHTTPClient.DoStub = func(_ *http.Request) (*http.Response, error) {
+			return &http.Response{
+				Body:       ioutil.NopCloser(strings.NewReader(`{}`)),
+				StatusCode: http.StatusOK,
+			}, nil
+		}
+	})
+
 	It("doesn't produce error when the auth header builder can add a header", func() {
-		director.VerifyAndMock(mockbosh.Info().RespondsOKWith("{}"))
-		authHeaderBuilder := new(fakes.FakeAuthHeaderBuilder)
-		c, err := boshdirector.New(director.URL, authHeaderBuilder, false, nil)
+		c, err := boshdirector.New(director.URL, false, nil, fakeHTTPClient, fakeAuthenticatorBuilder, fakeCertAppender, logger)
 		Expect(err).NotTo(HaveOccurred())
 
 		authErr := c.VerifyAuth(logger)
@@ -29,10 +52,9 @@ var _ = Describe("verifying authentication credentials are correct", func() {
 	})
 
 	It("produces error when the auth header builder cannot add a header", func() {
-		authHeaderBuilder := new(fakes.FakeAuthHeaderBuilder)
 		authHeaderError := errors.New("couldn't get creds!!!1 lol")
-		authHeaderBuilder.AddAuthHeaderReturns(authHeaderError)
-		c, err := boshdirector.New(director.URL, authHeaderBuilder, false, nil)
+		fakeAuthHeaderBuilder.AddAuthHeaderReturns(authHeaderError)
+		c, err := boshdirector.New(director.URL, false, nil, fakeHTTPClient, fakeAuthenticatorBuilder, fakeCertAppender, logger)
 		Expect(err).NotTo(HaveOccurred())
 
 		authErr := c.VerifyAuth(logger)
@@ -41,9 +63,22 @@ var _ = Describe("verifying authentication credentials are correct", func() {
 	})
 
 	It("produces error when the response from the director is 401", func() {
-		authHeaderBuilder := new(fakes.FakeAuthHeaderBuilder)
-		director.VerifyAndMock(mockbosh.Info().RespondsUnauthorizedWith(""))
-		c, err := boshdirector.New(director.URL, authHeaderBuilder, false, nil)
+		callcount := 0
+		fakeHTTPClient.DoStub = func(_ *http.Request) (*http.Response, error) {
+			callcount += 1
+			if callcount == 1 {
+				return &http.Response{
+					Body:       ioutil.NopCloser(strings.NewReader(`{}`)),
+					StatusCode: http.StatusOK,
+				}, nil
+			}
+
+			return &http.Response{
+				Body:       ioutil.NopCloser(strings.NewReader(`{}`)),
+				StatusCode: http.StatusUnauthorized,
+			}, nil
+		}
+		c, err := boshdirector.New(director.URL, false, nil, fakeHTTPClient, fakeAuthenticatorBuilder, fakeCertAppender, logger)
 		Expect(err).NotTo(HaveOccurred())
 
 		authErr := c.VerifyAuth(logger)

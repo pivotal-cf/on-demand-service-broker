@@ -8,6 +8,7 @@ package main
 
 import (
 	"context"
+	"crypto/x509"
 	"flag"
 	"fmt"
 	"log"
@@ -17,8 +18,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/craigfurman/herottp"
 	"github.com/pivotal-cf/on-demand-service-broker/apiserver"
-	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/brokeraugmenter"
@@ -54,24 +55,24 @@ func main() {
 }
 
 func startBroker(conf config.Config, logger *log.Logger, loggerFactory *loggerfactory.LoggerFactory) {
-	var (
-		boshAuthenticator boshdirector.AuthHeaderBuilder
-		err               error
-	)
-
-	noAuthHeaderBuilder := authorizationheader.NewNoAuthHeaderBuilder()
-	unauthenticatedClient, err := boshdirector.New(conf.Bosh.URL, noAuthHeaderBuilder, conf.Broker.DisableSSLCertVerification, []byte(conf.Bosh.TrustedCert))
-	boshInfo, err := unauthenticatedClient.GetInfo(logger)
+	certPool, err := x509.SystemCertPool()
 	if err != nil {
-		logger.Fatalf("error fetching BOSH director information: %s", err)
+		logger.Fatalf("error getting a certificate pool to append our trusted cert to: %s", err)
 	}
 
-	boshAuthenticator, err = conf.Bosh.NewAuthHeaderBuilder(boshInfo, conf.Broker.DisableSSLCertVerification)
-	if err != nil {
-		logger.Fatalf("error creating BOSH authorization header builder: %s", err)
-	}
-
-	boshClient, err := boshdirector.New(conf.Bosh.URL, boshAuthenticator, conf.Broker.DisableSSLCertVerification, []byte(conf.Bosh.TrustedCert))
+	boshClient, err := boshdirector.New(
+		conf.Bosh.URL,
+		conf.Broker.DisableSSLCertVerification,
+		[]byte(conf.Bosh.TrustedCert),
+		herottp.New(herottp.Config{
+			NoFollowRedirect:                  true,
+			DisableTLSCertificateVerification: conf.Broker.DisableSSLCertVerification,
+			RootCAs: certPool,
+			Timeout: 30 * time.Second,
+		}),
+		conf.Bosh,
+		certPool,
+		logger)
 	if err != nil {
 		logger.Fatalf("error creating bosh client: %s", err)
 	}
@@ -122,7 +123,7 @@ func startBroker(conf config.Config, logger *log.Logger, loggerFactory *loggerfa
 		startupchecker.NewBOSHDirectorVersionChecker(
 			broker.MinimumMajorStemcellDirectorVersionForODB,
 			broker.MinimumMajorSemverDirectorVersionForLifecycleErrands,
-			boshInfo,
+			boshClient.BoshInfo,
 			conf.ServiceCatalog,
 		),
 		startupchecker.NewBOSHAuthChecker(boshClient, logger),

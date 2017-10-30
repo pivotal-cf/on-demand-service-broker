@@ -7,9 +7,12 @@
 package boshdirector_test
 
 import (
+	"fmt"
+
+	"net/http"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf/on-demand-service-broker/mockhttp/mockbosh"
 )
 
 var _ = Describe("running errands", func() {
@@ -19,75 +22,65 @@ var _ = Describe("running errands", func() {
 		contextID      = "some-context-id"
 	)
 
-	Context("successfully", func() {
-		It("invokes BOSH to queue up an errand", func() {
-			taskID := 5
-			director.VerifyAndMock(
-				mockbosh.Errand(deploymentName, errandName, `{}`).WithContextID(contextID).RedirectsToTask(taskID),
-			)
+	It("invokes BOSH to queue up an errand", func() {
+		fakeHTTPClient.DoReturns(responseWithRedirectToTaskID(5), nil)
 
-			actualTaskID, actualErr := c.RunErrand(deploymentName, errandName, nil, contextID, logger)
-			Expect(actualTaskID).To(Equal(taskID))
-			Expect(actualErr).NotTo(HaveOccurred())
-		})
+		actualTaskID, actualErr := c.RunErrand(deploymentName, errandName, nil, contextID, logger)
+		Expect(actualTaskID).To(Equal(5))
+		Expect(actualErr).NotTo(HaveOccurred())
+
+		By("calling the correct endpoint")
+		Expect(fakeHTTPClient).To(HaveReceivedHttpRequestAtIndex(
+			receivedHttpRequest{
+				Path:   fmt.Sprintf("/deployments/%s/errands/%s/runs", deploymentName, errandName),
+				Method: "POST",
+			}, 1))
 	})
 
-	Context("successfully with instances", func() {
-		It("invokes BOSH to queue up an errand with instances", func() {
-			taskID := 5
-			errandInstances := []string{"errand_instance/4529480d-9770-4c32-b9bb-d936c0a908ca"}
-			expectedBody := `{
-			"instances":[
-			  {
-			    "group": "errand_instance",
-			    "id": "4529480d-9770-4c32-b9bb-d936c0a908ca"
-			  }
-			]}`
+	It("invokes BOSH to queue up an errand with instances with group and ID when a specific instance is configured", func() {
+		fakeHTTPClient.DoReturns(responseWithRedirectToTaskID(5), nil)
 
-			director.VerifyAndMock(
-				mockbosh.Errand(deploymentName, errandName, expectedBody).WithContextID(contextID).RedirectsToTask(taskID),
-			)
+		errandInstances := []string{"errand_instance/4529480d-9770-4c32-b9bb-d936c0a908ca"}
+		actualTaskID, actualErr := c.RunErrand(deploymentName, errandName, errandInstances, contextID, logger)
+		Expect(actualTaskID).To(Equal(5))
+		Expect(actualErr).NotTo(HaveOccurred())
 
-			actualTaskID, actualErr := c.RunErrand(deploymentName, errandName, errandInstances, contextID, logger)
-			Expect(actualTaskID).To(Equal(taskID))
-			Expect(actualErr).NotTo(HaveOccurred())
-		})
+		By("calling the correct endpoint")
+		Expect(fakeHTTPClient).To(HaveReceivedHttpRequestAtIndex(
+			receivedHttpRequest{
+				Path:   fmt.Sprintf("/deployments/%s/errands/%s/runs", deploymentName, errandName),
+				Method: "POST",
+			}, 1))
 
-		It("invokes BOSH to queue up an errand with instances", func() {
-			taskID := 5
-			errandInstances := []string{"errand_instance"}
-			expectedBody := `{
-			"instances":[
-			  {
-			    "group": "errand_instance"
-			  }
-			]}`
-
-			director.VerifyAndMock(
-				mockbosh.Errand(deploymentName, errandName, expectedBody).WithContextID(contextID).RedirectsToTask(taskID),
-			)
-
-			actualTaskID, actualErr := c.RunErrand(deploymentName, errandName, errandInstances, contextID, logger)
-			Expect(actualTaskID).To(Equal(taskID))
-			Expect(actualErr).NotTo(HaveOccurred())
-		})
 	})
 
-	Context("has an error", func() {
-		It("returns an error when the errandInstance names are invalid", func() {
-			errandInstances := []string{"some/invalid/errand"}
+	It("invokes BOSH to queue up an errand with instances with group only when an instance group is configured", func() {
+		fakeHTTPClient.DoReturns(responseWithRedirectToTaskID(5), nil)
 
-			_, actualErr := c.RunErrand(deploymentName, errandName, errandInstances, contextID, logger)
-			Expect(actualErr).To(HaveOccurred())
-		})
+		errandInstances := []string{"errand_instance"}
+		actualTaskID, actualErr := c.RunErrand(deploymentName, errandName, errandInstances, contextID, logger)
+		Expect(actualTaskID).To(Equal(5))
+		Expect(actualErr).NotTo(HaveOccurred())
 
-		It("invokes BOSH to queue up an errand", func() {
-			director.VerifyAndMock(
-				mockbosh.Errand(deploymentName, errandName, `{}`).WithAnyContextID().RespondsInternalServerErrorWith("because reasons"),
-			)
+		By("calling the correct endpoint")
+		Expect(fakeHTTPClient).To(HaveReceivedHttpRequestAtIndex(
+			receivedHttpRequest{
+				Path:   fmt.Sprintf("/deployments/%s/errands/%s/runs", deploymentName, errandName),
+				Method: "POST",
+			}, 1))
+	})
 
-			_, actualErr := c.RunErrand(deploymentName, errandName, nil, contextID, logger)
-			Expect(actualErr).To(HaveOccurred())
-		})
+	It("returns an error when the errandInstance names are invalid", func() {
+		errandInstances := []string{"some/invalid/errand"}
+
+		_, actualErr := c.RunErrand(deploymentName, errandName, errandInstances, contextID, logger)
+		Expect(actualErr).To(HaveOccurred())
+	})
+
+	It("returns the error when when bosh fails to queue up an errand", func() {
+		fakeHTTPClient.DoReturns(responseWithEmptyBodyAndStatus(http.StatusInternalServerError), nil)
+		_, err := c.RunErrand(deploymentName, errandName, nil, contextID, logger)
+
+		Expect(err).To(MatchError(ContainSubstring("expected status 302, was 500")))
 	})
 })

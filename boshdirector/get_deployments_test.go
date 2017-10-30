@@ -8,11 +8,11 @@ package boshdirector_test
 
 import (
 	"encoding/json"
+	"net/http"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
-	"github.com/pivotal-cf/on-demand-service-broker/mockhttp/mockbosh"
 )
 
 var _ = Describe("deployments", func() {
@@ -22,55 +22,37 @@ var _ = Describe("deployments", func() {
 			actualDeploymentsError error
 		)
 
-		JustBeforeEach(func() {
+		It("returns the deployments when bosh fetches the deployments successfully", func() {
+			expectedDeployments := []boshdirector.Deployment{
+				{Name: "service-instance_one"},
+				{Name: "service-instance_two"},
+				{Name: "service-instance_three"},
+			}
+			fakeHTTPClient.DoReturns(responseOKWithJSON(expectedDeployments), nil)
 			actualDeployments, actualDeploymentsError = c.GetDeployments(logger)
+			Expect(actualDeployments).To(Equal(expectedDeployments))
+			Expect(actualDeploymentsError).NotTo(HaveOccurred())
+
+			By("calling the appropriate endpoints")
+			Expect(fakeHTTPClient).To(HaveReceivedHttpRequestAtIndex(
+				receivedHttpRequest{
+					Path:   "/deployments",
+					Method: "GET",
+				}, 1))
 		})
 
-		Context("when bosh fetches the deployments successfully", func() {
-			var expectedDeployments []boshdirector.Deployment
+		It("wraps the error when bosh returns a client error (HTTP 404)", func() {
+			fakeHTTPClient.DoReturns(responseWithEmptyBodyAndStatus(http.StatusNotFound), nil)
+			_, actualDeploymentsError = c.GetDeployments(logger)
 
-			BeforeEach(func() {
-				expectedDeployments = []boshdirector.Deployment{
-					{Name: "service-instance_one"},
-					{Name: "service-instance_two"},
-					{Name: "service-instance_three"},
-				}
-				director.VerifyAndMock(
-					mockbosh.Deployments().RespondsOKWithJSON(expectedDeployments),
-				)
-			})
-
-			It("returns the deployments", func() {
-				Expect(actualDeployments).To(Equal(expectedDeployments))
-			})
-
-			It("does not error", func() {
-				Expect(actualDeploymentsError).NotTo(HaveOccurred())
-			})
+			Expect(actualDeploymentsError).To(MatchError(ContainSubstring("expected status 200, was 404")))
 		})
 
-		Context("when bosh returns a client error (HTTP 404)", func() {
-			BeforeEach(func() {
-				director.VerifyAndMock(
-					mockbosh.Deployments().RespondsNotFoundWith(""),
-				)
-			})
+		It("wraps the error when when bosh fails to fetch the task", func() {
+			fakeHTTPClient.DoReturns(responseWithEmptyBodyAndStatus(http.StatusInternalServerError), nil)
+			_, actualDeploymentsError = c.GetDeployments(logger)
 
-			It("wraps the error", func() {
-				Expect(actualDeploymentsError).To(MatchError(ContainSubstring("expected status 200, was 404")))
-			})
-		})
-
-		Context("when bosh fails to fetch the task", func() {
-			BeforeEach(func() {
-				director.VerifyAndMock(
-					mockbosh.Deployments().RespondsInternalServerErrorWith("because reasons"),
-				)
-			})
-
-			It("wraps the error", func() {
-				Expect(actualDeploymentsError).To(MatchError(ContainSubstring("expected status 200, was 500")))
-			})
+			Expect(actualDeploymentsError).To(MatchError(ContainSubstring("expected status 200, was 500")))
 		})
 	})
 

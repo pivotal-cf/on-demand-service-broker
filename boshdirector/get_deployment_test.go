@@ -8,12 +8,11 @@ package boshdirector_test
 
 import (
 	"errors"
+	"net/http"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
-	"github.com/pivotal-cf/on-demand-service-broker/mockhttp/mockbosh"
 )
 
 var _ = Describe("getting deployment", func() {
@@ -26,70 +25,53 @@ var _ = Describe("getting deployment", func() {
 	)
 
 	Context("when the bosh director can be reached", func() {
-		JustBeforeEach(func() {
+		It("returns the manifest when the deployment exists", func() {
+			fakeHTTPClient.DoReturns(responseWithRawManifest(rawManifest), nil)
 			manifest, deploymentFound, manifestFetchErr = c.GetDeployment(deploymentName, logger)
+			Expect(fakeHTTPClient).To(HaveReceivedHttpRequestAtIndex(
+				receivedHttpRequest{
+					Path:   "/deployments/some-deployment",
+					Method: "GET",
+				}, 1))
+
+			By("calling the authorization header builder")
+			Expect(authHeaderBuilder.AddAuthHeaderCallCount()).To(BeNumerically(">", 0))
+
+			By("returning the manifest")
+			Expect(deploymentFound).To(BeTrue())
+			Expect(manifest).To(Equal(rawManifest))
+			Expect(manifestFetchErr).NotTo(HaveOccurred())
 		})
 
-		Context("when the deployment exists", func() {
-			BeforeEach(func() {
-				director.VerifyAndMock(
-					mockbosh.GetDeployment(deploymentName).RespondsWithRawManifest(rawManifest),
-				)
-			})
+		It("returns a nil manifest and deployment not found when the deployment does not exist", func() {
+			fakeHTTPClient.DoReturns(responseWithEmptyBodyAndStatus(http.StatusNotFound), nil)
+			manifest, deploymentFound, manifestFetchErr = c.GetDeployment(deploymentName, logger)
+			Expect(fakeHTTPClient).To(HaveReceivedHttpRequestAtIndex(
+				receivedHttpRequest{
+					Path:   "/deployments/some-deployment",
+					Method: "GET",
+				}, 1))
 
-			It("calls the authorization header builder", func() {
-				Expect(authHeaderBuilder.AddAuthHeaderCallCount()).To(BeNumerically(">", 0))
-			})
+			By("returning deployment not found")
+			Expect(deploymentFound).To(BeFalse())
 
-			It("returns deployment found", func() {
-				Expect(deploymentFound).To(BeTrue())
-			})
+			By("not returning the manifest")
+			Expect(manifest).To(BeNil())
 
-			It("returns the manifest", func() {
-				Expect(manifest).To(Equal(rawManifest))
-			})
-
-			It("returns no error", func() {
-				Expect(manifestFetchErr).NotTo(HaveOccurred())
-			})
+			By("returning no error")
+			Expect(manifestFetchErr).NotTo(HaveOccurred())
 		})
 
-		Context("when the deployment does not exist", func() {
-			BeforeEach(func() {
-				director.VerifyAndMock(
-					mockbosh.GetDeployment(deploymentName).RespondsNotFoundWith(""),
-				)
-			})
-
-			It("returns deployment not found", func() {
-				Expect(deploymentFound).To(BeFalse())
-			})
-
-			It("does not returns the manifest", func() {
-				Expect(manifest).To(BeNil())
-			})
-
-			It("returns no error", func() {
-				Expect(manifestFetchErr).NotTo(HaveOccurred())
-			})
-		})
-
-		Context("when the Authorization header cannot be generated", func() {
-			BeforeEach(func() {
-				authHeaderBuilder.AddAuthHeaderReturns(errors.New("some-error"))
-			})
-
-			It("returns an error", func() {
-				Expect(manifestFetchErr).To(MatchError(ContainSubstring("some-error")))
-			})
+		It("returns an error when the authorization header cannot be generated", func() {
+			authHeaderBuilder.AddAuthHeaderReturns(errors.New("some-error"))
+			_, deploymentFound, manifestFetchErr = c.GetDeployment(deploymentName, logger)
+			Expect(manifestFetchErr).To(MatchError(ContainSubstring("some-error")))
 		})
 	})
 
 	Context("when the BOSH director cannot be reached", func() {
 		It("returns a bosh request error", func() {
-			c, err := boshdirector.New("http://localhost", authorizationheader.NewBasicAuthHeaderBuilder("", ""), false, nil)
-			Expect(err).NotTo(HaveOccurred())
-
+			fakeHTTPClient.DoReturns(nil, errors.New("Unexpected error"))
 			_, deploymentFound, manifestFetchErr = c.GetDeployment(deploymentName, logger)
 
 			Expect(manifestFetchErr).To(MatchError(ContainSubstring("error reaching bosh director")))

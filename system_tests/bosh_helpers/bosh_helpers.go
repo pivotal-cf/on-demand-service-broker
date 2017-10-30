@@ -7,11 +7,13 @@
 package bosh_helpers
 
 import (
+	"crypto/x509"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"time"
 
+	"github.com/craigfurman/herottp"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -25,6 +27,14 @@ type BoshHelperClient struct {
 	*boshdirector.Client
 }
 
+type authenticatorBuilder struct {
+	authHeaderBuilder boshdirector.AuthHeaderBuilder
+}
+
+func (a authenticatorBuilder) NewAuthHeaderBuilder(boshInfo boshdirector.Info, disableSSL bool) (boshdirector.AuthHeaderBuilder, error) {
+	return a.authHeaderBuilder, nil
+}
+
 func New(boshURL, uaaURL, boshUsername, boshPassword, boshCACert string) *BoshHelperClient {
 	var boshCACertContents []byte
 	if boshCACert != "" {
@@ -35,7 +45,28 @@ func New(boshURL, uaaURL, boshUsername, boshPassword, boshCACert string) *BoshHe
 
 	authHeaderBuilder, err := authorizationheader.NewClientTokenAuthHeaderBuilder(uaaURL, boshUsername, boshPassword, false, boshCACertContents)
 	Expect(err).NotTo(HaveOccurred())
-	boshClient, err := boshdirector.New(boshURL, authHeaderBuilder, false, boshCACertContents)
+
+	certPool, err := x509.SystemCertPool()
+	Expect(err).NotTo(HaveOccurred())
+
+	httpClient := herottp.New(herottp.Config{
+		NoFollowRedirect:                  true,
+		DisableTLSCertificateVerification: false,
+		RootCAs: certPool,
+		Timeout: 30 * time.Second,
+	})
+
+	logger := systemTestLogger()
+	boshClient, err := boshdirector.New(
+		boshURL,
+		false,
+		boshCACertContents,
+		httpClient,
+		authenticatorBuilder{authHeaderBuilder},
+		certPool,
+		logger,
+	)
+
 	Expect(err).NotTo(HaveOccurred())
 	return &BoshHelperClient{Client: boshClient}
 }
@@ -50,8 +81,29 @@ func NewBasicAuth(boshURL, boshUsername, boshPassword, boshCACert string, disabl
 
 	basicAuthHeaderBuilder := authorizationheader.NewBasicAuthHeaderBuilder(boshUsername, boshPassword)
 	var err error
-	boshClient, err := boshdirector.New(boshURL, basicAuthHeaderBuilder, disableTLSVerification, boshCACertContents)
+	certPool, err := x509.SystemCertPool()
 	Expect(err).NotTo(HaveOccurred())
+
+	httpClient := herottp.New(herottp.Config{
+		NoFollowRedirect:                  true,
+		DisableTLSCertificateVerification: false,
+		RootCAs: certPool,
+		Timeout: 30 * time.Second,
+	})
+
+	logger := systemTestLogger()
+	boshClient, err := boshdirector.New(
+		boshURL,
+		disableTLSVerification,
+		boshCACertContents,
+		httpClient,
+		authenticatorBuilder{basicAuthHeaderBuilder},
+		certPool,
+		logger,
+	)
+
+	Expect(err).NotTo(HaveOccurred())
+
 	return &BoshHelperClient{Client: boshClient}
 }
 

@@ -8,19 +8,16 @@ package boshdirector_test
 
 import (
 	"errors"
+	"net/http"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf/on-demand-service-broker/mockhttp/mockbosh"
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 	"gopkg.in/yaml.v2"
 )
 
 var _ = Describe("deploying a manifest", func() {
-	const (
-		taskID = 3
-	)
-
 	var (
 		deploymentManifest = bosh.BoshManifest{
 			Name:           "big deployment",
@@ -29,9 +26,6 @@ var _ = Describe("deploying a manifest", func() {
 			InstanceGroups: []bosh.InstanceGroup{},
 		}
 		deploymentManifestBytes []byte
-
-		returnedTaskID int
-		deployErr      error
 	)
 
 	BeforeEach(func() {
@@ -40,89 +34,56 @@ var _ = Describe("deploying a manifest", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
-	var boshContextID string
+	It("returns a BOSH task ID when there is no bosh context id", func() {
+		fakeHTTPClient.DoReturns(responseWithRedirectToTaskID(90), nil)
+		taskID, err := c.Deploy(deploymentManifestBytes, "", logger)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(taskID).To(Equal(90))
 
-	BeforeEach(func() {
-		boshContextID = ""
+		By("calling the appropriate endpoint")
+		Expect(fakeHTTPClient).To(HaveReceivedHttpRequestAtIndex(receivedHttpRequest{Path: "/deployments", Method: "POST"}, 1))
+
+		By("using authentication")
+		Expect(authHeaderBuilder.AddAuthHeaderCallCount()).To(BeNumerically(">", 0))
 	})
 
-	JustBeforeEach(func() {
-		returnedTaskID, deployErr = c.Deploy(deploymentManifestBytes, boshContextID, logger)
+	It("returns a BOSH task ID when there is bosh context id", func() {
+		fakeHTTPClient.DoReturns(responseWithRedirectToTaskID(90), nil)
+		taskID, err := c.Deploy(deploymentManifestBytes, "some-context-id", logger)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(taskID).To(Equal(90))
+
+		By("calling the appropriate endpoint")
+		Expect(fakeHTTPClient).To(HaveReceivedHttpRequestAtIndex(receivedHttpRequest{
+			Path:   "/deployments",
+			Method: "POST",
+			Header: http.Header{
+				"X-Bosh-Context-Id": []string{"some-context-id"},
+			},
+		}, 1))
+
+		By("using authentication")
+		Expect(authHeaderBuilder.AddAuthHeaderCallCount()).To(BeNumerically(">", 0))
 	})
 
-	Context("and no bosh context id", func() {
-		Context("and the deploy succeeds", func() {
-			BeforeEach(func() {
-				director.VerifyAndMock(
-					mockbosh.Deploy().WithRawManifest(deploymentManifestBytes).WithoutContextID().RedirectsToTask(taskID),
-				)
-			})
-
-			It("calls the authorization header builder", func() {
-				Expect(authHeaderBuilder.AddAuthHeaderCallCount()).To(BeNumerically(">", 0))
-			})
-
-			It("returns the bosh task ID", func() {
-				Expect(returnedTaskID).To(Equal(taskID))
-			})
-
-			It("does not return an error", func() {
-				Expect(deployErr).NotTo(HaveOccurred())
-			})
-		})
+	It("returns an error when the authorization header cannot be generated", func() {
+		authHeaderBuilder.AddAuthHeaderReturns(errors.New("some-error"))
+		_, err := c.Deploy(deploymentManifestBytes, "", logger)
+		Expect(err).To(MatchError(ContainSubstring("some-error")))
 	})
 
-	Context("and a bosh context id", func() {
-		BeforeEach(func() {
-			boshContextID = "bosh-context-id"
+	It("returns an error when the BOSH director cannot be reached", func() {
+		fakeHTTPClient.DoReturns(nil, errors.New("Unexpected error"))
+		_, err := c.Deploy(deploymentManifestBytes, "", logger)
 
-			director.VerifyAndMock(
-				mockbosh.Deploy().WithRawManifest(deploymentManifestBytes).WithContextID("bosh-context-id").RedirectsToTask(taskID),
-			)
-		})
-
-		It("calls the authorization header builder", func() {
-			Expect(authHeaderBuilder.AddAuthHeaderCallCount()).To(BeNumerically(">", 0))
-		})
-
-		It("returns the bosh task ID", func() {
-			Expect(returnedTaskID).To(Equal(taskID))
-		})
-
-		It("does not return an error", func() {
-			Expect(deployErr).NotTo(HaveOccurred())
-		})
+		Expect(err).To(MatchError(ContainSubstring("error reaching bosh director")))
+		Expect(err).To(BeAssignableToTypeOf(boshdirector.RequestError{}))
 	})
 
-	Context("and the authorization header cannot be built", func() {
-		BeforeEach(func() {
-			authHeaderBuilder.AddAuthHeaderReturns(errors.New("some-error"))
-		})
-
-		It("returns an error", func() {
-			Expect(deployErr).To(MatchError(ContainSubstring("some-error")))
-		})
+	It("returns an error when the bosh director responds with an error", func() {
+		fakeHTTPClient.DoReturns(responseWithEmptyBodyAndStatus(http.StatusInternalServerError), nil)
+		_, err := c.Deploy(deploymentManifestBytes, "", logger)
+		Expect(err).To(MatchError(ContainSubstring("expected status 302, was 500")))
 	})
 
-	Context("and the bosh director cannot be reached", func() {
-		BeforeEach(func() {
-			director.Close()
-		})
-
-		It("returns an error", func() {
-			Expect(deployErr).To(MatchError(ContainSubstring("error reaching bosh director")))
-		})
-	})
-
-	Context("and the bosh director responds with an error", func() {
-		BeforeEach(func() {
-			director.VerifyAndMock(
-				mockbosh.Deploy().WithoutContextID().RespondsInternalServerErrorWith("because reasons"),
-			)
-		})
-
-		It("returns error", func() {
-			Expect(deployErr).To(MatchError(ContainSubstring("expected status 302, was 500")))
-		})
-	})
 })

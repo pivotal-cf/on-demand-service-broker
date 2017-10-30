@@ -7,10 +7,15 @@
 package boshdirector_test
 
 import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"net/url"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
-	"github.com/pivotal-cf/on-demand-service-broker/mockhttp/mockbosh"
 )
 
 var _ = Describe("get task", func() {
@@ -19,97 +24,69 @@ var _ = Describe("get task", func() {
 	)
 
 	Context("getting task state", func() {
-		var (
-			taskState  boshdirector.BoshTask
-			getTaskErr error
-		)
+		It("returns the task state when bosh fetches the task successfully", func() {
+			fakeHTTPClient.DoReturns(responseOKWithJSON(boshdirector.BoshTask{State: "a-state", Description: "a-description"}), nil)
+			taskState, err := c.GetTask(taskID, logger)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(taskState).To(Equal(boshdirector.BoshTask{State: "a-state", Description: "a-description"}))
 
-		JustBeforeEach(func() {
-			taskState, getTaskErr = c.GetTask(taskID, logger)
+			By("calling the right endpoint")
+			Expect(fakeHTTPClient).To(HaveReceivedHttpRequestAtIndex(
+				receivedHttpRequest{
+					Path:   fmt.Sprintf("/tasks/%d", taskID),
+					Method: "GET",
+				}, 1))
 		})
 
-		Context("when bosh fetches the task successfully", func() {
-			BeforeEach(func() {
-				director.VerifyAndMock(
-					mockbosh.Task(taskID).RespondsOKWithJSON(boshdirector.BoshTask{State: "a-state", Description: "a-description"}),
-				)
-			})
-
-			It("returns the task state", func() {
-				Expect(taskState).To(Equal(boshdirector.BoshTask{State: "a-state", Description: "a-description"}))
-			})
-
-			It("does not error", func() {
-				Expect(getTaskErr).NotTo(HaveOccurred())
-			})
-		})
-
-		Context("when bosh fails to fetch the task", func() {
-			BeforeEach(func() {
-				director.VerifyAndMock(
-					mockbosh.Task(taskID).RespondsInternalServerErrorWith("because reasons"),
-				)
-			})
-
-			It("wraps the error", func() {
-				Expect(getTaskErr).To(MatchError(ContainSubstring("expected status 200, was 500")))
-			})
+		It("wraps the error when when bosh fails to fetch the task", func() {
+			fakeHTTPClient.DoReturns(responseWithEmptyBodyAndStatus(http.StatusInternalServerError), nil)
+			_, err := c.GetTask(taskID, logger)
+			Expect(err).To(MatchError(ContainSubstring("expected status 200, was 500")))
 		})
 	})
 
 	Context("getting task output", func() {
-		var (
-			actualTaskOutput    []boshdirector.BoshTaskOutput
-			actualTaskOutputErr error
-			expectedTaskOutputs []boshdirector.BoshTaskOutput
-		)
+		It("returns the correct output for the task when the client fetches task output of a valid errand task", func() {
+			expectedTaskOutputs := []boshdirector.BoshTaskOutput{
+				{ExitCode: 1, StdOut: "a-description", StdErr: "err"},
+				{ExitCode: 2, StdOut: "a-description", StdErr: "err"},
+				{ExitCode: 3, StdOut: "a-description", StdErr: "err"},
+				{ExitCode: 5, StdOut: "a-description", StdErr: "err"},
+			}
 
-		JustBeforeEach(func() {
-			actualTaskOutput, actualTaskOutputErr = c.GetTaskOutput(taskID, logger)
+			body := bytes.NewBuffer([]byte{})
+			encoder := json.NewEncoder(body)
+
+			for _, line := range expectedTaskOutputs {
+				Expect(encoder.Encode(line)).ToNot(HaveOccurred())
+			}
+
+			fakeHTTPClient.DoReturns(responseOKWithRawBody(body.Bytes()), nil)
+			taskOutput, err := c.GetTaskOutput(taskID, logger)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(taskOutput).To(Equal(expectedTaskOutputs))
+
+			By("calling the right endpoint")
+			Expect(fakeHTTPClient).To(HaveReceivedHttpRequestAtIndex(
+				receivedHttpRequest{
+					Path:   fmt.Sprintf("/tasks/%d/output", taskID),
+					Method: "GET",
+					Query:  url.Values{"type": []string{"result"}},
+				}, 1))
 		})
 
-		Context("when the client fetches task output of a valid errand task", func() {
-			BeforeEach(func() {
-				expectedTaskOutputs = []boshdirector.BoshTaskOutput{
-					{ExitCode: 1, StdOut: "a-description", StdErr: "err"},
-					{ExitCode: 2, StdOut: "a-description", StdErr: "err"},
-					{ExitCode: 3, StdOut: "a-description", StdErr: "err"},
-					{ExitCode: 5, StdOut: "a-description", StdErr: "err"},
-				}
-				director.VerifyAndMock(
-					mockbosh.TaskOutput(taskID).RespondsWithTaskOutput(expectedTaskOutputs),
-				)
-			})
-
-			It("returns the correct output of the task", func() {
-				Expect(actualTaskOutputErr).NotTo(HaveOccurred())
-				Expect(actualTaskOutput).To(ConsistOf(expectedTaskOutputs))
-			})
+		It("returns the correct output for the task when there is no output", func() {
+			fakeHTTPClient.DoReturns(responseOKWithRawBody([]byte{}), nil)
+			taskOutput, err := c.GetTaskOutput(taskID, logger)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(taskOutput).To(BeEmpty())
 		})
 
-		Context("when there is no output", func() {
-			BeforeEach(func() {
-				director.VerifyAndMock(
-					mockbosh.TaskOutput(taskID).RespondsWithTaskOutput([]boshdirector.BoshTaskOutput{}),
-				)
-			})
+		It("wraps the error when when bosh fails to fetch the output", func() {
+			fakeHTTPClient.DoReturns(responseWithEmptyBodyAndStatus(http.StatusInternalServerError), nil)
+			_, err := c.GetTaskOutput(taskID, logger)
 
-			It("returns the correct output of the task", func() {
-				Expect(actualTaskOutputErr).NotTo(HaveOccurred())
-				Expect(actualTaskOutput).To(BeEmpty())
-			})
-		})
-
-		Context("when bosh fails to fetch the output", func() {
-			BeforeEach(func() {
-				director.VerifyAndMock(
-					mockbosh.TaskOutput(taskID).RespondsInternalServerErrorWith("because reasons"),
-				)
-			})
-
-			It("returns an error", func() {
-				Expect(actualTaskOutputErr).To(MatchError(ContainSubstring("expected status 200, was 500.")))
-			})
+			Expect(err).To(MatchError(ContainSubstring("expected status 200, was 500")))
 		})
 	})
 })
