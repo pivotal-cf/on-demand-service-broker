@@ -48,6 +48,7 @@ func New(boshURL, uaaURL, boshUsername, boshPassword, boshCACert string) *BoshHe
 
 	certPool, err := x509.SystemCertPool()
 	Expect(err).NotTo(HaveOccurred())
+	certPool.AppendCertsFromPEM(boshCACertContents)
 
 	httpClient := herottp.New(herottp.Config{
 		NoFollowRedirect:                  true,
