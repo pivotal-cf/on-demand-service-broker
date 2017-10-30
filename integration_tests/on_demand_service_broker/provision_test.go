@@ -450,11 +450,8 @@ var _ = Describe("provision service instance", func() {
 			provisionResponse = provisionInstance(instanceID, planID, arbitraryParams)
 		})
 
-		It("responds with 202", func() {
-			Expect(provisionResponse.StatusCode).To(Equal(http.StatusAccepted))
-		})
-
 		It("includes the operation data in the response", func() {
+			Expect(provisionResponse.StatusCode).To(Equal(http.StatusAccepted))
 			body, err := ioutil.ReadAll(provisionResponse.Body)
 			Expect(err).NotTo(HaveOccurred())
 
