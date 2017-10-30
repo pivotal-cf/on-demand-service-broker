@@ -52,10 +52,6 @@ var _ = Describe("Management API", func() {
 		conf = defaultBrokerConfig(boshDirector.URL, boshUAA.URL, cfAPI.URL, cfUAA.URL)
 	})
 
-	JustBeforeEach(func() {
-		runningBroker = startBrokerWithPassingStartupChecks(conf, cfAPI, boshDirector)
-	})
-
 	AfterEach(func() {
 		killBrokerAndCheckForOpenConnections(runningBroker, "not used")
 		boshDirector.VerifyMocks()
@@ -69,6 +65,8 @@ var _ = Describe("Management API", func() {
 	Describe("all instances", func() {
 		Context("when there is one instance", func() {
 			It("responds with the instance ID", func() {
+				runningBroker = startBrokerWithPassingStartupChecks(conf, cfAPI, boshDirector)
+
 				cfAPI.VerifyAndMock(
 					mockcfapi.ListServiceOfferings().RespondsWithServiceOffering(serviceID, "some-cc-service-offering-guid"),
 					mockcfapi.ListServicePlans("some-cc-service-offering-guid").RespondsWithServicePlan(dedicatedPlanID, "some-cc-plan-guid"),
@@ -88,6 +86,8 @@ var _ = Describe("Management API", func() {
 
 		Context("when the CF API call fails", func() {
 			It("responds with an internal server error", func() {
+				runningBroker = startBrokerWithPassingStartupChecks(conf, cfAPI, boshDirector)
+
 				cfAPI.VerifyAndMock(
 					mockcfapi.ListServiceOfferings().RespondsInternalServerErrorWith("error listing service offerings"),
 				)
@@ -110,6 +110,7 @@ var _ = Describe("Management API", func() {
 	Describe("orphan deployments", func() {
 		Context("when there is an orphan deployment", func() {
 			It("responds with the deployment name", func() {
+				runningBroker = startBrokerWithPassingStartupChecks(conf, cfAPI, boshDirector)
 				cfAPI.VerifyAndMock(
 					mockcfapi.ListServiceOfferings().RespondsWithServiceOffering(serviceID, "some-cc-service-offering-guid"),
 					mockcfapi.ListServicePlans("some-cc-service-offering-guid").RespondsWithServicePlan(dedicatedPlanID, "some-cc-plan-guid"),
@@ -132,6 +133,7 @@ var _ = Describe("Management API", func() {
 
 			Context("and CF instances have multiple pages", func() {
 				It("responds with the deployment name", func() {
+					runningBroker = startBrokerWithPassingStartupChecks(conf, cfAPI, boshDirector)
 					cfAPI.VerifyAndMock(
 						mockcfapi.ListServiceOfferings().RespondsWithServiceOffering(serviceID, "some-cc-service-offering-guid"),
 						mockcfapi.ListServicePlans("some-cc-service-offering-guid").RespondsWithServicePlan(dedicatedPlanID, "some-cc-plan-guid"),
@@ -169,6 +171,7 @@ var _ = Describe("Management API", func() {
 
 		Context("when the CF API call fails", func() {
 			It("responds with an internal server error", func() {
+				runningBroker = startBrokerWithPassingStartupChecks(conf, cfAPI, boshDirector)
 				cfAPI.VerifyAndMock(
 					mockcfapi.ListServiceOfferings().RespondsInternalServerErrorWith("error listing service offerings"),
 				)
@@ -191,6 +194,7 @@ var _ = Describe("Management API", func() {
 
 		Context("when the BOSH Director call fails", func() {
 			It("responds with an internal server error", func() {
+				runningBroker = startBrokerWithPassingStartupChecks(conf, cfAPI, boshDirector)
 				cfAPI.VerifyAndMock(
 					mockcfapi.ListServiceOfferings().RespondsWithServiceOffering(serviceID, "some-cc-service-offering-guid"),
 					mockcfapi.ListServicePlans("some-cc-service-offering-guid").RespondsWithServicePlan(dedicatedPlanID, "some-cc-plan-guid"),
@@ -227,6 +231,7 @@ var _ = Describe("Management API", func() {
 				})
 
 				It("responds with metrics", func() {
+					runningBroker = startBrokerWithPassingStartupChecks(conf, cfAPI, boshDirector)
 					cfAPI.VerifyAndMock(
 						mockcfapi.ListServiceOfferings().RespondsWithServiceOffering(serviceID, "some-cc-service-offering-guid"),
 						mockcfapi.ListServicePlans("some-cc-service-offering-guid").RespondsWithServicePlans(
@@ -279,6 +284,7 @@ var _ = Describe("Management API", func() {
 			Context("when there are no instances and no global quota", func() {
 
 				It("responds with metrics", func() {
+					runningBroker = startBrokerWithPassingStartupChecks(conf, cfAPI, boshDirector)
 					cfAPI.VerifyAndMock(
 						mockcfapi.ListServiceOfferings().RespondsWithServiceOffering(serviceID, "some-cc-service-offering-guid"),
 						mockcfapi.ListServicePlans("some-cc-service-offering-guid").RespondsWithServicePlans(
@@ -327,6 +333,7 @@ var _ = Describe("Management API", func() {
 		Context("when the broker is not registered with CF", func() {
 			Context("when there are no instances", func() {
 				It("responds with metrics", func() {
+					runningBroker = startBrokerWithPassingStartupChecks(conf, cfAPI, boshDirector)
 					cfAPI.VerifyAndMock(
 						mockcfapi.ListServiceOfferings().RespondsWithNoServiceOfferings(),
 					)
@@ -350,6 +357,7 @@ var _ = Describe("Management API", func() {
 
 		Context("when the CF API fails", func() {
 			It("responds with 500", func() {
+				runningBroker = startBrokerWithPassingStartupChecks(conf, cfAPI, boshDirector)
 				cfAPI.VerifyAndMock(
 					mockcfapi.ListServiceOfferings().RespondsInternalServerErrorWith("error listing service offerings"),
 				)
@@ -405,6 +413,7 @@ var _ = Describe("Management API", func() {
 			})
 
 			It("responds with the upgrade operation data", func() {
+				runningBroker = startBrokerWithPassingStartupChecks(conf, cfAPI, boshDirector)
 				cfAPI.VerifyAndMock(
 					mockcfapi.GetServiceInstance(instanceID).RespondsWithPlanURL(planGUID, mockcfapi.Update, mockcfapi.Succeeded),
 					mockcfapi.GetServicePlan(planGUID).RespondsOKWith(getServicePlanResponse(postDeployErrandPlanID)),
@@ -436,6 +445,7 @@ var _ = Describe("Management API", func() {
 
 		Context("when the instance cannot be found in CF", func() {
 			It("responds with not found", func() {
+				runningBroker = startBrokerWithPassingStartupChecks(conf, cfAPI, boshDirector)
 				cfAPI.VerifyAndMock(
 					mockcfapi.GetServiceInstance(instanceID).RespondsNotFoundWith(`{}`),
 				)
@@ -449,6 +459,7 @@ var _ = Describe("Management API", func() {
 
 		Context("when the instance's deployment cannot be found in bosh", func() {
 			It("responds with not found", func() {
+				runningBroker = startBrokerWithPassingStartupChecks(conf, cfAPI, boshDirector)
 				cfAPI.VerifyAndMock(
 					mockcfapi.GetServiceInstance(instanceID).RespondsWithPlanURL(planGUID, mockcfapi.Update, mockcfapi.Succeeded),
 					mockcfapi.GetServicePlan(planGUID).RespondsOKWith(getServicePlanResponse(dedicatedPlanID)),
@@ -468,6 +479,7 @@ var _ = Describe("Management API", func() {
 
 		Context("when there is an operation in progress on the CF instance", func() {
 			It("responds with conflict", func() {
+				runningBroker = startBrokerWithPassingStartupChecks(conf, cfAPI, boshDirector)
 				cfAPI.VerifyAndMock(
 					mockcfapi.GetServiceInstance(instanceID).RespondsWithPlanURL(planGUID, mockcfapi.Update, mockcfapi.InProgress),
 					mockcfapi.GetServicePlan(planGUID).RespondsOKWith(getServicePlanResponse(dedicatedPlanID)),
@@ -482,6 +494,7 @@ var _ = Describe("Management API", func() {
 
 		Context("when there are incomplete bosh tasks for the instance's deployment", func() {
 			It("responds with conflict", func() {
+				runningBroker = startBrokerWithPassingStartupChecks(conf, cfAPI, boshDirector)
 				cfAPI.VerifyAndMock(
 					mockcfapi.GetServiceInstance(instanceID).RespondsWithPlanURL(planGUID, mockcfapi.Update, mockcfapi.Succeeded),
 					mockcfapi.GetServicePlan(planGUID).RespondsOKWith(getServicePlanResponse(dedicatedPlanID)),
@@ -500,6 +513,7 @@ var _ = Describe("Management API", func() {
 
 		Context("when the upgrade request fails", func() {
 			It("responds with internal server error", func() {
+				runningBroker = startBrokerWithPassingStartupChecks(conf, cfAPI, boshDirector)
 				cfAPI.VerifyAndMock(
 					mockcfapi.GetServiceInstance(instanceID).RespondsInternalServerErrorWith("error getting service instance"),
 				)
