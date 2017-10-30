@@ -441,6 +441,39 @@ var _ = Describe("Management API", func() {
 					},
 				}))
 			})
+
+			It("responds with the upgrade operation data when instances for post-deploy errand have been specified", func() {
+				instanceToRunErrand := "instance-group-name/0"
+				conf.ServiceCatalog.Plans[0].LifecycleErrands.PostDeploy.Instances = []string{instanceToRunErrand}
+				runningBroker = startBrokerWithPassingStartupChecks(conf, cfAPI, boshDirector)
+				cfAPI.VerifyAndMock(
+					mockcfapi.GetServiceInstance(instanceID).RespondsWithPlanURL(planGUID, mockcfapi.Update, mockcfapi.Succeeded),
+					mockcfapi.GetServicePlan(planGUID).RespondsOKWith(getServicePlanResponse(postDeployErrandPlanID)),
+				)
+
+				boshDirector.VerifyAndMock(
+					mockbosh.Tasks("service-instance_instance-id").RespondsWithNoTasks(),
+					mockbosh.GetDeployment("service-instance_instance-id").RespondsWithRawManifest([]byte(rawManifestWithDeploymentName(instanceID))),
+					mockbosh.Deploy().RedirectsToTask(upgradingTaskID),
+				)
+
+				upgradeReq, err := http.NewRequest("PATCH", fmt.Sprintf("http://localhost:%d/mgmt/service_instances/%s", brokerPort, instanceID), nil)
+				Expect(err).ToNot(HaveOccurred())
+
+				upgradeResp := responseFrom(basicAuthBrokerRequest(upgradeReq), http.StatusAccepted)
+
+				operationData := decodeOperationDataFromResponseBody(upgradeResp.Body)
+				Expect(operationData.BoshContextID).NotTo(BeEmpty())
+				Expect(operationData).To(Equal(broker.OperationData{
+					OperationType: broker.OperationTypeUpgrade,
+					BoshTaskID:    upgradingTaskID,
+					BoshContextID: operationData.BoshContextID,
+					PostDeployErrand: broker.PostDeployErrand{
+						Name:      postDeployErrandName,
+						Instances: []string{instanceToRunErrand},
+					},
+				}))
+			})
 		})
 
 		Context("when the instance cannot be found in CF", func() {

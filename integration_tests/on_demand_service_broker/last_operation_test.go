@@ -9,8 +9,9 @@ package integration_tests
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
+
+	"io/ioutil"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -35,13 +36,13 @@ var _ = Describe("last operation", func() {
 	var (
 		planID                string
 		postDeployErrandName  string
+		contextID             string
+		boshUAA               *mockuaa.ClientCredentialsServer
 		boshDirector          *mockbosh.MockBOSH
 		cfAPI                 *mockhttp.Server
 		cfUAA                 *mockuaa.ClientCredentialsServer
-		boshUAA               *mockuaa.ClientCredentialsServer
 		runningBroker         *gexec.Session
 		operationType         broker.OperationType
-		contextID             string
 		lastOperationResponse *http.Response
 		brokerConfig          config.Config
 		actualResponse        map[string]interface{}
@@ -66,8 +67,9 @@ var _ = Describe("last operation", func() {
 	)
 
 	BeforeEach(func() {
-		contextID = ""
 		planID = dedicatedPlanID
+		postDeployErrandName = ""
+		contextID = ""
 		boshUAA = mockuaa.NewClientCredentialsServer(boshClientID, boshClientSecret, "bosh uaa token")
 		boshDirector = mockbosh.NewWithUAA(boshUAA.URL)
 		boshDirector.ExpectedAuthorizationHeader(boshUAA.ExpectedAuthorizationHeader())
@@ -76,7 +78,9 @@ var _ = Describe("last operation", func() {
 		cfAPI = mockcfapi.New()
 		cfUAA = mockuaa.NewClientCredentialsServer(cfUaaClientID, cfUaaClientSecret, "CF UAA token")
 		adapter.GenerateManifest().ToReturnManifest(rawManifestWithDeploymentName(instanceID))
+		operationType = ""
 		brokerConfig = defaultBrokerConfig(boshDirector.URL, boshUAA.URL, cfAPI.URL, cfUAA.URL)
+		actualResponse = map[string]interface{}{}
 	})
 
 	JustBeforeEach(func() {
@@ -254,7 +258,8 @@ var _ = Describe("last operation", func() {
 				Name: "post-deploy-plan",
 				LifecycleErrands: &config.LifecycleErrands{
 					PostDeploy: config.Errand{
-						Name: errandName,
+						Name:      errandName,
+						Instances: []string{"instance-group-name/0"},
 					},
 				},
 			}
@@ -296,11 +301,20 @@ var _ = Describe("last operation", func() {
 
 		Context("and when there is a single complete task", func() {
 			BeforeEach(func() {
+				var instances struct {
+					Instances []boshdirector.Instance `json:"instances"`
+				}
+
+				instance := &boshdirector.Instance{Group: "instance-group-name", ID: "0"}
+				instances.Instances = append(instances.Instances, *instance)
+				instancesRaw, err := json.Marshal(instances)
+				Expect(err).NotTo(HaveOccurred())
+
 				boshDirector.VerifyAndMock(
 					mockbosh.TasksByContext(deploymentName(instanceID), contextID).
 						RespondsOKWithJSON(boshdirector.BoshTasks{taskDone}),
 					mockbosh.TaskOutput(taskDone.ID).RespondsOKWith(""),
-					mockbosh.Errand(deploymentName(instanceID), errandName, `{}`).
+					mockbosh.Errand(deploymentName(instanceID), errandName, string(instancesRaw)).
 						WithContextID(contextID).RedirectsToTask(taskProcessing.ID),
 					mockbosh.Task(taskProcessing.ID).RespondsOKWithJSON(taskProcessing),
 				)
