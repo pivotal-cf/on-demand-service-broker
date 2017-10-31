@@ -54,10 +54,15 @@ func (a *TestingAuthHeaderBuilder) NewAuthHeaderBuilder(
 	disableSSLCertVerification bool,
 ) (boshdirector.AuthHeaderBuilder, error) {
 
+	username := os.Getenv("BOSH_USERNAME")
+	Expect(username).NotTo(BeEmpty(), "Expected BOSH_USERNAME to be set")
+	password := os.Getenv("BOSH_PASSWORD")
+	Expect(password).NotTo(BeEmpty(), "Expected BOSH_PASSWORD to be set")
+
 	return authorizationheader.NewClientTokenAuthHeaderBuilder(
 		boshInfo.UserAuthentication.Options.URL,
-		os.Getenv("BOSH_CLIENT_ID"),
-		os.Getenv("BOSH_CLIENT_SECRET"),
+		username,
+		password,
 		true,
 		[]byte{},
 	)
@@ -70,8 +75,11 @@ func getBoshManifest(deploymentName string) ([]byte, error) {
 		return []byte{}, err
 	}
 
+	boshURL := os.Getenv("BOSH_URL")
+	Expect(boshURL).NotTo(BeEmpty(), "Expected BOSH_URL to be set")
+
 	boshClient, err := boshdirector.New(
-		os.Getenv("BOSH_URL"),
+		boshURL,
 		true,
 		[]byte{},
 		herottp.New(herottp.Config{
