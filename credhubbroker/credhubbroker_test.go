@@ -52,8 +52,8 @@ var _ = Describe("CredHub broker", func() {
 			}
 			fakeBroker.BindReturns(bindingResponse, nil)
 
-			key := fmt.Sprintf("/c/%s/%s/%s/credentials", bindDetails.ServiceID, instanceID, bindingID)
-			expectedBindingCredentials := map[string]string{"credhub-ref": key}
+			credhubRef := constructCredhubRef(bindDetails.ServiceID, instanceID, bindingID)
+			expectedBindingCredentials := map[string]string{"credhub-ref": credhubRef}
 
 			fakeCredStore := new(credfakes.FakeCredentialStore)
 			credhubBroker := credhubbroker.New(fakeBroker, fakeCredStore, serviceName, loggerFactory)
@@ -77,9 +77,9 @@ var _ = Describe("CredHub broker", func() {
 			credhubBroker := credhubbroker.New(fakeBroker, fakeCredStore, serviceName, loggerFactory)
 			credhubBroker.Bind(ctx, instanceID, bindingID, bindDetails)
 
-			credhubKey := fmt.Sprintf("/c/%s/%s/%s/credentials", bindDetails.ServiceID, instanceID, bindingID)
+			credhubRef := constructCredhubRef(bindDetails.ServiceID, instanceID, bindingID)
 			key, receivedCreds := fakeCredStore.SetArgsForCall(0)
-			Expect(key).To(Equal(credhubKey))
+			Expect(key).To(Equal(credhubRef))
 			Expect(receivedCreds).To(Equal(creds))
 		})
 
@@ -100,7 +100,7 @@ var _ = Describe("CredHub broker", func() {
 			Expect(fakeCredStore.AddPermissionsCallCount()).To(Equal(1))
 			returnedCredentialName, returnedPermissions := fakeCredStore.AddPermissionsArgsForCall(0)
 
-			expectedCredentialName := fmt.Sprintf("/c/%s/%s/%s/credentials", bindDetails.ServiceID, instanceID, bindingID)
+			expectedCredentialName := constructCredhubRef(bindDetails.ServiceID, instanceID, bindingID)
 			expectedPermissions := []permissions.Permission{
 				permissions.Permission{
 					Actor:      fmt.Sprintf("mtls-app:%s", appGUID),
@@ -167,8 +167,7 @@ var _ = Describe("CredHub broker", func() {
 		}
 
 		It("removes the corresponding credentials from the credential store", func() {
-
-			key := fmt.Sprintf("/c/%s/%s/%s/credentials", unbindDetails.ServiceID, instanceID, bindingID)
+			credhubRef := constructCredhubRef(unbindDetails.ServiceID, instanceID, bindingID)
 
 			fakeCredStore := new(credfakes.FakeCredentialStore)
 			credhubBroker := credhubbroker.New(fakeBroker, fakeCredStore, serviceName, loggerFactory)
@@ -178,7 +177,7 @@ var _ = Describe("CredHub broker", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(fakeBroker.UnbindCallCount()).To(Equal(1))
 			Expect(fakeCredStore.DeleteCallCount()).To(Equal(1))
-			Expect(fakeCredStore.DeleteArgsForCall(0)).To(Equal(key))
+			Expect(fakeCredStore.DeleteArgsForCall(0)).To(Equal(credhubRef))
 			Expect(logBuffer.String()).To(MatchRegexp(requestIDRegex))
 			Expect(logBuffer.String()).To(ContainSubstring(
 				fmt.Sprintf("removing credentials for instance ID: %s, with binding ID: %s", instanceID, bindingID)))
@@ -216,8 +215,12 @@ var _ = Describe("CredHub broker", func() {
 
 			err := credhubBroker.Unbind(ctx, instanceID, bindingID, unbindDetails)
 			Expect(err).ToNot(HaveOccurred())
-			key := fmt.Sprintf("/c/%s/%s/%s/credentials", unbindDetails.ServiceID, instanceID, bindingID)
-			Expect(logBuffer.String()).To(ContainSubstring(fmt.Sprintf("WARNING: failed to remove key '%s'", key)))
+			credhubRef := constructCredhubRef(unbindDetails.ServiceID, instanceID, bindingID)
+			Expect(logBuffer.String()).To(ContainSubstring(fmt.Sprintf("WARNING: failed to remove key '%s'", credhubRef)))
 		})
 	})
 })
+
+func constructCredhubRef(serviceID, instanceID, bindingID string) string {
+	return fmt.Sprintf("/c/%s/%s/%s/credentials", serviceID, instanceID, bindingID)
+}
