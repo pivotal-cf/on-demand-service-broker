@@ -1,7 +1,11 @@
 package credhub_tests
 
 import (
+	"os"
+
 	"github.com/cloudfoundry-incubator/credhub-cli/credhub"
+	"github.com/cloudfoundry-incubator/credhub-cli/credhub/auth"
+	"github.com/cloudfoundry-incubator/credhub-cli/credhub/permissions"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/on-demand-service-broker/credhubbroker"
@@ -52,6 +56,28 @@ var _ = Describe("Credential store", func() {
 	})
 
 	Describe("CredHub credential store", func() {
+		It("can add permissions", func() {
+			clientSecret := os.Getenv("TEST_CREDHUB_CLIENT_SECRET")
+
+			credhubStore, err := credhubbroker.NewCredHubStore(
+				"https://credhub.service.cf.internal:8844",
+				credhub.SkipTLSValidation(true),
+				credhub.Auth(auth.UaaClientCredentials("credhub_cli", clientSecret)),
+			)
+			Expect(err).NotTo(HaveOccurred())
+
+			keyPath := makeKeyPath("new-name")
+			err = credhubStore.Set(keyPath, map[string]interface{}{"hi": "there"})
+			Expect(err).NotTo(HaveOccurred())
+
+			_, err = credhubStore.AddPermissions(keyPath, []permissions.Permission{
+				{Actor: "alice",
+					Operations: []string{"read"},
+				},
+			})
+			Expect(err).NotTo(HaveOccurred())
+		})
+
 		It("can't be constructed with a bad URI", func() {
 			_, err := credhubbroker.NewCredHubStore("💩://hi.there#you", credhub.SkipTLSValidation(true))
 			Expect(err).To(HaveOccurred())

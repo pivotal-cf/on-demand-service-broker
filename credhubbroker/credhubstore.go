@@ -6,6 +6,7 @@ import (
 	"github.com/cloudfoundry-incubator/credhub-cli/credhub"
 	"github.com/cloudfoundry-incubator/credhub-cli/credhub/auth"
 	"github.com/cloudfoundry-incubator/credhub-cli/credhub/credentials/values"
+	"github.com/cloudfoundry-incubator/credhub-cli/credhub/permissions"
 )
 
 type CredHubStore struct {
@@ -34,6 +35,10 @@ func (credHubStore *CredHubStore) Set(key string, value interface{}) error {
 		return errors.New("Unknown credential type")
 	}
 	return err
+}
+
+func (c *CredHubStore) AddPermissions(name string, permissions []permissions.Permission) ([]permissions.Permission, error) {
+	return c.credhubClient.AddPermissions(name, permissions)
 }
 
 func (credHubStore *CredHubStore) Delete(key string) error {
