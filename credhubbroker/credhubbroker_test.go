@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/cloudfoundry-incubator/credhub-cli/credhub/permissions"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/brokerapi"
@@ -80,6 +81,34 @@ var _ = Describe("CredHub broker", func() {
 			key, receivedCreds := fakeCredStore.SetArgsForCall(0)
 			Expect(key).To(Equal(credhubKey))
 			Expect(receivedCreds).To(Equal(creds))
+		})
+
+		It("adds permissions to the credentials in the credential store", func() {
+			fakeCredStore := new(credfakes.FakeCredentialStore)
+			creds := "justAString"
+			bindingResponse := brokerapi.Binding{
+				Credentials: creds,
+			}
+			fakeBroker.BindReturns(bindingResponse, nil)
+
+			appGUID := "app-guid"
+			bindDetails.AppGUID = appGUID
+
+			credhubBroker := credhubbroker.New(fakeBroker, fakeCredStore, serviceName, loggerFactory)
+			credhubBroker.Bind(ctx, instanceID, bindingID, bindDetails)
+
+			Expect(fakeCredStore.AddPermissionsCallCount()).To(Equal(1))
+			returnedCredentialName, returnedPermissions := fakeCredStore.AddPermissionsArgsForCall(0)
+
+			expectedCredentialName := fmt.Sprintf("/c/%s/%s/%s/credentials", bindDetails.ServiceID, instanceID, bindingID)
+			expectedPermissions := []permissions.Permission{
+				permissions.Permission{
+					Actor:      fmt.Sprintf("mtls-app:%s", appGUID),
+					Operations: []string{"read"},
+				},
+			}
+			Expect(returnedCredentialName).To(Equal(expectedCredentialName))
+			Expect(returnedPermissions).To(Equal(expectedPermissions))
 		})
 
 		It("set a request ID and pass it through to the broker via the context", func() {

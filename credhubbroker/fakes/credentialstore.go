@@ -4,6 +4,7 @@ package fakes
 import (
 	"sync"
 
+	"github.com/cloudfoundry-incubator/credhub-cli/credhub/permissions"
 	"github.com/pivotal-cf/on-demand-service-broker/credhubbroker"
 )
 
@@ -39,6 +40,20 @@ type FakeCredentialStore struct {
 	}
 	authenticateReturnsOnCall map[int]struct {
 		result1 error
+	}
+	AddPermissionsStub        func(credentialName string, blah []permissions.Permission) ([]permissions.Permission, error)
+	addPermissionsMutex       sync.RWMutex
+	addPermissionsArgsForCall []struct {
+		credentialName string
+		blah           []permissions.Permission
+	}
+	addPermissionsReturns struct {
+		result1 []permissions.Permission
+		result2 error
+	}
+	addPermissionsReturnsOnCall map[int]struct {
+		result1 []permissions.Permission
+		result2 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -181,6 +196,63 @@ func (fake *FakeCredentialStore) AuthenticateReturnsOnCall(i int, result1 error)
 	}{result1}
 }
 
+func (fake *FakeCredentialStore) AddPermissions(credentialName string, blah []permissions.Permission) ([]permissions.Permission, error) {
+	var blahCopy []permissions.Permission
+	if blah != nil {
+		blahCopy = make([]permissions.Permission, len(blah))
+		copy(blahCopy, blah)
+	}
+	fake.addPermissionsMutex.Lock()
+	ret, specificReturn := fake.addPermissionsReturnsOnCall[len(fake.addPermissionsArgsForCall)]
+	fake.addPermissionsArgsForCall = append(fake.addPermissionsArgsForCall, struct {
+		credentialName string
+		blah           []permissions.Permission
+	}{credentialName, blahCopy})
+	fake.recordInvocation("AddPermissions", []interface{}{credentialName, blahCopy})
+	fake.addPermissionsMutex.Unlock()
+	if fake.AddPermissionsStub != nil {
+		return fake.AddPermissionsStub(credentialName, blah)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.addPermissionsReturns.result1, fake.addPermissionsReturns.result2
+}
+
+func (fake *FakeCredentialStore) AddPermissionsCallCount() int {
+	fake.addPermissionsMutex.RLock()
+	defer fake.addPermissionsMutex.RUnlock()
+	return len(fake.addPermissionsArgsForCall)
+}
+
+func (fake *FakeCredentialStore) AddPermissionsArgsForCall(i int) (string, []permissions.Permission) {
+	fake.addPermissionsMutex.RLock()
+	defer fake.addPermissionsMutex.RUnlock()
+	return fake.addPermissionsArgsForCall[i].credentialName, fake.addPermissionsArgsForCall[i].blah
+}
+
+func (fake *FakeCredentialStore) AddPermissionsReturns(result1 []permissions.Permission, result2 error) {
+	fake.AddPermissionsStub = nil
+	fake.addPermissionsReturns = struct {
+		result1 []permissions.Permission
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeCredentialStore) AddPermissionsReturnsOnCall(i int, result1 []permissions.Permission, result2 error) {
+	fake.AddPermissionsStub = nil
+	if fake.addPermissionsReturnsOnCall == nil {
+		fake.addPermissionsReturnsOnCall = make(map[int]struct {
+			result1 []permissions.Permission
+			result2 error
+		})
+	}
+	fake.addPermissionsReturnsOnCall[i] = struct {
+		result1 []permissions.Permission
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeCredentialStore) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -190,6 +262,8 @@ func (fake *FakeCredentialStore) Invocations() map[string][][]interface{} {
 	defer fake.deleteMutex.RUnlock()
 	fake.authenticateMutex.RLock()
 	defer fake.authenticateMutex.RUnlock()
+	fake.addPermissionsMutex.RLock()
+	defer fake.addPermissionsMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
