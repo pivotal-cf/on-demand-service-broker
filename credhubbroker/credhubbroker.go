@@ -2,6 +2,7 @@ package credhubbroker
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/cloudfoundry-incubator/credhub-cli/credhub/permissions"
@@ -55,10 +56,19 @@ func (b *CredHubBroker) Bind(ctx context.Context, instanceID, bindingID string, 
 		return brokerapi.Binding{}, setErr.ErrorForCFUser()
 	}
 
-	appGUID := details.AppGUID
-	actor := fmt.Sprintf("mtls-app:%s", appGUID)
+	var actor string
+	if details.AppGUID != "" {
+		actor = fmt.Sprintf("mtls-app:%s", details.AppGUID)
+	} else if details.BindResource != nil && details.BindResource.CredentialClientID != "" {
+		actor = fmt.Sprintf("uaa-user:%s", details.BindResource.CredentialClientID)
+	}
+
+	if actor == "" {
+		return brokerapi.Binding{}, errors.New("No app-guid or credential client ID were provided in the binding request, you must configure one of these")
+	}
+
 	additionalPermissions := []permissions.Permission{
-		permissions.Permission{
+		{
 			Actor:      actor,
 			Operations: []string{"read"},
 		},
