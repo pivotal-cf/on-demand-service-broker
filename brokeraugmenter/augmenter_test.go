@@ -12,13 +12,21 @@ import (
 )
 
 var _ = Describe("Broker CredHub Augmenter", func() {
+	var (
+		credhubFactory credhubbroker.CredentialStoreFactory
+	)
+
+	BeforeEach(func() {
+		credhubFactory = credhubbroker.DummyCredhubFactory{}
+	})
+
 	It("returns a base broker when CredHub is not configured", func() {
 		var conf config.Config
 
 		baseBroker := &broker.Broker{}
 		loggerFactory := loggerfactory.New(GinkgoWriter, "broker-augmenter", loggerfactory.Flags)
 
-		Expect(brokeraugmenter.New(conf, baseBroker, loggerFactory)).To(Equal(baseBroker))
+		Expect(brokeraugmenter.New(conf, baseBroker, credhubFactory, loggerFactory)).To(Equal(baseBroker))
 	})
 
 	It("returns a credhub broker when Credhub is configured", func() {
@@ -35,24 +43,9 @@ var _ = Describe("Broker CredHub Augmenter", func() {
 		}
 
 		loggerFactory := loggerfactory.New(GinkgoWriter, "broker-augmenter", loggerfactory.Flags)
-		broker, err := brokeraugmenter.New(conf, &broker.Broker{}, loggerFactory)
+		broker, err := brokeraugmenter.New(conf, &broker.Broker{}, credhubFactory, loggerFactory)
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(broker).To(BeAssignableToTypeOf(&credhubbroker.CredHubBroker{}))
-	})
-
-	It("returns an error when CredHub is configured but the URI is bad", func() {
-		var conf config.Config
-		conf.CredHub = config.CredHub{
-			APIURL:       "💩://a.bad.credhub.url.example.com",
-			ClientID:     "test-id",
-			ClientSecret: "test-secret",
-		}
-
-		loggerFactory := loggerfactory.New(GinkgoWriter, "broker-augmenter", loggerfactory.Flags)
-		broker, err := brokeraugmenter.New(conf, &broker.Broker{}, loggerFactory)
-
-		Expect(err).To(HaveOccurred())
-		Expect(broker).To(BeNil())
 	})
 })

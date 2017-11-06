@@ -25,6 +25,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/brokeraugmenter"
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
+	"github.com/pivotal-cf/on-demand-service-broker/credhubbroker"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 	"github.com/pivotal-cf/on-demand-service-broker/noopservicescontroller"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
@@ -150,7 +151,8 @@ func startBroker(conf config.Config, logger *log.Logger, loggerFactory *loggerfa
 								`)
 	}
 
-	broker, err := brokeraugmenter.New(conf, onDemandBroker, loggerFactory)
+	credhubFactory := credhubbroker.CredhubFactory{Conf: conf}
+	broker, err := brokeraugmenter.New(conf, onDemandBroker, credhubFactory, loggerFactory)
 	if err != nil {
 		logger.Fatalf("Error constructing the CredHub broker: %s", err)
 	}
