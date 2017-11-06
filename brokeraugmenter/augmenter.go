@@ -16,9 +16,8 @@ func New(conf config.Config, baseBroker apiserver.CombinedBroker, loggerFactory 
 
 	credhubStore, err := credhubbroker.NewCredHubStore(
 		conf.CredHub.APIURL,
-		credhub.AuthURL(conf.CF.Authentication.URL),
+		credhub.CaCerts(conf.CredHub.CaCert, conf.CF.Authentication.CaCert),
 		credhub.Auth(auth.UaaClientCredentials(conf.CredHub.ClientID, conf.CredHub.ClientSecret)),
-		credhub.SkipTLSValidation(true),
 	)
 	if err != nil {
 		return nil, err

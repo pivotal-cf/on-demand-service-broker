@@ -197,6 +197,7 @@ type UAAAuthentication struct {
 	URL               string            `yaml:"url"`
 	ClientCredentials ClientCredentials `yaml:"client_credentials"`
 	UserCredentials   UserCredentials   `yaml:"user_credentials"`
+	CaCert            string            `yaml:"ca_cert"`
 }
 
 type BOSHUAAAuthentication struct {
