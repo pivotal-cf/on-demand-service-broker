@@ -60,7 +60,7 @@ func (b *CredHubBroker) Bind(ctx context.Context, instanceID, bindingID string, 
 	if details.AppGUID != "" {
 		actor = fmt.Sprintf("mtls-app:%s", details.AppGUID)
 	} else if details.BindResource != nil && details.BindResource.CredentialClientID != "" {
-		actor = fmt.Sprintf("uaa-user:%s", details.BindResource.CredentialClientID)
+		actor = fmt.Sprintf("uaa-client:%s", details.BindResource.CredentialClientID)
 	}
 
 	if actor == "" {

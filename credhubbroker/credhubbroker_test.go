@@ -135,7 +135,7 @@ var _ = Describe("CredHub broker", func() {
 			expectedCredentialName := constructCredhubRef(bindDetails.ServiceID, instanceID, bindingID)
 			expectedPermissions := []permissions.Permission{
 				permissions.Permission{
-					Actor:      fmt.Sprintf("uaa-user:%s", credentialClientID),
+					Actor:      fmt.Sprintf("uaa-client:%s", credentialClientID),
 					Operations: []string{"read"},
 				},
 			}
