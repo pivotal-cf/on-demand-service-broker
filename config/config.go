@@ -278,6 +278,7 @@ type CredHub struct {
 	APIURL       string `yaml:"api_url"`
 	ClientID     string `yaml:"client_id"`
 	ClientSecret string `yaml:"client_secret"`
+	CaCert       string `yaml:"ca_cert"`
 }
 
 type ServiceAdapter struct {
