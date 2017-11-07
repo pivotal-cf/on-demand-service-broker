@@ -129,6 +129,12 @@ var _ = Describe("On-demand service broker", func() {
 				), cf_helpers.CfTimeout).Should(gexec.Exit())
 			}()
 
+			By("creating a service key")
+			serviceKeyName := uuid.New()[:7]
+			cf_helpers.CreateServiceKey(serviceName, serviceKeyName)
+			serviceKey := cf_helpers.GetServiceKey(serviceName, serviceKeyName)
+			Expect(serviceKey).NotTo(BeNil())
+
 			By("providing a functional service instance")
 			testServiceWithExampleApp(exampleAppType, testAppURL)
 
@@ -155,6 +161,12 @@ var _ = Describe("On-demand service broker", func() {
 
 			By("allowing the app to be unbound from the service instance")
 			unbindService(testAppName, serviceName)
+
+			By("deleting the service key")
+			Eventually(
+				cf.Cf("delete-service-key", "-f", serviceName, serviceKeyName),
+				cf_helpers.CfTimeout,
+			).Should(gexec.Exit(0))
 
 			By("allowing the service instance to be deleted")
 			cf_helpers.DeleteService(serviceName)
