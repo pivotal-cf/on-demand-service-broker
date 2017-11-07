@@ -6,6 +6,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 )
 
+//go:generate counterfeiter -o fakes/credentialstorefactory.go . CredentialStoreFactory
 type CredentialStoreFactory interface {
 	New() (CredentialStore, error)
 }
@@ -20,11 +21,4 @@ func (factory CredhubFactory) New() (CredentialStore, error) {
 		credhub.CaCerts(factory.Conf.CredHub.CaCert, factory.Conf.CF.Authentication.CaCert),
 		credhub.Auth(auth.UaaClientCredentials(factory.Conf.CredHub.ClientID, factory.Conf.CredHub.ClientSecret)),
 	)
-}
-
-type DummyCredhubFactory struct {
-}
-
-func (factory DummyCredhubFactory) New() (CredentialStore, error) {
-	return &CredHubStore{}, nil
 }
