@@ -18,7 +18,7 @@ type CredhubFactory struct {
 func (factory CredhubFactory) New() (CredentialStore, error) {
 	return NewCredHubStore(
 		factory.Conf.CredHub.APIURL,
-		credhub.CaCerts(factory.Conf.CredHub.CaCert, factory.Conf.CF.Authentication.CaCert),
+		credhub.CaCerts(factory.Conf.CredHub.CaCert, factory.Conf.CredHub.InternalUAACaCert),
 		credhub.Auth(auth.UaaClientCredentials(factory.Conf.CredHub.ClientID, factory.Conf.CredHub.ClientSecret)),
 	)
 }

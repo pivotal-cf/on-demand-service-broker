@@ -197,7 +197,6 @@ type UAAAuthentication struct {
 	URL               string            `yaml:"url"`
 	ClientCredentials ClientCredentials `yaml:"client_credentials"`
 	UserCredentials   UserCredentials   `yaml:"user_credentials"`
-	CaCert            string            `yaml:"ca_cert"`
 }
 
 type BOSHUAAAuthentication struct {
@@ -275,10 +274,11 @@ func (a BOSHAuthentication) Validate() error {
 }
 
 type CredHub struct {
-	APIURL       string `yaml:"api_url"`
-	ClientID     string `yaml:"client_id"`
-	ClientSecret string `yaml:"client_secret"`
-	CaCert       string `yaml:"ca_cert"`
+	APIURL            string `yaml:"api_url"`
+	ClientID          string `yaml:"client_id"`
+	ClientSecret      string `yaml:"client_secret"`
+	CaCert            string `yaml:"ca_cert"`
+	InternalUAACaCert string `yaml:"internal_uaa_ca_cert"`
 }
 
 type ServiceAdapter struct {
