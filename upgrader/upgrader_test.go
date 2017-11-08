@@ -16,6 +16,7 @@ import (
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
+	"github.com/pivotal-cf/on-demand-service-broker/service"
 	"github.com/pivotal-cf/on-demand-service-broker/upgrader"
 	"github.com/pivotal-cf/on-demand-service-broker/upgrader/fakes"
 )
@@ -52,7 +53,7 @@ var _ = Describe("Upgrader", func() {
 	Context("when upgrading one instance", func() {
 		Context("and is successful", func() {
 			BeforeEach(func() {
-				brokerServicesClient.InstancesReturns([]string{serviceInstanceId}, nil)
+				brokerServicesClient.InstancesReturns([]service.Instance{{GUID: serviceInstanceId}}, nil)
 				brokerServicesClient.UpgradeInstanceReturns(upgradeOperationAccepted, nil)
 
 				brokerServicesClient.LastOperationReturns(
@@ -83,7 +84,7 @@ var _ = Describe("Upgrader", func() {
 
 			Context("due to a malformed service instance guid", func() {
 				BeforeEach(func() {
-					brokerServicesClient.InstancesReturns([]string{"not a guid Q#$%#$%^&&*$%^#$FGRTYW${T:WED:AWSD)E@#PE{:QS:{QLWD"}, nil)
+					brokerServicesClient.InstancesReturns([]service.Instance{{GUID: "not a guid Q#$%#$%^&&*$%^#$FGRTYW${T:WED:AWSD)E@#PE{:QS:{QLWD"}}, nil)
 					brokerServicesClient.UpgradeInstanceReturns(services.UpgradeOperation{}, errors.New("failed"))
 				})
 
@@ -96,7 +97,7 @@ var _ = Describe("Upgrader", func() {
 
 	Context("when upgrading an instance is not instant", func() {
 		BeforeEach(func() {
-			brokerServicesClient.InstancesReturns([]string{serviceInstanceId}, nil)
+			brokerServicesClient.InstancesReturns([]service.Instance{{GUID: serviceInstanceId}}, nil)
 
 			brokerServicesClient.UpgradeInstanceReturns(upgradeOperationAccepted, nil)
 
@@ -115,7 +116,7 @@ var _ = Describe("Upgrader", func() {
 
 	Context("when the CF service instance has been deleted", func() {
 		BeforeEach(func() {
-			brokerServicesClient.InstancesReturns([]string{serviceInstanceId}, nil)
+			brokerServicesClient.InstancesReturns([]service.Instance{{GUID: serviceInstanceId}}, nil)
 			brokerServicesClient.UpgradeInstanceReturns(services.UpgradeOperation{
 				Type: services.InstanceNotFound,
 			}, nil)
@@ -132,7 +133,7 @@ var _ = Describe("Upgrader", func() {
 
 	Context("when the bosh deployment cannot be found", func() {
 		BeforeEach(func() {
-			brokerServicesClient.InstancesReturns([]string{serviceInstanceId}, nil)
+			brokerServicesClient.InstancesReturns([]service.Instance{{GUID: serviceInstanceId}}, nil)
 			brokerServicesClient.UpgradeInstanceReturns(services.UpgradeOperation{
 				Type: services.OrphanDeployment,
 			}, nil)
@@ -150,7 +151,7 @@ var _ = Describe("Upgrader", func() {
 	Context("when an operation is in progress for a service instance", func() {
 		const serviceInstanceId = "serviceInstanceId"
 		BeforeEach(func() {
-			brokerServicesClient.InstancesReturns([]string{serviceInstanceId}, nil)
+			brokerServicesClient.InstancesReturns([]service.Instance{{GUID: serviceInstanceId}}, nil)
 
 			brokerServicesClient.UpgradeInstanceReturns(services.UpgradeOperation{
 				Type: services.OperationInProgress,
@@ -179,7 +180,7 @@ var _ = Describe("Upgrader", func() {
 	Context("when deletion is in progress for a service instance", func() {
 		const serviceInstanceId = "serviceInstanceId"
 		BeforeEach(func() {
-			brokerServicesClient.InstancesReturns([]string{serviceInstanceId}, nil)
+			brokerServicesClient.InstancesReturns([]service.Instance{{GUID: serviceInstanceId}}, nil)
 
 			brokerServicesClient.UpgradeInstanceReturns(services.UpgradeOperation{
 				Type: services.OperationInProgress,
@@ -211,7 +212,11 @@ var _ = Describe("Upgrader", func() {
 			upgradeTaskID3 := 789
 
 			BeforeEach(func() {
-				brokerServicesClient.InstancesReturns([]string{serviceInstance1, serviceInstance2, serviceInstance3}, nil)
+				brokerServicesClient.InstancesReturns([]service.Instance{
+					{GUID: serviceInstance1},
+					{GUID: serviceInstance2},
+					{GUID: serviceInstance3},
+				}, nil)
 
 				brokerServicesClient.UpgradeInstanceReturnsOnCall(0, services.UpgradeOperation{
 					Type: services.UpgradeAccepted,
@@ -247,7 +252,11 @@ var _ = Describe("Upgrader", func() {
 			serviceInstance3 := "serviceInstanceId3"
 
 			BeforeEach(func() {
-				brokerServicesClient.InstancesReturns([]string{serviceInstance1, serviceInstance2, serviceInstance3}, nil)
+				brokerServicesClient.InstancesReturns([]service.Instance{
+					{GUID: serviceInstance1},
+					{GUID: serviceInstance2},
+					{GUID: serviceInstance3},
+				}, nil)
 
 				brokerServicesClient.UpgradeInstanceReturnsOnCall(0, upgradeOperationAccepted, nil)
 				brokerServicesClient.UpgradeInstanceReturnsOnCall(1, services.UpgradeOperation{}, errors.New("upgrade failed"))
@@ -272,7 +281,11 @@ var _ = Describe("Upgrader", func() {
 			upgradeTaskID2 := 987
 
 			BeforeEach(func() {
-				brokerServicesClient.InstancesReturns([]string{serviceInstance1, serviceInstance2, serviceInstance3}, nil)
+				brokerServicesClient.InstancesReturns([]service.Instance{
+					{GUID: serviceInstance1},
+					{GUID: serviceInstance2},
+					{GUID: serviceInstance3},
+				}, nil)
 
 				brokerServicesClient.UpgradeInstanceReturnsOnCall(0, services.UpgradeOperation{
 					Type: services.UpgradeAccepted,
@@ -309,7 +322,11 @@ var _ = Describe("Upgrader", func() {
 			serviceInstance3 := "serviceInstanceId3"
 
 			BeforeEach(func() {
-				brokerServicesClient.InstancesReturns([]string{serviceInstance1, serviceInstance2, serviceInstance3}, nil)
+				brokerServicesClient.InstancesReturns([]service.Instance{
+					{GUID: serviceInstance1},
+					{GUID: serviceInstance2},
+					{GUID: serviceInstance3},
+				}, nil)
 
 				brokerServicesClient.UpgradeInstanceReturnsOnCall(0, upgradeOperationAccepted, nil)
 				brokerServicesClient.UpgradeInstanceReturnsOnCall(1, services.UpgradeOperation{
@@ -331,7 +348,11 @@ var _ = Describe("Upgrader", func() {
 			serviceInstance3 := "serviceInstanceId3"
 
 			BeforeEach(func() {
-				brokerServicesClient.InstancesReturns([]string{serviceInstance1, serviceInstance2, serviceInstance3}, nil)
+				brokerServicesClient.InstancesReturns([]service.Instance{
+					{GUID: serviceInstance1},
+					{GUID: serviceInstance2},
+					{GUID: serviceInstance3},
+				}, nil)
 
 				brokerServicesClient.UpgradeInstanceReturnsOnCall(0, upgradeOperationAccepted, nil)
 				brokerServicesClient.UpgradeInstanceReturns(services.UpgradeOperation{
@@ -372,7 +393,7 @@ func hasReportedStarting(fakeListener *fakes.FakeListener) {
 
 func hasReportedInstancesToUpgrade(fakeListener *fakes.FakeListener, instanceIds ...string) {
 	Expect(fakeListener.InstancesToUpgradeCallCount()).To(Equal(1))
-	Expect(fakeListener.InstancesToUpgradeArgsForCall(0)).To(Equal(instanceIds))
+	Expect(fakeListener.InstancesToUpgradeArgsForCall(0)).To(Equal(makeInstanceMapFromIds(instanceIds)))
 }
 
 func hasReportedWaitingFor(fakeListener *fakes.FakeListener, instances map[string]int) {
@@ -418,14 +439,25 @@ func hasReportedFailureFor(fakeListener *fakes.FakeListener, expectedInstanceIds
 }
 
 func hasReportedUpgradeStates(fakeListener *fakes.FakeListener, expectedStatus string, expectedInstanceIds ...string) {
-	upgraded := make([]string, 0)
+	upgraded := make([]service.Instance, 0)
 	for i := 0; i < fakeListener.InstanceUpgradedCallCount(); i++ {
 		id, status := fakeListener.InstanceUpgradedArgsForCall(i)
 		if status == expectedStatus {
-			upgraded = append(upgraded, id)
+			upgraded = append(upgraded, service.Instance{GUID: id})
 		}
 	}
-	Expect(upgraded).To(Equal(expectedInstanceIds), "status="+expectedStatus)
+
+	expectedInstances := makeInstanceMapFromIds(expectedInstanceIds)
+
+	Expect(upgraded).To(Equal(expectedInstances), "status="+expectedStatus)
+}
+
+func makeInstanceMapFromIds(expectedInstanceIds []string) []service.Instance {
+	expectedInstances := []service.Instance{}
+	for _, expectedInstanceId := range expectedInstanceIds {
+		expectedInstances = append(expectedInstances, service.Instance{GUID: expectedInstanceId})
+	}
+	return expectedInstances
 }
 
 func hasReportedRetries(fakeListener *fakes.FakeListener, expectedRetryCounts ...int) {

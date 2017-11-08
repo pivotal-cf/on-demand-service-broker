@@ -19,6 +19,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
 	"github.com/pivotal-cf/on-demand-service-broker/mgmtapi"
+	"github.com/pivotal-cf/on-demand-service-broker/service"
 )
 
 var _ = Describe("Response Converter", func() {
@@ -38,7 +39,10 @@ var _ = Describe("Response Converter", func() {
 			instances, err := converter.ListInstancesFrom(&response)
 
 			Expect(err).NotTo(HaveOccurred())
-			Expect(instances).To(ConsistOf("instance1-guid", "instance2-guid"))
+			Expect(instances).To(ConsistOf([]service.Instance{
+				{GUID: "instance1-guid", PlanGUID: "planId"},
+				{GUID: "instance2-guid", PlanGUID: "planId"},
+			}))
 		})
 
 		It("returns an error when the response status is not OK", func() {
@@ -298,9 +302,9 @@ func lastOperationJSON(operation brokerapi.LastOperation) string {
 }
 
 func listInstancesJSON(instanceIDs ...string) string {
-	list := []mgmtapi.Instance{}
+	list := []service.Instance{}
 	for _, instanceID := range instanceIDs {
-		list = append(list, mgmtapi.Instance{InstanceID: instanceID})
+		list = append(list, service.Instance{GUID: instanceID, PlanGUID: "planId"})
 	}
 	content, err := json.Marshal(list)
 	Expect(err).NotTo(HaveOccurred())

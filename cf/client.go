@@ -9,6 +9,8 @@ package cf
 import (
 	"fmt"
 	"log"
+
+	s "github.com/pivotal-cf/on-demand-service-broker/service"
 )
 
 type Client struct {
@@ -93,13 +95,13 @@ func (c Client) CountInstancesOfPlan(serviceID, servicePlanID string, logger *lo
 	return 0, fmt.Errorf("service plan %s not found for service %s", servicePlanID, serviceID)
 }
 
-func (c Client) GetInstancesOfServiceOffering(serviceOfferingID string, logger *log.Logger) ([]string, error) {
+func (c Client) GetInstancesOfServiceOffering(serviceOfferingID string, logger *log.Logger) ([]s.Instance, error) {
 	plans, err := c.getPlansForServiceID(serviceOfferingID, logger)
 	if err != nil {
 		return nil, err
 	}
 
-	var instances []string
+	var instances []s.Instance
 	for _, plan := range plans {
 		path := fmt.Sprintf(
 			"/v2/service_plans/%s/service_instances?results-per-page=%d",
@@ -117,7 +119,7 @@ func (c Client) GetInstancesOfServiceOffering(serviceOfferingID string, logger *
 				return nil, err
 			}
 			for _, instance := range serviceInstancesResp.ServiceInstances {
-				instances = append(instances, instance.Metadata.GUID)
+				instances = append(instances, s.Instance{GUID: instance.Metadata.GUID, PlanGUID: plan.Metadata.GUID})
 			}
 			path = serviceInstancesResp.NextPath
 		}

@@ -14,11 +14,12 @@ import (
 
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
+	"github.com/pivotal-cf/on-demand-service-broker/service"
 )
 
 //go:generate counterfeiter -o fakes/fake_cloud_foundry_client.go . CloudFoundryClient
 type CloudFoundryClient interface {
-	GetInstancesOfServiceOffering(serviceOfferingID string, logger *log.Logger) ([]string, error)
+	GetInstancesOfServiceOffering(serviceOfferingID string, logger *log.Logger) ([]service.Instance, error)
 	GetInstance(instanceGUID string, logger *log.Logger) (cf.Instance, error)
 	GetBindingsForInstance(instanceGUID string, logger *log.Logger) ([]cf.Binding, error)
 	DeleteBinding(binding cf.Binding, logger *log.Logger) error
@@ -64,47 +65,47 @@ func New(cfClient CloudFoundryClient, sleeper Sleeper, pollingInitialOffset int,
 
 func (d *Deleter) DeleteAllServiceInstances(serviceUniqueID string) error {
 	d.logger.Printf("Deleter Configuration: polling_intial_offset: %v, polling_interval: %v.", d.pollingInitialOffset.Seconds(), d.pollingInterval.Seconds())
-	serviceInstanceGUIDs, err := d.cfClient.GetInstancesOfServiceOffering(serviceUniqueID, d.logger)
+	serviceInstances, err := d.cfClient.GetInstancesOfServiceOffering(serviceUniqueID, d.logger)
 	if err != nil {
 		return err
 	}
 
-	if len(serviceInstanceGUIDs) == 0 {
+	if len(serviceInstances) == 0 {
 		d.logger.Println("No service instances found.")
 		return nil
 	}
 
-	for _, instanceGUID := range serviceInstanceGUIDs {
-		err := d.deleteBindings(instanceGUID)
+	for _, instance := range serviceInstances {
+		err = d.deleteBindings(instance.GUID)
 		if err != nil {
 			return err
 		}
 
-		err = d.deleteServiceKeys(instanceGUID)
+		err = d.deleteServiceKeys(instance.GUID)
 		if err != nil {
 			return err
 		}
 
-		err = d.deleteServiceInstance(instanceGUID)
+		err = d.deleteServiceInstance(instance.GUID)
 		if err != nil {
 			return err
 		}
 
-		d.logger.Printf("Waiting for service instance %s to be deleted", instanceGUID)
+		d.logger.Printf("Waiting for service instance %s to be deleted", instance.GUID)
 
-		err = d.pollInstanceDeleteStatus(instanceGUID)
+		err = d.pollInstanceDeleteStatus(instance.GUID)
 		if err != nil {
 			return err
 		}
 	}
 
-	serviceInstanceGUIDs, err = d.cfClient.GetInstancesOfServiceOffering(serviceUniqueID, d.logger)
+	serviceInstances, err = d.cfClient.GetInstancesOfServiceOffering(serviceUniqueID, d.logger)
 	if err != nil {
 		return err
 	}
 
-	if len(serviceInstanceGUIDs) != 0 {
-		return fmt.Errorf("expected 0 instances for service offering with unique ID: %s. Got %d instance(s).", serviceUniqueID, len(serviceInstanceGUIDs))
+	if len(serviceInstances) != 0 {
+		return fmt.Errorf("expected 0 instances for service offering with unique ID: %s. Got %d instance(s).", serviceUniqueID, len(serviceInstances))
 	}
 
 	return nil

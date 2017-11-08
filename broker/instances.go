@@ -13,16 +13,17 @@ import (
 
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
+	"github.com/pivotal-cf/on-demand-service-broker/service"
 )
 
-func (b *Broker) Instances(logger *log.Logger) ([]string, error) {
-	instanceIDs, err := b.cfClient.GetInstancesOfServiceOffering(b.serviceOffering.ID, logger)
+func (b *Broker) Instances(logger *log.Logger) ([]service.Instance, error) {
+	instances, err := b.cfClient.GetInstancesOfServiceOffering(b.serviceOffering.ID, logger)
 	if err != nil {
 		logger.Printf("error listing instances: %s", err)
 		return nil, err
 	}
 
-	return instanceIDs, nil
+	return instances, nil
 }
 
 func (b *Broker) validatePlanQuota(ctx context.Context, serviceID string, plan config.Plan, logger *log.Logger) DisplayableError {

@@ -22,6 +22,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
+	"github.com/pivotal-cf/on-demand-service-broker/service"
 	"github.com/pivotal-cf/on-demand-service-broker/task"
 )
 
@@ -33,14 +34,10 @@ type api struct {
 
 //go:generate counterfeiter -o fake_manageable_broker/fake_manageable_broker.go . ManageableBroker
 type ManageableBroker interface {
-	Instances(logger *log.Logger) ([]string, error)
+	Instances(logger *log.Logger) ([]service.Instance, error)
 	OrphanDeployments(logger *log.Logger) ([]string, error)
 	Upgrade(ctx context.Context, instanceID string, logger *log.Logger) (broker.OperationData, error)
 	CountInstancesOfPlans(logger *log.Logger) (map[cf.ServicePlan]int, error)
-}
-
-type Instance struct {
-	InstanceID string `json:"instance_id"`
 }
 
 type Deployment struct {
@@ -89,12 +86,7 @@ func (a *api) listAllInstances(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	presentableInstances := []Instance{}
-	for _, instance := range instances {
-		presentableInstances = append(presentableInstances, Instance{InstanceID: instance})
-	}
-
-	a.writeJson(w, presentableInstances, logger)
+	a.writeJson(w, instances, logger)
 }
 
 func (a *api) upgradeInstance(w http.ResponseWriter, r *http.Request) {

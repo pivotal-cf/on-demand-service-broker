@@ -19,6 +19,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services/fakes"
 	"github.com/pivotal-cf/on-demand-service-broker/mgmtapi"
+	"github.com/pivotal-cf/on-demand-service-broker/service"
 )
 
 var _ = Describe("Broker Services", func() {
@@ -36,14 +37,17 @@ var _ = Describe("Broker Services", func() {
 
 	Describe("Instances", func() {
 		It("returns a list of instances", func() {
-			client.GetReturns(response(http.StatusOK, `[{"instance_id": "foo"}, {"instance_id": "bar"}]`), nil)
+			client.GetReturns(response(http.StatusOK, `[{"service_instance_id": "foo", "plan_id": "plan"}, {"service_instance_id": "bar", "plan_id": "another-plan"}]`), nil)
 
 			instances, err := brokerServices.Instances()
 
 			Expect(err).NotTo(HaveOccurred())
 			actualPath, _ := client.GetArgsForCall(0)
 			Expect(actualPath).To(Equal("/mgmt/service_instances"))
-			Expect(instances).To(ConsistOf("foo", "bar"))
+			Expect(instances).To(ConsistOf(
+				service.Instance{GUID: "foo", PlanGUID: "plan"},
+				service.Instance{GUID: "bar", PlanGUID: "another-plan"},
+			))
 		})
 
 		Context("when the request fails", func() {

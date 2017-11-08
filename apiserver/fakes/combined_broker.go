@@ -10,20 +10,21 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/apiserver"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
+	"github.com/pivotal-cf/on-demand-service-broker/service"
 )
 
 type FakeCombinedBroker struct {
-	InstancesStub        func(logger *log.Logger) ([]string, error)
+	InstancesStub        func(logger *log.Logger) ([]service.Instance, error)
 	instancesMutex       sync.RWMutex
 	instancesArgsForCall []struct {
 		logger *log.Logger
 	}
 	instancesReturns struct {
-		result1 []string
+		result1 []service.Instance
 		result2 error
 	}
 	instancesReturnsOnCall map[int]struct {
-		result1 []string
+		result1 []service.Instance
 		result2 error
 	}
 	OrphanDeploymentsStub        func(logger *log.Logger) ([]string, error)
@@ -175,7 +176,7 @@ type FakeCombinedBroker struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeCombinedBroker) Instances(logger *log.Logger) ([]string, error) {
+func (fake *FakeCombinedBroker) Instances(logger *log.Logger) ([]service.Instance, error) {
 	fake.instancesMutex.Lock()
 	ret, specificReturn := fake.instancesReturnsOnCall[len(fake.instancesArgsForCall)]
 	fake.instancesArgsForCall = append(fake.instancesArgsForCall, struct {
@@ -204,24 +205,24 @@ func (fake *FakeCombinedBroker) InstancesArgsForCall(i int) *log.Logger {
 	return fake.instancesArgsForCall[i].logger
 }
 
-func (fake *FakeCombinedBroker) InstancesReturns(result1 []string, result2 error) {
+func (fake *FakeCombinedBroker) InstancesReturns(result1 []service.Instance, result2 error) {
 	fake.InstancesStub = nil
 	fake.instancesReturns = struct {
-		result1 []string
+		result1 []service.Instance
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeCombinedBroker) InstancesReturnsOnCall(i int, result1 []string, result2 error) {
+func (fake *FakeCombinedBroker) InstancesReturnsOnCall(i int, result1 []service.Instance, result2 error) {
 	fake.InstancesStub = nil
 	if fake.instancesReturnsOnCall == nil {
 		fake.instancesReturnsOnCall = make(map[int]struct {
-			result1 []string
+			result1 []service.Instance
 			result2 error
 		})
 	}
 	fake.instancesReturnsOnCall[i] = struct {
-		result1 []string
+		result1 []service.Instance
 		result2 error
 	}{result1, result2}
 }

@@ -26,6 +26,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 	"github.com/pivotal-cf/on-demand-service-broker/mgmtapi"
 	"github.com/pivotal-cf/on-demand-service-broker/mgmtapi/fake_manageable_broker"
+	"github.com/pivotal-cf/on-demand-service-broker/service"
 	"github.com/pivotal-cf/on-demand-service-broker/task"
 )
 
@@ -70,19 +71,22 @@ var _ = Describe("Management API", func() {
 
 		Context("of which there are three", func() {
 			var (
-				instance1 = mgmtapi.Instance{
-					InstanceID: "instance-guid-1",
+				instance1 = service.Instance{
+					GUID:     "instance-guid-1",
+					PlanGUID: "plan-guid-1",
 				}
-				instance2 = mgmtapi.Instance{
-					InstanceID: "instance-guid-2",
+				instance2 = service.Instance{
+					GUID:     "instance-guid-2",
+					PlanGUID: "plan-guid-1",
 				}
-				instance3 = mgmtapi.Instance{
-					InstanceID: "instance-guid-3",
+				instance3 = service.Instance{
+					GUID:     "instance-guid-3",
+					PlanGUID: "plan-guid-2",
 				}
 			)
 
 			BeforeEach(func() {
-				instances := []string{instance1.InstanceID, instance2.InstanceID, instance3.InstanceID}
+				instances := []service.Instance{instance1, instance2, instance3}
 				manageableBroker.InstancesReturns(instances, nil)
 			})
 
@@ -91,7 +95,7 @@ var _ = Describe("Management API", func() {
 			})
 
 			It("returns a list of all three instances", func() {
-				var instances []mgmtapi.Instance
+				var instances []service.Instance
 				Expect(json.NewDecoder(listResp.Body).Decode(&instances)).To(Succeed())
 				Expect(instances).To(ConsistOf(instance1, instance2, instance3))
 			})

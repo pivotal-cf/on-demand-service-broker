@@ -7,6 +7,7 @@ import (
 
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
+	"github.com/pivotal-cf/on-demand-service-broker/service"
 )
 
 type FakeCloudFoundryClient struct {
@@ -66,18 +67,18 @@ type FakeCloudFoundryClient struct {
 		result1 cf.InstanceState
 		result2 error
 	}
-	GetInstancesOfServiceOfferingStub        func(serviceOfferingID string, logger *log.Logger) ([]string, error)
+	GetInstancesOfServiceOfferingStub        func(serviceOfferingID string, logger *log.Logger) ([]service.Instance, error)
 	getInstancesOfServiceOfferingMutex       sync.RWMutex
 	getInstancesOfServiceOfferingArgsForCall []struct {
 		serviceOfferingID string
 		logger            *log.Logger
 	}
 	getInstancesOfServiceOfferingReturns struct {
-		result1 []string
+		result1 []service.Instance
 		result2 error
 	}
 	getInstancesOfServiceOfferingReturnsOnCall map[int]struct {
-		result1 []string
+		result1 []service.Instance
 		result2 error
 	}
 	invocations      map[string][][]interface{}
@@ -292,7 +293,7 @@ func (fake *FakeCloudFoundryClient) GetInstanceStateReturnsOnCall(i int, result1
 	}{result1, result2}
 }
 
-func (fake *FakeCloudFoundryClient) GetInstancesOfServiceOffering(serviceOfferingID string, logger *log.Logger) ([]string, error) {
+func (fake *FakeCloudFoundryClient) GetInstancesOfServiceOffering(serviceOfferingID string, logger *log.Logger) ([]service.Instance, error) {
 	fake.getInstancesOfServiceOfferingMutex.Lock()
 	ret, specificReturn := fake.getInstancesOfServiceOfferingReturnsOnCall[len(fake.getInstancesOfServiceOfferingArgsForCall)]
 	fake.getInstancesOfServiceOfferingArgsForCall = append(fake.getInstancesOfServiceOfferingArgsForCall, struct {
@@ -322,24 +323,24 @@ func (fake *FakeCloudFoundryClient) GetInstancesOfServiceOfferingArgsForCall(i i
 	return fake.getInstancesOfServiceOfferingArgsForCall[i].serviceOfferingID, fake.getInstancesOfServiceOfferingArgsForCall[i].logger
 }
 
-func (fake *FakeCloudFoundryClient) GetInstancesOfServiceOfferingReturns(result1 []string, result2 error) {
+func (fake *FakeCloudFoundryClient) GetInstancesOfServiceOfferingReturns(result1 []service.Instance, result2 error) {
 	fake.GetInstancesOfServiceOfferingStub = nil
 	fake.getInstancesOfServiceOfferingReturns = struct {
-		result1 []string
+		result1 []service.Instance
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeCloudFoundryClient) GetInstancesOfServiceOfferingReturnsOnCall(i int, result1 []string, result2 error) {
+func (fake *FakeCloudFoundryClient) GetInstancesOfServiceOfferingReturnsOnCall(i int, result1 []service.Instance, result2 error) {
 	fake.GetInstancesOfServiceOfferingStub = nil
 	if fake.getInstancesOfServiceOfferingReturnsOnCall == nil {
 		fake.getInstancesOfServiceOfferingReturnsOnCall = make(map[int]struct {
-			result1 []string
+			result1 []service.Instance
 			result2 error
 		})
 	}
 	fake.getInstancesOfServiceOfferingReturnsOnCall[i] = struct {
-		result1 []string
+		result1 []service.Instance
 		result2 error
 	}{result1, result2}
 }

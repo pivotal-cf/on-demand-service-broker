@@ -12,6 +12,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pivotal-cf/on-demand-service-broker/service"
 )
 
 var _ = Describe("Instances", func() {
@@ -19,13 +20,21 @@ var _ = Describe("Instances", func() {
 		var logger *log.Logger
 
 		BeforeEach(func() {
-			cfClient.GetInstancesOfServiceOfferingReturns([]string{"red", "green", "blue"}, nil)
+			cfClient.GetInstancesOfServiceOfferingReturns([]service.Instance{
+				{GUID: "red"},
+				{GUID: "green"},
+				{GUID: "blue"},
+			}, nil)
 			logger = loggerFactory.NewWithRequestID()
 		})
 
 		It("returns a list of instance IDs", func() {
 			b = createDefaultBroker()
-			Expect(b.Instances(logger)).To(ConsistOf("red", "green", "blue"))
+			Expect(b.Instances(logger)).To(ConsistOf(
+				service.Instance{GUID: "red"},
+				service.Instance{GUID: "green"},
+				service.Instance{GUID: "blue"},
+			))
 		})
 
 		Context("when the list of instances cannot be retrieved", func() {

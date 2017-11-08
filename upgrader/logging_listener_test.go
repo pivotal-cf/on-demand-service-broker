@@ -16,6 +16,7 @@ import (
 	. "github.com/onsi/gomega/gbytes"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
+	"github.com/pivotal-cf/on-demand-service-broker/service"
 	"github.com/pivotal-cf/on-demand-service-broker/upgrader"
 )
 
@@ -30,7 +31,9 @@ var _ = Describe("Logging Listener", func() {
 	})
 
 	It("Shows which instances to upgrade", func() {
-		Expect(logResultsFrom(func(listener upgrader.Listener) { listener.InstancesToUpgrade([]string{"one", "two"}) })).
+		Expect(logResultsFrom(func(listener upgrader.Listener) {
+			listener.InstancesToUpgrade([]service.Instance{{GUID: "one"}, {GUID: "two"}})
+		})).
 			To(Say("Service Instances: one two"))
 	})
 

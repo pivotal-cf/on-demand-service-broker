@@ -15,6 +15,7 @@ import (
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/mgmtapi"
+	"github.com/pivotal-cf/on-demand-service-broker/service"
 )
 
 type UpgradeOperation struct {
@@ -69,14 +70,14 @@ func (r ResponseConverter) UpgradeOperationFrom(response *http.Response) (Upgrad
 	}
 }
 
-func (r ResponseConverter) ListInstancesFrom(response *http.Response) ([]string, error) {
-	var instances []mgmtapi.Instance
+func (r ResponseConverter) ListInstancesFrom(response *http.Response) ([]service.Instance, error) {
+	var instances []service.Instance
 	err := decodeBodyInto(response, &instances)
 	if err != nil {
 		return nil, err
 	}
 
-	return instanceIDsIn(instances), nil
+	return instances, nil
 }
 
 func (r ResponseConverter) LastOperationFrom(response *http.Response) (brokerapi.LastOperation, error) {
@@ -112,12 +113,4 @@ func decodeBodyInto(response *http.Response, contents interface{}) error {
 	}
 
 	return nil
-}
-
-func instanceIDsIn(instances []mgmtapi.Instance) []string {
-	var instanceIDs []string
-	for _, instance := range instances {
-		instanceIDs = append(instanceIDs, instance.InstanceID)
-	}
-	return instanceIDs
 }

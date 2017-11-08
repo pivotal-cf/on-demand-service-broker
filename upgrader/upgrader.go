@@ -13,12 +13,13 @@ import (
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
+	"github.com/pivotal-cf/on-demand-service-broker/service"
 )
 
 //go:generate counterfeiter -o fakes/fake_listener.go . Listener
 type Listener interface {
 	Starting()
-	InstancesToUpgrade(instances []string)
+	InstancesToUpgrade(instances []service.Instance)
 	InstanceUpgradeStarting(instance string, index, totalInstances int)
 	InstanceUpgradeStartResult(status services.UpgradeOperationType)
 	InstanceUpgraded(instance string, result string)
@@ -29,7 +30,7 @@ type Listener interface {
 
 //go:generate counterfeiter -o fakes/fake_broker_services.go . BrokerServices
 type BrokerServices interface {
-	Instances() ([]string, error)
+	Instances() ([]service.Instance, error)
 	UpgradeInstance(instance string) (services.UpgradeOperation, error)
 	LastOperation(instance string, operationData broker.OperationData) (brokerapi.LastOperation, error)
 }
@@ -56,15 +57,15 @@ func (u upgrader) Upgrade() error {
 
 	u.listener.Starting()
 
-	instanceGUIDsToUpgrade, err := u.brokerServices.Instances()
+	instances, err := u.brokerServices.Instances()
 	if err != nil {
 		return fmt.Errorf("error listing service instances: %s", err)
 	}
 
-	u.listener.InstancesToUpgrade(instanceGUIDsToUpgrade)
+	u.listener.InstancesToUpgrade(instances)
 
-	for len(instanceGUIDsToUpgrade) > 0 {
-		upgradedCount, orphanCount, deletedCount, retryInstanceGUIDs, err := u.upgradeInstances(instanceGUIDsToUpgrade)
+	for len(instances) > 0 {
+		upgradedCount, orphanCount, deletedCount, retryInstances, err := u.upgradeInstances(instances)
 		if err != nil {
 			return err
 		}
@@ -73,8 +74,8 @@ func (u upgrader) Upgrade() error {
 		orphansTotal += orphanCount
 		deletedTotal += deletedCount
 
-		instanceGUIDsToUpgrade = retryInstanceGUIDs
-		retryCount := len(instanceGUIDsToUpgrade)
+		instances = retryInstances
+		retryCount := len(instances)
 
 		u.listener.Progress(u.pollingInterval, orphansTotal, upgradedTotal, retryCount, deletedTotal)
 		if retryCount > 0 {
@@ -87,19 +88,19 @@ func (u upgrader) Upgrade() error {
 	return nil
 }
 
-func (u upgrader) upgradeInstances(instances []string) (int, int, int, []string, error) {
+func (u upgrader) upgradeInstances(instances []service.Instance) (int, int, int, []service.Instance, error) {
 	var (
 		upgradedCount, orphanCount, deletedCount int
-		idsToRetry                               []string
+		instancesToRetry                         []service.Instance
 	)
 
 	instanceCount := len(instances)
 	for i, instance := range instances {
-		u.listener.InstanceUpgradeStarting(instance, i, instanceCount)
-		operation, err := u.brokerServices.UpgradeInstance(instance)
+		u.listener.InstanceUpgradeStarting(instance.GUID, i, instanceCount)
+		operation, err := u.brokerServices.UpgradeInstance(instance.GUID)
 		if err != nil {
 			return 0, 0, 0, nil, fmt.Errorf(
-				"Upgrade failed for service instance %s: %s\n", instance, err,
+				"Upgrade failed for service instance %s: %s\n", instance.GUID, err,
 			)
 		}
 
@@ -111,18 +112,18 @@ func (u upgrader) upgradeInstances(instances []string) (int, int, int, []string,
 		case services.InstanceNotFound:
 			deletedCount++
 		case services.OperationInProgress:
-			idsToRetry = append(idsToRetry, instance)
+			instancesToRetry = append(instancesToRetry, instance)
 		case services.UpgradeAccepted:
-			if err := u.pollLastOperation(instance, operation.Data); err != nil {
-				u.listener.InstanceUpgraded(instance, "failure")
+			if err := u.pollLastOperation(instance.GUID, operation.Data); err != nil {
+				u.listener.InstanceUpgraded(instance.GUID, "failure")
 				return 0, 0, 0, nil, err
 			}
-			u.listener.InstanceUpgraded(instance, "success")
+			u.listener.InstanceUpgraded(instance.GUID, "success")
 			upgradedCount++
 		}
 	}
 
-	return upgradedCount, orphanCount, deletedCount, idsToRetry, nil
+	return upgradedCount, orphanCount, deletedCount, instancesToRetry, nil
 }
 
 func (u upgrader) pollLastOperation(instance string, data broker.OperationData) error {

@@ -17,6 +17,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
+	"github.com/pivotal-cf/on-demand-service-broker/service"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
@@ -146,5 +147,5 @@ type CloudFoundryClient interface {
 	CountInstancesOfPlan(serviceOfferingID, planID string, logger *log.Logger) (int, error)
 	CountInstancesOfServiceOffering(serviceOfferingID string, logger *log.Logger) (instanceCountByPlanID map[cf.ServicePlan]int, err error)
 	GetInstanceState(serviceInstanceGUID string, logger *log.Logger) (cf.InstanceState, error)
-	GetInstancesOfServiceOffering(serviceOfferingID string, logger *log.Logger) ([]string, error)
+	GetInstancesOfServiceOffering(serviceOfferingID string, logger *log.Logger) ([]service.Instance, error)
 }

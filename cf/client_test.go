@@ -23,6 +23,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/cf/fakes"
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp/mockcfapi"
+	"github.com/pivotal-cf/on-demand-service-broker/service"
 )
 
 var _ = Describe("Client", func() {
@@ -740,7 +741,7 @@ var _ = Describe("Client", func() {
 	})
 
 	Describe("GetInstancesOfServiceOffering", func() {
-		It("returns a list of instance IDs", func() {
+		It("returns a list of instances", func() {
 			offeringID := "8F3E8998-5FD0-4F32-924A-5478DC390A5F"
 
 			server.VerifyAndMock(
@@ -755,7 +756,11 @@ var _ = Describe("Client", func() {
 
 			instances, err := client.GetInstancesOfServiceOffering(offeringID, testLogger)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(instances).To(ConsistOf("520f8566-b727-4c67-8be8-d9285645e936", "f897f40d-0b2d-474a-a5c9-98426a2cb4b8", "2f759033-04a4-426b-bccd-01722036c152"))
+			Expect(instances).To(ConsistOf(
+				service.Instance{GUID: "520f8566-b727-4c67-8be8-d9285645e936", PlanGUID: "ff717e7c-afd5-4d0a-bafe-16c7eff546ec"},
+				service.Instance{GUID: "f897f40d-0b2d-474a-a5c9-98426a2cb4b8", PlanGUID: "2777ad05-8114-4169-8188-2ef5f39e0c6b"},
+				service.Instance{GUID: "2f759033-04a4-426b-bccd-01722036c152", PlanGUID: "2777ad05-8114-4169-8188-2ef5f39e0c6b"},
+			))
 		})
 
 		Context("when the list of services spans multiple pages", func() {
@@ -775,7 +780,11 @@ var _ = Describe("Client", func() {
 
 				instances, err := client.GetInstancesOfServiceOffering(offeringID, testLogger)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(instances).To(ConsistOf("520f8566-b727-4c67-8be8-d9285645e936", "f897f40d-0b2d-474a-a5c9-98426a2cb4b8", "2f759033-04a4-426b-bccd-01722036c152"))
+				Expect(instances).To(ConsistOf(
+					service.Instance{GUID: "520f8566-b727-4c67-8be8-d9285645e936", PlanGUID: "ff717e7c-afd5-4d0a-bafe-16c7eff546ec"},
+					service.Instance{GUID: "f897f40d-0b2d-474a-a5c9-98426a2cb4b8", PlanGUID: "2777ad05-8114-4169-8188-2ef5f39e0c6b"},
+					service.Instance{GUID: "2f759033-04a4-426b-bccd-01722036c152", PlanGUID: "2777ad05-8114-4169-8188-2ef5f39e0c6b"},
+				))
 			})
 		})
 
@@ -796,7 +805,11 @@ var _ = Describe("Client", func() {
 
 				instances, err := client.GetInstancesOfServiceOffering(offeringID, testLogger)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(instances).To(ConsistOf("520f8566-b727-4c67-8be8-d9285645e936", "f897f40d-0b2d-474a-a5c9-98426a2cb4b8", "2f759033-04a4-426b-bccd-01722036c152"))
+				Expect(instances).To(ConsistOf(
+					service.Instance{GUID: "520f8566-b727-4c67-8be8-d9285645e936", PlanGUID: "ff717e7c-afd5-4d0a-bafe-16c7eff546ec"},
+					service.Instance{GUID: "f897f40d-0b2d-474a-a5c9-98426a2cb4b8", PlanGUID: "2777ad05-8114-4169-8188-2ef5f39e0c6b"},
+					service.Instance{GUID: "2f759033-04a4-426b-bccd-01722036c152", PlanGUID: "2777ad05-8114-4169-8188-2ef5f39e0c6b"},
+				))
 			})
 		})
 
@@ -817,7 +830,11 @@ var _ = Describe("Client", func() {
 
 				instances, err := client.GetInstancesOfServiceOffering(offeringID, testLogger)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(instances).To(ConsistOf("520f8566-b727-4c67-8be8-d9285645e936", "f897f40d-0b2d-474a-a5c9-98426a2cb4b8", "2f759033-04a4-426b-bccd-01722036c152"))
+				Expect(instances).To(ConsistOf(
+					service.Instance{GUID: "520f8566-b727-4c67-8be8-d9285645e936", PlanGUID: "ff717e7c-afd5-4d0a-bafe-16c7eff546ec"},
+					service.Instance{GUID: "f897f40d-0b2d-474a-a5c9-98426a2cb4b8", PlanGUID: "2777ad05-8114-4169-8188-2ef5f39e0c6b"},
+					service.Instance{GUID: "2f759033-04a4-426b-bccd-01722036c152", PlanGUID: "2777ad05-8114-4169-8188-2ef5f39e0c6b"},
+				))
 			})
 		})
 

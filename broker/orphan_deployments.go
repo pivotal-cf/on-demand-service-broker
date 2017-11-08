@@ -12,15 +12,15 @@ import (
 )
 
 func (b *Broker) OrphanDeployments(logger *log.Logger) ([]string, error) {
-	rawInstanceIDs, err := b.Instances(logger)
+	rawInstances, err := b.Instances(logger)
 	if err != nil {
 		logger.Printf("error listing instances: %s", err)
 		return nil, err
 	}
 
 	instanceIDs := map[string]bool{}
-	for _, instance := range rawInstanceIDs {
-		instanceIDs[instance] = true
+	for _, instance := range rawInstances {
+		instanceIDs[instance.GUID] = true
 	}
 
 	deployments, err := b.boshClient.GetDeployments(logger)

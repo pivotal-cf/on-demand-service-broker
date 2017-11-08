@@ -7,19 +7,20 @@ import (
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
+	"github.com/pivotal-cf/on-demand-service-broker/service"
 	"github.com/pivotal-cf/on-demand-service-broker/upgrader"
 )
 
 type FakeBrokerServices struct {
-	InstancesStub        func() ([]string, error)
+	InstancesStub        func() ([]service.Instance, error)
 	instancesMutex       sync.RWMutex
 	instancesArgsForCall []struct{}
 	instancesReturns     struct {
-		result1 []string
+		result1 []service.Instance
 		result2 error
 	}
 	instancesReturnsOnCall map[int]struct {
-		result1 []string
+		result1 []service.Instance
 		result2 error
 	}
 	UpgradeInstanceStub        func(instance string) (services.UpgradeOperation, error)
@@ -53,7 +54,7 @@ type FakeBrokerServices struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeBrokerServices) Instances() ([]string, error) {
+func (fake *FakeBrokerServices) Instances() ([]service.Instance, error) {
 	fake.instancesMutex.Lock()
 	ret, specificReturn := fake.instancesReturnsOnCall[len(fake.instancesArgsForCall)]
 	fake.instancesArgsForCall = append(fake.instancesArgsForCall, struct{}{})
@@ -74,24 +75,24 @@ func (fake *FakeBrokerServices) InstancesCallCount() int {
 	return len(fake.instancesArgsForCall)
 }
 
-func (fake *FakeBrokerServices) InstancesReturns(result1 []string, result2 error) {
+func (fake *FakeBrokerServices) InstancesReturns(result1 []service.Instance, result2 error) {
 	fake.InstancesStub = nil
 	fake.instancesReturns = struct {
-		result1 []string
+		result1 []service.Instance
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeBrokerServices) InstancesReturnsOnCall(i int, result1 []string, result2 error) {
+func (fake *FakeBrokerServices) InstancesReturnsOnCall(i int, result1 []service.Instance, result2 error) {
 	fake.InstancesStub = nil
 	if fake.instancesReturnsOnCall == nil {
 		fake.instancesReturnsOnCall = make(map[int]struct {
-			result1 []string
+			result1 []service.Instance
 			result2 error
 		})
 	}
 	fake.instancesReturnsOnCall[i] = struct {
-		result1 []string
+		result1 []service.Instance
 		result2 error
 	}{result1, result2}
 }

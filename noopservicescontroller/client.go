@@ -11,6 +11,7 @@ import (
 
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
+	"github.com/pivotal-cf/on-demand-service-broker/service"
 )
 
 type Client struct {
@@ -32,8 +33,8 @@ func (Client) GetInstanceState(serviceInstanceGUID string, logger *log.Logger) (
 	return cf.InstanceState{}, nil
 }
 
-func (Client) GetInstancesOfServiceOffering(serviceOfferingID string, logger *log.Logger) ([]string, error) {
-	return []string{}, nil
+func (Client) GetInstancesOfServiceOffering(serviceOfferingID string, logger *log.Logger) ([]service.Instance, error) {
+	return []service.Instance{}, nil
 }
 
 func New() Client {

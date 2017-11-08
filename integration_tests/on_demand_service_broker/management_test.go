@@ -80,7 +80,7 @@ var _ = Describe("Management API", func() {
 				instancesResponse := responseFrom(instancesRequest, http.StatusOK)
 
 				defer instancesResponse.Body.Close()
-				Expect(ioutil.ReadAll(instancesResponse.Body)).To(MatchJSON(`[{"instance_id": "instance-1"}]`))
+				Expect(ioutil.ReadAll(instancesResponse.Body)).To(MatchJSON(`[{"service_instance_id": "instance-1", "plan_id":"some-cc-plan-guid"}]`))
 			})
 		})
 

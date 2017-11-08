@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
+	"github.com/pivotal-cf/on-demand-service-broker/service"
 	"github.com/pivotal-cf/on-demand-service-broker/upgrader"
 )
 
@@ -13,10 +14,10 @@ type FakeListener struct {
 	StartingStub                  func()
 	startingMutex                 sync.RWMutex
 	startingArgsForCall           []struct{}
-	InstancesToUpgradeStub        func(instances []string)
+	InstancesToUpgradeStub        func(instances []service.Instance)
 	instancesToUpgradeMutex       sync.RWMutex
 	instancesToUpgradeArgsForCall []struct {
-		instances []string
+		instances []service.Instance
 	}
 	InstanceUpgradeStartingStub        func(instance string, index, totalInstances int)
 	instanceUpgradeStartingMutex       sync.RWMutex
@@ -78,15 +79,15 @@ func (fake *FakeListener) StartingCallCount() int {
 	return len(fake.startingArgsForCall)
 }
 
-func (fake *FakeListener) InstancesToUpgrade(instances []string) {
-	var instancesCopy []string
+func (fake *FakeListener) InstancesToUpgrade(instances []service.Instance) {
+	var instancesCopy []service.Instance
 	if instances != nil {
-		instancesCopy = make([]string, len(instances))
+		instancesCopy = make([]service.Instance, len(instances))
 		copy(instancesCopy, instances)
 	}
 	fake.instancesToUpgradeMutex.Lock()
 	fake.instancesToUpgradeArgsForCall = append(fake.instancesToUpgradeArgsForCall, struct {
-		instances []string
+		instances []service.Instance
 	}{instancesCopy})
 	fake.recordInvocation("InstancesToUpgrade", []interface{}{instancesCopy})
 	fake.instancesToUpgradeMutex.Unlock()
@@ -101,7 +102,7 @@ func (fake *FakeListener) InstancesToUpgradeCallCount() int {
 	return len(fake.instancesToUpgradeArgsForCall)
 }
 
-func (fake *FakeListener) InstancesToUpgradeArgsForCall(i int) []string {
+func (fake *FakeListener) InstancesToUpgradeArgsForCall(i int) []service.Instance {
 	fake.instancesToUpgradeMutex.RLock()
 	defer fake.instancesToUpgradeMutex.RUnlock()
 	return fake.instancesToUpgradeArgsForCall[i].instances

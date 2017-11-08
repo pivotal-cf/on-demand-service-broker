@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
+	"github.com/pivotal-cf/on-demand-service-broker/service"
 )
 
 type LoggingListener struct {
@@ -26,10 +27,10 @@ func (ll LoggingListener) Starting() {
 	ll.logger.Println("STARTING UPGRADES")
 }
 
-func (ll LoggingListener) InstancesToUpgrade(instances []string) {
+func (ll LoggingListener) InstancesToUpgrade(instances []service.Instance) {
 	msg := "Service Instances:"
 	for _, instance := range instances {
-		msg = fmt.Sprintf("%s %s", msg, instance)
+		msg = fmt.Sprintf("%s %s", msg, instance.GUID)
 	}
 	ll.logger.Println(msg)
 	ll.logger.Printf("Total Service Instances found in Cloud Foundry: %d\n", len(instances))

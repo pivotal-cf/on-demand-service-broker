@@ -13,6 +13,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
+	"github.com/pivotal-cf/on-demand-service-broker/service"
 )
 
 var _ = Describe("Orphan Deployments", func() {
@@ -40,7 +41,7 @@ var _ = Describe("Orphan Deployments", func() {
 
 	Context("when there is an instance with a deployment", func() {
 		BeforeEach(func() {
-			cfClient.GetInstancesOfServiceOfferingReturns([]string{"one"}, nil)
+			cfClient.GetInstancesOfServiceOfferingReturns([]service.Instance{{GUID: "one"}}, nil)
 			boshClient.GetDeploymentsReturns([]boshdirector.Deployment{{Name: "service-instance_one"}}, nil)
 		})
 
@@ -52,7 +53,7 @@ var _ = Describe("Orphan Deployments", func() {
 
 	Context("when there are no instances and one deployment", func() {
 		BeforeEach(func() {
-			cfClient.GetInstancesOfServiceOfferingReturns([]string{}, nil)
+			cfClient.GetInstancesOfServiceOfferingReturns([]service.Instance{}, nil)
 			boshClient.GetDeploymentsReturns([]boshdirector.Deployment{{Name: "service-instance_one"}}, nil)
 		})
 
@@ -64,7 +65,7 @@ var _ = Describe("Orphan Deployments", func() {
 
 	Context("when there is one instance and no deployments", func() {
 		BeforeEach(func() {
-			cfClient.GetInstancesOfServiceOfferingReturns([]string{"one"}, nil)
+			cfClient.GetInstancesOfServiceOfferingReturns([]service.Instance{{GUID: "one"}}, nil)
 			boshClient.GetDeploymentsReturns([]boshdirector.Deployment{}, nil)
 		})
 
@@ -76,7 +77,7 @@ var _ = Describe("Orphan Deployments", func() {
 
 	Context("when there is one orphan deployment and two non-ODB deployments", func() {
 		BeforeEach(func() {
-			cfClient.GetInstancesOfServiceOfferingReturns([]string{"one"}, nil)
+			cfClient.GetInstancesOfServiceOfferingReturns([]service.Instance{{GUID: "one"}}, nil)
 			deployments := []boshdirector.Deployment{
 				{Name: "service-instance_one"},
 				{Name: "not-a-service-instance"},
@@ -94,7 +95,7 @@ var _ = Describe("Orphan Deployments", func() {
 
 	Context("when the getting the list of instances fails", func() {
 		BeforeEach(func() {
-			cfClient.GetInstancesOfServiceOfferingReturns([]string{}, errors.New("error listing instances: listing error"))
+			cfClient.GetInstancesOfServiceOfferingReturns([]service.Instance{}, errors.New("error listing instances: listing error"))
 		})
 
 		It("broker logs an error", func() {
@@ -105,7 +106,7 @@ var _ = Describe("Orphan Deployments", func() {
 
 	Context("when the getting the list of deployments fails", func() {
 		BeforeEach(func() {
-			cfClient.GetInstancesOfServiceOfferingReturns([]string{"one"}, nil)
+			cfClient.GetInstancesOfServiceOfferingReturns([]service.Instance{{GUID: "one"}}, nil)
 			boshClient.GetDeploymentsReturns([]boshdirector.Deployment{}, errors.New("error getting deployments: get deployment error"))
 		})
 
