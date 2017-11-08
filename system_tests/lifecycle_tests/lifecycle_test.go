@@ -111,6 +111,17 @@ var _ = Describe("On-demand service broker", func() {
 		}
 	}
 
+	testCredhubRef := func(appName, serviceOffering string) {
+		By("ensuring credential in app env is credhub-ref")
+		bindingCredentials, err := cf_helpers.AppBindingCreds(appName, serviceOffering)
+		Expect(err).NotTo(HaveOccurred())
+		credMap, ok := bindingCredentials.(map[string]interface{})
+		Expect(ok).To(BeTrue())
+		credhubRef, ok := credMap["credhub-ref"].(string)
+		Expect(ok).To(BeTrue(), fmt.Sprintf("unable to find credhub-ref in credentials %+v", credMap))
+		Expect(credhubRef).To(ContainSubstring("/c/%s", serviceOffering))
+	}
+
 	lifecycle := func(t LifecycleTest) {
 		It("supports the lifecycle of a service instance", func() {
 			By(fmt.Sprintf("allowing creation of a service instance with plan: '%s' and arbitrary params: '%s'", t.Plan, string(t.ArbitraryParams)))
@@ -128,6 +139,10 @@ var _ = Describe("On-demand service broker", func() {
 					"-r",
 				), cf_helpers.CfTimeout).Should(gexec.Exit())
 			}()
+
+			if shouldTestCredhubRef {
+				testCredhubRef(testAppName, serviceOffering)
+			}
 
 			By("creating a service key")
 			serviceKeyName := uuid.New()[:7]

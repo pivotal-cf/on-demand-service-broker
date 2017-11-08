@@ -33,6 +33,7 @@ var (
 	exampleAppType       string
 	tests                = parseTests()
 	shouldTestODBMetrics bool
+	shouldTestCredhubRef bool
 )
 
 func parseTests() []LifecycleTest {
@@ -81,6 +82,7 @@ func parseEnv() {
 	exampleAppPath = envMustHave("EXAMPLE_APP_PATH")
 	exampleAppType = envMustHave("EXAMPLE_APP_TYPE")
 	shouldTestODBMetrics = os.Getenv("TEST_ODB_METRICS") != ""
+	shouldTestCredhubRef = os.Getenv("TEST_CREDHUB_REF") == "true"
 }
 
 var _ = SynchronizedAfterSuite(func() {}, func() {
