@@ -7,5 +7,5 @@ type CredentialStore interface {
 	Set(key string, value interface{}) error
 	Delete(key string) error
 	Authenticate() error
-	AddPermissions(credentialName string, permissions []permissions.Permission) ([]permissions.Permission, error)
+	AddPermissions(credentialName string, perms []permissions.Permission) ([]permissions.Permission, error)
 }

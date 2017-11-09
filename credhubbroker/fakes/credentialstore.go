@@ -41,11 +41,11 @@ type FakeCredentialStore struct {
 	authenticateReturnsOnCall map[int]struct {
 		result1 error
 	}
-	AddPermissionsStub        func(credentialName string, blah []permissions.Permission) ([]permissions.Permission, error)
+	AddPermissionsStub        func(credentialName string, perms []permissions.Permission) ([]permissions.Permission, error)
 	addPermissionsMutex       sync.RWMutex
 	addPermissionsArgsForCall []struct {
 		credentialName string
-		blah           []permissions.Permission
+		perms          []permissions.Permission
 	}
 	addPermissionsReturns struct {
 		result1 []permissions.Permission
@@ -196,22 +196,22 @@ func (fake *FakeCredentialStore) AuthenticateReturnsOnCall(i int, result1 error)
 	}{result1}
 }
 
-func (fake *FakeCredentialStore) AddPermissions(credentialName string, blah []permissions.Permission) ([]permissions.Permission, error) {
-	var blahCopy []permissions.Permission
-	if blah != nil {
-		blahCopy = make([]permissions.Permission, len(blah))
-		copy(blahCopy, blah)
+func (fake *FakeCredentialStore) AddPermissions(credentialName string, perms []permissions.Permission) ([]permissions.Permission, error) {
+	var permsCopy []permissions.Permission
+	if perms != nil {
+		permsCopy = make([]permissions.Permission, len(perms))
+		copy(permsCopy, perms)
 	}
 	fake.addPermissionsMutex.Lock()
 	ret, specificReturn := fake.addPermissionsReturnsOnCall[len(fake.addPermissionsArgsForCall)]
 	fake.addPermissionsArgsForCall = append(fake.addPermissionsArgsForCall, struct {
 		credentialName string
-		blah           []permissions.Permission
-	}{credentialName, blahCopy})
-	fake.recordInvocation("AddPermissions", []interface{}{credentialName, blahCopy})
+		perms          []permissions.Permission
+	}{credentialName, permsCopy})
+	fake.recordInvocation("AddPermissions", []interface{}{credentialName, permsCopy})
 	fake.addPermissionsMutex.Unlock()
 	if fake.AddPermissionsStub != nil {
-		return fake.AddPermissionsStub(credentialName, blah)
+		return fake.AddPermissionsStub(credentialName, perms)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -228,7 +228,7 @@ func (fake *FakeCredentialStore) AddPermissionsCallCount() int {
 func (fake *FakeCredentialStore) AddPermissionsArgsForCall(i int) (string, []permissions.Permission) {
 	fake.addPermissionsMutex.RLock()
 	defer fake.addPermissionsMutex.RUnlock()
-	return fake.addPermissionsArgsForCall[i].credentialName, fake.addPermissionsArgsForCall[i].blah
+	return fake.addPermissionsArgsForCall[i].credentialName, fake.addPermissionsArgsForCall[i].perms
 }
 
 func (fake *FakeCredentialStore) AddPermissionsReturns(result1 []permissions.Permission, result2 error) {
