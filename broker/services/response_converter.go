@@ -15,7 +15,6 @@ import (
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/mgmtapi"
-	"github.com/pivotal-cf/on-demand-service-broker/service"
 )
 
 type UpgradeOperation struct {
@@ -68,16 +67,6 @@ func (r ResponseConverter) UpgradeOperationFrom(response *http.Response) (Upgrad
 			"unexpected status code: %d. body: %s", response.StatusCode, string(body),
 		)
 	}
-}
-
-func (r ResponseConverter) ListInstancesFrom(response *http.Response) ([]service.Instance, error) {
-	var instances []service.Instance
-	err := decodeBodyInto(response, &instances)
-	if err != nil {
-		return nil, err
-	}
-
-	return instances, nil
 }
 
 func (r ResponseConverter) LastOperationFrom(response *http.Response) (brokerapi.LastOperation, error) {

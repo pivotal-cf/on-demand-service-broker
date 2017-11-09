@@ -481,3 +481,19 @@ type DashboardClient struct {
 type Quotas struct {
 	ServiceInstanceLimit *int `yaml:"service_instance_limit,omitempty"`
 }
+
+type UpgradeAllInstanceErrandConfig struct {
+	BrokerAPI           BrokerAPI           `yaml:"broker_api"`
+	ServiceInstancesAPI ServiceInstancesAPI `yaml:"service_instances_api"`
+	PollingInterval     int                 `yaml:"polling_interval"`
+}
+
+type BrokerAPI struct {
+	URL            string             `yaml:"url"`
+	Authentication BOSHAuthentication `yaml:"authentication"`
+}
+
+type ServiceInstancesAPI struct {
+	URL            string             `yaml:"url"`
+	Authentication BOSHAuthentication `yaml:"authentication"`
+}

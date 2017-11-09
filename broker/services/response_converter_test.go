@@ -29,50 +29,6 @@ var _ = Describe("Response Converter", func() {
 		converter = services.ResponseConverter{}
 	})
 
-	Context("list instances", func() {
-		It("returns service instance IDs", func() {
-			response := http.Response{
-				StatusCode: http.StatusOK,
-				Body:       asBody(listInstancesJSON("instance1-guid", "instance2-guid")),
-			}
-
-			instances, err := converter.ListInstancesFrom(&response)
-
-			Expect(err).NotTo(HaveOccurred())
-			Expect(instances).To(ConsistOf([]service.Instance{
-				{GUID: "instance1-guid", PlanGUID: "planId"},
-				{GUID: "instance2-guid", PlanGUID: "planId"},
-			}))
-		})
-
-		It("returns an error when the response status is not OK", func() {
-			response := http.Response{
-				Status:     "500 Internal Server Error",
-				StatusCode: 500,
-				Body:       asBody(""),
-			}
-
-			_, err := converter.ListInstancesFrom(&response)
-
-			Expect(err).To(MatchError(
-				ContainSubstring("HTTP response status: 500 Internal Server Error"),
-			))
-		})
-
-		It("returns an error when the response body cannot be decoded", func() {
-			response := http.Response{
-				StatusCode: http.StatusOK,
-				Body:       asBody("{ invalid json }"),
-			}
-
-			_, err := converter.ListInstancesFrom(&response)
-
-			Expect(err).To(MatchError(
-				ContainSubstring("invalid character"),
-			))
-		})
-	})
-
 	Context("last operation", func() {
 		It("returns the last operation data", func() {
 			expectedOperation := brokerapi.LastOperation{

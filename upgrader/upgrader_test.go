@@ -32,6 +32,7 @@ var _ = Describe("Upgrader", func() {
 		actualErr            error
 		fakeListener         *fakes.FakeListener
 		brokerServicesClient *fakes.FakeBrokerServices
+		instanceLister       *fakes.FakeInstanceLister
 
 		upgradeOperationAccepted = services.UpgradeOperation{
 			Type: services.UpgradeAccepted,
@@ -43,17 +44,18 @@ var _ = Describe("Upgrader", func() {
 	BeforeEach(func() {
 		fakeListener = new(fakes.FakeListener)
 		brokerServicesClient = new(fakes.FakeBrokerServices)
+		instanceLister = new(fakes.FakeInstanceLister)
 	})
 
 	JustBeforeEach(func() {
-		upgrader := upgrader.New(brokerServicesClient, pollingInterval, fakeListener)
+		upgrader := upgrader.New(brokerServicesClient, instanceLister, pollingInterval, fakeListener)
 		actualErr = upgrader.Upgrade()
 	})
 
 	Context("when upgrading one instance", func() {
 		Context("and is successful", func() {
 			BeforeEach(func() {
-				brokerServicesClient.InstancesReturns([]service.Instance{{GUID: serviceInstanceId}}, nil)
+				instanceLister.InstancesReturns([]service.Instance{{GUID: serviceInstanceId}}, nil)
 				brokerServicesClient.UpgradeInstanceReturns(upgradeOperationAccepted, nil)
 
 				brokerServicesClient.LastOperationReturns(
@@ -74,7 +76,7 @@ var _ = Describe("Upgrader", func() {
 		Context("and it fails", func() {
 			Context("to get a list of service instances", func() {
 				BeforeEach(func() {
-					brokerServicesClient.InstancesReturns(nil, errors.New("bad status code"))
+					instanceLister.InstancesReturns(nil, errors.New("bad status code"))
 				})
 
 				It("returns an error", func() {
@@ -84,7 +86,7 @@ var _ = Describe("Upgrader", func() {
 
 			Context("due to a malformed service instance guid", func() {
 				BeforeEach(func() {
-					brokerServicesClient.InstancesReturns([]service.Instance{{GUID: "not a guid Q#$%#$%^&&*$%^#$FGRTYW${T:WED:AWSD)E@#PE{:QS:{QLWD"}}, nil)
+					instanceLister.InstancesReturns([]service.Instance{{GUID: "not a guid Q#$%#$%^&&*$%^#$FGRTYW${T:WED:AWSD)E@#PE{:QS:{QLWD"}}, nil)
 					brokerServicesClient.UpgradeInstanceReturns(services.UpgradeOperation{}, errors.New("failed"))
 				})
 
@@ -97,7 +99,7 @@ var _ = Describe("Upgrader", func() {
 
 	Context("when upgrading an instance is not instant", func() {
 		BeforeEach(func() {
-			brokerServicesClient.InstancesReturns([]service.Instance{{GUID: serviceInstanceId}}, nil)
+			instanceLister.InstancesReturns([]service.Instance{{GUID: serviceInstanceId}}, nil)
 
 			brokerServicesClient.UpgradeInstanceReturns(upgradeOperationAccepted, nil)
 
@@ -116,7 +118,7 @@ var _ = Describe("Upgrader", func() {
 
 	Context("when the CF service instance has been deleted", func() {
 		BeforeEach(func() {
-			brokerServicesClient.InstancesReturns([]service.Instance{{GUID: serviceInstanceId}}, nil)
+			instanceLister.InstancesReturns([]service.Instance{{GUID: serviceInstanceId}}, nil)
 			brokerServicesClient.UpgradeInstanceReturns(services.UpgradeOperation{
 				Type: services.InstanceNotFound,
 			}, nil)
@@ -133,7 +135,7 @@ var _ = Describe("Upgrader", func() {
 
 	Context("when the bosh deployment cannot be found", func() {
 		BeforeEach(func() {
-			brokerServicesClient.InstancesReturns([]service.Instance{{GUID: serviceInstanceId}}, nil)
+			instanceLister.InstancesReturns([]service.Instance{{GUID: serviceInstanceId}}, nil)
 			brokerServicesClient.UpgradeInstanceReturns(services.UpgradeOperation{
 				Type: services.OrphanDeployment,
 			}, nil)
@@ -151,7 +153,7 @@ var _ = Describe("Upgrader", func() {
 	Context("when an operation is in progress for a service instance", func() {
 		const serviceInstanceId = "serviceInstanceId"
 		BeforeEach(func() {
-			brokerServicesClient.InstancesReturns([]service.Instance{{GUID: serviceInstanceId}}, nil)
+			instanceLister.InstancesReturns([]service.Instance{{GUID: serviceInstanceId}}, nil)
 
 			brokerServicesClient.UpgradeInstanceReturns(services.UpgradeOperation{
 				Type: services.OperationInProgress,
@@ -180,7 +182,7 @@ var _ = Describe("Upgrader", func() {
 	Context("when deletion is in progress for a service instance", func() {
 		const serviceInstanceId = "serviceInstanceId"
 		BeforeEach(func() {
-			brokerServicesClient.InstancesReturns([]service.Instance{{GUID: serviceInstanceId}}, nil)
+			instanceLister.InstancesReturns([]service.Instance{{GUID: serviceInstanceId}}, nil)
 
 			brokerServicesClient.UpgradeInstanceReturns(services.UpgradeOperation{
 				Type: services.OperationInProgress,
@@ -212,7 +214,7 @@ var _ = Describe("Upgrader", func() {
 			upgradeTaskID3 := 789
 
 			BeforeEach(func() {
-				brokerServicesClient.InstancesReturns([]service.Instance{
+				instanceLister.InstancesReturns([]service.Instance{
 					{GUID: serviceInstance1},
 					{GUID: serviceInstance2},
 					{GUID: serviceInstance3},
@@ -252,7 +254,7 @@ var _ = Describe("Upgrader", func() {
 			serviceInstance3 := "serviceInstanceId3"
 
 			BeforeEach(func() {
-				brokerServicesClient.InstancesReturns([]service.Instance{
+				instanceLister.InstancesReturns([]service.Instance{
 					{GUID: serviceInstance1},
 					{GUID: serviceInstance2},
 					{GUID: serviceInstance3},
@@ -281,7 +283,7 @@ var _ = Describe("Upgrader", func() {
 			upgradeTaskID2 := 987
 
 			BeforeEach(func() {
-				brokerServicesClient.InstancesReturns([]service.Instance{
+				instanceLister.InstancesReturns([]service.Instance{
 					{GUID: serviceInstance1},
 					{GUID: serviceInstance2},
 					{GUID: serviceInstance3},
@@ -322,7 +324,7 @@ var _ = Describe("Upgrader", func() {
 			serviceInstance3 := "serviceInstanceId3"
 
 			BeforeEach(func() {
-				brokerServicesClient.InstancesReturns([]service.Instance{
+				instanceLister.InstancesReturns([]service.Instance{
 					{GUID: serviceInstance1},
 					{GUID: serviceInstance2},
 					{GUID: serviceInstance3},
@@ -348,7 +350,7 @@ var _ = Describe("Upgrader", func() {
 			serviceInstance3 := "serviceInstanceId3"
 
 			BeforeEach(func() {
-				brokerServicesClient.InstancesReturns([]service.Instance{
+				instanceLister.InstancesReturns([]service.Instance{
 					{GUID: serviceInstance1},
 					{GUID: serviceInstance2},
 					{GUID: serviceInstance3},

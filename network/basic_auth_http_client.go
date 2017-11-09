@@ -65,7 +65,7 @@ func (b *BasicAuthHTTPClient) buildURL(path string, query map[string]string) (st
 		base = strings.TrimRight(b.baseURL, "/")
 	}
 
-	if !strings.HasPrefix(path, "/") {
+	if !strings.HasPrefix(path, "/") && path != "" {
 		path = "/" + path
 	}
 

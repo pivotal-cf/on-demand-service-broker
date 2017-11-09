@@ -14,7 +14,6 @@ import (
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/mgmtapi"
-	"github.com/pivotal-cf/on-demand-service-broker/service"
 )
 
 //go:generate counterfeiter -o fakes/fake_http_client.go . HTTPClient
@@ -33,14 +32,6 @@ func NewBrokerServices(client HTTPClient) *BrokerServices {
 		client:    client,
 		converter: ResponseConverter{},
 	}
-}
-
-func (b *BrokerServices) Instances() ([]service.Instance, error) {
-	response, err := b.client.Get("/mgmt/service_instances", nil)
-	if err != nil {
-		return nil, err
-	}
-	return b.converter.ListInstancesFrom(response)
 }
 
 func (b *BrokerServices) UpgradeInstance(instanceGUID string) (UpgradeOperation, error) {

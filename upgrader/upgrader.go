@@ -30,23 +30,26 @@ type Listener interface {
 
 //go:generate counterfeiter -o fakes/fake_broker_services.go . BrokerServices
 type BrokerServices interface {
-	Instances() ([]service.Instance, error)
 	UpgradeInstance(instance string) (services.UpgradeOperation, error)
 	LastOperation(instance string, operationData broker.OperationData) (brokerapi.LastOperation, error)
 }
 
+//go:generate counterfeiter -o fakes/fake_instance_lister.go . InstanceLister
+type InstanceLister interface {
+	Instances() ([]service.Instance, error)
+}
+
 type upgrader struct {
 	brokerServices  BrokerServices
-	brokerUsername  string
-	brokerPassword  string
-	brokerUrl       string
+	instanceLister  InstanceLister
 	pollingInterval time.Duration
 	listener        Listener
 }
 
-func New(brokerServices BrokerServices, pollingInterval int, listener Listener) upgrader {
+func New(brokerServices BrokerServices, instanceLister InstanceLister, pollingInterval int, listener Listener) upgrader {
 	return upgrader{
 		brokerServices:  brokerServices,
+		instanceLister:  instanceLister,
 		pollingInterval: time.Duration(pollingInterval) * time.Second,
 		listener:        listener,
 	}
@@ -57,7 +60,7 @@ func (u upgrader) Upgrade() error {
 
 	u.listener.Starting()
 
-	instances, err := u.brokerServices.Instances()
+	instances, err := u.instanceLister.Instances()
 	if err != nil {
 		return fmt.Errorf("error listing service instances: %s", err)
 	}
