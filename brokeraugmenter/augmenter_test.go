@@ -34,11 +34,6 @@ var _ = Describe("Broker CredHub Augmenter", func() {
 
 	It("returns a credhub broker when Credhub is configured", func() {
 		var conf config.Config
-		conf.CF = config.CF{
-			Authentication: config.UAAAuthentication{
-				URL: "https://a.cf.uaa.url.example.com",
-			},
-		}
 		conf.CredHub = config.CredHub{
 			APIURL:       "https://a.credhub.url.example.com",
 			ClientID:     "test-id",
@@ -52,13 +47,26 @@ var _ = Describe("Broker CredHub Augmenter", func() {
 		Expect(broker).To(BeAssignableToTypeOf(&credhubbroker.CredHubBroker{}))
 	})
 
+	It("retries if DNS of credhub cannot be found", func() {
+		var conf config.Config
+		conf.CredHub = config.CredHub{
+			APIURL:       "https://a.credhub.url.example.com",
+			ClientID:     "test-id",
+			ClientSecret: "test-secret",
+		}
+
+		baseBroker := &broker.Broker{}
+		loggerFactory := loggerfactory.New(GinkgoWriter, "broker-augmenter", loggerfactory.Flags)
+
+		factory.NewReturns(nil, errors.New("dial blah blah blah: no such host"))
+		go func() {
+			brokeraugmenter.New(conf, baseBroker, factory, loggerFactory)
+		}()
+		Eventually(factory.NewCallCount).Should(BeNumerically(">", 1))
+	})
+
 	It("returns an error if cannot create a credential store", func() {
 		var conf config.Config
-		conf.CF = config.CF{
-			Authentication: config.UAAAuthentication{
-				URL: "https://a.cf.uaa.url.example.com",
-			},
-		}
 		conf.CredHub = config.CredHub{
 			APIURL:       "https://a.credhub.url.example.com",
 			ClientID:     "test-id",
