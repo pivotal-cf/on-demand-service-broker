@@ -28,6 +28,7 @@ var (
 	brokerUsername       string
 	brokerPassword       string
 	serviceOffering      string
+	serviceID            string
 	dopplerAddress       string
 	exampleAppPath       string
 	exampleAppType       string
@@ -78,6 +79,7 @@ func parseEnv() {
 	brokerPassword = envMustHave("BROKER_PASSWORD")
 	brokerURL = envMustHave("BROKER_URL")
 	serviceOffering = envMustHave("SERVICE_NAME")
+	serviceID = envMustHave("SERVICE_GUID")
 	dopplerAddress = os.Getenv("DOPPLER_ADDRESS")
 	exampleAppPath = envMustHave("EXAMPLE_APP_PATH")
 	exampleAppType = envMustHave("EXAMPLE_APP_TYPE")
