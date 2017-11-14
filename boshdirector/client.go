@@ -63,6 +63,7 @@ func New(url string, disableSSLCertVerification bool, trustedCertPEM []byte, htt
 
 		authHeaderBuilder: authorizationheader.NewNoAuthHeaderBuilder(),
 	}
+	certAppender.AppendCertsFromPEM(trustedCertPEM)
 
 	boshInfo, err := noAuthClient.GetInfo(logger)
 	if err != nil {
@@ -73,8 +74,6 @@ func New(url string, disableSSLCertVerification bool, trustedCertPEM []byte, htt
 	if err != nil {
 		return nil, fmt.Errorf("error creating BOSH authorization header builder: %s", err)
 	}
-
-	certAppender.AppendCertsFromPEM(trustedCertPEM)
 
 	return &Client{
 			BoshInfo:          boshInfo,
