@@ -58,7 +58,12 @@ func main() {
 	brokerServices := services.NewBrokerServices(basicAuthClient)
 	listener := upgrader.NewLoggingListener(logger)
 
-	serviceInstancesAPIBasicAuthClient := network.NewBasicAuthHTTPClient(httpClient, conf.ServiceInstancesAPI.Authentication.Basic.Username, conf.ServiceInstancesAPI.Authentication.Basic.Password, conf.ServiceInstancesAPI.URL)
+	serviceInstancesAPIBasicAuthClient := network.NewBasicAuthHTTPClient(
+		httpClient,
+		conf.ServiceInstancesAPI.Authentication.Basic.Username,
+		conf.ServiceInstancesAPI.Authentication.Basic.Password,
+		conf.ServiceInstancesAPI.URL,
+	)
 	serviceInstancesServices := service.NewInstanceLister(serviceInstancesAPIBasicAuthClient)
 	upgradeTool := upgrader.New(brokerServices, serviceInstancesServices, conf.PollingInterval, listener)
 

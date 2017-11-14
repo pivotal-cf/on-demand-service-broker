@@ -7,6 +7,7 @@
 package network
 
 import (
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -38,6 +39,20 @@ func (b *BasicAuthHTTPClient) Get(path string, query map[string]string) (*http.R
 	}
 
 	request, err := http.NewRequest("GET", u, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return b.do(request)
+}
+
+func (b *BasicAuthHTTPClient) Post(path string, body io.Reader) (*http.Response, error) {
+	u, err := b.buildURL(path, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	request, err := http.NewRequest("POST", u, body)
 	if err != nil {
 		return nil, err
 	}

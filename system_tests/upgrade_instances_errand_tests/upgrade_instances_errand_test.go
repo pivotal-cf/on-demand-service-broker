@@ -7,17 +7,27 @@
 package upgrade_instances_errand_tests
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"net/http"
 	"path"
 	"strings"
 	"sync"
+
+	"os"
+
+	"log"
 
 	"github.com/cloudfoundry-incubator/cf-test-helpers/cf"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
 	"github.com/pborman/uuid"
+	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
+	cfClient "github.com/pivotal-cf/on-demand-service-broker/cf"
+	"github.com/pivotal-cf/on-demand-service-broker/network"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/cf_helpers"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 )
@@ -51,6 +61,7 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 
 		By("causing an upgrade error")
 		brokerManifest := boshClient.GetManifest(brokerBoshDeploymentName)
+		updateServiceInstancesAPI(brokerManifest)
 		testPlan := extractPlanProperty(currentPlan, brokerManifest)
 
 		redisServer := testPlan["instance_groups"].([]interface{})[0].(map[interface{}]interface{})
@@ -66,6 +77,7 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 
 	It("when there are no service instances provisioned, upgrade-all-service-instances runs successfully", func() {
 		brokerManifest := boshClient.GetManifest(brokerBoshDeploymentName)
+		updateServiceInstancesAPI(brokerManifest)
 		updatePlanProperties(brokerManifest)
 		migrateJobProperty(brokerManifest)
 
@@ -82,6 +94,7 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 		createServiceInstances()
 
 		brokerManifest := boshClient.GetManifest(brokerBoshDeploymentName)
+		updateServiceInstancesAPI(brokerManifest)
 		updatePlanProperties(brokerManifest)
 		migrateJobProperty(brokerManifest)
 
@@ -150,6 +163,83 @@ func migrateJobProperty(brokerManifest *bosh.BoshManifest) {
 	}
 }
 
+func updateServiceInstancesAPI(brokerManifest *bosh.BoshManifest) {
+	upgradeInstanceProperties := findUpgradeAllServiceInstancesProperties(brokerManifest)
+	if upgradeInstanceProperties["service_instances_api"] != nil {
+		authHeaderBuilder, err := authorizationheader.NewUserTokenAuthHeaderBuilder(
+			os.Getenv("CF_UAA_URL"),
+			"cf",
+			"",
+			os.Getenv("CF_USERNAME"),
+			os.Getenv("CF_PASSWORD"),
+			true,
+			[]byte(""),
+		)
+		Expect(err).NotTo(HaveOccurred())
+
+		cfCli, err := cfClient.New(
+			os.Getenv("CF_URL"),
+			authHeaderBuilder,
+			[]byte(""),
+			true,
+		)
+		Expect(err).NotTo(HaveOccurred())
+
+		logger := log.New(GinkgoWriter, "", log.LstdFlags)
+
+		instances, err := cfCli.GetInstancesOfServiceOffering(brokerName, logger)
+		Expect(err).NotTo(HaveOccurred())
+		instancesJson, err := json.Marshal(instances)
+		Expect(err).NotTo(HaveOccurred())
+
+		serviceInstanceAPIConfig, ok := upgradeInstanceProperties["service_instances_api"].(map[interface{}]interface{})
+		Expect(ok).To(BeTrue())
+		url, ok := serviceInstanceAPIConfig["url"].(string)
+		Expect(ok).To(BeTrue())
+		authentication, ok := serviceInstanceAPIConfig["authentication"].(map[interface{}]interface{})
+		Expect(ok).To(BeTrue())
+		basic, ok := authentication["basic"].(map[interface{}]interface{})
+		Expect(ok).To(BeTrue())
+		username, ok := basic["username"].(string)
+		Expect(ok).To(BeTrue())
+		password, ok := basic["password"].(string)
+		Expect(ok).To(BeTrue())
+
+		Expect(url).NotTo(Equal(""), "url")
+		Expect(username).NotTo(Equal(""), "username")
+		Expect(password).NotTo(Equal(""), "password")
+
+		httpClient := network.NewDefaultHTTPClient()
+		exampleServiceInstancesClient := network.NewBasicAuthHTTPClient(
+			httpClient,
+			username,
+			password,
+			url,
+		)
+		resp, err := exampleServiceInstancesClient.Post("", bytes.NewReader(instancesJson))
+		Expect(err).NotTo(HaveOccurred())
+		Expect(resp.StatusCode).To(Equal(http.StatusOK))
+	}
+}
+
+func findUpgradeAllServiceInstancesProperties(brokerManifest *bosh.BoshManifest) map[string]interface{} {
+	return findJobProperties(brokerManifest, "upgrade-all-service-instances", "upgrade-all-service-instances")
+}
+
+func findJobProperties(brokerManifest *bosh.BoshManifest, igName, jobName string) map[string]interface{} {
+	for _, ig := range brokerManifest.InstanceGroups {
+		if ig.Name == igName {
+			for _, job := range ig.Jobs {
+				if job.Name == jobName {
+					return job.Properties
+				}
+			}
+		}
+	}
+
+	return map[string]interface{}{}
+}
+
 func createServiceInstances() {
 	var wg sync.WaitGroup
 
@@ -157,6 +247,7 @@ func createServiceInstances() {
 		wg.Add(1)
 
 		go func(ts *testService) {
+			defer GinkgoRecover()
 			Eventually(cf.Cf("create-service", serviceOffering, currentPlan, ts.Name), cf_helpers.CfTimeout).Should(
 				gexec.Exit(0),
 			)
