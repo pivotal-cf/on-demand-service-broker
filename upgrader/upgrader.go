@@ -30,7 +30,7 @@ type Listener interface {
 
 //go:generate counterfeiter -o fakes/fake_broker_services.go . BrokerServices
 type BrokerServices interface {
-	UpgradeInstance(instance string) (services.UpgradeOperation, error)
+	UpgradeInstance(instance service.Instance) (services.UpgradeOperation, error)
 	LastOperation(instance string, operationData broker.OperationData) (brokerapi.LastOperation, error)
 }
 
@@ -100,7 +100,7 @@ func (u upgrader) upgradeInstances(instances []service.Instance) (int, int, int,
 	instanceCount := len(instances)
 	for i, instance := range instances {
 		u.listener.InstanceUpgradeStarting(instance.GUID, i, instanceCount)
-		operation, err := u.brokerServices.UpgradeInstance(instance.GUID)
+		operation, err := u.brokerServices.UpgradeInstance(instance)
 		if err != nil {
 			return 0, 0, 0, nil, fmt.Errorf(
 				"Upgrade failed for service instance %s: %s\n", instance.GUID, err,

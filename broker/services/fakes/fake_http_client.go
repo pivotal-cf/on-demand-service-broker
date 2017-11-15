@@ -23,10 +23,11 @@ type FakeHTTPClient struct {
 		result1 *http.Response
 		result2 error
 	}
-	PatchStub        func(path string) (*http.Response, error)
+	PatchStub        func(path, body string) (*http.Response, error)
 	patchMutex       sync.RWMutex
 	patchArgsForCall []struct {
 		path string
+		body string
 	}
 	patchReturns struct {
 		result1 *http.Response
@@ -92,16 +93,17 @@ func (fake *FakeHTTPClient) GetReturnsOnCall(i int, result1 *http.Response, resu
 	}{result1, result2}
 }
 
-func (fake *FakeHTTPClient) Patch(path string) (*http.Response, error) {
+func (fake *FakeHTTPClient) Patch(path string, body string) (*http.Response, error) {
 	fake.patchMutex.Lock()
 	ret, specificReturn := fake.patchReturnsOnCall[len(fake.patchArgsForCall)]
 	fake.patchArgsForCall = append(fake.patchArgsForCall, struct {
 		path string
-	}{path})
-	fake.recordInvocation("Patch", []interface{}{path})
+		body string
+	}{path, body})
+	fake.recordInvocation("Patch", []interface{}{path, body})
 	fake.patchMutex.Unlock()
 	if fake.PatchStub != nil {
-		return fake.PatchStub(path)
+		return fake.PatchStub(path, body)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -115,10 +117,10 @@ func (fake *FakeHTTPClient) PatchCallCount() int {
 	return len(fake.patchArgsForCall)
 }
 
-func (fake *FakeHTTPClient) PatchArgsForCall(i int) string {
+func (fake *FakeHTTPClient) PatchArgsForCall(i int) (string, string) {
 	fake.patchMutex.RLock()
 	defer fake.patchMutex.RUnlock()
-	return fake.patchArgsForCall[i].path
+	return fake.patchArgsForCall[i].path, fake.patchArgsForCall[i].body
 }
 
 func (fake *FakeHTTPClient) PatchReturns(result1 *http.Response, result2 error) {

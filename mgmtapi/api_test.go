@@ -16,10 +16,13 @@ import (
 	"net/http"
 	"net/http/httptest"
 
+	"strings"
+
 	"github.com/gorilla/mux"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
+	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
@@ -72,16 +75,16 @@ var _ = Describe("Management API", func() {
 		Context("of which there are three", func() {
 			var (
 				instance1 = service.Instance{
-					GUID:     "instance-guid-1",
-					PlanGUID: "plan-guid-1",
+					GUID:         "instance-guid-1",
+					PlanUniqueID: "this-is-plan-1",
 				}
 				instance2 = service.Instance{
-					GUID:     "instance-guid-2",
-					PlanGUID: "plan-guid-1",
+					GUID:         "instance-guid-2",
+					PlanUniqueID: "this-is-plan-1",
 				}
 				instance3 = service.Instance{
-					GUID:     "instance-guid-3",
-					PlanGUID: "plan-guid-2",
+					GUID:         "instance-guid-3",
+					PlanUniqueID: "this-is-plan-2",
 				}
 			)
 
@@ -90,11 +93,8 @@ var _ = Describe("Management API", func() {
 				manageableBroker.InstancesReturns(instances, nil)
 			})
 
-			It("returns HTTP 200", func() {
-				Expect(listResp.StatusCode).To(Equal(http.StatusOK))
-			})
-
 			It("returns a list of all three instances", func() {
+				Expect(listResp.StatusCode).To(Equal(http.StatusOK))
 				var instances []service.Instance
 				Expect(json.NewDecoder(listResp.Body).Decode(&instances)).To(Succeed())
 				Expect(instances).To(ConsistOf(instance1, instance2, instance3))
@@ -106,11 +106,8 @@ var _ = Describe("Management API", func() {
 				manageableBroker.InstancesReturns(nil, errors.New("error getting instances"))
 			})
 
-			It("returns HTTP 500", func() {
+			It("returns HTTP 500 and logs the error", func() {
 				Expect(listResp.StatusCode).To(Equal(http.StatusInternalServerError))
-			})
-
-			It("logs the error", func() {
 				Eventually(logs).Should(gbytes.Say("error occurred querying instances: error getting instances"))
 			})
 		})
@@ -118,21 +115,26 @@ var _ = Describe("Management API", func() {
 
 	Describe("upgrading an instance", func() {
 		var (
-			instanceID = "283974"
-			taskID     = 54321
+			instanceID  = "283974"
+			taskID      = 54321
+			planID      = "some-plan-id"
+			requestBody string
 
 			upgradeResp *http.Response
 		)
 
+		BeforeEach(func() {
+			requestBody = fmt.Sprintf(`{"plan_id":"%s"}`, planID)
+		})
+
 		JustBeforeEach(func() {
 			var err error
-			upgradeResp, err = Patch(fmt.Sprintf("%s/mgmt/service_instances/"+instanceID, server.URL))
+			upgradeResp, err = Patch(fmt.Sprintf("%s/mgmt/service_instances/%s", server.URL, instanceID), requestBody)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
 		Context("when it succeeds", func() {
 			contextID := "some-context-id"
-			planID := "some-plan-id"
 
 			BeforeEach(func() {
 				manageableBroker.UpgradeReturns(broker.OperationData{
@@ -145,8 +147,13 @@ var _ = Describe("Management API", func() {
 
 			It("upgrades the instance using the broker", func() {
 				Expect(manageableBroker.UpgradeCallCount()).To(Equal(1))
-				_, actualInstanceID, _ := manageableBroker.UpgradeArgsForCall(0)
+				_, actualInstanceID, actualUpdateDetails, _ := manageableBroker.UpgradeArgsForCall(0)
 				Expect(actualInstanceID).To(Equal(instanceID))
+				Expect(actualUpdateDetails).To(Equal(
+					brokerapi.UpdateDetails{
+						PlanID: planID,
+					},
+				))
 			})
 
 			It("responds with HTTP 202", func() {
@@ -208,6 +215,18 @@ var _ = Describe("Management API", func() {
 
 			It("logs the error", func() {
 				Eventually(logs).Should(gbytes.Say(fmt.Sprintf("error occurred upgrading instance %s: upgrade error", instanceID)))
+			})
+		})
+
+		Context("when no request body is provided", func() {
+			BeforeEach(func() {
+				requestBody = ""
+			})
+
+			It("fails with an appropriate error", func() {
+				Expect(upgradeResp.StatusCode).To(Equal(http.StatusUnprocessableEntity))
+				Expect(ioutil.ReadAll(upgradeResp.Body)).To(MatchJSON(`{"description": "Error in request body. Invalid JSON"}`))
+				Eventually(logs).Should(gbytes.Say("error occurred parsing requests body: "))
 			})
 		})
 	})
@@ -532,8 +551,9 @@ var _ = Describe("Management API", func() {
 	})
 })
 
-func Patch(url string) (resp *http.Response, err error) {
-	req, err := http.NewRequest("PATCH", url, nil)
+func Patch(url, body string) (resp *http.Response, err error) {
+	bodyReader := strings.NewReader(body)
+	req, err := http.NewRequest("PATCH", url, bodyReader)
 	if err != nil {
 		return nil, err
 	}

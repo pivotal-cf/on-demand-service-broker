@@ -13,6 +13,8 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"strings"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -80,7 +82,7 @@ var _ = Describe("Management API", func() {
 				instancesResponse := responseFrom(instancesRequest, http.StatusOK)
 
 				defer instancesResponse.Body.Close()
-				Expect(ioutil.ReadAll(instancesResponse.Body)).To(MatchJSON(`[{"service_instance_id": "instance-1", "plan_id":"some-cc-plan-guid"}]`))
+				Expect(ioutil.ReadAll(instancesResponse.Body)).To(MatchJSON(fmt.Sprintf(`[{"service_instance_id": "instance-1", "plan_id":"%s"}]`, dedicatedPlanID)))
 			})
 		})
 
@@ -414,10 +416,6 @@ var _ = Describe("Management API", func() {
 
 			It("responds with the upgrade operation data", func() {
 				runningBroker = startBrokerWithPassingStartupChecks(conf, cfAPI, boshDirector)
-				cfAPI.VerifyAndMock(
-					mockcfapi.GetServiceInstance(instanceID).RespondsWithPlanURL(planGUID, mockcfapi.Update, mockcfapi.Succeeded),
-					mockcfapi.GetServicePlan(planGUID).RespondsOKWith(getServicePlanResponse(postDeployErrandPlanID)),
-				)
 
 				boshDirector.VerifyAndMock(
 					mockbosh.Tasks("service-instance_instance-id").RespondsWithNoTasks(),
@@ -425,7 +423,9 @@ var _ = Describe("Management API", func() {
 					mockbosh.Deploy().RedirectsToTask(upgradingTaskID),
 				)
 
-				upgradeReq, err := http.NewRequest("PATCH", fmt.Sprintf("http://localhost:%d/mgmt/service_instances/%s", brokerPort, instanceID), nil)
+				requestBody := strings.NewReader(fmt.Sprintf(`{"plan_id": "%s"}`, postDeployErrandPlanID))
+
+				upgradeReq, err := http.NewRequest("PATCH", fmt.Sprintf("http://localhost:%d/mgmt/service_instances/%s", brokerPort, instanceID), requestBody)
 				Expect(err).ToNot(HaveOccurred())
 
 				upgradeResp := responseFrom(basicAuthBrokerRequest(upgradeReq), http.StatusAccepted)
@@ -446,10 +446,8 @@ var _ = Describe("Management API", func() {
 				instanceToRunErrand := "instance-group-name/0"
 				conf.ServiceCatalog.Plans[0].LifecycleErrands.PostDeploy.Instances = []string{instanceToRunErrand}
 				runningBroker = startBrokerWithPassingStartupChecks(conf, cfAPI, boshDirector)
-				cfAPI.VerifyAndMock(
-					mockcfapi.GetServiceInstance(instanceID).RespondsWithPlanURL(planGUID, mockcfapi.Update, mockcfapi.Succeeded),
-					mockcfapi.GetServicePlan(planGUID).RespondsOKWith(getServicePlanResponse(postDeployErrandPlanID)),
-				)
+
+				requestBody := strings.NewReader(fmt.Sprintf(`{"plan_id": "%s"}`, postDeployErrandPlanID))
 
 				boshDirector.VerifyAndMock(
 					mockbosh.Tasks("service-instance_instance-id").RespondsWithNoTasks(),
@@ -457,7 +455,7 @@ var _ = Describe("Management API", func() {
 					mockbosh.Deploy().RedirectsToTask(upgradingTaskID),
 				)
 
-				upgradeReq, err := http.NewRequest("PATCH", fmt.Sprintf("http://localhost:%d/mgmt/service_instances/%s", brokerPort, instanceID), nil)
+				upgradeReq, err := http.NewRequest("PATCH", fmt.Sprintf("http://localhost:%d/mgmt/service_instances/%s", brokerPort, instanceID), requestBody)
 				Expect(err).ToNot(HaveOccurred())
 
 				upgradeResp := responseFrom(basicAuthBrokerRequest(upgradeReq), http.StatusAccepted)
@@ -476,96 +474,49 @@ var _ = Describe("Management API", func() {
 			})
 		})
 
-		Context("when the instance cannot be found in CF", func() {
-			It("responds with not found", func() {
-				runningBroker = startBrokerWithPassingStartupChecks(conf, cfAPI, boshDirector)
-				cfAPI.VerifyAndMock(
-					mockcfapi.GetServiceInstance(instanceID).RespondsNotFoundWith(`{}`),
-				)
-
-				upgradeReq, err := http.NewRequest("PATCH", fmt.Sprintf("http://localhost:%d/mgmt/service_instances/%s", brokerPort, instanceID), nil)
-				Expect(err).ToNot(HaveOccurred())
-
-				responseFrom(basicAuthBrokerRequest(upgradeReq), http.StatusNotFound)
-			})
-		})
-
 		Context("when the instance's deployment cannot be found in bosh", func() {
 			It("responds with not found", func() {
 				runningBroker = startBrokerWithPassingStartupChecks(conf, cfAPI, boshDirector)
-				cfAPI.VerifyAndMock(
-					mockcfapi.GetServiceInstance(instanceID).RespondsWithPlanURL(planGUID, mockcfapi.Update, mockcfapi.Succeeded),
-					mockcfapi.GetServicePlan(planGUID).RespondsOKWith(getServicePlanResponse(dedicatedPlanID)),
-				)
+
+				requestBody := strings.NewReader(fmt.Sprintf(`{"plan_id": "%s"}`, dedicatedPlanID))
 
 				boshDirector.VerifyAndMock(
 					mockbosh.Tasks("service-instance_instance-id").RespondsWithNoTasks(),
 					mockbosh.GetDeployment("service-instance_instance-id").RespondsNotFoundWith("{}"),
 				)
 
-				upgradeReq, err := http.NewRequest("PATCH", fmt.Sprintf("http://localhost:%d/mgmt/service_instances/%s", brokerPort, instanceID), nil)
+				upgradeReq, err := http.NewRequest("PATCH", fmt.Sprintf("http://localhost:%d/mgmt/service_instances/%s", brokerPort, instanceID), requestBody)
 				Expect(err).ToNot(HaveOccurred())
 
 				responseFrom(basicAuthBrokerRequest(upgradeReq), http.StatusGone)
 			})
 		})
 
-		Context("when there is an operation in progress on the CF instance", func() {
-			It("responds with conflict", func() {
-				runningBroker = startBrokerWithPassingStartupChecks(conf, cfAPI, boshDirector)
-				cfAPI.VerifyAndMock(
-					mockcfapi.GetServiceInstance(instanceID).RespondsWithPlanURL(planGUID, mockcfapi.Update, mockcfapi.InProgress),
-					mockcfapi.GetServicePlan(planGUID).RespondsOKWith(getServicePlanResponse(dedicatedPlanID)),
-				)
-
-				upgradeReq, err := http.NewRequest("PATCH", fmt.Sprintf("http://localhost:%d/mgmt/service_instances/%s", brokerPort, instanceID), nil)
-				Expect(err).ToNot(HaveOccurred())
-
-				responseFrom(basicAuthBrokerRequest(upgradeReq), http.StatusConflict)
-			})
-		})
-
 		Context("when there are incomplete bosh tasks for the instance's deployment", func() {
 			It("responds with conflict", func() {
 				runningBroker = startBrokerWithPassingStartupChecks(conf, cfAPI, boshDirector)
-				cfAPI.VerifyAndMock(
-					mockcfapi.GetServiceInstance(instanceID).RespondsWithPlanURL(planGUID, mockcfapi.Update, mockcfapi.Succeeded),
-					mockcfapi.GetServicePlan(planGUID).RespondsOKWith(getServicePlanResponse(dedicatedPlanID)),
-				)
+
+				requestBody := strings.NewReader(fmt.Sprintf(`{"plan_id": "%s"}`, dedicatedPlanID))
 
 				boshDirector.VerifyAndMock(
 					mockbosh.Tasks("service-instance_instance-id").RespondsWithATaskContainingState("processing", ""),
 				)
 
-				upgradeReq, err := http.NewRequest("PATCH", fmt.Sprintf("http://localhost:%d/mgmt/service_instances/%s", brokerPort, instanceID), nil)
+				upgradeReq, err := http.NewRequest("PATCH", fmt.Sprintf("http://localhost:%d/mgmt/service_instances/%s", brokerPort, instanceID), requestBody)
 				Expect(err).ToNot(HaveOccurred())
 
 				responseFrom(basicAuthBrokerRequest(upgradeReq), http.StatusConflict)
 			})
 		})
 
-		Context("when the upgrade request fails", func() {
-			It("responds with internal server error", func() {
+		Context("When the request body is empty", func() {
+			It("responds with UnprocessableEntity", func() {
 				runningBroker = startBrokerWithPassingStartupChecks(conf, cfAPI, boshDirector)
-				cfAPI.VerifyAndMock(
-					mockcfapi.GetServiceInstance(instanceID).RespondsInternalServerErrorWith("error getting service instance"),
-				)
 
 				upgradeReq, err := http.NewRequest("PATCH", fmt.Sprintf("http://localhost:%d/mgmt/service_instances/%s", brokerPort, instanceID), nil)
 				Expect(err).ToNot(HaveOccurred())
 
-				response := responseFrom(basicAuthBrokerRequest(upgradeReq), http.StatusInternalServerError)
-				defer response.Body.Close()
-				Expect(ioutil.ReadAll(response.Body)).To(ContainSubstring(`Unexpected reponse status 500, \"error getting service instance\"`))
-
-				By("logging the CF API call with the request ID")
-				cfRegexpString := logRegexpStringWithRequestIDCapture(fmt.Sprintf(`GET http://127.0.0.1:\d+/v2/service_instances/%s`, instanceID))
-				Eventually(runningBroker).Should(gbytes.Say(cfRegexpString))
-				requestID := firstMatchInOutput(runningBroker, cfRegexpString)
-
-				By("logging the error with the same request ID")
-				mgmtLogRegexpString := logRegexpString(requestID, fmt.Sprintf(`error occurred upgrading instance %s: Unexpected reponse status 500, "error getting service instance"`, instanceID))
-				Eventually(runningBroker).Should(gbytes.Say(mgmtLogRegexpString))
+				responseFrom(basicAuthBrokerRequest(upgradeReq), http.StatusUnprocessableEntity)
 			})
 		})
 	})

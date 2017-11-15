@@ -273,19 +273,26 @@ func createServiceInstances() {
 }
 
 func deleteServiceInstances() {
-	By("running the delete all errand")
-	taskOutput := boshClient.RunErrand(brokerBoshDeploymentName, "delete-all-service-instances", []string{}, "")
-	Expect(taskOutput.ExitCode).To(Equal(0))
-
 	var wg sync.WaitGroup
 
 	for _, service := range serviceInstances {
 		wg.Add(1)
 		go func(ts *testService) {
+			defer GinkgoRecover()
 			if dataPersistenceEnabled {
+				By("unbinding the corresponding app")
+				Eventually(cf.Cf("unbind-service", ts.AppName, ts.Name), cf_helpers.CfTimeout).Should(
+					gexec.Exit(0),
+				)
+
 				By("deleting the corresponding app")
 				Eventually(cf.Cf("delete", ts.AppName, "-f", "-r"), cf_helpers.CfTimeout).Should(gexec.Exit(0))
 			}
+
+			By("deleting the service instance")
+			Eventually(cf.Cf("delete-service", ts.Name, "-f"), cf_helpers.CfTimeout).Should(
+				gexec.Exit(0),
+			)
 
 			By("ensuring the service instance is deleted")
 			cf_helpers.AwaitServiceDeletion(ts.Name)

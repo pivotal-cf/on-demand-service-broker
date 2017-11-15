@@ -21,9 +21,9 @@ var _ = Describe("Instances", func() {
 
 		BeforeEach(func() {
 			cfClient.GetInstancesOfServiceOfferingReturns([]service.Instance{
-				{GUID: "red"},
-				{GUID: "green"},
-				{GUID: "blue"},
+				{GUID: "red", PlanUniqueID: "colour-plan"},
+				{GUID: "green", PlanUniqueID: "colour-plan"},
+				{GUID: "blue", PlanUniqueID: "colour-plan"},
 			}, nil)
 			logger = loggerFactory.NewWithRequestID()
 		})
@@ -31,9 +31,9 @@ var _ = Describe("Instances", func() {
 		It("returns a list of instance IDs", func() {
 			b = createDefaultBroker()
 			Expect(b.Instances(logger)).To(ConsistOf(
-				service.Instance{GUID: "red"},
-				service.Instance{GUID: "green"},
-				service.Instance{GUID: "blue"},
+				service.Instance{GUID: "red", PlanUniqueID: "colour-plan"},
+				service.Instance{GUID: "green", PlanUniqueID: "colour-plan"},
+				service.Instance{GUID: "blue", PlanUniqueID: "colour-plan"},
 			))
 		})
 

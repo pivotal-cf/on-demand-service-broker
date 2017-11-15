@@ -12,6 +12,8 @@ import (
 	"net/http"
 	"strings"
 
+	"fmt"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/brokerapi"
@@ -19,6 +21,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services/fakes"
 	"github.com/pivotal-cf/on-demand-service-broker/mgmtapi"
+	"github.com/pivotal-cf/on-demand-service-broker/service"
 )
 
 var _ = Describe("Broker Services", func() {
@@ -36,21 +39,30 @@ var _ = Describe("Broker Services", func() {
 
 	Describe("UpgradeInstance", func() {
 		It("returns an upgrade operation", func() {
+			planUniqueID := "unique_plan_id"
+			expectedBody := fmt.Sprintf(`{"plan_id": "%s"}`, planUniqueID)
 			client.PatchReturns(response(http.StatusNotFound, ""), nil)
 
-			upgradeOperation, err := brokerServices.UpgradeInstance(serviceInstanceGUID)
+			upgradeOperation, err := brokerServices.UpgradeInstance(service.Instance{
+				GUID:         serviceInstanceGUID,
+				PlanUniqueID: planUniqueID,
+			})
 
 			Expect(err).NotTo(HaveOccurred())
-			actualPath := client.PatchArgsForCall(0)
+			actualPath, requestBody := client.PatchArgsForCall(0)
 			Expect(actualPath).To(Equal("/mgmt/service_instances/" + serviceInstanceGUID))
 			Expect(upgradeOperation.Type).To(Equal(services.InstanceNotFound))
+			Expect(requestBody).To(Equal(expectedBody))
 		})
 
 		Context("when the request fails", func() {
 			It("returns an error", func() {
 				client.PatchReturns(nil, errors.New("connection error"))
 
-				_, err := brokerServices.UpgradeInstance(serviceInstanceGUID)
+				_, err := brokerServices.UpgradeInstance(service.Instance{
+					GUID:         serviceInstanceGUID,
+					PlanUniqueID: "",
+				})
 
 				Expect(err).To(HaveOccurred())
 			})
@@ -60,7 +72,10 @@ var _ = Describe("Broker Services", func() {
 			It("returns an error", func() {
 				client.PatchReturns(response(http.StatusInternalServerError, "error upgrading instance"), nil)
 
-				_, err := brokerServices.UpgradeInstance(serviceInstanceGUID)
+				_, err := brokerServices.UpgradeInstance(service.Instance{
+					GUID:         serviceInstanceGUID,
+					PlanUniqueID: "",
+				})
 
 				Expect(err).To(HaveOccurred())
 			})

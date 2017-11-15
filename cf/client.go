@@ -119,7 +119,13 @@ func (c Client) GetInstancesOfServiceOffering(serviceOfferingID string, logger *
 				return nil, err
 			}
 			for _, instance := range serviceInstancesResp.ServiceInstances {
-				instances = append(instances, s.Instance{GUID: instance.Metadata.GUID, PlanGUID: plan.Metadata.GUID})
+				instances = append(
+					instances,
+					s.Instance{
+						GUID:         instance.Metadata.GUID,
+						PlanUniqueID: plan.ServicePlanEntity.UniqueID,
+					},
+				)
 			}
 			path = serviceInstancesResp.NextPath
 		}

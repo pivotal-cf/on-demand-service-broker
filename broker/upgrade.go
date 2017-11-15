@@ -8,33 +8,30 @@ package broker
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 
 	"github.com/pborman/uuid"
+	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	"github.com/pivotal-cf/on-demand-service-broker/task"
 )
 
-func (b *Broker) Upgrade(ctx context.Context, instanceID string, logger *log.Logger) (OperationData, error) {
+func (b *Broker) Upgrade(ctx context.Context, instanceID string, details brokerapi.UpdateDetails, logger *log.Logger) (OperationData, error) {
 	b.deploymentLock.Lock()
 	defer b.deploymentLock.Unlock()
 
-	instance, err := b.cfClient.GetInstanceState(instanceID, logger)
-	if err != nil {
-		return OperationData{}, err
-	}
-
-	if instance.OperationInProgress {
-		return OperationData{}, NewOperationInProgressError(fmt.Errorf("cloud controller: operation in progress for instance %s", instanceID))
-	}
-
 	logger.Printf("upgrading instance %s", instanceID)
 
-	plan, found := b.serviceOffering.FindPlanByID(instance.PlanID)
+	if details.PlanID == "" {
+		return OperationData{}, errors.New("no plan ID provided in upgrade request body")
+	}
+
+	plan, found := b.serviceOffering.FindPlanByID(details.PlanID)
 	if !found {
-		logger.Printf("error: finding plan ID %s", instance.PlanID)
-		return OperationData{}, fmt.Errorf("plan %s not found", instance.PlanID)
+		logger.Printf("error: finding plan ID %s", details.PlanID)
+		return OperationData{}, fmt.Errorf("plan %s not found", details.PlanID)
 	}
 
 	var boshContextID string
@@ -46,8 +43,8 @@ func (b *Broker) Upgrade(ctx context.Context, instanceID string, logger *log.Log
 
 	taskID, _, err := b.deployer.Upgrade(
 		deploymentName(instanceID),
-		instance.PlanID,
-		&instance.PlanID,
+		details.PlanID,
+		&details.PlanID,
 		boshContextID,
 		logger,
 	)

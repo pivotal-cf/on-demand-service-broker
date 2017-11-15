@@ -29,7 +29,7 @@ var _ = Describe("Service", func() {
 		instances, err := serviceInstanceLister.Instances()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(instances)).To(Equal(2))
-		Expect(instances[0]).To(Equal(service.Instance{GUID: "foo", PlanGUID: "plan"}))
+		Expect(instances[0]).To(Equal(service.Instance{GUID: "foo", PlanUniqueID: "plan"}))
 	})
 
 	It("returns an error when the request fails", func() {

@@ -36,7 +36,7 @@ type api struct {
 type ManageableBroker interface {
 	Instances(logger *log.Logger) ([]service.Instance, error)
 	OrphanDeployments(logger *log.Logger) ([]string, error)
-	Upgrade(ctx context.Context, instanceID string, logger *log.Logger) (broker.OperationData, error)
+	Upgrade(ctx context.Context, instanceID string, updateDetails brokerapi.UpdateDetails, logger *log.Logger) (broker.OperationData, error)
 	CountInstancesOfPlans(logger *log.Logger) (map[cf.ServicePlan]int, error)
 }
 
@@ -98,7 +98,15 @@ func (a *api) upgradeInstance(w http.ResponseWriter, r *http.Request) {
 
 	logger := a.loggerFactory.NewWithContext(ctx)
 
-	operationData, err := a.manageableBroker.Upgrade(ctx, instanceID, logger)
+	var details brokerapi.UpdateDetails
+	if err := json.NewDecoder(r.Body).Decode(&details); err != nil {
+		logger.Printf("error occurred parsing requests body: %s", err)
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		a.writeJson(w, brokerapi.ErrorResponse{Description: "Error in request body. Invalid JSON"}, logger)
+		return
+	}
+
+	operationData, err := a.manageableBroker.Upgrade(ctx, instanceID, details, logger)
 
 	switch err.(type) {
 	case nil:

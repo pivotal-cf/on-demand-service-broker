@@ -88,6 +88,7 @@ func awaitServicesOperation(serviceName string, successMessageMatcher types.Gome
 	}
 
 	Eventually(func() bool {
+		defer GinkgoRecover()
 		session := cfCommand()
 		Eventually(session, CfTimeout).Should(gexec.Exit(0), "'cf services' command timed out")
 
@@ -127,6 +128,7 @@ func awaitServiceOperation(
 	timeout time.Duration,
 ) {
 	Eventually(func() bool {
+		defer GinkgoRecover()
 		session := cfCommand()
 		Eventually(session, CfTimeout).Should(gexec.Exit(0))
 

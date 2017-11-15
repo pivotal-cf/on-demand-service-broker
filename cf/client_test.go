@@ -757,9 +757,9 @@ var _ = Describe("Client", func() {
 			instances, err := client.GetInstancesOfServiceOffering(offeringID, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(instances).To(ConsistOf(
-				service.Instance{GUID: "520f8566-b727-4c67-8be8-d9285645e936", PlanGUID: "ff717e7c-afd5-4d0a-bafe-16c7eff546ec"},
-				service.Instance{GUID: "f897f40d-0b2d-474a-a5c9-98426a2cb4b8", PlanGUID: "2777ad05-8114-4169-8188-2ef5f39e0c6b"},
-				service.Instance{GUID: "2f759033-04a4-426b-bccd-01722036c152", PlanGUID: "2777ad05-8114-4169-8188-2ef5f39e0c6b"},
+				service.Instance{GUID: "520f8566-b727-4c67-8be8-d9285645e936", PlanUniqueID: "11789210-D743-4C65-9D38-C80B29F4D9C8"},
+				service.Instance{GUID: "f897f40d-0b2d-474a-a5c9-98426a2cb4b8", PlanUniqueID: "22789210-D743-4C65-9D38-C80B29F4D9C8"},
+				service.Instance{GUID: "2f759033-04a4-426b-bccd-01722036c152", PlanUniqueID: "22789210-D743-4C65-9D38-C80B29F4D9C8"},
 			))
 		})
 
@@ -781,9 +781,9 @@ var _ = Describe("Client", func() {
 				instances, err := client.GetInstancesOfServiceOffering(offeringID, testLogger)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(instances).To(ConsistOf(
-					service.Instance{GUID: "520f8566-b727-4c67-8be8-d9285645e936", PlanGUID: "ff717e7c-afd5-4d0a-bafe-16c7eff546ec"},
-					service.Instance{GUID: "f897f40d-0b2d-474a-a5c9-98426a2cb4b8", PlanGUID: "2777ad05-8114-4169-8188-2ef5f39e0c6b"},
-					service.Instance{GUID: "2f759033-04a4-426b-bccd-01722036c152", PlanGUID: "2777ad05-8114-4169-8188-2ef5f39e0c6b"},
+					service.Instance{GUID: "520f8566-b727-4c67-8be8-d9285645e936", PlanUniqueID: "11789210-D743-4C65-9D38-C80B29F4D9C8"},
+					service.Instance{GUID: "f897f40d-0b2d-474a-a5c9-98426a2cb4b8", PlanUniqueID: "22789210-D743-4C65-9D38-C80B29F4D9C8"},
+					service.Instance{GUID: "2f759033-04a4-426b-bccd-01722036c152", PlanUniqueID: "22789210-D743-4C65-9D38-C80B29F4D9C8"},
 				))
 			})
 		})
@@ -806,9 +806,9 @@ var _ = Describe("Client", func() {
 				instances, err := client.GetInstancesOfServiceOffering(offeringID, testLogger)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(instances).To(ConsistOf(
-					service.Instance{GUID: "520f8566-b727-4c67-8be8-d9285645e936", PlanGUID: "ff717e7c-afd5-4d0a-bafe-16c7eff546ec"},
-					service.Instance{GUID: "f897f40d-0b2d-474a-a5c9-98426a2cb4b8", PlanGUID: "2777ad05-8114-4169-8188-2ef5f39e0c6b"},
-					service.Instance{GUID: "2f759033-04a4-426b-bccd-01722036c152", PlanGUID: "2777ad05-8114-4169-8188-2ef5f39e0c6b"},
+					service.Instance{GUID: "520f8566-b727-4c67-8be8-d9285645e936", PlanUniqueID: "11789210-D743-4C65-9D38-C80B29F4D9C8"},
+					service.Instance{GUID: "f897f40d-0b2d-474a-a5c9-98426a2cb4b8", PlanUniqueID: "22789210-D743-4C65-9D38-C80B29F4D9C8"},
+					service.Instance{GUID: "2f759033-04a4-426b-bccd-01722036c152", PlanUniqueID: "22789210-D743-4C65-9D38-C80B29F4D9C8"},
 				))
 			})
 		})
@@ -831,9 +831,9 @@ var _ = Describe("Client", func() {
 				instances, err := client.GetInstancesOfServiceOffering(offeringID, testLogger)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(instances).To(ConsistOf(
-					service.Instance{GUID: "520f8566-b727-4c67-8be8-d9285645e936", PlanGUID: "ff717e7c-afd5-4d0a-bafe-16c7eff546ec"},
-					service.Instance{GUID: "f897f40d-0b2d-474a-a5c9-98426a2cb4b8", PlanGUID: "2777ad05-8114-4169-8188-2ef5f39e0c6b"},
-					service.Instance{GUID: "2f759033-04a4-426b-bccd-01722036c152", PlanGUID: "2777ad05-8114-4169-8188-2ef5f39e0c6b"},
+					service.Instance{GUID: "520f8566-b727-4c67-8be8-d9285645e936", PlanUniqueID: "11789210-D743-4C65-9D38-C80B29F4D9C8"},
+					service.Instance{GUID: "f897f40d-0b2d-474a-a5c9-98426a2cb4b8", PlanUniqueID: "22789210-D743-4C65-9D38-C80B29F4D9C8"},
+					service.Instance{GUID: "2f759033-04a4-426b-bccd-01722036c152", PlanUniqueID: "22789210-D743-4C65-9D38-C80B29F4D9C8"},
 				))
 			})
 		})

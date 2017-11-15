@@ -6,6 +6,7 @@ import (
 	"log"
 	"sync"
 
+	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/mgmtapi"
@@ -39,12 +40,13 @@ type FakeManageableBroker struct {
 		result1 []string
 		result2 error
 	}
-	UpgradeStub        func(ctx context.Context, instanceID string, logger *log.Logger) (broker.OperationData, error)
+	UpgradeStub        func(ctx context.Context, instanceID string, updateDetails brokerapi.UpdateDetails, logger *log.Logger) (broker.OperationData, error)
 	upgradeMutex       sync.RWMutex
 	upgradeArgsForCall []struct {
-		ctx        context.Context
-		instanceID string
-		logger     *log.Logger
+		ctx           context.Context
+		instanceID    string
+		updateDetails brokerapi.UpdateDetails
+		logger        *log.Logger
 	}
 	upgradeReturns struct {
 		result1 broker.OperationData
@@ -173,18 +175,19 @@ func (fake *FakeManageableBroker) OrphanDeploymentsReturnsOnCall(i int, result1 
 	}{result1, result2}
 }
 
-func (fake *FakeManageableBroker) Upgrade(ctx context.Context, instanceID string, logger *log.Logger) (broker.OperationData, error) {
+func (fake *FakeManageableBroker) Upgrade(ctx context.Context, instanceID string, updateDetails brokerapi.UpdateDetails, logger *log.Logger) (broker.OperationData, error) {
 	fake.upgradeMutex.Lock()
 	ret, specificReturn := fake.upgradeReturnsOnCall[len(fake.upgradeArgsForCall)]
 	fake.upgradeArgsForCall = append(fake.upgradeArgsForCall, struct {
-		ctx        context.Context
-		instanceID string
-		logger     *log.Logger
-	}{ctx, instanceID, logger})
-	fake.recordInvocation("Upgrade", []interface{}{ctx, instanceID, logger})
+		ctx           context.Context
+		instanceID    string
+		updateDetails brokerapi.UpdateDetails
+		logger        *log.Logger
+	}{ctx, instanceID, updateDetails, logger})
+	fake.recordInvocation("Upgrade", []interface{}{ctx, instanceID, updateDetails, logger})
 	fake.upgradeMutex.Unlock()
 	if fake.UpgradeStub != nil {
-		return fake.UpgradeStub(ctx, instanceID, logger)
+		return fake.UpgradeStub(ctx, instanceID, updateDetails, logger)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -198,10 +201,10 @@ func (fake *FakeManageableBroker) UpgradeCallCount() int {
 	return len(fake.upgradeArgsForCall)
 }
 
-func (fake *FakeManageableBroker) UpgradeArgsForCall(i int) (context.Context, string, *log.Logger) {
+func (fake *FakeManageableBroker) UpgradeArgsForCall(i int) (context.Context, string, brokerapi.UpdateDetails, *log.Logger) {
 	fake.upgradeMutex.RLock()
 	defer fake.upgradeMutex.RUnlock()
-	return fake.upgradeArgsForCall[i].ctx, fake.upgradeArgsForCall[i].instanceID, fake.upgradeArgsForCall[i].logger
+	return fake.upgradeArgsForCall[i].ctx, fake.upgradeArgsForCall[i].instanceID, fake.upgradeArgsForCall[i].updateDetails, fake.upgradeArgsForCall[i].logger
 }
 
 func (fake *FakeManageableBroker) UpgradeReturns(result1 broker.OperationData, result2 error) {

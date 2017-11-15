@@ -60,13 +60,13 @@ func (b *BasicAuthHTTPClient) Post(path string, body io.Reader) (*http.Response,
 	return b.do(request)
 }
 
-func (b *BasicAuthHTTPClient) Patch(path string) (*http.Response, error) {
+func (b *BasicAuthHTTPClient) Patch(path, body string) (*http.Response, error) {
 	u, err := b.buildURL(path, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	request, err := http.NewRequest("PATCH", u, nil)
+	request, err := http.NewRequest("PATCH", u, strings.NewReader(body))
 	if err != nil {
 		return nil, err
 	}

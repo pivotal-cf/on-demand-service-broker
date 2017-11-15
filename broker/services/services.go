@@ -14,12 +14,13 @@ import (
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/mgmtapi"
+	"github.com/pivotal-cf/on-demand-service-broker/service"
 )
 
 //go:generate counterfeiter -o fakes/fake_http_client.go . HTTPClient
 type HTTPClient interface {
 	Get(path string, query map[string]string) (*http.Response, error)
-	Patch(path string) (*http.Response, error)
+	Patch(path, body string) (*http.Response, error)
 }
 
 type BrokerServices struct {
@@ -34,8 +35,11 @@ func NewBrokerServices(client HTTPClient) *BrokerServices {
 	}
 }
 
-func (b *BrokerServices) UpgradeInstance(instanceGUID string) (UpgradeOperation, error) {
-	response, err := b.client.Patch(fmt.Sprintf("/mgmt/service_instances/%s", instanceGUID))
+func (b *BrokerServices) UpgradeInstance(instance service.Instance) (UpgradeOperation, error) {
+	response, err := b.client.Patch(
+		fmt.Sprintf("/mgmt/service_instances/%s", instance.GUID),
+		fmt.Sprintf(`{"plan_id": "%s"}`, instance.PlanUniqueID),
+	)
 	if err != nil {
 		return UpgradeOperation{}, err
 	}

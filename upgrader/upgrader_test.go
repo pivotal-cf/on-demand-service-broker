@@ -372,7 +372,7 @@ var _ = Describe("Upgrader", func() {
 				upgradeServiceInstance2CallCount := 0
 				for x := 0; x < brokerServicesClient.UpgradeInstanceCallCount(); x++ {
 					instance := brokerServicesClient.UpgradeInstanceArgsForCall(x)
-					if instance == serviceInstance2 {
+					if instance.GUID == serviceInstance2 {
 						upgradeServiceInstance2CallCount++
 					}
 				}

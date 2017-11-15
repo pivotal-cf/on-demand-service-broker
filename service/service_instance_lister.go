@@ -9,7 +9,6 @@ import (
 //go:generate counterfeiter -o fakes/fake_http_client.go . HTTPClient
 type HTTPClient interface {
 	Get(path string, query map[string]string) (*http.Response, error)
-	Patch(path string) (*http.Response, error)
 }
 
 type ServiceInstanceLister struct {

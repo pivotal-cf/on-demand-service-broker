@@ -7,11 +7,14 @@
 package network_test
 
 import (
+	"net/url"
+
+	"io/ioutil"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/on-demand-service-broker/network"
 	"github.com/pivotal-cf/on-demand-service-broker/network/fakes"
-	"net/url"
 )
 
 var _ = Describe("Basic Auth HTTP Client", func() {
@@ -100,19 +103,22 @@ var _ = Describe("Basic Auth HTTP Client", func() {
 			doer := new(fakes.FakeDoer)
 			client := network.NewBasicAuthHTTPClient(doer, username, password, baseURL)
 
-			_, err := client.Patch("path/to/resource")
+			_, err := client.Patch("path/to/resource", "body")
 
 			Expect(err).NotTo(HaveOccurred())
 			actualRequest := doer.DoArgsForCall(0)
 			Expect(actualRequest.Method).To(Equal("PATCH"))
 			Expect(actualRequest.URL.String()).To(Equal("http://example.com:8080/path/to/resource"))
+			actualBody, err := ioutil.ReadAll(actualRequest.Body)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(actualBody).To(Equal([]byte("body")))
 		})
 
 		It("sets basic auth", func() {
 			doer := new(fakes.FakeDoer)
 			client := network.NewBasicAuthHTTPClient(doer, username, password, baseURL)
 
-			_, err := client.Patch("path/to/resource")
+			_, err := client.Patch("path/to/resource", "body")
 
 			Expect(err).NotTo(HaveOccurred())
 			actualUsername, actualPassword, ok := doer.DoArgsForCall(0).BasicAuth()
@@ -124,7 +130,7 @@ var _ = Describe("Basic Auth HTTP Client", func() {
 		It("errors when the base URL is invalid", func() {
 			client := network.NewBasicAuthHTTPClient(nil, username, password, invalidURL)
 
-			_, err := client.Patch("path/to/resource")
+			_, err := client.Patch("path/to/resource", "body")
 
 			Expect(err).To(HaveOccurred())
 		})
@@ -132,7 +138,7 @@ var _ = Describe("Basic Auth HTTP Client", func() {
 		It("errors when the path is invalid", func() {
 			client := network.NewBasicAuthHTTPClient(nil, username, password, baseURL)
 
-			_, err := client.Patch(invalidPath)
+			_, err := client.Patch(invalidPath, "")
 
 			Expect(err).To(HaveOccurred())
 		})

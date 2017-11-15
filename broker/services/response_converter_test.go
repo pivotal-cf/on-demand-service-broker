@@ -19,7 +19,6 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
 	"github.com/pivotal-cf/on-demand-service-broker/mgmtapi"
-	"github.com/pivotal-cf/on-demand-service-broker/service"
 )
 
 var _ = Describe("Response Converter", func() {
@@ -253,16 +252,6 @@ func upgradeErrorJSON(description string) string {
 
 func lastOperationJSON(operation brokerapi.LastOperation) string {
 	content, err := json.Marshal(operation)
-	Expect(err).NotTo(HaveOccurred())
-	return string(content)
-}
-
-func listInstancesJSON(instanceIDs ...string) string {
-	list := []service.Instance{}
-	for _, instanceID := range instanceIDs {
-		list = append(list, service.Instance{GUID: instanceID, PlanGUID: "planId"})
-	}
-	content, err := json.Marshal(list)
 	Expect(err).NotTo(HaveOccurred())
 	return string(content)
 }

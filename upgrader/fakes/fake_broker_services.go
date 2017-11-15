@@ -7,14 +7,15 @@ import (
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
+	"github.com/pivotal-cf/on-demand-service-broker/service"
 	"github.com/pivotal-cf/on-demand-service-broker/upgrader"
 )
 
 type FakeBrokerServices struct {
-	UpgradeInstanceStub        func(instance string) (services.UpgradeOperation, error)
+	UpgradeInstanceStub        func(instance service.Instance) (services.UpgradeOperation, error)
 	upgradeInstanceMutex       sync.RWMutex
 	upgradeInstanceArgsForCall []struct {
-		instance string
+		instance service.Instance
 	}
 	upgradeInstanceReturns struct {
 		result1 services.UpgradeOperation
@@ -42,11 +43,11 @@ type FakeBrokerServices struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeBrokerServices) UpgradeInstance(instance string) (services.UpgradeOperation, error) {
+func (fake *FakeBrokerServices) UpgradeInstance(instance service.Instance) (services.UpgradeOperation, error) {
 	fake.upgradeInstanceMutex.Lock()
 	ret, specificReturn := fake.upgradeInstanceReturnsOnCall[len(fake.upgradeInstanceArgsForCall)]
 	fake.upgradeInstanceArgsForCall = append(fake.upgradeInstanceArgsForCall, struct {
-		instance string
+		instance service.Instance
 	}{instance})
 	fake.recordInvocation("UpgradeInstance", []interface{}{instance})
 	fake.upgradeInstanceMutex.Unlock()
@@ -65,7 +66,7 @@ func (fake *FakeBrokerServices) UpgradeInstanceCallCount() int {
 	return len(fake.upgradeInstanceArgsForCall)
 }
 
-func (fake *FakeBrokerServices) UpgradeInstanceArgsForCall(i int) string {
+func (fake *FakeBrokerServices) UpgradeInstanceArgsForCall(i int) service.Instance {
 	fake.upgradeInstanceMutex.RLock()
 	defer fake.upgradeInstanceMutex.RUnlock()
 	return fake.upgradeInstanceArgsForCall[i].instance
