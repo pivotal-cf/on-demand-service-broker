@@ -111,9 +111,9 @@ var _ = Describe("On-demand service broker", func() {
 		}
 	}
 
-	testCredhubRef := func(appName, serviceOffering string) {
+	testCredhubRef := func(appName string) {
 		By("ensuring credential in app env is credhub-ref")
-		bindingCredentials, err := cf_helpers.AppBindingCreds(appName, serviceID)
+		bindingCredentials, err := cf_helpers.AppBindingCreds(appName, serviceOffering)
 		Expect(err).NotTo(HaveOccurred())
 		credMap, ok := bindingCredentials.(map[string]interface{})
 		Expect(ok).To(BeTrue())
@@ -141,7 +141,7 @@ var _ = Describe("On-demand service broker", func() {
 			}()
 
 			if shouldTestCredhubRef {
-				testCredhubRef(testAppName, serviceID)
+				testCredhubRef(testAppName)
 			}
 
 			By("creating a service key")
