@@ -251,7 +251,7 @@ func createServiceInstances() {
 
 		go func(ts *testService) {
 			defer GinkgoRecover()
-			createServiceSession := (cf.Cf("create-service", serviceOffering, currentPlan, ts.Name)
+			createServiceSession := cf.Cf("create-service", serviceOffering, currentPlan, ts.Name)
 			Eventually(createServiceSession, cf_helpers.CfTimeout).Should(
 				gexec.Exit(0),
 			)
