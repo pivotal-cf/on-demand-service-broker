@@ -838,6 +838,24 @@ var _ = Describe("Client", func() {
 			})
 		})
 
+		It("when there are no instances, returns an empty list of instances", func() {
+			offeringID := "D94A086D-203D-4966-A6F1-60A9E2300F72"
+
+			server.VerifyAndMock(
+				mockcfapi.ListServiceOfferings().WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_services_response.json")),
+				mockcfapi.ListServicePlans(serviceGUID).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_plans_response.json")),
+				mockcfapi.ListServiceInstances("ff717e7c-afd5-4d0a-bafe-16c7eff546ec").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_instances_empty_response.json")),
+				mockcfapi.ListServiceInstances("2777ad05-8114-4169-8188-2ef5f39e0c6b").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_instances_empty_response.json")),
+			)
+
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+			Expect(err).NotTo(HaveOccurred())
+
+			instances, err := client.GetInstancesOfServiceOffering(offeringID, testLogger)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(instances).To(Equal([]service.Instance{}))
+		})
+
 		Context("when the list of services cannot be retrieved", func() {
 			It("returns an error", func() {
 				offeringID := "8F3E8998-5FD0-4F32-924A-5478DC390A5F"

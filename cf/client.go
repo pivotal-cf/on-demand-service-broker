@@ -101,7 +101,7 @@ func (c Client) GetInstancesOfServiceOffering(serviceOfferingID string, logger *
 		return nil, err
 	}
 
-	var instances []s.Instance
+	instances := []s.Instance{}
 	for _, plan := range plans {
 		path := fmt.Sprintf(
 			"/v2/service_plans/%s/service_instances?results-per-page=%d",
