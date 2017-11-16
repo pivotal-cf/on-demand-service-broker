@@ -38,10 +38,7 @@ type testService struct {
 	AppURL  string
 }
 
-var serviceInstances = []*testService{
-	{Name: uuid.New(), AppName: uuid.New()},
-	{Name: uuid.New(), AppName: uuid.New()},
-}
+var serviceInstances []*testService
 
 var dataPersistenceEnabled bool
 
@@ -49,6 +46,7 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 	BeforeEach(func() {
 		currentPlan = selectPlanName()
 		dataPersistenceEnabled = checkDataPersistence()
+		serviceInstances = []*testService{}
 	})
 
 	AfterEach(func() {
@@ -242,6 +240,11 @@ func findJobProperties(brokerManifest *bosh.BoshManifest, igName, jobName string
 
 func createServiceInstances() {
 	var wg sync.WaitGroup
+
+	serviceInstances = []*testService{
+		{Name: uuid.New(), AppName: uuid.New()},
+		{Name: uuid.New(), AppName: uuid.New()},
+	}
 
 	for _, service := range serviceInstances {
 		wg.Add(1)
