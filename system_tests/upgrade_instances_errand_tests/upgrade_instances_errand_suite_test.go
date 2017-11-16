@@ -37,6 +37,7 @@ var (
 	exampleAppDirName            string
 	boshClient                   *bosh_helpers.BoshHelperClient
 	currentPlan                  string
+	serviceGUID                  string
 )
 
 var _ = BeforeSuite(func() {
@@ -57,6 +58,8 @@ var _ = BeforeSuite(func() {
 
 	ciRootPath = envMustHave("CI_ROOT_PATH")
 	exampleAppDirName = envMustHave("EXAMPLE_APP_DIR_NAME")
+
+	serviceGUID = envMustHave("SERVICE_GUID")
 
 	if uaaURL == "" {
 		boshClient = bosh_helpers.NewBasicAuth(boshURL, boshUsername, boshPassword, boshCACert, boshCACert == "")

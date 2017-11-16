@@ -185,7 +185,7 @@ func updateServiceInstancesAPI(brokerManifest *bosh.BoshManifest) {
 
 		logger := log.New(GinkgoWriter, "", log.LstdFlags)
 
-		instances, err := cfCli.GetInstancesOfServiceOffering(brokerName, logger)
+		instances, err := cfCli.GetInstancesOfServiceOffering(serviceGUID, logger)
 		Expect(err).NotTo(HaveOccurred())
 		instancesJson, err := json.Marshal(instances)
 		Expect(err).NotTo(HaveOccurred())
