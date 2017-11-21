@@ -34,7 +34,7 @@ func main() {
 
 	httpClient := network.NewDefaultHTTPClient()
 	authHeaderBuilder := authorizationheader.NewBasicAuthHeaderBuilder(*brokerUsername, *brokerPassword)
-	brokerServices := services.NewBrokerServices(httpClient, authHeaderBuilder, *brokerURL)
+	brokerServices := services.NewBrokerServices(httpClient, authHeaderBuilder, *brokerURL, logger)
 
 	orphans, err := brokerServices.OrphanDeployments()
 	if err != nil {

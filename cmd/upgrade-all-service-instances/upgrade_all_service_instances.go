@@ -74,7 +74,7 @@ func main() {
 		conf.BrokerAPI.Authentication.Basic.Password,
 	)
 
-	brokerServices := services.NewBrokerServices(httpClient, brokerBasicAuthHeaderBuilder, conf.BrokerAPI.URL)
+	brokerServices := services.NewBrokerServices(httpClient, brokerBasicAuthHeaderBuilder, conf.BrokerAPI.URL, logger)
 	listener := upgrader.NewLoggingListener(logger)
 
 	serviceInstancesAPIBasicAuthClient := network.NewBasicAuthHTTPClient(

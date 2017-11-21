@@ -8,12 +8,13 @@ package services_test
 
 import (
 	"errors"
+	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
-
-	"fmt"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -21,6 +22,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader/fakes"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
+	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 	"github.com/pivotal-cf/on-demand-service-broker/mgmtapi"
 	"github.com/pivotal-cf/on-demand-service-broker/service"
 
@@ -34,17 +36,20 @@ var _ = Describe("Broker Services", func() {
 		brokerServices    *services.BrokerServices
 		client            *fakeclients.FakeHTTPClient
 		authHeaderBuilder *fakes.FakeAuthHeaderBuilder
+		logger            *log.Logger
 	)
 
 	BeforeEach(func() {
 		client = new(fakeclients.FakeHTTPClient)
 		authHeaderBuilder = new(fakes.FakeAuthHeaderBuilder)
 
-		brokerServices = services.NewBrokerServices(client, authHeaderBuilder, "http://test.test")
+		loggerFactory := loggerfactory.New(os.Stdout, "broker-services-test", loggerfactory.Flags)
+		logger = loggerFactory.New()
 	})
 
 	Describe("UpgradeInstance", func() {
 		It("returns an upgrade operation", func() {
+			brokerServices = services.NewBrokerServices(client, authHeaderBuilder, "http://test.test", logger)
 			planUniqueID := "unique_plan_id"
 			expectedBody := fmt.Sprintf(`{"plan_id": "%s"}`, planUniqueID)
 			client.DoReturns(response(http.StatusNotFound, ""), nil)
@@ -64,8 +69,30 @@ var _ = Describe("Broker Services", func() {
 			Expect(string(body)).To(Equal(expectedBody))
 		})
 
+		It("returns an error when a new request fails to build", func() {
+			brokerServices = services.NewBrokerServices(client, authHeaderBuilder, "$!%#%!@#$!@%", logger)
+
+			_, err := brokerServices.UpgradeInstance(service.Instance{
+				GUID:         serviceInstanceGUID,
+				PlanUniqueID: "unique_plan_id",
+			})
+			Expect(err).To(HaveOccurred())
+		})
+
+		It("returns an error when cannot add the authentication header", func() {
+			authHeaderBuilder.AddAuthHeaderReturns(errors.New("oops"))
+			brokerServices = services.NewBrokerServices(client, authHeaderBuilder, "http://test.test", logger)
+
+			_, err := brokerServices.UpgradeInstance(service.Instance{
+				GUID:         serviceInstanceGUID,
+				PlanUniqueID: "unique_plan_id",
+			})
+			Expect(err).To(HaveOccurred())
+		})
+
 		Context("when the request fails", func() {
 			It("returns an error", func() {
+				brokerServices = services.NewBrokerServices(client, authHeaderBuilder, "http://test.test", logger)
 				client.DoReturns(nil, errors.New("connection error"))
 
 				_, err := brokerServices.UpgradeInstance(service.Instance{
@@ -79,6 +106,7 @@ var _ = Describe("Broker Services", func() {
 
 		Context("when the broker responds with an error", func() {
 			It("returns an error", func() {
+				brokerServices = services.NewBrokerServices(client, authHeaderBuilder, "http://test.test", logger)
 				client.DoReturns(response(http.StatusInternalServerError, "error upgrading instance"), nil)
 
 				_, err := brokerServices.UpgradeInstance(service.Instance{
@@ -93,6 +121,7 @@ var _ = Describe("Broker Services", func() {
 
 	Describe("LastOperation", func() {
 		It("returns a last operation", func() {
+			brokerServices = services.NewBrokerServices(client, authHeaderBuilder, "http://test.test", logger)
 			operationData := broker.OperationData{
 				BoshTaskID:    1,
 				BoshContextID: "context-id",
@@ -120,8 +149,24 @@ var _ = Describe("Broker Services", func() {
 			)
 		})
 
+		It("returns an error when a new request fails to build", func() {
+			brokerServices = services.NewBrokerServices(client, authHeaderBuilder, "$!%#%!@#$!@%", logger)
+
+			_, err := brokerServices.LastOperation(serviceInstanceGUID, broker.OperationData{})
+			Expect(err).To(HaveOccurred())
+		})
+
+		It("returns an error when cannot add the authentication header", func() {
+			authHeaderBuilder.AddAuthHeaderReturns(errors.New("oops"))
+			brokerServices = services.NewBrokerServices(client, authHeaderBuilder, "http://test.test", logger)
+
+			_, err := brokerServices.LastOperation(serviceInstanceGUID, broker.OperationData{})
+			Expect(err).To(HaveOccurred())
+		})
+
 		Context("when the request fails", func() {
 			It("returns an error", func() {
+				brokerServices = services.NewBrokerServices(client, authHeaderBuilder, "http://test.test", logger)
 				client.DoReturns(nil, errors.New("connection error"))
 
 				_, err := brokerServices.LastOperation(serviceInstanceGUID, broker.OperationData{})
@@ -132,6 +177,7 @@ var _ = Describe("Broker Services", func() {
 
 		Context("when the broker response is unrecognised", func() {
 			It("returns an error", func() {
+				brokerServices = services.NewBrokerServices(client, authHeaderBuilder, "http://test.test", logger)
 				client.DoReturns(response(http.StatusOK, "invalid json"), nil)
 
 				_, err := brokerServices.LastOperation(serviceInstanceGUID, broker.OperationData{})
@@ -143,6 +189,7 @@ var _ = Describe("Broker Services", func() {
 
 	Describe("OrphanDeployments", func() {
 		It("returns a list of orphan deployments", func() {
+			brokerServices = services.NewBrokerServices(client, authHeaderBuilder, "http://test.test", logger)
 			listOfDeployments := `[{"deployment_name":"service-instance_one"},{"deployment_name":"service-instance_two"}]`
 			client.DoReturns(response(http.StatusOK, listOfDeployments), nil)
 
@@ -158,8 +205,25 @@ var _ = Describe("Broker Services", func() {
 			))
 		})
 
+		It("returns an error when a new request fails to build", func() {
+			brokerServices = services.NewBrokerServices(client, authHeaderBuilder, "$!%#%!@#$!@%", logger)
+
+			_, err := brokerServices.OrphanDeployments()
+
+			Expect(err).To(HaveOccurred())
+		})
+
+		It("returns an error when cannot add the authentication header", func() {
+			authHeaderBuilder.AddAuthHeaderReturns(errors.New("oops"))
+			brokerServices = services.NewBrokerServices(client, authHeaderBuilder, "http://test.test", logger)
+
+			_, err := brokerServices.OrphanDeployments()
+			Expect(err).To(HaveOccurred())
+		})
+
 		Context("when the request fails", func() {
 			It("returns an error", func() {
+				brokerServices = services.NewBrokerServices(client, authHeaderBuilder, "http://test.test", logger)
 				client.DoReturns(nil, errors.New("connection error"))
 
 				_, err := brokerServices.OrphanDeployments()
@@ -170,6 +234,7 @@ var _ = Describe("Broker Services", func() {
 
 		Context("when the broker response is unrecognised", func() {
 			It("returns an error", func() {
+				brokerServices = services.NewBrokerServices(client, authHeaderBuilder, "http://test.test", logger)
 				client.DoReturns(response(http.StatusOK, "invalid json"), nil)
 
 				_, err := brokerServices.OrphanDeployments()

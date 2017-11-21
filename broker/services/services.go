@@ -32,31 +32,25 @@ type BrokerServices struct {
 	authHeaderBuilder authorizationheader.AuthHeaderBuilder
 	converter         ResponseConverter
 	baseURL           string
+	logger            *log.Logger
 }
 
-func NewBrokerServices(client HTTPClient, authHeaderBuilder authorizationheader.AuthHeaderBuilder, baseURL string) *BrokerServices {
+func NewBrokerServices(client HTTPClient, authHeaderBuilder authorizationheader.AuthHeaderBuilder, baseURL string, logger *log.Logger) *BrokerServices {
 	return &BrokerServices{
 		client:            client,
 		authHeaderBuilder: authHeaderBuilder,
 		converter:         ResponseConverter{},
 		baseURL:           baseURL,
+		logger:            logger,
 	}
 }
 
 func (b *BrokerServices) UpgradeInstance(instance service.Instance) (UpgradeOperation, error) {
 	body := strings.NewReader(fmt.Sprintf(`{"plan_id": "%s"}`, instance.PlanUniqueID))
-	//TODO missing error test case
-	request, _ := http.NewRequest(
+	response, err := b.doRequest(
 		http.MethodPatch,
-		fmt.Sprintf("%s/mgmt/service_instances/%s", b.baseURL, instance.GUID),
+		fmt.Sprintf("/mgmt/service_instances/%s", instance.GUID),
 		body)
-
-	//TODO get logger from main
-	logger := new(log.Logger)
-
-	// missing error test case
-	_ = b.authHeaderBuilder.AddAuthHeader(request, logger)
-	response, err := b.client.Do(request)
 	if err != nil {
 		return UpgradeOperation{}, err
 	}
@@ -71,26 +65,13 @@ func (b *BrokerServices) LastOperation(instanceGUID string, operationData broker
 
 	query := map[string]string{"operation": string(asJSON)}
 	path := fmt.Sprintf("/v2/service_instances/%s/last_operation", instanceGUID)
+	pathWithQuery := appendQuery(path, query)
 
-	// TODO missing error test case
-	url := b.buildURL(path)
-	urlWithQuery := appendQuery(url, query)
-
-	//TODO missing error test case
-	request, _ := http.NewRequest(
-		http.MethodGet,
-		urlWithQuery,
-		nil)
-
-	//TODO get logger from main
-	logger := new(log.Logger)
-
-	// missing error test case
-	b.authHeaderBuilder.AddAuthHeader(request, logger)
-	response, err := b.client.Do(request)
+	response, err := b.doRequest(http.MethodGet, pathWithQuery, nil)
 	if err != nil {
 		return brokerapi.LastOperation{}, err
 	}
+
 	return b.converter.LastOperationFrom(response)
 }
 
@@ -107,14 +88,17 @@ func (b *BrokerServices) doRequest(method, path string, body io.Reader) (*http.R
 	request, err := http.NewRequest(
 		method,
 		b.buildURL(path),
-		nil)
+		body)
 
 	if err != nil {
 		return nil, err
 	}
 
-	logger := new(log.Logger)
-	b.authHeaderBuilder.AddAuthHeader(request, logger)
+	err = b.authHeaderBuilder.AddAuthHeader(request, b.logger)
+	if err != nil {
+		return nil, err
+	}
+
 	return b.client.Do(request)
 }
 
