@@ -51,7 +51,7 @@ var _ = Describe("Orphan Deployments", func() {
 		session := helpers.StartBinaryWithParams(binaryPath, params)
 
 		Eventually(session).Should(gexec.Exit(0))
-		Expect(string(session.Out.Contents())).To(Equal("[]"))
+		Expect(string(session.Out.Contents())).To(Equal("[]\n"))
 	})
 
 	It("fails with exit code 10 when orphan deployments are detected", func() {
@@ -62,7 +62,7 @@ var _ = Describe("Orphan Deployments", func() {
 		session := helpers.StartBinaryWithParams(binaryPath, params)
 
 		Eventually(session).Should(gexec.Exit(10))
-		Expect(string(session.Out.Contents())).To(Equal(listOfDeployments))
+		Expect(string(session.Out.Contents())).To(ContainSubstring(listOfDeployments))
 		Expect(session.Err).To(gbytes.Say(orphanBoshDeploymentsDetectedMessage))
 	})
 
