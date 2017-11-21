@@ -495,5 +495,6 @@ type BrokerAPI struct {
 
 type ServiceInstancesAPI struct {
 	URL            string             `yaml:"url"`
+	RootCACert     string             `yaml:"root_ca_cert"`
 	Authentication BOSHAuthentication `yaml:"authentication"`
 }

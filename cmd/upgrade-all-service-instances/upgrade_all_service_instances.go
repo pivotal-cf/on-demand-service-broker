@@ -7,10 +7,13 @@
 package main
 
 import (
+	"crypto/x509"
 	"flag"
 	"io/ioutil"
 	"os"
+	"time"
 
+	"github.com/craigfurman/herottp"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
@@ -53,7 +56,18 @@ func main() {
 		logger.Fatalln("the pollingInterval must be greater than zero")
 	}
 
-	httpClient := network.NewDefaultHTTPClient()
+	cert := conf.ServiceInstancesAPI.RootCACert
+	certPool, err := x509.SystemCertPool()
+	if err != nil {
+		logger.Fatalf("error getting a certificate pool to append our trusted cert to: %s", err)
+	}
+	certPool.AppendCertsFromPEM([]byte(cert))
+
+	httpClient := herottp.New(herottp.Config{
+		Timeout: 30 * time.Second,
+		RootCAs: certPool,
+	})
+
 	basicAuthClient := network.NewBasicAuthHTTPClient(httpClient, conf.BrokerAPI.Authentication.Basic.Username, conf.BrokerAPI.Authentication.Basic.Password, conf.BrokerAPI.URL)
 	brokerServices := services.NewBrokerServices(basicAuthClient)
 	listener := upgrader.NewLoggingListener(logger)
