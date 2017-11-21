@@ -10,6 +10,7 @@ import (
 	"errors"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"fmt"
@@ -17,31 +18,36 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader/fakes"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
-	"github.com/pivotal-cf/on-demand-service-broker/broker/services/fakes"
 	"github.com/pivotal-cf/on-demand-service-broker/mgmtapi"
 	"github.com/pivotal-cf/on-demand-service-broker/service"
+
+	fakeclients "github.com/pivotal-cf/on-demand-service-broker/broker/services/fakes"
 )
 
 var _ = Describe("Broker Services", func() {
 	const serviceInstanceGUID = "my-service-instance"
 
 	var (
-		brokerServices *services.BrokerServices
-		client         *fakes.FakeHTTPClient
+		brokerServices    *services.BrokerServices
+		client            *fakeclients.FakeHTTPClient
+		authHeaderBuilder *fakes.FakeAuthHeaderBuilder
 	)
 
 	BeforeEach(func() {
-		client = new(fakes.FakeHTTPClient)
-		brokerServices = services.NewBrokerServices(client)
+		client = new(fakeclients.FakeHTTPClient)
+		authHeaderBuilder = new(fakes.FakeAuthHeaderBuilder)
+
+		brokerServices = services.NewBrokerServices(client, authHeaderBuilder, "http://test.test")
 	})
 
 	Describe("UpgradeInstance", func() {
 		It("returns an upgrade operation", func() {
 			planUniqueID := "unique_plan_id"
 			expectedBody := fmt.Sprintf(`{"plan_id": "%s"}`, planUniqueID)
-			client.PatchReturns(response(http.StatusNotFound, ""), nil)
+			client.DoReturns(response(http.StatusNotFound, ""), nil)
 
 			upgradeOperation, err := brokerServices.UpgradeInstance(service.Instance{
 				GUID:         serviceInstanceGUID,
@@ -49,15 +55,18 @@ var _ = Describe("Broker Services", func() {
 			})
 
 			Expect(err).NotTo(HaveOccurred())
-			actualPath, requestBody := client.PatchArgsForCall(0)
-			Expect(actualPath).To(Equal("/mgmt/service_instances/" + serviceInstanceGUID))
+			request := client.DoArgsForCall(0)
+			Expect(request.Method).To(Equal(http.MethodPatch))
+			body, err := ioutil.ReadAll(request.Body)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(request.URL.Path).To(Equal("/mgmt/service_instances/" + serviceInstanceGUID))
 			Expect(upgradeOperation.Type).To(Equal(services.InstanceNotFound))
-			Expect(requestBody).To(Equal(expectedBody))
+			Expect(string(body)).To(Equal(expectedBody))
 		})
 
 		Context("when the request fails", func() {
 			It("returns an error", func() {
-				client.PatchReturns(nil, errors.New("connection error"))
+				client.DoReturns(nil, errors.New("connection error"))
 
 				_, err := brokerServices.UpgradeInstance(service.Instance{
 					GUID:         serviceInstanceGUID,
@@ -70,7 +79,7 @@ var _ = Describe("Broker Services", func() {
 
 		Context("when the broker responds with an error", func() {
 			It("returns an error", func() {
-				client.PatchReturns(response(http.StatusInternalServerError, "error upgrading instance"), nil)
+				client.DoReturns(response(http.StatusInternalServerError, "error upgrading instance"), nil)
 
 				_, err := brokerServices.UpgradeInstance(service.Instance{
 					GUID:         serviceInstanceGUID,
@@ -90,16 +99,22 @@ var _ = Describe("Broker Services", func() {
 				OperationType: broker.OperationTypeUpgrade,
 				PlanID:        "plan-id",
 			}
-			client.GetReturns(response(http.StatusOK, `{"state":"in progress","description":"upgrade in progress"}`), nil)
+			client.DoReturns(response(http.StatusOK, `{"state":"in progress","description":"upgrade in progress"}`), nil)
 
 			lastOperation, err := brokerServices.LastOperation(serviceInstanceGUID, operationData)
-
 			Expect(err).NotTo(HaveOccurred())
-			actualPath, actualQuery := client.GetArgsForCall(0)
-			Expect(actualPath).To(Equal("/v2/service_instances/" + serviceInstanceGUID + "/last_operation"))
-			Expect(actualQuery).To(Equal(map[string]string{
-				"operation": `{"BoshTaskID":1,"BoshContextID":"context-id","OperationType":"upgrade","PlanID":"plan-id","PostDeployErrand":{}}`,
+
+			request := client.DoArgsForCall(0)
+			Expect(request.Method).To(Equal(http.MethodGet))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(request.URL.Path).To(Equal("/v2/service_instances/" + serviceInstanceGUID + "/last_operation"))
+
+			query, err := url.ParseQuery(request.URL.RawQuery)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(query).To(Equal(url.Values{
+				"operation": []string{`{"BoshTaskID":1,"BoshContextID":"context-id","OperationType":"upgrade","PlanID":"plan-id","PostDeployErrand":{}}`},
 			}))
+
 			Expect(lastOperation).To(Equal(
 				brokerapi.LastOperation{State: brokerapi.InProgress, Description: "upgrade in progress"}),
 			)
@@ -107,7 +122,7 @@ var _ = Describe("Broker Services", func() {
 
 		Context("when the request fails", func() {
 			It("returns an error", func() {
-				client.GetReturns(nil, errors.New("connection error"))
+				client.DoReturns(nil, errors.New("connection error"))
 
 				_, err := brokerServices.LastOperation(serviceInstanceGUID, broker.OperationData{})
 
@@ -117,7 +132,7 @@ var _ = Describe("Broker Services", func() {
 
 		Context("when the broker response is unrecognised", func() {
 			It("returns an error", func() {
-				client.GetReturns(response(http.StatusOK, "invalid json"), nil)
+				client.DoReturns(response(http.StatusOK, "invalid json"), nil)
 
 				_, err := brokerServices.LastOperation(serviceInstanceGUID, broker.OperationData{})
 
@@ -129,13 +144,14 @@ var _ = Describe("Broker Services", func() {
 	Describe("OrphanDeployments", func() {
 		It("returns a list of orphan deployments", func() {
 			listOfDeployments := `[{"deployment_name":"service-instance_one"},{"deployment_name":"service-instance_two"}]`
-			client.GetReturns(response(http.StatusOK, listOfDeployments), nil)
+			client.DoReturns(response(http.StatusOK, listOfDeployments), nil)
 
 			instances, err := brokerServices.OrphanDeployments()
 
 			Expect(err).NotTo(HaveOccurred())
-			actualPath, _ := client.GetArgsForCall(0)
-			Expect(actualPath).To(Equal("/mgmt/orphan_deployments"))
+			request := client.DoArgsForCall(0)
+			Expect(request.Method).To(Equal(http.MethodGet))
+			Expect(request.URL.Path).To(Equal("/mgmt/orphan_deployments"))
 			Expect(instances).To(ConsistOf(
 				mgmtapi.Deployment{Name: "service-instance_one"},
 				mgmtapi.Deployment{Name: "service-instance_two"},
@@ -144,7 +160,7 @@ var _ = Describe("Broker Services", func() {
 
 		Context("when the request fails", func() {
 			It("returns an error", func() {
-				client.GetReturns(nil, errors.New("connection error"))
+				client.DoReturns(nil, errors.New("connection error"))
 
 				_, err := brokerServices.OrphanDeployments()
 
@@ -154,7 +170,7 @@ var _ = Describe("Broker Services", func() {
 
 		Context("when the broker response is unrecognised", func() {
 			It("returns an error", func() {
-				client.GetReturns(response(http.StatusOK, "invalid json"), nil)
+				client.DoReturns(response(http.StatusOK, "invalid json"), nil)
 
 				_, err := brokerServices.OrphanDeployments()
 

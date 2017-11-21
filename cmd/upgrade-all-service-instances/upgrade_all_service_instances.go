@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/craigfurman/herottp"
+	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
@@ -68,8 +69,12 @@ func main() {
 		RootCAs: certPool,
 	})
 
-	basicAuthClient := network.NewBasicAuthHTTPClient(httpClient, conf.BrokerAPI.Authentication.Basic.Username, conf.BrokerAPI.Authentication.Basic.Password, conf.BrokerAPI.URL)
-	brokerServices := services.NewBrokerServices(basicAuthClient)
+	brokerBasicAuthHeaderBuilder := authorizationheader.NewBasicAuthHeaderBuilder(
+		conf.BrokerAPI.Authentication.Basic.Username,
+		conf.BrokerAPI.Authentication.Basic.Password,
+	)
+
+	brokerServices := services.NewBrokerServices(httpClient, brokerBasicAuthHeaderBuilder, conf.BrokerAPI.URL)
 	listener := upgrader.NewLoggingListener(logger)
 
 	serviceInstancesAPIBasicAuthClient := network.NewBasicAuthHTTPClient(

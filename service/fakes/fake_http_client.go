@@ -23,19 +23,6 @@ type FakeHTTPClient struct {
 		result1 *http.Response
 		result2 error
 	}
-	PatchStub        func(path string) (*http.Response, error)
-	patchMutex       sync.RWMutex
-	patchArgsForCall []struct {
-		path string
-	}
-	patchReturns struct {
-		result1 *http.Response
-		result2 error
-	}
-	patchReturnsOnCall map[int]struct {
-		result1 *http.Response
-		result2 error
-	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -92,64 +79,11 @@ func (fake *FakeHTTPClient) GetReturnsOnCall(i int, result1 *http.Response, resu
 	}{result1, result2}
 }
 
-func (fake *FakeHTTPClient) Patch(path string) (*http.Response, error) {
-	fake.patchMutex.Lock()
-	ret, specificReturn := fake.patchReturnsOnCall[len(fake.patchArgsForCall)]
-	fake.patchArgsForCall = append(fake.patchArgsForCall, struct {
-		path string
-	}{path})
-	fake.recordInvocation("Patch", []interface{}{path})
-	fake.patchMutex.Unlock()
-	if fake.PatchStub != nil {
-		return fake.PatchStub(path)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	return fake.patchReturns.result1, fake.patchReturns.result2
-}
-
-func (fake *FakeHTTPClient) PatchCallCount() int {
-	fake.patchMutex.RLock()
-	defer fake.patchMutex.RUnlock()
-	return len(fake.patchArgsForCall)
-}
-
-func (fake *FakeHTTPClient) PatchArgsForCall(i int) string {
-	fake.patchMutex.RLock()
-	defer fake.patchMutex.RUnlock()
-	return fake.patchArgsForCall[i].path
-}
-
-func (fake *FakeHTTPClient) PatchReturns(result1 *http.Response, result2 error) {
-	fake.PatchStub = nil
-	fake.patchReturns = struct {
-		result1 *http.Response
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeHTTPClient) PatchReturnsOnCall(i int, result1 *http.Response, result2 error) {
-	fake.PatchStub = nil
-	if fake.patchReturnsOnCall == nil {
-		fake.patchReturnsOnCall = make(map[int]struct {
-			result1 *http.Response
-			result2 error
-		})
-	}
-	fake.patchReturnsOnCall[i] = struct {
-		result1 *http.Response
-		result2 error
-	}{result1, result2}
-}
-
 func (fake *FakeHTTPClient) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.getMutex.RLock()
 	defer fake.getMutex.RUnlock()
-	fake.patchMutex.RLock()
-	defer fake.patchMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

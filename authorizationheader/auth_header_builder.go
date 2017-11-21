@@ -16,6 +16,11 @@ import (
 	"time"
 )
 
+//go:generate counterfeiter -o fakes/fake_auth_header_builder.go . AuthHeaderBuilder
+type AuthHeaderBuilder interface {
+	AddAuthHeader(request *http.Request, logger *log.Logger) error
+}
+
 func tokenExpired(token string, tokenExpiry time.Time) bool {
 	if token == "" {
 		return true

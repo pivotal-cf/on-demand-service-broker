@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 	"github.com/pivotal-cf/on-demand-service-broker/network"
@@ -32,8 +33,8 @@ func main() {
 	flag.Parse()
 
 	httpClient := network.NewDefaultHTTPClient()
-	basicAuthClient := network.NewBasicAuthHTTPClient(httpClient, *brokerUsername, *brokerPassword, *brokerURL)
-	brokerServices := services.NewBrokerServices(basicAuthClient)
+	authHeaderBuilder := authorizationheader.NewBasicAuthHeaderBuilder(*brokerUsername, *brokerPassword)
+	brokerServices := services.NewBrokerServices(httpClient, authHeaderBuilder, *brokerURL)
 
 	orphans, err := brokerServices.OrphanDeployments()
 	if err != nil {
