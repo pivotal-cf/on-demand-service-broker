@@ -130,8 +130,7 @@
 [[projects]]
   name = "github.com/urfave/negroni"
   packages = ["."]
-  revision = "5dbbc83f748fc3ad38585842b0aedab546d0ea1e"
-  version = "v0.3.0"
+  revision = "e0e50f7dc431c043cb33f91b09c3419d48b7cff5"
 
 [[projects]]
   branch = "master"
@@ -172,6 +171,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "662a0c8a89eb5ec53610ec0e6cfcc419c8dd4fe01f4b6542336ff8375039cd3d"
+  inputs-digest = "d9fc7038d7ab3838d0c4755d24c8431e0a3c8a5ba9370d7fd6a9094683e02013"
   solver-name = "gps-cdcl"
   solver-version = 1

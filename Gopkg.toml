@@ -79,7 +79,7 @@
 
 [[constraint]]
   name = "github.com/urfave/negroni"
-  version = "0.3.0"
+  revision = "e0e50f7dc431c043cb33f91b09c3419d48b7cff5"
 
 [[constraint]]
   branch = "v2"
