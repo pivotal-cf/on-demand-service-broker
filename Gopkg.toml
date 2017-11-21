@@ -30,8 +30,8 @@
   name = "github.com/cloudfoundry-incubator/cf-test-helpers"
 
 [[constraint]]
+  branch = "master"
   name = "github.com/cloudfoundry-incubator/credhub-cli"
-  version = "1.5.0"
 
 [[constraint]]
   name = "github.com/cloudfoundry/noaa"

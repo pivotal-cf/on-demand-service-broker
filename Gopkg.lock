@@ -14,10 +14,10 @@
   revision = "820a007a30e27f0a63666254fc19d1198536eb33"
 
 [[projects]]
+  branch = "master"
   name = "github.com/cloudfoundry-incubator/credhub-cli"
   packages = ["credhub","credhub/auth","credhub/auth/uaa","credhub/credentials","credhub/credentials/generate","credhub/credentials/values","credhub/permissions","credhub/server","errors"]
-  revision = "83db856f5c3d7f3df4a3eca098b56dee0549b78a"
-  version = "1.5.0"
+  revision = "d686cd8b7d2d044e0dee73aa397809f84e972541"
 
 [[projects]]
   name = "github.com/cloudfoundry/noaa"
@@ -171,6 +171,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "d9fc7038d7ab3838d0c4755d24c8431e0a3c8a5ba9370d7fd6a9094683e02013"
+  inputs-digest = "f4cc9d28b42abf6f3eea95809a44e7565cc2c6953d96a2a284e6e0fb14fc33ea"
   solver-name = "gps-cdcl"
   solver-version = 1
