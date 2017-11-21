@@ -45,7 +45,7 @@ func main() {
 		logger.Fatalf("error marshalling orphan deployments: %s", err)
 	}
 
-	fmt.Fprint(os.Stdout, string(rawJSON))
+	fmt.Fprintln(os.Stdout, string(rawJSON))
 
 	if len(orphans) > 0 {
 		logger.Println(OrphanBoshDeploymentsDetectedMessage)
