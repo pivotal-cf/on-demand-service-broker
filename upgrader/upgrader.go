@@ -10,6 +10,10 @@ import (
 	"fmt"
 	"time"
 
+	"net/url"
+
+	"crypto/x509"
+
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
@@ -62,6 +66,15 @@ func (u upgrader) Upgrade() error {
 
 	instances, err := u.instanceLister.Instances()
 	if err != nil {
+		urlError, ok := err.(*url.Error)
+		if ok {
+			_, ok := urlError.Err.(x509.UnknownAuthorityError)
+			if ok {
+				return fmt.Errorf(
+					"SSL validation error for `service_instances_api.url`: %s. Please configure a `service_instances_api.root_ca_cert` and use a valid SSL certificate",
+					urlError.URL)
+			}
+		}
 		return fmt.Errorf("error listing service instances: %s", err)
 	}
 

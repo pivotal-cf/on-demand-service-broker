@@ -57,11 +57,11 @@ func main() {
 		logger.Fatalln("the pollingInterval must be greater than zero")
 	}
 
-	cert := conf.ServiceInstancesAPI.RootCACert
 	certPool, err := x509.SystemCertPool()
 	if err != nil {
 		logger.Fatalf("error getting a certificate pool to append our trusted cert to: %s", err)
 	}
+	cert := conf.ServiceInstancesAPI.RootCACert
 	certPool.AppendCertsFromPEM([]byte(cert))
 
 	httpClient := herottp.New(herottp.Config{
@@ -83,6 +83,7 @@ func main() {
 		conf.ServiceInstancesAPI.Authentication.Basic.Password,
 		conf.ServiceInstancesAPI.URL,
 	)
+
 	serviceInstancesServices := service.NewInstanceLister(serviceInstancesAPIBasicAuthClient)
 	upgradeTool := upgrader.New(brokerServices, serviceInstancesServices, conf.PollingInterval, listener)
 

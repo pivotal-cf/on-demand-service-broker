@@ -21,6 +21,7 @@ import (
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/pivotal-cf/on-demand-service-broker/integration_tests/helpers"
+	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp/mockbroker"
 )
@@ -131,6 +132,8 @@ func startNewSSLAPIServer(
 	config := &tls.Config{Certificates: []tls.Certificate{cer}}
 	sslServer := httptest.NewUnstartedServer(handler)
 	sslServer.TLS = config
+
+	sslServer.Config.ErrorLog = loggerfactory.New(GinkgoWriter, "server", loggerfactory.Flags).New()
 	sslServer.StartTLS()
 	return sslServer
 }
@@ -261,6 +264,34 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 			Eventually(runningTool, 5*time.Second).Should(gexec.Exit(0))
 			Expect(runningTool).To(gbytes.Say("Sleep interval until next attempt: 1s"))
 			Expect(runningTool).To(gbytes.Say("Number of successful upgrades: 1"))
+		})
+
+		It("exits 1 when SIAPI server has TLS enabled but root CA has not been provided to errand", func() {
+			testServiceInstancesAPIServer = startNewSSLAPIServer(
+				certPath,
+				keyPath,
+				serviceInstancesAPIURLPath,
+				serviceInstancesAPIUsername,
+				serviceInstancesAPIPassword)
+
+			brokerConfig := populateBrokerConfig(odb.URL, brokerUsername, brokerPassword)
+
+			serviceInstancesAPIConfig := populateServiceInstancesAPIConfig(
+				testServiceInstancesAPIServer.URL+serviceInstancesAPIURLPath,
+				serviceInstancesAPIUsername,
+				serviceInstancesAPIPassword)
+
+			pollingIntervalConfig := populatePollingIntervalConfig(1)
+
+			config := brokerConfig + serviceInstancesAPIConfig + pollingIntervalConfig
+
+			configPath = writeConfigFile(config)
+			runningTool := startUpgradeAllInstanceBinary()
+
+			Eventually(runningTool, 5*time.Second).Should(gexec.Exit(1))
+			Expect(runningTool).To(gbytes.Say(fmt.Sprintf(
+				"SSL validation error for `service_instances_api.url`: %s. Please configure a `service_instances_api.root_ca_cert` and use a valid SSL certificate",
+				testServiceInstancesAPIServer.URL+serviceInstancesAPIURLPath)))
 		})
 	})
 
