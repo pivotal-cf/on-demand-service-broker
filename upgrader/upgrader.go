@@ -7,6 +7,7 @@
 package upgrader
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -68,6 +69,9 @@ func (u upgrader) Upgrade() error {
 	if err != nil {
 		urlError, ok := err.(*url.Error)
 		if ok {
+			if urlError.Err == nil {
+				return errors.New("error listing service instances: unknown url.Error")
+			}
 			_, ok := urlError.Err.(x509.UnknownAuthorityError)
 			if ok {
 				return fmt.Errorf(

@@ -11,6 +11,10 @@ import (
 	"fmt"
 	"time"
 
+	"net/url"
+
+	"crypto/x509"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/brokerapi"
@@ -92,6 +96,43 @@ var _ = Describe("Upgrader", func() {
 
 				It("returns an error", func() {
 					Expect(actualErr).To(MatchError("Upgrade failed for service instance not a guid Q#$%#$%^&&*$%^#$FGRTYW${T:WED:AWSD)E@#PE{:QS:{QLWD: failed\n"))
+				})
+			})
+
+			Context("due to a x509.UnknownAuthorityError", func() {
+				BeforeEach(func() {
+					err := &url.Error{URL: "https://url.test", Err: x509.UnknownAuthorityError{}}
+					instanceLister.InstancesReturns(nil, err)
+					brokerServicesClient.UpgradeInstanceReturns(services.UpgradeOperation{}, errors.New("failed"))
+				})
+
+				It("returns an error", func() {
+					errMsg := fmt.Sprintf("SSL validation error for `service_instances_api.url`: https://url.test. Please configure a `service_instances_api.root_ca_cert` and use a valid SSL certificate")
+					Expect(actualErr).To(MatchError(errMsg))
+				})
+			})
+
+			Context("due to a generic certificate error", func() {
+				BeforeEach(func() {
+					err := &url.Error{URL: "https://url.test", Err: x509.CertificateInvalidError{}}
+					instanceLister.InstancesReturns(nil, err)
+					brokerServicesClient.UpgradeInstanceReturns(services.UpgradeOperation{}, errors.New("failed"))
+				})
+
+				It("returns an error", func() {
+					Expect(actualErr).To(MatchError(ContainSubstring("error listing service instances:")))
+				})
+			})
+
+			Context("due to a URL error with nil Err", func() {
+				BeforeEach(func() {
+					err := &url.Error{URL: "https://url.test"}
+					instanceLister.InstancesReturns(nil, err)
+					brokerServicesClient.UpgradeInstanceReturns(services.UpgradeOperation{}, errors.New("failed"))
+				})
+
+				It("returns an error", func() {
+					Expect(actualErr).To(MatchError(ContainSubstring("error listing service instances: unknown url.Error")))
 				})
 			})
 		})
