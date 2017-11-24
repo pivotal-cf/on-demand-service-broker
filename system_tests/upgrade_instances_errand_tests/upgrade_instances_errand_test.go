@@ -207,6 +207,8 @@ func updateServiceInstancesAPI(brokerManifest *bosh.BoshManifest) {
 		Expect(username).NotTo(Equal(""), "username")
 		Expect(password).NotTo(Equal(""), "password")
 
+		url = strings.Replace(url, "https", "http", 1)
+
 		httpClient := network.NewDefaultHTTPClient()
 		exampleServiceInstancesClient := network.NewBasicAuthHTTPClient(
 			httpClient,
