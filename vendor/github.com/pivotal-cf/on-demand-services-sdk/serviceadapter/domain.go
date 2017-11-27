@@ -16,9 +16,11 @@
 package serviceadapter
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 
+	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 
 	"gopkg.in/go-playground/validator.v8"
@@ -82,6 +84,13 @@ func (s RequestParameters) ArbitraryParams() map[string]interface{} {
 	return s["parameters"].(map[string]interface{})
 }
 
+func (s RequestParameters) BindResource() brokerapi.BindResource {
+	marshalledParams, _ := json.Marshal(s["bind_resource"])
+	res := brokerapi.BindResource{}
+	json.Unmarshal(marshalledParams, &res)
+	return res
+}
+
 var validate *validator.Validate
 
 func init() {
@@ -129,9 +138,10 @@ func (s ServiceDeployment) Validate() error {
 type Properties map[string]interface{}
 
 type Plan struct {
-	Properties     Properties      `json:"properties"`
-	InstanceGroups []InstanceGroup `json:"instance_groups" validate:"required,dive"`
-	Update         *Update         `json:"update,omitempty"`
+	Properties       Properties       `json:"properties"`
+	LifecycleErrands LifecycleErrands `json:"lifecycle_errands,omitempty"`
+	InstanceGroups   []InstanceGroup  `json:"instance_groups" validate:"required,dive"`
+	Update           *Update          `json:"update,omitempty"`
 }
 
 func (p Plan) Validate() error {
@@ -154,6 +164,16 @@ func (e *VMExtensions) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	}
 
 	return nil
+}
+
+type LifecycleErrands struct {
+	PostDeploy Errand `json:"post_deploy,omitempty"`
+	PreDelete  Errand `json:"pre_delete,omitempty"`
+}
+
+type Errand struct {
+	Name      string   `json:"name,omitempty"`
+	Instances []string `json:"instances,omitempty"`
 }
 
 type InstanceGroup struct {

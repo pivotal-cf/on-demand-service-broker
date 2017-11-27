@@ -20,6 +20,7 @@ import (
 
 	yaml "gopkg.in/yaml.v2"
 
+	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 
 	. "github.com/onsi/ginkgo"
@@ -43,6 +44,27 @@ var _ = Describe("Domain", func() {
 			It("arbitrary params are empty", func() {
 				params := serviceadapter.RequestParameters{"plan_id": "baz"}
 				Expect(params.ArbitraryParams()).To(Equal(map[string]interface{}{}))
+			})
+		})
+
+		Context("when bindResource is present", func() {
+			It("can extract bindResource", func() {
+				params := serviceadapter.RequestParameters{"bind_resource": map[string]interface{}{"app_guid": "foo"}}
+				Expect(params.BindResource()).To(Equal(brokerapi.BindResource{AppGuid: "foo"}))
+			})
+		})
+
+		Context("when bindResource is absent", func() {
+			It("bindResources is empty", func() {
+				params := serviceadapter.RequestParameters{"plan_id": "baz"}
+				Expect(params.BindResource()).To(Equal(brokerapi.BindResource{}))
+			})
+		})
+
+		Context("when bindResource is not a JSON", func() {
+			It("bindResources is empty", func() {
+				params := serviceadapter.RequestParameters{"bind_resource": func() {}}
+				Expect(params.BindResource()).To(Equal(brokerapi.BindResource{}))
 			})
 		})
 	})
@@ -114,6 +136,16 @@ var _ = Describe("Domain", func() {
 	Describe("plan", func() {
 		Describe("(de)serialising from/to JSON", func() {
 			planJson := []byte(`{
+				"lifecycle_errands": {
+					"post_deploy": {
+						"name": "health-check",
+						"instances": ["redis-server/0"]
+					},
+					"pre_delete": {
+						"name": "cleanup-data",
+						"instances": ["redis-server/0"]
+					}
+				},
 				"instance_groups": [
 					{
 						"name": "example-server",
@@ -146,6 +178,16 @@ var _ = Describe("Domain", func() {
 			}`)
 
 			expectedPlan := serviceadapter.Plan{
+				LifecycleErrands: serviceadapter.LifecycleErrands{
+					PostDeploy: serviceadapter.Errand{
+						Name:      "health-check",
+						Instances: []string{"redis-server/0"},
+					},
+					PreDelete: serviceadapter.Errand{
+						Name:      "cleanup-data",
+						Instances: []string{"redis-server/0"},
+					},
+				},
 				InstanceGroups: []serviceadapter.InstanceGroup{{
 					Name:               "example-server",
 					VMType:             "small",
@@ -203,7 +245,11 @@ var _ = Describe("Domain", func() {
 							"azs": ["az1"]
 						}
 					],
-					"properties": {}
+					"properties": {},
+					"lifecycle_errands": {
+						"post_deploy": {},
+						"pre_delete": {}
+					}
 				}`)
 				Expect(toJson(expectedPlan)).To(MatchJSON(planJson))
 			})
