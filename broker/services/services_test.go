@@ -141,7 +141,7 @@ var _ = Describe("Broker Services", func() {
 			query, err := url.ParseQuery(request.URL.RawQuery)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(query).To(Equal(url.Values{
-				"operation": []string{`{"BoshTaskID":1,"BoshContextID":"context-id","OperationType":"upgrade","PlanID":"plan-id","PostDeployErrand":{}}`},
+				"operation": []string{`{"BoshTaskID":1,"BoshContextID":"context-id","OperationType":"upgrade","PlanID":"plan-id","PostDeployErrand":{},"PreDeleteErrand":{}}`},
 			}))
 
 			Expect(lastOperation).To(Equal(
