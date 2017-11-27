@@ -91,9 +91,15 @@ type OperationData struct {
 	OperationType    OperationType
 	PlanID           string `json:",omitempty"`
 	PostDeployErrand PostDeployErrand
+	PreDeleteErrand  PreDeleteErrand
 }
 
 type PostDeployErrand struct {
+	Name      string   `json:",omitempty"`
+	Instances []string `json:",omitempty"`
+}
+
+type PreDeleteErrand struct {
 	Name      string   `json:",omitempty"`
 	Instances []string `json:",omitempty"`
 }

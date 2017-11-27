@@ -531,7 +531,7 @@ var _ = Describe("last operation", func() {
 		)
 
 		BeforeEach(func() {
-			planID = "post-deploy-plan-id"
+			planID = "pre-delete-plan-id"
 			operationType = broker.OperationTypeDelete
 			contextID = "some-context-id"
 
@@ -539,7 +539,7 @@ var _ = Describe("last operation", func() {
 				ID:   planID,
 				Name: "pre-delete-plan",
 				LifecycleErrands: &config.LifecycleErrands{
-					PreDelete: errandName,
+					PreDelete: config.Errand{Name: errandName},
 				},
 			}
 

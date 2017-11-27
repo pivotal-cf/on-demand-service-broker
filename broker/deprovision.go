@@ -48,7 +48,7 @@ func (b *Broker) Deprovision(
 	plan, found := b.serviceOffering.FindPlanByID(deprovisionDetails.PlanID)
 	if found {
 		if errand := plan.PreDeleteErrand(); errand != "" {
-			return b.runPreDeleteErrand(ctx, instanceID, errand, logger)
+			return b.runPreDeleteErrand(ctx, instanceID, errand, plan.LifecycleErrands.PreDelete.Instances, logger)
 		}
 	}
 
@@ -109,6 +109,7 @@ func (b *Broker) runPreDeleteErrand(
 	ctx context.Context,
 	instanceID string,
 	preDeleteErrand string,
+	errandInstances []string,
 	logger *log.Logger,
 ) (brokerapi.DeprovisionServiceSpec, error) {
 	logger.Printf("running pre-delete errand for instance %s\n", instanceID)
@@ -118,7 +119,7 @@ func (b *Broker) runPreDeleteErrand(
 	taskID, err := b.boshClient.RunErrand(
 		deploymentName(instanceID),
 		preDeleteErrand,
-		[]string{},
+		errandInstances,
 		boshContextID,
 		logger,
 	)
@@ -127,9 +128,10 @@ func (b *Broker) runPreDeleteErrand(
 	}
 
 	operationData, err := json.Marshal(OperationData{
-		OperationType: OperationTypeDelete,
-		BoshTaskID:    taskID,
-		BoshContextID: boshContextID,
+		OperationType:   OperationTypeDelete,
+		BoshTaskID:      taskID,
+		BoshContextID:   boshContextID,
+		PreDeleteErrand: PreDeleteErrand{Name: preDeleteErrand, Instances: errandInstances},
 	})
 
 	if err != nil {

@@ -1,0 +1,110 @@
+# Copyright (C) 2016-Present Pivotal Software, Inc. All rights reserved.
+# This program and the accompanying materials are made available under the terms of the under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# http://www.apache.org/licenses/LICENSE-2.0
+# Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+
+---
+broker:
+  port: 8080
+  username: username
+  password: password
+  disable_ssl_cert_verification: true
+  startup_banner: false
+  shutdown_timeout_in_seconds: 10
+bosh:
+  url: some-url
+  root_ca_cert: some-cert
+  authentication:
+    basic:
+      username: some-username
+      password: some-password
+cf:
+  url: some-cf-url
+  root_ca_cert: some-cf-cert
+  authentication:
+    url: a-uaa-url
+    user_credentials:
+      username: some-cf-username
+      password: some-cf-password
+service_adapter:
+  path: test_assets/executable.sh
+service_deployment:
+  releases:
+    - name: some-name
+      version: some-version
+      jobs: [some-job]
+  stemcell:
+    os: ubuntu-trusty
+    version: 1234
+service_catalog:
+  id: some-id
+  service_name: some-marketplace-name
+  service_description: some-description
+  bindable: true
+  plan_updatable: true
+  dashboard_client:
+      id: "client-id-1"
+      secret: "secret-1"
+      redirect_uri: "https://dashboard.url"
+  metadata:
+    display_name: some-service-display-name
+    image_url: "http://test.jpg"
+    long_description: "Some description"
+    provider_display_name: "some name"
+    documentation_url: "some url"
+    support_url: "some url"
+  tags:
+    - some-tag
+    - some-other-tag
+  global_properties:
+    global_foo: global_bar
+  plans:
+    - name: some-dedicated-name
+      plan_id: some-dedicated-plan-id
+      description: Im a dedicated plan
+      free: true
+      update:
+        canaries: 1
+        max_in_flight: 2
+        canary_watch_time: 1000-30000
+        update_watch_time: 1000-30000
+        serial: false
+      metadata:
+        display_name: Dedicated-Cluster
+        bullets:
+          - bullet one
+          - bullet two
+          - bullet three
+        costs:
+          - amount:
+              usd: 99.0
+              eur: 49.0
+            unit: MONTHLY
+          - amount:
+              usd: 0.99
+              eur: 0.49
+            unit: 1GB of messages over 20GB
+      quotas:
+        service_instance_limit: 1
+      properties:
+        persistence: true
+      lifecycle_errands:
+        pre_delete:
+          name: health-check
+          instances: [some/invalid/instance]
+      instance_groups:
+        - name: redis-server
+          vm_type: some-vm
+          persistent_disk_type: some-disk
+          instances: 34
+          networks: [ net1, net2 ]
+        - name: redis-server-2
+          vm_type: some-vm-2
+          instances: 3
+          networks: [ net4, net5 ]
+        - name: redis-errand
+          vm_type: some-vm-3
+          instances: 2
+          networks: [ net5, net6 ]
+          lifecycle: errand

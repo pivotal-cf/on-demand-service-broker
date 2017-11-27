@@ -126,8 +126,12 @@ func (b *Broker) provisionInstance(ctx context.Context, instanceID string, planI
 	var boshContextID string
 	var operationPostDeployErrand string
 	var operationPostDeployErrandInstances []string
-	if plan.PostDeployErrand() != "" {
+
+	if plan.LifecycleErrands != nil {
 		boshContextID = uuid.New()
+	}
+
+	if plan.PostDeployErrand() != "" {
 		operationPostDeployErrand = plan.PostDeployErrand()
 		operationPostDeployErrandInstances = plan.PostDeployErrandInstances()
 	}
@@ -160,6 +164,10 @@ func (b *Broker) provisionInstance(ctx context.Context, instanceID string, planI
 		PostDeployErrand: PostDeployErrand{
 			Name:      operationPostDeployErrand,
 			Instances: operationPostDeployErrandInstances,
+		},
+		PreDeleteErrand: PreDeleteErrand{
+			Name:      plan.PreDeleteErrand(),
+			Instances: plan.PreDeleteErrandInstances(),
 		},
 	}
 

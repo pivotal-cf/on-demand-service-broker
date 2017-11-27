@@ -119,7 +119,10 @@ var _ = BeforeEach(func() {
 	preDeleteErrandPlan := config.Plan{
 		ID: preDeleteErrandPlanID,
 		LifecycleErrands: &config.LifecycleErrands{
-			PreDelete: "cleanup-resources",
+			PreDelete: config.Errand{
+				Name:      "cleanup-resources",
+				Instances: []string{},
+			},
 		},
 		InstanceGroups: []serviceadapter.InstanceGroup{},
 	}

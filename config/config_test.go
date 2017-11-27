@@ -428,6 +428,38 @@ var _ = Describe("Config", func() {
 			})
 		})
 
+		Context("pre delete errand", func() {
+			Context("when the instances property is specified as a/b/c", func() {
+				BeforeEach(func() {
+					configFileName = "config_with_invalid_pre_delete_instances.yml"
+				})
+
+				It("returns an error", func() {
+					Expect(parseErr).To(MatchError(MatchRegexp("Must specify pool or instance '.*' in format 'name' or 'name/id-or-index'")))
+				})
+			})
+
+			Context("when the instances property is specified as /b", func() {
+				BeforeEach(func() {
+					configFileName = "config_with_invalid_pre_delete_instances_1.yml"
+				})
+
+				It("returns an error", func() {
+					Expect(parseErr).To(MatchError(MatchRegexp("Must specify pool or instance '.*' in format 'name' or 'name/id-or-index'")))
+				})
+			})
+
+			Context("when the instances property is specified as a/", func() {
+				BeforeEach(func() {
+					configFileName = "config_with_invalid_pre_delete_instances_2.yml"
+				})
+
+				It("returns an error", func() {
+					Expect(parseErr).To(MatchError(MatchRegexp("Must specify pool or instance '.*' in format 'name' or 'name/id-or-index'")))
+				})
+			})
+		})
+
 		Describe("service deployment", func() {
 			latestFailureMessage := "You must configure the exact release and stemcell versions in broker.service_deployment. ODB requires exact versions to detect pending changes as part of the 'cf update-service' workflow. For example, latest and 3112.latest are not supported."
 

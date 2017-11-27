@@ -116,10 +116,10 @@
   revision = "4d9a0850fdd95695c5d20b7442e90c3d43fbb64e"
 
 [[projects]]
+  branch = "master"
   name = "github.com/pivotal-cf/on-demand-services-sdk"
   packages = ["bosh","serviceadapter"]
-  revision = "beccd507080a31d44d2a604e83e7936cd2c37e43"
-  version = "v0.18.0"
+  revision = "edbd00add2ead0443423207b68bf153b34c21e44"
 
 [[projects]]
   branch = "master"
@@ -171,6 +171,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "f4cc9d28b42abf6f3eea95809a44e7565cc2c6953d96a2a284e6e0fb14fc33ea"
+  inputs-digest = "f2107b33cb618696238321858ae61efa2438731ef9324841585bb9812ea6506f"
   solver-name = "gps-cdcl"
   solver-version = 1

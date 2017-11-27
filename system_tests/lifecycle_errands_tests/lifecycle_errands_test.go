@@ -28,6 +28,7 @@ var _ = Describe("lifecycle errand tests", func() {
 		cleanupPlan             = "lifecycle-cleanup-data-plan"
 		cleanupFailsPlan        = "lifecycle-failing-cleanup-data-plan"
 		colocatedPostDeployPlan = "lifecycle-colocated-post-deploy-plan"
+		colocatedPreDeletePlan  = "lifecycle-colocated-pre-delete-plan"
 		dedicatedVMPlan         = "dedicated-vm"
 	)
 
@@ -39,7 +40,8 @@ var _ = Describe("lifecycle errand tests", func() {
 
 		AfterEach(func() {
 			By("deleting the service instance")
-			Eventually(cf.Cf("delete-service", serviceInstanceName, "-f"), cf_helpers.CfTimeout).Should(gexec.Exit(0))
+			deleteServiceSession := cf.Cf("delete-service", serviceInstanceName, "-f")
+			Eventually(deleteServiceSession, cf_helpers.CfTimeout).Should(gexec.Exit(0))
 			cf_helpers.AwaitServiceDeletion(serviceInstanceName)
 		})
 
@@ -48,7 +50,8 @@ var _ = Describe("lifecycle errand tests", func() {
 				planName = colocatedPostDeployPlan
 
 				By("creating an instance")
-				Eventually(cf.Cf("create-service", serviceOffering, planName, serviceInstanceName), cf_helpers.CfTimeout).Should(gexec.Exit(0))
+				createServiceSession := cf.Cf("create-service", serviceOffering, planName, serviceInstanceName)
+				Eventually(createServiceSession, cf_helpers.CfTimeout).Should(gexec.Exit(0))
 				cf_helpers.AwaitServiceCreation(serviceInstanceName)
 
 				boshTasks := boshClient.GetTasksForDeployment(getServiceDeploymentName(serviceInstanceName))
@@ -68,7 +71,8 @@ var _ = Describe("lifecycle errand tests", func() {
 					planName = postDeployPlan
 
 					By("creating an instance")
-					Eventually(cf.Cf("create-service", serviceOffering, planName, serviceInstanceName), cf_helpers.CfTimeout).Should(gexec.Exit(0))
+					createServiceSession := cf.Cf("create-service", serviceOffering, planName, serviceInstanceName)
+					Eventually(createServiceSession, cf_helpers.CfTimeout).Should(gexec.Exit(0))
 					cf_helpers.AwaitServiceCreation(serviceInstanceName)
 				})
 
@@ -85,7 +89,8 @@ var _ = Describe("lifecycle errand tests", func() {
 
 				It("runs post-deploy errand after update", func() {
 					By("updating the instance")
-					Eventually(cf.Cf("update-service", serviceInstanceName, "-c", `{"maxclients": 101}`), cf_helpers.CfTimeout).Should(gexec.Exit(0))
+					updateServiceSession := cf.Cf("update-service", serviceInstanceName, "-c", `{"maxclients": 101}`)
+					Eventually(updateServiceSession, cf_helpers.CfTimeout).Should(gexec.Exit(0))
 					cf_helpers.AwaitServiceUpdate(serviceInstanceName)
 
 					boshTasks := boshClient.GetTasksForDeployment(getServiceDeploymentName(serviceInstanceName))
@@ -107,7 +112,8 @@ var _ = Describe("lifecycle errand tests", func() {
 				Context("when changing to a plan without a post-deploy errand", func() {
 					It("does not run post-deploy errand", func() {
 						By("updating the instance")
-						Eventually(cf.Cf("update-service", serviceInstanceName, "-p", dedicatedVMPlan), cf_helpers.CfTimeout).Should(gexec.Exit(0))
+						updateServiceSession := cf.Cf("update-service", serviceInstanceName, "-p", dedicatedVMPlan)
+						Eventually(updateServiceSession, cf_helpers.CfTimeout).Should(gexec.Exit(0))
 						cf_helpers.AwaitServiceUpdate(serviceInstanceName)
 
 						boshTasks := boshClient.GetTasksForDeployment(getServiceDeploymentName(serviceInstanceName))
@@ -130,7 +136,8 @@ var _ = Describe("lifecycle errand tests", func() {
 					planName = postDeployFailsPlan
 
 					By("creating the instance")
-					Eventually(cf.Cf("create-service", serviceOffering, planName, serviceInstanceName), cf_helpers.CfTimeout).Should(gexec.Exit(0))
+					createServiceSession := cf.Cf("create-service", serviceOffering, planName, serviceInstanceName)
+					Eventually(createServiceSession, cf_helpers.CfTimeout).Should(gexec.Exit(0))
 					cf_helpers.AwaitServiceCreationFailure(serviceInstanceName)
 
 					boshTasks := boshClient.GetTasksForDeployment(getServiceDeploymentName(serviceInstanceName))
@@ -150,7 +157,8 @@ var _ = Describe("lifecycle errand tests", func() {
 				planName = dedicatedVMPlan
 
 				By("creating an instance")
-				Eventually(cf.Cf("create-service", serviceOffering, planName, serviceInstanceName), cf_helpers.CfTimeout).Should(gexec.Exit(0))
+				createServiceSession := cf.Cf("create-service", serviceOffering, planName, serviceInstanceName)
+				Eventually(createServiceSession, cf_helpers.CfTimeout).Should(gexec.Exit(0))
 				cf_helpers.AwaitServiceCreation(serviceInstanceName)
 			})
 
@@ -164,7 +172,8 @@ var _ = Describe("lifecycle errand tests", func() {
 
 			It("does not run post-deploy errand after update", func() {
 				By("updating the instance")
-				Eventually(cf.Cf("update-service", serviceInstanceName, "-c", `{"maxclients": 101}`), cf_helpers.CfTimeout).Should(gexec.Exit(0))
+				updateServiceSession := cf.Cf("update-service", serviceInstanceName, "-c", `{"maxclients": 101}`)
+				Eventually(updateServiceSession, cf_helpers.CfTimeout).Should(gexec.Exit(0))
 				cf_helpers.AwaitServiceUpdate(serviceInstanceName)
 
 				boshTasks := boshClient.GetTasksForDeployment(getServiceDeploymentName(serviceInstanceName))
@@ -180,7 +189,8 @@ var _ = Describe("lifecycle errand tests", func() {
 			Context("when changing to a plan with a post-deploy errand", func() {
 				It("runs the post-deploy errand", func() {
 					By("updating the instance")
-					Eventually(cf.Cf("update-service", serviceInstanceName, "-p", postDeployPlan), cf_helpers.CfTimeout).Should(gexec.Exit(0))
+					updateServiceSession := cf.Cf("update-service", serviceInstanceName, "-p", postDeployPlan)
+					Eventually(updateServiceSession, cf_helpers.CfTimeout).Should(gexec.Exit(0))
 					cf_helpers.AwaitServiceUpdate(serviceInstanceName)
 
 					boshTasks := boshClient.GetTasksForDeployment(getServiceDeploymentName(serviceInstanceName))
@@ -204,19 +214,35 @@ var _ = Describe("lifecycle errand tests", func() {
 
 		JustBeforeEach(func() {
 			By("creating an instance")
-			Eventually(
-				cf.Cf("create-service", serviceOffering, planName, serviceInstanceName),
-				cf_helpers.CfTimeout,
-			).Should(gexec.Exit(0))
+			createServiceSession := cf.Cf("create-service", serviceOffering, planName, serviceInstanceName)
+			Eventually(createServiceSession, cf_helpers.CfTimeout).Should(gexec.Exit(0))
 			cf_helpers.AwaitServiceCreation(serviceInstanceName)
 
 			deploymentName = getServiceDeploymentName(serviceInstanceName)
 
 			By("deleting the service instance")
-			Eventually(
-				cf.Cf("delete-service", serviceInstanceName, "-f"),
-				cf_helpers.CfTimeout,
-			).Should(gexec.Exit(0))
+			deleteServiceSession := cf.Cf("delete-service", "-f", serviceInstanceName)
+			Eventually(deleteServiceSession, cf_helpers.CfTimeout).Should(gexec.Exit(0))
+		})
+
+		Context("for a plan with a colocated pre-delete errand", func() {
+			BeforeEach(func() {
+				planName = colocatedPreDeletePlan
+			})
+			JustBeforeEach(func() {
+				cf_helpers.AwaitServiceDeletion(serviceInstanceName)
+			})
+
+			It("runs the pre-delete errand before the delete", func() {
+				boshTasks := boshClient.GetTasksForDeployment(deploymentName)
+
+				Expect(boshTasks[0].State).To(Equal(boshdirector.TaskDone))
+				Expect(boshTasks[0].Description).To(ContainSubstring("delete deployment"))
+
+				Expect(boshTasks[1].State).To(Equal(boshdirector.TaskDone))
+				Expect(boshTasks[1].Description).To(ContainSubstring("run errand"))
+
+			})
 		})
 
 		Context("when pre-delete errand succeeds", func() {
@@ -249,20 +275,20 @@ var _ = Describe("lifecycle errand tests", func() {
 			})
 
 			AfterEach(func() {
-				Eventually(
-					cf.Cf("update-service", serviceInstanceName, "-p", dedicatedVMPlan),
-					cf_helpers.CfTimeout,
-				).Should(gexec.Exit(0))
+				updateServiceSession := cf.Cf("update-service", serviceInstanceName, "-p", dedicatedVMPlan)
+				Eventually(updateServiceSession, cf_helpers.CfTimeout).Should(gexec.Exit(0))
 				cf_helpers.AwaitServiceUpdate(serviceInstanceName)
-				Eventually(cf.Cf("delete-service", serviceInstanceName, "-f"), cf_helpers.CfTimeout).
+
+				deleteServiceSession := cf.Cf("delete-service", serviceInstanceName, "-f")
+				Eventually(deleteServiceSession, cf_helpers.CfTimeout).
 					Should(gexec.Exit(0))
 				cf_helpers.AwaitServiceDeletion(serviceInstanceName)
 			})
 
 			It("does not delete the service", func() {
 				By("ensuring the service instance exists")
-				Eventually(cf.Cf("service", serviceInstanceName), cf_helpers.CfTimeout).
-					Should(gexec.Exit(0))
+				serviceSession := cf.Cf("service", serviceInstanceName)
+				Eventually(serviceSession, cf_helpers.CfTimeout).Should(gexec.Exit(0))
 
 				By("ensuring only the errand bosh task ran")
 				boshTasks := boshClient.GetTasksForDeployment(deploymentName)

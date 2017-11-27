@@ -30,9 +30,16 @@ var (
 
 var _ = SynchronizedBeforeSuite(func() []byte {
 	parseEnv()
+	By("delete the broker")
+	deleteBrokerSession := cf.Cf("delete-service-broker", brokerName, "-f")
+	Eventually(deleteBrokerSession, cf_helpers.CfTimeout).Should(gexec.Exit())
+
 	By("registering the broker")
-	Eventually(cf.Cf("create-service-broker", brokerName, brokerUsername, brokerPassword, brokerURL), cf_helpers.CfTimeout).Should(gexec.Exit(0))
-	Eventually(cf.Cf("enable-service-access", serviceOffering), cf_helpers.CfTimeout).Should(gexec.Exit(0))
+	createBrokerSession := cf.Cf("create-service-broker", brokerName, brokerUsername, brokerPassword, brokerURL)
+	Eventually(createBrokerSession, cf_helpers.CfTimeout).Should(gexec.Exit(0))
+
+	enableServiceAccessSession := cf.Cf("enable-service-access", serviceOffering)
+	Eventually(enableServiceAccessSession, cf_helpers.CfTimeout).Should(gexec.Exit(0))
 	return []byte{}
 }, func(data []byte) {
 	parseEnv()
@@ -57,8 +64,9 @@ func parseEnv() {
 }
 
 var _ = SynchronizedAfterSuite(func() {}, func() {
-	By("deregistering the broker")
-	Eventually(cf.Cf("delete-service-broker", brokerName, "-f"), cf_helpers.CfTimeout).Should(gexec.Exit(0))
+	By("delete the broker")
+	deleteBrokerSession := cf.Cf("delete-service-broker", brokerName, "-f")
+	Eventually(deleteBrokerSession, cf_helpers.CfTimeout).Should(gexec.Exit(0))
 })
 
 func TestLifecycleErrandTests(t *testing.T) {

@@ -310,6 +310,51 @@ var _ = Describe("provisioning", func() {
 		})
 	})
 
+	Context("when the plan has a pre-delete lifecycle errand", func() {
+		BeforeEach(func() {
+			planID = "colocated-pre-delete-errand-plan-id"
+			errandName = "cleanup-errand"
+			errandInstance = "pre-delete-instance-group-name/0"
+
+			preDeleteErrandPlan := config.Plan{
+				ID: planID,
+				LifecycleErrands: &config.LifecycleErrands{
+					PreDelete: config.Errand{
+						Name:      errandName,
+						Instances: []string{errandInstance},
+					},
+				},
+				InstanceGroups: []sdk.InstanceGroup{
+					{
+						Name:               "pre-delete-instance-group-name",
+						VMType:             "pre-delete-vm-type",
+						PersistentDiskType: "pre-delete-disk-type",
+						Instances:          101,
+						Networks:           []string{"pre-delete-network"},
+						AZs:                []string{"pre-delete-az"},
+					},
+				},
+			}
+
+			instanceID = "pre-delete-instance-group-name"
+
+			serviceCatalog.Plans = config.Plans{preDeleteErrandPlan}
+		})
+
+		It("does not error", func() {
+			Expect(provisionErr).NotTo(HaveOccurred())
+		})
+
+		It("returns the correct operation data", func() {
+			var data broker.OperationData
+			err := json.Unmarshal([]byte(serviceSpec.OperationData), &data)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(data.BoshContextID).NotTo(BeEmpty())
+			Expect(data.PreDeleteErrand.Name).To(Equal(errandName))
+			Expect(data.PreDeleteErrand.Instances).To(Equal([]string{errandInstance}))
+		})
+	})
+
 	Context("when invalid json params are provided by the broker api", func() {
 		BeforeEach(func() {
 			jsonParams = []byte("not valid json")

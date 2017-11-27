@@ -17,7 +17,9 @@ import (
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
+	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/noopservicescontroller"
+	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
 
 var _ = Describe("deprovisioning instances", func() {
@@ -215,10 +217,55 @@ var _ = Describe("deprovisioning instances", func() {
 
 			Expect(json.Unmarshal([]byte(deprovisionSpec.OperationData), &operationData)).To(Succeed())
 			Expect(operationData).To(Equal(broker.OperationData{
-				BoshTaskID:    errandTaskID,
-				BoshContextID: contextID,
-				OperationType: broker.OperationTypeDelete,
+				BoshTaskID:      errandTaskID,
+				BoshContextID:   contextID,
+				OperationType:   broker.OperationTypeDelete,
+				PreDeleteErrand: broker.PreDeleteErrand{Name: "cleanup-resources", Instances: nil},
 			}))
+		})
+
+		Context("and the errand is colocated", func() {
+			var errandName, planID, errandInstance string
+
+			BeforeEach(func() {
+				planID = "colocated-pre-delete-errand-plan-id"
+				errandName = "cleanup-errand"
+				errandInstance = "pre-delete-instance-group-name/0"
+
+				preDeleteErrandPlan := config.Plan{
+					ID: planID,
+					LifecycleErrands: &config.LifecycleErrands{
+						PreDelete: config.Errand{
+							Name:      errandName,
+							Instances: []string{errandInstance},
+						},
+					},
+					InstanceGroups: []sdk.InstanceGroup{
+						{
+							Name:               "pre-delete-instance-group-name",
+							VMType:             "pre-delete-vm-type",
+							PersistentDiskType: "pre-delete-disk-type",
+							Instances:          101,
+							Networks:           []string{"pre-delete-network"},
+							AZs:                []string{"pre-delete-az"},
+						},
+					},
+				}
+
+				instanceID = "pre-delete-instance-group-name"
+				deprovisionDetails.PlanID = planID
+				serviceCatalog.Plans = config.Plans{preDeleteErrandPlan}
+			})
+
+			It("returns the correct operation data", func() {
+				var data broker.OperationData
+				_, errandName, _, contextID, _ := boshClient.RunErrandArgsForCall(0)
+				Expect(json.Unmarshal([]byte(deprovisionSpec.OperationData), &data)).To(Succeed())
+				Expect(data.BoshContextID).To(Equal(contextID))
+				Expect(data.OperationType).To(Equal(broker.OperationTypeDelete))
+				Expect(data.PreDeleteErrand.Name).To(Equal(errandName))
+				Expect(data.PreDeleteErrand.Instances).To(Equal([]string{errandInstance}))
+			})
 		})
 
 		Context("when bosh returns an error attempting to run errand", func() {
