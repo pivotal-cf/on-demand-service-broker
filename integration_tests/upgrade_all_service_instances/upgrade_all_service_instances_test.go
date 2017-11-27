@@ -183,7 +183,7 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 				serviceInstancesAPIUsername,
 				serviceInstancesAPIPassword)
 
-			operationData := `{"BoshTaskID":1,"OperationType":"upgrade","PostDeployErrand":{}}`
+			operationData := `{"BoshTaskID":1,"OperationType":"upgrade","PostDeployErrand":{},"PreDeleteErrand":{}}`
 			instanceID := "service-instance-id"
 			odb.VerifyAndMock(
 				mockbroker.UpgradeInstance(instanceID).RespondsAcceptedWith(operationData),
@@ -238,7 +238,7 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 				serviceInstancesAPIUsername,
 				serviceInstancesAPIPassword)
 
-			operationData := `{"BoshTaskID":1,"OperationType":"upgrade","PostDeployErrand":{}}`
+			operationData := `{"BoshTaskID":1,"OperationType":"upgrade","PostDeployErrand":{},"PreDeleteErrand":{}}`
 			instanceID := "service-instance-id"
 			odb.VerifyAndMock(
 				mockbroker.UpgradeInstance(instanceID).RespondsAcceptedWith(operationData),
@@ -302,7 +302,7 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 				serviceInstancesAPIUsername,
 				serviceInstancesAPIPassword)
 
-			operationData := `{"BoshTaskID":1,"OperationType":"upgrade","PostDeployErrand":{}}`
+			operationData := `{"BoshTaskID":1,"OperationType":"upgrade","PostDeployErrand":{},"PreDeleteErrand":{}}`
 			instanceID := "service-instance-id"
 			odb.VerifyAndMock(
 				mockbroker.ListInstances().RespondsOKWith(fmt.Sprintf(`[{"plan_id": "service-plan-id", "service_instance_id": "%s"}]`, instanceID)),
