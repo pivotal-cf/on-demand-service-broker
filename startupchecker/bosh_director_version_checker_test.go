@@ -79,7 +79,7 @@ var _ = Describe("BOSH Director Version Checker", func() {
 			ID: "empty-lifecycle-errands-plan-id",
 			LifecycleErrands: &config.LifecycleErrands{
 				PostDeploy: config.Errand{},
-				PreDelete:  "",
+				PreDelete:  config.Errand{},
 			},
 		}
 
