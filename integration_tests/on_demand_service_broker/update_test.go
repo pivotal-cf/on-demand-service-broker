@@ -212,8 +212,8 @@ var _ = Describe("updating a service instance", func() {
 							AZs:       []string{"az1"},
 						},
 					},
-					LifecycleErrands: &config.LifecycleErrands{
-						PostDeploy: config.Errand{
+					LifecycleErrands: &serviceadapter.LifecycleErrands{
+						PostDeploy: serviceadapter.Errand{
 							Name: "health-check",
 						},
 					},
@@ -265,8 +265,8 @@ var _ = Describe("updating a service instance", func() {
 							AZs:       []string{"az1"},
 						},
 					},
-					LifecycleErrands: &config.LifecycleErrands{
-						PostDeploy: config.Errand{
+					LifecycleErrands: &serviceadapter.LifecycleErrands{
+						PostDeploy: serviceadapter.Errand{
 							Name: "health-check",
 						},
 					},
@@ -496,8 +496,8 @@ var _ = Describe("updating a service instance", func() {
 							AZs:       []string{"az1"},
 						},
 					},
-					LifecycleErrands: &config.LifecycleErrands{
-						PostDeploy: config.Errand{
+					LifecycleErrands: &serviceadapter.LifecycleErrands{
+						PostDeploy: serviceadapter.Errand{
 							Name: "health-check",
 						},
 					},

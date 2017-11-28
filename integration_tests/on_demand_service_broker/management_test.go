@@ -404,8 +404,8 @@ var _ = Describe("Management API", func() {
 							AZs:       []string{"az1"},
 						},
 					},
-					LifecycleErrands: &config.LifecycleErrands{
-						PostDeploy: config.Errand{
+					LifecycleErrands: &serviceadapter.LifecycleErrands{
+						PostDeploy: serviceadapter.Errand{
 							Name: postDeployErrandName,
 						},
 					},

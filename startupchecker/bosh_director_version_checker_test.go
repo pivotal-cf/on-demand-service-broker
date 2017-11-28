@@ -24,8 +24,8 @@ var _ = Describe("BOSH Director Version Checker", func() {
 		serviceCatalog = config.ServiceOffering{}
 		postDeployErrandPlan = config.Plan{
 			ID: "post-deploy",
-			LifecycleErrands: &config.LifecycleErrands{
-				PostDeploy: config.Errand{
+			LifecycleErrands: &serviceadapter.LifecycleErrands{
+				PostDeploy: serviceadapter.Errand{
 					Name: "health-check",
 				},
 			},
@@ -77,9 +77,9 @@ var _ = Describe("BOSH Director Version Checker", func() {
 	It("returns no error when the BOSH director version does not support lifecycle errands and lifecycle errands are not configured", func() {
 		emptyLifecycleErrandsPlan := config.Plan{
 			ID: "empty-lifecycle-errands-plan-id",
-			LifecycleErrands: &config.LifecycleErrands{
-				PostDeploy: config.Errand{},
-				PreDelete:  config.Errand{},
+			LifecycleErrands: &serviceadapter.LifecycleErrands{
+				PostDeploy: serviceadapter.Errand{},
+				PreDelete:  serviceadapter.Errand{},
 			},
 		}
 

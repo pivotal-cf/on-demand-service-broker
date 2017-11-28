@@ -16,6 +16,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
+	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
 
 var _ = Describe("Lifecycle runner", func() {
@@ -34,8 +35,8 @@ var _ = Describe("Lifecycle runner", func() {
 	plans := config.Plans{
 		config.Plan{
 			ID: planID,
-			LifecycleErrands: &config.LifecycleErrands{
-				PostDeploy: config.Errand{
+			LifecycleErrands: &sdk.LifecycleErrands{
+				PostDeploy: sdk.Errand{
 					Name:      errand1,
 					Instances: errandInstances,
 				},
@@ -43,8 +44,8 @@ var _ = Describe("Lifecycle runner", func() {
 		},
 		config.Plan{
 			ID: anotherPlanID,
-			LifecycleErrands: &config.LifecycleErrands{
-				PostDeploy: config.Errand{
+			LifecycleErrands: &sdk.LifecycleErrands{
+				PostDeploy: sdk.Errand{
 					Name: errand2,
 				},
 			},

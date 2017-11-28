@@ -430,8 +430,8 @@ var _ = Describe("provision service instance", func() {
 						AZs:       []string{"az1"},
 					},
 				},
-				LifecycleErrands: &config.LifecycleErrands{
-					PostDeploy: config.Errand{
+				LifecycleErrands: &serviceadapter.LifecycleErrands{
+					PostDeploy: serviceadapter.Errand{
 						Name:      "health-check",
 						Instances: []string{"health-check-instance/0", "health-check-instance/1"},
 					},

@@ -129,8 +129,8 @@ var _ = Describe("Config", func() {
 								Properties: serviceadapter.Properties{
 									"persistence": true,
 								},
-								LifecycleErrands: &config.LifecycleErrands{
-									PostDeploy: config.Errand{
+								LifecycleErrands: &serviceadapter.LifecycleErrands{
+									PostDeploy: serviceadapter.Errand{
 										Name:      "health-check",
 										Instances: []string{"redis-errand/0", "redis-errand/1"},
 									},

@@ -235,8 +235,8 @@ var _ = Describe("provisioning", func() {
 
 			postDeployErrandPlan := config.Plan{
 				ID: planID,
-				LifecycleErrands: &config.LifecycleErrands{
-					PostDeploy: config.Errand{
+				LifecycleErrands: &sdk.LifecycleErrands{
+					PostDeploy: sdk.Errand{
 						Name:      errandName,
 						Instances: []string{errandInstance},
 					},
@@ -318,8 +318,8 @@ var _ = Describe("provisioning", func() {
 
 			preDeleteErrandPlan := config.Plan{
 				ID: planID,
-				LifecycleErrands: &config.LifecycleErrands{
-					PreDelete: config.Errand{
+				LifecycleErrands: &sdk.LifecycleErrands{
+					PreDelete: sdk.Errand{
 						Name:      errandName,
 						Instances: []string{errandInstance},
 					},

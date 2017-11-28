@@ -363,7 +363,7 @@ func (s ServiceOffering) Validate() error {
 	return nil
 }
 
-func (s ServiceOffering) validateLifecycleErrands(errands Errand) error {
+func (s ServiceOffering) validateLifecycleErrands(errands serviceadapter.Errand) error {
 	for _, instanceName := range errands.Instances {
 		pieces := strings.Split(instanceName, "/")
 		if len(pieces) != 1 && len(pieces) != 2 {
@@ -403,23 +403,15 @@ type Plan struct {
 	Metadata         PlanMetadata
 	Quotas           Quotas `yaml:"quotas,omitempty"`
 	Properties       serviceadapter.Properties
-	InstanceGroups   []serviceadapter.InstanceGroup `yaml:"instance_groups,omitempty"`
-	Update           *serviceadapter.Update         `yaml:"update,omitempty"`
-	LifecycleErrands *LifecycleErrands              `yaml:"lifecycle_errands,omitempty"`
+	InstanceGroups   []serviceadapter.InstanceGroup   `yaml:"instance_groups,omitempty"`
+	Update           *serviceadapter.Update           `yaml:"update,omitempty"`
+	LifecycleErrands *serviceadapter.LifecycleErrands `yaml:"lifecycle_errands,omitempty"`
 }
 
 func (p Plan) AdapterPlan(globalProperties serviceadapter.Properties) serviceadapter.Plan {
-
 	lifecycleErrands := serviceadapter.LifecycleErrands{}
 	if p.LifecycleErrands != nil {
-		lifecycleErrands.PostDeploy = serviceadapter.Errand{
-			Name:      p.LifecycleErrands.PostDeploy.Name,
-			Instances: p.LifecycleErrands.PostDeploy.Instances,
-		}
-		lifecycleErrands.PreDelete = serviceadapter.Errand{
-			Name:      p.LifecycleErrands.PreDelete.Name,
-			Instances: p.LifecycleErrands.PreDelete.Instances,
-		}
+		lifecycleErrands = *p.LifecycleErrands
 	}
 
 	return serviceadapter.Plan{
@@ -471,16 +463,6 @@ func (p Plan) PreDeleteErrandInstances() []string {
 	}
 
 	return p.LifecycleErrands.PreDelete.Instances
-}
-
-type LifecycleErrands struct {
-	PostDeploy Errand `yaml:"post_deploy"`
-	PreDelete  Errand `yaml:"pre_delete"`
-}
-
-type Errand struct {
-	Name      string   `yaml:"name"`
-	Instances []string `yaml:"instances"`
 }
 
 type PlanMetadata struct {

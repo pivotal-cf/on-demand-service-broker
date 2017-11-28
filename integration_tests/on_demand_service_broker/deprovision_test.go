@@ -154,8 +154,8 @@ var _ = Describe("deprovisioning service instances", func() {
 							AZs:       []string{"az1"},
 						},
 					},
-					LifecycleErrands: &config.LifecycleErrands{
-						PreDelete: config.Errand{Name: errandName},
+					LifecycleErrands: &serviceadapter.LifecycleErrands{
+						PreDelete: serviceadapter.Errand{Name: errandName},
 					},
 				}
 				conf.ServiceCatalog.Plans = config.Plans{preDeleteErrandPlan}

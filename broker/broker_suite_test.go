@@ -107,8 +107,8 @@ var _ = BeforeEach(func() {
 
 	postDeployErrandPlan := config.Plan{
 		ID: postDeployErrandPlanID,
-		LifecycleErrands: &config.LifecycleErrands{
-			PostDeploy: config.Errand{
+		LifecycleErrands: &serviceadapter.LifecycleErrands{
+			PostDeploy: serviceadapter.Errand{
 				Name:      "health-check",
 				Instances: []string{"redis-server/0"},
 			},
@@ -118,8 +118,8 @@ var _ = BeforeEach(func() {
 
 	preDeleteErrandPlan := config.Plan{
 		ID: preDeleteErrandPlanID,
-		LifecycleErrands: &config.LifecycleErrands{
-			PreDelete: config.Errand{
+		LifecycleErrands: &serviceadapter.LifecycleErrands{
+			PreDelete: serviceadapter.Errand{
 				Name:      "cleanup-resources",
 				Instances: []string{},
 			},

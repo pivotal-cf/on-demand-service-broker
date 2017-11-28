@@ -25,6 +25,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp/mockbosh"
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp/mockcfapi"
 	"github.com/pivotal-cf/on-demand-service-broker/mockuaa"
+	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
 
 var _ = Describe("last operation", func() {
@@ -256,8 +257,8 @@ var _ = Describe("last operation", func() {
 			planWithPostDeploy := config.Plan{
 				ID:   planID,
 				Name: "post-deploy-plan",
-				LifecycleErrands: &config.LifecycleErrands{
-					PostDeploy: config.Errand{
+				LifecycleErrands: &serviceadapter.LifecycleErrands{
+					PostDeploy: serviceadapter.Errand{
 						Name:      errandName,
 						Instances: []string{"instance-group-name/0"},
 					},
@@ -538,8 +539,8 @@ var _ = Describe("last operation", func() {
 			planWithPostDeploy := config.Plan{
 				ID:   planID,
 				Name: "pre-delete-plan",
-				LifecycleErrands: &config.LifecycleErrands{
-					PreDelete: config.Errand{Name: errandName},
+				LifecycleErrands: &serviceadapter.LifecycleErrands{
+					PreDelete: serviceadapter.Errand{Name: errandName},
 				},
 			}
 
@@ -805,8 +806,8 @@ var _ = Describe("last operation", func() {
 			planWithPostDeploy := config.Plan{
 				ID:   planID,
 				Name: "post-deploy-plan",
-				LifecycleErrands: &config.LifecycleErrands{
-					PostDeploy: config.Errand{
+				LifecycleErrands: &serviceadapter.LifecycleErrands{
+					PostDeploy: serviceadapter.Errand{
 						Name: "health-check",
 					},
 				},

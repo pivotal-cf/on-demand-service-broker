@@ -234,8 +234,8 @@ var _ = Describe("deprovisioning instances", func() {
 
 				preDeleteErrandPlan := config.Plan{
 					ID: planID,
-					LifecycleErrands: &config.LifecycleErrands{
-						PreDelete: config.Errand{
+					LifecycleErrands: &sdk.LifecycleErrands{
+						PreDelete: sdk.Errand{
 							Name:      errandName,
 							Instances: []string{errandInstance},
 						},
