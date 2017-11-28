@@ -1,9 +1,11 @@
 package service
 
 import (
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 )
 
 //go:generate counterfeiter -o fakes/fake_http_client.go . HTTPClient
@@ -12,12 +14,14 @@ type HTTPClient interface {
 }
 
 type ServiceInstanceLister struct {
-	client HTTPClient
+	client     HTTPClient
+	configured bool
 }
 
-func NewInstanceLister(client HTTPClient) *ServiceInstanceLister {
+func NewInstanceLister(client HTTPClient, configured bool) *ServiceInstanceLister {
 	return &ServiceInstanceLister{
-		client: client,
+		client:     client,
+		configured: configured,
 	}
 }
 
@@ -26,11 +30,11 @@ func (s *ServiceInstanceLister) Instances() ([]Instance, error) {
 
 	response, err := s.client.Get("", nil)
 	if err != nil {
-		return instances, err
+		return s.instanceListerError(response, err)
 	}
 
 	if response.StatusCode != http.StatusOK {
-		return instances, fmt.Errorf("HTTP response status: %s", response.Status)
+		return s.instanceListerError(response, fmt.Errorf("HTTP response status: %s", response.Status))
 	}
 
 	defer response.Body.Close()
@@ -40,4 +44,27 @@ func (s *ServiceInstanceLister) Instances() ([]Instance, error) {
 	}
 
 	return instances, nil
+}
+
+func (s *ServiceInstanceLister) instanceListerError(response *http.Response, err error) ([]Instance, error) {
+	if s.configured {
+		if urlError, ok := err.(*url.Error); ok {
+			if urlError.Err != nil && urlError.URL != "" {
+				switch urlError.Err.(type) {
+				case x509.UnknownAuthorityError:
+					return []Instance{}, fmt.Errorf(
+						"SSL validation error for `service_instances_api.url`: %s. Please configure a `service_instances_api.root_ca_cert` and use a valid SSL certificate",
+						urlError.URL,
+					)
+				default:
+					return []Instance{}, fmt.Errorf("error communicating with service_instances_api (%s): %s", urlError.URL, err.Error())
+				}
+			}
+		}
+
+		if response != nil {
+			return []Instance{}, fmt.Errorf("error communicating with service_instances_api (%s): %s", response.Request.URL, err.Error())
+		}
+	}
+	return []Instance{}, err
 }

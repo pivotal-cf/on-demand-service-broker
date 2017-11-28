@@ -7,19 +7,13 @@
 package main
 
 import (
-	"crypto/x509"
 	"flag"
 	"io/ioutil"
 	"os"
-	"time"
 
-	"github.com/craigfurman/herottp"
-	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
-	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
+	"github.com/pivotal-cf/on-demand-service-broker/factory"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
-	"github.com/pivotal-cf/on-demand-service-broker/network"
-	"github.com/pivotal-cf/on-demand-service-broker/service"
 	"github.com/pivotal-cf/on-demand-service-broker/upgrader"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -27,6 +21,7 @@ import (
 func main() {
 	loggerFactory := loggerfactory.New(os.Stdout, "upgrade-all-service-instances", loggerfactory.Flags)
 	logger := loggerFactory.New()
+	listener := upgrader.NewLoggingListener(logger)
 
 	var configPath string
 	flag.StringVar(&configPath, "configPath", "", "path to upgrade-all-service-instances config")
@@ -47,45 +42,12 @@ func main() {
 		logger.Fatalln(err.Error())
 	}
 
-	if conf.BrokerAPI.Authentication.Basic.Username == "" ||
-		conf.BrokerAPI.Authentication.Basic.Password == "" ||
-		conf.BrokerAPI.URL == "" {
-		logger.Fatalln("the brokerUsername, brokerPassword and brokerUrl are required to function")
-	}
-
-	if conf.PollingInterval <= 0 {
-		logger.Fatalln("the pollingInterval must be greater than zero")
-	}
-
-	certPool, err := x509.SystemCertPool()
+	upgradeAllInstancesErrandFactory := factory.NewUpgradeAllInstancesErrandFactory(conf, logger)
+	brokerServices, serviceInstanceLister, pollingInterval, err := upgradeAllInstancesErrandFactory.Build()
 	if err != nil {
-		logger.Fatalf("error getting a certificate pool to append our trusted cert to: %s", err)
+		logger.Fatalln(err.Error())
 	}
-	cert := conf.ServiceInstancesAPI.RootCACert
-	certPool.AppendCertsFromPEM([]byte(cert))
-
-	httpClient := herottp.New(herottp.Config{
-		Timeout: 30 * time.Second,
-		RootCAs: certPool,
-	})
-
-	brokerBasicAuthHeaderBuilder := authorizationheader.NewBasicAuthHeaderBuilder(
-		conf.BrokerAPI.Authentication.Basic.Username,
-		conf.BrokerAPI.Authentication.Basic.Password,
-	)
-
-	brokerServices := services.NewBrokerServices(httpClient, brokerBasicAuthHeaderBuilder, conf.BrokerAPI.URL, logger)
-	listener := upgrader.NewLoggingListener(logger)
-
-	serviceInstancesAPIBasicAuthClient := network.NewBasicAuthHTTPClient(
-		httpClient,
-		conf.ServiceInstancesAPI.Authentication.Basic.Username,
-		conf.ServiceInstancesAPI.Authentication.Basic.Password,
-		conf.ServiceInstancesAPI.URL,
-	)
-
-	serviceInstancesServices := service.NewInstanceLister(serviceInstancesAPIBasicAuthClient)
-	upgradeTool := upgrader.New(brokerServices, serviceInstancesServices, conf.PollingInterval, listener)
+	upgradeTool := upgrader.New(brokerServices, serviceInstanceLister, pollingInterval, listener)
 
 	err = upgradeTool.Upgrade()
 	if err != nil {

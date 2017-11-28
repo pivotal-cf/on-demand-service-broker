@@ -149,11 +149,10 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 	)
 
 	var (
-		odb                           *mockhttp.Server
-		configPath                    string
-		testServiceInstancesAPIServer *httptest.Server
-		certPath                      string
-		keyPath                       string
+		odb        *mockhttp.Server
+		configPath string
+		certPath   string
+		keyPath    string
 	)
 
 	startUpgradeAllInstanceBinary := func() *gexec.Session {
@@ -173,10 +172,15 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 		odb.Close()
 		err := os.Remove(configPath)
 		Expect(err).NotTo(HaveOccurred())
-		testServiceInstancesAPIServer.Close()
 	})
 
 	Context("when service-instances-api is specified in the config", func() {
+		var testServiceInstancesAPIServer *httptest.Server
+
+		AfterEach(func() {
+			testServiceInstancesAPIServer.Close()
+		})
+
 		It("exits successfully with one instance upgraded message", func() {
 			testServiceInstancesAPIServer = startNewAPIServer(
 				serviceInstancesAPIURLPath,
@@ -227,7 +231,34 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 			runningTool := startUpgradeAllInstanceBinary()
 
 			Eventually(runningTool).Should(gexec.Exit(1))
-			Expect(runningTool).To(gbytes.Say("error listing service instances: HTTP response status: 401 Unauthorized"))
+			Expect(runningTool).To(gbytes.Say(fmt.Sprintf(
+				`error listing service instances: error communicating with service_instances_api \(%s\): HTTP response status: 401 Unauthorized`,
+				testServiceInstancesAPIServer.URL+serviceInstancesAPIURLPath,
+			)))
+		})
+
+		It("returns service instances API error when URL is invalid", func() {
+			testServiceInstancesAPIServer = startNewAPIServer(
+				serviceInstancesAPIURLPath,
+				serviceInstancesAPIUsername,
+				serviceInstancesAPIPassword)
+
+			brokerConfig := populateBrokerConfig(odb.URL, brokerUsername, brokerPassword)
+			serviceInstancesAPIConfig := populateServiceInstancesAPIConfig(
+				"http://not-a-url",
+				serviceInstancesAPIUsername,
+				serviceInstancesAPIPassword,
+			)
+			pollingIntervalConfig := populatePollingIntervalConfig(1)
+			config := brokerConfig + serviceInstancesAPIConfig + pollingIntervalConfig
+			configPath = writeConfigFile(config)
+
+			runningTool := startUpgradeAllInstanceBinary()
+
+			Eventually(runningTool).Should(gexec.Exit(1))
+			Expect(runningTool).To(gbytes.Say(
+				`error listing service instances: error communicating with service_instances_api \(http://not-a-url\):`,
+			))
 		})
 
 		It("exits successfully when configured with a TLS enabled service-instances-api server", func() {
@@ -297,11 +328,6 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 
 	Context("when there is one service instance", func() {
 		It("exits successfully with one instance upgraded message", func() {
-			testServiceInstancesAPIServer = startNewAPIServer(
-				serviceInstancesAPIURLPath,
-				serviceInstancesAPIUsername,
-				serviceInstancesAPIPassword)
-
 			operationData := `{"BoshTaskID":1,"OperationType":"upgrade","PostDeployErrand":{},"PreDeleteErrand":{}}`
 			instanceID := "service-instance-id"
 			odb.VerifyAndMock(
@@ -331,11 +357,6 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 
 	Context("when the upgrade errors", func() {
 		It("exits non-zero with the error message", func() {
-			testServiceInstancesAPIServer = startNewAPIServer(
-				serviceInstancesAPIURLPath,
-				serviceInstancesAPIUsername,
-				serviceInstancesAPIPassword)
-
 			odb.VerifyAndMock(
 				mockbroker.ListInstances().RespondsUnauthorizedWith(""),
 			)
@@ -354,118 +375,6 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 
 			Eventually(runningTool).Should(gexec.Exit(1))
 			Expect(runningTool).To(gbytes.Say("error listing service instances: HTTP response status: 401 Unauthorized"))
-		})
-	})
-
-	Context("when the upgrade tool is misconfigured", func() {
-		It("fails with blank brokerUsername", func() {
-			testServiceInstancesAPIServer = startNewAPIServer(
-				serviceInstancesAPIURLPath,
-				serviceInstancesAPIUsername,
-				serviceInstancesAPIPassword)
-
-			brokerConfig := populateBrokerConfig(odb.URL, "", brokerPassword)
-			serviceInstancesAPIConfig := populateServiceInstancesAPIConfig(
-				odb.URL+brokerServiceInstancesURLPath,
-				brokerUsername,
-				brokerPassword,
-			)
-			pollingIntervalConfig := populatePollingIntervalConfig(1)
-			config := brokerConfig + serviceInstancesAPIConfig + pollingIntervalConfig
-			configPath = writeConfigFile(config)
-
-			runningTool := startUpgradeAllInstanceBinary()
-
-			Eventually(runningTool).Should(gexec.Exit(1))
-			Expect(runningTool).To(gbytes.Say("the brokerUsername, brokerPassword and brokerUrl are required to function"))
-		})
-
-		It("fails with blank brokerPassword", func() {
-			testServiceInstancesAPIServer = startNewAPIServer(
-				serviceInstancesAPIURLPath,
-				serviceInstancesAPIUsername,
-				serviceInstancesAPIPassword)
-
-			brokerConfig := populateBrokerConfig(odb.URL, brokerUsername, "")
-			serviceInstancesAPIConfig := populateServiceInstancesAPIConfig(
-				odb.URL+brokerServiceInstancesURLPath,
-				brokerUsername,
-				brokerPassword,
-			)
-			pollingIntervalConfig := populatePollingIntervalConfig(1)
-			config := brokerConfig + serviceInstancesAPIConfig + pollingIntervalConfig
-			configPath = writeConfigFile(config)
-
-			runningTool := startUpgradeAllInstanceBinary()
-
-			Eventually(runningTool).Should(gexec.Exit(1))
-			Expect(runningTool).To(gbytes.Say("the brokerUsername, brokerPassword and brokerUrl are required to function"))
-		})
-
-		It("fails with blank brokerUrl", func() {
-			testServiceInstancesAPIServer = startNewAPIServer(
-				serviceInstancesAPIURLPath,
-				serviceInstancesAPIUsername,
-				serviceInstancesAPIPassword)
-
-			brokerConfig := populateBrokerConfig("", brokerUsername, brokerPassword)
-			serviceInstancesAPIConfig := populateServiceInstancesAPIConfig(
-				odb.URL+brokerServiceInstancesURLPath,
-				brokerUsername,
-				brokerPassword,
-			)
-			pollingIntervalConfig := populatePollingIntervalConfig(1)
-			config := brokerConfig + serviceInstancesAPIConfig + pollingIntervalConfig
-			configPath = writeConfigFile(config)
-
-			runningTool := startUpgradeAllInstanceBinary()
-
-			Eventually(runningTool).Should(gexec.Exit(1))
-			Expect(runningTool).To(gbytes.Say("the brokerUsername, brokerPassword and brokerUrl are required to function"))
-		})
-
-		It("fails with pollingInterval of zero", func() {
-			testServiceInstancesAPIServer = startNewAPIServer(
-				serviceInstancesAPIURLPath,
-				serviceInstancesAPIUsername,
-				serviceInstancesAPIPassword)
-
-			brokerConfig := populateBrokerConfig(odb.URL, brokerUsername, brokerPassword)
-			serviceInstancesAPIConfig := populateServiceInstancesAPIConfig(
-				odb.URL+brokerServiceInstancesURLPath,
-				brokerUsername,
-				brokerPassword,
-			)
-			pollingIntervalConfig := populatePollingIntervalConfig(0)
-			config := brokerConfig + serviceInstancesAPIConfig + pollingIntervalConfig
-			configPath = writeConfigFile(config)
-
-			runningTool := startUpgradeAllInstanceBinary()
-
-			Eventually(runningTool).Should(gexec.Exit(1))
-			Expect(runningTool).To(gbytes.Say("the pollingInterval must be greater than zero"))
-		})
-
-		It("fails with pollingInterval less than zero", func() {
-			testServiceInstancesAPIServer = startNewAPIServer(
-				serviceInstancesAPIURLPath,
-				serviceInstancesAPIUsername,
-				serviceInstancesAPIPassword)
-
-			brokerConfig := populateBrokerConfig(odb.URL, brokerUsername, brokerPassword)
-			serviceInstancesAPIConfig := populateServiceInstancesAPIConfig(
-				odb.URL+brokerServiceInstancesURLPath,
-				brokerUsername,
-				brokerPassword,
-			)
-			pollingIntervalConfig := populatePollingIntervalConfig(-123)
-			config := brokerConfig + serviceInstancesAPIConfig + pollingIntervalConfig
-			configPath = writeConfigFile(config)
-
-			runningTool := startUpgradeAllInstanceBinary()
-
-			Eventually(runningTool).Should(gexec.Exit(1))
-			Expect(runningTool).To(gbytes.Say("the pollingInterval must be greater than zero"))
 		})
 	})
 })

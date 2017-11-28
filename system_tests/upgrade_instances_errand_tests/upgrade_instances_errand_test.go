@@ -42,6 +42,9 @@ var serviceInstances []*testService
 
 var dataPersistenceEnabled bool
 
+const brokerJobName = "broker"
+const brokerIGName = "broker"
+
 var _ = Describe("upgrade-all-service-instances errand", func() {
 	BeforeEach(func() {
 		currentPlan = selectPlanName()
@@ -314,7 +317,17 @@ func deleteServiceInstances() {
 }
 
 func extractPlanProperty(planName string, manifest *bosh.BoshManifest) map[interface{}]interface{} {
-	brokerJob := manifest.InstanceGroups[0].Jobs[0]
+	var brokerJob bosh.Job
+	for _, ig := range manifest.InstanceGroups {
+		if ig.Name == brokerIGName {
+			for _, job := range ig.Jobs {
+				if job.Name == brokerJobName {
+					brokerJob = job
+				}
+			}
+		}
+	}
+
 	serviceCatalog := brokerJob.Properties["service_catalog"].(map[interface{}]interface{})
 
 	for _, plan := range serviceCatalog["plans"].([]interface{}) {
