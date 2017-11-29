@@ -15,7 +15,6 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
-	"github.com/pivotal-cf/on-demand-service-broker/network"
 	"github.com/pivotal-cf/on-demand-service-broker/service"
 )
 
@@ -90,15 +89,18 @@ func (f *UpgradeAllInstancesErrandFactory) ServiceInstanceLister() (*service.Ser
 		RootCAs: certPool,
 	})
 
-	serviceInstancesAPIBasicAuthClient := network.NewBasicAuthHTTPClient(
-		httpClient,
+	manuallyConfigured := !strings.Contains(f.conf.ServiceInstancesAPI.URL, f.conf.BrokerAPI.URL)
+	authHeaderBuilder := authorizationheader.NewBasicAuthHeaderBuilder(
 		f.conf.ServiceInstancesAPI.Authentication.Basic.Username,
 		f.conf.ServiceInstancesAPI.Authentication.Basic.Password,
-		f.conf.ServiceInstancesAPI.URL,
 	)
-
-	manuallyConfigured := !strings.Contains(f.conf.ServiceInstancesAPI.URL, f.conf.BrokerAPI.URL)
-	return service.NewInstanceLister(serviceInstancesAPIBasicAuthClient, manuallyConfigured), nil
+	return service.NewInstanceLister(
+		httpClient,
+		authHeaderBuilder,
+		f.conf.ServiceInstancesAPI.URL,
+		manuallyConfigured,
+		f.logger,
+	), nil
 }
 
 func (f *UpgradeAllInstancesErrandFactory) PollingInterval() (int, error) {

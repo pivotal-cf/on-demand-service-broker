@@ -19,7 +19,10 @@ import (
 
 	"log"
 
+	"time"
+
 	"github.com/cloudfoundry-incubator/cf-test-helpers/cf"
+	"github.com/craigfurman/herottp"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
@@ -27,7 +30,6 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	cfClient "github.com/pivotal-cf/on-demand-service-broker/cf"
-	"github.com/pivotal-cf/on-demand-service-broker/network"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/cf_helpers"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 )
@@ -212,14 +214,26 @@ func updateServiceInstancesAPI(brokerManifest *bosh.BoshManifest) {
 
 		url = strings.Replace(url, "https", "http", 1)
 
-		httpClient := network.NewDefaultHTTPClient()
-		exampleServiceInstancesClient := network.NewBasicAuthHTTPClient(
-			httpClient,
+		httpClient := herottp.New(herottp.Config{
+			Timeout: 30 * time.Second,
+		})
+
+		basicAuthHeaderBuilder := authorizationheader.NewBasicAuthHeaderBuilder(
 			username,
 			password,
-			url,
 		)
-		resp, err := exampleServiceInstancesClient.Post("", bytes.NewReader(instancesJson))
+
+		request, err := http.NewRequest(
+			http.MethodPost,
+			url,
+			bytes.NewReader(instancesJson),
+		)
+		Expect(err).NotTo(HaveOccurred())
+
+		err = basicAuthHeaderBuilder.AddAuthHeader(request, logger)
+		Expect(err).NotTo(HaveOccurred())
+
+		resp, err := httpClient.Do(request)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(resp.StatusCode).To(Equal(http.StatusOK))
 	}

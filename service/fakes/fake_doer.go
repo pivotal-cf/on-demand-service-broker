@@ -5,14 +5,14 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/pivotal-cf/on-demand-service-broker/network"
+	"github.com/pivotal-cf/on-demand-service-broker/service"
 )
 
 type FakeDoer struct {
-	DoStub        func(request *http.Request) (*http.Response, error)
+	DoStub        func(*http.Request) (*http.Response, error)
 	doMutex       sync.RWMutex
 	doArgsForCall []struct {
-		request *http.Request
+		arg1 *http.Request
 	}
 	doReturns struct {
 		result1 *http.Response
@@ -26,16 +26,16 @@ type FakeDoer struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeDoer) Do(request *http.Request) (*http.Response, error) {
+func (fake *FakeDoer) Do(arg1 *http.Request) (*http.Response, error) {
 	fake.doMutex.Lock()
 	ret, specificReturn := fake.doReturnsOnCall[len(fake.doArgsForCall)]
 	fake.doArgsForCall = append(fake.doArgsForCall, struct {
-		request *http.Request
-	}{request})
-	fake.recordInvocation("Do", []interface{}{request})
+		arg1 *http.Request
+	}{arg1})
+	fake.recordInvocation("Do", []interface{}{arg1})
 	fake.doMutex.Unlock()
 	if fake.DoStub != nil {
-		return fake.DoStub(request)
+		return fake.DoStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -52,7 +52,7 @@ func (fake *FakeDoer) DoCallCount() int {
 func (fake *FakeDoer) DoArgsForCall(i int) *http.Request {
 	fake.doMutex.RLock()
 	defer fake.doMutex.RUnlock()
-	return fake.doArgsForCall[i].request
+	return fake.doArgsForCall[i].arg1
 }
 
 func (fake *FakeDoer) DoReturns(result1 *http.Response, result2 error) {
@@ -101,4 +101,4 @@ func (fake *FakeDoer) recordInvocation(key string, args []interface{}) {
 	fake.invocations[key] = append(fake.invocations[key], args)
 }
 
-var _ network.Doer = new(FakeDoer)
+var _ service.Doer = new(FakeDoer)

@@ -12,10 +12,12 @@ import (
 	"fmt"
 	"os"
 
+	"time"
+
+	"github.com/craigfurman/herottp"
 	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
-	"github.com/pivotal-cf/on-demand-service-broker/network"
 )
 
 const (
@@ -32,7 +34,9 @@ func main() {
 	brokerURL := flag.String("brokerUrl", "", "url of the broker")
 	flag.Parse()
 
-	httpClient := network.NewDefaultHTTPClient()
+	httpClient := herottp.New(herottp.Config{
+		Timeout: 30 * time.Second,
+	})
 	authHeaderBuilder := authorizationheader.NewBasicAuthHeaderBuilder(*brokerUsername, *brokerPassword)
 	brokerServices := services.NewBrokerServices(httpClient, authHeaderBuilder, *brokerURL, logger)
 

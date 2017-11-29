@@ -13,8 +13,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/craigfurman/herottp"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
-	"github.com/pivotal-cf/on-demand-service-broker/network"
 )
 
 func main() {
@@ -37,7 +37,9 @@ func main() {
 	}
 	request.SetBasicAuth(*brokerUsername, *brokerPassword)
 
-	client := network.NewDefaultHTTPClient()
+	client := herottp.New(herottp.Config{
+		Timeout: 30 * time.Second,
+	})
 
 	go func() {
 		for {

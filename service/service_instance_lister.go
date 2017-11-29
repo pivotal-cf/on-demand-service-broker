@@ -6,29 +6,52 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+
+	"log"
+
+	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
 )
 
-//go:generate counterfeiter -o fakes/fake_http_client.go . HTTPClient
-type HTTPClient interface {
-	Get(path string, query map[string]string) (*http.Response, error)
+//go:generate counterfeiter -o fakes/fake_doer.go . Doer
+type Doer interface {
+	Do(*http.Request) (*http.Response, error)
 }
 
 type ServiceInstanceLister struct {
-	client     HTTPClient
-	configured bool
+	authHeaderBuilder authorizationheader.AuthHeaderBuilder
+	baseURL           string
+	client            Doer
+	configured        bool
+	logger            *log.Logger
 }
 
-func NewInstanceLister(client HTTPClient, configured bool) *ServiceInstanceLister {
+func NewInstanceLister(client Doer, authHeaderBuilder authorizationheader.AuthHeaderBuilder, baseURL string, configured bool, logger *log.Logger) *ServiceInstanceLister {
 	return &ServiceInstanceLister{
-		client:     client,
-		configured: configured,
+		authHeaderBuilder: authHeaderBuilder,
+		baseURL:           baseURL,
+		client:            client,
+		configured:        configured,
+		logger:            logger,
 	}
 }
 
 func (s *ServiceInstanceLister) Instances() ([]Instance, error) {
 	var instances []Instance
+	request, err := http.NewRequest(
+		http.MethodGet,
+		s.baseURL,
+		nil,
+	)
 
-	response, err := s.client.Get("", nil)
+	if err != nil {
+		return nil, err
+	}
+	err = s.authHeaderBuilder.AddAuthHeader(request, s.logger)
+	if err != nil {
+		return nil, err
+	}
+
+	response, err := s.client.Do(request)
 	if err != nil {
 		return s.instanceListerError(response, err)
 	}
