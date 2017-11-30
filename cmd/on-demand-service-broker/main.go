@@ -65,9 +65,7 @@ func startBroker(conf config.Config, logger *log.Logger, loggerFactory *loggerfa
 	}
 
 	l := boshlog.NewLogger(boshlog.LevelError)
-
 	directorFactory := director.NewFactory(l)
-
 	uaaFactory := boshuaa.NewFactory(l)
 
 	boshClient, err := boshdirector.New(

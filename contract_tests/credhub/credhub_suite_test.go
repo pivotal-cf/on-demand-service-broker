@@ -18,9 +18,13 @@ import (
 
 	"crypto/x509"
 
+	boshdir "github.com/cloudfoundry/bosh-cli/director"
+	boshuaa "github.com/cloudfoundry/bosh-cli/uaa"
+	boshlog "github.com/cloudfoundry/bosh-utils/logger"
 	"github.com/craigfurman/herottp"
 	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
+	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 	"github.com/totherme/unstructured"
 )
@@ -50,9 +54,9 @@ var _ = AfterSuite(func() {
 type TestingAuthHeaderBuilder struct{}
 
 func (a *TestingAuthHeaderBuilder) NewAuthHeaderBuilder(
-	boshInfo boshdirector.Info,
+	UAAURL string,
 	disableSSLCertVerification bool,
-) (boshdirector.AuthHeaderBuilder, error) {
+) (config.AuthHeaderBuilder, error) {
 
 	username := os.Getenv("BOSH_USERNAME")
 	Expect(username).NotTo(BeEmpty(), "Expected BOSH_USERNAME to be set")
@@ -60,7 +64,7 @@ func (a *TestingAuthHeaderBuilder) NewAuthHeaderBuilder(
 	Expect(password).NotTo(BeEmpty(), "Expected BOSH_PASSWORD to be set")
 
 	return authorizationheader.NewClientTokenAuthHeaderBuilder(
-		boshInfo.UserAuthentication.Options.URL,
+		UAAURL,
 		username,
 		password,
 		true,
@@ -78,6 +82,15 @@ func getBoshManifest(deploymentName string) ([]byte, error) {
 	boshURL := os.Getenv("BOSH_URL")
 	Expect(boshURL).NotTo(BeEmpty(), "Expected BOSH_URL to be set")
 
+	l := boshlog.NewLogger(boshlog.LevelError)
+	directorFactory := boshdir.NewFactory(l)
+	uaaFactory := boshuaa.NewFactory(l)
+
+	username := os.Getenv("BOSH_USERNAME")
+	Expect(username).NotTo(BeEmpty(), "Expected BOSH_USERNAME to be set")
+	password := os.Getenv("BOSH_PASSWORD")
+	Expect(password).NotTo(BeEmpty(), "Expected BOSH_PASSWORD to be set")
+
 	boshClient, err := boshdirector.New(
 		boshURL,
 		true,
@@ -89,6 +102,9 @@ func getBoshManifest(deploymentName string) ([]byte, error) {
 		}),
 		&TestingAuthHeaderBuilder{},
 		certPool,
+		directorFactory,
+		uaaFactory,
+		config.BOSHAuthentication{UAA: config.BOSHUAAAuthentication{ID: username, Secret: password}},
 		logger,
 	)
 
