@@ -17,7 +17,6 @@ import (
 	"net/http"
 
 	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
-	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 	"gopkg.in/yaml.v2"
 )
@@ -127,7 +126,7 @@ type BOSHAuthentication struct {
 	UAA   BOSHUAAAuthentication
 }
 
-func (boshConfig Bosh) NewAuthHeaderBuilder(boshInfo boshdirector.Info, disableSSLCertVerification bool) (boshdirector.AuthHeaderBuilder, error) {
+func (boshConfig Bosh) NewAuthHeaderBuilder(UAAURL string, disableSSLCertVerification bool) (AuthHeaderBuilder, error) {
 	boshAuthConfig := boshConfig.Authentication
 	if boshAuthConfig.Basic.IsSet() {
 		return authorizationheader.NewBasicAuthHeaderBuilder(
@@ -136,7 +135,7 @@ func (boshConfig Bosh) NewAuthHeaderBuilder(boshInfo boshdirector.Info, disableS
 		), nil
 	} else if boshAuthConfig.UAA.IsSet() {
 		return authorizationheader.NewClientTokenAuthHeaderBuilder(
-			boshInfo.UserAuthentication.Options.URL,
+			UAAURL,
 			boshAuthConfig.UAA.ID,
 			boshAuthConfig.UAA.Secret,
 			disableSSLCertVerification,

@@ -38,7 +38,7 @@ var _ = Describe("deployments", func() {
 				receivedHttpRequest{
 					Path:   "/deployments",
 					Method: "GET",
-				}, 1))
+				}, 0))
 		})
 
 		It("wraps the error when bosh returns a client error (HTTP 404)", func() {

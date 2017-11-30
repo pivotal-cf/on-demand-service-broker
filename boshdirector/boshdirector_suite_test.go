@@ -7,9 +7,7 @@
 package boshdirector_test
 
 import (
-	"crypto/x509"
 	"encoding/json"
-	"encoding/pem"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -23,13 +21,14 @@ import (
 
 	"net/url"
 
+	boshdir "github.com/cloudfoundry/bosh-cli/director"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/format"
 	"github.com/onsi/gomega/types"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector/fakes"
-	"github.com/pivotal-cf/on-demand-service-broker/mockhttp/mockbosh"
+	"github.com/pivotal-cf/on-demand-service-broker/config"
 )
 
 var (
@@ -39,8 +38,12 @@ var (
 	fakeAuthenticatorBuilder *fakes.FakeAuthenticatorBuilder
 	authHeaderBuilder        *fakes.FakeAuthHeaderBuilder
 	fakeCertAppender         *fakes.FakeCertAppender
-	director                 *mockbosh.MockBOSH
+	fakeDirector             *fakes.FakeDirector
+	fakeDirectorFactory      *fakes.FakeDirectorFactory
+	fakeUAAFactory           *fakes.FakeUAAFactory
+	fakeUAA                  *fakes.FakeUAA
 	logger                   *log.Logger
+	boshAuthConfig           config.BOSHAuthentication
 )
 
 var _ = BeforeEach(func() {
@@ -49,7 +52,16 @@ var _ = BeforeEach(func() {
 	authHeaderBuilder = new(fakes.FakeAuthHeaderBuilder)
 	fakeAuthenticatorBuilder.NewAuthHeaderBuilderReturns(authHeaderBuilder, nil)
 	fakeCertAppender = new(fakes.FakeCertAppender)
-	director = mockbosh.New()
+	fakeDirectorFactory = new(fakes.FakeDirectorFactory)
+	fakeUAAFactory = new(fakes.FakeUAAFactory)
+	fakeUAA = new(fakes.FakeUAA)
+	fakeDirector = new(fakes.FakeDirector)
+	boshAuthConfig = config.BOSHAuthentication{
+		UAA: config.BOSHUAAAuthentication{
+			ID:     "bosh-user",
+			Secret: "bosh-secret",
+		},
+	}
 	logger = log.New(GinkgoWriter, "[boshdirector unit test]", log.LstdFlags)
 
 	fakeHTTPClient.DoStub = func(_ *http.Request) (*http.Response, error) {
@@ -58,22 +70,37 @@ var _ = BeforeEach(func() {
 			StatusCode: http.StatusOK,
 		}, nil
 	}
-})
 
-var _ = AfterEach(func() {
-	director.VerifyMocks()
-	director.Close()
+	fakeDirectorFactory.NewReturns(fakeDirector, nil)
+	fakeUAAFactory.NewReturns(fakeUAA, nil)
+	fakeDirector.InfoReturns(boshdir.Info{
+		Version: "1.3262.0.0 (00000000)",
+		Auth: boshdir.UserAuthentication{
+			Type: "uaa",
+			Options: map[string]interface{}{
+				"url": "https://this-is-the-uaa-url.example.com",
+			},
+		},
+	}, nil)
 })
 
 var _ = JustBeforeEach(func() {
 	var certPEM []byte
-	if director.TLS != nil {
-		cert, err := x509.ParseCertificate(director.TLS.Certificates[0].Certificate[0])
-		Expect(err).NotTo(HaveOccurred())
-		certPEM = pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: cert.Raw})
-	}
+
 	var err error
-	c, err = boshdirector.New(director.URL, false, certPEM, fakeHTTPClient, fakeAuthenticatorBuilder, fakeCertAppender, logger)
+
+	c, err = boshdirector.New(
+		"https://director.example.com",
+		false,
+		certPEM,
+		fakeHTTPClient,
+		fakeAuthenticatorBuilder,
+		fakeCertAppender,
+		fakeDirectorFactory,
+		fakeUAAFactory,
+		boshAuthConfig,
+		logger,
+	)
 	Expect(err).NotTo(HaveOccurred())
 	c.PollingInterval = 0
 })

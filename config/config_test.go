@@ -17,7 +17,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
-	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/mockuaa"
 	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
@@ -742,7 +741,7 @@ var _ = Describe("Bosh#NewAuthHeaderBuilder", func() {
 			},
 		}
 
-		builder, err := boshConfig.NewAuthHeaderBuilder(boshdirector.Info{}, true)
+		builder, err := boshConfig.NewAuthHeaderBuilder("", true)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(builder).To(BeAssignableToTypeOf(authorizationheader.BasicAuthHeaderBuilder{}))
 
@@ -768,15 +767,7 @@ var _ = Describe("Bosh#NewAuthHeaderBuilder", func() {
 			tokenToReturn,
 		)
 
-		boshInfo := boshdirector.Info{
-			UserAuthentication: boshdirector.UserAuthentication{
-				Options: boshdirector.AuthenticationOptions{
-					URL: mockuaa.URL,
-				},
-			},
-		}
-
-		builder, err := boshConfig.NewAuthHeaderBuilder(boshInfo, true)
+		builder, err := boshConfig.NewAuthHeaderBuilder(mockuaa.URL, true)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(builder).To(BeAssignableToTypeOf(&authorizationheader.ClientTokenAuthHeaderBuilder{}))
 
@@ -787,7 +778,7 @@ var _ = Describe("Bosh#NewAuthHeaderBuilder", func() {
 	It("returns an error if no credentials are specified", func() {
 		boshConfig := config.Bosh{}
 
-		_, err := boshConfig.NewAuthHeaderBuilder(boshdirector.Info{}, true)
+		_, err := boshConfig.NewAuthHeaderBuilder("", true)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(Equal("No BOSH authentication configured"))
 	})

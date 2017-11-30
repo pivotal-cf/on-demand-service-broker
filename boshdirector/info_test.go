@@ -7,8 +7,9 @@
 package boshdirector_test
 
 import (
-	"net/http"
+	"errors"
 
+	boshdir "github.com/cloudfoundry/bosh-cli/director"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
@@ -17,20 +18,15 @@ import (
 var _ = Describe("info", func() {
 	Describe("GetInfo", func() {
 		It("returns a info object data structure", func() {
-			fakeHTTPClient.DoReturns(responseOKWithRawBody(
-				[]byte(`{
-						"name": "garden-bosh",
-						"uuid": "b0f9e86f-357f-409c-8f64-a2363d2d9e3b",
-						"version": "1.3262.0.0 (00000000)",
-						"user": null,
-						"cpi": "warden_cpi",
-						"user_authentication": {
-							"type": "uaa",
-							"options": {
-								"url": "https://this-is-the-uaa-url.example.com"
-							}
-						}
-					}`)), nil)
+			fakeDirector.InfoReturns(boshdir.Info{
+				Version: "1.3262.0.0 (00000000)",
+				Auth: boshdir.UserAuthentication{
+					Type: "uaa",
+					Options: map[string]interface{}{
+						"url": "https://this-is-the-uaa-url.example.com",
+					},
+				},
+			}, nil)
 
 			info, err := c.GetInfo(logger)
 			Expect(err).NotTo(HaveOccurred())
@@ -43,19 +39,33 @@ var _ = Describe("info", func() {
 				},
 			}
 			Expect(info).To(Equal(expectedInfo))
-
-			By("calling the right endpoint")
-			Expect(fakeHTTPClient).To(HaveReceivedHttpRequestAtIndex(
-				receivedHttpRequest{
-					Path:   "/info",
-					Method: "GET",
-				}, 1))
 		})
 
 		It("returns an error if the request fails", func() {
-			fakeHTTPClient.DoReturns(responseWithEmptyBodyAndStatus(http.StatusInternalServerError), nil)
+			fakeDirector.InfoReturns(boshdir.Info{}, errors.New("oops"))
 			_, err := c.GetInfo(logger)
 			Expect(err).To(HaveOccurred())
+		})
+
+		It("doesn't fail if uaa url is not set", func() {
+			fakeDirector.InfoReturns(boshdir.Info{
+				Version: "1.3262.0.0 (00000000)",
+			}, nil)
+			_, err := c.GetInfo(logger)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("returns an error if cannot retrieve the UAA URL", func() {
+			fakeDirector.InfoReturnsOnCall(1, boshdir.Info{
+				Version: "1.3262.0.0 (00000000)",
+				Auth: boshdir.UserAuthentication{
+					Type:    "uaa",
+					Options: map[string]interface{}{},
+				},
+			}, nil)
+			info, err := c.GetInfo(logger)
+			Expect(info).To(Equal(boshdirector.Info{}))
+			Expect(err).To(MatchError(ContainSubstring("Cannot retrieve UAA URL from info endpoint")))
 		})
 	})
 

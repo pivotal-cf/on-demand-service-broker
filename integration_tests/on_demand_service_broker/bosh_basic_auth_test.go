@@ -39,6 +39,7 @@ var _ = Describe("Basic authentication for BOSH", func() {
 			adapter.DashboardUrlGenerator().NotImplemented()
 
 			conf = defaultBrokerConfig(boshDirector.URL, "UAA is not used", cfAPI.URL, cfUAA.URL)
+
 		})
 
 		AfterEach(func() {
@@ -66,7 +67,7 @@ var _ = Describe("Basic authentication for BOSH", func() {
 				}
 				manifestYAML := rawManifestWithDeploymentName(instanceID)
 				adapter.GenerateManifest().ToReturnManifest(manifestYAML)
-				runningBroker = startBrokerWithPassingStartupChecks(conf, cfAPI, boshDirector)
+				runningBroker = startBasicBrokerWithPassingStartupChecks(conf, cfAPI, boshDirector)
 				boshDirector.VerifyAndMock(
 					mockbosh.GetDeployment(deploymentName("some-instance-id")).RespondsNotFoundWith(""),
 					mockbosh.Tasks(deploymentName("some-instance-id")).RespondsWithNoTasks(),
@@ -96,6 +97,7 @@ var _ = Describe("Basic authentication for BOSH", func() {
 			boshDirector.VerifyAndMock(
 				mockbosh.Info().RespondsOKForBasicAuth(),
 				mockbosh.Info().RespondsUnauthorizedWith("{}"),
+				mockbosh.Info().RespondsOKForBasicAuth(),
 			)
 			cfAPI.VerifyAndMock(
 				mockcfapi.GetInfo().RespondsWithSufficientAPIVersion(),

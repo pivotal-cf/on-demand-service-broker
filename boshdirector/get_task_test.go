@@ -35,7 +35,7 @@ var _ = Describe("get task", func() {
 				receivedHttpRequest{
 					Path:   fmt.Sprintf("/tasks/%d", taskID),
 					Method: "GET",
-				}, 1))
+				}, 0))
 		})
 
 		It("wraps the error when when bosh fails to fetch the task", func() {
@@ -72,7 +72,7 @@ var _ = Describe("get task", func() {
 					Path:   fmt.Sprintf("/tasks/%d/output", taskID),
 					Method: "GET",
 					Query:  url.Values{"type": []string{"result"}},
-				}, 1))
+				}, 0))
 		})
 
 		It("returns the correct output for the task when there is no output", func() {

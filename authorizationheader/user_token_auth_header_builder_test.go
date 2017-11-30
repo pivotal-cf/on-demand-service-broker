@@ -65,7 +65,7 @@ var _ = Describe("User Token Auth Header Builder", func() {
 
 	It("succeeds when the UAA server is using HTTPS with a self-signed cert", func() {
 		mockUAA.Close()
-		mockUAA = mockuaa.NewUserCredentialsServerTLS(actualClientID, actualClientSecret, actualCFUsername, actualCFPassword, tokenToReturn)
+		mockUAA = mockuaa.NewUserCredentialsServerTLS(actualClientID, actualClientSecret, actualCFUsername, actualCFPassword, pathToSSLCerts("cert.pem"), pathToSSLCerts("key.pem"), tokenToReturn)
 		authorizer := createUserTokenAuthorizer(mockUAA, suppliedClientID, suppliedClientSecret, suppliedCFUsername, suppliedCFPassword)
 		err := authorizer.AddAuthHeader(req, logger)
 		Expect(err).NotTo(HaveOccurred())

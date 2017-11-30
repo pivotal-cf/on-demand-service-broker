@@ -11,6 +11,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 
+	"crypto/tls"
+
 	. "github.com/onsi/gomega"
 )
 
@@ -54,6 +56,7 @@ func (s *ClientCredentialsServer) ServeHTTP(writer http.ResponseWriter, req *htt
 	validateRequest(req, "client_credentials")
 
 	username, password, ok := req.BasicAuth()
+
 	Expect(ok).To(BeTrue())
 
 	if s.ValiditySecondsToReturn == 0 {
@@ -164,16 +167,16 @@ func NewClientCredentialsServer(uaaClientID, uaaClientSecret, tokenToReturn stri
 	return startClientCredentialsServer(uaaClientID, uaaClientSecret, tokenToReturn, httptest.NewServer)
 }
 
-func NewClientCredentialsServerTLS(uaaClientID, uaaClientSecret, tokenToReturn string) *ClientCredentialsServer {
-	return startClientCredentialsServer(uaaClientID, uaaClientSecret, tokenToReturn, httptest.NewTLSServer)
+func NewClientCredentialsServerTLS(uaaClientID, uaaClientSecret, certPath, keyPath, tokenToReturn string) *ClientCredentialsServer {
+	return startClientCredentialsTLSServer(uaaClientID, uaaClientSecret, certPath, keyPath, tokenToReturn)
 }
 
 func NewUserCredentialsServer(clientID, clientSecret, username, password, tokenToReturn string) *UserCredentialsServer {
 	return startUserCredentialsServer(clientID, clientSecret, username, password, tokenToReturn, httptest.NewServer)
 }
 
-func NewUserCredentialsServerTLS(clientID, clientSecret, username, password, tokenToReturn string) *UserCredentialsServer {
-	return startUserCredentialsServer(clientID, clientSecret, username, password, tokenToReturn, httptest.NewTLSServer)
+func NewUserCredentialsServerTLS(clientID, clientSecret, username, password, certPath, keyPath, tokenToReturn string) *UserCredentialsServer {
+	return startUserCredentialsTLSServer(clientID, clientSecret, username, password, certPath, keyPath, tokenToReturn)
 }
 
 func startClientCredentialsServer(uaaClientID, uaaClientSecret, tokenToReturn string, serverStarter func(http.Handler) *httptest.Server) *ClientCredentialsServer {
@@ -186,6 +189,26 @@ func startClientCredentialsServer(uaaClientID, uaaClientSecret, tokenToReturn st
 	return uaa
 }
 
+func startClientCredentialsTLSServer(uaaClientID, uaaClientSecret, certPath, keyPath, tokenToReturn string) *ClientCredentialsServer {
+	uaa := &ClientCredentialsServer{
+		UAAClientID:     uaaClientID,
+		UAAClientSecret: uaaClientSecret,
+		TokenToReturn:   tokenToReturn,
+	}
+
+	cer, err := tls.LoadX509KeyPair(certPath, keyPath)
+	Expect(err).NotTo(HaveOccurred())
+	config := &tls.Config{Certificates: []tls.Certificate{cer}}
+
+	sslServer := httptest.NewUnstartedServer(uaa)
+	sslServer.TLS = config
+
+	uaa.Server = sslServer
+
+	uaa.Server.StartTLS()
+	return uaa
+}
+
 func startUserCredentialsServer(clientID, clientSecret, username, password, tokenToReturn string, serverStarter func(http.Handler) *httptest.Server) *UserCredentialsServer {
 	uaa := &UserCredentialsServer{
 		ClientID:      clientID,
@@ -195,5 +218,27 @@ func startUserCredentialsServer(clientID, clientSecret, username, password, toke
 		TokenToReturn: tokenToReturn,
 	}
 	uaa.Server = serverStarter(uaa)
+	return uaa
+}
+
+func startUserCredentialsTLSServer(clientID, clientSecret, username, password, certPath, keyPath, tokenToReturn string) *UserCredentialsServer {
+	uaa := &UserCredentialsServer{
+		ClientID:      clientID,
+		ClientSecret:  clientSecret,
+		Username:      username,
+		Password:      password,
+		TokenToReturn: tokenToReturn,
+	}
+
+	cer, err := tls.LoadX509KeyPair(certPath, keyPath)
+	Expect(err).NotTo(HaveOccurred())
+	config := &tls.Config{Certificates: []tls.Certificate{cer}}
+
+	sslServer := httptest.NewUnstartedServer(uaa)
+	sslServer.TLS = config
+
+	uaa.Server = sslServer
+
+	uaa.Server.StartTLS()
 	return uaa
 }

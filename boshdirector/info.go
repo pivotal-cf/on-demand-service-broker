@@ -9,24 +9,44 @@ package boshdirector
 import (
 	"fmt"
 	"log"
-	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
 const (
 	semiSemverVersionLength = 2
 	semverVersionLength     = 3
 	stemcellVersionLength   = 4
+	uaaTypeString           = "uaa"
 )
 
 func (c *Client) GetInfo(logger *log.Logger) (Info, error) {
 	var boshInfo Info
 
-	err := c.getDataCheckingForErrors(fmt.Sprintf("%s/info", c.url), http.StatusOK, &boshInfo, logger)
+	directorInfo, err := c.director.Info()
 	if err != nil {
 		return Info{}, err
 	}
+
+	boshInfo.Version = directorInfo.Version
+
+	if directorInfo.Auth.Type != uaaTypeString {
+		return boshInfo, nil
+	}
+
+	uaaURL, ok := directorInfo.Auth.Options["url"].(string)
+	if ok {
+		boshInfo.UserAuthentication = UserAuthentication{
+			Options: AuthenticationOptions{
+				URL: uaaURL,
+			},
+		}
+	} else {
+		return Info{}, errors.New("Cannot retrieve UAA URL from info endpoint")
+	}
+
 	return boshInfo, nil
 }
 

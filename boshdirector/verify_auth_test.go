@@ -8,81 +8,56 @@ package boshdirector_test
 
 import (
 	"errors"
-	"io/ioutil"
-	"net/http"
-	"strings"
 
+	"github.com/cloudfoundry/bosh-cli/director"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
-	"github.com/pivotal-cf/on-demand-service-broker/boshdirector/fakes"
 )
 
 var _ = Describe("verifying authentication credentials are correct", func() {
 	var (
-		fakeHTTPClient           *fakes.FakeNetworkDoer
-		fakeAuthenticatorBuilder *fakes.FakeAuthenticatorBuilder
-		fakeAuthHeaderBuilder    *fakes.FakeAuthHeaderBuilder
-		fakeCertAppender         *fakes.FakeCertAppender
+		directorClient *boshdirector.Client
 	)
 
 	BeforeEach(func() {
-		fakeHTTPClient = new(fakes.FakeNetworkDoer)
-		fakeAuthenticatorBuilder = new(fakes.FakeAuthenticatorBuilder)
-		fakeAuthHeaderBuilder = new(fakes.FakeAuthHeaderBuilder)
-		fakeCertAppender = new(fakes.FakeCertAppender)
+		var err error
 
-		fakeAuthenticatorBuilder.NewAuthHeaderBuilderReturns(fakeAuthHeaderBuilder, nil)
+		fakeDirector.InfoReturns(director.Info{
+			Auth: director.UserAuthentication{
+				Type: "uaa",
+				Options: map[string]interface{}{
+					"url": "foo.com",
+				},
+			},
+		}, nil)
 
-		fakeHTTPClient.DoStub = func(_ *http.Request) (*http.Response, error) {
-			return &http.Response{
-				Body:       ioutil.NopCloser(strings.NewReader(`{}`)),
-				StatusCode: http.StatusOK,
-			}, nil
-		}
+		directorClient, err = boshdirector.New("https://director.example.com", false, nil, fakeHTTPClient, fakeAuthenticatorBuilder, fakeCertAppender, fakeDirectorFactory, fakeUAAFactory, boshAuthConfig, logger)
+		Expect(err).NotTo(HaveOccurred())
 	})
 
-	It("doesn't produce error when the auth header builder can add a header", func() {
-		c, err := boshdirector.New(director.URL, false, nil, fakeHTTPClient, fakeAuthenticatorBuilder, fakeCertAppender, logger)
-		Expect(err).NotTo(HaveOccurred())
+	It("doesn't produce error when the credentials are correct", func() {
+		fakeDirector.IsAuthenticatedReturns(true, nil)
 
-		authErr := c.VerifyAuth(logger)
+		authErr := directorClient.VerifyAuth(logger)
 
 		Expect(authErr).NotTo(HaveOccurred())
 	})
 
-	It("produces error when the auth header builder cannot add a header", func() {
-		authHeaderError := errors.New("couldn't get creds!!!1 lol")
-		fakeAuthHeaderBuilder.AddAuthHeaderReturns(authHeaderError)
-		c, err := boshdirector.New(director.URL, false, nil, fakeHTTPClient, fakeAuthenticatorBuilder, fakeCertAppender, logger)
-		Expect(err).NotTo(HaveOccurred())
+	It("produces an error when the credentials are incorrect", func() {
+		fakeDirector.IsAuthenticatedReturns(false, nil)
 
-		authErr := c.VerifyAuth(logger)
+		authErr := directorClient.VerifyAuth(logger)
 
-		Expect(authErr).To(MatchError(authHeaderError))
+		Expect(authErr).To(MatchError("not authenticated"))
 	})
 
-	It("produces error when the response from the director is 401", func() {
-		callcount := 0
-		fakeHTTPClient.DoStub = func(_ *http.Request) (*http.Response, error) {
-			callcount += 1
-			if callcount == 1 {
-				return &http.Response{
-					Body:       ioutil.NopCloser(strings.NewReader(`{}`)),
-					StatusCode: http.StatusOK,
-				}, nil
-			}
+	It("produces an error when it fails to check the credentials", func() {
+		errMsg := "/info endpoint unreachable"
+		fakeDirector.IsAuthenticatedReturns(false, errors.New(errMsg))
 
-			return &http.Response{
-				Body:       ioutil.NopCloser(strings.NewReader(`{}`)),
-				StatusCode: http.StatusUnauthorized,
-			}, nil
-		}
-		c, err := boshdirector.New(director.URL, false, nil, fakeHTTPClient, fakeAuthenticatorBuilder, fakeCertAppender, logger)
-		Expect(err).NotTo(HaveOccurred())
+		err := directorClient.VerifyAuth(logger)
 
-		authErr := c.VerifyAuth(logger)
-
-		Expect(authErr).To(HaveOccurred())
+		Expect(err).To(MatchError(ContainSubstring(errMsg)))
 	})
 })

@@ -51,7 +51,7 @@ var _ = Describe("binding service instances", func() {
 
 	BeforeEach(func() {
 		cfClient = "cf"
-		boshUAA = mockuaa.NewClientCredentialsServer(boshClientID, boshClientSecret, "bosh uaa token")
+		boshUAA = mockuaa.NewClientCredentialsServerTLS(boshClientID, boshClientSecret, pathToSSLCerts("cert.pem"), pathToSSLCerts("key.pem"), "bosh uaa token")
 		boshDirector = mockbosh.NewWithUAA(boshUAA.URL)
 
 		cfUAA = mockuaa.NewClientCredentialsServer(cfUaaClientID, cfUaaClientSecret, "CF UAA token")
@@ -80,7 +80,6 @@ var _ = Describe("binding service instances", func() {
 		cfAPI.VerifyMocks()
 		cfAPI.Close()
 		cfUAA.Close()
-
 	})
 
 	Describe("a successful binding", func() {

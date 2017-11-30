@@ -6,7 +6,11 @@
 
 package mockbosh
 
-import "github.com/pivotal-cf/on-demand-service-broker/mockhttp"
+import (
+	"fmt"
+
+	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
+)
 
 const (
 	BoshContextIDHeader = "X-Bosh-Context-Id"
@@ -19,12 +23,20 @@ type MockBOSH struct {
 }
 
 func NewWithUAA(uaaUrl string) *MockBOSH {
+	certPath := pathToSSLFixtures("cert.pem")
+	keyPath := pathToSSLFixtures("key.pem")
 	return &MockBOSH{
 		UAAURL: uaaUrl,
-		Server: mockhttp.StartServer(serverName),
+		Server: mockhttp.StartTLSServer(serverName, certPath, keyPath),
 	}
 }
 
 func New() *MockBOSH {
-	return &MockBOSH{Server: mockhttp.StartServer(serverName)}
+	certPath := pathToSSLFixtures("cert.pem")
+	keyPath := pathToSSLFixtures("key.pem")
+	return &MockBOSH{Server: mockhttp.StartTLSServer(serverName, certPath, keyPath)}
+}
+
+func pathToSSLFixtures(filename string) string {
+	return fmt.Sprintf("../../integration_tests/fixtures/ssl/%s", filename)
 }

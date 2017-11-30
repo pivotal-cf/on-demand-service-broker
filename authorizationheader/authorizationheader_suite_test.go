@@ -7,6 +7,7 @@
 package authorizationheader_test
 
 import (
+	"fmt"
 	"log"
 	"testing"
 
@@ -24,3 +25,7 @@ var logger *log.Logger
 var _ = BeforeSuite(func() {
 	logger = log.New(GinkgoWriter, "[authorizationheader unit test]", log.LstdFlags)
 })
+
+func pathToSSLCerts(filename string) string {
+	return fmt.Sprintf("../integration_tests/fixtures/ssl/%s", filename)
+}

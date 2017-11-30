@@ -1,5 +1,4 @@
-// Copyright (C) 2016-Present Pivotal Software, Inc. All rights reserved.
-// This program and the accompanying materials are made available under the terms of the under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.
+// Copyright (C) 2016-Present Pivotal Software, Inc. All rights reserved.  This program and the accompanying materials are made available under the terms of the under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 // http://www.apache.org/licenses/LICENSE-2.0
 // Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
@@ -21,6 +20,7 @@ import (
 	"regexp"
 	"strconv"
 	"testing"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -200,9 +200,25 @@ func startBrokerWithPassingStartupChecks(
 	return startBroker(conf)
 }
 
+func startBasicBrokerWithPassingStartupChecks(
+	conf config.Config,
+	cfAPI *mockhttp.Server,
+	boshDirector *mockbosh.MockBOSH,
+) *gexec.Session {
+	cfAPI.VerifyAndMock(
+		mockcfapi.GetInfo().RespondsWithSufficientAPIVersion(),
+		mockcfapi.ListServiceOfferings().RespondsWithNoServiceOfferings(),
+	)
+	boshDirector.VerifyAndMock(
+		mockbosh.Info().RespondsWithSufficientVersionForLifecycleErrands(boshDirector.UAAURL),
+		mockbosh.Info().RespondsWithSufficientVersionForLifecycleErrands(boshDirector.UAAURL),
+	)
+	return startBroker(conf)
+}
+
 func startBroker(conf config.Config) *gexec.Session {
 	session := startBrokerWithoutPortCheck(conf)
-	Eventually(dialBroker).Should(BeTrue())
+	Eventually(dialBroker, time.Second*3).Should(BeTrue())
 	return session
 }
 
@@ -324,7 +340,8 @@ func defaultBrokerConfig(boshURL, uaaURL, cfURL, cfUAAURL string) config.Config 
 			ShutdownTimeoutSecs: 2,
 		},
 		Bosh: config.Bosh{
-			URL: boshURL,
+			URL:         boshURL,
+			TrustedCert: certContents("cert.pem"),
 			Authentication: config.BOSHAuthentication{
 				UAA: config.BOSHUAAAuthentication{ID: boshClientID, Secret: boshClientSecret},
 			},
@@ -556,4 +573,15 @@ func toYaml(obj interface{}) []byte {
 	data, err := yaml.Marshal(obj)
 	Expect(err).NotTo(HaveOccurred())
 	return data
+}
+
+func pathToSSLCerts(filename string) string {
+	return fmt.Sprintf("../fixtures/ssl/%s", filename)
+}
+
+func certContents(filename string) string {
+	certPath := pathToSSLCerts(filename)
+	b, err := ioutil.ReadFile(certPath)
+	Expect(err).NotTo(HaveOccurred())
+	return string(b)
 }

@@ -41,7 +41,7 @@ var _ = Describe("deploying a manifest", func() {
 		Expect(taskID).To(Equal(90))
 
 		By("calling the appropriate endpoint")
-		Expect(fakeHTTPClient).To(HaveReceivedHttpRequestAtIndex(receivedHttpRequest{Path: "/deployments", Method: "POST"}, 1))
+		Expect(fakeHTTPClient).To(HaveReceivedHttpRequestAtIndex(receivedHttpRequest{Path: "/deployments", Method: "POST"}, 0))
 
 		By("using authentication")
 		Expect(authHeaderBuilder.AddAuthHeaderCallCount()).To(BeNumerically(">", 0))
@@ -60,7 +60,7 @@ var _ = Describe("deploying a manifest", func() {
 			Header: http.Header{
 				"X-Bosh-Context-Id": []string{"some-context-id"},
 			},
-		}, 1))
+		}, 0))
 
 		By("using authentication")
 		Expect(authHeaderBuilder.AddAuthHeaderCallCount()).To(BeNumerically(">", 0))

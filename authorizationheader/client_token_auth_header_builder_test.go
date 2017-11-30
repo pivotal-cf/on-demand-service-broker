@@ -59,7 +59,7 @@ var _ = Describe("Client Token Auth Header Builder", func() {
 
 	It("succeeds when the UAA server is using HTTPS with a self-signed cert", func() {
 		mockUAA.Close()
-		mockUAA = mockuaa.NewClientCredentialsServerTLS(actualClientID, actualClientSecret, tokenToReturn)
+		mockUAA = mockuaa.NewClientCredentialsServerTLS(actualClientID, actualClientSecret, pathToSSLCerts("cert.pem"), pathToSSLCerts("key.pem"), tokenToReturn)
 		authorizer := createClientTokenAuthorizer(mockUAA, suppliedClientID, suppliedClientSecret)
 		err := authorizer.AddAuthHeader(req, logger)
 		Expect(err).NotTo(HaveOccurred())

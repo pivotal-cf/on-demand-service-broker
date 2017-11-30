@@ -38,7 +38,7 @@ var _ = Describe("getting tasks", func() {
 					Path:   "/tasks",
 					Method: "GET",
 					Query:  url.Values{"deployment": []string{deploymentName}},
-				}, 1))
+				}, 0))
 
 		})
 
@@ -73,7 +73,7 @@ var _ = Describe("getting tasks", func() {
 					Path:   "/tasks",
 					Method: "GET",
 					Query:  url.Values{"deployment": []string{deploymentName}, "context_id": []string{contextID}},
-				}, 1))
+				}, 0))
 		})
 
 		It("returns one task when there is one task with the context id", func() {
@@ -91,7 +91,7 @@ var _ = Describe("getting tasks", func() {
 					Path:   "/tasks",
 					Method: "GET",
 					Query:  url.Values{"deployment": []string{deploymentName}, "context_id": []string{contextID}},
-				}, 1))
+				}, 0))
 
 		})
 
@@ -102,8 +102,8 @@ var _ = Describe("getting tasks", func() {
 				{State: boshdirector.TaskProcessing, Description: "snapshot deployment", Result: "result-1", ContextID: contextID},
 			}
 
-			fakeHTTPClient.DoReturnsOnCall(1, responseOKWithJSON(expectedTasks), nil)
-			fakeHTTPClient.DoReturnsOnCall(2, responseWithEmptyBodyAndStatus(http.StatusOK), nil)
+			fakeHTTPClient.DoReturnsOnCall(0, responseOKWithJSON(expectedTasks), nil)
+			fakeHTTPClient.DoReturnsOnCall(1, responseWithEmptyBodyAndStatus(http.StatusOK), nil)
 
 			actualTasks, err := c.GetNormalisedTasksByContext(deploymentName, contextID, logger)
 			Expect(actualTasks).To(HaveLen(3))
@@ -116,14 +116,14 @@ var _ = Describe("getting tasks", func() {
 					Path:   "/tasks",
 					Method: "GET",
 					Query:  url.Values{"deployment": []string{deploymentName}, "context_id": []string{contextID}},
-				}, 1))
+				}, 0))
 
 			Expect(fakeHTTPClient).To(HaveReceivedHttpRequestAtIndex(
 				receivedHttpRequest{
 					Path:   "/tasks/0/output",
 					Method: "GET",
 					Query:  url.Values{"type": []string{"result"}},
-				}, 2))
+				}, 1))
 
 		})
 
@@ -136,8 +136,8 @@ var _ = Describe("getting tasks", func() {
 				ContextID:   contextID,
 			}
 
-			fakeHTTPClient.DoReturnsOnCall(1, responseOKWithJSON([]boshdirector.BoshTask{expectedTask}), nil)
-			fakeHTTPClient.DoReturnsOnCall(2, responseOKWithJSON(map[string]int{"ExitCode": 1}), nil)
+			fakeHTTPClient.DoReturnsOnCall(0, responseOKWithJSON([]boshdirector.BoshTask{expectedTask}), nil)
+			fakeHTTPClient.DoReturnsOnCall(1, responseOKWithJSON(map[string]int{"ExitCode": 1}), nil)
 
 			actualTasks, err := c.GetNormalisedTasksByContext(deploymentName, contextID, logger)
 			Expect(err).NotTo(HaveOccurred())
@@ -149,13 +149,13 @@ var _ = Describe("getting tasks", func() {
 					Path:   "/tasks",
 					Method: "GET",
 					Query:  url.Values{"deployment": []string{deploymentName}, "context_id": []string{contextID}},
-				}, 1))
+				}, 0))
 			Expect(fakeHTTPClient).To(HaveReceivedHttpRequestAtIndex(
 				receivedHttpRequest{
 					Path:   "/tasks/42/output",
 					Method: "GET",
 					Query:  url.Values{"type": []string{"result"}},
-				}, 2))
+				}, 1))
 		})
 
 		It("returns an error when an errand task result can not be retrived", func() {
@@ -167,8 +167,8 @@ var _ = Describe("getting tasks", func() {
 				ContextID:   contextID,
 			}
 
-			fakeHTTPClient.DoReturnsOnCall(1, responseOKWithJSON([]boshdirector.BoshTask{expectedTask}), nil)
-			fakeHTTPClient.DoReturnsOnCall(2, responseWithEmptyBodyAndStatus(http.StatusInternalServerError), nil)
+			fakeHTTPClient.DoReturnsOnCall(0, responseOKWithJSON([]boshdirector.BoshTask{expectedTask}), nil)
+			fakeHTTPClient.DoReturnsOnCall(1, responseWithEmptyBodyAndStatus(http.StatusInternalServerError), nil)
 
 			_, err := c.GetNormalisedTasksByContext(deploymentName, contextID, logger)
 			Expect(err).To(HaveOccurred())
@@ -179,13 +179,13 @@ var _ = Describe("getting tasks", func() {
 					Path:   "/tasks",
 					Method: "GET",
 					Query:  url.Values{"deployment": []string{deploymentName}, "context_id": []string{contextID}},
-				}, 1))
+				}, 0))
 			Expect(fakeHTTPClient).To(HaveReceivedHttpRequestAtIndex(
 				receivedHttpRequest{
 					Path:   "/tasks/42/output",
 					Method: "GET",
 					Query:  url.Values{"type": []string{"result"}},
-				}, 2))
+				}, 1))
 
 		})
 	})

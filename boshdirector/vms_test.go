@@ -51,7 +51,7 @@ var _ = Describe("vms", func() {
 						{IPs: []string{"ip1", "ip2"}, InstanceGroup: "an-instance-group"},
 					}
 
-					const expectedPreviousRequests = 1
+					const expectedPreviousRequests = 0
 
 					activities := []NetworkActivity{
 						{
@@ -93,12 +93,12 @@ var _ = Describe("vms", func() {
 				})
 
 				It("groups ips by instance group deploymentName when the output has multiple lines of the same instance group", func() {
-					fakeHTTPClient.DoReturnsOnCall(1, responseWithRedirectToTaskID(taskIDToReturn), nil)
-					fakeHTTPClient.DoReturnsOnCall(2, responseOKWithJSON(boshdirector.BoshTask{
+					fakeHTTPClient.DoReturnsOnCall(0, responseWithRedirectToTaskID(taskIDToReturn), nil)
+					fakeHTTPClient.DoReturnsOnCall(1, responseOKWithJSON(boshdirector.BoshTask{
 						ID:    taskIDToReturn,
 						State: boshdirector.TaskDone,
 					}), nil)
-					fakeHTTPClient.DoReturnsOnCall(3, responseOKWithTaskOutput([]boshdirector.BoshVMsOutput{
+					fakeHTTPClient.DoReturnsOnCall(2, responseOKWithTaskOutput([]boshdirector.BoshVMsOutput{
 						{IPs: []string{"ip1"}, InstanceGroup: "kafka-broker"},
 						{IPs: []string{"ip2"}, InstanceGroup: "kafka-broker"},
 						{IPs: []string{"ip3"}, InstanceGroup: "zookeeper"},
@@ -113,8 +113,8 @@ var _ = Describe("vms", func() {
 				})
 
 				It("returns an error when the task is finished, but has failed", func() {
-					fakeHTTPClient.DoReturnsOnCall(1, responseWithRedirectToTaskID(taskIDToReturn), nil)
-					fakeHTTPClient.DoReturnsOnCall(2, responseOKWithJSON(boshdirector.BoshTask{
+					fakeHTTPClient.DoReturnsOnCall(0, responseWithRedirectToTaskID(taskIDToReturn), nil)
+					fakeHTTPClient.DoReturnsOnCall(1, responseOKWithJSON(boshdirector.BoshTask{
 						ID:    taskIDToReturn,
 						State: boshdirector.TaskError,
 					}), nil)
@@ -125,7 +125,7 @@ var _ = Describe("vms", func() {
 				})
 
 				It("returns an error when fetching task output from bosh fails", func() {
-					fakeHTTPClient.DoReturnsOnCall(1, responseWithEmptyBodyAndStatus(http.StatusInternalServerError), nil)
+					fakeHTTPClient.DoReturnsOnCall(0, responseWithEmptyBodyAndStatus(http.StatusInternalServerError), nil)
 
 					_, err := c.VMs(deploymentName, logger)
 
@@ -133,7 +133,7 @@ var _ = Describe("vms", func() {
 				})
 
 				It("returns an error when the deployment is not found", func() {
-					fakeHTTPClient.DoReturnsOnCall(1, responseWithEmptyBodyAndStatus(http.StatusNotFound), nil)
+					fakeHTTPClient.DoReturnsOnCall(0, responseWithEmptyBodyAndStatus(http.StatusNotFound), nil)
 
 					_, err := c.VMs(deploymentName, logger)
 
@@ -150,8 +150,8 @@ var _ = Describe("vms", func() {
 			})
 
 			It("returns an error when fetching task state from bosh fails", func() {
-				fakeHTTPClient.DoReturnsOnCall(1, responseWithRedirectToTaskID(taskIDToReturn), nil)
-				fakeHTTPClient.DoReturnsOnCall(2, responseWithEmptyBodyAndStatus(http.StatusInternalServerError), nil)
+				fakeHTTPClient.DoReturnsOnCall(0, responseWithRedirectToTaskID(taskIDToReturn), nil)
+				fakeHTTPClient.DoReturnsOnCall(1, responseWithEmptyBodyAndStatus(http.StatusInternalServerError), nil)
 
 				_, err := c.VMs(deploymentName, logger)
 
@@ -160,7 +160,7 @@ var _ = Describe("vms", func() {
 		})
 
 		It("returns an error when bosh fails to start VMs task", func() {
-			fakeHTTPClient.DoReturnsOnCall(1, responseWithEmptyBodyAndStatus(http.StatusInternalServerError), nil)
+			fakeHTTPClient.DoReturnsOnCall(0, responseWithEmptyBodyAndStatus(http.StatusInternalServerError), nil)
 
 			_, err := c.VMs(deploymentName, logger)
 
@@ -179,7 +179,7 @@ var _ = Describe("vms", func() {
 		)
 
 		It("returns the IPs in the output when bosh succeeds", func() {
-			fakeHTTPClient.DoReturnsOnCall(1, responseOKWithTaskOutput(expectedVMsOutput), nil)
+			fakeHTTPClient.DoReturnsOnCall(0, responseOKWithTaskOutput(expectedVMsOutput), nil)
 
 			boshOutput, err := c.VMsOutput(taskID, logger)
 
@@ -192,7 +192,7 @@ var _ = Describe("vms", func() {
 		})
 
 		It("returns an error when bosh fails", func() {
-			fakeHTTPClient.DoReturnsOnCall(1, responseWithEmptyBodyAndStatus(http.StatusInternalServerError), nil)
+			fakeHTTPClient.DoReturnsOnCall(0, responseWithEmptyBodyAndStatus(http.StatusInternalServerError), nil)
 
 			_, err := c.VMsOutput(taskID, logger)
 

@@ -18,6 +18,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/cloudfoundry/bosh-cli/director"
+	boshuaa "github.com/cloudfoundry/bosh-cli/uaa"
+	boshlog "github.com/cloudfoundry/bosh-utils/logger"
 	"github.com/craigfurman/herottp"
 	"github.com/pivotal-cf/on-demand-service-broker/apiserver"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
@@ -61,6 +64,12 @@ func startBroker(conf config.Config, logger *log.Logger, loggerFactory *loggerfa
 		logger.Fatalf("error getting a certificate pool to append our trusted cert to: %s", err)
 	}
 
+	l := boshlog.NewLogger(boshlog.LevelError)
+
+	directorFactory := director.NewFactory(l)
+
+	uaaFactory := boshuaa.NewFactory(l)
+
 	boshClient, err := boshdirector.New(
 		conf.Bosh.URL,
 		conf.Broker.DisableSSLCertVerification,
@@ -73,6 +82,9 @@ func startBroker(conf config.Config, logger *log.Logger, loggerFactory *loggerfa
 		}),
 		conf.Bosh,
 		certPool,
+		directorFactory,
+		uaaFactory,
+		conf.Bosh.Authentication,
 		logger)
 	if err != nil {
 		logger.Fatalf("error creating bosh client: %s", err)
@@ -180,7 +192,7 @@ func startBroker(conf config.Config, logger *log.Logger, loggerFactory *loggerfa
 		)
 		defer cancel()
 
-		if err := server.Shutdown(ctx); err != nil {
+		if err = server.Shutdown(ctx); err != nil {
 			logger.Printf("Error gracefully shutting down server: %v\n", err)
 		} else {
 			logger.Println("Server gracefully shut down")

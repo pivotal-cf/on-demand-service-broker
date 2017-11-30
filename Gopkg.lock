@@ -3,9 +3,39 @@
 
 [[projects]]
   branch = "master"
+  name = "code.cloudfoundry.org/clock"
+  packages = ["."]
+  revision = "1fea04828a6fb034280dcb5d07f39f5b7f5739e9"
+
+[[projects]]
+  branch = "master"
   name = "code.cloudfoundry.org/lager"
   packages = ["."]
   revision = "0bfa98e49e7a976af91e918d47978f07c00b081f"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/armon/go-socks5"
+  packages = ["."]
+  revision = "e75332964ef517daa070d7c38a9466a0d687e0a5"
+
+[[projects]]
+  name = "github.com/bmatcuk/doublestar"
+  packages = ["."]
+  revision = "b3608229437ba4dc33dae64d56a79a2a73f1f6b2"
+  version = "v1.0.9"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/charlievieth/fs"
+  packages = ["."]
+  revision = "7dc373669fa10ddf827c37c595dee30a2f001be9"
+
+[[projects]]
+  name = "github.com/cheggaaa/pb"
+  packages = ["."]
+  revision = "657164d0228d6bebe316fdf725c69f131a50fb10"
+  version = "v1.0.18"
 
 [[projects]]
   branch = "master"
@@ -20,6 +50,18 @@
   revision = "d686cd8b7d2d044e0dee73aa397809f84e972541"
 
 [[projects]]
+  name = "github.com/cloudfoundry/bosh-cli"
+  packages = ["director","uaa","ui","ui/fmt","ui/table"]
+  revision = "d20879988632b019eb3f195cced2afb2b3eedabb"
+  version = "v2.0.45"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/cloudfoundry/bosh-utils"
+  packages = ["crypto","errors","httpclient","logger","retrystrategy","system","uuid"]
+  revision = "07e3008c701173c247c62ed8901d5e40b80a3f9d"
+
+[[projects]]
   name = "github.com/cloudfoundry/noaa"
   packages = [".","consumer","consumer/internal","errors"]
   revision = "a1d4a94e2be6711111893c59538976d07ef7ea98"
@@ -27,9 +69,15 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/cloudfoundry/socks5-proxy"
+  packages = ["."]
+  revision = "dd3ea3050967ee49485c26540f78ebbc3fa7bf1c"
+
+[[projects]]
+  branch = "master"
   name = "github.com/cloudfoundry/sonde-go"
   packages = ["events"]
-  revision = "c48c4f0332609a0e402af4ae31595204c9f7b363"
+  revision = "bb123910ff45b9b3a3090a9b18302f3c8fda5e8b"
 
 [[projects]]
   name = "github.com/coreos/go-semver"
@@ -39,9 +87,27 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/cppforlife/go-semi-semantic"
+  packages = ["version"]
+  revision = "576b6af77ae4f3ccef356902fb3b9a9ae22e0b11"
+
+[[projects]]
+  branch = "master"
   name = "github.com/craigfurman/herottp"
   packages = ["."]
   revision = "5c89a599c8659573e7be01fa87f2a8150fd649b7"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/dustin/go-humanize"
+  packages = ["."]
+  revision = "bb3d318650d48840a39aa21a027c6630e198e626"
+
+[[projects]]
+  name = "github.com/fatih/color"
+  packages = ["."]
+  revision = "570b54cabe6b8eb0bc2dfce68d964677d63b5260"
+  version = "v1.5.0"
 
 [[projects]]
   name = "github.com/ghodss/yaml"
@@ -92,6 +158,30 @@
   revision = "32fa128f234d041f196a9f3e0fea5ac9772c08e1"
 
 [[projects]]
+  name = "github.com/mattn/go-colorable"
+  packages = ["."]
+  revision = "167de6bfdfba052fa6b2d3664c8f5272e23c9072"
+  version = "v0.0.9"
+
+[[projects]]
+  name = "github.com/mattn/go-isatty"
+  packages = ["."]
+  revision = "0360b2af4f38e8d38c7fce2a9f4e702702d73a39"
+  version = "v0.0.3"
+
+[[projects]]
+  name = "github.com/mattn/go-runewidth"
+  packages = ["."]
+  revision = "9e777a8366cce605130a531d2cd6363d07ad7317"
+  version = "v0.0.2"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/nu7hatch/gouuid"
+  packages = ["."]
+  revision = "179d4d0c4d8d407a32af483c2354df1d2c91e6c3"
+
+[[projects]]
   name = "github.com/onsi/ginkgo"
   packages = [".","config","extensions/table","internal/codelocation","internal/containernode","internal/failer","internal/leafnodes","internal/remote","internal/spec","internal/spec_iterator","internal/specrunner","internal/suite","internal/testingtproxy","internal/writer","reporters","reporters/stenographer","reporters/stenographer/support/go-colorable","reporters/stenographer/support/go-isatty","types"]
   revision = "9eda700730cba42af70d53180f9dcce9266bc2bc"
@@ -113,13 +203,25 @@
   branch = "master"
   name = "github.com/pivotal-cf/brokerapi"
   packages = [".","auth"]
-  revision = "4d9a0850fdd95695c5d20b7442e90c3d43fbb64e"
+  revision = "61af3c362c579b641bbffd7cb6355e5c4bfa5eda"
 
 [[projects]]
   branch = "master"
   name = "github.com/pivotal-cf/on-demand-services-sdk"
   packages = ["bosh","serviceadapter"]
   revision = "1f0cc517b5754177de68bb507e6e33d3f31b76eb"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/pivotal-cf/paraphernalia"
+  packages = ["secure/tlsconfig"]
+  revision = "4272315231ce0d2636eeb44ed0479e56ca165581"
+
+[[projects]]
+  name = "github.com/pkg/errors"
+  packages = ["."]
+  revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
+  version = "v0.8.0"
 
 [[projects]]
   branch = "master"
@@ -134,21 +236,33 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/vito/go-interact"
+  packages = ["interact","interact/terminal"]
+  revision = "fa338ed9e9ecbb0e9c2e6c7a0160d9fc9b0efbd9"
+
+[[projects]]
+  branch = "master"
   name = "github.com/xeipuuv/gojsonpointer"
   packages = ["."]
   revision = "6fe8760cad3569743d51ddbb243b26f8456742dc"
 
 [[projects]]
   branch = "master"
+  name = "golang.org/x/crypto"
+  packages = ["curve25519","ed25519","ed25519/internal/edwards25519","ssh","ssh/terminal"]
+  revision = "b080dc9a8c480b08e698fb1219160d598526310f"
+
+[[projects]]
+  branch = "master"
   name = "golang.org/x/net"
-  packages = ["html","html/atom","html/charset"]
-  revision = "9dfe39835686865bff950a07b394c12a98ddc811"
+  packages = ["context","html","html/atom","html/charset","proxy"]
+  revision = "c7086645de248775cbf2373cf5ca4d2fa664b8c1"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
-  packages = ["unix"]
-  revision = "328643532ee3c60c099171d4ce2cad0ca0354ca9"
+  packages = ["unix","windows"]
+  revision = "a13efeb2fd213cf4be7227992aa54519af3b2ac0"
 
 [[projects]]
   branch = "master"
@@ -171,6 +285,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "f2107b33cb618696238321858ae61efa2438731ef9324841585bb9812ea6506f"
+  inputs-digest = "1e86b47983222525b99b407dfb5a5a2a7691c7bb218709ee443eecc041603a57"
   solver-name = "gps-cdcl"
   solver-version = 1

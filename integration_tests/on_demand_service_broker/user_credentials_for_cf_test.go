@@ -34,7 +34,7 @@ var _ = Describe("UAA user credentials for CF", func() {
 	)
 
 	BeforeEach(func() {
-		boshUAA = mockuaa.NewClientCredentialsServer(boshClientID, boshClientSecret, "bosh uaa token")
+		boshUAA = mockuaa.NewClientCredentialsServerTLS(boshClientID, boshClientSecret, pathToSSLCerts("cert.pem"), pathToSSLCerts("key.pem"), "bosh uaa token")
 		boshDirector = mockbosh.NewWithUAA(boshUAA.URL)
 		cfAPI = mockcfapi.New()
 		cfAPI.VerifyAndMock(

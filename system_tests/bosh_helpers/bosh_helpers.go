@@ -13,12 +13,16 @@ import (
 	"log"
 	"time"
 
+	"github.com/cloudfoundry/bosh-cli/director"
+	boshuaa "github.com/cloudfoundry/bosh-cli/uaa"
+	boshlog "github.com/cloudfoundry/bosh-utils/logger"
 	"github.com/craigfurman/herottp"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
+	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 	"gopkg.in/yaml.v2"
 )
@@ -31,7 +35,7 @@ type authenticatorBuilder struct {
 	authHeaderBuilder boshdirector.AuthHeaderBuilder
 }
 
-func (a authenticatorBuilder) NewAuthHeaderBuilder(boshInfo boshdirector.Info, disableSSL bool) (boshdirector.AuthHeaderBuilder, error) {
+func (a authenticatorBuilder) NewAuthHeaderBuilder(uaaURL string, disableSSL bool) (config.AuthHeaderBuilder, error) {
 	return a.authHeaderBuilder, nil
 }
 
@@ -58,6 +62,10 @@ func New(boshURL, uaaURL, boshUsername, boshPassword, boshCACert string) *BoshHe
 	})
 
 	logger := systemTestLogger()
+	l := boshlog.NewLogger(boshlog.LevelError)
+	directorFactory := director.NewFactory(l)
+	uaaFactory := boshuaa.NewFactory(l)
+
 	boshClient, err := boshdirector.New(
 		boshURL,
 		false,
@@ -65,6 +73,13 @@ func New(boshURL, uaaURL, boshUsername, boshPassword, boshCACert string) *BoshHe
 		httpClient,
 		authenticatorBuilder{authHeaderBuilder},
 		certPool,
+		directorFactory,
+		uaaFactory,
+		config.BOSHAuthentication{
+			UAA: config.BOSHUAAAuthentication{
+				ID: boshUsername, Secret: boshPassword,
+			},
+		},
 		logger,
 	)
 
@@ -93,6 +108,9 @@ func NewBasicAuth(boshURL, boshUsername, boshPassword, boshCACert string, disabl
 	})
 
 	logger := systemTestLogger()
+	l := boshlog.NewLogger(boshlog.LevelError)
+	directorFactory := director.NewFactory(l)
+	uaaFactory := boshuaa.NewFactory(l)
 	boshClient, err := boshdirector.New(
 		boshURL,
 		disableTLSVerification,
@@ -100,6 +118,13 @@ func NewBasicAuth(boshURL, boshUsername, boshPassword, boshCACert string, disabl
 		httpClient,
 		authenticatorBuilder{basicAuthHeaderBuilder},
 		certPool,
+		directorFactory,
+		uaaFactory,
+		config.BOSHAuthentication{
+			Basic: config.UserCredentials{
+				Username: boshUsername, Password: boshPassword,
+			},
+		},
 		logger,
 	)
 

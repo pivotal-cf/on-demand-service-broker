@@ -25,6 +25,7 @@ func Info() *infoMock {
 func (m *infoMock) RespondsWithSufficientStemcellVersionForODB(uaaUrl string) *mockhttp.Handler {
 	return m.RespondsOKWith(fmt.Sprintf(`{
 		"version":"1.3262.0.0 (00000000)",
+		"user":"admin",
 		"user_authentication": {
 			"type": "uaa",
 			"options": {
@@ -37,6 +38,7 @@ func (m *infoMock) RespondsWithSufficientStemcellVersionForODB(uaaUrl string) *m
 func (m *infoMock) RespondsWithSufficientSemverVersionForODB(uaaUrl string) *mockhttp.Handler {
 	return m.RespondsOKWith(fmt.Sprintf(`{
 		"version":"260.0.0 (00000000)",
+		"user":"admin",
 		"user_authentication": {
 			"type": "uaa",
 			"options": {
@@ -49,6 +51,7 @@ func (m *infoMock) RespondsWithSufficientSemverVersionForODB(uaaUrl string) *moc
 func (m *infoMock) RespondsWithSufficientVersionForLifecycleErrands(uaaUrl string) *mockhttp.Handler {
 	content := fmt.Sprintf(`{
 		"version":"261.0.0 (00000000)",
+		"user":"admin",
 		"user_authentication": {
 			"type": "uaa",
 			"options": {
@@ -62,6 +65,7 @@ func (m *infoMock) RespondsWithSufficientVersionForLifecycleErrands(uaaUrl strin
 func (m *infoMock) RespondsWithVersion(version string, uaaUrl string) *mockhttp.Handler {
 	content := fmt.Sprintf(`{
 		"version":"%s",
+		"user":"admin",
 		"user_authentication": {
 			"type": "uaa",
 			"options": {
@@ -74,7 +78,14 @@ func (m *infoMock) RespondsWithVersion(version string, uaaUrl string) *mockhttp.
 
 func (m *infoMock) RespondsOKForBasicAuth() *mockhttp.Handler {
 	content := `{
-		"version":"261.0.0 (00000000)"
+		"user": null,
+		"version":"261.0.0 (00000000)",
+		"user_authentication": {
+			"type": "uaa",
+			"options": {
+				"url": "https://example.uaa.url"
+			}
+		}
 	}`
 	return m.RespondsOKWith(content)
 }

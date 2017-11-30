@@ -18,7 +18,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
+	"github.com/pivotal-cf/on-demand-service-broker/config"
+	"github.com/pkg/errors"
+
+	"github.com/cloudfoundry/bosh-cli/director"
+	boshuaa "github.com/cloudfoundry/bosh-cli/uaa"
 )
 
 type Client struct {
@@ -29,13 +33,30 @@ type Client struct {
 
 	authHeaderBuilder AuthHeaderBuilder
 	httpClient        NetworkDoer
+	director          Director
 }
 
-func (c *Client) VerifyAuth(logger *log.Logger) error {
-	_, err := c.GetInfo(logger)
-	return err
+//go:generate counterfeiter -o fakes/fake_director.go . Director
+type Director interface {
+	director.Director
 }
 
+//go:generate counterfeiter -o fakes/fake_uaa.go . UAA
+type UAA interface {
+	boshuaa.UAA
+}
+
+//go:generate counterfeiter -o fakes/fake_director_factory.go . DirectorFactory
+type DirectorFactory interface {
+	New(config director.FactoryConfig, taskReporter director.TaskReporter, fileReporter director.FileReporter) (director.Director, error)
+}
+
+//go:generate counterfeiter -o fakes/fake_uaa_factory.go . UAAFactory
+type UAAFactory interface {
+	New(config boshuaa.Config) (boshuaa.UAA, error)
+}
+
+//TODO: check if we can remove this interface
 //go:generate counterfeiter -o fakes/fake_auth_header_builder.go . AuthHeaderBuilder
 type AuthHeaderBuilder interface {
 	AddAuthHeader(request *http.Request, logger *log.Logger) error
@@ -48,7 +69,7 @@ type NetworkDoer interface {
 
 //go:generate counterfeiter -o fakes/fake_authenticator_builder.go . AuthenticatorBuilder
 type AuthenticatorBuilder interface {
-	NewAuthHeaderBuilder(boshInfo Info, disableSSLCertVerification bool) (AuthHeaderBuilder, error)
+	NewAuthHeaderBuilder(UAAURL string, disableSSLCertVerification bool) (config.AuthHeaderBuilder, error)
 }
 
 //go:generate counterfeiter -o fakes/fake_cert_appender.go . CertAppender
@@ -56,32 +77,74 @@ type CertAppender interface {
 	AppendCertsFromPEM(pemCerts []byte) (ok bool)
 }
 
-func New(url string, disableSSLCertVerification bool, trustedCertPEM []byte, httpClient NetworkDoer, authBuilder AuthenticatorBuilder, certAppender CertAppender, logger *log.Logger) (*Client, error) {
-	noAuthClient := &Client{
-		url:        url,
-		httpClient: httpClient,
-
-		authHeaderBuilder: authorizationheader.NewNoAuthHeaderBuilder(),
-	}
+func New(url string, disableSSLCertVerification bool, trustedCertPEM []byte, httpClient NetworkDoer, authBuilder AuthenticatorBuilder, certAppender CertAppender, directorFactory DirectorFactory, uaaFactory UAAFactory, boshAuth config.BOSHAuthentication, logger *log.Logger) (*Client, error) {
 	certAppender.AppendCertsFromPEM(trustedCertPEM)
 
-	boshInfo, err := noAuthClient.GetInfo(logger)
+	directorConfig, err := director.NewConfigFromURL(url)
 	if err != nil {
-		return nil, fmt.Errorf("error fetching BOSH director information: %s", err)
+		return nil, errors.Wrap(err, "Failed to build director config from url")
+	}
+	directorConfig.CACert = string(trustedCertPEM)
+
+	unauthenticatedDirector, err := directorFactory.New(directorConfig, director.NewNoopTaskReporter(), director.NewNoopFileReporter())
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to build unauthenticated director client")
 	}
 
-	authHeaderBuilder, err := authBuilder.NewAuthHeaderBuilder(boshInfo, disableSSLCertVerification)
+	noAuthClient := &Client{url: url, director: unauthenticatedDirector}
+	boshInfo, err := noAuthClient.GetInfo(logger)
 	if err != nil {
-		return nil, fmt.Errorf("error creating BOSH authorization header builder: %s", err)
+		return nil, errors.Wrap(err, "error fetching BOSH director information")
+	}
+
+	authHeaderBuilder, err := authBuilder.NewAuthHeaderBuilder(boshInfo.UserAuthentication.Options.URL, disableSSLCertVerification)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to create BOSH authorization header builder")
+	}
+
+	if boshAuth.UAA.IsSet() {
+		uaaConfig, err := boshuaa.NewConfigFromURL(boshInfo.UserAuthentication.Options.URL)
+		if err != nil {
+			return nil, errors.Wrap(err, "Failed to build UAA config from url")
+		}
+		uaaConfig.Client = boshAuth.UAA.ID
+		uaaConfig.ClientSecret = boshAuth.UAA.Secret
+		uaaConfig.CACert = directorConfig.CACert
+		uaa, err := uaaFactory.New(uaaConfig)
+		if err != nil {
+			return nil, errors.Wrap(err, "Failed to build UAA client")
+		}
+
+		directorConfig.TokenFunc = boshuaa.NewClientTokenSession(uaa).TokenFunc
+	} else {
+		directorConfig.Client = boshAuth.Basic.Username
+		directorConfig.ClientSecret = boshAuth.Basic.Password
+	}
+
+	authenticatedDirector, err := directorFactory.New(directorConfig, director.NewNoopTaskReporter(), director.NewNoopFileReporter())
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to build authenticated director client")
 	}
 
 	return &Client{
-			BoshInfo:          boshInfo,
-			PollingInterval:   5,
-			url:               url,
-			httpClient:        httpClient,
-			authHeaderBuilder: authHeaderBuilder},
-		nil
+		authHeaderBuilder: authHeaderBuilder,
+		director:          authenticatedDirector,
+		PollingInterval:   5,
+		url:               url,
+		BoshInfo:          boshInfo,
+		httpClient:        httpClient,
+	}, nil
+}
+
+func (c *Client) VerifyAuth(logger *log.Logger) error {
+	isAuthenticated, err := c.director.IsAuthenticated()
+	if err != nil {
+		return errors.Wrap(err, "Failed to verify credentials")
+	}
+	if isAuthenticated {
+		return nil
+	}
+	return errors.New("not authenticated")
 }
 
 type Info struct {

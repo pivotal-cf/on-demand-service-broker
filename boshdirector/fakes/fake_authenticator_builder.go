@@ -5,38 +5,39 @@ import (
 	"sync"
 
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
+	"github.com/pivotal-cf/on-demand-service-broker/config"
 )
 
 type FakeAuthenticatorBuilder struct {
-	NewAuthHeaderBuilderStub        func(boshInfo boshdirector.Info, disableSSLCertVerification bool) (boshdirector.AuthHeaderBuilder, error)
+	NewAuthHeaderBuilderStub        func(UAAURL string, disableSSLCertVerification bool) (config.AuthHeaderBuilder, error)
 	newAuthHeaderBuilderMutex       sync.RWMutex
 	newAuthHeaderBuilderArgsForCall []struct {
-		boshInfo                   boshdirector.Info
+		UAAURL                     string
 		disableSSLCertVerification bool
 	}
 	newAuthHeaderBuilderReturns struct {
-		result1 boshdirector.AuthHeaderBuilder
+		result1 config.AuthHeaderBuilder
 		result2 error
 	}
 	newAuthHeaderBuilderReturnsOnCall map[int]struct {
-		result1 boshdirector.AuthHeaderBuilder
+		result1 config.AuthHeaderBuilder
 		result2 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeAuthenticatorBuilder) NewAuthHeaderBuilder(boshInfo boshdirector.Info, disableSSLCertVerification bool) (boshdirector.AuthHeaderBuilder, error) {
+func (fake *FakeAuthenticatorBuilder) NewAuthHeaderBuilder(UAAURL string, disableSSLCertVerification bool) (config.AuthHeaderBuilder, error) {
 	fake.newAuthHeaderBuilderMutex.Lock()
 	ret, specificReturn := fake.newAuthHeaderBuilderReturnsOnCall[len(fake.newAuthHeaderBuilderArgsForCall)]
 	fake.newAuthHeaderBuilderArgsForCall = append(fake.newAuthHeaderBuilderArgsForCall, struct {
-		boshInfo                   boshdirector.Info
+		UAAURL                     string
 		disableSSLCertVerification bool
-	}{boshInfo, disableSSLCertVerification})
-	fake.recordInvocation("NewAuthHeaderBuilder", []interface{}{boshInfo, disableSSLCertVerification})
+	}{UAAURL, disableSSLCertVerification})
+	fake.recordInvocation("NewAuthHeaderBuilder", []interface{}{UAAURL, disableSSLCertVerification})
 	fake.newAuthHeaderBuilderMutex.Unlock()
 	if fake.NewAuthHeaderBuilderStub != nil {
-		return fake.NewAuthHeaderBuilderStub(boshInfo, disableSSLCertVerification)
+		return fake.NewAuthHeaderBuilderStub(UAAURL, disableSSLCertVerification)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -50,30 +51,30 @@ func (fake *FakeAuthenticatorBuilder) NewAuthHeaderBuilderCallCount() int {
 	return len(fake.newAuthHeaderBuilderArgsForCall)
 }
 
-func (fake *FakeAuthenticatorBuilder) NewAuthHeaderBuilderArgsForCall(i int) (boshdirector.Info, bool) {
+func (fake *FakeAuthenticatorBuilder) NewAuthHeaderBuilderArgsForCall(i int) (string, bool) {
 	fake.newAuthHeaderBuilderMutex.RLock()
 	defer fake.newAuthHeaderBuilderMutex.RUnlock()
-	return fake.newAuthHeaderBuilderArgsForCall[i].boshInfo, fake.newAuthHeaderBuilderArgsForCall[i].disableSSLCertVerification
+	return fake.newAuthHeaderBuilderArgsForCall[i].UAAURL, fake.newAuthHeaderBuilderArgsForCall[i].disableSSLCertVerification
 }
 
-func (fake *FakeAuthenticatorBuilder) NewAuthHeaderBuilderReturns(result1 boshdirector.AuthHeaderBuilder, result2 error) {
+func (fake *FakeAuthenticatorBuilder) NewAuthHeaderBuilderReturns(result1 config.AuthHeaderBuilder, result2 error) {
 	fake.NewAuthHeaderBuilderStub = nil
 	fake.newAuthHeaderBuilderReturns = struct {
-		result1 boshdirector.AuthHeaderBuilder
+		result1 config.AuthHeaderBuilder
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeAuthenticatorBuilder) NewAuthHeaderBuilderReturnsOnCall(i int, result1 boshdirector.AuthHeaderBuilder, result2 error) {
+func (fake *FakeAuthenticatorBuilder) NewAuthHeaderBuilderReturnsOnCall(i int, result1 config.AuthHeaderBuilder, result2 error) {
 	fake.NewAuthHeaderBuilderStub = nil
 	if fake.newAuthHeaderBuilderReturnsOnCall == nil {
 		fake.newAuthHeaderBuilderReturnsOnCall = make(map[int]struct {
-			result1 boshdirector.AuthHeaderBuilder
+			result1 config.AuthHeaderBuilder
 			result2 error
 		})
 	}
 	fake.newAuthHeaderBuilderReturnsOnCall[i] = struct {
-		result1 boshdirector.AuthHeaderBuilder
+		result1 config.AuthHeaderBuilder
 		result2 error
 	}{result1, result2}
 }

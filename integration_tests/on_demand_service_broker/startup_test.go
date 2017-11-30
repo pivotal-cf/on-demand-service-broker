@@ -59,7 +59,7 @@ var _ = Describe("Startup", func() {
 		)
 
 		BeforeEach(func() {
-			boshUAA = mockuaa.NewClientCredentialsServer(boshClientID, boshClientSecret, "bosh uaa token")
+			boshUAA = mockuaa.NewClientCredentialsServerTLS(boshClientID, boshClientSecret, pathToSSLCerts("cert.pem"), pathToSSLCerts("key.pem"), "bosh uaa token")
 			boshDirector = mockbosh.NewWithUAA(boshUAA.URL)
 
 			cfAPI = mockcfapi.New()
@@ -101,7 +101,7 @@ var _ = Describe("Startup", func() {
 		)
 
 		BeforeEach(func() {
-			boshUAA = mockuaa.NewClientCredentialsServer(boshClientID, boshClientSecret, "bosh uaa token")
+			boshUAA = mockuaa.NewClientCredentialsServerTLS(boshClientID, boshClientSecret, pathToSSLCerts("cert.pem"), pathToSSLCerts("key.pem"), "bosh uaa token")
 			boshDirector = mockbosh.NewWithUAA(boshUAA.URL)
 			boshDirector.ExpectedAuthorizationHeader(boshUAA.ExpectedAuthorizationHeader())
 			boshDirector.ExcludeAuthorizationCheck("/info")
@@ -204,19 +204,19 @@ var _ = Describe("Startup", func() {
 
 		Context("when the broker cannot obtain UAA tokens for BOSH", func() {
 			It("fails to start", func() {
-				conf.Bosh.Authentication.UAA.Secret = "wrong-secret"
-
 				cfAPI.VerifyAndMock(
 					mockcfapi.GetInfo().RespondsWithSufficientAPIVersion(),
 					mockcfapi.ListServiceOfferings().RespondsWithNoServiceOfferings(),
 				)
+				conf.Bosh.Authentication.UAA.Secret = "wrong-secret"
+
 				boshDirector.VerifyAndMock(
 					mockbosh.Info().RespondsWithSufficientStemcellVersionForODB(boshDirector.UAAURL),
 				)
 				runningBroker = startBrokerWithoutPortCheck(conf)
 
 				Eventually(runningBroker.Out).Should(gbytes.Say("error starting broker:"))
-				Eventually(runningBroker.Out).Should(gbytes.Say("BOSH Director error: Error authenticating"))
+				Eventually(runningBroker.Out).Should(gbytes.Say("BOSH Director error: Failed to verify credentials"))
 				Eventually(runningBroker).Should(gexec.Exit())
 				Expect(runningBroker.ExitCode()).ToNot(Equal(0))
 			})
@@ -340,7 +340,7 @@ var _ = Describe("Startup", func() {
 		)
 
 		BeforeEach(func() {
-			boshUAA = mockuaa.NewClientCredentialsServer(boshClientID, boshClientSecret, "bosh uaa token")
+			boshUAA = mockuaa.NewClientCredentialsServerTLS(boshClientID, boshClientSecret, pathToSSLCerts("cert.pem"), pathToSSLCerts("key.pem"), "bosh uaa token")
 			boshDirector = mockbosh.NewWithUAA(boshUAA.URL)
 			boshDirector.ExpectedAuthorizationHeader(boshUAA.ExpectedAuthorizationHeader())
 			boshDirector.ExcludeAuthorizationCheck("/info")

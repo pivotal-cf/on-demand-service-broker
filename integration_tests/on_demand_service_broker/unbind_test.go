@@ -51,7 +51,7 @@ var _ = Describe("unbinding service instances", func() {
 
 	BeforeEach(func() {
 		beforeUnbinding = func() {}
-		boshUAA = mockuaa.NewClientCredentialsServer(boshClientID, boshClientSecret, "bosh uaa token")
+		boshUAA = mockuaa.NewClientCredentialsServerTLS(boshClientID, boshClientSecret, pathToSSLCerts("cert.pem"), pathToSSLCerts("key.pem"), "bosh uaa token")
 		boshDirector = mockbosh.NewWithUAA(boshUAA.URL)
 		cfUAA = mockuaa.NewClientCredentialsServer(cfUaaClientID, cfUaaClientSecret, "CF UAA token")
 		cfAPI = mockcfapi.New()

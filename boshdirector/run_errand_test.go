@@ -34,7 +34,7 @@ var _ = Describe("running errands", func() {
 			receivedHttpRequest{
 				Path:   fmt.Sprintf("/deployments/%s/errands/%s/runs", deploymentName, errandName),
 				Method: "POST",
-			}, 1))
+			}, 0))
 	})
 
 	It("invokes BOSH to queue up an errand with instances with group and ID when a specific instance is configured", func() {
@@ -50,7 +50,7 @@ var _ = Describe("running errands", func() {
 			receivedHttpRequest{
 				Path:   fmt.Sprintf("/deployments/%s/errands/%s/runs", deploymentName, errandName),
 				Method: "POST",
-			}, 1))
+			}, 0))
 
 	})
 
@@ -67,7 +67,7 @@ var _ = Describe("running errands", func() {
 			receivedHttpRequest{
 				Path:   fmt.Sprintf("/deployments/%s/errands/%s/runs", deploymentName, errandName),
 				Method: "POST",
-			}, 1))
+			}, 0))
 	})
 
 	It("returns an error when the errandInstance names are invalid", func() {

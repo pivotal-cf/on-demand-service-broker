@@ -32,7 +32,7 @@ var _ = Describe("getting deployment", func() {
 				receivedHttpRequest{
 					Path:   "/deployments/some-deployment",
 					Method: "GET",
-				}, 1))
+				}, 0))
 
 			By("calling the authorization header builder")
 			Expect(authHeaderBuilder.AddAuthHeaderCallCount()).To(BeNumerically(">", 0))
@@ -50,7 +50,7 @@ var _ = Describe("getting deployment", func() {
 				receivedHttpRequest{
 					Path:   "/deployments/some-deployment",
 					Method: "GET",
-				}, 1))
+				}, 0))
 
 			By("returning deployment not found")
 			Expect(deploymentFound).To(BeFalse())

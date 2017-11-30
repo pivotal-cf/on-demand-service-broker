@@ -35,7 +35,7 @@ var _ = Describe("deleting bosh deployments", func() {
 			receivedHttpRequest{
 				Path:   "/deployments/some-deployment",
 				Method: "DELETE",
-			}, 1))
+			}, 0))
 		Expect(authHeaderBuilder.AddAuthHeaderCallCount()).To(BeNumerically(">", 0))
 	})
 
@@ -64,6 +64,6 @@ var _ = Describe("deleting bosh deployments", func() {
 				Header: http.Header{
 					"X-Bosh-Context-Id": []string{"some-context-id"},
 				},
-			}, 1))
+			}, 0))
 	})
 })

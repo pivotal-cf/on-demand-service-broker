@@ -7,6 +7,7 @@
 package mockhttp
 
 import (
+	"crypto/tls"
 	"encoding/base64"
 	"fmt"
 	"log"
@@ -17,6 +18,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 )
 
 type Server struct {
@@ -39,6 +41,25 @@ func StartServer(name string) *Server {
 		excludedAuthPaths: make(map[string]bool),
 	}
 	s.Server = httptest.NewServer(s)
+
+	s.logger = log.New(GinkgoWriter, "["+name+"] ", log.LstdFlags)
+	return s
+}
+
+func StartTLSServer(name, certPath, keyPath string) *Server {
+	s := &Server{
+		name:              name,
+		Mutex:             new(sync.Mutex),
+		excludedAuthPaths: make(map[string]bool),
+	}
+	cer, err := tls.LoadX509KeyPair(certPath, keyPath)
+	Expect(err).NotTo(HaveOccurred())
+	config := &tls.Config{Certificates: []tls.Certificate{cer}}
+	sslServer := httptest.NewUnstartedServer(s)
+	sslServer.TLS = config
+	sslServer.Config.ErrorLog = loggerfactory.New(GinkgoWriter, "server", loggerfactory.Flags).New()
+	s.Server = sslServer
+	s.Server.StartTLS()
 
 	s.logger = log.New(GinkgoWriter, "["+name+"] ", log.LstdFlags)
 	return s

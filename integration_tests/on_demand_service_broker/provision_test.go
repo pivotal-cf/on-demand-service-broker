@@ -53,7 +53,7 @@ var _ = Describe("provision service instance", func() {
 	)
 
 	BeforeEach(func() {
-		boshUAA = mockuaa.NewClientCredentialsServer(boshClientID, boshClientSecret, "bosh uaa token")
+		boshUAA = mockuaa.NewClientCredentialsServerTLS(boshClientID, boshClientSecret, pathToSSLCerts("cert.pem"), pathToSSLCerts("key.pem"), "bosh uaa token")
 		boshDirector = mockbosh.NewWithUAA(boshUAA.URL)
 		boshDirector.ExpectedAuthorizationHeader(boshUAA.ExpectedAuthorizationHeader())
 		boshDirector.ExcludeAuthorizationCheck("/info")
