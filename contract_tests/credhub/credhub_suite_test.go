@@ -90,11 +90,13 @@ func getBoshManifest(deploymentName string) ([]byte, error) {
 	Expect(username).NotTo(BeEmpty(), "Expected BOSH_USERNAME to be set")
 	password := os.Getenv("BOSH_PASSWORD")
 	Expect(password).NotTo(BeEmpty(), "Expected BOSH_PASSWORD to be set")
+	boshCert := os.Getenv("BOSH_CA_CERT")
+	Expect(boshCert).NotTo(BeEmpty(), "Expected BOSH_CA_CERT to be set")
 
 	boshClient, err := boshdirector.New(
 		boshURL,
 		true,
-		[]byte{},
+		[]byte(boshCert),
 		herottp.New(herottp.Config{
 			NoFollowRedirect:                  true,
 			DisableTLSCertificateVerification: true,
