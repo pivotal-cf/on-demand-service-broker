@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"strings"
 
+	"regexp"
+
 	"github.com/cloudfoundry-incubator/cf-test-helpers/cf"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -323,6 +325,8 @@ var _ = Describe("lifecycle errand tests", func() {
 func getServiceDeploymentName(serviceInstanceName string) string {
 	getInstanceDetailsCmd := cf.Cf("service", serviceInstanceName, "--guid")
 	Eventually(getInstanceDetailsCmd, cf_helpers.CfTimeout).Should(gexec.Exit(0))
-	serviceInstanceID := strings.TrimSpace(string(getInstanceDetailsCmd.Out.Contents()))
+	re := regexp.MustCompile("(?m)^[[:alnum:]]{8}-[[:alnum:]-]*$")
+	serviceGUID := re.FindString(string(getInstanceDetailsCmd.Out.Contents()))
+	serviceInstanceID := strings.TrimSpace(serviceGUID)
 	return fmt.Sprintf("%s%s", "service-instance_", serviceInstanceID)
 }

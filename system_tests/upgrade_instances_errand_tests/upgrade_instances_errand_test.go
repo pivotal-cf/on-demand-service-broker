@@ -21,6 +21,8 @@ import (
 
 	"time"
 
+	"regexp"
+
 	"github.com/cloudfoundry-incubator/cf-test-helpers/cf"
 	"github.com/craigfurman/herottp"
 	. "github.com/onsi/ginkgo"
@@ -119,7 +121,8 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 			}
 
 			By(fmt.Sprintf("upgrading instance '%s'", service.Name))
-			Expect(manifest.InstanceGroups[0].Properties["redis"].(map[interface{}]interface{})["persistence"]).To(Equal("no"))
+			instanceGroupProperties := findInstanceGroupProperties(manifest, "redis")
+			Expect(instanceGroupProperties["redis"].(map[interface{}]interface{})["persistence"]).To(Equal("no"))
 
 			if boshSupportsLifecycleErrands {
 				By(fmt.Sprintf("running the post-deploy errand for instance '%s'", service.Name))
@@ -149,7 +152,7 @@ func updatePlanProperties(brokerManifest *bosh.BoshManifest) {
 
 func migrateJobProperty(brokerManifest *bosh.BoshManifest) {
 	testPlan := extractPlanProperty(currentPlan, brokerManifest)
-	brokerJobs := brokerManifest.InstanceGroups[0].Jobs
+	brokerJobs := findInstanceGroupJobs(brokerManifest, brokerIGName)
 	serviceAdapterJob := extractServiceAdapterJob(brokerJobs)
 	Expect(serviceAdapterJob).ToNot(BeNil(), "Couldn't find service adapter job in existing manifest")
 
@@ -244,17 +247,38 @@ func findUpgradeAllServiceInstancesProperties(brokerManifest *bosh.BoshManifest)
 }
 
 func findJobProperties(brokerManifest *bosh.BoshManifest, igName, jobName string) map[string]interface{} {
-	for _, ig := range brokerManifest.InstanceGroups {
-		if ig.Name == igName {
-			for _, job := range ig.Jobs {
-				if job.Name == jobName {
-					return job.Properties
-				}
-			}
+	job := findJob(brokerManifest, igName, jobName)
+	return job.Properties
+}
+
+func findJob(brokerManifest *bosh.BoshManifest, igName, jobName string) bosh.Job {
+	for _, job := range findInstanceGroupJobs(brokerManifest, igName) {
+		if job.Name == jobName {
+			return job
 		}
 	}
 
-	return map[string]interface{}{}
+	return bosh.Job{}
+}
+
+func findInstanceGroupProperties(manifest *bosh.BoshManifest, igName string) map[string]interface{} {
+	ig := findInstanceGroup(manifest, igName)
+	return ig.Properties
+}
+
+func findInstanceGroupJobs(manifest *bosh.BoshManifest, igName string) []bosh.Job {
+	ig := findInstanceGroup(manifest, igName)
+	return ig.Jobs
+}
+
+func findInstanceGroup(manifest *bosh.BoshManifest, igName string) bosh.InstanceGroup {
+	for _, ig := range manifest.InstanceGroups {
+		if ig.Name == igName {
+			return ig
+		}
+	}
+
+	return bosh.InstanceGroup{}
 }
 
 func createServiceInstances() {
@@ -366,7 +390,9 @@ func extractServiceAdapterJob(jobs []bosh.Job) bosh.Job {
 func getServiceDeploymentName(serviceInstanceName string) string {
 	getInstanceDetailsCmd := cf.Cf("service", serviceInstanceName, "--guid")
 	Eventually(getInstanceDetailsCmd, cf_helpers.CfTimeout).Should(gexec.Exit(0))
-	serviceInstanceID := strings.TrimSpace(string(getInstanceDetailsCmd.Out.Contents()))
+	re := regexp.MustCompile("(?m)^[[:alnum:]]{8}-[[:alnum:]-]*$")
+	serviceGUID := re.FindString(string(getInstanceDetailsCmd.Out.Contents()))
+	serviceInstanceID := strings.TrimSpace(serviceGUID)
 	return fmt.Sprintf("%s%s", "service-instance_", serviceInstanceID)
 }
 
