@@ -24,7 +24,6 @@ import (
 var _ = Describe("Upgrader", func() {
 	const (
 		zeroSeconds       = time.Duration(0) * time.Second
-		pollingInterval   = 0
 		serviceInstanceId = "serviceInstanceId"
 	)
 
@@ -33,7 +32,9 @@ var _ = Describe("Upgrader", func() {
 		fakeListener         *fakes.FakeListener
 		brokerServicesClient *fakes.FakeBrokerServices
 		instanceLister       *fakes.FakeInstanceLister
+		pollingInterval      time.Duration
 		attemptLimit         int
+		upgraderBuilder      upgrader.Builder
 
 		upgradeOperationAccepted = services.UpgradeOperation{
 			Type: services.UpgradeAccepted,
@@ -46,17 +47,19 @@ var _ = Describe("Upgrader", func() {
 		fakeListener = new(fakes.FakeListener)
 		brokerServicesClient = new(fakes.FakeBrokerServices)
 		instanceLister = new(fakes.FakeInstanceLister)
+		pollingInterval = zeroSeconds
 		attemptLimit = 5
 	})
 
 	JustBeforeEach(func() {
-		upgrader := upgrader.NewUpgrader(
-			brokerServicesClient,
-			instanceLister,
-			pollingInterval,
-			attemptLimit,
-			fakeListener,
-		)
+		upgraderBuilder = upgrader.Builder{
+			BrokerServices:        brokerServicesClient,
+			ServiceInstanceLister: instanceLister,
+			Listener:              fakeListener,
+			PollingInterval:       pollingInterval,
+			AttemptLimit:          attemptLimit,
+		}
+		upgrader := upgrader.New(&upgraderBuilder)
 		actualErr = upgrader.Upgrade()
 	})
 

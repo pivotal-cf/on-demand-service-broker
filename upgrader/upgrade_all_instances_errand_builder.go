@@ -18,62 +18,60 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/service"
 )
 
-type UpgradeAllInstancesErrandFactory struct {
-	Conf   config.UpgradeAllInstanceErrandConfig
-	Logger *log.Logger
+type Builder struct {
+	BrokerServices        BrokerServices
+	ServiceInstanceLister InstanceLister
+	PollingInterval       time.Duration
+	AttemptLimit          int
+	Listener              Listener
 }
 
-func New(
+func NewBuilder(
 	conf config.UpgradeAllInstanceErrandConfig,
 	logger *log.Logger,
-) (*upgrader, error) {
+) (*Builder, error) {
 
-	f := UpgradeAllInstancesErrandFactory{
-		Conf:   conf,
-		Logger: logger,
-	}
-
-	brokerServices, err := f.BrokerServices()
+	brokerServices, err := Broker(conf, logger)
 	if err != nil {
 		return nil, err
 	}
 
-	instanceLister, err := f.ServiceInstanceLister()
+	instanceLister, err := ServiceInstanceLister(conf, logger)
 	if err != nil {
 		return nil, err
 	}
 
-	pollingInterval, err := f.PollingInterval()
+	pollingInterval, err := PollingInterval(conf, logger)
 	if err != nil {
 		return nil, err
 	}
 
-	attemptLimit, err := f.AttemptLimit()
+	attemptLimit, err := AttemptLimit(conf, logger)
 	if err != nil {
 		return nil, err
 	}
 
 	listener := NewLoggingListener(logger)
 
-	return NewUpgrader(
+	return &Builder{
 		brokerServices,
 		instanceLister,
 		pollingInterval,
 		attemptLimit,
 		listener,
-	), nil
+	}, nil
 }
 
-func (f *UpgradeAllInstancesErrandFactory) BrokerServices() (*services.BrokerServices, error) {
-	if f.Conf.BrokerAPI.Authentication.Basic.Username == "" ||
-		f.Conf.BrokerAPI.Authentication.Basic.Password == "" ||
-		f.Conf.BrokerAPI.URL == "" {
+func Broker(conf config.UpgradeAllInstanceErrandConfig, logger *log.Logger) (*services.BrokerServices, error) {
+	if conf.BrokerAPI.Authentication.Basic.Username == "" ||
+		conf.BrokerAPI.Authentication.Basic.Password == "" ||
+		conf.BrokerAPI.URL == "" {
 		return &services.BrokerServices{}, errors.New("the brokerUsername, brokerPassword and brokerUrl are required to function")
 	}
 
 	brokerBasicAuthHeaderBuilder := authorizationheader.NewBasicAuthHeaderBuilder(
-		f.Conf.BrokerAPI.Authentication.Basic.Username,
-		f.Conf.BrokerAPI.Authentication.Basic.Password,
+		conf.BrokerAPI.Authentication.Basic.Username,
+		conf.BrokerAPI.Authentication.Basic.Password,
 	)
 
 	return services.NewBrokerServices(
@@ -81,18 +79,18 @@ func (f *UpgradeAllInstancesErrandFactory) BrokerServices() (*services.BrokerSer
 			Timeout: 30 * time.Second,
 		}),
 		brokerBasicAuthHeaderBuilder,
-		f.Conf.BrokerAPI.URL,
-		f.Logger,
+		conf.BrokerAPI.URL,
+		logger,
 	), nil
 }
 
-func (f *UpgradeAllInstancesErrandFactory) ServiceInstanceLister() (*service.ServiceInstanceLister, error) {
+func ServiceInstanceLister(conf config.UpgradeAllInstanceErrandConfig, logger *log.Logger) (*service.ServiceInstanceLister, error) {
 	certPool, err := x509.SystemCertPool()
 	if err != nil {
 		return &service.ServiceInstanceLister{},
 			fmt.Errorf("error getting a certificate pool to append our trusted cert to: %s", err)
 	}
-	cert := f.Conf.ServiceInstancesAPI.RootCACert
+	cert := conf.ServiceInstancesAPI.RootCACert
 	certPool.AppendCertsFromPEM([]byte(cert))
 
 	httpClient := herottp.New(herottp.Config{
@@ -100,30 +98,30 @@ func (f *UpgradeAllInstancesErrandFactory) ServiceInstanceLister() (*service.Ser
 		RootCAs: certPool,
 	})
 
-	manuallyConfigured := !strings.Contains(f.Conf.ServiceInstancesAPI.URL, f.Conf.BrokerAPI.URL)
+	manuallyConfigured := !strings.Contains(conf.ServiceInstancesAPI.URL, conf.BrokerAPI.URL)
 	authHeaderBuilder := authorizationheader.NewBasicAuthHeaderBuilder(
-		f.Conf.ServiceInstancesAPI.Authentication.Basic.Username,
-		f.Conf.ServiceInstancesAPI.Authentication.Basic.Password,
+		conf.ServiceInstancesAPI.Authentication.Basic.Username,
+		conf.ServiceInstancesAPI.Authentication.Basic.Password,
 	)
 	return service.NewInstanceLister(
 		httpClient,
 		authHeaderBuilder,
-		f.Conf.ServiceInstancesAPI.URL,
+		conf.ServiceInstancesAPI.URL,
 		manuallyConfigured,
-		f.Logger,
+		logger,
 	), nil
 }
 
-func (f *UpgradeAllInstancesErrandFactory) PollingInterval() (time.Duration, error) {
-	if f.Conf.PollingInterval <= 0 {
+func PollingInterval(conf config.UpgradeAllInstanceErrandConfig, logger *log.Logger) (time.Duration, error) {
+	if conf.PollingInterval <= 0 {
 		return 0, errors.New("the pollingInterval must be greater than zero")
 	}
-	return time.Duration(f.Conf.PollingInterval) * time.Second, nil
+	return time.Duration(conf.PollingInterval) * time.Second, nil
 }
 
-func (f *UpgradeAllInstancesErrandFactory) AttemptLimit() (int, error) {
-	if f.Conf.AttemptLimit <= 0 {
+func AttemptLimit(conf config.UpgradeAllInstanceErrandConfig, logger *log.Logger) (int, error) {
+	if conf.AttemptLimit <= 0 {
 		return 0, errors.New("the attempt limit must be greater than zero")
 	}
-	return f.Conf.AttemptLimit, nil
+	return conf.AttemptLimit, nil
 }

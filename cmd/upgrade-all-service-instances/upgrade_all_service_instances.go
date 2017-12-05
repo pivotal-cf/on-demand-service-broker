@@ -40,10 +40,11 @@ func main() {
 		logger.Fatalln(err.Error())
 	}
 
-	upgradeTool, err := upgrader.New(conf, logger)
+	builder, err := upgrader.NewBuilder(conf, logger)
 	if err != nil {
 		logger.Fatalln(err.Error())
 	}
+	upgradeTool := upgrader.New(builder)
 
 	err = upgradeTool.Upgrade()
 	if err != nil {

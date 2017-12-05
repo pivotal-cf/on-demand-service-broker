@@ -16,7 +16,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/service"
 )
 
-var _ = Describe("UpgradeAllInstancesErrandFactory", func() {
+var _ = Describe("UpgraderBuilder", func() {
 	var logger *log.Logger
 
 	BeforeEach(func() {
@@ -27,21 +27,17 @@ var _ = Describe("UpgradeAllInstancesErrandFactory", func() {
 	Describe("Broker Services", func() {
 		It("when provided with valid conf returns a expected BrokerServices", func() {
 			conf := updateAllInstanceErrandConfig("user", "password", "http://example.org")
-			factory := UpgradeAllInstancesErrandFactory{Conf: conf, Logger: logger}
-
-			brokerServices, err := factory.BrokerServices()
-
+			builder, err := NewBuilder(conf, logger)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(brokerServices).To(BeAssignableToTypeOf(&services.BrokerServices{}))
+
+			Expect(builder.BrokerServices).To(BeAssignableToTypeOf(&services.BrokerServices{}))
 		})
 
 		DescribeTable(
 			"when provided with config missing",
 			func(user, password, url string) {
 				conf := updateAllInstanceErrandConfig(user, password, url)
-				factory := UpgradeAllInstancesErrandFactory{Conf: conf, Logger: logger}
-
-				_, err := factory.BrokerServices()
+				_, err := NewBuilder(conf, logger)
 
 				Expect(err).To(MatchError(Equal("the brokerUsername, brokerPassword and brokerUrl are required to function")))
 			},
@@ -55,12 +51,10 @@ var _ = Describe("UpgradeAllInstancesErrandFactory", func() {
 	Describe("Service Instance Lister", func() {
 		It("when provided with valid conf returns an expected ServiceInstanceLister", func() {
 			conf := updateAllInstanceErrandConfig("user", "password", "http://example.org")
-			factory := UpgradeAllInstancesErrandFactory{Conf: conf, Logger: logger}
-
-			serviceInstanceLister, err := factory.ServiceInstanceLister()
-
+			builder, err := NewBuilder(conf, logger)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(serviceInstanceLister).To(BeAssignableToTypeOf(&service.ServiceInstanceLister{}))
+
+			Expect(builder.ServiceInstanceLister).To(BeAssignableToTypeOf(&service.ServiceInstanceLister{}))
 		})
 	})
 
@@ -68,12 +62,9 @@ var _ = Describe("UpgradeAllInstancesErrandFactory", func() {
 		DescribeTable(
 			"config is invalidly set to",
 			func(val int) {
-				conf := config.UpgradeAllInstanceErrandConfig{
-					PollingInterval: val,
-				}
-				factory := UpgradeAllInstancesErrandFactory{Conf: conf, Logger: logger}
-
-				_, err := factory.PollingInterval()
+				conf := updateAllInstanceErrandConfig("user", "password", "http://example.org")
+				conf.PollingInterval = val
+				_, err := NewBuilder(conf, logger)
 
 				Expect(err).To(MatchError(Equal("the pollingInterval must be greater than zero")))
 			},
@@ -84,12 +75,10 @@ var _ = Describe("UpgradeAllInstancesErrandFactory", func() {
 		It("when configured returns the value", func() {
 			conf := updateAllInstanceErrandConfig("user", "password", "http://example.org")
 			conf.PollingInterval = 10
-			factory := UpgradeAllInstancesErrandFactory{Conf: conf, Logger: logger}
-
-			pollingInterval, err := factory.PollingInterval()
-
+			builder, err := NewBuilder(conf, logger)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(pollingInterval).To(Equal(10 * time.Second))
+
+			Expect(builder.PollingInterval).To(Equal(10 * time.Second))
 		})
 	})
 
@@ -97,12 +86,9 @@ var _ = Describe("UpgradeAllInstancesErrandFactory", func() {
 		DescribeTable(
 			"config is invalidly set to",
 			func(val int) {
-				conf := config.UpgradeAllInstanceErrandConfig{
-					AttemptLimit: val,
-				}
-				factory := UpgradeAllInstancesErrandFactory{Conf: conf, Logger: logger}
-
-				_, err := factory.AttemptLimit()
+				conf := updateAllInstanceErrandConfig("user", "password", "http://example.org")
+				conf.AttemptLimit = val
+				_, err := NewBuilder(conf, logger)
 
 				Expect(err).To(MatchError(Equal("the attempt limit must be greater than zero")))
 			},
@@ -113,59 +99,11 @@ var _ = Describe("UpgradeAllInstancesErrandFactory", func() {
 		It("when configured returns the value", func() {
 			conf := updateAllInstanceErrandConfig("user", "password", "http://example.org")
 			conf.AttemptLimit = 42
-			factory := UpgradeAllInstancesErrandFactory{Conf: conf, Logger: logger}
-
-			attemptLimit, err := factory.AttemptLimit()
-
+			builder, err := NewBuilder(conf, logger)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(attemptLimit).To(Equal(42))
+			Expect(builder.AttemptLimit).To(Equal(42))
 		})
 	})
-
-	// Describe("Build", func() {
-	// 	It("returns factory objects", func() {
-	// 		conf := updateAllInstanceErrandConfig("user", "password", "http://example.org")
-	// 		conf.PollingInterval = 10
-	// 		factory := UpgradeAllInstancesErrandFactory{Conf: conf, Logger: logger}
-
-	// 		brokerServices, serviceInstanceLister, pollingInterval, err := factory.Build()
-
-	// 		Expect(brokerServices).To(BeAssignableToTypeOf(&services.BrokerServices{}))
-	// 		Expect(serviceInstanceLister).To(BeAssignableToTypeOf(&service.ServiceInstanceLister{}))
-	// 		Expect(pollingInterval).To(Equal(10))
-	// 		Expect(err).NotTo(HaveOccurred())
-	// 	})
-
-	// 	It("returns the polling interval error when configured to zero", func() {
-	// 		conf := updateAllInstanceErrandConfig("user", "password", "http://example.org")
-	// 		factory := UpgradeAllInstancesErrandFactory{Conf: conf, Logger: logger}
-
-	// 		_, _, pollingInterval, err := factory.Build()
-
-	// 		Expect(pollingInterval).To(Equal(0))
-	// 		Expect(err).To(MatchError(Equal("the pollingInterval must be greater than zero")))
-	// 	})
-
-	// 	It("returns the broker services error when it fails to build", func() {
-	// 		conf := updateAllInstanceErrandConfig("", "password", "http://example.org")
-	// 		factory := UpgradeAllInstancesErrandFactory{Conf: conf, Logger: logger}
-
-	// 		brokerServices, _, _, err := factory.Build()
-
-	// 		Expect(brokerServices).To(BeNil())
-	// 		Expect(err).To(MatchError(Equal("the brokerUsername, brokerPassword and brokerUrl are required to function")))
-	// 	})
-
-	// 	It("prioritizes the broker services error when polling interval is also invalid", func() {
-	// 		conf := updateAllInstanceErrandConfig("", "password", "http://example.org")
-	// 		conf.PollingInterval = 0
-	// 		factory := UpgradeAllInstancesErrandFactory{Conf: conf, Logger: logger}
-
-	// 		_, _, _, err := factory.Build()
-
-	// 		Expect(err).To(MatchError(Equal("the brokerUsername, brokerPassword and brokerUrl are required to function")))
-	// 	})
-	// })
 })
 
 func serviceInstancesAPIBlock(user, password, url string) config.ServiceInstancesAPI {
@@ -200,5 +138,7 @@ func updateAllInstanceErrandConfig(brokerUser, brokerPassword, brokerURL string)
 			},
 			URL: brokerURL + "/mgmt/service_instances",
 		},
+		PollingInterval: 10,
+		AttemptLimit:    5,
 	}
 }

@@ -48,20 +48,13 @@ type upgrader struct {
 	listener        Listener
 }
 
-func NewUpgrader(
-	brokerServices BrokerServices,
-	instanceLister InstanceLister,
-	pollingInterval time.Duration,
-	attemptLimit int,
-	listener Listener,
-) *upgrader {
-
+func New(builder *Builder) *upgrader {
 	return &upgrader{
-		brokerServices:  brokerServices,
-		instanceLister:  instanceLister,
-		pollingInterval: pollingInterval,
-		attemptLimit:    attemptLimit,
-		listener:        listener,
+		brokerServices:  builder.BrokerServices,
+		instanceLister:  builder.ServiceInstanceLister,
+		pollingInterval: builder.PollingInterval,
+		attemptLimit:    builder.AttemptLimit,
+		listener:        builder.Listener,
 	}
 }
 
