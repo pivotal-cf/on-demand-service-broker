@@ -1,10 +1,10 @@
-package factory
+package upgrader
 
 import (
+	"log"
 	"time"
 
 	"errors"
-	"log"
 
 	"crypto/x509"
 	"fmt"
@@ -19,50 +19,61 @@ import (
 )
 
 type UpgradeAllInstancesErrandFactory struct {
-	conf   config.UpgradeAllInstanceErrandConfig
-	logger *log.Logger
+	Conf   config.UpgradeAllInstanceErrandConfig
+	Logger *log.Logger
 }
 
-func NewUpgradeAllInstancesErrandFactory(
+func New(
 	conf config.UpgradeAllInstanceErrandConfig,
 	logger *log.Logger,
-) *UpgradeAllInstancesErrandFactory {
+) (*upgrader, error) {
 
-	return &UpgradeAllInstancesErrandFactory{
-		conf:   conf,
-		logger: logger,
+	f := UpgradeAllInstancesErrandFactory{
+		Conf:   conf,
+		Logger: logger,
 	}
-}
 
-func (f *UpgradeAllInstancesErrandFactory) Build() (*services.BrokerServices, *service.ServiceInstanceLister, int, error) {
 	brokerServices, err := f.BrokerServices()
 	if err != nil {
-		return nil, nil, 0, err
+		return nil, err
 	}
 
-	serviceInstanceLister, err := f.ServiceInstanceLister()
+	instanceLister, err := f.ServiceInstanceLister()
 	if err != nil {
-		return nil, nil, 0, err
+		return nil, err
 	}
 
 	pollingInterval, err := f.PollingInterval()
 	if err != nil {
-		return nil, nil, 0, err
+		return nil, err
 	}
 
-	return brokerServices, serviceInstanceLister, pollingInterval, nil
+	attemptLimit, err := f.AttemptLimit()
+	if err != nil {
+		return nil, err
+	}
+
+	listener := NewLoggingListener(logger)
+
+	return NewUpgrader(
+		brokerServices,
+		instanceLister,
+		pollingInterval,
+		attemptLimit,
+		listener,
+	), nil
 }
 
 func (f *UpgradeAllInstancesErrandFactory) BrokerServices() (*services.BrokerServices, error) {
-	if f.conf.BrokerAPI.Authentication.Basic.Username == "" ||
-		f.conf.BrokerAPI.Authentication.Basic.Password == "" ||
-		f.conf.BrokerAPI.URL == "" {
+	if f.Conf.BrokerAPI.Authentication.Basic.Username == "" ||
+		f.Conf.BrokerAPI.Authentication.Basic.Password == "" ||
+		f.Conf.BrokerAPI.URL == "" {
 		return &services.BrokerServices{}, errors.New("the brokerUsername, brokerPassword and brokerUrl are required to function")
 	}
 
 	brokerBasicAuthHeaderBuilder := authorizationheader.NewBasicAuthHeaderBuilder(
-		f.conf.BrokerAPI.Authentication.Basic.Username,
-		f.conf.BrokerAPI.Authentication.Basic.Password,
+		f.Conf.BrokerAPI.Authentication.Basic.Username,
+		f.Conf.BrokerAPI.Authentication.Basic.Password,
 	)
 
 	return services.NewBrokerServices(
@@ -70,8 +81,8 @@ func (f *UpgradeAllInstancesErrandFactory) BrokerServices() (*services.BrokerSer
 			Timeout: 30 * time.Second,
 		}),
 		brokerBasicAuthHeaderBuilder,
-		f.conf.BrokerAPI.URL,
-		f.logger,
+		f.Conf.BrokerAPI.URL,
+		f.Logger,
 	), nil
 }
 
@@ -81,7 +92,7 @@ func (f *UpgradeAllInstancesErrandFactory) ServiceInstanceLister() (*service.Ser
 		return &service.ServiceInstanceLister{},
 			fmt.Errorf("error getting a certificate pool to append our trusted cert to: %s", err)
 	}
-	cert := f.conf.ServiceInstancesAPI.RootCACert
+	cert := f.Conf.ServiceInstancesAPI.RootCACert
 	certPool.AppendCertsFromPEM([]byte(cert))
 
 	httpClient := herottp.New(herottp.Config{
@@ -89,23 +100,30 @@ func (f *UpgradeAllInstancesErrandFactory) ServiceInstanceLister() (*service.Ser
 		RootCAs: certPool,
 	})
 
-	manuallyConfigured := !strings.Contains(f.conf.ServiceInstancesAPI.URL, f.conf.BrokerAPI.URL)
+	manuallyConfigured := !strings.Contains(f.Conf.ServiceInstancesAPI.URL, f.Conf.BrokerAPI.URL)
 	authHeaderBuilder := authorizationheader.NewBasicAuthHeaderBuilder(
-		f.conf.ServiceInstancesAPI.Authentication.Basic.Username,
-		f.conf.ServiceInstancesAPI.Authentication.Basic.Password,
+		f.Conf.ServiceInstancesAPI.Authentication.Basic.Username,
+		f.Conf.ServiceInstancesAPI.Authentication.Basic.Password,
 	)
 	return service.NewInstanceLister(
 		httpClient,
 		authHeaderBuilder,
-		f.conf.ServiceInstancesAPI.URL,
+		f.Conf.ServiceInstancesAPI.URL,
 		manuallyConfigured,
-		f.logger,
+		f.Logger,
 	), nil
 }
 
-func (f *UpgradeAllInstancesErrandFactory) PollingInterval() (int, error) {
-	if f.conf.PollingInterval <= 0 {
+func (f *UpgradeAllInstancesErrandFactory) PollingInterval() (time.Duration, error) {
+	if f.Conf.PollingInterval <= 0 {
 		return 0, errors.New("the pollingInterval must be greater than zero")
 	}
-	return f.conf.PollingInterval, nil
+	return time.Duration(f.Conf.PollingInterval) * time.Second, nil
+}
+
+func (f *UpgradeAllInstancesErrandFactory) AttemptLimit() (int, error) {
+	if f.Conf.AttemptLimit <= 0 {
+		return 0, errors.New("the attempt limit must be greater than zero")
+	}
+	return f.Conf.AttemptLimit, nil
 }

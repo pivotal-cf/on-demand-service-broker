@@ -11,9 +11,15 @@ import (
 )
 
 type FakeListener struct {
-	StartingStub                  func()
-	startingMutex                 sync.RWMutex
-	startingArgsForCall           []struct{}
+	StartingStub            func()
+	startingMutex           sync.RWMutex
+	startingArgsForCall     []struct{}
+	RetryAttemptStub        func(num, limit int)
+	retryAttemptMutex       sync.RWMutex
+	retryAttemptArgsForCall []struct {
+		num   int
+		limit int
+	}
 	InstancesToUpgradeStub        func(instances []service.Instance)
 	instancesToUpgradeMutex       sync.RWMutex
 	instancesToUpgradeArgsForCall []struct {
@@ -52,12 +58,13 @@ type FakeListener struct {
 		upgradesLeftCount int
 		deletedCount      int
 	}
-	FinishedStub        func(orphanCount, upgradedCount, deletedCount int)
+	FinishedStub        func(orphanCount, upgradedCount, deletedCount, couldNotStartCount int)
 	finishedMutex       sync.RWMutex
 	finishedArgsForCall []struct {
-		orphanCount   int
-		upgradedCount int
-		deletedCount  int
+		orphanCount        int
+		upgradedCount      int
+		deletedCount       int
+		couldNotStartCount int
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -77,6 +84,31 @@ func (fake *FakeListener) StartingCallCount() int {
 	fake.startingMutex.RLock()
 	defer fake.startingMutex.RUnlock()
 	return len(fake.startingArgsForCall)
+}
+
+func (fake *FakeListener) RetryAttempt(num int, limit int) {
+	fake.retryAttemptMutex.Lock()
+	fake.retryAttemptArgsForCall = append(fake.retryAttemptArgsForCall, struct {
+		num   int
+		limit int
+	}{num, limit})
+	fake.recordInvocation("RetryAttempt", []interface{}{num, limit})
+	fake.retryAttemptMutex.Unlock()
+	if fake.RetryAttemptStub != nil {
+		fake.RetryAttemptStub(num, limit)
+	}
+}
+
+func (fake *FakeListener) RetryAttemptCallCount() int {
+	fake.retryAttemptMutex.RLock()
+	defer fake.retryAttemptMutex.RUnlock()
+	return len(fake.retryAttemptArgsForCall)
+}
+
+func (fake *FakeListener) RetryAttemptArgsForCall(i int) (int, int) {
+	fake.retryAttemptMutex.RLock()
+	defer fake.retryAttemptMutex.RUnlock()
+	return fake.retryAttemptArgsForCall[i].num, fake.retryAttemptArgsForCall[i].limit
 }
 
 func (fake *FakeListener) InstancesToUpgrade(instances []service.Instance) {
@@ -236,17 +268,18 @@ func (fake *FakeListener) ProgressArgsForCall(i int) (time.Duration, int, int, i
 	return fake.progressArgsForCall[i].pollingInterval, fake.progressArgsForCall[i].orphanCount, fake.progressArgsForCall[i].upgradedCount, fake.progressArgsForCall[i].upgradesLeftCount, fake.progressArgsForCall[i].deletedCount
 }
 
-func (fake *FakeListener) Finished(orphanCount int, upgradedCount int, deletedCount int) {
+func (fake *FakeListener) Finished(orphanCount int, upgradedCount int, deletedCount int, couldNotStartCount int) {
 	fake.finishedMutex.Lock()
 	fake.finishedArgsForCall = append(fake.finishedArgsForCall, struct {
-		orphanCount   int
-		upgradedCount int
-		deletedCount  int
-	}{orphanCount, upgradedCount, deletedCount})
-	fake.recordInvocation("Finished", []interface{}{orphanCount, upgradedCount, deletedCount})
+		orphanCount        int
+		upgradedCount      int
+		deletedCount       int
+		couldNotStartCount int
+	}{orphanCount, upgradedCount, deletedCount, couldNotStartCount})
+	fake.recordInvocation("Finished", []interface{}{orphanCount, upgradedCount, deletedCount, couldNotStartCount})
 	fake.finishedMutex.Unlock()
 	if fake.FinishedStub != nil {
-		fake.FinishedStub(orphanCount, upgradedCount, deletedCount)
+		fake.FinishedStub(orphanCount, upgradedCount, deletedCount, couldNotStartCount)
 	}
 }
 
@@ -256,10 +289,10 @@ func (fake *FakeListener) FinishedCallCount() int {
 	return len(fake.finishedArgsForCall)
 }
 
-func (fake *FakeListener) FinishedArgsForCall(i int) (int, int, int) {
+func (fake *FakeListener) FinishedArgsForCall(i int) (int, int, int, int) {
 	fake.finishedMutex.RLock()
 	defer fake.finishedMutex.RUnlock()
-	return fake.finishedArgsForCall[i].orphanCount, fake.finishedArgsForCall[i].upgradedCount, fake.finishedArgsForCall[i].deletedCount
+	return fake.finishedArgsForCall[i].orphanCount, fake.finishedArgsForCall[i].upgradedCount, fake.finishedArgsForCall[i].deletedCount, fake.finishedArgsForCall[i].couldNotStartCount
 }
 
 func (fake *FakeListener) Invocations() map[string][][]interface{} {
@@ -267,6 +300,8 @@ func (fake *FakeListener) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.startingMutex.RLock()
 	defer fake.startingMutex.RUnlock()
+	fake.retryAttemptMutex.RLock()
+	defer fake.retryAttemptMutex.RUnlock()
 	fake.instancesToUpgradeMutex.RLock()
 	defer fake.instancesToUpgradeMutex.RUnlock()
 	fake.instanceUpgradeStartingMutex.RLock()

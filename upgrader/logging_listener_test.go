@@ -30,6 +30,11 @@ var _ = Describe("Logging Listener", func() {
 			To(Say("STARTING UPGRADES"))
 	})
 
+	It("Shows attempt x of y", func() {
+		Expect(logResultsFrom(func(listener upgrader.Listener) { listener.RetryAttempt(2, 5) })).
+			To(Say("Attempt 2/5"))
+	})
+
 	It("Shows which instances to upgrade", func() {
 		Expect(logResultsFrom(func(listener upgrader.Listener) {
 			listener.InstancesToUpgrade([]service.Instance{{GUID: "one"}, {GUID: "two"}})
@@ -132,13 +137,14 @@ var _ = Describe("Logging Listener", func() {
 
 	It("Shows a final summary", func() {
 		buffer := logResultsFrom(func(listener upgrader.Listener) {
-			listener.Finished(23, 34, 45)
+			listener.Finished(23, 34, 45, 56)
 		})
 
 		Expect(buffer).To(Say("FINISHED UPGRADES"))
 		Expect(buffer).To(Say("Number of successful upgrades: 34"))
 		Expect(buffer).To(Say("Number of CF service instance orphans detected: 23"))
 		Expect(buffer).To(Say("Number of deleted instances before upgrade could occur: 45"))
+		Expect(buffer).To(Say("Number of busy instances which could not be upgraded: 56"))
 	})
 })
 

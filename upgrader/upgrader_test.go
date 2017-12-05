@@ -33,6 +33,7 @@ var _ = Describe("Upgrader", func() {
 		fakeListener         *fakes.FakeListener
 		brokerServicesClient *fakes.FakeBrokerServices
 		instanceLister       *fakes.FakeInstanceLister
+		attemptLimit         int
 
 		upgradeOperationAccepted = services.UpgradeOperation{
 			Type: services.UpgradeAccepted,
@@ -45,10 +46,17 @@ var _ = Describe("Upgrader", func() {
 		fakeListener = new(fakes.FakeListener)
 		brokerServicesClient = new(fakes.FakeBrokerServices)
 		instanceLister = new(fakes.FakeInstanceLister)
+		attemptLimit = 5
 	})
 
 	JustBeforeEach(func() {
-		upgrader := upgrader.New(brokerServicesClient, instanceLister, pollingInterval, fakeListener)
+		upgrader := upgrader.NewUpgrader(
+			brokerServicesClient,
+			instanceLister,
+			pollingInterval,
+			attemptLimit,
+			fakeListener,
+		)
 		actualErr = upgrader.Upgrade()
 	})
 
@@ -129,7 +137,7 @@ var _ = Describe("Upgrader", func() {
 
 			hasReportedInstanceUpgradeStartResult(fakeListener, services.InstanceNotFound)
 			hasReportedProgress(fakeListener, zeroSeconds, 0, 0, 0, 1)
-			hasReportedFinished(fakeListener, 0, 0, 1)
+			hasReportedFinished(fakeListener, 0, 0, 1, 0)
 		})
 	})
 
@@ -146,36 +154,67 @@ var _ = Describe("Upgrader", func() {
 
 			hasReportedInstanceUpgradeStartResult(fakeListener, services.OrphanDeployment)
 			hasReportedProgress(fakeListener, zeroSeconds, 1, 0, 0, 0)
-			hasReportedFinished(fakeListener, 1, 0, 0)
+			hasReportedFinished(fakeListener, 1, 0, 0, 0)
 		})
 	})
 
 	Context("when an operation is in progress for a service instance", func() {
-		const serviceInstanceId = "serviceInstanceId"
-		BeforeEach(func() {
-			instanceLister.InstancesReturns([]service.Instance{{GUID: serviceInstanceId}}, nil)
+		Context("when the number of retries is within the limit", func() {
+			const serviceInstanceId = "serviceInstanceId"
+			BeforeEach(func() {
+				instanceLister.InstancesReturns([]service.Instance{{GUID: serviceInstanceId}}, nil)
 
-			brokerServicesClient.UpgradeInstanceReturns(services.UpgradeOperation{
-				Type: services.OperationInProgress,
-			}, nil)
-			brokerServicesClient.UpgradeInstanceReturnsOnCall(3, upgradeOperationAccepted, nil)
+				brokerServicesClient.UpgradeInstanceReturns(services.UpgradeOperation{
+					Type: services.OperationInProgress,
+				}, nil)
+				brokerServicesClient.UpgradeInstanceReturnsOnCall(3, upgradeOperationAccepted, nil)
 
-			brokerServicesClient.LastOperationReturns(lastOperationSucceeded, nil)
+				brokerServicesClient.LastOperationReturns(lastOperationSucceeded, nil)
+			})
+
+			It("retries until the upgrade request is accepted", func() {
+				Expect(actualErr).NotTo(HaveOccurred())
+
+				Expect(brokerServicesClient.UpgradeInstanceCallCount()).To(Equal(4), "number of service requests")
+				hasReportedInstanceUpgradeStartResult(
+					fakeListener,
+					services.OperationInProgress,
+					services.OperationInProgress,
+					services.OperationInProgress,
+					services.UpgradeAccepted,
+				)
+				hasReportedRetries(fakeListener, 1, 1, 1, 0)
+				hasReportedFinished(fakeListener, 0, 1, 0, 0)
+				hasReportedAttempts(fakeListener, 4, 5)
+			})
 		})
+		Context("when the attemptLimit is reached", func() {
+			const serviceInstanceId = "serviceInstanceId"
+			BeforeEach(func() {
+				attemptLimit = 2
+				instanceLister.InstancesReturns([]service.Instance{{GUID: serviceInstanceId}}, nil)
 
-		It("retries until the upgrade request is accepted", func() {
-			Expect(actualErr).NotTo(HaveOccurred())
+				brokerServicesClient.UpgradeInstanceReturns(services.UpgradeOperation{
+					Type: services.OperationInProgress,
+				}, nil)
+				brokerServicesClient.UpgradeInstanceReturnsOnCall(3, upgradeOperationAccepted, nil)
 
-			Expect(brokerServicesClient.UpgradeInstanceCallCount()).To(Equal(4), "number of service requests")
-			hasReportedInstanceUpgradeStartResult(
-				fakeListener,
-				services.OperationInProgress,
-				services.OperationInProgress,
-				services.OperationInProgress,
-				services.UpgradeAccepted,
-			)
-			hasReportedRetries(fakeListener, 1, 1, 1, 0)
-			hasReportedFinished(fakeListener, 0, 1, 0)
+				brokerServicesClient.LastOperationReturns(lastOperationSucceeded, nil)
+			})
+
+			It("stops retrying when the attemptLimit is reached", func() {
+				Expect(actualErr).NotTo(HaveOccurred())
+
+				Expect(brokerServicesClient.UpgradeInstanceCallCount()).To(Equal(2), "number of service requests")
+				hasReportedInstanceUpgradeStartResult(
+					fakeListener,
+					services.OperationInProgress,
+					services.OperationInProgress,
+				)
+				hasReportedRetries(fakeListener, 1, 1)
+				hasReportedFinished(fakeListener, 0, 0, 0, 1)
+				hasReportedRetryLimitReachedFor(fakeListener, serviceInstanceId)
+			})
 		})
 	})
 
@@ -200,7 +239,7 @@ var _ = Describe("Upgrader", func() {
 
 			hasReportedRetries(fakeListener, 1, 1, 1, 0)
 			hasReportedOrphans(fakeListener, 0, 0, 0, 1)
-			hasReportedFinished(fakeListener, 1, 0, 0)
+			hasReportedFinished(fakeListener, 1, 0, 0, 0)
 		})
 	})
 
@@ -244,7 +283,7 @@ var _ = Describe("Upgrader", func() {
 				hasReportedWaitingFor(fakeListener, map[string]int{serviceInstance1: upgradeTaskID1, serviceInstance2: upgradeTaskID2, serviceInstance3: upgradeTaskID3})
 				hasReportedUpgraded(fakeListener, serviceInstance1, serviceInstance2, serviceInstance3)
 				hasReportedProgress(fakeListener, zeroSeconds, 0, 3, 0, 0)
-				hasReportedFinished(fakeListener, 0, 3, 0)
+				hasReportedFinished(fakeListener, 0, 3, 0, 0)
 			})
 		})
 
@@ -340,7 +379,7 @@ var _ = Describe("Upgrader", func() {
 
 			It("reports one orphaned instance", func() {
 				Expect(actualErr).NotTo(HaveOccurred())
-				hasReportedFinished(fakeListener, 1, 2, 0)
+				hasReportedFinished(fakeListener, 1, 2, 0, 0)
 			})
 		})
 
@@ -379,7 +418,7 @@ var _ = Describe("Upgrader", func() {
 
 				Expect(upgradeServiceInstance2CallCount).To(Equal(4), "number of service requests")
 				hasReportedRetries(fakeListener, 1, 1, 1, 0)
-				hasReportedFinished(fakeListener, 0, 3, 0)
+				hasReportedFinished(fakeListener, 0, 3, 0, 0)
 			})
 		})
 	})
@@ -440,6 +479,10 @@ func hasReportedFailureFor(fakeListener *fakes.FakeListener, expectedInstanceIds
 	hasReportedUpgradeStates(fakeListener, "failure", expectedInstanceIds...)
 }
 
+func hasReportedRetryLimitReachedFor(fakeListener *fakes.FakeListener, expectedInstanceIds ...string) {
+	hasReportedUpgradeStates(fakeListener, "retries exceeded", expectedInstanceIds...)
+}
+
 func hasReportedUpgradeStates(fakeListener *fakes.FakeListener, expectedStatus string, expectedInstanceIds ...string) {
 	upgraded := make([]service.Instance, 0)
 	for i := 0; i < fakeListener.InstanceUpgradedCallCount(); i++ {
@@ -486,10 +529,20 @@ func hasReportedProgress(fakeListener *fakes.FakeListener, expectedInterval time
 	Expect(deletedCount).To(Equal(expectedDeleted), "deleted")
 }
 
-func hasReportedFinished(fakeListener *fakes.FakeListener, expectedOrphans, expectedUpgraded, expectedDeleted int) {
+func hasReportedFinished(fakeListener *fakes.FakeListener, expectedOrphans, expectedUpgraded, expectedDeleted, expectedCouldNotStart int) {
 	Expect(fakeListener.FinishedCallCount()).To(Equal(1))
-	orphanCount, upgradedCount, deletedCount := fakeListener.FinishedArgsForCall(0)
+	orphanCount, upgradedCount, deletedCount, couldNotStartCount := fakeListener.FinishedArgsForCall(0)
 	Expect(orphanCount).To(Equal(expectedOrphans), "orphans")
 	Expect(upgradedCount).To(Equal(expectedUpgraded), "upgraded")
 	Expect(deletedCount).To(Equal(expectedDeleted), "deleted")
+	Expect(couldNotStartCount).To(Equal(expectedCouldNotStart), "couldNotStart")
+}
+
+func hasReportedAttempts(fakeListener *fakes.FakeListener, count, limit int) {
+	Expect(fakeListener.RetryAttemptCallCount()).To(Equal(count))
+	for i := 0; i < count; i++ {
+		c, l := fakeListener.RetryAttemptArgsForCall(i)
+		Expect(c).To(Equal(i + 1))
+		Expect(l).To(Equal(limit))
+	}
 }

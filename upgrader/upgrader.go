@@ -19,13 +19,14 @@ import (
 //go:generate counterfeiter -o fakes/fake_listener.go . Listener
 type Listener interface {
 	Starting()
+	RetryAttempt(num, limit int)
 	InstancesToUpgrade(instances []service.Instance)
 	InstanceUpgradeStarting(instance string, index, totalInstances int)
 	InstanceUpgradeStartResult(status services.UpgradeOperationType)
 	InstanceUpgraded(instance string, result string)
 	WaitingFor(instance string, boshTaskId int)
 	Progress(pollingInterval time.Duration, orphanCount, upgradedCount, upgradesLeftCount, deletedCount int)
-	Finished(orphanCount, upgradedCount, deletedCount int)
+	Finished(orphanCount, upgradedCount, deletedCount, couldNotStartCount int)
 }
 
 //go:generate counterfeiter -o fakes/fake_broker_services.go . BrokerServices
@@ -43,14 +44,23 @@ type upgrader struct {
 	brokerServices  BrokerServices
 	instanceLister  InstanceLister
 	pollingInterval time.Duration
+	attemptLimit    int
 	listener        Listener
 }
 
-func New(brokerServices BrokerServices, instanceLister InstanceLister, pollingInterval int, listener Listener) upgrader {
-	return upgrader{
+func NewUpgrader(
+	brokerServices BrokerServices,
+	instanceLister InstanceLister,
+	pollingInterval time.Duration,
+	attemptLimit int,
+	listener Listener,
+) *upgrader {
+
+	return &upgrader{
 		brokerServices:  brokerServices,
 		instanceLister:  instanceLister,
-		pollingInterval: time.Duration(pollingInterval) * time.Second,
+		pollingInterval: pollingInterval,
+		attemptLimit:    attemptLimit,
 		listener:        listener,
 	}
 }
@@ -66,8 +76,10 @@ func (u upgrader) Upgrade() error {
 	}
 
 	u.listener.InstancesToUpgrade(instances)
+	attempt := 1
 
-	for len(instances) > 0 {
+	for len(instances) > 0 && attempt <= u.attemptLimit {
+		u.listener.RetryAttempt(attempt, u.attemptLimit)
 		upgradedCount, orphanCount, deletedCount, retryInstances, err := u.upgradeInstances(instances)
 		if err != nil {
 			return err
@@ -82,11 +94,16 @@ func (u upgrader) Upgrade() error {
 
 		u.listener.Progress(u.pollingInterval, orphansTotal, upgradedTotal, retryCount, deletedTotal)
 		if retryCount > 0 {
+			attempt++
 			time.Sleep(u.pollingInterval)
 		}
 	}
 
-	u.listener.Finished(orphansTotal, upgradedTotal, deletedTotal)
+	for _, inst := range instances {
+		u.listener.InstanceUpgraded(inst.GUID, "retries exceeded")
+	}
+
+	u.listener.Finished(orphansTotal, upgradedTotal, deletedTotal, len(instances))
 
 	return nil
 }

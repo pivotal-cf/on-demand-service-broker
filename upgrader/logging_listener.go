@@ -27,6 +27,10 @@ func (ll LoggingListener) Starting() {
 	ll.logger.Println("STARTING UPGRADES")
 }
 
+func (ll LoggingListener) RetryAttempt(num, limit int) {
+	ll.logger.Printf("Attempt %d/%d\n", num, limit)
+}
+
 func (ll LoggingListener) InstancesToUpgrade(instances []service.Instance) {
 	msg := "Service Instances:"
 	for _, instance := range instances {
@@ -82,13 +86,15 @@ func (ll LoggingListener) Progress(pollingInterval time.Duration, orphanCount, u
 	)
 }
 
-func (ll LoggingListener) Finished(orphanCount, upgradedCount, deletedCount int) {
+func (ll LoggingListener) Finished(orphanCount, upgradedCount, deletedCount, couldNotStartCount int) {
 	ll.logger.Printf("FINISHED UPGRADES Summary: "+
 		"Number of successful upgrades: %d; "+
 		"Number of CF service instance orphans detected: %d; "+
-		"Number of deleted instances before upgrade could occur: %d",
+		"Number of deleted instances before upgrade could occur: %d; "+
+		"Number of busy instances which could not be upgraded: %d; ",
 		upgradedCount,
 		orphanCount,
 		deletedCount,
+		couldNotStartCount,
 	)
 }

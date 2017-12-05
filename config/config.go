@@ -499,6 +499,7 @@ type UpgradeAllInstanceErrandConfig struct {
 	BrokerAPI           BrokerAPI           `yaml:"broker_api"`
 	ServiceInstancesAPI ServiceInstancesAPI `yaml:"service_instances_api"`
 	PollingInterval     int                 `yaml:"polling_interval"`
+	AttemptLimit        int                 `yaml:"attempt_limit"`
 }
 
 type BrokerAPI struct {

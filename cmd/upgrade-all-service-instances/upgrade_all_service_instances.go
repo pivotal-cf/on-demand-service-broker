@@ -12,7 +12,6 @@ import (
 	"os"
 
 	"github.com/pivotal-cf/on-demand-service-broker/config"
-	"github.com/pivotal-cf/on-demand-service-broker/factory"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 	"github.com/pivotal-cf/on-demand-service-broker/upgrader"
 	yaml "gopkg.in/yaml.v2"
@@ -21,7 +20,6 @@ import (
 func main() {
 	loggerFactory := loggerfactory.New(os.Stdout, "upgrade-all-service-instances", loggerfactory.Flags)
 	logger := loggerFactory.New()
-	listener := upgrader.NewLoggingListener(logger)
 
 	var configPath string
 	flag.StringVar(&configPath, "configPath", "", "path to upgrade-all-service-instances config")
@@ -42,12 +40,10 @@ func main() {
 		logger.Fatalln(err.Error())
 	}
 
-	upgradeAllInstancesErrandFactory := factory.NewUpgradeAllInstancesErrandFactory(conf, logger)
-	brokerServices, serviceInstanceLister, pollingInterval, err := upgradeAllInstancesErrandFactory.Build()
+	upgradeTool, err := upgrader.New(conf, logger)
 	if err != nil {
 		logger.Fatalln(err.Error())
 	}
-	upgradeTool := upgrader.New(brokerServices, serviceInstanceLister, pollingInterval, listener)
 
 	err = upgradeTool.Upgrade()
 	if err != nil {
