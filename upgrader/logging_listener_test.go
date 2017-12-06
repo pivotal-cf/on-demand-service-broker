@@ -31,8 +31,18 @@ var _ = Describe("Logging Listener", func() {
 	})
 
 	It("Shows attempt x of y", func() {
-		Expect(logResultsFrom(func(listener upgrader.Listener) { listener.RetryAttempt(2, 5) })).
+		Expect(logResultsFrom(retryAttempt(2, 5))).
 			To(Say("Attempt 2/5"))
+	})
+
+	It("Shows upgrading all instances during first attempt", func() {
+		Expect(logResultsFrom(retryAttempt(1, 5))).
+			To(Say("Upgrading all instances"))
+	})
+
+	It("Shows upgrading all remaining instances during later attempts", func() {
+		Expect(logResultsFrom(retryAttempt(3, 5))).
+			To(Say("Upgrading all remaining instances"))
 	})
 
 	It("Shows which instances to upgrade", func() {
@@ -47,7 +57,7 @@ var _ = Describe("Logging Listener", func() {
 			listener.InstanceUpgradeStarting("service-instance", 1, 5)
 		})
 
-		Expect(buffer).To(Say("Service instance: service-instance, upgrade attempt starting \\(2 of 5\\)"))
+		Expect(buffer).To(Say("Starting to upgrade service instance: service-instance, instance 2 of 5"))
 	})
 
 	Describe("instance upgrade start result", func() {
@@ -156,4 +166,10 @@ func logResultsFrom(action func(listener upgrader.Listener)) *Buffer {
 	action(listener)
 
 	return logBuffer
+}
+
+func retryAttempt(num, limit int) func(listener upgrader.Listener) {
+	return func(listener upgrader.Listener) {
+		listener.RetryAttempt(num, limit)
+	}
 }

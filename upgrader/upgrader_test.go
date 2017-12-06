@@ -206,7 +206,7 @@ var _ = Describe("Upgrader", func() {
 			})
 
 			It("stops retrying when the attemptLimit is reached", func() {
-				Expect(actualErr).NotTo(HaveOccurred())
+				Expect(actualErr).To(MatchError(fmt.Errorf("The following instances could not be upgraded: service-instance_%s", serviceInstanceId)))
 
 				Expect(brokerServicesClient.UpgradeInstanceCallCount()).To(Equal(2), "number of service requests")
 				hasReportedInstanceUpgradeStartResult(
@@ -216,7 +216,6 @@ var _ = Describe("Upgrader", func() {
 				)
 				hasReportedRetries(fakeListener, 1, 1)
 				hasReportedFinished(fakeListener, 0, 0, 0, 1)
-				hasReportedRetryLimitReachedFor(fakeListener, serviceInstanceId)
 			})
 		})
 	})
@@ -480,10 +479,6 @@ func hasReportedUpgraded(fakeListener *fakes.FakeListener, expectedInstanceIds .
 
 func hasReportedFailureFor(fakeListener *fakes.FakeListener, expectedInstanceIds ...string) {
 	hasReportedUpgradeStates(fakeListener, "failure", expectedInstanceIds...)
-}
-
-func hasReportedRetryLimitReachedFor(fakeListener *fakes.FakeListener, expectedInstanceIds ...string) {
-	hasReportedUpgradeStates(fakeListener, "retries exceeded", expectedInstanceIds...)
 }
 
 func hasReportedUpgradeStates(fakeListener *fakes.FakeListener, expectedStatus string, expectedInstanceIds ...string) {

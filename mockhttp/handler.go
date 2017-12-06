@@ -86,6 +86,11 @@ func (i *Handler) RespondsAcceptedWith(body string) *Handler {
 	return i
 }
 
+func (i *Handler) RespondsConflict() *Handler {
+	i.responseStatus = http.StatusConflict
+	return i
+}
+
 func (i *Handler) RespondsCreated() *Handler {
 	i.responseStatus = http.StatusCreated
 	i.responseBody = ""

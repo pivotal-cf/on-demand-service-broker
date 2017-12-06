@@ -28,7 +28,13 @@ func (ll LoggingListener) Starting() {
 }
 
 func (ll LoggingListener) RetryAttempt(num, limit int) {
-	ll.logger.Printf("Attempt %d/%d\n", num, limit)
+	var msg string
+	if num == 1 {
+		msg = "Upgrading all instances"
+	} else {
+		msg = "Upgrading all remaining instances"
+	}
+	ll.logger.Printf("%s. Attempt %d/%d\n", msg, num, limit)
 }
 
 func (ll LoggingListener) InstancesToUpgrade(instances []service.Instance) {
@@ -41,7 +47,7 @@ func (ll LoggingListener) InstancesToUpgrade(instances []service.Instance) {
 }
 
 func (ll LoggingListener) InstanceUpgradeStarting(instance string, index, totalInstances int) {
-	ll.logger.Printf("Service instance: %s, upgrade attempt starting (%d of %d)", instance, index+1, totalInstances)
+	ll.logger.Printf("Starting to upgrade service instance: %s, instance %d of %d", instance, index+1, totalInstances)
 }
 
 func (ll LoggingListener) InstanceUpgradeStartResult(resultType services.UpgradeOperationType) {
@@ -91,7 +97,7 @@ func (ll LoggingListener) Finished(orphanCount, upgradedCount, deletedCount, cou
 		"Number of successful upgrades: %d; "+
 		"Number of CF service instance orphans detected: %d; "+
 		"Number of deleted instances before upgrade could occur: %d; "+
-		"Number of busy instances which could not be upgraded: %d; ",
+		"Number of busy instances which could not be upgraded: %d ",
 		upgradedCount,
 		orphanCount,
 		deletedCount,

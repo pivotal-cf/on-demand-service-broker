@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"time"
 
+	"strings"
+
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
@@ -77,7 +79,6 @@ func (u upgrader) Upgrade() error {
 		if err != nil {
 			return err
 		}
-
 		upgradedTotal += upgradedCount
 		orphansTotal += orphanCount
 		deletedTotal += deletedCount
@@ -92,11 +93,15 @@ func (u upgrader) Upgrade() error {
 		}
 	}
 
-	for _, inst := range instances {
-		u.listener.InstanceUpgraded(inst.GUID, "retries exceeded")
-	}
-
 	u.listener.Finished(orphansTotal, upgradedTotal, deletedTotal, len(instances))
+
+	var instanceDeploymentNames []string
+	for _, inst := range instances {
+		instanceDeploymentNames = append(instanceDeploymentNames, fmt.Sprintf("service-instance_%s", inst.GUID))
+	}
+	if len(instanceDeploymentNames) > 0 {
+		return fmt.Errorf("The following instances could not be upgraded: %s", strings.Join(instanceDeploymentNames, ", "))
+	}
 
 	return nil
 }
