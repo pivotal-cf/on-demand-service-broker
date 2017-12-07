@@ -89,7 +89,7 @@ func awaitServicesOperation(serviceName string, successMessageMatcher types.Gome
 
 	Eventually(func() bool {
 		session := cfCommand()
-		Eventually(session, CfTimeout).Should(gexec.Exit(0), "'cf services' command timed out")
+		Eventually(session, CfTimeout).Should(gexec.Exit(), "'cf services' command timed out")
 
 		contents := session.Buffer().Contents()
 
