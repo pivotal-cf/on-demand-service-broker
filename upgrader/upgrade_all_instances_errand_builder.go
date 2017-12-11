@@ -16,14 +16,17 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/service"
+	"github.com/pivotal-cf/on-demand-service-broker/tools"
 )
 
 type Builder struct {
 	BrokerServices        BrokerServices
 	ServiceInstanceLister InstanceLister
 	PollingInterval       time.Duration
+	AttemptInterval       time.Duration
 	AttemptLimit          int
 	Listener              Listener
+	Sleeper               sleeper
 }
 
 func NewBuilder(
@@ -31,38 +34,47 @@ func NewBuilder(
 	logger *log.Logger,
 ) (*Builder, error) {
 
-	brokerServices, err := Broker(conf, logger)
+	brokerServices, err := brokerServices(conf, logger)
 	if err != nil {
 		return nil, err
 	}
 
-	instanceLister, err := ServiceInstanceLister(conf, logger)
+	instanceLister, err := serviceInstanceLister(conf, logger)
 	if err != nil {
 		return nil, err
 	}
 
-	pollingInterval, err := PollingInterval(conf, logger)
+	pollingInterval, err := pollingInterval(conf)
 	if err != nil {
 		return nil, err
 	}
 
-	attemptLimit, err := AttemptLimit(conf, logger)
+	attemptInterval, err := attemptInterval(conf)
+	if err != nil {
+		return nil, err
+	}
+
+	attemptLimit, err := attemptLimit(conf)
 	if err != nil {
 		return nil, err
 	}
 
 	listener := NewLoggingListener(logger)
 
-	return &Builder{
-		brokerServices,
-		instanceLister,
-		pollingInterval,
-		attemptLimit,
-		listener,
-	}, nil
+	b := &Builder{
+		BrokerServices:        brokerServices,
+		ServiceInstanceLister: instanceLister,
+		PollingInterval:       pollingInterval,
+		AttemptInterval:       attemptInterval,
+		AttemptLimit:          attemptLimit,
+		Listener:              listener,
+		Sleeper:               &tools.RealSleeper{},
+	}
+
+	return b, nil
 }
 
-func Broker(conf config.UpgradeAllInstanceErrandConfig, logger *log.Logger) (*services.BrokerServices, error) {
+func brokerServices(conf config.UpgradeAllInstanceErrandConfig, logger *log.Logger) (*services.BrokerServices, error) {
 	if conf.BrokerAPI.Authentication.Basic.Username == "" ||
 		conf.BrokerAPI.Authentication.Basic.Password == "" ||
 		conf.BrokerAPI.URL == "" {
@@ -84,7 +96,7 @@ func Broker(conf config.UpgradeAllInstanceErrandConfig, logger *log.Logger) (*se
 	), nil
 }
 
-func ServiceInstanceLister(conf config.UpgradeAllInstanceErrandConfig, logger *log.Logger) (*service.ServiceInstanceLister, error) {
+func serviceInstanceLister(conf config.UpgradeAllInstanceErrandConfig, logger *log.Logger) (*service.ServiceInstanceLister, error) {
 	certPool, err := x509.SystemCertPool()
 	if err != nil {
 		return &service.ServiceInstanceLister{},
@@ -112,14 +124,21 @@ func ServiceInstanceLister(conf config.UpgradeAllInstanceErrandConfig, logger *l
 	), nil
 }
 
-func PollingInterval(conf config.UpgradeAllInstanceErrandConfig, logger *log.Logger) (time.Duration, error) {
+func pollingInterval(conf config.UpgradeAllInstanceErrandConfig) (time.Duration, error) {
 	if conf.PollingInterval <= 0 {
 		return 0, errors.New("the pollingInterval must be greater than zero")
 	}
 	return time.Duration(conf.PollingInterval) * time.Second, nil
 }
 
-func AttemptLimit(conf config.UpgradeAllInstanceErrandConfig, logger *log.Logger) (int, error) {
+func attemptInterval(conf config.UpgradeAllInstanceErrandConfig) (time.Duration, error) {
+	if conf.AttemptInterval <= 0 {
+		return 0, errors.New("the attemptInterval must be greater than zero")
+	}
+	return time.Duration(conf.AttemptInterval) * time.Second, nil
+}
+
+func attemptLimit(conf config.UpgradeAllInstanceErrandConfig) (int, error) {
 	if conf.AttemptLimit <= 0 {
 		return 0, errors.New("the attempt limit must be greater than zero")
 	}

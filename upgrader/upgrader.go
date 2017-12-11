@@ -42,12 +42,19 @@ type InstanceLister interface {
 	Instances() ([]service.Instance, error)
 }
 
+//go:generate counterfeiter -o fakes/fake_sleeper.go . sleeper
+type sleeper interface {
+	Sleep(d time.Duration)
+}
+
 type upgrader struct {
 	brokerServices  BrokerServices
 	instanceLister  InstanceLister
 	pollingInterval time.Duration
+	attemptInterval time.Duration
 	attemptLimit    int
 	listener        Listener
+	sleeper         sleeper
 }
 
 func New(builder *Builder) *upgrader {
@@ -55,8 +62,10 @@ func New(builder *Builder) *upgrader {
 		brokerServices:  builder.BrokerServices,
 		instanceLister:  builder.ServiceInstanceLister,
 		pollingInterval: builder.PollingInterval,
+		attemptInterval: builder.AttemptInterval,
 		attemptLimit:    builder.AttemptLimit,
 		listener:        builder.Listener,
+		sleeper:         builder.Sleeper,
 	}
 }
 
@@ -86,10 +95,10 @@ func (u upgrader) Upgrade() error {
 		instances = retryInstances
 		retryCount := len(instances)
 
-		u.listener.Progress(u.pollingInterval, orphansTotal, upgradedTotal, retryCount, deletedTotal)
+		u.listener.Progress(u.attemptInterval, orphansTotal, upgradedTotal, retryCount, deletedTotal)
 		if retryCount > 0 {
 			attempt++
-			time.Sleep(u.pollingInterval)
+			u.sleeper.Sleep(u.attemptInterval)
 		}
 	}
 
@@ -148,7 +157,7 @@ func (u upgrader) pollLastOperation(instance string, data broker.OperationData) 
 	u.listener.WaitingFor(instance, data.BoshTaskID)
 
 	for {
-		time.Sleep(u.pollingInterval)
+		u.sleeper.Sleep(u.pollingInterval)
 
 		lastOperation, err := u.brokerServices.LastOperation(instance, data)
 		if err != nil {

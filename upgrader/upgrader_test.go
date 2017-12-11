@@ -23,7 +23,6 @@ import (
 
 var _ = Describe("Upgrader", func() {
 	const (
-		zeroSeconds       = time.Duration(0) * time.Second
 		serviceInstanceId = "serviceInstanceId"
 	)
 
@@ -33,8 +32,10 @@ var _ = Describe("Upgrader", func() {
 		brokerServicesClient *fakes.FakeBrokerServices
 		instanceLister       *fakes.FakeInstanceLister
 		pollingInterval      time.Duration
+		attemptInterval      time.Duration
 		attemptLimit         int
 		upgraderBuilder      upgrader.Builder
+		fakeSleeper          *fakes.FakeSleeper
 
 		upgradeOperationAccepted = services.UpgradeOperation{
 			Type: services.UpgradeAccepted,
@@ -47,8 +48,10 @@ var _ = Describe("Upgrader", func() {
 		fakeListener = new(fakes.FakeListener)
 		brokerServicesClient = new(fakes.FakeBrokerServices)
 		instanceLister = new(fakes.FakeInstanceLister)
-		pollingInterval = zeroSeconds
+		pollingInterval = 10 * time.Second
+		attemptInterval = 60 * time.Second
 		attemptLimit = 5
+		fakeSleeper = new(fakes.FakeSleeper)
 	})
 
 	JustBeforeEach(func() {
@@ -58,6 +61,8 @@ var _ = Describe("Upgrader", func() {
 			Listener:              fakeListener,
 			PollingInterval:       pollingInterval,
 			AttemptLimit:          attemptLimit,
+			AttemptInterval:       attemptInterval,
+			Sleeper:               fakeSleeper,
 		}
 		upgrader := upgrader.New(&upgraderBuilder)
 		actualErr = upgrader.Upgrade()
@@ -139,7 +144,7 @@ var _ = Describe("Upgrader", func() {
 			Expect(actualErr).NotTo(HaveOccurred())
 
 			hasReportedInstanceUpgradeStartResult(fakeListener, services.InstanceNotFound)
-			hasReportedProgress(fakeListener, zeroSeconds, 0, 0, 0, 1)
+			hasReportedProgress(fakeListener, 0, attemptInterval, 0, 0, 0, 1)
 			hasReportedFinished(fakeListener, 0, 0, 1, 0)
 		})
 	})
@@ -156,7 +161,7 @@ var _ = Describe("Upgrader", func() {
 			Expect(actualErr).NotTo(HaveOccurred())
 
 			hasReportedInstanceUpgradeStartResult(fakeListener, services.OrphanDeployment)
-			hasReportedProgress(fakeListener, zeroSeconds, 1, 0, 0, 0)
+			hasReportedProgress(fakeListener, 0, attemptInterval, 1, 0, 0, 0)
 			hasReportedFinished(fakeListener, 1, 0, 0, 0)
 		})
 	})
@@ -284,8 +289,11 @@ var _ = Describe("Upgrader", func() {
 				hasReportedInstancesToUpgrade(fakeListener, serviceInstance1, serviceInstance2, serviceInstance3)
 				hasReportedWaitingFor(fakeListener, map[string]int{serviceInstance1: upgradeTaskID1, serviceInstance2: upgradeTaskID2, serviceInstance3: upgradeTaskID3})
 				hasReportedUpgraded(fakeListener, serviceInstance1, serviceInstance2, serviceInstance3)
-				hasReportedProgress(fakeListener, zeroSeconds, 0, 3, 0, 0)
+				hasReportedProgress(fakeListener, 0, attemptInterval, 0, 3, 0, 0)
 				hasReportedFinished(fakeListener, 0, 3, 0, 0)
+				hasSlept(fakeSleeper, 0, pollingInterval)
+				hasSlept(fakeSleeper, 1, pollingInterval)
+				hasSlept(fakeSleeper, 2, pollingInterval)
 			})
 		})
 
@@ -313,6 +321,7 @@ var _ = Describe("Upgrader", func() {
 					serviceInstance2,
 				)
 				Expect(actualErr).To(MatchError(message))
+				Expect(fakeSleeper.SleepCallCount()).To(Equal(1))
 			})
 		})
 
@@ -356,6 +365,7 @@ var _ = Describe("Upgrader", func() {
 
 				hasReportedWaitingFor(fakeListener, map[string]int{serviceInstance1: upgradeTaskID1, serviceInstance2: upgradeTaskID2})
 				hasReportedFailureFor(fakeListener, serviceInstance2)
+				Expect(fakeSleeper.SleepCallCount()).To(Equal(2))
 			})
 		})
 
@@ -382,6 +392,7 @@ var _ = Describe("Upgrader", func() {
 			It("reports one orphaned instance", func() {
 				Expect(actualErr).NotTo(HaveOccurred())
 				hasReportedFinished(fakeListener, 1, 2, 0, 0)
+				Expect(fakeSleeper.SleepCallCount()).To(Equal(2))
 			})
 		})
 
@@ -421,6 +432,11 @@ var _ = Describe("Upgrader", func() {
 				Expect(upgradeServiceInstance2CallCount).To(Equal(4), "number of service requests")
 				hasReportedRetries(fakeListener, 1, 1, 1, 0)
 				hasReportedFinished(fakeListener, 0, 3, 0, 0)
+				hasReportedProgress(fakeListener, 0, attemptInterval, 0, 2, 1, 0)
+
+				hasSlept(fakeSleeper, 0, pollingInterval)
+				hasSlept(fakeSleeper, 1, pollingInterval)
+				hasSlept(fakeSleeper, 2, attemptInterval)
 			})
 		})
 	})
@@ -503,6 +519,11 @@ func makeInstanceMapFromIds(expectedInstanceIds []string) []service.Instance {
 	return expectedInstances
 }
 
+func hasSlept(fakeSleeper *fakes.FakeSleeper, callIndex int, expectedInterval time.Duration) {
+	Expect(fakeSleeper.SleepCallCount()).To(BeNumerically(">", callIndex))
+	Expect(fakeSleeper.SleepArgsForCall(callIndex)).To(Equal(expectedInterval))
+}
+
 func hasReportedRetries(fakeListener *fakes.FakeListener, expectedRetryCounts ...int) {
 	for i, expectedRetryCount := range expectedRetryCounts {
 		_, _, _, toRetryCount, _ := fakeListener.ProgressArgsForCall(i)
@@ -517,10 +538,10 @@ func hasReportedOrphans(fakeListener *fakes.FakeListener, expectedOrphanCounts .
 	}
 }
 
-func hasReportedProgress(fakeListener *fakes.FakeListener, expectedInterval time.Duration, expectedOrphans, expectedUpgraded, expectedToRetry, expectedDeleted int) {
-	Expect(fakeListener.ProgressCallCount()).To(Equal(1))
-	pollingInterval, orphanCount, upgradedCount, toRetryCount, deletedCount := fakeListener.ProgressArgsForCall(0)
-	Expect(pollingInterval).To(Equal(expectedInterval), "polling interval")
+func hasReportedProgress(fakeListener *fakes.FakeListener, callIndex int, expectedInterval time.Duration, expectedOrphans, expectedUpgraded, expectedToRetry, expectedDeleted int) {
+	Expect(fakeListener.ProgressCallCount()).To(BeNumerically(">", callIndex))
+	attemptInterval, orphanCount, upgradedCount, toRetryCount, deletedCount := fakeListener.ProgressArgsForCall(callIndex)
+	Expect(attemptInterval).To(Equal(expectedInterval), "attempt interval")
 	Expect(orphanCount).To(Equal(expectedOrphans), "orphans")
 	Expect(upgradedCount).To(Equal(expectedUpgraded), "upgraded")
 	Expect(toRetryCount).To(Equal(expectedToRetry), "to retry")

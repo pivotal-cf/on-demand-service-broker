@@ -4,19 +4,15 @@ import (
 	"flag"
 	"io/ioutil"
 	"os"
-	"time"
 
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/deleter"
 	"github.com/pivotal-cf/on-demand-service-broker/deregistrar"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 	"github.com/pivotal-cf/on-demand-service-broker/purger"
+	"github.com/pivotal-cf/on-demand-service-broker/tools"
 	"gopkg.in/yaml.v2"
 )
-
-type realSleeper struct{}
-
-func (c realSleeper) Sleep(t time.Duration) { time.Sleep(t) }
 
 func main() {
 	loggerFactory := loggerfactory.New(os.Stdout, "delete-all-service-instances-and-deregister-broker", loggerfactory.Flags)
@@ -60,7 +56,7 @@ func main() {
 		logger.Fatalf("Error creating Cloud Foundry client: %s", err)
 	}
 
-	clock := realSleeper{}
+	clock := tools.RealSleeper{}
 
 	deleteTool := deleter.New(cfClient, clock, config.PollingInitialOffset, config.PollingInterval, logger)
 

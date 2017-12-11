@@ -82,6 +82,30 @@ var _ = Describe("UpgraderBuilder", func() {
 		})
 	})
 
+	Describe("Attempt Interval", func() {
+		DescribeTable(
+			"config is invalidly set to",
+			func(val int) {
+				conf := updateAllInstanceErrandConfig("user", "password", "http://example.org")
+				conf.AttemptInterval = val
+				_, err := NewBuilder(conf, logger)
+
+				Expect(err).To(MatchError(Equal("the attemptInterval must be greater than zero")))
+			},
+			Entry("zero", 0),
+			Entry("negative", -1),
+		)
+
+		It("when configured returns the value", func() {
+			conf := updateAllInstanceErrandConfig("user", "password", "http://example.org")
+			conf.AttemptInterval = 60
+			builder, err := NewBuilder(conf, logger)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(builder.AttemptInterval).To(Equal(60 * time.Second))
+		})
+	})
+
 	Describe("Attempt Limit", func() {
 		DescribeTable(
 			"config is invalidly set to",
@@ -139,6 +163,7 @@ func updateAllInstanceErrandConfig(brokerUser, brokerPassword, brokerURL string)
 			URL: brokerURL + "/mgmt/service_instances",
 		},
 		PollingInterval: 10,
+		AttemptInterval: 60,
 		AttemptLimit:    5,
 	}
 }

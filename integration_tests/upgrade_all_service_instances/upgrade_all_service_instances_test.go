@@ -77,10 +77,11 @@ service_instances_api:
 	)
 }
 
-func populateUpgraderConfig(pollingInterval, attemptLimit int) string {
+func populateUpgraderConfig(pollingInterval, attemptInterval, attemptLimit int) string {
 	return fmt.Sprintf(`
 polling_interval: %d
-attempt_limit: %d`, pollingInterval, attemptLimit)
+attempt_interval: %d
+attempt_limit: %d`, pollingInterval, attemptInterval, attemptLimit)
 }
 
 func writeConfigFile(configContent string) string {
@@ -202,14 +203,14 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 				serviceInstancesAPIUsername,
 				serviceInstancesAPIPassword,
 			)
-			pollingIntervalConfig := populateUpgraderConfig(1, 5)
+			pollingIntervalConfig := populateUpgraderConfig(1, 2, 5)
 			config := brokerConfig + serviceInstancesAPIConfig + pollingIntervalConfig
 			configPath = writeConfigFile(config)
 
 			runningTool := startUpgradeAllInstanceBinary()
 
 			Eventually(runningTool, 5*time.Second).Should(gexec.Exit(0))
-			Expect(runningTool).To(gbytes.Say("Sleep interval until next attempt: 1s"))
+			Expect(runningTool).To(gbytes.Say("Sleep interval until next attempt: 2s"))
 			Expect(runningTool).To(gbytes.Say("Number of successful upgrades: 1"))
 		})
 
@@ -225,7 +226,7 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 				"not-the-user",
 				serviceInstancesAPIPassword,
 			)
-			pollingIntervalConfig := populateUpgraderConfig(1, 5)
+			pollingIntervalConfig := populateUpgraderConfig(1, 2, 5)
 			config := brokerConfig + serviceInstancesAPIConfig + pollingIntervalConfig
 			configPath = writeConfigFile(config)
 
@@ -250,7 +251,7 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 				serviceInstancesAPIUsername,
 				serviceInstancesAPIPassword,
 			)
-			pollingIntervalConfig := populateUpgraderConfig(1, 5)
+			pollingIntervalConfig := populateUpgraderConfig(1, 2, 5)
 			config := brokerConfig + serviceInstancesAPIConfig + pollingIntervalConfig
 			configPath = writeConfigFile(config)
 
@@ -287,14 +288,14 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 				serviceInstancesAPIPassword,
 				string(serviceInstancesAPIRootCA),
 			)
-			pollingIntervalConfig := populateUpgraderConfig(1, 5)
+			pollingIntervalConfig := populateUpgraderConfig(1, 2, 5)
 			config := brokerConfig + serviceInstancesAPIConfig + pollingIntervalConfig
 			configPath = writeConfigFile(config)
 
 			runningTool := startUpgradeAllInstanceBinary()
 
 			Eventually(runningTool, 5*time.Second).Should(gexec.Exit(0))
-			Expect(runningTool).To(gbytes.Say("Sleep interval until next attempt: 1s"))
+			Expect(runningTool).To(gbytes.Say("Sleep interval until next attempt: 2s"))
 			Expect(runningTool).To(gbytes.Say("Number of successful upgrades: 1"))
 		})
 
@@ -313,7 +314,7 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 				serviceInstancesAPIUsername,
 				serviceInstancesAPIPassword)
 
-			pollingIntervalConfig := populateUpgraderConfig(1, 5)
+			pollingIntervalConfig := populateUpgraderConfig(1, 2, 5)
 
 			config := brokerConfig + serviceInstancesAPIConfig + pollingIntervalConfig
 
@@ -344,14 +345,14 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 				brokerUsername,
 				brokerPassword,
 			)
-			pollingIntervalConfig := populateUpgraderConfig(1, 5)
+			pollingIntervalConfig := populateUpgraderConfig(1, 2, 5)
 			config := brokerConfig + serviceInstancesAPIConfig + pollingIntervalConfig
 			configPath = writeConfigFile(config)
 
 			runningTool := startUpgradeAllInstanceBinary()
 
 			Eventually(runningTool, 5*time.Second).Should(gexec.Exit(0))
-			Expect(runningTool).To(gbytes.Say("Sleep interval until next attempt: 1s"))
+			Expect(runningTool).To(gbytes.Say("Sleep interval until next attempt: 2s"))
 			Expect(runningTool).To(gbytes.Say("Number of successful upgrades: 1"))
 		})
 	})
@@ -371,7 +372,7 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 				brokerUsername,
 				brokerPassword,
 			)
-			pollingIntervalConfig := populateUpgraderConfig(1, 2)
+			pollingIntervalConfig := populateUpgraderConfig(1, 2, 2)
 			config := brokerConfig + serviceInstancesAPIConfig + pollingIntervalConfig
 			configPath = writeConfigFile(config)
 
@@ -397,7 +398,7 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 				brokerUsername,
 				brokerPassword,
 			)
-			pollingIntervalConfig := populateUpgraderConfig(1, 5)
+			pollingIntervalConfig := populateUpgraderConfig(1, 2, 5)
 			config := brokerConfig + serviceInstancesAPIConfig + pollingIntervalConfig
 			configPath = writeConfigFile(config)
 
