@@ -27,7 +27,7 @@ var (
 	fakeUAAFactory      *fakes.FakeUAAFactory
 	fakeUAA             *fakes.FakeUAA
 	logger              *log.Logger
-	boshAuthConfig      config.BOSHAuthentication
+	boshAuthConfig      config.Authentication
 )
 
 var _ = BeforeEach(func() {

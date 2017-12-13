@@ -67,7 +67,7 @@ func NewBOSHClient(director director.Director) *Client {
 	}
 }
 
-func New(url string, trustedCertPEM []byte, certAppender CertAppender, directorFactory DirectorFactory, uaaFactory UAAFactory, boshAuth config.BOSHAuthentication, logger *log.Logger) (*Client, error) {
+func New(url string, trustedCertPEM []byte, certAppender CertAppender, directorFactory DirectorFactory, uaaFactory UAAFactory, boshAuth config.Authentication, logger *log.Logger) (*Client, error) {
 	certAppender.AppendCertsFromPEM(trustedCertPEM)
 
 	directorConfig, err := director.NewConfigFromURL(url)
@@ -123,13 +123,13 @@ func (c *Client) VerifyAuth(logger *log.Logger) error {
 	return errors.New("not authenticated")
 }
 
-func buildUAA(UAAURL string, boshAuth config.BOSHAuthentication, CACert string, factory UAAFactory) (UAA, error) {
+func buildUAA(UAAURL string, boshAuth config.Authentication, CACert string, factory UAAFactory) (UAA, error) {
 	uaaConfig, err := boshuaa.NewConfigFromURL(UAAURL)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to build UAA config from url")
 	}
-	uaaConfig.Client = boshAuth.UAA.ID
-	uaaConfig.ClientSecret = boshAuth.UAA.Secret
+	uaaConfig.Client = boshAuth.UAA.ClientCredentials.ID
+	uaaConfig.ClientSecret = boshAuth.UAA.ClientCredentials.Secret
 	uaaConfig.CACert = CACert
 	return factory.New(uaaConfig)
 }
