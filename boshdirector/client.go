@@ -170,3 +170,7 @@ type DeploymentNotFoundError struct {
 type RequestError struct {
 	error
 }
+
+func NewRequestError(e error) RequestError {
+	return RequestError{e}
+}
