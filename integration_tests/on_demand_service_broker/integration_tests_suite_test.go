@@ -275,6 +275,7 @@ func deprovisionInstance(instanceID string, planID string, serviceID string, asy
 			brokerPort, instanceID, asyncAllowed, planID, serviceID), bytes.NewReader([]byte{}))
 	Expect(err).ToNot(HaveOccurred())
 	deprovisionReq = basicAuthBrokerRequest(deprovisionReq)
+	deprovisionReq.Header.Set("X-Broker-API-Version", "2.13")
 	deprovisionResponse, err := http.DefaultClient.Do(deprovisionReq)
 	Expect(err).ToNot(HaveOccurred())
 	return deprovisionResponse
