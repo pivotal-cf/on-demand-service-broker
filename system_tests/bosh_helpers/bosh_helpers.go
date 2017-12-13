@@ -77,6 +77,7 @@ func New(boshURL, uaaURL, boshUsername, boshPassword, boshCACert string) *BoshHe
 		uaaFactory,
 		config.Authentication{
 			UAA: config.UAAAuthentication{
+				URL: uaaURL,
 				ClientCredentials: config.ClientCredentials{
 					ID: boshUsername, Secret: boshPassword,
 				},
