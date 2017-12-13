@@ -27,7 +27,7 @@ func TestOnDemandServiceBroker(t *testing.T) {
 const (
 	componentName  = "collaboration-tests"
 	serverPort     = 1337
-	serviceName    = "some-service-name"
+	serviceName    = "service-name"
 	brokerUsername = "username"
 	brokerPassword = "password"
 )
@@ -37,12 +37,16 @@ var (
 	serverURL          = fmt.Sprintf("localhost:%d", serverPort)
 	fakeServiceAdapter *fakes.FakeServiceAdapterClient
 	fakeBoshClient     *fakes.FakeBoshClient
+	fakeCfClient       *fakes.FakeCloudFoundryClient
+	fakeDeployer       *fakes.FakeDeployer
 	loggerBuffer       *gbytes.Buffer
 )
 
 var _ = BeforeEach(func() {
 	fakeBoshClient = new(fakes.FakeBoshClient)
 	fakeServiceAdapter = new(fakes.FakeServiceAdapterClient)
+	fakeCfClient = new(fakes.FakeCloudFoundryClient)
+	fakeDeployer = new(fakes.FakeDeployer)
 
 	stopServer = make(chan os.Signal, 1)
 })
@@ -57,11 +61,11 @@ func StartServer(conf config.Config) {
 	logger := loggerFactory.New()
 	fakeOnDemandBroker, err := broker.New(
 		fakeBoshClient,
-		nil,
+		fakeCfClient,
 		conf.ServiceCatalog,
 		nil,
 		fakeServiceAdapter,
-		nil,
+		fakeDeployer,
 		loggerFactory,
 	)
 	Expect(err).NotTo(HaveOccurred())
