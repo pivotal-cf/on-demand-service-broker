@@ -87,4 +87,5 @@ func StartServerWithStopHandler(conf config.Config, stopServerChan chan os.Signa
 		logger,
 	)
 	go apiserver.StartAndWait(conf, server, logger, stopServerChan)
+	Eventually(loggerBuffer).Should(gbytes.Say("Listening on"))
 }

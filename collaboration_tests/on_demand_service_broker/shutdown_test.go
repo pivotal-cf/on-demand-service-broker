@@ -42,7 +42,6 @@ var _ = Describe("Shutdown of the broker process", func() {
 		shouldSendSigterm = false
 		stopServer = make(chan os.Signal, 1)
 		StartServerWithStopHandler(conf, stopServer)
-		Eventually(loggerBuffer).Should(gbytes.Say("Listening on"))
 	})
 
 	It("handles SIGTERM and exists gracefully", func() {
