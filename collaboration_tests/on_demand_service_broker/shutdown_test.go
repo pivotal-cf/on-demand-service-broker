@@ -22,6 +22,7 @@ var _ = Describe("Shutdown of the broker process", func() {
 		conf            brokerConfig.Config
 		beforeTimingOut = time.Second / 10
 		shutDownTimeout = 1
+		shutDownChan    chan os.Signal
 	)
 
 	BeforeEach(func() {
@@ -40,12 +41,12 @@ var _ = Describe("Shutdown of the broker process", func() {
 		}
 
 		shouldSendSigterm = false
-		stopServer = make(chan os.Signal, 1)
-		StartServerWithStopHandler(conf, stopServer)
+		shutDownChan = make(chan os.Signal, 1)
+		StartServerWithStopHandler(conf, shutDownChan)
 	})
 
 	It("handles SIGTERM and exists gracefully", func() {
-		killServer(stopServer)
+		killServer(shutDownChan)
 
 		Eventually(loggerBuffer).Should(gbytes.Say("Broker shutting down on signal..."))
 		Eventually(loggerBuffer).Should(gbytes.Say("Server gracefully shut down"))
@@ -70,7 +71,7 @@ var _ = Describe("Shutdown of the broker process", func() {
 		Eventually(deployStarted).Should(Receive())
 
 		By("send the SIGTERM signal")
-		killServer(stopServer)
+		killServer(shutDownChan)
 
 		By("ensuring the server received the signal")
 		Eventually(loggerBuffer).Should(gbytes.Say("Broker shutting down on signal..."))
@@ -109,7 +110,7 @@ var _ = Describe("Shutdown of the broker process", func() {
 		Eventually(deployStarted).Should(Receive())
 
 		By("send the SIGTERM signal")
-		killServer(stopServer)
+		killServer(shutDownChan)
 
 		By("ensuring the server received the signal")
 		Eventually(loggerBuffer).Should(gbytes.Say("Broker shutting down on signal..."))

@@ -11,6 +11,10 @@ import (
 	"syscall"
 	"testing"
 
+	"math/rand"
+
+	"math"
+
 	"github.com/onsi/gomega/gbytes"
 	"github.com/pivotal-cf/on-demand-service-broker/apiserver"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
@@ -26,7 +30,6 @@ func TestOnDemandServiceBroker(t *testing.T) {
 
 const (
 	componentName  = "collaboration-tests"
-	serverPort     = 1337
 	serviceName    = "service-name"
 	brokerUsername = "username"
 	brokerPassword = "password"
@@ -34,6 +37,7 @@ const (
 
 var (
 	stopServer         chan os.Signal
+	serverPort         = rand.Intn(math.MaxInt16-1024) + 1024
 	serverURL          = fmt.Sprintf("localhost:%d", serverPort)
 	fakeServiceAdapter *fakes.FakeServiceAdapterClient
 	fakeBoshClient     *fakes.FakeBoshClient
