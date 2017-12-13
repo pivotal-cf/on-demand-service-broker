@@ -26,7 +26,7 @@ import (
 	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
 
-var _ = Describe("deprovisioning service instances", func() {
+var _ = FDescribe("deprovisioning service instances", func() {
 	const instanceID = "some-deprovisioning-instance"
 
 	var (
@@ -74,10 +74,14 @@ var _ = Describe("deprovisioning service instances", func() {
 			boshDirector.VerifyAndMock(
 				mockbosh.GetDeployment(deploymentName(instanceID)).RespondsWithRawManifest([]byte(`a: b`)),
 				mockbosh.Tasks(deploymentName(instanceID)).RespondsWithNoTasks(),
-				mockbosh.DeleteDeployment(deploymentName(instanceID)).
-					WithoutContextID().RedirectsToTask(deleteTaskID),
+				mockbosh.DeleteDeployment(deploymentName(instanceID)).WithoutContextID().
+					RespondsOKWith(`{"ID":6,"State":"processing"}`),
+				mockbosh.Task(6).RespondsOKWith(`{"ID":6,"State":"done"}`),
+				mockbosh.TaskOutputEvent(6).RespondsOKWith(`{"ID":6,"State":"done"}`),
+				mockbosh.TaskOutput(6).RespondsOKWith(`{"ID":6,"State":"done"}`),
+				mockbosh.Tasks(deploymentName(instanceID)).RespondsOKWith(`[{"ID":6}]`),
+				mockbosh.FilteredTasks(1, deploymentName(instanceID)).RespondsOKWith(`[{"ID":6}]`),
 			)
-
 			delResp = deprovisionInstance(instanceID, "planID", "serviceID", true)
 		})
 
@@ -95,8 +99,12 @@ var _ = Describe("deprovisioning service instances", func() {
 				boshDirector.VerifyAndMock(
 					mockbosh.GetDeployment(deploymentName(instanceID)).RespondsWithRawManifest([]byte(`a: b`)),
 					mockbosh.Tasks(deploymentName(instanceID)).RespondsWithNoTasks(),
-					mockbosh.DeleteDeployment(deploymentName(instanceID)).
-						WithoutContextID().RedirectsToTask(deleteTaskID),
+					mockbosh.DeleteDeployment(deploymentName(instanceID)).WithoutContextID().
+						RespondsOKWith(`{"ID":2015,"State":"processing"}`),
+					mockbosh.Task(deleteTaskID).RespondsOKWith(`{"ID":2015,"State":"done"}`),
+					mockbosh.TaskOutputEvent(deleteTaskID).RespondsOKWith(`{"ID":2015,"State":"done"}`),
+					mockbosh.TaskOutput(deleteTaskID).RespondsOKWith(`{"ID":2015,"State":"done"}`),
+					mockbosh.FilteredTasks(1, deploymentName(instanceID)).RespondsOKWith(`[{"ID":6}]`),
 				)
 
 				delResp = deprovisionInstance(instanceID, "planID", "serviceID", true)
@@ -279,75 +287,6 @@ var _ = Describe("deprovisioning service instances", func() {
 
 		It("logs an error message", func() {
 			Eventually(runningBroker.Out).Should(gbytes.Say(fmt.Sprintf("deployment service-instance_%s is still in progress:", instanceID)))
-		})
-	})
-
-	Context("when the response from bosh is not a redirect", func() {
-		JustBeforeEach(func() {
-
-			boshDirector.VerifyAndMock(
-				mockbosh.GetDeployment(deploymentName(instanceID)).RespondsWithRawManifest([]byte(`a: b`)),
-				mockbosh.Tasks(deploymentName(instanceID)).RespondsWithNoTasks(),
-				mockbosh.DeleteDeployment(deploymentName(instanceID)).WithoutContextID().RespondsOKWith("not a redirect"),
-			)
-
-			delResp = deprovisionInstance(instanceID, "planID", "serviceID", true)
-		})
-
-		It("returns HTTP 500", func() {
-			Expect(delResp.StatusCode).To(Equal(http.StatusInternalServerError))
-		})
-
-		Describe("error message", func() {
-			var errorResponse brokerapi.ErrorResponse
-
-			JustBeforeEach(func() {
-				Expect(json.NewDecoder(delResp.Body).Decode(&errorResponse)).To(Succeed())
-			})
-
-			AfterEach(func() {
-				defer delResp.Body.Close()
-			})
-
-			It("contains a generic message", func() {
-				Expect(errorResponse.Description).To(ContainSubstring(
-					"There was a problem completing your request. Please contact your operations team providing the following information: ",
-				))
-			})
-
-			It("includes the request ID", func() {
-				Expect(errorResponse.Description).To(MatchRegexp(
-					`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`,
-				))
-			})
-
-			It("includes the service name", func() {
-				Expect(errorResponse.Description).To(ContainSubstring(
-					fmt.Sprintf("service: %s", serviceName),
-				))
-			})
-
-			It("includes a service instance guid", func() {
-				Expect(errorResponse.Description).To(ContainSubstring(
-					fmt.Sprintf("service-instance-guid: %s", instanceID),
-				))
-			})
-
-			It("includes the operation type", func() {
-				Expect(errorResponse.Description).To(ContainSubstring(
-					"operation: delete",
-				))
-			})
-
-			It("does NOT include the bosh task ID", func() {
-				Expect(errorResponse.Description).NotTo(ContainSubstring(
-					"task-id:",
-				))
-			})
-		})
-
-		It("logs the operator error message", func() {
-			Eventually(runningBroker.Out).Should(gbytes.Say("expected status 302, was 200"))
 		})
 	})
 

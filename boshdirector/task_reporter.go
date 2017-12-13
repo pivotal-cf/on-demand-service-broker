@@ -7,27 +7,32 @@
 package boshdirector
 
 import (
+	"encoding/json"
+
 	"log"
 
-	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
-	"github.com/pkg/errors"
+	"github.com/cloudfoundry/bosh-cli/director"
 )
 
-func (c *Client) VMs(deploymentName string, logger *log.Logger) (bosh.BoshVMs, error) {
-	logger.Printf("retrieving VMs for deployment %s from bosh\n", deploymentName)
+type BoshTaskOutputReporter struct {
+	Output []BoshTaskOutput
+	Logger *log.Logger
+}
 
-	deployment, err := c.director.FindDeployment(deploymentName)
-	if err != nil {
-		return nil, errors.Wrapf(err, `Could not find deployment "%s"`, deploymentName)
-	}
+func NewBoshTaskOutputReporter() director.TaskReporter {
+	return &BoshTaskOutputReporter{}
+}
 
-	vmsInfo, err := deployment.VMInfos()
+func (r *BoshTaskOutputReporter) TaskStarted(taskID int) {}
+
+func (r *BoshTaskOutputReporter) TaskFinished(taskID int, state string) {}
+
+func (r *BoshTaskOutputReporter) TaskOutputChunk(taskID int, chunk []byte) {
+	output := BoshTaskOutput{}
+	err := json.Unmarshal(chunk, &output)
 	if err != nil {
-		return nil, errors.Wrapf(err, `Could not fetch VMs info for deployment "%s"`, deploymentName)
+		r.Logger.Printf("Unexpected task output: %s\n", string(chunk))
+	} else {
+		r.Output = append(r.Output, output)
 	}
-	boshVms := bosh.BoshVMs{}
-	for _, vmInfo := range vmsInfo {
-		boshVms[vmInfo.JobName] = append(boshVms[vmInfo.JobName], vmInfo.IPs...)
-	}
-	return boshVms, nil
 }

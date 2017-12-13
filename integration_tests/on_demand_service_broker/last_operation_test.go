@@ -589,8 +589,12 @@ var _ = Describe("last operation", func() {
 						RespondsOKWithJSON(boshdirector.BoshTasks{taskDone}),
 					mockbosh.TaskOutput(taskDone.ID).RespondsOKWith(""),
 					mockbosh.DeleteDeployment(deploymentName(instanceID)).
-						WithContextID(contextID).RedirectsToTask(taskProcessing.ID),
-					mockbosh.Task(taskProcessing.ID).RespondsOKWithJSON(taskProcessing),
+						WithoutContextID().RespondsOKWith(fmt.Sprintf(`{"ID":%d,"State":"processing"}`, taskProcessing.ID)),
+					mockbosh.Task(taskProcessing.ID).RespondsOKWith(fmt.Sprintf(`{"ID":%d,"State":"done"}`, taskProcessing.ID)),
+					mockbosh.TaskOutputEvent(taskProcessing.ID).RespondsOKWith(fmt.Sprintf(`{"ID":%d,"State":"processing"}`, taskProcessing.ID)),
+					mockbosh.TaskOutput(taskProcessing.ID).RespondsOKWith(fmt.Sprintf(`{"ID":%d,"State":"processing"}`, taskProcessing.ID)),
+					mockbosh.TasksByContextID(contextID).RespondsOKWith(fmt.Sprintf(`[{"ID":%d}]`, taskProcessing.ID)),
+					mockbosh.Task(taskProcessing.ID).RespondsOKWith(fmt.Sprintf(`{"ID":%d,"State":"processing", "Description": "processing thing"}`, taskProcessing.ID)),
 				)
 			})
 

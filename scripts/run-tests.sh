@@ -12,7 +12,7 @@ set -o pipefail
 if [[ $# -eq 0 ]]; then
   LIFECYCLE_TESTS_CONFIG=<(echo "[{}]") ginkgo -r -dryRun system_tests
 fi
-skippackages=system_tests,load_tests
+skippackages=system_tests,load_tests,integration_tests
 if [[ -z "${TEST_CREDHUB_CLIENT_SECRET:-""}" ]]; then
   skippackages="contract_tests,${skippackages}"
 fi

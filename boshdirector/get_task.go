@@ -7,25 +7,24 @@
 package boshdirector
 
 import (
-	"fmt"
 	"log"
-	"net/http"
+
+	"github.com/pkg/errors"
 )
 
 func (c *Client) GetTask(taskID int, logger *log.Logger) (BoshTask, error) {
 	logger.Printf("getting task %d from bosh\n", taskID)
-	var getTaskResponse BoshTask
-
-	if err := c.getDataCheckingForErrors(
-		fmt.Sprintf("%s/tasks/%d", c.url, taskID),
-		http.StatusOK,
-		&getTaskResponse,
-		logger,
-	); err != nil {
-		return BoshTask{}, err
+	task, err := c.director.FindTask(taskID)
+	if err != nil {
+		return BoshTask{}, errors.Wrapf(err, "Cannot find task with ID: %d", taskID)
 	}
-
-	return getTaskResponse, nil
+	return BoshTask{
+		ID:          task.ID(),
+		State:       task.State(),
+		Description: task.Description(),
+		Result:      task.Result(),
+		ContextID:   task.ContextID(),
+	}, nil
 }
 
 type BoshTaskOutput struct {
@@ -36,22 +35,15 @@ type BoshTaskOutput struct {
 
 func (c *Client) GetTaskOutput(taskID int, logger *log.Logger) ([]BoshTaskOutput, error) {
 	logger.Printf("getting task output for task %d from bosh\n", taskID)
-	outputs := []BoshTaskOutput{}
-	var output BoshTaskOutput
-	outputReadyCallback := func() {
-		outputs = append(outputs, output)
-		output = BoshTaskOutput{}
-		// `output` is reused for JSON decoding, so use a fresh struct;
-		// else you will override your previous values with the current one
+
+	task, err := c.director.FindTask(taskID)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Could not fetch task with id %d", taskID)
 	}
 
-	err := c.getMultipleDataCheckingForErrors(
-		fmt.Sprintf("%s/tasks/%d/output?type=result", c.url, taskID),
-		http.StatusOK,
-		&output,
-		outputReadyCallback,
-		logger,
-	)
+	reporter := &BoshTaskOutputReporter{Logger: logger}
+	err = task.ResultOutput(reporter)
 
-	return outputs, err
+	return reporter.Output, errors.Wrap(err, "Could not fetch task output")
+
 }

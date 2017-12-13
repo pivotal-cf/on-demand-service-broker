@@ -9,15 +9,28 @@ package boshdirector
 import (
 	"fmt"
 	"log"
-	"net/http"
+
+	"github.com/cloudfoundry/bosh-cli/director"
+	"github.com/pkg/errors"
 )
 
 func (c *Client) DeleteDeployment(name, contextID string, logger *log.Logger) (int, error) {
 	logger.Printf("deleting deployment %s\n", name)
-	return c.deleteAndGetTaskIDCheckingForErrors(
-		fmt.Sprintf("%s/deployments/%s", c.url, name),
-		contextID,
-		http.StatusFound,
-		logger,
-	)
+	deployment, err := c.director.FindDeployment(name)
+	if err != nil {
+		return 0, errors.Wrap(err, fmt.Sprintf(`BOSH error when deleting deployment "%s"`, name))
+	}
+	err = deployment.Delete(false)
+	if err != nil {
+		return 0, errors.Wrap(err, fmt.Sprintf("Could not delete deployment %s", name))
+	}
+	tasks, err := c.director.RecentTasks(1, director.TasksFilter{Deployment: name})
+	if err != nil {
+		return 0, errors.Wrap(err, fmt.Sprintf(`Could not find tasks for deployment "%s"`, name))
+	}
+
+	if len(tasks) == 0 {
+		return 0, nil
+	}
+	return tasks[0].ID(), nil
 }

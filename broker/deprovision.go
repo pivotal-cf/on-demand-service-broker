@@ -51,7 +51,6 @@ func (b *Broker) Deprovision(
 			return b.runPreDeleteErrand(ctx, instanceID, errand, plan.LifecycleErrands.PreDelete.Instances, logger)
 		}
 	}
-
 	return b.deleteInstance(ctx, instanceID, plan, logger)
 }
 
@@ -148,7 +147,7 @@ func (b *Broker) deleteInstance(
 	logger *log.Logger,
 ) (brokerapi.DeprovisionServiceSpec, error) {
 	logger.Printf("deleting deployment for instance %s\n", instanceID)
-	taskID, err := b.boshClient.DeleteDeployment(deploymentName(instanceID), "", logger)
+	taskID, err := b.boshClient.DeleteDeployment(deploymentName(instanceID), fmt.Sprintf("delete-%s", instanceID), logger)
 	switch err.(type) {
 	case boshdirector.RequestError:
 		return deprovisionErr(NewBoshRequestError("delete", err), logger)

@@ -7,33 +7,22 @@
 package boshdirector
 
 import (
-	"fmt"
 	"log"
-	"net/http"
+
+	"github.com/pkg/errors"
 )
 
 func (c *Client) GetDeployment(name string, logger *log.Logger) ([]byte, bool, error) {
 	logger.Printf("getting manifest from bosh for deployment %s", name)
-	respJSON := make(map[string]string)
-
-	err := c.getDataCheckingForErrors(
-		fmt.Sprintf("%s/deployments/%s", c.url, name),
-		http.StatusOK,
-		&respJSON,
-		logger,
-	)
-
+	deployments, err := c.director.Deployments()
 	if err != nil {
-		if deploymentDoesNotExistYet(err) {
-			return nil, false, nil
-		}
-		return nil, false, err
+		return nil, false, errors.Wrap(err, "Cannot get the list of deployments")
 	}
-
-	return []byte(respJSON["manifest"]), true, nil
-}
-
-func deploymentDoesNotExistYet(err error) bool {
-	e, ok := err.(unexpectedStatusError)
-	return ok && e.actualStatus == http.StatusNotFound
+	for _, d := range deployments {
+		if d.Name() == name {
+			rawManifest, _ := d.Manifest()
+			return []byte(rawManifest), true, nil
+		}
+	}
+	return nil, false, nil
 }

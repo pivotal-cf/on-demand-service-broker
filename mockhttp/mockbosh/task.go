@@ -25,6 +25,11 @@ func Task(taskID int) *taskMock {
 	}
 }
 
+func (t *taskMock) WithContextID(value string) *taskMock {
+	t.WithHeader(BoshContextIDHeader, value)
+	return t
+}
+
 func (t *taskMock) RespondsWithTaskContainingState(provisioningTaskState string) *mockhttp.Handler {
 	return t.RespondsOKWithJSON(boshdirector.BoshTask{
 		ID:    t.taskID,

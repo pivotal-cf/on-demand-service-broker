@@ -26,6 +26,12 @@ func TaskOutput(taskId int) *taskOutputMock {
 	}
 }
 
+func TaskOutputEvent(taskId int) *taskOutputMock {
+	return &taskOutputMock{
+		Handler: mockhttp.NewMockedHttpRequest("GET", fmt.Sprintf("/tasks/%d/output?type=event", taskId)),
+	}
+}
+
 func (t *taskOutputMock) RespondsWithVMsOutput(vms []boshdirector.BoshVMsOutput) *mockhttp.Handler {
 	output := bytes.NewBuffer([]byte{})
 	encoder := json.NewEncoder(output)
