@@ -56,18 +56,3 @@ func getDirector() boshdir.Director {
 	Expect(err).NotTo(HaveOccurred())
 	return director
 }
-
-func getUnauthenticatedDirector() boshdir.Director {
-	logger := boshlog.NewLogger(boshlog.LevelError)
-	factory := boshdir.NewFactory(logger)
-
-	directorURL := envMustHave("DIRECTOR_URL")
-	config, err := boshdir.NewConfigFromURL(directorURL)
-	Expect(err).NotTo(HaveOccurred())
-
-	config.CACert = envMustHave("DIRECTOR_CA_CERT")
-
-	director, err := factory.New(config, boshdir.NewNoopTaskReporter(), boshdir.NewNoopFileReporter())
-	Expect(err).NotTo(HaveOccurred())
-	return director
-}

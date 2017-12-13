@@ -257,7 +257,7 @@ func lastOperationJSON(operation brokerapi.LastOperation) string {
 }
 
 func orphanDeploymentsJSON(deploymentNames ...string) string {
-	list := []mgmtapi.Deployment{}
+	var list []mgmtapi.Deployment
 	for _, name := range deploymentNames {
 		list = append(list, mgmtapi.Deployment{Name: name})
 	}

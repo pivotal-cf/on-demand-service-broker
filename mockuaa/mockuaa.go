@@ -21,7 +21,7 @@ const (
 	UnauthorizedErrorDescription = "you are not authorized to perform this action"
 	MalformedResponseUser        = "MalformedResponse"
 	InternalServerErrorUser      = "InternalServerError"
-	InternalServerErrorMessage   = "An unexpected error occured. Please try again later."
+	InternalServerErrorMessage   = "An unexpected error occurred. Please try again later."
 )
 
 type ClientCredentialsServer struct {

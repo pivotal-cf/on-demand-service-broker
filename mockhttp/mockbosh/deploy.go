@@ -26,13 +26,6 @@ func Deploy() *deployMock {
 	return mock
 }
 
-func DeploysWithManifestAndRedirectsToTask(manifest bosh.BoshManifest, taskID int) *deployMock {
-	return Deploy().
-		WithManifest(manifest).
-		WithoutContextID().
-		RedirectsToTask(taskID)
-}
-
 func (d *deployMock) RedirectsToTask(taskID int) *deployMock {
 	d.Handler = d.Handler.RedirectsTo(taskURL(taskID))
 	return d

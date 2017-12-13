@@ -64,7 +64,7 @@ type Plan struct {
 }
 
 func listServicePlansResponse(plans ...Plan) string {
-	servicePlans := []cf.ServicePlan{}
+	var servicePlans []cf.ServicePlan
 
 	for _, plan := range plans {
 		servicePlans = append(servicePlans, cf.ServicePlan{

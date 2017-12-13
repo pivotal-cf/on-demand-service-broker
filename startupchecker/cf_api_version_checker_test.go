@@ -15,9 +15,9 @@ import (
 
 var _ = Describe("CFAPIVersionChecker", func() {
 	const (
-		minimumCFVersion string = "2.57.0"
-		oldCFVersion     string = "2.56.0"
-		invalidCFVersion string = "1.invalid.0"
+		minimumCFVersion = "2.57.0"
+		oldCFVersion     = "2.56.0"
+		invalidCFVersion = "1.invalid.0"
 	)
 
 	var (

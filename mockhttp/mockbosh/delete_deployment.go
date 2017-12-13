@@ -14,12 +14,6 @@ type deleteDeployMock struct {
 	*mockhttp.Handler
 }
 
-func DeleteDeployment(deploymentName string) *deleteDeployMock {
-	return &deleteDeployMock{
-		Handler: mockhttp.NewMockedHttpRequest("DELETE", "/deployments/"+deploymentName+"?"),
-	}
-}
-
 func (d *deleteDeployMock) WithoutContextID() *deleteDeployMock {
 	d.WithoutHeader(BoshContextIDHeader)
 	return d

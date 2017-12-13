@@ -78,9 +78,9 @@ const (
 	OperationTypeBind    = OperationType("bind")
 	OperationTypeUnbind  = OperationType("unbind")
 
-	MinimumCFVersion                                     string = "2.57.0"
-	MinimumMajorStemcellDirectorVersionForODB                   = 3262
-	MinimumMajorSemverDirectorVersionForLifecycleErrands        = 261
+	MinimumCFVersion                                     = "2.57.0"
+	MinimumMajorStemcellDirectorVersionForODB            = 3262
+	MinimumMajorSemverDirectorVersionForLifecycleErrands = 261
 )
 
 type OperationType string

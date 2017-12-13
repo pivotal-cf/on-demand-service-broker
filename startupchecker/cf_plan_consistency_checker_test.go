@@ -15,7 +15,7 @@ import (
 )
 
 var _ = Describe("CfPlanConsistencyChecker", func() {
-	const existingPlanID string = "existing-plan"
+	const existingPlanID = "existing-plan"
 
 	var (
 		client         *fakes.FakeServiceInstanceCounter

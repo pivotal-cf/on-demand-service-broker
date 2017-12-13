@@ -17,7 +17,7 @@ import (
 
 var _ = Describe("getting deployment", func() {
 	var (
-		deploymentName   string = "some-deployment"
+		deploymentName   = "some-deployment"
 		manifest         []byte
 		deploymentFound  bool
 		rawManifest      = []byte("a-raw-manifest")

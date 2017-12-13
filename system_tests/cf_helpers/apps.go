@@ -134,10 +134,6 @@ func appBinding(appName, serviceName string) (*binding, error) {
 	return nil, fmt.Errorf("app not bound to service %q", serviceName)
 }
 
-type credentials struct {
-	Password string `json:"password"`
-}
-
 func AppBindingCreds(appName, serviceName string) (interface{}, error) {
 	b, err := appBinding(appName, serviceName)
 	if err != nil {
