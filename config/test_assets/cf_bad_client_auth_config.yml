@@ -23,10 +23,11 @@ bosh:
 cf:
   url: "a-cf-url"
   authentication:
-    url: "a-uaa-url"
-    client_credentials:
-      client_id: some-client-id
-      secret: #blank
+    uaa:
+      url: "a-uaa-url"
+      client_credentials:
+        client_id: some-client-id
+        secret: #blank
 
 service_catalog:
   id: some-id

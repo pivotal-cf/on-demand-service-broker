@@ -343,17 +343,23 @@ func defaultBrokerConfig(boshURL, uaaURL, cfURL, cfUAAURL string) config.Config 
 		Bosh: config.Bosh{
 			URL:         boshURL,
 			TrustedCert: certContents("cert.pem"),
-			Authentication: config.BOSHAuthentication{
-				UAA: config.BOSHUAAAuthentication{ID: boshClientID, Secret: boshClientSecret},
+			Authentication: config.Authentication{
+				UAA: config.UAAAuthentication{
+					ClientCredentials: config.ClientCredentials{
+						ID: boshClientID, Secret: boshClientSecret,
+					},
+				},
 			},
 		},
 		CF: config.CF{
 			URL: cfURL,
-			Authentication: config.UAAAuthentication{
-				URL: cfUAAURL,
-				ClientCredentials: config.ClientCredentials{
-					ID:     cfUaaClientID,
-					Secret: cfUaaClientSecret,
+			Authentication: config.Authentication{
+				UAA: config.UAAAuthentication{
+					URL: cfUAAURL,
+					ClientCredentials: config.ClientCredentials{
+						ID:     cfUaaClientID,
+						Secret: cfUaaClientSecret,
+					},
 				},
 			},
 		},

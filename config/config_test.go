@@ -7,6 +7,7 @@
 package config_test
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -15,6 +16,7 @@ import (
 	"net/http"
 
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
@@ -57,7 +59,7 @@ var _ = Describe("Config", func() {
 					Bosh: config.Bosh{
 						URL:         "some-url",
 						TrustedCert: "some-cert",
-						Authentication: config.BOSHAuthentication{
+						Authentication: config.Authentication{
 							Basic: config.UserCredentials{
 								Username: "some-username",
 								Password: "some-password",
@@ -67,11 +69,13 @@ var _ = Describe("Config", func() {
 					CF: config.CF{
 						URL:         "some-cf-url",
 						TrustedCert: "some-cf-cert",
-						Authentication: config.UAAAuthentication{
-							URL: "a-uaa-url",
-							UserCredentials: config.UserCredentials{
-								Username: "some-cf-username",
-								Password: "some-cf-password",
+						Authentication: config.Authentication{
+							UAA: config.UAAAuthentication{
+								URL: "a-uaa-url",
+								UserCredentials: config.UserCredentials{
+									Username: "some-cf-username",
+									Password: "some-cf-password",
+								},
 							},
 						},
 					},
@@ -171,6 +175,7 @@ var _ = Describe("Config", func() {
 					},
 				}
 
+				Expect(parseErr).NotTo(HaveOccurred())
 				Expect(conf).To(Equal(expected))
 			})
 
@@ -208,9 +213,11 @@ var _ = Describe("Config", func() {
 
 			It("returns a config object", func() {
 				Expect(parseErr).NotTo(HaveOccurred())
-				Expect(conf.Bosh.Authentication.UAA).To(Equal(config.BOSHUAAAuthentication{
-					ID:     "some-client-id",
-					Secret: "some-client-secret",
+				Expect(conf.Bosh.Authentication.UAA).To(Equal(config.UAAAuthentication{
+					ClientCredentials: config.ClientCredentials{
+						ID:     "some-client-id",
+						Secret: "some-client-secret",
+					},
 				}))
 			})
 		})
@@ -242,7 +249,7 @@ var _ = Describe("Config", func() {
 				})
 
 				It("returns an error", func() {
-					Expect(parseErr).To(MatchError(ContainSubstring("Must specify bosh url")))
+					Expect(parseErr).To(MatchError("BOSH configuration error: must specify bosh url"))
 				})
 			})
 
@@ -252,7 +259,7 @@ var _ = Describe("Config", func() {
 				})
 
 				It("returns an error", func() {
-					Expect(parseErr).To(MatchError(ContainSubstring("Must specify bosh authentication")))
+					Expect(parseErr).To(MatchError(("BOSH configuration error: must specify an authentication type")))
 				})
 			})
 
@@ -262,7 +269,7 @@ var _ = Describe("Config", func() {
 				})
 
 				It("returns an error", func() {
-					Expect(parseErr).To(MatchError(ContainSubstring("basic.password can't be empty")))
+					Expect(parseErr).To(MatchError("BOSH configuration error: authentication.basic.password can't be empty"))
 				})
 			})
 
@@ -272,7 +279,7 @@ var _ = Describe("Config", func() {
 				})
 
 				It("returns an error", func() {
-					Expect(parseErr).To(MatchError(ContainSubstring("uaa.secret can't be empty")))
+					Expect(parseErr).To(MatchError("BOSH configuration error: authentication.uaa.client_credentials.client_secret can't be empty"))
 				})
 			})
 
@@ -282,7 +289,7 @@ var _ = Describe("Config", func() {
 				})
 
 				It("returns an error", func() {
-					Expect(parseErr).To(MatchError(ContainSubstring("Cannot specify both basic and UAA for BOSH authentication")))
+					Expect(parseErr).To(MatchError("BOSH configuration error: cannot specify both basic and UAA authentication"))
 				})
 			})
 		})
@@ -294,7 +301,7 @@ var _ = Describe("Config", func() {
 				})
 
 				It("returns an error", func() {
-					Expect(parseErr).To(MatchError(ContainSubstring("Must specify CF url")))
+					Expect(parseErr).To(MatchError("CF configuration error: must specify CF url"))
 				})
 			})
 
@@ -304,7 +311,7 @@ var _ = Describe("Config", func() {
 				})
 
 				It("returns an error", func() {
-					Expect(parseErr).To(MatchError(ContainSubstring("Must specify UAA authentication")))
+					Expect(parseErr).To(MatchError("CF configuration error: must specify an authentication type"))
 				})
 			})
 
@@ -314,7 +321,7 @@ var _ = Describe("Config", func() {
 				})
 
 				It("returns an error", func() {
-					Expect(parseErr).To(MatchError(ContainSubstring("Must specify UAA url")))
+					Expect(parseErr).To(MatchError("CF configuration error: authentication.uaa.url can't be empty"))
 				})
 			})
 
@@ -324,7 +331,7 @@ var _ = Describe("Config", func() {
 				})
 
 				It("returns an error", func() {
-					Expect(parseErr).To(MatchError(ContainSubstring("user_credentials.password can't be empty")))
+					Expect(parseErr).To(MatchError("CF configuration error: authentication.uaa.user_credentials.password can't be empty"))
 				})
 			})
 
@@ -334,7 +341,7 @@ var _ = Describe("Config", func() {
 				})
 
 				It("returns an error", func() {
-					Expect(parseErr).To(MatchError(ContainSubstring("client_credentials.secret can't be empty")))
+					Expect(parseErr).To(MatchError("CF configuration error: authentication.uaa.client_credentials.client_secret can't be empty"))
 				})
 			})
 
@@ -344,7 +351,17 @@ var _ = Describe("Config", func() {
 				})
 
 				It("returns an error", func() {
-					Expect(parseErr).To(MatchError(ContainSubstring("Cannot specify both client and user credentials for UAA authentication")))
+					Expect(parseErr).To(MatchError("CF configuration error: authentication.uaa contains both client and user credentials"))
+				})
+			})
+
+			Context("when the CF configuration specifies no types of UAA credentials", func() {
+				BeforeEach(func() {
+					configFileName = "cf_uaa_no_credentials.yml"
+				})
+
+				It("returns an error", func() {
+					Expect(parseErr).To(MatchError("CF configuration error: authentication.uaa should contain either user_credentials or client_credentials"))
 				})
 			})
 		})
@@ -355,7 +372,7 @@ var _ = Describe("Config", func() {
 			})
 
 			It("returns an error", func() {
-				Expect(parseErr).To(MatchError(ContainSubstring("Must specify CF")))
+				Expect(parseErr).To(MatchError("CF configuration error: must specify CF url"))
 			})
 
 			Context("and CF checks are disabled", func() {
@@ -668,21 +685,23 @@ var _ = Describe("CF#NewAuthHeaderBuilder", func() {
 			cfConfig := config.CF{
 				URL:         "some-cf-url",
 				TrustedCert: "some-cf-cert",
-				Authentication: config.UAAAuthentication{
-					UserCredentials: config.UserCredentials{
-						Username: "some-cf-username",
-						Password: "some-cf-password",
+				Authentication: config.Authentication{
+					UAA: config.UAAAuthentication{
+						UserCredentials: config.UserCredentials{
+							Username: "some-cf-username",
+							Password: "some-cf-password",
+						},
 					},
 				},
 			}
 			mockUAA := mockuaa.NewUserCredentialsServer(
 				"cf",
 				"",
-				cfConfig.Authentication.UserCredentials.Username,
-				cfConfig.Authentication.UserCredentials.Password,
+				cfConfig.Authentication.UAA.UserCredentials.Username,
+				cfConfig.Authentication.UAA.UserCredentials.Password,
 				tokenToReturn,
 			)
-			cfConfig.Authentication.URL = mockUAA.URL
+			cfConfig.Authentication.UAA.URL = mockUAA.URL
 
 			builder, err := cfConfig.NewAuthHeaderBuilder(true)
 			Expect(err).NotTo(HaveOccurred())
@@ -699,19 +718,21 @@ var _ = Describe("CF#NewAuthHeaderBuilder", func() {
 			cfConfig := config.CF{
 				URL:         "some-cf-url",
 				TrustedCert: "some-cf-cert",
-				Authentication: config.UAAAuthentication{
-					ClientCredentials: config.ClientCredentials{
-						ID:     "some-cf-client-id",
-						Secret: "some-cf-client-secret",
+				Authentication: config.Authentication{
+					UAA: config.UAAAuthentication{
+						ClientCredentials: config.ClientCredentials{
+							ID:     "some-cf-client-id",
+							Secret: "some-cf-client-secret",
+						},
 					},
 				},
 			}
 			mockUAA := mockuaa.NewClientCredentialsServer(
-				cfConfig.Authentication.ClientCredentials.ID,
-				cfConfig.Authentication.ClientCredentials.Secret,
+				cfConfig.Authentication.UAA.ClientCredentials.ID,
+				cfConfig.Authentication.UAA.ClientCredentials.Secret,
 				tokenToReturn,
 			)
-			cfConfig.Authentication.URL = mockUAA.URL
+			cfConfig.Authentication.UAA.URL = mockUAA.URL
 
 			builder, err := cfConfig.NewAuthHeaderBuilder(true)
 			Expect(err).NotTo(HaveOccurred())
@@ -733,7 +754,7 @@ var _ = Describe("Bosh#NewAuthHeaderBuilder", func() {
 
 	It("returns a BasicAuthHeaderBuilder when BOSH config has a basic auth user", func() {
 		boshConfig := config.Bosh{
-			Authentication: config.BOSHAuthentication{
+			Authentication: config.Authentication{
 				Basic: config.UserCredentials{
 					Username: "test-user",
 					Password: "super-secret",
@@ -751,10 +772,12 @@ var _ = Describe("Bosh#NewAuthHeaderBuilder", func() {
 
 	It("returns a ClientAuthHeaderBuilder when BOSH config has a UAA property", func() {
 		boshConfig := config.Bosh{
-			Authentication: config.BOSHAuthentication{
-				UAA: config.BOSHUAAAuthentication{
-					ID:     "test-id",
-					Secret: "super-secret",
+			Authentication: config.Authentication{
+				UAA: config.UAAAuthentication{
+					ClientCredentials: config.ClientCredentials{
+						ID:     "test-id",
+						Secret: "super-secret",
+					},
 				},
 			},
 			TrustedCert: "test-cert",
@@ -762,8 +785,8 @@ var _ = Describe("Bosh#NewAuthHeaderBuilder", func() {
 
 		tokenToReturn := "test-token"
 		mockuaa := mockuaa.NewClientCredentialsServer(
-			boshConfig.Authentication.UAA.ID,
-			boshConfig.Authentication.UAA.Secret,
+			boshConfig.Authentication.UAA.ClientCredentials.ID,
+			boshConfig.Authentication.UAA.ClientCredentials.Secret,
 			tokenToReturn,
 		)
 
@@ -783,6 +806,172 @@ var _ = Describe("Bosh#NewAuthHeaderBuilder", func() {
 		Expect(err.Error()).To(Equal("No BOSH authentication configured"))
 	})
 })
+
+var _ = Describe("Config validation", func() {
+	DescribeTable("Authentication",
+		func(authentication config.Authentication, expectedErr error) {
+			err := authentication.Validate(false)
+			if expectedErr != nil {
+				Expect(err).To(MatchError(expectedErr.Error()))
+			} else {
+				Expect(err).NotTo(HaveOccurred())
+			}
+		},
+		Entry("succeeds if basic auth is configured", authBlock(validBasicAuthBlock(), config.UAAAuthentication{}), nil),
+		Entry(
+			"succeeds if UAA auth is configured with user credentials",
+			authBlock(config.UserCredentials{}, uaaAuthBlock(validBasicAuthBlock(), config.ClientCredentials{})),
+			nil,
+		),
+		Entry(
+			"succeeds if UAA auth is configured with client credentials",
+			authBlock(config.UserCredentials{}, uaaAuthBlock(config.UserCredentials{}, validClientCredentialsBlock())),
+			nil,
+		),
+		Entry(
+			"fails when neither basic or UAA auth are configured",
+			config.Authentication{},
+			errors.New("must specify an authentication type"),
+		),
+		Entry(
+			"fails when both basic and UAA auth are configured",
+			authBlock(validBasicAuthBlock(), uaaAuthBlock(validBasicAuthBlock(), config.ClientCredentials{})),
+			errors.New("cannot specify both basic and UAA authentication"),
+		),
+		Entry(
+			"fails concatenating the fields if basic auth has a field error",
+			authBlock(basicAuthBlock("", "password"), config.UAAAuthentication{}),
+			errors.New("authentication.basic.username can't be empty"),
+		),
+		Entry(
+			"fails concatenating the fields if UAA client credentials auth has a field error",
+			authBlock(config.UserCredentials{}, uaaAuthBlock(config.UserCredentials{}, clientCredsAuthBlock("", "secret"))),
+			errors.New("authentication.uaa.client_credentials.client_id can't be empty"),
+		),
+		Entry(
+			"fails describing the error with UAA configuration",
+			authBlock(config.UserCredentials{}, uaaAuthBlock(basicAuthBlock("usr", "psw"), clientCredsAuthBlock("id", "secret"))),
+			errors.New("authentication.uaa contains both client and user credentials"),
+		),
+	)
+
+	DescribeTable("UAA Auth",
+		func(uaa config.UAAAuthentication, URLRequired bool, expectedErr error) {
+			err := uaa.Validate(URLRequired)
+			if expectedErr != nil {
+				Expect(err).To(MatchError(expectedErr.Error()))
+			} else {
+				Expect(err).NotTo(HaveOccurred())
+			}
+		},
+		Entry("succeeds if it is correctly configured with user credentials", uaaAuthBlock(validBasicAuthBlock(), config.ClientCredentials{}), false, nil),
+		Entry("succeeds if it is correctly configured with client credentials", uaaAuthBlock(config.UserCredentials{}, validClientCredentialsBlock()), false, nil),
+		Entry(
+			"fails if neither user_credentials or client_credentials are configured and URL is not required",
+			uaaAuthBlock(config.UserCredentials{}, config.ClientCredentials{}),
+			false,
+			errors.New("must specify UAA authentication"),
+		),
+		Entry(
+			"fails if URL is required and specifies user_credentials",
+			uaaAuthBlock(validBasicAuthBlock(), config.ClientCredentials{}),
+			true,
+			errors.New("url can't be empty"),
+		),
+		Entry(
+			"fails if URL is required and specifies client_credentials",
+			uaaAuthBlock(config.UserCredentials{}, validClientCredentialsBlock()),
+			true,
+			errors.New("url can't be empty"),
+		),
+		Entry(
+			"fails if both user_credentials and client_credentials are configured",
+			uaaAuthBlock(validBasicAuthBlock(), validClientCredentialsBlock()),
+			false,
+			errors.New("contains both client and user credentials"),
+		),
+		Entry(
+			"fails if there is a field error in client_credentials",
+			uaaAuthBlock(config.UserCredentials{}, clientCredsAuthBlock("", "secret")),
+			false,
+			errors.New("client_credentials.client_id can't be empty"),
+		),
+		Entry(
+			"fails if there is a field error in user_credentials",
+			uaaAuthBlock(basicAuthBlock("", "psw"), config.ClientCredentials{}),
+			false,
+			errors.New("user_credentials.username can't be empty"),
+		),
+	)
+
+	DescribeTable("Basic Auth",
+		func(basic config.UserCredentials, expectedErr error) {
+			err := basic.Validate()
+			if expectedErr != nil {
+				Expect(err).To(MatchError(expectedErr.Error()))
+			} else {
+				Expect(err).NotTo(HaveOccurred())
+			}
+		},
+		Entry("succeeds if it is correctly configured", validBasicAuthBlock(), nil),
+		Entry("fails when username is empty", basicAuthBlock("", "psw"), errors.New("username can't be empty")),
+		Entry("fails when password is empty", basicAuthBlock("usr", ""), errors.New("password can't be empty")),
+	)
+
+	DescribeTable("Client Credentials",
+		func(cc config.ClientCredentials, expectedErr error) {
+			err := cc.Validate()
+			if expectedErr != nil {
+				Expect(err).To(MatchError(expectedErr.Error()))
+			} else {
+				Expect(err).NotTo(HaveOccurred())
+			}
+		},
+		Entry("succeeds if it is correctly configured", validClientCredentialsBlock(), nil),
+		Entry("fails when client_id is empty", clientCredsAuthBlock("", "secret"), errors.New("client_id can't be empty")),
+		Entry("fails when client_secret is empty", clientCredsAuthBlock("id", ""), errors.New("client_secret can't be empty")),
+	)
+
+})
+
+func authBlock(basic config.UserCredentials, uaa config.UAAAuthentication) config.Authentication {
+	return config.Authentication{
+		Basic: basic,
+		UAA:   uaa,
+	}
+}
+
+func uaaAuthBlock(userCreds config.UserCredentials, clienCreds config.ClientCredentials) config.UAAAuthentication {
+	return config.UAAAuthentication{
+		UserCredentials:   userCreds,
+		ClientCredentials: clienCreds,
+	}
+}
+
+func basicAuthBlock(username, password string) config.UserCredentials {
+	return config.UserCredentials{
+		Username: username,
+		Password: password,
+	}
+}
+
+func clientCredsAuthBlock(id, secret string) config.ClientCredentials {
+	return config.ClientCredentials{
+		ID:     id,
+		Secret: secret,
+	}
+}
+
+func validBasicAuthBlock() config.UserCredentials {
+	return basicAuthBlock("username", "password")
+}
+
+func validClientCredentialsBlock() config.ClientCredentials {
+	return config.ClientCredentials{
+		ID:     "client_id",
+		Secret: "client_secret",
+	}
+}
 
 func booleanPointer(val bool) *bool {
 	return &val

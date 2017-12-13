@@ -59,7 +59,7 @@ var _ = Describe("Basic authentication for BOSH", func() {
 			It("starts and obtains a token only for CF", func() {
 				boshDirector.ExpectedBasicAuth(boshUsername, boshPassword)
 				boshDirector.ExcludeAuthorizationCheck("/info")
-				conf.Bosh.Authentication = config.BOSHAuthentication{
+				conf.Bosh.Authentication = config.Authentication{
 					Basic: config.UserCredentials{
 						Username: boshUsername,
 						Password: boshPassword,
@@ -86,7 +86,7 @@ var _ = Describe("Basic authentication for BOSH", func() {
 		})
 
 		It("fails to start if the Basic Auth credentials are incorrect", func() {
-			conf.Bosh.Authentication = config.BOSHAuthentication{
+			conf.Bosh.Authentication = config.Authentication{
 				Basic: config.UserCredentials{
 					Username: "bad-username",
 					Password: "bad-password",

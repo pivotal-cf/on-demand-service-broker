@@ -75,9 +75,11 @@ func New(boshURL, uaaURL, boshUsername, boshPassword, boshCACert string) *BoshHe
 		certPool,
 		directorFactory,
 		uaaFactory,
-		config.BOSHAuthentication{
-			UAA: config.BOSHUAAAuthentication{
-				ID: boshUsername, Secret: boshPassword,
+		config.Authentication{
+			UAA: config.UAAAuthentication{
+				ClientCredentials: config.ClientCredentials{
+					ID: boshUsername, Secret: boshPassword,
+				},
 			},
 		},
 		logger,
@@ -120,7 +122,7 @@ func NewBasicAuth(boshURL, boshUsername, boshPassword, boshCACert string, disabl
 		certPool,
 		directorFactory,
 		uaaFactory,
-		config.BOSHAuthentication{
+		config.Authentication{
 			Basic: config.UserCredentials{
 				Username: boshUsername, Password: boshPassword,
 			},

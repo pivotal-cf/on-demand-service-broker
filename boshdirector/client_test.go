@@ -110,8 +110,8 @@ var _ = Describe("New", func() {
 				Host:         "uaa.url.example.com",
 				Port:         12345,
 				CACert:       "a totally trustworthy cert",
-				Client:       boshAuthConfig.UAA.ID,
-				ClientSecret: boshAuthConfig.UAA.Secret,
+				Client:       boshAuthConfig.UAA.ClientCredentials.ID,
+				ClientSecret: boshAuthConfig.UAA.ClientCredentials.Secret,
 			}))
 
 			By("building an authenticated client")
@@ -317,7 +317,7 @@ var _ = Describe("New", func() {
 			}, nil)
 		})
 		It("returns a bosh client that works", func() {
-			basicAuthConfig := config.BOSHAuthentication{
+			basicAuthConfig := config.Authentication{
 				Basic: config.UserCredentials{Username: "example-username", Password: "example-password"},
 			}
 			client, err := New(

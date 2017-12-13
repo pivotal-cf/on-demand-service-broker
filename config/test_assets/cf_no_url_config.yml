@@ -18,8 +18,9 @@ bosh:
   url: bosh-url
   authentication:
     uaa:
-      client_id: some-client-id
-      client_secret: some-client-secret
+      client_credentials:
+        client_id: some-client-id
+        client_secret: some-client-secret
 cf:
   root_ca_cert: some-cf-cert
   authentication:

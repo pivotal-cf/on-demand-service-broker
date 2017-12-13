@@ -77,7 +77,7 @@ type CertAppender interface {
 	AppendCertsFromPEM(pemCerts []byte) (ok bool)
 }
 
-func New(url string, disableSSLCertVerification bool, trustedCertPEM []byte, httpClient NetworkDoer, authBuilder AuthenticatorBuilder, certAppender CertAppender, directorFactory DirectorFactory, uaaFactory UAAFactory, boshAuth config.BOSHAuthentication, logger *log.Logger) (*Client, error) {
+func New(url string, disableSSLCertVerification bool, trustedCertPEM []byte, httpClient NetworkDoer, authBuilder AuthenticatorBuilder, certAppender CertAppender, directorFactory DirectorFactory, uaaFactory UAAFactory, boshAuth config.Authentication, logger *log.Logger) (*Client, error) {
 	certAppender.AppendCertsFromPEM(trustedCertPEM)
 
 	directorConfig, err := director.NewConfigFromURL(url)
@@ -107,8 +107,8 @@ func New(url string, disableSSLCertVerification bool, trustedCertPEM []byte, htt
 		if err != nil {
 			return nil, errors.Wrap(err, "Failed to build UAA config from url")
 		}
-		uaaConfig.Client = boshAuth.UAA.ID
-		uaaConfig.ClientSecret = boshAuth.UAA.Secret
+		uaaConfig.Client = boshAuth.UAA.ClientCredentials.ID
+		uaaConfig.ClientSecret = boshAuth.UAA.ClientCredentials.Secret
 		uaaConfig.CACert = directorConfig.CACert
 		uaa, err := uaaFactory.New(uaaConfig)
 		if err != nil {

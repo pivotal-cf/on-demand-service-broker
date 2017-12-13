@@ -43,7 +43,7 @@ var (
 	fakeUAAFactory           *fakes.FakeUAAFactory
 	fakeUAA                  *fakes.FakeUAA
 	logger                   *log.Logger
-	boshAuthConfig           config.BOSHAuthentication
+	boshAuthConfig           config.Authentication
 )
 
 var _ = BeforeEach(func() {
@@ -56,10 +56,12 @@ var _ = BeforeEach(func() {
 	fakeUAAFactory = new(fakes.FakeUAAFactory)
 	fakeUAA = new(fakes.FakeUAA)
 	fakeDirector = new(fakes.FakeDirector)
-	boshAuthConfig = config.BOSHAuthentication{
-		UAA: config.BOSHUAAAuthentication{
-			ID:     "bosh-user",
-			Secret: "bosh-secret",
+	boshAuthConfig = config.Authentication{
+		UAA: config.UAAAuthentication{
+			ClientCredentials: config.ClientCredentials{
+				ID:     "bosh-user",
+				Secret: "bosh-secret",
+			},
 		},
 	}
 	logger = log.New(GinkgoWriter, "[boshdirector unit test]", log.LstdFlags)

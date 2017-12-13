@@ -18,16 +18,18 @@ bosh:
   url: "a-url"
   authentication:
     uaa:
-      client_id: some-client-id
-      client_secret: # blank
+      client_credentials:
+        client_id: some-client-id
+        client_secret: # blank
 cf:
   url: some-cf-url
   root_ca_cert: some-cf-cert
   authentication:
-    url: a-uaa-url
-    user_credentials:
-      username: some-cf-username
-      password: some-cf-password
+    uaa:
+      url: a-uaa-url
+      user_credentials:
+        username: some-cf-username
+        password: some-cf-password
 service_catalog:
   id: some-id
   service_name: some-marketplace-name

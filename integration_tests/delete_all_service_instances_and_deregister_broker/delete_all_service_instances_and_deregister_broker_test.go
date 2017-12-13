@@ -58,11 +58,13 @@ var _ = Describe("purge instances and deregister tool", func() {
 			DisableSSLCertVerification: true,
 			CF: config.CF{
 				URL: cfAPI.URL,
-				Authentication: config.UAAAuthentication{
-					URL: cfUAA.URL,
-					ClientCredentials: config.ClientCredentials{
-						ID:     cfUaaClientID,
-						Secret: cfUaaClientSecret,
+				Authentication: config.Authentication{
+					UAA: config.UAAAuthentication{
+						URL: cfUAA.URL,
+						ClientCredentials: config.ClientCredentials{
+							ID:     cfUaaClientID,
+							Secret: cfUaaClientSecret,
+						},
 					},
 				},
 			},

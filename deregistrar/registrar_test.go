@@ -39,11 +39,13 @@ var _ = Describe("Deregistrar Config", func() {
 			CF: config.CF{
 				URL:         "some-cf-url",
 				TrustedCert: "some-cf-cert",
-				Authentication: config.UAAAuthentication{
-					URL: "a-uaa-url",
-					UserCredentials: config.UserCredentials{
-						Username: "some-cf-username",
-						Password: "some-cf-password",
+				Authentication: config.Authentication{
+					UAA: config.UAAAuthentication{
+						URL: "a-uaa-url",
+						UserCredentials: config.UserCredentials{
+							Username: "some-cf-username",
+							Password: "some-cf-password",
+						},
 					},
 				},
 			},

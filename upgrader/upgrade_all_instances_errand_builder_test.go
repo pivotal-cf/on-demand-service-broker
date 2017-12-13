@@ -130,22 +130,10 @@ var _ = Describe("UpgraderBuilder", func() {
 	})
 })
 
-func serviceInstancesAPIBlock(user, password, url string) config.ServiceInstancesAPI {
-	return config.ServiceInstancesAPI{
-		Authentication: config.BOSHAuthentication{
-			Basic: config.UserCredentials{
-				Username: user,
-				Password: password,
-			},
-		},
-		URL: url,
-	}
-}
-
 func updateAllInstanceErrandConfig(brokerUser, brokerPassword, brokerURL string) config.UpgradeAllInstanceErrandConfig {
 	return config.UpgradeAllInstanceErrandConfig{
 		BrokerAPI: config.BrokerAPI{
-			Authentication: config.BOSHAuthentication{
+			Authentication: config.Authentication{
 				Basic: config.UserCredentials{
 					Username: brokerUser,
 					Password: brokerPassword,
@@ -154,7 +142,7 @@ func updateAllInstanceErrandConfig(brokerUser, brokerPassword, brokerURL string)
 			URL: brokerURL,
 		},
 		ServiceInstancesAPI: config.ServiceInstancesAPI{
-			Authentication: config.BOSHAuthentication{
+			Authentication: config.Authentication{
 				Basic: config.UserCredentials{
 					Username: brokerUser,
 					Password: brokerPassword,

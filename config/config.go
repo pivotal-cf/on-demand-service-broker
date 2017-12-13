@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"reflect"
 	"strings"
 
 	"net/http"
@@ -31,18 +30,60 @@ type Config struct {
 	ServiceCatalog    ServiceOffering   `yaml:"service_catalog"`
 }
 
+type Broker struct {
+	Port                       int
+	Username                   string
+	Password                   string
+	DisableSSLCertVerification bool `yaml:"disable_ssl_cert_verification"`
+	StartUpBanner              bool `yaml:"startup_banner"`
+	ShutdownTimeoutSecs        int  `yaml:"shutdown_timeout_in_seconds"`
+	DisableCFStartupChecks     bool `yaml:"disable_cf_startup_checks"`
+}
+
+type Authentication struct {
+	Basic UserCredentials
+	UAA   UAAAuthentication
+}
+
+type UAAAuthentication struct {
+	URL               string
+	ClientCredentials ClientCredentials `yaml:"client_credentials"`
+	UserCredentials   UserCredentials   `yaml:"user_credentials"`
+}
+
+type UserCredentials struct {
+	Username string
+	Password string
+}
+
+type ClientCredentials struct {
+	ID     string `yaml:"client_id"`
+	Secret string `yaml:"client_secret"`
+}
+
+type Bosh struct {
+	URL            string `yaml:"url"`
+	TrustedCert    string `yaml:"root_ca_cert"`
+	Authentication Authentication
+}
+
+type CF struct {
+	URL            string
+	TrustedCert    string `yaml:"root_ca_cert"`
+	Authentication Authentication
+}
+
 func (c Config) Validate() error {
 	if err := c.Broker.Validate(); err != nil {
 		return err
 	}
 
 	if err := c.Bosh.Validate(); err != nil {
-		return err
+		return fmt.Errorf("BOSH configuration error: %s", err)
 	}
-
 	if !c.Broker.DisableCFStartupChecks {
 		if err := c.CF.Validate(); err != nil {
-			return err
+			return fmt.Errorf("CF configuration error: %s", err.Error())
 		}
 	}
 
@@ -63,16 +104,6 @@ func (c Config) Validate() error {
 
 func (c Config) HasCredHub() bool {
 	return c.CredHub != CredHub{}
-}
-
-type Broker struct {
-	Port                       int
-	Username                   string
-	Password                   string
-	DisableSSLCertVerification bool `yaml:"disable_ssl_cert_verification"`
-	StartUpBanner              bool `yaml:"startup_banner"`
-	ShutdownTimeoutSecs        int  `yaml:"shutdown_timeout_in_seconds"`
-	DisableCFStartupChecks     bool `yaml:"disable_cf_startup_checks"`
 }
 
 func (b Broker) Validate() error {
@@ -115,17 +146,6 @@ func assertVersion(version string) error {
 	return nil
 }
 
-type Bosh struct {
-	URL            string
-	TrustedCert    string `yaml:"root_ca_cert"`
-	Authentication BOSHAuthentication
-}
-
-type BOSHAuthentication struct {
-	Basic UserCredentials
-	UAA   BOSHUAAAuthentication
-}
-
 func (boshConfig Bosh) NewAuthHeaderBuilder(UAAURL string, disableSSLCertVerification bool) (AuthHeaderBuilder, error) {
 	boshAuthConfig := boshConfig.Authentication
 	if boshAuthConfig.Basic.IsSet() {
@@ -136,8 +156,8 @@ func (boshConfig Bosh) NewAuthHeaderBuilder(UAAURL string, disableSSLCertVerific
 	} else if boshAuthConfig.UAA.IsSet() {
 		return authorizationheader.NewClientTokenAuthHeaderBuilder(
 			UAAURL,
-			boshAuthConfig.UAA.ID,
-			boshAuthConfig.UAA.Secret,
+			boshAuthConfig.UAA.ClientCredentials.ID,
+			boshAuthConfig.UAA.ClientCredentials.Secret,
 			disableSSLCertVerification,
 			[]byte(boshConfig.TrustedCert),
 		)
@@ -146,130 +166,145 @@ func (boshConfig Bosh) NewAuthHeaderBuilder(UAAURL string, disableSSLCertVerific
 	}
 }
 
-type CF struct {
-	URL            string
-	TrustedCert    string `yaml:"root_ca_cert"`
-	Authentication UAAAuthentication
-}
-
 type AuthHeaderBuilder interface {
 	AddAuthHeader(request *http.Request, logger *log.Logger) error
 }
 
 func (cf CF) NewAuthHeaderBuilder(disableSSLCertVerification bool) (AuthHeaderBuilder, error) {
-	if cf.Authentication.ClientCredentials.IsSet() {
+	if cf.Authentication.UAA.ClientCredentials.IsSet() {
 		return authorizationheader.NewClientTokenAuthHeaderBuilder(
-			cf.Authentication.URL,
-			cf.Authentication.ClientCredentials.ID,
-			cf.Authentication.ClientCredentials.Secret,
+			cf.Authentication.UAA.URL,
+			cf.Authentication.UAA.ClientCredentials.ID,
+			cf.Authentication.UAA.ClientCredentials.Secret,
 			disableSSLCertVerification,
 			[]byte(cf.TrustedCert),
 		)
 	} else {
 		return authorizationheader.NewUserTokenAuthHeaderBuilder(
-			cf.Authentication.URL,
+			cf.Authentication.UAA.URL,
 			"cf",
 			"",
-			cf.Authentication.UserCredentials.Username,
-			cf.Authentication.UserCredentials.Password,
+			cf.Authentication.UAA.UserCredentials.Username,
+			cf.Authentication.UAA.UserCredentials.Password,
 			disableSSLCertVerification,
 			[]byte(cf.TrustedCert),
 		)
 	}
 }
 
-type UserCredentials struct {
-	Username string
-	Password string
+func (b Bosh) Validate() error {
+	if b.URL == "" {
+		return fmt.Errorf("must specify bosh url")
+	}
+	return b.Authentication.Validate(false)
+}
+
+func (cf CF) Validate() error {
+	if cf.URL == "" {
+		return fmt.Errorf("must specify CF url")
+	}
+	return cf.Authentication.Validate(true)
+}
+
+func (cc UAAAuthentication) IsSet() bool {
+	return cc != UAAAuthentication{}
+}
+
+func (a UAAAuthentication) Validate(URLRequired bool) error {
+	urlIsSet := a.URL != ""
+	clientCredentialsSet := a.ClientCredentials.IsSet()
+	userCredentialsSet := a.UserCredentials.IsSet()
+
+	switch {
+	case !urlIsSet && !clientCredentialsSet && !userCredentialsSet:
+		return fmt.Errorf("must specify UAA authentication")
+	case !urlIsSet && URLRequired:
+		return newFieldError("url", errors.New("can't be empty"))
+	case !clientCredentialsSet && !userCredentialsSet:
+		return fmt.Errorf("should contain either user_credentials or client_credentials")
+	case clientCredentialsSet && userCredentialsSet:
+		return fmt.Errorf("contains both client and user credentials")
+	case clientCredentialsSet:
+		if err := a.ClientCredentials.Validate(); err != nil {
+			return newFieldError("client_credentials", err)
+		}
+	case userCredentialsSet:
+		if err := a.UserCredentials.Validate(); err != nil {
+			return newFieldError("user_credentials", err)
+		}
+	}
+	return nil
 }
 
 func (c UserCredentials) IsSet() bool {
 	return c != UserCredentials{}
 }
 
-type ClientCredentials struct {
-	ID     string `yaml:"client_id"`
-	Secret string `yaml:"secret"`
-}
-
-type UAAAuthentication struct {
-	URL               string            `yaml:"url"`
-	ClientCredentials ClientCredentials `yaml:"client_credentials"`
-	UserCredentials   UserCredentials   `yaml:"user_credentials"`
-}
-
-type BOSHUAAAuthentication struct {
-	ID     string `yaml:"client_id"`
-	Secret string `yaml:"client_secret"`
-}
-
-func (a UAAAuthentication) IsSet() bool {
-	return a != UAAAuthentication{}
-}
-
-func (b Bosh) Validate() error {
-	if b.URL == "" {
-		return fmt.Errorf("Must specify bosh url")
+func (b UserCredentials) Validate() error {
+	if b.Username == "" {
+		return newFieldError("username", errors.New("can't be empty"))
 	}
-	return b.Authentication.Validate()
-}
-
-func (cf CF) Validate() error {
-	if cf.URL == "" {
-		return fmt.Errorf("Must specify CF url")
+	if b.Password == "" {
+		return newFieldError("password", errors.New("can't be empty"))
 	}
-	return cf.Authentication.Validate()
-}
-
-func (a UAAAuthentication) Validate() error {
-	urlIsSet := a.URL != ""
-	clientIsSet := a.ClientCredentials.IsSet()
-	basicSet := a.UserCredentials.IsSet()
-
-	var err error
-
-	if !urlIsSet && !clientIsSet && !basicSet {
-		return fmt.Errorf("Must specify UAA authentication")
-	} else if !urlIsSet {
-		return fmt.Errorf("Must specify UAA url")
-	} else if !clientIsSet && !basicSet {
-		return fmt.Errorf("Must specify UAA credentials")
-	} else if clientIsSet && basicSet {
-		err = fmt.Errorf("Cannot specify both client and user credentials for UAA authentication")
-	} else if clientIsSet {
-		err = validateNoFieldsEmptyString(a.ClientCredentials, "client_credentials")
-	} else if basicSet {
-		err = validateNoFieldsEmptyString(a.UserCredentials, "user_credentials")
-	}
-
-	return err
-}
-
-func (cc BOSHUAAAuthentication) IsSet() bool {
-	return cc != BOSHUAAAuthentication{}
+	return nil
 }
 
 func (cc ClientCredentials) IsSet() bool {
 	return cc != ClientCredentials{}
 }
 
-func (a BOSHAuthentication) Validate() error {
+func (c ClientCredentials) Validate() error {
+	if c.ID == "" {
+		return newFieldError("client_id", errors.New("can't be empty"))
+	}
+	if c.Secret == "" {
+		return newFieldError("client_secret", errors.New("can't be empty"))
+	}
+	return nil
+}
+
+type FieldError struct {
+	Field string
+	Msg   string
+}
+
+func (f FieldError) Error() string {
+	return fmt.Sprintf("%s %s", f.Field, f.Msg)
+}
+
+func newFieldError(field string, err error) error {
+	switch newErr := err.(type) {
+	case *FieldError:
+		newErr.Field = fmt.Sprintf("%s.%s", field, newErr.Field)
+		return newErr
+	default:
+		return &FieldError{
+			Field: field,
+			Msg:   err.Error(),
+		}
+	}
+}
+
+func (a Authentication) Validate(URLRequired bool) error {
 	uaaSet := a.UAA.IsSet()
 	basicSet := a.Basic.IsSet()
 
-	var err error
-
-	if !uaaSet && !basicSet {
-		return fmt.Errorf("Must specify bosh authentication")
-	} else if uaaSet && basicSet {
-		err = fmt.Errorf("Cannot specify both basic and UAA for BOSH authentication")
-	} else if uaaSet {
-		err = validateNoFieldsEmptyString(a.UAA, "uaa")
-	} else if basicSet {
-		err = validateNoFieldsEmptyString(a.Basic, "basic")
+	switch {
+	case !uaaSet && !basicSet:
+		return fmt.Errorf("must specify an authentication type")
+	case uaaSet && basicSet:
+		return fmt.Errorf("cannot specify both basic and UAA authentication")
+	case uaaSet:
+		if err := a.UAA.Validate(URLRequired); err != nil {
+			return newFieldError("authentication.uaa", err)
+		}
+	case basicSet:
+		if err := a.Basic.Validate(); err != nil {
+			return newFieldError("authentication.basic", err)
+		}
 	}
-
-	return err
+	return nil
 }
 
 type CredHub struct {
@@ -300,21 +335,6 @@ func Parse(configFilePath string) (Config, error) {
 	}
 
 	return config, nil
-}
-
-func validateNoFieldsEmptyString(obj interface{}, objName string) error {
-	bVal := reflect.ValueOf(obj)
-	bType := reflect.TypeOf(obj)
-	for i := 0; i < bVal.NumField(); i++ {
-		fieldVal := bVal.Field(i).String()
-
-		if fieldVal == "" {
-			fieldName := bType.Field(i).Name
-			return fmt.Errorf("%s.%s can't be empty", objName, strings.ToLower(fieldName))
-		}
-	}
-
-	return nil
 }
 
 type ServiceOffering struct {
@@ -504,12 +524,12 @@ type UpgradeAllInstanceErrandConfig struct {
 }
 
 type BrokerAPI struct {
-	URL            string             `yaml:"url"`
-	Authentication BOSHAuthentication `yaml:"authentication"`
+	URL            string         `yaml:"url"`
+	Authentication Authentication `yaml:"authentication"`
 }
 
 type ServiceInstancesAPI struct {
-	URL            string             `yaml:"url"`
-	RootCACert     string             `yaml:"root_ca_cert"`
-	Authentication BOSHAuthentication `yaml:"authentication"`
+	URL            string         `yaml:"url"`
+	RootCACert     string         `yaml:"root_ca_cert"`
+	Authentication Authentication `yaml:"authentication"`
 }

@@ -49,11 +49,13 @@ var _ = Describe("UAA user credentials for CF", func() {
 		cfUAA = mockuaa.NewUserCredentialsServer(cfClientID, cfClientSecret, cfUsername, cfPassword, "CF UAA token")
 
 		conf := defaultBrokerConfig(boshDirector.URL, boshUAA.URL, cfAPI.URL, cfUAA.URL)
-		conf.CF.Authentication = config.UAAAuthentication{
-			URL: cfUAA.URL,
-			UserCredentials: config.UserCredentials{
-				Username: cfUsername,
-				Password: cfPassword,
+		conf.CF.Authentication = config.Authentication{
+			UAA: config.UAAAuthentication{
+				URL: cfUAA.URL,
+				UserCredentials: config.UserCredentials{
+					Username: cfUsername,
+					Password: cfPassword,
+				},
 			},
 		}
 
