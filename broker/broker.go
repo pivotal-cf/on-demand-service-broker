@@ -40,7 +40,7 @@ func New(
 	serviceOffering config.ServiceOffering,
 	startupCheckers []StartupChecker,
 	serviceAdapter ServiceAdapterClient,
-	deployer Deployer,
+	deployer Deployer, // TODO: is it used?
 	loggerFactory *loggerfactory.LoggerFactory,
 ) (*Broker, error) {
 	b := &Broker{

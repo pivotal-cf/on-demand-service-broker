@@ -12,7 +12,6 @@ import (
 
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/brokerapi"
-	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/brokercontext"
 )
 
@@ -22,7 +21,6 @@ func (b *Broker) Bind(
 	bindingID string,
 	details brokerapi.BindDetails,
 ) (brokerapi.Binding, error) {
-
 	requestID := uuid.New()
 	if len(brokercontext.GetReqID(ctx)) > 0 {
 		requestID = brokercontext.GetReqID(ctx)
@@ -31,21 +29,14 @@ func (b *Broker) Bind(
 	ctx = brokercontext.New(ctx, string(OperationTypeBind), requestID, b.serviceOffering.Name, instanceID)
 	logger := b.loggerFactory.NewWithContext(ctx)
 
-	errs := func(err DisplayableError) (brokerapi.Binding, error) {
+	errs := func(err BrokerError) (brokerapi.Binding, error) {
 		logger.Println(err)
 		return brokerapi.Binding{}, err.ErrorForCFUser()
 	}
 
-	vms, manifest, err := b.getDeploymentInfo(instanceID, logger)
-	switch err.(type) {
-	case boshdirector.RequestError:
-		return errs(NewBoshRequestError("bind", fmt.Errorf("could not get deployment info: %s", err)))
-	case boshdirector.DeploymentNotFoundError:
-		return errs(NewDisplayableError(brokerapi.ErrInstanceDoesNotExist, fmt.Errorf("error binding: instance %s, not found", instanceID)))
-	case error:
-		return errs(
-			NewGenericError(ctx, fmt.Errorf("gathering binding info %s", err)),
-		)
+	manifest, vms, deploymentErr := b.getDeploymentInfo(instanceID, ctx, logger)
+	if deploymentErr != nil {
+		return errs(deploymentErr)
 	}
 
 	logger.Printf("service adapter will create binding with ID %s for instance %s\n", bindingID, instanceID)
@@ -55,12 +46,13 @@ func (b *Broker) Bind(
 		return errs(NewGenericError(ctx, fmt.Errorf("converting to map %s", err)))
 	}
 
-	binding, err := b.adapterClient.CreateBinding(bindingID, vms, manifest, mappedParams, logger)
-	if err != nil {
-		logger.Printf("creating binding: %v\n", err)
+	var createBindingErr error
+	binding, createBindingErr := b.adapterClient.CreateBinding(bindingID, vms, manifest, mappedParams, logger)
+	if createBindingErr != nil {
+		logger.Printf("creating binding: %v\n", createBindingErr)
 	}
 
-	if err := adapterToAPIError(ctx, err); err != nil {
+	if err := adapterToAPIError(ctx, createBindingErr); err != nil {
 		return brokerapi.Binding{}, err
 	}
 

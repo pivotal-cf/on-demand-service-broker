@@ -37,6 +37,11 @@ func (b *Broker) Deprovision(
 		return brokerapi.DeprovisionServiceSpec{}, brokerapi.ErrAsyncRequired
 	}
 
+	_, err := b.boshClient.GetInfo(logger)
+	if err != nil {
+		return deprovisionErr(NewBoshRequestError("delete", err), logger)
+	}
+
 	if err := b.assertDeploymentExists(ctx, instanceID, logger); err != NilError {
 		return deprovisionErr(err, logger)
 	}
