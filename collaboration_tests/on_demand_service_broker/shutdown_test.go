@@ -1,7 +1,6 @@
 package on_demand_service_broker_test
 
 import (
-	"fmt"
 	"log"
 	"os"
 
@@ -47,7 +46,7 @@ var _ = Describe("Shutdown of the broker process", func() {
 	})
 
 	It("handles SIGTERM and exists gracefully", func() {
-		killServer(serverURL, stopServer)
+		killServer(stopServer)
 
 		Eventually(loggerBuffer).Should(gbytes.Say("Broker shutting down on signal..."))
 		Eventually(loggerBuffer).Should(gbytes.Say("Server gracefully shut down"))
@@ -72,7 +71,7 @@ var _ = Describe("Shutdown of the broker process", func() {
 		Eventually(deployStarted).Should(Receive())
 
 		By("send the SIGTERM signal")
-		killServer(serverURL, stopServer)
+		killServer(stopServer)
 
 		By("ensuring the server received the signal")
 		Eventually(loggerBuffer).Should(gbytes.Say("Broker shutting down on signal..."))
@@ -111,7 +110,7 @@ var _ = Describe("Shutdown of the broker process", func() {
 		Eventually(deployStarted).Should(Receive())
 
 		By("send the SIGTERM signal")
-		killServer(serverURL, stopServer)
+		killServer(stopServer)
 
 		By("ensuring the server received the signal")
 		Eventually(loggerBuffer).Should(gbytes.Say("Broker shutting down on signal..."))
@@ -123,15 +122,6 @@ var _ = Describe("Shutdown of the broker process", func() {
 	})
 })
 
-func killServer(serverURL string, stopServer chan os.Signal) {
+func killServer(stopServer chan os.Signal) {
 	stopServer <- syscall.SIGTERM
-}
-
-func isRunning(serverURL string) bool {
-	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("http://%s/mgmt/service_instances", serverURL), nil)
-	Expect(err).ToNot(HaveOccurred())
-	req.SetBasicAuth(brokerUsername, brokerPassword)
-
-	_, err = http.DefaultClient.Do(req)
-	return err == nil
 }
