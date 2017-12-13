@@ -28,6 +28,16 @@ var _ = Describe("Last Operation", func() {
 		boshTaskID           = 6782
 	)
 
+	var (
+		operationData        broker.OperationData
+		processingTask       = boshdirector.BoshTask{ID: boshTaskID, State: boshdirector.TaskProcessing}
+		doneTask             = boshdirector.BoshTask{ID: boshTaskID, State: boshdirector.TaskDone, Description: "running"}
+		failedTask           = boshdirector.BoshTask{ID: boshTaskID, State: boshdirector.TaskError, Description: "failed"}
+		failedErrandTask     = boshdirector.BoshTask{ID: boshTaskID + 1, State: boshdirector.TaskError, Description: "failed"}
+		doneErrandTask       = boshdirector.BoshTask{ID: boshTaskID + 1, State: boshdirector.TaskDone, Description: "errand completed"}
+		processingErrandTask = boshdirector.BoshTask{ID: boshTaskID + 1, State: boshdirector.TaskProcessing, Description: "errand running"}
+	)
+
 	Context("when no lifecycle errands are configured", func() {
 		BeforeEach(func() {
 			conf := brokerConfig.Config{
@@ -222,7 +232,6 @@ var _ = Describe("Last Operation", func() {
 		)
 
 		BeforeEach(func() {
-
 			planWithPostDeploy := brokerConfig.Plan{
 				ID:   planID,
 				Name: "post-deploy-plan",
@@ -242,12 +251,9 @@ var _ = Describe("Last Operation", func() {
 					Plans: []brokerConfig.Plan{planWithPostDeploy},
 				},
 			}
-			StartServer(conf)
-		})
 
-		DescribeTable("depending on the state of the tasks on a given context", func() {
-			operationData := broker.OperationData{
-				BoshTaskID:    boshTaskID,
+			operationData = broker.OperationData{
+				BoshTaskID:    doneTask.ID,
 				OperationType: operationType,
 				BoshContextID: contextID,
 				PlanID:        planID,
@@ -255,35 +261,487 @@ var _ = Describe("Last Operation", func() {
 					Name: postDeployErrandName,
 				},
 			}
+			StartServer(conf)
+		})
+
+		It("returns 200 when there is a single incomplete task", func() {
+			fakeBoshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{processingTask}, nil)
+
+			operationData.BoshTaskID = processingTask.ID
+
 			response := doLastOperationRequest(instanceID, operationData)
 
 			By("returning the correct HTTP status code")
 			Expect(response.StatusCode).To(Equal(http.StatusOK))
 
-			//By("returning the correct error description")
-			//var responseBody []byte
-			//responseBody, err := ioutil.ReadAll(response.Body)
-			//Expect(err).NotTo(HaveOccurred())
-			//Expect(responseBody).To(MatchJSON(fmt.Sprintf(`
-			//	{
-			//		"state":       "in progress",
-			//		"description": "%s"
-			//	}`,
-			//	responseDescription,
-			//)))
-			//
-			//By("logging the appropriate message")
-			//Eventually(loggerBuffer).Should(gbytes.Say(
-			//	fmt.Sprintf(`BOSH task ID %d status: processing %s deployment for instance %s`,
-			//		boshTaskID,
-			//		action,
-			//		instanceID,
-			//	),
-			//))
+			By("returning the correct response description")
+			var responseBody []byte
+			responseBody, err := ioutil.ReadAll(response.Body)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(responseBody).To(MatchJSON(`
+				{
+					"state":       "in progress",
+					"description": "Instance provisioning in progress"
+				}`,
+			))
 
-		},
-			PEntry("returns 200 when there is a single incomplete task"))
+			By("not running the post deploy errand")
+			Expect(fakeBoshClient.RunErrandCallCount()).To(Equal(0))
+
+			By("logging the appropriate message")
+			Eventually(loggerBuffer).Should(gbytes.Say(
+				fmt.Sprintf(`BOSH task ID %d status: processing create deployment for instance %s`,
+					boshTaskID,
+					instanceID,
+				),
+			))
+		})
+
+		It("returns 200 when there is a single complete task", func() {
+			fakeBoshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{doneTask}, nil)
+			fakeBoshClient.RunErrandReturns(processingTask.ID, nil)
+			fakeBoshClient.GetTaskReturns(processingTask, nil)
+
+			operationData.BoshTaskID = doneTask.ID
+
+			response := doLastOperationRequest(instanceID, operationData)
+
+			By("returning the correct HTTP status code")
+			Expect(response.StatusCode).To(Equal(http.StatusOK))
+
+			By("returning the correct response description")
+			var responseBody []byte
+			responseBody, err := ioutil.ReadAll(response.Body)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(responseBody).To(MatchJSON(`
+				{
+					"state":       "in progress",
+					"description": "Instance provisioning in progress"
+				}`,
+			))
+
+			By("running the post deploy errand")
+			Expect(fakeBoshClient.RunErrandCallCount()).To(Equal(1))
+
+			By("logging the appropriate message")
+			Eventually(loggerBuffer).Should(gbytes.Say(
+				fmt.Sprintf(`BOSH task ID %d status: processing create deployment for instance %s: Description: %s`,
+					boshTaskID,
+					instanceID,
+					processingTask.Description,
+				),
+			))
+		})
+
+		It("returns 200 when there are two tasks and the errand task is still running", func() {
+			fakeBoshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{processingErrandTask, doneTask}, nil)
+
+			operationData.BoshTaskID = doneTask.ID
+
+			response := doLastOperationRequest(instanceID, operationData)
+
+			By("returning the correct HTTP status code")
+			Expect(response.StatusCode).To(Equal(http.StatusOK))
+
+			By("returning the correct response description")
+			var responseBody []byte
+			responseBody, err := ioutil.ReadAll(response.Body)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(responseBody).To(MatchJSON(`
+				{
+					"state":       "in progress",
+					"description": "Instance provisioning in progress"
+				}`,
+			))
+
+			By("not running the post deploy errand")
+			Expect(fakeBoshClient.RunErrandCallCount()).To(Equal(0))
+
+			By("logging the appropriate message")
+			Eventually(loggerBuffer).Should(gbytes.Say(
+				fmt.Sprintf(`BOSH task ID %d status: processing create deployment for instance %s: Description: %s`,
+					processingErrandTask.ID,
+					instanceID,
+					processingErrandTask.Description,
+				),
+			))
+		})
+
+		It("returns 200 when there are two tasks and the errand task has failed", func() {
+			fakeBoshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{failedErrandTask, doneTask}, nil)
+
+			operationData.BoshTaskID = doneTask.ID
+
+			response := doLastOperationRequest(instanceID, operationData)
+
+			By("returning the correct HTTP status code")
+			Expect(response.StatusCode).To(Equal(http.StatusOK))
+
+			By("returning the correct response description")
+			var responseBody []byte
+			responseBody, err := ioutil.ReadAll(response.Body)
+			Expect(err).NotTo(HaveOccurred())
+
+			var parsedResponse map[string]interface{}
+			json.Unmarshal(responseBody, &parsedResponse)
+			Expect(parsedResponse["state"]).To(Equal(string(brokerapi.Failed)))
+
+			Expect(parsedResponse["description"]).To(SatisfyAll(
+				ContainSubstring("Instance provisioning failed: There was a problem completing your request. Please contact your operations team providing the following information:"),
+				MatchRegexp(`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`),
+				ContainSubstring(fmt.Sprintf("service: %s", serviceName)),
+				ContainSubstring(fmt.Sprintf("service-instance-guid: %s", instanceID)),
+				ContainSubstring("operation: create"),
+				ContainSubstring(fmt.Sprintf("task-id: %d", failedErrandTask.ID)),
+			))
+
+			By("logging the appropriate message")
+			Eventually(loggerBuffer).Should(gbytes.Say(
+				fmt.Sprintf(`BOSH task ID %d status: error create deployment for instance %s: Description: %s`,
+					failedErrandTask.ID,
+					instanceID,
+					failedErrandTask.Description),
+			))
+		})
+
+		It("returns 200 when there are two tasks and the errand task has succeeded", func() {
+			fakeBoshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{doneErrandTask, doneTask}, nil)
+
+			operationData.BoshTaskID = doneTask.ID
+
+			response := doLastOperationRequest(instanceID, operationData)
+
+			By("returning the correct HTTP status code")
+			Expect(response.StatusCode).To(Equal(http.StatusOK))
+
+			By("returning the correct response description")
+			var responseBody []byte
+			responseBody, err := ioutil.ReadAll(response.Body)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(responseBody).To(MatchJSON(`
+				{
+					"state":       "succeeded",
+					"description": "Instance provisioning completed"
+				}`,
+			))
+
+			By("logging the appropriate message")
+			Eventually(loggerBuffer).Should(gbytes.Say(
+				fmt.Sprintf(`BOSH task ID %d status: done create deployment for instance %s: Description: %s`,
+					doneErrandTask.ID,
+					instanceID,
+					doneErrandTask.Description),
+			))
+		})
+
 	})
+
+	Context("when pre-delete errand is configured", func() {
+		const (
+			planID        = "pre-delete-plan-id"
+			operationType = broker.OperationTypeDelete
+			contextID     = "some-context-id"
+			errandName    = "pre-delete-errand"
+		)
+
+		BeforeEach(func() {
+			planWithPreDelete := brokerConfig.Plan{
+				ID:   planID,
+				Name: "pre-delete-plan",
+				LifecycleErrands: &sdk.LifecycleErrands{
+					PreDelete: sdk.Errand{
+						Name:      errandName,
+						Instances: []string{"instance-group-name/0"},
+					},
+				},
+			}
+			conf := brokerConfig.Config{
+				Broker: brokerConfig.Broker{
+					Port: serverPort, Username: brokerUsername, Password: brokerPassword,
+				},
+				ServiceCatalog: brokerConfig.ServiceOffering{
+					Name:  serviceName,
+					Plans: []brokerConfig.Plan{planWithPreDelete},
+				},
+			}
+
+			operationData = broker.OperationData{
+				BoshTaskID:    doneTask.ID,
+				OperationType: operationType,
+				BoshContextID: contextID,
+				PlanID:        planID,
+				PostDeployErrand: broker.PostDeployErrand{
+					Name: errandName,
+				},
+			}
+			StartServer(conf)
+		})
+
+		It("returns 200 when there is a single incomplete task", func() {
+			fakeBoshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{processingErrandTask}, nil)
+
+			operationData.BoshTaskID = processingErrandTask.ID
+
+			response := doLastOperationRequest(instanceID, operationData)
+
+			By("returning the correct HTTP status code")
+			Expect(response.StatusCode).To(Equal(http.StatusOK))
+
+			By("returning the correct response description")
+			var responseBody []byte
+			responseBody, err := ioutil.ReadAll(response.Body)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(responseBody).To(MatchJSON(`
+				{
+					"state":       "in progress",
+					"description": "Instance deletion in progress"
+				}`,
+			))
+
+			By("not running the delete deployment")
+			Expect(fakeBoshClient.DeleteDeploymentCallCount()).To(Equal(0))
+
+			By("logging the appropriate message")
+			Eventually(loggerBuffer).Should(gbytes.Say(
+				fmt.Sprintf(`BOSH task ID %d status: processing delete deployment for instance %s`,
+					processingErrandTask.ID,
+					instanceID,
+				),
+			))
+		})
+
+		It("returns 200 when there is a single complete task", func() {
+			fakeBoshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{doneErrandTask}, nil)
+			fakeBoshClient.DeleteDeploymentReturns(processingTask.ID, nil)
+			fakeBoshClient.GetTaskReturns(processingTask, nil)
+
+			operationData.BoshTaskID = doneErrandTask.ID
+
+			response := doLastOperationRequest(instanceID, operationData)
+
+			By("returning the correct HTTP status code")
+			Expect(response.StatusCode).To(Equal(http.StatusOK))
+
+			By("returning the correct response description")
+			var responseBody []byte
+			responseBody, err := ioutil.ReadAll(response.Body)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(responseBody).To(MatchJSON(`
+				{
+					"state":       "in progress",
+					"description": "Instance deletion in progress"
+				}`,
+			))
+
+			By("running the delete deployment")
+			Expect(fakeBoshClient.DeleteDeploymentCallCount()).To(Equal(1))
+
+			By("logging the appropriate message")
+			Eventually(loggerBuffer).Should(gbytes.Say(
+				fmt.Sprintf(`BOSH task ID %d status: processing delete deployment for instance %s: Description: %s`,
+					processingTask.ID,
+					instanceID,
+					processingTask.Description,
+				),
+			))
+		})
+
+		It("returns 200 when there are two tasks and the delete task is still running", func() {
+			fakeBoshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{processingTask, doneErrandTask}, nil)
+
+			operationData.BoshTaskID = doneErrandTask.ID
+
+			response := doLastOperationRequest(instanceID, operationData)
+
+			By("returning the correct HTTP status code")
+			Expect(response.StatusCode).To(Equal(http.StatusOK))
+
+			By("returning the correct response description")
+			var responseBody []byte
+			responseBody, err := ioutil.ReadAll(response.Body)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(responseBody).To(MatchJSON(`
+				{
+					"state":       "in progress",
+					"description": "Instance deletion in progress"
+				}`,
+			))
+
+			By("logging the appropriate message")
+			Eventually(loggerBuffer).Should(gbytes.Say(
+				fmt.Sprintf(`BOSH task ID %d status: processing delete deployment for instance %s: Description: %s`,
+					processingTask.ID,
+					instanceID,
+					processingTask.Description,
+				),
+			))
+		})
+
+		It("returns 200 when there are two tasks and the delete task has failed", func() {
+			fakeBoshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{failedTask, doneErrandTask}, nil)
+
+			operationData.BoshTaskID = doneErrandTask.ID
+
+			response := doLastOperationRequest(instanceID, operationData)
+
+			By("returning the correct HTTP status code")
+			Expect(response.StatusCode).To(Equal(http.StatusOK))
+
+			By("returning the correct response description")
+			var responseBody []byte
+			responseBody, err := ioutil.ReadAll(response.Body)
+			Expect(err).NotTo(HaveOccurred())
+
+			var parsedResponse map[string]interface{}
+			json.Unmarshal(responseBody, &parsedResponse)
+			Expect(parsedResponse["state"]).To(Equal(string(brokerapi.Failed)))
+
+			Expect(parsedResponse["description"]).To(SatisfyAll(
+				ContainSubstring("Instance deletion failed: There was a problem completing your request. Please contact your operations team providing the following information:"),
+				MatchRegexp(`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`),
+				ContainSubstring(fmt.Sprintf("service: %s", serviceName)),
+				ContainSubstring(fmt.Sprintf("service-instance-guid: %s", instanceID)),
+				ContainSubstring("operation: delete"),
+				ContainSubstring(fmt.Sprintf("task-id: %d", failedTask.ID)),
+			))
+
+			By("logging the appropriate message")
+			Eventually(loggerBuffer).Should(gbytes.Say(
+				fmt.Sprintf(`BOSH task ID %d status: error delete deployment for instance %s: Description: %s`,
+					failedTask.ID,
+					instanceID,
+					failedTask.Description),
+			))
+		})
+
+		It("returns 200 when there are two tasks and the delete task has succeeded", func() {
+			fakeBoshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{doneTask, doneErrandTask}, nil)
+
+			operationData.BoshTaskID = doneTask.ID
+
+			response := doLastOperationRequest(instanceID, operationData)
+
+			By("returning the correct HTTP status code")
+			Expect(response.StatusCode).To(Equal(http.StatusOK))
+
+			By("returning the correct response description")
+			var responseBody []byte
+			responseBody, err := ioutil.ReadAll(response.Body)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(responseBody).To(MatchJSON(`
+				{
+					"state":       "succeeded",
+					"description": "Instance deletion completed"
+				}`,
+			))
+
+			By("logging the appropriate message")
+			Eventually(loggerBuffer).Should(gbytes.Say(
+				fmt.Sprintf(`BOSH task ID %d status: done delete deployment for instance %s: Description: %s`,
+					doneTask.ID,
+					instanceID,
+					doneTask.Description),
+			))
+		})
+
+	})
+
+	Context("depending on the setting of the context id on the request body", func() {
+		const (
+			planID        = "post-deploy-plan-id"
+			operationType = broker.OperationTypeCreate
+			errandName    = "post-deploy-errand"
+		)
+		BeforeEach(func() {
+			planWithPostDeploy := brokerConfig.Plan{
+				ID:   planID,
+				Name: "post-deploy-plan",
+				LifecycleErrands: &sdk.LifecycleErrands{
+					PostDeploy: sdk.Errand{
+						Name:      errandName,
+						Instances: []string{"instance-group-name/0"},
+					},
+				},
+			}
+
+			conf := brokerConfig.Config{
+				Broker: brokerConfig.Broker{
+					Port: serverPort, Username: brokerUsername, Password: brokerPassword,
+				},
+				ServiceCatalog: brokerConfig.ServiceOffering{
+					Name:  serviceName,
+					Plans: []brokerConfig.Plan{planWithPostDeploy},
+				},
+			}
+			StartServer(conf)
+
+		})
+
+		It("doesn't run the lifecycle errands when it's empty", func() {
+			operationData = broker.OperationData{
+				BoshTaskID:    boshTaskID,
+				OperationType: operationType,
+				PlanID:        planID,
+			}
+			fakeBoshClient.GetTaskReturns(doneTask, nil)
+
+			operationData.BoshTaskID = doneTask.ID
+
+			response := doLastOperationRequest(instanceID, operationData)
+
+			By("returning the correct HTTP status code")
+			Expect(response.StatusCode).To(Equal(http.StatusOK))
+
+			By("not running the post deploy errand")
+			Expect(fakeBoshClient.RunErrandCallCount()).To(Equal(0))
+
+			By("returning the correct response description")
+			var responseBody []byte
+			responseBody, err := ioutil.ReadAll(response.Body)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(responseBody).To(MatchJSON(`
+				{
+					"state":       "succeeded",
+					"description": "Instance provisioning completed"
+				}`,
+			))
+		})
+
+		It("runs the lifecycle errands when it's set", func() {
+			operationData = broker.OperationData{
+				BoshTaskID:    boshTaskID,
+				OperationType: operationType,
+				BoshContextID: "some-context-id",
+				PlanID:        planID,
+			}
+
+			fakeBoshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{doneTask}, nil)
+			fakeBoshClient.RunErrandReturns(processingTask.ID, nil)
+			fakeBoshClient.GetTaskReturns(processingTask, nil)
+
+			operationData.BoshTaskID = doneTask.ID
+
+			response := doLastOperationRequest(instanceID, operationData)
+
+			By("returning the correct HTTP status code")
+			Expect(response.StatusCode).To(Equal(http.StatusOK))
+
+			By("running the post deploy errand")
+			Expect(fakeBoshClient.RunErrandCallCount()).To(Equal(1))
+
+			By("returning the correct response description")
+			var responseBody []byte
+			responseBody, err := ioutil.ReadAll(response.Body)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(responseBody).To(MatchJSON(`
+				{
+					"state":       "in progress",
+					"description": "Instance provisioning in progress"
+				}`,
+			))
+		})
+	})
+
 })
 
 func doLastOperationRequest(instanceID string, operationData broker.OperationData) *http.Response {
