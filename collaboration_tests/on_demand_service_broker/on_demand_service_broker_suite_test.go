@@ -40,6 +40,7 @@ var (
 	fakeCfClient       *fakes.FakeCloudFoundryClient
 	fakeDeployer       *fakes.FakeDeployer
 	loggerBuffer       *gbytes.Buffer
+	shouldSendSigterm  bool
 )
 
 var _ = BeforeEach(func() {
@@ -48,14 +49,21 @@ var _ = BeforeEach(func() {
 	fakeCfClient = new(fakes.FakeCloudFoundryClient)
 	fakeDeployer = new(fakes.FakeDeployer)
 
-	stopServer = make(chan os.Signal, 1)
 })
 
 var _ = AfterEach(func() {
-	stopServer <- syscall.SIGTERM
+	if shouldSendSigterm {
+		stopServer <- syscall.SIGTERM
+	}
 })
 
 func StartServer(conf config.Config) {
+	stopServer = make(chan os.Signal, 1)
+	shouldSendSigterm = true
+	StartServerWithStopHandler(conf, stopServer)
+}
+
+func StartServerWithStopHandler(conf config.Config, stopServerChan chan os.Signal) {
 	loggerBuffer = gbytes.NewBuffer()
 	loggerFactory := loggerfactory.New(loggerBuffer, componentName, loggerfactory.Flags)
 	logger := loggerFactory.New()
@@ -78,5 +86,5 @@ func StartServer(conf config.Config) {
 		loggerFactory,
 		logger,
 	)
-	go apiserver.StartAndWait(conf, server, logger, stopServer)
+	go apiserver.StartAndWait(conf, server, logger, stopServerChan)
 }

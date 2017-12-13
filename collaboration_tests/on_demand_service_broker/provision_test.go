@@ -23,7 +23,6 @@ import (
 )
 
 var _ = Describe("Provision service instance", func() {
-
 	const (
 		taskID             = 2312
 		planWithoutQuotaID = "plan-without-quota"
