@@ -19,25 +19,13 @@ type tasksMock struct {
 
 func Tasks(deploymentName string) *tasksMock {
 	return &tasksMock{
-		Handler: mockhttp.NewMockedHttpRequest("GET", fmt.Sprintf("/tasks?deployment=%s", deploymentName)),
+		Handler: mockhttp.NewMockedHttpRequest("GET", fmt.Sprintf("/tasks?deployment=%s&limit=2147483647&verbose=1", deploymentName)),
 	}
 }
 
-func FilteredTasks(limit int, deploymentName string) *tasksMock {
+func TasksWithLimit(deploymentName string, limit int) *tasksMock {
 	return &tasksMock{
 		Handler: mockhttp.NewMockedHttpRequest("GET", fmt.Sprintf("/tasks?deployment=%s&limit=%d&verbose=1", deploymentName, limit)),
-	}
-}
-
-func TasksByContext(deploymentName, contextID string) *tasksMock {
-	return &tasksMock{
-		Handler: mockhttp.NewMockedHttpRequest("GET", fmt.Sprintf("/tasks?deployment=%s&context_id=%s", deploymentName, contextID)),
-	}
-}
-
-func TasksByContextID(contextID string) *tasksMock {
-	return &tasksMock{
-		Handler: mockhttp.NewMockedHttpRequest("GET", fmt.Sprintf("/tasks?context_id=%s", contextID)),
 	}
 }
 func (t *tasksMock) RespondsWithNoTasks() *mockhttp.Handler {

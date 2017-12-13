@@ -20,7 +20,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-var _ = FDescribe("Update a service instance", func() {
+var _ = Describe("Update a service instance", func() {
 
 	const (
 		oldPlanID              = "old-plan-id"

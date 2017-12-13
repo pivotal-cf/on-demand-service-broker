@@ -20,7 +20,7 @@ type deployMock struct {
 
 func Deploy() *deployMock {
 	mock := &deployMock{
-		Handler: mockhttp.NewMockedHttpRequest("POST", "/deployments"),
+		Handler: mockhttp.NewMockedHttpRequest("POST", "/deployments?"),
 	}
 	mock.WithContentType("text/yaml")
 	return mock

@@ -25,9 +25,6 @@ import (
 	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
 
-// TODO: Ensure testing CF creds
-// TODO: Ensure testing basic auth bosh creds
-
 var _ = Describe("Startup", func() {
 	var runningBroker *gexec.Session
 
