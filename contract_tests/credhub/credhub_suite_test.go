@@ -106,7 +106,7 @@ func getBoshManifest(deploymentName string) ([]byte, error) {
 		certPool,
 		directorFactory,
 		uaaFactory,
-		config.BOSHAuthentication{UAA: config.BOSHUAAAuthentication{ID: username, Secret: password}},
+		config.Authentication{UAA: config.UAAAuthentication{ClientCredentials: config.ClientCredentials{ID: username, Secret: password}}},
 		logger,
 	)
 
