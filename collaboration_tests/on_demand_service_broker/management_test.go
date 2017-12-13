@@ -31,6 +31,10 @@ var _ = Describe("Management API", func() {
 		instances    []string
 	)
 
+	BeforeEach(func() {
+		instances = []string{}
+	})
+
 	JustBeforeEach(func() {
 		conf := brokerConfig.Config{
 			Broker: brokerConfig.Broker{
