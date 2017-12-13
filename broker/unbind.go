@@ -34,7 +34,7 @@ func (b *Broker) Unbind(
 		return err.ErrorForCFUser()
 	}
 
-	manifest, vms, deploymentErr := b.getDeploymentInfo(instanceID, ctx, logger)
+	manifest, vms, deploymentErr := b.getDeploymentInfo(instanceID, ctx, "unbind", logger)
 	if deploymentErr != nil {
 		return errs(deploymentErr)
 	}

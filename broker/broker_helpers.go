@@ -17,10 +17,10 @@ import (
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 )
 
-func (b *Broker) getDeploymentInfo(instanceID string, ctx context.Context, logger *log.Logger) ([]byte, bosh.BoshVMs, BrokerError) {
+func (b *Broker) getDeploymentInfo(instanceID string, ctx context.Context, action string, logger *log.Logger) ([]byte, bosh.BoshVMs, BrokerError) {
 	_, err := b.boshClient.GetInfo(logger)
 	if err != nil {
-		return nil, nil, NewBoshRequestError("bind", fmt.Errorf("could not get director info: %s", err))
+		return nil, nil, NewBoshRequestError(action, fmt.Errorf("could not get director info: %s", err))
 	}
 
 	manifest, found, err := b.boshClient.GetDeployment(deploymentName(instanceID), logger)
@@ -28,12 +28,12 @@ func (b *Broker) getDeploymentInfo(instanceID string, ctx context.Context, logge
 		return nil, nil, NewGenericError(ctx, fmt.Errorf("gathering deployment list %s", err))
 	}
 	if !found {
-		return nil, nil, NewDisplayableError(brokerapi.ErrInstanceDoesNotExist, fmt.Errorf("error binding: instance %s, not found", instanceID))
+		return nil, nil, NewDisplayableError(brokerapi.ErrInstanceDoesNotExist, fmt.Errorf("error %sing: instance %s, not found", action, instanceID))
 	}
 
 	vms, err := b.boshClient.VMs(deploymentName(instanceID), logger)
 	if err != nil {
-		return nil, nil, NewGenericError(ctx, fmt.Errorf("gathering binding info %s", err))
+		return nil, nil, NewGenericError(ctx, fmt.Errorf("gathering %sing info %s", action, err))
 	}
 
 	return manifest, vms, nil

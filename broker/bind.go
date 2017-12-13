@@ -34,7 +34,7 @@ func (b *Broker) Bind(
 		return brokerapi.Binding{}, err.ErrorForCFUser()
 	}
 
-	manifest, vms, deploymentErr := b.getDeploymentInfo(instanceID, ctx, logger)
+	manifest, vms, deploymentErr := b.getDeploymentInfo(instanceID, ctx, "bind", logger)
 	if deploymentErr != nil {
 		return errs(deploymentErr)
 	}

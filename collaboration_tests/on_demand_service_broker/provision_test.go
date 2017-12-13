@@ -1,0 +1,386 @@
+package on_demand_service_broker_test
+
+import (
+	"fmt"
+	"net/http"
+
+	"bytes"
+	"encoding/json"
+
+	"io/ioutil"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
+	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
+	"github.com/pivotal-cf/on-demand-service-broker/broker"
+	"github.com/pivotal-cf/on-demand-service-broker/cf"
+	brokerConfig "github.com/pivotal-cf/on-demand-service-broker/config"
+	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
+	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
+	"github.com/pkg/errors"
+)
+
+var _ = Describe("Provision service instance", func() {
+
+	const (
+		taskID             = 2312
+		planWithoutQuotaID = "plan-without-quota"
+		planWithQuotaID    = "plan-with-quota"
+		planWithErrandID   = "plan-with-errand"
+		instanceID         = "some-instance-id"
+	)
+
+	var (
+		planQuota       = 5
+		globalQuota     = 12
+		arbitraryParams map[string]interface{}
+	)
+
+	BeforeEach(func() {
+		arbitraryParams = map[string]interface{}{"some": "prop"}
+
+		conf := brokerConfig.Config{
+			Broker: brokerConfig.Broker{
+				Port: serverPort, Username: brokerUsername, Password: brokerPassword,
+			},
+			ServiceCatalog: brokerConfig.ServiceOffering{
+				GlobalQuotas: brokerConfig.Quotas{ServiceInstanceLimit: &globalQuota},
+				Name:         serviceName,
+				Plans: brokerConfig.Plans{
+					{
+						Name:       "some-other-plan",
+						ID:         planWithQuotaID,
+						Quotas:     brokerConfig.Quotas{ServiceInstanceLimit: &planQuota},
+						Properties: sdk.Properties{"type": "plan-with-quota", "global_property": "global_value"},
+						Update:     dedicatedPlanUpdateBlock,
+						InstanceGroups: []sdk.InstanceGroup{
+							{
+								Name:               "instance-group-name",
+								VMType:             dedicatedPlanVMType,
+								VMExtensions:       dedicatedPlanVMExtensions,
+								PersistentDiskType: dedicatedPlanDisk,
+								Instances:          dedicatedPlanInstances,
+								Networks:           dedicatedPlanNetworks,
+								AZs:                dedicatedPlanAZs,
+							},
+							{
+								Name:               "instance-group-errand",
+								Lifecycle:          "errand",
+								VMType:             dedicatedPlanVMType,
+								PersistentDiskType: dedicatedPlanDisk,
+								Instances:          dedicatedPlanInstances,
+								Networks:           dedicatedPlanNetworks,
+								AZs:                dedicatedPlanAZs,
+							},
+						},
+					},
+					{Name: "some-plan", ID: planWithoutQuotaID},
+					{
+						Name: "a-plan-with-errand",
+						ID:   planWithErrandID,
+						InstanceGroups: []sdk.InstanceGroup{
+							{
+								Name:      "instance-group-name",
+								VMType:    "post-deploy-errand-vm-type",
+								Instances: 1,
+								Networks:  []string{"net1"},
+								AZs:       []string{"az1"},
+							},
+						},
+						LifecycleErrands: &sdk.LifecycleErrands{
+							PostDeploy: sdk.Errand{
+								Name:      "health-check",
+								Instances: []string{"health-check-instance/0", "health-check-instance/1"},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		StartServer(conf)
+	})
+
+	It("handles the request correctly when CF is disabled", func() {
+		fakeCfClient.CountInstancesOfPlanReturns(0, errors.New("cf not configured"))
+
+		By("fulfilling the request when the plan has no quota")
+		resp := doProvisionRequest(instanceID, planWithoutQuotaID, arbitraryParams, true)
+		Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
+
+		By("rejecting the request when the plan has quota")
+		resp = doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, true)
+		Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
+	})
+
+	It("responds with 202 when the plan has no quota", func() {
+		resp := doProvisionRequest(instanceID, planWithoutQuotaID, arbitraryParams, true)
+		Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
+	})
+
+	Context("when the plan has a quota", func() {
+		It("successfully provision the service instance", func() {
+			fakeDeployer.CreateReturns(taskID, nil, nil)
+
+			resp := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, true)
+
+			By("returning http status code 202")
+			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
+
+			By("including the operation data in the response")
+			body, err := ioutil.ReadAll(resp.Body)
+			Expect(err).NotTo(HaveOccurred())
+
+			var provisioningResponse brokerapi.ProvisioningResponse
+			err = json.Unmarshal(body, &provisioningResponse)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(provisioningResponse.DashboardURL).To(BeEmpty())
+
+			var operationData broker.OperationData
+			err = json.Unmarshal([]byte(provisioningResponse.OperationData), &operationData)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(operationData.OperationType).To(Equal(broker.OperationTypeCreate), "operation type")
+			Expect(operationData.BoshTaskID).To(Equal(taskID), "task id")
+			Expect(operationData.BoshContextID).To(BeEmpty(), "context id")
+			Expect(operationData.PlanID).To(BeEmpty(), "plan id")
+
+			By("calling the deployer with the correct parameters")
+			deploymentName, planID, requestParams, boshContextID, _ := fakeDeployer.CreateArgsForCall(0)
+			Expect(deploymentName).To(Equal("service-instance_" + instanceID))
+			Expect(planID).To(Equal(planWithQuotaID))
+			Expect(requestParams).To(Equal(map[string]interface{}{
+				"plan_id":           planWithQuotaID,
+				"service_id":        serviceID,
+				"space_guid":        spaceGUID,
+				"organization_guid": organizationGUID,
+				"parameters":        arbitraryParams,
+			}))
+			Expect(boshContextID).To(BeEmpty())
+
+			By("logging the incoming request")
+			Eventually(loggerBuffer).Should(gbytes.Say(`\[.*\] \d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}\.\d{6} Started PUT /v2/service_instances/some-instance-id`))
+		})
+
+		It("includes the dashboard url when the adapter returns one", func() {
+			boshManifest := []byte(`name: service-instance_` + instanceID)
+			fakeDeployer.CreateReturns(taskID, boshManifest, nil)
+			fakeServiceAdapter.GenerateDashboardUrlReturns("http://dashboard.example.com", nil)
+
+			resp := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, true)
+			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
+
+			var provisionResponseBody brokerapi.ProvisioningResponse
+			Expect(json.NewDecoder(resp.Body).Decode(&provisionResponseBody)).To(Succeed())
+
+			By("calling the adapter with the correct arguments")
+			id, plan, manifest, _ := fakeServiceAdapter.GenerateDashboardUrlArgsForCall(0)
+			Expect(id).To(Equal(instanceID))
+			Expect(plan).To(Equal(sdk.Plan{
+				Properties: sdk.Properties{
+					"type":            "plan-with-quota",
+					"global_property": "global_value",
+				},
+				Update: dedicatedPlanUpdateBlock,
+				InstanceGroups: []sdk.InstanceGroup{
+					{
+						Name:               "instance-group-name",
+						VMType:             dedicatedPlanVMType,
+						VMExtensions:       dedicatedPlanVMExtensions,
+						PersistentDiskType: dedicatedPlanDisk,
+						Instances:          dedicatedPlanInstances,
+						Networks:           dedicatedPlanNetworks,
+						AZs:                dedicatedPlanAZs,
+					},
+					{
+						Name:               "instance-group-errand",
+						Lifecycle:          "errand",
+						VMType:             dedicatedPlanVMType,
+						PersistentDiskType: dedicatedPlanDisk,
+						Instances:          dedicatedPlanInstances,
+						Networks:           dedicatedPlanNetworks,
+						AZs:                dedicatedPlanAZs,
+					},
+				},
+			}))
+			Expect(manifest).To(Equal(boshManifest))
+
+			By("including the dashboard url in the response")
+			Expect(provisionResponseBody.DashboardURL).To(Equal("http://dashboard.example.com"))
+		})
+
+		It("responds with 500 when generating the dashboard url fails", func() {
+			fakeDeployer.CreateReturns(taskID, nil, nil)
+			fakeServiceAdapter.GenerateDashboardUrlReturns("", errors.New("something went wrong"))
+
+			resp := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, true)
+			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
+
+			var errorResponse brokerapi.ErrorResponse
+			Expect(json.NewDecoder(resp.Body).Decode(&errorResponse)).To(Succeed())
+			Expect(errorResponse.Description).To(SatisfyAll(
+				ContainSubstring(
+					"There was a problem completing your request. Please contact your operations team providing the following information: ",
+				),
+				MatchRegexp(
+					`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`,
+				),
+				ContainSubstring(fmt.Sprintf("service: %s", serviceName)),
+				ContainSubstring(fmt.Sprintf("service-instance-guid: %s", instanceID)),
+				ContainSubstring(fmt.Sprintf("task-id: %d", taskID)),
+				ContainSubstring("operation: create"),
+			))
+		})
+
+		It("responds with 500 and with a descriptive message when generating the dashboard url fails", func() {
+			fakeDeployer.CreateReturns(taskID, nil, nil)
+			fakeServiceAdapter.GenerateDashboardUrlReturns("", serviceadapter.NewUnknownFailureError("error message for user"))
+			resp := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, true)
+
+			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
+
+			By("returning the error for the CF user")
+			defer resp.Body.Close()
+			var errorResponse brokerapi.ErrorResponse
+			Expect(json.NewDecoder(resp.Body).Decode(&errorResponse)).To(Succeed())
+			Expect(errorResponse.Description).To(ContainSubstring("error message for user"))
+		})
+	})
+
+	It("succeeds when the plan has post-deploy errands configured", func() {
+		fakeDeployer.CreateReturns(taskID, nil, nil)
+
+		resp := doProvisionRequest(instanceID, planWithErrandID, arbitraryParams, true)
+
+		By("returning http status code 202")
+		Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
+
+		By("including the operation data in the response")
+		body, err := ioutil.ReadAll(resp.Body)
+		Expect(err).NotTo(HaveOccurred())
+
+		var provisioningResponse brokerapi.ProvisioningResponse
+		err = json.Unmarshal(body, &provisioningResponse)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(provisioningResponse.DashboardURL).To(BeEmpty())
+
+		var operationData broker.OperationData
+		err = json.Unmarshal([]byte(provisioningResponse.OperationData), &operationData)
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(operationData.OperationType).To(Equal(broker.OperationTypeCreate), "operation type")
+		Expect(operationData.BoshTaskID).To(Equal(taskID), "task id")
+		Expect(operationData.BoshContextID).NotTo(BeEmpty(), "context id")
+		Expect(operationData.PlanID).To(BeEmpty(), "plan id")
+		Expect(operationData.PostDeployErrand.Name).To(Equal("health-check"), "post-deploy errand name")
+		Expect(operationData.PostDeployErrand.Instances).To(Equal([]string{"health-check-instance/0", "health-check-instance/1"}), "post-deploy errand instances")
+	})
+
+	It("responds with 409 when another instance with the same id is provisioned", func() {
+		fakeBoshClient.GetDeploymentReturns(nil, true, nil)
+
+		resp := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, true)
+		Expect(resp.StatusCode).To(Equal(http.StatusConflict))
+
+		Expect(loggerBuffer).To(gbytes.Say("already exists"))
+	})
+
+	It("responds with 500 when deployer fails to create", func() {
+		fakeDeployer.CreateReturns(0, nil, errors.New("cant create"))
+
+		resp := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, true)
+		Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
+
+		var errorResponse brokerapi.ErrorResponse
+		Expect(json.NewDecoder(resp.Body).Decode(&errorResponse)).To(Succeed())
+		Expect(errorResponse.Description).To(SatisfyAll(
+			ContainSubstring(
+				"There was a problem completing your request. Please contact your operations team providing the following information: ",
+			),
+			MatchRegexp(
+				`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`,
+			),
+			ContainSubstring(fmt.Sprintf("service: %s", serviceName)),
+			ContainSubstring(fmt.Sprintf("service-instance-guid: %s", instanceID)),
+			Not(ContainSubstring("task-id")),
+			ContainSubstring("operation: create"),
+		))
+
+		Expect(loggerBuffer).To(gbytes.Say("cant create"))
+	})
+
+	It("responds with 500 when the plan quota is reached", func() {
+		fakeCfClient.CountInstancesOfPlanReturns(planQuota, nil)
+		resp := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, true)
+		Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
+
+		var errorResponse map[string]string
+		Expect(json.NewDecoder(resp.Body).Decode(&errorResponse)).To(Succeed())
+		Expect(errorResponse).To(Equal(map[string]string{"description": "The quota for this service plan has been exceeded. Please contact your Operator for help."}))
+	})
+
+	It("responds with 500 when the global quota is reached", func() {
+		servicePlan := cf.ServicePlan{
+			ServicePlanEntity: cf.ServicePlanEntity{
+				UniqueID: planWithQuotaID,
+			},
+		}
+		fakeCfClient.CountInstancesOfServiceOfferingReturns(map[cf.ServicePlan]int{servicePlan: globalQuota}, nil)
+		resp := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, true)
+		Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
+
+		var errorResponse map[string]string
+		Expect(json.NewDecoder(resp.Body).Decode(&errorResponse)).To(Succeed())
+		Expect(errorResponse).To(Equal(map[string]string{"description": "The quota for this service has been exceeded. Please contact your Operator for help."}))
+	})
+
+	It("responds with 422 when async is set to false", func() {
+		resp := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, false)
+		Expect(resp.StatusCode).To(Equal(http.StatusUnprocessableEntity))
+		defer resp.Body.Close()
+
+		Expect(ioutil.ReadAll(resp.Body)).To(MatchJSON(`{
+			"error":"AsyncRequired",
+			"description":"This service plan requires client support for asynchronous service operations."
+		}`))
+	})
+
+	It("responds with 500 when bosh is unavailable", func() {
+		fakeBoshClient.GetInfoReturns(boshdirector.Info{}, errors.New("boom"))
+		resp := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, true)
+		Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
+
+		var errorResponse brokerapi.ErrorResponse
+		Expect(json.NewDecoder(resp.Body).Decode(&errorResponse)).To(Succeed())
+		Expect(errorResponse.Description).To(ContainSubstring("Currently unable to create service instance, please try again later"))
+	})
+})
+
+func doProvisionRequest(instanceID, planID string, arbitraryParams map[string]interface{}, asyncAllowed bool) *http.Response {
+	reqBody := map[string]interface{}{
+		"plan_id":           planID,
+		"space_guid":        spaceGUID,
+		"organization_guid": organizationGUID,
+		"parameters":        arbitraryParams,
+		"service_id":        serviceID,
+	}
+	bodyBytes, err := json.Marshal(reqBody)
+	Expect(err).NotTo(HaveOccurred())
+
+	req, err := http.NewRequest(
+		http.MethodPut,
+		fmt.Sprintf("http://%s/v2/service_instances/%s?accepts_incomplete=%t&plan_id=%s&service_id=%s",
+			serverURL, instanceID, asyncAllowed, planID, serviceID,
+		),
+		bytes.NewReader(bodyBytes),
+	)
+	Expect(err).ToNot(HaveOccurred())
+
+	req.SetBasicAuth(brokerUsername, brokerPassword)
+
+	resp, err := http.DefaultClient.Do(req)
+	Expect(err).ToNot(HaveOccurred())
+	return resp
+}
