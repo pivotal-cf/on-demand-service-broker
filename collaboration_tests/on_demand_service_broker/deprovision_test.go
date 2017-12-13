@@ -239,6 +239,7 @@ func doDeprovisionRequest(instanceID, planID, serviceID string, asyncAllowed boo
 		fmt.Sprintf("http://%s/v2/service_instances/%s?accepts_incomplete=%t&plan_id=%s&service_id=%s", serverURL, instanceID, asyncAllowed, planID, serviceID),
 		nil)
 	Expect(err).ToNot(HaveOccurred())
+	deprovisionReq.Header.Set("X-Broker-API-Version", "2.0")
 	deprovisionReq.SetBasicAuth(brokerUsername, brokerPassword)
 	deprovisionResponse, err := http.DefaultClient.Do(deprovisionReq)
 	Expect(err).ToNot(HaveOccurred())
