@@ -64,6 +64,7 @@ var _ = AfterEach(func() {
 
 func StartServer(conf config.Config) {
 	stopServer = make(chan os.Signal, 1)
+	conf.Broker.ShutdownTimeoutSecs = 1
 	shouldSendSigterm = true
 	StartServerWithStopHandler(conf, stopServer)
 }
