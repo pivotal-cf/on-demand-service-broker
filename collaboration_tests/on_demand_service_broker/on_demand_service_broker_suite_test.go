@@ -58,6 +58,7 @@ var _ = BeforeEach(func() {
 var _ = AfterEach(func() {
 	if shouldSendSigterm {
 		stopServer <- syscall.SIGTERM
+		Eventually(loggerBuffer).Should(gbytes.Say("Server gracefully shut down"))
 	}
 })
 
