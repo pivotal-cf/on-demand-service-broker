@@ -7,14 +7,9 @@
 package apiserver
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/gorilla/mux"
@@ -59,35 +54,4 @@ func New(
 		Addr:    fmt.Sprintf(":%d", conf.Broker.Port),
 		Handler: server,
 	}
-}
-
-func StartAndWait(conf config.Config, server *http.Server, logger *log.Logger, stopServer chan os.Signal) {
-	stopped := make(chan struct{})
-	signal.Notify(stopServer, os.Interrupt, syscall.SIGTERM)
-	go func() {
-		<-stopServer
-
-		timeoutSecs := conf.Broker.ShutdownTimeoutSecs
-		logger.Printf("Broker shutting down on signal (timeout %d secs)...\n", timeoutSecs)
-
-		ctx, cancel := context.WithTimeout(
-			context.Background(),
-			time.Second*time.Duration(timeoutSecs),
-		)
-		defer cancel()
-
-		if err := server.Shutdown(ctx); err != nil {
-			logger.Printf("Error gracefully shutting down server: %v\n", err)
-		} else {
-			logger.Println("Server gracefully shut down")
-		}
-
-		close(stopped)
-	}()
-	logger.Println("Listening on", server.Addr)
-	err := server.ListenAndServe()
-	if err != http.ErrServerClosed {
-		logger.Fatalf("Error listening and serving: %v\n", err)
-	}
-	<-stopped
 }

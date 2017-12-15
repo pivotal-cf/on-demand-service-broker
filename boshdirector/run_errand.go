@@ -7,10 +7,11 @@
 package boshdirector
 
 import (
+	"encoding/json"
+	"fmt"
 	"log"
-
-	"github.com/cloudfoundry/bosh-cli/director"
-	"github.com/pkg/errors"
+	"net/http"
+	"strings"
 )
 
 type Instance struct {
@@ -21,32 +22,36 @@ type Instance struct {
 func (c *Client) RunErrand(deploymentName, errandName string, errandInstances []string, contextID string, logger *log.Logger) (int, error) {
 	logger.Printf("running errand %s on colocated instances %v from deployment %s\n", errandName, errandInstances, deploymentName)
 
-	deployment, err := c.director.FindDeployment(deploymentName)
-	if err != nil {
-		return -1, errors.Wrapf(err, `Could not find deployment "%s"`, deploymentName)
+	var errandBody struct {
+		Instances []Instance `json:"instances,omitempty"`
 	}
 
-	var instances []director.InstanceGroupOrInstanceSlug
 	for _, errandInstance := range errandInstances {
-		instanceGroupOrSlug, err := director.NewInstanceGroupOrInstanceSlugFromString(errandInstance)
-		if err != nil {
-			return -1, errors.Wrapf(err, "Invalid instance name %s for errand %s", errandName, errandInstance)
+		collection := strings.Split(errandInstance, "/")
+		switch len(collection) {
+		case 1:
+			group := collection[0]
+			errandBody.Instances = append(errandBody.Instances, Instance{Group: group})
+		case 2:
+			group := collection[0]
+			id := collection[1]
+			errandBody.Instances = append(errandBody.Instances, Instance{Group: group, ID: id})
+		default:
+			return 0, fmt.Errorf("invalid errand instances names passed in: %v", errandInstances)
 		}
-		instances = append(instances, instanceGroupOrSlug)
 	}
 
-	_, err = deployment.RunErrand(errandName, false, false, instances)
+	body, err := json.Marshal(errandBody)
 	if err != nil {
-		return -1, errors.Wrapf(err, "Could not run errand %s", errandName)
+		return 0, err
 	}
 
-	tasks, err := c.director.RecentTasks(1, director.TasksFilter{Deployment: deploymentName})
-	if err != nil {
-		return -1, errors.Wrap(err, "Could not fetch task")
-	}
-
-	if len(tasks) == 0 {
-		return 0, nil
-	}
-	return tasks[0].ID(), nil
+	return c.postAndGetTaskIDCheckingForErrors(
+		fmt.Sprintf("%s/deployments/%s/errands/%s/runs", c.url, deploymentName, errandName),
+		http.StatusFound,
+		body,
+		"application/json",
+		contextID,
+		logger,
+	)
 }

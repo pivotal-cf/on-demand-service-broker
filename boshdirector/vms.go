@@ -7,27 +7,117 @@
 package boshdirector
 
 import (
+	"fmt"
 	"log"
+	"net/http"
+	"time"
 
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
-	"github.com/pkg/errors"
 )
 
-func (c *Client) VMs(deploymentName string, logger *log.Logger) (bosh.BoshVMs, error) {
-	logger.Printf("retrieving VMs for deployment %s from bosh\n", deploymentName)
+type Probe func() (bool, error)
 
-	deployment, err := c.director.FindDeployment(deploymentName)
-	if err != nil {
-		return nil, errors.Wrapf(err, `Could not find deployment "%s"`, deploymentName)
+type Poller interface {
+	PollUntil(Probe) error
+}
+
+type SleepingPoller struct {
+	pollingInterval time.Duration
+}
+
+func (p *SleepingPoller) PollUntil(probe Probe) error {
+	for {
+		done, err := probe()
+		if err != nil {
+			return err
+		}
+
+		if done {
+			return nil
+		}
+
+		time.Sleep(p.pollingInterval)
+	}
+}
+
+func (c *Client) VMs(name string, logger *log.Logger) (bosh.BoshVMs, error) {
+	logger.Printf("retrieving VMs for deployment %s from bosh\n", name)
+	errs := func(err error) (bosh.BoshVMs, error) {
+		return nil, err
 	}
 
-	vmsInfo, err := deployment.VMInfos()
+	taskID, err := c.getTaskIDCheckingForErrors(
+		fmt.Sprintf("%s/deployments/%s/vms?format=full", c.url, name),
+		http.StatusFound,
+		logger,
+	)
+
 	if err != nil {
-		return nil, errors.Wrapf(err, `Could not fetch VMs info for deployment "%s"`, deploymentName)
+		return errs(err)
 	}
-	boshVms := bosh.BoshVMs{}
-	for _, vmInfo := range vmsInfo {
-		boshVms[vmInfo.JobName] = append(boshVms[vmInfo.JobName], vmInfo.IPs...)
+
+	poller := &SleepingPoller{pollingInterval: c.PollingInterval}
+
+	err = poller.PollUntil(
+		func() (bool, error) { return c.checkTaskComplete(taskID, logger) },
+	)
+	if err != nil {
+		return nil, err
 	}
-	return boshVms, nil
+
+	vmsOutputForEachJob, err := c.VMsOutput(taskID, logger)
+	if err != nil {
+		return errs(err)
+	}
+
+	vms := bosh.BoshVMs{}
+	for _, vmsOutput := range vmsOutputForEachJob {
+		vms[vmsOutput.InstanceGroup] = append(vms[vmsOutput.InstanceGroup], vmsOutput.IPs...)
+	}
+
+	return vms, nil
+}
+
+func (c *Client) checkTaskComplete(taskID int, logger *log.Logger) (bool, error) {
+	task, getTaskErr := c.GetTask(taskID, logger)
+	if getTaskErr != nil {
+		return false, getTaskErr
+	}
+
+	if task.State == TaskError {
+		return false, fmt.Errorf("task %d failed", taskID)
+	}
+
+	if task.State == TaskDone {
+		logger.Printf("Task %d finished: %s\n", taskID, task.ToLog())
+		return true, nil
+	}
+
+	return false, nil
+}
+
+type BoshVMsOutput struct {
+	IPs           []string
+	InstanceGroup string `json:"job_name"`
+}
+
+func (c *Client) VMsOutput(taskID int, logger *log.Logger) ([]BoshVMsOutput, error) {
+	outputs := []BoshVMsOutput{}
+	var output BoshVMsOutput
+	outputReadyCallback := func() {
+		outputs = append(outputs, output)
+		output = BoshVMsOutput{}
+		// `output` is reused for JSON decoding, so use a fresh struct;
+		// else you will override your previous values with the current one
+	}
+
+	err := c.getMultipleDataCheckingForErrors(
+		fmt.Sprintf("%s/tasks/%d/output?type=result", c.url, taskID),
+		http.StatusOK,
+		&output,
+		outputReadyCallback,
+		logger,
+	)
+
+	return outputs, err
 }

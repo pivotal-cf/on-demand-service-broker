@@ -9,12 +9,18 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector/fakes"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 
+	"log"
+	"net/http"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("New", func() {
 	var (
+		fakeHTTPClient                            *fakes.FakeNetworkDoer
+		fakeAuthenticatorBuilder                  *fakes.FakeAuthenticatorBuilder
+		fakeAuthHeaderBuilder                     *fakes.FakeAuthHeaderBuilder
 		fakeCertAppender                          *fakes.FakeCertAppender
 		fakeDirector, fakeDirectorUnauthenticated *fakes.FakeDirector
 		fakeDirectorFactory                       *fakes.FakeDirectorFactory
@@ -23,6 +29,9 @@ var _ = Describe("New", func() {
 	)
 
 	BeforeEach(func() {
+		fakeHTTPClient = new(fakes.FakeNetworkDoer)
+		fakeAuthenticatorBuilder = new(fakes.FakeAuthenticatorBuilder)
+		fakeAuthHeaderBuilder = new(fakes.FakeAuthHeaderBuilder)
 		fakeCertAppender = new(fakes.FakeCertAppender)
 		fakeDirectorFactory = new(fakes.FakeDirectorFactory)
 		fakeDirectorUnauthenticated = new(fakes.FakeDirector)
@@ -36,11 +45,12 @@ var _ = Describe("New", func() {
 		fakeDirectorFactory.NewReturnsOnCall(1, fakeDirector, nil)
 
 		fakeDirector.IsAuthenticatedReturns(true, nil)
-	})
 
-	It("can be constructed with a director", func() {
-		client := NewBOSHClient(fakeDirector)
-		Expect(client.VerifyAuth(logger)).To(Succeed())
+		fakeAuthHeaderBuilder.AddAuthHeaderStub = func(req *http.Request, logger *log.Logger) error {
+			req.Header.Set("Authorization", "Bearer unit-test-token")
+			return nil
+		}
+		fakeAuthenticatorBuilder.NewAuthHeaderBuilderReturns(fakeAuthHeaderBuilder, nil)
 	})
 
 	Context("when UAA is configured", func() {
@@ -68,7 +78,10 @@ var _ = Describe("New", func() {
 		It("returns a bosh client that works", func() {
 			client, err := New(
 				"http://example.org:25666",
+				true,
 				[]byte("a totally trustworthy cert"),
+				fakeHTTPClient,
+				fakeAuthenticatorBuilder,
 				fakeCertAppender,
 				fakeDirectorFactory,
 				fakeUAAFactory,
@@ -110,6 +123,12 @@ var _ = Describe("New", func() {
 			Expect(taskReporter).To(Equal(boshdir.NoopTaskReporter{}))
 			Expect(fileReporter).To(Equal(boshdir.NoopFileReporter{}))
 
+			By("making an authenticator")
+			Expect(fakeAuthenticatorBuilder.NewAuthHeaderBuilderCallCount()).To(Equal(1))
+			UAAURL, disableSSLCertVerification := fakeAuthenticatorBuilder.NewAuthHeaderBuilderArgsForCall(0)
+			Expect(UAAURL).To(Equal("uaa.url.example.com:12345"))
+			Expect(disableSSLCertVerification).To(BeTrue(), "SSL Certificate Verification should be skipped here")
+
 			By("appending the trusted certificate to the system cert pool")
 			Expect(fakeCertAppender.AppendCertsFromPEMCallCount()).To(Equal(1))
 			Expect(fakeCertAppender.AppendCertsFromPEMArgsForCall(0)).To(Equal([]byte("a totally trustworthy cert")))
@@ -126,7 +145,10 @@ var _ = Describe("New", func() {
 			It("errors when bosh url is not valid", func() {
 				_, err := New(
 					"https://not a valid url",
+					true,
 					[]byte("a totally trustworthy cert"),
+					fakeHTTPClient,
+					fakeAuthenticatorBuilder,
 					fakeCertAppender,
 					fakeDirectorFactory,
 					fakeUAAFactory,
@@ -140,7 +162,10 @@ var _ = Describe("New", func() {
 				fakeDirectorFactory.NewReturnsOnCall(0, new(fakes.FakeDirector), errors.New("could not build director"))
 				_, err := New(
 					"https://example.org:25666",
+					true,
 					[]byte("a totally trustworthy cert"),
+					fakeHTTPClient,
+					fakeAuthenticatorBuilder,
 					fakeCertAppender,
 					fakeDirectorFactory,
 					fakeUAAFactory,
@@ -154,7 +179,10 @@ var _ = Describe("New", func() {
 				fakeDirectorUnauthenticated.InfoReturns(boshdir.Info{}, errors.New("could not get info"))
 				_, err := New(
 					"https://example.org:25666",
+					true,
 					[]byte("a totally trustworthy cert"),
+					fakeHTTPClient,
+					fakeAuthenticatorBuilder,
 					fakeCertAppender,
 					fakeDirectorFactory,
 					fakeUAAFactory,
@@ -163,6 +191,24 @@ var _ = Describe("New", func() {
 				)
 
 				Expect(err).To(MatchError(ContainSubstring("error fetching BOSH director information: could not get info")))
+			})
+
+			It("errors when the director fails to build the authorization header builder", func() {
+				fakeAuthenticatorBuilder.NewAuthHeaderBuilderReturns(new(fakes.FakeAuthHeaderBuilder), errors.New("could not build authheader"))
+				_, err := New(
+					"https://example.org:25666",
+					true,
+					[]byte("a totally trustworthy cert"),
+					fakeHTTPClient,
+					fakeAuthenticatorBuilder,
+					fakeCertAppender,
+					fakeDirectorFactory,
+					fakeUAAFactory,
+					boshAuthConfig,
+					logger,
+				)
+
+				Expect(err).To(MatchError(ContainSubstring("Failed to create BOSH authorization header builder: could not build authheader")))
 			})
 
 			It("errors when uaa url is not valid", func() {
@@ -178,7 +224,10 @@ var _ = Describe("New", func() {
 
 				_, err := New(
 					"https://example.org:25666",
+					true,
 					[]byte("a totally trustworthy cert"),
+					fakeHTTPClient,
+					fakeAuthenticatorBuilder,
 					fakeCertAppender,
 					fakeDirectorFactory,
 					fakeUAAFactory,
@@ -199,7 +248,10 @@ var _ = Describe("New", func() {
 
 				_, err := New(
 					"https://example.org:25666",
+					true,
 					[]byte("a totally trustworthy cert"),
+					fakeHTTPClient,
+					fakeAuthenticatorBuilder,
 					fakeCertAppender,
 					fakeDirectorFactory,
 					fakeUAAFactory,
@@ -214,7 +266,10 @@ var _ = Describe("New", func() {
 				fakeUAAFactory.NewReturns(new(fakes.FakeUAA), errors.New("failed to build uaa"))
 				_, err := New(
 					"https://example.org:25666",
+					true,
 					[]byte("a totally trustworthy cert"),
+					fakeHTTPClient,
+					fakeAuthenticatorBuilder,
 					fakeCertAppender,
 					fakeDirectorFactory,
 					fakeUAAFactory,
@@ -229,7 +284,10 @@ var _ = Describe("New", func() {
 				fakeDirectorFactory.NewReturnsOnCall(1, new(fakes.FakeDirector), errors.New("failed to build director"))
 				_, err := New(
 					"https://example.org:25666",
+					true,
 					[]byte("a totally trustworthy cert"),
+					fakeHTTPClient,
+					fakeAuthenticatorBuilder,
 					fakeCertAppender,
 					fakeDirectorFactory,
 					fakeUAAFactory,
@@ -264,7 +322,10 @@ var _ = Describe("New", func() {
 			}
 			client, err := New(
 				"http://example.org:25666",
+				true,
 				[]byte("a totally trustworthy cert"),
+				fakeHTTPClient,
+				fakeAuthenticatorBuilder,
 				fakeCertAppender,
 				fakeDirectorFactory,
 				fakeUAAFactory,
@@ -298,6 +359,12 @@ var _ = Describe("New", func() {
 			Expect(directorConfig.ClientSecret).To(Equal(basicAuthConfig.Basic.Password))
 			Expect(taskReporter).To(Equal(boshdir.NoopTaskReporter{}))
 			Expect(fileReporter).To(Equal(boshdir.NoopFileReporter{}))
+
+			By("making an authenticator")
+			Expect(fakeAuthenticatorBuilder.NewAuthHeaderBuilderCallCount()).To(Equal(1))
+			UAAURL, disableSSLCertVerification := fakeAuthenticatorBuilder.NewAuthHeaderBuilderArgsForCall(0)
+			Expect(UAAURL).To(Equal(""))
+			Expect(disableSSLCertVerification).To(BeTrue(), "SSL Certificate Verification should be skipped here")
 
 			By("appending the trusted certificate to the system cert pool")
 			Expect(fakeCertAppender.AppendCertsFromPEMCallCount()).To(Equal(1))

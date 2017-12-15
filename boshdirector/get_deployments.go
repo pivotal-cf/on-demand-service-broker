@@ -7,20 +7,19 @@
 package boshdirector
 
 import (
+	"fmt"
 	"log"
-
-	"github.com/pkg/errors"
+	"net/http"
 )
 
 func (c *Client) GetDeployments(logger *log.Logger) ([]Deployment, error) {
 	logger.Println("getting deployments from bosh")
-	rawDeployments, err := c.director.Deployments()
-	if err != nil {
-		return nil, errors.Wrap(err, "Cannot get the list of deployments")
+
+	var deployments []Deployment
+	url := fmt.Sprintf("%s/deployments", c.url)
+	if err := c.getDataCheckingForErrors(url, http.StatusOK, &deployments, logger); err != nil {
+		return nil, err
 	}
-	deployments := make([]Deployment, len(rawDeployments))
-	for i, d := range rawDeployments {
-		deployments[i] = Deployment{Name: d.Name()}
-	}
+
 	return deployments, nil
 }

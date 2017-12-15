@@ -812,14 +812,4 @@ var _ = Describe("provisioning", func() {
 			Expect(provisionErr).To(HaveOccurred())
 		})
 	})
-
-	Context("when bosh can't be reached", func() {
-		BeforeEach(func() {
-			boshClient.GetInfoReturns(boshdirector.Info{}, errors.New("foo"))
-		})
-
-		It("returns an error", func() {
-			Expect(provisionErr).To(HaveOccurred())
-		})
-	})
 })

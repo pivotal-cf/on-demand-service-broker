@@ -13,9 +13,9 @@ import (
 )
 
 func (b *Broker) Services(_ context.Context) []brokerapi.Service {
-	var servicePlans []brokerapi.ServicePlan
+	servicePlans := []brokerapi.ServicePlan{}
 	for _, plan := range b.serviceOffering.Plans {
-		var planCosts []brokerapi.ServicePlanCost
+		planCosts := []brokerapi.ServicePlanCost{}
 		for _, cost := range plan.Metadata.Costs {
 			planCosts = append(planCosts, brokerapi.ServicePlanCost{Amount: cost.Amount, Unit: cost.Unit})
 		}
@@ -69,7 +69,7 @@ func (b *Broker) Services(_ context.Context) []brokerapi.Service {
 }
 
 func requiredPermissions(permissions []string) []brokerapi.RequiredPermission {
-	var brokerPermissions []brokerapi.RequiredPermission
+	brokerPermissions := []brokerapi.RequiredPermission{}
 	for _, permission := range permissions {
 		brokerPermissions = append(brokerPermissions, brokerapi.RequiredPermission(permission))
 	}

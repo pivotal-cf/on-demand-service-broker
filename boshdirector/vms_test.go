@@ -8,69 +8,203 @@ package boshdirector_test
 
 import (
 	"errors"
+	"fmt"
 
-	"github.com/cloudfoundry/bosh-cli/director"
+	"net/http"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/types"
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector/fakes"
 )
 
-var _ = Describe("Retriving VM Info", func() {
-	const (
-		deploymentName = "some-deployment"
-	)
+type NetworkActivity struct {
+	Response        *http.Response
+	Error           error
+	ExpectedRequest receivedHttpRequest
+}
 
-	var (
-		fakeDeployment *fakes.FakeBOSHDeployment
-	)
+func appendRequestsToClient(fakeHTTPClient *fakes.FakeNetworkDoer, offset int, networkActivities ...NetworkActivity) []types.GomegaMatcher {
+	var expectedHttpRequests []types.GomegaMatcher
 
-	BeforeEach(func() {
-		var vmIndex = 1
-		fakeDeployment = new(fakes.FakeBOSHDeployment)
-		fakeDeployment.VMInfosReturns([]director.VMInfo{
-			{AgentID: "1", JobName: "some-instance-group", ID: "some-id", Index: &vmIndex, IPs: []string{"ip1", "ip2"}},
-		}, nil)
-		fakeDirector.FindDeploymentReturns(fakeDeployment, nil)
+	for i, activity := range networkActivities {
+		fakeHTTPClient.DoReturnsOnCall(i+offset, activity.Response, activity.Error)
+		expectedHttpRequests = append(expectedHttpRequests, HaveReceivedHttpRequestAtIndex(activity.ExpectedRequest, i+offset))
+	}
+
+	return expectedHttpRequests
+}
+
+var _ = Describe("vms", func() {
+	Describe("getting VM info", func() {
+
+		const (
+			taskIDToReturn = 42
+			deploymentName = "some-deployment"
+		)
+
+		Context("when bosh starts VMs task successfully", func() {
+			Context("when task state can be fetched from bosh successfully", func() {
+				It("returns the BOSH VMs when task output has one instance group", func() {
+					expectedTaskOutputs := []boshdirector.BoshVMsOutput{
+						{IPs: []string{"ip1", "ip2"}, InstanceGroup: "an-instance-group"},
+					}
+
+					const expectedPreviousRequests = 0
+
+					activities := []NetworkActivity{
+						{
+							Response: responseWithRedirectToTaskID(taskIDToReturn),
+							ExpectedRequest: receivedHttpRequest{
+								Path:   fmt.Sprintf("/deployments/%s/vms", deploymentName),
+								Method: "GET",
+							},
+						},
+						{
+							Response: responseOKWithJSON(boshdirector.BoshTask{
+								ID:    taskIDToReturn,
+								State: boshdirector.TaskDone,
+							}),
+							ExpectedRequest: receivedHttpRequest{
+								Path:   fmt.Sprintf("/tasks/%d", taskIDToReturn),
+								Method: "GET",
+							},
+						},
+						{
+							Response: responseOKWithTaskOutput(expectedTaskOutputs),
+							ExpectedRequest: receivedHttpRequest{
+								Path:   fmt.Sprintf("/tasks/%d/output", taskIDToReturn),
+								Method: "GET",
+							},
+						},
+					}
+					expectedHttpRequests := appendRequestsToClient(fakeHTTPClient, expectedPreviousRequests, activities...)
+
+					vms, vmsErr := c.VMs(deploymentName, logger)
+
+					Expect(vms).To(HaveLen(1))
+					Expect(vmsErr).NotTo(HaveOccurred())
+					Expect(vms["an-instance-group"]).To(ConsistOf("ip1", "ip2"))
+
+					By("calling the right endpoints")
+					Expect(fakeHTTPClient).To(SatisfyAll(expectedHttpRequests...))
+					Expect(authHeaderBuilder.AddAuthHeaderCallCount()).To(BeNumerically(">", 0))
+				})
+
+				It("groups ips by instance group deploymentName when the output has multiple lines of the same instance group", func() {
+					fakeHTTPClient.DoReturnsOnCall(0, responseWithRedirectToTaskID(taskIDToReturn), nil)
+					fakeHTTPClient.DoReturnsOnCall(1, responseOKWithJSON(boshdirector.BoshTask{
+						ID:    taskIDToReturn,
+						State: boshdirector.TaskDone,
+					}), nil)
+					fakeHTTPClient.DoReturnsOnCall(2, responseOKWithTaskOutput([]boshdirector.BoshVMsOutput{
+						{IPs: []string{"ip1"}, InstanceGroup: "kafka-broker"},
+						{IPs: []string{"ip2"}, InstanceGroup: "kafka-broker"},
+						{IPs: []string{"ip3"}, InstanceGroup: "zookeeper"},
+					}), nil)
+
+					vms, err := c.VMs(deploymentName, logger)
+
+					Expect(err).NotTo(HaveOccurred())
+					Expect(vms).To(HaveLen(2))
+					Expect(vms).To(HaveKeyWithValue("kafka-broker", []string{"ip1", "ip2"}))
+					Expect(vms).To(HaveKeyWithValue("zookeeper", []string{"ip3"}))
+				})
+
+				It("returns an error when the task is finished, but has failed", func() {
+					fakeHTTPClient.DoReturnsOnCall(0, responseWithRedirectToTaskID(taskIDToReturn), nil)
+					fakeHTTPClient.DoReturnsOnCall(1, responseOKWithJSON(boshdirector.BoshTask{
+						ID:    taskIDToReturn,
+						State: boshdirector.TaskError,
+					}), nil)
+
+					_, err := c.VMs(deploymentName, logger)
+
+					Expect(err).To(MatchError(ContainSubstring(fmt.Sprintf("task %d failed", taskIDToReturn))))
+				})
+
+				It("returns an error when fetching task output from bosh fails", func() {
+					fakeHTTPClient.DoReturnsOnCall(0, responseWithEmptyBodyAndStatus(http.StatusInternalServerError), nil)
+
+					_, err := c.VMs(deploymentName, logger)
+
+					Expect(err).To(MatchError(ContainSubstring("expected status 302, was 500")))
+				})
+
+				It("returns an error when the deployment is not found", func() {
+					fakeHTTPClient.DoReturnsOnCall(0, responseWithEmptyBodyAndStatus(http.StatusNotFound), nil)
+
+					_, err := c.VMs(deploymentName, logger)
+
+					Expect(err).To(BeAssignableToTypeOf(boshdirector.DeploymentNotFoundError{}))
+				})
+			})
+
+			It("returns an error when the authorization header cannot be generated", func() {
+				authHeaderBuilder.AddAuthHeaderReturns(errors.New("some-error"))
+
+				_, err := c.VMs(deploymentName, logger)
+
+				Expect(err).To(MatchError(ContainSubstring("some-error")))
+			})
+
+			It("returns an error when fetching task state from bosh fails", func() {
+				fakeHTTPClient.DoReturnsOnCall(0, responseWithRedirectToTaskID(taskIDToReturn), nil)
+				fakeHTTPClient.DoReturnsOnCall(1, responseWithEmptyBodyAndStatus(http.StatusInternalServerError), nil)
+
+				_, err := c.VMs(deploymentName, logger)
+
+				Expect(err).To(MatchError(ContainSubstring("expected status 200, was 500")))
+			})
+		})
+
+		It("returns an error when bosh fails to start VMs task", func() {
+			fakeHTTPClient.DoReturnsOnCall(0, responseWithEmptyBodyAndStatus(http.StatusInternalServerError), nil)
+
+			_, err := c.VMs(deploymentName, logger)
+
+			Expect(err).To(MatchError(ContainSubstring("expected status 302, was 500")))
+		})
 	})
 
-	It("returns the vms for a particular deployment", func() {
-		vms, err := c.VMs(deploymentName, logger)
+	Describe("getting output from a BOSH VMs task", func() {
+		const (
+			taskID = 2
+		)
+		var (
+			expectedVMsOutput = []boshdirector.BoshVMsOutput{
+				{IPs: []string{"a-nice-ip"}, InstanceGroup: "a-nice-instance-group"},
+			}
+		)
 
-		By("finding the deployment")
-		Expect(fakeDirector.FindDeploymentCallCount()).To(Equal(1))
-		Expect(fakeDirector.FindDeploymentArgsForCall(0)).To(Equal(deploymentName))
+		It("returns the IPs in the output when bosh succeeds", func() {
+			fakeHTTPClient.DoReturnsOnCall(0, responseOKWithTaskOutput(expectedVMsOutput), nil)
 
-		Expect(vms).To(HaveLen(1))
-		Expect(err).NotTo(HaveOccurred())
-		Expect(vms["some-instance-group"]).To(ConsistOf("ip1", "ip2"))
-	})
+			boshOutput, err := c.VMsOutput(taskID, logger)
 
-	It("groups ips by instance group deploymentName when the output has multiple lines of the same instance group", func() {
-		var vmIndex []int
-		vmIndex = []int{1, 2, 3}
-		fakeDeployment.VMInfosReturns([]director.VMInfo{
-			{AgentID: "1", JobName: "some-instance-group", ID: "some-id", Index: &vmIndex[0], IPs: []string{"ip1"}},
-			{AgentID: "1", JobName: "some-instance-group", ID: "some-id", Index: &vmIndex[1], IPs: []string{"ip2"}},
-			{AgentID: "1", JobName: "other-instance-group", ID: "some-id", Index: &vmIndex[2], IPs: []string{"ip3"}},
-		}, nil)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(boshOutput).To(ConsistOf(expectedVMsOutput[0]))
 
-		vms, err := c.VMs(deploymentName, logger)
+			By("calling the authorization header builder")
+			Expect(authHeaderBuilder.AddAuthHeaderCallCount()).To(BeNumerically(">", 0))
 
-		Expect(err).NotTo(HaveOccurred())
-		Expect(vms).To(HaveLen(2))
-		Expect(vms).To(HaveKeyWithValue("some-instance-group", []string{"ip1", "ip2"}))
-		Expect(vms).To(HaveKeyWithValue("other-instance-group", []string{"ip3"}))
-	})
+		})
 
-	It("errors when finding deployment fails", func() {
-		fakeDirector.FindDeploymentReturns(nil, errors.New("some failure"))
-		_, err := c.VMs(deploymentName, logger)
-		Expect(err).To(MatchError(ContainSubstring("Could not find deployment")))
-	})
+		It("returns an error when bosh fails", func() {
+			fakeHTTPClient.DoReturnsOnCall(0, responseWithEmptyBodyAndStatus(http.StatusInternalServerError), nil)
 
-	It("errors when fetching vm info fails", func() {
-		fakeDeployment.VMInfosReturns(nil, errors.New("some vm info error"))
-		_, err := c.VMs(deploymentName, logger)
-		Expect(err).To(MatchError(ContainSubstring("Could not fetch VMs info for deployment")))
+			_, err := c.VMsOutput(taskID, logger)
+
+			Expect(err).To(MatchError(ContainSubstring("expected status 200, was 500.")))
+		})
+
+		It("returns an error when the Authorization header cannot be generated", func() {
+			authHeaderBuilder.AddAuthHeaderReturns(errors.New("some-error"))
+
+			_, err := c.VMsOutput(taskID, logger)
+
+			Expect(err).To(MatchError(ContainSubstring("some-error")))
+		})
 	})
 })

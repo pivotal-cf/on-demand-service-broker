@@ -7,15 +7,21 @@
 package main
 
 import (
+	"context"
 	"crypto/x509"
 	"flag"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/cloudfoundry/bosh-cli/director"
 	boshuaa "github.com/cloudfoundry/bosh-cli/uaa"
 	boshlog "github.com/cloudfoundry/bosh-utils/logger"
+	"github.com/craigfurman/herottp"
 	"github.com/pivotal-cf/on-demand-service-broker/apiserver"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
@@ -49,7 +55,6 @@ func main() {
 	if err != nil {
 		logger.Fatalf("error parsing config: %s", err)
 	}
-
 	startBroker(conf, logger, loggerFactory)
 }
 
@@ -65,7 +70,15 @@ func startBroker(conf config.Config, logger *log.Logger, loggerFactory *loggerfa
 
 	boshClient, err := boshdirector.New(
 		conf.Bosh.URL,
+		conf.Broker.DisableSSLCertVerification,
 		[]byte(conf.Bosh.TrustedCert),
+		herottp.New(herottp.Config{
+			NoFollowRedirect:                  true,
+			DisableTLSCertificateVerification: conf.Broker.DisableSSLCertVerification,
+			RootCAs: certPool,
+			Timeout: 30 * time.Second,
+		}),
+		conf.Bosh,
 		certPool,
 		directorFactory,
 		uaaFactory,
@@ -149,18 +162,49 @@ func startBroker(conf config.Config, logger *log.Logger, loggerFactory *loggerfa
 	}
 
 	credhubFactory := credhubbroker.CredhubFactory{Conf: conf}
-	combinedBroker, err := brokeraugmenter.New(conf, onDemandBroker, credhubFactory, loggerFactory)
+	broker, err := brokeraugmenter.New(conf, onDemandBroker, credhubFactory, loggerFactory)
 	if err != nil {
 		logger.Fatalf("Error constructing the CredHub broker: %s", err)
 	}
 	server := apiserver.New(
 		conf,
-		combinedBroker,
+		broker,
 		componentName,
 		loggerFactory,
 		logger,
 	)
 
-	stopServer := make(chan os.Signal, 1)
-	apiserver.StartAndWait(conf, server, logger, stopServer)
+	stopped := make(chan struct{})
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
+
+	go func() {
+		<-stop
+
+		timeoutSecs := conf.Broker.ShutdownTimeoutSecs
+		logger.Printf("Broker shutting down on signal (timeout %d secs)...\n", timeoutSecs)
+
+		ctx, cancel := context.WithTimeout(
+			context.Background(),
+			time.Second*time.Duration(timeoutSecs),
+		)
+		defer cancel()
+
+		if err = server.Shutdown(ctx); err != nil {
+			logger.Printf("Error gracefully shutting down server: %v\n", err)
+		} else {
+			logger.Println("Server gracefully shut down")
+		}
+
+		close(stopped)
+	}()
+
+	logger.Println("Listening on", server.Addr)
+
+	err = server.ListenAndServe()
+	if err != http.ErrServerClosed {
+		logger.Fatalf("Error listening and serving: %v\n", err)
+	}
+
+	<-stopped
 }

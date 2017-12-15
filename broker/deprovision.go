@@ -37,11 +37,6 @@ func (b *Broker) Deprovision(
 		return brokerapi.DeprovisionServiceSpec{}, brokerapi.ErrAsyncRequired
 	}
 
-	_, err := b.boshClient.GetInfo(logger)
-	if err != nil {
-		return deprovisionErr(NewBoshRequestError("delete", err), logger)
-	}
-
 	if err := b.assertDeploymentExists(ctx, instanceID, logger); err != NilError {
 		return deprovisionErr(err, logger)
 	}
@@ -56,6 +51,7 @@ func (b *Broker) Deprovision(
 			return b.runPreDeleteErrand(ctx, instanceID, errand, plan.LifecycleErrands.PreDelete.Instances, logger)
 		}
 	}
+
 	return b.deleteInstance(ctx, instanceID, plan, logger)
 }
 
@@ -152,7 +148,7 @@ func (b *Broker) deleteInstance(
 	logger *log.Logger,
 ) (brokerapi.DeprovisionServiceSpec, error) {
 	logger.Printf("deleting deployment for instance %s\n", instanceID)
-	taskID, err := b.boshClient.DeleteDeployment(deploymentName(instanceID), fmt.Sprintf("delete-%s", instanceID), logger)
+	taskID, err := b.boshClient.DeleteDeployment(deploymentName(instanceID), "", logger)
 	switch err.(type) {
 	case boshdirector.RequestError:
 		return deprovisionErr(NewBoshRequestError("delete", err), logger)

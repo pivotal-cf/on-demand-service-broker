@@ -1,7 +1,7 @@
 package delete_all_service_instances_and_deregister_broker_test
 
 import (
-	"gopkg.in/yaml.v2"
+	yaml "gopkg.in/yaml.v2"
 
 	"time"
 

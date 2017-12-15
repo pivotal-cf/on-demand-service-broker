@@ -2,7 +2,9 @@ package credhub_tests
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	"github.com/cloudfoundry-incubator/credhub-cli/credhub"
 	"github.com/cloudfoundry-incubator/credhub-cli/credhub/auth"
@@ -12,12 +14,15 @@ import (
 
 	"log"
 	"testing"
+	"time"
 
 	"crypto/x509"
 
 	boshdir "github.com/cloudfoundry/bosh-cli/director"
 	boshuaa "github.com/cloudfoundry/bosh-cli/uaa"
 	boshlog "github.com/cloudfoundry/bosh-utils/logger"
+	"github.com/craigfurman/herottp"
+	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
@@ -46,6 +51,27 @@ var _ = AfterSuite(func() {
 	ensureCredhubIsClean()
 })
 
+type TestingAuthHeaderBuilder struct{}
+
+func (a *TestingAuthHeaderBuilder) NewAuthHeaderBuilder(
+	UAAURL string,
+	disableSSLCertVerification bool,
+) (config.AuthHeaderBuilder, error) {
+
+	username := os.Getenv("BOSH_USERNAME")
+	Expect(username).NotTo(BeEmpty(), "Expected BOSH_USERNAME to be set")
+	password := os.Getenv("BOSH_PASSWORD")
+	Expect(password).NotTo(BeEmpty(), "Expected BOSH_PASSWORD to be set")
+
+	return authorizationheader.NewClientTokenAuthHeaderBuilder(
+		UAAURL,
+		username,
+		password,
+		true,
+		[]byte{},
+	)
+}
+
 func getBoshManifest(deploymentName string) ([]byte, error) {
 	logger := log.New(GinkgoWriter, "", loggerfactory.Flags)
 	certPool, err := x509.SystemCertPool()
@@ -69,7 +95,14 @@ func getBoshManifest(deploymentName string) ([]byte, error) {
 
 	boshClient, err := boshdirector.New(
 		boshURL,
+		true,
 		[]byte(boshCert),
+		herottp.New(herottp.Config{
+			NoFollowRedirect:                  true,
+			DisableTLSCertificateVerification: true,
+			Timeout: 30 * time.Second,
+		}),
+		&TestingAuthHeaderBuilder{},
 		certPool,
 		directorFactory,
 		uaaFactory,
@@ -173,6 +206,24 @@ func credhubCorrectAuth() credhubbroker.CredentialStore {
 	)
 	Expect(err).NotTo(HaveOccurred())
 	return credentialStore
+}
+
+func requiredCaCerts(paths ...string) (certs []string, err error) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return certs, err
+	}
+
+	for _, path := range paths {
+		caCertPath := filepath.Join(cwd, path)
+		caCert, err := ioutil.ReadFile(caCertPath)
+		if err != nil {
+			return certs, err
+		}
+
+		certs = append(certs, string(caCert))
+	}
+	return
 }
 
 func credhubIncorrectAuth() credhubbroker.CredentialStore {

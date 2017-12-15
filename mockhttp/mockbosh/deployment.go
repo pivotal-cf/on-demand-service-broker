@@ -9,37 +9,29 @@ package mockbosh
 import (
 	"fmt"
 
+	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
+	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
+	"gopkg.in/yaml.v2"
 )
 
-type errandMock struct {
+type deploymentMock struct {
 	*mockhttp.Handler
 }
 
-func Errand(deploymentName, errandName, body string) *errandMock {
-	mock := errandMock{
-		Handler: mockhttp.NewMockedHttpRequest("POST", fmt.Sprintf("/deployments/%s/errands/%s/runs", deploymentName, errandName)),
+func GetDeployment(deploymentName string) *deploymentMock {
+	return &deploymentMock{
+		Handler: mockhttp.NewMockedHttpRequest("GET", fmt.Sprintf("/deployments/%s", deploymentName)),
 	}
-	mock.WithContentType("application/json")
-	mock.WithJSONBody(body)
-	return &mock
 }
 
-func (e *errandMock) WithAnyContextID() *errandMock {
-	e.WithHeaderPresent(BoshContextIDHeader)
-	return e
+func (t *deploymentMock) RespondsWithRawManifest(manifest []byte) *mockhttp.Handler {
+	data := map[string]string{"manifest": string(manifest)}
+	return t.RespondsOKWithJSON(data)
 }
 
-func (e *errandMock) WithContextID(value string) *errandMock {
-	e.WithHeader(BoshContextIDHeader, value)
-	return e
-}
-
-func (e *errandMock) WithoutContextID() *errandMock {
-	e.WithoutHeader(BoshContextIDHeader)
-	return e
-}
-
-func (e *errandMock) RedirectsToTask(taskID int) *mockhttp.Handler {
-	return e.RedirectsTo(taskURL(taskID))
+func (t *deploymentMock) RespondsWithManifest(manifest bosh.BoshManifest) *mockhttp.Handler {
+	data, err := yaml.Marshal(manifest)
+	Expect(err).NotTo(HaveOccurred())
+	return t.RespondsWithRawManifest(data)
 }

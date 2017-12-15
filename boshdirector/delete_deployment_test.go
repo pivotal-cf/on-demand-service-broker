@@ -8,70 +8,62 @@ package boshdirector_test
 
 import (
 	"errors"
-	"fmt"
+	"net/http"
 
-	"github.com/cloudfoundry/bosh-cli/director"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf/on-demand-service-broker/boshdirector/fakes"
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 )
 
 var _ = Describe("deleting bosh deployments", func() {
 	const deploymentName = "some-deployment"
-	var (
-		fakeDeployment *fakes.FakeBOSHDeployment
-		fakeTask       *fakes.FakeTask
-	)
-	BeforeEach(func() {
-		fakeDeployment = new(fakes.FakeBOSHDeployment)
-		fakeTask = new(fakes.FakeTask)
-		fakeTask.IDReturns(90)
-		fakeDirector.FindDeploymentReturns(fakeDeployment, nil)
-		fakeDirector.RecentTasksStub = func(limit int, filter director.TasksFilter) ([]director.Task, error) {
-			if filter.Deployment == deploymentName {
-				return []director.Task{fakeTask}, nil
-			}
-			return []director.Task{}, nil
-		}
+
+	It("returns an error when the authorization header cannot be generated", func() {
+		authHeaderBuilder.AddAuthHeaderReturns(errors.New("some-error"))
+		_, deleteErr := c.DeleteDeployment(deploymentName, "", logger)
+		Expect(deleteErr).To(MatchError(ContainSubstring("some-error")))
 	})
 
 	It("returns the bosh task ID when bosh accepts the delete request", func() {
-		taskID, deleteErr := c.DeleteDeployment(deploymentName, "delete-some-deployment", logger)
-
-		By("querying the latest task for the deployment")
-		limit, tasksFilter := fakeDirector.RecentTasksArgsForCall(0)
-		Expect(limit).To(Equal(1))
-		Expect(tasksFilter.Deployment).To(Equal(deploymentName))
-
+		fakeHTTPClient.DoReturns(responseWithRedirectToTaskID(90), nil)
+		taskID, deleteErr := c.DeleteDeployment(deploymentName, "", logger)
 		Expect(deleteErr).NotTo(HaveOccurred())
 		Expect(taskID).To(Equal(90))
+
+		By("calling the appropriate endpoint")
+		Expect(fakeHTTPClient).To(HaveReceivedHttpRequestAtIndex(
+			receivedHttpRequest{
+				Path:   "/deployments/some-deployment",
+				Method: "DELETE",
+			}, 0))
+		Expect(authHeaderBuilder.AddAuthHeaderCallCount()).To(BeNumerically(">", 0))
 	})
 
-	It("succeeds when no task is found", func() {
-		fakeDirector.RecentTasksReturns([]director.Task{}, nil)
-		_, deleteErr := c.DeleteDeployment(deploymentName, "delete-some-deployment", logger)
+	It("returns an error when bosh cannot find the deployment", func() {
+		fakeHTTPClient.DoReturns(responseWithEmptyBodyAndStatus(http.StatusNotFound), nil)
+		_, deleteErr := c.DeleteDeployment(deploymentName, "", logger)
+		Expect(deleteErr).To(BeAssignableToTypeOf(boshdirector.DeploymentNotFoundError{}))
+	})
 
+	It("returns an error when bosh cannot delete the deployment", func() {
+		fakeHTTPClient.DoReturns(responseWithEmptyBodyAndStatus(http.StatusInternalServerError), nil)
+		_, deleteErr := c.DeleteDeployment(deploymentName, "", logger)
+		Expect(deleteErr).To(MatchError(ContainSubstring("expected status 302, was 500")))
+	})
+
+	It("includes the bosh context id header in delete request when bosh context ID is provided", func() {
+		fakeHTTPClient.DoReturns(responseWithRedirectToTaskID(90), nil)
+		taskID, deleteErr := c.DeleteDeployment(deploymentName, "some-context-id", logger)
 		Expect(deleteErr).NotTo(HaveOccurred())
-	})
+		Expect(taskID).To(Equal(90))
 
-	It("returns an error when cannot find the deployment", func() {
-		fakeDirector.FindDeploymentReturns(new(fakes.FakeBOSHDeployment), errors.New("oops"))
-		_, deleteErr := c.DeleteDeployment(deploymentName, "delete-some-deployment", logger)
-
-		Expect(deleteErr).To(MatchError(ContainSubstring(`BOSH error when deleting deployment "some-deployment"`)))
-	})
-
-	It("returns an error when cannot delete the deployment", func() {
-		fakeDeployment.DeleteReturns(errors.New("oops"))
-		_, deleteErr := c.DeleteDeployment(deploymentName, "delete-some-deployment", logger)
-
-		Expect(deleteErr).To(MatchError("Could not delete deployment some-deployment: oops"))
-	})
-
-	It("returns an error when cannot find the task ID", func() {
-		fakeDirector.RecentTasksReturns(nil, errors.New("oops tasks"))
-		_, deleteErr := c.DeleteDeployment(deploymentName, "delete-some-deployment", logger)
-
-		Expect(deleteErr).To(MatchError(ContainSubstring(fmt.Sprintf(`Could not find tasks for deployment "%s"`, deploymentName))))
+		Expect(fakeHTTPClient).To(HaveReceivedHttpRequestAtIndex(
+			receivedHttpRequest{
+				Path:   "/deployments/some-deployment",
+				Method: "DELETE",
+				Header: http.Header{
+					"X-Bosh-Context-Id": []string{"some-context-id"},
+				},
+			}, 0))
 	})
 })

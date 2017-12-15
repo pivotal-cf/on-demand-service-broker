@@ -7,41 +7,98 @@
 package boshdirector_test
 
 import (
-	"errors"
+	"encoding/json"
+	"net/http"
 
-	"github.com/cloudfoundry/bosh-cli/director"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
-	"github.com/pivotal-cf/on-demand-service-broker/boshdirector/fakes"
 )
 
 var _ = Describe("deployments", func() {
-	var (
-		fakeDeployment *fakes.FakeBOSHDeployment
-	)
+	Context("gets deployments", func() {
+		var (
+			actualDeployments      []boshdirector.Deployment
+			actualDeploymentsError error
+		)
 
-	BeforeEach(func() {
-		fakeDeployment = new(fakes.FakeBOSHDeployment)
-		fakeDeployment.NameReturns("some-deployment")
+		It("returns the deployments when bosh fetches the deployments successfully", func() {
+			expectedDeployments := []boshdirector.Deployment{
+				{Name: "service-instance_one"},
+				{Name: "service-instance_two"},
+				{Name: "service-instance_three"},
+			}
+			fakeHTTPClient.DoReturns(responseOKWithJSON(expectedDeployments), nil)
+			actualDeployments, actualDeploymentsError = c.GetDeployments(logger)
+			Expect(actualDeployments).To(Equal(expectedDeployments))
+			Expect(actualDeploymentsError).NotTo(HaveOccurred())
 
-		fakeDirector.DeploymentsReturns([]director.Deployment{fakeDeployment}, nil)
+			By("calling the appropriate endpoints")
+			Expect(fakeHTTPClient).To(HaveReceivedHttpRequestAtIndex(
+				receivedHttpRequest{
+					Path:   "/deployments",
+					Method: "GET",
+				}, 0))
+		})
+
+		It("wraps the error when bosh returns a client error (HTTP 404)", func() {
+			fakeHTTPClient.DoReturns(responseWithEmptyBodyAndStatus(http.StatusNotFound), nil)
+			_, actualDeploymentsError = c.GetDeployments(logger)
+
+			Expect(actualDeploymentsError).To(MatchError(ContainSubstring("expected status 200, was 404")))
+		})
+
+		It("wraps the error when when bosh fails to fetch the task", func() {
+			fakeHTTPClient.DoReturns(responseWithEmptyBodyAndStatus(http.StatusInternalServerError), nil)
+			_, actualDeploymentsError = c.GetDeployments(logger)
+
+			Expect(actualDeploymentsError).To(MatchError(ContainSubstring("expected status 200, was 500")))
+		})
 	})
 
-	It("fetch the deployments", func() {
-		expectedDeployments := []boshdirector.Deployment{
-			{Name: "some-deployment"},
-			{Name: "some-deployment"},
-		}
-		fakeDirector.DeploymentsReturns([]director.Deployment{fakeDeployment, fakeDeployment}, nil)
-		deployments, err := c.GetDeployments(logger)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(deployments).To(Equal(expectedDeployments))
-	})
+	Context("deserialization", func() {
+		It("unmarshals deployments response", func() {
+			data := []byte(`[
+			  {
+			    "name": "service-instance_one",
+			    "cloud_config": "latest",
+			    "releases": [
+			      {
+			        "name": "one",
+			        "version": "42"
+			      }
+			    ],
+			    "stemcells": [
+			      {
+			        "name": "bosh-warden-boshlite-ubuntu-trusty-go_agent",
+			        "version": "3312.7"
+			      }
+			    ]
+			  },
+			  {
+			    "name": "service-instance_two",
+			    "cloud_config": "latest",
+			    "releases": [
+			      {
+			        "name": "two",
+			        "version": "101"
+			      }
+			    ],
+			    "stemcells": [
+			      {
+			        "name": "bosh-warden-boshlite-ubuntu-trusty-go_agent",
+			        "version": "3312.7"
+			      }
+			    ]
+			  }
+			]`)
+			var deployments []boshdirector.Deployment
+			Expect(json.Unmarshal(data, &deployments)).To(Succeed())
 
-	It("returns an error if cannot fetch the deployments", func() {
-		fakeDirector.DeploymentsReturns(nil, errors.New("oops"))
-		_, err := c.GetDeployments(logger)
-		Expect(err).To(MatchError(ContainSubstring("Cannot get the list of deployments")))
+			Expect(deployments).To(Equal([]boshdirector.Deployment{
+				{Name: "service-instance_one"},
+				{Name: "service-instance_two"},
+			}))
+		})
 	})
 })

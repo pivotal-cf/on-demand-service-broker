@@ -34,12 +34,6 @@ func NewOperationInProgressError(e error) error {
 
 var NilError = DisplayableError{nil, nil}
 
-type BrokerError interface {
-	ErrorForCFUser() error
-	Error() string
-	Occurred() bool
-}
-
 type DisplayableError struct {
 	errorForCFUser   error
 	errorForOperator error
