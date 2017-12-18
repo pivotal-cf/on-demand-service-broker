@@ -59,8 +59,7 @@ var _ = BeforeSuite(func() {
 
 	By("adding plan quotas to broker manifest")
 	newBrokerManifest := boshClient.GetManifest(brokerBoshDeploymentName)
-
-	brokerJob := newBrokerManifest.InstanceGroups[0].Jobs[0]
+	brokerJob := bosh_helpers.FindJob(newBrokerManifest, "broker", "broker")
 	serviceCatalog := brokerJob.Properties["service_catalog"].(map[interface{}]interface{})
 
 	serviceCatalog["global_quotas"] = map[interface{}]interface{}{"service_instance_limit": 2}

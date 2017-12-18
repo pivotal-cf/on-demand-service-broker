@@ -236,3 +236,36 @@ func (b *BoshHelperClient) DeleteDeployment(deploymentName string) {
 func systemTestLogger() *log.Logger {
 	return log.New(GinkgoWriter, "[system tests boshdirector] ", log.LstdFlags)
 }
+
+func FindJobProperties(brokerManifest *bosh.BoshManifest, igName, jobName string) map[string]interface{} {
+	job := FindJob(brokerManifest, igName, jobName)
+	return job.Properties
+}
+
+func FindJob(brokerManifest *bosh.BoshManifest, igName, jobName string) bosh.Job {
+	for _, job := range FindInstanceGroupJobs(brokerManifest, igName) {
+		if job.Name == jobName {
+			return job
+		}
+	}
+	return bosh.Job{}
+}
+
+func FindInstanceGroupProperties(manifest *bosh.BoshManifest, igName string) map[string]interface{} {
+	ig := FindInstanceGroup(manifest, igName)
+	return ig.Properties
+}
+
+func FindInstanceGroupJobs(manifest *bosh.BoshManifest, igName string) []bosh.Job {
+	ig := FindInstanceGroup(manifest, igName)
+	return ig.Jobs
+}
+
+func FindInstanceGroup(manifest *bosh.BoshManifest, igName string) bosh.InstanceGroup {
+	for _, ig := range manifest.InstanceGroups {
+		if ig.Name == igName {
+			return ig
+		}
+	}
+	return bosh.InstanceGroup{}
+}

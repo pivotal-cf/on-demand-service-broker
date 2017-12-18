@@ -32,6 +32,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	cfClient "github.com/pivotal-cf/on-demand-service-broker/cf"
+	"github.com/pivotal-cf/on-demand-service-broker/system_tests/bosh_helpers"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/cf_helpers"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 )
@@ -121,7 +122,7 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 			}
 
 			By(fmt.Sprintf("upgrading instance '%s'", service.Name))
-			instanceGroupProperties := findInstanceGroupProperties(manifest, "redis")
+			instanceGroupProperties := bosh_helpers.FindInstanceGroupProperties(manifest, "redis")
 			Expect(instanceGroupProperties["redis"].(map[interface{}]interface{})["persistence"]).To(Equal("no"))
 
 			if boshSupportsLifecycleErrands {
@@ -152,7 +153,7 @@ func updatePlanProperties(brokerManifest *bosh.BoshManifest) {
 
 func migrateJobProperty(brokerManifest *bosh.BoshManifest) {
 	testPlan := extractPlanProperty(currentPlan, brokerManifest)
-	brokerJobs := findInstanceGroupJobs(brokerManifest, brokerIGName)
+	brokerJobs := bosh_helpers.FindInstanceGroupJobs(brokerManifest, brokerIGName)
 	serviceAdapterJob := extractServiceAdapterJob(brokerJobs)
 	Expect(serviceAdapterJob).ToNot(BeNil(), "Couldn't find service adapter job in existing manifest")
 
@@ -243,42 +244,7 @@ func updateServiceInstancesAPI(brokerManifest *bosh.BoshManifest) {
 }
 
 func findUpgradeAllServiceInstancesProperties(brokerManifest *bosh.BoshManifest) map[string]interface{} {
-	return findJobProperties(brokerManifest, "upgrade-all-service-instances", "upgrade-all-service-instances")
-}
-
-func findJobProperties(brokerManifest *bosh.BoshManifest, igName, jobName string) map[string]interface{} {
-	job := findJob(brokerManifest, igName, jobName)
-	return job.Properties
-}
-
-func findJob(brokerManifest *bosh.BoshManifest, igName, jobName string) bosh.Job {
-	for _, job := range findInstanceGroupJobs(brokerManifest, igName) {
-		if job.Name == jobName {
-			return job
-		}
-	}
-
-	return bosh.Job{}
-}
-
-func findInstanceGroupProperties(manifest *bosh.BoshManifest, igName string) map[string]interface{} {
-	ig := findInstanceGroup(manifest, igName)
-	return ig.Properties
-}
-
-func findInstanceGroupJobs(manifest *bosh.BoshManifest, igName string) []bosh.Job {
-	ig := findInstanceGroup(manifest, igName)
-	return ig.Jobs
-}
-
-func findInstanceGroup(manifest *bosh.BoshManifest, igName string) bosh.InstanceGroup {
-	for _, ig := range manifest.InstanceGroups {
-		if ig.Name == igName {
-			return ig
-		}
-	}
-
-	return bosh.InstanceGroup{}
+	return bosh_helpers.FindJobProperties(brokerManifest, "upgrade-all-service-instances", "upgrade-all-service-instances")
 }
 
 func createServiceInstances() {
