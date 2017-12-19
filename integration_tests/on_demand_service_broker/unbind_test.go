@@ -393,6 +393,7 @@ func unbind(brokerPort int, instanceID, serviceID, planID string) *http.Response
 	unbindingReq, err := http.NewRequest("DELETE", path, nil)
 	Expect(err).ToNot(HaveOccurred())
 	unbindingReq = basicAuthBrokerRequest(unbindingReq)
+	unbindingReq.Header.Set("X-Broker-API-Version", "2.13")
 
 	unbindingResponse, err := http.DefaultClient.Do(unbindingReq)
 	Expect(err).ToNot(HaveOccurred())
