@@ -203,7 +203,7 @@
   branch = "master"
   name = "github.com/pivotal-cf/brokerapi"
   packages = [".","auth"]
-  revision = "0f6b756939f971d821a5888c12fa344e1b099016"
+  revision = "09b839892604e7aef056ad499d5cd46980bebcf9"
 
 [[projects]]
   branch = "master"
