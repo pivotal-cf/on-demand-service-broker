@@ -737,9 +737,56 @@ var _ = Describe("Deployer", func() {
 		})
 
 		It("detects changes to the tags block in a manifest and prevents deployment", func() {
+			oldManifest = []byte(`---
+tags:
+  product: another-tag
+`)
+			boshClient.GetDeploymentReturns(oldManifest, true, nil)
 			previousPlanID = stringPointer(existingPlanID)
 
-			generatedManifest := []byte("---\ntags:\n  product: some-tag")
+			generatedManifest := []byte(`---
+tags:
+  product: some-tag
+`)
+			manifestGenerator.GenerateManifestReturns(generatedManifest, nil)
+
+			_, _, deployError = deployer.Update(
+				deploymentName,
+				planID,
+				requestParams,
+				previousPlanID,
+				boshContextID,
+				logger,
+			)
+
+			Expect(deployError).To(HaveOccurred())
+			Expect(deployError).To(BeAssignableToTypeOf(task.PendingChangesNotAppliedError{}))
+			Expect(boshClient.DeployCallCount()).To(BeZero())
+		})
+
+		BeforeEach(func() {
+		})
+
+		It("detects changes to the env block in a manifest instance group and prevents deployment", func() {
+			oldManifest = []byte(`---
+instance_groups:
+- name: hello
+  env:
+    bosh:
+      password: password
+    some_other_key: skeleton
+`)
+			boshClient.GetDeploymentReturns(oldManifest, true, nil)
+			previousPlanID = stringPointer(existingPlanID)
+
+			generatedManifest := []byte(`---
+instance_groups:
+- name: hello
+  env:
+    bosh:
+      password: passwerd
+    some_other_key: a_major
+`)
 			manifestGenerator.GenerateManifestReturns(generatedManifest, nil)
 
 			_, _, deployError = deployer.Update(
