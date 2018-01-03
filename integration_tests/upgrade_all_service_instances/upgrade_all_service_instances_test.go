@@ -81,7 +81,8 @@ func populateUpgraderConfig(pollingInterval, attemptInterval, attemptLimit int) 
 	return fmt.Sprintf(`
 polling_interval: %d
 attempt_interval: %d
-attempt_limit: %d`, pollingInterval, attemptInterval, attemptLimit)
+attempt_limit: %d
+max_in_flight: 1`, pollingInterval, attemptInterval, attemptLimit)
 }
 
 func writeConfigFile(configContent string) string {
