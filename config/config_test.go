@@ -25,7 +25,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-var _ = Describe("Config", func() {
+var _ = Describe("Broker Config", func() {
 	var (
 		configFileName string
 		conf           config.Config

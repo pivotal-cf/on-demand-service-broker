@@ -12,6 +12,10 @@ import (
 
 	"strings"
 
+	"sync/atomic"
+
+	"sync"
+
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
@@ -23,12 +27,12 @@ type Listener interface {
 	Starting()
 	RetryAttempt(num, limit int)
 	InstancesToUpgrade(instances []service.Instance)
-	InstanceUpgradeStarting(instance string, index, totalInstances int)
+	InstanceUpgradeStarting(instance string, index int32, totalInstances int)
 	InstanceUpgradeStartResult(status services.UpgradeOperationType)
 	InstanceUpgraded(instance string, result string)
 	WaitingFor(instance string, boshTaskId int)
-	Progress(pollingInterval time.Duration, orphanCount, upgradedCount, upgradesLeftCount, deletedCount int)
-	Finished(orphanCount, upgradedCount, deletedCount, couldNotStartCount int)
+	Progress(pollingInterval time.Duration, orphanCount, upgradedCount int32, upgradesLeftCount int, deletedCount int32)
+	Finished(orphanCount, upgradedCount, deletedCount int32, couldNotStartCount int)
 }
 
 //go:generate counterfeiter -o fakes/fake_broker_services.go . BrokerServices
@@ -47,31 +51,36 @@ type sleeper interface {
 	Sleep(d time.Duration)
 }
 
-type upgrader struct {
-	brokerServices  BrokerServices
-	instanceLister  InstanceLister
-	pollingInterval time.Duration
-	attemptInterval time.Duration
-	attemptLimit    int
-	listener        Listener
-	sleeper         sleeper
+type Upgrader struct {
+	brokerServices         BrokerServices
+	instanceLister         InstanceLister
+	pollingInterval        time.Duration
+	attemptInterval        time.Duration
+	attemptLimit           int
+	maxInFlight            int
+	listener               Listener
+	sleeper                sleeper
+	instanceCountToUpgrade int
+	upgradedTotal          int32
+	orphansTotal           int32
+	deletedTotal           int32
+	startedUpgradeTotal    int32
 }
 
-func New(builder *Builder) *upgrader {
-	return &upgrader{
+func New(builder *Builder) *Upgrader {
+	return &Upgrader{
 		brokerServices:  builder.BrokerServices,
 		instanceLister:  builder.ServiceInstanceLister,
 		pollingInterval: builder.PollingInterval,
 		attemptInterval: builder.AttemptInterval,
 		attemptLimit:    builder.AttemptLimit,
+		maxInFlight:     builder.MaxInFlight,
 		listener:        builder.Listener,
 		sleeper:         builder.Sleeper,
 	}
 }
 
-func (u upgrader) Upgrade() error {
-	var upgradedTotal, orphansTotal, deletedTotal int
-
+func (u *Upgrader) Upgrade() error {
 	u.listener.Starting()
 
 	instances, err := u.instanceLister.Instances()
@@ -80,32 +89,54 @@ func (u upgrader) Upgrade() error {
 	}
 
 	u.listener.InstancesToUpgrade(instances)
+	instancesToUpgrade := make(chan service.Instance, len(instances))
+
+	stopWorkers := make(chan interface{})
+	errors := make(chan error, len(instances))
+
+	for _, instance := range instances {
+		instancesToUpgrade <- instance
+	}
+	close(instancesToUpgrade)
+
 	attempt := 1
 
-	for len(instances) > 0 && attempt <= u.attemptLimit {
+	u.instanceCountToUpgrade = len(instances)
+
+	for u.instanceCountToUpgrade > 0 && attempt <= u.attemptLimit {
+		u.startedUpgradeTotal = 0
+
 		u.listener.RetryAttempt(attempt, u.attemptLimit)
-		upgradedCount, orphanCount, deletedCount, retryInstances, err := u.upgradeInstances(instances)
-		if err != nil {
-			return err
+		instancesToRetry := make(chan service.Instance, u.instanceCountToUpgrade)
+		var wg sync.WaitGroup
+		wg.Add(u.maxInFlight)
+
+		for i := 0; i < u.maxInFlight; i++ {
+			go func() {
+				u.upgradeInstances(instancesToUpgrade, instancesToRetry, stopWorkers, errors)
+				wg.Done()
+			}()
 		}
-		upgradedTotal += upgradedCount
-		orphansTotal += orphanCount
-		deletedTotal += deletedCount
 
-		instances = retryInstances
-		retryCount := len(instances)
+		wg.Wait()
 
-		u.listener.Progress(u.attemptInterval, orphansTotal, upgradedTotal, retryCount, deletedTotal)
-		if retryCount > 0 {
+		if len(errors) > 0 {
+			return <-errors
+		}
+		u.instanceCountToUpgrade = len(instancesToRetry)
+
+		u.listener.Progress(u.attemptInterval, u.orphansTotal, u.upgradedTotal, u.instanceCountToUpgrade, u.deletedTotal)
+		if u.instanceCountToUpgrade > 0 {
 			attempt++
 			u.sleeper.Sleep(u.attemptInterval)
+			instancesToUpgrade = instancesToRetry
+			close(instancesToUpgrade)
 		}
 	}
-
-	u.listener.Finished(orphansTotal, upgradedTotal, deletedTotal, len(instances))
+	u.listener.Finished(u.orphansTotal, u.upgradedTotal, u.deletedTotal, u.instanceCountToUpgrade)
 
 	var instanceDeploymentNames []string
-	for _, inst := range instances {
+	for inst := range instancesToUpgrade {
 		instanceDeploymentNames = append(instanceDeploymentNames, fmt.Sprintf("service-instance_%s", inst.GUID))
 	}
 	if len(instanceDeploymentNames) > 0 {
@@ -115,45 +146,56 @@ func (u upgrader) Upgrade() error {
 	return nil
 }
 
-func (u upgrader) upgradeInstances(instances []service.Instance) (int, int, int, []service.Instance, error) {
-	var (
-		upgradedCount, orphanCount, deletedCount int
-		instancesToRetry                         []service.Instance
-	)
-
-	instanceCount := len(instances)
-	for i, instance := range instances {
-		u.listener.InstanceUpgradeStarting(instance.GUID, i, instanceCount)
-		operation, err := u.brokerServices.UpgradeInstance(instance)
-		if err != nil {
-			return 0, 0, 0, nil, fmt.Errorf(
-				"Upgrade failed for service instance %s: %s\n", instance.GUID, err,
-			)
-		}
-
-		u.listener.InstanceUpgradeStartResult(operation.Type)
-
-		switch operation.Type {
-		case services.OrphanDeployment:
-			orphanCount++
-		case services.InstanceNotFound:
-			deletedCount++
-		case services.OperationInProgress:
-			instancesToRetry = append(instancesToRetry, instance)
-		case services.UpgradeAccepted:
-			if err := u.pollLastOperation(instance.GUID, operation.Data); err != nil {
-				u.listener.InstanceUpgraded(instance.GUID, "failure")
-				return 0, 0, 0, nil, err
+func (u *Upgrader) upgradeInstances(instances, retries chan service.Instance, stop chan interface{}, errors chan error) {
+	for {
+		select {
+		case <-stop:
+			return
+		case instance, ok := <-instances:
+			if !ok {
+				return
 			}
-			u.listener.InstanceUpgraded(instance.GUID, "success")
-			upgradedCount++
+			err := u.performInstanceUpgrade(instance, retries)
+			if err != nil {
+				errors <- err
+				close(stop)
+				return
+			}
 		}
 	}
-
-	return upgradedCount, orphanCount, deletedCount, instancesToRetry, nil
 }
 
-func (u upgrader) pollLastOperation(instance string, data broker.OperationData) error {
+func (u *Upgrader) performInstanceUpgrade(instance service.Instance, retryChan chan service.Instance) error {
+	currentStartedUpgradeCount := atomic.AddInt32(&u.startedUpgradeTotal, 1)
+	u.listener.InstanceUpgradeStarting(instance.GUID, currentStartedUpgradeCount-1, u.instanceCountToUpgrade)
+	operation, err := u.brokerServices.UpgradeInstance(instance)
+	if err != nil {
+		return fmt.Errorf(
+			"Upgrade failed for service instance %s: %s\n", instance.GUID, err,
+		)
+	}
+
+	u.listener.InstanceUpgradeStartResult(operation.Type)
+
+	switch operation.Type {
+	case services.OrphanDeployment:
+		atomic.AddInt32(&u.orphansTotal, 1)
+	case services.InstanceNotFound:
+		atomic.AddInt32(&u.deletedTotal, 1)
+	case services.OperationInProgress:
+		retryChan <- instance
+	case services.UpgradeAccepted:
+		if err := u.pollLastOperation(instance.GUID, operation.Data); err != nil {
+			u.listener.InstanceUpgraded(instance.GUID, "failure")
+			return err
+		}
+		u.listener.InstanceUpgraded(instance.GUID, "success")
+		atomic.AddInt32(&u.upgradedTotal, 1)
+	}
+	return nil
+}
+
+func (u *Upgrader) pollLastOperation(instance string, data broker.OperationData) error {
 	u.listener.WaitingFor(instance, data.BoshTaskID)
 
 	for {

@@ -125,22 +125,27 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 			instanceGroupProperties := bosh_helpers.FindInstanceGroupProperties(manifest, "redis")
 			Expect(instanceGroupProperties["redis"].(map[interface{}]interface{})["persistence"]).To(Equal("no"))
 
+			expectedBoshTasksOrder := []string{"create deployment", "run errand", "create deployment", "run errand"}
+			if parallelUpgradesEnabled {
+				expectedBoshTasksOrder = []string{"create deployment", "create deployment", "run errand", "run errand"}
+			}
+
 			if boshSupportsLifecycleErrands {
 				By(fmt.Sprintf("running the post-deploy errand for instance '%s'", service.Name))
 				boshTasks := boshClient.GetTasksForDeployment(getServiceDeploymentName(service.Name))
 				Expect(boshTasks).To(HaveLen(4))
 
 				Expect(boshTasks[0].State).To(Equal(boshdirector.TaskDone))
-				Expect(boshTasks[0].Description).To(ContainSubstring("run errand"))
+				Expect(boshTasks[0].Description).To(ContainSubstring(expectedBoshTasksOrder[3]))
 
 				Expect(boshTasks[1].State).To(Equal(boshdirector.TaskDone))
-				Expect(boshTasks[1].Description).To(ContainSubstring("create deployment"))
+				Expect(boshTasks[1].Description).To(ContainSubstring(expectedBoshTasksOrder[2]))
 
 				Expect(boshTasks[2].State).To(Equal(boshdirector.TaskDone))
-				Expect(boshTasks[2].Description).To(ContainSubstring("run errand"))
+				Expect(boshTasks[2].Description).To(ContainSubstring(expectedBoshTasksOrder[1]))
 
 				Expect(boshTasks[3].State).To(Equal(boshdirector.TaskDone))
-				Expect(boshTasks[3].Description).To(ContainSubstring("create deployment"))
+				Expect(boshTasks[3].Description).To(ContainSubstring(expectedBoshTasksOrder[0]))
 			}
 		}
 	})

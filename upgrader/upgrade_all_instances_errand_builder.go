@@ -25,6 +25,7 @@ type Builder struct {
 	PollingInterval       time.Duration
 	AttemptInterval       time.Duration
 	AttemptLimit          int
+	MaxInFlight           int
 	Listener              Listener
 	Sleeper               sleeper
 }
@@ -59,6 +60,11 @@ func NewBuilder(
 		return nil, err
 	}
 
+	maxInFlight, err := maxInFlight(conf)
+	if err != nil {
+		return nil, err
+	}
+
 	listener := NewLoggingListener(logger)
 
 	b := &Builder{
@@ -67,6 +73,7 @@ func NewBuilder(
 		PollingInterval:       pollingInterval,
 		AttemptInterval:       attemptInterval,
 		AttemptLimit:          attemptLimit,
+		MaxInFlight:           maxInFlight,
 		Listener:              listener,
 		Sleeper:               &tools.RealSleeper{},
 	}
@@ -143,4 +150,11 @@ func attemptLimit(conf config.UpgradeAllInstanceErrandConfig) (int, error) {
 		return 0, errors.New("the attempt limit must be greater than zero")
 	}
 	return conf.AttemptLimit, nil
+}
+
+func maxInFlight(conf config.UpgradeAllInstanceErrandConfig) (int, error) {
+	if conf.MaxInFlight <= 0 {
+		return 0, errors.New("the max in flight must be greater than zero")
+	}
+	return conf.MaxInFlight, nil
 }

@@ -11,6 +11,8 @@ import (
 	"fmt"
 	"time"
 
+	"sync"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/brokerapi"
@@ -31,9 +33,6 @@ var _ = Describe("Upgrader", func() {
 		fakeListener         *fakes.FakeListener
 		brokerServicesClient *fakes.FakeBrokerServices
 		instanceLister       *fakes.FakeInstanceLister
-		pollingInterval      time.Duration
-		attemptInterval      time.Duration
-		attemptLimit         int
 		upgraderBuilder      upgrader.Builder
 		fakeSleeper          *fakes.FakeSleeper
 
@@ -48,24 +47,17 @@ var _ = Describe("Upgrader", func() {
 		fakeListener = new(fakes.FakeListener)
 		brokerServicesClient = new(fakes.FakeBrokerServices)
 		instanceLister = new(fakes.FakeInstanceLister)
-		pollingInterval = 10 * time.Second
-		attemptInterval = 60 * time.Second
-		attemptLimit = 5
 		fakeSleeper = new(fakes.FakeSleeper)
-	})
-
-	JustBeforeEach(func() {
 		upgraderBuilder = upgrader.Builder{
 			BrokerServices:        brokerServicesClient,
 			ServiceInstanceLister: instanceLister,
 			Listener:              fakeListener,
-			PollingInterval:       pollingInterval,
-			AttemptLimit:          attemptLimit,
-			AttemptInterval:       attemptInterval,
+			PollingInterval:       10 * time.Second,
+			AttemptLimit:          5,
+			AttemptInterval:       60 * time.Second,
+			MaxInFlight:           1,
 			Sleeper:               fakeSleeper,
 		}
-		upgrader := upgrader.New(&upgraderBuilder)
-		actualErr = upgrader.Upgrade()
 	})
 
 	Context("when upgrading one instance", func() {
@@ -82,6 +74,9 @@ var _ = Describe("Upgrader", func() {
 			})
 
 			It("returns the list of successful upgrades", func() {
+				upgradeTool := upgrader.New(&upgraderBuilder)
+				actualErr = upgradeTool.Upgrade()
+
 				hasReportedInstanceUpgradeStarted(fakeListener, serviceInstanceId, 0, 1)
 				hasReportedInstanceUpgradeStartResult(fakeListener, services.UpgradeAccepted)
 				hasReportedUpgraded(fakeListener, serviceInstanceId)
@@ -96,6 +91,8 @@ var _ = Describe("Upgrader", func() {
 				})
 
 				It("returns an error", func() {
+					upgradeTool := upgrader.New(&upgraderBuilder)
+					actualErr = upgradeTool.Upgrade()
 					Expect(actualErr).To(MatchError("error listing service instances: bad status code"))
 				})
 			})
@@ -107,6 +104,8 @@ var _ = Describe("Upgrader", func() {
 				})
 
 				It("returns an error", func() {
+					upgradeTool := upgrader.New(&upgraderBuilder)
+					actualErr = upgradeTool.Upgrade()
 					Expect(actualErr).To(MatchError("Upgrade failed for service instance not a guid Q#$%#$%^&&*$%^#$FGRTYW${T:WED:AWSD)E@#PE{:QS:{QLWD: failed\n"))
 				})
 			})
@@ -126,6 +125,8 @@ var _ = Describe("Upgrader", func() {
 		})
 
 		It("polls last operation until successful", func() {
+			upgradeTool := upgrader.New(&upgraderBuilder)
+			actualErr = upgradeTool.Upgrade()
 			Expect(brokerServicesClient.LastOperationCallCount()).To(Equal(3))
 			Expect(actualErr).NotTo(HaveOccurred())
 			hasReportedUpgraded(fakeListener, serviceInstanceId)
@@ -141,10 +142,12 @@ var _ = Describe("Upgrader", func() {
 		})
 
 		It("ignores the deleted instance instance", func() {
+			upgradeTool := upgrader.New(&upgraderBuilder)
+			actualErr = upgradeTool.Upgrade()
 			Expect(actualErr).NotTo(HaveOccurred())
 
 			hasReportedInstanceUpgradeStartResult(fakeListener, services.InstanceNotFound)
-			hasReportedProgress(fakeListener, 0, attemptInterval, 0, 0, 0, 1)
+			hasReportedProgress(fakeListener, 0, upgraderBuilder.AttemptInterval, 0, 0, 0, 1)
 			hasReportedFinished(fakeListener, 0, 0, 1, 0)
 		})
 	})
@@ -158,10 +161,12 @@ var _ = Describe("Upgrader", func() {
 		})
 
 		It("detects one orphan instance", func() {
+			upgradeTool := upgrader.New(&upgraderBuilder)
+			actualErr = upgradeTool.Upgrade()
 			Expect(actualErr).NotTo(HaveOccurred())
 
 			hasReportedInstanceUpgradeStartResult(fakeListener, services.OrphanDeployment)
-			hasReportedProgress(fakeListener, 0, attemptInterval, 1, 0, 0, 0)
+			hasReportedProgress(fakeListener, 0, upgraderBuilder.AttemptInterval, 1, 0, 0, 0)
 			hasReportedFinished(fakeListener, 1, 0, 0, 0)
 		})
 	})
@@ -181,6 +186,8 @@ var _ = Describe("Upgrader", func() {
 			})
 
 			It("retries until the upgrade request is accepted", func() {
+				upgradeTool := upgrader.New(&upgraderBuilder)
+				actualErr = upgradeTool.Upgrade()
 				Expect(actualErr).NotTo(HaveOccurred())
 
 				Expect(brokerServicesClient.UpgradeInstanceCallCount()).To(Equal(4), "number of service requests")
@@ -199,7 +206,7 @@ var _ = Describe("Upgrader", func() {
 		Context("when the attemptLimit is reached", func() {
 			const serviceInstanceId = "serviceInstanceId"
 			BeforeEach(func() {
-				attemptLimit = 2
+				upgraderBuilder.AttemptLimit = 2
 				instanceLister.InstancesReturns([]service.Instance{{GUID: serviceInstanceId}}, nil)
 
 				brokerServicesClient.UpgradeInstanceReturns(services.UpgradeOperation{
@@ -211,6 +218,8 @@ var _ = Describe("Upgrader", func() {
 			})
 
 			It("stops retrying when the attemptLimit is reached", func() {
+				upgradeTool := upgrader.New(&upgraderBuilder)
+				actualErr = upgradeTool.Upgrade()
 				Expect(actualErr).To(MatchError(fmt.Errorf("The following instances could not be upgraded: service-instance_%s", serviceInstanceId)))
 
 				Expect(brokerServicesClient.UpgradeInstanceCallCount()).To(Equal(2), "number of service requests")
@@ -241,6 +250,8 @@ var _ = Describe("Upgrader", func() {
 		})
 
 		It("retries until an orphan is detected", func() {
+			upgradeTool := upgrader.New(&upgraderBuilder)
+			actualErr = upgradeTool.Upgrade()
 			Expect(actualErr).NotTo(HaveOccurred())
 			Expect(brokerServicesClient.UpgradeInstanceCallCount()).To(Equal(4), "number of service requests")
 
@@ -283,17 +294,102 @@ var _ = Describe("Upgrader", func() {
 			})
 
 			It("returns a report with all instances upgraded", func() {
+				upgradeTool := upgrader.New(&upgraderBuilder)
+				actualErr = upgradeTool.Upgrade()
 				Expect(actualErr).NotTo(HaveOccurred())
 
 				hasReportedStarting(fakeListener)
 				hasReportedInstancesToUpgrade(fakeListener, serviceInstance1, serviceInstance2, serviceInstance3)
 				hasReportedWaitingFor(fakeListener, map[string]int{serviceInstance1: upgradeTaskID1, serviceInstance2: upgradeTaskID2, serviceInstance3: upgradeTaskID3})
 				hasReportedUpgraded(fakeListener, serviceInstance1, serviceInstance2, serviceInstance3)
-				hasReportedProgress(fakeListener, 0, attemptInterval, 0, 3, 0, 0)
+				hasReportedProgress(fakeListener, 0, upgraderBuilder.AttemptInterval, 0, 3, 0, 0)
 				hasReportedFinished(fakeListener, 0, 3, 0, 0)
-				hasSlept(fakeSleeper, 0, pollingInterval)
-				hasSlept(fakeSleeper, 1, pollingInterval)
-				hasSlept(fakeSleeper, 2, pollingInterval)
+				hasSlept(fakeSleeper, 0, upgraderBuilder.PollingInterval)
+				hasSlept(fakeSleeper, 1, upgraderBuilder.PollingInterval)
+				hasSlept(fakeSleeper, 2, upgraderBuilder.PollingInterval)
+			})
+
+			Context("when max_in_flight is 3", func() {
+				var (
+					si1Started chan interface{}
+					si2Started chan interface{}
+					si3Started chan interface{}
+					si1Ctl     chan interface{}
+					si2Ctl     chan interface{}
+					si3Ctl     chan interface{}
+				)
+
+				BeforeEach(func() {
+					si1Started = make(chan interface{})
+					si2Started = make(chan interface{})
+					si3Started = make(chan interface{})
+					si1Ctl = make(chan interface{})
+					si2Ctl = make(chan interface{})
+					si3Ctl = make(chan interface{})
+
+					upgraderBuilder.MaxInFlight = 3
+
+					brokerServicesClient.UpgradeInstanceStub = func(instance service.Instance) (services.UpgradeOperation, error) {
+						switch instance.GUID {
+						case serviceInstance1:
+							close(si1Started)
+							<-si1Ctl
+							return services.UpgradeOperation{
+								Type: services.UpgradeAccepted,
+								Data: upgradeResponse(upgradeTaskID1),
+							}, nil
+						case serviceInstance2:
+							close(si2Started)
+							<-si2Ctl
+							return services.UpgradeOperation{
+								Type: services.UpgradeAccepted,
+								Data: upgradeResponse(upgradeTaskID2),
+							}, nil
+						case serviceInstance3:
+							close(si3Started)
+							<-si3Ctl
+							return services.UpgradeOperation{
+								Type: services.UpgradeAccepted,
+								Data: upgradeResponse(upgradeTaskID3),
+							}, nil
+						}
+
+						return services.UpgradeOperation{}, errors.New("unexpected instance GUID")
+					}
+				})
+
+				It("starts 3 upgrade processes simultaneously and returns a report with all instances upgraded", func() {
+					upgradeTool := upgrader.New(&upgraderBuilder)
+
+					var wg sync.WaitGroup
+					wg.Add(1)
+					go func() {
+						defer GinkgoRecover()
+						actualErr = upgradeTool.Upgrade()
+						Expect(actualErr).NotTo(HaveOccurred())
+						wg.Done()
+					}()
+
+					Eventually(si1Started).Should(BeClosed())
+					Eventually(si2Started).Should(BeClosed())
+					Eventually(si3Started).Should(BeClosed())
+
+					close(si1Ctl)
+					close(si2Ctl)
+					close(si3Ctl)
+
+					wg.Wait()
+
+					hasReportedStarting(fakeListener)
+					hasReportedInstancesToUpgrade(fakeListener, serviceInstance1, serviceInstance2, serviceInstance3)
+					hasReportedWaitingFor(fakeListener, map[string]int{serviceInstance1: upgradeTaskID1, serviceInstance2: upgradeTaskID2, serviceInstance3: upgradeTaskID3})
+					hasReportedUpgraded(fakeListener, serviceInstance1, serviceInstance2, serviceInstance3)
+					hasReportedProgress(fakeListener, 0, upgraderBuilder.AttemptInterval, 0, 3, 0, 0)
+					hasReportedFinished(fakeListener, 0, 3, 0, 0)
+					hasSlept(fakeSleeper, 0, upgraderBuilder.PollingInterval)
+					hasSlept(fakeSleeper, 1, upgraderBuilder.PollingInterval)
+					hasSlept(fakeSleeper, 2, upgraderBuilder.PollingInterval)
+				})
 			})
 		})
 
@@ -316,6 +412,8 @@ var _ = Describe("Upgrader", func() {
 			})
 
 			It("returns the upgrade request error", func() {
+				upgradeTool := upgrader.New(&upgraderBuilder)
+				actualErr = upgradeTool.Upgrade()
 				message := fmt.Sprintf(
 					"Upgrade failed for service instance %s: upgrade failed\n",
 					serviceInstance2,
@@ -356,6 +454,8 @@ var _ = Describe("Upgrader", func() {
 			})
 
 			It("reports the upgrade operation error", func() {
+				upgradeTool := upgrader.New(&upgraderBuilder)
+				actualErr = upgradeTool.Upgrade()
 				failureMessage := fmt.Sprintf(
 					"Upgrade failed for service instance %s: bosh task id %d: everything went wrong",
 					serviceInstance2,
@@ -390,6 +490,8 @@ var _ = Describe("Upgrader", func() {
 			})
 
 			It("reports one orphaned instance", func() {
+				upgradeTool := upgrader.New(&upgraderBuilder)
+				actualErr = upgradeTool.Upgrade()
 				Expect(actualErr).NotTo(HaveOccurred())
 				hasReportedFinished(fakeListener, 1, 2, 0, 0)
 				Expect(fakeSleeper.SleepCallCount()).To(Equal(2))
@@ -419,6 +521,8 @@ var _ = Describe("Upgrader", func() {
 			})
 
 			It("retries until all are upgraded", func() {
+				upgradeTool := upgrader.New(&upgraderBuilder)
+				actualErr = upgradeTool.Upgrade()
 				Expect(actualErr).NotTo(HaveOccurred())
 
 				upgradeServiceInstance2CallCount := 0
@@ -432,11 +536,11 @@ var _ = Describe("Upgrader", func() {
 				Expect(upgradeServiceInstance2CallCount).To(Equal(4), "number of service requests")
 				hasReportedRetries(fakeListener, 1, 1, 1, 0)
 				hasReportedFinished(fakeListener, 0, 3, 0, 0)
-				hasReportedProgress(fakeListener, 0, attemptInterval, 0, 2, 1, 0)
+				hasReportedProgress(fakeListener, 0, upgraderBuilder.AttemptInterval, 0, 2, 1, 0)
 
-				hasSlept(fakeSleeper, 0, pollingInterval)
-				hasSlept(fakeSleeper, 1, pollingInterval)
-				hasSlept(fakeSleeper, 2, attemptInterval)
+				hasSlept(fakeSleeper, 0, upgraderBuilder.PollingInterval)
+				hasSlept(fakeSleeper, 1, upgraderBuilder.PollingInterval)
+				hasSlept(fakeSleeper, 2, upgraderBuilder.AttemptInterval)
 			})
 		})
 	})
@@ -464,7 +568,7 @@ func hasReportedWaitingFor(fakeListener *fakes.FakeListener, instances map[strin
 	}
 }
 
-func hasReportedInstanceUpgradeStarted(fakeListener *fakes.FakeListener, expectedInstance string, expectedIndex, expectedTotalInstances int) {
+func hasReportedInstanceUpgradeStarted(fakeListener *fakes.FakeListener, expectedInstance string, expectedIndex int32, expectedTotalInstances int) {
 	Expect(fakeListener.InstanceUpgradeStartingCallCount()).To(
 		Equal(1), "instance upgrade started call count",
 	)
@@ -508,7 +612,7 @@ func hasReportedUpgradeStates(fakeListener *fakes.FakeListener, expectedStatus s
 
 	expectedInstances := makeInstanceMapFromIds(expectedInstanceIds)
 
-	Expect(upgraded).To(Equal(expectedInstances), "status="+expectedStatus)
+	Expect(upgraded).To(ConsistOf(expectedInstances), "status="+expectedStatus)
 }
 
 func makeInstanceMapFromIds(expectedInstanceIds []string) []service.Instance {
@@ -531,14 +635,14 @@ func hasReportedRetries(fakeListener *fakes.FakeListener, expectedRetryCounts ..
 	}
 }
 
-func hasReportedOrphans(fakeListener *fakes.FakeListener, expectedOrphanCounts ...int) {
+func hasReportedOrphans(fakeListener *fakes.FakeListener, expectedOrphanCounts ...int32) {
 	for i, expectedOrphanCount := range expectedOrphanCounts {
 		_, orphanCount, _, _, _ := fakeListener.ProgressArgsForCall(i)
 		Expect(orphanCount).To(Equal(expectedOrphanCount), "Orphan count: "+string(i))
 	}
 }
 
-func hasReportedProgress(fakeListener *fakes.FakeListener, callIndex int, expectedInterval time.Duration, expectedOrphans, expectedUpgraded, expectedToRetry, expectedDeleted int) {
+func hasReportedProgress(fakeListener *fakes.FakeListener, callIndex int, expectedInterval time.Duration, expectedOrphans, expectedUpgraded int32, expectedToRetry int, expectedDeleted int32) {
 	Expect(fakeListener.ProgressCallCount()).To(BeNumerically(">", callIndex))
 	attemptInterval, orphanCount, upgradedCount, toRetryCount, deletedCount := fakeListener.ProgressArgsForCall(callIndex)
 	Expect(attemptInterval).To(Equal(expectedInterval), "attempt interval")
@@ -548,7 +652,7 @@ func hasReportedProgress(fakeListener *fakes.FakeListener, callIndex int, expect
 	Expect(deletedCount).To(Equal(expectedDeleted), "deleted")
 }
 
-func hasReportedFinished(fakeListener *fakes.FakeListener, expectedOrphans, expectedUpgraded, expectedDeleted, expectedCouldNotStart int) {
+func hasReportedFinished(fakeListener *fakes.FakeListener, expectedOrphans, expectedUpgraded, expectedDeleted int32, expectedCouldNotStart int) {
 	Expect(fakeListener.FinishedCallCount()).To(Equal(1))
 	orphanCount, upgradedCount, deletedCount, couldNotStartCount := fakeListener.FinishedArgsForCall(0)
 	Expect(orphanCount).To(Equal(expectedOrphans), "orphans")

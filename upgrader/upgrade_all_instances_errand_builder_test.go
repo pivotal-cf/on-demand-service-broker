@@ -128,6 +128,29 @@ var _ = Describe("UpgraderBuilder", func() {
 			Expect(builder.AttemptLimit).To(Equal(42))
 		})
 	})
+
+	Describe("Max In flight", func() {
+		DescribeTable(
+			"config is invalidly set to",
+			func(val int) {
+				conf := updateAllInstanceErrandConfig("user", "password", "http://example.org")
+				conf.MaxInFlight = val
+				_, err := NewBuilder(conf, logger)
+
+				Expect(err).To(MatchError(Equal("the max in flight must be greater than zero")))
+			},
+			Entry("zero", 0),
+			Entry("negative", -1),
+		)
+
+		It("when configured returns the value", func() {
+			conf := updateAllInstanceErrandConfig("user", "password", "http://example.org")
+			conf.MaxInFlight = 10
+			builder, err := NewBuilder(conf, logger)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(builder.MaxInFlight).To(Equal(10))
+		})
+	})
 })
 
 func updateAllInstanceErrandConfig(brokerUser, brokerPassword, brokerURL string) config.UpgradeAllInstanceErrandConfig {
@@ -153,5 +176,6 @@ func updateAllInstanceErrandConfig(brokerUser, brokerPassword, brokerURL string)
 		PollingInterval: 10,
 		AttemptInterval: 60,
 		AttemptLimit:    5,
+		MaxInFlight:     1,
 	}
 }

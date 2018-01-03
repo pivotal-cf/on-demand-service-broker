@@ -33,6 +33,7 @@ var (
 	boshCACert                   string
 	originalBrokerManifest       *bosh.BoshManifest
 	boshSupportsLifecycleErrands bool
+	parallelUpgradesEnabled      bool
 	ciRootPath                   string
 	exampleAppDirName            string
 	boshClient                   *bosh_helpers.BoshHelperClient
@@ -55,6 +56,7 @@ var _ = BeforeSuite(func() {
 	uaaURL := os.Getenv("UAA_URL")
 	boshCACert = os.Getenv("BOSH_CA_CERT_FILE")
 	boshSupportsLifecycleErrands = os.Getenv("BOSH_SUPPORTS_LIFECYCLE_ERRANDS") == "true"
+	parallelUpgradesEnabled = os.Getenv("PARALLEL_UPGRADES_ENABLED") == "true"
 
 	ciRootPath = envMustHave("CI_ROOT_PATH")
 	exampleAppDirName = envMustHave("EXAMPLE_APP_DIR_NAME")
