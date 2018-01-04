@@ -309,86 +309,266 @@ var _ = Describe("Upgrader", func() {
 				hasSlept(fakeSleeper, 2, upgraderBuilder.PollingInterval)
 			})
 
-			Context("when max_in_flight is 3", func() {
+			Describe("parallel upgrades", func() {
 				var (
-					si1Started chan interface{}
-					si2Started chan interface{}
-					si3Started chan interface{}
-					si1Ctl     chan interface{}
-					si2Ctl     chan interface{}
-					si3Ctl     chan interface{}
+					si1Controller *processController
+					si2Controller *processController
+					si3Controller *processController
 				)
 
 				BeforeEach(func() {
-					si1Started = make(chan interface{})
-					si2Started = make(chan interface{})
-					si3Started = make(chan interface{})
-					si1Ctl = make(chan interface{})
-					si2Ctl = make(chan interface{})
-					si3Ctl = make(chan interface{})
-
-					upgraderBuilder.MaxInFlight = 3
+					si1Controller = newProcessController()
+					si2Controller = newProcessController()
+					si3Controller = newProcessController()
 
 					brokerServicesClient.UpgradeInstanceStub = func(instance service.Instance) (services.UpgradeOperation, error) {
 						switch instance.GUID {
 						case serviceInstance1:
-							close(si1Started)
-							<-si1Ctl
+							si1Controller.NotifyStart()
+							si1Controller.WaitForSignalToProceed()
 							return services.UpgradeOperation{
 								Type: services.UpgradeAccepted,
 								Data: upgradeResponse(upgradeTaskID1),
 							}, nil
 						case serviceInstance2:
-							close(si2Started)
-							<-si2Ctl
+							si2Controller.NotifyStart()
+							si2Controller.WaitForSignalToProceed()
 							return services.UpgradeOperation{
 								Type: services.UpgradeAccepted,
 								Data: upgradeResponse(upgradeTaskID2),
 							}, nil
 						case serviceInstance3:
-							close(si3Started)
-							<-si3Ctl
+							si3Controller.NotifyStart()
+							si3Controller.WaitForSignalToProceed()
 							return services.UpgradeOperation{
 								Type: services.UpgradeAccepted,
 								Data: upgradeResponse(upgradeTaskID3),
 							}, nil
 						}
-
 						return services.UpgradeOperation{}, errors.New("unexpected instance GUID")
 					}
 				})
 
-				It("starts 3 upgrade processes simultaneously and returns a report with all instances upgraded", func() {
-					upgradeTool := upgrader.New(&upgraderBuilder)
+				Context("when max_in_flight is 3", func() {
+					BeforeEach(func() {
+						upgraderBuilder.MaxInFlight = 3
+					})
 
-					var wg sync.WaitGroup
-					wg.Add(1)
-					go func() {
-						defer GinkgoRecover()
-						actualErr = upgradeTool.Upgrade()
+					It("starts 3 upgrade processes simultaneously and returns a report with all instances upgraded", func() {
+						upgradeTool := upgrader.New(&upgraderBuilder)
+
+						var wg sync.WaitGroup
+						wg.Add(1)
+						go func() {
+							defer GinkgoRecover()
+							actualErr = upgradeTool.Upgrade()
+							wg.Done()
+						}()
+
+						expectToHaveStarted(si1Controller, si2Controller, si3Controller)
+						allowToProceed(si1Controller, si2Controller, si3Controller)
+
+						wg.Wait()
+
 						Expect(actualErr).NotTo(HaveOccurred())
-						wg.Done()
-					}()
 
-					Eventually(si1Started).Should(BeClosed())
-					Eventually(si2Started).Should(BeClosed())
-					Eventually(si3Started).Should(BeClosed())
+						hasReportedStarting(fakeListener)
+						hasReportedInstancesToUpgrade(fakeListener, serviceInstance1, serviceInstance2, serviceInstance3)
+						hasReportedWaitingFor(fakeListener, map[string]int{serviceInstance1: upgradeTaskID1, serviceInstance2: upgradeTaskID2, serviceInstance3: upgradeTaskID3})
+						hasReportedUpgraded(fakeListener, serviceInstance1, serviceInstance2, serviceInstance3)
+						hasReportedProgress(fakeListener, 0, upgraderBuilder.AttemptInterval, 0, 3, 0, 0)
+						hasReportedFinished(fakeListener, 0, 3, 0, 0)
+						hasSlept(fakeSleeper, 0, upgraderBuilder.PollingInterval)
+						hasSlept(fakeSleeper, 1, upgraderBuilder.PollingInterval)
+						hasSlept(fakeSleeper, 2, upgraderBuilder.PollingInterval)
+					})
 
-					close(si1Ctl)
-					close(si2Ctl)
-					close(si3Ctl)
+				})
 
-					wg.Wait()
+				Context("when max_in_flight is 2", func() {
+					BeforeEach(func() {
+						upgraderBuilder.MaxInFlight = 2
+					})
 
-					hasReportedStarting(fakeListener)
-					hasReportedInstancesToUpgrade(fakeListener, serviceInstance1, serviceInstance2, serviceInstance3)
-					hasReportedWaitingFor(fakeListener, map[string]int{serviceInstance1: upgradeTaskID1, serviceInstance2: upgradeTaskID2, serviceInstance3: upgradeTaskID3})
-					hasReportedUpgraded(fakeListener, serviceInstance1, serviceInstance2, serviceInstance3)
-					hasReportedProgress(fakeListener, 0, upgraderBuilder.AttemptInterval, 0, 3, 0, 0)
-					hasReportedFinished(fakeListener, 0, 3, 0, 0)
-					hasSlept(fakeSleeper, 0, upgraderBuilder.PollingInterval)
-					hasSlept(fakeSleeper, 1, upgraderBuilder.PollingInterval)
-					hasSlept(fakeSleeper, 2, upgraderBuilder.PollingInterval)
+					It("starts 2 upgrade processes simultaneously and the 3rd once one is finished", func() {
+						upgradeTool := upgrader.New(&upgraderBuilder)
+
+						var wg sync.WaitGroup
+						wg.Add(1)
+						go func() {
+							defer GinkgoRecover()
+							actualErr = upgradeTool.Upgrade()
+							wg.Done()
+						}()
+
+						expectToHaveStarted(si1Controller, si2Controller)
+						expectToHaveNotStarted(si3Controller)
+
+						allowToProceed(si1Controller)
+						expectToHaveStarted(si3Controller)
+
+						allowToProceed(si2Controller, si3Controller)
+
+						wg.Wait()
+
+						Expect(actualErr).NotTo(HaveOccurred())
+
+						hasReportedUpgraded(fakeListener, serviceInstance1, serviceInstance2, serviceInstance3)
+						hasReportedProgress(fakeListener, 0, upgraderBuilder.AttemptInterval, 0, 3, 0, 0)
+						hasReportedFinished(fakeListener, 0, 3, 0, 0)
+					})
+
+					It("never runs 3rd upgrade if 1st fails", func() {
+						brokerServicesClient.LastOperationReturnsOnCall(0, brokerapi.LastOperation{
+							State:       brokerapi.Failed,
+							Description: "this didn't work",
+						}, nil)
+
+						allowToProceed(si3Controller)
+
+						upgradeTool := upgrader.New(&upgraderBuilder)
+
+						var wg sync.WaitGroup
+						wg.Add(1)
+						go func() {
+							defer GinkgoRecover()
+							actualErr = upgradeTool.Upgrade()
+							wg.Done()
+						}()
+
+						expectToHaveStarted(si1Controller, si2Controller)
+						expectToHaveNotStarted(si3Controller)
+
+						allowToProceed(si1Controller)
+						expectToHaveNotStarted(si3Controller)
+						allowToProceed(si2Controller)
+						expectToHaveNotStarted(si3Controller)
+
+						wg.Wait()
+
+						Expect(actualErr).To(MatchError(fmt.Sprintf(
+							"Upgrade failed for service instance %s: bosh task id %d: this didn't work",
+							serviceInstance1,
+							upgradeTaskID1,
+						)))
+
+						hasReportedUpgraded(fakeListener, serviceInstance2)
+						hasReportedFailureFor(fakeListener, serviceInstance1)
+					})
+
+					It("returns both error messages if two upgrades fail", func() {
+						brokerServicesClient.LastOperationReturns(brokerapi.LastOperation{
+							State:       brokerapi.Failed,
+							Description: "this didn't work",
+						}, nil)
+
+						allowToProceed(si3Controller)
+
+						upgradeTool := upgrader.New(&upgraderBuilder)
+
+						var wg sync.WaitGroup
+						wg.Add(1)
+						go func() {
+							defer GinkgoRecover()
+							actualErr = upgradeTool.Upgrade()
+							wg.Done()
+						}()
+
+						expectToHaveStarted(si1Controller, si2Controller)
+						expectToHaveNotStarted(si3Controller)
+
+						allowToProceed(si1Controller)
+						expectToHaveNotStarted(si3Controller)
+						allowToProceed(si2Controller)
+
+						expectToHaveNotStarted(si3Controller)
+
+						wg.Wait()
+
+						Expect(actualErr).To(MatchError(fmt.Sprintf(
+							"2 errors occurred:\n\n* Upgrade failed for service instance %s: bosh task id %d: this didn't work\n* Upgrade failed for service instance %s: bosh task id %d: this didn't work",
+							serviceInstance1,
+							upgradeTaskID1,
+							serviceInstance2,
+							upgradeTaskID2,
+						)))
+
+						hasReportedFailureFor(fakeListener, serviceInstance1, serviceInstance2)
+					})
+
+					Context("when there are retries required", func() {
+						It("it retries a single busy update only when all other updates have completed", func() {
+							busyCount := 0
+							si1Controller2 := newProcessController()
+							brokerServicesClient.UpgradeInstanceStub = func(instance service.Instance) (services.UpgradeOperation, error) {
+								switch guid := instance.GUID; {
+								case guid == serviceInstance1 && busyCount == 0:
+									busyCount++
+									si1Controller.NotifyStart()
+									si1Controller.WaitForSignalToProceed()
+									return services.UpgradeOperation{
+										Type: services.OperationInProgress,
+										Data: upgradeResponse(upgradeTaskID1),
+									}, nil
+								case guid == serviceInstance1 && busyCount == 1:
+									si1Controller2.NotifyStart()
+									si1Controller2.WaitForSignalToProceed()
+									return services.UpgradeOperation{
+										Type: services.UpgradeAccepted,
+										Data: upgradeResponse(upgradeTaskID1),
+									}, nil
+								case guid == serviceInstance2:
+									si2Controller.NotifyStart()
+									si2Controller.WaitForSignalToProceed()
+									return services.UpgradeOperation{
+										Type: services.UpgradeAccepted,
+										Data: upgradeResponse(upgradeTaskID2),
+									}, nil
+								case guid == serviceInstance3:
+									si3Controller.NotifyStart()
+									si3Controller.WaitForSignalToProceed()
+									return services.UpgradeOperation{
+										Type: services.UpgradeAccepted,
+										Data: upgradeResponse(upgradeTaskID3),
+									}, nil
+								}
+								return services.UpgradeOperation{}, errors.New("unexpected instance GUID")
+							}
+
+							upgradeTool := upgrader.New(&upgraderBuilder)
+
+							var wg sync.WaitGroup
+							wg.Add(1)
+							go func() {
+								defer GinkgoRecover()
+								actualErr = upgradeTool.Upgrade()
+								wg.Done()
+							}()
+
+							expectToHaveStarted(si1Controller, si2Controller)
+							expectToHaveNotStarted(si3Controller, si1Controller2)
+
+							allowToProceed(si1Controller)
+							expectToHaveStarted(si3Controller)
+							expectToHaveNotStarted(si1Controller2)
+
+							allowToProceed(si2Controller)
+							expectToHaveNotStarted(si1Controller2)
+
+							allowToProceed(si3Controller)
+							expectToHaveStarted(si1Controller2)
+
+							allowToProceed(si1Controller2)
+
+							wg.Wait()
+
+							hasReportedRetries(fakeListener, 1, 0)
+							hasReportedProgress(fakeListener, 0, upgraderBuilder.AttemptInterval, 0, 2, 1, 0)
+							hasReportedProgress(fakeListener, 1, upgraderBuilder.AttemptInterval, 0, 3, 0, 0)
+							hasReportedUpgraded(fakeListener, serviceInstance1, serviceInstance2, serviceInstance3)
+							hasReportedFinished(fakeListener, 0, 3, 0, 0)
+						})
+					})
 				})
 			})
 		})
@@ -668,4 +848,54 @@ func hasReportedAttempts(fakeListener *fakes.FakeListener, count, limit int) {
 		Expect(c).To(Equal(i + 1))
 		Expect(l).To(Equal(limit))
 	}
+}
+
+func expectToHaveStarted(controllers ...*processController) {
+	for _, c := range controllers {
+		c.HasStarted()
+	}
+}
+
+func expectToHaveNotStarted(controllers ...*processController) {
+	for _, c := range controllers {
+		c.DoesNotStart()
+	}
+}
+
+func allowToProceed(controllers ...*processController) {
+	for _, c := range controllers {
+		c.AllowToProceed()
+	}
+}
+
+type processController struct {
+	started    chan interface{}
+	canProceed chan interface{}
+}
+
+func newProcessController() *processController {
+	return &processController{
+		started:    make(chan interface{}),
+		canProceed: make(chan interface{}),
+	}
+}
+
+func (p *processController) NotifyStart() {
+	close(p.started)
+}
+
+func (p *processController) WaitForSignalToProceed() {
+	<-p.canProceed
+}
+
+func (p *processController) HasStarted() {
+	Eventually(p.started).Should(BeClosed())
+}
+
+func (p *processController) DoesNotStart() {
+	Consistently(p.started).ShouldNot(BeClosed())
+}
+
+func (p *processController) AllowToProceed() {
+	close(p.canProceed)
 }

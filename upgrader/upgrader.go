@@ -7,6 +7,7 @@
 package upgrader
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -16,6 +17,7 @@ import (
 
 	"sync"
 
+	multierror "github.com/hashicorp/go-multierror"
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
@@ -92,7 +94,7 @@ func (u *Upgrader) Upgrade() error {
 	instancesToUpgrade := make(chan service.Instance, len(instances))
 
 	stopWorkers := make(chan interface{})
-	errors := make(chan error, len(instances))
+	errorList := make(chan error, len(instances))
 
 	for _, instance := range instances {
 		instancesToUpgrade <- instance
@@ -113,16 +115,25 @@ func (u *Upgrader) Upgrade() error {
 
 		for i := 0; i < u.maxInFlight; i++ {
 			go func() {
-				u.upgradeInstances(instancesToUpgrade, instancesToRetry, stopWorkers, errors)
+				u.upgradeInstances(instancesToUpgrade, instancesToRetry, stopWorkers, errorList)
 				wg.Done()
 			}()
 		}
 
 		wg.Wait()
 
-		if len(errors) > 0 {
-			return <-errors
+		switch l := len(errorList); {
+		case l == 1:
+			return <-errorList
+		case l > 1:
+			close(errorList)
+			var err error
+			for e := range errorList {
+				err = multierror.Append(err, e)
+			}
+			return errors.New(err.Error())
 		}
+
 		u.instanceCountToUpgrade = len(instancesToRetry)
 
 		u.listener.Progress(u.attemptInterval, u.orphansTotal, u.upgradedTotal, u.instanceCountToUpgrade, u.deletedTotal)
@@ -151,17 +162,29 @@ func (u *Upgrader) upgradeInstances(instances, retries chan service.Instance, st
 		select {
 		case <-stop:
 			return
-		case instance, ok := <-instances:
+		default:
+			instance, ok := <-instances
 			if !ok {
 				return
 			}
 			err := u.performInstanceUpgrade(instance, retries)
 			if err != nil {
 				errors <- err
-				close(stop)
+				ensureChannelClosed(stop)
 				return
 			}
 		}
+	}
+}
+
+func ensureChannelClosed(ch chan interface{}) {
+	select {
+	case _, ok := <-ch:
+		if ok {
+			close(ch)
+		}
+	default:
+		close(ch)
 	}
 }
 

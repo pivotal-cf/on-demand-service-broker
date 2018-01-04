@@ -92,3 +92,7 @@
 [[override]]
   name = "github.com/cheggaaa/pb"
   version = "=1.0.18"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/hashicorp/go-multierror"
