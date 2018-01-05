@@ -78,7 +78,7 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 
 		boshOutput := boshClient.RunErrandWithoutCheckingSuccess(brokerBoshDeploymentName, "upgrade-all-service-instances", []string{}, "")
 		Expect(boshOutput.ExitCode).To(Equal(1))
-		Expect(boshOutput.StdOut).To(ContainSubstring("Upgrade failed for service instance"))
+		Expect(boshOutput.StdOut).To(ContainSubstring("Upgrade failed:"))
 	})
 
 	It("when there are no service instances provisioned, upgrade-all-service-instances runs successfully", func() {
