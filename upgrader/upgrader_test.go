@@ -767,9 +767,8 @@ func hasReportedInstanceUpgradeStartResult(fakeListener *fakes.FakeListener, exp
 	)
 
 	for i, expectedStatus := range expectedStatuses {
-		Expect(fakeListener.InstanceUpgradeStartResultArgsForCall(i)).To(
-			Equal(expectedStatus),
-		)
+		_, status := fakeListener.InstanceUpgradeStartResultArgsForCall(i)
+		Expect(status).To(Equal(expectedStatus))
 	}
 }
 

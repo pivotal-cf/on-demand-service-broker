@@ -26,11 +26,11 @@ import (
 
 //go:generate counterfeiter -o fakes/fake_listener.go . Listener
 type Listener interface {
-	Starting()
+	Starting(maxInFlight int)
 	RetryAttempt(num, limit int)
 	InstancesToUpgrade(instances []service.Instance)
 	InstanceUpgradeStarting(instance string, index int32, totalInstances int)
-	InstanceUpgradeStartResult(status services.UpgradeOperationType)
+	InstanceUpgradeStartResult(instance string, status services.UpgradeOperationType)
 	InstanceUpgraded(instance string, result string)
 	WaitingFor(instance string, boshTaskId int)
 	Progress(pollingInterval time.Duration, orphanCount, upgradedCount int32, upgradesLeftCount int, deletedCount int32)
@@ -83,7 +83,7 @@ func New(builder *Builder) *Upgrader {
 }
 
 func (u *Upgrader) Upgrade() error {
-	u.listener.Starting()
+	u.listener.Starting(u.maxInFlight)
 
 	instances, err := u.instanceLister.Instances()
 	if err != nil {
@@ -198,7 +198,7 @@ func (u *Upgrader) performInstanceUpgrade(instance service.Instance, retryChan c
 		)
 	}
 
-	u.listener.InstanceUpgradeStartResult(operation.Type)
+	u.listener.InstanceUpgradeStartResult(instance.GUID, operation.Type)
 
 	switch operation.Type {
 	case services.OrphanDeployment:

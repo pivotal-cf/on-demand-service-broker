@@ -26,8 +26,8 @@ const (
 
 var _ = Describe("Logging Listener", func() {
 	It("Shows starting message", func() {
-		Expect(logResultsFrom(func(listener upgrader.Listener) { listener.Starting() })).
-			To(Say("STARTING UPGRADES"))
+		Expect(logResultsFrom(func(listener upgrader.Listener) { listener.Starting(2) })).
+			To(Say("STARTING UPGRADES with 2 concurrent workers"))
 	})
 
 	It("Shows attempt x of y", func() {
@@ -57,7 +57,7 @@ var _ = Describe("Logging Listener", func() {
 			listener.InstanceUpgradeStarting("service-instance", 1, 5)
 		})
 
-		Expect(buffer).To(Say("Starting to upgrade service instance: service-instance, instance 2 of 5"))
+		Expect(buffer).To(Say(`\[service-instance\] Starting to upgrade service instance 2 of 5`))
 	})
 
 	Describe("instance upgrade start result", func() {
@@ -68,7 +68,7 @@ var _ = Describe("Logging Listener", func() {
 
 		JustBeforeEach(func() {
 			buffer = logResultsFrom(func(listener upgrader.Listener) {
-				listener.InstanceUpgradeStartResult(result)
+				listener.InstanceUpgradeStartResult("service-instance", result)
 			})
 		})
 
@@ -78,7 +78,7 @@ var _ = Describe("Logging Listener", func() {
 			})
 
 			It("Shows accepted upgrade", func() {
-				Expect(buffer).To(Say("Result: accepted upgrade"))
+				Expect(buffer).To(Say(`\[service-instance\] Result: accepted upgrade`))
 			})
 		})
 
@@ -88,7 +88,7 @@ var _ = Describe("Logging Listener", func() {
 			})
 
 			It("shows already deleted in CF", func() {
-				Expect(buffer).To(Say("Result: already deleted in CF"))
+				Expect(buffer).To(Say(`\[service-instance\] Result: already deleted in CF`))
 			})
 		})
 
@@ -98,7 +98,7 @@ var _ = Describe("Logging Listener", func() {
 			})
 
 			It("shows already deleted in CF", func() {
-				Expect(buffer).To(Say("Result: orphan CF service instance detected - no corresponding bosh deployment"))
+				Expect(buffer).To(Say(`\[service-instance\] Result: orphan CF service instance detected - no corresponding bosh deployment`))
 			})
 		})
 
@@ -108,7 +108,7 @@ var _ = Describe("Logging Listener", func() {
 			})
 
 			It("shows already deleted in CF", func() {
-				Expect(buffer).To(Say("Result: operation in progress"))
+				Expect(buffer).To(Say(`\[service-instance\] Result: operation in progress`))
 			})
 		})
 
@@ -118,19 +118,19 @@ var _ = Describe("Logging Listener", func() {
 			})
 
 			It("shows already deleted in CF", func() {
-				Expect(buffer).To(Say("Result: unexpected result"))
+				Expect(buffer).To(Say(`\[service-instance\] Result: unexpected result`))
 			})
 		})
 	})
 
 	It("Shows which instance is still in progress", func() {
 		Expect(logResultsFrom(func(listener upgrader.Listener) { listener.WaitingFor("one", 999) })).
-			To(Say("Waiting for upgrade to complete for one: bosh task id 999"))
+			To(Say(`\[one\] Waiting for upgrade to complete: bosh task id 999`))
 	})
 
 	It("Shows which instance has been upgraded", func() {
 		Expect(logResultsFrom(func(listener upgrader.Listener) { listener.InstanceUpgraded("one", "success") })).
-			To(Say("Result: Service Instance one upgrade success"))
+			To(Say(`\[one\] Result: Service Instance upgrade success`))
 	})
 
 	It("Shows a summary of the progress so far", func() {

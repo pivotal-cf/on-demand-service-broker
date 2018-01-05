@@ -11,9 +11,11 @@ import (
 )
 
 type FakeListener struct {
-	StartingStub            func()
-	startingMutex           sync.RWMutex
-	startingArgsForCall     []struct{}
+	StartingStub        func(maxInFlight int)
+	startingMutex       sync.RWMutex
+	startingArgsForCall []struct {
+		maxInFlight int
+	}
 	RetryAttemptStub        func(num, limit int)
 	retryAttemptMutex       sync.RWMutex
 	retryAttemptArgsForCall []struct {
@@ -32,10 +34,11 @@ type FakeListener struct {
 		index          int32
 		totalInstances int
 	}
-	InstanceUpgradeStartResultStub        func(status services.UpgradeOperationType)
+	InstanceUpgradeStartResultStub        func(instance string, status services.UpgradeOperationType)
 	instanceUpgradeStartResultMutex       sync.RWMutex
 	instanceUpgradeStartResultArgsForCall []struct {
-		status services.UpgradeOperationType
+		instance string
+		status   services.UpgradeOperationType
 	}
 	InstanceUpgradedStub        func(instance string, result string)
 	instanceUpgradedMutex       sync.RWMutex
@@ -70,13 +73,15 @@ type FakeListener struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeListener) Starting() {
+func (fake *FakeListener) Starting(maxInFlight int) {
 	fake.startingMutex.Lock()
-	fake.startingArgsForCall = append(fake.startingArgsForCall, struct{}{})
-	fake.recordInvocation("Starting", []interface{}{})
+	fake.startingArgsForCall = append(fake.startingArgsForCall, struct {
+		maxInFlight int
+	}{maxInFlight})
+	fake.recordInvocation("Starting", []interface{}{maxInFlight})
 	fake.startingMutex.Unlock()
 	if fake.StartingStub != nil {
-		fake.StartingStub()
+		fake.StartingStub(maxInFlight)
 	}
 }
 
@@ -84,6 +89,12 @@ func (fake *FakeListener) StartingCallCount() int {
 	fake.startingMutex.RLock()
 	defer fake.startingMutex.RUnlock()
 	return len(fake.startingArgsForCall)
+}
+
+func (fake *FakeListener) StartingArgsForCall(i int) int {
+	fake.startingMutex.RLock()
+	defer fake.startingMutex.RUnlock()
+	return fake.startingArgsForCall[i].maxInFlight
 }
 
 func (fake *FakeListener) RetryAttempt(num int, limit int) {
@@ -166,15 +177,16 @@ func (fake *FakeListener) InstanceUpgradeStartingArgsForCall(i int) (string, int
 	return fake.instanceUpgradeStartingArgsForCall[i].instance, fake.instanceUpgradeStartingArgsForCall[i].index, fake.instanceUpgradeStartingArgsForCall[i].totalInstances
 }
 
-func (fake *FakeListener) InstanceUpgradeStartResult(status services.UpgradeOperationType) {
+func (fake *FakeListener) InstanceUpgradeStartResult(instance string, status services.UpgradeOperationType) {
 	fake.instanceUpgradeStartResultMutex.Lock()
 	fake.instanceUpgradeStartResultArgsForCall = append(fake.instanceUpgradeStartResultArgsForCall, struct {
-		status services.UpgradeOperationType
-	}{status})
-	fake.recordInvocation("InstanceUpgradeStartResult", []interface{}{status})
+		instance string
+		status   services.UpgradeOperationType
+	}{instance, status})
+	fake.recordInvocation("InstanceUpgradeStartResult", []interface{}{instance, status})
 	fake.instanceUpgradeStartResultMutex.Unlock()
 	if fake.InstanceUpgradeStartResultStub != nil {
-		fake.InstanceUpgradeStartResultStub(status)
+		fake.InstanceUpgradeStartResultStub(instance, status)
 	}
 }
 
@@ -184,10 +196,10 @@ func (fake *FakeListener) InstanceUpgradeStartResultCallCount() int {
 	return len(fake.instanceUpgradeStartResultArgsForCall)
 }
 
-func (fake *FakeListener) InstanceUpgradeStartResultArgsForCall(i int) services.UpgradeOperationType {
+func (fake *FakeListener) InstanceUpgradeStartResultArgsForCall(i int) (string, services.UpgradeOperationType) {
 	fake.instanceUpgradeStartResultMutex.RLock()
 	defer fake.instanceUpgradeStartResultMutex.RUnlock()
-	return fake.instanceUpgradeStartResultArgsForCall[i].status
+	return fake.instanceUpgradeStartResultArgsForCall[i].instance, fake.instanceUpgradeStartResultArgsForCall[i].status
 }
 
 func (fake *FakeListener) InstanceUpgraded(instance string, result string) {
