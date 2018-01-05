@@ -447,7 +447,7 @@ var _ = Describe("Upgrader", func() {
 						wg.Wait()
 
 						Expect(actualErr).To(MatchError(fmt.Sprintf(
-							"Upgrade failed for service instance %s: bosh task id %d: this didn't work",
+							"[%s] Upgrade failed: bosh task id %d: this didn't work",
 							serviceInstance1,
 							upgradeTaskID1,
 						)))
@@ -486,7 +486,7 @@ var _ = Describe("Upgrader", func() {
 						wg.Wait()
 
 						Expect(actualErr).To(MatchError(fmt.Sprintf(
-							"2 errors occurred:\n\n* Upgrade failed for service instance %s: bosh task id %d: this didn't work\n* Upgrade failed for service instance %s: bosh task id %d: this didn't work",
+							"2 errors occurred:\n\n* [%s] Upgrade failed: bosh task id %d: this didn't work\n* [%s] Upgrade failed: bosh task id %d: this didn't work",
 							serviceInstance1,
 							upgradeTaskID1,
 							serviceInstance2,
@@ -637,7 +637,7 @@ var _ = Describe("Upgrader", func() {
 				upgradeTool := upgrader.New(&upgraderBuilder)
 				actualErr = upgradeTool.Upgrade()
 				failureMessage := fmt.Sprintf(
-					"Upgrade failed for service instance %s: bosh task id %d: everything went wrong",
+					"[%s] Upgrade failed: bosh task id %d: everything went wrong",
 					serviceInstance2,
 					upgradeTaskID2,
 				)

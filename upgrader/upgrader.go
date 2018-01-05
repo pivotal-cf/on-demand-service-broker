@@ -231,7 +231,7 @@ func (u *Upgrader) pollLastOperation(instance string, data broker.OperationData)
 
 		switch lastOperation.State {
 		case brokerapi.Failed:
-			return fmt.Errorf("Upgrade failed for service instance %s: bosh task id %d: %s",
+			return fmt.Errorf("[%s] Upgrade failed: bosh task id %d: %s",
 				instance, data.BoshTaskID, lastOperation.Description)
 		case brokerapi.Succeeded:
 			return nil
