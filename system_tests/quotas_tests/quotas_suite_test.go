@@ -45,7 +45,7 @@ var _ = BeforeSuite(func() {
 	boshPassword := envMustHave("BOSH_PASSWORD")
 	uaaURL := os.Getenv("UAA_URL")
 	boshCACert := os.Getenv("BOSH_CA_CERT_FILE")
-	skipRedeploy := os.Getenv("SKIP_REDEPLOY") == "true"
+	skipRedeploy = os.Getenv("SKIP_REDEPLOY") == "true"
 
 	if uaaURL == "" {
 		boshClient = bosh_helpers.NewBasicAuth(boshURL, boshUsername, boshPassword, boshCACert, boshCACert == "")
