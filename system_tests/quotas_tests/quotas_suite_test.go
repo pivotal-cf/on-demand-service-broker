@@ -27,6 +27,7 @@ var (
 	brokerURL                string
 	brokerBoshDeploymentName string
 	serviceOffering          string
+	skipRedeploy             bool
 	originalBrokerManifest   *bosh.BoshManifest
 	boshClient               *bosh_helpers.BoshHelperClient
 )
@@ -44,6 +45,7 @@ var _ = BeforeSuite(func() {
 	boshPassword := envMustHave("BOSH_PASSWORD")
 	uaaURL := os.Getenv("UAA_URL")
 	boshCACert := os.Getenv("BOSH_CA_CERT_FILE")
+	skipRedeploy := os.Getenv("SKIP_REDEPLOY") == "true"
 
 	if uaaURL == "" {
 		boshClient = bosh_helpers.NewBasicAuth(boshURL, boshUsername, boshPassword, boshCACert, boshCACert == "")
@@ -78,9 +80,11 @@ var _ = AfterSuite(func() {
 	By("deregistering the broker")
 	Eventually(cf.Cf("delete-service-broker", brokerName, "-f"), cf_helpers.CfTimeout).Should(gexec.Exit(0))
 
-	//cleanup for when running locally
-	By("deploying the original broker manifest")
-	boshClient.DeployODB(*originalBrokerManifest)
+	if !skipRedeploy {
+		//cleanup for when running locally
+		By("deploying the original broker manifest")
+		boshClient.DeployODB(*originalBrokerManifest)
+	}
 })
 
 func TestQuotasTests(t *testing.T) {
