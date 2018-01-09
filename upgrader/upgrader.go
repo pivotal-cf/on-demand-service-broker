@@ -82,6 +82,64 @@ func New(builder *Builder) *Upgrader {
 	}
 }
 
+func (u *Upgrader) errorFromList(errorList chan error) error {
+	switch l := len(errorList); {
+	case l == 1:
+		return <-errorList
+	case l > 1:
+		close(errorList)
+		var err error
+		for e := range errorList {
+			err = multierror.Append(err, e)
+		}
+		return errors.New(err.Error())
+	default:
+		return nil
+	}
+}
+
+func (u *Upgrader) upgradeAll(instancesToUpgrade chan service.Instance, stopWorkers chan interface{}, errorList chan error) ([]service.Instance, error) {
+	attempt := 1
+
+	for u.instanceCountToUpgrade > 0 && attempt <= u.attemptLimit {
+		u.startedUpgradeTotal = 0
+
+		u.listener.RetryAttempt(attempt, u.attemptLimit)
+		instancesToRetry := make(chan service.Instance, u.instanceCountToUpgrade)
+		var wg sync.WaitGroup
+		wg.Add(u.maxInFlight)
+
+		for i := 0; i < u.maxInFlight; i++ {
+			go func() {
+				u.upgradeInstances(instancesToUpgrade, instancesToRetry, stopWorkers, errorList)
+				wg.Done()
+			}()
+		}
+
+		wg.Wait()
+
+		if err := u.errorFromList(errorList); err != nil {
+			return nil, err
+		}
+		u.instanceCountToUpgrade = len(instancesToRetry)
+
+		u.listener.Progress(u.attemptInterval, u.orphansTotal, u.upgradedTotal, u.instanceCountToUpgrade, u.deletedTotal)
+		if u.instanceCountToUpgrade > 0 {
+			attempt++
+			u.sleeper.Sleep(u.attemptInterval)
+
+			instancesToUpgrade = instancesToRetry
+			close(instancesToUpgrade)
+		}
+	}
+
+	instancesNotUpgraded := []service.Instance{}
+	for i := range instancesToUpgrade {
+		instancesNotUpgraded = append(instancesNotUpgraded, i)
+	}
+	return instancesNotUpgraded, nil
+}
+
 func (u *Upgrader) Upgrade() error {
 	u.listener.Starting(u.maxInFlight)
 
@@ -101,53 +159,16 @@ func (u *Upgrader) Upgrade() error {
 	}
 	close(instancesToUpgrade)
 
-	attempt := 1
-
 	u.instanceCountToUpgrade = len(instances)
-
-	for u.instanceCountToUpgrade > 0 && attempt <= u.attemptLimit {
-		u.startedUpgradeTotal = 0
-
-		u.listener.RetryAttempt(attempt, u.attemptLimit)
-		instancesToRetry := make(chan service.Instance, u.instanceCountToUpgrade)
-		var wg sync.WaitGroup
-		wg.Add(u.maxInFlight)
-
-		for i := 0; i < u.maxInFlight; i++ {
-			go func() {
-				u.upgradeInstances(instancesToUpgrade, instancesToRetry, stopWorkers, errorList)
-				wg.Done()
-			}()
-		}
-
-		wg.Wait()
-
-		switch l := len(errorList); {
-		case l == 1:
-			return <-errorList
-		case l > 1:
-			close(errorList)
-			var err error
-			for e := range errorList {
-				err = multierror.Append(err, e)
-			}
-			return errors.New(err.Error())
-		}
-
-		u.instanceCountToUpgrade = len(instancesToRetry)
-
-		u.listener.Progress(u.attemptInterval, u.orphansTotal, u.upgradedTotal, u.instanceCountToUpgrade, u.deletedTotal)
-		if u.instanceCountToUpgrade > 0 {
-			attempt++
-			u.sleeper.Sleep(u.attemptInterval)
-			instancesToUpgrade = instancesToRetry
-			close(instancesToUpgrade)
-		}
+	instancesNotUpgraded, err := u.upgradeAll(instancesToUpgrade, stopWorkers, errorList)
+	if err != nil {
+		return err
 	}
+
 	u.listener.Finished(u.orphansTotal, u.upgradedTotal, u.deletedTotal, u.instanceCountToUpgrade)
 
 	var instanceDeploymentNames []string
-	for inst := range instancesToUpgrade {
+	for _, inst := range instancesNotUpgraded {
 		instanceDeploymentNames = append(instanceDeploymentNames, fmt.Sprintf("service-instance_%s", inst.GUID))
 	}
 	if len(instanceDeploymentNames) > 0 {
