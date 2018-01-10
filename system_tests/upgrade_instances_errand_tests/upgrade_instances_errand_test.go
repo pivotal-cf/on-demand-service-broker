@@ -96,7 +96,7 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 		Expect(boshOutput.StdOut).To(ContainSubstring("STARTING UPGRADES"))
 	})
 
-	It("when there are two service instances provisioned, upgrade-all-service-instances runs successfully", func() {
+	It("when there are multiple service instances provisioned, upgrade-all-service-instances runs successfully", func() {
 		createServiceInstances()
 
 		brokerManifest := boshClient.GetManifest(brokerBoshDeploymentName)
@@ -125,9 +125,10 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 			instanceGroupProperties := bosh_helpers.FindInstanceGroupProperties(manifest, "redis")
 			Expect(instanceGroupProperties["redis"].(map[interface{}]interface{})["persistence"]).To(Equal("no"))
 
-			expectedBoshTasksOrder := []string{"create deployment", "run errand", "create deployment", "run errand"}
+			expectedBoshTasksOrder := []string{"create deployment", "run errand", "create deployment", "run errand", "create deployment", "run errand"}
 			if parallelUpgradesEnabled {
-				expectedBoshTasksOrder = []string{"create deployment", "create deployment", "run errand", "run errand"}
+				// with one canary, we expect one upgrade to complete before the remaining two start simultaneously
+				expectedBoshTasksOrder = []string{"create deployment", "run errand", "create deployment", "create deployment", "run errand", "run errand"}
 			}
 
 			if boshSupportsLifecycleErrands {
@@ -256,6 +257,7 @@ func createServiceInstances() {
 	var wg sync.WaitGroup
 
 	serviceInstances = []*testService{
+		{Name: uuid.New(), AppName: uuid.New()},
 		{Name: uuid.New(), AppName: uuid.New()},
 		{Name: uuid.New(), AppName: uuid.New()},
 	}

@@ -151,6 +151,28 @@ var _ = Describe("UpgraderBuilder", func() {
 			Expect(builder.MaxInFlight).To(Equal(10))
 		})
 	})
+
+	Describe("Canaries", func() {
+		DescribeTable(
+			"config is invalidly set to",
+			func(val int) {
+				conf := updateAllInstanceErrandConfig("user", "password", "http://example.org")
+				conf.Canaries = val
+				_, err := NewBuilder(conf, logger)
+
+				Expect(err).To(MatchError(Equal("the number of canaries cannot be negative")))
+			},
+			Entry("negative", -1),
+		)
+
+		It("when configured returns the value", func() {
+			conf := updateAllInstanceErrandConfig("user", "password", "http://example.org")
+			conf.Canaries = 10
+			builder, err := NewBuilder(conf, logger)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(builder.Canaries).To(Equal(10))
+		})
+	})
 })
 
 func updateAllInstanceErrandConfig(brokerUser, brokerPassword, brokerURL string) config.UpgradeAllInstanceErrandConfig {
