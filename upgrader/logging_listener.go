@@ -78,12 +78,12 @@ func (ll LoggingListener) WaitingFor(instance string, boshTaskId int) {
 }
 
 func (ll LoggingListener) Progress(pollingInterval time.Duration, orphanCount, upgradedCount int32, toRetryCount int, deletedCount int32) {
-	ll.logger.Printf("Upgrade progress summary:\n"+
-		"\tSleep interval until next attempt: %s\n"+
-		"\tNumber of successful upgrades so far: %d\n"+
-		"\tNumber of CF service instance orphans detected so far: %d\n"+
-		"\tNumber of deleted instances before upgrade could occur: %d \n"+
-		"\tNumber of operations in progress (to retry) so far: %d \n",
+	ll.logger.Printf("Upgrade progress summary: "+
+		"Sleep interval until next attempt: %s; "+
+		"Number of successful upgrades so far: %d; "+
+		"Number of CF service instance orphans detected so far: %d; "+
+		"Number of deleted instances before upgrade could occur: %d; "+
+		"Number of operations in progress (to retry) so far: %d",
 		pollingInterval,
 		upgradedCount,
 		orphanCount,
@@ -93,11 +93,11 @@ func (ll LoggingListener) Progress(pollingInterval time.Duration, orphanCount, u
 }
 
 func (ll LoggingListener) Finished(orphanCount, upgradedCount, deletedCount int32, couldNotStartCount int) {
-	ll.logger.Printf("FINISHED UPGRADES Summary:\n"+
-		"\tNumber of successful upgrades: %d\n"+
-		"\tNumber of CF service instance orphans detected: %d\n"+
-		"\tNumber of deleted instances before upgrade could occur: %d\n"+
-		"\tNumber of busy instances which could not be upgraded: %d\n",
+	ll.logger.Printf("FINISHED UPGRADES Summary: "+
+		"Number of successful upgrades: %d; "+
+		"Number of CF service instance orphans detected: %d; "+
+		"Number of deleted instances before upgrade could occur: %d; "+
+		"Number of busy instances which could not be upgraded: %d",
 		upgradedCount,
 		orphanCount,
 		deletedCount,
