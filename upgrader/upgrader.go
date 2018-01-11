@@ -65,7 +65,7 @@ type Upgrader struct {
 	sleeper                sleeper
 	instanceCountToUpgrade int
 	mutex                  sync.Mutex
-	currentInFlight        int
+	instancesBeingUpgraded int
 	upgradedTotal          int32
 	orphansTotal           int32
 	deletedTotal           int32
@@ -243,15 +243,17 @@ func (u *Upgrader) upgradeInstances(instances, retries chan service.Instance, st
 			return
 		default:
 			u.mutex.Lock()
-			if u.currentInFlight == u.instanceCountToUpgrade {
+			if u.instancesBeingUpgraded >= u.instanceCountToUpgrade {
 				u.mutex.Unlock()
 				return
 			}
-			u.currentInFlight++
+
+			u.instancesBeingUpgraded++
 			u.mutex.Unlock()
+
 			defer func() {
 				u.mutex.Lock()
-				u.currentInFlight--
+				u.instancesBeingUpgraded--
 				u.mutex.Unlock()
 			}()
 

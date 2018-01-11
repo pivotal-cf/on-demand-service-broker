@@ -318,29 +318,19 @@ var _ = Describe("Upgrader", func() {
 			})
 
 			Describe("canary upgrades", func() {
-				type upgradeReturn struct {
-					controller *processController
-					taskID     int
-					state      services.UpgradeOperationType
-				}
-
 				var (
-					si1Controller      *processController
-					si2Controller      *processController
-					si3Controller      *processController
-					si4Controller      *processController
-					instancesToUpgrade map[string]upgradeReturn
+					si1Controller *processController
+					si2Controller *processController
+					si3Controller *processController
+					si4Controller *processController
 				)
 
 				BeforeEach(func() {
-					instancesToUpgrade = map[string]upgradeReturn{}
 					si1Controller = newProcessController("si1")
 					si2Controller = newProcessController("si2")
 					si3Controller = newProcessController("si3")
 					si4Controller = newProcessController("si4")
 
-					controllers := []*processController{si1Controller, si2Controller, si3Controller, si4Controller}
-					taskIDs := []int{upgradeTaskID1, upgradeTaskID2, upgradeTaskID3, upgradeTaskID4}
 					availableInstances := []service.Instance{
 						{GUID: serviceInstance1},
 						{GUID: serviceInstance2},
@@ -349,33 +339,38 @@ var _ = Describe("Upgrader", func() {
 					}
 					instanceLister.InstancesReturns(availableInstances, nil)
 
-					for i, s := range availableInstances {
-						instancesToUpgrade[s.GUID] = upgradeReturn{
-							controller: controllers[i],
-							taskID:     taskIDs[i],
-							state:      services.UpgradeAccepted,
-						}
-					}
-
 					brokerServicesClient.UpgradeInstanceStub = func(instance service.Instance) (services.UpgradeOperation, error) {
-						output, ok := instancesToUpgrade[instance.GUID]
-						if !ok {
-							return services.UpgradeOperation{}, errors.New("unexpected instance GUID")
+						switch instance.GUID {
+						case serviceInstance1:
+							si1Controller.NotifyStart()
+							si1Controller.WaitForSignalToProceed()
+							return services.UpgradeOperation{
+								Type: services.UpgradeAccepted,
+								Data: upgradeResponse(upgradeTaskID1),
+							}, nil
+						case serviceInstance2:
+							si2Controller.NotifyStart()
+							si2Controller.WaitForSignalToProceed()
+							return services.UpgradeOperation{
+								Type: services.UpgradeAccepted,
+								Data: upgradeResponse(upgradeTaskID2),
+							}, nil
+						case serviceInstance3:
+							si3Controller.NotifyStart()
+							si3Controller.WaitForSignalToProceed()
+							return services.UpgradeOperation{
+								Type: services.UpgradeAccepted,
+								Data: upgradeResponse(upgradeTaskID3),
+							}, nil
+						case serviceInstance4:
+							si4Controller.NotifyStart()
+							si4Controller.WaitForSignalToProceed()
+							return services.UpgradeOperation{
+								Type: services.UpgradeAccepted,
+								Data: upgradeResponse(upgradeTaskID3),
+							}, nil
 						}
-						controller := output.controller
-						taskID := output.taskID
-
-						controller.NotifyStart()
-						controller.WaitForSignalToProceed()
-
-						if output.state == services.OperationInProgress {
-							output.controller.RetryLater()
-						}
-
-						return services.UpgradeOperation{
-							Type: output.state,
-							Data: upgradeResponse(taskID),
-						}, nil
+						return services.UpgradeOperation{}, errors.New("unexpected instance GUID")
 					}
 				})
 
@@ -471,9 +466,49 @@ var _ = Describe("Upgrader", func() {
 				})
 
 				It("picks another canary instance if one is busy", func() {
-					upgradeReturn := instancesToUpgrade[serviceInstance2]
-					upgradeReturn.state = services.OperationInProgress
-					instancesToUpgrade[serviceInstance2] = upgradeReturn
+					busyCount := 0
+					brokerServicesClient.UpgradeInstanceStub = func(instance service.Instance) (services.UpgradeOperation, error) {
+						switch guid := instance.GUID; {
+						case guid == serviceInstance1:
+							si1Controller.NotifyStart()
+							si1Controller.WaitForSignalToProceed()
+							return services.UpgradeOperation{
+								Type: services.UpgradeAccepted,
+								Data: upgradeResponse(upgradeTaskID2),
+							}, nil
+						case guid == serviceInstance2 && busyCount == 0:
+							busyCount++
+							si2Controller.NotifyStart()
+							si2Controller.WaitForSignalToProceed()
+							return services.UpgradeOperation{
+								Type: services.OperationInProgress,
+								Data: upgradeResponse(upgradeTaskID1),
+							}, nil
+						case guid == serviceInstance2 && busyCount == 1:
+							si2Controller.NotifyStart()
+							si2Controller.WaitForSignalToProceed()
+							return services.UpgradeOperation{
+								Type: services.UpgradeAccepted,
+								Data: upgradeResponse(upgradeTaskID1),
+							}, nil
+						case guid == serviceInstance3:
+							si3Controller.NotifyStart()
+							si3Controller.WaitForSignalToProceed()
+							return services.UpgradeOperation{
+								Type: services.UpgradeAccepted,
+								Data: upgradeResponse(upgradeTaskID3),
+							}, nil
+
+						case guid == serviceInstance4:
+							si4Controller.NotifyStart()
+							si4Controller.WaitForSignalToProceed()
+							return services.UpgradeOperation{
+								Type: services.UpgradeAccepted,
+								Data: upgradeResponse(upgradeTaskID3),
+							}, nil
+						}
+						return services.UpgradeOperation{}, errors.New("unexpected instance GUID")
+					}
 
 					upgraderBuilder.MaxInFlight = 3
 					upgraderBuilder.Canaries = 2
@@ -497,10 +532,8 @@ var _ = Describe("Upgrader", func() {
 					expectToHaveNotStarted(si2Controller, si4Controller)
 
 					allowToProceed(si3Controller)
-					upgradeReturn = instancesToUpgrade[serviceInstance2]
-					upgradeReturn.state = services.UpgradeAccepted
-					instancesToUpgrade[serviceInstance2] = upgradeReturn
 					expectToHaveStarted(si2Controller, si4Controller)
+
 					allowToProceed(si4Controller, si2Controller)
 
 					wg.Wait()
@@ -508,9 +541,40 @@ var _ = Describe("Upgrader", func() {
 				})
 
 				It("fails after reaching the attempt limit threshold", func() {
-					upgradeReturn := instancesToUpgrade[serviceInstance2]
-					upgradeReturn.state = services.OperationInProgress
-					instancesToUpgrade[serviceInstance2] = upgradeReturn
+					brokerServicesClient.UpgradeInstanceStub = func(instance service.Instance) (services.UpgradeOperation, error) {
+						switch guid := instance.GUID; {
+						case guid == serviceInstance1:
+							si1Controller.NotifyStart()
+							si1Controller.WaitForSignalToProceed()
+							return services.UpgradeOperation{
+								Type: services.UpgradeAccepted,
+								Data: upgradeResponse(upgradeTaskID2),
+							}, nil
+						case guid == serviceInstance2:
+							si2Controller.NotifyStart()
+							si2Controller.WaitForSignalToProceed()
+							return services.UpgradeOperation{
+								Type: services.OperationInProgress,
+								Data: upgradeResponse(upgradeTaskID1),
+							}, nil
+						case guid == serviceInstance3:
+							si3Controller.NotifyStart()
+							si3Controller.WaitForSignalToProceed()
+							return services.UpgradeOperation{
+								Type: services.UpgradeAccepted,
+								Data: upgradeResponse(upgradeTaskID3),
+							}, nil
+
+						case guid == serviceInstance4:
+							si4Controller.NotifyStart()
+							si4Controller.WaitForSignalToProceed()
+							return services.UpgradeOperation{
+								Type: services.UpgradeAccepted,
+								Data: upgradeResponse(upgradeTaskID3),
+							}, nil
+						}
+						return services.UpgradeOperation{}, errors.New("unexpected instance GUID")
+					}
 
 					upgraderBuilder.MaxInFlight = 4
 					upgraderBuilder.Canaries = 4
@@ -536,7 +600,7 @@ var _ = Describe("Upgrader", func() {
 
 					wg.Wait()
 
-					By("erroring as it reached the retry limit")
+					By("erring as it reached the retry limit")
 					Expect(actualErr).To(HaveOccurred())
 					Expect(actualErr).To(MatchError(ContainSubstring(
 						"canaries didn't upgrade successfully: attempted to upgrade 4 canaries, but only found 3 instances not already in use by another BOSH task.",
@@ -1109,25 +1173,20 @@ func allowToProceed(controllers ...*processController) {
 
 type processController struct {
 	name       string
-	started    chan interface{}
+	started    chan bool
 	canProceed chan bool
 }
 
 func newProcessController(name string) *processController {
 	return &processController{
-		started:    make(chan interface{}),
+		started:    make(chan bool, 1),
 		canProceed: make(chan bool, 1),
 		name:       name,
 	}
 }
 
 func (p *processController) NotifyStart() {
-	close(p.started)
-}
-
-func (p *processController) RetryLater() {
-	p.started = make(chan interface{})
-
+	p.started <- true
 }
 
 func (p *processController) WaitForSignalToProceed() {
@@ -1135,11 +1194,11 @@ func (p *processController) WaitForSignalToProceed() {
 }
 
 func (p *processController) HasStarted() {
-	Eventually(p.started).Should(BeClosed(), fmt.Sprintf("Process %s expected to be in a started state", p.name))
+	Eventually(p.started).Should(Receive(), fmt.Sprintf("Process %s expected to be in a started state", p.name))
 }
 
 func (p *processController) DoesNotStart() {
-	Consistently(p.started).ShouldNot(BeClosed(), fmt.Sprintf("Process %s expected to be in a non-started state", p.name))
+	Consistently(p.started).ShouldNot(Receive(), fmt.Sprintf("Process %s expected to be in a non-started state", p.name))
 }
 
 func (p *processController) AllowToProceed() {
