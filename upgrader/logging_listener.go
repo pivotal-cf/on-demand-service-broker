@@ -104,3 +104,11 @@ func (ll LoggingListener) Finished(orphanCount, upgradedCount, deletedCount int3
 		couldNotStartCount,
 	)
 }
+
+func (ll LoggingListener) CanariesStarting(canaries, maxInFlight int) {
+	ll.logger.Printf("STARTING CANARY UPGRADES: %d canaries with %d concurrent workers\n", canaries, maxInFlight)
+}
+
+func (ll LoggingListener) CanariesFinished() {
+	ll.logger.Printf("FINISHED CANARY UPGRADES")
+}

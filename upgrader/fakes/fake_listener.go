@@ -69,8 +69,17 @@ type FakeListener struct {
 		deletedCount       int32
 		couldNotStartCount int
 	}
-	invocations      map[string][][]interface{}
-	invocationsMutex sync.RWMutex
+	CanariesStartingStub        func(canaries, maxInFlight int)
+	canariesStartingMutex       sync.RWMutex
+	canariesStartingArgsForCall []struct {
+		canaries    int
+		maxInFlight int
+	}
+	CanariesFinishedStub        func()
+	canariesFinishedMutex       sync.RWMutex
+	canariesFinishedArgsForCall []struct{}
+	invocations                 map[string][][]interface{}
+	invocationsMutex            sync.RWMutex
 }
 
 func (fake *FakeListener) Starting(maxInFlight int) {
@@ -307,6 +316,47 @@ func (fake *FakeListener) FinishedArgsForCall(i int) (int32, int32, int32, int) 
 	return fake.finishedArgsForCall[i].orphanCount, fake.finishedArgsForCall[i].upgradedCount, fake.finishedArgsForCall[i].deletedCount, fake.finishedArgsForCall[i].couldNotStartCount
 }
 
+func (fake *FakeListener) CanariesStarting(canaries int, maxInFlight int) {
+	fake.canariesStartingMutex.Lock()
+	fake.canariesStartingArgsForCall = append(fake.canariesStartingArgsForCall, struct {
+		canaries    int
+		maxInFlight int
+	}{canaries, maxInFlight})
+	fake.recordInvocation("CanariesStarting", []interface{}{canaries, maxInFlight})
+	fake.canariesStartingMutex.Unlock()
+	if fake.CanariesStartingStub != nil {
+		fake.CanariesStartingStub(canaries, maxInFlight)
+	}
+}
+
+func (fake *FakeListener) CanariesStartingCallCount() int {
+	fake.canariesStartingMutex.RLock()
+	defer fake.canariesStartingMutex.RUnlock()
+	return len(fake.canariesStartingArgsForCall)
+}
+
+func (fake *FakeListener) CanariesStartingArgsForCall(i int) (int, int) {
+	fake.canariesStartingMutex.RLock()
+	defer fake.canariesStartingMutex.RUnlock()
+	return fake.canariesStartingArgsForCall[i].canaries, fake.canariesStartingArgsForCall[i].maxInFlight
+}
+
+func (fake *FakeListener) CanariesFinished() {
+	fake.canariesFinishedMutex.Lock()
+	fake.canariesFinishedArgsForCall = append(fake.canariesFinishedArgsForCall, struct{}{})
+	fake.recordInvocation("CanariesFinished", []interface{}{})
+	fake.canariesFinishedMutex.Unlock()
+	if fake.CanariesFinishedStub != nil {
+		fake.CanariesFinishedStub()
+	}
+}
+
+func (fake *FakeListener) CanariesFinishedCallCount() int {
+	fake.canariesFinishedMutex.RLock()
+	defer fake.canariesFinishedMutex.RUnlock()
+	return len(fake.canariesFinishedArgsForCall)
+}
+
 func (fake *FakeListener) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -328,6 +378,10 @@ func (fake *FakeListener) Invocations() map[string][][]interface{} {
 	defer fake.progressMutex.RUnlock()
 	fake.finishedMutex.RLock()
 	defer fake.finishedMutex.RUnlock()
+	fake.canariesStartingMutex.RLock()
+	defer fake.canariesStartingMutex.RUnlock()
+	fake.canariesFinishedMutex.RLock()
+	defer fake.canariesFinishedMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

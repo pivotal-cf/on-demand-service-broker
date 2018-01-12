@@ -269,10 +269,14 @@ var _ = Describe("Upgrader", func() {
 			serviceInstance2 := "serviceInstanceId2"
 			serviceInstance3 := "serviceInstanceId3"
 			serviceInstance4 := "serviceInstanceId4"
+			serviceInstance5 := "serviceInstanceId5"
+			serviceInstance6 := "serviceInstanceId6"
 			upgradeTaskID1 := 123
 			upgradeTaskID2 := 456
 			upgradeTaskID3 := 789
 			upgradeTaskID4 := 790
+			upgradeTaskID5 := 791
+			upgradeTaskID6 := 792
 
 			BeforeEach(func() {
 				instanceLister.InstancesReturns([]service.Instance{
@@ -367,7 +371,7 @@ var _ = Describe("Upgrader", func() {
 							si4Controller.WaitForSignalToProceed()
 							return services.UpgradeOperation{
 								Type: services.UpgradeAccepted,
-								Data: upgradeResponse(upgradeTaskID3),
+								Data: upgradeResponse(upgradeTaskID4),
 							}, nil
 						}
 						return services.UpgradeOperation{}, errors.New("unexpected instance GUID")
@@ -376,7 +380,7 @@ var _ = Describe("Upgrader", func() {
 
 				It("upgrades the canary instances in parallel", func() {
 					upgraderBuilder.MaxInFlight = 3
-					upgraderBuilder.Canaries = 1
+					upgraderBuilder.Canaries = 2
 
 					upgradeTool := upgrader.New(&upgraderBuilder)
 
@@ -388,13 +392,13 @@ var _ = Describe("Upgrader", func() {
 						wg.Done()
 					}()
 
-					expectToHaveStarted(si1Controller)
-					expectToHaveNotStarted(si2Controller, si3Controller, si4Controller)
+					expectToHaveStarted(si1Controller, si2Controller)
+					expectToHaveNotStarted(si3Controller, si4Controller)
 
-					allowToProceed(si1Controller)
-					expectToHaveStarted(si2Controller, si3Controller, si4Controller)
+					allowToProceed(si1Controller, si2Controller)
+					expectToHaveStarted(si3Controller, si4Controller)
 
-					allowToProceed(si2Controller, si3Controller, si4Controller)
+					allowToProceed(si3Controller, si4Controller)
 
 					wg.Wait()
 
@@ -538,6 +542,77 @@ var _ = Describe("Upgrader", func() {
 
 					wg.Wait()
 					Expect(actualErr).ToNot(HaveOccurred())
+
+					hasReportedRetries(fakeListener, 1)
+				})
+
+				It("handles deleted instance in canary selection", func() {
+					brokerServicesClient.UpgradeInstanceStub = func(instance service.Instance) (services.UpgradeOperation, error) {
+						switch guid := instance.GUID; {
+						case guid == serviceInstance1:
+							si1Controller.NotifyStart()
+							si1Controller.WaitForSignalToProceed()
+							return services.UpgradeOperation{
+								Type: services.UpgradeAccepted,
+								Data: upgradeResponse(upgradeTaskID2),
+							}, nil
+						case guid == serviceInstance2:
+							si2Controller.NotifyStart()
+							si2Controller.WaitForSignalToProceed()
+							return services.UpgradeOperation{
+								Type: services.InstanceNotFound,
+								Data: upgradeResponse(upgradeTaskID1),
+							}, nil
+						case guid == serviceInstance3:
+							si3Controller.NotifyStart()
+							si3Controller.WaitForSignalToProceed()
+							return services.UpgradeOperation{
+								Type: services.UpgradeAccepted,
+								Data: upgradeResponse(upgradeTaskID3),
+							}, nil
+
+						case guid == serviceInstance4:
+							si4Controller.NotifyStart()
+							si4Controller.WaitForSignalToProceed()
+							return services.UpgradeOperation{
+								Type: services.UpgradeAccepted,
+								Data: upgradeResponse(upgradeTaskID3),
+							}, nil
+						}
+						return services.UpgradeOperation{}, errors.New("unexpected instance GUID")
+					}
+
+					upgraderBuilder.MaxInFlight = 3
+					upgraderBuilder.Canaries = 2
+
+					upgradeTool := upgrader.New(&upgraderBuilder)
+
+					var wg sync.WaitGroup
+					wg.Add(1)
+					go func() {
+						defer GinkgoRecover()
+						actualErr = upgradeTool.Upgrade()
+						wg.Done()
+					}()
+
+					expectToHaveStarted(si1Controller, si2Controller)
+					expectToHaveNotStarted(si3Controller, si4Controller)
+
+					allowToProceed(si1Controller, si2Controller)
+
+					expectToHaveStarted(si3Controller)
+					expectToHaveNotStarted(si2Controller, si4Controller)
+
+					allowToProceed(si3Controller)
+					expectToHaveStarted(si4Controller)
+
+					allowToProceed(si4Controller)
+
+					wg.Wait()
+					Expect(actualErr).ToNot(HaveOccurred())
+
+					hasReportedUpgraded(fakeListener, serviceInstance1, serviceInstance3, serviceInstance4)
+					hasReportedFinished(fakeListener, 0, 3, 1, 0)
 				})
 
 				It("fails after reaching the attempt limit threshold", func() {
@@ -610,6 +685,199 @@ var _ = Describe("Upgrader", func() {
 					hasReportedProgress(fakeListener, 0, upgraderBuilder.AttemptInterval, 0, 3, 1, 0)
 					hasReportedProgress(fakeListener, 1, upgraderBuilder.AttemptInterval, 0, 3, 1, 0)
 					hasReportedUpgraded(fakeListener, serviceInstance1, serviceInstance3, serviceInstance4)
+				})
+
+				It("retries busy instance after all canaries pass", func() {
+					busyCount := 0
+					brokerServicesClient.UpgradeInstanceStub = func(instance service.Instance) (services.UpgradeOperation, error) {
+						switch guid := instance.GUID; {
+						case guid == serviceInstance1:
+							si1Controller.NotifyStart()
+							si1Controller.WaitForSignalToProceed()
+							return services.UpgradeOperation{
+								Type: services.UpgradeAccepted,
+								Data: upgradeResponse(upgradeTaskID2),
+							}, nil
+						case guid == serviceInstance2 && busyCount == 0:
+							busyCount++
+							si2Controller.NotifyStart()
+							si2Controller.WaitForSignalToProceed()
+							return services.UpgradeOperation{
+								Type: services.OperationInProgress,
+								Data: upgradeResponse(upgradeTaskID1),
+							}, nil
+						case guid == serviceInstance2 && busyCount == 1:
+							si2Controller.NotifyStart()
+							si2Controller.WaitForSignalToProceed()
+							return services.UpgradeOperation{
+								Type: services.UpgradeAccepted,
+								Data: upgradeResponse(upgradeTaskID1),
+							}, nil
+						case guid == serviceInstance3:
+							si3Controller.NotifyStart()
+							si3Controller.WaitForSignalToProceed()
+							return services.UpgradeOperation{
+								Type: services.UpgradeAccepted,
+								Data: upgradeResponse(upgradeTaskID3),
+							}, nil
+
+						case guid == serviceInstance4:
+							si4Controller.NotifyStart()
+							si4Controller.WaitForSignalToProceed()
+							return services.UpgradeOperation{
+								Type: services.UpgradeAccepted,
+								Data: upgradeResponse(upgradeTaskID3),
+							}, nil
+						}
+						return services.UpgradeOperation{}, errors.New("unexpected instance GUID")
+					}
+
+					upgraderBuilder.MaxInFlight = 3
+					upgraderBuilder.Canaries = 1
+
+					upgradeTool := upgrader.New(&upgraderBuilder)
+
+					var wg sync.WaitGroup
+					wg.Add(1)
+					go func() {
+						defer GinkgoRecover()
+						actualErr = upgradeTool.Upgrade()
+						wg.Done()
+					}()
+
+					expectToHaveStarted(si1Controller)
+					expectToHaveNotStarted(si2Controller, si3Controller, si4Controller)
+
+					allowToProceed(si1Controller)
+
+					expectToHaveStarted(si2Controller, si3Controller, si4Controller)
+
+					allowToProceed(si2Controller, si3Controller, si4Controller)
+
+					expectToHaveStarted(si2Controller)
+
+					allowToProceed(si2Controller)
+
+					wg.Wait()
+					Expect(actualErr).ToNot(HaveOccurred())
+				})
+			})
+
+			Describe("upgrade with canary instances an multiple rounds", func() {
+				var (
+					si1Controller *processController
+					si2Controller *processController
+					si3Controller *processController
+					si4Controller *processController
+					si5Controller *processController
+					si6Controller *processController
+				)
+
+				BeforeEach(func() {
+					si1Controller = newProcessController("si1")
+					si2Controller = newProcessController("si2")
+					si3Controller = newProcessController("si3")
+					si4Controller = newProcessController("si4")
+					si5Controller = newProcessController("si5")
+					si6Controller = newProcessController("si6")
+
+					availableInstances := []service.Instance{
+						{GUID: serviceInstance1},
+						{GUID: serviceInstance2},
+						{GUID: serviceInstance3},
+						{GUID: serviceInstance4},
+						{GUID: serviceInstance5},
+						{GUID: serviceInstance6},
+					}
+					instanceLister.InstancesReturns(availableInstances, nil)
+
+					brokerServicesClient.UpgradeInstanceStub = func(instance service.Instance) (services.UpgradeOperation, error) {
+						switch instance.GUID {
+						case serviceInstance1:
+							si1Controller.NotifyStart()
+							si1Controller.WaitForSignalToProceed()
+							return services.UpgradeOperation{
+								Type: services.UpgradeAccepted,
+								Data: upgradeResponse(upgradeTaskID1),
+							}, nil
+						case serviceInstance2:
+							si2Controller.NotifyStart()
+							si2Controller.WaitForSignalToProceed()
+							return services.UpgradeOperation{
+								Type: services.UpgradeAccepted,
+								Data: upgradeResponse(upgradeTaskID2),
+							}, nil
+						case serviceInstance3:
+							si3Controller.NotifyStart()
+							si3Controller.WaitForSignalToProceed()
+							return services.UpgradeOperation{
+								Type: services.UpgradeAccepted,
+								Data: upgradeResponse(upgradeTaskID3),
+							}, nil
+						case serviceInstance4:
+							si4Controller.NotifyStart()
+							si4Controller.WaitForSignalToProceed()
+							return services.UpgradeOperation{
+								Type: services.UpgradeAccepted,
+								Data: upgradeResponse(upgradeTaskID4),
+							}, nil
+						case serviceInstance5:
+							si5Controller.NotifyStart()
+							si5Controller.WaitForSignalToProceed()
+							return services.UpgradeOperation{
+								Type: services.UpgradeAccepted,
+								Data: upgradeResponse(upgradeTaskID5),
+							}, nil
+						case serviceInstance6:
+							si6Controller.NotifyStart()
+							si6Controller.WaitForSignalToProceed()
+							return services.UpgradeOperation{
+								Type: services.UpgradeAccepted,
+								Data: upgradeResponse(upgradeTaskID6),
+							}, nil
+						}
+						return services.UpgradeOperation{}, errors.New("unexpected instance GUID")
+					}
+				})
+
+				It("Complete the upgrade in multiple rounds", func() {
+					upgraderBuilder.MaxInFlight = 3
+					upgraderBuilder.Canaries = 2
+
+					upgradeTool := upgrader.New(&upgraderBuilder)
+
+					var wg sync.WaitGroup
+					wg.Add(1)
+					go func() {
+						defer GinkgoRecover()
+						actualErr = upgradeTool.Upgrade()
+						wg.Done()
+					}()
+
+					expectToHaveStarted(si1Controller, si2Controller)
+					expectToHaveNotStarted(si3Controller, si4Controller, si5Controller, si6Controller)
+
+					allowToProceed(si1Controller, si2Controller)
+
+					expectToHaveStarted(si3Controller, si4Controller, si5Controller)
+					expectToHaveNotStarted(si6Controller)
+
+					allowToProceed(si3Controller, si4Controller, si5Controller)
+
+					expectToHaveStarted(si6Controller)
+					allowToProceed(si6Controller)
+
+					wg.Wait()
+
+					Expect(actualErr).NotTo(HaveOccurred())
+
+					callCount := 2
+					Expect(fakeListener.RetryAttemptCallCount()).To(Equal(2))
+					for i := 0; i < callCount; i++ {
+						c, l := fakeListener.RetryAttemptArgsForCall(i)
+						Expect(c).To(Equal(1))
+						Expect(l).To(Equal(5))
+					}
 				})
 			})
 
@@ -977,6 +1245,7 @@ var _ = Describe("Upgrader", func() {
 				upgradeTool := upgrader.New(&upgraderBuilder)
 				actualErr = upgradeTool.Upgrade()
 				Expect(actualErr).NotTo(HaveOccurred())
+				hasReportedAttempts(fakeListener, 1, 5)
 				hasReportedFinished(fakeListener, 1, 2, 0, 0)
 				Expect(fakeSleeper.SleepCallCount()).To(Equal(2))
 			})

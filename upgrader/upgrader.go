@@ -35,6 +35,8 @@ type Listener interface {
 	WaitingFor(instance string, boshTaskId int)
 	Progress(pollingInterval time.Duration, orphanCount, upgradedCount int32, upgradesLeftCount int, deletedCount int32)
 	Finished(orphanCount, upgradedCount, deletedCount int32, couldNotStartCount int)
+	CanariesStarting(canaries, maxInFlight int)
+	CanariesFinished()
 }
 
 //go:generate counterfeiter -o fakes/fake_broker_services.go . BrokerServices
@@ -54,22 +56,21 @@ type sleeper interface {
 }
 
 type Upgrader struct {
-	brokerServices         BrokerServices
-	instanceLister         InstanceLister
-	pollingInterval        time.Duration
-	attemptInterval        time.Duration
-	attemptLimit           int
-	maxInFlight            int
-	canaries               int
-	listener               Listener
-	sleeper                sleeper
-	instanceCountToUpgrade int
-	mutex                  sync.Mutex
-	instancesBeingUpgraded int
-	upgradedTotal          int32
-	orphansTotal           int32
-	deletedTotal           int32
-	startedUpgradeTotal    int32
+	brokerServices            BrokerServices
+	instanceLister            InstanceLister
+	pollingInterval           time.Duration
+	attemptInterval           time.Duration
+	attemptLimit              int
+	maxInFlight               int
+	canaries                  int
+	listener                  Listener
+	sleeper                   sleeper
+	instanceCountToUpgrade    int
+	instancesRemovedFromQueue int32
+	upgradedTotal             int32
+	orphansTotal              int32
+	deletedTotal              int32
+	startedUpgradeTotal       int32
 }
 
 func New(builder *Builder) *Upgrader {
@@ -83,7 +84,6 @@ func New(builder *Builder) *Upgrader {
 		canaries:        builder.Canaries,
 		listener:        builder.Listener,
 		sleeper:         builder.Sleeper,
-		mutex:           sync.Mutex{},
 	}
 }
 
@@ -103,17 +103,22 @@ func (u *Upgrader) errorFromList(errorList chan error) error {
 	}
 }
 
-func (u *Upgrader) upgrade(instancesToUpgrade chan service.Instance, stopWorkers chan interface{}, errorList chan error, maxInstancesToUpgrade int, maxInParallel int) (chan service.Instance, error) {
+func (u *Upgrader) upgrade(instancesToUpgrade chan service.Instance, stopWorkers chan interface{}, errorList chan error, maxInstancesToUpgrade int, maxInParallel int, isCanaryRun bool) (chan service.Instance, error) {
 	attempt := 1
+	reportAttempt := true
 	remainingInstancesToUpgrade := maxInstancesToUpgrade
-	for remainingInstancesToUpgrade > 0 {
-		u.instanceCountToUpgrade = remainingInstancesToUpgrade
+	for remainingInstancesToUpgrade > 0 && len(instancesToUpgrade) > 0 {
+		var successfulUpgradeCount int32
 		if attempt > u.attemptLimit {
 			break
 		}
 
+		u.instanceCountToUpgrade = remainingInstancesToUpgrade
+
 		u.startedUpgradeTotal = 0
-		u.listener.RetryAttempt(attempt, u.attemptLimit)
+		if reportAttempt {
+			u.listener.RetryAttempt(attempt, u.attemptLimit)
+		}
 		instancesToRetry := make(chan service.Instance, remainingInstancesToUpgrade)
 		var wg sync.WaitGroup
 
@@ -125,7 +130,7 @@ func (u *Upgrader) upgrade(instancesToUpgrade chan service.Instance, stopWorkers
 		wg.Add(parallelWorkers)
 		for i := 0; i < parallelWorkers; i++ {
 			go func() {
-				u.upgradeInstances(instancesToUpgrade, instancesToRetry, stopWorkers, errorList)
+				u.upgradeInstances(instancesToUpgrade, instancesToRetry, stopWorkers, errorList, &successfulUpgradeCount)
 				wg.Done()
 			}()
 		}
@@ -136,15 +141,13 @@ func (u *Upgrader) upgrade(instancesToUpgrade chan service.Instance, stopWorkers
 			return nil, err
 		}
 
-		if int(u.upgradedTotal) != maxInstancesToUpgrade {
-			remainingInstancesToUpgrade = len(instancesToRetry)
-		} else {
-			remainingInstancesToUpgrade = 0
+		if isCanaryRun && int(u.upgradedTotal) == maxInstancesToUpgrade {
+			break
 		}
 
-		u.listener.Progress(u.attemptInterval, u.orphansTotal, u.upgradedTotal, remainingInstancesToUpgrade, u.deletedTotal)
-
+		retryCount := 0
 		if len(instancesToRetry) > 0 {
+			retryCount = len(instancesToRetry)
 			u.sleeper.Sleep(u.attemptInterval)
 
 			mergeChan := make(chan service.Instance, len(instancesToRetry)+len(instancesToUpgrade))
@@ -160,7 +163,15 @@ func (u *Upgrader) upgrade(instancesToUpgrade chan service.Instance, stopWorkers
 			close(mergeChan)
 			instancesToUpgrade = mergeChan
 		}
-		attempt++
+		remainingInstancesToUpgrade -= int(successfulUpgradeCount)
+
+		u.listener.Progress(u.attemptInterval, u.orphansTotal, u.upgradedTotal, retryCount, u.deletedTotal)
+		if retryCount > 0 {
+			attempt++
+			reportAttempt = true
+		} else {
+			reportAttempt = false
+		}
 	}
 
 	if u.upgradedTotal < int32(u.canaries) {
@@ -171,7 +182,7 @@ func (u *Upgrader) upgrade(instancesToUpgrade chan service.Instance, stopWorkers
 }
 
 func (u *Upgrader) upgradeAll(instancesToUpgrade chan service.Instance, stopWorkers chan interface{}, errorList chan error) ([]service.Instance, error) {
-	instancesToUpgrade, err := u.upgrade(instancesToUpgrade, stopWorkers, errorList, len(instancesToUpgrade), u.maxInFlight)
+	instancesToUpgrade, err := u.upgrade(instancesToUpgrade, stopWorkers, errorList, len(instancesToUpgrade), u.maxInFlight, false)
 	if err != nil {
 		return nil, err
 	}
@@ -187,7 +198,7 @@ func (u *Upgrader) upgradeCanaries(instancesToUpgrade chan service.Instance, sto
 	if u.canaries > u.maxInFlight {
 		maxInParallel = u.maxInFlight
 	}
-	return u.upgrade(instancesToUpgrade, stopWorkers, errorList, u.canaries, maxInParallel)
+	return u.upgrade(instancesToUpgrade, stopWorkers, errorList, u.canaries, maxInParallel, true)
 }
 
 func (u *Upgrader) Upgrade() error {
@@ -210,11 +221,13 @@ func (u *Upgrader) Upgrade() error {
 	close(instancesToUpgrade)
 
 	u.instanceCountToUpgrade = u.canaries
+	u.listener.CanariesStarting(u.canaries, u.maxInFlight)
 	instancesToUpgrade, err = u.upgradeCanaries(instancesToUpgrade, stopWorkers, errorList)
 	if err != nil {
 		return fmt.Errorf("canaries didn't upgrade successfully: %s", err)
 	}
 
+	u.listener.CanariesFinished()
 	u.instanceCountToUpgrade = len(instancesToUpgrade)
 
 	instancesNotUpgraded, err := u.upgradeAll(instancesToUpgrade, stopWorkers, errorList)
@@ -236,35 +249,27 @@ func (u *Upgrader) Upgrade() error {
 	return nil
 }
 
-func (u *Upgrader) upgradeInstances(instances, retries chan service.Instance, stop chan interface{}, errors chan error) {
+func (u *Upgrader) upgradeInstances(instances, retries chan service.Instance, stop chan interface{}, errors chan error, successfulUpgradeCount *int32) {
 	for {
 		select {
 		case <-stop:
 			return
 		default:
-			u.mutex.Lock()
-			if u.instancesBeingUpgraded >= u.instanceCountToUpgrade {
-				u.mutex.Unlock()
-				return
-			}
-
-			u.instancesBeingUpgraded++
-			u.mutex.Unlock()
-
-			defer func() {
-				u.mutex.Lock()
-				u.instancesBeingUpgraded--
-				u.mutex.Unlock()
-			}()
-
 			instance, ok := <-instances
 			if !ok {
 				return
 			}
-			err := u.performInstanceUpgrade(instance, retries)
+
+			atomic.AddInt32(&u.instancesRemovedFromQueue, 1)
+
+			err := u.performInstanceUpgrade(instance, retries, successfulUpgradeCount)
 			if err != nil {
 				errors <- err
 				ensureChannelClosed(stop)
+				return
+			}
+
+			if atomic.LoadInt32(&u.instancesRemovedFromQueue) >= int32(u.instanceCountToUpgrade) {
 				return
 			}
 		}
@@ -282,7 +287,7 @@ func ensureChannelClosed(ch chan interface{}) {
 	}
 }
 
-func (u *Upgrader) performInstanceUpgrade(instance service.Instance, retryChan chan service.Instance) error {
+func (u *Upgrader) performInstanceUpgrade(instance service.Instance, retryChan chan service.Instance, successfulUpgradeCount *int32) error {
 	currentStartedUpgradeCount := atomic.AddInt32(&u.startedUpgradeTotal, 1)
 	u.listener.InstanceUpgradeStarting(instance.GUID, currentStartedUpgradeCount-1, u.instanceCountToUpgrade)
 	operation, err := u.brokerServices.UpgradeInstance(instance)
@@ -307,6 +312,7 @@ func (u *Upgrader) performInstanceUpgrade(instance service.Instance, retryChan c
 			return err
 		}
 		u.listener.InstanceUpgraded(instance.GUID, "success")
+		atomic.AddInt32(successfulUpgradeCount, 1)
 		atomic.AddInt32(&u.upgradedTotal, 1)
 	}
 	return nil

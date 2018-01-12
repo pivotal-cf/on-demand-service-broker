@@ -30,6 +30,16 @@ var _ = Describe("Logging Listener", func() {
 			To(Say("STARTING UPGRADES with 2 concurrent workers"))
 	})
 
+	It("Shows starting canaries message", func() {
+		Expect(logResultsFrom(func(listener upgrader.Listener) { listener.CanariesStarting(2, 3) })).
+			To(Say("STARTING CANARY UPGRADES: 2 canaries with 3 concurrent workers"))
+	})
+
+	It("Shows canaries finished message", func() {
+		Expect(logResultsFrom(func(listener upgrader.Listener) { listener.CanariesFinished() })).
+			To(Say("FINISHED CANARY UPGRADES"))
+	})
+
 	It("Shows attempt x of y", func() {
 		Expect(logResultsFrom(retryAttempt(2, 5))).
 			To(Say("Attempt 2/5"))
