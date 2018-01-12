@@ -12,6 +12,8 @@ import (
 
 type Client struct {
 	*http.Client
+
+	MaxRetries int
 }
 
 type Config struct {
@@ -19,6 +21,7 @@ type Config struct {
 	DisableTLSCertificateVerification bool
 	RootCAs                           *x509.CertPool
 	Timeout                           time.Duration
+	MaxRetries                        int
 }
 
 func New(config Config) *Client {
@@ -44,21 +47,28 @@ func New(config Config) *Client {
 	}
 
 	c.Transport = transport
-
 	return &Client{
-		Client: c,
+		Client:     c,
+		MaxRetries: config.MaxRetries,
 	}
 }
 
-func (c *Client) Do(req *http.Request) (*http.Response, error) {
-	resp, err := c.Client.Do(req)
-	if e, isURLErr := err.(*url.Error); isURLErr {
-		if _, ok := e.Err.(noFollowRedirect); ok {
-			return resp, nil
+func (c *Client) Do(req *http.Request) (resp *http.Response, err error) {
+	attempts := 1 + c.MaxRetries
+
+	for {
+		switch attempts {
+		case 0:
+			return
+		default:
+			attempts -= 1
+
+			resp, err = c.do(req)
+			if err == nil {
+				return
+			}
 		}
 	}
-
-	return resp, err
 }
 
 func (c *Client) Get(url string) (resp *http.Response, err error) {
@@ -87,6 +97,17 @@ func (c *Client) Post(url string, bodyType string, body io.Reader) (resp *http.R
 	req.Header.Set("Content-Type", bodyType)
 
 	return c.Do(req)
+}
+
+func (c *Client) do(req *http.Request) (*http.Response, error) {
+	resp, err := c.Client.Do(req)
+	if e, isURLErr := err.(*url.Error); isURLErr {
+		if _, ok := e.Err.(noFollowRedirect); ok {
+			return resp, nil
+		}
+	}
+
+	return resp, err
 }
 
 type noFollowRedirect struct{}

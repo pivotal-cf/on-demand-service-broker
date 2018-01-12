@@ -8,6 +8,8 @@ import (
 
 	"github.com/craigfurman/herottp"
 
+	"time"
+
 	"github.com/gorilla/mux"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -18,7 +20,8 @@ var _ = Describe("HeroTTP", func() {
 		client *herottp.Client
 		config herottp.Config
 
-		req *http.Request
+		req         *http.Request
+		reqAttempts int
 
 		resp    *http.Response
 		respErr error
@@ -33,6 +36,7 @@ var _ = Describe("HeroTTP", func() {
 	}
 
 	startServer := func(useTLS bool) *httptest.Server {
+		reqAttempts = 0
 		router := mux.NewRouter()
 
 		router.HandleFunc("/redirect", func(w http.ResponseWriter, r *http.Request) {
@@ -41,6 +45,16 @@ var _ = Describe("HeroTTP", func() {
 
 		router.HandleFunc("/text", func(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte("Pork and beans"))
+		}).Methods("GET")
+
+		router.HandleFunc("/retries", func(w http.ResponseWriter, r *http.Request) {
+			reqAttempts += 1
+
+			if reqAttempts == 4 {
+				w.Write([]byte("Mashed potatoes and gravy"))
+			} else {
+				time.Sleep(time.Second)
+			}
 		}).Methods("GET")
 
 		if useTLS {
@@ -76,6 +90,47 @@ var _ = Describe("HeroTTP", func() {
 			body, err := ioutil.ReadAll(resp.Body)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(body).To(Equal([]byte("Pork and beans")))
+		})
+	})
+
+	Context("retries", func() {
+		BeforeEach(func() {
+			req = createRequest("retries", "GET")
+		})
+
+		Context("when max retries are not set", func() {
+			BeforeEach(func() {
+				config = herottp.Config{Timeout: time.Millisecond}
+			})
+
+			It("it tries the request once", func() {
+				Expect(reqAttempts).To(Equal(1))
+				Expect(respErr).To(MatchError(ContainSubstring("Client.Timeout exceeded while awaiting headers")))
+			})
+		})
+
+		Context("when max retries result in an error", func() {
+			BeforeEach(func() {
+				config = herottp.Config{MaxRetries: 2, Timeout: time.Millisecond}
+			})
+
+			It("makes multiple attempts and returns the error", func() {
+				Expect(reqAttempts).To(Equal(3))
+				Expect(respErr).To(MatchError(ContainSubstring("Client.Timeout exceeded while awaiting headers")))
+			})
+		})
+
+		Context("when max retries result in success", func() {
+			BeforeEach(func() {
+				config = herottp.Config{MaxRetries: 5, Timeout: time.Millisecond}
+			})
+
+			It("makes enough attempts and returns the response", func() {
+				Expect(reqAttempts).To(Equal(4))
+				Expect(respErr).NotTo(HaveOccurred())
+				defer resp.Body.Close()
+				Expect(ioutil.ReadAll(resp.Body)).To(Equal([]byte("Mashed potatoes and gravy")))
+			})
 		})
 	})
 
