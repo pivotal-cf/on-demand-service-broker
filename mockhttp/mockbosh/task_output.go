@@ -14,6 +14,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
+	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 )
 
 type taskOutputMock struct {
@@ -26,7 +27,13 @@ func TaskOutput(taskId int) *taskOutputMock {
 	}
 }
 
-func (t *taskOutputMock) RespondsWithVMsOutput(vms []boshdirector.BoshVMsOutput) *mockhttp.Handler {
+func TaskOutputEvent(taskId int) *taskOutputMock {
+	return &taskOutputMock{
+		Handler: mockhttp.NewMockedHttpRequest("GET", fmt.Sprintf("/tasks/%d/output?type=event", taskId)),
+	}
+}
+
+func (t *taskOutputMock) RespondsWithVMsOutput(vms []bosh.BoshVMs) *mockhttp.Handler {
 	output := bytes.NewBuffer([]byte{})
 	encoder := json.NewEncoder(output)
 

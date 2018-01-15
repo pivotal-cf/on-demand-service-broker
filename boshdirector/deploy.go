@@ -9,16 +9,44 @@ package boshdirector
 import (
 	"fmt"
 	"log"
-	"net/http"
+
+	"github.com/cloudfoundry/bosh-cli/director"
+	"github.com/pkg/errors"
 )
 
 func (c *Client) Deploy(manifest []byte, contextID string, logger *log.Logger) (int, error) {
-	return c.postAndGetTaskIDCheckingForErrors(
-		fmt.Sprintf("%s/deployments", c.url),
-		http.StatusFound,
-		manifest,
-		"text/yaml",
-		contextID,
-		logger,
-	)
+	name, err := fetchName(manifest)
+	if err != nil {
+		return 0, errors.Wrap(err, fmt.Sprintf("Error fetching deployment name"))
+	}
+
+	deployment, err := c.director.WithContext(contextID).FindDeployment(name)
+	if err != nil {
+		return 0, errors.Wrap(err, fmt.Sprintf("BOSH CLI error"))
+	}
+	err = deployment.Update(manifest, director.UpdateOpts{})
+	if err != nil {
+		return 0, errors.Wrapf(err, "Could not update deployment %s", name)
+	}
+	tasks, err := c.director.RecentTasks(1, director.TasksFilter{Deployment: name})
+	if err != nil {
+		return 0, errors.Wrap(err, fmt.Sprintf(`Could not find tasks for deployment "%s"`, name))
+	}
+
+	if len(tasks) == 0 {
+		return 0, nil
+	}
+
+	return tasks[0].ID(), nil
+}
+
+func fetchName(bytes []byte) (string, error) {
+	manifest, err := director.NewManifestFromBytes(bytes)
+	if err != nil {
+		return "", errors.Wrap(err, "Parsing manifest")
+	}
+	if manifest.Name == "" {
+		return "", errors.New("Cannot find name")
+	}
+	return manifest.Name, nil
 }

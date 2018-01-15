@@ -113,7 +113,7 @@ var _ = SynchronizedAfterSuite(func() {}, func() {
 })
 
 func parseServiceNames(cfServicesOutput string) []string {
-	services := []string{}
+	var services []string
 	for _, line := range strings.Split(cfServicesOutput, "\n") {
 		if strings.Contains(line, serviceOffering) {
 			services = append(services, strings.Fields(line)[0])

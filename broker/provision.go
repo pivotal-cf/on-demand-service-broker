@@ -39,6 +39,11 @@ func (b *Broker) Provision(ctx context.Context, instanceID string, details broke
 		return brokerapi.ProvisionedServiceSpec{}, err
 	}
 
+	_, err = b.boshClient.GetInfo(logger)
+	if err != nil {
+		return brokerapi.ProvisionedServiceSpec{}, NewBoshRequestError("create", err)
+	}
+
 	operationData, dashboardURL, err := b.provisionInstance(
 		ctx,
 		instanceID,
