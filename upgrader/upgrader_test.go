@@ -82,6 +82,8 @@ var _ = Describe("Upgrader", func() {
 				hasReportedInstanceUpgradeStartResult(fakeListener, services.UpgradeAccepted)
 				hasReportedUpgraded(fakeListener, serviceInstanceId)
 				Expect(actualErr).NotTo(HaveOccurred())
+				hasReportedCanariesStarting(fakeListener, 0)
+				hasReportedCanariesFinished(fakeListener, 0)
 			})
 		})
 
@@ -1420,6 +1422,14 @@ func hasReportedAttempts(fakeListener *fakes.FakeListener, count, limit int) {
 		Expect(c).To(Equal(i + 1))
 		Expect(l).To(Equal(limit))
 	}
+}
+
+func hasReportedCanariesStarting(fakeListener *fakes.FakeListener, count int) {
+	Expect(fakeListener.CanariesStartingCallCount()).To(Equal(count))
+}
+
+func hasReportedCanariesFinished(fakeListener *fakes.FakeListener, count int) {
+	Expect(fakeListener.CanariesFinishedCallCount()).To(Equal(count))
 }
 
 func expectToHaveStarted(controllers ...*processController) {

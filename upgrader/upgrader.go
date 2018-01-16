@@ -221,13 +221,17 @@ func (u *Upgrader) Upgrade() error {
 	close(instancesToUpgrade)
 
 	u.instanceCountToUpgrade = u.canaries
-	u.listener.CanariesStarting(u.canaries, u.maxInFlight)
+	if u.canaries > 0 {
+		u.listener.CanariesStarting(u.canaries, u.maxInFlight)
+	}
 	instancesToUpgrade, err = u.upgradeCanaries(instancesToUpgrade, stopWorkers, errorList)
 	if err != nil {
 		return fmt.Errorf("canaries didn't upgrade successfully: %s", err)
 	}
 
-	u.listener.CanariesFinished()
+	if u.canaries > 0 {
+		u.listener.CanariesFinished()
+	}
 	u.instanceCountToUpgrade = len(instancesToUpgrade)
 
 	instancesNotUpgraded, err := u.upgradeAll(instancesToUpgrade, stopWorkers, errorList)
