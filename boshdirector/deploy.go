@@ -14,34 +14,35 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (c *Client) Deploy(manifest []byte, contextID string, logger *log.Logger) (int, error) {
+func (c *Client) Deploy(manifest []byte, contextID string, logger *log.Logger, taskReporter *AsyncTaskReporter) (int, error) {
 	name, err := fetchName(manifest)
 	if err != nil {
 		return 0, errors.Wrap(err, fmt.Sprintf("Error fetching deployment name"))
 	}
 
-	d, err := c.Director(director.NewNoopTaskReporter())
+	d, err := c.Director(taskReporter)
 	if err != nil {
 		return 0, errors.Wrap(err, "Failed to build director")
 	}
+
 	deployment, err := d.WithContext(contextID).FindDeployment(name)
 	if err != nil {
 		return 0, errors.Wrap(err, fmt.Sprintf("BOSH CLI error"))
 	}
-	err = deployment.Update(manifest, director.UpdateOpts{})
-	if err != nil {
-		return 0, errors.Wrapf(err, "Could not update deployment %s", name)
-	}
-	tasks, err := d.RecentTasks(1, director.TasksFilter{Deployment: name})
-	if err != nil {
-		return 0, errors.Wrap(err, fmt.Sprintf(`Could not find tasks for deployment "%s"`, name))
-	}
 
-	if len(tasks) == 0 {
-		return 0, nil
-	}
+	go func() {
+		err = deployment.Update(manifest, director.UpdateOpts{})
+		if err != nil {
+			taskReporter.Err <- errors.Wrapf(err, "Could not update deployment %s", name)
+		}
+	}()
 
-	return tasks[0].ID(), nil
+	select {
+	case err := <-taskReporter.Err:
+		return 0, err
+	case id := <-taskReporter.Task:
+		return id, nil
+	}
 }
 
 func fetchName(bytes []byte) (string, error) {

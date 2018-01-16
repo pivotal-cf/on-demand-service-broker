@@ -34,7 +34,7 @@ func CreateService(serviceOffering, servicePlan, serviceName, arbitraryParams st
 }
 
 func DeleteService(serviceName string) {
-	Eventually(cf.Cf("delete-service", serviceName, "-f"), CfTimeout).Should(gexec.Exit(0))
+	Eventually(cf.Cf("delete-service", serviceName, "-f"), time.Second).Should(gexec.Exit(0))
 	AwaitServiceDeletion(serviceName)
 }
 

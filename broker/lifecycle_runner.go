@@ -112,7 +112,7 @@ func (l LifeCycleRunner) processPreDelete(
 			return task, nil
 		}
 
-		taskID, err := l.boshClient.DeleteDeployment(deploymentName, operationData.BoshContextID, logger)
+		taskID, err := l.boshClient.DeleteDeployment(deploymentName, operationData.BoshContextID, logger, boshdirector.NewAsyncTaskReporter())
 		if err != nil {
 			return boshdirector.BoshTask{}, err
 		}
@@ -127,7 +127,7 @@ func (l LifeCycleRunner) processPreDelete(
 }
 
 func (l LifeCycleRunner) runErrand(deploymentName, errand string, errandInstances []string, contextID string, log *log.Logger) (boshdirector.BoshTask, error) {
-	taskID, err := l.boshClient.RunErrand(deploymentName, errand, errandInstances, contextID, log)
+	taskID, err := l.boshClient.RunErrand(deploymentName, errand, errandInstances, contextID, log, boshdirector.NewAsyncTaskReporter())
 	if err != nil {
 		return boshdirector.BoshTask{}, err
 	}

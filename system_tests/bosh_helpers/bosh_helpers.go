@@ -114,7 +114,7 @@ func (b *BoshHelperClient) RunErrandWithoutCheckingSuccess(deploymentName string
 }
 
 func (b *BoshHelperClient) runErrandAndWait(deploymentName string, errandName string, errandInstances []string, contextID string, logger *log.Logger) int {
-	taskID, err := b.Client.RunErrand(deploymentName, errandName, errandInstances, contextID, logger)
+	taskID, err := b.Client.RunErrand(deploymentName, errandName, errandInstances, contextID, logger, boshdirector.NewAsyncTaskReporter())
 	Expect(err).NotTo(HaveOccurred())
 	b.waitForTaskToFinish(taskID)
 	return taskID
@@ -174,10 +174,11 @@ func (b *BoshHelperClient) DeployODB(manifest bosh.BoshManifest) {
 	manifestBytes, err := yaml.Marshal(manifest)
 	Expect(err).NotTo(HaveOccurred())
 
-	deployTaskID, err := b.Client.Deploy(manifestBytes, "", logger)
+	asyncReporter := boshdirector.NewAsyncTaskReporter()
+	_, err = b.Client.Deploy(manifestBytes, "", logger, asyncReporter)
 	Expect(err).NotTo(HaveOccurred())
 
-	b.waitForTaskToFinish(deployTaskID)
+	<-asyncReporter.Finished
 
 	// wait for Broker Route Registration Interval
 	time.Sleep(20 * time.Second)
@@ -192,7 +193,7 @@ func (b *BoshHelperClient) DeploymentExists(deploymentName string) bool {
 
 func (b *BoshHelperClient) DeleteDeployment(deploymentName string) {
 	logger := systemTestLogger()
-	deleteTaskID, err := b.Client.DeleteDeployment(deploymentName, "", logger)
+	deleteTaskID, err := b.Client.DeleteDeployment(deploymentName, "", logger, boshdirector.NewAsyncTaskReporter())
 	Expect(err).NotTo(HaveOccurred())
 	b.waitForTaskToFinish(deleteTaskID)
 }

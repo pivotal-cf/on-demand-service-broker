@@ -12,6 +12,7 @@ import (
 	"github.com/cloudfoundry/bosh-cli/director"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector/fakes"
 )
 
@@ -20,29 +21,26 @@ var _ = Describe("running errands", func() {
 		deploymentName = "deploymentName"
 		errandName     = "errandName"
 		contextID      = "some-context-id"
-		errandTask     *fakes.FakeTask
 		fakeDeployment *fakes.FakeBOSHDeployment
+		taskReporter   *boshdirector.AsyncTaskReporter
+		taskId         = 5
 	)
 
 	BeforeEach(func() {
-		errandTask = new(fakes.FakeTask)
-		errandTask.IDReturns(5)
-		errandTask.StateReturns("done")
-		errandTask.DescriptionReturns("errand completed")
-		errandTask.ResultReturns("result-1")
-		errandTask.ContextIDReturns(contextID)
-		errandTask.DeploymentNameReturns(deploymentName)
+		taskReporter = boshdirector.NewAsyncTaskReporter()
 
 		fakeDeployment = new(fakes.FakeBOSHDeployment)
-		fakeDeployment.RunErrandReturns([]director.ErrandResult{}, nil)
+		fakeDeployment.RunErrandStub = func(errandName string, a, b bool, instances []director.InstanceGroupOrInstanceSlug) ([]director.ErrandResult, error) {
+			taskReporter.TaskStarted(taskId)
+			return []director.ErrandResult{}, nil
+		}
 
 		fakeDirector.FindDeploymentReturns(fakeDeployment, nil)
-		fakeDirector.RecentTasksReturns([]director.Task{errandTask}, nil)
 	})
 
 	It("invokes BOSH to queue up an errand", func() {
-		actualTaskID, actualErr := c.RunErrand(deploymentName, errandName, nil, contextID, logger)
-		Expect(actualTaskID).To(Equal(5))
+		actualTaskID, actualErr := c.RunErrand(deploymentName, errandName, nil, contextID, logger, taskReporter)
+		Expect(actualTaskID).To(Equal(taskId))
 		Expect(actualErr).NotTo(HaveOccurred())
 
 		Expect(fakeDirector.FindDeploymentArgsForCall(0)).To(Equal(deploymentName))
@@ -56,8 +54,8 @@ var _ = Describe("running errands", func() {
 
 	It("invokes BOSH to queue up an errand with instances with group and ID when a specific instance is configured", func() {
 		errandInstances := []string{"errand_instance/4529480d-9770-4c32-b9bb-d936c0a908ca"}
-		actualTaskID, actualErr := c.RunErrand(deploymentName, errandName, errandInstances, contextID, logger)
-		Expect(actualTaskID).To(Equal(5))
+		actualTaskID, actualErr := c.RunErrand(deploymentName, errandName, errandInstances, contextID, logger, taskReporter)
+		Expect(actualTaskID).To(Equal(taskId))
 		Expect(actualErr).NotTo(HaveOccurred())
 
 		name, keepAlive, whenChanged, instances := fakeDeployment.RunErrandArgsForCall(0)
@@ -72,8 +70,8 @@ var _ = Describe("running errands", func() {
 
 	It("invokes BOSH to queue up an errand with instances with group only when an instance group is configured", func() {
 		errandInstances := []string{"errand_instance"}
-		actualTaskID, actualErr := c.RunErrand(deploymentName, errandName, errandInstances, contextID, logger)
-		Expect(actualTaskID).To(Equal(5))
+		actualTaskID, actualErr := c.RunErrand(deploymentName, errandName, errandInstances, contextID, logger, taskReporter)
+		Expect(actualTaskID).To(Equal(taskId))
 		Expect(actualErr).NotTo(HaveOccurred())
 
 		name, keepAlive, whenChanged, instances := fakeDeployment.RunErrandArgsForCall(0)
@@ -88,34 +86,21 @@ var _ = Describe("running errands", func() {
 	It("returns an error when the errandInstance names are invalid", func() {
 		errandInstances := []string{"some/invalid/errand"}
 
-		_, actualErr := c.RunErrand(deploymentName, errandName, errandInstances, contextID, logger)
+		_, actualErr := c.RunErrand(deploymentName, errandName, errandInstances, contextID, logger, taskReporter)
 		Expect(actualErr).To(MatchError(ContainSubstring("Invalid instance name")))
 	})
 
 	It("errors when finding deployment fails", func() {
 		fakeDirector.FindDeploymentReturns(nil, errors.New("some failure"))
-		_, actualErr := c.RunErrand("", errandName, nil, contextID, logger)
+		_, actualErr := c.RunErrand("", errandName, nil, contextID, logger, taskReporter)
 		Expect(actualErr).To(MatchError(ContainSubstring("Could not find deployment")))
 	})
 
 	It("returns the error when bosh fails to queue up an errand", func() {
 		fakeDeployment.RunErrandReturns([]director.ErrandResult{}, errors.New("some errand failure"))
-		_, err := c.RunErrand(deploymentName, errandName, nil, contextID, logger)
+		_, err := c.RunErrand(deploymentName, errandName, nil, contextID, logger, taskReporter)
 
 		Expect(err).To(MatchError(ContainSubstring("Could not run errand")))
 	})
 
-	It("returns the error when fetching the task fails", func() {
-		fakeDirector.RecentTasksReturns([]director.Task{}, errors.New("some task error"))
-		_, err := c.RunErrand(deploymentName, errandName, nil, contextID, logger)
-
-		Expect(err).To(MatchError(ContainSubstring("Could not fetch task")))
-	})
-
-	It("doesn't error when no task is found", func() {
-		fakeDirector.RecentTasksReturns([]director.Task{}, nil)
-		_, err := c.RunErrand(deploymentName, errandName, nil, contextID, logger)
-
-		Expect(err).NotTo(HaveOccurred())
-	})
 })

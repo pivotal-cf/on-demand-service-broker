@@ -126,6 +126,7 @@ func (b *Broker) runPreDeleteErrand(
 		errandInstances,
 		boshContextID,
 		logger,
+		boshdirector.NewAsyncTaskReporter(),
 	)
 	if err != nil {
 		return deprovisionErr(NewGenericError(ctx, err), logger)
@@ -152,7 +153,7 @@ func (b *Broker) deleteInstance(
 	logger *log.Logger,
 ) (brokerapi.DeprovisionServiceSpec, error) {
 	logger.Printf("deleting deployment for instance %s\n", instanceID)
-	taskID, err := b.boshClient.DeleteDeployment(deploymentName(instanceID), fmt.Sprintf("delete-%s", instanceID), logger)
+	taskID, err := b.boshClient.DeleteDeployment(deploymentName(instanceID), fmt.Sprintf("delete-%s", instanceID), logger, boshdirector.NewAsyncTaskReporter())
 	switch err.(type) {
 	case boshdirector.RequestError:
 		return deprovisionErr(NewBoshRequestError("delete", err), logger)

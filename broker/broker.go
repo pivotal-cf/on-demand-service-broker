@@ -141,9 +141,9 @@ type BoshClient interface {
 	VMs(deploymentName string, logger *log.Logger) (bosh.BoshVMs, error)
 	GetDeployment(name string, logger *log.Logger) ([]byte, bool, error)
 	GetDeployments(logger *log.Logger) ([]boshdirector.Deployment, error)
-	DeleteDeployment(name, contextID string, logger *log.Logger) (int, error)
+	DeleteDeployment(name, contextID string, logger *log.Logger, taskReporter *boshdirector.AsyncTaskReporter) (int, error)
 	GetInfo(logger *log.Logger) (boshdirector.Info, error)
-	RunErrand(deploymentName, errandName string, errandInstances []string, contextID string, logger *log.Logger) (int, error)
+	RunErrand(deploymentName, errandName string, errandInstances []string, contextID string, logger *log.Logger, taskReporter *boshdirector.AsyncTaskReporter) (int, error)
 	VerifyAuth(logger *log.Logger) error
 }
 

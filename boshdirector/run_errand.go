@@ -18,9 +18,9 @@ type Instance struct {
 	ID    string `json:"id,omitempty"`
 }
 
-func (c *Client) RunErrand(deploymentName, errandName string, errandInstances []string, contextID string, logger *log.Logger) (int, error) {
+func (c *Client) RunErrand(deploymentName, errandName string, errandInstances []string, contextID string, logger *log.Logger, taskReporter *AsyncTaskReporter) (int, error) {
 	logger.Printf("running errand %s on colocated instances %v from deployment %s\n", errandName, errandInstances, deploymentName)
-	d, err := c.Director(director.NewNoopTaskReporter())
+	d, err := c.Director(taskReporter)
 	if err != nil {
 		return -1, errors.Wrap(err, "Failed to build director")
 	}
@@ -39,18 +39,18 @@ func (c *Client) RunErrand(deploymentName, errandName string, errandInstances []
 		instances = append(instances, instanceGroupOrSlug)
 	}
 
-	_, err = deployment.RunErrand(errandName, false, false, instances)
-	if err != nil {
-		return -1, errors.Wrapf(err, "Could not run errand %s", errandName)
+	go func() {
+		_, err = deployment.RunErrand(errandName, false, false, instances)
+		if err != nil {
+			taskReporter.Err <- errors.Wrapf(err, "Could not run errand %s", errandName)
+		}
+	}()
+
+	select {
+	case err := <-taskReporter.Err:
+		return -1, err
+	case id := <-taskReporter.Task:
+		return id, nil
 	}
 
-	tasks, err := d.RecentTasks(1, director.TasksFilter{Deployment: deploymentName})
-	if err != nil {
-		return -1, errors.Wrap(err, "Could not fetch task")
-	}
-
-	if len(tasks) == 0 {
-		return 0, nil
-	}
-	return tasks[0].ID(), nil
 }

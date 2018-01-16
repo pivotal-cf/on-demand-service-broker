@@ -80,7 +80,6 @@ var _ = Describe("Basic authentication for BOSH", func() {
 					mockbosh.Task(101).RespondsWithTaskContainingState("done"),
 					mockbosh.TaskOutputEvent(101).RespondsWithTaskOutput([]boshdirector.BoshTaskOutput{}),
 					mockbosh.TaskOutput(101).RespondsWithTaskOutput([]boshdirector.BoshTaskOutput{}),
-					mockbosh.TasksWithLimit(deploymentName("some-instance-id"), 1).RespondsWithNoTasks(),
 				)
 				cfAPI.VerifyAndMock(
 					mockcfapi.ListServiceOfferings().RespondsOKWith(listCFServiceOfferingsResponse(serviceID, "21f13659-278c-4fa9-a3d7-7fe737e52895")),

@@ -10,13 +10,12 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/cloudfoundry/bosh-cli/director"
 	"github.com/pkg/errors"
 )
 
-func (c *Client) DeleteDeployment(name, contextID string, logger *log.Logger) (int, error) {
+func (c *Client) DeleteDeployment(name, contextID string, logger *log.Logger, taskReporter *AsyncTaskReporter) (int, error) {
 	logger.Printf("deleting deployment %s\n", name)
-	d, err := c.Director(director.NewNoopTaskReporter())
+	d, err := c.Director(taskReporter)
 	if err != nil {
 		return 0, errors.Wrap(err, "Failed to build director")
 	}
@@ -24,17 +23,17 @@ func (c *Client) DeleteDeployment(name, contextID string, logger *log.Logger) (i
 	if err != nil {
 		return 0, errors.Wrap(err, fmt.Sprintf(`BOSH error when deleting deployment "%s"`, name))
 	}
-	err = deployment.Delete(false)
-	if err != nil {
-		return 0, errors.Wrap(err, fmt.Sprintf("Could not delete deployment %s", name))
-	}
-	tasks, err := d.RecentTasks(1, director.TasksFilter{Deployment: name})
-	if err != nil {
-		return 0, errors.Wrap(err, fmt.Sprintf(`Could not find tasks for deployment "%s"`, name))
-	}
+	go func() {
+		err = deployment.Delete(false)
+		if err != nil {
+			taskReporter.Err <- errors.Wrap(err, fmt.Sprintf("Could not delete deployment %s", name))
+		}
+	}()
 
-	if len(tasks) == 0 {
-		return 0, nil
+	select {
+	case err := <-taskReporter.Err:
+		return 0, err
+	case id := <-taskReporter.Task:
+		return id, nil
 	}
-	return tasks[0].ID(), nil
 }

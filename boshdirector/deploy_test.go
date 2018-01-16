@@ -12,6 +12,7 @@ import (
 	"github.com/cloudfoundry/bosh-cli/director"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector/fakes"
 )
 
@@ -31,77 +32,54 @@ func namelessManifest() []byte {
 var _ = Describe("deploying a manifest", func() {
 	//const deploymentName = "some-deployment"
 	var (
-		fakeDeployment *fakes.FakeBOSHDeployment
-		fakeTask       *fakes.FakeTask
-		manifest       []byte
+		fakeDeployment    *fakes.FakeBOSHDeployment
+		manifest          []byte
+		asyncTaskReporter *boshdirector.AsyncTaskReporter
+		taskId            = 90
 	)
 	BeforeEach(func() {
 		manifest = getManifest()
 		fakeDeployment = new(fakes.FakeBOSHDeployment)
-		fakeTask = new(fakes.FakeTask)
-		fakeTask.IDReturns(90)
 		fakeDirector.WithContextReturns(fakeDirector)
 		fakeDirector.FindDeploymentReturns(fakeDeployment, nil)
-		fakeDirector.RecentTasksStub = func(limit int, filter director.TasksFilter) ([]director.Task, error) {
-			if filter.Deployment == "bill" {
-				return []director.Task{fakeTask}, nil
-			}
-			return []director.Task{}, nil
+		asyncTaskReporter = boshdirector.NewAsyncTaskReporter()
+		fakeDeployment.UpdateStub = func(manifest []byte, opts director.UpdateOpts) error {
+			asyncTaskReporter.TaskStarted(taskId)
+			return nil
 		}
 	})
 
 	It("succeeds", func() {
-		taskID, err := c.Deploy(manifest, "some-context-id", logger)
-
-		By("querying the latest task for the deployment")
-		limit, tasksFilter := fakeDirector.RecentTasksArgsForCall(0)
-		Expect(limit).To(Equal(1))
-		Expect(tasksFilter.Deployment).To(Equal("bill"))
+		taskID, err := c.Deploy(manifest, "some-context-id", logger, asyncTaskReporter)
 
 		By("returning the correct task id")
 		Expect(err).NotTo(HaveOccurred())
-		Expect(taskID).To(Equal(fakeTask.ID()))
-	})
-
-	It("succeeds when no task is found", func() {
-		fakeDirector.RecentTasksReturns([]director.Task{}, nil)
-		_, deleteErr := c.Deploy(manifest, "delete-some-deployment", logger)
-
-		Expect(deleteErr).NotTo(HaveOccurred())
+		Expect(taskID).To(Equal(taskId))
 	})
 
 	It("returns an error if cannot update the deployment", func() {
 		fakeDeployment.UpdateReturns(errors.New("oops"))
-		_, err := c.Deploy(manifest, "some-context-id", logger)
+		_, err := c.Deploy(manifest, "some-context-id", logger, asyncTaskReporter)
 
 		Expect(err).To(MatchError(ContainSubstring("Could not update deployment bill")))
 	})
 
 	It("returns an error if cannot fetch the deployment name from the manifest", func() {
-		fakeDeployment.UpdateReturns(errors.New("oops"))
-		_, err := c.Deploy(namelessManifest(), "some-context-id", logger)
+		_, err := c.Deploy(namelessManifest(), "some-context-id", logger, asyncTaskReporter)
 
 		Expect(err).To(MatchError(ContainSubstring("Error fetching deployment name")))
 	})
 
 	It("returns an error if the manifest is invalid", func() {
-		fakeDeployment.UpdateReturns(errors.New("oops"))
-		_, err := c.Deploy([]byte("not-yaml"), "some-context-id", logger)
+		_, err := c.Deploy([]byte("not-yaml"), "some-context-id", logger, asyncTaskReporter)
 
 		Expect(err).To(MatchError(ContainSubstring("Error fetching deployment name")))
 	})
 
 	It("returns an error if cannot get the deployment", func() {
 		fakeDirector.FindDeploymentReturns(nil, errors.New("oops"))
-		_, err := c.Deploy(manifest, "some-context-id", logger)
+		_, err := c.Deploy(manifest, "some-context-id", logger, asyncTaskReporter)
 
 		Expect(err).To(MatchError(ContainSubstring("BOSH CLI error")))
-	})
-
-	It("returns an error if cannot get the recent tasks", func() {
-		fakeDirector.RecentTasksReturns(nil, errors.New("boom"))
-		_, err := c.Deploy(manifest, "some-context-id", logger)
-
-		Expect(err).To(MatchError(ContainSubstring(`Could not find tasks for deployment "bill"`)))
 	})
 })

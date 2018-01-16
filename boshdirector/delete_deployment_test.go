@@ -8,11 +8,10 @@ package boshdirector_test
 
 import (
 	"errors"
-	"fmt"
 
-	"github.com/cloudfoundry/bosh-cli/director"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector/fakes"
 )
 
@@ -20,58 +19,38 @@ var _ = Describe("deleting bosh deployments", func() {
 	const deploymentName = "some-deployment"
 	var (
 		fakeDeployment *fakes.FakeBOSHDeployment
-		fakeTask       *fakes.FakeTask
+		taskReporter   *boshdirector.AsyncTaskReporter
+		taskId         = 90
 	)
+
 	BeforeEach(func() {
 		fakeDeployment = new(fakes.FakeBOSHDeployment)
-		fakeTask = new(fakes.FakeTask)
-		fakeTask.IDReturns(90)
 		fakeDirector.FindDeploymentReturns(fakeDeployment, nil)
-		fakeDirector.RecentTasksStub = func(limit int, filter director.TasksFilter) ([]director.Task, error) {
-			if filter.Deployment == deploymentName {
-				return []director.Task{fakeTask}, nil
-			}
-			return []director.Task{}, nil
+		taskReporter = boshdirector.NewAsyncTaskReporter()
+		fakeDeployment.DeleteStub = func(force bool) error {
+			taskReporter.TaskStarted(taskId)
+			return nil
 		}
 	})
 
 	It("returns the bosh task ID when bosh accepts the delete request", func() {
-		taskID, deleteErr := c.DeleteDeployment(deploymentName, "delete-some-deployment", logger)
-
-		By("querying the latest task for the deployment")
-		limit, tasksFilter := fakeDirector.RecentTasksArgsForCall(0)
-		Expect(limit).To(Equal(1))
-		Expect(tasksFilter.Deployment).To(Equal(deploymentName))
+		taskID, deleteErr := c.DeleteDeployment(deploymentName, "delete-some-deployment", logger, taskReporter)
 
 		Expect(deleteErr).NotTo(HaveOccurred())
-		Expect(taskID).To(Equal(90))
-	})
-
-	It("succeeds when no task is found", func() {
-		fakeDirector.RecentTasksReturns([]director.Task{}, nil)
-		_, deleteErr := c.DeleteDeployment(deploymentName, "delete-some-deployment", logger)
-
-		Expect(deleteErr).NotTo(HaveOccurred())
+		Expect(taskID).To(Equal(taskId))
 	})
 
 	It("returns an error when cannot find the deployment", func() {
 		fakeDirector.FindDeploymentReturns(new(fakes.FakeBOSHDeployment), errors.New("oops"))
-		_, deleteErr := c.DeleteDeployment(deploymentName, "delete-some-deployment", logger)
+		_, deleteErr := c.DeleteDeployment(deploymentName, "delete-some-deployment", logger, taskReporter)
 
 		Expect(deleteErr).To(MatchError(ContainSubstring(`BOSH error when deleting deployment "some-deployment"`)))
 	})
 
 	It("returns an error when cannot delete the deployment", func() {
 		fakeDeployment.DeleteReturns(errors.New("oops"))
-		_, deleteErr := c.DeleteDeployment(deploymentName, "delete-some-deployment", logger)
+		_, deleteErr := c.DeleteDeployment(deploymentName, "delete-some-deployment", logger, taskReporter)
 
 		Expect(deleteErr).To(MatchError("Could not delete deployment some-deployment: oops"))
-	})
-
-	It("returns an error when cannot find the task ID", func() {
-		fakeDirector.RecentTasksReturns(nil, errors.New("oops tasks"))
-		_, deleteErr := c.DeleteDeployment(deploymentName, "delete-some-deployment", logger)
-
-		Expect(deleteErr).To(MatchError(ContainSubstring(fmt.Sprintf(`Could not find tasks for deployment "%s"`, deploymentName))))
 	})
 })
