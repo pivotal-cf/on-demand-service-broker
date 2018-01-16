@@ -67,11 +67,11 @@ func (c *Client) toBoshTasks(tasks []director.Task, deploymentName string, logge
 // https://github.com/cloudfoundry/bosh/issues/1592
 func (c *Client) taskState(task director.Task, logger *log.Logger) (string, error) {
 	if task.State() == TaskDone {
-		taskOutputs, err := c.GetTaskOutput(task.ID(), logger)
+		taskOutput, err := c.GetTaskOutput(task.ID(), logger)
 		if err != nil {
 			return "", err
 		}
-		if len(taskOutputs) > 0 && taskOutputs[0].ExitCode != 0 {
+		if taskOutput.ExitCode != 0 {
 			return TaskError, nil
 		}
 	}

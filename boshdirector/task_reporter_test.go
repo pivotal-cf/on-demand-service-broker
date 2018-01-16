@@ -33,34 +33,42 @@ var _ = Describe("BoshTaskOutputReporter", func() {
 		Expect(implements).To(BeTrue())
 	})
 
-	It("acts like a reporter", func() {
-		By("recording when the task is started")
-		taskReporter.TaskStarted(taskID)
+	It("can unmarshal a complete json string in a single chunk", func() {
+		taskReporter.TaskOutputChunk(taskID, toJson(0, "I'm stdout", "and I'm stderr"))
+		taskReporter.TaskFinished(taskID, "doesn't matter")
+		Expect(taskReporter.Output).To(Equal(boshdirector.BoshTaskOutput{
+			ExitCode: 0,
+			StdOut:   "I'm stdout",
+			StdErr:   "and I'm stderr",
+		}))
+	})
 
-		By("recording chunks of output")
-		taskReporter.TaskOutputChunk(taskID, toJson(0, "here's the output", ""))
-		taskReporter.TaskOutputChunk(taskID, toJson(0, "generate me a sensible struct", "some stderr"))
-		taskReporter.TaskOutputChunk(taskID, toJson(0, "i dont care how", ""))
-		taskReporter.TaskOutputChunk(taskID, toJson(1, "", "some stderr output"))
+	It("can unmarshal json sent in more than one chunk", func() {
+		chunk1 := []byte(`{"exit_code": 0, "stdout":`)
+		chunk2 := []byte(`"this is stdout", "stderr": "this is stderr"}`)
 
-		By("recording when the task is finished")
-		taskReporter.TaskFinished(taskID, "done")
+		taskReporter.TaskOutputChunk(taskID, chunk1)
+		taskReporter.TaskOutputChunk(taskID, chunk2)
+		taskReporter.TaskFinished(taskID, "doesn't matter")
+		Expect(taskReporter.Output).To(Equal(
+			boshdirector.BoshTaskOutput{ExitCode: 0, StdOut: "this is stdout", StdErr: "this is stderr"},
+		))
+	})
 
-		By("generating a sensible output")
-		sensibleOutput := []boshdirector.BoshTaskOutput{
-			{ExitCode: 0, StdOut: "here's the output", StdErr: ""},
-			{ExitCode: 0, StdOut: "generate me a sensible struct", StdErr: "some stderr"},
-			{ExitCode: 0, StdOut: "i dont care how", StdErr: ""},
-			{ExitCode: 1, StdOut: "", StdErr: "some stderr output"},
-		}
-		Expect(taskReporter.Output).To(Equal(sensibleOutput))
+	It("Output is empty until task is finished", func() {
+		taskReporter.TaskOutputChunk(taskID, toJson(0, "I'm stdout", "and I'm stderr"))
+		Expect(taskReporter.Output).To(Equal(boshdirector.BoshTaskOutput{}))
+
+		taskReporter.TaskFinished(taskID, "doesn't matter")
+		Expect(taskReporter.Output).ToNot(Equal(boshdirector.BoshTaskOutput{}))
 	})
 
 	It("does not fail when json is not valid", func() {
 		taskReporter.TaskOutputChunk(taskID, []byte("not json"))
+		taskReporter.TaskFinished(taskID, "asdf")
 
 		By("not recording the non-json chunk")
-		Expect(taskReporter.Output).To(BeEmpty())
+		Expect(taskReporter.Output).To(Equal(boshdirector.BoshTaskOutput{}))
 
 		By("logging the error")
 		Expect(writer).To(gbytes.Say("Unexpected task output"))

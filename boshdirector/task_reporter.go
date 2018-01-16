@@ -8,15 +8,15 @@ package boshdirector
 
 import (
 	"encoding/json"
-
 	"log"
 
 	"github.com/cloudfoundry/bosh-cli/director"
 )
 
 type BoshTaskOutputReporter struct {
-	Output []BoshTaskOutput
-	Logger *log.Logger
+	Output      BoshTaskOutput
+	Logger      *log.Logger
+	outputBytes []byte
 }
 
 func NewBoshTaskOutputReporter() director.TaskReporter {
@@ -25,14 +25,13 @@ func NewBoshTaskOutputReporter() director.TaskReporter {
 
 func (r *BoshTaskOutputReporter) TaskStarted(taskID int) {}
 
-func (r *BoshTaskOutputReporter) TaskFinished(taskID int, state string) {}
+func (r *BoshTaskOutputReporter) TaskFinished(taskID int, state string) {
+	err := json.Unmarshal(r.outputBytes, &r.Output)
+	if err != nil {
+		r.Logger.Printf("Unexpected task output: %s\n", string(r.outputBytes))
+	}
+}
 
 func (r *BoshTaskOutputReporter) TaskOutputChunk(taskID int, chunk []byte) {
-	output := BoshTaskOutput{}
-	err := json.Unmarshal(chunk, &output)
-	if err != nil {
-		r.Logger.Printf("Unexpected task output: %s\n", string(chunk))
-	} else {
-		r.Output = append(r.Output, output)
-	}
+	r.outputBytes = append(r.outputBytes, chunk...)
 }

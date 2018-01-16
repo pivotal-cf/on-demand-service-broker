@@ -123,8 +123,7 @@ func (b *BoshHelperClient) runErrandAndWait(deploymentName string, errandName st
 func (b *BoshHelperClient) getTaskOutput(taskID int, logger *log.Logger) boshdirector.BoshTaskOutput {
 	output, err := b.Client.GetTaskOutput(taskID, logger)
 	Expect(err).NotTo(HaveOccurred())
-	Expect(output).To(HaveLen(1))
-	return output[0]
+	return output
 }
 
 func (b *BoshHelperClient) GetTasksForDeployment(deploymentName string) boshdirector.BoshTasks {

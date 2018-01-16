@@ -38,15 +38,15 @@ type BoshTaskOutput struct {
 	StdErr   string `json:"stderr"`
 }
 
-func (c *Client) GetTaskOutput(taskID int, logger *log.Logger) ([]BoshTaskOutput, error) {
+func (c *Client) GetTaskOutput(taskID int, logger *log.Logger) (BoshTaskOutput, error) {
 	logger.Printf("getting task output for task %d from bosh\n", taskID)
 	d, err := c.Director(director.NewNoopTaskReporter())
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to build director")
+		return BoshTaskOutput{}, errors.Wrap(err, "Failed to build director")
 	}
 	task, err := d.FindTask(taskID)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Could not fetch task with id %d", taskID)
+		return BoshTaskOutput{}, errors.Wrapf(err, "Could not fetch task with id %d", taskID)
 	}
 
 	reporter := &BoshTaskOutputReporter{Logger: logger}

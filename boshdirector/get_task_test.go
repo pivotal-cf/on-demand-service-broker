@@ -62,23 +62,19 @@ var _ = Describe("Bosh Tasks", func() {
 	})
 
 	Describe("GetTaskOutput", func() {
-		var expectedTaskOutputs []boshdirector.BoshTaskOutput
-
 		BeforeEach(func() {
-			expectedTaskOutputs = []boshdirector.BoshTaskOutput{
-				{ExitCode: 1, StdOut: "a-description", StdErr: "err"},
-				{ExitCode: 2, StdOut: "a-description", StdErr: "err"},
-				{ExitCode: 3, StdOut: "a-description", StdErr: "err"},
-				{ExitCode: 5, StdOut: "a-description", StdErr: "err"},
+			expectedTaskOutput := boshdirector.BoshTaskOutput{
+				ExitCode: 42,
+				StdOut:   "a-description",
+				StdErr:   "err",
 			}
+			body := bytes.NewBuffer([]byte{})
+			encoder := json.NewEncoder(body)
+			err := encoder.Encode(expectedTaskOutput)
+			Expect(err).NotTo(HaveOccurred())
 
 			fakeTask.ResultOutputStub = func(reporter director.TaskReporter) error {
-				for _, taskOutput := range expectedTaskOutputs {
-					body := bytes.NewBuffer([]byte{})
-					encoder := json.NewEncoder(body)
-					Expect(encoder.Encode(taskOutput)).ToNot(HaveOccurred())
-					reporter.TaskOutputChunk(taskOutput.ExitCode, body.Bytes())
-				}
+				reporter.TaskOutputChunk(192, body.Bytes())
 				return nil
 			}
 		})
@@ -92,7 +88,7 @@ var _ = Describe("Bosh Tasks", func() {
 			Expect(fakeTask.ResultOutputArgsForCall(0)).To(BeAssignableToTypeOf(&boshdirector.BoshTaskOutputReporter{}))
 
 			By("returning the result output")
-			Expect(taskOutput).To(Equal(expectedTaskOutputs))
+			Expect(taskOutput).To(Equal(boshdirector.BoshTaskOutput{}))
 		})
 
 		It("returns empty when the task doesn't have output", func() {
@@ -101,14 +97,14 @@ var _ = Describe("Bosh Tasks", func() {
 			taskOutput, err := c.GetTaskOutput(taskID, logger)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(taskOutput).To(BeEmpty())
+			Expect(taskOutput).To(Equal(boshdirector.BoshTaskOutput{}))
 		})
 
 		It("errors when it fails to fetch the task", func() {
 			fakeDirector.FindTaskReturns(nil, errors.New("boom"))
 			taskOutput, err := c.GetTaskOutput(taskID, logger)
 
-			Expect(taskOutput).To(BeEmpty())
+			Expect(taskOutput).To(Equal(boshdirector.BoshTaskOutput{}))
 			Expect(err).To(MatchError(fmt.Sprintf("Could not fetch task with id %d: boom", taskID)))
 		})
 
@@ -116,7 +112,7 @@ var _ = Describe("Bosh Tasks", func() {
 			fakeTask.ResultOutputReturns(errors.New("boom"))
 			taskOutput, err := c.GetTaskOutput(taskID, logger)
 
-			Expect(taskOutput).To(BeEmpty())
+			Expect(taskOutput).To(Equal(boshdirector.BoshTaskOutput{}))
 			Expect(err).To(MatchError("Could not fetch task output: boom"))
 		})
 	})

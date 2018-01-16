@@ -168,6 +168,7 @@ var _ = Describe("getting tasks", func() {
 			fakeDirector.FindTaskReturns(errandTask, nil)
 			errandTask.ResultOutputStub = func(r director.TaskReporter) error {
 				r.TaskOutputChunk(errandTask.ID(), []byte(`{"exit_code":1,"stdout":"foo","stderr":"bar"}`))
+				r.TaskFinished(errandTask.ID(), "status")
 				return nil
 			}
 
