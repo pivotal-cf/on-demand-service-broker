@@ -152,6 +152,7 @@ var _ = Describe("Upgrader", func() {
 			hasReportedInstanceUpgradeStartResult(fakeListener, services.InstanceNotFound)
 			hasReportedProgress(fakeListener, 0, upgraderBuilder.AttemptInterval, 0, 0, 0, 1)
 			hasReportedFinished(fakeListener, 0, 0, 1, 0)
+			hasReportedAttempts(fakeListener, 1, 5)
 		})
 	})
 
@@ -171,6 +172,7 @@ var _ = Describe("Upgrader", func() {
 			hasReportedInstanceUpgradeStartResult(fakeListener, services.OrphanDeployment)
 			hasReportedProgress(fakeListener, 0, upgraderBuilder.AttemptInterval, 1, 0, 0, 0)
 			hasReportedFinished(fakeListener, 1, 0, 0, 0)
+			hasReportedAttempts(fakeListener, 1, 5)
 		})
 	})
 
@@ -378,6 +380,27 @@ var _ = Describe("Upgrader", func() {
 						}
 						return services.UpgradeOperation{}, errors.New("unexpected instance GUID")
 					}
+				})
+
+				It("does not error if no service instances found and canaries is 2 ", func() {
+					upgraderBuilder.MaxInFlight = 3
+					upgraderBuilder.Canaries = 2
+					instanceLister.InstancesReturns([]service.Instance{}, nil)
+
+					upgradeTool := upgrader.New(&upgraderBuilder)
+
+					var wg sync.WaitGroup
+					wg.Add(1)
+					go func() {
+						defer GinkgoRecover()
+						actualErr = upgradeTool.Upgrade()
+						wg.Done()
+					}()
+
+					wg.Wait()
+
+					Expect(actualErr).NotTo(HaveOccurred())
+					hasReportedFinished(fakeListener, 0, 0, 0, 0)
 				})
 
 				It("upgrades the canary instances in parallel", func() {

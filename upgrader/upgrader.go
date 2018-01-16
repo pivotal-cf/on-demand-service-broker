@@ -194,11 +194,15 @@ func (u *Upgrader) upgradeAll(instancesToUpgrade chan service.Instance, stopWork
 }
 
 func (u *Upgrader) upgradeCanaries(instancesToUpgrade chan service.Instance, stopWorkers chan interface{}, errorList chan error) (chan service.Instance, error) {
+	u.listener.CanariesStarting(u.canaries, u.maxInFlight)
 	maxInParallel := u.canaries
 	if u.canaries > u.maxInFlight {
 		maxInParallel = u.maxInFlight
 	}
-	return u.upgrade(instancesToUpgrade, stopWorkers, errorList, u.canaries, maxInParallel, true)
+	instancesToUpgrade, err := u.upgrade(instancesToUpgrade, stopWorkers, errorList, u.canaries, maxInParallel, true)
+	u.listener.CanariesFinished()
+
+	return instancesToUpgrade, err
 }
 
 func (u *Upgrader) Upgrade() error {
@@ -220,27 +224,26 @@ func (u *Upgrader) Upgrade() error {
 	}
 	close(instancesToUpgrade)
 
-	u.instanceCountToUpgrade = u.canaries
-	if u.canaries > 0 {
-		u.listener.CanariesStarting(u.canaries, u.maxInFlight)
-	}
-	instancesToUpgrade, err = u.upgradeCanaries(instancesToUpgrade, stopWorkers, errorList)
-	if err != nil {
-		return fmt.Errorf("canaries didn't upgrade successfully: %s", err)
-	}
+	var instancesNotUpgraded []service.Instance
 
-	if u.canaries > 0 {
-		u.listener.CanariesFinished()
-	}
-	u.instanceCountToUpgrade = len(instancesToUpgrade)
+	if len(instances) > 0 {
+		if u.canaries > 0 {
+			u.instanceCountToUpgrade = u.canaries
+			instancesToUpgrade, err = u.upgradeCanaries(instancesToUpgrade, stopWorkers, errorList)
+			if err != nil {
+				return fmt.Errorf("canaries didn't upgrade successfully: %s", err)
+			}
+		}
+		u.instanceCountToUpgrade = len(instancesToUpgrade)
 
-	instancesNotUpgraded, err := u.upgradeAll(instancesToUpgrade, stopWorkers, errorList)
-	if err != nil {
-		return err
+		instancesNotUpgraded, err = u.upgradeAll(instancesToUpgrade, stopWorkers, errorList)
+		if err != nil {
+			return err
+		}
 	}
 
 	u.instanceCountToUpgrade = len(instancesNotUpgraded)
-	u.listener.Finished(u.orphansTotal, u.upgradedTotal, u.deletedTotal, u.instanceCountToUpgrade)
+	u.listener.Finished(u.orphansTotal, u.upgradedTotal, u.deletedTotal, len(instancesNotUpgraded))
 
 	var instanceDeploymentNames []string
 	for _, inst := range instancesNotUpgraded {
