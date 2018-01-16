@@ -20,7 +20,11 @@ func (c *Client) Deploy(manifest []byte, contextID string, logger *log.Logger) (
 		return 0, errors.Wrap(err, fmt.Sprintf("Error fetching deployment name"))
 	}
 
-	deployment, err := c.director.WithContext(contextID).FindDeployment(name)
+	d, err := c.Director(director.NewNoopTaskReporter())
+	if err != nil {
+		return 0, errors.Wrap(err, "Failed to build director")
+	}
+	deployment, err := d.WithContext(contextID).FindDeployment(name)
 	if err != nil {
 		return 0, errors.Wrap(err, fmt.Sprintf("BOSH CLI error"))
 	}
@@ -28,7 +32,7 @@ func (c *Client) Deploy(manifest []byte, contextID string, logger *log.Logger) (
 	if err != nil {
 		return 0, errors.Wrapf(err, "Could not update deployment %s", name)
 	}
-	tasks, err := c.director.RecentTasks(1, director.TasksFilter{Deployment: name})
+	tasks, err := d.RecentTasks(1, director.TasksFilter{Deployment: name})
 	if err != nil {
 		return 0, errors.Wrap(err, fmt.Sprintf(`Could not find tasks for deployment "%s"`, name))
 	}

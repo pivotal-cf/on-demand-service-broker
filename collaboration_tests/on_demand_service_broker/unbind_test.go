@@ -213,7 +213,7 @@ func doUnbindRequest(instanceID, bindingID, serviceID, planID string) *http.Resp
 		nil)
 	Expect(err).ToNot(HaveOccurred())
 	req.SetBasicAuth(brokerUsername, brokerPassword)
-
+	req.Header.Set("X-Broker-API-Version", "2.13")
 	response, err := http.DefaultClient.Do(req)
 	Expect(err).ToNot(HaveOccurred())
 

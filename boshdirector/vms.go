@@ -9,14 +9,19 @@ package boshdirector
 import (
 	"log"
 
+	"github.com/cloudfoundry/bosh-cli/director"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 	"github.com/pkg/errors"
 )
 
 func (c *Client) VMs(deploymentName string, logger *log.Logger) (bosh.BoshVMs, error) {
 	logger.Printf("retrieving VMs for deployment %s from bosh\n", deploymentName)
+	d, err := c.Director(director.NewNoopTaskReporter())
+	if err != nil {
+		return bosh.BoshVMs{}, errors.Wrap(err, "Failed to build director")
+	}
 
-	deployment, err := c.director.FindDeployment(deploymentName)
+	deployment, err := d.FindDeployment(deploymentName)
 	if err != nil {
 		return nil, errors.Wrapf(err, `Could not find deployment "%s"`, deploymentName)
 	}

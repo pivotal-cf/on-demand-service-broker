@@ -23,7 +23,8 @@ type Client struct {
 	PollingInterval time.Duration
 	BoshInfo        Info
 
-	director Director
+	config          director.FactoryConfig
+	directorFactory DirectorFactory
 }
 
 //go:generate counterfeiter -o fakes/fake_director.go . Director
@@ -61,12 +62,6 @@ type CertAppender interface {
 	AppendCertsFromPEM(pemCerts []byte) (ok bool)
 }
 
-func NewBOSHClient(director director.Director) *Client {
-	return &Client{
-		director: director,
-	}
-}
-
 func New(url string, trustedCertPEM []byte, certAppender CertAppender, directorFactory DirectorFactory, uaaFactory UAAFactory, boshAuth config.Authentication, logger *log.Logger) (*Client, error) {
 	certAppender.AppendCertsFromPEM(trustedCertPEM)
 
@@ -76,12 +71,7 @@ func New(url string, trustedCertPEM []byte, certAppender CertAppender, directorF
 	}
 	directorConfig.CACert = string(trustedCertPEM)
 
-	unauthenticatedDirector, err := directorFactory.New(directorConfig, director.NewNoopTaskReporter(), director.NewNoopFileReporter())
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to build unauthenticated director client")
-	}
-
-	noAuthClient := &Client{url: url, director: unauthenticatedDirector}
+	noAuthClient := &Client{url: url, config: directorConfig, directorFactory: directorFactory}
 	boshInfo, err := noAuthClient.GetInfo(logger)
 	if err != nil {
 		return nil, errors.Wrap(err, "error fetching BOSH director information")
@@ -99,21 +89,25 @@ func New(url string, trustedCertPEM []byte, certAppender CertAppender, directorF
 		directorConfig.ClientSecret = boshAuth.Basic.Password
 	}
 
-	authenticatedDirector, err := directorFactory.New(directorConfig, director.NewNoopTaskReporter(), director.NewNoopFileReporter())
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to build authenticated director client")
-	}
-
 	return &Client{
-		director:        authenticatedDirector,
+		config:          directorConfig,
+		directorFactory: directorFactory,
 		PollingInterval: 5,
 		url:             url,
 		BoshInfo:        boshInfo,
 	}, nil
 }
 
+func (c *Client) Director(taskReporter director.TaskReporter) (director.Director, error) {
+	return c.directorFactory.New(c.config, taskReporter, director.NewNoopFileReporter())
+}
+
 func (c *Client) VerifyAuth(logger *log.Logger) error {
-	isAuthenticated, err := c.director.IsAuthenticated()
+	d, err := c.Director(director.NewNoopTaskReporter())
+	if err != nil {
+		return errors.Wrap(err, " to verify credentials")
+	}
+	isAuthenticated, err := d.IsAuthenticated()
 	if err != nil {
 		return errors.Wrap(err, "Failed to verify credentials")
 	}

@@ -9,12 +9,17 @@ package boshdirector
 import (
 	"log"
 
+	"github.com/cloudfoundry/bosh-cli/director"
 	"github.com/pkg/errors"
 )
 
 func (c *Client) GetTask(taskID int, logger *log.Logger) (BoshTask, error) {
 	logger.Printf("getting task %d from bosh\n", taskID)
-	task, err := c.director.FindTask(taskID)
+	d, err := c.Director(director.NewNoopTaskReporter())
+	if err != nil {
+		return BoshTask{}, errors.Wrap(err, "Failed to build director")
+	}
+	task, err := d.FindTask(taskID)
 	if err != nil {
 		return BoshTask{}, errors.Wrapf(err, "Cannot find task with ID: %d", taskID)
 	}
@@ -35,8 +40,11 @@ type BoshTaskOutput struct {
 
 func (c *Client) GetTaskOutput(taskID int, logger *log.Logger) ([]BoshTaskOutput, error) {
 	logger.Printf("getting task output for task %d from bosh\n", taskID)
-
-	task, err := c.director.FindTask(taskID)
+	d, err := c.Director(director.NewNoopTaskReporter())
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to build director")
+	}
+	task, err := d.FindTask(taskID)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Could not fetch task with id %d", taskID)
 	}

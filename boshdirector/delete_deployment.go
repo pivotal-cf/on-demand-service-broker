@@ -16,7 +16,11 @@ import (
 
 func (c *Client) DeleteDeployment(name, contextID string, logger *log.Logger) (int, error) {
 	logger.Printf("deleting deployment %s\n", name)
-	deployment, err := c.director.FindDeployment(name)
+	d, err := c.Director(director.NewNoopTaskReporter())
+	if err != nil {
+		return 0, errors.Wrap(err, "Failed to build director")
+	}
+	deployment, err := d.FindDeployment(name)
 	if err != nil {
 		return 0, errors.Wrap(err, fmt.Sprintf(`BOSH error when deleting deployment "%s"`, name))
 	}
@@ -24,7 +28,7 @@ func (c *Client) DeleteDeployment(name, contextID string, logger *log.Logger) (i
 	if err != nil {
 		return 0, errors.Wrap(err, fmt.Sprintf("Could not delete deployment %s", name))
 	}
-	tasks, err := c.director.RecentTasks(1, director.TasksFilter{Deployment: name})
+	tasks, err := d.RecentTasks(1, director.TasksFilter{Deployment: name})
 	if err != nil {
 		return 0, errors.Wrap(err, fmt.Sprintf(`Could not find tasks for deployment "%s"`, name))
 	}

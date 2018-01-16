@@ -16,8 +16,12 @@ import (
 
 func (c *Client) GetTasks(deploymentName string, logger *log.Logger) (BoshTasks, error) {
 	logger.Printf("getting tasks for deployment %s from bosh\n", deploymentName)
+	d, err := c.Director(director.NewNoopTaskReporter())
+	if err != nil {
+		return BoshTasks{}, errors.Wrap(err, "Failed to build director")
+	}
 
-	tasks, err := c.director.RecentTasks(math.MaxInt32, director.TasksFilter{
+	tasks, err := d.RecentTasks(math.MaxInt32, director.TasksFilter{
 		All: false, Deployment: deploymentName,
 	})
 	if err != nil {
@@ -28,7 +32,11 @@ func (c *Client) GetTasks(deploymentName string, logger *log.Logger) (BoshTasks,
 }
 
 func (c *Client) GetNormalisedTasksByContext(deploymentName, contextID string, logger *log.Logger) (BoshTasks, error) {
-	tasks, err := c.director.FindTasksByContextId(contextID)
+	d, err := c.Director(director.NewNoopTaskReporter())
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to build director")
+	}
+	tasks, err := d.FindTasksByContextId(contextID)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Could not fetch tasks for deployment %s with context id %s", deploymentName, contextID)
 	}

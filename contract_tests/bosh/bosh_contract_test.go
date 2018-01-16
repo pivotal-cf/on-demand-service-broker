@@ -7,7 +7,6 @@ import (
 
 	"io/ioutil"
 
-	"github.com/cloudfoundry/bosh-cli/director"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
@@ -17,15 +16,13 @@ import (
 
 var _ = Describe("BOSH client", func() {
 	var (
-		director       director.Director
 		boshClient     *boshdirector.Client
 		logger         *log.Logger
 		deploymentName string
 	)
 
 	BeforeEach(func() {
-		director = getDirector()
-		boshClient = boshdirector.NewBOSHClient(director)
+		boshClient = NewBOSHClient()
 		logger = loggerfactory.New(GinkgoWriter, "contract-test", loggerfactory.Flags).New()
 		deploymentName = "bill"
 
@@ -38,29 +35,24 @@ var _ = Describe("BOSH client", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
-	// TODO: this should be our wrapper
-	XDescribe("Info()", func() {
+	Describe("GetInfo()", func() {
 		It("talks to the director", func() {
-			info, err := director.Info()
+			info, err := boshClient.GetInfo(logger)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(info.Name).To(Equal("bosh-lite-director"))
+			Expect(info.Version).NotTo(BeEmpty())
 		})
 
 		It("gets the info about director", func() {
-			info, err := director.Info()
-			fmt.Println(info)
+			info, err := boshClient.GetInfo(logger)
 			Expect(err).NotTo(HaveOccurred())
 
-			uaaURL, ok := info.Auth.Options["url"].(string)
-			Expect(ok).To(BeTrue(), "Cannot retrieve UAA url from /info")
-
+			uaaURL := info.UserAuthentication.Options.URL
 			Expect(uaaURL).To(Equal("https://35.189.248.241:8443"))
 		})
 
 		It("is an authenticated director", func() {
-			isAuth, err := director.IsAuthenticated()
-			Expect(isAuth).To(BeTrue())
+			err := boshClient.VerifyAuth(logger)
 			Expect(err).NotTo(HaveOccurred())
 		})
 	})
