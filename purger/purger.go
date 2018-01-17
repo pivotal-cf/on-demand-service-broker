@@ -1,7 +1,7 @@
 package purger
 
 import (
-	"fmt"
+	fmt "fmt"
 	"log"
 )
 

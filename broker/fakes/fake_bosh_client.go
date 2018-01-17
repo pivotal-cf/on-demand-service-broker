@@ -97,13 +97,12 @@ type FakeBoshClient struct {
 		result1 []boshdirector.Deployment
 		result2 error
 	}
-	DeleteDeploymentStub        func(name, contextID string, logger *log.Logger, taskReporter *boshdirector.AsyncTaskReporter) (int, error)
+	DeleteDeploymentStub        func(name, contextID string, logger *log.Logger) (int, error)
 	deleteDeploymentMutex       sync.RWMutex
 	deleteDeploymentArgsForCall []struct {
-		name         string
-		contextID    string
-		logger       *log.Logger
-		taskReporter *boshdirector.AsyncTaskReporter
+		name      string
+		contextID string
+		logger    *log.Logger
 	}
 	deleteDeploymentReturns struct {
 		result1 int
@@ -126,7 +125,7 @@ type FakeBoshClient struct {
 		result1 boshdirector.Info
 		result2 error
 	}
-	RunErrandStub        func(deploymentName, errandName string, errandInstances []string, contextID string, logger *log.Logger, taskReporter *boshdirector.AsyncTaskReporter) (int, error)
+	RunErrandStub        func(deploymentName, errandName string, errandInstances []string, contextID string, logger *log.Logger) (int, error)
 	runErrandMutex       sync.RWMutex
 	runErrandArgsForCall []struct {
 		deploymentName  string
@@ -134,7 +133,6 @@ type FakeBoshClient struct {
 		errandInstances []string
 		contextID       string
 		logger          *log.Logger
-		taskReporter    *boshdirector.AsyncTaskReporter
 	}
 	runErrandReturns struct {
 		result1 int
@@ -474,19 +472,18 @@ func (fake *FakeBoshClient) GetDeploymentsReturnsOnCall(i int, result1 []boshdir
 	}{result1, result2}
 }
 
-func (fake *FakeBoshClient) DeleteDeployment(name string, contextID string, logger *log.Logger, taskReporter *boshdirector.AsyncTaskReporter) (int, error) {
+func (fake *FakeBoshClient) DeleteDeployment(name string, contextID string, logger *log.Logger) (int, error) {
 	fake.deleteDeploymentMutex.Lock()
 	ret, specificReturn := fake.deleteDeploymentReturnsOnCall[len(fake.deleteDeploymentArgsForCall)]
 	fake.deleteDeploymentArgsForCall = append(fake.deleteDeploymentArgsForCall, struct {
-		name         string
-		contextID    string
-		logger       *log.Logger
-		taskReporter *boshdirector.AsyncTaskReporter
-	}{name, contextID, logger, taskReporter})
-	fake.recordInvocation("DeleteDeployment", []interface{}{name, contextID, logger, taskReporter})
+		name      string
+		contextID string
+		logger    *log.Logger
+	}{name, contextID, logger})
+	fake.recordInvocation("DeleteDeployment", []interface{}{name, contextID, logger})
 	fake.deleteDeploymentMutex.Unlock()
 	if fake.DeleteDeploymentStub != nil {
-		return fake.DeleteDeploymentStub(name, contextID, logger, taskReporter)
+		return fake.DeleteDeploymentStub(name, contextID, logger)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -500,10 +497,10 @@ func (fake *FakeBoshClient) DeleteDeploymentCallCount() int {
 	return len(fake.deleteDeploymentArgsForCall)
 }
 
-func (fake *FakeBoshClient) DeleteDeploymentArgsForCall(i int) (string, string, *log.Logger, *boshdirector.AsyncTaskReporter) {
+func (fake *FakeBoshClient) DeleteDeploymentArgsForCall(i int) (string, string, *log.Logger) {
 	fake.deleteDeploymentMutex.RLock()
 	defer fake.deleteDeploymentMutex.RUnlock()
-	return fake.deleteDeploymentArgsForCall[i].name, fake.deleteDeploymentArgsForCall[i].contextID, fake.deleteDeploymentArgsForCall[i].logger, fake.deleteDeploymentArgsForCall[i].taskReporter
+	return fake.deleteDeploymentArgsForCall[i].name, fake.deleteDeploymentArgsForCall[i].contextID, fake.deleteDeploymentArgsForCall[i].logger
 }
 
 func (fake *FakeBoshClient) DeleteDeploymentReturns(result1 int, result2 error) {
@@ -579,7 +576,7 @@ func (fake *FakeBoshClient) GetInfoReturnsOnCall(i int, result1 boshdirector.Inf
 	}{result1, result2}
 }
 
-func (fake *FakeBoshClient) RunErrand(deploymentName string, errandName string, errandInstances []string, contextID string, logger *log.Logger, taskReporter *boshdirector.AsyncTaskReporter) (int, error) {
+func (fake *FakeBoshClient) RunErrand(deploymentName string, errandName string, errandInstances []string, contextID string, logger *log.Logger) (int, error) {
 	var errandInstancesCopy []string
 	if errandInstances != nil {
 		errandInstancesCopy = make([]string, len(errandInstances))
@@ -593,12 +590,11 @@ func (fake *FakeBoshClient) RunErrand(deploymentName string, errandName string, 
 		errandInstances []string
 		contextID       string
 		logger          *log.Logger
-		taskReporter    *boshdirector.AsyncTaskReporter
-	}{deploymentName, errandName, errandInstancesCopy, contextID, logger, taskReporter})
-	fake.recordInvocation("RunErrand", []interface{}{deploymentName, errandName, errandInstancesCopy, contextID, logger, taskReporter})
+	}{deploymentName, errandName, errandInstancesCopy, contextID, logger})
+	fake.recordInvocation("RunErrand", []interface{}{deploymentName, errandName, errandInstancesCopy, contextID, logger})
 	fake.runErrandMutex.Unlock()
 	if fake.RunErrandStub != nil {
-		return fake.RunErrandStub(deploymentName, errandName, errandInstances, contextID, logger, taskReporter)
+		return fake.RunErrandStub(deploymentName, errandName, errandInstances, contextID, logger)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -612,10 +608,10 @@ func (fake *FakeBoshClient) RunErrandCallCount() int {
 	return len(fake.runErrandArgsForCall)
 }
 
-func (fake *FakeBoshClient) RunErrandArgsForCall(i int) (string, string, []string, string, *log.Logger, *boshdirector.AsyncTaskReporter) {
+func (fake *FakeBoshClient) RunErrandArgsForCall(i int) (string, string, []string, string, *log.Logger) {
 	fake.runErrandMutex.RLock()
 	defer fake.runErrandMutex.RUnlock()
-	return fake.runErrandArgsForCall[i].deploymentName, fake.runErrandArgsForCall[i].errandName, fake.runErrandArgsForCall[i].errandInstances, fake.runErrandArgsForCall[i].contextID, fake.runErrandArgsForCall[i].logger, fake.runErrandArgsForCall[i].taskReporter
+	return fake.runErrandArgsForCall[i].deploymentName, fake.runErrandArgsForCall[i].errandName, fake.runErrandArgsForCall[i].errandInstances, fake.runErrandArgsForCall[i].contextID, fake.runErrandArgsForCall[i].logger
 }
 
 func (fake *FakeBoshClient) RunErrandReturns(result1 int, result2 error) {

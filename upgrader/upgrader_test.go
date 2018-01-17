@@ -1393,7 +1393,7 @@ func hasReportedUpgradeStates(fakeListener *fakes.FakeListener, expectedStatus s
 }
 
 func makeInstanceMapFromIds(expectedInstanceIds []string) []service.Instance {
-	var expectedInstances []service.Instance
+	expectedInstances := []service.Instance{}
 	for _, expectedInstanceId := range expectedInstanceIds {
 		expectedInstances = append(expectedInstances, service.Instance{GUID: expectedInstanceId})
 	}

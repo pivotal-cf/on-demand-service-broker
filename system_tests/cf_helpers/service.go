@@ -19,8 +19,8 @@ import (
 )
 
 const (
-	CfTimeout     = time.Minute
-	LongCfTimeout = time.Minute * 15 // This is only so long to support a stressed director. It should be combined with smart fail-fast
+	CfTimeout     time.Duration = time.Minute
+	LongCfTimeout time.Duration = time.Minute * 15 // This is only so long to support a stressed director. It should be combined with smart fail-fast
 )
 
 func CreateService(serviceOffering, servicePlan, serviceName, arbitraryParams string) {
@@ -34,7 +34,7 @@ func CreateService(serviceOffering, servicePlan, serviceName, arbitraryParams st
 }
 
 func DeleteService(serviceName string) {
-	Eventually(cf.Cf("delete-service", serviceName, "-f"), time.Second).Should(gexec.Exit(0))
+	Eventually(cf.Cf("delete-service", serviceName, "-f"), CfTimeout).Should(gexec.Exit(0))
 	AwaitServiceDeletion(serviceName)
 }
 

@@ -7,10 +7,11 @@
 package boshdirector
 
 import (
+	"encoding/json"
+	"fmt"
 	"log"
-
-	"github.com/cloudfoundry/bosh-cli/director"
-	"github.com/pkg/errors"
+	"net/http"
+	"strings"
 )
 
 type Instance struct {
@@ -18,39 +19,39 @@ type Instance struct {
 	ID    string `json:"id,omitempty"`
 }
 
-func (c *Client) RunErrand(deploymentName, errandName string, errandInstances []string, contextID string, logger *log.Logger, taskReporter *AsyncTaskReporter) (int, error) {
+func (c *Client) RunErrand(deploymentName, errandName string, errandInstances []string, contextID string, logger *log.Logger) (int, error) {
 	logger.Printf("running errand %s on colocated instances %v from deployment %s\n", errandName, errandInstances, deploymentName)
-	d, err := c.Director(taskReporter)
-	if err != nil {
-		return -1, errors.Wrap(err, "Failed to build director")
+
+	var errandBody struct {
+		Instances []Instance `json:"instances,omitempty"`
 	}
 
-	deployment, err := d.FindDeployment(deploymentName)
-	if err != nil {
-		return -1, errors.Wrapf(err, `Could not find deployment "%s"`, deploymentName)
-	}
-
-	var instances []director.InstanceGroupOrInstanceSlug
 	for _, errandInstance := range errandInstances {
-		instanceGroupOrSlug, err := director.NewInstanceGroupOrInstanceSlugFromString(errandInstance)
-		if err != nil {
-			return -1, errors.Wrapf(err, "Invalid instance name %s for errand %s", errandName, errandInstance)
+		collection := strings.Split(errandInstance, "/")
+		switch len(collection) {
+		case 1:
+			group := collection[0]
+			errandBody.Instances = append(errandBody.Instances, Instance{Group: group})
+		case 2:
+			group := collection[0]
+			id := collection[1]
+			errandBody.Instances = append(errandBody.Instances, Instance{Group: group, ID: id})
+		default:
+			return 0, fmt.Errorf("invalid errand instances names passed in: %v", errandInstances)
 		}
-		instances = append(instances, instanceGroupOrSlug)
 	}
 
-	go func() {
-		_, err = deployment.RunErrand(errandName, false, false, instances)
-		if err != nil {
-			taskReporter.Err <- errors.Wrapf(err, "Could not run errand %s", errandName)
-		}
-	}()
-
-	select {
-	case err := <-taskReporter.Err:
-		return -1, err
-	case id := <-taskReporter.Task:
-		return id, nil
+	body, err := json.Marshal(errandBody)
+	if err != nil {
+		return 0, err
 	}
 
+	return c.postAndGetTaskIDCheckingForErrors(
+		fmt.Sprintf("%s/deployments/%s/errands/%s/runs", c.url, deploymentName, errandName),
+		http.StatusFound,
+		body,
+		"application/json",
+		contextID,
+		logger,
+	)
 }

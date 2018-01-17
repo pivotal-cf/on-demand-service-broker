@@ -7,11 +7,22 @@
 package mockbosh
 
 import (
+	"fmt"
+
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
 )
 
 type errandMock struct {
 	*mockhttp.Handler
+}
+
+func Errand(deploymentName, errandName, body string) *errandMock {
+	mock := errandMock{
+		Handler: mockhttp.NewMockedHttpRequest("POST", fmt.Sprintf("/deployments/%s/errands/%s/runs", deploymentName, errandName)),
+	}
+	mock.WithContentType("application/json")
+	mock.WithJSONBody(body)
+	return &mock
 }
 
 func (e *errandMock) WithAnyContextID() *errandMock {

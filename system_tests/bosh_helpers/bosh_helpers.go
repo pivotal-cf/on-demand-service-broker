@@ -16,9 +16,11 @@ import (
 	"github.com/cloudfoundry/bosh-cli/director"
 	boshuaa "github.com/cloudfoundry/bosh-cli/uaa"
 	boshlog "github.com/cloudfoundry/bosh-utils/logger"
+	"github.com/craigfurman/herottp"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
@@ -29,6 +31,14 @@ type BoshHelperClient struct {
 	*boshdirector.Client
 }
 
+type authenticatorBuilder struct {
+	authHeaderBuilder boshdirector.AuthHeaderBuilder
+}
+
+func (a authenticatorBuilder) NewAuthHeaderBuilder(uaaURL string, disableSSL bool) (config.AuthHeaderBuilder, error) {
+	return a.authHeaderBuilder, nil
+}
+
 func New(boshURL, uaaURL, boshUsername, boshPassword, boshCACert string) *BoshHelperClient {
 	var boshCACertContents []byte
 	if boshCACert != "" {
@@ -37,9 +47,19 @@ func New(boshURL, uaaURL, boshUsername, boshPassword, boshCACert string) *BoshHe
 		Expect(err).NotTo(HaveOccurred())
 	}
 
+	authHeaderBuilder, err := authorizationheader.NewClientTokenAuthHeaderBuilder(uaaURL, boshUsername, boshPassword, false, boshCACertContents)
+	Expect(err).NotTo(HaveOccurred())
+
 	certPool, err := x509.SystemCertPool()
 	Expect(err).NotTo(HaveOccurred())
 	certPool.AppendCertsFromPEM(boshCACertContents)
+
+	httpClient := herottp.New(herottp.Config{
+		NoFollowRedirect:                  true,
+		DisableTLSCertificateVerification: false,
+		RootCAs: certPool,
+		Timeout: 30 * time.Second,
+	})
 
 	logger := systemTestLogger()
 	l := boshlog.NewLogger(boshlog.LevelError)
@@ -48,7 +68,10 @@ func New(boshURL, uaaURL, boshUsername, boshPassword, boshCACert string) *BoshHe
 
 	boshClient, err := boshdirector.New(
 		boshURL,
+		false,
 		boshCACertContents,
+		httpClient,
+		authenticatorBuilder{authHeaderBuilder},
 		certPool,
 		directorFactory,
 		uaaFactory,
@@ -75,8 +98,17 @@ func NewBasicAuth(boshURL, boshUsername, boshPassword, boshCACert string, disabl
 		Expect(err).NotTo(HaveOccurred())
 	}
 
+	basicAuthHeaderBuilder := authorizationheader.NewBasicAuthHeaderBuilder(boshUsername, boshPassword)
+	var err error
 	certPool, err := x509.SystemCertPool()
 	Expect(err).NotTo(HaveOccurred())
+
+	httpClient := herottp.New(herottp.Config{
+		NoFollowRedirect:                  true,
+		DisableTLSCertificateVerification: false,
+		RootCAs: certPool,
+		Timeout: 30 * time.Second,
+	})
 
 	logger := systemTestLogger()
 	l := boshlog.NewLogger(boshlog.LevelError)
@@ -84,7 +116,10 @@ func NewBasicAuth(boshURL, boshUsername, boshPassword, boshCACert string, disabl
 	uaaFactory := boshuaa.NewFactory(l)
 	boshClient, err := boshdirector.New(
 		boshURL,
+		disableTLSVerification,
 		boshCACertContents,
+		httpClient,
+		authenticatorBuilder{basicAuthHeaderBuilder},
 		certPool,
 		directorFactory,
 		uaaFactory,
@@ -114,7 +149,7 @@ func (b *BoshHelperClient) RunErrandWithoutCheckingSuccess(deploymentName string
 }
 
 func (b *BoshHelperClient) runErrandAndWait(deploymentName string, errandName string, errandInstances []string, contextID string, logger *log.Logger) int {
-	taskID, err := b.Client.RunErrand(deploymentName, errandName, errandInstances, contextID, logger, boshdirector.NewAsyncTaskReporter())
+	taskID, err := b.Client.RunErrand(deploymentName, errandName, errandInstances, contextID, logger)
 	Expect(err).NotTo(HaveOccurred())
 	b.waitForTaskToFinish(taskID)
 	return taskID
@@ -123,7 +158,8 @@ func (b *BoshHelperClient) runErrandAndWait(deploymentName string, errandName st
 func (b *BoshHelperClient) getTaskOutput(taskID int, logger *log.Logger) boshdirector.BoshTaskOutput {
 	output, err := b.Client.GetTaskOutput(taskID, logger)
 	Expect(err).NotTo(HaveOccurred())
-	return output
+	Expect(output).To(HaveLen(1))
+	return output[0]
 }
 
 func (b *BoshHelperClient) GetTasksForDeployment(deploymentName string) boshdirector.BoshTasks {
@@ -174,11 +210,10 @@ func (b *BoshHelperClient) DeployODB(manifest bosh.BoshManifest) {
 	manifestBytes, err := yaml.Marshal(manifest)
 	Expect(err).NotTo(HaveOccurred())
 
-	asyncReporter := boshdirector.NewAsyncTaskReporter()
-	_, err = b.Client.Deploy(manifestBytes, "", logger, asyncReporter)
+	deployTaskID, err := b.Client.Deploy(manifestBytes, "", logger)
 	Expect(err).NotTo(HaveOccurred())
 
-	<-asyncReporter.Finished
+	b.waitForTaskToFinish(deployTaskID)
 
 	// wait for Broker Route Registration Interval
 	time.Sleep(20 * time.Second)
@@ -193,7 +228,7 @@ func (b *BoshHelperClient) DeploymentExists(deploymentName string) bool {
 
 func (b *BoshHelperClient) DeleteDeployment(deploymentName string) {
 	logger := systemTestLogger()
-	deleteTaskID, err := b.Client.DeleteDeployment(deploymentName, "", logger, boshdirector.NewAsyncTaskReporter())
+	deleteTaskID, err := b.Client.DeleteDeployment(deploymentName, "", logger)
 	Expect(err).NotTo(HaveOccurred())
 	b.waitForTaskToFinish(deleteTaskID)
 }

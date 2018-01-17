@@ -35,7 +35,7 @@ type ObtainTokenResponse struct {
 	ExpiresInSeconds int    `json:"expires_in"`
 }
 
-var MinimumRemainingValidity = time.Second * 10
+var MinimumRemainingValidity time.Duration = time.Second * 10
 
 func NewClientTokenAuthHeaderBuilder(
 	uaaURL,

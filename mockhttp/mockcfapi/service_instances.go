@@ -18,13 +18,15 @@ type Operation string
 
 const (
 	Delete Operation = "delete"
+	Update           = "update"
 )
 
 type OperationState string
 
 const (
-	InProgress = "in progress"
-	Failed     = "failed"
+	Succeeded  OperationState = "succeeded"
+	InProgress                = "in progress"
+	Failed                    = "failed"
 )
 
 type getServiceInstanceMock struct {
@@ -117,7 +119,7 @@ func (m *listServiceInstancesMock) RespondsWithPaginatedServiceInstances(
 }
 
 func listServiceInstancesResponse(instanceIDs ...string) string {
-	var resources []serviceInstanceResource
+	resources := []serviceInstanceResource{}
 	for _, instanceID := range instanceIDs {
 		resources = append(resources, serviceInstanceResource{Metadata: serviceInstanceMetadata{GUID: instanceID}})
 	}
@@ -155,7 +157,7 @@ func paginatedListServiceInstanceResponse(
 		)
 	}
 
-	var resources []serviceInstanceResource
+	resources := []serviceInstanceResource{}
 	for _, instanceID := range instanceIDs {
 		resources = append(resources, serviceInstanceResource{Metadata: serviceInstanceMetadata{GUID: instanceID}})
 	}
@@ -180,7 +182,7 @@ type serviceInstanceMetadata struct {
 	GUID string `json:"guid"`
 }
 
-const instanceResponseBody = `{
+const instanceResponseBody string = `{
 	"metadata": {
 		"guid": "%s"
 	},
@@ -192,7 +194,7 @@ const instanceResponseBody = `{
 	}
 }`
 
-const instanceResponseBodyWithPlanUrl = `{
+const instanceResponseBodyWithPlanUrl string = `{
 	"metadata": {
 		"guid": "%s"
 	},

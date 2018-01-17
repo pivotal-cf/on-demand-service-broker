@@ -178,7 +178,7 @@ var _ = Describe("Bind", func() {
 
 		Context("when binding to a non existent instance", func() {
 			BeforeEach(func() {
-				boshClient.GetDeploymentReturns(nil, false, nil)
+				boshClient.VMsReturns(nil, boshdirector.DeploymentNotFoundError{})
 			})
 
 			It("returns a standard error message", func() {
@@ -260,11 +260,11 @@ var _ = Describe("Bind", func() {
 
 		Context("when bind has a bosh request error", func() {
 			BeforeEach(func() {
-				boshClient.GetInfoReturns(boshdirector.Info{}, boshdirector.NewRequestError(errors.New("bosh down.")))
+				boshClient.VMsReturns(nil, boshdirector.NewRequestError(errors.New("bosh down.")))
 			})
 
 			It("logs the error", func() {
-				Expect(logBuffer.String()).To(ContainSubstring("error: could not get director info: bosh down."))
+				Expect(logBuffer.String()).To(ContainSubstring("error: could not get deployment info: bosh down."))
 			})
 
 			It("returns the try again later error for the user", func() {

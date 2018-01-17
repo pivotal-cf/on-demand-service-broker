@@ -7,197 +7,186 @@
 package boshdirector_test
 
 import (
-	"errors"
-	"math"
+	"net/url"
 
-	"fmt"
+	"net/http"
 
-	"github.com/cloudfoundry/bosh-cli/director"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
-	"github.com/pivotal-cf/on-demand-service-broker/boshdirector/fakes"
 )
 
 var _ = Describe("getting tasks", func() {
 	var (
-		deploymentName           = "an-amazing-deployment"
-		processingTask, doneTask *fakes.FakeTask
-		expectedTasks            boshdirector.BoshTasks
+		deploymentName = "an-amazing-deployment"
 	)
-
-	BeforeEach(func() {
-		processingTask = new(fakes.FakeTask)
-		processingTask.IDReturns(1)
-		processingTask.StateReturns("processing")
-		processingTask.DescriptionReturns("snapshot deployment")
-		processingTask.ResultReturns("result-1")
-		processingTask.ContextIDReturns("")
-		processingTask.DeploymentNameReturns(deploymentName)
-
-		doneTask = new(fakes.FakeTask)
-		doneTask.IDReturns(2)
-		doneTask.StateReturns("done")
-		doneTask.DescriptionReturns("snapshot deployment")
-		doneTask.ResultReturns("result-2")
-		doneTask.ContextIDReturns("some-context")
-		doneTask.DeploymentNameReturns(deploymentName)
-
-		fakeDirector.RecentTasksReturns([]director.Task{processingTask, doneTask}, nil)
-
-		fakeDirector.FindTaskReturns(processingTask, nil)
-		processingTask.ResultOutputStub = func(r director.TaskReporter) error {
-			r.TaskOutputChunk(processingTask.ID(), []byte(`{"foo":0,"other":"foo","err":"bar"}`))
-			return nil
-		}
-
-		expectedTasks = boshdirector.BoshTasks{
-			{ID: 1, State: boshdirector.TaskProcessing, Description: "snapshot deployment", Result: "result-1", ContextID: ""},
-			{ID: 2, State: boshdirector.TaskDone, Description: "snapshot deployment", Result: "result-2", ContextID: "some-context"},
-		}
-
-	})
 
 	Describe("GetTasks", func() {
 		It("returns the task state when bosh fetches the task successfully", func() {
+			expectedTasks := boshdirector.BoshTasks{
+				{State: boshdirector.TaskProcessing, Description: "snapshot deployment", Result: "result-1"},
+				{State: boshdirector.TaskDone, Description: "snapshot deployment", Result: "result-2"},
+			}
+			fakeHTTPClient.DoReturns(responseOKWithJSON(expectedTasks), nil)
 			actualTasks, err := c.GetTasks(deploymentName, logger)
+			Expect(actualTasks).To(Equal(expectedTasks))
 			Expect(err).NotTo(HaveOccurred())
 
-			By("fetching all tasks")
-			taskLimit, taskFilter := fakeDirector.RecentTasksArgsForCall(0)
-			Expect(taskLimit).To(Equal(math.MaxInt32))
-			Expect(taskFilter).To(Equal(director.TasksFilter{All: false, Deployment: deploymentName}))
+			By("calling the right endpoint")
+			Expect(fakeHTTPClient).To(HaveReceivedHttpRequestAtIndex(
+				receivedHttpRequest{
+					Path:   "/tasks",
+					Method: "GET",
+					Query:  url.Values{"deployment": []string{deploymentName}},
+				}, 0))
 
-			By("returning the expected tasks structure")
-			Expect(actualTasks).To(Equal(expectedTasks))
 		})
 
-		It("wraps the error when fetching the tasks fails", func() {
-			fakeDirector.RecentTasksReturns([]director.Task{}, errors.New("boom"))
-
+		It("wraps the error when bosh returns a client error (HTTP 404)", func() {
+			fakeHTTPClient.DoReturns(responseWithEmptyBodyAndStatus(http.StatusNotFound), nil)
 			_, err := c.GetTasks(deploymentName, logger)
-			Expect(err).To(MatchError(fmt.Sprintf("Could not fetch recent tasks for deployment %s: boom", deploymentName)))
+			Expect(err).To(MatchError(ContainSubstring("expected status 200, was 404")))
+
+		})
+
+		It("wraps the error when bosh fails to fetch the task", func() {
+			fakeHTTPClient.DoReturns(responseWithEmptyBodyAndStatus(http.StatusInternalServerError), nil)
+			_, err := c.GetTasks(deploymentName, logger)
+			Expect(err).To(MatchError(ContainSubstring("expected status 200, was 500")))
 		})
 	})
 
 	Describe("GetTasksByContextID", func() {
 		var (
-			multipleTaskContextID = "multiple-context-id"
-			singleTaskContextID   = "some-context-id"
-			errandTaskContextID   = "errand-task-context-id"
-
-			errandTask *fakes.FakeTask
+			contextID = "some-context-id"
 		)
 
-		BeforeEach(func() {
-			errandTask = new(fakes.FakeTask)
-			errandTask.IDReturns(42)
-			errandTask.StateReturns("done")
-			errandTask.DescriptionReturns("errand completed")
-			errandTask.ResultReturns("result-1")
-			errandTask.ContextIDReturns("some-context")
-			errandTask.DeploymentNameReturns(deploymentName)
-
-			fakeDirector.FindTasksByContextIdStub = func(contextID string) ([]director.Task, error) {
-				processingTask.ContextIDReturns(contextID)
-				doneTask.ContextIDReturns(contextID)
-				errandTask.ContextIDReturns(contextID)
-
-				switch contextID {
-				case multipleTaskContextID:
-					return []director.Task{processingTask, doneTask}, nil
-				case singleTaskContextID:
-					return []director.Task{processingTask}, nil
-				case errandTaskContextID:
-					return []director.Task{errandTask}, nil
-				default:
-					return []director.Task{}, nil
-				}
-			}
-		})
-
 		It("returns no tasks when there are no tasks with the context id", func() {
-			actualTasks, err := c.GetNormalisedTasksByContext(deploymentName, "some-id", logger)
+			fakeHTTPClient.DoReturns(responseOKWithJSON([]boshdirector.BoshTask{}), nil)
+			actualTasks, err := c.GetNormalisedTasksByContext(deploymentName, contextID, logger)
 			Expect(actualTasks).To(HaveLen(0))
 			Expect(err).NotTo(HaveOccurred())
+
+			By("calling the right endpoint")
+			Expect(fakeHTTPClient).To(HaveReceivedHttpRequestAtIndex(
+				receivedHttpRequest{
+					Path:   "/tasks",
+					Method: "GET",
+					Query:  url.Values{"deployment": []string{deploymentName}, "context_id": []string{contextID}},
+				}, 0))
 		})
 
 		It("returns one task when there is one task with the context id", func() {
-			processingTask.ContextIDReturns(singleTaskContextID)
-			expectedTask := boshdirector.BoshTask{ID: 1, State: boshdirector.TaskProcessing, Description: "snapshot deployment", Result: "result-1", ContextID: singleTaskContextID}
+			expectedTask := boshdirector.BoshTask{State: boshdirector.TaskProcessing, Description: "snapshot deployment", Result: "result-1", ContextID: contextID}
 
-			actualTasks, err := c.GetNormalisedTasksByContext(deploymentName, singleTaskContextID, logger)
+			fakeHTTPClient.DoReturns(responseOKWithJSON([]boshdirector.BoshTask{expectedTask}), nil)
+			actualTasks, err := c.GetNormalisedTasksByContext(deploymentName, contextID, logger)
 			Expect(actualTasks).To(HaveLen(1))
 			Expect(actualTasks[0]).To(Equal(expectedTask))
 			Expect(err).NotTo(HaveOccurred())
-		})
 
-		It("returns the tasks only for the deployment", func() {
-			otherDeploymentTask := new(fakes.FakeTask)
-			otherDeploymentTask.IDReturns(3)
-			otherDeploymentTask.StateReturns("done")
-			otherDeploymentTask.DescriptionReturns("snapshot deployment")
-			otherDeploymentTask.ResultReturns("result-2")
-			otherDeploymentTask.ContextIDReturns("some-context")
-			otherDeploymentTask.DeploymentNameReturns("other-deployment")
-			processingTask.ContextIDReturns("some-context")
+			By("calling the right endpoint")
+			Expect(fakeHTTPClient).To(HaveReceivedHttpRequestAtIndex(
+				receivedHttpRequest{
+					Path:   "/tasks",
+					Method: "GET",
+					Query:  url.Values{"deployment": []string{deploymentName}, "context_id": []string{contextID}},
+				}, 0))
 
-			fakeDirector.FindTasksByContextIdReturns([]director.Task{processingTask, doneTask, otherDeploymentTask}, nil)
-
-			actualTasks, err := c.GetNormalisedTasksByContext(deploymentName, "some-context", logger)
-
-			Expect(err).NotTo(HaveOccurred())
-			Expect(actualTasks).To(Equal(expectedTasksWithID("some-context")))
 		})
 
 		It("returns the correct tasks when there are many tasks with the context id", func() {
-			actualTasks, err := c.GetNormalisedTasksByContext(deploymentName, multipleTaskContextID, logger)
-			Expect(actualTasks).To(HaveLen(2))
-			Expect(actualTasks).To(Equal(expectedTasksWithID(multipleTaskContextID)))
-			Expect(err).To(Not(HaveOccurred()))
-		})
-
-		It("wraps the error when it fails to fetch the tasks", func() {
-			fakeDirector.FindTasksByContextIdReturns(nil, errors.New("some error"))
-
-			_, err := c.GetNormalisedTasksByContext(deploymentName, "context-id", logger)
-			Expect(err).To(MatchError(fmt.Sprintf("Could not fetch tasks for deployment %s with context id context-id: some error", deploymentName)))
-		})
-
-		It("returns the correct state when an errand task has finished with a non-zero exit code", func() {
-			fakeDirector.FindTaskReturns(errandTask, nil)
-			errandTask.ResultOutputStub = func(r director.TaskReporter) error {
-				r.TaskOutputChunk(errandTask.ID(), []byte(`{"exit_code":1,"stdout":"foo","stderr":"bar"}`))
-				r.TaskFinished(errandTask.ID(), "status")
-				return nil
+			expectedTasks := boshdirector.BoshTasks{
+				{State: boshdirector.TaskProcessing, Description: "snapshot deployment", Result: "result-1", ContextID: contextID},
+				{State: boshdirector.TaskDone, Description: "something finished", Result: "result-1", ContextID: contextID},
+				{State: boshdirector.TaskProcessing, Description: "snapshot deployment", Result: "result-1", ContextID: contextID},
 			}
 
+			fakeHTTPClient.DoReturnsOnCall(0, responseOKWithJSON(expectedTasks), nil)
+			fakeHTTPClient.DoReturnsOnCall(1, responseWithEmptyBodyAndStatus(http.StatusOK), nil)
+
+			actualTasks, err := c.GetNormalisedTasksByContext(deploymentName, contextID, logger)
+			Expect(actualTasks).To(HaveLen(3))
+			Expect(actualTasks).To(Equal(expectedTasks))
+			Expect(err).To(Not(HaveOccurred()))
+
+			By("calling the right endpoint")
+			Expect(fakeHTTPClient).To(HaveReceivedHttpRequestAtIndex(
+				receivedHttpRequest{
+					Path:   "/tasks",
+					Method: "GET",
+					Query:  url.Values{"deployment": []string{deploymentName}, "context_id": []string{contextID}},
+				}, 0))
+
+			Expect(fakeHTTPClient).To(HaveReceivedHttpRequestAtIndex(
+				receivedHttpRequest{
+					Path:   "/tasks/0/output",
+					Method: "GET",
+					Query:  url.Values{"type": []string{"result"}},
+				}, 1))
+
+		})
+
+		It("returns the correct task when an errand task has finished with a non-zero exit code", func() {
 			expectedTask := boshdirector.BoshTask{
 				ID:          42,
-				State:       boshdirector.TaskError,
+				State:       boshdirector.TaskDone,
 				Description: "errand completed",
 				Result:      "result-1",
-				ContextID:   errandTaskContextID,
+				ContextID:   contextID,
 			}
 
-			actualTasks, err := c.GetNormalisedTasksByContext(deploymentName, errandTaskContextID, logger)
+			fakeHTTPClient.DoReturnsOnCall(0, responseOKWithJSON([]boshdirector.BoshTask{expectedTask}), nil)
+			fakeHTTPClient.DoReturnsOnCall(1, responseOKWithJSON(map[string]int{"ExitCode": 1}), nil)
+
+			actualTasks, err := c.GetNormalisedTasksByContext(deploymentName, contextID, logger)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(actualTasks).To(Equal(boshdirector.BoshTasks{expectedTask}))
+
+			By("calling the right endpoints")
+			Expect(fakeHTTPClient).To(HaveReceivedHttpRequestAtIndex(
+				receivedHttpRequest{
+					Path:   "/tasks",
+					Method: "GET",
+					Query:  url.Values{"deployment": []string{deploymentName}, "context_id": []string{contextID}},
+				}, 0))
+			Expect(fakeHTTPClient).To(HaveReceivedHttpRequestAtIndex(
+				receivedHttpRequest{
+					Path:   "/tasks/42/output",
+					Method: "GET",
+					Query:  url.Values{"type": []string{"result"}},
+				}, 1))
 		})
 
-		It("returns an error when the task output can not be retrived", func() {
-			fakeDirector.FindTaskReturns(errandTask, nil)
-			errandTask.ResultOutputReturns(errors.New("some problem"))
+		It("returns an error when an errand task result can not be retrived", func() {
+			expectedTask := boshdirector.BoshTask{
+				ID:          42,
+				State:       boshdirector.TaskDone,
+				Description: "errand completed",
+				Result:      "result-1",
+				ContextID:   contextID,
+			}
 
-			_, err := c.GetNormalisedTasksByContext(deploymentName, errandTaskContextID, logger)
-			Expect(err).To(MatchError(ContainSubstring("Could not retrieve task output")))
+			fakeHTTPClient.DoReturnsOnCall(0, responseOKWithJSON([]boshdirector.BoshTask{expectedTask}), nil)
+			fakeHTTPClient.DoReturnsOnCall(1, responseWithEmptyBodyAndStatus(http.StatusInternalServerError), nil)
+
+			_, err := c.GetNormalisedTasksByContext(deploymentName, contextID, logger)
+			Expect(err).To(HaveOccurred())
+
+			By("calling the right endpoints")
+			Expect(fakeHTTPClient).To(HaveReceivedHttpRequestAtIndex(
+				receivedHttpRequest{
+					Path:   "/tasks",
+					Method: "GET",
+					Query:  url.Values{"deployment": []string{deploymentName}, "context_id": []string{contextID}},
+				}, 0))
+			Expect(fakeHTTPClient).To(HaveReceivedHttpRequestAtIndex(
+				receivedHttpRequest{
+					Path:   "/tasks/42/output",
+					Method: "GET",
+					Query:  url.Values{"type": []string{"result"}},
+				}, 1))
+
 		})
 	})
 })
-
-func expectedTasksWithID(contextID string) boshdirector.BoshTasks {
-	return boshdirector.BoshTasks{
-		{ID: 1, State: boshdirector.TaskProcessing, Description: "snapshot deployment", Result: "result-1", ContextID: contextID},
-		{ID: 2, State: boshdirector.TaskDone, Description: "snapshot deployment", Result: "result-2", ContextID: contextID},
-	}
-}

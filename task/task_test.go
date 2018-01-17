@@ -111,7 +111,7 @@ var _ = Describe("Deployer", func() {
 
 			It("Creates a bosh deployment using generated manifest", func() {
 				Expect(boshClient.DeployCallCount()).To(Equal(1))
-				deployedManifest, _, _, _ := boshClient.DeployArgsForCall(0)
+				deployedManifest, _, _ := boshClient.DeployArgsForCall(0)
 				Expect(deployedManifest).To(Equal(manifest))
 			})
 
@@ -130,7 +130,7 @@ var _ = Describe("Deployer", func() {
 
 				It("invokes boshdirector's Create with context ID", func() {
 					Expect(boshClient.DeployCallCount()).To(Equal(1))
-					_, actualBoshContextID, _, _ := boshClient.DeployArgsForCall(0)
+					_, actualBoshContextID, _ := boshClient.DeployArgsForCall(0)
 					Expect(actualBoshContextID).To(Equal(boshContextID))
 				})
 			})
@@ -312,7 +312,7 @@ var _ = Describe("Deployer", func() {
 
 			It("Creates a bosh deployment using generated manifest", func() {
 				Expect(boshClient.DeployCallCount()).To(Equal(1))
-				deployedManifest, _, _, _ := boshClient.DeployArgsForCall(0)
+				deployedManifest, _, _ := boshClient.DeployArgsForCall(0)
 				Expect(deployedManifest).To(Equal(manifest))
 			})
 
@@ -331,7 +331,7 @@ var _ = Describe("Deployer", func() {
 
 				It("invokes boshdirector's Create with context ID", func() {
 					Expect(boshClient.DeployCallCount()).To(Equal(1))
-					_, actualBoshContextID, _, _ := boshClient.DeployArgsForCall(0)
+					_, actualBoshContextID, _ := boshClient.DeployArgsForCall(0)
 					Expect(actualBoshContextID).To(Equal(boshContextID))
 				})
 			})
@@ -571,7 +571,7 @@ var _ = Describe("Deployer", func() {
 					Expect(passedRequestParams).To(Equal(requestParams))
 
 					Expect(boshClient.DeployCallCount()).To(Equal(1))
-					deployedManifest, _, _, _ := boshClient.DeployArgsForCall(0)
+					deployedManifest, _, _ := boshClient.DeployArgsForCall(0)
 					Expect(string(deployedManifest)).To(Equal(string(manifest)))
 
 					Expect(returnedTaskID).To(Equal(boshTaskID))
@@ -732,7 +732,7 @@ var _ = Describe("Deployer", func() {
 			_, _, passedRequestParams, _, _, _ := manifestGenerator.GenerateManifestArgsForCall(1)
 			Expect(passedRequestParams).To(Equal(requestParams))
 
-			manifestToDeploy, _, _, _ := boshClient.DeployArgsForCall(0)
+			manifestToDeploy, _, _ := boshClient.DeployArgsForCall(0)
 			Expect(string(manifestToDeploy)).To(Equal(string(generatedManifest)))
 		})
 

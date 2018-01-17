@@ -40,7 +40,7 @@ func New(
 	serviceOffering config.ServiceOffering,
 	startupCheckers []StartupChecker,
 	serviceAdapter ServiceAdapterClient,
-	deployer Deployer, // TODO: is it used?
+	deployer Deployer,
 	loggerFactory *loggerfactory.LoggerFactory,
 ) (*Broker, error) {
 	b := &Broker{
@@ -78,9 +78,9 @@ const (
 	OperationTypeBind    = OperationType("bind")
 	OperationTypeUnbind  = OperationType("unbind")
 
-	MinimumCFVersion                                     = "2.57.0"
-	MinimumMajorStemcellDirectorVersionForODB            = 3262
-	MinimumMajorSemverDirectorVersionForLifecycleErrands = 261
+	MinimumCFVersion                                     string = "2.57.0"
+	MinimumMajorStemcellDirectorVersionForODB                   = 3262
+	MinimumMajorSemverDirectorVersionForLifecycleErrands        = 261
 )
 
 type OperationType string
@@ -141,9 +141,9 @@ type BoshClient interface {
 	VMs(deploymentName string, logger *log.Logger) (bosh.BoshVMs, error)
 	GetDeployment(name string, logger *log.Logger) ([]byte, bool, error)
 	GetDeployments(logger *log.Logger) ([]boshdirector.Deployment, error)
-	DeleteDeployment(name, contextID string, logger *log.Logger, taskReporter *boshdirector.AsyncTaskReporter) (int, error)
+	DeleteDeployment(name, contextID string, logger *log.Logger) (int, error)
 	GetInfo(logger *log.Logger) (boshdirector.Info, error)
-	RunErrand(deploymentName, errandName string, errandInstances []string, contextID string, logger *log.Logger, taskReporter *boshdirector.AsyncTaskReporter) (int, error)
+	RunErrand(deploymentName, errandName string, errandInstances []string, contextID string, logger *log.Logger) (int, error)
 	VerifyAuth(logger *log.Logger) error
 }
 

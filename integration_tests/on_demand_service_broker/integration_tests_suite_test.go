@@ -9,12 +9,15 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"testing"
 	"time"
@@ -22,11 +25,13 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
+	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/integration_tests/on_demand_service_broker/mock"
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp/mockbosh"
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp/mockcfapi"
+	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 	"gopkg.in/yaml.v2"
 )
@@ -168,6 +173,33 @@ func TestIntegrationTests(t *testing.T) {
 	RunSpecs(t, "Integration Tests Suite")
 }
 
+func startBrokerInNoopCFModeWithPassingStartupChecks(
+	conf config.Config,
+	boshDirector *mockbosh.MockBOSH,
+) *gexec.Session {
+	boshDirector.VerifyAndMock(
+		mockbosh.Info().RespondsWithSufficientVersionForLifecycleErrands(boshDirector.UAAURL),
+		mockbosh.Info().RespondsWithSufficientVersionForLifecycleErrands(boshDirector.UAAURL),
+	)
+	return startBroker(conf)
+}
+
+func startBrokerWithPassingStartupChecks(
+	conf config.Config,
+	cfAPI *mockhttp.Server,
+	boshDirector *mockbosh.MockBOSH,
+) *gexec.Session {
+	cfAPI.VerifyAndMock(
+		mockcfapi.GetInfo().RespondsWithSufficientAPIVersion(),
+		mockcfapi.ListServiceOfferings().RespondsWithNoServiceOfferings(),
+	)
+	boshDirector.VerifyAndMock(
+		mockbosh.Info().RespondsWithSufficientVersionForLifecycleErrands(boshDirector.UAAURL),
+		mockbosh.Info().RespondsWithSufficientVersionForLifecycleErrands(boshDirector.UAAURL),
+	)
+	return startBroker(conf)
+}
+
 func startBasicBrokerWithPassingStartupChecks(
 	conf config.Config,
 	cfAPI *mockhttp.Server,
@@ -230,6 +262,25 @@ func provisionInstance(instanceID, planID string, arbitraryParams map[string]int
 	return instance
 }
 
+func provisionInstanceSynchronously(instanceID, planID string, arbitraryParams map[string]interface{}) *http.Response {
+	instance, err := provisionInstanceWithAsyncFlag(instanceID, planID, arbitraryParams, false)
+	Expect(err).NotTo(HaveOccurred())
+	return instance
+}
+
+func deprovisionInstance(instanceID string, planID string, serviceID string, asyncAllowed bool) *http.Response {
+	deprovisionReq, err := http.NewRequest(
+		"DELETE",
+		fmt.Sprintf("http://localhost:%d/v2/service_instances/%s?accepts_incomplete=%t&plan_id=%s&service_id=%s",
+			brokerPort, instanceID, asyncAllowed, planID, serviceID), bytes.NewReader([]byte{}))
+	Expect(err).ToNot(HaveOccurred())
+	deprovisionReq = basicAuthBrokerRequest(deprovisionReq)
+	deprovisionReq.Header.Set("X-Broker-API-Version", "2.13")
+	deprovisionResponse, err := http.DefaultClient.Do(deprovisionReq)
+	Expect(err).ToNot(HaveOccurred())
+	return deprovisionResponse
+}
+
 func provisionInstanceWithAsyncFlag(instanceID, planID string, arbitraryParams map[string]interface{}, async bool) (*http.Response, error) {
 	reqBody := map[string]interface{}{
 		"plan_id":           planID,
@@ -259,6 +310,25 @@ func provisionInstanceWithAsyncFlag(instanceID, planID string, arbitraryParams m
 	provisionReq = basicAuthBrokerRequest(provisionReq)
 
 	return http.DefaultClient.Do(provisionReq)
+}
+
+func lastOperationForInstance(instanceID string, operationData broker.OperationData) *http.Response {
+	lastOperationURL := fmt.Sprintf("http://localhost:%d/v2/service_instances/%s/last_operation", brokerPort, instanceID)
+	if operationData.PlanID != "" {
+		operationDataBytes, err := json.Marshal(operationData)
+		Expect(err).NotTo(HaveOccurred())
+		lastOperationURL = fmt.Sprintf("%s?operation=%s", lastOperationURL, url.QueryEscape(string(operationDataBytes)))
+	}
+	req, err := http.NewRequest(
+		"GET",
+		lastOperationURL,
+		nil,
+	)
+	Expect(err).NotTo(HaveOccurred())
+	req = basicAuthBrokerRequest(req)
+	lastOperationResponse, err := http.DefaultClient.Do(req)
+	Expect(err).NotTo(HaveOccurred())
+	return lastOperationResponse
 }
 
 func defaultBrokerConfig(boshURL, uaaURL, cfURL, cfUAAURL string) config.Config {
@@ -421,6 +491,26 @@ func rawManifestWithDeploymentName(instanceID string) string {
 	return "name: " + deploymentName(instanceID)
 }
 
+func rawManifestInvalidReleaseVersion(instanceID string) string {
+	return fmt.Sprintf(`name: %s
+releases:
+  - name: something
+    version: latest
+`, deploymentName(instanceID))
+}
+
+func rawManifestInvalidStemcellVersion(instanceID string) string {
+	return fmt.Sprintf(`name: %s
+stemcells:
+  - name: something
+    version: latest
+`, deploymentName(instanceID))
+}
+
+func rawManifestFromBoshManifest(manifest bosh.BoshManifest) string {
+	return string(toYaml(manifest))
+}
+
 func listCFServiceOfferingsResponse(serviceOfferingID, ccServiceOfferingGUID string) string {
 	return `{
 		"next_url": null,
@@ -441,8 +531,55 @@ func listCFServiceInstanceCountForPlanResponse(count int) string {
 }`
 }
 
+func getServiceInstanceResponse(ccServicePlanGUID, lastOperationState string) string {
+	return `{
+	   "entity": {
+	      "service_plan_url": "/v2/service_plans/` + ccServicePlanGUID + `",
+				"last_operation": {
+				  "state": "` + lastOperationState + `"
+			  }
+	   }
+	}
+`
+}
+
+func getServicePlanResponse(planID string) string {
+	return `{
+	   "entity": {
+	      "unique_id": "` + planID + `"
+	   }
+	}
+`
+}
+
 func booleanPointer(val bool) *bool {
 	return &val
+}
+
+func readJSONResponse(reader io.ReadCloser) map[string]string {
+	response := make(map[string]string)
+	defer reader.Close()
+	Expect(json.NewDecoder(reader).Decode(&response)).To(Succeed())
+	return response
+}
+
+func logRegexpStringWithRequestIDCapture(message string) string {
+	return fmt.Sprintf(`\[on-demand-service-broker\] \[([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\] \d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}\.\d{6} %s`, message)
+}
+
+func logRegexpString(requestID, message string) string {
+	return fmt.Sprintf(`\[on-demand-service-broker\] \[%s\] \d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}\.\d{6} %s`, requestID, message)
+}
+
+func firstMatchInOutput(session *gexec.Session, regexpString string) string {
+	logs := string(session.Buffer().Contents())
+	return regexp.MustCompile(regexpString).FindStringSubmatch(logs)[1]
+}
+
+func toYaml(obj interface{}) []byte {
+	data, err := yaml.Marshal(obj)
+	Expect(err).NotTo(HaveOccurred())
+	return data
 }
 
 func pathToSSLCerts(filename string) string {

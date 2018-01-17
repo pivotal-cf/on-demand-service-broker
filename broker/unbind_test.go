@@ -147,11 +147,11 @@ var _ = Describe("Unbind", func() {
 
 	Context("when bosh client returns a request error", func() {
 		BeforeEach(func() {
-			boshClient.GetInfoReturns(boshdirector.Info{}, boshdirector.NewRequestError(errors.New("bosh down.")))
+			boshClient.VMsReturns(nil, boshdirector.NewRequestError(errors.New("bosh down.")))
 		})
 
 		It("logs the error", func() {
-			Expect(logBuffer.String()).To(ContainSubstring("error: could not get director info: bosh down."))
+			Expect(logBuffer.String()).To(ContainSubstring("error: could not get deployment info: bosh down."))
 		})
 
 		It("returns the try again later error for the user", func() {
@@ -171,7 +171,7 @@ var _ = Describe("Unbind", func() {
 
 	Context("when cannot find the instance", func() {
 		BeforeEach(func() {
-			boshClient.GetDeploymentReturns(nil, false, nil)
+			boshClient.VMsReturns(bosh.BoshVMs{}, boshdirector.DeploymentNotFoundError{})
 		})
 
 		It("returns an error", func() {

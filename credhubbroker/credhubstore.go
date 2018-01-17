@@ -24,13 +24,13 @@ func NewCredHubStore(APIURL string, options ...credhub.Option) (*CredHubStore, e
 	return credhubStore, nil
 }
 
-func (c *CredHubStore) Set(key string, value interface{}) error {
+func (credHubStore *CredHubStore) Set(key string, value interface{}) error {
 	var err error
 	switch credValue := value.(type) {
 	case map[string]interface{}:
-		_, err = c.credhubClient.SetJSON(key, values.JSON(credValue), credhub.Mode("no-overwrite"))
+		_, err = credHubStore.credhubClient.SetJSON(key, values.JSON(credValue), credhub.Mode("no-overwrite"))
 	case string:
-		_, err = c.credhubClient.SetValue(key, values.Value(credValue), credhub.Mode("no-overwrite"))
+		_, err = credHubStore.credhubClient.SetValue(key, values.Value(credValue), credhub.Mode("no-overwrite"))
 	default:
 		return errors.New("Unknown credential type")
 	}
@@ -41,12 +41,12 @@ func (c *CredHubStore) AddPermissions(name string, permissions []permissions.Per
 	return c.credhubClient.AddPermissions(name, permissions)
 }
 
-func (c *CredHubStore) Delete(key string) error {
-	return c.credhubClient.Delete(key)
+func (credHubStore *CredHubStore) Delete(key string) error {
+	return credHubStore.credhubClient.Delete(key)
 }
 
-func (c *CredHubStore) Authenticate() error {
-	oauth, ok := c.credhubClient.Auth.(*auth.OAuthStrategy)
+func (credhubStore *CredHubStore) Authenticate() error {
+	oauth, ok := credhubStore.credhubClient.Auth.(*auth.OAuthStrategy)
 	if !ok {
 		return errors.New("Invalid UAA configuration")
 	}

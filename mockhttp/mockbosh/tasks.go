@@ -19,15 +19,16 @@ type tasksMock struct {
 
 func Tasks(deploymentName string) *tasksMock {
 	return &tasksMock{
-		Handler: mockhttp.NewMockedHttpRequest("GET", fmt.Sprintf("/tasks?deployment=%s&limit=2147483647&verbose=1", deploymentName)),
+		Handler: mockhttp.NewMockedHttpRequest("GET", fmt.Sprintf("/tasks?deployment=%s", deploymentName)),
 	}
 }
 
-func TasksWithLimit(deploymentName string, limit int) *tasksMock {
+func TasksByContext(deploymentName, contextID string) *tasksMock {
 	return &tasksMock{
-		Handler: mockhttp.NewMockedHttpRequest("GET", fmt.Sprintf("/tasks?deployment=%s&limit=%d&verbose=1", deploymentName, limit)),
+		Handler: mockhttp.NewMockedHttpRequest("GET", fmt.Sprintf("/tasks?deployment=%s&context_id=%s", deploymentName, contextID)),
 	}
 }
+
 func (t *tasksMock) RespondsWithNoTasks() *mockhttp.Handler {
 	return t.RespondsOKWithJSON([]boshdirector.BoshTask{})
 }

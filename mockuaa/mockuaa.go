@@ -21,7 +21,7 @@ const (
 	UnauthorizedErrorDescription = "you are not authorized to perform this action"
 	MalformedResponseUser        = "MalformedResponse"
 	InternalServerErrorUser      = "InternalServerError"
-	InternalServerErrorMessage   = "An unexpected error occurred. Please try again later."
+	InternalServerErrorMessage   = "An unexpected error occured. Please try again later."
 )
 
 type ClientCredentialsServer struct {
@@ -127,7 +127,7 @@ func validateRequest(req *http.Request, grantType string) {
 func handleMalformedResponse(validitySecondsToReturn int) (int, map[string]interface{}) {
 	status := http.StatusOK
 	response := map[string]interface{}{
-		"token_type": "Bearer",
+		"token_type": "bearer",
 		"expires_in": validitySecondsToReturn,
 		"scope":      "bosh.admin",
 		"jti":        "some-random-uuid",
@@ -146,7 +146,7 @@ func handleAuthorised(tokenToReturn string, validitySecondsToReturn int) (int, m
 	status := http.StatusOK
 	response := map[string]interface{}{
 		"access_token": tokenToReturn,
-		"token_type":   "Bearer",
+		"token_type":   "bearer",
 		"expires_in":   validitySecondsToReturn,
 		"scope":        "bosh.admin",
 		"jti":          "some-random-uuid",
