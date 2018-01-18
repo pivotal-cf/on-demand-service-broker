@@ -6,16 +6,12 @@
 
 package mockbosh
 
-import "github.com/pivotal-cf/on-demand-service-broker/mockhttp"
+import (
+	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
+)
 
 type deleteDeployMock struct {
 	*mockhttp.Handler
-}
-
-func DeleteDeployment(deploymentName string) *deleteDeployMock {
-	return &deleteDeployMock{
-		Handler: mockhttp.NewMockedHttpRequest("DELETE", "/deployments/"+deploymentName),
-	}
 }
 
 func (d *deleteDeployMock) WithoutContextID() *deleteDeployMock {

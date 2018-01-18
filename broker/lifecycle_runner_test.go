@@ -159,7 +159,7 @@ var _ = Describe("Lifecycle runner", func() {
 
 					It("runs the post-deploy errand set in the operation data", func() {
 						Expect(boshClient.RunErrandCallCount()).To(Equal(1))
-						name, expectedErrand, expectedErrandInstances, context, _ := boshClient.RunErrandArgsForCall(0)
+						name, expectedErrand, expectedErrandInstances, context, _, _ := boshClient.RunErrandArgsForCall(0)
 						Expect(name).To(Equal(deploymentName))
 						Expect(expectedErrand).To(Equal(errand1))
 						Expect(expectedErrandInstances).To(Equal(errandInstances))
@@ -183,7 +183,7 @@ var _ = Describe("Lifecycle runner", func() {
 						})
 						It("uses the config to determine which errand to run", func() {
 							Expect(boshClient.RunErrandCallCount()).To(Equal(1))
-							name, expectedErrand, expectedErrandInstances, context, _ := boshClient.RunErrandArgsForCall(0)
+							name, expectedErrand, expectedErrandInstances, context, _, _ := boshClient.RunErrandArgsForCall(0)
 							Expect(name).To(Equal(deploymentName))
 							Expect(expectedErrand).To(Equal(errand1))
 							Expect(expectedErrandInstances).To(Equal(errandInstances))
@@ -204,17 +204,17 @@ var _ = Describe("Lifecycle runner", func() {
 					})
 
 					It("runs the correct errand", func() {
-						_, errandName, _, _, _ := boshClient.RunErrandArgsForCall(0)
+						_, errandName, _, _, _, _ := boshClient.RunErrandArgsForCall(0)
 						Expect(errandName).To(Equal(errand1))
 					})
 
 					It("runs the errand with the correct contextID", func() {
-						_, _, _, ctxID, _ := boshClient.RunErrandArgsForCall(0)
+						_, _, _, ctxID, _, _ := boshClient.RunErrandArgsForCall(0)
 						Expect(ctxID).To(Equal(contextID))
 					})
 
 					It("runs the errand with the correct errandInstances", func() {
-						_, _, expectedErrandInstances, _, _ := boshClient.RunErrandArgsForCall(0)
+						_, _, expectedErrandInstances, _, _, _ := boshClient.RunErrandArgsForCall(0)
 						Expect(expectedErrandInstances).To(Equal(errandInstances))
 					})
 
@@ -325,14 +325,14 @@ var _ = Describe("Lifecycle runner", func() {
 		})
 
 		Context("when operation data has no context id", func() {
-			operationData := broker.OperationData{BoshTaskID: taskProcessing.ID, OperationType: broker.OperationTypeCreate}
+			operationDataWithoutContextID := broker.OperationData{BoshTaskID: taskProcessing.ID, OperationType: broker.OperationTypeCreate}
 
 			BeforeEach(func() {
 				boshClient.GetTaskReturns(taskProcessing, nil)
 			})
 
 			It("calls get tasks with the correct id", func() {
-				deployRunner.GetTask(deploymentName, operationData, logger)
+				deployRunner.GetTask(deploymentName, operationDataWithoutContextID, logger)
 
 				Expect(boshClient.GetTaskCallCount()).To(Equal(1))
 				actualTaskID, _ := boshClient.GetTaskArgsForCall(0)
@@ -340,13 +340,13 @@ var _ = Describe("Lifecycle runner", func() {
 			})
 
 			It("returns the processing task", func() {
-				task, _ := deployRunner.GetTask(deploymentName, operationData, logger)
+				task, _ := deployRunner.GetTask(deploymentName, operationDataWithoutContextID, logger)
 
 				Expect(task).To(Equal(taskProcessing))
 			})
 
 			It("does not error", func() {
-				_, err := deployRunner.GetTask(deploymentName, operationData, logger)
+				_, err := deployRunner.GetTask(deploymentName, operationDataWithoutContextID, logger)
 
 				Expect(err).ToNot(HaveOccurred())
 			})
@@ -357,7 +357,7 @@ var _ = Describe("Lifecycle runner", func() {
 				})
 
 				It("returns the error", func() {
-					_, err := deployRunner.GetTask(deploymentName, operationData, logger)
+					_, err := deployRunner.GetTask(deploymentName, operationDataWithoutContextID, logger)
 
 					Expect(err).To(MatchError("error getting tasks"))
 				})
@@ -440,12 +440,12 @@ var _ = Describe("Lifecycle runner", func() {
 			})
 
 			It("deletes the correct deployment", func() {
-				deletedDeploymentName, _, _ := boshClient.DeleteDeploymentArgsForCall(0)
+				deletedDeploymentName, _, _, _ := boshClient.DeleteDeploymentArgsForCall(0)
 				Expect(deletedDeploymentName).To(Equal(deploymentName))
 			})
 
 			It("runs the delete deployment with the correct contextID", func() {
-				_, ctxID, _ := boshClient.DeleteDeploymentArgsForCall(0)
+				_, ctxID, _, _ := boshClient.DeleteDeploymentArgsForCall(0)
 				Expect(ctxID).To(Equal(contextID))
 			})
 

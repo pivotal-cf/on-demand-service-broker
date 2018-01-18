@@ -76,6 +76,7 @@ func (b *Broker) LastOperation(ctx context.Context, instanceID, operationDataRaw
 
 	lifeCycleRunner := NewLifeCycleRunner(b.boshClient, b.serviceOffering.Plans)
 
+	// if the errand isn't already running, GetTask will start it!
 	lastBoshTask, err := lifeCycleRunner.GetTask(deploymentName(instanceID), operationData, logger)
 	if err != nil {
 		return errs(NewGenericError(ctx, fmt.Errorf(

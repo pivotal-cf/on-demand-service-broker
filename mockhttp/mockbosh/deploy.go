@@ -20,17 +20,10 @@ type deployMock struct {
 
 func Deploy() *deployMock {
 	mock := &deployMock{
-		Handler: mockhttp.NewMockedHttpRequest("POST", "/deployments"),
+		Handler: mockhttp.NewMockedHttpRequest("POST", "/deployments?"),
 	}
 	mock.WithContentType("text/yaml")
 	return mock
-}
-
-func DeploysWithManifestAndRedirectsToTask(manifest bosh.BoshManifest, taskID int) *deployMock {
-	return Deploy().
-		WithManifest(manifest).
-		WithoutContextID().
-		RedirectsToTask(taskID)
 }
 
 func (d *deployMock) RedirectsToTask(taskID int) *deployMock {

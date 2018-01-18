@@ -107,7 +107,7 @@ func (s *Server) ServeHTTP(writer http.ResponseWriter, req *http.Request) {
 }
 
 func (s *Server) completedMocks() []string {
-	completedMocks := []string{}
+	var completedMocks []string
 	for i := 0; i < s.currentHandler; i++ {
 		completedMocks = append(completedMocks, "\t"+s.mockHandlers[i].Url())
 	}
@@ -115,7 +115,7 @@ func (s *Server) completedMocks() []string {
 }
 
 func (s *Server) pendingMocks() []string {
-	pendingMocks := []string{}
+	var pendingMocks []string
 	for i := s.currentHandler; i < len(s.mockHandlers); i++ {
 		pendingMocks = append(pendingMocks, "\t"+s.mockHandlers[i].Url())
 	}

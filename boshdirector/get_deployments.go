@@ -7,19 +7,25 @@
 package boshdirector
 
 import (
-	"fmt"
 	"log"
-	"net/http"
+
+	"github.com/cloudfoundry/bosh-cli/director"
+	"github.com/pkg/errors"
 )
 
 func (c *Client) GetDeployments(logger *log.Logger) ([]Deployment, error) {
 	logger.Println("getting deployments from bosh")
-
-	var deployments []Deployment
-	url := fmt.Sprintf("%s/deployments", c.url)
-	if err := c.getDataCheckingForErrors(url, http.StatusOK, &deployments, logger); err != nil {
-		return nil, err
+	d, err := c.Director(director.NewNoopTaskReporter())
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to build director")
 	}
-
+	rawDeployments, err := d.Deployments()
+	if err != nil {
+		return nil, errors.Wrap(err, "Cannot get the list of deployments")
+	}
+	deployments := make([]Deployment, len(rawDeployments))
+	for i, d := range rawDeployments {
+		deployments[i] = Deployment{Name: d.Name()}
+	}
 	return deployments, nil
 }

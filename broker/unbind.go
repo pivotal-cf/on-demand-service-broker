@@ -8,11 +8,9 @@ package broker
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/brokerapi"
-	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/brokercontext"
 )
 
@@ -31,19 +29,14 @@ func (b *Broker) Unbind(
 	ctx = brokercontext.New(ctx, string(OperationTypeUnbind), requestID, b.serviceOffering.Name, instanceID)
 	logger := b.loggerFactory.NewWithContext(ctx)
 
-	errs := func(err DisplayableError) error {
+	errs := func(err BrokerError) error {
 		logger.Println(err)
 		return err.ErrorForCFUser()
 	}
 
-	vms, manifest, err := b.getDeploymentInfo(instanceID, logger)
-	switch err.(type) {
-	case boshdirector.RequestError:
-		return errs(NewBoshRequestError("unbind", fmt.Errorf("could not get deployment info: %s", err)))
-	case boshdirector.DeploymentNotFoundError:
-		return errs(NewDisplayableError(brokerapi.ErrInstanceDoesNotExist, fmt.Errorf("error unbinding: instance %s, not found", instanceID)))
-	case error:
-		return errs(NewGenericError(ctx, fmt.Errorf("gathering unbinding info %s", err)))
+	manifest, vms, deploymentErr := b.getDeploymentInfo(instanceID, ctx, "unbind", logger)
+	if deploymentErr != nil {
+		return errs(deploymentErr)
 	}
 
 	requestParams := map[string]interface{}{
@@ -52,7 +45,7 @@ func (b *Broker) Unbind(
 	}
 
 	logger.Printf("service adapter will delete binding with ID %s for instance %s\n", bindingID, instanceID)
-	err = b.adapterClient.DeleteBinding(bindingID, vms, manifest, requestParams, logger)
+	err := b.adapterClient.DeleteBinding(bindingID, vms, manifest, requestParams, logger)
 
 	if err != nil {
 		logger.Printf("delete binding: %v\n", err)

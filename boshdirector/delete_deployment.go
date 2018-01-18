@@ -9,15 +9,31 @@ package boshdirector
 import (
 	"fmt"
 	"log"
-	"net/http"
+
+	"github.com/pkg/errors"
 )
 
-func (c *Client) DeleteDeployment(name, contextID string, logger *log.Logger) (int, error) {
+func (c *Client) DeleteDeployment(name, contextID string, logger *log.Logger, taskReporter *AsyncTaskReporter) (int, error) {
 	logger.Printf("deleting deployment %s\n", name)
-	return c.deleteAndGetTaskIDCheckingForErrors(
-		fmt.Sprintf("%s/deployments/%s", c.url, name),
-		contextID,
-		http.StatusFound,
-		logger,
-	)
+	d, err := c.Director(taskReporter)
+	if err != nil {
+		return 0, errors.Wrap(err, "Failed to build director")
+	}
+	deployment, err := d.FindDeployment(name)
+	if err != nil {
+		return 0, errors.Wrap(err, fmt.Sprintf(`BOSH error when deleting deployment "%s"`, name))
+	}
+	go func() {
+		err = deployment.Delete(false)
+		if err != nil {
+			taskReporter.Err <- errors.Wrap(err, fmt.Sprintf("Could not delete deployment %s", name))
+		}
+	}()
+
+	select {
+	case err := <-taskReporter.Err:
+		return 0, err
+	case id := <-taskReporter.Task:
+		return id, nil
+	}
 }

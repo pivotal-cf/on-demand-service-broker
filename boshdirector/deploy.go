@@ -9,16 +9,49 @@ package boshdirector
 import (
 	"fmt"
 	"log"
-	"net/http"
+
+	"github.com/cloudfoundry/bosh-cli/director"
+	"github.com/pkg/errors"
 )
 
-func (c *Client) Deploy(manifest []byte, contextID string, logger *log.Logger) (int, error) {
-	return c.postAndGetTaskIDCheckingForErrors(
-		fmt.Sprintf("%s/deployments", c.url),
-		http.StatusFound,
-		manifest,
-		"text/yaml",
-		contextID,
-		logger,
-	)
+func (c *Client) Deploy(manifest []byte, contextID string, logger *log.Logger, taskReporter *AsyncTaskReporter) (int, error) {
+	name, err := fetchName(manifest)
+	if err != nil {
+		return 0, errors.Wrap(err, fmt.Sprintf("Error fetching deployment name"))
+	}
+
+	d, err := c.Director(taskReporter)
+	if err != nil {
+		return 0, errors.Wrap(err, "Failed to build director")
+	}
+
+	deployment, err := d.WithContext(contextID).FindDeployment(name)
+	if err != nil {
+		return 0, errors.Wrap(err, fmt.Sprintf("BOSH CLI error"))
+	}
+
+	go func() {
+		err = deployment.Update(manifest, director.UpdateOpts{})
+		if err != nil {
+			taskReporter.Err <- errors.Wrapf(err, "Could not update deployment %s", name)
+		}
+	}()
+
+	select {
+	case err := <-taskReporter.Err:
+		return 0, err
+	case id := <-taskReporter.Task:
+		return id, nil
+	}
+}
+
+func fetchName(bytes []byte) (string, error) {
+	manifest, err := director.NewManifestFromBytes(bytes)
+	if err != nil {
+		return "", errors.Wrap(err, "Parsing manifest")
+	}
+	if manifest.Name == "" {
+		return "", errors.New("Cannot find name")
+	}
+	return manifest.Name, nil
 }

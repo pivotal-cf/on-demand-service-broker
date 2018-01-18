@@ -8,82 +8,78 @@ package boshdirector_test
 
 import (
 	"errors"
-	"net/http"
 
+	"github.com/cloudfoundry/bosh-cli/director"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
-	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
-	"gopkg.in/yaml.v2"
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector/fakes"
 )
 
+func getManifest() []byte {
+	return []byte(`
+---
+name: bill
+`)
+}
+
+func namelessManifest() []byte {
+	return []byte(`
+---
+`)
+}
+
 var _ = Describe("deploying a manifest", func() {
+	//const deploymentName = "some-deployment"
 	var (
-		deploymentManifest = bosh.BoshManifest{
-			Name:           "big deployment",
-			Releases:       []bosh.Release{},
-			Stemcells:      []bosh.Stemcell{},
-			InstanceGroups: []bosh.InstanceGroup{},
-		}
-		deploymentManifestBytes []byte
+		fakeDeployment    *fakes.FakeBOSHDeployment
+		manifest          []byte
+		asyncTaskReporter *boshdirector.AsyncTaskReporter
+		taskId            = 90
 	)
-
 	BeforeEach(func() {
-		var err error
-		deploymentManifestBytes, err = yaml.Marshal(deploymentManifest)
+		manifest = getManifest()
+		fakeDeployment = new(fakes.FakeBOSHDeployment)
+		fakeDirector.WithContextReturns(fakeDirector)
+		fakeDirector.FindDeploymentReturns(fakeDeployment, nil)
+		asyncTaskReporter = boshdirector.NewAsyncTaskReporter()
+		fakeDeployment.UpdateStub = func(manifest []byte, opts director.UpdateOpts) error {
+			asyncTaskReporter.TaskStarted(taskId)
+			return nil
+		}
+	})
+
+	It("succeeds", func() {
+		taskID, err := c.Deploy(manifest, "some-context-id", logger, asyncTaskReporter)
+
+		By("returning the correct task id")
 		Expect(err).NotTo(HaveOccurred())
+		Expect(taskID).To(Equal(taskId))
 	})
 
-	It("returns a BOSH task ID when there is no bosh context id", func() {
-		fakeHTTPClient.DoReturns(responseWithRedirectToTaskID(90), nil)
-		taskID, err := c.Deploy(deploymentManifestBytes, "", logger)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(taskID).To(Equal(90))
+	It("returns an error if cannot update the deployment", func() {
+		fakeDeployment.UpdateReturns(errors.New("oops"))
+		_, err := c.Deploy(manifest, "some-context-id", logger, asyncTaskReporter)
 
-		By("calling the appropriate endpoint")
-		Expect(fakeHTTPClient).To(HaveReceivedHttpRequestAtIndex(receivedHttpRequest{Path: "/deployments", Method: "POST"}, 0))
-
-		By("using authentication")
-		Expect(authHeaderBuilder.AddAuthHeaderCallCount()).To(BeNumerically(">", 0))
+		Expect(err).To(MatchError(ContainSubstring("Could not update deployment bill")))
 	})
 
-	It("returns a BOSH task ID when there is bosh context id", func() {
-		fakeHTTPClient.DoReturns(responseWithRedirectToTaskID(90), nil)
-		taskID, err := c.Deploy(deploymentManifestBytes, "some-context-id", logger)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(taskID).To(Equal(90))
+	It("returns an error if cannot fetch the deployment name from the manifest", func() {
+		_, err := c.Deploy(namelessManifest(), "some-context-id", logger, asyncTaskReporter)
 
-		By("calling the appropriate endpoint")
-		Expect(fakeHTTPClient).To(HaveReceivedHttpRequestAtIndex(receivedHttpRequest{
-			Path:   "/deployments",
-			Method: "POST",
-			Header: http.Header{
-				"X-Bosh-Context-Id": []string{"some-context-id"},
-			},
-		}, 0))
-
-		By("using authentication")
-		Expect(authHeaderBuilder.AddAuthHeaderCallCount()).To(BeNumerically(">", 0))
+		Expect(err).To(MatchError(ContainSubstring("Error fetching deployment name")))
 	})
 
-	It("returns an error when the authorization header cannot be generated", func() {
-		authHeaderBuilder.AddAuthHeaderReturns(errors.New("some-error"))
-		_, err := c.Deploy(deploymentManifestBytes, "", logger)
-		Expect(err).To(MatchError(ContainSubstring("some-error")))
+	It("returns an error if the manifest is invalid", func() {
+		_, err := c.Deploy([]byte("not-yaml"), "some-context-id", logger, asyncTaskReporter)
+
+		Expect(err).To(MatchError(ContainSubstring("Error fetching deployment name")))
 	})
 
-	It("returns an error when the BOSH director cannot be reached", func() {
-		fakeHTTPClient.DoReturns(nil, errors.New("Unexpected error"))
-		_, err := c.Deploy(deploymentManifestBytes, "", logger)
+	It("returns an error if cannot get the deployment", func() {
+		fakeDirector.FindDeploymentReturns(nil, errors.New("oops"))
+		_, err := c.Deploy(manifest, "some-context-id", logger, asyncTaskReporter)
 
-		Expect(err).To(MatchError(ContainSubstring("error reaching bosh director")))
-		Expect(err).To(BeAssignableToTypeOf(boshdirector.RequestError{}))
+		Expect(err).To(MatchError(ContainSubstring("BOSH CLI error")))
 	})
-
-	It("returns an error when the bosh director responds with an error", func() {
-		fakeHTTPClient.DoReturns(responseWithEmptyBodyAndStatus(http.StatusInternalServerError), nil)
-		_, err := c.Deploy(deploymentManifestBytes, "", logger)
-		Expect(err).To(MatchError(ContainSubstring("expected status 302, was 500")))
-	})
-
 })

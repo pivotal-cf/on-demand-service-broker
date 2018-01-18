@@ -168,14 +168,14 @@ var _ = Describe("ServiceInstanceLister", func() {
 })
 
 func response(statusCode int, body string) *http.Response {
-	url, err := url.Parse("http://example.org/some-path")
+	parsedUrl, err := url.Parse("http://example.org/some-path")
 	Expect(err).NotTo(HaveOccurred())
 	return &http.Response{
 		StatusCode: statusCode,
 		Status:     fmt.Sprintf("%d %s", statusCode, http.StatusText(statusCode)),
 		Body:       ioutil.NopCloser(strings.NewReader(body)),
 		Request: &http.Request{
-			URL: url,
+			URL: parsedUrl,
 		},
 	}
 }

@@ -4,26 +4,34 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 // Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
-package mockbosh
+package boshdirector
 
 import (
-	"fmt"
+	"encoding/json"
+	"log"
 
-	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
+	"github.com/cloudfoundry/bosh-cli/director"
 )
 
-type vmsForDeploymentMock struct {
-	*mockhttp.Handler
-	deploymentName string
+type BoshTaskOutputReporter struct {
+	Output      BoshTaskOutput
+	Logger      *log.Logger
+	outputBytes []byte
 }
 
-func VMsForDeployment(deploymentName string) *vmsForDeploymentMock {
-	return &vmsForDeploymentMock{
-		Handler:        mockhttp.NewMockedHttpRequest("GET", fmt.Sprintf("/deployments/%s/vms?format=full", deploymentName)),
-		deploymentName: deploymentName,
+func NewBoshTaskOutputReporter() director.TaskReporter {
+	return &BoshTaskOutputReporter{}
+}
+
+func (r *BoshTaskOutputReporter) TaskStarted(taskID int) {}
+
+func (r *BoshTaskOutputReporter) TaskFinished(taskID int, state string) {
+	err := json.Unmarshal(r.outputBytes, &r.Output)
+	if err != nil {
+		r.Logger.Printf("Unexpected task output: %s\n", string(r.outputBytes))
 	}
 }
 
-func (t *vmsForDeploymentMock) RedirectsToTask(taskID int) *mockhttp.Handler {
-	return t.RedirectsTo(taskURL(taskID))
+func (r *BoshTaskOutputReporter) TaskOutputChunk(taskID int, chunk []byte) {
+	r.outputBytes = append(r.outputBytes, chunk...)
 }

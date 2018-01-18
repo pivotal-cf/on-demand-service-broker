@@ -9,9 +9,12 @@ package integration_tests
 import (
 	"net/http"
 
+	"fmt"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp/mockbosh"
@@ -69,9 +72,14 @@ var _ = Describe("Basic authentication for BOSH", func() {
 				adapter.GenerateManifest().ToReturnManifest(manifestYAML)
 				runningBroker = startBasicBrokerWithPassingStartupChecks(conf, cfAPI, boshDirector)
 				boshDirector.VerifyAndMock(
-					mockbosh.GetDeployment(deploymentName("some-instance-id")).RespondsNotFoundWith(""),
+					mockbosh.Info().RespondsOKWith(`{}`),
+					mockbosh.Deployments().RespondsOKWith(fmt.Sprintf(`[{"Name": "not-the-one"}]`)),
 					mockbosh.Tasks(deploymentName("some-instance-id")).RespondsWithNoTasks(),
 					mockbosh.Deploy().RedirectsToTask(101),
+					mockbosh.Task(101).RespondsWithTaskContainingState("in progress"),
+					mockbosh.Task(101).RespondsWithTaskContainingState("done"),
+					mockbosh.TaskOutputEvent(101).RespondsWithTaskOutput([]boshdirector.BoshTaskOutput{}),
+					mockbosh.TaskOutput(101).RespondsWithTaskOutput([]boshdirector.BoshTaskOutput{}),
 				)
 				cfAPI.VerifyAndMock(
 					mockcfapi.ListServiceOfferings().RespondsOKWith(listCFServiceOfferingsResponse(serviceID, "21f13659-278c-4fa9-a3d7-7fe737e52895")),

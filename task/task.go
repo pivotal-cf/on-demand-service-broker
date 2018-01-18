@@ -20,7 +20,7 @@ import (
 
 //go:generate counterfeiter -o fakes/fake_bosh_client.go . BoshClient
 type BoshClient interface {
-	Deploy(manifest []byte, contextID string, logger *log.Logger) (int, error)
+	Deploy(manifest []byte, contextID string, logger *log.Logger, reporter *boshdirector.AsyncTaskReporter) (int, error)
 	GetTasks(deploymentName string, logger *log.Logger) (boshdirector.BoshTasks, error)
 	GetDeployment(name string, logger *log.Logger) ([]byte, bool, error)
 }
@@ -172,7 +172,7 @@ func (d deployer) doDeploy(
 		return 0, nil, err
 	}
 
-	boshTaskID, err := d.boshClient.Deploy(manifest, boshContextID, logger)
+	boshTaskID, err := d.boshClient.Deploy(manifest, boshContextID, logger, boshdirector.NewAsyncTaskReporter())
 	if err != nil {
 		return 0, nil, fmt.Errorf("error deploying instance: %s\n", err)
 	}

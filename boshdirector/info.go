@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/cloudfoundry/bosh-cli/director"
 	"github.com/pkg/errors"
 )
 
@@ -24,8 +25,12 @@ const (
 
 func (c *Client) GetInfo(logger *log.Logger) (Info, error) {
 	var boshInfo Info
+	d, err := c.Director(director.NewNoopTaskReporter())
+	if err != nil {
+		return Info{}, errors.Wrap(err, "Failed to build director")
+	}
 
-	directorInfo, err := c.director.Info()
+	directorInfo, err := d.Info()
 	if err != nil {
 		return Info{}, err
 	}

@@ -1,7 +1,9 @@
 package bosh_test
 
 import (
+	"crypto/x509"
 	"fmt"
+	"log"
 	"os"
 
 	boshdir "github.com/cloudfoundry/bosh-cli/director"
@@ -9,6 +11,10 @@ import (
 	boshlog "github.com/cloudfoundry/bosh-utils/logger"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
+	"github.com/pivotal-cf/on-demand-service-broker/config"
+	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 
 	"testing"
 )
@@ -18,56 +24,54 @@ func TestBosh(t *testing.T) {
 	RunSpecs(t, "Bosh Suite")
 }
 
-func getUAA() boshuaa.UAA {
-	logger := boshlog.NewLogger(boshlog.LevelError)
-	factory := boshuaa.NewFactory(logger)
-
-	uaaURL := envMustHave("UAA_URL")
-	config, err := boshuaa.NewConfigFromURL(uaaURL)
-	Expect(err).NotTo(HaveOccurred())
-
-	config.Client = envMustHave("UAA_CLIENT")
-	config.ClientSecret = envMustHave("UAA_SECRET")
-	config.CACert = envMustHave("UAA_CA_CERT")
-
-	uaaConf, err := factory.New(config)
-	Expect(err).NotTo(HaveOccurred())
-	return uaaConf
-}
-
 func envMustHave(key string) string {
 	value := os.Getenv(key)
 	Expect(value).ToNot(BeEmpty(), fmt.Sprintf("must set %s", key))
 	return value
 }
 
-func getDirector() boshdir.Director {
-	logger := boshlog.NewLogger(boshlog.LevelError)
-	factory := boshdir.NewFactory(logger)
+var (
+	c              *boshdirector.Client
+	logger         *log.Logger
+	stdout         *gbytes.Buffer
+	boshAuthConfig config.Authentication
+)
 
-	directorURL := envMustHave("DIRECTOR_URL")
-	config, err := boshdir.NewConfigFromURL(directorURL)
+func NewBOSHClient() *boshdirector.Client {
+	certPEM := []byte(envMustHave("DIRECTOR_CA_CERT"))
+	var err error
+
+	stdout = gbytes.NewBuffer()
+
+	factory := boshdir.NewFactory(boshlog.NewLogger(boshlog.LevelError))
+	uaaFactory := boshuaa.NewFactory(boshlog.NewLogger(boshlog.LevelError))
+
+	certPool, err := x509.SystemCertPool()
 	Expect(err).NotTo(HaveOccurred())
 
-	config.CACert = envMustHave("DIRECTOR_CA_CERT")
-	config.TokenFunc = boshuaa.NewClientTokenSession(getUAA()).TokenFunc
+	boshAuthConfig = config.Authentication{
+		UAA: config.UAAAuthentication{
+			URL: envMustHave("UAA_URL"),
+			ClientCredentials: config.ClientCredentials{
+				ID:     envMustHave("UAA_CLIENT"),
+				Secret: envMustHave("UAA_SECRET"),
+			},
+		},
+	}
 
-	director, err := factory.New(config, boshdir.NewNoopTaskReporter(), boshdir.NewNoopFileReporter())
+	loggerFactory := loggerfactory.New(stdout, "", loggerfactory.Flags)
+	logger = loggerFactory.New()
+
+	c, err = boshdirector.New(
+		envMustHave("DIRECTOR_URL"),
+		certPEM,
+		certPool,
+		factory,
+		uaaFactory,
+		boshAuthConfig,
+		logger,
+	)
 	Expect(err).NotTo(HaveOccurred())
-	return director
-}
-
-func getUnauthenticatedDirector() boshdir.Director {
-	logger := boshlog.NewLogger(boshlog.LevelError)
-	factory := boshdir.NewFactory(logger)
-
-	directorURL := envMustHave("DIRECTOR_URL")
-	config, err := boshdir.NewConfigFromURL(directorURL)
-	Expect(err).NotTo(HaveOccurred())
-
-	config.CACert = envMustHave("DIRECTOR_CA_CERT")
-
-	director, err := factory.New(config, boshdir.NewNoopTaskReporter(), boshdir.NewNoopFileReporter())
-	Expect(err).NotTo(HaveOccurred())
-	return director
+	c.PollingInterval = 0
+	return c
 }

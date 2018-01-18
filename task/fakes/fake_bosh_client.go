@@ -10,12 +10,13 @@ import (
 )
 
 type FakeBoshClient struct {
-	DeployStub        func(manifest []byte, contextID string, logger *log.Logger) (int, error)
+	DeployStub        func(manifest []byte, contextID string, logger *log.Logger, reporter *boshdirector.AsyncTaskReporter) (int, error)
 	deployMutex       sync.RWMutex
 	deployArgsForCall []struct {
 		manifest  []byte
 		contextID string
 		logger    *log.Logger
+		reporter  *boshdirector.AsyncTaskReporter
 	}
 	deployReturns struct {
 		result1 int
@@ -59,7 +60,7 @@ type FakeBoshClient struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeBoshClient) Deploy(manifest []byte, contextID string, logger *log.Logger) (int, error) {
+func (fake *FakeBoshClient) Deploy(manifest []byte, contextID string, logger *log.Logger, reporter *boshdirector.AsyncTaskReporter) (int, error) {
 	var manifestCopy []byte
 	if manifest != nil {
 		manifestCopy = make([]byte, len(manifest))
@@ -71,11 +72,12 @@ func (fake *FakeBoshClient) Deploy(manifest []byte, contextID string, logger *lo
 		manifest  []byte
 		contextID string
 		logger    *log.Logger
-	}{manifestCopy, contextID, logger})
-	fake.recordInvocation("Deploy", []interface{}{manifestCopy, contextID, logger})
+		reporter  *boshdirector.AsyncTaskReporter
+	}{manifestCopy, contextID, logger, reporter})
+	fake.recordInvocation("Deploy", []interface{}{manifestCopy, contextID, logger, reporter})
 	fake.deployMutex.Unlock()
 	if fake.DeployStub != nil {
-		return fake.DeployStub(manifest, contextID, logger)
+		return fake.DeployStub(manifest, contextID, logger, reporter)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -89,10 +91,10 @@ func (fake *FakeBoshClient) DeployCallCount() int {
 	return len(fake.deployArgsForCall)
 }
 
-func (fake *FakeBoshClient) DeployArgsForCall(i int) ([]byte, string, *log.Logger) {
+func (fake *FakeBoshClient) DeployArgsForCall(i int) ([]byte, string, *log.Logger, *boshdirector.AsyncTaskReporter) {
 	fake.deployMutex.RLock()
 	defer fake.deployMutex.RUnlock()
-	return fake.deployArgsForCall[i].manifest, fake.deployArgsForCall[i].contextID, fake.deployArgsForCall[i].logger
+	return fake.deployArgsForCall[i].manifest, fake.deployArgsForCall[i].contextID, fake.deployArgsForCall[i].logger, fake.deployArgsForCall[i].reporter
 }
 
 func (fake *FakeBoshClient) DeployReturns(result1 int, result2 error) {

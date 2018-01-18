@@ -7,25 +7,29 @@
 package boshdirector
 
 import (
-	"fmt"
 	"log"
-	"net/http"
+
+	"github.com/cloudfoundry/bosh-cli/director"
+	"github.com/pkg/errors"
 )
 
 func (c *Client) GetTask(taskID int, logger *log.Logger) (BoshTask, error) {
 	logger.Printf("getting task %d from bosh\n", taskID)
-	var getTaskResponse BoshTask
-
-	if err := c.getDataCheckingForErrors(
-		fmt.Sprintf("%s/tasks/%d", c.url, taskID),
-		http.StatusOK,
-		&getTaskResponse,
-		logger,
-	); err != nil {
-		return BoshTask{}, err
+	d, err := c.Director(director.NewNoopTaskReporter())
+	if err != nil {
+		return BoshTask{}, errors.Wrap(err, "Failed to build director")
 	}
-
-	return getTaskResponse, nil
+	task, err := d.FindTask(taskID)
+	if err != nil {
+		return BoshTask{}, errors.Wrapf(err, "Cannot find task with ID: %d", taskID)
+	}
+	return BoshTask{
+		ID:          task.ID(),
+		State:       task.State(),
+		Description: task.Description(),
+		Result:      task.Result(),
+		ContextID:   task.ContextID(),
+	}, nil
 }
 
 type BoshTaskOutput struct {
@@ -34,24 +38,20 @@ type BoshTaskOutput struct {
 	StdErr   string `json:"stderr"`
 }
 
-func (c *Client) GetTaskOutput(taskID int, logger *log.Logger) ([]BoshTaskOutput, error) {
+func (c *Client) GetTaskOutput(taskID int, logger *log.Logger) (BoshTaskOutput, error) {
 	logger.Printf("getting task output for task %d from bosh\n", taskID)
-	outputs := []BoshTaskOutput{}
-	var output BoshTaskOutput
-	outputReadyCallback := func() {
-		outputs = append(outputs, output)
-		output = BoshTaskOutput{}
-		// `output` is reused for JSON decoding, so use a fresh struct;
-		// else you will override your previous values with the current one
+	d, err := c.Director(director.NewNoopTaskReporter())
+	if err != nil {
+		return BoshTaskOutput{}, errors.Wrap(err, "Failed to build director")
+	}
+	task, err := d.FindTask(taskID)
+	if err != nil {
+		return BoshTaskOutput{}, errors.Wrapf(err, "Could not fetch task with id %d", taskID)
 	}
 
-	err := c.getMultipleDataCheckingForErrors(
-		fmt.Sprintf("%s/tasks/%d/output?type=result", c.url, taskID),
-		http.StatusOK,
-		&output,
-		outputReadyCallback,
-		logger,
-	)
+	reporter := &BoshTaskOutputReporter{Logger: logger}
+	err = task.ResultOutput(reporter)
 
-	return outputs, err
+	return reporter.Output, errors.Wrap(err, "Could not fetch task output")
+
 }
