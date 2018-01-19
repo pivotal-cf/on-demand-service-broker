@@ -19,6 +19,17 @@ func (c *Client) DeleteDeployment(name, contextID string, logger *log.Logger, ta
 	if err != nil {
 		return 0, errors.Wrap(err, "Failed to build director")
 	}
+
+	_, found, err := c.GetDeployment(name, logger)
+	if err != nil {
+		return 0, errors.Wrap(err, fmt.Sprintf(`BOSH error when deleting deployment "%s"`, name))
+	}
+	if !found {
+		taskReporter.TaskStarted(0)
+		taskReporter.TaskFinished(0, "done")
+		return 0, nil
+	}
+
 	deployment, err := d.FindDeployment(name)
 	if err != nil {
 		return 0, errors.Wrap(err, fmt.Sprintf(`BOSH error when deleting deployment "%s"`, name))

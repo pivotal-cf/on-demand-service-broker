@@ -9,6 +9,7 @@ package boshdirector_test
 import (
 	"errors"
 
+	"github.com/cloudfoundry/bosh-cli/director"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
@@ -25,6 +26,8 @@ var _ = Describe("deleting bosh deployments", func() {
 
 	BeforeEach(func() {
 		fakeDeployment = new(fakes.FakeBOSHDeployment)
+		fakeDeployment.NameReturns(deploymentName)
+		fakeDirector.DeploymentsReturns([]director.Deployment{fakeDeployment}, nil)
 		fakeDirector.FindDeploymentReturns(fakeDeployment, nil)
 		taskReporter = boshdirector.NewAsyncTaskReporter()
 		fakeDeployment.DeleteStub = func(force bool) error {
@@ -40,11 +43,29 @@ var _ = Describe("deleting bosh deployments", func() {
 		Expect(taskID).To(Equal(taskId))
 	})
 
-	It("returns an error when cannot find the deployment", func() {
+	It("returns an error when the FindDeployment errors", func() {
 		fakeDirector.FindDeploymentReturns(new(fakes.FakeBOSHDeployment), errors.New("oops"))
 		_, deleteErr := c.DeleteDeployment(deploymentName, "delete-some-deployment", logger, taskReporter)
 
 		Expect(deleteErr).To(MatchError(ContainSubstring(`BOSH error when deleting deployment "some-deployment"`)))
+	})
+
+	It("returns an error when the GetDeployment errors", func() {
+		fakeDirector.DeploymentsReturns(nil, errors.New("oops"))
+		_, deleteErr := c.DeleteDeployment(deploymentName, "delete-some-deployment", logger, taskReporter)
+
+		Expect(deleteErr).To(MatchError(ContainSubstring(`BOSH error when deleting deployment "some-deployment"`)))
+	})
+
+	It("reports task started and task finished when the deployment doesn't exist", func() {
+		fakeDirector.DeploymentsReturns([]director.Deployment{}, nil)
+		taskID, deleteErr := c.DeleteDeployment(deploymentName, "delete-some-deployment", logger, taskReporter)
+
+		Expect(taskID).To(Equal(0))
+		Expect(deleteErr).NotTo(HaveOccurred())
+
+		Eventually(taskReporter.Task).Should(Receive())
+		Eventually(taskReporter.Finished).Should(Receive())
 	})
 
 	It("returns an error when cannot delete the deployment", func() {

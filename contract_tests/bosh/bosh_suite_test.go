@@ -75,3 +75,42 @@ func NewBOSHClient() *boshdirector.Client {
 	c.PollingInterval = 0
 	return c
 }
+
+func NewBOSHClientWithBadCredentials() *boshdirector.Client {
+	certPEM := []byte(envMustHave("DIRECTOR_CA_CERT"))
+	var err error
+
+	stdout = gbytes.NewBuffer()
+
+	factory := boshdir.NewFactory(boshlog.NewLogger(boshlog.LevelError))
+	uaaFactory := boshuaa.NewFactory(boshlog.NewLogger(boshlog.LevelError))
+
+	certPool, err := x509.SystemCertPool()
+	Expect(err).NotTo(HaveOccurred())
+
+	boshAuthConfig = config.Authentication{
+		UAA: config.UAAAuthentication{
+			URL: envMustHave("UAA_URL"),
+			ClientCredentials: config.ClientCredentials{
+				ID:     "foo",
+				Secret: "bar",
+			},
+		},
+	}
+
+	loggerFactory := loggerfactory.New(stdout, "", loggerfactory.Flags)
+	logger = loggerFactory.New()
+
+	c, err = boshdirector.New(
+		envMustHave("DIRECTOR_URL"),
+		certPEM,
+		certPool,
+		factory,
+		uaaFactory,
+		boshAuthConfig,
+		logger,
+	)
+	Expect(err).NotTo(HaveOccurred())
+	c.PollingInterval = 0
+	return c
+}
