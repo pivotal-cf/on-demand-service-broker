@@ -22,5 +22,6 @@ ginkgo \
   -keepGoing=true \
   -r \
   -cover \
+  -trace \
   -skipPackage "${skippackages}" \
   "$@"

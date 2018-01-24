@@ -8,7 +8,6 @@ package boshdirector_test
 
 import (
 	"errors"
-	"time"
 
 	"github.com/cloudfoundry/bosh-cli/director"
 	. "github.com/onsi/ginkgo"
@@ -25,8 +24,6 @@ var _ = Describe("running errands", func() {
 		fakeDeployment *fakes.FakeBOSHDeployment
 		taskReporter   *boshdirector.AsyncTaskReporter
 		taskId         = 5
-		startTime      time.Time
-		endTime        time.Time
 	)
 
 	BeforeEach(func() {
@@ -39,6 +36,7 @@ var _ = Describe("running errands", func() {
 			return []director.ErrandResult{}, nil
 		}
 
+		fakeDirector.WithContextReturns(fakeDirector)
 		fakeDirector.FindDeploymentReturns(fakeDeployment, nil)
 	})
 
@@ -54,26 +52,6 @@ var _ = Describe("running errands", func() {
 		Expect(keepAlive).To(BeFalse())
 		Expect(whenChanged).To(BeFalse())
 		Expect(instances).To(BeNil())
-	})
-
-	It("blocks until the errand is finished", func() {
-		fakeDeployment.RunErrandStub = func(errandName string, a, b bool, instances []director.InstanceGroupOrInstanceSlug) ([]director.ErrandResult, error) {
-			taskReporter.TaskStarted(taskId)
-
-			time.Sleep(100 * time.Millisecond)
-
-			taskReporter.TaskFinished(taskId, "done")
-			return []director.ErrandResult{}, nil
-		}
-
-		startTime = time.Now()
-		actualTaskID, actualErr := c.RunErrand(deploymentName, errandName, nil, contextID, logger, taskReporter)
-		endTime = time.Now()
-
-		Expect(actualTaskID).To(Equal(taskId))
-		Expect(actualErr).NotTo(HaveOccurred())
-		Expect(endTime.Sub(startTime)).To(BeNumerically(">", time.Millisecond*100))
-
 	})
 
 	It("invokes BOSH to queue up an errand with instances with group and ID when a specific instance is configured", func() {
