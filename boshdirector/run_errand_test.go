@@ -32,7 +32,6 @@ var _ = Describe("running errands", func() {
 		fakeDeployment = new(fakes.FakeBOSHDeployment)
 		fakeDeployment.RunErrandStub = func(errandName string, a, b bool, instances []director.InstanceGroupOrInstanceSlug) ([]director.ErrandResult, error) {
 			taskReporter.TaskStarted(taskId)
-			taskReporter.TaskFinished(taskId, "done")
 			return []director.ErrandResult{}, nil
 		}
 
