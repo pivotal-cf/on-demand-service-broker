@@ -46,7 +46,7 @@ func (ll LoggingListener) InstancesToUpgrade(instances []service.Instance) {
 	ll.logger.Printf("Total Service Instances found in Cloud Foundry: %d\n", len(instances))
 }
 
-func (ll LoggingListener) InstanceUpgradeStarting(instance string, index int32, totalInstances int) {
+func (ll LoggingListener) InstanceUpgradeStarting(instance string, index, totalInstances int) {
 	ll.logger.Printf("[%s] Starting to upgrade service instance %d of %d", instance, index+1, totalInstances)
 }
 
@@ -77,7 +77,7 @@ func (ll LoggingListener) WaitingFor(instance string, boshTaskId int) {
 	ll.logger.Printf("[%s] Waiting for upgrade to complete: bosh task id %d", instance, boshTaskId)
 }
 
-func (ll LoggingListener) Progress(pollingInterval time.Duration, orphanCount, upgradedCount int32, toRetryCount int, deletedCount int32) {
+func (ll LoggingListener) Progress(pollingInterval time.Duration, orphanCount, upgradedCount, toRetryCount, deletedCount int) {
 	ll.logger.Printf("Upgrade progress summary: "+
 		"Sleep interval until next attempt: %s; "+
 		"Number of successful upgrades so far: %d; "+
@@ -92,7 +92,7 @@ func (ll LoggingListener) Progress(pollingInterval time.Duration, orphanCount, u
 	)
 }
 
-func (ll LoggingListener) Finished(orphanCount, upgradedCount, deletedCount int32, couldNotStartCount int) {
+func (ll LoggingListener) Finished(orphanCount, upgradedCount, deletedCount, couldNotStartCount int) {
 	ll.logger.Printf("FINISHED UPGRADES Summary: "+
 		"Number of successful upgrades: %d; "+
 		"Number of CF service instance orphans detected: %d; "+

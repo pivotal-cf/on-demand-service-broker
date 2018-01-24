@@ -27,11 +27,11 @@ type FakeListener struct {
 	instancesToUpgradeArgsForCall []struct {
 		instances []service.Instance
 	}
-	InstanceUpgradeStartingStub        func(instance string, index int32, totalInstances int)
+	InstanceUpgradeStartingStub        func(instance string, index int, totalInstances int)
 	instanceUpgradeStartingMutex       sync.RWMutex
 	instanceUpgradeStartingArgsForCall []struct {
 		instance       string
-		index          int32
+		index          int
 		totalInstances int
 	}
 	InstanceUpgradeStartResultStub        func(instance string, status services.UpgradeOperationType)
@@ -52,21 +52,21 @@ type FakeListener struct {
 		instance   string
 		boshTaskId int
 	}
-	ProgressStub        func(pollingInterval time.Duration, orphanCount, upgradedCount int32, upgradesLeftCount int, deletedCount int32)
+	ProgressStub        func(pollingInterval time.Duration, orphanCount, upgradedCount, upgradesLeftCount, deletedCount int)
 	progressMutex       sync.RWMutex
 	progressArgsForCall []struct {
 		pollingInterval   time.Duration
-		orphanCount       int32
-		upgradedCount     int32
+		orphanCount       int
+		upgradedCount     int
 		upgradesLeftCount int
-		deletedCount      int32
+		deletedCount      int
 	}
-	FinishedStub        func(orphanCount, upgradedCount, deletedCount int32, couldNotStartCount int)
+	FinishedStub        func(orphanCount, upgradedCount, deletedCount, couldNotStartCount int)
 	finishedMutex       sync.RWMutex
 	finishedArgsForCall []struct {
-		orphanCount        int32
-		upgradedCount      int32
-		deletedCount       int32
+		orphanCount        int
+		upgradedCount      int
+		deletedCount       int
 		couldNotStartCount int
 	}
 	CanariesStartingStub        func(canaries, maxInFlight int)
@@ -160,11 +160,11 @@ func (fake *FakeListener) InstancesToUpgradeArgsForCall(i int) []service.Instanc
 	return fake.instancesToUpgradeArgsForCall[i].instances
 }
 
-func (fake *FakeListener) InstanceUpgradeStarting(instance string, index int32, totalInstances int) {
+func (fake *FakeListener) InstanceUpgradeStarting(instance string, index int, totalInstances int) {
 	fake.instanceUpgradeStartingMutex.Lock()
 	fake.instanceUpgradeStartingArgsForCall = append(fake.instanceUpgradeStartingArgsForCall, struct {
 		instance       string
-		index          int32
+		index          int
 		totalInstances int
 	}{instance, index, totalInstances})
 	fake.recordInvocation("InstanceUpgradeStarting", []interface{}{instance, index, totalInstances})
@@ -180,7 +180,7 @@ func (fake *FakeListener) InstanceUpgradeStartingCallCount() int {
 	return len(fake.instanceUpgradeStartingArgsForCall)
 }
 
-func (fake *FakeListener) InstanceUpgradeStartingArgsForCall(i int) (string, int32, int) {
+func (fake *FakeListener) InstanceUpgradeStartingArgsForCall(i int) (string, int, int) {
 	fake.instanceUpgradeStartingMutex.RLock()
 	defer fake.instanceUpgradeStartingMutex.RUnlock()
 	return fake.instanceUpgradeStartingArgsForCall[i].instance, fake.instanceUpgradeStartingArgsForCall[i].index, fake.instanceUpgradeStartingArgsForCall[i].totalInstances
@@ -261,14 +261,14 @@ func (fake *FakeListener) WaitingForArgsForCall(i int) (string, int) {
 	return fake.waitingForArgsForCall[i].instance, fake.waitingForArgsForCall[i].boshTaskId
 }
 
-func (fake *FakeListener) Progress(pollingInterval time.Duration, orphanCount int32, upgradedCount int32, upgradesLeftCount int, deletedCount int32) {
+func (fake *FakeListener) Progress(pollingInterval time.Duration, orphanCount int, upgradedCount int, upgradesLeftCount int, deletedCount int) {
 	fake.progressMutex.Lock()
 	fake.progressArgsForCall = append(fake.progressArgsForCall, struct {
 		pollingInterval   time.Duration
-		orphanCount       int32
-		upgradedCount     int32
+		orphanCount       int
+		upgradedCount     int
 		upgradesLeftCount int
-		deletedCount      int32
+		deletedCount      int
 	}{pollingInterval, orphanCount, upgradedCount, upgradesLeftCount, deletedCount})
 	fake.recordInvocation("Progress", []interface{}{pollingInterval, orphanCount, upgradedCount, upgradesLeftCount, deletedCount})
 	fake.progressMutex.Unlock()
@@ -283,18 +283,18 @@ func (fake *FakeListener) ProgressCallCount() int {
 	return len(fake.progressArgsForCall)
 }
 
-func (fake *FakeListener) ProgressArgsForCall(i int) (time.Duration, int32, int32, int, int32) {
+func (fake *FakeListener) ProgressArgsForCall(i int) (time.Duration, int, int, int, int) {
 	fake.progressMutex.RLock()
 	defer fake.progressMutex.RUnlock()
 	return fake.progressArgsForCall[i].pollingInterval, fake.progressArgsForCall[i].orphanCount, fake.progressArgsForCall[i].upgradedCount, fake.progressArgsForCall[i].upgradesLeftCount, fake.progressArgsForCall[i].deletedCount
 }
 
-func (fake *FakeListener) Finished(orphanCount int32, upgradedCount int32, deletedCount int32, couldNotStartCount int) {
+func (fake *FakeListener) Finished(orphanCount int, upgradedCount int, deletedCount int, couldNotStartCount int) {
 	fake.finishedMutex.Lock()
 	fake.finishedArgsForCall = append(fake.finishedArgsForCall, struct {
-		orphanCount        int32
-		upgradedCount      int32
-		deletedCount       int32
+		orphanCount        int
+		upgradedCount      int
+		deletedCount       int
 		couldNotStartCount int
 	}{orphanCount, upgradedCount, deletedCount, couldNotStartCount})
 	fake.recordInvocation("Finished", []interface{}{orphanCount, upgradedCount, deletedCount, couldNotStartCount})
@@ -310,7 +310,7 @@ func (fake *FakeListener) FinishedCallCount() int {
 	return len(fake.finishedArgsForCall)
 }
 
-func (fake *FakeListener) FinishedArgsForCall(i int) (int32, int32, int32, int) {
+func (fake *FakeListener) FinishedArgsForCall(i int) (int, int, int, int) {
 	fake.finishedMutex.RLock()
 	defer fake.finishedMutex.RUnlock()
 	return fake.finishedArgsForCall[i].orphanCount, fake.finishedArgsForCall[i].upgradedCount, fake.finishedArgsForCall[i].deletedCount, fake.finishedArgsForCall[i].couldNotStartCount

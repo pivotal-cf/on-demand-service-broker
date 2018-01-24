@@ -7,17 +7,13 @@
 package upgrader
 
 import (
-	"errors"
 	"fmt"
 	"time"
 
+	"github.com/pkg/errors"
+
 	"strings"
 
-	"sync/atomic"
-
-	"sync"
-
-	multierror "github.com/hashicorp/go-multierror"
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
@@ -29,12 +25,12 @@ type Listener interface {
 	Starting(maxInFlight int)
 	RetryAttempt(num, limit int)
 	InstancesToUpgrade(instances []service.Instance)
-	InstanceUpgradeStarting(instance string, index int32, totalInstances int)
+	InstanceUpgradeStarting(instance string, index int, totalInstances int)
 	InstanceUpgradeStartResult(instance string, status services.UpgradeOperationType)
 	InstanceUpgraded(instance string, result string)
 	WaitingFor(instance string, boshTaskId int)
-	Progress(pollingInterval time.Duration, orphanCount, upgradedCount int32, upgradesLeftCount int, deletedCount int32)
-	Finished(orphanCount, upgradedCount, deletedCount int32, couldNotStartCount int)
+	Progress(pollingInterval time.Duration, orphanCount, upgradedCount, upgradesLeftCount, deletedCount int)
+	Finished(orphanCount, upgradedCount, deletedCount, couldNotStartCount int)
 	CanariesStarting(canaries, maxInFlight int)
 	CanariesFinished()
 }
@@ -55,22 +51,30 @@ type sleeper interface {
 	Sleep(d time.Duration)
 }
 
+type upgradeController struct {
+	pendingInstances    []service.Instance
+	busyInstances       []service.Instance
+	inProgress          []service.Instance
+	succeeded           int
+	orphaned            int
+	deleted             int
+	outstandingCanaries int
+	processingCanaries  bool
+
+	states map[string]services.UpgradeOperation
+	u      *Upgrader
+}
+
 type Upgrader struct {
-	brokerServices            BrokerServices
-	instanceLister            InstanceLister
-	pollingInterval           time.Duration
-	attemptInterval           time.Duration
-	attemptLimit              int
-	maxInFlight               int
-	canaries                  int
-	listener                  Listener
-	sleeper                   sleeper
-	instanceCountToUpgrade    int
-	instancesRemovedFromQueue int32
-	upgradedTotal             int32
-	orphansTotal              int32
-	deletedTotal              int32
-	startedUpgradeTotal       int32
+	brokerServices  BrokerServices
+	instanceLister  InstanceLister
+	pollingInterval time.Duration
+	attemptInterval time.Duration
+	attemptLimit    int
+	maxInFlight     int
+	canaries        int
+	listener        Listener
+	sleeper         sleeper
 }
 
 func New(builder *Builder) *Upgrader {
@@ -87,261 +91,265 @@ func New(builder *Builder) *Upgrader {
 	}
 }
 
-func (u *Upgrader) errorFromList(errorList chan error) error {
-	switch l := len(errorList); {
-	case l == 1:
-		return <-errorList
-	case l > 1:
-		close(errorList)
-		var err error
-		for e := range errorList {
-			err = multierror.Append(err, e)
-		}
-		return errors.New(err.Error())
-	default:
-		return nil
-	}
-}
-
-func (u *Upgrader) upgrade(instancesToUpgrade chan service.Instance, stopWorkers chan interface{}, errorList chan error, maxInstancesToUpgrade int, maxInParallel int, isCanaryRun bool) (chan service.Instance, error) {
-	attempt := 1
-	reportAttempt := true
-	remainingInstancesToUpgrade := maxInstancesToUpgrade
-	for remainingInstancesToUpgrade > 0 && len(instancesToUpgrade) > 0 {
-		var successfulUpgradeCount int32
-		if attempt > u.attemptLimit {
-			break
-		}
-
-		u.instanceCountToUpgrade = remainingInstancesToUpgrade
-
-		u.startedUpgradeTotal = 0
-		if reportAttempt {
-			u.listener.RetryAttempt(attempt, u.attemptLimit)
-		}
-		instancesToRetry := make(chan service.Instance, remainingInstancesToUpgrade)
-		var wg sync.WaitGroup
-
-		parallelWorkers := maxInParallel
-		if parallelWorkers > remainingInstancesToUpgrade {
-			parallelWorkers = remainingInstancesToUpgrade
-		}
-
-		wg.Add(parallelWorkers)
-		for i := 0; i < parallelWorkers; i++ {
-			go func() {
-				u.upgradeInstances(instancesToUpgrade, instancesToRetry, stopWorkers, errorList, &successfulUpgradeCount)
-				wg.Done()
-			}()
-		}
-		wg.Wait()
-		close(instancesToRetry)
-
-		if err := u.errorFromList(errorList); err != nil {
-			return nil, err
-		}
-
-		if isCanaryRun && int(u.upgradedTotal) == maxInstancesToUpgrade {
-			break
-		}
-
-		retryCount := 0
-		if len(instancesToRetry) > 0 {
-			retryCount = len(instancesToRetry)
-			u.sleeper.Sleep(u.attemptInterval)
-
-			mergeChan := make(chan service.Instance, len(instancesToRetry)+len(instancesToUpgrade))
-
-			for i := range instancesToUpgrade {
-				mergeChan <- i
-			}
-
-			for i := range instancesToRetry {
-				mergeChan <- i
-			}
-
-			close(mergeChan)
-			instancesToUpgrade = mergeChan
-		}
-		remainingInstancesToUpgrade -= int(successfulUpgradeCount)
-
-		u.listener.Progress(u.attemptInterval, u.orphansTotal, u.upgradedTotal, retryCount, u.deletedTotal)
-		if retryCount > 0 {
-			attempt++
-			reportAttempt = true
-		} else {
-			reportAttempt = false
-		}
-	}
-
-	if u.upgradedTotal < int32(u.canaries) {
-		return nil, fmt.Errorf("attempted to upgrade %d canaries, but only found %d instances not already in use by another BOSH task.\n", u.canaries, atomic.LoadInt32(&u.upgradedTotal))
-	}
-
-	return instancesToUpgrade, nil
-}
-
-func (u *Upgrader) upgradeAll(instancesToUpgrade chan service.Instance, stopWorkers chan interface{}, errorList chan error) ([]service.Instance, error) {
-	instancesToUpgrade, err := u.upgrade(instancesToUpgrade, stopWorkers, errorList, len(instancesToUpgrade), u.maxInFlight, false)
-	if err != nil {
-		return nil, err
-	}
-	var instancesNotUpgraded []service.Instance
-	for i := range instancesToUpgrade {
-		instancesNotUpgraded = append(instancesNotUpgraded, i)
-	}
-	return instancesNotUpgraded, nil
-}
-
-func (u *Upgrader) upgradeCanaries(instancesToUpgrade chan service.Instance, stopWorkers chan interface{}, errorList chan error) (chan service.Instance, error) {
-	u.listener.CanariesStarting(u.canaries, u.maxInFlight)
-	maxInParallel := u.canaries
-	if u.canaries > u.maxInFlight {
-		maxInParallel = u.maxInFlight
-	}
-	instancesToUpgrade, err := u.upgrade(instancesToUpgrade, stopWorkers, errorList, u.canaries, maxInParallel, true)
-	u.listener.CanariesFinished()
-
-	return instancesToUpgrade, err
-}
-
 func (u *Upgrader) Upgrade() error {
-	u.listener.Starting(u.maxInFlight)
-
+	u.listener.Starting(1)
 	instances, err := u.instanceLister.Instances()
 	if err != nil {
 		return fmt.Errorf("error listing service instances: %s", err)
 	}
 
 	u.listener.InstancesToUpgrade(instances)
-	instancesToUpgrade := make(chan service.Instance, len(instances))
+	totalInstance := len(instances)
 
-	stopWorkers := make(chan interface{})
-	errorList := make(chan error, len(instances))
+	var c upgradeController
+	c.states = make(map[string]services.UpgradeOperation)
+	c.pendingInstances = instances
+	c.inProgress = []service.Instance{}
+	c.u = u
+	c.outstandingCanaries = u.canaries
+	c.processingCanaries = u.canaries > 0
 
-	for _, instance := range instances {
-		instancesToUpgrade <- instance
+	if c.processingCanaries {
+		u.listener.CanariesStarting(u.canaries, u.maxInFlight)
 	}
-	close(instancesToUpgrade)
 
-	var instancesNotUpgraded []service.Instance
+	index := 0
+	for attempt := 1; attempt <= u.attemptLimit; attempt++ {
+		var errorList []error
+		u.listener.RetryAttempt(attempt, u.attemptLimit)
 
-	if len(instances) > 0 {
-		if u.canaries > 0 {
-			u.instanceCountToUpgrade = u.canaries
-			instancesToUpgrade, err = u.upgradeCanaries(instancesToUpgrade, stopWorkers, errorList)
-			if err != nil {
-				return fmt.Errorf("canaries didn't upgrade successfully: %s", err)
+		for c.hasInstancesToUpgrade() {
+			var needed int
+			if c.processingCanaries {
+				needed = c.outstandingCanaries
+				if needed > u.maxInFlight {
+					needed = u.maxInFlight
+				}
+			} else {
+				needed = u.maxInFlight - len(c.inProgressGUIDs())
+			}
+			if needed > 0 && len(errorList) == 0 {
+				for i := 0; i < needed; i++ {
+					instance := c.nextInstance()
+					if instance.GUID == "" {
+						break
+					}
+					accepted, err := c.triggerUpgrade(instance, index, totalInstance)
+					if accepted {
+						if c.processingCanaries {
+							c.outstandingCanaries--
+						}
+					} else {
+						needed++
+					}
+					if err != nil {
+						errorList = append(errorList, err)
+					}
+					index++
+				}
+			}
+
+			for range c.inProgressGUIDs() {
+				instance := c.nextInProgressInstance()
+				err := c.poll(instance)
+				if err != nil {
+					errorList = append(errorList, err)
+				}
+			}
+
+			if len(c.inProgressGUIDs()) > 0 {
+				u.sleeper.Sleep(u.pollingInterval)
+			} else {
+				if len(errorList) > 0 {
+					err := errorFromList(errorList)
+					if c.processingCanaries {
+						return errors.Wrap(err, "canaries didn't upgrade successfully")
+					}
+					return err
+				} else if c.processingCanaries && c.outstandingCanaries == 0 {
+					c.processingCanaries = false
+					u.listener.CanariesFinished()
+					attempt = 0
+					break
+				}
 			}
 		}
-		u.instanceCountToUpgrade = len(instancesToUpgrade)
 
-		instancesNotUpgraded, err = u.upgradeAll(instancesToUpgrade, stopWorkers, errorList)
-		if err != nil {
-			return err
+		if attempt == 0 {
+			continue
 		}
+
+		u.listener.Progress(u.attemptInterval, c.orphaned, c.succeeded, len(c.busyInstances), c.deleted)
+
+		if upgradeDone(c.states, instances) {
+			break
+		}
+
+		c.pendingInstances = c.busyInstances
+		c.busyInstances = nil
+
+		u.sleeper.Sleep(u.attemptInterval)
 	}
 
-	u.instanceCountToUpgrade = len(instancesNotUpgraded)
-	u.listener.Finished(u.orphansTotal, u.upgradedTotal, u.deletedTotal, len(instancesNotUpgraded))
+	couldNotStart := couldNotStartGUIDs(c.states)
 
-	var instanceDeploymentNames []string
-	for _, inst := range instancesNotUpgraded {
-		instanceDeploymentNames = append(instanceDeploymentNames, fmt.Sprintf("service-instance_%s", inst.GUID))
-	}
-	if len(instanceDeploymentNames) > 0 {
-		return fmt.Errorf("The following instances could not be upgraded: %s", strings.Join(instanceDeploymentNames, ", "))
+	u.listener.Finished(len(orphanedGUIDs(c.states)), len(succeededGUIDs(c.states)), len(deletedGUIDs(c.states)), len(couldNotStart))
+
+	if len(couldNotStart) > 0 {
+		if c.processingCanaries {
+			return fmt.Errorf("canaries didn't upgrade successfully: attempted to upgrade %d canaries, but only found %d instances not already in use by another BOSH task.", u.canaries, u.canaries-len(couldNotStart))
+		}
+		return fmt.Errorf("The following instances could not be upgraded: %s", strings.Join(couldNotStart, ", "))
+
 	}
 
 	return nil
 }
 
-func (u *Upgrader) upgradeInstances(instances, retries chan service.Instance, stop chan interface{}, errors chan error, successfulUpgradeCount *int32) {
-	for {
-		select {
-		case <-stop:
-			return
-		default:
-			instance, ok := <-instances
-			if !ok {
-				return
-			}
-
-			atomic.AddInt32(&u.instancesRemovedFromQueue, 1)
-
-			err := u.performInstanceUpgrade(instance, retries, successfulUpgradeCount)
-			if err != nil {
-				errors <- err
-				ensureChannelClosed(stop)
-				return
-			}
-
-			if atomic.LoadInt32(&u.instancesRemovedFromQueue) >= int32(u.instanceCountToUpgrade) {
-				return
-			}
+func errorFromList(errorList []error) error {
+	if len(errorList) == 1 {
+		return errorList[0]
+	} else if len(errorList) > 1 {
+		var out string
+		out = fmt.Sprintf("%d errors occurred:\n", len(errorList))
+		for _, e := range errorList {
+			out += "\n* " + e.Error()
 		}
+		return fmt.Errorf(out)
 	}
+	return nil
 }
 
-func ensureChannelClosed(ch chan interface{}) {
-	select {
-	case _, ok := <-ch:
-		if ok {
-			close(ch)
-		}
-	default:
-		close(ch)
-	}
-}
-
-func (u *Upgrader) performInstanceUpgrade(instance service.Instance, retryChan chan service.Instance, successfulUpgradeCount *int32) error {
-	currentStartedUpgradeCount := atomic.AddInt32(&u.startedUpgradeTotal, 1)
-	u.listener.InstanceUpgradeStarting(instance.GUID, currentStartedUpgradeCount-1, u.instanceCountToUpgrade)
-	operation, err := u.brokerServices.UpgradeInstance(instance)
+func (c *upgradeController) triggerUpgrade(instance service.Instance, index, totalInstances int) (bool, error) {
+	c.u.listener.InstanceUpgradeStarting(instance.GUID, index, totalInstances)
+	operation, err := c.u.brokerServices.UpgradeInstance(instance)
 	if err != nil {
-		return fmt.Errorf(
+		return false, fmt.Errorf(
 			"Upgrade failed for service instance %s: %s\n", instance.GUID, err,
 		)
 	}
 
-	u.listener.InstanceUpgradeStartResult(instance.GUID, operation.Type)
+	c.u.listener.InstanceUpgradeStartResult(instance.GUID, operation.Type)
+	c.states[instance.GUID] = operation
 
+	accepted := false
 	switch operation.Type {
 	case services.OrphanDeployment:
-		atomic.AddInt32(&u.orphansTotal, 1)
+		c.orphaned++
 	case services.InstanceNotFound:
-		atomic.AddInt32(&u.deletedTotal, 1)
+		c.deleted++
 	case services.OperationInProgress:
-		retryChan <- instance
+		c.isBusy(instance)
 	case services.UpgradeAccepted:
-		if err := u.pollLastOperation(instance.GUID, operation.Data); err != nil {
-			u.listener.InstanceUpgraded(instance.GUID, "failure")
-			return err
-		}
-		u.listener.InstanceUpgraded(instance.GUID, "success")
-		atomic.AddInt32(successfulUpgradeCount, 1)
-		atomic.AddInt32(&u.upgradedTotal, 1)
+		accepted = true
+		c.inProgress = append(c.inProgress, instance)
+		c.u.listener.WaitingFor(instance.GUID, operation.Data.BoshTaskID)
+	}
+	return accepted, nil
+}
+
+func (c *upgradeController) poll(instance service.Instance) error {
+	lastOperation, err := c.u.brokerServices.LastOperation(instance.GUID, c.states[instance.GUID].Data)
+	if err != nil {
+		return fmt.Errorf("error getting last operation: %s\n", err)
+	}
+
+	switch lastOperation.State {
+	case brokerapi.Failed:
+		d := services.UpgradeOperation{Type: services.UpgradeFailed, Data: c.states[instance.GUID].Data}
+		c.states[instance.GUID] = d
+		c.u.listener.InstanceUpgraded(instance.GUID, "failure")
+		return fmt.Errorf("[%s] Upgrade failed: bosh task id %d: %s",
+			instance.GUID, c.states[instance.GUID].Data.BoshTaskID, lastOperation.Description)
+	case brokerapi.Succeeded:
+		d := services.UpgradeOperation{Type: services.UpgradeSucceeded, Data: c.states[instance.GUID].Data}
+		c.states[instance.GUID] = d
+		c.succeeded++
+		c.u.listener.InstanceUpgraded(instance.GUID, "success")
+	case brokerapi.InProgress:
+		c.inProgress = append(c.inProgress, instance)
+		return nil
+	default:
+		return fmt.Errorf("not nice")
 	}
 	return nil
 }
 
-func (u *Upgrader) pollLastOperation(instance string, data broker.OperationData) error {
-	u.listener.WaitingFor(instance, data.BoshTaskID)
+func (c *upgradeController) hasInstancesToUpgrade() bool {
+	return len(c.pendingInstances) > 0 || len(c.inProgressGUIDs()) > 0
+}
 
-	for {
-		u.sleeper.Sleep(u.pollingInterval)
-
-		lastOperation, err := u.brokerServices.LastOperation(instance, data)
-		if err != nil {
-			return fmt.Errorf("error getting last operation: %s\n", err)
-		}
-
-		switch lastOperation.State {
-		case brokerapi.Failed:
-			return fmt.Errorf("[%s] Upgrade failed: bosh task id %d: %s",
-				instance, data.BoshTaskID, lastOperation.Description)
-		case brokerapi.Succeeded:
-			return nil
+func (c *upgradeController) inProgressGUIDs() []string {
+	var out []string
+	for guid, state := range c.states {
+		if state.Type == services.UpgradeAccepted {
+			out = append(out, guid)
 		}
 	}
+	return out
+}
+
+func (c *upgradeController) isBusy(instance service.Instance) {
+	c.busyInstances = append(c.busyInstances, instance)
+}
+
+func (c *upgradeController) nextInstance() service.Instance {
+	if len(c.pendingInstances) > 0 {
+		instance := c.pendingInstances[0]
+		c.pendingInstances = c.pendingInstances[1:len(c.pendingInstances)]
+		return instance
+	} else {
+		return service.Instance{}
+
+	}
+}
+
+func (c *upgradeController) upgradedTotal() int {
+	return c.succeeded + c.deleted + c.orphaned
+}
+
+func (c *upgradeController) nextInProgressInstance() service.Instance {
+	if len(c.inProgress) > 0 {
+		instance := c.inProgress[0]
+		c.inProgress = c.inProgress[1:len(c.inProgress)]
+		return instance
+	} else {
+		return service.Instance{}
+	}
+}
+
+func orphanedGUIDs(states map[string]services.UpgradeOperation) []string {
+	return extractGUIDWithState(states, services.OrphanDeployment)
+}
+
+func succeededGUIDs(states map[string]services.UpgradeOperation) []string {
+	return extractGUIDWithState(states, services.UpgradeSucceeded)
+}
+
+func deletedGUIDs(states map[string]services.UpgradeOperation) []string {
+	return extractGUIDWithState(states, services.InstanceNotFound)
+}
+
+func couldNotStartGUIDs(states map[string]services.UpgradeOperation) []string {
+	return extractGUIDWithState(states, services.OperationInProgress)
+}
+
+func extractGUIDWithState(states map[string]services.UpgradeOperation, state services.UpgradeOperationType) []string {
+	out := make([]string, 0)
+	for guid, finalState := range states {
+		if finalState.Type == state {
+			out = append(out, "service-instance_"+guid)
+		}
+	}
+	return out
+}
+
+func upgradeDone(states map[string]services.UpgradeOperation, instances []service.Instance) bool {
+	for _, instance := range instances {
+		s, ok := states[instance.GUID]
+		if !ok || s.Type == services.OperationInProgress {
+			return false
+		}
+	}
+	return true
 }
