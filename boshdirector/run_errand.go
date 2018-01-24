@@ -19,13 +19,13 @@ type Instance struct {
 }
 
 func (c *Client) RunErrand(deploymentName, errandName string, errandInstances []string, contextID string, logger *log.Logger, taskReporter *AsyncTaskReporter) (int, error) {
-	logger.Printf("running errand %s on colocated instances %v from deployment %s\n", errandName, errandInstances, deploymentName)
+	logger.Printf("running errand %s on instances %v from deployment %s\n", errandName, errandInstances, deploymentName)
 	d, err := c.Director(taskReporter)
 	if err != nil {
 		return -1, errors.Wrap(err, "Failed to build director")
 	}
 
-	deployment, err := d.FindDeployment(deploymentName)
+	deployment, err := d.WithContext(contextID).FindDeployment(deploymentName)
 	if err != nil {
 		return -1, errors.Wrapf(err, `Could not find deployment "%s"`, deploymentName)
 	}
@@ -51,10 +51,7 @@ func (c *Client) RunErrand(deploymentName, errandName string, errandInstances []
 	select {
 	case err := <-taskReporter.Err:
 		return -1, err
-	case <-taskReporter.Finished: // block until the errand is finished
-		id = <-taskReporter.Task
+	case id = <-taskReporter.Task:
 		return id, nil
 	}
-
-	return id, err
 }
