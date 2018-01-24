@@ -145,7 +145,7 @@ var _ = Describe("lifecycle errand tests", func() {
 					boshTasks := boshClient.GetTasksForDeployment(getServiceDeploymentName(serviceInstanceName))
 					Expect(boshTasks).To(HaveLen(2))
 
-					Expect(boshTasks[0].State).To(Equal(boshdirector.TaskDone))
+					Expect(boshTasks[0].State).To(Equal(boshdirector.TaskError))
 					Expect(boshTasks[0].Description).To(ContainSubstring("run errand"))
 
 					Expect(boshTasks[1].State).To(Equal(boshdirector.TaskDone))
@@ -295,7 +295,7 @@ var _ = Describe("lifecycle errand tests", func() {
 				By("ensuring only the errand bosh task ran")
 				boshTasks := boshClient.GetTasksForDeployment(deploymentName)
 
-				Expect(boshTasks[0].State).To(Equal(boshdirector.TaskDone))
+				Expect(boshTasks[0].State).To(Equal(boshdirector.TaskError))
 				Expect(boshTasks[0].Description).To(ContainSubstring("run errand"))
 			})
 		})
