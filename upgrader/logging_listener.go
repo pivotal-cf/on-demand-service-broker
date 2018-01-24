@@ -27,14 +27,16 @@ func (ll LoggingListener) Starting(maxInFlight int) {
 	ll.logger.Printf("STARTING UPGRADES with %d concurrent workers\n", maxInFlight)
 }
 
-func (ll LoggingListener) RetryAttempt(num, limit int) {
-	var msg string
-	if num == 1 {
-		msg = "Upgrading all instances"
-	} else {
-		msg = "Upgrading all remaining instances"
+func (ll LoggingListener) RetryAttempt(num, limit int, isCanary bool) {
+	var remaining string
+	typeOfUpgrade := "instances"
+	if isCanary {
+		typeOfUpgrade = "canaries"
 	}
-	ll.logger.Printf("%s. Attempt %d/%d\n", msg, num, limit)
+	if num > 1 {
+		remaining = "remaining "
+	}
+	ll.logger.Printf("Upgrading all %s%s. Attempt %d/%d\n", remaining, typeOfUpgrade, num, limit)
 }
 
 func (ll LoggingListener) InstancesToUpgrade(instances []service.Instance) {
@@ -105,8 +107,8 @@ func (ll LoggingListener) Finished(orphanCount, upgradedCount, deletedCount, cou
 	)
 }
 
-func (ll LoggingListener) CanariesStarting(canaries, maxInFlight int) {
-	ll.logger.Printf("STARTING CANARY UPGRADES: %d canaries with %d concurrent workers\n", canaries, maxInFlight)
+func (ll LoggingListener) CanariesStarting(canaries int) {
+	ll.logger.Printf("STARTING CANARY UPGRADES: %d canaries\n", canaries)
 }
 
 func (ll LoggingListener) CanariesFinished() {

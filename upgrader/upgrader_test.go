@@ -86,6 +86,7 @@ var _ = Describe("Upgrader", func() {
 				hasReportedUpgraded(fakeListener, serviceInstanceId)
 				Expect(actualErr).NotTo(HaveOccurred())
 
+				hasReportedStarting(fakeListener, upgraderBuilder.MaxInFlight)
 				hasReportedCanariesStarting(fakeListener, 0)
 				hasReportedCanariesFinished(fakeListener, 0)
 			})
@@ -319,7 +320,7 @@ var _ = Describe("Upgrader", func() {
 				actualErr = upgradeTool.Upgrade()
 				Expect(actualErr).NotTo(HaveOccurred())
 
-				hasReportedStarting(fakeListener)
+				hasReportedStarting(fakeListener, upgraderBuilder.MaxInFlight)
 				hasReportedInstancesToUpgrade(fakeListener, serviceInstance1, serviceInstance2, serviceInstance3)
 				hasReportedWaitingFor(fakeListener, map[string]int{serviceInstance1: upgradeTaskID1, serviceInstance2: upgradeTaskID2, serviceInstance3: upgradeTaskID3})
 				hasReportedUpgraded(fakeListener, serviceInstance1, serviceInstance2, serviceInstance3)
@@ -875,15 +876,16 @@ var _ = Describe("Upgrader", func() {
 					expectedCallCount := 4
 					Expect(fakeListener.RetryAttemptCallCount()).To(Equal(expectedCallCount))
 					expectedParams := [][]int{
-						{1, 2},
-						{2, 2},
-						{1, 2},
-						{2, 2},
+						{1, 2, 1},
+						{2, 2, 1},
+						{1, 2, 0},
+						{2, 2, 0},
 					}
 					for i := 0; i < expectedCallCount; i++ {
-						a, t := fakeListener.RetryAttemptArgsForCall(i)
+						a, t, c := fakeListener.RetryAttemptArgsForCall(i)
 						Expect(a).To(Equal(expectedParams[i][0]))
 						Expect(t).To(Equal(expectedParams[i][1]))
+						Expect(c).To(Equal(expectedParams[i][2] == 1))
 					}
 				})
 			})
@@ -1028,10 +1030,15 @@ var _ = Describe("Upgrader", func() {
 
 					expectedCallCount := 2
 					Expect(fakeListener.RetryAttemptCallCount()).To(Equal(expectedCallCount))
+					expectedParams := [][]int{
+						{1, 5, 1},
+						{1, 5, 0},
+					}
 					for i := 0; i < expectedCallCount; i++ {
-						c, l := fakeListener.RetryAttemptArgsForCall(i)
-						Expect(c).To(Equal(1))
-						Expect(l).To(Equal(5))
+						a, t, c := fakeListener.RetryAttemptArgsForCall(i)
+						Expect(a).To(Equal(expectedParams[i][0]))
+						Expect(t).To(Equal(expectedParams[i][1]))
+						Expect(c).To(Equal(expectedParams[i][2] == 1))
 					}
 				})
 			})
@@ -1096,7 +1103,7 @@ var _ = Describe("Upgrader", func() {
 
 						Expect(actualErr).NotTo(HaveOccurred())
 
-						hasReportedStarting(fakeListener)
+						hasReportedStarting(fakeListener, upgraderBuilder.MaxInFlight)
 						hasReportedInstancesToUpgrade(fakeListener, serviceInstance1, serviceInstance2, serviceInstance3)
 						hasReportedWaitingFor(fakeListener, map[string]int{serviceInstance1: upgradeTaskID1, serviceInstance2: upgradeTaskID2, serviceInstance3: upgradeTaskID3})
 						hasReportedUpgraded(fakeListener, serviceInstance1, serviceInstance2, serviceInstance3)
@@ -1505,8 +1512,10 @@ func upgradeResponse(taskId int) broker.OperationData {
 	return broker.OperationData{BoshTaskID: taskId, OperationType: broker.OperationTypeUpgrade}
 }
 
-func hasReportedStarting(fakeListener *fakes.FakeListener) {
+func hasReportedStarting(fakeListener *fakes.FakeListener, maxInFlight int) {
 	Expect(fakeListener.StartingCallCount()).To(Equal(1))
+	threads := fakeListener.StartingArgsForCall(0)
+	Expect(threads).To(Equal(maxInFlight))
 }
 
 func hasReportedInstancesToUpgrade(fakeListener *fakes.FakeListener, instanceIds ...string) {
@@ -1618,9 +1627,10 @@ func hasReportedFinished(fakeListener *fakes.FakeListener, expectedOrphans, expe
 func hasReportedAttempts(fakeListener *fakes.FakeListener, count, limit int) {
 	Expect(fakeListener.RetryAttemptCallCount()).To(Equal(count))
 	for i := 0; i < count; i++ {
-		c, l := fakeListener.RetryAttemptArgsForCall(i)
+		c, l, isC := fakeListener.RetryAttemptArgsForCall(i)
 		Expect(c).To(Equal(i + 1))
 		Expect(l).To(Equal(limit))
+		Expect(isC).To(BeFalse())
 	}
 }
 

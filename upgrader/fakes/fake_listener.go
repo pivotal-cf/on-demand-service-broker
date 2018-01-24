@@ -16,11 +16,12 @@ type FakeListener struct {
 	startingArgsForCall []struct {
 		maxInFlight int
 	}
-	RetryAttemptStub        func(num, limit int)
+	RetryAttemptStub        func(num, limit int, isCanary bool)
 	retryAttemptMutex       sync.RWMutex
 	retryAttemptArgsForCall []struct {
-		num   int
-		limit int
+		num      int
+		limit    int
+		isCanary bool
 	}
 	InstancesToUpgradeStub        func(instances []service.Instance)
 	instancesToUpgradeMutex       sync.RWMutex
@@ -69,11 +70,10 @@ type FakeListener struct {
 		deletedCount       int
 		couldNotStartCount int
 	}
-	CanariesStartingStub        func(canaries, maxInFlight int)
+	CanariesStartingStub        func(canaries int)
 	canariesStartingMutex       sync.RWMutex
 	canariesStartingArgsForCall []struct {
-		canaries    int
-		maxInFlight int
+		canaries int
 	}
 	CanariesFinishedStub        func()
 	canariesFinishedMutex       sync.RWMutex
@@ -106,16 +106,17 @@ func (fake *FakeListener) StartingArgsForCall(i int) int {
 	return fake.startingArgsForCall[i].maxInFlight
 }
 
-func (fake *FakeListener) RetryAttempt(num int, limit int) {
+func (fake *FakeListener) RetryAttempt(num int, limit int, isCanary bool) {
 	fake.retryAttemptMutex.Lock()
 	fake.retryAttemptArgsForCall = append(fake.retryAttemptArgsForCall, struct {
-		num   int
-		limit int
-	}{num, limit})
-	fake.recordInvocation("RetryAttempt", []interface{}{num, limit})
+		num      int
+		limit    int
+		isCanary bool
+	}{num, limit, isCanary})
+	fake.recordInvocation("RetryAttempt", []interface{}{num, limit, isCanary})
 	fake.retryAttemptMutex.Unlock()
 	if fake.RetryAttemptStub != nil {
-		fake.RetryAttemptStub(num, limit)
+		fake.RetryAttemptStub(num, limit, isCanary)
 	}
 }
 
@@ -125,10 +126,10 @@ func (fake *FakeListener) RetryAttemptCallCount() int {
 	return len(fake.retryAttemptArgsForCall)
 }
 
-func (fake *FakeListener) RetryAttemptArgsForCall(i int) (int, int) {
+func (fake *FakeListener) RetryAttemptArgsForCall(i int) (int, int, bool) {
 	fake.retryAttemptMutex.RLock()
 	defer fake.retryAttemptMutex.RUnlock()
-	return fake.retryAttemptArgsForCall[i].num, fake.retryAttemptArgsForCall[i].limit
+	return fake.retryAttemptArgsForCall[i].num, fake.retryAttemptArgsForCall[i].limit, fake.retryAttemptArgsForCall[i].isCanary
 }
 
 func (fake *FakeListener) InstancesToUpgrade(instances []service.Instance) {
@@ -316,16 +317,15 @@ func (fake *FakeListener) FinishedArgsForCall(i int) (int, int, int, int) {
 	return fake.finishedArgsForCall[i].orphanCount, fake.finishedArgsForCall[i].upgradedCount, fake.finishedArgsForCall[i].deletedCount, fake.finishedArgsForCall[i].couldNotStartCount
 }
 
-func (fake *FakeListener) CanariesStarting(canaries int, maxInFlight int) {
+func (fake *FakeListener) CanariesStarting(canaries int) {
 	fake.canariesStartingMutex.Lock()
 	fake.canariesStartingArgsForCall = append(fake.canariesStartingArgsForCall, struct {
-		canaries    int
-		maxInFlight int
-	}{canaries, maxInFlight})
-	fake.recordInvocation("CanariesStarting", []interface{}{canaries, maxInFlight})
+		canaries int
+	}{canaries})
+	fake.recordInvocation("CanariesStarting", []interface{}{canaries})
 	fake.canariesStartingMutex.Unlock()
 	if fake.CanariesStartingStub != nil {
-		fake.CanariesStartingStub(canaries, maxInFlight)
+		fake.CanariesStartingStub(canaries)
 	}
 }
 
@@ -335,10 +335,10 @@ func (fake *FakeListener) CanariesStartingCallCount() int {
 	return len(fake.canariesStartingArgsForCall)
 }
 
-func (fake *FakeListener) CanariesStartingArgsForCall(i int) (int, int) {
+func (fake *FakeListener) CanariesStartingArgsForCall(i int) int {
 	fake.canariesStartingMutex.RLock()
 	defer fake.canariesStartingMutex.RUnlock()
-	return fake.canariesStartingArgsForCall[i].canaries, fake.canariesStartingArgsForCall[i].maxInFlight
+	return fake.canariesStartingArgsForCall[i].canaries
 }
 
 func (fake *FakeListener) CanariesFinished() {

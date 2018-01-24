@@ -23,7 +23,7 @@ import (
 //go:generate counterfeiter -o fakes/fake_listener.go . Listener
 type Listener interface {
 	Starting(maxInFlight int)
-	RetryAttempt(num, limit int)
+	RetryAttempt(num, limit int, isCanary bool)
 	InstancesToUpgrade(instances []service.Instance)
 	InstanceUpgradeStarting(instance string, index int, totalInstances int)
 	InstanceUpgradeStartResult(instance string, status services.UpgradeOperationType)
@@ -31,7 +31,7 @@ type Listener interface {
 	WaitingFor(instance string, boshTaskId int)
 	Progress(pollingInterval time.Duration, orphanCount, upgradedCount, upgradesLeftCount, deletedCount int)
 	Finished(orphanCount, upgradedCount, deletedCount, couldNotStartCount int)
-	CanariesStarting(canaries, maxInFlight int)
+	CanariesStarting(canaries int)
 	CanariesFinished()
 }
 
@@ -92,7 +92,7 @@ func New(builder *Builder) *Upgrader {
 }
 
 func (u *Upgrader) Upgrade() error {
-	u.listener.Starting(1)
+	u.listener.Starting(u.maxInFlight)
 	instances, err := u.instanceLister.Instances()
 	if err != nil {
 		return fmt.Errorf("error listing service instances: %s", err)
@@ -110,13 +110,13 @@ func (u *Upgrader) Upgrade() error {
 	c.processingCanaries = u.canaries > 0
 
 	if c.processingCanaries {
-		u.listener.CanariesStarting(u.canaries, u.maxInFlight)
+		u.listener.CanariesStarting(u.canaries)
 	}
 
 	index := 0
 	for attempt := 1; attempt <= u.attemptLimit; attempt++ {
 		var errorList []error
-		u.listener.RetryAttempt(attempt, u.attemptLimit)
+		u.listener.RetryAttempt(attempt, u.attemptLimit, c.processingCanaries)
 
 		for c.hasInstancesToUpgrade() {
 			var needed int

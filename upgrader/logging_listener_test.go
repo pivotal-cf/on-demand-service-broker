@@ -31,8 +31,8 @@ var _ = Describe("Logging Listener", func() {
 	})
 
 	It("Shows starting canaries message", func() {
-		Expect(logResultsFrom(func(listener upgrader.Listener) { listener.CanariesStarting(2, 3) })).
-			To(Say("STARTING CANARY UPGRADES: 2 canaries with 3 concurrent workers"))
+		Expect(logResultsFrom(func(listener upgrader.Listener) { listener.CanariesStarting(2) })).
+			To(Say("STARTING CANARY UPGRADES: 2 canaries"))
 	})
 
 	It("Shows canaries finished message", func() {
@@ -41,18 +41,28 @@ var _ = Describe("Logging Listener", func() {
 	})
 
 	It("Shows attempt x of y", func() {
-		Expect(logResultsFrom(retryAttempt(2, 5))).
+		Expect(logResultsFrom(retryAttempt(2, 5, false))).
 			To(Say("Attempt 2/5"))
 	})
 
 	It("Shows upgrading all instances during first attempt", func() {
-		Expect(logResultsFrom(retryAttempt(1, 5))).
+		Expect(logResultsFrom(retryAttempt(1, 5, false))).
 			To(Say("Upgrading all instances"))
 	})
 
 	It("Shows upgrading all remaining instances during later attempts", func() {
-		Expect(logResultsFrom(retryAttempt(3, 5))).
+		Expect(logResultsFrom(retryAttempt(3, 5, false))).
 			To(Say("Upgrading all remaining instances"))
+	})
+
+	It("Shows upgrading all canaries during first attempt", func() {
+		Expect(logResultsFrom(retryAttempt(1, 5, true))).
+			To(Say("Upgrading all canaries"))
+	})
+
+	It("Shows upgrading all remaining canaries during later attempts", func() {
+		Expect(logResultsFrom(retryAttempt(3, 5, true))).
+			To(Say("Upgrading all remaining canaries"))
 	})
 
 	It("Shows which instances to upgrade", func() {
@@ -178,8 +188,8 @@ func logResultsFrom(action func(listener upgrader.Listener)) *Buffer {
 	return logBuffer
 }
 
-func retryAttempt(num, limit int) func(listener upgrader.Listener) {
+func retryAttempt(num, limit int, isCanary bool) func(listener upgrader.Listener) {
 	return func(listener upgrader.Listener) {
-		listener.RetryAttempt(num, limit)
+		listener.RetryAttempt(num, limit, isCanary)
 	}
 }
