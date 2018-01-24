@@ -99,7 +99,6 @@ func (u *Upgrader) Upgrade() error {
 	}
 
 	u.listener.InstancesToUpgrade(instances)
-	totalInstance := len(instances)
 
 	var c upgradeController
 	c.states = make(map[string]services.UpgradeOperation)
@@ -113,8 +112,9 @@ func (u *Upgrader) Upgrade() error {
 		u.listener.CanariesStarting(u.canaries)
 	}
 
-	index := 0
 	for attempt := 1; attempt <= u.attemptLimit; attempt++ {
+		index := 1
+		totalInstance := len(c.pendingInstances)
 		var errorList []error
 		u.listener.RetryAttempt(attempt, u.attemptLimit, c.processingCanaries)
 

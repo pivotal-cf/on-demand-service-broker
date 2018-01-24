@@ -81,7 +81,7 @@ var _ = Describe("Upgrader", func() {
 				Expect(instanceLister.InstancesCallCount()).To(Equal(1))
 				Expect(brokerServicesClient.UpgradeInstanceCallCount()).To(Equal(1))
 
-				hasReportedInstanceUpgradeStarted(fakeListener, serviceInstanceId, 0, 1)
+				hasReportedInstanceUpgradeStarted(fakeListener, serviceInstanceId, 1, 1)
 				hasReportedInstanceUpgradeStartResult(fakeListener, services.UpgradeAccepted)
 				hasReportedUpgraded(fakeListener, serviceInstanceId)
 				Expect(actualErr).NotTo(HaveOccurred())
@@ -886,6 +886,22 @@ var _ = Describe("Upgrader", func() {
 						Expect(a).To(Equal(expectedParams[i][0]))
 						Expect(t).To(Equal(expectedParams[i][1]))
 						Expect(c).To(Equal(expectedParams[i][2] == 1))
+					}
+
+					expectedInstanceCounts := [][]int{
+						{1, 4},
+						{2, 4},
+						{3, 4},
+						{4, 4},
+						{1, 3},
+						{1, 2},
+						{2, 2},
+						{1, 1},
+					}
+					for i := 0; i < fakeListener.InstanceUpgradeStartingCallCount(); i++ {
+						_, index, total := fakeListener.InstanceUpgradeStartingArgsForCall(i)
+						Expect(index).To(Equal(expectedInstanceCounts[i][0]), "Current instance index")
+						Expect(total).To(Equal(expectedInstanceCounts[i][1]), "Total pending instances")
 					}
 				})
 			})

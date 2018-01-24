@@ -74,7 +74,7 @@ var _ = Describe("Logging Listener", func() {
 
 	It("Shows which instance has started upgrading", func() {
 		buffer := logResultsFrom(func(listener upgrader.Listener) {
-			listener.InstanceUpgradeStarting("service-instance", 1, 5)
+			listener.InstanceUpgradeStarting("service-instance", 2, 5)
 		})
 
 		Expect(buffer).To(Say(`\[service-instance\] Starting to upgrade service instance 2 of 5`))

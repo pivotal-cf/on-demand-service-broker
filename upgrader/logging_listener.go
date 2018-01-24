@@ -49,7 +49,7 @@ func (ll LoggingListener) InstancesToUpgrade(instances []service.Instance) {
 }
 
 func (ll LoggingListener) InstanceUpgradeStarting(instance string, index, totalInstances int) {
-	ll.logger.Printf("[%s] Starting to upgrade service instance %d of %d", instance, index+1, totalInstances)
+	ll.logger.Printf("[%s] Starting to upgrade service instance %d of %d", instance, index, totalInstances)
 }
 
 func (ll LoggingListener) InstanceUpgradeStartResult(instance string, resultType services.UpgradeOperationType) {
