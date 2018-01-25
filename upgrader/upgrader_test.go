@@ -873,19 +873,28 @@ var _ = Describe("Upgrader", func() {
 
 					Expect(actualErr).ToNot(HaveOccurred())
 
-					expectedCallCount := 4
+					expectCanariesRetryCallCount := 2
+					Expect(fakeListener.RetryCanariesAttemptCallCount()).To(Equal(expectCanariesRetryCallCount))
+					expectedCanariesParams := [][]int{
+						{1, 2, 2},
+						{2, 2, 1},
+					}
+					for i := 0; i < expectCanariesRetryCallCount; i++ {
+						a, t, c := fakeListener.RetryCanariesAttemptArgsForCall(i)
+						Expect(a).To(Equal(expectedCanariesParams[i][0]))
+						Expect(t).To(Equal(expectedCanariesParams[i][1]))
+						Expect(c).To(Equal(expectedCanariesParams[i][2]))
+					}
+					expectedCallCount := 2
 					Expect(fakeListener.RetryAttemptCallCount()).To(Equal(expectedCallCount))
 					expectedParams := [][]int{
-						{1, 2, 1},
-						{2, 2, 1},
-						{1, 2, 0},
-						{2, 2, 0},
+						{1, 2},
+						{2, 2},
 					}
 					for i := 0; i < expectedCallCount; i++ {
-						a, t, c := fakeListener.RetryAttemptArgsForCall(i)
+						a, t := fakeListener.RetryAttemptArgsForCall(i)
 						Expect(a).To(Equal(expectedParams[i][0]))
 						Expect(t).To(Equal(expectedParams[i][1]))
-						Expect(c).To(Equal(expectedParams[i][2] == 1))
 					}
 
 					expectedInstanceCounts := [][]int{
@@ -1044,17 +1053,28 @@ var _ = Describe("Upgrader", func() {
 
 					Expect(actualErr).NotTo(HaveOccurred())
 
-					expectedCallCount := 2
+					expectedCanariesCallCount := 1
+					Expect(fakeListener.RetryCanariesAttemptCallCount()).To(Equal(expectedCanariesCallCount))
+					expectedCanariesParams := [][]int{
+						{1, 5, 2},
+					}
+					for i := 0; i < expectedCanariesCallCount; i++ {
+						a, t, c := fakeListener.RetryCanariesAttemptArgsForCall(i)
+						Expect(a).To(Equal(expectedCanariesParams[i][0]))
+						Expect(t).To(Equal(expectedCanariesParams[i][1]))
+						Expect(c).To(Equal(expectedCanariesParams[i][2]))
+					}
+
+					expectedCallCount := 1
 					Expect(fakeListener.RetryAttemptCallCount()).To(Equal(expectedCallCount))
 					expectedParams := [][]int{
-						{1, 5, 1},
-						{1, 5, 0},
+						{1, 5},
+						{1, 5},
 					}
 					for i := 0; i < expectedCallCount; i++ {
-						a, t, c := fakeListener.RetryAttemptArgsForCall(i)
+						a, t := fakeListener.RetryAttemptArgsForCall(i)
 						Expect(a).To(Equal(expectedParams[i][0]))
 						Expect(t).To(Equal(expectedParams[i][1]))
-						Expect(c).To(Equal(expectedParams[i][2] == 1))
 					}
 				})
 			})
@@ -1643,10 +1663,9 @@ func hasReportedFinished(fakeListener *fakes.FakeListener, expectedOrphans, expe
 func hasReportedAttempts(fakeListener *fakes.FakeListener, count, limit int) {
 	Expect(fakeListener.RetryAttemptCallCount()).To(Equal(count))
 	for i := 0; i < count; i++ {
-		c, l, isC := fakeListener.RetryAttemptArgsForCall(i)
+		c, l := fakeListener.RetryAttemptArgsForCall(i)
 		Expect(c).To(Equal(i + 1))
 		Expect(l).To(Equal(limit))
-		Expect(isC).To(BeFalse())
 	}
 }
 

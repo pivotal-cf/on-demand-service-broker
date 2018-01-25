@@ -16,12 +16,18 @@ type FakeListener struct {
 	startingArgsForCall []struct {
 		maxInFlight int
 	}
-	RetryAttemptStub        func(num, limit int, isCanary bool)
+	RetryAttemptStub        func(num, limit int)
 	retryAttemptMutex       sync.RWMutex
 	retryAttemptArgsForCall []struct {
-		num      int
-		limit    int
-		isCanary bool
+		num   int
+		limit int
+	}
+	RetryCanariesAttemptStub        func(num, limit, remainingCanaries int)
+	retryCanariesAttemptMutex       sync.RWMutex
+	retryCanariesAttemptArgsForCall []struct {
+		num               int
+		limit             int
+		remainingCanaries int
 	}
 	InstancesToUpgradeStub        func(instances []service.Instance)
 	instancesToUpgradeMutex       sync.RWMutex
@@ -106,17 +112,16 @@ func (fake *FakeListener) StartingArgsForCall(i int) int {
 	return fake.startingArgsForCall[i].maxInFlight
 }
 
-func (fake *FakeListener) RetryAttempt(num int, limit int, isCanary bool) {
+func (fake *FakeListener) RetryAttempt(num int, limit int) {
 	fake.retryAttemptMutex.Lock()
 	fake.retryAttemptArgsForCall = append(fake.retryAttemptArgsForCall, struct {
-		num      int
-		limit    int
-		isCanary bool
-	}{num, limit, isCanary})
-	fake.recordInvocation("RetryAttempt", []interface{}{num, limit, isCanary})
+		num   int
+		limit int
+	}{num, limit})
+	fake.recordInvocation("RetryAttempt", []interface{}{num, limit})
 	fake.retryAttemptMutex.Unlock()
 	if fake.RetryAttemptStub != nil {
-		fake.RetryAttemptStub(num, limit, isCanary)
+		fake.RetryAttemptStub(num, limit)
 	}
 }
 
@@ -126,10 +131,36 @@ func (fake *FakeListener) RetryAttemptCallCount() int {
 	return len(fake.retryAttemptArgsForCall)
 }
 
-func (fake *FakeListener) RetryAttemptArgsForCall(i int) (int, int, bool) {
+func (fake *FakeListener) RetryAttemptArgsForCall(i int) (int, int) {
 	fake.retryAttemptMutex.RLock()
 	defer fake.retryAttemptMutex.RUnlock()
-	return fake.retryAttemptArgsForCall[i].num, fake.retryAttemptArgsForCall[i].limit, fake.retryAttemptArgsForCall[i].isCanary
+	return fake.retryAttemptArgsForCall[i].num, fake.retryAttemptArgsForCall[i].limit
+}
+
+func (fake *FakeListener) RetryCanariesAttempt(num int, limit int, remainingCanaries int) {
+	fake.retryCanariesAttemptMutex.Lock()
+	fake.retryCanariesAttemptArgsForCall = append(fake.retryCanariesAttemptArgsForCall, struct {
+		num               int
+		limit             int
+		remainingCanaries int
+	}{num, limit, remainingCanaries})
+	fake.recordInvocation("RetryCanariesAttempt", []interface{}{num, limit, remainingCanaries})
+	fake.retryCanariesAttemptMutex.Unlock()
+	if fake.RetryCanariesAttemptStub != nil {
+		fake.RetryCanariesAttemptStub(num, limit, remainingCanaries)
+	}
+}
+
+func (fake *FakeListener) RetryCanariesAttemptCallCount() int {
+	fake.retryCanariesAttemptMutex.RLock()
+	defer fake.retryCanariesAttemptMutex.RUnlock()
+	return len(fake.retryCanariesAttemptArgsForCall)
+}
+
+func (fake *FakeListener) RetryCanariesAttemptArgsForCall(i int) (int, int, int) {
+	fake.retryCanariesAttemptMutex.RLock()
+	defer fake.retryCanariesAttemptMutex.RUnlock()
+	return fake.retryCanariesAttemptArgsForCall[i].num, fake.retryCanariesAttemptArgsForCall[i].limit, fake.retryCanariesAttemptArgsForCall[i].remainingCanaries
 }
 
 func (fake *FakeListener) InstancesToUpgrade(instances []service.Instance) {
@@ -364,6 +395,8 @@ func (fake *FakeListener) Invocations() map[string][][]interface{} {
 	defer fake.startingMutex.RUnlock()
 	fake.retryAttemptMutex.RLock()
 	defer fake.retryAttemptMutex.RUnlock()
+	fake.retryCanariesAttemptMutex.RLock()
+	defer fake.retryCanariesAttemptMutex.RUnlock()
 	fake.instancesToUpgradeMutex.RLock()
 	defer fake.instancesToUpgradeMutex.RUnlock()
 	fake.instanceUpgradeStartingMutex.RLock()

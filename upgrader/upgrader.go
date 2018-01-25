@@ -23,7 +23,8 @@ import (
 //go:generate counterfeiter -o fakes/fake_listener.go . Listener
 type Listener interface {
 	Starting(maxInFlight int)
-	RetryAttempt(num, limit int, isCanary bool)
+	RetryAttempt(num, limit int)
+	RetryCanariesAttempt(num, limit, remainingCanaries int)
 	InstancesToUpgrade(instances []service.Instance)
 	InstanceUpgradeStarting(instance string, index int, totalInstances int)
 	InstanceUpgradeStartResult(instance string, status services.UpgradeOperationType)
@@ -116,7 +117,11 @@ func (u *Upgrader) Upgrade() error {
 		index := 1
 		totalInstance := len(c.pendingInstances)
 		var errorList []error
-		u.listener.RetryAttempt(attempt, u.attemptLimit, c.processingCanaries)
+		if c.processingCanaries {
+			u.listener.RetryCanariesAttempt(attempt, u.attemptLimit, c.outstandingCanaries)
+		} else {
+			u.listener.RetryAttempt(attempt, u.attemptLimit)
+		}
 
 		for c.hasInstancesToUpgrade() {
 			var needed int
