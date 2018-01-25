@@ -29,6 +29,7 @@ var _ = Describe("deleting bosh deployments", func() {
 		fakeDeployment.NameReturns(deploymentName)
 		fakeDirector.DeploymentsReturns([]director.Deployment{fakeDeployment}, nil)
 		fakeDirector.FindDeploymentReturns(fakeDeployment, nil)
+		fakeDirector.WithContextReturns(fakeDirector)
 		taskReporter = boshdirector.NewAsyncTaskReporter()
 		fakeDeployment.DeleteStub = func(force bool) error {
 			taskReporter.TaskStarted(taskId)
