@@ -497,7 +497,7 @@ var _ = Describe("Deployer", func() {
 
 	Describe("Update()", func() {
 		BeforeEach(func() {
-			oldManifest = []byte("---\nupdate:\n canaries: 5")
+			oldManifest = []byte("---\nupdate:\n canaries: 5\n max_in_flight: 1")
 
 			previousPlanID = stringPointer(existingPlanID)
 
@@ -710,7 +710,7 @@ var _ = Describe("Deployer", func() {
 		It("ignores the update block when the manifest generator generates a new manifest with a different update block", func() {
 			previousPlanID = stringPointer(existingPlanID)
 
-			generatedManifest := []byte("---\nupdate:\n canaries: 2")
+			generatedManifest := []byte("---\nupdate:\n canaries: 2\n max_in_flight: 1")
 
 			requestParams = map[string]interface{}{"foo": "bar"}
 
@@ -807,7 +807,7 @@ instance_groups:
 			previousPlanID = stringPointer(existingPlanID)
 
 			oldManifestWithInvalidYAML := []byte("{")
-			generatedManifest := []byte("---\nupdate:\n canaries: 2")
+			generatedManifest := []byte("---\nupdate:\n canaries: 2\n max_in_flight: 1")
 
 			requestParams = map[string]interface{}{"foo": "bar"}
 
@@ -831,7 +831,7 @@ instance_groups:
 		It("returns an error when the generated manifest returns invalid YAML", func() {
 			previousPlanID = stringPointer(existingPlanID)
 
-			oldManifest := []byte("---\nupdate:\n canaries: 5")
+			oldManifest := []byte("---\nupdate:\n canaries: 5\n max_in_flight: 1")
 			generatedManifestWithInvalidYAML := []byte("{")
 
 			requestParams = map[string]interface{}{"foo": "bar"}
