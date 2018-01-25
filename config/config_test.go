@@ -615,7 +615,8 @@ var _ = Describe("Broker Config", func() {
 					Plans: []config.Plan{
 						{
 							Update: &serviceadapter.Update{
-								Serial: nil,
+								Serial:      nil,
+								MaxInFlight: 1,
 							},
 						},
 					},
