@@ -34,12 +34,13 @@ type FakeListener struct {
 	instancesToUpgradeArgsForCall []struct {
 		instances []service.Instance
 	}
-	InstanceUpgradeStartingStub        func(instance string, index int, totalInstances int)
+	InstanceUpgradeStartingStub        func(instance string, index int, totalInstances int, isCanary bool)
 	instanceUpgradeStartingMutex       sync.RWMutex
 	instanceUpgradeStartingArgsForCall []struct {
 		instance       string
 		index          int
 		totalInstances int
+		isCanary       bool
 	}
 	InstanceUpgradeStartResultStub        func(instance string, status services.UpgradeOperationType)
 	instanceUpgradeStartResultMutex       sync.RWMutex
@@ -192,17 +193,18 @@ func (fake *FakeListener) InstancesToUpgradeArgsForCall(i int) []service.Instanc
 	return fake.instancesToUpgradeArgsForCall[i].instances
 }
 
-func (fake *FakeListener) InstanceUpgradeStarting(instance string, index int, totalInstances int) {
+func (fake *FakeListener) InstanceUpgradeStarting(instance string, index int, totalInstances int, isCanary bool) {
 	fake.instanceUpgradeStartingMutex.Lock()
 	fake.instanceUpgradeStartingArgsForCall = append(fake.instanceUpgradeStartingArgsForCall, struct {
 		instance       string
 		index          int
 		totalInstances int
-	}{instance, index, totalInstances})
-	fake.recordInvocation("InstanceUpgradeStarting", []interface{}{instance, index, totalInstances})
+		isCanary       bool
+	}{instance, index, totalInstances, isCanary})
+	fake.recordInvocation("InstanceUpgradeStarting", []interface{}{instance, index, totalInstances, isCanary})
 	fake.instanceUpgradeStartingMutex.Unlock()
 	if fake.InstanceUpgradeStartingStub != nil {
-		fake.InstanceUpgradeStartingStub(instance, index, totalInstances)
+		fake.InstanceUpgradeStartingStub(instance, index, totalInstances, isCanary)
 	}
 }
 
@@ -212,10 +214,10 @@ func (fake *FakeListener) InstanceUpgradeStartingCallCount() int {
 	return len(fake.instanceUpgradeStartingArgsForCall)
 }
 
-func (fake *FakeListener) InstanceUpgradeStartingArgsForCall(i int) (string, int, int) {
+func (fake *FakeListener) InstanceUpgradeStartingArgsForCall(i int) (string, int, int, bool) {
 	fake.instanceUpgradeStartingMutex.RLock()
 	defer fake.instanceUpgradeStartingMutex.RUnlock()
-	return fake.instanceUpgradeStartingArgsForCall[i].instance, fake.instanceUpgradeStartingArgsForCall[i].index, fake.instanceUpgradeStartingArgsForCall[i].totalInstances
+	return fake.instanceUpgradeStartingArgsForCall[i].instance, fake.instanceUpgradeStartingArgsForCall[i].index, fake.instanceUpgradeStartingArgsForCall[i].totalInstances, fake.instanceUpgradeStartingArgsForCall[i].isCanary
 }
 
 func (fake *FakeListener) InstanceUpgradeStartResult(instance string, status services.UpgradeOperationType) {

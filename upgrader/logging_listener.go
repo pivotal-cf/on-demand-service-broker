@@ -53,8 +53,12 @@ func (ll LoggingListener) InstancesToUpgrade(instances []service.Instance) {
 	ll.logger.Printf("Total Service Instances found in Cloud Foundry: %d\n", len(instances))
 }
 
-func (ll LoggingListener) InstanceUpgradeStarting(instance string, index, totalInstances int) {
-	ll.logger.Printf("[%s] Starting to upgrade service instance %d of %d", instance, index, totalInstances)
+func (ll LoggingListener) InstanceUpgradeStarting(instance string, index, totalInstances int, isCanary bool) {
+	var instanceCount string
+	if !isCanary {
+		instanceCount = fmt.Sprintf(" %d of %d", index, totalInstances)
+	}
+	ll.logger.Printf("[%s] Starting to upgrade service instance%s", instance, instanceCount)
 }
 
 func (ll LoggingListener) InstanceUpgradeStartResult(instance string, resultType services.UpgradeOperationType) {

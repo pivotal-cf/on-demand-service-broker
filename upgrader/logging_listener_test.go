@@ -74,10 +74,18 @@ var _ = Describe("Logging Listener", func() {
 
 	It("Shows which instance has started upgrading", func() {
 		buffer := logResultsFrom(func(listener upgrader.Listener) {
-			listener.InstanceUpgradeStarting("service-instance", 2, 5)
+			listener.InstanceUpgradeStarting("service-instance", 2, 5, false)
 		})
 
 		Expect(buffer).To(Say(`\[service-instance\] Starting to upgrade service instance 2 of 5`))
+	})
+
+	It("Suppress instance number if it's a canary", func() {
+		buffer := logResultsFrom(func(listener upgrader.Listener) {
+			listener.InstanceUpgradeStarting("service-instance", 2, 5, true)
+		})
+
+		Expect(buffer).To(Say(`\[service-instance\] Starting to upgrade service instance\n`))
 	})
 
 	Describe("instance upgrade start result", func() {

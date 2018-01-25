@@ -26,7 +26,7 @@ type Listener interface {
 	RetryAttempt(num, limit int)
 	RetryCanariesAttempt(num, limit, remainingCanaries int)
 	InstancesToUpgrade(instances []service.Instance)
-	InstanceUpgradeStarting(instance string, index int, totalInstances int)
+	InstanceUpgradeStarting(instance string, index int, totalInstances int, isCanary bool)
 	InstanceUpgradeStartResult(instance string, status services.UpgradeOperationType)
 	InstanceUpgraded(instance string, result string)
 	WaitingFor(instance string, boshTaskId int)
@@ -226,7 +226,7 @@ func errorFromList(errorList []error) error {
 }
 
 func (c *upgradeController) triggerUpgrade(instance service.Instance, index, totalInstances int) (bool, error) {
-	c.u.listener.InstanceUpgradeStarting(instance.GUID, index, totalInstances)
+	c.u.listener.InstanceUpgradeStarting(instance.GUID, index, totalInstances, c.processingCanaries)
 	operation, err := c.u.brokerServices.UpgradeInstance(instance)
 	if err != nil {
 		return false, fmt.Errorf(
