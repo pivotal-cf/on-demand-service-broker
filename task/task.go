@@ -192,5 +192,5 @@ func marshalBoshManifest(rawManifest []byte) (bosh.BoshManifest, error) {
 }
 
 func ignoreUpdateBlock(manifest *bosh.BoshManifest) {
-	manifest.Update = bosh.Update{}
+	manifest.Update = &bosh.Update{}
 }

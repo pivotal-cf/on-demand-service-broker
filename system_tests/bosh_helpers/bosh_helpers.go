@@ -114,9 +114,10 @@ func (b *BoshHelperClient) RunErrandWithoutCheckingSuccess(deploymentName string
 }
 
 func (b *BoshHelperClient) runErrandAndWait(deploymentName string, errandName string, errandInstances []string, contextID string, logger *log.Logger) int {
-	taskID, err := b.Client.RunErrand(deploymentName, errandName, errandInstances, contextID, logger, boshdirector.NewAsyncTaskReporter())
+	taskReporter := boshdirector.NewAsyncTaskReporter()
+	taskID, err := b.Client.RunErrand(deploymentName, errandName, errandInstances, contextID, logger, taskReporter)
 	Expect(err).NotTo(HaveOccurred())
-	b.waitForTaskToFinish(taskID)
+	<-taskReporter.Finished
 	return taskID
 }
 
@@ -131,24 +132,6 @@ func (b *BoshHelperClient) GetTasksForDeployment(deploymentName string) boshdire
 	boshTasks, err := b.Client.GetTasks(deploymentName, logger)
 	Expect(err).NotTo(HaveOccurred())
 	return boshTasks
-}
-
-func (b *BoshHelperClient) waitForTaskToFinish(taskID int) {
-	logger := systemTestLogger()
-	for {
-		taskState, err := b.Client.GetTask(taskID, logger)
-		Expect(err).NotTo(HaveOccurred())
-
-		if taskState.State == boshdirector.TaskError {
-			Fail(fmt.Sprintf("task %d failed: %s", taskID, taskState.Description))
-		}
-
-		if taskState.State == boshdirector.TaskDone {
-			break
-		}
-
-		time.Sleep(time.Second * b.PollingInterval)
-	}
 }
 
 func (b *BoshHelperClient) GetManifest(deploymentName string) *bosh.BoshManifest {
@@ -193,9 +176,10 @@ func (b *BoshHelperClient) DeploymentExists(deploymentName string) bool {
 
 func (b *BoshHelperClient) DeleteDeployment(deploymentName string) {
 	logger := systemTestLogger()
-	deleteTaskID, err := b.Client.DeleteDeployment(deploymentName, "", logger, boshdirector.NewAsyncTaskReporter())
+	taskReporter := boshdirector.NewAsyncTaskReporter()
+	_, err := b.Client.DeleteDeployment(deploymentName, "", logger, taskReporter)
 	Expect(err).NotTo(HaveOccurred())
-	b.waitForTaskToFinish(deleteTaskID)
+	<-taskReporter.Finished
 }
 
 func systemTestLogger() *log.Logger {

@@ -87,7 +87,9 @@
 
 [[constraint]]
   name = "github.com/cloudfoundry/bosh-cli"
-  version = "2.0.45"
+  # version = "2.0.45"
+  source = "github.com/kieron-pivotal/bosh-cli"
+  branch = "context-fix"
 
 [[override]]
   name = "github.com/cheggaaa/pb"
