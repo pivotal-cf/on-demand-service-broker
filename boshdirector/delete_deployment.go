@@ -30,7 +30,7 @@ func (c *Client) DeleteDeployment(name, contextID string, logger *log.Logger, ta
 		return 0, nil
 	}
 
-	deployment, err := d.FindDeployment(name)
+	deployment, err := d.WithContext(contextID).FindDeployment(name)
 	if err != nil {
 		return 0, errors.Wrap(err, fmt.Sprintf(`BOSH error when deleting deployment "%s"`, name))
 	}
