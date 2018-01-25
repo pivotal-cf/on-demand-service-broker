@@ -222,7 +222,7 @@
   branch = "master"
   name = "github.com/pivotal-cf/on-demand-services-sdk"
   packages = ["bosh","serviceadapter"]
-  revision = "a2bc2ef557f3720a4d91f5068b7af90e1d073273"
+  revision = "4571130f82089d8860bc96bda7a72049199d2aab"
 
 [[projects]]
   branch = "master"
