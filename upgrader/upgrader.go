@@ -56,13 +56,11 @@ type controller struct {
 	pendingInstances    []service.Instance
 	busyInstances       []service.Instance
 	inProgress          []service.Instance
-	succeeded           int
-	orphaned            int
-	deleted             int
 	outstandingCanaries int
 	processingCanaries  bool
 
-	states map[string]services.UpgradeOperation
+	errorList []error
+	states    map[string]services.UpgradeOperation
 }
 
 type Upgrader struct {
@@ -114,69 +112,26 @@ func (u *Upgrader) Upgrade() error {
 	}
 
 	for attempt := 1; attempt <= u.attemptLimit; attempt++ {
-		index := 1
-		totalInstance := len(u.controller.pendingInstances)
-		var errorList []error
-		if u.controller.processingCanaries {
-			u.listener.RetryCanariesAttempt(attempt, u.attemptLimit, u.controller.outstandingCanaries)
-		} else {
-			u.listener.RetryAttempt(attempt, u.attemptLimit)
-		}
+		u.logRetryAttempt(attempt)
 
 		for u.controller.hasInstancesToUpgrade() {
-			var needed int
-			if u.controller.processingCanaries {
-				needed = u.controller.outstandingCanaries
-				if needed > u.maxInFlight {
-					needed = u.maxInFlight
-				}
-			} else {
-				needed = u.maxInFlight - len(u.controller.inProgressGUIDs())
-			}
-			if needed > 0 && len(errorList) == 0 {
-				for i := 0; i < needed; i++ {
-					instance := u.controller.nextInstance()
-					if instance.GUID == "" {
-						break
-					}
-					accepted, err := u.triggerUpgrade(instance, index, totalInstance)
-					if accepted {
-						if u.controller.processingCanaries {
-							u.controller.outstandingCanaries--
-						}
-					} else {
-						needed++
-					}
-					if err != nil {
-						errorList = append(errorList, err)
-					}
-					index++
-				}
-			}
+			u.triggerUpgrades()
 
-			for range u.controller.inProgressGUIDs() {
-				instance := u.controller.nextInProgressInstance()
-				err := u.poll(instance)
-				if err != nil {
-					errorList = append(errorList, err)
-				}
-			}
+			u.pollRunningTasks()
 
-			if len(u.controller.inProgressGUIDs()) > 0 {
+			if len(u.controller.findInstancesWithState(services.UpgradeAccepted)) > 0 {
 				u.sleeper.Sleep(u.pollingInterval)
-			} else {
-				if len(errorList) > 0 {
-					err := errorFromList(errorList)
-					if u.controller.processingCanaries {
-						return errors.Wrap(err, "canaries didn't upgrade successfully")
-					}
-					return err
-				} else if u.controller.processingCanaries && u.controller.outstandingCanaries == 0 {
-					u.controller.processingCanaries = false
-					u.listener.CanariesFinished()
-					attempt = 0
-					break
-				}
+				continue
+			}
+
+			if len(u.controller.errorList) > 0 {
+				return u.formatError()
+			}
+
+			if u.controller.processingCanaries && u.controller.outstandingCanaries == 0 {
+				u.controller.processingCanaries = false
+				u.listener.CanariesFinished()
+				attempt = 0
 			}
 		}
 
@@ -184,9 +139,9 @@ func (u *Upgrader) Upgrade() error {
 			continue
 		}
 
-		u.listener.Progress(u.attemptInterval, u.controller.orphaned, u.controller.succeeded, len(u.controller.busyInstances), u.controller.deleted)
+		u.reportProgress()
 
-		if upgradeDone(u.controller.states, instances) {
+		if u.upgradeCompleted(instances) {
 			break
 		}
 
@@ -196,22 +151,102 @@ func (u *Upgrader) Upgrade() error {
 		u.sleeper.Sleep(u.attemptInterval)
 	}
 
-	couldNotStart := couldNotStartGUIDs(u.controller.states)
+	return u.summary()
+}
 
-	u.listener.Finished(len(orphanedGUIDs(u.controller.states)), len(succeededGUIDs(u.controller.states)), len(deletedGUIDs(u.controller.states)), len(couldNotStart))
-
-	if len(couldNotStart) > 0 {
-		if u.controller.processingCanaries {
-			return fmt.Errorf("canaries didn't upgrade successfully: attempted to upgrade %d canaries, but only found %d instances not already in use by another BOSH task.", u.canaries, u.canaries-len(couldNotStart))
-		}
-		return fmt.Errorf("The following instances could not be upgraded: %s", strings.Join(couldNotStart, ", "))
-
+func (u *Upgrader) logRetryAttempt(attempt int) {
+	if u.controller.processingCanaries {
+		u.listener.RetryCanariesAttempt(attempt, u.attemptLimit, u.controller.outstandingCanaries)
+	} else {
+		u.listener.RetryAttempt(attempt, u.attemptLimit)
 	}
+}
 
+func (u *Upgrader) upgradesToTriggerCount() int {
+	var needed int
+	if u.controller.processingCanaries {
+		needed = u.controller.outstandingCanaries
+		if needed > u.maxInFlight {
+			needed = u.maxInFlight
+		}
+	} else {
+		needed = u.maxInFlight - len(u.controller.findInstancesWithState(services.UpgradeAccepted))
+	}
+	return needed
+}
+
+func (u *Upgrader) triggerUpgrades() {
+	var needed int = u.upgradesToTriggerCount()
+	index := 1
+	totalInstance := len(u.controller.pendingInstances)
+
+	if needed > 0 && len(u.controller.errorList) == 0 {
+		for i := 0; i < needed; index++ {
+			instance := u.controller.nextInstance()
+			if instance.GUID == "" {
+				break
+			}
+			accepted, err := u.triggerUpgrade(instance, index, totalInstance)
+			if accepted {
+				i++
+			}
+			if err != nil {
+				u.controller.errorList = append(u.controller.errorList, err)
+			}
+		}
+	}
+}
+
+func (u *Upgrader) pollRunningTasks() {
+	for range u.controller.findInstancesWithState(services.UpgradeAccepted) {
+		instance := u.controller.nextInProgressInstance()
+		err := u.poll(instance)
+		if err != nil {
+			u.controller.errorList = append(u.controller.errorList, err)
+		}
+	}
+}
+
+func (u *Upgrader) reportProgress() {
+	orphaned := len(u.controller.findInstancesWithState(services.OrphanDeployment))
+	succeeded := len(u.controller.findInstancesWithState(services.UpgradeSucceeded))
+	busy := len(u.controller.findInstancesWithState(services.OperationInProgress))
+	deleted := len(u.controller.findInstancesWithState(services.InstanceNotFound))
+	u.listener.Progress(u.attemptInterval, orphaned, succeeded, busy, deleted)
+}
+
+func (u *Upgrader) summary() error {
+	pendingInstances := u.controller.findInstancesWithState(services.OperationInProgress)
+	orphaned := len(u.controller.findInstancesWithState(services.OrphanDeployment))
+	succeeded := len(u.controller.findInstancesWithState(services.UpgradeSucceeded))
+	deleted := len(u.controller.findInstancesWithState(services.InstanceNotFound))
+	pendingInstancesCount := len(pendingInstances)
+
+	u.listener.Finished(orphaned, succeeded, deleted, pendingInstancesCount)
+
+	if pendingInstancesCount > 0 {
+		if u.controller.processingCanaries {
+			return fmt.Errorf(
+				"canaries didn't upgrade successfully: attempted to upgrade %d canaries, but only found %d instances not already in use by another BOSH task.",
+				u.canaries,
+				u.canaries-pendingInstancesCount,
+			)
+		}
+		return fmt.Errorf("The following instances could not be upgraded: %s", strings.Join(pendingInstances, ", "))
+	}
 	return nil
 }
 
-func errorFromList(errorList []error) error {
+func (u *Upgrader) formatError() error {
+	err := u.errorFromList()
+	if u.controller.processingCanaries {
+		return errors.Wrap(err, "canaries didn't upgrade successfully")
+	}
+	return err
+}
+
+func (u *Upgrader) errorFromList() error {
+	errorList := u.controller.errorList
 	if len(errorList) == 1 {
 		return errorList[0]
 	} else if len(errorList) > 1 {
@@ -240,15 +275,16 @@ func (u *Upgrader) triggerUpgrade(instance service.Instance, index, totalInstanc
 	accepted := false
 	switch operation.Type {
 	case services.OrphanDeployment:
-		u.controller.orphaned++
 	case services.InstanceNotFound:
-		u.controller.deleted++
 	case services.OperationInProgress:
 		u.controller.isBusy(instance)
 	case services.UpgradeAccepted:
 		accepted = true
-		u.controller.inProgress = append(u.controller.inProgress, instance)
+		u.controller.isInProgress(instance)
 		u.listener.WaitingFor(instance.GUID, operation.Data.BoshTaskID)
+		if u.controller.processingCanaries {
+			u.controller.outstandingCanaries--
+		}
 	}
 	return accepted, nil
 }
@@ -269,10 +305,9 @@ func (u *Upgrader) poll(instance service.Instance) error {
 	case brokerapi.Succeeded:
 		d := services.UpgradeOperation{Type: services.UpgradeSucceeded, Data: u.controller.states[instance.GUID].Data}
 		u.controller.states[instance.GUID] = d
-		u.controller.succeeded++
 		u.listener.InstanceUpgraded(instance.GUID, "success")
 	case brokerapi.InProgress:
-		u.controller.inProgress = append(u.controller.inProgress, instance)
+		u.controller.isInProgress(instance)
 		return nil
 	default:
 		return fmt.Errorf("not nice")
@@ -280,22 +315,26 @@ func (u *Upgrader) poll(instance service.Instance) error {
 	return nil
 }
 
-func (c *controller) hasInstancesToUpgrade() bool {
-	return len(c.pendingInstances) > 0 || len(c.inProgressGUIDs()) > 0
-}
-
-func (c *controller) inProgressGUIDs() []string {
-	var out []string
-	for guid, state := range c.states {
-		if state.Type == services.UpgradeAccepted {
-			out = append(out, guid)
+func (u *Upgrader) upgradeCompleted(instances []service.Instance) bool {
+	for _, instance := range instances {
+		s, ok := u.controller.states[instance.GUID]
+		if !ok || s.Type == services.OperationInProgress {
+			return false
 		}
 	}
-	return out
+	return true
+}
+
+func (c *controller) hasInstancesToUpgrade() bool {
+	return len(c.pendingInstances) > 0 || len(c.findInstancesWithState(services.UpgradeAccepted)) > 0
 }
 
 func (c *controller) isBusy(instance service.Instance) {
 	c.busyInstances = append(c.busyInstances, instance)
+}
+
+func (c *controller) isInProgress(instance service.Instance) {
+	c.inProgress = append(c.inProgress, instance)
 }
 
 func (c *controller) nextInstance() service.Instance {
@@ -309,10 +348,6 @@ func (c *controller) nextInstance() service.Instance {
 	}
 }
 
-func (c *controller) upgradedTotal() int {
-	return c.succeeded + c.deleted + c.orphaned
-}
-
 func (c *controller) nextInProgressInstance() service.Instance {
 	if len(c.inProgress) > 0 {
 		instance := c.inProgress[0]
@@ -323,38 +358,12 @@ func (c *controller) nextInProgressInstance() service.Instance {
 	}
 }
 
-func orphanedGUIDs(states map[string]services.UpgradeOperation) []string {
-	return extractGUIDWithState(states, services.OrphanDeployment)
-}
-
-func succeededGUIDs(states map[string]services.UpgradeOperation) []string {
-	return extractGUIDWithState(states, services.UpgradeSucceeded)
-}
-
-func deletedGUIDs(states map[string]services.UpgradeOperation) []string {
-	return extractGUIDWithState(states, services.InstanceNotFound)
-}
-
-func couldNotStartGUIDs(states map[string]services.UpgradeOperation) []string {
-	return extractGUIDWithState(states, services.OperationInProgress)
-}
-
-func extractGUIDWithState(states map[string]services.UpgradeOperation, state services.UpgradeOperationType) []string {
+func (c *controller) findInstancesWithState(state services.UpgradeOperationType) []string {
 	out := make([]string, 0)
-	for guid, finalState := range states {
+	for guid, finalState := range c.states {
 		if finalState.Type == state {
 			out = append(out, "service-instance_"+guid)
 		}
 	}
 	return out
-}
-
-func upgradeDone(states map[string]services.UpgradeOperation, instances []service.Instance) bool {
-	for _, instance := range instances {
-		s, ok := states[instance.GUID]
-		if !ok || s.Type == services.OperationInProgress {
-			return false
-		}
-	}
-	return true
 }
