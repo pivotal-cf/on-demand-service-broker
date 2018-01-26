@@ -419,8 +419,8 @@ var _ = Describe("Upgrader", func() {
 					wg.Add(1)
 					go func() {
 						defer GinkgoRecover()
+						defer wg.Done()
 						actualErr = upgradeTool.Upgrade()
-						wg.Done()
 					}()
 
 					wg.Wait()
@@ -439,8 +439,8 @@ var _ = Describe("Upgrader", func() {
 					wg.Add(1)
 					go func() {
 						defer GinkgoRecover()
+						defer wg.Done()
 						actualErr = upgradeTool.Upgrade()
-						wg.Done()
 					}()
 
 					expectToHaveStarted(si1Controller, si2Controller)
@@ -472,8 +472,8 @@ var _ = Describe("Upgrader", func() {
 					wg.Add(1)
 					go func() {
 						defer GinkgoRecover()
+						defer wg.Done()
 						actualErr = upgradeTool.Upgrade()
-						wg.Done()
 					}()
 
 					expectToHaveStarted(si1Controller, si2Controller)
@@ -509,8 +509,8 @@ var _ = Describe("Upgrader", func() {
 					wg.Add(1)
 					go func() {
 						defer GinkgoRecover()
+						defer wg.Done()
 						actualErr = upgradeTool.Upgrade()
-						wg.Done()
 					}()
 
 					expectToHaveStarted(si1Controller)
@@ -575,8 +575,8 @@ var _ = Describe("Upgrader", func() {
 					wg.Add(1)
 					go func() {
 						defer GinkgoRecover()
+						defer wg.Done()
 						actualErr = upgradeTool.Upgrade()
-						wg.Done()
 					}()
 
 					expectToHaveStarted(si1Controller, si2Controller, si3Controller)
@@ -642,8 +642,8 @@ var _ = Describe("Upgrader", func() {
 					wg.Add(1)
 					go func() {
 						defer GinkgoRecover()
+						defer wg.Done()
 						actualErr = upgradeTool.Upgrade()
-						wg.Done()
 					}()
 
 					expectToHaveStarted(si1Controller, si2Controller, si3Controller)
@@ -704,8 +704,8 @@ var _ = Describe("Upgrader", func() {
 					wg.Add(1)
 					go func() {
 						defer GinkgoRecover()
+						defer wg.Done()
 						actualErr = upgradeTool.Upgrade()
-						wg.Done()
 					}()
 
 					expectToHaveStarted(si1Controller, si2Controller, si3Controller, si4Controller)
@@ -777,8 +777,8 @@ var _ = Describe("Upgrader", func() {
 					wg.Add(1)
 					go func() {
 						defer GinkgoRecover()
+						defer wg.Done()
 						actualErr = upgradeTool.Upgrade()
-						wg.Done()
 					}()
 
 					expectToHaveStarted(si1Controller)
@@ -807,6 +807,20 @@ var _ = Describe("Upgrader", func() {
 						services.OperationInProgress,
 						services.OperationInProgress,
 					}
+					mutex := sync.Mutex{}
+					getState := func(i int) services.UpgradeOperationType {
+						mutex.Lock()
+						defer mutex.Unlock()
+
+						return states[i]
+					}
+
+					setState := func(i int, t services.UpgradeOperationType) {
+						mutex.Lock()
+						defer mutex.Unlock()
+						states[i] = t
+					}
+
 					brokerServicesClient.UpgradeInstanceStub = func(instance service.Instance) (services.UpgradeOperation, error) {
 						var i int
 						switch guid := instance.GUID; {
@@ -829,7 +843,7 @@ var _ = Describe("Upgrader", func() {
 							return services.UpgradeOperation{}, errors.New("unexpected instance GUID")
 						}
 						return services.UpgradeOperation{
-							Type: states[i],
+							Type: getState(i),
 							Data: upgradeResponse(upgradeTaskID1),
 						}, nil
 					}
@@ -844,25 +858,28 @@ var _ = Describe("Upgrader", func() {
 					wg.Add(1)
 					go func() {
 						defer GinkgoRecover()
+						defer wg.Done()
 						actualErr = upgradeTool.Upgrade()
-						wg.Done()
 					}()
 
 					// Retry attempt 1: Canaries
 					expectToHaveStarted(si1Controller, si2Controller, si3Controller, si4Controller)
-					states[1] = services.UpgradeAccepted //set si2 to be not busy on next call
+					//set si2 to be not busy on next call
+					setState(1, services.UpgradeAccepted)
 					allowToProceed(si1Controller)
 
 					// Retry attempt 2: Canaries
 					expectToHaveStarted(si2Controller)
 					expectToHaveNotStarted(si3Controller, si4Controller)
-					states[2] = services.UpgradeAccepted // set si3 to be not busy on next call
+					// set si3 to be not busy on next call
+					setState(2, services.UpgradeAccepted)
 					allowToProceed(si2Controller)
 					// Canaries completed
 
 					// Retry attempt 1: Upgrade
 					expectToHaveStarted(si3Controller, si4Controller)
-					states[3] = services.UpgradeAccepted // set si4 to be not busy on next call
+					// set si4 to be not busy on next call
+					setState(3, services.UpgradeAccepted)
 					allowToProceed(si3Controller)
 
 					// Retry attemp 2 : Upgrade
@@ -1033,8 +1050,8 @@ var _ = Describe("Upgrader", func() {
 					wg.Add(1)
 					go func() {
 						defer GinkgoRecover()
+						defer wg.Done()
 						actualErr = upgradeTool.Upgrade()
-						wg.Done()
 					}()
 
 					expectToHaveStarted(si1Controller, si2Controller)
@@ -1129,8 +1146,8 @@ var _ = Describe("Upgrader", func() {
 						wg.Add(1)
 						go func() {
 							defer GinkgoRecover()
+							defer wg.Done()
 							actualErr = upgradeTool.Upgrade()
-							wg.Done()
 						}()
 
 						expectToHaveStarted(si1Controller, si2Controller, si3Controller)
@@ -1182,8 +1199,8 @@ var _ = Describe("Upgrader", func() {
 						wg.Add(1)
 						go func() {
 							defer GinkgoRecover()
+							defer wg.Done()
 							actualErr = upgradeTool.Upgrade()
-							wg.Done()
 						}()
 
 						expectToHaveStarted(si1Controller, si2Controller)
@@ -1217,8 +1234,8 @@ var _ = Describe("Upgrader", func() {
 						wg.Add(1)
 						go func() {
 							defer GinkgoRecover()
+							defer wg.Done()
 							actualErr = upgradeTool.Upgrade()
-							wg.Done()
 						}()
 
 						expectToHaveStarted(si1Controller, si2Controller)
@@ -1254,8 +1271,8 @@ var _ = Describe("Upgrader", func() {
 						wg.Add(1)
 						go func() {
 							defer GinkgoRecover()
+							defer wg.Done()
 							actualErr = upgradeTool.Upgrade()
-							wg.Done()
 						}()
 
 						expectToHaveStarted(si1Controller, si2Controller)
@@ -1342,8 +1359,8 @@ var _ = Describe("Upgrader", func() {
 							wg.Add(1)
 							go func() {
 								defer GinkgoRecover()
+								defer wg.Done()
 								actualErr = upgradeTool.Upgrade()
-								wg.Done()
 							}()
 
 							expectToHaveStarted(si1Controller, si2Controller, si3Controller)
