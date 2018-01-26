@@ -2,6 +2,7 @@ package on_demand_service_broker_test
 
 import (
 	"fmt"
+	"net"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -93,5 +94,13 @@ func StartServerWithStopHandler(conf config.Config, stopServerChan chan os.Signa
 		logger,
 	)
 	go apiserver.StartAndWait(conf, server, logger, stopServerChan)
-	Eventually(loggerBuffer).Should(gbytes.Say("Listening on"))
+	Eventually(func() bool {
+		conn, _ := net.Dial("tcp", serverURL)
+		if conn != nil {
+			Expect(conn.Close()).To(Succeed())
+			return true
+		}
+		return false
+	}).Should(BeTrue(), "Server did not start")
+	Expect(loggerBuffer).To(gbytes.Say("Listening on"))
 }
