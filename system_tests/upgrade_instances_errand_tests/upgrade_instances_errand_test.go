@@ -267,6 +267,7 @@ func createServiceInstances() {
 
 		go func(ts *testService) {
 			defer GinkgoRecover()
+			defer wg.Done()
 			createServiceSession := cf.Cf("create-service", serviceOffering, currentPlan, ts.Name)
 			Eventually(createServiceSession, cf_helpers.CfTimeout).Should(
 				gexec.Exit(0),
@@ -284,8 +285,6 @@ func createServiceInstances() {
 				By("adding data to the service instance")
 				cf_helpers.PutToTestApp(ts.AppURL, "foo", "bar")
 			}
-
-			wg.Done()
 		}(service)
 	}
 
@@ -299,6 +298,7 @@ func deleteServiceInstances() {
 		wg.Add(1)
 		go func(ts *testService) {
 			defer GinkgoRecover()
+			defer wg.Done()
 			if dataPersistenceEnabled {
 				By("unbinding the corresponding app")
 				unbindServiceSession := cf.Cf("unbind-service", ts.AppName, ts.Name)
@@ -319,8 +319,6 @@ func deleteServiceInstances() {
 
 			By("ensuring the service instance is deleted")
 			cf_helpers.AwaitServiceDeletion(ts.Name)
-
-			wg.Done()
 		}(service)
 	}
 
