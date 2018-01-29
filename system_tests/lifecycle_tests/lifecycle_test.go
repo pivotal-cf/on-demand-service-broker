@@ -77,12 +77,12 @@ var _ = Describe("On-demand service broker", func() {
 		defer firehoseConsumer.Close()
 
 		msgChan, errChan := firehoseConsumer.Firehose("SystemTests-"+uuid.New(), getOAuthToken())
-		timeoutChan := time.After(1 * time.Minute)
+		timeoutChan := time.After(5 * time.Minute)
 
 		for {
 			select {
 			case msg := <-msgChan:
-				fmt.Fprintf(GinkgoWriter, "firehose: received message %+v\n", msg)
+				// fmt.Fprintf(GinkgoWriter, "firehose: received message %+v\n", msg)
 				if msg != nil && *msg.EventType == events.Envelope_ValueMetric && strings.HasSuffix(*msg.Deployment, brokerDeploymentName) {
 					fmt.Fprintf(GinkgoWriter, "received metric for deployment %s: %+v\n", brokerDeploymentName, msg)
 					if msg.ValueMetric.GetName() == fmt.Sprintf("/on-demand-broker/%s/%s/total_instances", serviceOfferingName, planName) {
