@@ -96,7 +96,7 @@
   branch = "master"
   name = "github.com/craigfurman/herottp"
   packages = ["."]
-  revision = "5c89a599c8659573e7be01fa87f2a8150fd649b7"
+  revision = "e0beddee8a2f4660428a9fcea371300daffa12e6"
 
 [[projects]]
   branch = "master"
