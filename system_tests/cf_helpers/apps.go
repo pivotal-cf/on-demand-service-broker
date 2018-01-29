@@ -31,7 +31,8 @@ type binding struct {
 
 var certIgnoringHTTPClient = herottp.New(herottp.Config{
 	DisableTLSCertificateVerification: true,
-	Timeout: 30 * time.Second,
+	Timeout:    120 * time.Second,
+	MaxRetries: 5,
 })
 
 func findURL(cliOutput string) string {

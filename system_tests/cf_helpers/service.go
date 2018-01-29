@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	CfTimeout     = time.Minute
+	CfTimeout     = 2 * time.Minute
 	LongCfTimeout = time.Minute * 15 // This is only so long to support a stressed director. It should be combined with smart fail-fast
 )
 
