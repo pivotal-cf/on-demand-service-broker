@@ -3,6 +3,7 @@
 Thin wrapper for `net/http`. [Docs on godoc.org](https://godoc.org/github.com/craigfurman/herottp).
 
 ## Features
+1. Allow for request retries.
 1. Disable following of redirects.
 1. Disable validation of certificates over HTTPS. **This is very dangerous and should
    only ever be done for testing!** Even then, it should only be a last resort.
@@ -11,6 +12,7 @@ Thin wrapper for `net/http`. [Docs on godoc.org](https://godoc.org/github.com/cr
 Example:
 ```
 client := herottp.New(herottp.Config{
+    MaxRetries: 2,
     NoFollowRedirect: true,
     DisableTLSCertificateVerification: false,
 })
