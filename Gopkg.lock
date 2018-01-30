@@ -40,31 +40,65 @@
 [[projects]]
   branch = "master"
   name = "github.com/cloudfoundry-incubator/cf-test-helpers"
-  packages = ["cf","commandreporter","commandstarter","internal"]
+  packages = [
+    "cf",
+    "commandreporter",
+    "commandstarter",
+    "internal"
+  ]
   revision = "820a007a30e27f0a63666254fc19d1198536eb33"
 
 [[projects]]
   branch = "master"
   name = "github.com/cloudfoundry-incubator/credhub-cli"
-  packages = ["credhub","credhub/auth","credhub/auth/uaa","credhub/credentials","credhub/credentials/generate","credhub/credentials/values","credhub/permissions","credhub/server","errors"]
+  packages = [
+    "credhub",
+    "credhub/auth",
+    "credhub/auth/uaa",
+    "credhub/credentials",
+    "credhub/credentials/generate",
+    "credhub/credentials/values",
+    "credhub/permissions",
+    "credhub/server",
+    "errors"
+  ]
   revision = "d686cd8b7d2d044e0dee73aa397809f84e972541"
 
 [[projects]]
   branch = "context-fix"
   name = "github.com/cloudfoundry/bosh-cli"
-  packages = ["director","uaa","ui","ui/fmt","ui/table"]
+  packages = [
+    "director",
+    "uaa",
+    "ui",
+    "ui/fmt",
+    "ui/table"
+  ]
   revision = "be6c3f31033624da70f8e1b9d8be15a89157c44b"
   source = "github.com/kieron-pivotal/bosh-cli"
 
 [[projects]]
   branch = "master"
   name = "github.com/cloudfoundry/bosh-utils"
-  packages = ["crypto","errors","httpclient","logger","retrystrategy","system","uuid"]
+  packages = [
+    "crypto",
+    "errors",
+    "httpclient",
+    "logger",
+    "retrystrategy",
+    "system",
+    "uuid"
+  ]
   revision = "07e3008c701173c247c62ed8901d5e40b80a3f9d"
 
 [[projects]]
   name = "github.com/cloudfoundry/noaa"
-  packages = [".","consumer","consumer/internal","errors"]
+  packages = [
+    ".",
+    "consumer",
+    "consumer/internal",
+    "errors"
+  ]
   revision = "a1d4a94e2be6711111893c59538976d07ef7ea98"
   version = "v2.1.0"
 
@@ -118,7 +152,11 @@
 
 [[projects]]
   name = "github.com/gogo/protobuf"
-  packages = ["gogoproto","proto","protoc-gen-gogo/descriptor"]
+  packages = [
+    "gogoproto",
+    "proto",
+    "protoc-gen-gogo/descriptor"
+  ]
   revision = "342cbe0a04158f6dcb03ca0079991a51a4248c02"
   version = "v0.5"
 
@@ -155,7 +193,12 @@
 [[projects]]
   branch = "master"
   name = "github.com/mailru/easyjson"
-  packages = [".","buffer","jlexer","jwriter"]
+  packages = [
+    ".",
+    "buffer",
+    "jlexer",
+    "jwriter"
+  ]
   revision = "32fa128f234d041f196a9f3e0fea5ac9772c08e1"
 
 [[projects]]
@@ -184,13 +227,49 @@
 
 [[projects]]
   name = "github.com/onsi/ginkgo"
-  packages = [".","config","extensions/table","internal/codelocation","internal/containernode","internal/failer","internal/leafnodes","internal/remote","internal/spec","internal/spec_iterator","internal/specrunner","internal/suite","internal/testingtproxy","internal/writer","reporters","reporters/stenographer","reporters/stenographer/support/go-colorable","reporters/stenographer/support/go-isatty","types"]
+  packages = [
+    ".",
+    "config",
+    "extensions/table",
+    "internal/codelocation",
+    "internal/containernode",
+    "internal/failer",
+    "internal/leafnodes",
+    "internal/remote",
+    "internal/spec",
+    "internal/spec_iterator",
+    "internal/specrunner",
+    "internal/suite",
+    "internal/testingtproxy",
+    "internal/writer",
+    "reporters",
+    "reporters/stenographer",
+    "reporters/stenographer/support/go-colorable",
+    "reporters/stenographer/support/go-isatty",
+    "types"
+  ]
   revision = "9eda700730cba42af70d53180f9dcce9266bc2bc"
   version = "v1.4.0"
 
 [[projects]]
   name = "github.com/onsi/gomega"
-  packages = [".","format","gbytes","gexec","ghttp","internal/assertion","internal/asyncassertion","internal/oraclematcher","internal/testingtsupport","matchers","matchers/support/goraph/bipartitegraph","matchers/support/goraph/edge","matchers/support/goraph/node","matchers/support/goraph/util","types"]
+  packages = [
+    ".",
+    "format",
+    "gbytes",
+    "gexec",
+    "ghttp",
+    "internal/assertion",
+    "internal/asyncassertion",
+    "internal/oraclematcher",
+    "internal/testingtsupport",
+    "matchers",
+    "matchers/support/goraph/bipartitegraph",
+    "matchers/support/goraph/edge",
+    "matchers/support/goraph/node",
+    "matchers/support/goraph/util",
+    "types"
+  ]
   revision = "c893efa28eb45626cdaa76c9f653b62488858837"
   version = "v1.2.0"
 
@@ -203,14 +282,20 @@
 [[projects]]
   branch = "master"
   name = "github.com/pivotal-cf/brokerapi"
-  packages = [".","auth"]
+  packages = [
+    ".",
+    "auth"
+  ]
   revision = "09b839892604e7aef056ad499d5cd46980bebcf9"
 
 [[projects]]
   branch = "master"
   name = "github.com/pivotal-cf/on-demand-services-sdk"
-  packages = ["bosh","serviceadapter"]
-  revision = "4571130f82089d8860bc96bda7a72049199d2aab"
+  packages = [
+    "bosh",
+    "serviceadapter"
+  ]
+  revision = "c28056fade72cdcc5143575a49e8d30f42d5de95"
 
 [[projects]]
   branch = "master"
@@ -237,7 +322,10 @@
 
 [[projects]]
   name = "github.com/vito/go-interact"
-  packages = ["interact","interact/terminal"]
+  packages = [
+    "interact",
+    "interact/terminal"
+  ]
   revision = "fa338ed9e9ecbb0e9c2e6c7a0160d9fc9b0efbd9"
 
 [[projects]]
@@ -249,25 +337,58 @@
 [[projects]]
   branch = "master"
   name = "golang.org/x/crypto"
-  packages = ["curve25519","ed25519","ed25519/internal/edwards25519","ssh","ssh/terminal"]
+  packages = [
+    "curve25519",
+    "ed25519",
+    "ed25519/internal/edwards25519",
+    "ssh",
+    "ssh/terminal"
+  ]
   revision = "b080dc9a8c480b08e698fb1219160d598526310f"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/net"
-  packages = ["context","html","html/atom","html/charset","proxy"]
+  packages = [
+    "context",
+    "html",
+    "html/atom",
+    "html/charset",
+    "proxy"
+  ]
   revision = "c7086645de248775cbf2373cf5ca4d2fa664b8c1"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
-  packages = ["unix","windows"]
+  packages = [
+    "unix",
+    "windows"
+  ]
   revision = "a13efeb2fd213cf4be7227992aa54519af3b2ac0"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/text"
-  packages = ["encoding","encoding/charmap","encoding/htmlindex","encoding/internal","encoding/internal/identifier","encoding/japanese","encoding/korean","encoding/simplifiedchinese","encoding/traditionalchinese","encoding/unicode","internal/gen","internal/tag","internal/utf8internal","language","runes","transform","unicode/cldr"]
+  packages = [
+    "encoding",
+    "encoding/charmap",
+    "encoding/htmlindex",
+    "encoding/internal",
+    "encoding/internal/identifier",
+    "encoding/japanese",
+    "encoding/korean",
+    "encoding/simplifiedchinese",
+    "encoding/traditionalchinese",
+    "encoding/unicode",
+    "internal/gen",
+    "internal/tag",
+    "internal/utf8internal",
+    "language",
+    "runes",
+    "transform",
+    "unicode/cldr"
+  ]
   revision = "88f656faf3f37f690df1a32515b479415e1a6769"
 
 [[projects]]

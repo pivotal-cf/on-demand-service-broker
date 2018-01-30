@@ -764,6 +764,62 @@ tags:
 			Expect(boshClient.DeployCallCount()).To(BeZero())
 		})
 
+		It("detects changes to the features block in a manifest and prevents deployment", func() {
+			oldManifest = []byte(`---
+features:
+  use_short_dns_addresses: true
+`)
+			boshClient.GetDeploymentReturns(oldManifest, true, nil)
+			previousPlanID = stringPointer(existingPlanID)
+
+			generatedManifest := []byte(`---
+features:
+  use_short_dns_addresses: false
+`)
+			manifestGenerator.GenerateManifestReturns(generatedManifest, nil)
+
+			_, _, deployError = deployer.Update(
+				deploymentName,
+				planID,
+				requestParams,
+				previousPlanID,
+				boshContextID,
+				logger,
+			)
+
+			Expect(deployError).To(HaveOccurred())
+			Expect(deployError).To(BeAssignableToTypeOf(task.PendingChangesNotAppliedError{}))
+			Expect(boshClient.DeployCallCount()).To(BeZero())
+		})
+
+		It("detects 'extra' changes to the features block in a manifest and prevents deployment", func() {
+			oldManifest = []byte(`---
+features:
+  some_undocumented_feature: 41
+`)
+			boshClient.GetDeploymentReturns(oldManifest, true, nil)
+			previousPlanID = stringPointer(existingPlanID)
+
+			generatedManifest := []byte(`---
+features:
+  some_undocumented_feature: 42
+`)
+			manifestGenerator.GenerateManifestReturns(generatedManifest, nil)
+
+			_, _, deployError = deployer.Update(
+				deploymentName,
+				planID,
+				requestParams,
+				previousPlanID,
+				boshContextID,
+				logger,
+			)
+
+			Expect(deployError).To(HaveOccurred())
+			Expect(deployError).To(BeAssignableToTypeOf(task.PendingChangesNotAppliedError{}))
+			Expect(boshClient.DeployCallCount()).To(BeZero())
+		})
+
 		BeforeEach(func() {
 		})
 
