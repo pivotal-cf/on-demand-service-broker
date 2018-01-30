@@ -128,7 +128,7 @@ func awaitServiceOperation(
 ) {
 	Eventually(func() bool {
 		session := cfCommand()
-		Eventually(session, CfTimeout).Should(gexec.Exit())
+		Eventually(session, CfTimeout).Should(gexec.Exit(), "'cf service' command timed out")
 
 		contents := session.Buffer().Contents()
 
