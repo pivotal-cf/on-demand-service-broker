@@ -63,7 +63,7 @@ var _ = Describe("Shutdown of the broker process", func() {
 		}
 
 		go func() {
-			resp := doProvisionRequest("some-instance-id", "some-plan", nil, true)
+			resp, _ := doProvisionRequest("some-instance-id", "some-plan", nil, true)
 			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
 		}()
 
@@ -101,7 +101,7 @@ var _ = Describe("Shutdown of the broker process", func() {
 		}
 
 		go func() {
-			resp := doProvisionRequest("some-instance-id", "some-plan", nil, true)
+			resp, _ := doProvisionRequest("some-instance-id", "some-plan", nil, true)
 			defer GinkgoRecover()
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 		}()

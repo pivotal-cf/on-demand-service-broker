@@ -15,8 +15,6 @@ import (
 
 	"encoding/json"
 
-	"io/ioutil"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -88,7 +86,7 @@ var _ = Describe("Binding", func() {
 				RouteServiceURL: "some.fqdn",
 			}, nil)
 
-			response := doBindRequest(instanceID, bindingID, bindDetails)
+			response, bodyContent := doBindRequest(instanceID, bindingID, bindDetails)
 
 			By("fetching the VM info for the deployment")
 			deploymentName, _ := fakeBoshClient.VMsArgsForCall(0)
@@ -111,9 +109,7 @@ var _ = Describe("Binding", func() {
 
 			By("returning the correct binding metadata")
 			var responseBody brokerapi.Binding
-			body, err := ioutil.ReadAll(response.Body)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(json.Unmarshal(body, &responseBody)).To(Succeed())
+			Expect(json.Unmarshal(bodyContent, &responseBody)).To(Succeed())
 			Expect(responseBody).To(Equal(brokerapi.Binding{
 				Credentials:     map[string]interface{}{"user": "bill", "password": "redflag"},
 				SyslogDrainURL:  "other.fqdn",
@@ -132,16 +128,14 @@ var _ = Describe("Binding", func() {
 				RouteServiceURL: "",
 			}, nil)
 
-			response := doBindRequest(instanceID, bindingID, bindDetails)
+			response, bodyContent := doBindRequest(instanceID, bindingID, bindDetails)
 
 			By("returning 201")
 			Expect(response.StatusCode).To(Equal(http.StatusCreated))
 
 			By("returning the correct binding metadata")
 			var responseBody map[string]interface{}
-			body, err := ioutil.ReadAll(response.Body)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(json.Unmarshal(body, &responseBody)).To(Succeed())
+			Expect(json.Unmarshal(bodyContent, &responseBody)).To(Succeed())
 
 			Expect(responseBody).To(HaveKey("credentials"))
 			Expect(responseBody).NotTo(HaveKey("syslog_drain_url"))
@@ -153,14 +147,14 @@ var _ = Describe("Binding", func() {
 		It("returns 500 if cannot fetch VMs info", func() {
 			fakeBoshClient.VMsReturns(nil, errors.New("oops"))
 
-			response := doBindRequest(instanceID, bindingID, bindDetails)
+			response, bodyContent := doBindRequest(instanceID, bindingID, bindDetails)
 
 			By("returning the correct status code")
 			Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 
 			By("returning the correct error message")
 			var errorResponse brokerapi.ErrorResponse
-			Expect(json.NewDecoder(response.Body).Decode(&errorResponse)).To(Succeed())
+			Expect(json.Unmarshal(bodyContent, &errorResponse)).To(Succeed())
 
 			Expect(errorResponse.Description).To(SatisfyAll(
 				ContainSubstring(
@@ -178,42 +172,42 @@ var _ = Describe("Binding", func() {
 		It("responds with status 500 and a try-again-later message when the bosh director is unavailable", func() {
 			fakeBoshClient.GetInfoReturns(boshdirector.Info{}, errors.New("oops"))
 
-			response := doBindRequest(instanceID, bindingID, bindDetails)
+			response, bodyContent := doBindRequest(instanceID, bindingID, bindDetails)
 
 			By("returning the correct status code")
 			Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 
 			By("returning the correct error message")
 			var errorResponse brokerapi.ErrorResponse
-			Expect(json.NewDecoder(response.Body).Decode(&errorResponse)).To(Succeed())
+			Expect(json.Unmarshal(bodyContent, &errorResponse)).To(Succeed())
 
 			Expect(errorResponse.Description).To(ContainSubstring("Currently unable to bind service instance, please try again later"))
 		})
 
 		It("responds with status 404 when the deployment does not exist", func() {
 			fakeBoshClient.GetDeploymentReturns(nil, false, nil)
-			response := doBindRequest(instanceID, bindingID, bindDetails)
+			response, bodyContent := doBindRequest(instanceID, bindingID, bindDetails)
 
 			By("returning the correct status code")
 			Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 
 			By("returning the correct error message")
 			var errorResponse brokerapi.ErrorResponse
-			Expect(json.NewDecoder(response.Body).Decode(&errorResponse)).To(Succeed())
+			Expect(json.Unmarshal(bodyContent, &errorResponse)).To(Succeed())
 
 			Expect(errorResponse.Description).To(ContainSubstring("instance does not exist"))
 		})
 
 		It("responds with status 500 and a generic message when talking to bosh fails", func() {
 			fakeBoshClient.GetDeploymentReturns(nil, false, errors.New("oops"))
-			response := doBindRequest(instanceID, bindingID, bindDetails)
+			response, bodyContent := doBindRequest(instanceID, bindingID, bindDetails)
 
 			By("returning the correct status code")
 			Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 
 			By("returning the correct error message")
 			var errorResponse brokerapi.ErrorResponse
-			Expect(json.NewDecoder(response.Body).Decode(&errorResponse)).To(Succeed())
+			Expect(json.Unmarshal(bodyContent, &errorResponse)).To(Succeed())
 
 			Expect(errorResponse.Description).To(SatisfyAll(
 				ContainSubstring(
@@ -235,13 +229,13 @@ var _ = Describe("Binding", func() {
 				err,
 			)
 
-			response := doBindRequest(instanceID, bindingID, bindDetails)
+			response, bodyContent := doBindRequest(instanceID, bindingID, bindDetails)
 
 			By("returning the correct status code")
 			Expect(response.StatusCode).To(Equal(http.StatusConflict))
 
 			By("returning the correct error message")
-			Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`{"description":"binding already exists"}`))
+			Expect(bodyContent).To(MatchJSON(`{"description":"binding already exists"}`))
 
 			By("logging the bind request with a request id")
 			Eventually(loggerBuffer).Should(gbytes.Say(`creating binding: binding already exists`))
@@ -254,13 +248,13 @@ var _ = Describe("Binding", func() {
 				err,
 			)
 
-			response := doBindRequest(instanceID, bindingID, bindDetails)
+			response, bodyContent := doBindRequest(instanceID, bindingID, bindDetails)
 
 			By("returning the correct status code")
 			Expect(response.StatusCode).To(Equal(http.StatusUnprocessableEntity))
 
 			By("returning the correct error message")
-			Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(`{"description":"app_guid is a required field but was not provided"}`))
+			Expect(bodyContent).To(MatchJSON(`{"description":"app_guid is a required field but was not provided"}`))
 		})
 
 		It("responds with status 500 when the adapter does not implement binder", func() {
@@ -270,13 +264,13 @@ var _ = Describe("Binding", func() {
 				err,
 			)
 
-			response := doBindRequest(instanceID, bindingID, bindDetails)
+			response, bodyContent := doBindRequest(instanceID, bindingID, bindDetails)
 
 			By("returning the correct status code")
 			Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 
 			var errorResponse brokerapi.ErrorResponse
-			Expect(json.NewDecoder(response.Body).Decode(&errorResponse)).To(Succeed())
+			Expect(json.Unmarshal(bodyContent, &errorResponse)).To(Succeed())
 
 			Expect(errorResponse.Description).To(SatisfyAll(
 				ContainSubstring(
@@ -301,13 +295,13 @@ var _ = Describe("Binding", func() {
 				err,
 			)
 
-			response := doBindRequest(instanceID, bindingID, bindDetails)
+			response, bodyContent := doBindRequest(instanceID, bindingID, bindDetails)
 
 			By("returning the correct status code")
 			Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 
 			var errorResponse brokerapi.ErrorResponse
-			Expect(json.NewDecoder(response.Body).Decode(&errorResponse)).To(Succeed())
+			Expect(json.Unmarshal(bodyContent, &errorResponse)).To(Succeed())
 
 			Expect(errorResponse.Description).To(SatisfyAll(
 				ContainSubstring(
@@ -324,24 +318,19 @@ var _ = Describe("Binding", func() {
 	})
 })
 
-func doBindRequest(instanceID, bindingID string, bindDetails brokerapi.BindDetails) *http.Response {
+func doBindRequest(instanceID, bindingID string, bindDetails brokerapi.BindDetails) (*http.Response, []byte) {
 	body := bytes.NewBuffer([]byte{})
 	err := json.NewEncoder(body).Encode(bindDetails)
 	Expect(err).NotTo(HaveOccurred())
 
-	bindingReq, err := http.NewRequest(http.MethodPut,
+	return doRequest(
+		http.MethodPut,
 		fmt.Sprintf(
 			"http://%s/v2/service_instances/%s/service_bindings/%s",
 			serverURL,
 			instanceID,
 			bindingID,
 		),
-		body)
-	Expect(err).ToNot(HaveOccurred())
-	bindingReq.SetBasicAuth(brokerUsername, brokerPassword)
-
-	bindingResponse, err := http.DefaultClient.Do(bindingReq)
-	Expect(err).ToNot(HaveOccurred())
-
-	return bindingResponse
+		body,
+	)
 }

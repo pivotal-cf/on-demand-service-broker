@@ -16,6 +16,10 @@ import (
 
 	"math"
 
+	"io"
+	"io/ioutil"
+	"net/http"
+
 	"github.com/onsi/gomega/gbytes"
 	"github.com/pivotal-cf/on-demand-service-broker/apiserver"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
@@ -103,4 +107,25 @@ func StartServerWithStopHandler(conf config.Config, stopServerChan chan os.Signa
 		return false
 	}).Should(BeTrue(), "Server did not start")
 	Expect(loggerBuffer).To(gbytes.Say("Listening on"))
+}
+
+func doRequest(method, url string, body io.Reader, requestModifiers ...func(r *http.Request)) (*http.Response, []byte) {
+	req, err := http.NewRequest(method, url, body)
+	Expect(err).ToNot(HaveOccurred())
+
+	req.SetBasicAuth(brokerUsername, brokerPassword)
+
+	for _, f := range requestModifiers {
+		f(req)
+	}
+
+	req.Close = true
+	resp, err := http.DefaultClient.Do(req)
+	Expect(err).ToNot(HaveOccurred())
+
+	bodyContent, err := ioutil.ReadAll(resp.Body)
+	Expect(err).NotTo(HaveOccurred())
+
+	Expect(resp.Body.Close()).To(Succeed())
+	return resp, bodyContent
 }

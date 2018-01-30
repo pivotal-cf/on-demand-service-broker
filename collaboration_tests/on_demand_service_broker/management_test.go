@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"io/ioutil"
-
 	"encoding/json"
 
 	"strings"
@@ -83,14 +81,13 @@ var _ = Describe("Management API", func() {
 				},
 			}, nil)
 
-			response := doGetRequest(serviceInstancesPath)
+			response, bodyContent := doGetRequest(serviceInstancesPath)
 
 			By("returning the correct status code")
 			Expect(response.StatusCode).To(Equal(http.StatusOK))
 
 			By("returning the service instances")
-			defer response.Body.Close()
-			Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(
+			Expect(bodyContent).To(MatchJSON(
 				`[
 					{"service_instance_id": "service-instance-id", "plan_id":"plan-id"},
 					{"service_instance_id": "another-service-instance-id", "plan_id":"another-plan-id"}
@@ -101,7 +98,7 @@ var _ = Describe("Management API", func() {
 		It("returns 500 when getting instances fails", func() {
 			fakeCfClient.GetInstancesOfServiceOfferingReturns([]service.Instance{}, errors.New("something failed"))
 
-			response := doGetRequest(serviceInstancesPath)
+			response, _ := doGetRequest(serviceInstancesPath)
 
 			By("returning the correct status code")
 			Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
@@ -128,14 +125,13 @@ var _ = Describe("Management API", func() {
 				{Name: "service-instance_orphan"},
 			}, nil)
 
-			response := doGetRequest(orphanDeploymentsPath)
+			response, bodyContent := doGetRequest(orphanDeploymentsPath)
 
 			By("returning the correct status code")
 			Expect(response.StatusCode).To(Equal(http.StatusOK))
 
 			By("returning the service instances")
-			defer response.Body.Close()
-			Expect(ioutil.ReadAll(response.Body)).To(MatchJSON(
+			Expect(bodyContent).To(MatchJSON(
 				`[	{"deployment_name": "service-instance_orphan"}]`,
 			))
 		})
@@ -143,7 +139,7 @@ var _ = Describe("Management API", func() {
 		It("responds with 500 when CF API call fails", func() {
 			fakeCfClient.GetInstancesOfServiceOfferingReturns([]service.Instance{}, errors.New("something failed on cf"))
 
-			response := doGetRequest(orphanDeploymentsPath)
+			response, _ := doGetRequest(orphanDeploymentsPath)
 
 			By("returning the correct status code")
 			Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
@@ -162,7 +158,7 @@ var _ = Describe("Management API", func() {
 			}, nil)
 			fakeBoshClient.GetDeploymentsReturns([]boshdirector.Deployment{}, errors.New("some bosh error"))
 
-			response := doGetRequest(orphanDeploymentsPath)
+			response, _ := doGetRequest(orphanDeploymentsPath)
 
 			By("returning the correct status code")
 			Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
@@ -196,12 +192,11 @@ var _ = Describe("Management API", func() {
 		})
 
 		It("responds with some metrics", func() {
-			metricsResp := doGetRequest(metricsPath)
+			metricsResp, bodyContent := doGetRequest(metricsPath)
 			Expect(metricsResp.StatusCode).To(Equal(http.StatusOK))
 
-			defer metricsResp.Body.Close()
 			var brokerMetrics []mgmtapi.Metric
-			Expect(json.NewDecoder(metricsResp.Body).Decode(&brokerMetrics)).To(Succeed())
+			Expect(json.Unmarshal(bodyContent, &brokerMetrics)).To(Succeed())
 			Expect(brokerMetrics).To(ConsistOf(
 				mgmtapi.Metric{
 					Key:   "/on-demand-broker/service-name/dedicated-plan-name/total_instances",
@@ -238,12 +233,11 @@ var _ = Describe("Management API", func() {
 			})
 
 			It("does not include global quota metric", func() {
-				metricsResp := doGetRequest(metricsPath)
+				metricsResp, bodyContent := doGetRequest(metricsPath)
 				Expect(metricsResp.StatusCode).To(Equal(http.StatusOK))
 
-				defer metricsResp.Body.Close()
 				var brokerMetrics []mgmtapi.Metric
-				Expect(json.NewDecoder(metricsResp.Body).Decode(&brokerMetrics)).To(Succeed())
+				Expect(json.Unmarshal(bodyContent, &brokerMetrics)).To(Succeed())
 				Expect(brokerMetrics).To(ConsistOf(
 					mgmtapi.Metric{
 						Key:   "/on-demand-broker/service-name/dedicated-plan-name/total_instances",
@@ -272,7 +266,7 @@ var _ = Describe("Management API", func() {
 		It("fails when the broker is not registered with CF", func() {
 			fakeCfClient.CountInstancesOfServiceOfferingReturns(map[cf.ServicePlan]int{}, nil)
 
-			response := doGetRequest(metricsPath)
+			response, _ := doGetRequest(metricsPath)
 			Expect(response.StatusCode).To(Equal(http.StatusServiceUnavailable))
 
 			By("logging the error with the same request ID")
@@ -282,7 +276,7 @@ var _ = Describe("Management API", func() {
 		It("fails when the CF API fails", func() {
 			fakeCfClient.CountInstancesOfServiceOfferingReturns(map[cf.ServicePlan]int{}, errors.New("CF API error"))
 
-			response := doGetRequest(metricsPath)
+			response, _ := doGetRequest(metricsPath)
 			Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 
 			By("logging the error with the same request ID")
@@ -299,7 +293,7 @@ var _ = Describe("Management API", func() {
 			taskID := 123
 			fakeDeployer.UpgradeReturns(taskID, nil, nil)
 
-			response := doUpgradeRequest(instanceID, fmt.Sprintf(`{"plan_id": "%s"}`, dedicatedPlanID))
+			response, bodyContent := doUpgradeRequest(instanceID, fmt.Sprintf(`{"plan_id": "%s"}`, dedicatedPlanID))
 
 			Expect(response.StatusCode).To(Equal(http.StatusAccepted))
 
@@ -311,7 +305,7 @@ var _ = Describe("Management API", func() {
 
 			By("returning the correct operation data")
 			var operationData broker.OperationData
-			Expect(json.NewDecoder(response.Body).Decode(&operationData)).To(Succeed())
+			Expect(json.Unmarshal(bodyContent, &operationData)).To(Succeed())
 
 			Expect(operationData).To(Equal(broker.OperationData{
 				OperationType: broker.OperationTypeUpgrade,
@@ -332,7 +326,7 @@ var _ = Describe("Management API", func() {
 				taskID := 123
 				fakeDeployer.UpgradeReturns(taskID, nil, nil)
 
-				response := doUpgradeRequest(instanceID, fmt.Sprintf(`{"plan_id": "%s"}`, dedicatedPlanID))
+				response, bodyContent := doUpgradeRequest(instanceID, fmt.Sprintf(`{"plan_id": "%s"}`, dedicatedPlanID))
 
 				Expect(response.StatusCode).To(Equal(http.StatusAccepted))
 
@@ -344,7 +338,7 @@ var _ = Describe("Management API", func() {
 
 				By("returning the correct operation data")
 				var operationData broker.OperationData
-				Expect(json.NewDecoder(response.Body).Decode(&operationData)).To(Succeed())
+				Expect(json.Unmarshal(bodyContent, &operationData)).To(Succeed())
 
 				Expect(operationData).To(Equal(broker.OperationData{
 					OperationType: broker.OperationTypeUpgrade,
@@ -361,7 +355,7 @@ var _ = Describe("Management API", func() {
 		It("responds with 410 when instance's deployment cannot be found in BOSH", func() {
 			fakeDeployer.UpgradeReturns(0, nil, task.DeploymentNotFoundError{})
 
-			response := doUpgradeRequest(instanceID, fmt.Sprintf(`{"plan_id": "%s"}`, dedicatedPlanID))
+			response, _ := doUpgradeRequest(instanceID, fmt.Sprintf(`{"plan_id": "%s"}`, dedicatedPlanID))
 
 			Expect(response.StatusCode).To(Equal(http.StatusGone))
 		})
@@ -369,37 +363,23 @@ var _ = Describe("Management API", func() {
 		It("responds with 409 when there are incomplete tasks for the instance's deployment", func() {
 			fakeDeployer.UpgradeReturns(0, nil, task.TaskInProgressError{})
 
-			response := doUpgradeRequest(instanceID, fmt.Sprintf(`{"plan_id": "%s"}`, dedicatedPlanID))
+			response, _ := doUpgradeRequest(instanceID, fmt.Sprintf(`{"plan_id": "%s"}`, dedicatedPlanID))
 
 			Expect(response.StatusCode).To(Equal(http.StatusConflict))
 		})
 
 		It("responds with 422 when the request body is empty", func() {
-			response := doUpgradeRequest(instanceID, "")
+			response, _ := doUpgradeRequest(instanceID, "")
 
 			Expect(response.StatusCode).To(Equal(http.StatusUnprocessableEntity))
 		})
 	})
 })
 
-func doGetRequest(path string) *http.Response {
-	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("http://%s/mgmt/%s", serverURL, path), nil)
-	Expect(err).ToNot(HaveOccurred())
-	req.SetBasicAuth(brokerUsername, brokerPassword)
-
-	resp, err := http.DefaultClient.Do(req)
-	Expect(err).ToNot(HaveOccurred())
-
-	return resp
+func doGetRequest(path string) (*http.Response, []byte) {
+	return doRequest(http.MethodGet, fmt.Sprintf("http://%s/mgmt/%s", serverURL, path), nil)
 }
 
-func doUpgradeRequest(serviceInstanceID, body string) *http.Response {
-	req, err := http.NewRequest(http.MethodPatch, fmt.Sprintf("http://%s/mgmt/service_instances/%s", serverURL, serviceInstanceID), strings.NewReader(body))
-	Expect(err).ToNot(HaveOccurred())
-	req.SetBasicAuth(brokerUsername, brokerPassword)
-
-	resp, err := http.DefaultClient.Do(req)
-	Expect(err).ToNot(HaveOccurred())
-
-	return resp
+func doUpgradeRequest(serviceInstanceID, body string) (*http.Response, []byte) {
+	return doRequest(http.MethodPatch, fmt.Sprintf("http://%s/mgmt/service_instances/%s", serverURL, serviceInstanceID), strings.NewReader(body))
 }

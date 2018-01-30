@@ -95,7 +95,7 @@ var _ = Describe("Update a service instance", func() {
 		It("succeeds when there are no pending changes", func() {
 			fakeDeployer.UpdateReturns(updateTaskID, nil, nil)
 
-			resp := doUpdateRequest(detailsMap, instanceID)
+			resp, bodyContent := doUpdateRequest(detailsMap, instanceID)
 			By("returning the correct status code")
 			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
 
@@ -109,7 +109,7 @@ var _ = Describe("Update a service instance", func() {
 
 			By("including the operation data in the response")
 			var updateResponse brokerapi.UpdateResponse
-			Expect(json.NewDecoder(resp.Body).Decode(&updateResponse)).To(Succeed())
+			Expect(json.Unmarshal(bodyContent, &updateResponse)).To(Succeed())
 
 			var operationData broker.OperationData
 			Expect(json.NewDecoder(strings.NewReader(updateResponse.OperationData)).Decode(&operationData)).To(Succeed())
@@ -126,7 +126,7 @@ var _ = Describe("Update a service instance", func() {
 			fakeDeployer.UpdateReturns(updateTaskID, nil, nil)
 
 			detailsMap["plan_id"] = postDeployErrandPlanID
-			resp := doUpdateRequest(detailsMap, instanceID)
+			resp, bodyContent := doUpdateRequest(detailsMap, instanceID)
 			By("returning the correct status code")
 			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
 
@@ -140,7 +140,7 @@ var _ = Describe("Update a service instance", func() {
 
 			By("including the operation data in the response")
 			var updateResponse brokerapi.UpdateResponse
-			Expect(json.NewDecoder(resp.Body).Decode(&updateResponse)).To(Succeed())
+			Expect(json.Unmarshal(bodyContent, &updateResponse)).To(Succeed())
 
 			var operationData broker.OperationData
 			Expect(json.NewDecoder(strings.NewReader(updateResponse.OperationData)).Decode(&operationData)).To(Succeed())
@@ -164,7 +164,7 @@ var _ = Describe("Update a service instance", func() {
 				"plan_id":         postDeployErrandPlanID,
 				"space_id":        "space-guid",
 			}
-			resp := doUpdateRequest(detailsMap, instanceID)
+			resp, bodyContent := doUpdateRequest(detailsMap, instanceID)
 			By("returning the correct status code")
 			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
 
@@ -178,7 +178,7 @@ var _ = Describe("Update a service instance", func() {
 
 			By("including the operation data in the response")
 			var updateResponse brokerapi.UpdateResponse
-			Expect(json.NewDecoder(resp.Body).Decode(&updateResponse)).To(Succeed())
+			Expect(json.Unmarshal(bodyContent, &updateResponse)).To(Succeed())
 
 			var operationData broker.OperationData
 			Expect(json.NewDecoder(strings.NewReader(updateResponse.OperationData)).Decode(&operationData)).To(Succeed())
@@ -194,18 +194,18 @@ var _ = Describe("Update a service instance", func() {
 		It("fails with 422 if there are pending changes", func() {
 			fakeDeployer.UpdateReturns(updateTaskID, nil, task.PendingChangesNotAppliedError{})
 
-			resp := doUpdateRequest(detailsMap, instanceID)
+			resp, _ := doUpdateRequest(detailsMap, instanceID)
 
 			Expect(resp.StatusCode).To(Equal(http.StatusUnprocessableEntity))
 		})
 
 		It("fails with 500 if there plan's quota has been reached", func() {
 			detailsMap["plan_id"] = quotaReachedPlanID
-			resp := doUpdateRequest(detailsMap, instanceID)
+			resp, bodyContent := doUpdateRequest(detailsMap, instanceID)
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 
 			var body brokerapi.ErrorResponse
-			Expect(json.NewDecoder(resp.Body).Decode(&body)).To(Succeed())
+			Expect(json.Unmarshal(bodyContent, &body)).To(Succeed())
 			Expect(body.Description).To(Equal(
 				"The quota for this service plan has been exceeded. Please contact your Operator for help.",
 			))
@@ -214,11 +214,11 @@ var _ = Describe("Update a service instance", func() {
 		It("fails with 500 if BOSH deployment cannot be found", func() {
 			fakeDeployer.UpdateReturns(updateTaskID, nil, task.NewDeploymentNotFoundError(fmt.Errorf("oops")))
 
-			resp := doUpdateRequest(detailsMap, instanceID)
+			resp, bodyContent := doUpdateRequest(detailsMap, instanceID)
 
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 			var body brokerapi.ErrorResponse
-			Expect(json.NewDecoder(resp.Body).Decode(&body)).To(Succeed())
+			Expect(json.Unmarshal(bodyContent, &body)).To(Succeed())
 			Expect(body.Description).To(SatisfyAll(
 				Not(ContainSubstring("task-id:")),
 				ContainSubstring("There was a problem completing your request. Please contact your operations team providing the following information: "),
@@ -234,33 +234,33 @@ var _ = Describe("Update a service instance", func() {
 		It("fails with 500 if BOSH is an operation is in progress", func() {
 			fakeDeployer.UpdateReturns(updateTaskID, nil, task.TaskInProgressError{})
 
-			resp := doUpdateRequest(detailsMap, instanceID)
+			resp, bodyContent := doUpdateRequest(detailsMap, instanceID)
 
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 			var body brokerapi.ErrorResponse
-			Expect(json.NewDecoder(resp.Body).Decode(&body)).To(Succeed())
+			Expect(json.Unmarshal(bodyContent, &body)).To(Succeed())
 			Expect(body.Description).To(ContainSubstring("An operation is in progress for your service instance. Please try again later."))
 		})
 
 		It("fails with 500 if BOSH is unavailable", func() {
 			fakeDeployer.UpdateReturns(updateTaskID, nil, task.ServiceError{})
 
-			resp := doUpdateRequest(detailsMap, instanceID)
+			resp, bodyContent := doUpdateRequest(detailsMap, instanceID)
 
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 			var body brokerapi.ErrorResponse
-			Expect(json.NewDecoder(resp.Body).Decode(&body)).To(Succeed())
+			Expect(json.Unmarshal(bodyContent, &body)).To(Succeed())
 			Expect(body.Description).To(ContainSubstring("Currently unable to update service instance, please try again later"))
 		})
 
 		It("fails with 500 if CF api is unavailable", func() {
 			fakeCfClient.CountInstancesOfPlanReturns(0, errors.New("oops"))
 
-			resp := doUpdateRequest(detailsMap, instanceID)
+			resp, bodyContent := doUpdateRequest(detailsMap, instanceID)
 
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 			var body brokerapi.ErrorResponse
-			Expect(json.NewDecoder(resp.Body).Decode(&body)).To(Succeed())
+			Expect(json.Unmarshal(bodyContent, &body)).To(Succeed())
 			Expect(body.Description).To(SatisfyAll(
 				Not(ContainSubstring("task-id:")),
 				ContainSubstring("There was a problem completing your request. Please contact your operations team providing the following information: "),
@@ -274,21 +274,21 @@ var _ = Describe("Update a service instance", func() {
 		It("fails with 500 if the previous plan cannot be found", func() {
 			fakeDeployer.UpdateReturns(updateTaskID, nil, task.PlanNotFoundError{PlanGUID: "yo"})
 
-			resp := doUpdateRequest(detailsMap, instanceID)
+			resp, bodyContent := doUpdateRequest(detailsMap, instanceID)
 
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 			var body brokerapi.ErrorResponse
-			Expect(json.NewDecoder(resp.Body).Decode(&body)).To(Succeed())
+			Expect(json.Unmarshal(bodyContent, &body)).To(Succeed())
 			Expect(body.Description).To(ContainSubstring("plan yo does not exist"))
 		})
 
 		It("fails with 500 if the new plan cannot be found", func() {
 			detailsMap["plan_id"] = "macarena"
-			resp := doUpdateRequest(detailsMap, instanceID)
+			resp, bodyContent := doUpdateRequest(detailsMap, instanceID)
 
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 			var body brokerapi.ErrorResponse
-			Expect(json.NewDecoder(resp.Body).Decode(&body)).To(Succeed())
+			Expect(json.Unmarshal(bodyContent, &body)).To(Succeed())
 			Expect(body.Description).To(ContainSubstring("Plan macarena not found"))
 		})
 
@@ -296,11 +296,11 @@ var _ = Describe("Update a service instance", func() {
 			err := serviceadapter.ErrorForExitCode(400, "")
 			fakeDeployer.UpdateReturns(updateTaskID, nil, err)
 
-			resp := doUpdateRequest(detailsMap, instanceID)
+			resp, bodyContent := doUpdateRequest(detailsMap, instanceID)
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 
 			var body brokerapi.ErrorResponse
-			Expect(json.NewDecoder(resp.Body).Decode(&body)).To(Succeed())
+			Expect(json.Unmarshal(bodyContent, &body)).To(Succeed())
 			Expect(body.Description).To(SatisfyAll(
 				Not(ContainSubstring("task-id:")),
 				ContainSubstring("There was a problem completing your request. Please contact your operations team providing the following information: "),
@@ -315,11 +315,11 @@ var _ = Describe("Update a service instance", func() {
 			err := serviceadapter.ErrorForExitCode(1, "some cf message")
 			fakeDeployer.UpdateReturns(updateTaskID, nil, err)
 
-			resp := doUpdateRequest(detailsMap, instanceID)
+			resp, bodyContent := doUpdateRequest(detailsMap, instanceID)
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 
 			var body brokerapi.ErrorResponse
-			Expect(json.NewDecoder(resp.Body).Decode(&body)).To(Succeed())
+			Expect(json.Unmarshal(bodyContent, &body)).To(Succeed())
 			Expect(body.Description).To(ContainSubstring("some cf message"))
 		})
 	})
@@ -335,7 +335,7 @@ var _ = Describe("Update a service instance", func() {
 				"space_id":        "space-guid",
 			}
 
-			resp := doUpdateRequest(detailsMap, instanceID)
+			resp, bodyContent := doUpdateRequest(detailsMap, instanceID)
 			By("returning the correct status code")
 			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
 
@@ -349,7 +349,7 @@ var _ = Describe("Update a service instance", func() {
 
 			By("including the operation data in the response")
 			var updateResponse brokerapi.UpdateResponse
-			Expect(json.NewDecoder(resp.Body).Decode(&updateResponse)).To(Succeed())
+			Expect(json.Unmarshal(bodyContent, &updateResponse)).To(Succeed())
 
 			var operationData broker.OperationData
 			Expect(json.NewDecoder(strings.NewReader(updateResponse.OperationData)).Decode(&operationData)).To(Succeed())
@@ -364,19 +364,12 @@ var _ = Describe("Update a service instance", func() {
 	})
 })
 
-func doUpdateRequest(body map[string]interface{}, instanceID string) *http.Response {
+func doUpdateRequest(body map[string]interface{}, instanceID string) (*http.Response, []byte) {
 	bodyBytes, err := json.Marshal(body)
-	Expect(err).ToNot(HaveOccurred())
-
-	req, err := http.NewRequest(
+	Expect(err).NotTo(HaveOccurred())
+	return doRequest(
 		http.MethodPatch,
 		fmt.Sprintf("http://%s/v2/service_instances/%s?accepts_incomplete=true", serverURL, instanceID),
 		bytes.NewReader(bodyBytes),
 	)
-	Expect(err).NotTo(HaveOccurred())
-	req.SetBasicAuth(brokerUsername, brokerPassword)
-
-	updateResp, err := http.DefaultClient.Do(req)
-	Expect(err).NotTo(HaveOccurred())
-	return updateResp
 }

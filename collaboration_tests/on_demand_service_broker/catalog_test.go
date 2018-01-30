@@ -31,14 +31,14 @@ var _ = Describe("Catalog", func() {
 		})
 
 		It("returns catalog metadata", func() {
-			response := doCatalogRequest()
+			response, bodyContent := doCatalogRequest()
 
 			By("returning the correct HTTP status")
 			Expect(response.StatusCode).To(Equal(http.StatusOK))
 
 			By("returning the correct catalog response")
 			catalog := make(map[string][]brokerapi.Service)
-			Expect(json.NewDecoder(response.Body).Decode(&catalog)).To(Succeed())
+			Expect(json.Unmarshal(bodyContent, &catalog)).To(Succeed())
 			Expect(catalog).To(Equal(map[string][]brokerapi.Service{
 				"services": {
 					{
@@ -107,14 +107,14 @@ var _ = Describe("Catalog", func() {
 		})
 
 		It("returns catalog metadata", func() {
-			response := doCatalogRequest()
+			response, bodyContent := doCatalogRequest()
 
 			By("returning the correct HTTP status")
 			Expect(response.StatusCode).To(Equal(http.StatusOK))
 
 			By("returning the correct catalog response")
 			catalog := make(map[string][]brokerapi.Service)
-			Expect(json.NewDecoder(response.Body).Decode(&catalog)).To(Succeed())
+			Expect(json.Unmarshal(bodyContent, &catalog)).To(Succeed())
 			Expect(catalog).To(Equal(map[string][]brokerapi.Service{
 				"services": {
 					{
@@ -174,16 +174,8 @@ var _ = Describe("Catalog", func() {
 	})
 })
 
-func doCatalogRequest() *http.Response {
-
-	catalogReq, err := http.NewRequest(http.MethodGet, fmt.Sprintf("http://%s/v2/catalog", serverURL), nil)
-	Expect(err).ToNot(HaveOccurred())
-	catalogReq.SetBasicAuth(brokerUsername, brokerPassword)
-
-	catalogResponse, err := http.DefaultClient.Do(catalogReq)
-	Expect(err).ToNot(HaveOccurred())
-
-	return catalogResponse
+func doCatalogRequest() (*http.Response, []byte) {
+	return doRequest(http.MethodGet, fmt.Sprintf("http://%s/v2/catalog", serverURL), nil)
 }
 
 func defaultServiceCatalogConfig() brokerConfig.ServiceOffering {

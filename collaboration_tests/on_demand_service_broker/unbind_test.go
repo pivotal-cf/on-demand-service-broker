@@ -11,8 +11,6 @@ import (
 
 	"encoding/json"
 
-	"io/ioutil"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -58,7 +56,7 @@ var _ = Describe("Unbind", func() {
 
 	It("successfully unbind the service instance", func() {
 		By("retuning the correct status code")
-		resp := doUnbindRequest(instanceID, bindingID, serviceID, dedicatedPlanID)
+		resp, _ := doUnbindRequest(instanceID, bindingID, serviceID, dedicatedPlanID)
 		Expect(resp.StatusCode).To(Equal(http.StatusOK))
 
 		By("calling the adapter with the correct arguments")
@@ -79,14 +77,14 @@ var _ = Describe("Unbind", func() {
 		It("responds with 500 and a generic message", func() {
 			fakeServiceAdapter.DeleteBindingReturns(errors.New("oops"))
 
-			resp := doUnbindRequest(instanceID, bindingID, serviceID, dedicatedPlanID)
+			resp, bodyContent := doUnbindRequest(instanceID, bindingID, serviceID, dedicatedPlanID)
 
 			By("returning the correct status code")
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 
 			By("returning the correct error message")
 			var errorResponse brokerapi.ErrorResponse
-			Expect(json.NewDecoder(resp.Body).Decode(&errorResponse)).To(Succeed())
+			Expect(json.Unmarshal(bodyContent, &errorResponse)).To(Succeed())
 
 			Expect(errorResponse.Description).To(SatisfyAll(
 				ContainSubstring(
@@ -104,12 +102,12 @@ var _ = Describe("Unbind", func() {
 
 		It("responds with 500 and a descriptive message", func() {
 			fakeServiceAdapter.DeleteBindingReturns(serviceadapter.NewUnknownFailureError("error message for user"))
-			resp := doUnbindRequest(instanceID, bindingID, serviceID, dedicatedPlanID)
+			resp, bodyContent := doUnbindRequest(instanceID, bindingID, serviceID, dedicatedPlanID)
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 
 			By("returning the correct error message")
 			var errorResponse brokerapi.ErrorResponse
-			Expect(json.NewDecoder(resp.Body).Decode(&errorResponse)).To(Succeed())
+			Expect(json.Unmarshal(bodyContent, &errorResponse)).To(Succeed())
 
 			Expect(errorResponse.Description).To(ContainSubstring("error message for user"))
 		})
@@ -117,28 +115,27 @@ var _ = Describe("Unbind", func() {
 		It("responds with 410 when cannot find the binding", func() {
 			fakeServiceAdapter.DeleteBindingReturns(serviceadapter.ErrorForExitCode(sdk.BindingNotFoundErrorExitCode, "error message for user"))
 
-			resp := doUnbindRequest(instanceID, bindingID, serviceID, dedicatedPlanID)
+			resp, bodyContent := doUnbindRequest(instanceID, bindingID, serviceID, dedicatedPlanID)
 			Expect(resp.StatusCode).To(Equal(http.StatusGone))
 
-			defer resp.Body.Close()
-			Expect(ioutil.ReadAll(resp.Body)).To(MatchJSON(`{}`))
+			Expect(bodyContent).To(MatchJSON(`{}`))
 		})
 
 		It("responds with 410 when a non existing instance is unbound", func() {
 			fakeBoshClient.GetDeploymentReturns(boshManifest, false, nil)
 
-			resp := doUnbindRequest(instanceID, bindingID, serviceID, dedicatedPlanID)
+			resp, _ := doUnbindRequest(instanceID, bindingID, serviceID, dedicatedPlanID)
 			Expect(resp.StatusCode).To(Equal(http.StatusGone))
 		})
 
 		It("responds with 500 when adapter does not implement binder", func() {
 			fakeServiceAdapter.DeleteBindingReturns(serviceadapter.ErrorForExitCode(sdk.NotImplementedExitCode, "error message for user"))
-			resp := doUnbindRequest(instanceID, bindingID, serviceID, dedicatedPlanID)
+			resp, bodyContent := doUnbindRequest(instanceID, bindingID, serviceID, dedicatedPlanID)
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 
 			By("returning the correct error message")
 			var errorResponse brokerapi.ErrorResponse
-			Expect(json.NewDecoder(resp.Body).Decode(&errorResponse)).To(Succeed())
+			Expect(json.Unmarshal(bodyContent, &errorResponse)).To(Succeed())
 
 			Expect(errorResponse.Description).To(SatisfyAll(
 				ContainSubstring(
@@ -160,12 +157,12 @@ var _ = Describe("Unbind", func() {
 		It("responds with 500 when bosh fails", func() {
 			fakeBoshClient.GetDeploymentReturns(nil, false, errors.New("some bosh error"))
 
-			resp := doUnbindRequest(instanceID, bindingID, serviceID, dedicatedPlanID)
+			resp, bodyContent := doUnbindRequest(instanceID, bindingID, serviceID, dedicatedPlanID)
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 
 			By("returning the correct error message")
 			var errorResponse brokerapi.ErrorResponse
-			Expect(json.NewDecoder(resp.Body).Decode(&errorResponse)).To(Succeed())
+			Expect(json.Unmarshal(bodyContent, &errorResponse)).To(Succeed())
 
 			Expect(errorResponse.Description).To(SatisfyAll(
 				ContainSubstring(
@@ -183,12 +180,12 @@ var _ = Describe("Unbind", func() {
 		It("responds with 500 when bosh is unavailable", func() {
 			fakeBoshClient.GetInfoReturns(boshdirector.Info{}, errors.New("bosh offline"))
 
-			resp := doUnbindRequest(instanceID, bindingID, serviceID, dedicatedPlanID)
+			resp, bodyContent := doUnbindRequest(instanceID, bindingID, serviceID, dedicatedPlanID)
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 
 			By("returning the correct error message")
 			var errorResponse brokerapi.ErrorResponse
-			Expect(json.NewDecoder(resp.Body).Decode(&errorResponse)).To(Succeed())
+			Expect(json.Unmarshal(bodyContent, &errorResponse)).To(Succeed())
 
 			Expect(errorResponse.Description).To(
 				ContainSubstring(
@@ -200,8 +197,8 @@ var _ = Describe("Unbind", func() {
 	})
 })
 
-func doUnbindRequest(instanceID, bindingID, serviceID, planID string) *http.Response {
-	req, err := http.NewRequest(http.MethodDelete,
+func doUnbindRequest(instanceID, bindingID, serviceID, planID string) (*http.Response, []byte) {
+	return doRequest(http.MethodDelete,
 		fmt.Sprintf(
 			"http://%s/v2/service_instances/%s/service_bindings/%s?service_id=%s&plan_id=%s",
 			serverURL,
@@ -210,12 +207,9 @@ func doUnbindRequest(instanceID, bindingID, serviceID, planID string) *http.Resp
 			serviceID,
 			planID,
 		),
-		nil)
-	Expect(err).ToNot(HaveOccurred())
-	req.SetBasicAuth(brokerUsername, brokerPassword)
-	req.Header.Set("X-Broker-API-Version", "2.13")
-	response, err := http.DefaultClient.Do(req)
-	Expect(err).ToNot(HaveOccurred())
-
-	return response
+		nil,
+		func(r *http.Request) {
+			r.Header.Set("X-Broker-API-Version", "2.13")
+		},
+	)
 }

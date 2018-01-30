@@ -6,8 +6,6 @@ import (
 	"net/http"
 	"net/url"
 
-	"io/ioutil"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -65,16 +63,13 @@ var _ = Describe("Last Operation", func() {
 				},
 			}
 
-			response := doLastOperationRequest(instanceID, operationData)
+			response, bodyContent := doLastOperationRequest(instanceID, operationData)
 
 			By("returning the correct HTTP status code")
 			Expect(response.StatusCode).To(Equal(http.StatusOK))
 
 			By("returning the correct error description")
-			var responseBody []byte
-			responseBody, err := ioutil.ReadAll(response.Body)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(responseBody).To(MatchJSON(fmt.Sprintf(`
+			Expect(bodyContent).To(MatchJSON(fmt.Sprintf(`
 				{
 					"state":       "in progress",
 					"description": "%s"
@@ -110,18 +105,14 @@ var _ = Describe("Last Operation", func() {
 				},
 			}
 
-			response := doLastOperationRequest(instanceID, operationData)
+			response, bodyContent := doLastOperationRequest(instanceID, operationData)
 
 			By("returning the correct HTTP status code")
 			Expect(response.StatusCode).To(Equal(http.StatusOK))
 
 			By("returning the correct error description")
-			var responseBody []byte
-			responseBody, err := ioutil.ReadAll(response.Body)
-			Expect(err).NotTo(HaveOccurred())
-
 			var unmarshalled map[string]interface{}
-			json.Unmarshal(responseBody, &unmarshalled)
+			Expect(json.Unmarshal(bodyContent, &unmarshalled)).To(Succeed())
 
 			Expect(unmarshalled["state"]).To(Equal(responseState))
 
@@ -168,18 +159,14 @@ var _ = Describe("Last Operation", func() {
 				},
 			}
 
-			response := doLastOperationRequest(instanceID, operationData)
+			response, bodyContent := doLastOperationRequest(instanceID, operationData)
 
 			By("returning the correct HTTP status code")
 			Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 
 			By("returning the correct error description")
-			var responseBody []byte
-			responseBody, err := ioutil.ReadAll(response.Body)
-			Expect(err).NotTo(HaveOccurred())
-
 			var unmarshalled map[string]interface{}
-			json.Unmarshal(responseBody, &unmarshalled)
+			Expect(json.Unmarshal(bodyContent, &unmarshalled)).To(Succeed())
 
 			Expect(unmarshalled["description"]).To(SatisfyAll(
 				ContainSubstring("There was a problem completing your request. Please contact your operations team providing the following information:"),
@@ -196,18 +183,14 @@ var _ = Describe("Last Operation", func() {
 
 		It("responds with 500 if Cloud Controller does not send operation data", func() {
 			fakeBoshClient.GetTaskReturns(boshdirector.BoshTask{ID: boshTaskID, State: boshdirector.TaskProcessing}, nil)
-			response := doLastOperationRequest(instanceID, broker.OperationData{})
+			response, bodyContent := doLastOperationRequest(instanceID, broker.OperationData{})
 
 			By("returning the correct HTTP status code")
 			Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 
 			By("returning the correct error description")
-			var responseBody []byte
-			responseBody, err := ioutil.ReadAll(response.Body)
-			Expect(err).NotTo(HaveOccurred())
-
 			var unmarshalled map[string]interface{}
-			json.Unmarshal(responseBody, &unmarshalled)
+			Expect(json.Unmarshal(bodyContent, &unmarshalled)).To(Succeed())
 
 			Expect(unmarshalled["description"]).To(SatisfyAll(
 				ContainSubstring("There was a problem completing your request. Please contact your operations team providing the following information:"),
@@ -269,16 +252,13 @@ var _ = Describe("Last Operation", func() {
 
 			operationData.BoshTaskID = processingTask.ID
 
-			response := doLastOperationRequest(instanceID, operationData)
+			response, bodyContent := doLastOperationRequest(instanceID, operationData)
 
 			By("returning the correct HTTP status code")
 			Expect(response.StatusCode).To(Equal(http.StatusOK))
 
 			By("returning the correct response description")
-			var responseBody []byte
-			responseBody, err := ioutil.ReadAll(response.Body)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(responseBody).To(MatchJSON(`
+			Expect(bodyContent).To(MatchJSON(`
 				{
 					"state":       "in progress",
 					"description": "Instance provisioning in progress"
@@ -304,16 +284,13 @@ var _ = Describe("Last Operation", func() {
 
 			operationData.BoshTaskID = doneTask.ID
 
-			response := doLastOperationRequest(instanceID, operationData)
+			response, bodyContent := doLastOperationRequest(instanceID, operationData)
 
 			By("returning the correct HTTP status code")
 			Expect(response.StatusCode).To(Equal(http.StatusOK))
 
 			By("returning the correct response description")
-			var responseBody []byte
-			responseBody, err := ioutil.ReadAll(response.Body)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(responseBody).To(MatchJSON(`
+			Expect(bodyContent).To(MatchJSON(`
 				{
 					"state":       "in progress",
 					"description": "Instance provisioning in progress"
@@ -338,16 +315,13 @@ var _ = Describe("Last Operation", func() {
 
 			operationData.BoshTaskID = doneTask.ID
 
-			response := doLastOperationRequest(instanceID, operationData)
+			response, bodyContent := doLastOperationRequest(instanceID, operationData)
 
 			By("returning the correct HTTP status code")
 			Expect(response.StatusCode).To(Equal(http.StatusOK))
 
 			By("returning the correct response description")
-			var responseBody []byte
-			responseBody, err := ioutil.ReadAll(response.Body)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(responseBody).To(MatchJSON(`
+			Expect(bodyContent).To(MatchJSON(`
 				{
 					"state":       "in progress",
 					"description": "Instance provisioning in progress"
@@ -372,18 +346,14 @@ var _ = Describe("Last Operation", func() {
 
 			operationData.BoshTaskID = doneTask.ID
 
-			response := doLastOperationRequest(instanceID, operationData)
+			response, bodyContent := doLastOperationRequest(instanceID, operationData)
 
 			By("returning the correct HTTP status code")
 			Expect(response.StatusCode).To(Equal(http.StatusOK))
 
 			By("returning the correct response description")
-			var responseBody []byte
-			responseBody, err := ioutil.ReadAll(response.Body)
-			Expect(err).NotTo(HaveOccurred())
-
 			var parsedResponse map[string]interface{}
-			json.Unmarshal(responseBody, &parsedResponse)
+			Expect(json.Unmarshal(bodyContent, &parsedResponse)).To(Succeed())
 			Expect(parsedResponse["state"]).To(Equal(string(brokerapi.Failed)))
 
 			Expect(parsedResponse["description"]).To(SatisfyAll(
@@ -409,16 +379,13 @@ var _ = Describe("Last Operation", func() {
 
 			operationData.BoshTaskID = doneTask.ID
 
-			response := doLastOperationRequest(instanceID, operationData)
+			response, bodyContent := doLastOperationRequest(instanceID, operationData)
 
 			By("returning the correct HTTP status code")
 			Expect(response.StatusCode).To(Equal(http.StatusOK))
 
 			By("returning the correct response description")
-			var responseBody []byte
-			responseBody, err := ioutil.ReadAll(response.Body)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(responseBody).To(MatchJSON(`
+			Expect(bodyContent).To(MatchJSON(`
 				{
 					"state":       "succeeded",
 					"description": "Instance provisioning completed"
@@ -482,16 +449,13 @@ var _ = Describe("Last Operation", func() {
 
 			operationData.BoshTaskID = processingErrandTask.ID
 
-			response := doLastOperationRequest(instanceID, operationData)
+			response, bodyContent := doLastOperationRequest(instanceID, operationData)
 
 			By("returning the correct HTTP status code")
 			Expect(response.StatusCode).To(Equal(http.StatusOK))
 
 			By("returning the correct response description")
-			var responseBody []byte
-			responseBody, err := ioutil.ReadAll(response.Body)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(responseBody).To(MatchJSON(`
+			Expect(bodyContent).To(MatchJSON(`
 				{
 					"state":       "in progress",
 					"description": "Instance deletion in progress"
@@ -517,16 +481,13 @@ var _ = Describe("Last Operation", func() {
 
 			operationData.BoshTaskID = doneErrandTask.ID
 
-			response := doLastOperationRequest(instanceID, operationData)
+			response, bodyContent := doLastOperationRequest(instanceID, operationData)
 
 			By("returning the correct HTTP status code")
 			Expect(response.StatusCode).To(Equal(http.StatusOK))
 
 			By("returning the correct response description")
-			var responseBody []byte
-			responseBody, err := ioutil.ReadAll(response.Body)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(responseBody).To(MatchJSON(`
+			Expect(bodyContent).To(MatchJSON(`
 				{
 					"state":       "in progress",
 					"description": "Instance deletion in progress"
@@ -551,16 +512,13 @@ var _ = Describe("Last Operation", func() {
 
 			operationData.BoshTaskID = doneErrandTask.ID
 
-			response := doLastOperationRequest(instanceID, operationData)
+			response, bodyContent := doLastOperationRequest(instanceID, operationData)
 
 			By("returning the correct HTTP status code")
 			Expect(response.StatusCode).To(Equal(http.StatusOK))
 
 			By("returning the correct response description")
-			var responseBody []byte
-			responseBody, err := ioutil.ReadAll(response.Body)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(responseBody).To(MatchJSON(`
+			Expect(bodyContent).To(MatchJSON(`
 				{
 					"state":       "in progress",
 					"description": "Instance deletion in progress"
@@ -582,18 +540,14 @@ var _ = Describe("Last Operation", func() {
 
 			operationData.BoshTaskID = doneErrandTask.ID
 
-			response := doLastOperationRequest(instanceID, operationData)
+			response, bodyContent := doLastOperationRequest(instanceID, operationData)
 
 			By("returning the correct HTTP status code")
 			Expect(response.StatusCode).To(Equal(http.StatusOK))
 
 			By("returning the correct response description")
-			var responseBody []byte
-			responseBody, err := ioutil.ReadAll(response.Body)
-			Expect(err).NotTo(HaveOccurred())
-
 			var parsedResponse map[string]interface{}
-			json.Unmarshal(responseBody, &parsedResponse)
+			Expect(json.Unmarshal(bodyContent, &parsedResponse)).To(Succeed())
 			Expect(parsedResponse["state"]).To(Equal(string(brokerapi.Failed)))
 
 			Expect(parsedResponse["description"]).To(SatisfyAll(
@@ -619,16 +573,13 @@ var _ = Describe("Last Operation", func() {
 
 			operationData.BoshTaskID = doneTask.ID
 
-			response := doLastOperationRequest(instanceID, operationData)
+			response, bodyContent := doLastOperationRequest(instanceID, operationData)
 
 			By("returning the correct HTTP status code")
 			Expect(response.StatusCode).To(Equal(http.StatusOK))
 
 			By("returning the correct response description")
-			var responseBody []byte
-			responseBody, err := ioutil.ReadAll(response.Body)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(responseBody).To(MatchJSON(`
+			Expect(bodyContent).To(MatchJSON(`
 				{
 					"state":       "succeeded",
 					"description": "Instance deletion completed"
@@ -687,7 +638,7 @@ var _ = Describe("Last Operation", func() {
 
 			operationData.BoshTaskID = doneTask.ID
 
-			response := doLastOperationRequest(instanceID, operationData)
+			response, bodyContent := doLastOperationRequest(instanceID, operationData)
 
 			By("returning the correct HTTP status code")
 			Expect(response.StatusCode).To(Equal(http.StatusOK))
@@ -696,10 +647,7 @@ var _ = Describe("Last Operation", func() {
 			Expect(fakeBoshClient.RunErrandCallCount()).To(Equal(0))
 
 			By("returning the correct response description")
-			var responseBody []byte
-			responseBody, err := ioutil.ReadAll(response.Body)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(responseBody).To(MatchJSON(`
+			Expect(bodyContent).To(MatchJSON(`
 				{
 					"state":       "succeeded",
 					"description": "Instance provisioning completed"
@@ -721,7 +669,7 @@ var _ = Describe("Last Operation", func() {
 
 			operationData.BoshTaskID = doneTask.ID
 
-			response := doLastOperationRequest(instanceID, operationData)
+			response, bodyContent := doLastOperationRequest(instanceID, operationData)
 
 			By("returning the correct HTTP status code")
 			Expect(response.StatusCode).To(Equal(http.StatusOK))
@@ -730,10 +678,7 @@ var _ = Describe("Last Operation", func() {
 			Expect(fakeBoshClient.RunErrandCallCount()).To(Equal(1))
 
 			By("returning the correct response description")
-			var responseBody []byte
-			responseBody, err := ioutil.ReadAll(response.Body)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(responseBody).To(MatchJSON(`
+			Expect(bodyContent).To(MatchJSON(`
 				{
 					"state":       "in progress",
 					"description": "Instance provisioning in progress"
@@ -744,7 +689,7 @@ var _ = Describe("Last Operation", func() {
 
 })
 
-func doLastOperationRequest(instanceID string, operationData broker.OperationData) *http.Response {
+func doLastOperationRequest(instanceID string, operationData broker.OperationData) (*http.Response, []byte) {
 	lastOperationURL := fmt.Sprintf("http://%s/v2/service_instances/%s/last_operation", serverURL, instanceID)
 
 	if operationData.PlanID != "" {
@@ -753,13 +698,5 @@ func doLastOperationRequest(instanceID string, operationData broker.OperationDat
 		lastOperationURL = fmt.Sprintf("%s?operation=%s", lastOperationURL, url.QueryEscape(string(operationDataBytes)))
 	}
 
-	lastOperationRequest, err := http.NewRequest(http.MethodGet, lastOperationURL, nil)
-	Expect(err).NotTo(HaveOccurred())
-
-	lastOperationRequest.SetBasicAuth(brokerUsername, brokerPassword)
-
-	lastOperationResponse, err := http.DefaultClient.Do(lastOperationRequest)
-	Expect(err).NotTo(HaveOccurred())
-
-	return lastOperationResponse
+	return doRequest(http.MethodGet, lastOperationURL, nil)
 }

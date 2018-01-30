@@ -6,7 +6,8 @@ import (
 	"net/http"
 
 	"encoding/json"
-	"io/ioutil"
+
+	"strings"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -48,22 +49,17 @@ var _ = Describe("Deprovision", func() {
 		})
 
 		It("succeeds with async flag", func() {
-			response := doDeprovisionRequest(instanceID, dedicatedPlanID, serviceID, true)
+			response, bodyContent := doDeprovisionRequest(instanceID, dedicatedPlanID, serviceID, true)
 
 			By("returning the correct HTTP status")
 			Expect(response.StatusCode).To(Equal(http.StatusAccepted))
 
-			body, err := ioutil.ReadAll(response.Body)
-			Expect(err).NotTo(HaveOccurred())
-
 			By("including the operation data in the response")
 			var deprovisionResponse brokerapi.DeprovisionResponse
-			err = json.Unmarshal(body, &deprovisionResponse)
-			Expect(err).NotTo(HaveOccurred())
+			Expect(json.Unmarshal(bodyContent, &deprovisionResponse)).To(Succeed())
 
 			var operationData broker.OperationData
-			err = json.Unmarshal([]byte(deprovisionResponse.OperationData), &operationData)
-			Expect(err).NotTo(HaveOccurred())
+			Expect(json.NewDecoder(strings.NewReader(deprovisionResponse.OperationData)).Decode(&operationData)).To(Succeed())
 
 			Expect(operationData.OperationType).To(Equal(broker.OperationTypeDelete))
 			Expect(operationData.BoshTaskID).To(Equal(taskID))
@@ -74,14 +70,14 @@ var _ = Describe("Deprovision", func() {
 		})
 
 		It("fails when async flag is not set", func() {
-			response := doDeprovisionRequest(instanceID, dedicatedPlanID, serviceID, false)
+			response, bodyContent := doDeprovisionRequest(instanceID, dedicatedPlanID, serviceID, false)
 
 			By("returning the correct HTTP status")
 			Expect(response.StatusCode).To(Equal(http.StatusUnprocessableEntity))
 
 			By("returning an informative error")
 			var respStructure map[string]interface{}
-			Expect(json.NewDecoder(response.Body).Decode(&respStructure)).To(Succeed())
+			Expect(json.Unmarshal(bodyContent, &respStructure)).To(Succeed())
 
 			Expect(respStructure).To(Equal(map[string]interface{}{
 				"error":       "AsyncRequired",
@@ -131,22 +127,17 @@ var _ = Describe("Deprovision", func() {
 		})
 
 		It("succeeds with async flag", func() {
-			response := doDeprovisionRequest(instanceID, preDeleteErrandPlanID, serviceID, true)
+			response, bodyContent := doDeprovisionRequest(instanceID, preDeleteErrandPlanID, serviceID, true)
 
 			By("returning the correct HTTP status")
 			Expect(response.StatusCode).To(Equal(http.StatusAccepted))
 
-			body, err := ioutil.ReadAll(response.Body)
-			Expect(err).NotTo(HaveOccurred())
-
 			By("including the operation data in the response")
 			var deprovisionResponse brokerapi.DeprovisionResponse
-			err = json.Unmarshal(body, &deprovisionResponse)
-			Expect(err).NotTo(HaveOccurred())
+			Expect(json.Unmarshal(bodyContent, &deprovisionResponse)).To(Succeed())
 
 			var operationData broker.OperationData
-			err = json.Unmarshal([]byte(deprovisionResponse.OperationData), &operationData)
-			Expect(err).NotTo(HaveOccurred())
+			Expect(json.NewDecoder(strings.NewReader(deprovisionResponse.OperationData)).Decode(&operationData)).To(Succeed())
 
 			Expect(operationData.OperationType).To(Equal(broker.OperationTypeDelete))
 			Expect(operationData.BoshTaskID).To(Equal(errandTaskID))
@@ -177,13 +168,13 @@ var _ = Describe("Deprovision", func() {
 		It("returns 410 when the deployment does not exist", func() {
 			fakeBoshClient.GetDeploymentReturns(nil, false, nil)
 
-			response := doDeprovisionRequest(instanceID, dedicatedPlanID, serviceID, true)
+			response, bodyContent := doDeprovisionRequest(instanceID, dedicatedPlanID, serviceID, true)
 
 			By("returning the correct HTTP status")
 			Expect(response.StatusCode).To(Equal(http.StatusGone))
 
 			By("returning no body")
-			Expect(ioutil.ReadAll(response.Body)).To(MatchJSON("{}"))
+			Expect(bodyContent).To(MatchJSON("{}"))
 
 			By("logging the delete request")
 			Eventually(loggerBuffer).Should(
@@ -199,14 +190,14 @@ var _ = Describe("Deprovision", func() {
 			tasks := boshdirector.BoshTasks{task}
 			fakeBoshClient.GetTasksReturns(tasks, nil)
 
-			response := doDeprovisionRequest(instanceID, dedicatedPlanID, serviceID, true)
+			response, bodyContent := doDeprovisionRequest(instanceID, dedicatedPlanID, serviceID, true)
 
 			By("returning the correct HTTP status")
 			Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 
 			By("returning the correct error data")
 			var errorResponse brokerapi.ErrorResponse
-			Expect(json.NewDecoder(response.Body).Decode(&errorResponse)).To(Succeed())
+			Expect(json.Unmarshal(bodyContent, &errorResponse)).To(Succeed())
 			Expect(errorResponse.Description).To(ContainSubstring(
 				"An operation is in progress for your service instance. Please try again later.",
 			))
@@ -220,28 +211,26 @@ var _ = Describe("Deprovision", func() {
 		It("returns 500 when the BOSH director is unavailable", func() {
 			fakeBoshClient.GetInfoReturns(boshdirector.Info{}, errors.New("oops"))
 
-			response := doDeprovisionRequest(instanceID, dedicatedPlanID, serviceID, true)
+			response, bodyContent := doDeprovisionRequest(instanceID, dedicatedPlanID, serviceID, true)
 
 			By("returning the correct HTTP status")
 			Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 
 			By("returning the correct error data")
 			var errorResponse brokerapi.ErrorResponse
-			Expect(json.NewDecoder(response.Body).Decode(&errorResponse)).To(Succeed())
+			Expect(json.Unmarshal(bodyContent, &errorResponse)).To(Succeed())
 			Expect(errorResponse.Description).To(ContainSubstring("Currently unable to delete service instance, please try again later"))
 		})
 	})
 })
 
-func doDeprovisionRequest(instanceID, planID, serviceID string, asyncAllowed bool) *http.Response {
-	deprovisionReq, err := http.NewRequest(
+func doDeprovisionRequest(instanceID, planID, serviceID string, asyncAllowed bool) (*http.Response, []byte) {
+	return doRequest(
 		http.MethodDelete,
 		fmt.Sprintf("http://%s/v2/service_instances/%s?accepts_incomplete=%t&plan_id=%s&service_id=%s", serverURL, instanceID, asyncAllowed, planID, serviceID),
-		nil)
-	Expect(err).ToNot(HaveOccurred())
-	deprovisionReq.Header.Set("X-Broker-API-Version", "2.0")
-	deprovisionReq.SetBasicAuth(brokerUsername, brokerPassword)
-	deprovisionResponse, err := http.DefaultClient.Do(deprovisionReq)
-	Expect(err).ToNot(HaveOccurred())
-	return deprovisionResponse
+		nil,
+		func(r *http.Request) {
+			r.Header.Set("X-Broker-API-Version", "2.0")
+		},
+	)
 }
