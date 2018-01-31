@@ -11,7 +11,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"path"
 	"strings"
 	"sync"
 
@@ -22,6 +21,8 @@ import (
 	"time"
 
 	"regexp"
+
+	"path"
 
 	"github.com/cloudfoundry-incubator/cf-test-helpers/cf"
 	"github.com/craigfurman/herottp"
@@ -268,10 +269,14 @@ func createServiceInstances() {
 		go func(ts *testService) {
 			defer GinkgoRecover()
 			defer wg.Done()
+
+			By(fmt.Sprintf("Creating service instance: %s", ts.Name))
 			createServiceSession := cf.Cf("create-service", serviceOffering, currentPlan, ts.Name)
 			Eventually(createServiceSession, cf_helpers.CfTimeout).Should(
 				gexec.Exit(0),
 			)
+
+			By(fmt.Sprintf("Polling for successful creation of service instance: %s", ts.Name))
 			cf_helpers.AwaitServiceCreation(ts.Name)
 
 			if dataPersistenceEnabled {
