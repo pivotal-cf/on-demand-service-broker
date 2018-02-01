@@ -9,12 +9,11 @@ package orphan_deployments_tests
 import (
 	"fmt"
 
-	"github.com/cloudfoundry-incubator/cf-test-helpers/cf"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
 	"github.com/pborman/uuid"
-	"github.com/pivotal-cf/on-demand-service-broker/system_tests/cf_helpers"
+	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/cf_helpers"
 )
 
 var _ = Describe("orphan deployments errand", func() {
@@ -32,10 +31,10 @@ var _ = Describe("orphan deployments errand", func() {
 		})
 
 		AfterEach(func() {
-			Eventually(cf.Cf("delete-service", orphanInstanceName, "-f"), cf_helpers.CfTimeout).Should(gexec.Exit(0))
-			Eventually(cf.Cf("delete-service", anotherInstanceName, "-f"), cf_helpers.CfTimeout).Should(gexec.Exit(0))
-			cf_helpers.AwaitServiceDeletion(orphanInstanceName)
-			cf_helpers.AwaitServiceDeletion(anotherInstanceName)
+			Eventually(cf.Cf("delete-service", orphanInstanceName, "-f"), cf.CfTimeout).Should(gexec.Exit(0))
+			Eventually(cf.Cf("delete-service", anotherInstanceName, "-f"), cf.CfTimeout).Should(gexec.Exit(0))
+			cf.AwaitServiceDeletion(orphanInstanceName)
+			cf.AwaitServiceDeletion(anotherInstanceName)
 
 			if orphanInstanceDeploymentName != "" && boshClient.DeploymentExists(orphanInstanceDeploymentName) {
 				boshClient.DeleteDeployment(orphanInstanceDeploymentName)
@@ -44,18 +43,18 @@ var _ = Describe("orphan deployments errand", func() {
 
 		It("lists the orphan deployment", func() {
 			By("creating two service instances")
-			Eventually(cf.Cf("create-service", serviceOffering, "dedicated-vm", orphanInstanceName), cf_helpers.CfTimeout).Should(gexec.Exit(0))
-			Eventually(cf.Cf("create-service", serviceOffering, "dedicated-vm", anotherInstanceName), cf_helpers.CfTimeout).Should(gexec.Exit(0))
-			cf_helpers.AwaitServiceCreation(orphanInstanceName)
-			cf_helpers.AwaitServiceCreation(anotherInstanceName)
+			Eventually(cf.Cf("create-service", serviceOffering, "dedicated-vm", orphanInstanceName), cf.CfTimeout).Should(gexec.Exit(0))
+			Eventually(cf.Cf("create-service", serviceOffering, "dedicated-vm", anotherInstanceName), cf.CfTimeout).Should(gexec.Exit(0))
+			cf.AwaitServiceCreation(orphanInstanceName)
+			cf.AwaitServiceCreation(anotherInstanceName)
 
 			By("getting the service instances' GUIDs")
-			orphanInstanceGUID := cf_helpers.ServiceInstanceGUID(orphanInstanceName)
+			orphanInstanceGUID := cf.ServiceInstanceGUID(orphanInstanceName)
 			orphanInstanceDeploymentName = fmt.Sprintf("service-instance_%s", orphanInstanceGUID)
-			anotherInstanceGUID := cf_helpers.ServiceInstanceGUID(anotherInstanceName)
+			anotherInstanceGUID := cf.ServiceInstanceGUID(anotherInstanceName)
 
 			By("purging one service instance")
-			Eventually(cf.Cf("purge-service-instance", orphanInstanceName, "-f"), cf_helpers.CfTimeout).Should(gexec.Exit(0))
+			Eventually(cf.Cf("purge-service-instance", orphanInstanceName, "-f"), cf.CfTimeout).Should(gexec.Exit(0))
 
 			By("running the orphan-deployments errand")
 			taskOutput := boshClient.RunErrandWithoutCheckingSuccess(brokerBoshDeploymentName, "orphan-deployments", []string{}, "")

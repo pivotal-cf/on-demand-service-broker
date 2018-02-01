@@ -14,11 +14,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cloudfoundry-incubator/cf-test-helpers/cf"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
-	"github.com/pivotal-cf/on-demand-service-broker/system_tests/cf_helpers"
+	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/cf_helpers"
 )
 
 var (
@@ -65,8 +64,8 @@ type LifecycleTest struct {
 
 var _ = SynchronizedBeforeSuite(func() []byte {
 	parseEnv()
-	Eventually(cf.Cf("create-service-broker", brokerName, brokerUsername, brokerPassword, brokerURL), cf_helpers.CfTimeout).Should(gexec.Exit(0))
-	Eventually(cf.Cf("enable-service-access", serviceOffering), cf_helpers.CfTimeout).Should(gexec.Exit(0))
+	Eventually(cf.Cf("create-service-broker", brokerName, brokerUsername, brokerPassword, brokerURL), cf.CfTimeout).Should(gexec.Exit(0))
+	Eventually(cf.Cf("enable-service-access", serviceOffering), cf.CfTimeout).Should(gexec.Exit(0))
 	return []byte{}
 }, func(data []byte) {
 	parseEnv()
@@ -89,7 +88,7 @@ func parseEnv() {
 
 var _ = SynchronizedAfterSuite(func() {}, func() {
 	session := cf.Cf("services")
-	Eventually(session, cf_helpers.CfTimeout).Should(gexec.Exit(0))
+	Eventually(session, cf.CfTimeout).Should(gexec.Exit(0))
 	services := parseServiceNames(string(session.Buffer().Contents()))
 
 	for _, service := range services {
@@ -99,17 +98,17 @@ var _ = SynchronizedAfterSuite(func() {}, func() {
 	for _, service := range services {
 		Eventually(func() bool {
 			session := cf.Cf("service", service)
-			Eventually(session, cf_helpers.CfTimeout).Should(gexec.Exit())
+			Eventually(session, cf.CfTimeout).Should(gexec.Exit())
 			if session.ExitCode() != 0 {
 				return true
 			} else {
 				time.Sleep(time.Second * 5)
 				return false
 			}
-		}, cf_helpers.LongCfTimeout).Should(BeTrue())
+		}, cf.LongCfTimeout).Should(BeTrue())
 	}
 
-	Eventually(cf.Cf("delete-service-broker", brokerName, "-f"), cf_helpers.CfTimeout).Should(gexec.Exit(0))
+	Eventually(cf.Cf("delete-service-broker", brokerName, "-f"), cf.CfTimeout).Should(gexec.Exit(0))
 })
 
 func parseServiceNames(cfServicesOutput string) []string {

@@ -14,14 +14,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cloudfoundry-incubator/cf-test-helpers/cf"
 	"github.com/cloudfoundry/noaa/consumer"
 	"github.com/cloudfoundry/sonde-go/events"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
 	"github.com/pborman/uuid"
-	"github.com/pivotal-cf/on-demand-service-broker/system_tests/cf_helpers"
+	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/cf_helpers"
 )
 
 var _ = Describe("On-demand service broker", func() {
@@ -30,35 +29,35 @@ var _ = Describe("On-demand service broker", func() {
 	}
 
 	unbindService := func(testAppName, serviceName string) {
-		Eventually(cf.Cf("unbind-service", testAppName, serviceName), cf_helpers.CfTimeout).Should(gexec.Exit(0))
+		Eventually(cf.Cf("unbind-service", testAppName, serviceName), cf.CfTimeout).Should(gexec.Exit(0))
 	}
 
 	testCrud := func(testAppURL string) {
-		cf_helpers.PutToTestApp(testAppURL, "foo", "bar")
-		Expect(cf_helpers.GetFromTestApp(testAppURL, "foo")).To(Equal("bar"))
+		cf.PutToTestApp(testAppURL, "foo", "bar")
+		Expect(cf.GetFromTestApp(testAppURL, "foo")).To(Equal("bar"))
 	}
 
 	testFifo := func(testAppURL string) {
 		queue := "a-test-queue"
-		cf_helpers.PushToTestAppQueue(testAppURL, queue, "foo")
-		cf_helpers.PushToTestAppQueue(testAppURL, queue, "bar")
-		Expect(cf_helpers.PopFromTestAppQueue(testAppURL, queue)).To(Equal("foo"))
-		Expect(cf_helpers.PopFromTestAppQueue(testAppURL, queue)).To(Equal("bar"))
+		cf.PushToTestAppQueue(testAppURL, queue, "foo")
+		cf.PushToTestAppQueue(testAppURL, queue, "bar")
+		Expect(cf.PopFromTestAppQueue(testAppURL, queue)).To(Equal("foo"))
+		Expect(cf.PopFromTestAppQueue(testAppURL, queue)).To(Equal("bar"))
 	}
 
 	updatePlan := func(serviceName, updatedPlanName string) {
-		Eventually(cf.Cf("update-service", serviceName, "-p", updatedPlanName), cf_helpers.CfTimeout).Should(gexec.Exit(0))
-		cf_helpers.AwaitServiceUpdate(serviceName)
+		Eventually(cf.Cf("update-service", serviceName, "-p", updatedPlanName), cf.CfTimeout).Should(gexec.Exit(0))
+		cf.AwaitServiceUpdate(serviceName)
 	}
 
 	updateServiceWithArbParams := func(serviceName string, arbitraryParams json.RawMessage) {
-		Eventually(cf.Cf("update-service", serviceName, "-c", string(arbitraryParams)), cf_helpers.CfTimeout).Should(gexec.Exit(0))
-		cf_helpers.AwaitServiceUpdate(serviceName)
+		Eventually(cf.Cf("update-service", serviceName, "-c", string(arbitraryParams)), cf.CfTimeout).Should(gexec.Exit(0))
+		cf.AwaitServiceUpdate(serviceName)
 	}
 
 	cfCmdOutput := func(cfArgs ...string) string {
 		cmd := cf.Cf(cfArgs...)
-		Eventually(cmd, cf_helpers.CfTimeout).Should(gexec.Exit(0))
+		Eventually(cmd, cf.CfTimeout).Should(gexec.Exit(0))
 		return string(cmd.Buffer().Contents())
 	}
 
@@ -113,7 +112,7 @@ var _ = Describe("On-demand service broker", func() {
 
 	testCredhubRef := func(appName string) {
 		By("ensuring credential in app env is credhub-ref")
-		bindingCredentials, err := cf_helpers.AppBindingCreds(appName, serviceOffering)
+		bindingCredentials, err := cf.AppBindingCreds(appName, serviceOffering)
 		Expect(err).NotTo(HaveOccurred())
 		credMap, ok := bindingCredentials.(map[string]interface{})
 		Expect(ok).To(BeTrue())
@@ -127,17 +126,17 @@ var _ = Describe("On-demand service broker", func() {
 			By(fmt.Sprintf("allowing creation of a service instance with plan: '%s' and arbitrary params: '%s'", t.Plan, string(t.ArbitraryParams)))
 			testAppName := uuid.New()[:7]
 			serviceName := newServiceName()
-			cf_helpers.CreateService(serviceOffering, t.Plan, serviceName, string(t.ArbitraryParams))
+			cf.CreateService(serviceOffering, t.Plan, serviceName, string(t.ArbitraryParams))
 
 			By("allowing an app to bind to the service instance")
-			testAppURL := cf_helpers.PushAndBindApp(testAppName, serviceName, exampleAppPath)
+			testAppURL := cf.PushAndBindApp(testAppName, serviceName, exampleAppPath)
 			defer func() {
 				Eventually(cf.Cf(
 					"delete",
 					testAppName,
 					"-f",
 					"-r",
-				), cf_helpers.CfTimeout).Should(gexec.Exit())
+				), cf.CfTimeout).Should(gexec.Exit())
 			}()
 
 			if shouldTestCredhubRef {
@@ -146,8 +145,8 @@ var _ = Describe("On-demand service broker", func() {
 
 			By("creating a service key")
 			serviceKeyName := uuid.New()[:7]
-			cf_helpers.CreateServiceKey(serviceName, serviceKeyName)
-			serviceKey := cf_helpers.GetServiceKey(serviceName, serviceKeyName)
+			cf.CreateServiceKey(serviceName, serviceKeyName)
+			serviceKey := cf.GetServiceKey(serviceName, serviceKeyName)
 			Expect(serviceKey).NotTo(BeNil())
 
 			By("providing a functional service instance")
@@ -180,11 +179,11 @@ var _ = Describe("On-demand service broker", func() {
 			By("deleting the service key")
 			Eventually(
 				cf.Cf("delete-service-key", "-f", serviceName, serviceKeyName),
-				cf_helpers.CfTimeout,
+				cf.CfTimeout,
 			).Should(gexec.Exit(0))
 
 			By("allowing the service instance to be deleted")
-			cf_helpers.DeleteService(serviceName)
+			cf.DeleteService(serviceName)
 		})
 	}
 

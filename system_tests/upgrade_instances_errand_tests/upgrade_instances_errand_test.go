@@ -24,7 +24,6 @@ import (
 
 	"path"
 
-	"github.com/cloudfoundry-incubator/cf-test-helpers/cf"
 	"github.com/craigfurman/herottp"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -34,7 +33,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	cfClient "github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/bosh_helpers"
-	"github.com/pivotal-cf/on-demand-service-broker/system_tests/cf_helpers"
+	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/cf_helpers"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 )
 
@@ -118,7 +117,7 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 
 			if dataPersistenceEnabled {
 				By("ensuring data still exists", func() {
-					Expect(cf_helpers.GetFromTestApp(service.AppURL, "foo")).To(Equal("bar"))
+					Expect(cf.GetFromTestApp(service.AppURL, "foo")).To(Equal("bar"))
 				})
 			}
 
@@ -272,23 +271,23 @@ func createServiceInstances() {
 
 			By(fmt.Sprintf("Creating service instance: %s", ts.Name))
 			createServiceSession := cf.Cf("create-service", serviceOffering, currentPlan, ts.Name)
-			Eventually(createServiceSession, cf_helpers.CfTimeout).Should(
+			Eventually(createServiceSession, cf.CfTimeout).Should(
 				gexec.Exit(0),
 			)
 
 			By(fmt.Sprintf("Polling for successful creation of service instance: %s", ts.Name))
-			cf_helpers.AwaitServiceCreation(ts.Name)
+			cf.AwaitServiceCreation(ts.Name)
 
 			if dataPersistenceEnabled {
 				By("pushing an app and binding to it")
-				ts.AppURL = cf_helpers.PushAndBindApp(
+				ts.AppURL = cf.PushAndBindApp(
 					ts.AppName,
 					ts.Name,
 					path.Join(ciRootPath, exampleAppDirName),
 				)
 
 				By("adding data to the service instance")
-				cf_helpers.PutToTestApp(ts.AppURL, "foo", "bar")
+				cf.PutToTestApp(ts.AppURL, "foo", "bar")
 			}
 		}(service)
 	}
@@ -307,23 +306,23 @@ func deleteServiceInstances() {
 			if dataPersistenceEnabled {
 				By("unbinding the corresponding app")
 				unbindServiceSession := cf.Cf("unbind-service", ts.AppName, ts.Name)
-				Eventually(unbindServiceSession, cf_helpers.CfTimeout).Should(
+				Eventually(unbindServiceSession, cf.CfTimeout).Should(
 					gexec.Exit(0),
 				)
 
 				By("deleting the corresponding app")
 				deleteSession := cf.Cf("delete", ts.AppName, "-f", "-r")
-				Eventually(deleteSession, cf_helpers.CfTimeout).Should(gexec.Exit(0))
+				Eventually(deleteSession, cf.CfTimeout).Should(gexec.Exit(0))
 			}
 
 			By("deleting the service instance")
 			deleteServiceSession := cf.Cf("delete-service", ts.Name, "-f")
-			Eventually(deleteServiceSession, cf_helpers.CfTimeout).Should(
+			Eventually(deleteServiceSession, cf.CfTimeout).Should(
 				gexec.Exit(0),
 			)
 
 			By("ensuring the service instance is deleted")
-			cf_helpers.AwaitServiceDeletion(ts.Name)
+			cf.AwaitServiceDeletion(ts.Name)
 		}(service)
 	}
 
@@ -365,7 +364,7 @@ func extractServiceAdapterJob(jobs []bosh.Job) bosh.Job {
 
 func getServiceDeploymentName(serviceInstanceName string) string {
 	getInstanceDetailsCmd := cf.Cf("service", serviceInstanceName, "--guid")
-	Eventually(getInstanceDetailsCmd, cf_helpers.CfTimeout).Should(gexec.Exit(0))
+	Eventually(getInstanceDetailsCmd, cf.CfTimeout).Should(gexec.Exit(0))
 	re := regexp.MustCompile("(?m)^[[:alnum:]]{8}-[[:alnum:]-]*$")
 	serviceGUID := re.FindString(string(getInstanceDetailsCmd.Out.Contents()))
 	serviceInstanceID := strings.TrimSpace(serviceGUID)

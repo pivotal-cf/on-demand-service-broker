@@ -11,12 +11,11 @@ import (
 	"os"
 	"testing"
 
-	"github.com/cloudfoundry-incubator/cf-test-helpers/cf"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/bosh_helpers"
-	"github.com/pivotal-cf/on-demand-service-broker/system_tests/cf_helpers"
+	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/cf_helpers"
 )
 
 var (
@@ -32,14 +31,14 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	parseEnv()
 	By("delete the broker")
 	deleteBrokerSession := cf.Cf("delete-service-broker", brokerName, "-f")
-	Eventually(deleteBrokerSession, cf_helpers.CfTimeout).Should(gexec.Exit())
+	Eventually(deleteBrokerSession, cf.CfTimeout).Should(gexec.Exit())
 
 	By("registering the broker")
 	createBrokerSession := cf.Cf("create-service-broker", brokerName, brokerUsername, brokerPassword, brokerURL)
-	Eventually(createBrokerSession, cf_helpers.CfTimeout).Should(gexec.Exit(0))
+	Eventually(createBrokerSession, cf.CfTimeout).Should(gexec.Exit(0))
 
 	enableServiceAccessSession := cf.Cf("enable-service-access", serviceOffering)
-	Eventually(enableServiceAccessSession, cf_helpers.CfTimeout).Should(gexec.Exit(0))
+	Eventually(enableServiceAccessSession, cf.CfTimeout).Should(gexec.Exit(0))
 	return []byte{}
 }, func(data []byte) {
 	parseEnv()
@@ -66,7 +65,7 @@ func parseEnv() {
 var _ = SynchronizedAfterSuite(func() {}, func() {
 	By("delete the broker")
 	deleteBrokerSession := cf.Cf("delete-service-broker", brokerName, "-f")
-	Eventually(deleteBrokerSession, cf_helpers.CfTimeout).Should(gexec.Exit(0))
+	Eventually(deleteBrokerSession, cf.CfTimeout).Should(gexec.Exit(0))
 })
 
 func TestLifecycleErrandTests(t *testing.T) {

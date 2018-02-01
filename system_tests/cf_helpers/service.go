@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cloudfoundry-incubator/cf-test-helpers/cf"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
@@ -29,12 +28,12 @@ func CreateService(serviceOffering, servicePlan, serviceName, arbitraryParams st
 		cfArgs = append(cfArgs, "-c", arbitraryParams)
 	}
 
-	Eventually(cf.Cf(cfArgs...), CfTimeout).Should(gexec.Exit(0))
+	Eventually(Cf(cfArgs...), CfTimeout).Should(gexec.Exit(0))
 	AwaitServiceCreation(serviceName)
 }
 
 func DeleteService(serviceName string) {
-	Eventually(cf.Cf("delete-service", serviceName, "-f"), CfTimeout).Should(gexec.Exit(0))
+	Eventually(Cf("delete-service", serviceName, "-f"), CfTimeout).Should(gexec.Exit(0))
 	AwaitServiceDeletion(serviceName)
 }
 
@@ -84,7 +83,7 @@ func AwaitServiceDeletionFailure(serviceName string) {
 
 func awaitServicesOperation(serviceName string, successMessageMatcher types.GomegaMatcher) {
 	cfCommand := func() *gexec.Session {
-		return cf.Cf("services")
+		return Cf("services")
 	}
 
 	Eventually(func() bool {
@@ -157,6 +156,6 @@ func awaitServiceOperation(
 
 func cfService(serviceName string) func() *gexec.Session {
 	return func() *gexec.Session {
-		return cf.Cf("service", serviceName)
+		return Cf("service", serviceName)
 	}
 }

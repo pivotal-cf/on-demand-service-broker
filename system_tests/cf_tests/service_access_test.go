@@ -6,7 +6,6 @@ import (
 
 	"log"
 
-	cf_helper "github.com/cloudfoundry-incubator/cf-test-helpers/cf"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -14,7 +13,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 
-	"github.com/pivotal-cf/on-demand-service-broker/system_tests/cf_helpers"
+	cf_system_tests_helper "github.com/pivotal-cf/on-demand-service-broker/system_tests/cf_helpers"
 )
 
 var _ = Describe("cf.Client.DisableServiceAccess", func() {
@@ -22,23 +21,23 @@ var _ = Describe("cf.Client.DisableServiceAccess", func() {
 
 	BeforeEach(func() {
 		conf = testConfigFromEnv()
-		Eventually(cf_helper.Cf("create-service-broker", conf.brokerName, conf.brokerUsername, conf.brokerPassword, conf.brokerURL), cf_helpers.CfTimeout).Should(gexec.Exit(0))
+		Eventually(cf_system_tests_helper.Cf("create-service-broker", conf.brokerName, conf.brokerUsername, conf.brokerPassword, conf.brokerURL), cf_system_tests_helper.CfTimeout).Should(gexec.Exit(0))
 	})
 
 	AfterEach(func() {
-		Eventually(cf_helper.Cf("delete-service-broker", conf.brokerName, "-f"), cf_helpers.CfTimeout).Should(gexec.Exit(0))
+		Eventually(cf_system_tests_helper.Cf("delete-service-broker", conf.brokerName, "-f"), cf_system_tests_helper.CfTimeout).Should(gexec.Exit(0))
 	})
 
 	It("disables service access", func() {
-		Eventually(cf_helper.Cf("enable-service-access", conf.serviceOffering), cf_helpers.CfTimeout).Should(gexec.Exit(0))
+		Eventually(cf_system_tests_helper.Cf("enable-service-access", conf.serviceOffering), cf_system_tests_helper.CfTimeout).Should(gexec.Exit(0))
 
 		client := getClient(conf.cFUAAURL, conf.cfAPIURL, conf.cfUser, conf.cfPassword)
 		err := client.DisableServiceAccess(conf.serviceGUID, testLogger())
 
 		Expect(err).NotTo(HaveOccurred())
 
-		session := cf_helper.Cf("m")
-		Eventually(session, cf_helpers.CfTimeout).Should(gexec.Exit(0))
+		session := cf_system_tests_helper.Cf("m")
+		Eventually(session, cf_system_tests_helper.CfTimeout).Should(gexec.Exit(0))
 		Expect(session.Out).NotTo(gbytes.Say(conf.serviceOffering))
 	})
 })

@@ -9,13 +9,12 @@ package delete_all_service_instances_and_deregister_broker_tests
 import (
 	"time"
 
-	"github.com/cloudfoundry-incubator/cf-test-helpers/cf"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/pborman/uuid"
-	"github.com/pivotal-cf/on-demand-service-broker/system_tests/cf_helpers"
+	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/cf_helpers"
 )
 
 var _ = Describe("purge instances and deregister broker", func() {
@@ -25,10 +24,10 @@ var _ = Describe("purge instances and deregister broker", func() {
 	testAppName := uuid.New()[:7]
 
 	BeforeEach(func() {
-		Eventually(cf.Cf("create-service", serviceOffering, "dedicated-vm", serviceInstance1), cf_helpers.CfTimeout).Should(gexec.Exit(0))
-		Eventually(cf.Cf("create-service", serviceOffering, "dedicated-high-memory-vm", serviceInstance2), cf_helpers.CfTimeout).Should(gexec.Exit(0))
-		cf_helpers.AwaitServiceCreation(serviceInstance1)
-		cf_helpers.AwaitServiceCreation(serviceInstance2)
+		Eventually(cf.Cf("create-service", serviceOffering, "dedicated-vm", serviceInstance1), cf.CfTimeout).Should(gexec.Exit(0))
+		Eventually(cf.Cf("create-service", serviceOffering, "dedicated-high-memory-vm", serviceInstance2), cf.CfTimeout).Should(gexec.Exit(0))
+		cf.AwaitServiceCreation(serviceInstance1)
+		cf.AwaitServiceCreation(serviceInstance2)
 	})
 
 	AfterEach(func() {
@@ -37,24 +36,24 @@ var _ = Describe("purge instances and deregister broker", func() {
 		Eventually(cf.Cf("delete-service-key", serviceInstance1, serviceKeyName, "-f"), time.Second*30).Should(gexec.Exit())
 		Eventually(cf.Cf("delete-service", serviceInstance1, "-f"), time.Second*30).Should(gexec.Exit())
 		Eventually(cf.Cf("delete-service", serviceInstance2, "-f"), time.Second*30).Should(gexec.Exit())
-		cf_helpers.AwaitServiceDeletion(serviceInstance1)
-		cf_helpers.AwaitServiceDeletion(serviceInstance2)
+		cf.AwaitServiceDeletion(serviceInstance1)
+		cf.AwaitServiceDeletion(serviceInstance2)
 	})
 
 	It("deletes and unbinds all service instances", func() {
 		Eventually(cf.Cf("push", "-p", exampleAppPath, "--no-start", testAppName), time.Minute).Should(gexec.Exit(0))
-		Eventually(cf.Cf("bind-service", testAppName, serviceInstance1), cf_helpers.CfTimeout).Should(gexec.Exit(0))
-		Eventually(cf.Cf("create-service-key", serviceInstance1, serviceKeyName), cf_helpers.CfTimeout).Should(gexec.Exit(0))
+		Eventually(cf.Cf("bind-service", testAppName, serviceInstance1), cf.CfTimeout).Should(gexec.Exit(0))
+		Eventually(cf.Cf("create-service-key", serviceInstance1, serviceKeyName), cf.CfTimeout).Should(gexec.Exit(0))
 
 		output := boshClient.RunErrand(brokerBoshDeploymentName, "delete-all-service-instances-and-deregister-broker", []string{}, "")
 
 		Expect(output.StdOut).To(ContainSubstring("FINISHED PURGE INSTANCES AND DEREGISTER BROKER"))
 		Expect(output.ExitCode).To(Equal(0))
 
-		cf_helpers.AwaitServiceDeletion(serviceInstance1)
-		cf_helpers.AwaitServiceDeletion(serviceInstance2)
+		cf.AwaitServiceDeletion(serviceInstance1)
+		cf.AwaitServiceDeletion(serviceInstance2)
 		session := cf.Cf("marketplace", "-s", serviceOffering)
-		Eventually(session, cf_helpers.CfTimeout).Should(gexec.Exit(1))
+		Eventually(session, cf.CfTimeout).Should(gexec.Exit(1))
 		Expect(session).Should(gbytes.Say("Service offering %s not found", serviceOffering))
 	})
 })

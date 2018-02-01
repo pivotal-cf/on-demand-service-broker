@@ -11,13 +11,12 @@ import (
 	"os"
 	"testing"
 
-	"github.com/cloudfoundry-incubator/cf-test-helpers/cf"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/bosh_helpers"
-	"github.com/pivotal-cf/on-demand-service-broker/system_tests/cf_helpers"
+	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/cf_helpers"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 )
 
@@ -56,12 +55,12 @@ var _ = BeforeSuite(func() {
 	originalBrokerManifest = boshClient.GetManifest(brokerBoshDeploymentName)
 
 	By("registering the broker")
-	Eventually(cf.Cf("create-service-broker", brokerName, brokerUsername, brokerPassword, brokerURL), cf_helpers.CfTimeout).Should(gexec.Exit(0))
-	Eventually(cf.Cf("enable-service-access", serviceOffering), cf_helpers.CfTimeout).Should(gexec.Exit(0))
+	Eventually(cf.Cf("create-service-broker", brokerName, brokerUsername, brokerPassword, brokerURL), cf.CfTimeout).Should(gexec.Exit(0))
+	Eventually(cf.Cf("enable-service-access", serviceOffering), cf.CfTimeout).Should(gexec.Exit(0))
 
 	By("creating a service instance")
-	Eventually(cf.Cf("create-service", serviceOffering, "dedicated-vm", serviceInstanceName), cf_helpers.CfTimeout).Should(gexec.Exit(0))
-	cf_helpers.AwaitServiceCreation(serviceInstanceName)
+	Eventually(cf.Cf("create-service", serviceOffering, "dedicated-vm", serviceInstanceName), cf.CfTimeout).Should(gexec.Exit(0))
+	cf.AwaitServiceCreation(serviceInstanceName)
 
 	By("causing pending changes for the service instance")
 	newBrokerManifest := boshClient.GetManifest(brokerBoshDeploymentName)
@@ -78,11 +77,11 @@ var _ = BeforeSuite(func() {
 
 var _ = AfterSuite(func() {
 	By("deleting the service instance")
-	Eventually(cf.Cf("delete-service", serviceInstanceName, "-f"), cf_helpers.CfTimeout).Should(gexec.Exit(0))
-	cf_helpers.AwaitServiceDeletion(serviceInstanceName)
+	Eventually(cf.Cf("delete-service", serviceInstanceName, "-f"), cf.CfTimeout).Should(gexec.Exit(0))
+	cf.AwaitServiceDeletion(serviceInstanceName)
 
 	By("deregistering the broker")
-	Eventually(cf.Cf("delete-service-broker", brokerName, "-f"), cf_helpers.CfTimeout).Should(gexec.Exit(0))
+	Eventually(cf.Cf("delete-service-broker", brokerName, "-f"), cf.CfTimeout).Should(gexec.Exit(0))
 
 	//cleanup for when running locally
 	By("deploying the original broker manifest")

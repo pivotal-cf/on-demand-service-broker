@@ -11,12 +11,11 @@ import (
 	"os"
 	"testing"
 
-	"github.com/cloudfoundry-incubator/cf-test-helpers/cf"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/bosh_helpers"
-	"github.com/pivotal-cf/on-demand-service-broker/system_tests/cf_helpers"
+	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/cf_helpers"
 )
 
 var (
@@ -56,7 +55,7 @@ var _ = BeforeSuite(func() {
 	} else {
 		boshClient = bosh_helpers.New(boshURL, uaaURL, boshUsername, boshPassword, boshCACert)
 	}
-	SetDefaultEventuallyTimeout(cf_helpers.CfTimeout)
+	SetDefaultEventuallyTimeout(cf.CfTimeout)
 	cfCreateSpaceDevUser()
 })
 

@@ -17,7 +17,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cloudfoundry-incubator/cf-test-helpers/cf"
 	"github.com/craigfurman/herottp"
 	"github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -48,12 +47,12 @@ func findURL(cliOutput string) string {
 }
 
 func PushAndBindApp(appName, serviceName, testAppPath string) string {
-	Eventually(cf.Cf("push", "-p", testAppPath, "-f", filepath.Join(testAppPath, "manifest.yml"), "--no-start", appName), CfTimeout).Should(gexec.Exit(0))
-	Eventually(cf.Cf("bind-service", appName, serviceName), CfTimeout).Should(gexec.Exit(0))
+	Eventually(Cf("push", "-p", testAppPath, "-f", filepath.Join(testAppPath, "manifest.yml"), "--no-start", appName), CfTimeout).Should(gexec.Exit(0))
+	Eventually(Cf("bind-service", appName, serviceName), CfTimeout).Should(gexec.Exit(0))
 
 	// The first time apps start, it is very slow as the buildpack downloads runtimes and caches them
-	Eventually(cf.Cf("start", appName), LongCfTimeout).Should(gexec.Exit(0))
-	appDetails := cf.Cf("app", appName)
+	Eventually(Cf("start", appName), LongCfTimeout).Should(gexec.Exit(0))
+	appDetails := Cf("app", appName)
 	Eventually(appDetails, CfTimeout).Should(gexec.Exit(0))
 	appDetailsOutput := string(appDetails.Buffer().Contents())
 	testAppURL := findURL(appDetailsOutput)
@@ -103,7 +102,7 @@ func PopFromTestAppQueue(testAppURL, queueName string) string {
 }
 
 func appEnv(appName string) (io.Reader, error) {
-	session := cf.Cf(
+	session := Cf(
 		"curl",
 		fmt.Sprintf("/v2/apps/%s/env", appGUID(appName)),
 	)
@@ -145,7 +144,7 @@ func AppBindingCreds(appName, serviceName string) (interface{}, error) {
 }
 
 func guid(name, typ string) string {
-	session := cf.Cf(typ, name, "--guid")
+	session := Cf(typ, name, "--guid")
 	Eventually(session, CfTimeout).Should(gexec.Exit(0))
 	return strings.Trim(string(session.Out.Contents()), " \n")
 }

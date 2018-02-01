@@ -7,12 +7,11 @@
 package pending_changes_blocked_tests
 
 import (
-	"github.com/cloudfoundry-incubator/cf-test-helpers/cf"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
-	"github.com/pivotal-cf/on-demand-service-broker/system_tests/cf_helpers"
+	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/cf_helpers"
 )
 
 var _ = Describe("service instance with pending changes", func() {
@@ -20,13 +19,13 @@ var _ = Describe("service instance with pending changes", func() {
 
 	It("prevents a plan change", func() {
 		session := cf.Cf("update-service", serviceInstanceName, "-p", "dedicated-high-memory-vm")
-		Eventually(session, cf_helpers.CfTimeout).Should(gexec.Exit())
+		Eventually(session, cf.CfTimeout).Should(gexec.Exit())
 		Expect(session).To(gbytes.Say(expectedErrMsg))
 	})
 
 	It("prevents setting arbitrary params", func() {
 		session := cf.Cf("update-service", serviceInstanceName, "-c", `{"foo": "bar"}`)
-		Eventually(session, cf_helpers.CfTimeout).Should(gexec.Exit())
+		Eventually(session, cf.CfTimeout).Should(gexec.Exit())
 		Expect(session).To(gbytes.Say(expectedErrMsg))
 	})
 })
