@@ -31,7 +31,7 @@ type Listener interface {
 	InstanceUpgraded(instance string, result string)
 	WaitingFor(instance string, boshTaskId int)
 	Progress(pollingInterval time.Duration, orphanCount, upgradedCount, upgradesLeftCount, deletedCount int)
-	Finished(orphanCount, upgradedCount, deletedCount, couldNotStartCount int)
+	Finished(orphanCount, upgradedCount, deletedCount, couldNotStartCount int, failedInstances ...string)
 	CanariesStarting(canaries int)
 	CanariesFinished()
 }
@@ -56,11 +56,16 @@ type controller struct {
 	pendingInstances    []service.Instance
 	busyInstances       []service.Instance
 	inProgress          []service.Instance
+	failures            []instanceFailure
 	outstandingCanaries int
 	processingCanaries  bool
 
-	errorList []error
-	states    map[string]services.UpgradeOperation
+	states map[string]services.UpgradeOperation
+}
+
+type instanceFailure struct {
+	instance service.Instance
+	err      error
 }
 
 type Upgrader struct {
@@ -124,7 +129,8 @@ func (u *Upgrader) Upgrade() error {
 				continue
 			}
 
-			if len(u.controller.errorList) > 0 {
+			if len(u.controller.failures) > 0 {
+				u.summary()
 				return u.formatError()
 			}
 
@@ -176,11 +182,11 @@ func (u *Upgrader) upgradesToTriggerCount() int {
 }
 
 func (u *Upgrader) triggerUpgrades() {
-	var needed int = u.upgradesToTriggerCount()
+	needed := u.upgradesToTriggerCount()
 	index := 1
 	totalInstance := len(u.controller.pendingInstances)
 
-	if needed > 0 && len(u.controller.errorList) == 0 {
+	if needed > 0 && len(u.controller.failures) == 0 {
 		for i := 0; i < needed; index++ {
 			instance := u.controller.nextInstance()
 			if instance.GUID == "" {
@@ -191,7 +197,13 @@ func (u *Upgrader) triggerUpgrades() {
 				i++
 			}
 			if err != nil {
-				u.controller.errorList = append(u.controller.errorList, err)
+				u.controller.failures = append(
+					u.controller.failures,
+					instanceFailure{
+						instance: instance,
+						err:      err,
+					},
+				)
 			}
 		}
 	}
@@ -202,7 +214,13 @@ func (u *Upgrader) pollRunningTasks() {
 		instance := u.controller.nextInProgressInstance()
 		err := u.poll(instance)
 		if err != nil {
-			u.controller.errorList = append(u.controller.errorList, err)
+			u.controller.failures = append(
+				u.controller.failures,
+				instanceFailure{
+					instance: instance,
+					err:      err,
+				},
+			)
 		}
 	}
 }
@@ -220,9 +238,14 @@ func (u *Upgrader) summary() error {
 	orphaned := len(u.controller.findInstancesWithState(services.OrphanDeployment))
 	succeeded := len(u.controller.findInstancesWithState(services.UpgradeSucceeded))
 	deleted := len(u.controller.findInstancesWithState(services.InstanceNotFound))
+	failedList := u.controller.failures
+	var failedInstances []string
+	for _, failure := range failedList {
+		failedInstances = append(failedInstances, failure.instance.GUID)
+	}
 	pendingInstancesCount := len(pendingInstances)
 
-	u.listener.Finished(orphaned, succeeded, deleted, pendingInstancesCount)
+	u.listener.Finished(orphaned, succeeded, deleted, pendingInstancesCount, failedInstances...)
 
 	if pendingInstancesCount > 0 {
 		if u.controller.processingCanaries {
@@ -246,14 +269,14 @@ func (u *Upgrader) formatError() error {
 }
 
 func (u *Upgrader) errorFromList() error {
-	errorList := u.controller.errorList
-	if len(errorList) == 1 {
-		return errorList[0]
-	} else if len(errorList) > 1 {
+	failureList := u.controller.failures
+	if len(failureList) == 1 {
+		return failureList[0].err
+	} else if len(failureList) > 1 {
 		var out string
-		out = fmt.Sprintf("%d errors occurred:\n", len(errorList))
-		for _, e := range errorList {
-			out += "\n* " + e.Error()
+		out = fmt.Sprintf("%d errors occurred:\n", len(failureList))
+		for _, e := range failureList {
+			out += "\n* " + e.err.Error()
 		}
 		return fmt.Errorf(out)
 	}

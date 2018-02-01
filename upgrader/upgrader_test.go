@@ -1295,6 +1295,7 @@ var _ = Describe("Upgrader", func() {
 						)))
 
 						hasReportedFailureFor(fakeListener, serviceInstance1, serviceInstance2)
+						hasReportedFinished(fakeListener, 0, 0, 0, 0, serviceInstance1, serviceInstance2)
 					})
 
 					Context("when retries are required", func() {
@@ -1667,13 +1668,14 @@ func hasReportedProgress(fakeListener *fakes.FakeListener, callIndex int, expect
 	Expect(deletedCount).To(Equal(expectedDeleted), "deleted")
 }
 
-func hasReportedFinished(fakeListener *fakes.FakeListener, expectedOrphans, expectedUpgraded, expectedDeleted, expectedCouldNotStart int) {
+func hasReportedFinished(fakeListener *fakes.FakeListener, expectedOrphans, expectedUpgraded, expectedDeleted, expectedCouldNotStart int, expectedFailedInstances ...string) {
 	Expect(fakeListener.FinishedCallCount()).To(Equal(1))
-	orphanCount, upgradedCount, deletedCount, couldNotStartCount := fakeListener.FinishedArgsForCall(0)
+	orphanCount, upgradedCount, deletedCount, couldNotStartCount, failedInstances := fakeListener.FinishedArgsForCall(0)
 	Expect(orphanCount).To(Equal(expectedOrphans), "orphans")
 	Expect(upgradedCount).To(Equal(expectedUpgraded), "upgraded")
 	Expect(deletedCount).To(Equal(expectedDeleted), "deleted")
 	Expect(couldNotStartCount).To(Equal(expectedCouldNotStart), "couldNotStart")
+	Expect(failedInstances).To(ConsistOf(expectedFailedInstances), "failedInstances")
 }
 
 func hasReportedAttempts(fakeListener *fakes.FakeListener, count, limit int) {

@@ -69,13 +69,14 @@ type FakeListener struct {
 		upgradesLeftCount int
 		deletedCount      int
 	}
-	FinishedStub        func(orphanCount, upgradedCount, deletedCount, couldNotStartCount int)
+	FinishedStub        func(orphanCount, upgradedCount, deletedCount, couldNotStartCount int, failedInstances ...string)
 	finishedMutex       sync.RWMutex
 	finishedArgsForCall []struct {
 		orphanCount        int
 		upgradedCount      int
 		deletedCount       int
 		couldNotStartCount int
+		failedInstances    []string
 	}
 	CanariesStartingStub        func(canaries int)
 	canariesStartingMutex       sync.RWMutex
@@ -323,18 +324,19 @@ func (fake *FakeListener) ProgressArgsForCall(i int) (time.Duration, int, int, i
 	return fake.progressArgsForCall[i].pollingInterval, fake.progressArgsForCall[i].orphanCount, fake.progressArgsForCall[i].upgradedCount, fake.progressArgsForCall[i].upgradesLeftCount, fake.progressArgsForCall[i].deletedCount
 }
 
-func (fake *FakeListener) Finished(orphanCount int, upgradedCount int, deletedCount int, couldNotStartCount int) {
+func (fake *FakeListener) Finished(orphanCount int, upgradedCount int, deletedCount int, couldNotStartCount int, failedInstances ...string) {
 	fake.finishedMutex.Lock()
 	fake.finishedArgsForCall = append(fake.finishedArgsForCall, struct {
 		orphanCount        int
 		upgradedCount      int
 		deletedCount       int
 		couldNotStartCount int
-	}{orphanCount, upgradedCount, deletedCount, couldNotStartCount})
-	fake.recordInvocation("Finished", []interface{}{orphanCount, upgradedCount, deletedCount, couldNotStartCount})
+		failedInstances    []string
+	}{orphanCount, upgradedCount, deletedCount, couldNotStartCount, failedInstances})
+	fake.recordInvocation("Finished", []interface{}{orphanCount, upgradedCount, deletedCount, couldNotStartCount, failedInstances})
 	fake.finishedMutex.Unlock()
 	if fake.FinishedStub != nil {
-		fake.FinishedStub(orphanCount, upgradedCount, deletedCount, couldNotStartCount)
+		fake.FinishedStub(orphanCount, upgradedCount, deletedCount, couldNotStartCount, failedInstances...)
 	}
 }
 
@@ -344,10 +346,10 @@ func (fake *FakeListener) FinishedCallCount() int {
 	return len(fake.finishedArgsForCall)
 }
 
-func (fake *FakeListener) FinishedArgsForCall(i int) (int, int, int, int) {
+func (fake *FakeListener) FinishedArgsForCall(i int) (int, int, int, int, []string) {
 	fake.finishedMutex.RLock()
 	defer fake.finishedMutex.RUnlock()
-	return fake.finishedArgsForCall[i].orphanCount, fake.finishedArgsForCall[i].upgradedCount, fake.finishedArgsForCall[i].deletedCount, fake.finishedArgsForCall[i].couldNotStartCount
+	return fake.finishedArgsForCall[i].orphanCount, fake.finishedArgsForCall[i].upgradedCount, fake.finishedArgsForCall[i].deletedCount, fake.finishedArgsForCall[i].couldNotStartCount, fake.finishedArgsForCall[i].failedInstances
 }
 
 func (fake *FakeListener) CanariesStarting(canaries int) {

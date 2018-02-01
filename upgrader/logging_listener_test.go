@@ -173,16 +173,58 @@ var _ = Describe("Logging Listener", func() {
 		Expect(buffer).To(Say("Number of operations in progress \\(to retry\\) so far: 456"))
 	})
 
-	It("Shows a final summary", func() {
+	It("Shows a final summary where we completed successfully", func() {
+		buffer := logResultsFrom(func(listener upgrader.Listener) {
+			listener.Finished(23, 34, 45, 0)
+		})
+
+		Expect(buffer).To(Say("FINISHED UPGRADES Status: SUCCESS; Summary"))
+		Expect(buffer).To(Say("Number of successful upgrades: 34"))
+		Expect(buffer).To(Say("Number of CF service instance orphans detected: 23"))
+		Expect(buffer).To(Say("Number of deleted instances before upgrade could occur: 45"))
+		Expect(buffer).To(Say("Number of busy instances which could not be upgraded: 0"))
+		Expect(buffer).To(Say("Number of service instances that failed to upgrade: 0"))
+		Expect(buffer).NotTo(Say(`\[\]`))
+	})
+
+	It("Shows a final summary where instances could not start", func() {
 		buffer := logResultsFrom(func(listener upgrader.Listener) {
 			listener.Finished(23, 34, 45, 56)
 		})
 
-		Expect(buffer).To(Say("FINISHED UPGRADES"))
+		Expect(buffer).To(Say("FINISHED UPGRADES Status: FAILED; Summary"))
 		Expect(buffer).To(Say("Number of successful upgrades: 34"))
 		Expect(buffer).To(Say("Number of CF service instance orphans detected: 23"))
 		Expect(buffer).To(Say("Number of deleted instances before upgrade could occur: 45"))
 		Expect(buffer).To(Say("Number of busy instances which could not be upgraded: 56"))
+		Expect(buffer).To(Say("Number of service instances that failed to upgrade: 0"))
+		Expect(buffer).NotTo(Say(`\[\]`))
+	})
+
+	It("Shows a final summary where a single service instance failed to upgrade", func() {
+		buffer := logResultsFrom(func(listener upgrader.Listener) {
+			listener.Finished(23, 34, 45, 56, "2f9752c3-887b-4ccb-8693-7c15811ffbdd")
+		})
+
+		Expect(buffer).To(Say("FINISHED UPGRADES Status: FAILED; Summary"))
+		Expect(buffer).To(Say("Number of successful upgrades: 34"))
+		Expect(buffer).To(Say("Number of CF service instance orphans detected: 23"))
+		Expect(buffer).To(Say("Number of deleted instances before upgrade could occur: 45"))
+		Expect(buffer).To(Say("Number of busy instances which could not be upgraded: 56"))
+		Expect(buffer).To(Say(`Number of service instances that failed to upgrade: 1 \[2f9752c3\-887b\-4ccb\-8693\-7c15811ffbdd\]`))
+	})
+
+	It("Shows a final summary where multiple services instance failed to upgrade", func() {
+		buffer := logResultsFrom(func(listener upgrader.Listener) {
+			listener.Finished(23, 34, 45, 56, "2f9752c3-887b-4ccb-8693-7c15811ffbdd", "7a2c7adb-1d47-4355-af39-41c5a2892b92")
+		})
+
+		Expect(buffer).To(Say("FINISHED UPGRADES Status: FAILED; Summary"))
+		Expect(buffer).To(Say("Number of successful upgrades: 34"))
+		Expect(buffer).To(Say("Number of CF service instance orphans detected: 23"))
+		Expect(buffer).To(Say("Number of deleted instances before upgrade could occur: 45"))
+		Expect(buffer).To(Say("Number of busy instances which could not be upgraded: 56"))
+		Expect(buffer).To(Say(`Number of service instances that failed to upgrade: 2 \[2f9752c3\-887b\-4ccb\-8693\-7c15811ffbdd, 7a2c7adb\-1d47\-4355\-af39\-41c5a2892b92\]`))
 	})
 })
 

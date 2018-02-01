@@ -353,7 +353,35 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 
 		Eventually(runningTool, 5*time.Second).Should(gexec.Exit(0))
 		Expect(runningTool).To(gbytes.Say("Sleep interval until next attempt: 2s"))
+		Expect(runningTool).To(gbytes.Say("Status: SUCCESS"))
 		Expect(runningTool).To(gbytes.Say("Number of successful upgrades: 1"))
+	})
+
+	It("when there is one service instance which fails to upgrade, exits with failure and shows summary message", func() {
+		operationData := `{"BoshTaskID":1,"OperationType":"upgrade","PostDeployErrand":{},"PreDeleteErrand":{}}`
+		instanceID := "service-instance-id"
+		odb.VerifyAndMock(
+			mockbroker.ListInstances().RespondsOKWith(fmt.Sprintf(`[{"plan_id": "service-plan-id", "service_instance_id": "%s"}]`, instanceID)),
+			mockbroker.UpgradeInstance(instanceID).RespondsAcceptedWith(operationData),
+			mockbroker.LastOperation(instanceID, operationData).RespondWithOperationInProgress(),
+			mockbroker.LastOperation(instanceID, operationData).RespondWithOperationFailed(),
+		)
+
+		brokerConfig := populateBrokerConfig(odb.URL, brokerUsername, brokerPassword)
+		serviceInstancesAPIConfig := populateServiceInstancesAPIConfig(
+			odb.URL+brokerServiceInstancesURLPath,
+			brokerUsername,
+			brokerPassword,
+		)
+		pollingIntervalConfig := populateUpgraderConfig(1, 2, 5)
+		config := brokerConfig + serviceInstancesAPIConfig + pollingIntervalConfig
+		configPath = writeConfigFile(config)
+
+		runningTool := startUpgradeAllInstanceBinary()
+
+		Eventually(runningTool, 5*time.Second).Should(gexec.Exit(1))
+		Expect(runningTool).To(gbytes.Say("Status: FAILED"))
+		Expect(runningTool).To(gbytes.Say(fmt.Sprintf(`Number of service instances that failed to upgrade: 1 \[%s\]`, instanceID)))
 	})
 
 	Context("when the attempt limit is reached", func() {

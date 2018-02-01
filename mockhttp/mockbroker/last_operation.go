@@ -44,3 +44,12 @@ func (l *lastOperationMock) RespondWithOperationInProgress() *mockhttp.Handler {
 
 	return l.RespondsOKWithJSON(operationInProgress)
 }
+
+func (l *lastOperationMock) RespondWithOperationFailed() *mockhttp.Handler {
+	operationFailed := brokerapi.LastOperation{
+		State:       brokerapi.Failed,
+		Description: "it failed",
+	}
+
+	return l.RespondsOKWithJSON(operationFailed)
+}

@@ -9,6 +9,7 @@ package upgrader
 import (
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
@@ -103,16 +104,30 @@ func (ll LoggingListener) Progress(pollingInterval time.Duration, orphanCount, u
 	)
 }
 
-func (ll LoggingListener) Finished(orphanCount, upgradedCount, deletedCount, couldNotStartCount int) {
-	ll.logger.Printf("FINISHED UPGRADES Summary: "+
+func (ll LoggingListener) Finished(orphanCount, upgradedCount, deletedCount, couldNotStartCount int, failedInstances ...string) {
+	var failedList string
+	if len(failedInstances) > 0 {
+		failedList = fmt.Sprintf(" [%s]", strings.Join(failedInstances, ", "))
+	}
+
+	status := "SUCCESS"
+	if len(failedInstances) > 0 || couldNotStartCount > 0 {
+		status = "FAILED"
+	}
+
+	ll.logger.Printf("FINISHED UPGRADES Status: %s; Summary: "+
 		"Number of successful upgrades: %d; "+
 		"Number of CF service instance orphans detected: %d; "+
 		"Number of deleted instances before upgrade could occur: %d; "+
-		"Number of busy instances which could not be upgraded: %d",
+		"Number of busy instances which could not be upgraded: %d; "+
+		"Number of service instances that failed to upgrade: %d%s",
+		status,
 		upgradedCount,
 		orphanCount,
 		deletedCount,
 		couldNotStartCount,
+		len(failedInstances),
+		failedList,
 	)
 }
 
