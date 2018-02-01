@@ -20,6 +20,19 @@ type FakeInstanceLister struct {
 		result1 []service.Instance
 		result2 error
 	}
+	LatestInstanceInfoStub        func(inst service.Instance) (service.Instance, error)
+	latestInstanceInfoMutex       sync.RWMutex
+	latestInstanceInfoArgsForCall []struct {
+		inst service.Instance
+	}
+	latestInstanceInfoReturns struct {
+		result1 service.Instance
+		result2 error
+	}
+	latestInstanceInfoReturnsOnCall map[int]struct {
+		result1 service.Instance
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -67,11 +80,64 @@ func (fake *FakeInstanceLister) InstancesReturnsOnCall(i int, result1 []service.
 	}{result1, result2}
 }
 
+func (fake *FakeInstanceLister) LatestInstanceInfo(inst service.Instance) (service.Instance, error) {
+	fake.latestInstanceInfoMutex.Lock()
+	ret, specificReturn := fake.latestInstanceInfoReturnsOnCall[len(fake.latestInstanceInfoArgsForCall)]
+	fake.latestInstanceInfoArgsForCall = append(fake.latestInstanceInfoArgsForCall, struct {
+		inst service.Instance
+	}{inst})
+	fake.recordInvocation("LatestInstanceInfo", []interface{}{inst})
+	fake.latestInstanceInfoMutex.Unlock()
+	if fake.LatestInstanceInfoStub != nil {
+		return fake.LatestInstanceInfoStub(inst)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.latestInstanceInfoReturns.result1, fake.latestInstanceInfoReturns.result2
+}
+
+func (fake *FakeInstanceLister) LatestInstanceInfoCallCount() int {
+	fake.latestInstanceInfoMutex.RLock()
+	defer fake.latestInstanceInfoMutex.RUnlock()
+	return len(fake.latestInstanceInfoArgsForCall)
+}
+
+func (fake *FakeInstanceLister) LatestInstanceInfoArgsForCall(i int) service.Instance {
+	fake.latestInstanceInfoMutex.RLock()
+	defer fake.latestInstanceInfoMutex.RUnlock()
+	return fake.latestInstanceInfoArgsForCall[i].inst
+}
+
+func (fake *FakeInstanceLister) LatestInstanceInfoReturns(result1 service.Instance, result2 error) {
+	fake.LatestInstanceInfoStub = nil
+	fake.latestInstanceInfoReturns = struct {
+		result1 service.Instance
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeInstanceLister) LatestInstanceInfoReturnsOnCall(i int, result1 service.Instance, result2 error) {
+	fake.LatestInstanceInfoStub = nil
+	if fake.latestInstanceInfoReturnsOnCall == nil {
+		fake.latestInstanceInfoReturnsOnCall = make(map[int]struct {
+			result1 service.Instance
+			result2 error
+		})
+	}
+	fake.latestInstanceInfoReturnsOnCall[i] = struct {
+		result1 service.Instance
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeInstanceLister) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.instancesMutex.RLock()
 	defer fake.instancesMutex.RUnlock()
+	fake.latestInstanceInfoMutex.RLock()
+	defer fake.latestInstanceInfoMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

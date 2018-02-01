@@ -25,6 +25,11 @@ const (
 )
 
 var _ = Describe("Logging Listener", func() {
+	It("Logs a refresh service instance info error", func() {
+		Expect(logResultsFrom(func(listener upgrader.Listener) { listener.FailedToRefreshInstanceInfo("GUID") })).
+			To(Say(`\[GUID\] Failed to get refreshed list of instances. Continuing with previously fetched info.`))
+	})
+
 	It("Shows starting message", func() {
 		Expect(logResultsFrom(func(listener upgrader.Listener) { listener.Starting(2) })).
 			To(Say("STARTING UPGRADES with 2 concurrent workers"))

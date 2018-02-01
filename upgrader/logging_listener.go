@@ -138,3 +138,7 @@ func (ll LoggingListener) CanariesStarting(canaries int) {
 func (ll LoggingListener) CanariesFinished() {
 	ll.logger.Printf("FINISHED CANARY UPGRADES")
 }
+
+func (ll LoggingListener) FailedToRefreshInstanceInfo(instance string) {
+	ll.logger.Printf("[%s] Failed to get refreshed list of instances. Continuing with previously fetched info.\n", instance)
+}

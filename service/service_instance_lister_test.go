@@ -165,6 +165,35 @@ var _ = Describe("ServiceInstanceLister", func() {
 		_, actualLogger := authHeaderBuilder.AddAuthHeaderArgsForCall(0)
 		Expect(actualLogger).To(BeIdenticalTo(logger))
 	})
+
+	It("refreshes an instance", func() {
+		client.DoReturnsOnCall(0, response(http.StatusOK, `[{"service_instance_id": "foo", "plan_id": "plan"}, {"service_instance_id": "bar", "plan_id": "another-plan"}]`), nil)
+		client.DoReturnsOnCall(1, response(http.StatusOK, `[{"service_instance_id": "foo", "plan_id": "plan2"}, {"service_instance_id": "bar", "plan_id": "another-plan"}]`), nil)
+		serviceInstanceLister := service.NewInstanceLister(client, authHeaderBuilder, "", false, logger)
+
+		instance, err := serviceInstanceLister.LatestInstanceInfo(service.Instance{GUID: "foo"})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(instance).To(Equal(service.Instance{GUID: "foo", PlanUniqueID: "plan"}))
+
+		instance, err = serviceInstanceLister.LatestInstanceInfo(service.Instance{GUID: "foo"})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(instance).To(Equal(service.Instance{GUID: "foo", PlanUniqueID: "plan2"}))
+	})
+
+	It("returns a instance not found error when instance is not found", func() {
+		client.DoReturns(response(http.StatusOK, `[{"service_instance_id": "foo", "plan_id": "plan"}, {"service_instance_id": "bar", "plan_id": "another-plan"}]`), nil)
+		serviceInstanceLister := service.NewInstanceLister(client, authHeaderBuilder, "", false, logger)
+		_, err := serviceInstanceLister.LatestInstanceInfo(service.Instance{GUID: "qux"})
+		Expect(err).To(Equal(service.InstanceNotFound))
+	})
+
+	It("returns an error when pulling the list of instances fail", func() {
+		client.DoReturns(response(http.StatusBadRequest, `[]`), nil)
+		serviceInstanceLister := service.NewInstanceLister(client, authHeaderBuilder, "", false, logger)
+		_, err := serviceInstanceLister.LatestInstanceInfo(service.Instance{GUID: "foo"})
+		Expect(err).To(HaveOccurred())
+		Expect(err).To(MatchError(ContainSubstring("Bad Request")))
+	})
 })
 
 func response(statusCode int, body string) *http.Response {

@@ -3,6 +3,7 @@ package service
 import (
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -24,6 +25,10 @@ type ServiceInstanceLister struct {
 	configured        bool
 	logger            *log.Logger
 }
+
+var (
+	InstanceNotFound = errors.New("Service instance not found")
+)
 
 func NewInstanceLister(client Doer, authHeaderBuilder authorizationheader.AuthHeaderBuilder, baseURL string, configured bool, logger *log.Logger) *ServiceInstanceLister {
 	return &ServiceInstanceLister{
@@ -67,6 +72,19 @@ func (s *ServiceInstanceLister) Instances() ([]Instance, error) {
 	}
 
 	return instances, nil
+}
+
+func (s *ServiceInstanceLister) LatestInstanceInfo(instance Instance) (Instance, error) {
+	instances, err := s.Instances()
+	if err != nil {
+		return Instance{}, err
+	}
+	for _, inst := range instances {
+		if inst.GUID == instance.GUID {
+			return inst, nil
+		}
+	}
+	return Instance{}, InstanceNotFound
 }
 
 func (s *ServiceInstanceLister) instanceListerError(response *http.Response, err error) ([]Instance, error) {

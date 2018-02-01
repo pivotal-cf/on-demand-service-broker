@@ -22,6 +22,7 @@ import (
 
 //go:generate counterfeiter -o fakes/fake_listener.go . Listener
 type Listener interface {
+	FailedToRefreshInstanceInfo(instance string)
 	Starting(maxInFlight int)
 	RetryAttempt(num, limit int)
 	RetryCanariesAttempt(num, limit, remainingCanaries int)
@@ -45,6 +46,7 @@ type BrokerServices interface {
 //go:generate counterfeiter -o fakes/fake_instance_lister.go . InstanceLister
 type InstanceLister interface {
 	Instances() ([]service.Instance, error)
+	LatestInstanceInfo(inst service.Instance) (service.Instance, error)
 }
 
 //go:generate counterfeiter -o fakes/fake_sleeper.go . sleeper
@@ -285,7 +287,19 @@ func (u *Upgrader) errorFromList() error {
 
 func (u *Upgrader) triggerUpgrade(instance service.Instance, index, totalInstances int) (bool, error) {
 	u.listener.InstanceUpgradeStarting(instance.GUID, index, totalInstances, u.controller.processingCanaries)
-	operation, err := u.brokerServices.UpgradeInstance(instance)
+	latestInstance, err := u.instanceLister.LatestInstanceInfo(instance)
+	if err != nil {
+		if err == service.InstanceNotFound {
+			u.controller.states[instance.GUID] = services.UpgradeOperation{Type: services.InstanceNotFound}
+			u.listener.InstanceUpgradeStartResult(latestInstance.GUID, services.InstanceNotFound)
+			return false, nil
+		} else {
+			latestInstance = instance
+			u.listener.FailedToRefreshInstanceInfo(instance.GUID)
+		}
+	}
+
+	operation, err := u.brokerServices.UpgradeInstance(latestInstance)
 	if err != nil {
 		return false, fmt.Errorf(
 			"Upgrade failed for service instance %s: %s\n", instance.GUID, err,

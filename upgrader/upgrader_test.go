@@ -59,6 +59,10 @@ var _ = Describe("Upgrader", func() {
 			Canaries:              0,
 			Sleeper:               fakeSleeper,
 		}
+
+		instanceLister.LatestInstanceInfoStub = func(i service.Instance) (service.Instance, error) {
+			return i, nil
+		}
 	})
 
 	Context("when upgrading one instance", func() {
@@ -179,6 +183,75 @@ var _ = Describe("Upgrader", func() {
 			hasReportedProgress(fakeListener, 0, upgraderBuilder.AttemptInterval, 1, 0, 0, 0)
 			hasReportedFinished(fakeListener, 1, 0, 0, 0)
 			hasReportedAttempts(fakeListener, 1, 5)
+		})
+	})
+
+	Context("when a plan change is triggered after the service instance list has been acquired", func() {
+		It("uses the new plan for the upgrade", func() {
+			const serviceInstanceId = "serviceInstanceId"
+			instanceLister.InstancesReturnsOnCall(0, []service.Instance{
+				{GUID: serviceInstanceId, PlanUniqueID: "plan-id-1"},
+			}, nil)
+			instanceLister.LatestInstanceInfoReturnsOnCall(0, service.Instance{
+				GUID: serviceInstanceId, PlanUniqueID: "plan-id-2",
+			}, nil)
+			brokerServicesClient.UpgradeInstanceReturns(services.UpgradeOperation{
+				Type: services.UpgradeAccepted,
+			}, nil)
+			brokerServicesClient.LastOperationReturns(lastOperationSucceeded, nil)
+
+			upgraderBuilder.MaxInFlight = 1
+			upgradeTool := upgrader.New(&upgraderBuilder)
+
+			actualErr = upgradeTool.Upgrade()
+
+			instance := brokerServicesClient.UpgradeInstanceArgsForCall(0)
+			Expect(instance.PlanUniqueID).To(Equal("plan-id-2"))
+
+			Expect(actualErr).NotTo(HaveOccurred())
+		})
+	})
+
+	Context("when fetching the latest info about an instance fails", func() {
+		Context("with an unexpected error", func() {
+			It("continues the upgrade using the previously fetched info", func() {
+				const serviceInstanceId = "serviceInstanceId"
+				instanceLister.InstancesReturnsOnCall(0, []service.Instance{
+					{GUID: serviceInstanceId, PlanUniqueID: "plan-id-1"},
+				}, nil)
+				instanceLister.LatestInstanceInfoReturnsOnCall(0, service.Instance{}, errors.New("unexpected error"))
+				brokerServicesClient.UpgradeInstanceReturns(services.UpgradeOperation{
+					Type: services.UpgradeAccepted,
+				}, nil)
+				brokerServicesClient.LastOperationReturns(lastOperationSucceeded, nil)
+
+				upgradeTool := upgrader.New(&upgraderBuilder)
+
+				actualErr = upgradeTool.Upgrade()
+				Expect(actualErr).ToNot(HaveOccurred())
+				Expect(fakeListener.FailedToRefreshInstanceInfoCallCount()).To(Equal(1))
+			})
+		})
+
+		Context("with an InstanceNotFound error", func() {
+			It("treats the service as a deleted instance", func() {
+				const serviceInstanceId = "serviceInstanceId"
+				instanceLister.InstancesReturnsOnCall(0, []service.Instance{
+					{GUID: serviceInstanceId, PlanUniqueID: "plan-id-1"},
+				}, nil)
+				instanceLister.LatestInstanceInfoReturnsOnCall(0, service.Instance{}, service.InstanceNotFound)
+				brokerServicesClient.UpgradeInstanceReturns(services.UpgradeOperation{
+					Type: services.UpgradeAccepted,
+				}, nil)
+				brokerServicesClient.LastOperationReturns(lastOperationSucceeded, nil)
+
+				upgradeTool := upgrader.New(&upgraderBuilder)
+				actualErr = upgradeTool.Upgrade()
+
+				Expect(actualErr).NotTo(HaveOccurred())
+				hasReportedFinished(fakeListener, 0, 0, 1, 0)
+				hasReportedInstanceUpgradeStartResult(fakeListener, services.InstanceNotFound)
+			})
 		})
 	})
 

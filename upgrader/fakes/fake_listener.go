@@ -11,6 +11,11 @@ import (
 )
 
 type FakeListener struct {
+	FailedToRefreshInstanceInfoStub        func(instance string)
+	failedToRefreshInstanceInfoMutex       sync.RWMutex
+	failedToRefreshInstanceInfoArgsForCall []struct {
+		instance string
+	}
 	StartingStub        func(maxInFlight int)
 	startingMutex       sync.RWMutex
 	startingArgsForCall []struct {
@@ -88,6 +93,30 @@ type FakeListener struct {
 	canariesFinishedArgsForCall []struct{}
 	invocations                 map[string][][]interface{}
 	invocationsMutex            sync.RWMutex
+}
+
+func (fake *FakeListener) FailedToRefreshInstanceInfo(instance string) {
+	fake.failedToRefreshInstanceInfoMutex.Lock()
+	fake.failedToRefreshInstanceInfoArgsForCall = append(fake.failedToRefreshInstanceInfoArgsForCall, struct {
+		instance string
+	}{instance})
+	fake.recordInvocation("FailedToRefreshInstanceInfo", []interface{}{instance})
+	fake.failedToRefreshInstanceInfoMutex.Unlock()
+	if fake.FailedToRefreshInstanceInfoStub != nil {
+		fake.FailedToRefreshInstanceInfoStub(instance)
+	}
+}
+
+func (fake *FakeListener) FailedToRefreshInstanceInfoCallCount() int {
+	fake.failedToRefreshInstanceInfoMutex.RLock()
+	defer fake.failedToRefreshInstanceInfoMutex.RUnlock()
+	return len(fake.failedToRefreshInstanceInfoArgsForCall)
+}
+
+func (fake *FakeListener) FailedToRefreshInstanceInfoArgsForCall(i int) string {
+	fake.failedToRefreshInstanceInfoMutex.RLock()
+	defer fake.failedToRefreshInstanceInfoMutex.RUnlock()
+	return fake.failedToRefreshInstanceInfoArgsForCall[i].instance
 }
 
 func (fake *FakeListener) Starting(maxInFlight int) {
@@ -395,6 +424,8 @@ func (fake *FakeListener) CanariesFinishedCallCount() int {
 func (fake *FakeListener) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.failedToRefreshInstanceInfoMutex.RLock()
+	defer fake.failedToRefreshInstanceInfoMutex.RUnlock()
 	fake.startingMutex.RLock()
 	defer fake.startingMutex.RUnlock()
 	fake.retryAttemptMutex.RLock()
