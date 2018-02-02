@@ -439,4 +439,98 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 			Expect(runningTool).To(gbytes.Say("error listing service instances: HTTP response status: 401 Unauthorized"))
 		})
 	})
+
+	Context("when a service instance plan is updated post upgrade-all start but before instance upgrade", func() {
+		It("uses the new plan for the upgrade", func() {
+			operationData := `{"BoshTaskID":1,"OperationType":"upgrade","PostDeployErrand":{},"PreDeleteErrand":{}}`
+			instanceID := "service-instance-id"
+			odb.VerifyAndMock(
+				mockbroker.ListInstances().RespondsOKWith(fmt.Sprintf(`[{"plan_id": "service-plan-id", "service_instance_id": "%s"}]`, instanceID)),
+				mockbroker.ListInstances().RespondsOKWith(fmt.Sprintf(`[{"plan_id": "service-plan-id-2", "service_instance_id": "%s"}]`, instanceID)),
+				mockbroker.UpgradeInstance(instanceID).
+					WithBody(`{"plan_id": "service-plan-id-2"}`).
+					RespondsAcceptedWith(operationData),
+				mockbroker.LastOperation(instanceID, operationData).RespondWithOperationInProgress(),
+				mockbroker.LastOperation(instanceID, operationData).RespondWithOperationSucceeded(),
+			)
+
+			brokerConfig := populateBrokerConfig(odb.URL, brokerUsername, brokerPassword)
+			serviceInstancesAPIConfig := populateServiceInstancesAPIConfig(
+				odb.URL+brokerServiceInstancesURLPath,
+				brokerUsername,
+				brokerPassword,
+			)
+			pollingIntervalConfig := populateUpgraderConfig(1, 2, 5)
+			config := brokerConfig + serviceInstancesAPIConfig + pollingIntervalConfig
+			configPath = writeConfigFile(config)
+
+			runningTool := startUpgradeAllInstanceBinary()
+
+			Eventually(runningTool, 5*time.Second).Should(gexec.Exit(0))
+			Expect(runningTool).To(gbytes.Say("Sleep interval until next attempt: 2s"))
+			Expect(runningTool).To(gbytes.Say("Status: SUCCESS"))
+			Expect(runningTool).To(gbytes.Say("Number of successful upgrades: 1"))
+		})
+	})
+
+	Context("when a service instance is deleted post the upgrade-all start but before the instance upgrade", func() {
+		It("Fetches the latest service instances info and reports a deleted service", func() {
+			instanceID := "service-instance-id"
+			odb.VerifyAndMock(
+				mockbroker.ListInstances().RespondsOKWith(fmt.Sprintf(`[{"plan_id": "service-plan-id", "service_instance_id": "%s"}]`, instanceID)),
+				mockbroker.ListInstances().RespondsOKWith("[]"),
+			)
+
+			brokerConfig := populateBrokerConfig(odb.URL, brokerUsername, brokerPassword)
+			serviceInstancesAPIConfig := populateServiceInstancesAPIConfig(
+				odb.URL+brokerServiceInstancesURLPath,
+				brokerUsername,
+				brokerPassword,
+			)
+			pollingIntervalConfig := populateUpgraderConfig(1, 2, 5)
+			config := brokerConfig + serviceInstancesAPIConfig + pollingIntervalConfig
+			configPath = writeConfigFile(config)
+
+			runningTool := startUpgradeAllInstanceBinary()
+
+			Eventually(runningTool, 5*time.Second).Should(gexec.Exit(0))
+			Expect(runningTool).To(gbytes.Say("Status: SUCCESS"))
+			Expect(runningTool).To(gbytes.Say("Number of successful upgrades: 0"))
+			Expect(runningTool).To(gbytes.Say("Number of deleted instances before upgrade could occur: 1"))
+		})
+	})
+
+	Context("when a service instance refresh fails prior to instance upgrade", func() {
+		It("we log failure and carry on with previous data", func() {
+			operationData := `{"BoshTaskID":1,"OperationType":"upgrade","PostDeployErrand":{},"PreDeleteErrand":{}}`
+			instanceID := "service-instance-id"
+			odb.VerifyAndMock(
+				mockbroker.ListInstances().RespondsOKWith(fmt.Sprintf(`[{"plan_id": "service-plan-id", "service_instance_id": "%s"}]`, instanceID)),
+				mockbroker.ListInstances().RespondsInternalServerErrorWith("oops"),
+				mockbroker.UpgradeInstance(instanceID).
+					WithBody(`{"plan_id": "service-plan-id"}`).
+					RespondsAcceptedWith(operationData),
+				mockbroker.LastOperation(instanceID, operationData).RespondWithOperationInProgress(),
+				mockbroker.LastOperation(instanceID, operationData).RespondWithOperationSucceeded(),
+			)
+
+			brokerConfig := populateBrokerConfig(odb.URL, brokerUsername, brokerPassword)
+			serviceInstancesAPIConfig := populateServiceInstancesAPIConfig(
+				odb.URL+brokerServiceInstancesURLPath,
+				brokerUsername,
+				brokerPassword,
+			)
+			pollingIntervalConfig := populateUpgraderConfig(1, 2, 5)
+			config := brokerConfig + serviceInstancesAPIConfig + pollingIntervalConfig
+			configPath = writeConfigFile(config)
+
+			runningTool := startUpgradeAllInstanceBinary()
+
+			Eventually(runningTool, 5*time.Second).Should(gexec.Exit(0))
+
+			Expect(runningTool).To(gbytes.Say("Failed to get refreshed list of instances. Continuing with previously fetched info"))
+			Expect(runningTool).To(gbytes.Say("Status: SUCCESS"))
+			Expect(runningTool).To(gbytes.Say("Number of successful upgrades: 1"))
+		})
+	})
 })
