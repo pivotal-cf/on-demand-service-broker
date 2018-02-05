@@ -70,6 +70,18 @@ func New(
 	return b, nil
 }
 
+func (b *Broker) processError(err error, logger *log.Logger) error {
+	switch processedError := err.(type) {
+	case DisplayableError:
+		logger.Println(processedError)
+		return processedError.ErrorForCFUser()
+	case error:
+		return processedError
+	}
+
+	return nil
+}
+
 const (
 	OperationTypeCreate  = OperationType("create")
 	OperationTypeUpdate  = OperationType("update")

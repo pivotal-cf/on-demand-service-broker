@@ -52,14 +52,8 @@ func (b *Broker) Provision(ctx context.Context, instanceID string, details broke
 		logger,
 	)
 
-	switch anotherErr := err.(type) {
-	case DisplayableError:
-		if anotherErr.Occurred() {
-			logger.Println(anotherErr)
-			return brokerapi.ProvisionedServiceSpec{}, anotherErr.ErrorForCFUser()
-		}
-	case error:
-		return brokerapi.ProvisionedServiceSpec{}, anotherErr
+	if err != nil {
+		return brokerapi.ProvisionedServiceSpec{}, b.processError(err, logger)
 	}
 
 	operationDataJSON, err := json.Marshal(operationData)
@@ -106,18 +100,17 @@ func (b *Broker) provisionInstance(ctx context.Context, instanceID string, planI
 
 	var planCounts map[string]int
 	if b.serviceOffering.GlobalQuotas.ServiceInstanceLimit != nil {
-		var displayableError DisplayableError
-		planCounts, displayableError = b.checkGlobalQuota(ctx, b.serviceOffering.ID, logger)
-		if displayableError.Occurred() {
-			return errs(displayableError)
+		planCounts, err = b.checkGlobalQuota(ctx, b.serviceOffering.ID, logger)
+		if err != nil {
+			return errs(err)
 		}
 	}
 
 	if plan.Quotas.ServiceInstanceLimit != nil {
 		limit := *plan.Quotas.ServiceInstanceLimit
-		planCount, displayableError := b.getPlanCount(ctx, planID, planCounts, logger)
-		if displayableError.Occurred() {
-			return errs(displayableError)
+		planCount, err := b.getPlanCount(ctx, planID, planCounts, logger)
+		if err != nil {
+			return errs(err)
 		}
 
 		if planCount >= limit {
@@ -185,10 +178,10 @@ func (b *Broker) provisionInstance(ctx context.Context, instanceID string, planI
 		return operationData, dashboardUrl, err
 	}
 
-	return operationData, dashboardUrl, DisplayableError{}
+	return operationData, dashboardUrl, nil
 }
 
-func (b *Broker) getPlanCount(ctx context.Context, planID string, planCounts map[string]int, logger *log.Logger) (int, DisplayableError) {
+func (b *Broker) getPlanCount(ctx context.Context, planID string, planCounts map[string]int, logger *log.Logger) (int, error) {
 	var planCount int
 
 	if planCounts != nil {
@@ -201,14 +194,14 @@ func (b *Broker) getPlanCount(ctx context.Context, planID string, planCounts map
 		}
 	}
 
-	return planCount, DisplayableError{}
+	return planCount, nil
 }
 
 func (b *Broker) checkGlobalQuota(
 	ctx context.Context,
 	serviceOfferingID string,
 	logger *log.Logger,
-) (map[string]int, DisplayableError) {
+) (map[string]int, error) {
 
 	planCounts, err := b.cfClient.CountInstancesOfServiceOffering(serviceOfferingID, logger)
 	if err != nil {
@@ -227,5 +220,5 @@ func (b *Broker) checkGlobalQuota(
 		)
 	}
 
-	return nil, DisplayableError{}
+	return nil, nil
 }

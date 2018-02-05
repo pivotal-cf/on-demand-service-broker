@@ -37,7 +37,6 @@ var NilError = DisplayableError{nil, nil}
 type BrokerError interface {
 	ErrorForCFUser() error
 	Error() string
-	Occurred() bool
 }
 
 type DisplayableError struct {
@@ -51,10 +50,6 @@ func (e DisplayableError) ErrorForCFUser() error {
 
 func (e DisplayableError) Error() string {
 	return fmt.Sprintf("error: %s. error for user: %s.", e.errorForOperator, e.errorForCFUser)
-}
-
-func (e DisplayableError) Occurred() bool {
-	return e.errorForCFUser != nil && e.errorForOperator != nil
 }
 
 func NewDisplayableError(errorForCFUser, errForOperator error) DisplayableError {
