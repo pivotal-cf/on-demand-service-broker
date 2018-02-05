@@ -38,7 +38,7 @@ var (
 )
 
 func NewBOSHClient() *boshdirector.Client {
-	certPEM := []byte(envMustHave("DIRECTOR_CA_CERT"))
+	certPEM := []byte(envMustHave("BOSH_CA_CERT"))
 	var err error
 
 	stdout = gbytes.NewBuffer()
@@ -53,8 +53,8 @@ func NewBOSHClient() *boshdirector.Client {
 		UAA: config.UAAAuthentication{
 			URL: envMustHave("UAA_URL"),
 			ClientCredentials: config.ClientCredentials{
-				ID:     envMustHave("UAA_CLIENT"),
-				Secret: envMustHave("UAA_SECRET"),
+				ID:     envMustHave("BOSH_USERNAME"),
+				Secret: envMustHave("BOSH_PASSWORD"),
 			},
 		},
 	}
@@ -63,7 +63,7 @@ func NewBOSHClient() *boshdirector.Client {
 	logger = loggerFactory.New()
 
 	c, err = boshdirector.New(
-		envMustHave("DIRECTOR_URL"),
+		envMustHave("BOSH_URL"),
 		certPEM,
 		certPool,
 		factory,
@@ -77,7 +77,7 @@ func NewBOSHClient() *boshdirector.Client {
 }
 
 func NewBOSHClientWithBadCredentials() *boshdirector.Client {
-	certPEM := []byte(envMustHave("DIRECTOR_CA_CERT"))
+	certPEM := []byte(envMustHave("BOSH_CA_CERT"))
 	var err error
 
 	stdout = gbytes.NewBuffer()
@@ -102,7 +102,7 @@ func NewBOSHClientWithBadCredentials() *boshdirector.Client {
 	logger = loggerFactory.New()
 
 	c, err = boshdirector.New(
-		envMustHave("DIRECTOR_URL"),
+		envMustHave("BOSH_URL"),
 		certPEM,
 		certPool,
 		factory,

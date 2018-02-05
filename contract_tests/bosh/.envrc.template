@@ -1,8 +1,8 @@
 
 export UAA_URL=
-export UAA_CLIENT=
-export UAA_SECRET=
-export DIRECTOR_CA_CERT=
-export DIRECTOR_URL=
+export BOSH_USERNAME=
+export BOSH_PASSWORD=
+export BOSH_CA_CERT=
+export BOSH_URL=
 
 source_up
