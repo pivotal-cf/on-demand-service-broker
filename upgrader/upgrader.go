@@ -78,6 +78,7 @@ type Upgrader struct {
 	attemptLimit    int
 	maxInFlight     int
 	canaries        int
+	totalInstances  int
 	listener        Listener
 	sleeper         sleeper
 
@@ -113,6 +114,8 @@ func (u *Upgrader) Upgrade() error {
 	u.listener.InstancesToUpgrade(instances)
 
 	u.controller.pendingInstances = instances
+
+	u.totalInstances = len(instances)
 
 	if u.controller.processingCanaries {
 		u.listener.CanariesStarting(u.canaries)
@@ -185,16 +188,14 @@ func (u *Upgrader) upgradesToTriggerCount() int {
 
 func (u *Upgrader) triggerUpgrades() {
 	needed := u.upgradesToTriggerCount()
-	index := 1
-	totalInstance := len(u.controller.pendingInstances)
 
 	if needed > 0 && len(u.controller.failures) == 0 {
-		for i := 0; i < needed; index++ {
+		for i := 0; i < needed; {
 			instance := u.controller.nextInstance()
 			if instance.GUID == "" {
 				break
 			}
-			accepted, err := u.triggerUpgrade(instance, index, totalInstance)
+			accepted, err := u.triggerUpgrade(instance)
 			if accepted {
 				i++
 			}
@@ -285,8 +286,8 @@ func (u *Upgrader) errorFromList() error {
 	return nil
 }
 
-func (u *Upgrader) triggerUpgrade(instance service.Instance, index, totalInstances int) (bool, error) {
-	u.listener.InstanceUpgradeStarting(instance.GUID, index, totalInstances, u.controller.processingCanaries)
+func (u *Upgrader) triggerUpgrade(instance service.Instance) (bool, error) {
+	u.listener.InstanceUpgradeStarting(instance.GUID, u.controller.calculateCurrentUpgradeIndex(), u.totalInstances, u.controller.processingCanaries)
 	latestInstance, err := u.instanceLister.LatestInstanceInfo(instance)
 	if err != nil {
 		if err == service.InstanceNotFound {
@@ -400,6 +401,19 @@ func (c *controller) findInstancesWithState(state services.UpgradeOperationType)
 	for guid, finalState := range c.states {
 		if finalState.Type == state {
 			out = append(out, "service-instance_"+guid)
+		}
+	}
+	return out
+}
+
+func (c *controller) calculateCurrentUpgradeIndex() int {
+	out := 1
+	for _, finalState := range c.states {
+		if (finalState.Type == services.UpgradeSucceeded) ||
+			(finalState.Type == services.UpgradeAccepted) ||
+			(finalState.Type == services.InstanceNotFound) ||
+			(finalState.Type == services.OrphanDeployment) {
+			out += 1
 		}
 	}
 	return out

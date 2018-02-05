@@ -85,7 +85,7 @@ var _ = Describe("Upgrader", func() {
 				Expect(instanceLister.InstancesCallCount()).To(Equal(1))
 				Expect(brokerServicesClient.UpgradeInstanceCallCount()).To(Equal(1))
 
-				hasReportedInstanceUpgradeStarted(fakeListener, serviceInstanceId, 1, 1)
+				hasReportedInstanceUpgradeStarted(fakeListener, 1, serviceInstanceId, 1, 1)
 				hasReportedInstanceUpgradeStartResult(fakeListener, services.UpgradeAccepted)
 				hasReportedUpgraded(fakeListener, serviceInstanceId)
 				Expect(actualErr).NotTo(HaveOccurred())
@@ -399,6 +399,14 @@ var _ = Describe("Upgrader", func() {
 				hasReportedUpgraded(fakeListener, serviceInstance1, serviceInstance2, serviceInstance3)
 				hasReportedProgress(fakeListener, 0, upgraderBuilder.AttemptInterval, 0, 3, 0, 0)
 				hasReportedFinished(fakeListener, 0, 3, 0, 0)
+
+				Expect(fakeListener.InstanceUpgradeStartingCallCount()).To(Equal(3))
+
+				for i := 1; i <= 3; i++ {
+					_, index, total, _ := fakeListener.InstanceUpgradeStartingArgsForCall(i - 1)
+					Expect(index).To(Equal(i), "number of instances upgraded")
+					Expect(total).To(Equal(3), "total number of instances")
+				}
 			})
 
 			Describe("canary upgrades", func() {
@@ -990,16 +998,16 @@ var _ = Describe("Upgrader", func() {
 					expectedInstanceCounts := [][]int{
 						{1, 4, 1},
 						{2, 4, 1},
-						{3, 4, 1},
-						{4, 4, 1},
-						{1, 3, 1},
-						{1, 2, 0},
-						{2, 2, 0},
-						{1, 1, 0},
+						{2, 4, 1},
+						{2, 4, 1},
+						{2, 4, 1},
+						{3, 4, 0},
+						{4, 4, 0},
+						{4, 4, 0},
 					}
 					for i := 0; i < fakeListener.InstanceUpgradeStartingCallCount(); i++ {
 						_, index, total, isCanary := fakeListener.InstanceUpgradeStartingArgsForCall(i)
-						Expect(index).To(Equal(expectedInstanceCounts[i][0]), "Current instance index")
+						Expect(index).To(Equal(expectedInstanceCounts[i][0]), fmt.Sprintf("Current instance index; i = %d", i))
 						Expect(total).To(Equal(expectedInstanceCounts[i][1]), "Total pending instances")
 						Expect(isCanary).To(Equal(expectedInstanceCounts[i][2] == 1), "Total pending instances")
 					}
@@ -1660,9 +1668,9 @@ func hasReportedWaitingFor(fakeListener *fakes.FakeListener, instances map[strin
 	}
 }
 
-func hasReportedInstanceUpgradeStarted(fakeListener *fakes.FakeListener, expectedInstance string, expectedIndex, expectedTotalInstances int) {
+func hasReportedInstanceUpgradeStarted(fakeListener *fakes.FakeListener, callCount int, expectedInstance string, expectedIndex, expectedTotalInstances int) {
 	Expect(fakeListener.InstanceUpgradeStartingCallCount()).To(
-		Equal(1), "instance upgrade started call count",
+		Equal(callCount), "instance upgrade started call count",
 	)
 
 	actualInstance, actualIndex, actualTotalInstances, _ := fakeListener.InstanceUpgradeStartingArgsForCall(0)
