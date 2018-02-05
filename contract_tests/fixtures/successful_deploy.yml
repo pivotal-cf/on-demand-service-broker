@@ -1,5 +1,4 @@
 ---
-name: bill
 releases: []
 update:
   canaries: 1

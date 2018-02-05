@@ -1,6 +1,4 @@
 ---
-name: dummy
-
 releases:
 - name: dummy
   version: latest

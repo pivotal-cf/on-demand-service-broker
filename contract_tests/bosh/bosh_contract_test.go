@@ -10,9 +10,10 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
-	yaml "gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v2"
 )
 
 var _ = Describe("BOSH client", func() {
@@ -23,21 +24,24 @@ var _ = Describe("BOSH client", func() {
 	)
 
 	BeforeEach(func() {
-		SetDefaultEventuallyTimeout(10 * time.Second)
-		reporter := boshdirector.NewAsyncTaskReporter()
+		SetDefaultEventuallyTimeout(1 * time.Minute)
 		boshClient = NewBOSHClient()
 		logger = loggerfactory.New(GinkgoWriter, "contract-test", loggerfactory.Flags).New()
-		deploymentName = "bill"
-
-		_, err := boshClient.DeleteDeployment(deploymentName, "", logger, reporter)
-		Expect(err).NotTo(HaveOccurred())
+		deploymentName = "bill_" + uuid.New()
 	})
 
 	AfterEach(func() {
 		reporter := boshdirector.NewAsyncTaskReporter()
 		_, err := boshClient.DeleteDeployment(deploymentName, "", logger, reporter)
 		Expect(err).NotTo(HaveOccurred())
+		Eventually(reporter.Finished).Should(Receive())
 	})
+
+	verifyContextID := func(expectedContextID string, taskID int) {
+		task, err := boshClient.GetTask(taskID, logger)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(task.ContextID).To(Equal(expectedContextID))
+	}
 
 	Describe("GetInfo()", func() {
 		It("talks to the director", func() {
@@ -49,10 +53,10 @@ var _ = Describe("BOSH client", func() {
 
 		It("gets the info about director", func() {
 			info, err := boshClient.GetInfo(logger)
-			Expect(err).NotTo(HaveOccurred())
 
+			Expect(err).NotTo(HaveOccurred())
 			uaaURL := info.UserAuthentication.Options.URL
-			Expect(uaaURL).To(Equal("https://35.189.248.241:8443"))
+			Expect(uaaURL).To(Equal(boshAuthConfig.UAA.URL))
 		})
 
 		It("is an authenticated director", func() {
@@ -64,15 +68,15 @@ var _ = Describe("BOSH client", func() {
 	Describe("DeleteDeployment()", func() {
 		It("deletes the deployment and returns a taskID", func() {
 			reporter := boshdirector.NewAsyncTaskReporter()
-			_, err := boshClient.Deploy(getManifest("successful_deploy.yml"), "", logger, reporter)
+			_, err := boshClient.Deploy(getManifest("successful_deploy.yml", deploymentName), "", logger, reporter)
 			Expect(err).NotTo(HaveOccurred())
-
 			Eventually(reporter.Finished).Should(Receive())
 
-			taskID, err := boshClient.DeleteDeployment(deploymentName, "", logger, reporter)
+			reporter = boshdirector.NewAsyncTaskReporter()
+			taskID, err := boshClient.DeleteDeployment(deploymentName, "some-context-id", logger, reporter)
 			Expect(taskID).To(BeNumerically(">=", 1))
 			Expect(err).NotTo(HaveOccurred())
-
+			verifyContextID("some-context-id", taskID)
 			Eventually(reporter.Finished).Should(Receive())
 		})
 
@@ -90,27 +94,27 @@ var _ = Describe("BOSH client", func() {
 		It("succeeds", func() {
 			reporter := boshdirector.NewAsyncTaskReporter()
 
-			taskID, err := boshClient.Deploy(getManifest("successful_deploy.yml"), "some-context-id", logger, reporter)
+			taskID, err := boshClient.Deploy(getManifest("successful_deploy.yml", deploymentName), "some-context-id", logger, reporter)
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(taskID).To(BeNumerically(">=", 1))
 
+			verifyContextID("some-context-id", taskID)
 			Eventually(reporter.Finished).Should(Receive())
 		})
 	})
 
 	Describe("GetDeployment()", func() {
 		It("succeeds and return the manifest when deployment is found", func() {
-			manifest := getManifest("successful_deploy.yml")
+			manifest := getManifest("successful_deploy.yml", deploymentName)
 			reporter := boshdirector.NewAsyncTaskReporter()
 
 			_, err := boshClient.Deploy(manifest, "", logger, reporter)
 			Expect(err).NotTo(HaveOccurred())
 			Eventually(reporter.Finished).Should(Receive())
 
-			returnedManifest, found, getDeploymentErr := boshClient.GetDeployment("bill", logger)
+			returnedManifest, found, getDeploymentErr := boshClient.GetDeployment(deploymentName, logger)
 
-			// TODO: if used somewhere else, extract in suite or Gomega matcher
 			type testManifest struct {
 				Name     string
 				Releases []string
@@ -121,9 +125,8 @@ var _ = Describe("BOSH client", func() {
 					MaxInFlight     int    `yaml:"max_in_flight"`
 				}
 				StemCells []struct {
-					Alias   string
-					OS      string
-					version string
+					Alias string
+					OS    string
 				}
 			}
 
@@ -140,7 +143,7 @@ var _ = Describe("BOSH client", func() {
 		})
 
 		It("does not fail when deployment is not found", func() {
-			_, found, getDeploymentErr := boshClient.GetDeployment("bill", logger)
+			_, found, getDeploymentErr := boshClient.GetDeployment("sad-face", logger)
 
 			Expect(found).To(BeFalse())
 			Expect(getDeploymentErr).NotTo(HaveOccurred())
@@ -161,7 +164,7 @@ var _ = Describe("BOSH client", func() {
 
 		BeforeEach(func() {
 			reporter := boshdirector.NewAsyncTaskReporter()
-			taskID, err = boshClient.Deploy(getManifest("successful_deploy.yml"), "", logger, reporter)
+			taskID, err = boshClient.Deploy(getManifest("successful_deploy.yml", deploymentName), "", logger, reporter)
 			Expect(err).NotTo(HaveOccurred())
 
 			Eventually(reporter.Finished).Should(Receive())
@@ -180,14 +183,14 @@ var _ = Describe("BOSH client", func() {
 
 		BeforeEach(func() {
 			reporter := boshdirector.NewAsyncTaskReporter()
-			taskID, err = boshClient.Deploy(getManifest("successful_deploy.yml"), "", logger, reporter)
+			taskID, err = boshClient.Deploy(getManifest("successful_deploy.yml", deploymentName), "", logger, reporter)
 			Expect(err).NotTo(HaveOccurred())
 
 			Eventually(reporter.Finished).Should(Receive())
 		})
 
 		It("succeeds", func() {
-			tasks, err := boshClient.GetTasks("bill", logger)
+			tasks, err := boshClient.GetTasks(deploymentName, logger)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(tasks[0].ID).To(Equal(taskID))
 		})
@@ -196,28 +199,28 @@ var _ = Describe("BOSH client", func() {
 	Describe("VMs()", func() {
 		BeforeEach(func() {
 			reporter := boshdirector.NewAsyncTaskReporter()
-			_, err := boshClient.Deploy(getManifest("single_vm_deployment.yml"), "", logger, reporter)
+			_, err := boshClient.Deploy(getManifest("single_vm_deployment.yml", deploymentName), "", logger, reporter)
 			Expect(err).NotTo(HaveOccurred())
 
 			Eventually(reporter.Finished).Should(Receive())
 		})
 
 		It("succeeds", func() {
-			vms, err := boshClient.VMs("dummy", logger)
+			vms, err := boshClient.VMs(deploymentName, logger)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(vms["dummy"]).NotTo(BeEmpty())
 		})
 	})
 
 	Describe("VerifyAuth()", func() {
-		It("succeeds", func() {
+		It("validates the credentials", func() {
+			By("succeeding when the creds are correct")
 			err := boshClient.VerifyAuth(logger)
 			Expect(err).NotTo(HaveOccurred())
-		})
 
-		It("fails if the credentials are wrong", func() {
+			By("failing when the creds are wrong")
 			wrongBoshClient := NewBOSHClientWithBadCredentials()
-			err := wrongBoshClient.VerifyAuth(logger)
+			err = wrongBoshClient.VerifyAuth(logger)
 			Expect(err).To(MatchError(ContainSubstring("Bad credentials")))
 		})
 	})
@@ -225,14 +228,17 @@ var _ = Describe("BOSH client", func() {
 	Describe("RunErrand() and GetTaskOutput()", func() {
 		It("succeeds", func() {
 			reporter := boshdirector.NewAsyncTaskReporter()
-			_, err := boshClient.Deploy(getManifest("single_vm_deployment.yml"), "", logger, reporter)
+			_, err := boshClient.Deploy(getManifest("single_vm_deployment.yml", deploymentName), "", logger, reporter)
 			Expect(err).NotTo(HaveOccurred())
 			Eventually(reporter.Finished).Should(Receive())
 
 			By("running the errand")
 			reporter = boshdirector.NewAsyncTaskReporter()
-			taskId, err := boshClient.RunErrand("dummy", "dummy_errand", nil, "", logger, reporter)
+			taskId, err := boshClient.RunErrand(deploymentName, "dummy_errand", nil, "some-context-id", logger, reporter)
 			Expect(err).NotTo(HaveOccurred())
+
+			By("executing with the correct context id")
+			verifyContextID("some-context-id", taskId)
 
 			By("Getting the task output")
 			output, err := boshClient.GetTaskOutput(taskId, logger)
@@ -242,8 +248,8 @@ var _ = Describe("BOSH client", func() {
 	})
 })
 
-func getManifest(filename string) []byte {
+func getManifest(filename, deploymentName string) []byte {
 	bytes, err := ioutil.ReadFile(fmt.Sprintf("../fixtures/%s", filename))
 	Expect(err).NotTo(HaveOccurred())
-	return bytes
+	return append(bytes, []byte("\nname: "+deploymentName)...)
 }

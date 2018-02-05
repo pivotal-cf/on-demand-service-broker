@@ -1,0 +1,8 @@
+
+export UAA_URL=
+export UAA_CLIENT=
+export UAA_SECRET=
+export DIRECTOR_CA_CERT=
+export DIRECTOR_URL=
+
+source_up
