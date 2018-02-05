@@ -37,6 +37,15 @@ func DeleteService(serviceName string) {
 	AwaitServiceDeletion(serviceName)
 }
 
+func AwaitInProgressOperations(serviceName string) {
+	awaitServiceOperation(
+		cfService(serviceName),
+		Not(ContainSubstring("in progress")),
+		ContainSubstring("in progress"),
+		LongCfTimeout,
+	)
+}
+
 func AwaitServiceCreation(serviceName string) {
 	AwaitServiceCreationWithTimeout(serviceName, LongCfTimeout)
 }

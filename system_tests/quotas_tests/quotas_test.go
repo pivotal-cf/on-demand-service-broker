@@ -38,6 +38,9 @@ var _ = Describe("quotas", func() {
 			})
 
 			AfterEach(func() {
+				cf.AwaitInProgressOperations(instanceA)
+				cf.AwaitInProgressOperations(instanceB)
+
 				Eventually(cf.Cf("delete-service", instanceA, "-f"), cf.CfTimeout).Should(gexec.Exit())
 				Eventually(cf.Cf("delete-service", instanceB, "-f"), cf.CfTimeout).Should(gexec.Exit())
 
@@ -98,6 +101,10 @@ var _ = Describe("quotas", func() {
 			})
 
 			AfterEach(func() {
+				cf.AwaitInProgressOperations(instanceA)
+				cf.AwaitInProgressOperations(instanceB)
+				cf.AwaitInProgressOperations(instanceC)
+
 				Eventually(cf.Cf("delete-service", instanceA, "-f"), cf.CfTimeout).Should(gexec.Exit())
 				Eventually(cf.Cf("delete-service", instanceB, "-f"), cf.CfTimeout).Should(gexec.Exit())
 				Eventually(cf.Cf("delete-service", instanceC, "-f"), cf.CfTimeout).Should(gexec.Exit())
