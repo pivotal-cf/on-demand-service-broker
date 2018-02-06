@@ -365,9 +365,5 @@ func (c Client) countServiceInstancesOfServicePlan(path string, logger *log.Logg
 	if err != nil {
 		return 0, err
 	}
-	if resp.TotalResults == 0 && (len(resp.ServiceInstances) != 0 || resp.TotalPages > 1) {
-		return 0, fmt.Errorf("Inconsistent CF response. Total Results: 0, Service Instances length: %d, Total Pages: %d\n",
-			len(resp.ServiceInstances), resp.TotalPages)
-	}
 	return resp.TotalResults, nil
 }

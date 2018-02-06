@@ -113,6 +113,9 @@ func (w httpJsonClient) readResponse(response *http.Response, obj interface{}) e
 
 	switch response.StatusCode {
 	case http.StatusOK:
+		if string(rawBody) == "{}" {
+			return NewInvalidResponseError("Empty response body")
+		}
 		err := json.Unmarshal(rawBody, &obj)
 		if err != nil {
 			return NewInvalidResponseError(fmt.Sprintf("Invalid response body: %s", err))

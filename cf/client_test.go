@@ -474,40 +474,7 @@ var _ = Describe("Client", func() {
 			Expect(count).To(BeZero())
 		})
 
-		It("fails when the returned total is zero but service instances are listed", func() {
-			server.VerifyAndMock(
-				mockcfapi.ListServiceOfferings().WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_services_response.json")),
-				mockcfapi.ListServicePlans(serviceGUID).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_plans_response.json")),
-				mockcfapi.ListServiceInstances("2777ad05-8114-4169-8188-2ef5f39e0c6b").WithAuthorizationHeader(cfAuthorizationHeader).
-					RespondsOKWith(fixture("list_service_instances_for_plan_2_bad_count.json")),
-			)
-
-			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
-			Expect(err).NotTo(HaveOccurred())
-
-			count, err := client.CountInstancesOfPlan("D94A086D-203D-4966-A6F1-60A9E2300F72", "22789210-D743-4C65-9D38-C80B29F4D9C8", testLogger)
-			Expect(err).To(MatchError(ContainSubstring("Inconsistent CF response")))
-			Expect(count).To(BeZero())
-		})
-
-		It("fails when the returned total is zero but page count is not 1", func() {
-			server.VerifyAndMock(
-				mockcfapi.ListServiceOfferings().WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_services_response.json")),
-				mockcfapi.ListServicePlans(serviceGUID).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_plans_response.json")),
-				mockcfapi.ListServiceInstances("2777ad05-8114-4169-8188-2ef5f39e0c6b").WithAuthorizationHeader(cfAuthorizationHeader).
-					RespondsOKWith(fixture("list_service_instances_for_plan_2_bad_page_count.json")),
-			)
-
-			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
-			Expect(err).NotTo(HaveOccurred())
-
-			count, err := client.CountInstancesOfPlan("D94A086D-203D-4966-A6F1-60A9E2300F72", "22789210-D743-4C65-9D38-C80B29F4D9C8", testLogger)
-			Expect(err).To(MatchError(ContainSubstring("Inconsistent CF response")))
-			Expect(count).To(BeZero())
-		})
-
 		It("fails when it receives an empty json", func() {
-
 			server.VerifyAndMock(
 				mockcfapi.ListServiceOfferings().WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_services_response.json")),
 				mockcfapi.ListServicePlans(serviceGUID).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_plans_response.json")),
@@ -520,7 +487,7 @@ var _ = Describe("Client", func() {
 
 			count, err := client.CountInstancesOfPlan("D94A086D-203D-4966-A6F1-60A9E2300F72", "22789210-D743-4C65-9D38-C80B29F4D9C8", testLogger)
 			Expect(count).To(BeZero())
-			Expect(err).To(MatchError(ContainSubstring("Inconsistent CF response")))
+			Expect(err).To(MatchError(ContainSubstring("Empty response body")))
 		})
 	})
 
