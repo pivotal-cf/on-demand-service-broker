@@ -29,7 +29,8 @@ type Broker struct {
 	deployer       Deployer
 	deploymentLock *sync.Mutex
 
-	serviceOffering config.ServiceOffering
+	serviceOffering         config.ServiceOffering
+	ExposeOperationalErrors bool
 
 	loggerFactory *loggerfactory.LoggerFactory
 }
@@ -38,6 +39,7 @@ func New(
 	boshClient BoshClient,
 	cfClient CloudFoundryClient,
 	serviceOffering config.ServiceOffering,
+	exposeOperationalErrors bool,
 	startupCheckers []StartupChecker,
 	serviceAdapter ServiceAdapterClient,
 	deployer Deployer, // TODO: is it used?
@@ -50,7 +52,8 @@ func New(
 		deployer:       deployer,
 		deploymentLock: &sync.Mutex{},
 
-		serviceOffering: serviceOffering,
+		serviceOffering:         serviceOffering,
+		ExposeOperationalErrors: exposeOperationalErrors,
 
 		loggerFactory: loggerFactory,
 	}
@@ -71,15 +74,16 @@ func New(
 }
 
 func (b *Broker) processError(err error, logger *log.Logger) error {
+	logger.Println(err)
 	switch processedError := err.(type) {
 	case DisplayableError:
-		logger.Println(processedError)
+		if b.ExposeOperationalErrors {
+			return processedError.ExtendedCFError()
+		}
 		return processedError.ErrorForCFUser()
-	case error:
+	default:
 		return processedError
 	}
-
-	return nil
 }
 
 const (

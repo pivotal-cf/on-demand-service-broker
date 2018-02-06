@@ -19,16 +19,15 @@ import (
 func (b *Broker) Instances(logger *log.Logger) ([]service.Instance, error) {
 	instances, err := b.cfClient.GetInstancesOfServiceOffering(b.serviceOffering.ID, logger)
 	if err != nil {
-		logger.Printf("error listing instances: %s", err)
-		return nil, err
+		return nil, b.processError(err, logger)
 	}
 
 	return instances, nil
 }
 
-func (b *Broker) validatePlanQuota(ctx context.Context, serviceID string, plan config.Plan, logger *log.Logger) DisplayableError {
+func (b *Broker) validatePlanQuota(ctx context.Context, serviceID string, plan config.Plan, logger *log.Logger) error {
 	if plan.Quotas.ServiceInstanceLimit == nil {
-		return NilError
+		return nil
 	}
 	limit := *plan.Quotas.ServiceInstanceLimit
 
@@ -41,5 +40,5 @@ func (b *Broker) validatePlanQuota(ctx context.Context, serviceID string, plan c
 		return NewDisplayableError(brokerapi.ErrPlanQuotaExceeded, fmt.Errorf("plan quota exceeded for plan ID %s", plan.ID))
 	}
 
-	return NilError
+	return nil
 }

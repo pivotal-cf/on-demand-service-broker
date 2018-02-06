@@ -38,6 +38,7 @@ type Broker struct {
 	StartUpBanner              bool `yaml:"startup_banner"`
 	ShutdownTimeoutSecs        int  `yaml:"shutdown_timeout_in_seconds"`
 	DisableCFStartupChecks     bool `yaml:"disable_cf_startup_checks"`
+	ExposeOperationalErrors    bool `yaml:"expose_operational_errors"`
 }
 
 type Authentication struct {

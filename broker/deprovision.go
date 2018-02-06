@@ -34,32 +34,35 @@ func (b *Broker) Deprovision(
 	logger := b.loggerFactory.NewWithContext(ctx)
 
 	if !asyncAllowed {
-		return brokerapi.DeprovisionServiceSpec{}, brokerapi.ErrAsyncRequired
+		return brokerapi.DeprovisionServiceSpec{}, b.processError(brokerapi.ErrAsyncRequired, logger)
 	}
 
 	_, err := b.boshClient.GetInfo(logger)
 	if err != nil {
-		return deprovisionErr(NewBoshRequestError("delete", err), logger)
+		return brokerapi.DeprovisionServiceSpec{IsAsync: true}, b.processError(NewBoshRequestError("delete", err), logger)
 	}
 
-	if err := b.assertDeploymentExists(ctx, instanceID, logger); err != NilError {
-		return deprovisionErr(err, logger)
+	if err := b.assertDeploymentExists(ctx, instanceID, logger); err != nil {
+		return brokerapi.DeprovisionServiceSpec{IsAsync: true}, b.processError(err, logger)
 	}
 
-	if err := b.assertNoOperationsInProgress(ctx, instanceID, logger); err != NilError {
-		return deprovisionErr(err, logger)
+	if err := b.assertNoOperationsInProgress(ctx, instanceID, logger); err != nil {
+		return brokerapi.DeprovisionServiceSpec{IsAsync: true}, b.processError(err, logger)
 	}
 
 	plan, found := b.serviceOffering.FindPlanByID(deprovisionDetails.PlanID)
 	if found {
 		if errand := plan.PreDeleteErrand(); errand != "" {
-			return b.runPreDeleteErrand(ctx, instanceID, errand, plan.LifecycleErrands.PreDelete.Instances, logger)
+			serviceSpec, err := b.runPreDeleteErrand(ctx, instanceID, errand, plan.LifecycleErrands.PreDelete.Instances, logger)
+			return serviceSpec, b.processError(err, logger)
 		}
 	}
-	return b.deleteInstance(ctx, instanceID, plan, logger)
+
+	serviceSpec, err := b.deleteInstance(ctx, instanceID, plan, logger)
+	return serviceSpec, b.processError(err, logger)
 }
 
-func (b *Broker) assertDeploymentExists(ctx context.Context, instanceID string, logger *log.Logger) DisplayableError {
+func (b *Broker) assertDeploymentExists(ctx context.Context, instanceID string, logger *log.Logger) error {
 	_, deploymentFound, err := b.boshClient.GetDeployment(deploymentName(instanceID), logger)
 
 	switch err.(type) {
@@ -79,10 +82,10 @@ func (b *Broker) assertDeploymentExists(ctx context.Context, instanceID string, 
 		)
 	}
 
-	return NilError
+	return nil
 }
 
-func (b *Broker) assertNoOperationsInProgress(ctx context.Context, instanceID string, logger *log.Logger) DisplayableError {
+func (b *Broker) assertNoOperationsInProgress(ctx context.Context, instanceID string, logger *log.Logger) error {
 
 	tasks, err := b.boshClient.GetTasks(deploymentName(instanceID), logger)
 	switch err.(type) {
@@ -106,7 +109,7 @@ func (b *Broker) assertNoOperationsInProgress(ctx context.Context, instanceID st
 		return NewDisplayableError(userError, operatorError)
 	}
 
-	return NilError
+	return nil
 }
 
 func (b *Broker) runPreDeleteErrand(
@@ -129,7 +132,7 @@ func (b *Broker) runPreDeleteErrand(
 		boshdirector.NewAsyncTaskReporter(),
 	)
 	if err != nil {
-		return deprovisionErr(NewGenericError(ctx, err), logger)
+		return brokerapi.DeprovisionServiceSpec{IsAsync: true}, NewGenericError(ctx, err)
 	}
 
 	operationData, err := json.Marshal(OperationData{
@@ -140,7 +143,7 @@ func (b *Broker) runPreDeleteErrand(
 	})
 
 	if err != nil {
-		return deprovisionErr(NewGenericError(ctx, err), logger)
+		return brokerapi.DeprovisionServiceSpec{IsAsync: true}, NewGenericError(ctx, err)
 	}
 
 	return brokerapi.DeprovisionServiceSpec{IsAsync: true, OperationData: string(operationData)}, nil
@@ -156,12 +159,12 @@ func (b *Broker) deleteInstance(
 	taskID, err := b.boshClient.DeleteDeployment(deploymentName(instanceID), fmt.Sprintf("delete-%s", instanceID), logger, boshdirector.NewAsyncTaskReporter())
 	switch err.(type) {
 	case boshdirector.RequestError:
-		return deprovisionErr(NewBoshRequestError("delete", err), logger)
+		return brokerapi.DeprovisionServiceSpec{IsAsync: true}, NewBoshRequestError("delete", err)
 	case error:
-		return deprovisionErr(NewGenericError(
+		return brokerapi.DeprovisionServiceSpec{IsAsync: true}, NewGenericError(
 			ctx,
 			fmt.Errorf("error deprovisioning: deleting bosh deployment: %s", err),
-		), logger)
+		)
 	}
 
 	logger.Printf("Bosh task id for Delete instance %s was %d\n", instanceID, taskID)
@@ -173,19 +176,11 @@ func (b *Broker) deleteInstance(
 	})
 
 	if err != nil {
-		return deprovisionErr(NewGenericError(ctx, err), logger)
+		return brokerapi.DeprovisionServiceSpec{IsAsync: true}, NewGenericError(ctx, err)
 	}
 
 	return brokerapi.DeprovisionServiceSpec{
 		IsAsync:       true,
 		OperationData: string(operationData),
 	}, nil
-}
-
-func deprovisionErr(
-	err DisplayableError,
-	logger *log.Logger,
-) (brokerapi.DeprovisionServiceSpec, error) {
-	logger.Println(err)
-	return brokerapi.DeprovisionServiceSpec{IsAsync: true}, err.ErrorForCFUser()
 }

@@ -25,13 +25,13 @@ func (b *Broker) Upgrade(ctx context.Context, instanceID string, details brokera
 	logger.Printf("upgrading instance %s", instanceID)
 
 	if details.PlanID == "" {
-		return OperationData{}, errors.New("no plan ID provided in upgrade request body")
+		return OperationData{}, b.processError(errors.New("no plan ID provided in upgrade request body"), logger)
 	}
 
 	plan, found := b.serviceOffering.FindPlanByID(details.PlanID)
 	if !found {
 		logger.Printf("error: finding plan ID %s", details.PlanID)
-		return OperationData{}, fmt.Errorf("plan %s not found", details.PlanID)
+		return OperationData{}, b.processError(fmt.Errorf("plan %s not found", details.PlanID), logger)
 	}
 
 	var boshContextID string
@@ -53,14 +53,12 @@ func (b *Broker) Upgrade(ctx context.Context, instanceID string, details brokera
 		logger.Printf("error upgrading instance %s: %s", instanceID, err)
 
 		switch err := err.(type) {
-		case DisplayableError:
-			return OperationData{}, err.ErrorForCFUser()
 		case serviceadapter.UnknownFailureError:
-			return OperationData{}, adapterToAPIError(ctx, err)
+			return OperationData{}, b.processError(adapterToAPIError(ctx, err), logger)
 		case task.TaskInProgressError:
-			return OperationData{}, NewOperationInProgressError(err)
+			return OperationData{}, b.processError(NewOperationInProgressError(err), logger)
 		default:
-			return OperationData{}, err
+			return OperationData{}, b.processError(err, logger)
 		}
 	}
 

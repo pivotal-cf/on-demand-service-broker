@@ -35,12 +35,13 @@ var _ = Describe("Provision service instance", func() {
 		planQuota       = 5
 		globalQuota     = 12
 		arbitraryParams map[string]interface{}
+		conf            brokerConfig.Config
 	)
 
 	BeforeEach(func() {
 		arbitraryParams = map[string]interface{}{"some": "prop"}
 
-		conf := brokerConfig.Config{
+		conf = brokerConfig.Config{
 			Broker: brokerConfig.Broker{
 				Port: serverPort, Username: brokerUsername, Password: brokerPassword,
 			},
@@ -98,7 +99,9 @@ var _ = Describe("Provision service instance", func() {
 				},
 			},
 		}
+	})
 
+	JustBeforeEach(func() {
 		StartServer(conf)
 	})
 
@@ -288,6 +291,9 @@ var _ = Describe("Provision service instance", func() {
 			ContainSubstring(
 				"There was a problem completing your request. Please contact your operations team providing the following information: ",
 			),
+			Not(MatchRegexp(
+				`error-message:.*`,
+			)),
 			MatchRegexp(
 				`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`,
 			),
@@ -298,6 +304,38 @@ var _ = Describe("Provision service instance", func() {
 		))
 
 		Expect(loggerBuffer).To(gbytes.Say("cant create"))
+	})
+
+	Context("when expose_operational_errors is enabled", func() {
+
+		BeforeEach(func() {
+			conf.Broker.ExposeOperationalErrors = true
+		})
+
+		It("returns the operator error if the deployer fails", func() {
+			fakeBoshClient.GetDeploymentReturns([]byte{}, false, errors.New("bosh_server_error!"))
+			resp, bodyContent := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, true)
+			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
+
+			var errorResponse brokerapi.ErrorResponse
+			Expect(json.Unmarshal(bodyContent, &errorResponse)).To(Succeed())
+			Expect(errorResponse.Description).To(SatisfyAll(
+				ContainSubstring(
+					"There was a problem completing your request. Please contact your operations team providing the following information: ",
+				),
+				MatchRegexp(
+					`error-message:.*bosh_server_error!`,
+				),
+				MatchRegexp(
+					`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`,
+				),
+				ContainSubstring(fmt.Sprintf("service: %s", serviceName)),
+				ContainSubstring(fmt.Sprintf("service-instance-guid: %s", instanceID)),
+				Not(ContainSubstring("task-id")),
+				ContainSubstring("operation: create"),
+			))
+		})
+
 	})
 
 	It("responds with 500 when the plan quota is reached", func() {

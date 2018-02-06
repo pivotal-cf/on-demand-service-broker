@@ -34,24 +34,18 @@ func (b *Broker) Update(
 	logger := b.loggerFactory.NewWithContext(ctx)
 
 	if !asyncAllowed {
-		return brokerapi.UpdateServiceSpec{}, brokerapi.ErrAsyncRequired
-	}
-
-	errs := func(err DisplayableError) (brokerapi.UpdateServiceSpec, error) {
-		logger.Println(err)
-		return brokerapi.UpdateServiceSpec{IsAsync: true}, err.ErrorForCFUser()
+		return brokerapi.UpdateServiceSpec{}, b.processError(brokerapi.ErrAsyncRequired, logger)
 	}
 
 	plan, found := b.serviceOffering.FindPlanByID(details.PlanID)
 	if !found {
 		message := fmt.Sprintf("Plan %s not found", details.PlanID)
-		logger.Println(message)
-		return brokerapi.UpdateServiceSpec{IsAsync: true}, errors.New(message)
+		return brokerapi.UpdateServiceSpec{IsAsync: true}, b.processError(errors.New(message), logger)
 	}
 
 	if details.PreviousValues.PlanID != plan.ID {
-		if err := b.validatePlanQuota(ctx, details.ServiceID, plan, logger); err != NilError {
-			return errs(err)
+		if err := b.validatePlanQuota(ctx, details.ServiceID, plan, logger); err != nil {
+			return brokerapi.UpdateServiceSpec{IsAsync: true}, b.processError(err, logger)
 		}
 	}
 
@@ -59,7 +53,7 @@ func (b *Broker) Update(
 	detailsWithRawParameters := brokerapi.DetailsWithRawParameters(details)
 	detailsMap, err := convertDetailsToMap(detailsWithRawParameters)
 	if err != nil {
-		return errs(NewGenericError(ctx, err))
+		return brokerapi.UpdateServiceSpec{IsAsync: true}, b.processError(NewGenericError(ctx, err), logger)
 	}
 
 	var boshContextID string
@@ -80,21 +74,21 @@ func (b *Broker) Update(
 
 	switch err := err.(type) {
 	case task.ServiceError:
-		return errs(NewBoshRequestError("update", fmt.Errorf("error deploying instance: %s", err)))
+		return brokerapi.UpdateServiceSpec{IsAsync: true}, b.processError(NewBoshRequestError("update", fmt.Errorf("error deploying instance: %s", err)), logger)
 	case task.PendingChangesNotAppliedError:
-		return brokerapi.UpdateServiceSpec{IsAsync: true}, brokerapi.NewFailureResponse(
+		return brokerapi.UpdateServiceSpec{IsAsync: true}, b.processError(brokerapi.NewFailureResponse(
 			errors.New(PendingChangesErrorMessage),
 			http.StatusUnprocessableEntity,
 			UpdateLoggerAction,
-		)
+		), logger)
 	case task.TaskInProgressError:
-		return brokerapi.UpdateServiceSpec{IsAsync: true}, errors.New(OperationInProgressMessage)
+		return brokerapi.UpdateServiceSpec{IsAsync: true}, b.processError(errors.New(OperationInProgressMessage), logger)
 	case task.PlanNotFoundError:
-		return brokerapi.UpdateServiceSpec{IsAsync: true}, err
+		return brokerapi.UpdateServiceSpec{IsAsync: true}, b.processError(err, logger)
 	case serviceadapter.UnknownFailureError:
-		return brokerapi.UpdateServiceSpec{IsAsync: true}, adapterToAPIError(ctx, err)
+		return brokerapi.UpdateServiceSpec{IsAsync: true}, b.processError(adapterToAPIError(ctx, err), logger)
 	case error:
-		return errs(NewGenericError(ctx, fmt.Errorf("error deploying instance: %s", err)))
+		return brokerapi.UpdateServiceSpec{IsAsync: true}, b.processError(NewGenericError(ctx, fmt.Errorf("error deploying instance: %s", err)), logger)
 	}
 
 	operationData, err := json.Marshal(OperationData{
@@ -107,7 +101,7 @@ func (b *Broker) Update(
 		},
 	})
 	if err != nil {
-		return errs(NewGenericError(brokercontext.WithBoshTaskID(ctx, boshTaskID), err))
+		return brokerapi.UpdateServiceSpec{IsAsync: true}, b.processError(NewGenericError(brokercontext.WithBoshTaskID(ctx, boshTaskID), err), logger)
 	}
 
 	return brokerapi.UpdateServiceSpec{IsAsync: true, OperationData: string(operationData)}, nil

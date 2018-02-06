@@ -54,6 +54,7 @@ var _ = Describe("Broker Config", func() {
 						Password:                   "password",
 						DisableSSLCertVerification: true,
 						StartUpBanner:              false,
+						ExposeOperationalErrors:    false,
 						ShutdownTimeoutSecs:        10,
 					},
 					Bosh: config.Bosh{
@@ -182,6 +183,18 @@ var _ = Describe("Broker Config", func() {
 			It("returns no error", func() {
 				Expect(parseErr).NotTo(HaveOccurred())
 			})
+		})
+
+		Context("and the config has the expose_operational_errors flag", func() {
+			BeforeEach(func() {
+				configFileName = "good_config_with_optional_fields.yml"
+			})
+
+			It("returns config object", func() {
+				Expect(parseErr).NotTo(HaveOccurred())
+				Expect(conf.Broker.ExposeOperationalErrors).To(BeTrue())
+			})
+
 		})
 
 		Context("and the broker password contains escaped special characters", func() {

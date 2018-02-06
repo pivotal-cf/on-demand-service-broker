@@ -127,7 +127,7 @@ func startBroker(conf config.Config, logger *log.Logger, loggerFactory *loggerfa
 		startupchecker.NewBOSHAuthChecker(boshClient, logger),
 	)
 
-	onDemandBroker, err := broker.New(boshClient, cfClient, conf.ServiceCatalog, startupChecks, serviceAdapter, deploymentManager, loggerFactory)
+	onDemandBroker, err := broker.New(boshClient, cfClient, conf.ServiceCatalog, conf.Broker.ExposeOperationalErrors, startupChecks, serviceAdapter, deploymentManager, loggerFactory)
 	if err != nil {
 		logger.Fatalf("error starting broker: %s", err)
 	}

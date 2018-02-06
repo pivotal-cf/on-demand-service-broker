@@ -29,21 +29,16 @@ func (b *Broker) Bind(
 	ctx = brokercontext.New(ctx, string(OperationTypeBind), requestID, b.serviceOffering.Name, instanceID)
 	logger := b.loggerFactory.NewWithContext(ctx)
 
-	errs := func(err BrokerError) (brokerapi.Binding, error) {
-		logger.Println(err)
-		return brokerapi.Binding{}, err.ErrorForCFUser()
-	}
-
 	manifest, vms, deploymentErr := b.getDeploymentInfo(instanceID, ctx, "bind", logger)
 	if deploymentErr != nil {
-		return errs(deploymentErr)
+		return brokerapi.Binding{}, b.processError(deploymentErr, logger)
 	}
 
 	logger.Printf("service adapter will create binding with ID %s for instance %s\n", bindingID, instanceID)
 	detailsWithRawParameters := brokerapi.DetailsWithRawParameters(details)
 	mappedParams, err := convertDetailsToMap(detailsWithRawParameters)
 	if err != nil {
-		return errs(NewGenericError(ctx, fmt.Errorf("converting to map %s", err)))
+		return brokerapi.Binding{}, b.processError(NewGenericError(ctx, fmt.Errorf("converting to map %s", err)), logger)
 	}
 
 	var createBindingErr error
@@ -53,7 +48,7 @@ func (b *Broker) Bind(
 	}
 
 	if err := adapterToAPIError(ctx, createBindingErr); err != nil {
-		return brokerapi.Binding{}, err
+		return brokerapi.Binding{}, b.processError(err, logger)
 	}
 
 	return brokerapi.Binding{

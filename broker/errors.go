@@ -32,8 +32,6 @@ func NewOperationInProgressError(e error) error {
 	return OperationInProgressError{e}
 }
 
-var NilError = DisplayableError{nil, nil}
-
 type BrokerError interface {
 	ErrorForCFUser() error
 	Error() string
@@ -46,6 +44,10 @@ type DisplayableError struct {
 
 func (e DisplayableError) ErrorForCFUser() error {
 	return e.errorForCFUser
+}
+
+func (e DisplayableError) ExtendedCFError() error {
+	return fmt.Errorf("%s, error-message: %s", e.errorForCFUser, e.errorForOperator)
 }
 
 func (e DisplayableError) Error() string {

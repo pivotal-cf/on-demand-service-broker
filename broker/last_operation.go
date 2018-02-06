@@ -47,29 +47,20 @@ func (b *Broker) LastOperation(ctx context.Context, instanceID, operationDataRaw
 	ctx = brokercontext.New(ctx, "", requestID, b.serviceOffering.Name, instanceID)
 	logger := b.loggerFactory.NewWithContext(ctx)
 
-	errs := func(err DisplayableError) (brokerapi.LastOperation, error) {
-		logger.Println(err)
-		return brokerapi.LastOperation{}, err.ErrorForCFUser()
-	}
-
 	if operationDataRaw == "" {
 		err := errors.New("Request missing operation data, please check your Cloud Foundry version is v238+")
-		return errs(NewGenericError(ctx, err))
+		return brokerapi.LastOperation{}, b.processError(NewGenericError(ctx, err), logger)
 	}
 
 	var operationData OperationData
 	if err := json.Unmarshal([]byte(operationDataRaw), &operationData); err != nil {
-		return errs(NewGenericError(
-			ctx, fmt.Errorf("operation data cannot be parsed: %s", err),
-		))
+		return brokerapi.LastOperation{}, b.processError(NewGenericError(ctx, fmt.Errorf("operation data cannot be parsed: %s", err)), logger)
 	}
 
 	ctx = brokercontext.WithOperation(ctx, string(operationData.OperationType))
 
 	if operationData.BoshTaskID == 0 {
-		return errs(NewGenericError(
-			ctx, errors.New("no task ID found in operation data"),
-		))
+		return brokerapi.LastOperation{}, b.processError(NewGenericError(ctx, errors.New("no task ID found in operation data")), logger)
 	}
 
 	ctx = brokercontext.WithBoshTaskID(ctx, operationData.BoshTaskID)
@@ -79,10 +70,10 @@ func (b *Broker) LastOperation(ctx context.Context, instanceID, operationDataRaw
 	// if the errand isn't already running, GetTask will start it!
 	lastBoshTask, err := lifeCycleRunner.GetTask(deploymentName(instanceID), operationData, logger)
 	if err != nil {
-		return errs(NewGenericError(ctx, fmt.Errorf(
-			"error retrieving tasks from bosh, for deployment '%s': %s",
-			deploymentName(instanceID), err,
-		)))
+		return brokerapi.LastOperation{}, b.processError(
+			NewGenericError(ctx, fmt.Errorf("error retrieving tasks from bosh, for deployment '%s': %s", deploymentName(instanceID), err)),
+			logger,
+		)
 	}
 
 	ctx = brokercontext.WithBoshTaskID(ctx, lastBoshTask.ID)

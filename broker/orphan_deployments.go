@@ -15,7 +15,7 @@ func (b *Broker) OrphanDeployments(logger *log.Logger) ([]string, error) {
 	rawInstances, err := b.Instances(logger)
 	if err != nil {
 		logger.Printf("error listing instances: %s", err)
-		return nil, err
+		return nil, b.processError(err, logger)
 	}
 
 	instanceIDs := map[string]bool{}
@@ -26,7 +26,7 @@ func (b *Broker) OrphanDeployments(logger *log.Logger) ([]string, error) {
 	deployments, err := b.boshClient.GetDeployments(logger)
 	if err != nil {
 		logger.Printf("error getting deployments: %s", err)
-		return nil, err
+		return nil, b.processError(err, logger)
 	}
 
 	var orphanDeploymentNames []string

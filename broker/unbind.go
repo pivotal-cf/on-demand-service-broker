@@ -29,14 +29,9 @@ func (b *Broker) Unbind(
 	ctx = brokercontext.New(ctx, string(OperationTypeUnbind), requestID, b.serviceOffering.Name, instanceID)
 	logger := b.loggerFactory.NewWithContext(ctx)
 
-	errs := func(err BrokerError) error {
-		logger.Println(err)
-		return err.ErrorForCFUser()
-	}
-
 	manifest, vms, deploymentErr := b.getDeploymentInfo(instanceID, ctx, "unbind", logger)
 	if deploymentErr != nil {
-		return errs(deploymentErr)
+		return b.processError(deploymentErr, logger)
 	}
 
 	requestParams := map[string]interface{}{
@@ -52,7 +47,7 @@ func (b *Broker) Unbind(
 	}
 
 	if err := adapterToAPIError(ctx, err); err != nil {
-		return err
+		return b.processError(err, logger)
 	}
 
 	return nil

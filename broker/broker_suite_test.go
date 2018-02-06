@@ -190,6 +190,7 @@ func createBroker(startupCheckers []broker.StartupChecker, overrideClient ...bro
 		boshClient,
 		client,
 		serviceCatalog,
+		false,
 		startupCheckers,
 		serviceAdapter,
 		fakeDeployer,

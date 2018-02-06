@@ -30,18 +30,18 @@ func (b *Broker) Provision(ctx context.Context, instanceID string, details broke
 	logger := b.loggerFactory.NewWithContext(ctx)
 
 	if !asyncAllowed {
-		return brokerapi.ProvisionedServiceSpec{}, brokerapi.ErrAsyncRequired
+		return brokerapi.ProvisionedServiceSpec{}, b.processError(brokerapi.ErrAsyncRequired, logger)
 	}
 
 	detailsWithRawParameters := brokerapi.DetailsWithRawParameters(details)
 	requestParams, err := convertDetailsToMap(detailsWithRawParameters)
 	if err != nil {
-		return brokerapi.ProvisionedServiceSpec{}, err
+		return brokerapi.ProvisionedServiceSpec{}, b.processError(err, logger)
 	}
 
 	_, err = b.boshClient.GetInfo(logger)
 	if err != nil {
-		return brokerapi.ProvisionedServiceSpec{}, NewBoshRequestError("create", err)
+		return brokerapi.ProvisionedServiceSpec{}, b.processError(NewBoshRequestError("create", err), logger)
 	}
 
 	operationData, dashboardURL, err := b.provisionInstance(
@@ -58,7 +58,7 @@ func (b *Broker) Provision(ctx context.Context, instanceID string, details broke
 
 	operationDataJSON, err := json.Marshal(operationData)
 	if err != nil {
-		return brokerapi.ProvisionedServiceSpec{}, err
+		return brokerapi.ProvisionedServiceSpec{}, b.processError(err, logger)
 	}
 
 	return brokerapi.ProvisionedServiceSpec{
