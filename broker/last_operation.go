@@ -78,17 +78,29 @@ func (b *Broker) LastOperation(ctx context.Context, instanceID, operationDataRaw
 
 	ctx = brokercontext.WithBoshTaskID(ctx, lastBoshTask.ID)
 
-	lastOperation := constructLastOperation(ctx, lastBoshTask, operationData, logger)
+	taskState := lastOperationState(lastBoshTask, logger)
+	lastOperation := constructLastOperation(ctx, taskState, lastBoshTask, operationData, b.ExposeOperationalErrors)
 	logLastOperation(instanceID, lastBoshTask, operationData, logger)
 
 	return lastOperation, nil
 }
 
-func constructLastOperation(ctx context.Context, boshTask boshdirector.BoshTask, operationData OperationData, logger *log.Logger) brokerapi.LastOperation {
-	taskState := lastOperationState(boshTask, logger)
-	description := descriptionForOperationTask(ctx, taskState, operationData, boshTask.ID)
+func constructLastOperation(ctx context.Context, taskState brokerapi.LastOperationState, lastBoshTask boshdirector.BoshTask, operationData OperationData, exposeError bool) brokerapi.LastOperation {
+	description := descriptions[taskState][operationData.OperationType]
+	if taskState == brokerapi.Failed {
+		if operationData.OperationType == OperationTypeUpgrade {
+			description = fmt.Sprintf(description+": %d", lastBoshTask.ID) // Allows upgrader to log BOSH task ID when an upgrade fails
+		} else {
+			description = fmt.Sprintf(description+": %s", NewGenericError(ctx, nil).ErrorForCFUser())
+		}
 
+		if exposeError {
+			description = fmt.Sprintf("%s, error-message: %s", description, lastBoshTask.Result)
+		}
+
+	}
 	return brokerapi.LastOperation{State: taskState, Description: description}
+
 }
 
 func lastOperationState(task boshdirector.BoshTask, logger *log.Logger) brokerapi.LastOperationState {
@@ -103,20 +115,6 @@ func lastOperationState(task boshdirector.BoshTask, logger *log.Logger) brokerap
 		logger.Printf("Unrecognised BOSH task state: %s", task.State)
 		return brokerapi.Failed
 	}
-}
-
-func descriptionForOperationTask(ctx context.Context, taskState brokerapi.LastOperationState, operationData OperationData, taskID int) string {
-	description := descriptions[taskState][operationData.OperationType]
-
-	if taskState == brokerapi.Failed {
-		if operationData.OperationType == OperationTypeUpgrade {
-			description = fmt.Sprintf(description+": %d", taskID) // Allows upgrader to log BOSH task ID when an upgrade fails
-		} else {
-			description = fmt.Sprintf(description+": %s", NewGenericError(ctx, nil).ErrorForCFUser())
-		}
-	}
-
-	return description
 }
 
 func logLastOperation(instanceID string, boshTask boshdirector.BoshTask, operationData OperationData, logger *log.Logger) {

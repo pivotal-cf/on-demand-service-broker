@@ -225,6 +225,28 @@ var _ = Describe("LastOperation", func() {
 				})
 			})
 		})
+
+		Context("the broker is configured to expose operational errors", func() {
+			It("exposes the error", func() {
+				b, err := broker.New(
+					boshClient,
+					cfClient,
+					serviceCatalog,
+					true,
+					[]broker.StartupChecker{},
+					serviceAdapter,
+					fakeDeployer,
+					loggerFactory,
+				)
+				Expect(err).NotTo(HaveOccurred())
+
+				operationData = `{"BoshTaskID": 42, "OperationType": "create"}`
+				boshClient.GetTaskReturns(boshdirector.BoshTask{State: boshdirector.TaskError, Description: "some task", Result: "bosh error"}, nil)
+
+				opResult, _ := b.LastOperation(context.Background(), instanceID, operationData)
+				Expect(opResult.Description).To(ContainSubstring("bosh error"))
+			})
+		})
 	})
 
 	Context("when the task can be retrieved", func() {
