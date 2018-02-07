@@ -47,7 +47,13 @@ func New(
 		NewWrapper(conf.Broker.Username, conf.Broker.Password).
 		Wrap(brokerRouter)
 
-	negroniLogger := &negroni.Logger{ALogger: serverLogger}
+	dateFormat := "2006/01/02 15:04:05.000000"
+	logFormat := "Request {{.Method}} {{.Path}} Completed {{.Status}} in {{.Duration}} | Start Time: {{.StartTime}}"
+	negroniLogger := negroni.NewLogger()
+	negroniLogger.ALogger = serverLogger
+	negroniLogger.SetFormat(logFormat)
+	negroniLogger.SetDateFormat(dateFormat)
+
 	server := negroni.New(
 		negroni.NewRecovery(),
 		negroniLogger,

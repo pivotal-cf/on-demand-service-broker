@@ -318,7 +318,8 @@
 [[projects]]
   name = "github.com/urfave/negroni"
   packages = ["."]
-  revision = "e0e50f7dc431c043cb33f91b09c3419d48b7cff5"
+  revision = "5dbbc83f748fc3ad38585842b0aedab546d0ea1e"
+  version = "v0.3.0"
 
 [[projects]]
   name = "github.com/vito/go-interact"
@@ -406,6 +407,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "3b08885843fa2bb6727a66f64ce5702110cd0ba750759d28f3930797615aaaa1"
+  inputs-digest = "304ec9ac61893b0cf37a4cf30521d71e1fb103ffc5171f856556660c6d819db9"
   solver-name = "gps-cdcl"
   solver-version = 1

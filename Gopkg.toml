@@ -79,7 +79,7 @@
 
 [[constraint]]
   name = "github.com/urfave/negroni"
-  revision = "e0e50f7dc431c043cb33f91b09c3419d48b7cff5"
+  version = "0.3.0"
 
 [[constraint]]
   branch = "v2"
@@ -95,6 +95,3 @@
   name = "github.com/cheggaaa/pb"
   version = "=1.0.18"
 
-[[constraint]]
-  branch = "master"
-  name = "github.com/hashicorp/go-multierror"

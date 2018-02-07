@@ -158,7 +158,7 @@ var _ = Describe("Provision service instance", func() {
 			Expect(boshContextID).To(BeEmpty())
 
 			By("logging the incoming request")
-			Eventually(loggerBuffer).Should(gbytes.Say(`\[.*\] \d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}\.\d{6} Started PUT /v2/service_instances/some-instance-id`))
+			Eventually(loggerBuffer).Should(gbytes.Say(`\[.*\] \d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}\.\d{6} Request PUT /v2/service_instances/some-instance-id Completed 202 in [0-9\.]+.* | Start Time: \d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}\.\d{6}`))
 		})
 
 		It("includes the dashboard url when the adapter returns one", func() {
