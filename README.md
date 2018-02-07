@@ -18,6 +18,21 @@ User documentation can be found [here](https://docs.pivotal.io/svc-sdk/odb). Doc
 We only deploy this application with BOSH. Its dependencies are vendored as submodules
 into the [BOSH release](https://github.com/pivotal-cf/on-demand-service-broker-release).
 
+### Go dependencies
+Go dependencies are managed by dep.
+
+To fetch dependencies use
+```
+dep ensure
+dep prune
+```
+
+To update an individual dependency use
+```
+dep ensure -update <dependency-path>
+dep prune
+```
+
 ### Configuration
 This app is configured with a config file, the path to which should be supplied on
 the command line: `on-demand-broker -configFilePath /some/file.yml`.
