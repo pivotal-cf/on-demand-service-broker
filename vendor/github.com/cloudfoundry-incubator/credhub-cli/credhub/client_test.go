@@ -4,6 +4,7 @@ import (
 	"crypto/x509"
 	"io/ioutil"
 	"net/http"
+	"runtime"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -14,15 +15,27 @@ import (
 
 var _ = Describe("Client()", func() {
 	It("should return a simple http.Client", func() {
-		ch, _ := New("http://example.com", ServerVersion("2.2.2"))
+		ch, _ := New("http://example.com")
 		client := ch.Client()
 
 		Expect(client).ToNot(BeNil())
 	})
 
+	Context("When a SOCKS5Proxy is set in the environment", func() {
+		It("returns an http.Client with a Dial function", func() {
+			ch, _ := New("https://example.com")
+
+			client := ch.Client()
+			transport := client.Transport.(*http.Transport)
+			dialer := transport.Dial
+
+			Expect(dialer).NotTo(BeNil())
+		})
+	})
+
 	Context("With ClientCert", func() {
 		It("should return a http.Client with tls.Config with client cert", func() {
-			ch, err := New("https://example.com", ClientCert("./fixtures/auth-tls-cert.pem", "./fixtures/auth-tls-key.pem"), ServerVersion("2.2.2"))
+			ch, err := New("https://example.com", ClientCert("./fixtures/auth-tls-cert.pem", "./fixtures/auth-tls-key.pem"))
 			Expect(err).NotTo(HaveOccurred())
 
 			client := ch.Client()
@@ -38,7 +51,7 @@ var _ = Describe("Client()", func() {
 		})
 
 		It("doesnt set any client certs if not used", func() {
-			ch, err := New("https://example.com", ServerVersion("2.2.2"))
+			ch, err := New("https://example.com")
 			Expect(err).NotTo(HaveOccurred())
 
 			client := ch.Client()
@@ -48,7 +61,7 @@ var _ = Describe("Client()", func() {
 		})
 
 		It("fails creation with invalid cert,key pair", func() {
-			_, err := New("https://example.com", ClientCert("./fixtures/auth-tls-key.pem", "./fixtures/auth-tls-cert.pem"), ServerVersion("2.2.2"))
+			_, err := New("https://example.com", ClientCert("./fixtures/auth-tls-key.pem", "./fixtures/auth-tls-cert.pem"))
 			Expect(err).To(HaveOccurred())
 		})
 	})
@@ -62,7 +75,15 @@ var _ = Describe("Client()", func() {
 				"extra-ca.pem",
 			}
 			var caCerts []string
-			expectedRootCAs := x509.NewCertPool()
+			var expectedRootCAs *x509.CertPool
+			if runtime.GOOS != "windows" {
+				var err error
+				expectedRootCAs, err = x509.SystemCertPool()
+				Expect(err).NotTo(HaveOccurred())
+			} else {
+				expectedRootCAs = x509.NewCertPool()
+			}
+
 			for _, caCertFile := range caCertFiles {
 				caCertBytes, err := ioutil.ReadFile(fixturePath + caCertFile)
 				if err != nil {
@@ -73,7 +94,7 @@ var _ = Describe("Client()", func() {
 				expectedRootCAs.AppendCertsFromPEM(caCertBytes)
 			}
 
-			ch, _ := New("https://example.com", CaCerts(caCerts...), ServerVersion("2.2.2"))
+			ch, _ := New("https://example.com", CaCerts(caCerts...))
 
 			client := ch.Client()
 
@@ -90,7 +111,7 @@ var _ = Describe("Client()", func() {
 
 	Context("With InsecureSkipVerify", func() {
 		It("should return a http.Client with tls.Config without RootCAs", func() {
-			ch, _ := New("https://example.com", SkipTLSValidation(true), ServerVersion("2.2.2"))
+			ch, _ := New("https://example.com", SkipTLSValidation(true))
 			client := ch.Client()
 
 			transport := client.Transport.(*http.Transport)
@@ -100,6 +121,17 @@ var _ = Describe("Client()", func() {
 
 			Expect(tlsConfig.InsecureSkipVerify).To(BeTrue())
 			Expect(tlsConfig.PreferServerCipherSuites).To(BeTrue())
+		})
+	})
+
+	Context("With Dial", func() {
+		It("should return a http.Client with a dial function", func() {
+			ch, _ := New("https://example.com")
+			client := ch.Client()
+
+			transport := client.Transport.(*http.Transport)
+			dial := transport.Dial
+			Expect(dial).NotTo(BeNil())
 		})
 	})
 })

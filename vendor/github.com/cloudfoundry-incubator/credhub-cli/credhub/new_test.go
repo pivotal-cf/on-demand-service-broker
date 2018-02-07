@@ -7,7 +7,6 @@ import (
 
 	. "github.com/cloudfoundry-incubator/credhub-cli/credhub"
 	"github.com/cloudfoundry-incubator/credhub-cli/credhub/auth"
-	version "github.com/hashicorp/go-version"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -15,7 +14,7 @@ import (
 
 var _ = Describe("New()", func() {
 	It("sets Auth to some default value", func() {
-		ch, err := New("http://example.com", ServerVersion("2.2.2"))
+		ch, err := New("http://example.com")
 		Expect(err).ToNot(HaveOccurred())
 		Expect(ch.Auth).ToNot(BeNil())
 	})
@@ -28,7 +27,7 @@ var _ = Describe("New()", func() {
 				apiHit = true
 				w.Write([]byte(`{
 					"auth-server": {"url": "https://uaa.example.com:8443"},
-					"app": {"name": "CredHub", "version": "0.7.0"}
+					"app": {"name": "CredHub"}
 				}`))
 			}))
 
@@ -41,7 +40,7 @@ var _ = Describe("New()", func() {
 				return http.DefaultClient, nil
 			}
 
-			ch, err := New(credHubServer.URL, AuthURL("https://some-auth-url.com"), Auth(authBuilder), ServerVersion("2.2.2"))
+			ch, err := New(credHubServer.URL, AuthURL("https://some-auth-url.com"), Auth(authBuilder))
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(apiHit).To(BeFalse())
@@ -55,7 +54,7 @@ var _ = Describe("New()", func() {
 
 		Context("when the url is invalid", func() {
 			It("returns an error", func() {
-				ch, err := New("http://example.com", AuthURL("://some-auth-url.com"), ServerVersion("2.2.2"))
+				ch, err := New("http://example.com", AuthURL("://some-auth-url.com"))
 				Expect(ch).To(BeNil())
 				Expect(err).To(HaveOccurred())
 			})
@@ -68,7 +67,7 @@ var _ = Describe("New()", func() {
 				return &DummyAuth{Config: config}, nil
 			}
 
-			ch, err := New("http://example.com", Auth(dummyBuilder), ServerVersion("2.2.2"))
+			ch, err := New("http://example.com", Auth(dummyBuilder))
 			Expect(err).ToNot(HaveOccurred())
 
 			da, ok := ch.Auth.(*DummyAuth)
@@ -103,43 +102,7 @@ var _ = Describe("New()", func() {
 		}
 		caCerts = append(caCerts, "invalid certificate")
 
-		_, err := New("https://example.com", CaCerts(caCerts...), ServerVersion("2.2.2"))
+		_, err := New("https://example.com", CaCerts(caCerts...))
 		Expect(err).To(HaveOccurred())
-	})
-
-	Context("With ServerVersion option provided", func() {
-		It("stores that server version in the client", func() {
-			ch, _ := New("https://example.com", ServerVersion("2.2.2"))
-
-			Expect(ch.ServerVersion()).To(Equal(version.Must(version.NewVersion("2.2.2"))))
-		})
-	})
-
-	Context("Without ServerVersion option provided", func() {
-		It("fetches the server version from the Credhub server", func() {
-			var apiHit bool
-
-			credHubServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-				apiHit = true
-				w.Write([]byte(`{
-					"auth-server": {"url": "https://uaa.example.com:8443"},
-					"app": {"name": "CredHub", "version": "4.4.4"}
-				}`))
-			}))
-
-			defer credHubServer.Close()
-
-			var authConfig auth.Config
-
-			authBuilder := func(config auth.Config) (auth.Strategy, error) {
-				authConfig = config
-				return http.DefaultClient, nil
-			}
-
-			ch, err := New(credHubServer.URL, AuthURL("https://some-auth-url.com"), Auth(authBuilder))
-			Expect(err).ToNot(HaveOccurred())
-
-			Expect(ch.ServerVersion()).To(Equal(version.Must(version.NewVersion("4.4.4"))))
-		})
 	})
 })

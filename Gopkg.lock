@@ -62,7 +62,7 @@
     "credhub/server",
     "errors"
   ]
-  revision = "d686cd8b7d2d044e0dee73aa397809f84e972541"
+  revision = "8deb2357ddc8bc80025d5f849f305c5f8f8e9e7b"
 
 [[projects]]
   branch = "context-fix"

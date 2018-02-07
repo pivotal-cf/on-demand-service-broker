@@ -22,7 +22,7 @@ var _ = Describe("Set", func() {
 				Body: ioutil.NopCloser(bytes.NewBufferString("")),
 			}}
 
-			ch, _ := New("https://example.com", Auth(dummy.Builder()), ServerVersion("1.2.3"))
+			ch, _ := New("https://example.com", Auth(dummy.Builder()))
 
 			certificate := values.Certificate{
 				Ca:     "some-ca",
@@ -46,12 +46,12 @@ var _ = Describe("Set", func() {
 			Expect(requestBody["value"].(map[string]interface{})["ca_name"]).To(Equal("/some-ca-name"))
 		})
 
-		It("requests to set the certificate with the correct overwrite mode if server version isn't less than 1.6.0", func() {
+		It("requests to set the certificate with the correct overwrite mode", func() {
 			dummy := &DummyAuth{Response: &http.Response{
 				Body: ioutil.NopCloser(bytes.NewBufferString("")),
 			}}
 
-			ch, _ := New("https://example.com", Auth(dummy.Builder()), ServerVersion("1.6.0"))
+			ch, _ := New("https://example.com", Auth(dummy.Builder()))
 
 			certificate := values.Certificate{
 				Ca:     "some-ca",
@@ -75,22 +75,6 @@ var _ = Describe("Set", func() {
 			Expect(requestBody["value"].(map[string]interface{})["ca_name"]).To(Equal("/some-ca-name"))
 		})
 
-		It("errors out  when converge mode is requested and server version is less than 1.6.0", func() {
-			dummy := &DummyAuth{Response: &http.Response{
-				Body: ioutil.NopCloser(bytes.NewBufferString("")),
-			}}
-
-			ch, _ := New("https://example.com", Auth(dummy.Builder()), ServerVersion("1.2.3"))
-
-			certificate := values.Certificate{
-				Ca:     "some-ca",
-				CaName: "/some-ca-name",
-			}
-			_, err := ch.SetCertificate("/example-certificate", certificate, Converge)
-
-			Expect(err.Error()).To(Equal("Interaction Mode 'converge' not supported on target server (version: <1.2.3>)"))
-		})
-
 		Context("when successful", func() {
 			It("returns the credential that has been set", func() {
 				dummy := &DummyAuth{Response: &http.Response{
@@ -108,7 +92,7 @@ var _ = Describe("Set", func() {
 		}`)),
 				}}
 
-				ch, _ := New("https://example.com", Auth(dummy.Builder()), ServerVersion("1.2.3"))
+				ch, _ := New("https://example.com", Auth(dummy.Builder()))
 
 				certificate := values.Certificate{
 					Certificate: "some-cert",
@@ -125,7 +109,7 @@ var _ = Describe("Set", func() {
 		Context("when request fails", func() {
 			It("returns an error", func() {
 				dummy := &DummyAuth{Error: errors.New("Network error occurred")}
-				ch, _ := New("https://example.com", Auth(dummy.Builder()), ServerVersion("1.2.3"))
+				ch, _ := New("https://example.com", Auth(dummy.Builder()))
 				certificate := values.Certificate{
 					Ca: "some-ca",
 				}
@@ -140,7 +124,7 @@ var _ = Describe("Set", func() {
 				dummy := &DummyAuth{Response: &http.Response{
 					Body: ioutil.NopCloser(bytes.NewBufferString("something-invalid")),
 				}}
-				ch, _ := New("https://example.com", Auth(dummy.Builder()), ServerVersion("1.2.3"))
+				ch, _ := New("https://example.com", Auth(dummy.Builder()))
 				certificate := values.Certificate{
 					Ca: "some-ca",
 				}
@@ -157,7 +141,7 @@ var _ = Describe("Set", func() {
 				Body: ioutil.NopCloser(bytes.NewBufferString("")),
 			}}
 
-			ch, _ := New("https://example.com", Auth(dummy.Builder()), ServerVersion("1.2.3"))
+			ch, _ := New("https://example.com", Auth(dummy.Builder()))
 			password := values.Password("some-password")
 
 			ch.SetPassword("/example-password", password, NoOverwrite)
@@ -189,7 +173,7 @@ var _ = Describe("Set", func() {
 		}`)),
 				}}
 
-				ch, _ := New("https://example.com", Auth(dummy.Builder()), ServerVersion("1.2.3"))
+				ch, _ := New("https://example.com", Auth(dummy.Builder()))
 
 				password := values.Password("some-password")
 
@@ -205,7 +189,7 @@ var _ = Describe("Set", func() {
 		Context("when request fails", func() {
 			It("returns an error", func() {
 				dummy := &DummyAuth{Error: errors.New("Network error occurred")}
-				ch, _ := New("https://example.com", Auth(dummy.Builder()), ServerVersion("1.2.3"))
+				ch, _ := New("https://example.com", Auth(dummy.Builder()))
 				password := values.Password("some-password")
 
 				_, err := ch.SetPassword("/example-password", password, NoOverwrite)
@@ -220,7 +204,7 @@ var _ = Describe("Set", func() {
 					Body: ioutil.NopCloser(bytes.NewBufferString("something-invalid")),
 				}}
 
-				ch, _ := New("https://example.com", Auth(dummy.Builder()), ServerVersion("1.2.3"))
+				ch, _ := New("https://example.com", Auth(dummy.Builder()))
 				password := values.Password("some-password")
 
 				_, err := ch.SetPassword("/example-password", password, NoOverwrite)
@@ -237,7 +221,7 @@ var _ = Describe("Set", func() {
 				Body: ioutil.NopCloser(bytes.NewBufferString("")),
 			}}
 
-			ch, _ := New("https://example.com", Auth(dummy.Builder()), ServerVersion("1.2.3"))
+			ch, _ := New("https://example.com", Auth(dummy.Builder()))
 			user := values.User{Username: username, Password: "some-password"}
 
 			ch.SetUser("/example-user", user, NoOverwrite)
@@ -278,7 +262,7 @@ var _ = Describe("Set", func() {
 					}`)),
 				}}
 
-				ch, _ := New("https://example.com", Auth(dummy.Builder()), ServerVersion("1.2.3"))
+				ch, _ := New("https://example.com", Auth(dummy.Builder()))
 
 				user := values.User{Username: user, Password: "some-password"}
 				cred, _ := ch.SetUser("/example-user", user, NoOverwrite)
@@ -299,7 +283,7 @@ var _ = Describe("Set", func() {
 		Context("when request fails", func() {
 			It("returns an error", func() {
 				dummy := &DummyAuth{Error: errors.New("Network error occurred")}
-				ch, _ := New("https://example.com", Auth(dummy.Builder()), ServerVersion("1.2.3"))
+				ch, _ := New("https://example.com", Auth(dummy.Builder()))
 				user := values.User{Username: user, Password: "some-password"}
 				_, err := ch.SetUser("/example-user", user, NoOverwrite)
 				Expect(err).To(HaveOccurred())
@@ -311,7 +295,7 @@ var _ = Describe("Set", func() {
 				dummy := &DummyAuth{Response: &http.Response{
 					Body: ioutil.NopCloser(bytes.NewBufferString("something-invalid")),
 				}}
-				ch, _ := New("https://example.com", Auth(dummy.Builder()), ServerVersion("1.2.3"))
+				ch, _ := New("https://example.com", Auth(dummy.Builder()))
 
 				user := values.User{Username: user, Password: "some-password"}
 				_, err := ch.SetUser("/example-user", user, NoOverwrite)
@@ -326,7 +310,7 @@ var _ = Describe("Set", func() {
 				Body: ioutil.NopCloser(bytes.NewBufferString("")),
 			}}
 
-			ch, _ := New("https://example.com", Auth(dummy.Builder()), ServerVersion("1.2.3"))
+			ch, _ := New("https://example.com", Auth(dummy.Builder()))
 			RSA := values.RSA{PrivateKey: "private-key", PublicKey: "public-key"}
 
 			ch.SetRSA("/example-rsa", RSA, NoOverwrite)
@@ -365,7 +349,7 @@ var _ = Describe("Set", func() {
 					}`)),
 				}}
 
-				ch, _ := New("https://example.com", Auth(dummy.Builder()), ServerVersion("1.2.3"))
+				ch, _ := New("https://example.com", Auth(dummy.Builder()))
 
 				cred, _ := ch.SetRSA("/example-rsa", values.RSA{}, NoOverwrite)
 
@@ -381,7 +365,7 @@ var _ = Describe("Set", func() {
 		Context("when request fails", func() {
 			It("returns an error", func() {
 				dummy := &DummyAuth{Error: errors.New("Network error occurred")}
-				ch, _ := New("https://example.com", Auth(dummy.Builder()), ServerVersion("1.2.3"))
+				ch, _ := New("https://example.com", Auth(dummy.Builder()))
 				_, err := ch.SetRSA("/example-rsa", values.RSA{}, NoOverwrite)
 				Expect(err).To(HaveOccurred())
 			})
@@ -393,7 +377,7 @@ var _ = Describe("Set", func() {
 					Body: ioutil.NopCloser(bytes.NewBufferString("something-invalid")),
 				}}
 
-				ch, _ := New("https://example.com", Auth(dummy.Builder()), ServerVersion("1.2.3"))
+				ch, _ := New("https://example.com", Auth(dummy.Builder()))
 				_, err := ch.SetRSA("/example-rsa", values.RSA{}, NoOverwrite)
 				Expect(err).To(HaveOccurred())
 			})
@@ -406,7 +390,7 @@ var _ = Describe("Set", func() {
 				Body: ioutil.NopCloser(bytes.NewBufferString("")),
 			}}
 
-			ch, _ := New("https://example.com", Auth(dummy.Builder()), ServerVersion("1.2.3"))
+			ch, _ := New("https://example.com", Auth(dummy.Builder()))
 			SSH := values.SSH{PrivateKey: "private-key", PublicKey: "public-key"}
 
 			ch.SetSSH("/example-ssh", SSH, NoOverwrite)
@@ -445,7 +429,7 @@ var _ = Describe("Set", func() {
 					}`)),
 				}}
 
-				ch, _ := New("https://example.com", Auth(dummy.Builder()), ServerVersion("1.2.3"))
+				ch, _ := New("https://example.com", Auth(dummy.Builder()))
 
 				cred, _ := ch.SetSSH("/example-ssh", values.SSH{}, NoOverwrite)
 
@@ -461,7 +445,7 @@ var _ = Describe("Set", func() {
 		Context("when request fails", func() {
 			It("returns an error", func() {
 				dummy := &DummyAuth{Error: errors.New("Network error occurred")}
-				ch, _ := New("https://example.com", Auth(dummy.Builder()), ServerVersion("1.2.3"))
+				ch, _ := New("https://example.com", Auth(dummy.Builder()))
 				_, err := ch.SetSSH("/example-ssh", values.SSH{}, NoOverwrite)
 				Expect(err).To(HaveOccurred())
 			})
@@ -473,7 +457,7 @@ var _ = Describe("Set", func() {
 					Body: ioutil.NopCloser(bytes.NewBufferString("something-invalid")),
 				}}
 
-				ch, _ := New("https://example.com", Auth(dummy.Builder()), ServerVersion("1.2.3"))
+				ch, _ := New("https://example.com", Auth(dummy.Builder()))
 				_, err := ch.SetSSH("/example-ssh", values.SSH{}, NoOverwrite)
 				Expect(err).To(HaveOccurred())
 			})
@@ -494,7 +478,7 @@ var _ = Describe("Set", func() {
 				Body: ioutil.NopCloser(bytes.NewBufferString("")),
 			}}
 
-			ch, _ := New("https://example.com", Auth(dummy.Builder()), ServerVersion("1.2.3"))
+			ch, _ := New("https://example.com", Auth(dummy.Builder()))
 			JSON := make(map[string]interface{})
 			json.Unmarshal([]byte(JSONValue), &JSON)
 
@@ -542,7 +526,7 @@ var _ = Describe("Set", func() {
 					}`)),
 				}}
 
-				ch, _ := New("https://example.com", Auth(dummy.Builder()), ServerVersion("1.2.3"))
+				ch, _ := New("https://example.com", Auth(dummy.Builder()))
 
 				cred, _ := ch.SetJSON("/example-json", nil, NoOverwrite)
 
@@ -558,7 +542,7 @@ var _ = Describe("Set", func() {
 		Context("when request fails", func() {
 			It("returns an error", func() {
 				dummy := &DummyAuth{Error: errors.New("Network error occurred")}
-				ch, _ := New("https://example.com", Auth(dummy.Builder()), ServerVersion("1.2.3"))
+				ch, _ := New("https://example.com", Auth(dummy.Builder()))
 				_, err := ch.SetJSON("/example-json", nil, NoOverwrite)
 				Expect(err).To(HaveOccurred())
 			})
@@ -570,7 +554,7 @@ var _ = Describe("Set", func() {
 					Body: ioutil.NopCloser(bytes.NewBufferString("something-invalid")),
 				}}
 
-				ch, _ := New("https://example.com", Auth(dummy.Builder()), ServerVersion("1.2.3"))
+				ch, _ := New("https://example.com", Auth(dummy.Builder()))
 				_, err := ch.SetJSON("/example-json", nil, NoOverwrite)
 				Expect(err).To(HaveOccurred())
 			})
@@ -583,7 +567,7 @@ var _ = Describe("Set", func() {
 				Body: ioutil.NopCloser(bytes.NewBufferString("")),
 			}}
 
-			ch, _ := New("https://example.com", Auth(dummy.Builder()), ServerVersion("1.2.3"))
+			ch, _ := New("https://example.com", Auth(dummy.Builder()))
 			value := values.Value("some string value")
 
 			ch.SetValue("/example-value", value, NoOverwrite)
@@ -616,7 +600,7 @@ var _ = Describe("Set", func() {
 					}`)),
 				}}
 
-				ch, _ := New("https://example.com", Auth(dummy.Builder()), ServerVersion("1.2.3"))
+				ch, _ := New("https://example.com", Auth(dummy.Builder()))
 
 				cred, _ := ch.SetValue("/example-value", values.Value(""), NoOverwrite)
 
@@ -629,7 +613,7 @@ var _ = Describe("Set", func() {
 		Context("when request fails", func() {
 			It("returns an error", func() {
 				dummy := &DummyAuth{Error: errors.New("Network error occurred")}
-				ch, _ := New("https://example.com", Auth(dummy.Builder()), ServerVersion("1.2.3"))
+				ch, _ := New("https://example.com", Auth(dummy.Builder()))
 				_, err := ch.SetValue("/example-value", values.Value(""), NoOverwrite)
 				Expect(err).To(HaveOccurred())
 			})
@@ -641,7 +625,7 @@ var _ = Describe("Set", func() {
 					Body: ioutil.NopCloser(bytes.NewBufferString("something-invalid")),
 				}}
 
-				ch, _ := New("https://example.com", Auth(dummy.Builder()), ServerVersion("1.2.3"))
+				ch, _ := New("https://example.com", Auth(dummy.Builder()))
 				_, err := ch.SetValue("/example-value", values.Value(""), NoOverwrite)
 				Expect(err).To(HaveOccurred())
 			})

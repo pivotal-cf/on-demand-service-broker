@@ -21,8 +21,7 @@ var _ = Describe("Info", func() {
 								"url": "https://uaa.example.com:8443"
 							},
 							"app": {
-								"name": "CredHub",
-								"version": "0.7.0"
+								"name": "CredHub"
 							}
 						}`,
 					))
@@ -31,13 +30,12 @@ var _ = Describe("Info", func() {
 
 			defer testServer.Close()
 
-			ch, _ := New(testServer.URL, ServerVersion("1.2.3"))
+			ch, _ := New(testServer.URL)
 
 			info, err := ch.Info()
 			Expect(err).To(BeNil())
 
 			Expect(info.App.Name).To(Equal("CredHub"))
-			Expect(info.App.Version).To(Equal("0.7.0"))
 			Expect(info.AuthServer.URL).To(Equal("https://uaa.example.com:8443"))
 		})
 
@@ -51,7 +49,7 @@ var _ = Describe("Info", func() {
 
 				defer testServer.Close()
 
-				ch, _ := New(testServer.URL, ServerVersion("1.2.3"))
+				ch, _ := New(testServer.URL)
 
 				info, err := ch.Info()
 
@@ -65,7 +63,7 @@ var _ = Describe("Info", func() {
 		Context("Errors", func() {
 
 			Specify("when ApiURL is inaccessible", func() {
-				ch, _ := New("http://localhost:1", ServerVersion("1.2.3"))
+				ch, _ := New("http://localhost:1")
 				_, err := ch.AuthURL()
 				Expect(err).ToNot(BeNil())
 			})
@@ -78,7 +76,7 @@ var _ = Describe("Info", func() {
 				}))
 				defer testServer.Close()
 
-				ch, _ := New(testServer.URL, ServerVersion("1.2.3"))
+				ch, _ := New(testServer.URL)
 				_, err := ch.AuthURL()
 
 				Expect(err).ToNot(BeNil())
