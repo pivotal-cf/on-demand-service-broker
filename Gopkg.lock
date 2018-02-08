@@ -83,7 +83,7 @@
     "system",
     "uuid"
   ]
-  revision = "7110027d2bfc60ec20bc934b63347d8c131653c2"
+  revision = "373fd3440dbce357028e51efa932e1b6fc351f05"
   source = "github.com/simonjjones/bosh-utils"
 
 [[projects]]
@@ -287,7 +287,7 @@
     ".",
     "auth"
   ]
-  revision = "09b839892604e7aef056ad499d5cd46980bebcf9"
+  revision = "e02c82b0d79f0b1f41f5947c8680a7385805da55"
 
 [[projects]]
   branch = "master"
