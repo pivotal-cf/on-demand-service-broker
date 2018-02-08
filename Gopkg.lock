@@ -14,12 +14,6 @@
   revision = "0bfa98e49e7a976af91e918d47978f07c00b081f"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/armon/go-socks5"
-  packages = ["."]
-  revision = "e75332964ef517daa070d7c38a9466a0d687e0a5"
-
-[[projects]]
   name = "github.com/bmatcuk/doublestar"
   packages = ["."]
   revision = "b3608229437ba4dc33dae64d56a79a2a73f1f6b2"
@@ -89,7 +83,8 @@
     "system",
     "uuid"
   ]
-  revision = "07e3008c701173c247c62ed8901d5e40b80a3f9d"
+  revision = "7110027d2bfc60ec20bc934b63347d8c131653c2"
+  source = "github.com/simonjjones/bosh-utils"
 
 [[projects]]
   name = "github.com/cloudfoundry/noaa"
@@ -106,7 +101,7 @@
   branch = "master"
   name = "github.com/cloudfoundry/socks5-proxy"
   packages = ["."]
-  revision = "dd3ea3050967ee49485c26540f78ebbc3fa7bf1c"
+  revision = "a5dbd34501d246ab6c004c9afebb5bd0dd9d7d22"
 
 [[projects]]
   branch = "master"
@@ -143,6 +138,12 @@
   packages = ["."]
   revision = "570b54cabe6b8eb0bc2dfce68d964677d63b5260"
   version = "v1.5.0"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/genevievelesperance/go-socks5"
+  packages = ["."]
+  revision = "f07e0bb84629ba30f60da69274cd1d9dbb4a1d08"
 
 [[projects]]
   name = "github.com/ghodss/yaml"
@@ -407,6 +408,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "304ec9ac61893b0cf37a4cf30521d71e1fb103ffc5171f856556660c6d819db9"
+  inputs-digest = "54289498cd1e828b93bf2bab9b892ad80242cc8bb83381b9e382b88fcb1f2e3a"
   solver-name = "gps-cdcl"
   solver-version = 1
