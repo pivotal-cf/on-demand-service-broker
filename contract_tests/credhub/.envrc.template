@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+export BOSH_CA_CERT=
+export BOSH_PASSWORD=
+export BOSH_USERNAME=
+export TEST_CREDHUB_CLIENT_SECRET=
+export BOSH_URL=
+
+source_up
