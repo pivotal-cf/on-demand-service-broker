@@ -38,6 +38,7 @@ var _ = Describe("Bind", func() {
 		boshVms             = bosh.BoshVMs{"redis-server": []string{"an.ip"}}
 		actualManifest      = []byte("valid manifest")
 		arbitraryParameters = map[string]interface{}{"arb": "param"}
+		arbitraryContext    = map[string]interface{}{"platform": "cloudfoundry"}
 
 		bindResult brokerapi.Binding
 		bindErr    error
@@ -52,6 +53,8 @@ var _ = Describe("Bind", func() {
 
 		serialisedArbitraryParameters, err := json.Marshal(arbitraryParameters)
 		Expect(err).NotTo(HaveOccurred())
+		serialisedContext, err := json.Marshal(arbitraryContext)
+		Expect(err).NotTo(HaveOccurred())
 		bindRequest = brokerapi.BindDetails{
 			AppGUID:   "app_guid",
 			PlanID:    "plan_id",
@@ -60,6 +63,7 @@ var _ = Describe("Bind", func() {
 				AppGuid: "app_guid",
 			},
 			RawParameters: serialisedArbitraryParameters,
+			RawContext:    serialisedContext,
 		}
 	})
 
@@ -108,6 +112,7 @@ var _ = Describe("Bind", func() {
 					"app_guid": "app_guid",
 				},
 				"parameters": arbitraryParameters,
+				"context":    arbitraryContext,
 			}))
 		})
 	})
@@ -139,6 +144,7 @@ var _ = Describe("Bind", func() {
 					"app_guid": "app_guid",
 				},
 				"parameters": arbitraryParameters,
+				"context":    arbitraryContext,
 			}))
 		})
 

@@ -37,7 +37,9 @@ var _ = Describe("provisioning", func() {
 		spaceGUID        = "a-cf-space"
 		instanceID       = "some-instance-id"
 		jsonParams       []byte
+		jsonContext      []byte
 		arbParams        = map[string]interface{}{"foo": "bar"}
+		arbContext       = map[string]interface{}{"platform": "cloudfoundry", "space_guid": "final"}
 
 		asyncAllowed = true
 	)
@@ -47,6 +49,8 @@ var _ = Describe("provisioning", func() {
 		asyncAllowed = true
 		var err error
 		jsonParams, err = json.Marshal(arbParams)
+		Expect(err).NotTo(HaveOccurred())
+		jsonContext, err = json.Marshal(arbContext)
 		Expect(err).NotTo(HaveOccurred())
 		boshClient.GetDeploymentReturns(nil, false, nil)
 	})
@@ -58,6 +62,7 @@ var _ = Describe("provisioning", func() {
 			instanceID,
 			brokerapi.ProvisionDetails{
 				PlanID:           planID,
+				RawContext:       jsonContext,
 				RawParameters:    jsonParams,
 				OrganizationGUID: organizationGUID,
 				SpaceGUID:        spaceGUID,
@@ -91,6 +96,7 @@ var _ = Describe("provisioning", func() {
 			actualDeploymentName, actualPlan, actualRequestParams, actualBoshContextID, _ := fakeDeployer.CreateArgsForCall(0)
 			Expect(actualRequestParams).To(Equal(map[string]interface{}{
 				"plan_id":           planID,
+				"context":           arbContext,
 				"parameters":        arbParams,
 				"organization_guid": organizationGUID,
 				"space_guid":        spaceGUID,

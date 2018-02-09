@@ -26,6 +26,7 @@ var _ = Describe("Update", func() {
 		updateSpec      brokerapi.UpdateServiceSpec
 		updateDetails   brokerapi.UpdateDetails
 		arbitraryParams map[string]interface{}
+		arbContext      map[string]interface{}
 		serviceID       string
 		orgGUID         string
 		spaceGUID       string
@@ -38,6 +39,7 @@ var _ = Describe("Update", func() {
 		orgGUID = "organizationGUID"
 		spaceGUID = "spaceGUID"
 		boshTaskID = 447
+		arbContext = map[string]interface{}{"platform": "cloudfoundry", "space_guid": "final"}
 	})
 
 	Context("when there is a previous deployment for the service instance", func() {
@@ -61,9 +63,13 @@ var _ = Describe("Update", func() {
 			serialisedArbitraryParameters, err := json.Marshal(arbitraryParams)
 			Expect(err).NotTo(HaveOccurred())
 
+			serialisedArbitraryContext, err := json.Marshal(arbContext)
+			Expect(err).NotTo(HaveOccurred())
+
 			updateDetails = brokerapi.UpdateDetails{
 				PlanID:        newPlanID,
 				RawParameters: serialisedArbitraryParameters,
+				RawContext:    serialisedArbitraryContext,
 				ServiceID:     serviceID,
 				PreviousValues: brokerapi.PreviousValues{
 					PlanID:    oldPlanID,
@@ -72,8 +78,26 @@ var _ = Describe("Update", func() {
 					SpaceID:   spaceGUID,
 				},
 			}
+
 			b = createDefaultBroker()
 			updateSpec, updateError = b.Update(context.Background(), instanceID, updateDetails, async)
+		})
+
+		It("invokes the deployer successfully", func() {
+			Expect(fakeDeployer.UpdateCallCount()).To(Equal(1))
+			_, planID, actualRequestParams, _, _, _ := fakeDeployer.UpdateArgsForCall(0)
+			Expect(actualRequestParams).To(Equal(map[string]interface{}{
+				"plan_id":    planID,
+				"context":    arbContext,
+				"parameters": arbitraryParams,
+				"service_id": serviceID,
+				"previous_values": map[string]interface{}{
+					"space_id":        spaceGUID,
+					"organization_id": orgGUID,
+					"plan_id":         oldPlanID,
+					"service_id":      serviceID,
+				},
+			}))
 		})
 
 		Context("and the request is switching plan", func() {

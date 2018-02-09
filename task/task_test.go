@@ -39,6 +39,7 @@ var _ = Describe("Deployer", func() {
 		planID         string
 		previousPlanID *string
 		requestParams  map[string]interface{}
+		copyParams     map[string]interface{}
 		manifest       = []byte("---\nproperties:\n foo: bar")
 		oldManifest    []byte
 
@@ -55,6 +56,9 @@ var _ = Describe("Deployer", func() {
 
 		requestParams = map[string]interface{}{
 			"parameters": map[string]interface{}{"foo": "bar"},
+			"context": map[string]interface{}{
+				"platform": "cloudfoundry",
+			},
 		}
 		oldManifest = nil
 		boshContextID = ""
@@ -74,6 +78,17 @@ var _ = Describe("Deployer", func() {
 		BeforeEach(func() {
 			oldManifest = nil
 			previousPlanID = nil
+			copyParams = make(map[string]interface{})
+			for k, v := range requestParams {
+				copyParams[k] = v
+			}
+		})
+
+		It("pass the context to the service adapter", func() {
+			_, _, actualRequestParams, _, _, _ := manifestGenerator.GenerateManifestArgsForCall(0)
+
+			Expect(manifestGenerator.GenerateManifestCallCount()).To(Equal(1))
+			Expect(actualRequestParams).To(Equal(copyParams))
 		})
 
 		Context("when bosh deploys the release successfully", func() {
@@ -503,6 +518,31 @@ var _ = Describe("Deployer", func() {
 
 			boshClient.GetTasksReturns([]boshdirector.BoshTask{{State: boshdirector.TaskDone}}, nil)
 			boshClient.GetDeploymentReturns(oldManifest, true, nil)
+		})
+
+		It("pass the context to the service adapter", func() {
+			params := map[string]interface{}{
+				"parameters": map[string]interface{}{"foo": "bar"},
+				"context": map[string]interface{}{
+					"platform": "cloudfoundry",
+				},
+			}
+			copyParams = make(map[string]interface{})
+			for k, v := range params {
+				copyParams[k] = v
+			}
+			deployer.Update(
+				deploymentName,
+				planID,
+				params,
+				previousPlanID,
+				boshContextID,
+				logger,
+			)
+			_, _, actualRequestParams, _, _, _ := manifestGenerator.GenerateManifestArgsForCall(1)
+
+			Expect(manifestGenerator.GenerateManifestCallCount()).To(Equal(2))
+			Expect(actualRequestParams).To(Equal(copyParams))
 		})
 
 		Context("and the manifest generator fails to generate the manifest the first time", func() {
