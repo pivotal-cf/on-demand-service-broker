@@ -115,6 +115,7 @@ func doRequest(method, url string, body io.Reader, requestModifiers ...func(r *h
 	Expect(err).ToNot(HaveOccurred())
 
 	req.SetBasicAuth(brokerUsername, brokerPassword)
+	req.Header.Set("X-Broker-API-Version", "2.14")
 
 	for _, f := range requestModifiers {
 		f(req)
