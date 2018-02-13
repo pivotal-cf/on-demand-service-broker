@@ -68,6 +68,7 @@ var _ = Describe("Broker Post-start Check", func() {
 			server.AppendHandlers(ghttp.CombineHandlers(
 				ghttp.VerifyRequest("GET", "/v2/catalog"),
 				ghttp.VerifyBasicAuth(brokerUsername, brokerPassword),
+				ghttp.VerifyHeader(http.Header{"X-Broker-API-Version": []string{"2.13"}}),
 				ghttp.RespondWith(http.StatusOK, nil),
 			))
 		})

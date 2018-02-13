@@ -36,6 +36,7 @@ func main() {
 		os.Exit(1)
 	}
 	request.SetBasicAuth(*brokerUsername, *brokerPassword)
+	request.Header.Add("X-Broker-Api-Version", "2.13")
 
 	client := herottp.New(herottp.Config{
 		Timeout: 30 * time.Second,
