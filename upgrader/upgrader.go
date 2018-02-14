@@ -348,7 +348,7 @@ func (u *Upgrader) poll(instance service.Instance) error {
 		u.controller.isInProgress(instance)
 		return nil
 	default:
-		return fmt.Errorf("not nice")
+		return fmt.Errorf("Unexpected last_operation state: %s", lastOperation.State)
 	}
 	return nil
 }
