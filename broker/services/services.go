@@ -89,11 +89,10 @@ func (b *BrokerServices) doRequest(method, path string, body io.Reader) (*http.R
 		method,
 		b.buildURL(path),
 		body)
-	request.Header.Add("X-Broker-Api-Version", "2.13")
-
 	if err != nil {
 		return nil, err
 	}
+	request.Header.Add("X-Broker-Api-Version", "2.13")
 
 	err = b.authHeaderBuilder.AddAuthHeader(request, b.logger)
 	if err != nil {
