@@ -60,6 +60,7 @@ var _ = Describe("New", func() {
 				},
 			}, nil)
 		})
+
 		It("returns a bosh client that works", func() {
 			client, err := New(
 				"http://example.org:25666",
@@ -85,17 +86,6 @@ var _ = Describe("New", func() {
 			Expect(fileReporter).To(Equal(boshdir.NoopFileReporter{}))
 			Expect(fakeDirectorUnauthenticated.InfoCallCount()).To(Equal(1))
 
-			By("configuring uaa")
-			Expect(fakeUAAFactory.NewCallCount()).To(Equal(1))
-			uaaConfig := fakeUAAFactory.NewArgsForCall(0)
-			Expect(uaaConfig).To(Equal(boshuaa.Config{
-				Host:         "uaa.url.example.com",
-				Port:         12345,
-				CACert:       "a totally trustworthy cert",
-				Client:       boshAuthConfig.UAA.ClientCredentials.ID,
-				ClientSecret: boshAuthConfig.UAA.ClientCredentials.Secret,
-			}))
-
 			By("appending the trusted certificate to the system cert pool")
 			Expect(fakeCertAppender.AppendCertsFromPEMCallCount()).To(Equal(1))
 			Expect(fakeCertAppender.AppendCertsFromPEMArgsForCall(0)).To(Equal([]byte("a totally trustworthy cert")))
@@ -106,6 +96,18 @@ var _ = Describe("New", func() {
 			By("ensuring that the client works")
 			err = client.VerifyAuth(logger)
 			Expect(err).NotTo(HaveOccurred())
+
+			By("having configured uaa")
+			Expect(fakeUAAFactory.NewCallCount()).To(Equal(1))
+			uaaConfig := fakeUAAFactory.NewArgsForCall(0)
+			Expect(uaaConfig).To(Equal(boshuaa.Config{
+				Host:         "uaa.url.example.com",
+				Port:         12345,
+				CACert:       "a totally trustworthy cert",
+				Client:       boshAuthConfig.UAA.ClientCredentials.ID,
+				ClientSecret: boshAuthConfig.UAA.ClientCredentials.Secret,
+			}))
+
 		})
 
 		Describe("but New fails", func() {
@@ -162,7 +164,7 @@ var _ = Describe("New", func() {
 					},
 				}, nil)
 
-				_, err := New(
+				client, err := New(
 					"https://example.org:25666",
 					[]byte("a totally trustworthy cert"),
 					fakeCertAppender,
@@ -171,7 +173,8 @@ var _ = Describe("New", func() {
 					boshAuthConfig,
 					logger,
 				)
-
+				Expect(err).NotTo(HaveOccurred())
+				err = client.VerifyAuth(logger)
 				Expect(err).To(MatchError(ContainSubstring("Failed to build UAA config from url")))
 			})
 
@@ -183,7 +186,7 @@ var _ = Describe("New", func() {
 					},
 				}, nil)
 
-				_, err := New(
+				client, err := New(
 					"https://example.org:25666",
 					[]byte("a totally trustworthy cert"),
 					fakeCertAppender,
@@ -192,13 +195,14 @@ var _ = Describe("New", func() {
 					boshAuthConfig,
 					logger,
 				)
-
+				Expect(err).NotTo(HaveOccurred())
+				err = client.VerifyAuth(logger)
 				Expect(err).To(MatchError(ContainSubstring("Failed to build UAA config from url: Expected non-empty UAA URL")))
 			})
 
 			It("errors when uaa factory returns an error", func() {
 				fakeUAAFactory.NewReturns(new(fakes.FakeUAA), errors.New("failed to build uaa"))
-				_, err := New(
+				client, err := New(
 					"https://example.org:25666",
 					[]byte("a totally trustworthy cert"),
 					fakeCertAppender,
@@ -207,7 +211,8 @@ var _ = Describe("New", func() {
 					boshAuthConfig,
 					logger,
 				)
-
+				Expect(err).NotTo(HaveOccurred())
+				err = client.VerifyAuth(logger)
 				Expect(err).To(MatchError(ContainSubstring("Failed to build UAA client: failed to build uaa")))
 			})
 		})

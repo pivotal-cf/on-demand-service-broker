@@ -23,7 +23,9 @@ type Client struct {
 	PollingInterval time.Duration
 	BoshInfo        Info
 
-	config          director.FactoryConfig
+	trustedCertPEM  []byte
+	boshAuth        config.Authentication
+	uaaFactory      UAAFactory
 	directorFactory DirectorFactory
 }
 
@@ -65,32 +67,16 @@ type CertAppender interface {
 func New(url string, trustedCertPEM []byte, certAppender CertAppender, directorFactory DirectorFactory, uaaFactory UAAFactory, boshAuth config.Authentication, logger *log.Logger) (*Client, error) {
 	certAppender.AppendCertsFromPEM(trustedCertPEM)
 
-	directorConfig, err := director.NewConfigFromURL(url)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to build director config from url")
-	}
-	directorConfig.CACert = string(trustedCertPEM)
-
-	noAuthClient := &Client{url: url, config: directorConfig, directorFactory: directorFactory}
+	noAuthClient := &Client{url: url, trustedCertPEM: trustedCertPEM, directorFactory: directorFactory}
 	boshInfo, err := noAuthClient.GetInfo(logger)
 	if err != nil {
 		return nil, errors.Wrap(err, "error fetching BOSH director information")
 	}
 
-	if boshAuth.UAA.IsSet() {
-		uaa, err := buildUAA(boshInfo.UserAuthentication.Options.URL, boshAuth, directorConfig.CACert, uaaFactory)
-		if err != nil {
-			return nil, errors.Wrap(err, "Failed to build UAA client")
-		}
-
-		directorConfig.TokenFunc = boshuaa.NewClientTokenSession(uaa).TokenFunc
-	} else {
-		directorConfig.Client = boshAuth.Basic.Username
-		directorConfig.ClientSecret = boshAuth.Basic.Password
-	}
-
 	return &Client{
-		config:          directorConfig,
+		trustedCertPEM:  trustedCertPEM,
+		boshAuth:        boshAuth,
+		uaaFactory:      uaaFactory,
 		directorFactory: directorFactory,
 		PollingInterval: 5,
 		url:             url,
@@ -99,7 +85,32 @@ func New(url string, trustedCertPEM []byte, certAppender CertAppender, directorF
 }
 
 func (c *Client) Director(taskReporter director.TaskReporter) (director.Director, error) {
-	return c.directorFactory.New(c.config, taskReporter, director.NewNoopFileReporter())
+	directorConfig, err := c.directorConfig()
+	if err != nil {
+		return nil, err
+	}
+	return c.directorFactory.New(directorConfig, taskReporter, director.NewNoopFileReporter())
+}
+
+func (c *Client) directorConfig() (director.FactoryConfig, error) {
+	directorConfig, err := director.NewConfigFromURL(c.url)
+	if err != nil {
+		return director.FactoryConfig{}, errors.Wrap(err, "Failed to build director config from url")
+	}
+	directorConfig.CACert = string(c.trustedCertPEM)
+
+	if c.boshAuth.UAA.IsSet() {
+		uaa, err := buildUAA(c.BoshInfo.UserAuthentication.Options.URL, c.boshAuth, directorConfig.CACert, c.uaaFactory)
+		if err != nil {
+			return director.FactoryConfig{}, errors.Wrap(err, "Failed to build UAA client")
+		}
+
+		directorConfig.TokenFunc = boshuaa.NewClientTokenSession(uaa).TokenFunc
+	} else {
+		directorConfig.Client = c.boshAuth.Basic.Username
+		directorConfig.ClientSecret = c.boshAuth.Basic.Password
+	}
+	return directorConfig, nil
 }
 
 func (c *Client) VerifyAuth(logger *log.Logger) error {
