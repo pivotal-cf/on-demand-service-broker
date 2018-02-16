@@ -66,7 +66,7 @@ var _ = BeforeSuite(func() {
 	newBrokerManifest := boshClient.GetManifest(brokerBoshDeploymentName)
 	persistenceProperty := map[interface{}]interface{}{"persistence": false}
 
-	brokerJob := newBrokerManifest.InstanceGroups[0].Jobs[0]
+	brokerJob := bosh_helpers.FindJob(newBrokerManifest, "broker", "broker")
 	serviceCatalog := brokerJob.Properties["service_catalog"].(map[interface{}]interface{})
 	dedicatedVMPlan := serviceCatalog["plans"].([]interface{})[0].(map[interface{}]interface{})
 	dedicatedVMPlan["properties"] = persistenceProperty
