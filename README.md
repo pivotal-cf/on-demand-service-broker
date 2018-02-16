@@ -70,4 +70,3 @@ Please, make sure to read this few points before opening a new pull request.
 2. Try to keep your pull request as small as possible by focusing on the feature you would like to add.
 3. If you see opportunities for refactoring, feel free to let us know by opening an issue.
 4. Try to follow the testing style we are using in the file you are modifying. Be aware that there might be inconsistencies among different tests.
-
