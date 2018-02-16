@@ -250,7 +250,7 @@ func updateServiceInstancesAPI(brokerManifest *bosh.BoshManifest) {
 }
 
 func findUpgradeAllServiceInstancesProperties(brokerManifest *bosh.BoshManifest) map[string]interface{} {
-	return bosh_helpers.FindJobProperties(brokerManifest, "upgrade-all-service-instances", "upgrade-all-service-instances")
+	return bosh_helpers.FindJobProperties(brokerManifest, "broker", "upgrade-all-service-instances")
 }
 
 func createServiceInstances() {
