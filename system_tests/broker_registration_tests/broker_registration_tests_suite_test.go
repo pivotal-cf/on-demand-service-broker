@@ -14,6 +14,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
+	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/bosh_helpers"
 	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/cf_helpers"
 )
@@ -45,8 +46,8 @@ var _ = BeforeSuite(func() {
 
 	cfAdminUsername = envMustHave("CF_USERNAME")
 	cfAdminPassword = envMustHave("CF_PASSWORD")
-	cfSpaceDeveloperUsername = envMustHave("CF_SPACE_DEVELOPER_USERNAME")
-	cfSpaceDeveloperPassword = envMustHave("CF_SPACE_DEVELOPER_PASSWORD")
+	cfSpaceDeveloperUsername = uuid.New()[:8]
+	cfSpaceDeveloperPassword = uuid.New()[:8]
 	cfOrg = envMustHave("CF_ORG")
 	cfSpace = envMustHave("CF_SPACE")
 
