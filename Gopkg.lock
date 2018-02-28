@@ -227,6 +227,7 @@
   revision = "179d4d0c4d8d407a32af483c2354df1d2c91e6c3"
 
 [[projects]]
+  branch = "master"
   name = "github.com/onsi/ginkgo"
   packages = [
     ".",
@@ -249,8 +250,7 @@
     "reporters/stenographer/support/go-isatty",
     "types"
   ]
-  revision = "9eda700730cba42af70d53180f9dcce9266bc2bc"
-  version = "v1.4.0"
+  revision = "9008c7b79f9636c46a0a945141020124702f0ecf"
 
 [[projects]]
   name = "github.com/onsi/gomega"
@@ -271,8 +271,8 @@
     "matchers/support/goraph/util",
     "types"
   ]
-  revision = "c893efa28eb45626cdaa76c9f653b62488858837"
-  version = "v1.2.0"
+  revision = "003f63b7f4cff3fc95357005358af2de0f5fe152"
+  version = "v1.3.0"
 
 [[projects]]
   name = "github.com/pborman/uuid"
@@ -408,6 +408,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "54289498cd1e828b93bf2bab9b892ad80242cc8bb83381b9e382b88fcb1f2e3a"
+  inputs-digest = "a58e2cfb79bf7271d9b5e724aafeef182a18b81c97c5d2c7cedde7c43c4679fe"
   solver-name = "gps-cdcl"
   solver-version = 1
