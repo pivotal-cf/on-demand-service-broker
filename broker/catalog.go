@@ -12,7 +12,8 @@ import (
 	"github.com/pivotal-cf/brokerapi"
 )
 
-func (b *Broker) Services(_ context.Context) []brokerapi.Service {
+func (b *Broker) Services(ctx context.Context) []brokerapi.Service {
+	logger := b.loggerFactory.NewWithContext(ctx)
 	var servicePlans []brokerapi.ServicePlan
 	for _, plan := range b.serviceOffering.Plans {
 		var planCosts []brokerapi.ServicePlanCost
@@ -31,6 +32,11 @@ func (b *Broker) Services(_ context.Context) []brokerapi.Service {
 				Bullets:     plan.Metadata.Bullets,
 				Costs:       planCosts,
 			},
+		}
+
+		planSchema, err := b.adapterClient.GeneratePlanSchema(plan.AdapterPlan(b.serviceOffering.GlobalProperties), logger)
+		if err == nil {
+			servicePlan.Schemas = &planSchema
 		}
 		servicePlans = append(servicePlans, servicePlan)
 	}

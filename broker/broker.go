@@ -13,6 +13,7 @@ import (
 
 	"fmt"
 
+	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
@@ -147,6 +148,7 @@ type ServiceAdapterClient interface {
 	CreateBinding(bindingID string, deploymentTopology bosh.BoshVMs, manifest []byte, requestParams map[string]interface{}, logger *log.Logger) (serviceadapter.Binding, error)
 	DeleteBinding(bindingID string, deploymentTopology bosh.BoshVMs, manifest []byte, requestParams map[string]interface{}, logger *log.Logger) error
 	GenerateDashboardUrl(instanceID string, plan serviceadapter.Plan, manifest []byte, logger *log.Logger) (string, error)
+	GeneratePlanSchema(plan serviceadapter.Plan, logger *log.Logger) (brokerapi.ServiceSchemas, error)
 }
 
 //go:generate counterfeiter -o fakes/fake_bosh_client.go . BoshClient

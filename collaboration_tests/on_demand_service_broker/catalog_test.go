@@ -16,6 +16,27 @@ import (
 )
 
 var _ = Describe("Catalog", func() {
+	var schemaParameters = map[string]interface{}{
+		"$schema": "http://json-schema.org/draft-04/schema#",
+		"properties": map[string]interface{}{
+			"flibbles": map[string]interface{}{
+				"description": "Number of flibbles to spawn",
+				"type":        "integer",
+				"required":    true,
+			},
+		},
+		"type": "object",
+	}
+	var defaultSchemas = brokerapi.ServiceSchemas{
+		Instance: brokerapi.ServiceInstanceSchema{
+			Create: brokerapi.Schema{Parameters: schemaParameters},
+			Update: brokerapi.Schema{Parameters: schemaParameters},
+		},
+		Binding: brokerapi.ServiceBindingSchema{
+			Create: brokerapi.Schema{Parameters: schemaParameters},
+		},
+	}
+
 	Context("without optional fields", func() {
 		BeforeEach(func() {
 			serviceCatalogConfig := defaultServiceCatalogConfig()
@@ -31,6 +52,8 @@ var _ = Describe("Catalog", func() {
 		})
 
 		It("returns catalog metadata", func() {
+			fakeServiceAdapter.GeneratePlanSchemaReturns(defaultSchemas, nil)
+
 			response, bodyContent := doCatalogRequest()
 
 			By("returning the correct HTTP status")
@@ -65,6 +88,7 @@ var _ = Describe("Catalog", func() {
 								Description: dedicatedPlanDescription,
 								Free:        &trueVar,
 								Bindable:    &trueVar,
+								Schemas:     &defaultSchemas,
 								Metadata: &brokerapi.ServicePlanMetadata{
 									Bullets:     dedicatedPlanBullets,
 									DisplayName: dedicatedPlanDisplayName,
@@ -84,6 +108,7 @@ var _ = Describe("Catalog", func() {
 									Bullets:     highMemoryPlanBullets,
 									DisplayName: highMemoryPlanDisplayName,
 								},
+								Schemas: &defaultSchemas,
 							},
 						},
 					},
@@ -107,6 +132,8 @@ var _ = Describe("Catalog", func() {
 		})
 
 		It("returns catalog metadata", func() {
+			fakeServiceAdapter.GeneratePlanSchemaReturns(defaultSchemas, nil)
+
 			response, bodyContent := doCatalogRequest()
 
 			By("returning the correct HTTP status")
@@ -156,6 +183,7 @@ var _ = Describe("Catalog", func() {
 										},
 									},
 								},
+								Schemas: &defaultSchemas,
 							},
 							{
 								ID:          highMemoryPlanID,
@@ -165,6 +193,7 @@ var _ = Describe("Catalog", func() {
 									Bullets:     highMemoryPlanBullets,
 									DisplayName: highMemoryPlanDisplayName,
 								},
+								Schemas: &defaultSchemas,
 							},
 						},
 					},
