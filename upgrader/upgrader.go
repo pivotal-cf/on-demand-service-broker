@@ -32,7 +32,7 @@ type Listener interface {
 	InstanceUpgraded(instance string, result string)
 	WaitingFor(instance string, boshTaskId int)
 	Progress(pollingInterval time.Duration, orphanCount, upgradedCount, upgradesLeftCount, deletedCount int)
-	Finished(orphanCount, upgradedCount, deletedCount, couldNotStartCount int, failedInstances ...string)
+	Finished(orphanCount, upgradedCount, deletedCount int, busyInstances, failedInstances []string)
 	CanariesStarting(canaries int)
 	CanariesFinished()
 }
@@ -238,6 +238,7 @@ func (u *Upgrader) reportProgress() {
 
 func (u *Upgrader) summary() error {
 	pendingInstances := u.controller.findInstancesWithState(services.OperationInProgress)
+	busyInstances := u.controller.findInstancesWithState(services.OperationInProgress)
 	orphaned := len(u.controller.findInstancesWithState(services.OrphanDeployment))
 	succeeded := len(u.controller.findInstancesWithState(services.UpgradeSucceeded))
 	deleted := len(u.controller.findInstancesWithState(services.InstanceNotFound))
@@ -248,7 +249,7 @@ func (u *Upgrader) summary() error {
 	}
 	pendingInstancesCount := len(pendingInstances)
 
-	u.listener.Finished(orphaned, succeeded, deleted, pendingInstancesCount, failedInstances...)
+	u.listener.Finished(orphaned, succeeded, deleted, busyInstances, failedInstances)
 
 	if pendingInstancesCount > 0 {
 		if u.controller.processingCanaries {

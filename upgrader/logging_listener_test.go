@@ -24,6 +24,11 @@ const (
 	ten_seconds = time.Duration(10) * time.Second
 )
 
+var (
+	emptyBusyList   = []string{}
+	emptyFailedList = []string{}
+)
+
 var _ = Describe("Logging Listener", func() {
 	It("Logs a refresh service instance info error", func() {
 		Expect(logResultsFrom(func(listener upgrader.Listener) { listener.FailedToRefreshInstanceInfo("GUID") })).
@@ -180,7 +185,7 @@ var _ = Describe("Logging Listener", func() {
 
 	It("Shows a final summary where we completed successfully", func() {
 		buffer := logResultsFrom(func(listener upgrader.Listener) {
-			listener.Finished(23, 34, 45, 0)
+			listener.Finished(23, 34, 45, emptyBusyList, emptyFailedList)
 		})
 
 		Expect(buffer).To(Say("FINISHED UPGRADES Status: SUCCESS; Summary"))
@@ -194,7 +199,8 @@ var _ = Describe("Logging Listener", func() {
 
 	It("Shows a final summary where instances could not start", func() {
 		buffer := logResultsFrom(func(listener upgrader.Listener) {
-			listener.Finished(23, 34, 45, 56)
+			busyList := make([]string, 56)
+			listener.Finished(23, 34, 45, busyList, emptyFailedList)
 		})
 
 		Expect(buffer).To(Say("FINISHED UPGRADES Status: FAILED; Summary"))
@@ -208,7 +214,8 @@ var _ = Describe("Logging Listener", func() {
 
 	It("Shows a final summary where a single service instance failed to upgrade", func() {
 		buffer := logResultsFrom(func(listener upgrader.Listener) {
-			listener.Finished(23, 34, 45, 56, "2f9752c3-887b-4ccb-8693-7c15811ffbdd")
+			busyList := make([]string, 56)
+			listener.Finished(23, 34, 45, busyList, []string{"2f9752c3-887b-4ccb-8693-7c15811ffbdd"})
 		})
 
 		Expect(buffer).To(Say("FINISHED UPGRADES Status: FAILED; Summary"))
@@ -221,7 +228,7 @@ var _ = Describe("Logging Listener", func() {
 
 	It("Shows a final summary where multiple services instance failed to upgrade", func() {
 		buffer := logResultsFrom(func(listener upgrader.Listener) {
-			listener.Finished(23, 34, 45, 56, "2f9752c3-887b-4ccb-8693-7c15811ffbdd", "7a2c7adb-1d47-4355-af39-41c5a2892b92")
+			listener.Finished(23, 34, 45, make([]string, 56), []string{"2f9752c3-887b-4ccb-8693-7c15811ffbdd", "7a2c7adb-1d47-4355-af39-41c5a2892b92"})
 		})
 
 		Expect(buffer).To(Say("FINISHED UPGRADES Status: FAILED; Summary"))

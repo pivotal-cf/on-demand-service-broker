@@ -104,14 +104,14 @@ func (ll LoggingListener) Progress(pollingInterval time.Duration, orphanCount, u
 	)
 }
 
-func (ll LoggingListener) Finished(orphanCount, upgradedCount, deletedCount, couldNotStartCount int, failedInstances ...string) {
+func (ll LoggingListener) Finished(orphanCount, upgradedCount, deletedCount int, busyInstances, failedInstances []string) {
 	var failedList string
 	if len(failedInstances) > 0 {
 		failedList = fmt.Sprintf(" [%s]", strings.Join(failedInstances, ", "))
 	}
 
 	status := "SUCCESS"
-	if len(failedInstances) > 0 || couldNotStartCount > 0 {
+	if len(failedInstances) > 0 || len(busyInstances) > 0 {
 		status = "FAILED"
 	}
 
@@ -119,13 +119,14 @@ func (ll LoggingListener) Finished(orphanCount, upgradedCount, deletedCount, cou
 		"Number of successful upgrades: %d; "+
 		"Number of CF service instance orphans detected: %d; "+
 		"Number of deleted instances before upgrade could occur: %d; "+
-		"Number of busy instances which could not be upgraded: %d; "+
+		"Number of busy instances which could not be upgraded: %d%s; "+
 		"Number of service instances that failed to upgrade: %d%s",
 		status,
 		upgradedCount,
 		orphanCount,
 		deletedCount,
-		couldNotStartCount,
+		len(busyInstances),
+		busyInstances,
 		len(failedInstances),
 		failedList,
 	)
