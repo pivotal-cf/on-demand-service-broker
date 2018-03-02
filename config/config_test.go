@@ -179,10 +179,6 @@ var _ = Describe("Broker Config", func() {
 				Expect(parseErr).NotTo(HaveOccurred())
 				Expect(conf).To(Equal(expected))
 			})
-
-			It("returns no error", func() {
-				Expect(parseErr).NotTo(HaveOccurred())
-			})
 		})
 
 		Context("and the config has the expose_operational_errors flag", func() {

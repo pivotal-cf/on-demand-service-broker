@@ -4,9 +4,8 @@ import (
 	"log"
 	"time"
 
-	"errors"
-
 	"crypto/x509"
+	"errors"
 	"fmt"
 
 	"strings"
@@ -29,6 +28,7 @@ type Builder struct {
 	Canaries              int
 	Listener              Listener
 	Sleeper               sleeper
+	CanarySelectionParams config.CanarySelectionParams
 }
 
 func NewBuilder(
@@ -71,6 +71,11 @@ func NewBuilder(
 		return nil, err
 	}
 
+	canarySelectionParams, err := canarySelectionParams(conf)
+	if err != nil {
+		return nil, err
+	}
+
 	listener := NewLoggingListener(logger)
 
 	b := &Builder{
@@ -83,6 +88,7 @@ func NewBuilder(
 		Canaries:              canaries,
 		Listener:              listener,
 		Sleeper:               &tools.RealSleeper{},
+		CanarySelectionParams: canarySelectionParams,
 	}
 
 	return b, nil
@@ -172,4 +178,11 @@ func canaries(conf config.UpgradeAllInstanceErrandConfig) (int, error) {
 		return 0, errors.New("the number of canaries cannot be negative")
 	}
 	return conf.Canaries, nil
+}
+
+func canarySelectionParams(conf config.UpgradeAllInstanceErrandConfig) (config.CanarySelectionParams, error) {
+	if conf.Canaries != 0 && len(conf.CanarySelectionParams) > 0 {
+		return nil, errors.New("canaries and canary_selection_params must not be both configured")
+	}
+	return conf.CanarySelectionParams, nil
 }

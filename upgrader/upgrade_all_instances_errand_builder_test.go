@@ -172,6 +172,33 @@ var _ = Describe("UpgraderBuilder", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(builder.Canaries).To(Equal(10))
 		})
+
+		It("can parse canaries selection params", func() {
+			conf := updateAllInstanceErrandConfig("user", "password", "http://example.org")
+			conf.CanarySelectionParams = config.CanarySelectionParams{
+				"size": "small",
+				"test": true,
+			}
+			builder, err := NewBuilder(conf, logger)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(builder.CanarySelectionParams).To(Equal(config.CanarySelectionParams{
+				"size": "small",
+				"test": true,
+			}))
+		})
+
+		It("fails when both canaries and canary selection params are set", func() {
+			conf := updateAllInstanceErrandConfig("user", "password", "http://example.org")
+			conf.CanarySelectionParams = config.CanarySelectionParams{
+				"size": "small",
+				"test": true,
+			}
+			conf.Canaries = 10
+			_, err := NewBuilder(conf, logger)
+			Expect(err).To(MatchError(ContainSubstring(
+				"canaries and canary_selection_params must not be both configured",
+			)))
+		})
 	})
 })
 
