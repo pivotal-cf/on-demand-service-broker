@@ -287,7 +287,7 @@
     ".",
     "auth"
   ]
-  revision = "d06fa8d0412b54021960ee7b0347989c519b87d3"
+  revision = "81b6609d89d7567d8c81b0616f8f940156ed23f7"
 
 [[projects]]
   branch = "master"
@@ -296,7 +296,7 @@
     "bosh",
     "serviceadapter"
   ]
-  revision = "49d13067c162bc95f848e22eaf020389ea1c8b32"
+  revision = "d688ae3152ea235b94f8e7e60ced6400b8277bd7"
 
 [[projects]]
   branch = "master"
