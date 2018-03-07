@@ -181,8 +181,5 @@ func canaries(conf config.UpgradeAllInstanceErrandConfig) (int, error) {
 }
 
 func canarySelectionParams(conf config.UpgradeAllInstanceErrandConfig) (config.CanarySelectionParams, error) {
-	if conf.Canaries != 0 && len(conf.CanarySelectionParams) > 0 {
-		return nil, errors.New("canaries and canary_selection_params must not be both configured")
-	}
 	return conf.CanarySelectionParams, nil
 }

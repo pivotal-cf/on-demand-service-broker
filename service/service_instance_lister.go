@@ -40,17 +40,18 @@ func NewInstanceLister(client Doer, authHeaderBuilder authorizationheader.AuthHe
 	}
 }
 
-func (s *ServiceInstanceLister) Instances() ([]Instance, error) {
-	var instances []Instance
-	request, err := http.NewRequest(
-		http.MethodGet,
-		s.baseURL,
-		nil,
-	)
-
+func (s *ServiceInstanceLister) FilteredInstances(params map[string]string) ([]Instance, error) {
+	request, err := http.NewRequest(http.MethodGet, s.baseURL, nil)
 	if err != nil {
 		return nil, err
 	}
+
+	values := request.URL.Query()
+	for k, v := range params {
+		values.Add(k, v)
+	}
+	request.URL.RawQuery = values.Encode()
+
 	err = s.authHeaderBuilder.AddAuthHeader(request, s.logger)
 	if err != nil {
 		return nil, err
@@ -66,12 +67,17 @@ func (s *ServiceInstanceLister) Instances() ([]Instance, error) {
 	}
 
 	defer response.Body.Close()
+
+	var instances []Instance
 	err = json.NewDecoder(response.Body).Decode(&instances)
 	if err != nil {
 		return instances, err
 	}
-
 	return instances, nil
+}
+
+func (s *ServiceInstanceLister) Instances() ([]Instance, error) {
+	return s.FilteredInstances(map[string]string{})
 }
 
 func (s *ServiceInstanceLister) LatestInstanceInfo(instance Instance) (Instance, error) {

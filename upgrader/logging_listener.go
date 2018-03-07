@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
+	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/service"
 )
 
@@ -132,8 +133,12 @@ func (ll LoggingListener) Finished(orphanCount, upgradedCount, deletedCount int,
 	)
 }
 
-func (ll LoggingListener) CanariesStarting(canaries int) {
-	ll.logger.Printf("STARTING CANARY UPGRADES: %d canaries\n", canaries)
+func (ll LoggingListener) CanariesStarting(canaries int, filter config.CanarySelectionParams) {
+	msg := fmt.Sprintf("STARTING CANARY UPGRADES: %d canaries", canaries)
+	if len(filter) > 0 {
+		msg = fmt.Sprintf("%s with selection criteria: %s", msg, filter)
+	}
+	ll.logger.Println(msg)
 }
 
 func (ll LoggingListener) CanariesFinished() {

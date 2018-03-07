@@ -194,6 +194,84 @@ var _ = Describe("ServiceInstanceLister", func() {
 		Expect(err).To(HaveOccurred())
 		Expect(err).To(MatchError(ContainSubstring("Bad Request")))
 	})
+
+	Describe("requesting filtered instances", func() {
+		var (
+			params map[string]interface{}
+		)
+
+		BeforeEach(func() {
+			params = map[string]interface{}{
+				"org":   "my-org",
+				"space": "my-space",
+			}
+		})
+
+		It("uses filter params", func() {
+			client.DoReturns(response(http.StatusOK, `[{"service_instance_id": "foo", "plan_id": "plan"}, {"service_instance_id": "bar", "plan_id": "another-plan"}]`), nil)
+			serviceInstanceLister := service.NewInstanceLister(client, authHeaderBuilder, "https://odb.example.com", false, logger)
+			filteredInstances, err := serviceInstanceLister.FilteredInstances(params)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(client.DoCallCount()).To(Equal(1))
+			req := client.DoArgsForCall(0)
+			Expect(req.URL.RawQuery).To(Equal("org=my-org&space=my-space"))
+			Expect(req.URL.Host).To(Equal("odb.example.com"))
+
+			Expect(authHeaderBuilder.AddAuthHeaderCallCount()).To(Equal(1))
+			authReq, authLogger := authHeaderBuilder.AddAuthHeaderArgsForCall(0)
+			Expect(authReq).To(Equal(req))
+			Expect(authLogger).To(Equal(logger))
+
+			Expect(filteredInstances).To(Equal([]service.Instance{
+				service.Instance{
+					GUID:         "foo",
+					PlanUniqueID: "plan",
+				},
+				service.Instance{
+					GUID:         "bar",
+					PlanUniqueID: "another-plan",
+				},
+			}))
+		})
+
+		It("does not filter params", func() {
+			client.DoReturns(response(http.StatusOK, `[{"service_instance_id": "foo", "plan_id": "plan"}, {"service_instance_id": "bar", "plan_id": "another-plan"}]`), nil)
+			serviceInstanceLister := service.NewInstanceLister(client, authHeaderBuilder, "https://odb.example.com", false, logger)
+			_, err := serviceInstanceLister.Instances()
+			Expect(err).NotTo(HaveOccurred())
+			req := client.DoArgsForCall(0)
+			Expect(req.URL.RawQuery).To(Equal(""))
+			Expect(req.URL.Host).To(Equal("odb.example.com"))
+
+		})
+
+		It("fails if cannot retrieve the auth header", func() {
+			authHeaderBuilder.AddAuthHeaderReturns(errors.New("oops"))
+			serviceInstanceLister := service.NewInstanceLister(client, authHeaderBuilder, "https://odb.example.com", false, logger)
+			_, err := serviceInstanceLister.FilteredInstances(params)
+			Expect(err).To(MatchError(ContainSubstring("oops")))
+		})
+
+		It("returns an error when pulling the list of instances fail", func() {
+			client.DoReturns(response(http.StatusBadRequest, `[]`), nil)
+			serviceInstanceLister := service.NewInstanceLister(client, authHeaderBuilder, "", false, logger)
+			_, err := serviceInstanceLister.FilteredInstances(params)
+			Expect(err).To(HaveOccurred())
+			Expect(err).To(MatchError(ContainSubstring("Bad Request")))
+		})
+
+		It("returns the expected error when service instance API request fails due to a url error with no Err", func() {
+			expectedURL := "https://example.org/service-instances"
+			expectedError := &url.Error{
+				URL: expectedURL,
+			}
+			client.DoReturns(nil, expectedError)
+			serviceInstanceLister := service.NewInstanceLister(client, authHeaderBuilder, expectedURL, true, logger)
+			_, err := serviceInstanceLister.FilteredInstances(params)
+			Expect(err).To(Equal(expectedError))
+		})
+	})
 })
 
 func response(statusCode int, body string) *http.Response {

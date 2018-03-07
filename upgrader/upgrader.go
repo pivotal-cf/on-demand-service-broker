@@ -17,6 +17,7 @@ import (
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
+	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/service"
 )
 
@@ -33,7 +34,7 @@ type Listener interface {
 	WaitingFor(instance string, boshTaskId int)
 	Progress(pollingInterval time.Duration, orphanCount, upgradedCount, upgradesLeftCount, deletedCount int)
 	Finished(orphanCount, upgradedCount, deletedCount int, busyInstances, failedInstances []string)
-	CanariesStarting(canaries int)
+	CanariesStarting(canaries int, filter config.CanarySelectionParams)
 	CanariesFinished()
 }
 
@@ -46,6 +47,7 @@ type BrokerServices interface {
 //go:generate counterfeiter -o fakes/fake_instance_lister.go . InstanceLister
 type InstanceLister interface {
 	Instances() ([]service.Instance, error)
+	FilteredInstances(filter map[string]string) ([]service.Instance, error)
 	LatestInstanceInfo(inst service.Instance) (service.Instance, error)
 }
 
@@ -55,12 +57,14 @@ type sleeper interface {
 }
 
 type controller struct {
-	pendingInstances    []service.Instance
-	busyInstances       []service.Instance
-	inProgress          []service.Instance
-	failures            []instanceFailure
-	outstandingCanaries int
-	processingCanaries  bool
+	pendingInstances      []service.Instance
+	busyInstances         []service.Instance
+	inProgress            []service.Instance
+	failures              []instanceFailure
+	canaries              int
+	outstandingCanaries   int
+	processingCanaries    bool
+	canarySelectionParams config.CanarySelectionParams
 
 	states map[string]services.UpgradeOperation
 }
@@ -77,7 +81,6 @@ type Upgrader struct {
 	attemptInterval time.Duration
 	attemptLimit    int
 	maxInFlight     int
-	canaries        int
 	totalInstances  int
 	listener        Listener
 	sleeper         sleeper
@@ -93,20 +96,47 @@ func New(builder *Builder) *Upgrader {
 		attemptInterval: builder.AttemptInterval,
 		attemptLimit:    builder.AttemptLimit,
 		maxInFlight:     builder.MaxInFlight,
-		canaries:        builder.Canaries,
 		listener:        builder.Listener,
 		sleeper:         builder.Sleeper,
 		controller: &controller{
-			states:              make(map[string]services.UpgradeOperation),
-			outstandingCanaries: builder.Canaries,
-			processingCanaries:  builder.Canaries > 0,
+			states:                make(map[string]services.UpgradeOperation),
+			canaries:              builder.Canaries,
+			outstandingCanaries:   builder.Canaries,
+			processingCanaries:    builder.Canaries > 0,
+			canarySelectionParams: builder.CanarySelectionParams,
 		},
 	}
 }
 
+func (u *Upgrader) filteredInstances() ([]service.Instance, error) {
+	instances, err := u.instanceLister.FilteredInstances(u.controller.canarySelectionParams)
+	if len(instances) == 0 {
+		unfilteredInstances, err := u.instanceLister.Instances()
+		if err != nil {
+			return nil, err
+		}
+		if len(unfilteredInstances) > 0 {
+			return nil, fmt.Errorf("Upgrade failed to find a match to the canary selection criteria: %s Please ensure that this criterion will match 1 or more service instances, or remove the criteria to proceed without canaries", u.controller.canarySelectionParams)
+		}
+	}
+	if u.controller.canaries == 0 || u.controller.canaries > len(instances) {
+		u.controller.canaries = len(instances)
+		u.controller.outstandingCanaries = u.controller.canaries
+	}
+	u.controller.processingCanaries = u.controller.canaries > 0
+	return instances, err
+}
+
 func (u *Upgrader) Upgrade() error {
 	u.listener.Starting(u.maxInFlight)
-	instances, err := u.instanceLister.Instances()
+	var instances []service.Instance
+	var err error
+	if len(u.controller.canarySelectionParams) > 0 {
+		instances, err = u.filteredInstances()
+	} else {
+		instances, err = u.instanceLister.Instances()
+	}
+
 	if err != nil {
 		return fmt.Errorf("error listing service instances: %s", err)
 	}
@@ -118,7 +148,7 @@ func (u *Upgrader) Upgrade() error {
 	u.totalInstances = len(instances)
 
 	if u.controller.processingCanaries {
-		u.listener.CanariesStarting(u.canaries)
+		u.listener.CanariesStarting(u.controller.canaries, u.controller.canarySelectionParams)
 	}
 
 	for attempt := 1; attempt <= u.attemptLimit; attempt++ {
@@ -143,6 +173,13 @@ func (u *Upgrader) Upgrade() error {
 				u.controller.processingCanaries = false
 				u.listener.CanariesFinished()
 				attempt = 0
+				if len(u.controller.canarySelectionParams) > 0 {
+					u.controller.pendingInstances, err = u.instanceLister.Instances()
+					if err != nil {
+						return fmt.Errorf("error listing service instances: %s", err)
+					}
+					u.totalInstances = len(u.controller.pendingInstances)
+				}
 			}
 		}
 
@@ -255,8 +292,8 @@ func (u *Upgrader) summary() error {
 		if u.controller.processingCanaries {
 			return fmt.Errorf(
 				"canaries didn't upgrade successfully: attempted to upgrade %d canaries, but only found %d instances not already in use by another BOSH task.",
-				u.canaries,
-				u.canaries-pendingInstancesCount,
+				u.controller.canaries,
+				u.controller.canaries-pendingInstancesCount,
 			)
 		}
 		return fmt.Errorf("The following instances could not be upgraded: %s", strings.Join(pendingInstances, ", "))
@@ -380,10 +417,13 @@ func (c *controller) nextInstance() service.Instance {
 	if len(c.pendingInstances) > 0 {
 		instance := c.pendingInstances[0]
 		c.pendingInstances = c.pendingInstances[1:len(c.pendingInstances)]
+		state, found := c.states[instance.GUID]
+		if found && state.Type != services.OperationInProgress {
+			return c.nextInstance()
+		}
 		return instance
 	} else {
 		return service.Instance{}
-
 	}
 }
 

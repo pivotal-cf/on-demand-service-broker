@@ -20,6 +20,19 @@ type FakeInstanceLister struct {
 		result1 []service.Instance
 		result2 error
 	}
+	FilteredInstancesStub        func(filter map[string]string) ([]service.Instance, error)
+	filteredInstancesMutex       sync.RWMutex
+	filteredInstancesArgsForCall []struct {
+		filter map[string]string
+	}
+	filteredInstancesReturns struct {
+		result1 []service.Instance
+		result2 error
+	}
+	filteredInstancesReturnsOnCall map[int]struct {
+		result1 []service.Instance
+		result2 error
+	}
 	LatestInstanceInfoStub        func(inst service.Instance) (service.Instance, error)
 	latestInstanceInfoMutex       sync.RWMutex
 	latestInstanceInfoArgsForCall []struct {
@@ -75,6 +88,57 @@ func (fake *FakeInstanceLister) InstancesReturnsOnCall(i int, result1 []service.
 		})
 	}
 	fake.instancesReturnsOnCall[i] = struct {
+		result1 []service.Instance
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeInstanceLister) FilteredInstances(filter map[string]string) ([]service.Instance, error) {
+	fake.filteredInstancesMutex.Lock()
+	ret, specificReturn := fake.filteredInstancesReturnsOnCall[len(fake.filteredInstancesArgsForCall)]
+	fake.filteredInstancesArgsForCall = append(fake.filteredInstancesArgsForCall, struct {
+		filter map[string]string
+	}{filter})
+	fake.recordInvocation("FilteredInstances", []interface{}{filter})
+	fake.filteredInstancesMutex.Unlock()
+	if fake.FilteredInstancesStub != nil {
+		return fake.FilteredInstancesStub(filter)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.filteredInstancesReturns.result1, fake.filteredInstancesReturns.result2
+}
+
+func (fake *FakeInstanceLister) FilteredInstancesCallCount() int {
+	fake.filteredInstancesMutex.RLock()
+	defer fake.filteredInstancesMutex.RUnlock()
+	return len(fake.filteredInstancesArgsForCall)
+}
+
+func (fake *FakeInstanceLister) FilteredInstancesArgsForCall(i int) map[string]string {
+	fake.filteredInstancesMutex.RLock()
+	defer fake.filteredInstancesMutex.RUnlock()
+	return fake.filteredInstancesArgsForCall[i].filter
+}
+
+func (fake *FakeInstanceLister) FilteredInstancesReturns(result1 []service.Instance, result2 error) {
+	fake.FilteredInstancesStub = nil
+	fake.filteredInstancesReturns = struct {
+		result1 []service.Instance
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeInstanceLister) FilteredInstancesReturnsOnCall(i int, result1 []service.Instance, result2 error) {
+	fake.FilteredInstancesStub = nil
+	if fake.filteredInstancesReturnsOnCall == nil {
+		fake.filteredInstancesReturnsOnCall = make(map[int]struct {
+			result1 []service.Instance
+			result2 error
+		})
+	}
+	fake.filteredInstancesReturnsOnCall[i] = struct {
 		result1 []service.Instance
 		result2 error
 	}{result1, result2}
@@ -136,6 +200,8 @@ func (fake *FakeInstanceLister) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.instancesMutex.RLock()
 	defer fake.instancesMutex.RUnlock()
+	fake.filteredInstancesMutex.RLock()
+	defer fake.filteredInstancesMutex.RUnlock()
 	fake.latestInstanceInfoMutex.RLock()
 	defer fake.latestInstanceInfoMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

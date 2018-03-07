@@ -85,6 +85,18 @@ attempt_limit: %d
 max_in_flight: 1`, pollingInterval, attemptInterval, attemptLimit)
 }
 
+func populateUpgraderConfigWithCanaries(canaries int, org, space string) string {
+	return fmt.Sprintf(`
+polling_interval: 1
+attempt_interval: 2
+attempt_limit: 5
+max_in_flight: 1
+canaries: %d
+canary_selection_params:
+  org: %s
+  space: %s`, canaries, org, space)
+}
+
 func writeConfigFile(configContent string) string {
 	file, err := ioutil.TempFile("", "config")
 	Expect(err).NotTo(HaveOccurred())
@@ -327,6 +339,63 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 				"SSL validation error for `service_instances_api.url`: %s. Please configure a `service_instances_api.root_ca_cert` and use a valid SSL certificate",
 				testServiceInstancesAPIServer.URL+serviceInstancesAPIURLPath)))
 		})
+	})
+
+	It("uses the canary_selection_params when querying canary instances", func() {
+		operationData := `{"BoshTaskID":1,"OperationType":"upgrade","PostDeployErrand":{},"PreDeleteErrand":{}}`
+		instanceID := "my-instance-id"
+		canaryInstanceID := "canary-instance-id"
+		canariesList := fmt.Sprintf(`[{"plan_id": "service-plan-id", "service_instance_id": "%s"}]`, canaryInstanceID)
+		instancesList := fmt.Sprintf(`[{"plan_id": "service-plan-id", "service_instance_id": "%s"}, {"plan_id": "service-plan-id", "service_instance_id": "%s"}]`, canaryInstanceID, instanceID)
+		odb.VerifyAndMock(
+			mockbroker.ListInstancesWithOrgAndSpace("my-org", "my-space").RespondsOKWith(canariesList),
+			mockbroker.ListInstances().RespondsOKWith(instancesList),
+			mockbroker.UpgradeInstance(canaryInstanceID).RespondsAcceptedWith(operationData),
+			mockbroker.LastOperation(canaryInstanceID, operationData).RespondWithOperationSucceeded(),
+
+			mockbroker.ListInstances().RespondsOKWith(instancesList),
+			mockbroker.ListInstances().RespondsOKWith(instancesList),
+			mockbroker.UpgradeInstance(instanceID).RespondsAcceptedWith(operationData),
+			mockbroker.LastOperation(instanceID, operationData).RespondWithOperationSucceeded(),
+		)
+		brokerConfig := populateBrokerConfig(odb.URL, brokerUsername, brokerPassword)
+		serviceInstancesAPIConfig := populateServiceInstancesAPIConfig(
+			odb.URL+brokerServiceInstancesURLPath,
+			brokerUsername,
+			brokerPassword,
+		)
+		pollingIntervalConfig := populateUpgraderConfigWithCanaries(1, "my-org", "my-space")
+		config := brokerConfig + serviceInstancesAPIConfig + pollingIntervalConfig
+		configPath = writeConfigFile(config)
+
+		runningTool := startUpgradeAllInstanceBinary()
+		Eventually(runningTool, 5*time.Second).Should(gexec.Exit(0))
+		Expect(runningTool).To(gbytes.Say("STARTING CANARY UPGRADES: 1 canaries"))
+		Expect(runningTool).To(gbytes.Say("Status: SUCCESS"))
+		Expect(runningTool).To(gbytes.Say("Number of successful upgrades: 2"))
+	})
+
+	It("uses the canary_selection_params but returns an error if no instances found but instances exist", func() {
+		instanceID := "my-instance-id"
+		canariesList := `[]`
+		instancesList := fmt.Sprintf(`[{"plan_id": "service-plan-id", "service_instance_id": "%s"}]`, instanceID)
+		odb.VerifyAndMock(
+			mockbroker.ListInstancesWithOrgAndSpace("my-org", "my-space").RespondsOKWith(canariesList),
+			mockbroker.ListInstances().RespondsOKWith(instancesList),
+		)
+		brokerConfig := populateBrokerConfig(odb.URL, brokerUsername, brokerPassword)
+		serviceInstancesAPIConfig := populateServiceInstancesAPIConfig(
+			odb.URL+brokerServiceInstancesURLPath,
+			brokerUsername,
+			brokerPassword,
+		)
+		pollingIntervalConfig := populateUpgraderConfigWithCanaries(1, "my-org", "my-space")
+		config := brokerConfig + serviceInstancesAPIConfig + pollingIntervalConfig
+		configPath = writeConfigFile(config)
+
+		runningTool := startUpgradeAllInstanceBinary()
+		Eventually(runningTool, 5*time.Second).Should(gexec.Exit(1))
+		Expect(runningTool).To(gbytes.Say("error listing service instances: Upgrade failed to find a match to the canary selection criteria"))
 	})
 
 	It("when there is one service instance exits successfully with one instance upgraded message", func() {

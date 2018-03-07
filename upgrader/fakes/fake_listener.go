@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
+	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/service"
 	"github.com/pivotal-cf/on-demand-service-broker/upgrader"
 )
@@ -83,10 +84,11 @@ type FakeListener struct {
 		busyInstances   []string
 		failedInstances []string
 	}
-	CanariesStartingStub        func(canaries int)
+	CanariesStartingStub        func(canaries int, filter config.CanarySelectionParams)
 	canariesStartingMutex       sync.RWMutex
 	canariesStartingArgsForCall []struct {
 		canaries int
+		filter   config.CanarySelectionParams
 	}
 	CanariesFinishedStub        func()
 	canariesFinishedMutex       sync.RWMutex
@@ -391,15 +393,16 @@ func (fake *FakeListener) FinishedArgsForCall(i int) (int, int, int, []string, [
 	return fake.finishedArgsForCall[i].orphanCount, fake.finishedArgsForCall[i].upgradedCount, fake.finishedArgsForCall[i].deletedCount, fake.finishedArgsForCall[i].busyInstances, fake.finishedArgsForCall[i].failedInstances
 }
 
-func (fake *FakeListener) CanariesStarting(canaries int) {
+func (fake *FakeListener) CanariesStarting(canaries int, filter config.CanarySelectionParams) {
 	fake.canariesStartingMutex.Lock()
 	fake.canariesStartingArgsForCall = append(fake.canariesStartingArgsForCall, struct {
 		canaries int
-	}{canaries})
-	fake.recordInvocation("CanariesStarting", []interface{}{canaries})
+		filter   config.CanarySelectionParams
+	}{canaries, filter})
+	fake.recordInvocation("CanariesStarting", []interface{}{canaries, filter})
 	fake.canariesStartingMutex.Unlock()
 	if fake.CanariesStartingStub != nil {
-		fake.CanariesStartingStub(canaries)
+		fake.CanariesStartingStub(canaries, filter)
 	}
 }
 
@@ -409,10 +412,10 @@ func (fake *FakeListener) CanariesStartingCallCount() int {
 	return len(fake.canariesStartingArgsForCall)
 }
 
-func (fake *FakeListener) CanariesStartingArgsForCall(i int) int {
+func (fake *FakeListener) CanariesStartingArgsForCall(i int) (int, config.CanarySelectionParams) {
 	fake.canariesStartingMutex.RLock()
 	defer fake.canariesStartingMutex.RUnlock()
-	return fake.canariesStartingArgsForCall[i].canaries
+	return fake.canariesStartingArgsForCall[i].canaries, fake.canariesStartingArgsForCall[i].filter
 }
 
 func (fake *FakeListener) CanariesFinished() {

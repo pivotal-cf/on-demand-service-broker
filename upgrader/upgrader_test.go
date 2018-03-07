@@ -18,6 +18,7 @@ import (
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
+	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/service"
 	"github.com/pivotal-cf/on-demand-service-broker/upgrader"
 	"github.com/pivotal-cf/on-demand-service-broker/upgrader/fakes"
@@ -95,7 +96,7 @@ var _ = Describe("Upgrader", func() {
 				Expect(actualErr).NotTo(HaveOccurred())
 
 				hasReportedStarting(fakeListener, upgraderBuilder.MaxInFlight)
-				hasReportedCanariesStarting(fakeListener, 0)
+				hasNotReportedCanariesStarting(fakeListener)
 				hasReportedCanariesFinished(fakeListener, 0)
 			})
 		})
@@ -541,10 +542,236 @@ var _ = Describe("Upgrader", func() {
 					Expect(actualErr).NotTo(HaveOccurred())
 
 					By("logging that start upgrading canaries")
-					hasReportedCanariesStarting(fakeListener, 1)
+					hasReportedCanariesStarting(fakeListener, 2, nil)
 
 					By("logging when the canaries finish upgrading")
 					hasReportedCanariesFinished(fakeListener, 1)
+				})
+
+				It("when canary filter params are given, a canary is still only upgraded once", func() {
+					upgraderBuilder.MaxInFlight = 3
+					upgraderBuilder.Canaries = 0
+					upgraderBuilder.CanarySelectionParams = config.CanarySelectionParams{
+						"org":   "the-org",
+						"space": "the-space",
+					}
+
+					filteredInstances := []service.Instance{
+						{GUID: serviceInstance2},
+					}
+					instanceLister.FilteredInstancesReturns(filteredInstances, nil)
+
+					upgradeTool := upgrader.New(&upgraderBuilder)
+					var wg sync.WaitGroup
+					wg.Add(1)
+					go func() {
+						defer GinkgoRecover()
+						defer wg.Done()
+						actualErr = upgradeTool.Upgrade()
+					}()
+
+					expectToHaveNotStarted(si1Controller, si3Controller, si4Controller)
+					expectToHaveStarted(si2Controller)
+
+					allowToProceed(si2Controller)
+					expectToHaveStarted(si1Controller, si3Controller, si4Controller)
+					expectToHaveNotStarted(si2Controller)
+
+					allowToProceed(si1Controller, si3Controller, si4Controller)
+
+					wg.Wait()
+
+					Expect(actualErr).NotTo(HaveOccurred())
+
+					upgraded := []string{}
+					for i := 0; i < fakeListener.InstanceUpgradedCallCount(); i++ {
+						id, status := fakeListener.InstanceUpgradedArgsForCall(i)
+						if status == "success" {
+							upgraded = append(upgraded, id)
+						}
+					}
+					Expect(upgraded).To(ConsistOf(serviceInstance1, serviceInstance2,
+						serviceInstance3, serviceInstance4))
+				})
+
+				It("selects the canary instances using the provided selection criteria", func() {
+					upgraderBuilder.MaxInFlight = 2
+					upgraderBuilder.Canaries = 0
+					upgraderBuilder.CanarySelectionParams = config.CanarySelectionParams{
+						"org":   "the-org",
+						"space": "the-space",
+					}
+
+					filteredInstances := []service.Instance{
+						{GUID: serviceInstance2},
+						{GUID: serviceInstance3},
+					}
+					instanceLister.FilteredInstancesReturns(filteredInstances, nil)
+
+					upgradeTool := upgrader.New(&upgraderBuilder)
+					var wg sync.WaitGroup
+					wg.Add(1)
+					go func() {
+						defer GinkgoRecover()
+						defer wg.Done()
+						actualErr = upgradeTool.Upgrade()
+					}()
+
+					expectToHaveNotStarted(si1Controller, si4Controller)
+					expectToHaveStarted(si2Controller, si3Controller)
+
+					allowToProceed(si2Controller, si3Controller)
+					expectToHaveStarted(si1Controller, si4Controller)
+
+					allowToProceed(si1Controller, si4Controller)
+
+					wg.Wait()
+
+					Expect(actualErr).NotTo(HaveOccurred())
+
+					Expect(instanceLister.FilteredInstancesCallCount()).To(Equal(1))
+					params := instanceLister.FilteredInstancesArgsForCall(0)
+					Expect(params["org"]).To(Equal("the-org"))
+					Expect(params["space"]).To(Equal("the-space"))
+
+					By("logging that start upgrading canaries")
+					hasReportedCanariesStarting(fakeListener, 2, upgraderBuilder.CanarySelectionParams)
+
+					By("logging when the canaries finish upgrading")
+					hasReportedCanariesFinished(fakeListener, 1)
+				})
+
+				It("select the canary instances using the provided selection criteria and limit the number of canaries", func() {
+					upgraderBuilder.MaxInFlight = 3
+					upgraderBuilder.Canaries = 1
+					upgraderBuilder.CanarySelectionParams = config.CanarySelectionParams{
+						"org":   "the-org",
+						"space": "the-space",
+					}
+
+					filteredInstances := []service.Instance{
+						{GUID: serviceInstance2},
+						{GUID: serviceInstance3},
+					}
+					instanceLister.FilteredInstancesReturns(filteredInstances, nil)
+
+					upgradeTool := upgrader.New(&upgraderBuilder)
+					var wg sync.WaitGroup
+					wg.Add(1)
+					go func() {
+						defer GinkgoRecover()
+						defer wg.Done()
+						actualErr = upgradeTool.Upgrade()
+					}()
+
+					expectToHaveNotStarted(si1Controller, si4Controller, si3Controller)
+					expectToHaveStarted(si2Controller)
+
+					allowToProceed(si2Controller)
+					expectToHaveStarted(si1Controller, si3Controller, si4Controller)
+
+					allowToProceed(si1Controller, si3Controller, si4Controller)
+
+					wg.Wait()
+
+					Expect(actualErr).NotTo(HaveOccurred())
+
+					Expect(instanceLister.FilteredInstancesCallCount()).To(Equal(1))
+					params := instanceLister.FilteredInstancesArgsForCall(0)
+					Expect(params["org"]).To(Equal("the-org"))
+					Expect(params["space"]).To(Equal("the-space"))
+
+					By("logging that start upgrading canaries")
+					hasReportedCanariesStarting(fakeListener, 1, upgraderBuilder.CanarySelectionParams)
+
+					By("logging when the canaries finish upgrading")
+					hasReportedCanariesFinished(fakeListener, 1)
+				})
+
+				It("stops processing canaries after limit reached on number of returned filtered instances with a higher canary number specified", func() {
+					upgraderBuilder.MaxInFlight = 3
+					upgraderBuilder.Canaries = 2
+					upgraderBuilder.CanarySelectionParams = config.CanarySelectionParams{
+						"org":   "the-org",
+						"space": "the-space",
+					}
+
+					filteredInstances := []service.Instance{
+						{GUID: serviceInstance2},
+					}
+					instanceLister.FilteredInstancesReturns(filteredInstances, nil)
+
+					upgradeTool := upgrader.New(&upgraderBuilder)
+					var wg sync.WaitGroup
+					wg.Add(1)
+					go func() {
+						defer GinkgoRecover()
+						defer wg.Done()
+						actualErr = upgradeTool.Upgrade()
+					}()
+
+					expectToHaveNotStarted(si1Controller, si4Controller, si3Controller)
+					expectToHaveStarted(si2Controller)
+
+					allowToProceed(si2Controller)
+					expectToHaveStarted(si1Controller, si3Controller, si4Controller)
+
+					allowToProceed(si1Controller, si3Controller, si4Controller)
+
+					wg.Wait()
+
+					Expect(actualErr).NotTo(HaveOccurred())
+
+					Expect(instanceLister.FilteredInstancesCallCount()).To(Equal(1))
+					params := instanceLister.FilteredInstancesArgsForCall(0)
+					Expect(params["org"]).To(Equal("the-org"))
+					Expect(params["space"]).To(Equal("the-space"))
+
+					By("logging that start upgrading canaries")
+					hasReportedCanariesStarting(fakeListener, 1, upgraderBuilder.CanarySelectionParams)
+
+					By("logging when the canaries finish upgrading")
+					hasReportedCanariesFinished(fakeListener, 1)
+				})
+
+				It("fails to upgrade when no instances returned using filter criteria but instances exist", func() {
+					upgraderBuilder.MaxInFlight = 3
+					upgraderBuilder.Canaries = 2
+					upgraderBuilder.CanarySelectionParams = config.CanarySelectionParams{
+						"org":   "the-org",
+						"space": "the-space",
+					}
+
+					instanceLister.FilteredInstancesReturns([]service.Instance{}, nil)
+
+					upgradeTool := upgrader.New(&upgraderBuilder)
+					actualErr = upgradeTool.Upgrade()
+
+					Expect(actualErr).To(HaveOccurred())
+					Expect(actualErr).To(MatchError(ContainSubstring("Upgrade failed to find a match to the canary selection criteria: ")))
+					Expect(actualErr).To(MatchError(ContainSubstring("org: the-org")))
+					Expect(actualErr).To(MatchError(ContainSubstring("space: the-space")))
+					Expect(actualErr).To(MatchError(ContainSubstring("Please ensure that this criterion will match 1 or more service instances, or remove the criteria to proceed without canaries")))
+
+					Expect(instanceLister.FilteredInstancesCallCount()).To(Equal(1))
+				})
+
+				It("does not fail to upgrade when no instances returned using filter criteria but no instances exist", func() {
+					upgraderBuilder.MaxInFlight = 3
+					upgraderBuilder.Canaries = 2
+					upgraderBuilder.CanarySelectionParams = config.CanarySelectionParams{
+						"org":   "the-org",
+						"space": "the-space",
+					}
+
+					instanceLister.FilteredInstancesReturns([]service.Instance{}, nil)
+					instanceLister.InstancesReturns([]service.Instance{}, nil)
+
+					upgradeTool := upgrader.New(&upgraderBuilder)
+					actualErr = upgradeTool.Upgrade()
+
+					Expect(actualErr).ToNot(HaveOccurred())
+					hasReportedFinished(fakeListener, 0, 0, 0, emptyBusyList, emptyFailedList)
 				})
 
 				It("upgrades the canary instances in parallel, respecting maxInFlight", func() {
@@ -1773,8 +2000,15 @@ func hasReportedAttempts(fakeListener *fakes.FakeListener, count, limit int) {
 	}
 }
 
-func hasReportedCanariesStarting(fakeListener *fakes.FakeListener, count int) {
-	Expect(fakeListener.CanariesStartingCallCount()).To(Equal(count), "CanariesStarting() call count")
+func hasReportedCanariesStarting(fakeListener *fakes.FakeListener, count int, filter config.CanarySelectionParams) {
+	Expect(fakeListener.CanariesStartingCallCount()).To(Equal(1), "CanariesStarting() call count")
+	canaryCount, actualFilter := fakeListener.CanariesStartingArgsForCall(0)
+	Expect(canaryCount).To(Equal(count))
+	Expect(actualFilter).To(Equal(filter))
+}
+
+func hasNotReportedCanariesStarting(fakeListener *fakes.FakeListener) {
+	Expect(fakeListener.CanariesStartingCallCount()).To(Equal(0), "CanariesStarting() call count")
 }
 
 func hasReportedCanariesFinished(fakeListener *fakes.FakeListener, count int) {

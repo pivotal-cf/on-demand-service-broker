@@ -516,7 +516,15 @@ type Quotas struct {
 	ServiceInstanceLimit *int `yaml:"service_instance_limit,omitempty"`
 }
 
-type CanarySelectionParams map[string]interface{}
+type CanarySelectionParams map[string]string
+
+func (filter CanarySelectionParams) String() string {
+	filters := []string{}
+	for k, v := range filter {
+		filters = append(filters, fmt.Sprintf("%s: %s", k, v))
+	}
+	return strings.Join(filters, ", ")
+}
 
 type UpgradeAllInstanceErrandConfig struct {
 	BrokerAPI             BrokerAPI             `yaml:"broker_api"`

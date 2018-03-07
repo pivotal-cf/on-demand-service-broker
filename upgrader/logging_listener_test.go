@@ -15,6 +15,7 @@ import (
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gbytes"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
+	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 	"github.com/pivotal-cf/on-demand-service-broker/service"
 	"github.com/pivotal-cf/on-demand-service-broker/upgrader"
@@ -41,8 +42,20 @@ var _ = Describe("Logging Listener", func() {
 	})
 
 	It("Shows starting canaries message", func() {
-		Expect(logResultsFrom(func(listener upgrader.Listener) { listener.CanariesStarting(2) })).
+		Expect(logResultsFrom(func(listener upgrader.Listener) {
+			listener.CanariesStarting(2, config.CanarySelectionParams{})
+		})).
 			To(Say("STARTING CANARY UPGRADES: 2 canaries"))
+	})
+
+	It("Shows starting canaries message with filter params", func() {
+		filter := map[string]string{"org": "my-org", "space": "my-space"}
+		Expect(logResultsFrom(func(listener upgrader.Listener) { listener.CanariesStarting(2, filter) })).
+			To(Say("STARTING CANARY UPGRADES: 2 canaries with selection criteria: "))
+		Expect(logResultsFrom(func(listener upgrader.Listener) { listener.CanariesStarting(2, filter) })).
+			To(Say("org: my-org"))
+		Expect(logResultsFrom(func(listener upgrader.Listener) { listener.CanariesStarting(2, filter) })).
+			To(Say("space: my-space"))
 	})
 
 	It("Shows canaries finished message", func() {

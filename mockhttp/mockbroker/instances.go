@@ -6,8 +6,16 @@
 
 package mockbroker
 
-import "github.com/pivotal-cf/on-demand-service-broker/mockhttp"
+import (
+	"fmt"
+
+	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
+)
 
 func ListInstances() *mockhttp.Handler {
 	return mockhttp.NewMockedHttpRequest("GET", "/mgmt/service_instances")
+}
+
+func ListInstancesWithOrgAndSpace(org, space string) *mockhttp.Handler {
+	return mockhttp.NewMockedHttpRequest("GET", fmt.Sprintf("/mgmt/service_instances?org=%s&space=%s", org, space))
 }
