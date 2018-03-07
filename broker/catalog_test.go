@@ -2,6 +2,7 @@ package broker_test
 
 import (
 	"context"
+	"errors"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -92,6 +93,18 @@ var _ = Describe("Catalog", func() {
 			},
 		}))
 
+		Expect(logBuffer.String()).To(ContainSubstring("the service adapter does not implement generate-plan-schemas"))
+	})
+
+	It("fails if the adapter returns an error when generating plan schemas", func() {
+		serviceAdapter.GeneratePlanSchemaReturns(brokerapi.ServiceSchemas{}, errors.New("oops"))
+		b, brokerCreationErr = createBroker([]broker.StartupChecker{}, noopservicescontroller.New())
+		Expect(brokerCreationErr).NotTo(HaveOccurred())
+
+		contextWithoutRequestID := context.Background()
+		_, err := b.Services(contextWithoutRequestID)
+		Expect(err).To(MatchError("oops"))
+		Expect(logBuffer.String()).NotTo(ContainSubstring("the service adapter does not implement generate-plan-schemas"))
 	})
 
 	Context("a plan includes a cost", func() {

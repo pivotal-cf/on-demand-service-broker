@@ -40,6 +40,7 @@ func (b *Broker) Services(ctx context.Context) ([]brokerapi.Service, error) {
 			if _, ok := err.(serviceadapter.NotImplementedError); !ok {
 				return []brokerapi.Service{}, err
 			}
+			logger.Println("the service adapter does not implement generate-plan-schemas")
 		} else {
 			servicePlan.Schemas = &planSchema
 		}
