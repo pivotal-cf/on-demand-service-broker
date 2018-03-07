@@ -69,16 +69,18 @@ type FakeCombinedBroker struct {
 		result1 map[cf.ServicePlan]int
 		result2 error
 	}
-	ServicesStub        func(ctx context.Context) []brokerapi.Service
+	ServicesStub        func(ctx context.Context) ([]brokerapi.Service, error)
 	servicesMutex       sync.RWMutex
 	servicesArgsForCall []struct {
 		ctx context.Context
 	}
 	servicesReturns struct {
 		result1 []brokerapi.Service
+		result2 error
 	}
 	servicesReturnsOnCall map[int]struct {
 		result1 []brokerapi.Service
+		result2 error
 	}
 	ProvisionStub        func(ctx context.Context, instanceID string, details brokerapi.ProvisionDetails, asyncAllowed bool) (brokerapi.ProvisionedServiceSpec, error)
 	provisionMutex       sync.RWMutex
@@ -384,7 +386,7 @@ func (fake *FakeCombinedBroker) CountInstancesOfPlansReturnsOnCall(i int, result
 	}{result1, result2}
 }
 
-func (fake *FakeCombinedBroker) Services(ctx context.Context) []brokerapi.Service {
+func (fake *FakeCombinedBroker) Services(ctx context.Context) ([]brokerapi.Service, error) {
 	fake.servicesMutex.Lock()
 	ret, specificReturn := fake.servicesReturnsOnCall[len(fake.servicesArgsForCall)]
 	fake.servicesArgsForCall = append(fake.servicesArgsForCall, struct {
@@ -396,9 +398,9 @@ func (fake *FakeCombinedBroker) Services(ctx context.Context) []brokerapi.Servic
 		return fake.ServicesStub(ctx)
 	}
 	if specificReturn {
-		return ret.result1
+		return ret.result1, ret.result2
 	}
-	return fake.servicesReturns.result1
+	return fake.servicesReturns.result1, fake.servicesReturns.result2
 }
 
 func (fake *FakeCombinedBroker) ServicesCallCount() int {
@@ -413,23 +415,26 @@ func (fake *FakeCombinedBroker) ServicesArgsForCall(i int) context.Context {
 	return fake.servicesArgsForCall[i].ctx
 }
 
-func (fake *FakeCombinedBroker) ServicesReturns(result1 []brokerapi.Service) {
+func (fake *FakeCombinedBroker) ServicesReturns(result1 []brokerapi.Service, result2 error) {
 	fake.ServicesStub = nil
 	fake.servicesReturns = struct {
 		result1 []brokerapi.Service
-	}{result1}
+		result2 error
+	}{result1, result2}
 }
 
-func (fake *FakeCombinedBroker) ServicesReturnsOnCall(i int, result1 []brokerapi.Service) {
+func (fake *FakeCombinedBroker) ServicesReturnsOnCall(i int, result1 []brokerapi.Service, result2 error) {
 	fake.ServicesStub = nil
 	if fake.servicesReturnsOnCall == nil {
 		fake.servicesReturnsOnCall = make(map[int]struct {
 			result1 []brokerapi.Service
+			result2 error
 		})
 	}
 	fake.servicesReturnsOnCall[i] = struct {
 		result1 []brokerapi.Service
-	}{result1}
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeCombinedBroker) Provision(ctx context.Context, instanceID string, details brokerapi.ProvisionDetails, asyncAllowed bool) (brokerapi.ProvisionedServiceSpec, error) {

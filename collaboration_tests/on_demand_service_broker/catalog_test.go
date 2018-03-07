@@ -1,9 +1,11 @@
 package on_demand_service_broker_test
 
 import (
+	"errors"
 	"fmt"
 
 	brokerConfig "github.com/pivotal-cf/on-demand-service-broker/config"
+	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 
 	"net/http"
@@ -199,6 +201,98 @@ var _ = Describe("Catalog", func() {
 					},
 				},
 			}))
+		})
+	})
+
+	When("GeneratePlanSchemas returns an error", func() {
+		var (
+			serviceCatalogConfig brokerConfig.ServiceOffering
+		)
+
+		BeforeEach(func() {
+			serviceCatalogConfig = defaultServiceCatalogConfig()
+			conf := brokerConfig.Config{
+				Broker: brokerConfig.Broker{
+					Port: serverPort, Username: brokerUsername, Password: brokerPassword,
+				},
+				ServiceCatalog: serviceCatalogConfig,
+			}
+
+			StartServer(conf)
+		})
+
+		It("fails with 500 status code", func() {
+			fakeServiceAdapter.GeneratePlanSchemaReturns(brokerapi.ServiceSchemas{}, errors.New("oops"))
+			response, bodyContent := doCatalogRequest()
+
+			Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+			Expect(bodyContent).To(ContainSubstring("oops"))
+		})
+
+		It("does not fail if the adapter returns a not-implemented error", func() {
+			fakeServiceAdapter.GeneratePlanSchemaReturns(brokerapi.ServiceSchemas{}, serviceadapter.NewNotImplementedError("oops"))
+			response, bodyContent := doCatalogRequest()
+
+			Expect(response.StatusCode).To(Equal(http.StatusOK))
+			var catalog brokerapi.CatalogResponse
+			err := json.Unmarshal(bodyContent, &catalog)
+			Expect(err).NotTo(HaveOccurred())
+
+			expectedServices := make([]brokerapi.Service, 0, 4)
+			expectedServices = append(expectedServices,
+				brokerapi.Service{
+					ID:            serviceID,
+					Name:          serviceName,
+					Description:   serviceDescription,
+					Bindable:      serviceBindable,
+					PlanUpdatable: servicePlanUpdatable,
+					Metadata: &brokerapi.ServiceMetadata{
+						DisplayName:         serviceMetadataDisplayName,
+						ImageUrl:            serviceMetadataImageURL,
+						LongDescription:     serviceMetaDataLongDescription,
+						ProviderDisplayName: serviceMetaDataProviderDisplayName,
+						DocumentationUrl:    serviceMetaDataDocumentationURL,
+						SupportUrl:          serviceMetaDataSupportURL,
+						Shareable:           &trueVar,
+					},
+					DashboardClient: &brokerapi.ServiceDashboardClient{
+						ID:          "client-id-1",
+						Secret:      "secret-1",
+						RedirectURI: "https://dashboard.url",
+					},
+					Tags: serviceTags,
+					Plans: []brokerapi.ServicePlan{
+						{
+							ID:          dedicatedPlanID,
+							Name:        dedicatedPlanName,
+							Description: dedicatedPlanDescription,
+							Free:        &trueVar,
+							Bindable:    &trueVar,
+							Metadata: &brokerapi.ServicePlanMetadata{
+								Bullets:     dedicatedPlanBullets,
+								DisplayName: dedicatedPlanDisplayName,
+								Costs: []brokerapi.ServicePlanCost{
+									{
+										Unit:   dedicatedPlanCostUnit,
+										Amount: dedicatedPlanCostAmount,
+									},
+								},
+							},
+						},
+						{
+							ID:          highMemoryPlanID,
+							Name:        highMemoryPlanName,
+							Description: highMemoryPlanDescription,
+							Metadata: &brokerapi.ServicePlanMetadata{
+								Bullets:     highMemoryPlanBullets,
+								DisplayName: highMemoryPlanDisplayName,
+							},
+						},
+					},
+				},
+			)
+
+			Expect(catalog.Services).To(Equal(expectedServices))
 		})
 	})
 })

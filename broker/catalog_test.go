@@ -2,7 +2,6 @@ package broker_test
 
 import (
 	"context"
-	"errors"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -10,6 +9,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/noopservicescontroller"
+	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 )
 
 var _ = Describe("Catalog", func() {
@@ -59,13 +59,14 @@ var _ = Describe("Catalog", func() {
 		}
 	})
 
-	It("generates the catalog response", func() {
-		serviceAdapter.GeneratePlanSchemaReturns(brokerapi.ServiceSchemas{}, errors.New("not implemented"))
+	It("generates the catalog response if the adapter does not implement generate-plan-schemas", func() {
+		serviceAdapter.GeneratePlanSchemaReturns(brokerapi.ServiceSchemas{}, serviceadapter.NewNotImplementedError("not implemented"))
 		b, brokerCreationErr = createBroker([]broker.StartupChecker{}, noopservicescontroller.New())
 		Expect(brokerCreationErr).NotTo(HaveOccurred())
 
 		contextWithoutRequestID := context.Background()
-		services := b.Services(contextWithoutRequestID)
+		services, err := b.Services(contextWithoutRequestID)
+		Expect(err).ToNot(HaveOccurred())
 
 		plans := getPlansFromCatalog(serviceCatalog)
 
@@ -102,7 +103,8 @@ var _ = Describe("Catalog", func() {
 			Expect(brokerCreationErr).NotTo(HaveOccurred())
 
 			contextWithoutRequestID := context.Background()
-			services := b.Services(contextWithoutRequestID)
+			services, err := b.Services(contextWithoutRequestID)
+			Expect(err).ToNot(HaveOccurred())
 
 			Expect(services[0].Plans[0].Metadata.Costs).To(Equal(
 				[]brokerapi.ServicePlanCost{
@@ -124,7 +126,8 @@ var _ = Describe("Catalog", func() {
 			Expect(brokerCreationErr).NotTo(HaveOccurred())
 
 			contextWithoutRequestID := context.Background()
-			services := b.Services(contextWithoutRequestID)
+			services, err := b.Services(contextWithoutRequestID)
+			Expect(err).ToNot(HaveOccurred())
 
 			Expect(*services[0].DashboardClient).To(Equal(
 				brokerapi.ServiceDashboardClient{
@@ -153,7 +156,8 @@ var _ = Describe("Catalog", func() {
 		Expect(brokerCreationErr).NotTo(HaveOccurred())
 
 		contextWithoutRequestID := context.Background()
-		services := b.Services(contextWithoutRequestID)
+		services, err := b.Services(contextWithoutRequestID)
+		Expect(err).ToNot(HaveOccurred())
 
 		Expect(serviceAdapter.GeneratePlanSchemaCallCount()).To(Equal(len(services[0].Plans)))
 		for _, service := range services {

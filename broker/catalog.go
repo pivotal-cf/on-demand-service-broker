@@ -10,9 +10,10 @@ import (
 	"context"
 
 	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 )
 
-func (b *Broker) Services(ctx context.Context) []brokerapi.Service {
+func (b *Broker) Services(ctx context.Context) ([]brokerapi.Service, error) {
 	logger := b.loggerFactory.NewWithContext(ctx)
 	var servicePlans []brokerapi.ServicePlan
 	for _, plan := range b.serviceOffering.Plans {
@@ -35,7 +36,11 @@ func (b *Broker) Services(ctx context.Context) []brokerapi.Service {
 		}
 
 		planSchema, err := b.adapterClient.GeneratePlanSchema(plan.AdapterPlan(b.serviceOffering.GlobalProperties), logger)
-		if err == nil {
+		if err != nil {
+			if _, ok := err.(serviceadapter.NotImplementedError); !ok {
+				return []brokerapi.Service{}, err
+			}
+		} else {
 			servicePlan.Schemas = &planSchema
 		}
 		servicePlans = append(servicePlans, servicePlan)
@@ -71,7 +76,7 @@ func (b *Broker) Services(ctx context.Context) []brokerapi.Service {
 			Requires:        requiredPermissions(b.serviceOffering.Requires),
 			Tags:            b.serviceOffering.Tags,
 		},
-	}
+	}, nil
 }
 
 func requiredPermissions(permissions []string) []brokerapi.RequiredPermission {

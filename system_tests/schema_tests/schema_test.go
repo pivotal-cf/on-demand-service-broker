@@ -11,9 +11,9 @@ import (
 	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/cf_helpers"
 )
 
-var _ = Describe("", func() {
+var _ = Describe("Service plan schemas", func() {
 
-	It("tests", func() {
+	It("fetches the plan schema from cloud foundry", func() {
 		defaultSchema := `{
   "service_binding": {
 	  "create": {
