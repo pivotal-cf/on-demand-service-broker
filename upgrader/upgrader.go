@@ -108,13 +108,9 @@ func New(builder *Builder) *Upgrader {
 	}
 }
 
-func (u *Upgrader) filteredInstances() ([]service.Instance, error) {
+func (u *Upgrader) filteredInstances(unfilteredInstances []service.Instance) ([]service.Instance, error) {
 	instances, err := u.instanceLister.FilteredInstances(u.controller.canarySelectionParams)
 	if len(instances) == 0 {
-		unfilteredInstances, err := u.instanceLister.Instances()
-		if err != nil {
-			return nil, err
-		}
 		if len(unfilteredInstances) > 0 {
 			return nil, fmt.Errorf("Upgrade failed to find a match to the canary selection criteria: %s Please ensure that this criterion will match 1 or more service instances, or remove the criteria to proceed without canaries", u.controller.canarySelectionParams)
 		}
@@ -141,7 +137,7 @@ func (u *Upgrader) Upgrade() error {
 	}
 
 	if len(u.controller.canarySelectionParams) > 0 {
-		canaryInstances, err = u.filteredInstances()
+		canaryInstances, err = u.filteredInstances(allInstances)
 		if err != nil {
 			return fmt.Errorf("error listing service instances: %s", err)
 		}

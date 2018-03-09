@@ -348,12 +348,12 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 		canariesList := fmt.Sprintf(`[{"plan_id": "service-plan-id", "service_instance_id": "%s"}]`, canaryInstanceID)
 		instancesList := fmt.Sprintf(`[{"plan_id": "service-plan-id", "service_instance_id": "%s"}, {"plan_id": "service-plan-id", "service_instance_id": "%s"}]`, canaryInstanceID, instanceID)
 		odb.VerifyAndMock(
+			mockbroker.ListInstances().RespondsOKWith(instancesList),
 			mockbroker.ListInstancesWithOrgAndSpace("my-org", "my-space").RespondsOKWith(canariesList),
 			mockbroker.ListInstances().RespondsOKWith(instancesList),
 			mockbroker.UpgradeInstance(canaryInstanceID).RespondsAcceptedWith(operationData),
 			mockbroker.LastOperation(canaryInstanceID, operationData).RespondWithOperationSucceeded(),
 
-			mockbroker.ListInstances().RespondsOKWith(instancesList),
 			mockbroker.ListInstances().RespondsOKWith(instancesList),
 			mockbroker.UpgradeInstance(instanceID).RespondsAcceptedWith(operationData),
 			mockbroker.LastOperation(instanceID, operationData).RespondWithOperationSucceeded(),
@@ -380,8 +380,8 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 		canariesList := `[]`
 		instancesList := fmt.Sprintf(`[{"plan_id": "service-plan-id", "service_instance_id": "%s"}]`, instanceID)
 		odb.VerifyAndMock(
-			mockbroker.ListInstancesWithOrgAndSpace("my-org", "my-space").RespondsOKWith(canariesList),
 			mockbroker.ListInstances().RespondsOKWith(instancesList),
+			mockbroker.ListInstancesWithOrgAndSpace("my-org", "my-space").RespondsOKWith(canariesList),
 		)
 		brokerConfig := populateBrokerConfig(odb.URL, brokerUsername, brokerPassword)
 		serviceInstancesAPIConfig := populateServiceInstancesAPIConfig(

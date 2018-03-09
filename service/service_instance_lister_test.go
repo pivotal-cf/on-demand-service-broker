@@ -197,11 +197,11 @@ var _ = Describe("ServiceInstanceLister", func() {
 
 	Describe("requesting filtered instances", func() {
 		var (
-			params map[string]interface{}
+			params map[string]string
 		)
 
 		BeforeEach(func() {
-			params = map[string]interface{}{
+			params = map[string]string{
 				"org":   "my-org",
 				"space": "my-space",
 			}
