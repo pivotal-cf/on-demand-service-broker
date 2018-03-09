@@ -128,24 +128,33 @@ func (u *Upgrader) filteredInstances() ([]service.Instance, error) {
 }
 
 func (u *Upgrader) Upgrade() error {
-	u.listener.Starting(u.maxInFlight)
 	var instances []service.Instance
 	var err error
-	if len(u.controller.canarySelectionParams) > 0 {
-		instances, err = u.filteredInstances()
-	} else {
-		instances, err = u.instanceLister.Instances()
-	}
 
+	canaryInstances := []service.Instance{}
+
+	u.listener.Starting(u.maxInFlight)
+
+	allInstances, err := u.instanceLister.Instances()
 	if err != nil {
 		return fmt.Errorf("error listing service instances: %s", err)
 	}
 
-	u.listener.InstancesToUpgrade(instances)
+	if len(u.controller.canarySelectionParams) > 0 {
+		canaryInstances, err = u.filteredInstances()
+		if err != nil {
+			return fmt.Errorf("error listing service instances: %s", err)
+		}
+		instances = canaryInstances
+	} else {
+		instances = allInstances
+	}
+
+	u.listener.InstancesToUpgrade(allInstances)
 
 	u.controller.pendingInstances = instances
 
-	u.totalInstances = len(instances)
+	u.totalInstances = len(allInstances)
 
 	if u.controller.processingCanaries {
 		u.listener.CanariesStarting(u.controller.canaries, u.controller.canarySelectionParams)
@@ -169,15 +178,12 @@ func (u *Upgrader) Upgrade() error {
 				return u.formatError()
 			}
 
-			if u.controller.processingCanaries && u.controller.outstandingCanaries == 0 {
+			if u.controller.processingCanaries && (u.controller.outstandingCanaries == 0 || u.upgradeCompleted(instances)) {
 				u.controller.processingCanaries = false
 				u.listener.CanariesFinished()
 				attempt = 0
 				if len(u.controller.canarySelectionParams) > 0 {
-					u.controller.pendingInstances, err = u.instanceLister.Instances()
-					if err != nil {
-						return fmt.Errorf("error listing service instances: %s", err)
-					}
+					u.controller.pendingInstances = allInstances
 					u.totalInstances = len(u.controller.pendingInstances)
 				}
 			}
@@ -189,7 +195,7 @@ func (u *Upgrader) Upgrade() error {
 
 		u.reportProgress()
 
-		if u.upgradeCompleted(instances) {
+		if u.upgradeCompleted(allInstances) {
 			break
 		}
 

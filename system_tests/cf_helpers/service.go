@@ -37,6 +37,13 @@ func DeleteService(serviceName string) {
 	AwaitServiceDeletion(serviceName)
 }
 
+func GetServiceInstanceGUID(serviceName string) string {
+	session := Cf("service", serviceName, "--guid")
+	Eventually(session, CfTimeout).Should(gexec.Exit(0))
+	bytes := session.Out.Contents()
+	return strings.TrimSpace(string(bytes))
+}
+
 func AwaitInProgressOperations(serviceName string) {
 	awaitServiceOperation(
 		cfService(serviceName),

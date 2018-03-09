@@ -634,6 +634,8 @@ var _ = Describe("Upgrader", func() {
 					Expect(params["org"]).To(Equal("the-org"))
 					Expect(params["space"]).To(Equal("the-space"))
 
+					hasReportedInstancesToUpgrade(fakeListener, serviceInstance1, serviceInstance2, serviceInstance3, serviceInstance4)
+
 					By("logging that start upgrading canaries")
 					hasReportedCanariesStarting(fakeListener, 2, upgraderBuilder.CanarySelectionParams)
 
@@ -686,6 +688,81 @@ var _ = Describe("Upgrader", func() {
 
 					By("logging when the canaries finish upgrading")
 					hasReportedCanariesFinished(fakeListener, 1)
+				})
+
+				It("ignore filtered canary instances when orphaned", func() {
+					brokerServicesClient.UpgradeInstanceStub = func(instance service.Instance) (services.UpgradeOperation, error) {
+						switch instance.GUID {
+						case serviceInstance1:
+							si1Controller.NotifyStart()
+							return services.UpgradeOperation{
+								Type: services.OrphanDeployment,
+								Data: upgradeResponse(upgradeTaskID1),
+							}, nil
+						case serviceInstance2:
+							si2Controller.NotifyStart()
+							return services.UpgradeOperation{
+								Type: services.OrphanDeployment,
+								Data: upgradeResponse(upgradeTaskID2),
+							}, nil
+						case serviceInstance3:
+							si3Controller.NotifyStart()
+							return services.UpgradeOperation{
+								Type: services.OrphanDeployment,
+								Data: upgradeResponse(upgradeTaskID3),
+							}, nil
+						case serviceInstance4:
+							si4Controller.NotifyStart()
+							return services.UpgradeOperation{
+								Type: services.UpgradeAccepted,
+								Data: upgradeResponse(upgradeTaskID4),
+							}, nil
+						}
+						return services.UpgradeOperation{}, errors.New("unexpected instance GUID")
+					}
+
+					upgraderBuilder.MaxInFlight = 3
+					upgraderBuilder.Canaries = 1
+					upgraderBuilder.CanarySelectionParams = config.CanarySelectionParams{
+						"org":   "the-org",
+						"space": "the-space",
+					}
+
+					filteredInstances := []service.Instance{
+						{GUID: serviceInstance2},
+					}
+					instanceLister.FilteredInstancesReturns(filteredInstances, nil)
+
+					upgradeTool := upgrader.New(&upgraderBuilder)
+					var wg sync.WaitGroup
+					wg.Add(1)
+					go func() {
+						defer GinkgoRecover()
+						defer wg.Done()
+					}()
+
+					expectToHaveNotStarted(si4Controller)
+					allowToProceed(si4Controller)
+
+					wg.Wait()
+
+					actualErr = upgradeTool.Upgrade()
+					Expect(actualErr).NotTo(HaveOccurred())
+
+					Expect(instanceLister.FilteredInstancesCallCount()).To(Equal(1))
+					params := instanceLister.FilteredInstancesArgsForCall(0)
+					Expect(params["org"]).To(Equal("the-org"))
+					Expect(params["space"]).To(Equal("the-space"))
+
+					By("logging that start upgrading canaries")
+					hasReportedCanariesStarting(fakeListener, 1, upgraderBuilder.CanarySelectionParams)
+
+					hasReportedOrphans(fakeListener, 3)
+					hasReportedUpgraded(fakeListener, serviceInstance4)
+
+					By("logging when the canaries finish upgrading")
+					hasReportedCanariesFinished(fakeListener, 1)
+
 				})
 
 				It("stops processing canaries after limit reached on number of returned filtered instances with a higher canary number specified", func() {

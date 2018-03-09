@@ -32,12 +32,14 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	cfClient "github.com/pivotal-cf/on-demand-service-broker/cf"
+	"github.com/pivotal-cf/on-demand-service-broker/service"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/bosh_helpers"
 	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/cf_helpers"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 )
 
 type testService struct {
+	GUID    string
 	Name    string
 	AppName string
 	AppURL  string
@@ -67,7 +69,7 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 
 		By("causing an upgrade error")
 		brokerManifest := boshClient.GetManifest(brokerBoshDeploymentName)
-		updateServiceInstancesAPI(brokerManifest)
+		updateServiceInstancesAPI(brokerManifest, []*testService{}, map[string]string{})
 		testPlan := extractPlanProperty(currentPlan, brokerManifest)
 
 		redisServer := testPlan["instance_groups"].([]interface{})[0].(map[interface{}]interface{})
@@ -83,7 +85,7 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 
 	It("when there are no service instances provisioned, upgrade-all-service-instances runs successfully", func() {
 		brokerManifest := boshClient.GetManifest(brokerBoshDeploymentName)
-		updateServiceInstancesAPI(brokerManifest)
+		updateServiceInstancesAPI(brokerManifest, []*testService{}, map[string]string{})
 		updatePlanProperties(brokerManifest)
 		migrateJobProperty(brokerManifest)
 
@@ -96,11 +98,41 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 		Expect(boshOutput.StdOut).To(ContainSubstring("STARTING UPGRADES"))
 	})
 
+	It("when canaries from an org and space are required, they upgrade before the rest", func() {
+		brokerManifest := boshClient.GetManifest(brokerBoshDeploymentName)
+		upgradeInstanceProperties := findUpgradeAllServiceInstancesProperties(brokerManifest)
+
+		if upgradeInstanceProperties["service_instances_api"] != nil && upgradeInstanceProperties["canary_selection_params"] != nil {
+			serviceInstances := createServiceInstances()
+			filterParams := map[string]string{}
+			for k, v := range upgradeInstanceProperties["canary_selection_params"].(map[interface{}]interface{}) {
+				filterParams[k.(string)] = v.(string)
+			}
+			updateServiceInstancesAPI(brokerManifest, serviceInstances[1:2], filterParams)
+
+			By("logging stdout to the errand output")
+			boshOutput := boshClient.RunErrand(brokerBoshDeploymentName, "upgrade-all-service-instances", []string{}, "")
+
+			logMatcher := "(?s)STARTING CANARY UPGRADES(.*)FINISHED CANARY UPGRADES(.*)FINISHED UPGRADES"
+			re := regexp.MustCompile(logMatcher)
+			matches := re.FindStringSubmatch(boshOutput.StdOut)
+			Expect(matches[1]).To(ContainSubstring(serviceInstances[1].GUID))
+			Expect(matches[1]).ToNot(ContainSubstring(serviceInstances[0].GUID))
+			Expect(matches[1]).ToNot(ContainSubstring(serviceInstances[2].GUID))
+
+			Expect(matches[2]).To(ContainSubstring(serviceInstances[0].GUID))
+			Expect(matches[2]).To(ContainSubstring(serviceInstances[2].GUID))
+			Expect(matches[2]).ToNot(ContainSubstring(serviceInstances[1].GUID))
+		} else {
+			Skip("omitting CF filtered canaries until code is done")
+		}
+	})
+
 	It("when there are multiple service instances provisioned, upgrade-all-service-instances runs successfully", func() {
 		createServiceInstances()
 
 		brokerManifest := boshClient.GetManifest(brokerBoshDeploymentName)
-		updateServiceInstancesAPI(brokerManifest)
+		updateServiceInstancesAPI(brokerManifest, []*testService{}, map[string]string{})
 		updatePlanProperties(brokerManifest)
 		migrateJobProperty(brokerManifest)
 
@@ -176,7 +208,7 @@ func migrateJobProperty(brokerManifest *bosh.BoshManifest) {
 	}
 }
 
-func updateServiceInstancesAPI(brokerManifest *bosh.BoshManifest) {
+func updateServiceInstancesAPI(brokerManifest *bosh.BoshManifest, filteredServices []*testService, filterParams map[string]string) {
 	upgradeInstanceProperties := findUpgradeAllServiceInstancesProperties(brokerManifest)
 	if upgradeInstanceProperties["service_instances_api"] != nil {
 		authHeaderBuilder, err := authorizationheader.NewUserTokenAuthHeaderBuilder(
@@ -202,7 +234,19 @@ func updateServiceInstancesAPI(brokerManifest *bosh.BoshManifest) {
 
 		instances, err := cfCli.GetInstancesOfServiceOffering(serviceGUID, logger)
 		Expect(err).NotTo(HaveOccurred())
+
 		instancesJson, err := json.Marshal(instances)
+		Expect(err).NotTo(HaveOccurred())
+
+		var filteredInstances []service.Instance
+		for _, instance := range instances {
+			for _, filteredInstance := range filteredServices {
+				if instance.GUID == filteredInstance.GUID {
+					filteredInstances = append(filteredInstances, instance)
+				}
+			}
+		}
+		filteredInstancesJson, err := json.Marshal(filteredInstances)
 		Expect(err).NotTo(HaveOccurred())
 
 		serviceInstanceAPIConfig, ok := upgradeInstanceProperties["service_instances_api"].(map[interface{}]interface{})
@@ -246,6 +290,27 @@ func updateServiceInstancesAPI(brokerManifest *bosh.BoshManifest) {
 		resp, err := httpClient.Do(request)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(resp.StatusCode).To(Equal(http.StatusOK))
+
+		if len(filterParams) > 0 {
+			filteredInstancesRequest, err := http.NewRequest(
+				http.MethodPost,
+				url,
+				bytes.NewReader(filteredInstancesJson),
+			)
+			Expect(err).NotTo(HaveOccurred())
+			q := filteredInstancesRequest.URL.Query()
+			for k, v := range filterParams {
+				q.Set(k, v)
+			}
+			filteredInstancesRequest.URL.RawQuery = q.Encode()
+
+			err = basicAuthHeaderBuilder.AddAuthHeader(filteredInstancesRequest, logger)
+			Expect(err).NotTo(HaveOccurred())
+
+			filteredInstancesResponse, err := httpClient.Do(filteredInstancesRequest)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(filteredInstancesResponse.StatusCode).To(Equal(http.StatusOK))
+		}
 	}
 }
 
@@ -253,7 +318,7 @@ func findUpgradeAllServiceInstancesProperties(brokerManifest *bosh.BoshManifest)
 	return bosh_helpers.FindJobProperties(brokerManifest, "broker", "upgrade-all-service-instances")
 }
 
-func createServiceInstances() {
+func createServiceInstances() []*testService {
 	var wg sync.WaitGroup
 
 	serviceInstances = []*testService{
@@ -262,9 +327,9 @@ func createServiceInstances() {
 		{Name: uuid.New(), AppName: uuid.New()},
 	}
 
-	for _, service := range serviceInstances {
-		wg.Add(1)
+	wg.Add(len(serviceInstances))
 
+	for _, service := range serviceInstances {
 		go func(ts *testService) {
 			defer GinkgoRecover()
 			defer wg.Done()
@@ -277,6 +342,8 @@ func createServiceInstances() {
 
 			By(fmt.Sprintf("Polling for successful creation of service instance: %s", ts.Name))
 			cf.AwaitServiceCreation(ts.Name)
+
+			ts.GUID = cf.GetServiceInstanceGUID(ts.Name)
 
 			if dataPersistenceEnabled {
 				By("pushing an app and binding to it")
@@ -293,6 +360,7 @@ func createServiceInstances() {
 	}
 
 	wg.Wait()
+	return serviceInstances
 }
 
 func deleteServiceInstances() {
