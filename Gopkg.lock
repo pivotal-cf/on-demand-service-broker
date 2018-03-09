@@ -287,7 +287,7 @@
     ".",
     "auth"
   ]
-  revision = "a279074bbe6ec432bc1068e9584da7f9d0a1af42"
+  revision = "a31b912e79c8cb4875840cbfbe8dc4f96f0507ab"
 
 [[projects]]
   branch = "master"
