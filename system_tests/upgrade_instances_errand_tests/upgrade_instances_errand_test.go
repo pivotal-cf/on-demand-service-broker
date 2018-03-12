@@ -71,7 +71,8 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 
 	It("exits 1 when the upgrader fails", func() {
 		brokerManifest := boshClient.GetManifest(brokerBoshDeploymentName)
-		instances := createServiceInstances()
+		serviceInstances = createServiceInstances()
+		instances := []*testService{}
 		upgradeInstanceProperties := findUpgradeAllServiceInstancesProperties(brokerManifest)
 
 		if upgradeInstanceProperties["service_instances_api"] != nil && upgradeInstanceProperties["canary_selection_params"] != nil {
@@ -79,11 +80,11 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 			for k, v := range upgradeInstanceProperties["canary_selection_params"].(map[interface{}]interface{}) {
 				filterParams[k.(string)] = v.(string)
 			}
-			serviceInstances = instances[1:2]
+			instances = serviceInstances[1:2]
 		}
 
 		By("causing an upgrade error")
-		updateServiceInstancesAPI(brokerManifest, serviceInstances, filterParams)
+		updateServiceInstancesAPI(brokerManifest, instances, filterParams)
 		testPlan := extractPlanProperty(currentPlan, brokerManifest)
 
 		redisServer := testPlan["instance_groups"].([]interface{})[0].(map[interface{}]interface{})
@@ -117,7 +118,7 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 		upgradeInstanceProperties := findUpgradeAllServiceInstancesProperties(brokerManifest)
 
 		if upgradeInstanceProperties["service_instances_api"] != nil && upgradeInstanceProperties["canary_selection_params"] != nil {
-			serviceInstances := createServiceInstances()
+			serviceInstances = createServiceInstances()
 			filterParams := map[string]string{}
 			for k, v := range upgradeInstanceProperties["canary_selection_params"].(map[interface{}]interface{}) {
 				filterParams[k.(string)] = v.(string)
@@ -144,7 +145,8 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 
 	It("when there are multiple service instances provisioned, upgrade-all-service-instances runs successfully", func() {
 		brokerManifest := boshClient.GetManifest(brokerBoshDeploymentName)
-		instances := createServiceInstances()
+		serviceInstances = createServiceInstances()
+		instances := []*testService{}
 		upgradeInstanceProperties := findUpgradeAllServiceInstancesProperties(brokerManifest)
 
 		if upgradeInstanceProperties["service_instances_api"] != nil && upgradeInstanceProperties["canary_selection_params"] != nil {
@@ -152,10 +154,10 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 			for k, v := range upgradeInstanceProperties["canary_selection_params"].(map[interface{}]interface{}) {
 				filterParams[k.(string)] = v.(string)
 			}
-			serviceInstances = instances[1:2]
+			instances = serviceInstances[1:2]
 		}
 
-		updateServiceInstancesAPI(brokerManifest, serviceInstances, filterParams)
+		updateServiceInstancesAPI(brokerManifest, instances, filterParams)
 		updatePlanProperties(brokerManifest)
 		migrateJobProperty(brokerManifest)
 
