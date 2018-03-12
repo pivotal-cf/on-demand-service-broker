@@ -107,8 +107,12 @@ func (ll LoggingListener) Progress(pollingInterval time.Duration, orphanCount, u
 
 func (ll LoggingListener) Finished(orphanCount, upgradedCount, deletedCount int, busyInstances, failedInstances []string) {
 	var failedList string
+	var busyList string
 	if len(failedInstances) > 0 {
 		failedList = fmt.Sprintf(" [%s]", strings.Join(failedInstances, ", "))
+	}
+	if len(busyInstances) > 0 {
+		busyList = fmt.Sprintf(" [%s]", strings.Join(busyInstances, ", "))
 	}
 
 	status := "SUCCESS"
@@ -127,7 +131,7 @@ func (ll LoggingListener) Finished(orphanCount, upgradedCount, deletedCount int,
 		orphanCount,
 		deletedCount,
 		len(busyInstances),
-		busyInstances,
+		busyList,
 		len(failedInstances),
 		failedList,
 	)

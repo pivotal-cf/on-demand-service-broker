@@ -227,15 +227,14 @@ var _ = Describe("Logging Listener", func() {
 
 	It("Shows a final summary where a single service instance failed to upgrade", func() {
 		buffer := logResultsFrom(func(listener upgrader.Listener) {
-			busyList := make([]string, 56)
-			listener.Finished(23, 34, 45, busyList, []string{"2f9752c3-887b-4ccb-8693-7c15811ffbdd"})
+			listener.Finished(23, 34, 45, []string{"foo"}, []string{"2f9752c3-887b-4ccb-8693-7c15811ffbdd"})
 		})
 
 		Expect(buffer).To(Say("FINISHED UPGRADES Status: FAILED; Summary"))
 		Expect(buffer).To(Say("Number of successful upgrades: 34"))
 		Expect(buffer).To(Say("Number of CF service instance orphans detected: 23"))
 		Expect(buffer).To(Say("Number of deleted instances before upgrade could occur: 45"))
-		Expect(buffer).To(Say("Number of busy instances which could not be upgraded: 56"))
+		Expect(buffer).To(Say(`Number of busy instances which could not be upgraded: 1 \[foo\]`))
 		Expect(buffer).To(Say(`Number of service instances that failed to upgrade: 1 \[2f9752c3\-887b\-4ccb\-8693\-7c15811ffbdd\]`))
 	})
 
