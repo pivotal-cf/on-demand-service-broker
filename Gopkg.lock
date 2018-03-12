@@ -250,7 +250,7 @@
     "reporters/stenographer/support/go-isatty",
     "types"
   ]
-  revision = "9008c7b79f9636c46a0a945141020124702f0ecf"
+  revision = "ba8e856bb854d6771a72ddf6497a42dad3a0c971"
 
 [[projects]]
   name = "github.com/onsi/gomega"
