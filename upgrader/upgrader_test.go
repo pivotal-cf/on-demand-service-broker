@@ -37,9 +37,8 @@ var _ = Describe("Upgrader", func() {
 		upgraderBuilder      upgrader.Builder
 		fakeSleeper          *fakes.FakeSleeper
 
-		emptyBusyList        = []string{}
-		emptyFailedList      = []string{}
-		serviceInstanceLabel = "service-instance_"
+		emptyBusyList   = []string{}
+		emptyFailedList = []string{}
 
 		upgradeOperationAccepted = services.UpgradeOperation{
 			Type: services.UpgradeAccepted,
@@ -310,7 +309,7 @@ var _ = Describe("Upgrader", func() {
 			It("stops retrying when the attemptLimit is reached", func() {
 				upgradeTool := upgrader.New(&upgraderBuilder)
 				actualErr = upgradeTool.Upgrade()
-				Expect(actualErr).To(MatchError(fmt.Errorf("The following instances could not be upgraded: %s%s", serviceInstanceLabel, serviceInstanceId)))
+				Expect(actualErr).To(MatchError(fmt.Errorf("The following instances could not be upgraded: %s", serviceInstanceId)))
 
 				Expect(brokerServicesClient.UpgradeInstanceCallCount()).To(Equal(2), "number of service requests")
 				hasReportedInstanceUpgradeStartResult(
@@ -319,7 +318,7 @@ var _ = Describe("Upgrader", func() {
 					services.OperationInProgress,
 				)
 				hasReportedRetries(fakeListener, 1, 1)
-				hasReportedFinished(fakeListener, 0, 0, 0, []string{serviceInstanceLabel + serviceInstanceId}, emptyFailedList)
+				hasReportedFinished(fakeListener, 0, 0, 0, []string{serviceInstanceId}, emptyFailedList)
 			})
 		})
 	})
@@ -975,16 +974,9 @@ var _ = Describe("Upgrader", func() {
 					expectToHaveNotStarted(si4Controller)
 
 					allowToProceed(si3Controller)
-					expectToHaveStarted(si4Controller)
 
-					expectToHaveNotStarted(si2Controller)
-					allowToProceed(si4Controller)
-
-					expectToHaveStarted(si2Controller)
-
-					hasReportedRetries(fakeListener, 1)
-
-					allowToProceed(si2Controller)
+					expectToHaveStarted(si2Controller, si4Controller)
+					allowToProceed(si2Controller, si4Controller)
 
 					wg.Wait()
 					Expect(actualErr).ToNot(HaveOccurred())
@@ -1117,7 +1109,7 @@ var _ = Describe("Upgrader", func() {
 					hasReportedUpgraded(fakeListener, serviceInstance1, serviceInstance3, serviceInstance4)
 
 					By("logging the busy instances IDs")
-					hasReportedFinished(fakeListener, 0, 3, 0, []string{serviceInstanceLabel + serviceInstance2}, emptyFailedList)
+					hasReportedFinished(fakeListener, 0, 3, 0, []string{serviceInstance2}, emptyFailedList)
 				})
 
 				It("retries busy instance after all canaries pass", func() {
@@ -1676,14 +1668,11 @@ var _ = Describe("Upgrader", func() {
 
 						wg.Wait()
 
-						Expect(actualErr).To(MatchError(fmt.Sprintf(
-							"2 errors occurred:\n\n* [%s] Upgrade failed: bosh task id %d: this didn't work\n* [%s] Upgrade failed: bosh task id %d: this didn't work",
-							serviceInstance1,
-							upgradeTaskID1,
-							serviceInstance2,
-							upgradeTaskID2,
-						)))
-
+						Expect(actualErr.Error()).To(SatisfyAll(
+							ContainSubstring("2 errors occurred"),
+							ContainSubstring(fmt.Sprintf("[%s] Upgrade failed: bosh task id %d: this didn't work", serviceInstance1, upgradeTaskID1)),
+							ContainSubstring(fmt.Sprintf("[%s] Upgrade failed: bosh task id %d: this didn't work", serviceInstance2, upgradeTaskID2)),
+						))
 						hasReportedFailureFor(fakeListener, serviceInstance1, serviceInstance2)
 						hasReportedFinished(fakeListener, 0, 0, 0, emptyBusyList, []string{serviceInstance1, serviceInstance2})
 					})

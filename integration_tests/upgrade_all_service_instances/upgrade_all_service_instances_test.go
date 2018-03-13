@@ -482,7 +482,7 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 			Expect(runningTool).To(gbytes.Say("Upgrading all instances. Attempt 1/2"))
 			Expect(runningTool).To(gbytes.Say("Upgrading all remaining instances. Attempt 2/2"))
 			Expect(runningTool).To(gbytes.Say("Number of busy instances which could not be upgraded: 1"))
-			Expect(runningTool).To(gbytes.Say(fmt.Sprintf("The following instances could not be upgraded: service-instance_%s", instanceID)))
+			Expect(runningTool).To(gbytes.Say(fmt.Sprintf("The following instances could not be upgraded: %s", instanceID)))
 		})
 	})
 

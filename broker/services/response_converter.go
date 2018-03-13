@@ -18,8 +18,9 @@ import (
 )
 
 type UpgradeOperation struct {
-	Type UpgradeOperationType
-	Data broker.OperationData
+	Type        UpgradeOperationType
+	Data        broker.OperationData
+	Description string
 }
 
 type UpgradeOperationType int
