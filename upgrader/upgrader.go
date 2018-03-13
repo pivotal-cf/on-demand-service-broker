@@ -59,7 +59,6 @@ type sleeper interface {
 type controller struct {
 	pendingInstances      []service.Instance
 	busyInstances         []service.Instance
-	inProgress            []service.Instance
 	failures              []instanceFailure
 	canaries              int
 	outstandingCanaries   int
@@ -147,7 +146,6 @@ func (u *Upgrader) UpgradeInstancesWithAttempts(instances []service.Instance, li
 
 			if u.controller.processingCanaries && (u.controller.outstandingCanaries == 0 || u.upgradeCompleted(instances)) {
 				u.controller.processingCanaries = false
-				u.listener.CanariesFinished()
 				return nil
 			}
 		}
@@ -169,8 +167,7 @@ func (u *Upgrader) UpgradeInstancesWithAttempts(instances []service.Instance, li
 func (u *Upgrader) Upgrade() error {
 	var instances []service.Instance
 	var err error
-
-	canaryInstances := []service.Instance{}
+	var canaryInstances []service.Instance
 
 	u.listener.Starting(u.maxInFlight)
 
@@ -200,6 +197,7 @@ func (u *Upgrader) Upgrade() error {
 		if err := u.UpgradeInstancesWithAttempts(instances, u.controller.canaries); err != nil {
 			return err
 		}
+		u.listener.CanariesFinished()
 	}
 
 	if err := u.UpgradeInstancesWithAttempts(allInstances, -1); err != nil {
@@ -369,7 +367,6 @@ func (u *Upgrader) triggerUpgrade(instance service.Instance) (bool, error) {
 		u.controller.isBusy(instance)
 	case services.UpgradeAccepted:
 		accepted = true
-		u.controller.isInProgress(instance)
 		u.listener.WaitingFor(instance.GUID, operation.Data.BoshTaskID)
 		if u.controller.processingCanaries {
 			u.controller.outstandingCanaries--
@@ -396,10 +393,6 @@ func (c *controller) isBusy(instance service.Instance) {
 	c.busyInstances = append(c.busyInstances, instance)
 }
 
-func (c *controller) isInProgress(instance service.Instance) {
-	c.inProgress = append(c.inProgress, instance)
-}
-
 func (c *controller) nextInstance() service.Instance {
 	if len(c.pendingInstances) > 0 {
 		instance := c.pendingInstances[0]
@@ -408,16 +401,6 @@ func (c *controller) nextInstance() service.Instance {
 		if found && state.Type != services.OperationInProgress {
 			return c.nextInstance()
 		}
-		return instance
-	} else {
-		return service.Instance{}
-	}
-}
-
-func (c *controller) nextInProgressInstance() service.Instance {
-	if len(c.inProgress) > 0 {
-		instance := c.inProgress[0]
-		c.inProgress = c.inProgress[1:len(c.inProgress)]
 		return instance
 	} else {
 		return service.Instance{}
