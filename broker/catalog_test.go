@@ -60,7 +60,7 @@ var _ = Describe("Catalog", func() {
 		}
 	})
 
-	It("generates the catalog response if the adapter does not implement generate-plan-schemas", func() {
+	It("generates the catalog response if the adapter does not implement generate-plan-schemas and enable_plan_schemas is false", func() {
 		serviceAdapter.GeneratePlanSchemaReturns(brokerapi.ServiceSchemas{}, serviceadapter.NewNotImplementedError("not implemented"))
 		b, brokerCreationErr = createBroker([]broker.StartupChecker{}, noopservicescontroller.New())
 		Expect(brokerCreationErr).NotTo(HaveOccurred())
@@ -93,12 +93,25 @@ var _ = Describe("Catalog", func() {
 			},
 		}))
 
-		Expect(logBuffer.String()).To(ContainSubstring("the service adapter does not implement generate-plan-schemas"))
+		Expect(serviceAdapter.GeneratePlanSchemaCallCount()).To(BeZero())
+	})
+
+	It("fails if the adapter returns an error when generating plan schemas", func() {
+		serviceAdapter.GeneratePlanSchemaReturns(brokerapi.ServiceSchemas{}, serviceadapter.NewNotImplementedError("not implemented"))
+		b, brokerCreationErr = createBroker([]broker.StartupChecker{}, noopservicescontroller.New())
+		b.EnablePlanSchemas = true
+		Expect(brokerCreationErr).NotTo(HaveOccurred())
+
+		contextWithoutRequestID := context.Background()
+		_, err := b.Services(contextWithoutRequestID)
+		Expect(err).To(MatchError(ContainSubstring("enable_plan_schemas is set to true, but the service adapter does not implement generate-plan-schemas")))
+		Expect(logBuffer.String()).To(ContainSubstring("enable_plan_schemas is set to true, but the service adapter does not implement generate-plan-schemas"))
 	})
 
 	It("fails if the adapter returns an error when generating plan schemas", func() {
 		serviceAdapter.GeneratePlanSchemaReturns(brokerapi.ServiceSchemas{}, errors.New("oops"))
 		b, brokerCreationErr = createBroker([]broker.StartupChecker{}, noopservicescontroller.New())
+		b.EnablePlanSchemas = true
 		Expect(brokerCreationErr).NotTo(HaveOccurred())
 
 		contextWithoutRequestID := context.Background()
@@ -165,6 +178,7 @@ var _ = Describe("Catalog", func() {
 
 		serviceAdapter.GeneratePlanSchemaReturns(planSchema, nil)
 		b, brokerCreationErr = createBroker([]broker.StartupChecker{}, noopservicescontroller.New())
+		b.EnablePlanSchemas = true
 
 		Expect(brokerCreationErr).NotTo(HaveOccurred())
 

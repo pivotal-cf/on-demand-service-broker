@@ -39,6 +39,7 @@ type Broker struct {
 	ShutdownTimeoutSecs        int  `yaml:"shutdown_timeout_in_seconds"`
 	DisableCFStartupChecks     bool `yaml:"disable_cf_startup_checks"`
 	ExposeOperationalErrors    bool `yaml:"expose_operational_errors"`
+	EnablePlanSchemas          bool `yaml:"enable_plan_schemas"`
 }
 
 type Authentication struct {

@@ -10,6 +10,7 @@ broker:
   username: username
   password: password
   disable_ssl_cert_verification: true
+  enable_plan_schemas: true
   expose_operational_errors: true
   startup_banner: false
   shutdown_timeout_in_seconds: 10

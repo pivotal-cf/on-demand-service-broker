@@ -8,6 +8,7 @@ package broker
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
@@ -35,15 +36,18 @@ func (b *Broker) Services(ctx context.Context) ([]brokerapi.Service, error) {
 			},
 		}
 
-		planSchema, err := b.adapterClient.GeneratePlanSchema(plan.AdapterPlan(b.serviceOffering.GlobalProperties), logger)
-		if err != nil {
-			if _, ok := err.(serviceadapter.NotImplementedError); !ok {
-				return []brokerapi.Service{}, err
+		if b.EnablePlanSchemas {
+			planSchema, err := b.adapterClient.GeneratePlanSchema(plan.AdapterPlan(b.serviceOffering.GlobalProperties), logger)
+			if err != nil {
+				if _, ok := err.(serviceadapter.NotImplementedError); !ok {
+					return []brokerapi.Service{}, err
+				}
+				logger.Println("enable_plan_schemas is set to true, but the service adapter does not implement generate-plan-schemas")
+				return []brokerapi.Service{}, fmt.Errorf("enable_plan_schemas is set to true, but the service adapter does not implement generate-plan-schemas")
 			}
-			logger.Println("the service adapter does not implement generate-plan-schemas")
-		} else {
 			servicePlan.Schemas = &planSchema
 		}
+
 		servicePlans = append(servicePlans, servicePlan)
 	}
 

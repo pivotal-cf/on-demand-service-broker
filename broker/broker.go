@@ -32,6 +32,7 @@ type Broker struct {
 
 	serviceOffering         config.ServiceOffering
 	ExposeOperationalErrors bool
+	EnablePlanSchemas       bool
 
 	loggerFactory *loggerfactory.LoggerFactory
 }
@@ -55,6 +56,7 @@ func New(
 
 		serviceOffering:         serviceOffering,
 		ExposeOperationalErrors: brokerConfig.ExposeOperationalErrors,
+		EnablePlanSchemas:       brokerConfig.EnablePlanSchemas,
 
 		loggerFactory: loggerFactory,
 	}

@@ -55,6 +55,7 @@ var _ = Describe("Broker Config", func() {
 						DisableSSLCertVerification: true,
 						StartUpBanner:              false,
 						ExposeOperationalErrors:    false,
+						EnablePlanSchemas:          false,
 						ShutdownTimeoutSecs:        10,
 					},
 					Bosh: config.Bosh{
@@ -189,6 +190,7 @@ var _ = Describe("Broker Config", func() {
 			It("returns config object", func() {
 				Expect(parseErr).NotTo(HaveOccurred())
 				Expect(conf.Broker.ExposeOperationalErrors).To(BeTrue())
+				Expect(conf.Broker.EnablePlanSchemas).To(BeTrue())
 			})
 
 		})
