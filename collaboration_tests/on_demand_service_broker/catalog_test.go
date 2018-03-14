@@ -46,6 +46,7 @@ var _ = Describe("Catalog", func() {
 			conf := brokerConfig.Config{
 				Broker: brokerConfig.Broker{
 					Port: serverPort, Username: brokerUsername, Password: brokerPassword,
+					EnablePlanSchemas: true,
 				},
 				ServiceCatalog: serviceCatalogConfig,
 			}
@@ -126,6 +127,7 @@ var _ = Describe("Catalog", func() {
 			conf := brokerConfig.Config{
 				Broker: brokerConfig.Broker{
 					Port: serverPort, Username: brokerUsername, Password: brokerPassword,
+					EnablePlanSchemas: true,
 				},
 				ServiceCatalog: serviceCatalogConfig,
 			}
@@ -214,6 +216,7 @@ var _ = Describe("Catalog", func() {
 			conf := brokerConfig.Config{
 				Broker: brokerConfig.Broker{
 					Port: serverPort, Username: brokerUsername, Password: brokerPassword,
+					EnablePlanSchemas: true,
 				},
 				ServiceCatalog: serviceCatalogConfig,
 			}
@@ -229,70 +232,12 @@ var _ = Describe("Catalog", func() {
 			Expect(bodyContent).To(ContainSubstring("oops"))
 		})
 
-		It("does not fail if the adapter returns a not-implemented error", func() {
+		It("fails with a proper message if not implemented", func() {
 			fakeServiceAdapter.GeneratePlanSchemaReturns(brokerapi.ServiceSchemas{}, serviceadapter.NewNotImplementedError("oops"))
 			response, bodyContent := doCatalogRequest()
 
-			Expect(response.StatusCode).To(Equal(http.StatusOK))
-			var catalog brokerapi.CatalogResponse
-			err := json.Unmarshal(bodyContent, &catalog)
-			Expect(err).NotTo(HaveOccurred())
-
-			expectedServices := make([]brokerapi.Service, 0, 4)
-			expectedServices = append(expectedServices,
-				brokerapi.Service{
-					ID:            serviceID,
-					Name:          serviceName,
-					Description:   serviceDescription,
-					Bindable:      serviceBindable,
-					PlanUpdatable: servicePlanUpdatable,
-					Metadata: &brokerapi.ServiceMetadata{
-						DisplayName:         serviceMetadataDisplayName,
-						ImageUrl:            serviceMetadataImageURL,
-						LongDescription:     serviceMetaDataLongDescription,
-						ProviderDisplayName: serviceMetaDataProviderDisplayName,
-						DocumentationUrl:    serviceMetaDataDocumentationURL,
-						SupportUrl:          serviceMetaDataSupportURL,
-						Shareable:           &trueVar,
-					},
-					DashboardClient: &brokerapi.ServiceDashboardClient{
-						ID:          "client-id-1",
-						Secret:      "secret-1",
-						RedirectURI: "https://dashboard.url",
-					},
-					Tags: serviceTags,
-					Plans: []brokerapi.ServicePlan{
-						{
-							ID:          dedicatedPlanID,
-							Name:        dedicatedPlanName,
-							Description: dedicatedPlanDescription,
-							Free:        &trueVar,
-							Bindable:    &trueVar,
-							Metadata: &brokerapi.ServicePlanMetadata{
-								Bullets:     dedicatedPlanBullets,
-								DisplayName: dedicatedPlanDisplayName,
-								Costs: []brokerapi.ServicePlanCost{
-									{
-										Unit:   dedicatedPlanCostUnit,
-										Amount: dedicatedPlanCostAmount,
-									},
-								},
-							},
-						},
-						{
-							ID:          highMemoryPlanID,
-							Name:        highMemoryPlanName,
-							Description: highMemoryPlanDescription,
-							Metadata: &brokerapi.ServicePlanMetadata{
-								Bullets:     highMemoryPlanBullets,
-								DisplayName: highMemoryPlanDisplayName,
-							},
-						},
-					},
-				},
-			)
-
-			Expect(catalog.Services).To(Equal(expectedServices))
+			Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+			Expect(string(bodyContent)).To(ContainSubstring("enable_plan_schemas is set to true, but the service adapter does not implement generate-plan-schemas"))
 		})
 	})
 })
