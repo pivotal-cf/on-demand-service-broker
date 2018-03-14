@@ -40,10 +40,10 @@ func New(
 	boshClient BoshClient,
 	cfClient CloudFoundryClient,
 	serviceOffering config.ServiceOffering,
-	exposeOperationalErrors bool,
+	brokerConfig config.Broker,
 	startupCheckers []StartupChecker,
 	serviceAdapter ServiceAdapterClient,
-	deployer Deployer, // TODO: is it used?
+	deployer Deployer,
 	loggerFactory *loggerfactory.LoggerFactory,
 ) (*Broker, error) {
 	b := &Broker{
@@ -54,7 +54,7 @@ func New(
 		deploymentLock: &sync.Mutex{},
 
 		serviceOffering:         serviceOffering,
-		ExposeOperationalErrors: exposeOperationalErrors,
+		ExposeOperationalErrors: brokerConfig.ExposeOperationalErrors,
 
 		loggerFactory: loggerFactory,
 	}

@@ -181,7 +181,6 @@ func createDefaultBroker() *broker.Broker {
 }
 
 func createBroker(startupCheckers []broker.StartupChecker, overrideClient ...broker.CloudFoundryClient) (*broker.Broker, error) {
-
 	var client broker.CloudFoundryClient = cfClient
 	if len(overrideClient) > 0 {
 		client = overrideClient[0]
@@ -190,7 +189,7 @@ func createBroker(startupCheckers []broker.StartupChecker, overrideClient ...bro
 		boshClient,
 		client,
 		serviceCatalog,
-		false,
+		config.Broker{ExposeOperationalErrors: false},
 		startupCheckers,
 		serviceAdapter,
 		fakeDeployer,

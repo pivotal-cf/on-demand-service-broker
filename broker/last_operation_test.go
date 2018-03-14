@@ -17,6 +17,7 @@ import (
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
+	"github.com/pivotal-cf/on-demand-service-broker/config"
 )
 
 var _ = Describe("LastOperation", func() {
@@ -232,7 +233,7 @@ var _ = Describe("LastOperation", func() {
 					boshClient,
 					cfClient,
 					serviceCatalog,
-					true,
+					config.Broker{ExposeOperationalErrors: true},
 					[]broker.StartupChecker{},
 					serviceAdapter,
 					fakeDeployer,
