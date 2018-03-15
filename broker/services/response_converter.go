@@ -30,6 +30,7 @@ const (
 	OperationInProgress UpgradeOperationType = iota
 	InstanceNotFound    UpgradeOperationType = iota
 	OrphanDeployment    UpgradeOperationType = iota
+	UpgradePending      UpgradeOperationType = iota
 
 	UpgradeFailed    UpgradeOperationType = iota
 	UpgradeSucceeded UpgradeOperationType = iota
