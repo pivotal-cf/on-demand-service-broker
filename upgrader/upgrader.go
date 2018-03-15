@@ -58,7 +58,7 @@ type sleeper interface {
 }
 
 type controller struct {
-	pendingInstances      []service.Instance
+	pendingInstances      []string
 	failures              []instanceFailure
 	canaries              int
 	outstandingCanaries   int
@@ -66,6 +66,7 @@ type controller struct {
 	canarySelectionParams config.CanarySelectionParams
 
 	states map[string]services.UpgradeOperation
+	plans  map[string]string
 }
 
 type instanceFailure struct {
@@ -99,6 +100,7 @@ func New(builder *Builder) *Upgrader {
 		sleeper:         builder.Sleeper,
 		controller: &controller{
 			states:                make(map[string]services.UpgradeOperation),
+			plans:                 make(map[string]string),
 			canaries:              builder.Canaries,
 			outstandingCanaries:   builder.Canaries,
 			processingCanaries:    builder.Canaries > 0,
@@ -122,7 +124,7 @@ func (u *Upgrader) filteredInstances(unfilteredInstances []service.Instance) ([]
 	return instances, err
 }
 
-func (u *Upgrader) UpgradeInstancesWithAttempts(instances []service.Instance, limit int) error {
+func (u *Upgrader) UpgradeInstancesWithAttempts(instances []string, limit int) error {
 	u.controller.pendingInstances = instances
 	u.totalInstances = len(u.controller.pendingInstances)
 
@@ -156,7 +158,7 @@ func (u *Upgrader) UpgradeInstancesWithAttempts(instances []service.Instance, li
 			return nil
 		}
 
-		u.controller.pendingInstances = u.controller._findInstancesWithState(services.OperationInProgress)
+		u.controller.pendingInstances = u.controller.findInstancesWithState(services.OperationInProgress)
 
 		u.sleeper.Sleep(u.attemptInterval)
 	}
@@ -166,7 +168,6 @@ func (u *Upgrader) UpgradeInstancesWithAttempts(instances []service.Instance, li
 func (u *Upgrader) Upgrade() error {
 	var instances []service.Instance
 	var err error
-	var canaryInstances []service.Instance
 
 	u.listener.Starting(u.maxInFlight)
 
@@ -175,8 +176,12 @@ func (u *Upgrader) Upgrade() error {
 		return fmt.Errorf("error listing service instances: %s", err)
 	}
 
+	for _, si := range allInstances {
+		u.controller.plans[si.GUID] = si.PlanUniqueID
+	}
+
 	if len(u.controller.canarySelectionParams) > 0 {
-		canaryInstances, err = u.filteredInstances(allInstances)
+		canaryInstances, err := u.filteredInstances(allInstances)
 		if err != nil {
 			return fmt.Errorf("error listing service instances: %s", err)
 		}
@@ -187,19 +192,25 @@ func (u *Upgrader) Upgrade() error {
 
 	u.listener.InstancesToUpgrade(allInstances)
 
-	u.controller.pendingInstances = instances
+	var guids []string
+	for _, in := range instances {
+		guids = append(guids, in.GUID)
+	}
 
-	u.totalInstances = len(allInstances)
+	var allGuids []string
+	for _, in := range allInstances {
+		allGuids = append(allGuids, in.GUID)
+	}
 
 	if u.controller.processingCanaries {
 		u.listener.CanariesStarting(u.controller.canaries, u.controller.canarySelectionParams)
-		if err := u.UpgradeInstancesWithAttempts(instances, u.controller.canaries); err != nil {
+		if err := u.UpgradeInstancesWithAttempts(guids, u.controller.canaries); err != nil {
 			return err
 		}
 		u.listener.CanariesFinished()
 	}
 
-	if err := u.UpgradeInstancesWithAttempts(allInstances, -1); err != nil {
+	if err := u.UpgradeInstancesWithAttempts(allGuids, -1); err != nil {
 		return err
 	}
 
@@ -337,9 +348,9 @@ func (u *Upgrader) errorFromList() error {
 	return nil
 }
 
-func (u *Upgrader) upgradeCompleted(instances []service.Instance) bool {
-	for _, instance := range instances {
-		s, ok := u.controller.states[instance.GUID]
+func (u *Upgrader) upgradeCompleted(guids []string) bool {
+	for _, guid := range guids {
+		s, ok := u.controller.states[guid]
 		if !ok || s.Type == services.OperationInProgress {
 			return false
 		}
@@ -353,13 +364,13 @@ func (c *controller) hasInstancesToUpgrade() bool {
 
 func (c *controller) nextInstance() service.Instance {
 	if len(c.pendingInstances) > 0 {
-		instance := c.pendingInstances[0]
+		guid := c.pendingInstances[0]
 		c.pendingInstances = c.pendingInstances[1:len(c.pendingInstances)]
-		state, found := c.states[instance.GUID]
+		state, found := c.states[guid]
 		if found && state.Type != services.OperationInProgress {
 			return c.nextInstance()
 		}
-		return instance
+		return service.Instance{GUID: guid, PlanUniqueID: c.plans[guid]}
 	} else {
 		return service.Instance{}
 	}
@@ -374,30 +385,6 @@ func (c *controller) findInstancesWithState(state services.UpgradeOperationType)
 	}
 	// TODO
 	sort.Strings(out)
-	return out
-}
-
-// TODO
-type byGUID []service.Instance
-
-func (s byGUID) Len() int {
-	return len(s)
-}
-func (s byGUID) Swap(i, j int) {
-	s[i], s[j] = s[j], s[i]
-}
-func (s byGUID) Less(i, j int) bool {
-	return s[i].GUID < s[j].GUID
-}
-
-func (c *controller) _findInstancesWithState(state services.UpgradeOperationType) []service.Instance {
-	out := make([]service.Instance, 0)
-	for guid, finalState := range c.states {
-		if finalState.Type == state {
-			out = append(out, service.Instance{GUID: guid})
-		}
-	}
-	sort.Sort(byGUID(out))
 	return out
 }
 
