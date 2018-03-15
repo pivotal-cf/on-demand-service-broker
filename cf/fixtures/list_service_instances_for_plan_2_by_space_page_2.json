@@ -1,0 +1,38 @@
+{
+  "total_results": 2,
+  "total_pages": 2,
+  "prev_url": "/v2/service_plans/2777ad05-8114-4169-8188-2ef5f39e0c6b/service_instances?order-direction=asc&page=1&results-per-page=100",
+  "next_url": null,
+  "resources": [
+    {
+      "metadata": {
+        "guid": "2f759033-04a4-426b-bccd-01722036c152",
+        "url": "/v2/service_instances/2f759033-04a4-426b-bccd-01722036c152",
+        "created_at": "2016-07-07T10:41:23Z",
+        "updated_at": null
+      },
+      "entity": {
+        "name": "k3",
+        "credentials": {},
+        "service_plan_guid": "2777ad05-8114-4169-8188-2ef5f39e0c6b",
+        "space_guid": "a157c861-92bb-4f57-9108-f791260f66ab",
+        "gateway_data": null,
+        "dashboard_url": "http://example_dashboard.com/2f759033-04a4-426b-bccd-01722036c152",
+        "type": "managed_service_instance",
+        "last_operation": {
+          "type": "create",
+          "state": "succeeded",
+          "description": "Instance provisioning completed",
+          "updated_at": "2016-07-07T10:43:25Z",
+          "created_at": "2016-07-07T10:41:23Z"
+        },
+        "tags": [],
+        "space_url": "/v2/spaces/a157c861-92bb-4f57-9108-f791260f66ab",
+        "service_plan_url": "/v2/service_plans/2777ad05-8114-4169-8188-2ef5f39e0c6b",
+        "service_bindings_url": "/v2/service_instances/2f759033-04a4-426b-bccd-01722036c152/service_bindings",
+        "service_keys_url": "/v2/service_instances/2f759033-04a4-426b-bccd-01722036c152/service_keys",
+        "routes_url": "/v2/service_instances/2f759033-04a4-426b-bccd-01722036c152/routes"
+      }
+    }
+  ]
+}

@@ -174,4 +174,5 @@ type CloudFoundryClient interface {
 	CountInstancesOfServiceOffering(serviceOfferingID string, logger *log.Logger) (instanceCountByPlanID map[cf.ServicePlan]int, err error)
 	GetInstanceState(serviceInstanceGUID string, logger *log.Logger) (cf.InstanceState, error)
 	GetInstancesOfServiceOffering(serviceOfferingID string, logger *log.Logger) ([]service.Instance, error)
+	GetInstancesOfServiceOfferingByOrgSpace(serviceOfferingID, orgName, spaceName string, logger *log.Logger) ([]service.Instance, error)
 }

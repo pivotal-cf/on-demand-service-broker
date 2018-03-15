@@ -93,8 +93,8 @@ attempt_limit: 5
 max_in_flight: 1
 canaries: %d
 canary_selection_params:
-  org: %s
-  space: %s`, canaries, org, space)
+  cf_org: %s
+  cf_space: %s`, canaries, org, space)
 }
 
 func writeConfigFile(configContent string) string {

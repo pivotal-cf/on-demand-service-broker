@@ -74,6 +74,16 @@ func ListServiceInstances(servicePlanGUID string) *listServiceInstancesMock {
 	}
 }
 
+func ListServiceInstancesBySpace(servicePlanGUID, spaceGUID string) *listServiceInstancesMock {
+	return &listServiceInstancesMock{
+
+		mockhttp.NewMockedHttpRequest(
+			"GET",
+			"/v2/service_plans/"+servicePlanGUID+"/service_instances?results-per-page=100&q=space_guid:"+spaceGUID,
+		),
+	}
+}
+
 func ListServiceInstancesForPage(servicePlanGUID string, page int) *listServiceInstancesMock {
 	return &listServiceInstancesMock{
 		mockhttp.NewMockedHttpRequest(
@@ -82,6 +92,20 @@ func ListServiceInstancesForPage(servicePlanGUID string, page int) *listServiceI
 				"/v2/service_plans/%s/service_instances?order-direction=asc&page=%d&results-per-page=100",
 				servicePlanGUID,
 				page),
+		),
+	}
+}
+
+func ListServiceInstancesBySpaceForPage(servicePlanGUID, spaceGUID string, page int) *listServiceInstancesMock {
+	return &listServiceInstancesMock{
+		mockhttp.NewMockedHttpRequest(
+			"GET",
+			fmt.Sprintf(
+				"/v2/service_plans/%s/service_instances?order-direction=asc&page=%d&results-per-page=100&q=space_guid:%s",
+				servicePlanGUID,
+				page,
+				spaceGUID,
+			),
 		),
 	}
 }
