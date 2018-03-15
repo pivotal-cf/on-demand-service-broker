@@ -122,7 +122,7 @@ var _ = Describe("Upgrader", func() {
 				It("returns an error", func() {
 					upgradeTool := upgrader.New(&upgraderBuilder)
 					actualErr = upgradeTool.Upgrade()
-					Expect(actualErr).To(MatchError("Upgrade failed for service instance not a guid Q#$%#$%^&&*$%^#$FGRTYW${T:WED:AWSD)E@#PE{:QS:{QLWD: failed\n"))
+					Expect(actualErr).To(MatchError("Upgrade failed for service instance not a guid Q#$%#$%^&&*$%^#$FGRTYW${T:WED:AWSD)E@#PE{:QS:{QLWD: failed"))
 				})
 			})
 		})
@@ -1790,7 +1790,7 @@ var _ = Describe("Upgrader", func() {
 				upgradeTool := upgrader.New(&upgraderBuilder)
 				actualErr = upgradeTool.Upgrade()
 				message := fmt.Sprintf(
-					"Upgrade failed for service instance %s: upgrade failed\n",
+					"Upgrade failed for service instance %s: upgrade failed",
 					serviceInstance2,
 				)
 				Expect(actualErr).To(MatchError(message))

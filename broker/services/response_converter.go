@@ -26,7 +26,7 @@ type UpgradeOperation struct {
 type UpgradeOperationType int
 
 const (
-	UpgradeAccepted     UpgradeOperationType = iota
+	UpgradeAccepted     UpgradeOperationType = 9001
 	OperationInProgress UpgradeOperationType = iota
 	InstanceNotFound    UpgradeOperationType = iota
 	OrphanDeployment    UpgradeOperationType = iota
