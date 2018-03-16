@@ -46,6 +46,7 @@ type testService struct {
 }
 
 var serviceInstances []*testService
+var canaryServiceInstances []*testService
 
 var dataPersistenceEnabled bool
 
@@ -55,17 +56,26 @@ const brokerIGName = "broker"
 var _ = Describe("upgrade-all-service-instances errand", func() {
 	var (
 		filterParams map[string]string
+		spaceName    string
 	)
 
 	BeforeEach(func() {
+		spaceName = ""
 		currentPlan = selectPlanName()
 		dataPersistenceEnabled = checkDataPersistence()
 		serviceInstances = []*testService{}
 		filterParams = map[string]string{}
+		cfTargetSpace(cfSpace)
 	})
 
 	AfterEach(func() {
-		deleteServiceInstances()
+		cfTargetSpace(cfSpace)
+		deleteServiceInstances(serviceInstances)
+		if spaceName != "" {
+			cfTargetSpace(spaceName)
+			deleteServiceInstances(canaryServiceInstances)
+			cfDeleteSpace(spaceName)
+		}
 		boshClient.DeployODB(*originalBrokerManifest)
 	})
 
@@ -117,13 +127,28 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 		brokerManifest := boshClient.GetManifest(brokerBoshDeploymentName)
 		upgradeInstanceProperties := findUpgradeAllServiceInstancesProperties(brokerManifest)
 
-		if upgradeInstanceProperties["service_instances_api"] != nil && upgradeInstanceProperties["canary_selection_params"] != nil {
+		if upgradeInstanceProperties["canary_selection_params"] != nil {
 			serviceInstances = createServiceInstances()
 			filterParams := map[string]string{}
+
+			var nonCanaryInstances []*testService
+
 			for k, v := range upgradeInstanceProperties["canary_selection_params"].(map[interface{}]interface{}) {
 				filterParams[k.(string)] = v.(string)
 			}
-			updateServiceInstancesAPI(brokerManifest, serviceInstances[1:2], filterParams)
+
+			if upgradeInstanceProperties["service_instances_api"] != nil {
+				canaryServiceInstances = serviceInstances[1:2]
+				nonCanaryInstances = append(serviceInstances[:1], serviceInstances[2:]...)
+				updateServiceInstancesAPI(brokerManifest, canaryServiceInstances, filterParams)
+			} else {
+				spaceName = filterParams["cf_space"]
+				cfCreateSpace(spaceName)
+				cfTargetSpace(spaceName)
+
+				canaryServiceInstances = createServiceInstances()
+				nonCanaryInstances = serviceInstances
+			}
 
 			By("logging stdout to the errand output")
 			boshOutput := boshClient.RunErrand(brokerBoshDeploymentName, "upgrade-all-service-instances", []string{}, "")
@@ -131,13 +156,14 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 			logMatcher := "(?s)STARTING CANARY UPGRADES(.*)FINISHED CANARY UPGRADES(.*)FINISHED UPGRADES"
 			re := regexp.MustCompile(logMatcher)
 			matches := re.FindStringSubmatch(boshOutput.StdOut)
-			Expect(matches[1]).To(ContainSubstring(serviceInstances[1].GUID))
-			Expect(matches[1]).ToNot(ContainSubstring(serviceInstances[0].GUID))
-			Expect(matches[1]).ToNot(ContainSubstring(serviceInstances[2].GUID))
-
-			Expect(matches[2]).To(ContainSubstring(serviceInstances[0].GUID))
-			Expect(matches[2]).To(ContainSubstring(serviceInstances[2].GUID))
-			Expect(matches[2]).ToNot(ContainSubstring(serviceInstances[1].GUID))
+			for _, instance := range canaryServiceInstances {
+				Expect(matches[1]).To(ContainSubstring(instance.GUID))
+				Expect(matches[2]).NotTo(ContainSubstring(instance.GUID))
+			}
+			for _, instance := range nonCanaryInstances {
+				Expect(matches[1]).NotTo(ContainSubstring(instance.GUID))
+				Expect(matches[2]).To(ContainSubstring(instance.GUID))
+			}
 		} else {
 			Skip("omitting CF filtered canaries until code is done")
 		}
@@ -346,15 +372,15 @@ func findUpgradeAllServiceInstancesProperties(brokerManifest *bosh.BoshManifest)
 func createServiceInstances() []*testService {
 	var wg sync.WaitGroup
 
-	serviceInstances = []*testService{
+	newInstances := []*testService{
 		{Name: uuid.New(), AppName: uuid.New()},
 		{Name: uuid.New(), AppName: uuid.New()},
 		{Name: uuid.New(), AppName: uuid.New()},
 	}
 
-	wg.Add(len(serviceInstances))
+	wg.Add(len(newInstances))
 
-	for _, service := range serviceInstances {
+	for _, service := range newInstances {
 		go func(ts *testService) {
 			defer GinkgoRecover()
 			defer wg.Done()
@@ -385,13 +411,13 @@ func createServiceInstances() []*testService {
 	}
 
 	wg.Wait()
-	return serviceInstances
+	return newInstances
 }
 
-func deleteServiceInstances() {
+func deleteServiceInstances(instancesToDelete []*testService) {
 	var wg sync.WaitGroup
 
-	for _, service := range serviceInstances {
+	for _, service := range instancesToDelete {
 		wg.Add(1)
 		go func(ts *testService) {
 			defer GinkgoRecover()
