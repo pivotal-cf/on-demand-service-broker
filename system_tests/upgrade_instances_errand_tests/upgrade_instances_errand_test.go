@@ -138,8 +138,8 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 			}
 
 			if upgradeInstanceProperties["service_instances_api"] != nil {
-				canaryServiceInstances = serviceInstances[1:2]
-				nonCanaryInstances = append(serviceInstances[:1], serviceInstances[2])
+				canaryServiceInstances = serviceInstances[:1]
+				nonCanaryInstances = serviceInstances[1:]
 				updateServiceInstancesAPI(brokerManifest, canaryServiceInstances, filterParams)
 			} else {
 				spaceName = filterParams["cf_space"]
