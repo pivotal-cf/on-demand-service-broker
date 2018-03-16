@@ -13,122 +13,135 @@ import (
 
 var _ = Describe("Upgrade State", func() {
 	It("fails if canary instances is not a subset of all the instances", func() {
-		_, err := upgrader.NewUpgradeState([]service.Instance{service.Instance{GUID: "a"}}, []service.Instance{}, -1)
+		_, err := upgrader.NewUpgradeState([]service.Instance{service.Instance{GUID: "a"}}, []service.Instance{}, 0)
 		Expect(err).To(MatchError(ContainSubstring("Canary 'a' not in")))
 	})
 
-	It("can retrieve the next pending canary", func() {
-		canaries, all := instances(func(i int) bool {
-			return i%2 == 1
-		}, 10)
-		us, err := upgrader.NewUpgradeState(canaries, all, -1)
-		Expect(err).NotTo(HaveOccurred())
+	Context("when processing canaries", func() {
+		It("can retrieve the next pending canary", func() {
+			canaries, all := instances(func(i int) bool {
+				return i%2 == 1
+			}, 10)
+			us, err := upgrader.NewUpgradeState(canaries, all, 0)
+			Expect(err).NotTo(HaveOccurred())
 
-		canary, err := us.Next()
-		Expect(err).NotTo(HaveOccurred())
-		Expect(canary.GUID).To(Equal("guid_1"))
+			canary, err := us.NextPending()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(canary.GUID).To(Equal("guid_1"))
 
-		canary, err = us.Next()
-		Expect(err).NotTo(HaveOccurred())
-		Expect(canary.GUID).To(Equal("guid_1"))
+			err = us.SetState(canaries[1].GUID, services.UpgradeAccepted)
+			Expect(err).NotTo(HaveOccurred())
 
-		err = us.SetState(canaries[0].GUID, services.UpgradeAccepted)
-		Expect(err).NotTo(HaveOccurred())
+			canary, err = us.NextPending()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(canary.GUID).To(Equal("guid_5"))
+		})
 
-		canary, err = us.Next()
-		Expect(err).NotTo(HaveOccurred())
-		Expect(canary.GUID).To(Equal("guid_3"))
-	})
+		It("starts in canary mode when new'ed up with canaries", func() {
+			canaries, all := instances(func(i int) bool {
+				return i%2 == 1
+			}, 2)
+			us, err := upgrader.NewUpgradeState(canaries, all, 0)
+			Expect(err).NotTo(HaveOccurred())
+			next, err := us.NextPending()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(next.GUID).To(Equal("guid_1"))
+		})
 
-	It("fails with an error if there are no canaries available", func() {
-		us, err := upgrader.NewUpgradeState([]service.Instance{}, []service.Instance{}, -1)
-		Expect(err).NotTo(HaveOccurred())
+		It("NextPending() fails with an error if there are no more canaries available", func() {
+			canaries, all := instances(func(i int) bool {
+				return i%2 == 1
+			}, 2)
+			us, err := upgrader.NewUpgradeState(canaries, all, 0)
+			Expect(err).NotTo(HaveOccurred())
+			us.SetState(canaries[0].GUID, services.UpgradeAccepted)
 
-		_, err = us.Next()
-		Expect(err).To(MatchError("Cannot retrieve next canary instance"))
+			_, err = us.NextPending()
+			Expect(err).To(MatchError("Cannot retrieve next pending instance"))
+		})
 	})
 
 	It("can set the state of an instance", func() {
 		canaries, all := instances(func(i int) bool {
 			return i%2 == 1
 		}, 2)
-		us, err := upgrader.NewUpgradeState(canaries, all, -1)
+		us, err := upgrader.NewUpgradeState(canaries, all, 0)
 		Expect(err).NotTo(HaveOccurred())
 
 		err = us.SetState(canaries[0].GUID, services.UpgradeAccepted)
 		Expect(err).NotTo(HaveOccurred())
 	})
 
-	It("returns that the upgrade is completed when there are no instances", func() {
-		us, err := upgrader.NewUpgradeState([]service.Instance{}, []service.Instance{}, -1)
-		Expect(err).NotTo(HaveOccurred())
-
-		Expect(us.UpgradeCompleted()).To(Equal(true))
-	})
-
-	DescribeTable("processing canaries",
-		func(limit, complete int, expected bool) {
-			canaries, all := instances(func(i int) bool { return i < 3 }, 10)
-			us, err := upgrader.NewUpgradeState(canaries, all, limit)
+	Context("Completion", func() {
+		It("returns that the upgrade is completed when there are no more pending instances", func() {
+			us, err := upgrader.NewUpgradeState([]service.Instance{}, []service.Instance{}, 0)
 			Expect(err).NotTo(HaveOccurred())
 
-			for i := 0; i < complete; i++ {
-				us.SetState(fmt.Sprintf("guid_%d", i), services.UpgradeSucceeded)
-			}
+			Expect(us.PhaseComplete()).To(Equal(true))
+		})
 
-			Expect(us.UpgradeCompleted()).To(Equal(expected))
-		},
-		Entry("with limit 1, completed 1", 1, 1, true),
-		Entry("with limit 2, completed 1", 2, 1, false),
-		Entry("with limit 2, completed 3", 2, 3, true),
-		Entry("with limit 0, completed 1", 0, 1, false),
-		Entry("with limit 0, completed 3", 0, 3, true),
-	)
+		DescribeTable("upgrade completed when processing canaries",
+			func(limit, complete int, expected bool) {
+				canaries, all := instances(func(i int) bool { return i < 3 }, 10)
+				us, err := upgrader.NewUpgradeState(canaries, all, limit)
+				Expect(err).NotTo(HaveOccurred())
 
-	DescribeTable("processing all or the rest",
-		func(complete int, expected bool) {
-			canaries, all := instances(func(i int) bool { return i%3 == 0 }, 10)
-			us, err := upgrader.NewUpgradeState(canaries, all, 7)
-			Expect(err).NotTo(HaveOccurred())
+				for i := 0; i < complete; i++ {
+					us.SetState(fmt.Sprintf("guid_%d", i), services.UpgradeSucceeded)
+				}
 
-			us.MarkCanariesCompleted()
+				Expect(us.PhaseComplete()).To(Equal(expected))
+			},
+			Entry("with limit 1, completed 1", 1, 1, true),
+			Entry("with limit 2, completed 1", 2, 1, false),
+			Entry("with limit 2, completed 3", 2, 3, true),
+			Entry("with limit 0, completed 1", 0, 1, false),
+			Entry("with limit 0, completed 3", 0, 3, true),
+		)
 
-			for i := 0; i < complete; i++ {
-				us.SetState(fmt.Sprintf("guid_%d", i), services.UpgradeSucceeded)
-			}
+		DescribeTable("upgrade completed when processing all the rest",
+			func(complete int, expected bool) {
+				canaries, all := instances(func(i int) bool { return i%3 == 0 }, 10)
+				us, err := upgrader.NewUpgradeState(canaries, all, 7)
+				Expect(err).NotTo(HaveOccurred())
 
-			Expect(us.UpgradeCompleted()).To(Equal(expected))
-		},
-		Entry("with completed 10", 10, true),
-		Entry("with completed 0", 0, false),
-		Entry("with completed 5", 5, false),
-	)
+				us.MarkCanariesCompleted()
 
-	It("returns a canaries next when new'ed up with canaries", func() {
-		canaries, all := instances(func(i int) bool {
-			return i%2 == 1
-		}, 2)
-		us, err := upgrader.NewUpgradeState(canaries, all, -1)
-		Expect(err).NotTo(HaveOccurred())
-		next, err := us.Next()
-		Expect(err).NotTo(HaveOccurred())
-		Expect(next.GUID).To(Equal("guid_1"))
+				for i := 0; i < complete; i++ {
+					us.SetState(fmt.Sprintf("guid_%d", i), services.UpgradeSucceeded)
+				}
+
+				Expect(us.PhaseComplete()).To(Equal(expected))
+			},
+			Entry("with completed 10", 10, true),
+			Entry("with completed 0", 0, false),
+			Entry("with completed 5", 5, false),
+		)
 	})
 
-	It("can pick all the instances if is not processing canaries", func() {
+	It("can pick any pending instance when not processing canaries", func() {
 		canaries, all := instances(func(i int) bool {
 			return i%2 == 1
-		}, 2)
-		us, err := upgrader.NewUpgradeState(canaries, all, -1)
+		}, 4)
+		us, err := upgrader.NewUpgradeState(canaries, all, 0)
 		Expect(err).NotTo(HaveOccurred())
-		next, err := us.Next()
+		next, err := us.NextPending()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(next.GUID).To(Equal("guid_1"))
+		us.SetState(next.GUID, services.UpgradeAccepted)
 
 		us.MarkCanariesCompleted()
-		next, err = us.Next()
+
+		next, err = us.NextPending()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(next.GUID).To(Equal("guid_0"))
+
+		By("skipping the done canary and getting the next non-canary then the next canary")
+		_, err = us.NextPending()
+		Expect(err).NotTo(HaveOccurred())
+		next, err = us.NextPending()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(next.GUID).To(Equal("guid_3"))
 	})
 
 })

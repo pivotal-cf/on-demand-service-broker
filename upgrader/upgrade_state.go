@@ -20,6 +20,7 @@ type upgradeState struct {
 	processCanaries bool
 	// Required number of canaries to process.  Use 0 as 'no limit'.
 	canaryLimit int
+	pos         int
 }
 
 func NewUpgradeState(canaryInstances, allInstances []service.Instance, canaryLimit int) (*upgradeState, error) {
@@ -42,13 +43,15 @@ func NewUpgradeState(canaryInstances, allInstances []service.Instance, canaryLim
 	return &us, nil
 }
 
-func (us *upgradeState) Next() (service.Instance, error) {
-	for _, guid := range us.guids {
+func (us *upgradeState) NextPending() (service.Instance, error) {
+	for us.pos < len(us.guids) {
+		guid := us.guids[us.pos]
+		us.pos++
 		if us.upgradeable(guid) {
 			return service.Instance{GUID: guid, PlanUniqueID: us.states[guid].initialPlan}, nil
 		}
 	}
-	return service.Instance{}, errors.New("Cannot retrieve next canary instance")
+	return service.Instance{}, errors.New("Cannot retrieve next pending instance")
 }
 
 func (us *upgradeState) SetState(guid string, status services.UpgradeOperationType) error {
@@ -58,7 +61,7 @@ func (us *upgradeState) SetState(guid string, status services.UpgradeOperationTy
 	return nil
 }
 
-func (us *upgradeState) UpgradeCompleted() bool {
+func (us *upgradeState) PhaseComplete() bool {
 	if us.processCanaries {
 		return us.canariesCompleted()
 	}
@@ -92,6 +95,7 @@ func (us *upgradeState) allCompleted() bool {
 
 func (us *upgradeState) MarkCanariesCompleted() {
 	us.processCanaries = false
+	us.pos = 0
 }
 
 func (us *upgradeState) upgradeable(guid string) bool {
