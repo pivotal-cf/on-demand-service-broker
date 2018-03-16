@@ -105,7 +105,7 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 
 		boshOutput := boshClient.RunErrandWithoutCheckingSuccess(brokerBoshDeploymentName, "upgrade-all-service-instances", []string{}, "")
 		Expect(boshOutput.ExitCode).To(Equal(1))
-		Expect(boshOutput.StdOut).To(ContainSubstring("Upgrade failed:"))
+		Expect(boshOutput.StdOut).To(ContainSubstring("Upgrade failed"))
 	})
 
 	It("when there are no service instances provisioned, upgrade-all-service-instances runs successfully", func() {
@@ -139,7 +139,7 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 
 			if upgradeInstanceProperties["service_instances_api"] != nil {
 				canaryServiceInstances = serviceInstances[1:2]
-				nonCanaryInstances = append(serviceInstances[:1], serviceInstances[2:]...)
+				nonCanaryInstances = append(serviceInstances[:1], serviceInstances[2])
 				updateServiceInstancesAPI(brokerManifest, canaryServiceInstances, filterParams)
 			} else {
 				spaceName = filterParams["cf_space"]
@@ -157,15 +157,13 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 			re := regexp.MustCompile(logMatcher)
 			matches := re.FindStringSubmatch(boshOutput.StdOut)
 			for _, instance := range canaryServiceInstances {
-				Expect(matches[1]).To(ContainSubstring(instance.GUID))
-				Expect(matches[2]).NotTo(ContainSubstring(instance.GUID))
+				Expect(matches[1]).To(ContainSubstring(instance.GUID), fmt.Sprintf("Canary instances %v not present in canary instances upgraded", canaryServiceInstances))
+				Expect(matches[2]).NotTo(ContainSubstring(instance.GUID), fmt.Sprintf("Canary instances %v present in non-canary instances upgraded", canaryServiceInstances))
 			}
 			for _, instance := range nonCanaryInstances {
-				Expect(matches[1]).NotTo(ContainSubstring(instance.GUID))
-				Expect(matches[2]).To(ContainSubstring(instance.GUID))
+				Expect(matches[1]).NotTo(ContainSubstring(instance.GUID), fmt.Sprintf("Non-canary instances %v present in canary instances upgraded", nonCanaryInstances))
+				Expect(matches[2]).To(ContainSubstring(instance.GUID), fmt.Sprintf("Non-canary instances %v not present in non-canary instances upgraded", nonCanaryInstances))
 			}
-		} else {
-			Skip("omitting CF filtered canaries until code is done")
 		}
 	})
 
@@ -175,12 +173,16 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 		instances := []*testService{}
 		upgradeInstanceProperties := findUpgradeAllServiceInstancesProperties(brokerManifest)
 
-		if upgradeInstanceProperties["service_instances_api"] != nil && upgradeInstanceProperties["canary_selection_params"] != nil {
-			filterParams = map[string]string{}
-			for k, v := range upgradeInstanceProperties["canary_selection_params"].(map[interface{}]interface{}) {
-				filterParams[k.(string)] = v.(string)
+		if upgradeInstanceProperties["canary_selection_params"] != nil {
+			if upgradeInstanceProperties["service_instances_api"] != nil {
+				filterParams = map[string]string{}
+				for k, v := range upgradeInstanceProperties["canary_selection_params"].(map[interface{}]interface{}) {
+					filterParams[k.(string)] = v.(string)
+				}
+				instances = serviceInstances[1:2]
+			} else {
+				Skip("omitting CF filtered canaries until refactor of system tests")
 			}
-			instances = serviceInstances[1:2]
 		}
 
 		updateServiceInstancesAPI(brokerManifest, instances, filterParams)
