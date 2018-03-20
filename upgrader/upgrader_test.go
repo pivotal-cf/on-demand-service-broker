@@ -1313,7 +1313,7 @@ var _ = Describe("Upgrader", func() {
 						_, index, total, isCanary := fakeListener.InstanceUpgradeStartingArgsForCall(i)
 						Expect(index).To(Equal(expectedInstanceCounts[i][0]), fmt.Sprintf("Current instance index; i = %d", i))
 						Expect(total).To(Equal(expectedInstanceCounts[i][1]), "Total pending instances")
-						Expect(isCanary).To(Equal(expectedInstanceCounts[i][2] == 1), "Total pending instances")
+						Expect(isCanary).To(Equal(expectedInstanceCounts[i][2] == 1), "Is Canary")
 					}
 				})
 			})

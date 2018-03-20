@@ -73,6 +73,18 @@ func (us *upgradeState) NextPending() (service.Instance, error) {
 	return service.Instance{}, errors.New("Cannot retrieve next pending instance")
 }
 
+func (us *upgradeState) GetUpgradeIndex() int {
+	return len(us.GetInstancesInStates(services.UpgradeSucceeded, services.UpgradeAccepted, services.InstanceNotFound, services.OrphanDeployment)) + 1
+}
+
+func (us *upgradeState) GetGUIDsInStates(states ...services.UpgradeOperationType) (guids []string) {
+	guids = []string{}
+	for _, i := range us.GetInstancesInStates(states...) {
+		guids = append(guids, i.GUID)
+	}
+	return
+}
+
 func (us *upgradeState) GetInstancesInStates(states ...services.UpgradeOperationType) (instances []service.Instance) {
 	instances = []service.Instance{}
 	for _, guid := range us.guids {

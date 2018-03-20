@@ -92,41 +92,6 @@ func New(builder *Builder) *Upgrader {
 	}
 }
 
-func (u *Upgrader) UpgradeInstancesWithAttempts() error {
-	for attempt := 1; attempt <= u.attemptLimit; attempt++ {
-		u.upgradeState.Retry()
-		u.logRetryAttempt(attempt)
-
-		for len(u.upgradeState.GetInstancesInStates(services.UpgradePending, services.UpgradeAccepted)) > 0 {
-			u.triggerUpgrades()
-
-			u.pollRunningTasks()
-
-			if len(u.upgradeState.GetInstancesInStates(services.UpgradeAccepted)) > 0 {
-				u.sleeper.Sleep(u.pollingInterval)
-				continue
-			}
-
-			if len(u.upgradeState.GetInstancesInStates(services.UpgradeFailed)) > 0 {
-				return u.formatError()
-			}
-
-			if u.upgradeState.IsProcessingCanaries() && u.upgradeState.PhaseComplete() {
-				return nil
-			}
-		}
-
-		u.reportProgress()
-
-		if u.upgradeState.PhaseComplete() {
-			break
-		}
-
-		u.sleeper.Sleep(u.attemptInterval)
-	}
-	return u.checkStillBusyInstances()
-}
-
 func (u *Upgrader) Upgrade() error {
 	var canaryInstances []service.Instance
 	var err error
@@ -166,7 +131,7 @@ func (u *Upgrader) Upgrade() error {
 	if u.upgradeState.IsProcessingCanaries() {
 		u.listener.CanariesStarting(u.upgradeState.OutstandingCanaryCount(), u.canarySelectionParams)
 		if err := u.UpgradeInstancesWithAttempts(); err != nil {
-			u.summary()
+			u.printSummary()
 			return err
 		}
 		u.upgradeState.MarkCanariesCompleted()
@@ -174,11 +139,46 @@ func (u *Upgrader) Upgrade() error {
 	}
 
 	if err := u.UpgradeInstancesWithAttempts(); err != nil {
-		u.summary()
+		u.printSummary()
 		return err
 	}
-	u.summary()
+	u.printSummary()
 	return nil
+}
+
+func (u *Upgrader) UpgradeInstancesWithAttempts() error {
+	for attempt := 1; attempt <= u.attemptLimit; attempt++ {
+		u.upgradeState.Retry()
+		u.logRetryAttempt(attempt)
+
+		for len(u.upgradeState.GetInstancesInStates(services.UpgradePending, services.UpgradeAccepted)) > 0 {
+			u.triggerUpgrades()
+
+			u.pollRunningTasks()
+
+			if len(u.upgradeState.GetInstancesInStates(services.UpgradeAccepted)) > 0 {
+				u.sleeper.Sleep(u.pollingInterval)
+				continue
+			}
+
+			if len(u.upgradeState.GetInstancesInStates(services.UpgradeFailed)) > 0 {
+				return u.formatError()
+			}
+
+			if u.upgradeState.IsProcessingCanaries() && u.upgradeState.PhaseComplete() {
+				return nil
+			}
+		}
+
+		u.reportProgress()
+
+		if u.upgradeState.PhaseComplete() {
+			break
+		}
+
+		u.sleeper.Sleep(u.attemptInterval)
+	}
+	return u.checkStillBusyInstances()
 }
 
 func (u *Upgrader) logRetryAttempt(attempt int) {
@@ -214,7 +214,7 @@ func (u *Upgrader) triggerUpgrades() {
 		if err != nil {
 			break
 		}
-		u.listener.InstanceUpgradeStarting(instance.GUID, u.calculateCurrentUpgradeIndex(), totalInstances, u.upgradeState.IsProcessingCanaries())
+		u.listener.InstanceUpgradeStarting(instance.GUID, u.upgradeState.GetUpgradeIndex(), totalInstances, u.upgradeState.IsProcessingCanaries())
 		t := NewTriggerer(u.brokerServices, u.instanceLister, u.listener)
 		operation, err := t.TriggerUpgrade(instance)
 		if err != nil {
@@ -256,18 +256,18 @@ func (u *Upgrader) pollRunningTasks() {
 }
 
 func (u *Upgrader) reportProgress() {
-	orphaned := len(u.findInstancesWithState(services.OrphanDeployment))
-	succeeded := len(u.findInstancesWithState(services.UpgradeSucceeded))
-	busy := len(u.findInstancesWithState(services.OperationInProgress))
-	deleted := len(u.findInstancesWithState(services.InstanceNotFound))
+	orphaned := len(u.upgradeState.GetInstancesInStates(services.OrphanDeployment))
+	succeeded := len(u.upgradeState.GetInstancesInStates(services.UpgradeSucceeded))
+	busy := len(u.upgradeState.GetInstancesInStates(services.OperationInProgress))
+	deleted := len(u.upgradeState.GetInstancesInStates(services.InstanceNotFound))
 	u.listener.Progress(u.attemptInterval, orphaned, succeeded, busy, deleted)
 }
 
-func (u *Upgrader) summary() {
-	busyInstances := u.findInstancesWithState(services.OperationInProgress)
-	orphaned := len(u.findInstancesWithState(services.OrphanDeployment))
-	succeeded := len(u.findInstancesWithState(services.UpgradeSucceeded))
-	deleted := len(u.findInstancesWithState(services.InstanceNotFound))
+func (u *Upgrader) printSummary() {
+	busyInstances := u.upgradeState.GetGUIDsInStates(services.OperationInProgress)
+	orphaned := len(u.upgradeState.GetInstancesInStates(services.OrphanDeployment))
+	succeeded := len(u.upgradeState.GetInstancesInStates(services.UpgradeSucceeded))
+	deleted := len(u.upgradeState.GetInstancesInStates(services.InstanceNotFound))
 	failedList := u.failures
 	var failedInstances []string
 	for _, failure := range failedList {
@@ -277,7 +277,7 @@ func (u *Upgrader) summary() {
 }
 
 func (u *Upgrader) checkStillBusyInstances() error {
-	busyInstances := u.findInstancesWithState(services.OperationInProgress)
+	busyInstances := u.upgradeState.GetGUIDsInStates(services.OperationInProgress)
 	busyInstancesCount := len(busyInstances)
 
 	if busyInstancesCount > 0 {
@@ -317,16 +317,4 @@ func (u *Upgrader) errorFromList() error {
 		return fmt.Errorf(out)
 	}
 	return nil
-}
-
-func (u *Upgrader) findInstancesWithState(state services.UpgradeOperationType) []string {
-	out := []string{}
-	for _, inst := range u.upgradeState.GetInstancesInStates(state) {
-		out = append(out, inst.GUID)
-	}
-	return out
-}
-
-func (u *Upgrader) calculateCurrentUpgradeIndex() int {
-	return len(u.upgradeState.GetInstancesInStates(services.UpgradeSucceeded, services.UpgradeAccepted, services.InstanceNotFound, services.OrphanDeployment)) + 1
 }
