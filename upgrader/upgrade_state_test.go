@@ -18,6 +18,15 @@ var _ = Describe("Upgrade State", func() {
 	})
 
 	Context("when processing canaries", func() {
+		It("says it is processing canaries", func() {
+			canaries, all := instances(func(i int) bool {
+				return i%2 == 1
+			}, 10)
+			us, err := upgrader.NewUpgradeState(canaries, all, 0)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(us.IsProcessingCanaries()).To(BeTrue())
+		})
+
 		It("can retrieve the next pending canary", func() {
 			canaries, all := instances(func(i int) bool {
 				return i%2 == 1
@@ -58,6 +67,22 @@ var _ = Describe("Upgrade State", func() {
 
 			_, err = us.NextPending()
 			Expect(err).To(MatchError("Cannot retrieve next pending instance"))
+		})
+
+		It("can list instances in a certain state", func() {
+			canaries, all := instances(func(i int) bool {
+				return i%2 == 1
+			}, 10)
+
+			us, err := upgrader.NewUpgradeState(canaries, all, 0)
+			Expect(err).NotTo(HaveOccurred())
+
+			us.SetState(all[0].GUID, services.UpgradeAccepted)
+			us.SetState(all[3].GUID, services.UpgradeAccepted)
+			us.SetState(all[5].GUID, services.UpgradeFailed)
+
+			instances := us.GetInstancesInStates(services.UpgradeAccepted, services.UpgradeFailed)
+			Expect(instances).To(Equal([]service.Instance{all[3], all[5]}))
 		})
 	})
 

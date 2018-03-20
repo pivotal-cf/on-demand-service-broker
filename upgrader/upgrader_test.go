@@ -143,8 +143,8 @@ var _ = Describe("Upgrader", func() {
 		It("polls last operation until successful", func() {
 			upgradeTool := upgrader.New(&upgraderBuilder)
 			actualErr = upgradeTool.Upgrade()
-			Expect(brokerServicesClient.LastOperationCallCount()).To(Equal(3))
 			Expect(actualErr).NotTo(HaveOccurred())
+			Expect(brokerServicesClient.LastOperationCallCount()).To(Equal(3))
 			hasReportedUpgraded(fakeListener, serviceInstanceId)
 			hasSlept(fakeSleeper, 0, upgraderBuilder.PollingInterval)
 		})
@@ -689,6 +689,7 @@ var _ = Describe("Upgrader", func() {
 					hasReportedCanariesFinished(fakeListener, 1)
 				})
 
+				//TODO: Validate this assumption. Should we instead fail when filtered instances are all orphaned?
 				It("ignore filtered canary instances when orphaned", func() {
 					brokerServicesClient.UpgradeInstanceStub = func(instance service.Instance) (services.UpgradeOperation, error) {
 						switch instance.GUID {
@@ -2048,7 +2049,7 @@ func hasReportedProgress(fakeListener *fakes.FakeListener, callIndex int, expect
 }
 
 func hasReportedFinished(fakeListener *fakes.FakeListener, expectedOrphans, expectedUpgraded, expectedDeleted int, expectedBusyInstances []string, expectedFailedInstances []string) {
-	Expect(fakeListener.FinishedCallCount()).To(Equal(1))
+	Expect(fakeListener.FinishedCallCount()).To(Equal(1), "Finished call count")
 	orphanCount, upgradedCount, deletedCount, busyInstances, failedInstances := fakeListener.FinishedArgsForCall(0)
 	Expect(orphanCount).To(Equal(expectedOrphans), "orphans")
 	Expect(upgradedCount).To(Equal(expectedUpgraded), "upgraded")
@@ -2058,7 +2059,7 @@ func hasReportedFinished(fakeListener *fakes.FakeListener, expectedOrphans, expe
 }
 
 func hasReportedAttempts(fakeListener *fakes.FakeListener, count, limit int) {
-	Expect(fakeListener.RetryAttemptCallCount()).To(Equal(count))
+	Expect(fakeListener.RetryAttemptCallCount()).To(Equal(count), "Retries call count")
 	for i := 0; i < count; i++ {
 		c, l := fakeListener.RetryAttemptArgsForCall(i)
 		Expect(c).To(Equal(i + 1))
@@ -2069,8 +2070,8 @@ func hasReportedAttempts(fakeListener *fakes.FakeListener, count, limit int) {
 func hasReportedCanariesStarting(fakeListener *fakes.FakeListener, count int, filter config.CanarySelectionParams) {
 	Expect(fakeListener.CanariesStartingCallCount()).To(Equal(1), "CanariesStarting() call count")
 	canaryCount, actualFilter := fakeListener.CanariesStartingArgsForCall(0)
-	Expect(canaryCount).To(Equal(count))
-	Expect(actualFilter).To(Equal(filter))
+	Expect(canaryCount).To(Equal(count), "canaryCount")
+	Expect(actualFilter).To(Equal(filter), "filter")
 }
 
 func hasNotReportedCanariesStarting(fakeListener *fakes.FakeListener) {

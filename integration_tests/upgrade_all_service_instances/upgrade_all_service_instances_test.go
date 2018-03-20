@@ -395,7 +395,7 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 
 		runningTool := startUpgradeAllInstanceBinary()
 		Eventually(runningTool, 5*time.Second).Should(gexec.Exit(1))
-		Expect(runningTool).To(gbytes.Say("error listing service instances: Upgrade failed to find a match to the canary selection criteria"))
+		Expect(runningTool).To(gbytes.Say("Upgrade failed to find a match to the canary selection criteria"))
 	})
 
 	It("when there is one service instance exits successfully with one instance upgraded message", func() {

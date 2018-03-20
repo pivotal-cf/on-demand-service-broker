@@ -23,17 +23,17 @@ type UpgradeOperation struct {
 	Description string
 }
 
-type UpgradeOperationType int
+type UpgradeOperationType string
 
 const (
-	UpgradeAccepted     UpgradeOperationType = 9001
-	OperationInProgress UpgradeOperationType = iota
-	InstanceNotFound    UpgradeOperationType = iota
-	OrphanDeployment    UpgradeOperationType = iota
-	UpgradePending      UpgradeOperationType = iota
+	UpgradeAccepted     UpgradeOperationType = "accepted"
+	OperationInProgress UpgradeOperationType = "busy"
+	InstanceNotFound    UpgradeOperationType = "instance-not-found"
+	OrphanDeployment    UpgradeOperationType = "orphan-deployment"
+	UpgradePending      UpgradeOperationType = "not-started"
 
-	UpgradeFailed    UpgradeOperationType = iota
-	UpgradeSucceeded UpgradeOperationType = iota
+	UpgradeFailed    UpgradeOperationType = "failed"
+	UpgradeSucceeded UpgradeOperationType = "succeeded"
 )
 
 type ResponseConverter struct{}
