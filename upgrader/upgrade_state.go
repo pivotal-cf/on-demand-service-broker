@@ -25,6 +25,13 @@ type upgradeState struct {
 	allInstances []service.Instance
 }
 
+type summary struct {
+	orphaned  int
+	succeeded int
+	busy      int
+	deleted   int
+}
+
 func NewUpgradeState(canaryInstances, allInstances []service.Instance, canaryLimit int) (*upgradeState, error) {
 	us := upgradeState{}
 
@@ -126,6 +133,15 @@ func (us *upgradeState) GetInstancesInStates(states ...services.UpgradeOperation
 		}
 	}
 	return
+}
+
+func (us *upgradeState) Summary() summary {
+	return summary{
+		orphaned:  len(us.GetInstancesInStates(services.OrphanDeployment)),
+		succeeded: len(us.GetInstancesInStates(services.UpgradeSucceeded)),
+		busy:      len(us.GetInstancesInStates(services.OperationInProgress)),
+		deleted:   len(us.GetInstancesInStates(services.InstanceNotFound)),
+	}
 }
 
 func (us *upgradeState) SetState(guid string, status services.UpgradeOperationType) error {

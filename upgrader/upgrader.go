@@ -276,44 +276,42 @@ func (u *Upgrader) pollRunningTasks() {
 }
 
 func (u *Upgrader) reportProgress() {
-	orphaned := len(u.upgradeState.GetInstancesInStates(services.OrphanDeployment))
-	succeeded := len(u.upgradeState.GetInstancesInStates(services.UpgradeSucceeded))
-	busy := len(u.upgradeState.GetInstancesInStates(services.OperationInProgress))
-	deleted := len(u.upgradeState.GetInstancesInStates(services.InstanceNotFound))
-	u.listener.Progress(u.attemptInterval, orphaned, succeeded, busy, deleted)
+	summary := u.upgradeState.Summary()
+	u.listener.Progress(u.attemptInterval, summary.orphaned, summary.succeeded, summary.busy, summary.deleted)
 }
 
 func (u *Upgrader) printSummary() {
+	summary := u.upgradeState.Summary()
+
 	busyInstances := u.upgradeState.GetGUIDsInStates(services.OperationInProgress)
-	orphaned := len(u.upgradeState.GetInstancesInStates(services.OrphanDeployment))
-	succeeded := len(u.upgradeState.GetInstancesInStates(services.UpgradeSucceeded))
-	deleted := len(u.upgradeState.GetInstancesInStates(services.InstanceNotFound))
 	failedList := u.failures
 	var failedInstances []string
 	for _, failure := range failedList {
 		failedInstances = append(failedInstances, failure.guid)
 	}
-	u.listener.Finished(orphaned, succeeded, deleted, busyInstances, failedInstances)
+
+	u.listener.Finished(summary.orphaned, summary.succeeded, summary.deleted, busyInstances, failedInstances)
 }
 
 func (u *Upgrader) checkStillBusyInstances() error {
 	busyInstances := u.upgradeState.GetGUIDsInStates(services.OperationInProgress)
 	busyInstancesCount := len(busyInstances)
 
-	if busyInstancesCount > 0 {
-		if u.upgradeState.IsProcessingCanaries() {
-			if !u.upgradeState.canariesCompleted() {
-				return fmt.Errorf(
-					"canaries didn't upgrade successfully: attempted to upgrade %d canaries, but only found %d instances not already in use by another BOSH task.",
-					u.canaries,
-					u.canaries-busyInstancesCount,
-				)
-			}
-			return nil
-		}
-		return fmt.Errorf("The following instances could not be upgraded: %s", strings.Join(busyInstances, ", "))
+	if busyInstancesCount == 0 {
+		return nil
 	}
-	return nil
+
+	if u.upgradeState.IsProcessingCanaries() {
+		if !u.upgradeState.canariesCompleted() {
+			return fmt.Errorf(
+				"canaries didn't upgrade successfully: attempted to upgrade %d canaries, but only found %d instances not already in use by another BOSH task.",
+				u.canaries,
+				u.canaries-busyInstancesCount,
+			)
+		}
+		return nil
+	}
+	return fmt.Errorf("The following instances could not be upgraded: %s", strings.Join(busyInstances, ", "))
 }
 
 func (u *Upgrader) formatError() error {
