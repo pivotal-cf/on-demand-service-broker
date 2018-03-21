@@ -24,10 +24,10 @@ var _ = Describe("Catalog", func() {
 			"flibbles": map[string]interface{}{
 				"description": "Number of flibbles to spawn",
 				"type":        "integer",
-				"required":    true,
 			},
 		},
-		"type": "object",
+		"type":     "object",
+		"required": []interface{}{"flibbles"},
 	}
 	var defaultSchemas = brokerapi.ServiceSchemas{
 		Instance: brokerapi.ServiceInstanceSchema{

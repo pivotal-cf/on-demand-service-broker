@@ -12,6 +12,8 @@ import (
 
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
+	"github.com/pkg/errors"
+	"github.com/xeipuuv/gojsonschema"
 )
 
 func (b *Broker) Services(ctx context.Context) ([]brokerapi.Service, error) {
@@ -45,6 +47,13 @@ func (b *Broker) Services(ctx context.Context) ([]brokerapi.Service, error) {
 				logger.Println("enable_plan_schemas is set to true, but the service adapter does not implement generate-plan-schemas")
 				return []brokerapi.Service{}, fmt.Errorf("enable_plan_schemas is set to true, but the service adapter does not implement generate-plan-schemas")
 			}
+
+			err = validatePlanSchemas(planSchema)
+			if err != nil {
+				logger.Println(fmt.Sprintf("Invalid JSON Schema for plan %s: %s\n", plan.Name, err.Error()))
+				return []brokerapi.Service{}, errors.Wrap(err, "Invalid JSON Schema for plan "+plan.Name)
+			}
+
 			servicePlan.Schemas = &planSchema
 		}
 
@@ -90,4 +99,31 @@ func requiredPermissions(permissions []string) []brokerapi.RequiredPermission {
 		brokerPermissions = append(brokerPermissions, brokerapi.RequiredPermission(permission))
 	}
 	return brokerPermissions
+}
+
+func validatePlanSchemas(planSchema brokerapi.ServiceSchemas) error {
+	labels := []string{"instance create", "instance update", "binding create"}
+	for i, schema := range []map[string]interface{}{
+		planSchema.Instance.Create.Parameters,
+		planSchema.Instance.Update.Parameters,
+		planSchema.Binding.Create.Parameters,
+	} {
+		if schema == nil {
+			return fmt.Errorf("No JSON Schema provided for %s", labels[i])
+		}
+		version, ok := schema["$schema"]
+		if !ok {
+			return fmt.Errorf("No JSON Schema version provided for %s", labels[i])
+		}
+		versionStr, ok := version.(string)
+		if !ok || versionStr != "http://json-schema.org/draft-04/schema#" {
+			return fmt.Errorf("Invalid JSON Schema version for %s", labels[i])
+		}
+		loader := gojsonschema.NewGoLoader(schema)
+		_, err := gojsonschema.NewSchema(loader)
+		if err != nil {
+			return errors.Wrap(err, "loading error for "+labels[i])
+		}
+	}
+	return nil
 }

@@ -338,6 +338,18 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/xeipuuv/gojsonreference"
+  packages = ["."]
+  revision = "bd5ef7bd5415a7ac448318e64f11a24cd21e594b"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/xeipuuv/gojsonschema"
+  packages = ["."]
+  revision = "8bcffc811467a5f691810420385be6e66b35a317"
+
+[[projects]]
+  branch = "master"
   name = "golang.org/x/crypto"
   packages = [
     "curve25519",
@@ -408,6 +420,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "a58e2cfb79bf7271d9b5e724aafeef182a18b81c97c5d2c7cedde7c43c4679fe"
+  inputs-digest = "5389ce7d39ec60e07ae1d325f47db6d8d8f7171369eddc3a5956c7eb6bf01aba"
   solver-name = "gps-cdcl"
   solver-version = 1

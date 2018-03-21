@@ -103,3 +103,7 @@
   branch = "master"
   name = "github.com/cloudfoundry/bosh-utils"
   source = "github.com/simonjjones/bosh-utils"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/xeipuuv/gojsonschema"

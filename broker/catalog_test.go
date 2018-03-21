@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
@@ -15,10 +16,11 @@ import (
 
 var _ = Describe("Catalog", func() {
 	var (
-		createSchema, updateSchema, bindingSchema brokerapi.Schema
+		createSchema, updateSchema, bindingSchema                brokerapi.Schema
+		invalidTypeSchema, invalidVersionSchema, noVersionSchema brokerapi.Schema
 	)
 
-	BeforeEach(func() {
+	setSchemas := func() {
 		createSchema = brokerapi.Schema{
 			Parameters: map[string]interface{}{
 				"$schema": "http://json-schema.org/draft-04/schema#",
@@ -27,7 +29,6 @@ var _ = Describe("Catalog", func() {
 					"create-prop": map[string]interface{}{
 						"description": "create prop",
 						"type":        "integer",
-						"required":    false,
 					},
 				},
 			},
@@ -39,8 +40,7 @@ var _ = Describe("Catalog", func() {
 				"properties": map[string]interface{}{
 					"some-update-prop": map[string]interface{}{
 						"description": "some update prop create topics",
-						"type":        "bool",
-						"required":    true,
+						"type":        "boolean",
 					},
 				},
 			},
@@ -52,12 +52,52 @@ var _ = Describe("Catalog", func() {
 				"properties": map[string]interface{}{
 					"binding-prop": map[string]interface{}{
 						"description": "binding",
-						"type":        "bool",
-						"required":    false,
+						"type":        "boolean",
 					},
 				},
 			},
 		}
+		noVersionSchema = brokerapi.Schema{
+			Parameters: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"some-prop": map[string]interface{}{
+						"description": "create prop",
+						"type":        "string",
+					},
+				},
+			},
+		}
+		invalidVersionSchema = brokerapi.Schema{
+			Parameters: map[string]interface{}{
+				"$schema": "http://json-schema.org/draft-03/schema#",
+				"type":    "object",
+				"properties": map[string]interface{}{
+					"some-prop": map[string]interface{}{
+						"description": "create prop",
+						"type":        "string",
+					},
+				},
+			},
+		}
+		invalidTypeSchema = brokerapi.Schema{
+			Parameters: map[string]interface{}{
+				"$schema": "http://json-schema.org/draft-04/schema#",
+				"type":    "object",
+				"properties": map[string]interface{}{
+					"some-prop": map[string]interface{}{
+						"description": "create prop",
+						"type":        "fool",
+					},
+				},
+			},
+		}
+	}
+
+	setSchemas()
+
+	BeforeEach(func() {
+		setSchemas()
 	})
 
 	It("generates the catalog response if the adapter does not implement generate-plan-schemas and enable_plan_schemas is false", func() {
@@ -201,6 +241,49 @@ var _ = Describe("Catalog", func() {
 			}
 		}
 	})
+
+	DescribeTable("when the generated schema is invalid",
+		func(create, update, binding brokerapi.Schema, errorLabel string) {
+			planSchema := brokerapi.ServiceSchemas{
+				Instance: brokerapi.ServiceInstanceSchema{
+					Create: create,
+					Update: update,
+				},
+				Binding: brokerapi.ServiceBindingSchema{
+					Create: binding,
+				},
+			}
+
+			serviceAdapter.GeneratePlanSchemaReturns(planSchema, nil)
+			b, brokerCreationErr = createBroker([]broker.StartupChecker{}, noopservicescontroller.New())
+			b.EnablePlanSchemas = true
+
+			Expect(brokerCreationErr).NotTo(HaveOccurred())
+
+			contextWithoutRequestID := context.Background()
+			_, err := b.Services(contextWithoutRequestID)
+			Expect(err).To(MatchError(
+				SatisfyAll(
+					ContainSubstring("Invalid JSON Schema for plan"),
+					ContainSubstring(errorLabel),
+				),
+			))
+			Expect(logBuffer.String()).To(
+				SatisfyAll(
+					ContainSubstring("Invalid JSON Schema for plan"),
+					ContainSubstring(errorLabel),
+				),
+			)
+		},
+
+		Entry("invalid type on instance.create", invalidTypeSchema, updateSchema, bindingSchema, "instance create"),
+		Entry("invalid type on instance.update", createSchema, invalidTypeSchema, bindingSchema, "instance update"),
+		Entry("invalid type on binding.create", createSchema, updateSchema, invalidTypeSchema, "binding create"),
+		Entry("invalid version", invalidVersionSchema, updateSchema, bindingSchema, "instance create"),
+		Entry("no version specified", noVersionSchema, updateSchema, bindingSchema, "instance create"),
+		Entry("missing schemas", createSchema, nil, bindingSchema, "instance update"),
+	)
+
 })
 
 func getPlansFromCatalog(serviceCatalog config.ServiceOffering) []brokerapi.ServicePlan {
