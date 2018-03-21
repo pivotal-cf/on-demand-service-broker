@@ -25,6 +25,15 @@ func (b *Broker) Instances(logger *log.Logger) ([]service.Instance, error) {
 	return instances, nil
 }
 
+func (b *Broker) FilteredInstances(orgName, spaceName string, logger *log.Logger) ([]service.Instance, error) {
+	instances, err := b.cfClient.GetInstancesOfServiceOfferingByOrgSpace(b.serviceOffering.ID, orgName, spaceName, logger)
+	if err != nil {
+		return nil, b.processError(err, logger)
+	}
+
+	return instances, nil
+}
+
 func (b *Broker) validatePlanQuota(ctx context.Context, serviceID string, plan config.Plan, logger *log.Logger) error {
 	if plan.Quotas.ServiceInstanceLimit == nil {
 		return nil

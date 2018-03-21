@@ -38,6 +38,7 @@ var (
 	boshClient                   *bosh_helpers.BoshHelperClient
 	currentPlan                  string
 	serviceGUID                  string
+	cfSpace                      string
 )
 
 var _ = BeforeSuite(func() {
@@ -61,6 +62,7 @@ var _ = BeforeSuite(func() {
 	exampleAppDirName = envMustHave("EXAMPLE_APP_DIR_NAME")
 
 	serviceGUID = envMustHave("SERVICE_GUID")
+	cfSpace = envMustHave("CF_SPACE")
 
 	if uaaURL == "" {
 		boshClient = bosh_helpers.NewBasicAuth(boshURL, boshUsername, boshPassword, boshCACert, boshCACert == "")
@@ -91,4 +93,16 @@ func envMustHave(key string) string {
 	value := os.Getenv(key)
 	Expect(value).NotTo(BeEmpty(), fmt.Sprintf("must set %s", key))
 	return value
+}
+
+func cfCreateSpace(spaceName string) {
+	Eventually(cf.Cf("create-space", spaceName)).Should(gexec.Exit(0))
+}
+
+func cfDeleteSpace(spaceName string) {
+	Eventually(cf.Cf("delete-space", spaceName, "-f")).Should(gexec.Exit(0))
+}
+
+func cfTargetSpace(spaceName string) {
+	Eventually(cf.Cf("target", "-s", spaceName)).Should(gexec.Exit(0))
 }

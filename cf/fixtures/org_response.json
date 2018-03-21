@@ -1,0 +1,33 @@
+{
+   "total_results": 1,
+   "total_pages": 1,
+   "prev_url": null,
+   "next_url": null,
+   "resources": [
+      {
+         "metadata": {
+            "guid": "an-org-guid",
+            "url": "/v2/organizations/an-org-guid",
+            "created_at": "2018-03-12T18:02:20Z",
+            "updated_at": "2018-03-12T18:02:20Z"
+         },
+         "entity": {
+            "name": "cf-org",
+            "billing_enabled": false,
+            "quota_definition_guid": "bd441567-325c-4226-b35f-6915ac802284",
+            "status": "active",
+            "default_isolation_segment_guid": null,
+            "quota_definition_url": "/v2/quota_definitions/bd441567-325c-4226-b35f-6915ac802284",
+            "spaces_url": "/v2/organizations/an-org-guid/spaces",
+            "domains_url": "/v2/organizations/an-org-guid/domains",
+            "private_domains_url": "/v2/organizations/an-org-guid/private_domains",
+            "users_url": "/v2/organizations/an-org-guid/users",
+            "managers_url": "/v2/organizations/an-org-guid/managers",
+            "billing_managers_url": "/v2/organizations/an-org-guid/billing_managers",
+            "auditors_url": "/v2/organizations/an-org-guid/auditors",
+            "app_events_url": "/v2/organizations/an-org-guid/app_events",
+            "space_quota_definitions_url": "/v2/organizations/an-org-guid/space_quota_definitions"
+         }
+      }
+   ]
+}

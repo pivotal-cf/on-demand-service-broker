@@ -27,6 +27,21 @@ type FakeCombinedBroker struct {
 		result1 []service.Instance
 		result2 error
 	}
+	FilteredInstancesStub        func(orgName, spaceName string, logger *log.Logger) ([]service.Instance, error)
+	filteredInstancesMutex       sync.RWMutex
+	filteredInstancesArgsForCall []struct {
+		orgName   string
+		spaceName string
+		logger    *log.Logger
+	}
+	filteredInstancesReturns struct {
+		result1 []service.Instance
+		result2 error
+	}
+	filteredInstancesReturnsOnCall map[int]struct {
+		result1 []service.Instance
+		result2 error
+	}
 	OrphanDeploymentsStub        func(logger *log.Logger) ([]string, error)
 	orphanDeploymentsMutex       sync.RWMutex
 	orphanDeploymentsArgsForCall []struct {
@@ -225,6 +240,59 @@ func (fake *FakeCombinedBroker) InstancesReturnsOnCall(i int, result1 []service.
 		})
 	}
 	fake.instancesReturnsOnCall[i] = struct {
+		result1 []service.Instance
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeCombinedBroker) FilteredInstances(orgName string, spaceName string, logger *log.Logger) ([]service.Instance, error) {
+	fake.filteredInstancesMutex.Lock()
+	ret, specificReturn := fake.filteredInstancesReturnsOnCall[len(fake.filteredInstancesArgsForCall)]
+	fake.filteredInstancesArgsForCall = append(fake.filteredInstancesArgsForCall, struct {
+		orgName   string
+		spaceName string
+		logger    *log.Logger
+	}{orgName, spaceName, logger})
+	fake.recordInvocation("FilteredInstances", []interface{}{orgName, spaceName, logger})
+	fake.filteredInstancesMutex.Unlock()
+	if fake.FilteredInstancesStub != nil {
+		return fake.FilteredInstancesStub(orgName, spaceName, logger)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.filteredInstancesReturns.result1, fake.filteredInstancesReturns.result2
+}
+
+func (fake *FakeCombinedBroker) FilteredInstancesCallCount() int {
+	fake.filteredInstancesMutex.RLock()
+	defer fake.filteredInstancesMutex.RUnlock()
+	return len(fake.filteredInstancesArgsForCall)
+}
+
+func (fake *FakeCombinedBroker) FilteredInstancesArgsForCall(i int) (string, string, *log.Logger) {
+	fake.filteredInstancesMutex.RLock()
+	defer fake.filteredInstancesMutex.RUnlock()
+	return fake.filteredInstancesArgsForCall[i].orgName, fake.filteredInstancesArgsForCall[i].spaceName, fake.filteredInstancesArgsForCall[i].logger
+}
+
+func (fake *FakeCombinedBroker) FilteredInstancesReturns(result1 []service.Instance, result2 error) {
+	fake.FilteredInstancesStub = nil
+	fake.filteredInstancesReturns = struct {
+		result1 []service.Instance
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeCombinedBroker) FilteredInstancesReturnsOnCall(i int, result1 []service.Instance, result2 error) {
+	fake.FilteredInstancesStub = nil
+	if fake.filteredInstancesReturnsOnCall == nil {
+		fake.filteredInstancesReturnsOnCall = make(map[int]struct {
+			result1 []service.Instance
+			result2 error
+		})
+	}
+	fake.filteredInstancesReturnsOnCall[i] = struct {
 		result1 []service.Instance
 		result2 error
 	}{result1, result2}
@@ -762,6 +830,8 @@ func (fake *FakeCombinedBroker) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.instancesMutex.RLock()
 	defer fake.instancesMutex.RUnlock()
+	fake.filteredInstancesMutex.RLock()
+	defer fake.filteredInstancesMutex.RUnlock()
 	fake.orphanDeploymentsMutex.RLock()
 	defer fake.orphanDeploymentsMutex.RUnlock()
 	fake.upgradeMutex.RLock()

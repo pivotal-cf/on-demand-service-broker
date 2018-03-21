@@ -1,0 +1,35 @@
+{
+   "total_results": 1,
+   "total_pages": 1,
+   "prev_url": null,
+   "next_url": null,
+   "resources": [
+      {
+         "metadata": {
+            "guid": "a-space-guid",
+            "url": "/v2/spaces/a-space-guid",
+            "created_at": "2018-02-09T16:42:47Z",
+            "updated_at": "2018-02-09T16:42:47Z"
+         },
+         "entity": {
+            "name": "cf-space",
+            "organization_guid": "an-org-guid",
+            "space_quota_definition_guid": null,
+            "isolation_segment_guid": null,
+            "allow_ssh": true,
+            "organization_url": "/v2/organizations/an-org-guid",
+            "developers_url": "/v2/spaces/a-space-guid/developers",
+            "managers_url": "/v2/spaces/a-space-guid/managers",
+            "auditors_url": "/v2/spaces/a-space-guid/auditors",
+            "apps_url": "/v2/spaces/a-space-guid/apps",
+            "routes_url": "/v2/spaces/a-space-guid/routes",
+            "domains_url": "/v2/spaces/a-space-guid/domains",
+            "service_instances_url": "/v2/spaces/a-space-guid/service_instances",
+            "app_events_url": "/v2/spaces/a-space-guid/app_events",
+            "events_url": "/v2/spaces/a-space-guid/events",
+            "security_groups_url": "/v2/spaces/a-space-guid/security_groups",
+            "staging_security_groups_url": "/v2/spaces/a-space-guid/staging_security_groups"
+         }
+      }
+   ]
+}

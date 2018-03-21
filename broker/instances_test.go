@@ -49,4 +49,38 @@ var _ = Describe("Instances", func() {
 			})
 		})
 	})
+
+	Describe("listing all instances by org and space", func() {
+		var logger *log.Logger
+
+		BeforeEach(func() {
+			cfClient.GetInstancesOfServiceOfferingByOrgSpaceReturns([]service.Instance{
+				{GUID: "red", PlanUniqueID: "colour-plan"},
+				{GUID: "green", PlanUniqueID: "colour-plan"},
+				{GUID: "blue", PlanUniqueID: "colour-plan"},
+			}, nil)
+			logger = loggerFactory.NewWithRequestID()
+		})
+
+		It("returns a list of instance IDs", func() {
+			b = createDefaultBroker()
+			Expect(b.FilteredInstances("cf-org", "cf-space", logger)).To(ConsistOf(
+				service.Instance{GUID: "red", PlanUniqueID: "colour-plan"},
+				service.Instance{GUID: "green", PlanUniqueID: "colour-plan"},
+				service.Instance{GUID: "blue", PlanUniqueID: "colour-plan"},
+			))
+		})
+
+		Context("when the list of instances cannot be retrieved", func() {
+			BeforeEach(func() {
+				cfClient.GetInstancesOfServiceOfferingByOrgSpaceReturns(nil, errors.New("an error occurred"))
+			})
+
+			It("returns an error", func() {
+				b = createDefaultBroker()
+				_, err := b.FilteredInstances("cf-org", "cf-space", logger)
+				Expect(err).To(MatchError(ContainSubstring("an error occurred")))
+			})
+		})
+	})
 })

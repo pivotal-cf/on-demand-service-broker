@@ -82,7 +82,7 @@ func StartServerWithStopHandler(conf config.Config, stopServerChan chan os.Signa
 		fakeBoshClient,
 		fakeCfClient,
 		conf.ServiceCatalog,
-		conf.Broker.ExposeOperationalErrors,
+		conf.Broker,
 		nil,
 		fakeServiceAdapter,
 		fakeDeployer,

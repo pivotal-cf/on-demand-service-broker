@@ -32,6 +32,7 @@ type Broker struct {
 
 	serviceOffering         config.ServiceOffering
 	ExposeOperationalErrors bool
+	EnablePlanSchemas       bool
 
 	loggerFactory *loggerfactory.LoggerFactory
 }
@@ -40,10 +41,10 @@ func New(
 	boshClient BoshClient,
 	cfClient CloudFoundryClient,
 	serviceOffering config.ServiceOffering,
-	exposeOperationalErrors bool,
+	brokerConfig config.Broker,
 	startupCheckers []StartupChecker,
 	serviceAdapter ServiceAdapterClient,
-	deployer Deployer, // TODO: is it used?
+	deployer Deployer,
 	loggerFactory *loggerfactory.LoggerFactory,
 ) (*Broker, error) {
 	b := &Broker{
@@ -54,7 +55,8 @@ func New(
 		deploymentLock: &sync.Mutex{},
 
 		serviceOffering:         serviceOffering,
-		ExposeOperationalErrors: exposeOperationalErrors,
+		ExposeOperationalErrors: brokerConfig.ExposeOperationalErrors,
+		EnablePlanSchemas:       brokerConfig.EnablePlanSchemas,
 
 		loggerFactory: loggerFactory,
 	}
@@ -172,4 +174,5 @@ type CloudFoundryClient interface {
 	CountInstancesOfServiceOffering(serviceOfferingID string, logger *log.Logger) (instanceCountByPlanID map[cf.ServicePlan]int, err error)
 	GetInstanceState(serviceInstanceGUID string, logger *log.Logger) (cf.InstanceState, error)
 	GetInstancesOfServiceOffering(serviceOfferingID string, logger *log.Logger) ([]service.Instance, error)
+	GetInstancesOfServiceOfferingByOrgSpace(serviceOfferingID, orgName, spaceName string, logger *log.Logger) ([]service.Instance, error)
 }

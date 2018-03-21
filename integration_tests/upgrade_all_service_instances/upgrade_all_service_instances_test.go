@@ -93,8 +93,8 @@ attempt_limit: 5
 max_in_flight: 1
 canaries: %d
 canary_selection_params:
-  org: %s
-  space: %s`, canaries, org, space)
+  cf_org: %s
+  cf_space: %s`, canaries, org, space)
 }
 
 func writeConfigFile(configContent string) string {
@@ -396,6 +396,25 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 		runningTool := startUpgradeAllInstanceBinary()
 		Eventually(runningTool, 5*time.Second).Should(gexec.Exit(1))
 		Expect(runningTool).To(gbytes.Say("Upgrade failed to find a match to the canary selection criteria"))
+	})
+
+	It("returns an error if service-instances api responds with a non-200", func() {
+		odb.VerifyAndMock(
+			mockbroker.ListInstances().RespondsInternalServerErrorWith(`{"description": "a forced error"}`),
+		)
+		brokerConfig := populateBrokerConfig(odb.URL, brokerUsername, brokerPassword)
+		serviceInstancesAPIConfig := populateServiceInstancesAPIConfig(
+			odb.URL+brokerServiceInstancesURLPath,
+			brokerUsername,
+			brokerPassword,
+		)
+		pollingIntervalConfig := populateUpgraderConfigWithCanaries(1, "my-org", "my-space")
+		config := brokerConfig + serviceInstancesAPIConfig + pollingIntervalConfig
+		configPath = writeConfigFile(config)
+
+		runningTool := startUpgradeAllInstanceBinary()
+		Eventually(runningTool, 5*time.Second).Should(gexec.Exit(1))
+		Expect(runningTool).To(gbytes.Say("error listing service instances: HTTP response status: 500 Internal Server Error. a forced error"))
 	})
 
 	It("when there is one service instance exits successfully with one instance upgraded message", func() {

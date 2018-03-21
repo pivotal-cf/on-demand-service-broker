@@ -17,5 +17,5 @@ func ListInstances() *mockhttp.Handler {
 }
 
 func ListInstancesWithOrgAndSpace(org, space string) *mockhttp.Handler {
-	return mockhttp.NewMockedHttpRequest("GET", fmt.Sprintf("/mgmt/service_instances?org=%s&space=%s", org, space))
+	return mockhttp.NewMockedHttpRequest("GET", fmt.Sprintf("/mgmt/service_instances?cf_org=%s&cf_space=%s", org, space))
 }

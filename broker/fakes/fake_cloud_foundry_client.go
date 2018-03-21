@@ -81,6 +81,22 @@ type FakeCloudFoundryClient struct {
 		result1 []service.Instance
 		result2 error
 	}
+	GetInstancesOfServiceOfferingByOrgSpaceStub        func(serviceOfferingID, orgName, spaceName string, logger *log.Logger) ([]service.Instance, error)
+	getInstancesOfServiceOfferingByOrgSpaceMutex       sync.RWMutex
+	getInstancesOfServiceOfferingByOrgSpaceArgsForCall []struct {
+		serviceOfferingID string
+		orgName           string
+		spaceName         string
+		logger            *log.Logger
+	}
+	getInstancesOfServiceOfferingByOrgSpaceReturns struct {
+		result1 []service.Instance
+		result2 error
+	}
+	getInstancesOfServiceOfferingByOrgSpaceReturnsOnCall map[int]struct {
+		result1 []service.Instance
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -345,6 +361,60 @@ func (fake *FakeCloudFoundryClient) GetInstancesOfServiceOfferingReturnsOnCall(i
 	}{result1, result2}
 }
 
+func (fake *FakeCloudFoundryClient) GetInstancesOfServiceOfferingByOrgSpace(serviceOfferingID string, orgName string, spaceName string, logger *log.Logger) ([]service.Instance, error) {
+	fake.getInstancesOfServiceOfferingByOrgSpaceMutex.Lock()
+	ret, specificReturn := fake.getInstancesOfServiceOfferingByOrgSpaceReturnsOnCall[len(fake.getInstancesOfServiceOfferingByOrgSpaceArgsForCall)]
+	fake.getInstancesOfServiceOfferingByOrgSpaceArgsForCall = append(fake.getInstancesOfServiceOfferingByOrgSpaceArgsForCall, struct {
+		serviceOfferingID string
+		orgName           string
+		spaceName         string
+		logger            *log.Logger
+	}{serviceOfferingID, orgName, spaceName, logger})
+	fake.recordInvocation("GetInstancesOfServiceOfferingByOrgSpace", []interface{}{serviceOfferingID, orgName, spaceName, logger})
+	fake.getInstancesOfServiceOfferingByOrgSpaceMutex.Unlock()
+	if fake.GetInstancesOfServiceOfferingByOrgSpaceStub != nil {
+		return fake.GetInstancesOfServiceOfferingByOrgSpaceStub(serviceOfferingID, orgName, spaceName, logger)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.getInstancesOfServiceOfferingByOrgSpaceReturns.result1, fake.getInstancesOfServiceOfferingByOrgSpaceReturns.result2
+}
+
+func (fake *FakeCloudFoundryClient) GetInstancesOfServiceOfferingByOrgSpaceCallCount() int {
+	fake.getInstancesOfServiceOfferingByOrgSpaceMutex.RLock()
+	defer fake.getInstancesOfServiceOfferingByOrgSpaceMutex.RUnlock()
+	return len(fake.getInstancesOfServiceOfferingByOrgSpaceArgsForCall)
+}
+
+func (fake *FakeCloudFoundryClient) GetInstancesOfServiceOfferingByOrgSpaceArgsForCall(i int) (string, string, string, *log.Logger) {
+	fake.getInstancesOfServiceOfferingByOrgSpaceMutex.RLock()
+	defer fake.getInstancesOfServiceOfferingByOrgSpaceMutex.RUnlock()
+	return fake.getInstancesOfServiceOfferingByOrgSpaceArgsForCall[i].serviceOfferingID, fake.getInstancesOfServiceOfferingByOrgSpaceArgsForCall[i].orgName, fake.getInstancesOfServiceOfferingByOrgSpaceArgsForCall[i].spaceName, fake.getInstancesOfServiceOfferingByOrgSpaceArgsForCall[i].logger
+}
+
+func (fake *FakeCloudFoundryClient) GetInstancesOfServiceOfferingByOrgSpaceReturns(result1 []service.Instance, result2 error) {
+	fake.GetInstancesOfServiceOfferingByOrgSpaceStub = nil
+	fake.getInstancesOfServiceOfferingByOrgSpaceReturns = struct {
+		result1 []service.Instance
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeCloudFoundryClient) GetInstancesOfServiceOfferingByOrgSpaceReturnsOnCall(i int, result1 []service.Instance, result2 error) {
+	fake.GetInstancesOfServiceOfferingByOrgSpaceStub = nil
+	if fake.getInstancesOfServiceOfferingByOrgSpaceReturnsOnCall == nil {
+		fake.getInstancesOfServiceOfferingByOrgSpaceReturnsOnCall = make(map[int]struct {
+			result1 []service.Instance
+			result2 error
+		})
+	}
+	fake.getInstancesOfServiceOfferingByOrgSpaceReturnsOnCall[i] = struct {
+		result1 []service.Instance
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeCloudFoundryClient) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -358,6 +428,8 @@ func (fake *FakeCloudFoundryClient) Invocations() map[string][][]interface{} {
 	defer fake.getInstanceStateMutex.RUnlock()
 	fake.getInstancesOfServiceOfferingMutex.RLock()
 	defer fake.getInstancesOfServiceOfferingMutex.RUnlock()
+	fake.getInstancesOfServiceOfferingByOrgSpaceMutex.RLock()
+	defer fake.getInstancesOfServiceOfferingByOrgSpaceMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

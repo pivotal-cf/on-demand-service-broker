@@ -37,6 +37,10 @@ func (Client) GetInstancesOfServiceOffering(serviceOfferingID string, logger *lo
 	return []service.Instance{}, nil
 }
 
+func (Client) GetInstancesOfServiceOfferingByOrgSpace(serviceOfferingID, org, space string, logger *log.Logger) ([]service.Instance, error) {
+	return []service.Instance{}, nil
+}
+
 func New() Client {
 	return Client{}
 }

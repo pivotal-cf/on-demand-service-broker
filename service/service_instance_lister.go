@@ -61,12 +61,17 @@ func (s *ServiceInstanceLister) FilteredInstances(params map[string]string) ([]I
 	if err != nil {
 		return s.instanceListerError(response, err)
 	}
+	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK {
-		return s.instanceListerError(response, fmt.Errorf("HTTP response status: %s", response.Status))
+		genericJson := map[string]string{}
+		err := json.NewDecoder(response.Body).Decode(&genericJson)
+		body := ""
+		if err == nil {
+			body = genericJson["description"]
+		}
+		return s.instanceListerError(response, fmt.Errorf("HTTP response status: %s. %s", response.Status, body))
 	}
-
-	defer response.Body.Close()
 
 	var instances []Instance
 	err = json.NewDecoder(response.Body).Decode(&instances)

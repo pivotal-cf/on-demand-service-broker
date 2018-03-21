@@ -13,6 +13,13 @@ import (
 	s "github.com/pivotal-cf/on-demand-service-broker/service"
 )
 
+type CFResponse struct {
+	Resources []struct {
+		Entity   map[string]interface{} `json:"entity"`
+		Metadata map[string]interface{} `json:"metadata"`
+	} `json:"resources"`
+}
+
 type Client struct {
 	httpJsonClient
 	url string
@@ -95,18 +102,59 @@ func (c Client) CountInstancesOfPlan(serviceID, servicePlanID string, logger *lo
 	return 0, fmt.Errorf("service plan %s not found for service %s", servicePlanID, serviceID)
 }
 
+func (c Client) GetInstancesOfServiceOfferingByOrgSpace(serviceOfferingID, orgName, spaceName string, logger *log.Logger) ([]s.Instance, error) {
+	plans, err := c.getPlansForServiceID(serviceOfferingID, logger)
+	if err != nil {
+		return nil, err
+	}
+
+	var orgResponse CFResponse
+
+	orgURL := fmt.Sprintf("%s/v2/organizations?q=name:%s", c.url, orgName)
+	if err = c.get(orgURL, &orgResponse, logger); err != nil {
+		return nil, err
+	}
+
+	if len(orgResponse.Resources) == 0 {
+		return []s.Instance{}, nil
+	}
+
+	spaceURL := fmt.Sprintf("%s%s?q=name:%s",
+		c.url,
+		orgResponse.Resources[0].Entity["spaces_url"],
+		spaceName,
+	)
+
+	var spaceResponse CFResponse
+
+	if err = c.get(spaceURL, &spaceResponse, logger); err != nil {
+		return nil, err
+	}
+	if len(spaceResponse.Resources) == 0 {
+		return []s.Instance{}, nil
+	}
+
+	query := fmt.Sprintf("&q=space_guid:%s", spaceResponse.Resources[0].Metadata["guid"])
+	return c.getInstances(plans, query, logger)
+}
+
 func (c Client) GetInstancesOfServiceOffering(serviceOfferingID string, logger *log.Logger) ([]s.Instance, error) {
 	plans, err := c.getPlansForServiceID(serviceOfferingID, logger)
 	if err != nil {
 		return nil, err
 	}
 
+	return c.getInstances(plans, "", logger)
+}
+
+func (c Client) getInstances(plans []ServicePlan, query string, logger *log.Logger) ([]s.Instance, error) {
 	instances := []s.Instance{}
 	for _, plan := range plans {
 		path := fmt.Sprintf(
-			"/v2/service_plans/%s/service_instances?results-per-page=%d",
+			"/v2/service_plans/%s/service_instances?results-per-page=%d%s",
 			plan.Metadata.GUID,
 			defaultPerPage,
+			query,
 		)
 
 		for path != "" {

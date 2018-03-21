@@ -63,25 +63,27 @@ var _ = Describe("ServiceInstanceLister", func() {
 	})
 
 	It("returns an error when the HTTP status is not OK", func() {
-		client.DoReturns(response(http.StatusInternalServerError, ``), nil)
+		client.DoReturns(response(http.StatusInternalServerError, `{"description": "oops", "another-field": "ignored"}`), nil)
 		serviceInstanceLister := service.NewInstanceLister(client, authHeaderBuilder, "", false, logger)
 		_, err := serviceInstanceLister.Instances()
 		Expect(err).To(MatchError(fmt.Sprintf(
-			"HTTP response status: %d %s",
+			"HTTP response status: %d %s. %s",
 			http.StatusInternalServerError,
 			http.StatusText(http.StatusInternalServerError),
+			"oops",
 		)))
 	})
 
 	It("returns a service instance API error when the HTTP status is not OK and service API is configured", func() {
-		client.DoReturns(response(http.StatusInternalServerError, ``), nil)
+		client.DoReturns(response(http.StatusInternalServerError, `not json description, so not shown in error`), nil)
 		serviceInstanceLister := service.NewInstanceLister(client, authHeaderBuilder, "", true, logger)
 		_, err := serviceInstanceLister.Instances()
 		Expect(err).To(MatchError(fmt.Sprintf(
-			"error communicating with service_instances_api (%s): HTTP response status: %d %s",
+			"error communicating with service_instances_api (%s): HTTP response status: %d %s. %s",
 			"http://example.org/some-path",
 			http.StatusInternalServerError,
 			http.StatusText(http.StatusInternalServerError),
+			"",
 		)))
 	})
 
@@ -193,6 +195,14 @@ var _ = Describe("ServiceInstanceLister", func() {
 		_, err := serviceInstanceLister.LatestInstanceInfo(service.Instance{GUID: "foo"})
 		Expect(err).To(HaveOccurred())
 		Expect(err).To(MatchError(ContainSubstring("Bad Request")))
+	})
+
+	It("returns an error when pulling the list of instances fail", func() {
+		client.DoReturns(response(http.StatusServiceUnavailable, `[]`), nil)
+		serviceInstanceLister := service.NewInstanceLister(client, authHeaderBuilder, "", false, logger)
+		_, err := serviceInstanceLister.LatestInstanceInfo(service.Instance{GUID: "foo"})
+		Expect(err).To(HaveOccurred())
+		Expect(err).To(MatchError(ContainSubstring("503 Service Unavailable")))
 	})
 
 	Describe("requesting filtered instances", func() {

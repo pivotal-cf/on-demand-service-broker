@@ -35,6 +35,7 @@ type api struct {
 //go:generate counterfeiter -o fake_manageable_broker/fake_manageable_broker.go . ManageableBroker
 type ManageableBroker interface {
 	Instances(logger *log.Logger) ([]service.Instance, error)
+	FilteredInstances(orgName, spaceName string, logger *log.Logger) ([]service.Instance, error)
 	OrphanDeployments(logger *log.Logger) ([]string, error)
 	Upgrade(ctx context.Context, instanceID string, updateDetails brokerapi.UpdateDetails, logger *log.Logger) (broker.OperationData, error)
 	CountInstancesOfPlans(logger *log.Logger) (map[cf.ServicePlan]int, error)
@@ -78,8 +79,17 @@ func (a *api) listOrphanDeployments(w http.ResponseWriter, r *http.Request) {
 
 func (a *api) listAllInstances(w http.ResponseWriter, r *http.Request) {
 	logger := a.loggerFactory.NewWithRequestID()
+	var instances []service.Instance
+	var err error
 
-	instances, err := a.manageableBroker.Instances(logger)
+	values := r.URL.Query()
+	orgName := values["cf_org"]
+	spaceName := values["cf_space"]
+	if orgName != nil && spaceName != nil {
+		instances, err = a.manageableBroker.FilteredInstances(orgName[0], spaceName[0], logger)
+	} else {
+		instances, err = a.manageableBroker.Instances(logger)
+	}
 	if err != nil {
 		logger.Printf("error occurred querying instances: %s", err)
 		w.WriteHeader(http.StatusInternalServerError)

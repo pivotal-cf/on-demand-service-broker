@@ -46,6 +46,7 @@ var (
 	serviceCatalog    config.ServiceOffering
 	logBuffer         *bytes.Buffer
 	loggerFactory     *loggerfactory.LoggerFactory
+	brokerConfig      config.Broker
 
 	existingPlanServiceInstanceLimit    = 3
 	serviceOfferingServiceInstanceLimit = 5
@@ -87,6 +88,7 @@ var (
 )
 
 var _ = BeforeEach(func() {
+	brokerConfig = config.Broker{ExposeOperationalErrors: false, EnablePlanSchemas: false}
 	secondPlan = config.Plan{
 		ID: secondPlanID,
 		Properties: serviceadapter.Properties{
@@ -181,7 +183,6 @@ func createDefaultBroker() *broker.Broker {
 }
 
 func createBroker(startupCheckers []broker.StartupChecker, overrideClient ...broker.CloudFoundryClient) (*broker.Broker, error) {
-
 	var client broker.CloudFoundryClient = cfClient
 	if len(overrideClient) > 0 {
 		client = overrideClient[0]
@@ -190,7 +191,7 @@ func createBroker(startupCheckers []broker.StartupChecker, overrideClient ...bro
 		boshClient,
 		client,
 		serviceCatalog,
-		false,
+		brokerConfig,
 		startupCheckers,
 		serviceAdapter,
 		fakeDeployer,
