@@ -30,7 +30,7 @@ var _ = Describe("State checker", func() {
 	It("returns UpgradeSucceeded when last operation reports success", func() {
 		fakeBrokerService.LastOperationReturns(brokerapi.LastOperation{State: brokerapi.Succeeded}, nil)
 
-		state, err := stateChecker.CheckState(guid, expectedOperationData)
+		state, err := stateChecker.Check(guid, expectedOperationData)
 		Expect(err).NotTo(HaveOccurred())
 
 		By("pulling the last operation with the right arguments")
@@ -45,14 +45,14 @@ var _ = Describe("State checker", func() {
 	It("returns an error if it fails to pull last operation", func() {
 		fakeBrokerService.LastOperationReturns(brokerapi.LastOperation{}, errors.New("oops"))
 
-		_, err := stateChecker.CheckState(guid, expectedOperationData)
+		_, err := stateChecker.Check(guid, expectedOperationData)
 		Expect(err).To(MatchError("error getting last operation: oops"))
 	})
 
 	It("returns UpgradeFailed when last operation reports failure", func() {
 		fakeBrokerService.LastOperationReturns(brokerapi.LastOperation{State: brokerapi.Failed}, nil)
 
-		state, err := stateChecker.CheckState(guid, expectedOperationData)
+		state, err := stateChecker.Check(guid, expectedOperationData)
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(state).To(Equal(services.UpgradeOperation{Type: services.UpgradeFailed, Data: expectedOperationData}))
@@ -61,7 +61,7 @@ var _ = Describe("State checker", func() {
 	It("returns UpgradeInProgress when last operation reports the upgrade is in progress", func() {
 		fakeBrokerService.LastOperationReturns(brokerapi.LastOperation{State: brokerapi.InProgress}, nil)
 
-		state, err := stateChecker.CheckState(guid, expectedOperationData)
+		state, err := stateChecker.Check(guid, expectedOperationData)
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(state).To(Equal(services.UpgradeOperation{Type: services.UpgradeAccepted, Data: expectedOperationData}))
@@ -70,7 +70,7 @@ var _ = Describe("State checker", func() {
 	It("returns an error if last operation returns an unknown state", func() {
 		fakeBrokerService.LastOperationReturns(brokerapi.LastOperation{State: "not-a-state"}, nil)
 
-		_, err := stateChecker.CheckState(guid, expectedOperationData)
+		_, err := stateChecker.Check(guid, expectedOperationData)
 		Expect(err).To(MatchError("uknown state from last operation: not-a-state"))
 	})
 })

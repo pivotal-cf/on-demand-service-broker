@@ -8,21 +8,17 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
 )
 
-type StateChecker interface {
-	CheckState(string, broker.OperationData) (services.UpgradeOperation, error)
-}
-
-type lastOperationChecker struct {
+type LastOperationChecker struct {
 	brokerServices BrokerServices
 }
 
-func NewStateChecker(brokerServices BrokerServices) StateChecker {
-	return &lastOperationChecker{
+func NewStateChecker(brokerServices BrokerServices) *LastOperationChecker {
+	return &LastOperationChecker{
 		brokerServices: brokerServices,
 	}
 }
 
-func (l *lastOperationChecker) CheckState(guid string, operationData broker.OperationData) (services.UpgradeOperation, error) {
+func (l *LastOperationChecker) Check(guid string, operationData broker.OperationData) (services.UpgradeOperation, error) {
 	lastOperation, err := l.brokerServices.LastOperation(guid, operationData)
 	if err != nil {
 		return services.UpgradeOperation{}, fmt.Errorf("error getting last operation: %s", err)

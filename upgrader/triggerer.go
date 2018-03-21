@@ -7,25 +7,21 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/service"
 )
 
-type Triggerer interface {
-	TriggerUpgrade(service.Instance) (services.UpgradeOperation, error)
-}
-
-type upgradeTriggerer struct {
+type UpgradeTriggerer struct {
 	brokerServices BrokerServices
 	instanceLister InstanceLister
 	logger         Listener
 }
 
-func NewTriggerer(brokerServices BrokerServices, instanceLister InstanceLister, listener Listener) Triggerer {
-	return &upgradeTriggerer{
+func NewTriggerer(brokerServices BrokerServices, instanceLister InstanceLister, listener Listener) *UpgradeTriggerer {
+	return &UpgradeTriggerer{
 		brokerServices: brokerServices,
 		instanceLister: instanceLister,
 		logger:         listener,
 	}
 }
 
-func (t *upgradeTriggerer) TriggerUpgrade(instance service.Instance) (services.UpgradeOperation, error) {
+func (t *UpgradeTriggerer) TriggerUpgrade(instance service.Instance) (services.UpgradeOperation, error) {
 	latestInstance, err := t.instanceLister.LatestInstanceInfo(instance)
 	if err != nil {
 		if err == service.InstanceNotFound {

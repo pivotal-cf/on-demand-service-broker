@@ -20,12 +20,15 @@ type upgradeState struct {
 	states          map[string]instanceInfo
 	processCanaries bool
 	// Required number of canaries to process.  Use 0 as 'no limit'.
-	canaryLimit int
-	pos         int
+	canaryLimit  int
+	pos          int
+	allInstances []service.Instance
 }
 
 func NewUpgradeState(canaryInstances, allInstances []service.Instance, canaryLimit int) (*upgradeState, error) {
 	us := upgradeState{}
+
+	us.allInstances = allInstances
 	us.processCanaries = len(canaryInstances) > 0
 	us.canaryLimit = canaryLimit
 	us.states = map[string]instanceInfo{}
@@ -44,11 +47,15 @@ func NewUpgradeState(canaryInstances, allInstances []service.Instance, canaryLim
 	return &us, nil
 }
 
+func (us *upgradeState) AllInstances() []service.Instance {
+	return us.allInstances
+}
+
 func (us *upgradeState) IsProcessingCanaries() bool {
 	return us.processCanaries
 }
 
-func (us *upgradeState) Retry() {
+func (us *upgradeState) RewindAndResetBusyInstances() {
 	us.pos = 0
 	for k, v := range us.states {
 		if v.status == services.OperationInProgress {
@@ -56,6 +63,26 @@ func (us *upgradeState) Retry() {
 			us.states[k] = v
 		}
 	}
+}
+
+func (us *upgradeState) HasInstancesToProcess() bool {
+	return len(us.GetInstancesInStates(services.UpgradePending, services.UpgradeAccepted)) > 0
+}
+
+func (us *upgradeState) HasInstancesProcessing() bool {
+	return len(us.GetInstancesInStates(services.UpgradeAccepted)) > 0
+}
+
+func (us *upgradeState) HasFailures() bool {
+	return len(us.GetInstancesInStates(services.UpgradeFailed)) > 0
+}
+
+func (us *upgradeState) InProgressInstances() []service.Instance {
+	return us.GetInstancesInStates(services.UpgradeAccepted)
+}
+
+func (us *upgradeState) CountInProgressInstances() int {
+	return len(us.InProgressInstances())
 }
 
 func (us *upgradeState) RetryBusyInstances() {
@@ -118,7 +145,7 @@ func (us *upgradeState) GetUpgradeOperation(guid string) services.UpgradeOperati
 	return us.states[guid].upgradeOperation
 }
 
-func (us *upgradeState) PhaseComplete() bool {
+func (us *upgradeState) CurrentPhaseIsComplete() bool {
 	if us.processCanaries {
 		return us.canariesCompleted()
 	}
@@ -185,7 +212,7 @@ func (us *upgradeState) MarkCanariesCompleted() {
 	us.pos = 0
 }
 
-func (us *upgradeState) InstanceCountInPhase() int {
+func (us *upgradeState) CountInstancesInCurrentPhase() int {
 	c := 0
 	for _, inst := range us.states {
 		if us.processCanaries && !inst.couldBeCanary {

@@ -102,7 +102,7 @@ var _ = Describe("Upgrade State", func() {
 			us, err := upgrader.NewUpgradeState([]service.Instance{}, []service.Instance{}, 0)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(us.PhaseComplete()).To(Equal(true))
+			Expect(us.CurrentPhaseIsComplete()).To(Equal(true))
 		})
 
 		DescribeTable("upgrade completed when processing canaries",
@@ -115,7 +115,7 @@ var _ = Describe("Upgrade State", func() {
 					us.SetState(fmt.Sprintf("guid_%d", i), services.UpgradeSucceeded)
 				}
 
-				Expect(us.PhaseComplete()).To(Equal(expected))
+				Expect(us.CurrentPhaseIsComplete()).To(Equal(expected))
 			},
 			Entry("with limit 1, completed 1", 1, 1, true),
 			Entry("with limit 2, completed 1", 2, 1, false),
@@ -136,7 +136,7 @@ var _ = Describe("Upgrade State", func() {
 					us.SetState(fmt.Sprintf("guid_%d", i), services.UpgradeSucceeded)
 				}
 
-				Expect(us.PhaseComplete()).To(Equal(expected))
+				Expect(us.CurrentPhaseIsComplete()).To(Equal(expected))
 			},
 			Entry("with completed 10", 10, true),
 			Entry("with completed 0", 0, false),
