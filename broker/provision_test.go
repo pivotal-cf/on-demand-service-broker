@@ -325,10 +325,10 @@ var _ = Describe("provisioning", func() {
 			preDeleteErrandPlan := config.Plan{
 				ID: planID,
 				LifecycleErrands: &sdk.LifecycleErrands{
-					PreDelete: sdk.Errand{
+					PreDelete: []sdk.Errand{{
 						Name:      errandName,
 						Instances: []string{errandInstance},
-					},
+					}},
 				},
 				InstanceGroups: []sdk.InstanceGroup{
 					{

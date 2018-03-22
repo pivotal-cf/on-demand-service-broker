@@ -108,7 +108,7 @@ var _ = Describe("Deprovision", func() {
 					},
 				},
 				LifecycleErrands: &sdk.LifecycleErrands{
-					PreDelete: sdk.Errand{Name: errandName},
+					PreDelete: []sdk.Errand{{Name: errandName}},
 				},
 			}
 

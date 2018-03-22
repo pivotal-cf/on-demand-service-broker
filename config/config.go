@@ -361,7 +361,7 @@ func (s ServiceOffering) FindPlanByID(id string) (Plan, bool) {
 func (s ServiceOffering) HasLifecycleErrands() bool {
 	for _, plan := range s.Plans {
 		if plan.LifecycleErrands != nil {
-			if plan.LifecycleErrands.PostDeploy.Name != "" || plan.LifecycleErrands.PreDelete.Name != "" {
+			if plan.LifecycleErrands.PostDeploy.Name != "" || len(plan.LifecycleErrands.PreDelete) > 0 {
 				return true
 			}
 		}
@@ -377,7 +377,12 @@ func (s ServiceOffering) Validate() error {
 			if err != nil {
 				return err
 			}
-			return s.validateLifecycleErrands(plan.LifecycleErrands.PreDelete)
+			for _, errand := range plan.LifecycleErrands.PreDelete {
+				err = s.validateLifecycleErrands(errand)
+				if err != nil {
+					return err
+				}
+			}
 		}
 	}
 
@@ -475,7 +480,11 @@ func (p Plan) PreDeleteErrand() string {
 		return ""
 	}
 
-	return p.LifecycleErrands.PreDelete.Name
+	if len(p.LifecycleErrands.PreDelete) == 0 {
+		return ""
+	}
+
+	return p.LifecycleErrands.PreDelete[0].Name
 }
 
 func (p Plan) PreDeleteErrandInstances() []string {
@@ -483,7 +492,11 @@ func (p Plan) PreDeleteErrandInstances() []string {
 		return nil
 	}
 
-	return p.LifecycleErrands.PreDelete.Instances
+	if len(p.LifecycleErrands.PreDelete) == 0 {
+		return nil
+	}
+
+	return p.LifecycleErrands.PreDelete[0].Instances
 }
 
 type PlanMetadata struct {

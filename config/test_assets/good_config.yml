@@ -95,6 +95,9 @@ service_catalog:
         post_deploy:
           name: health-check
           instances: [redis-errand/0, redis-errand/1]
+        pre_delete:
+        - name: cleanup
+          instances: [redis-errand/0]
       instance_groups:
         - name: redis-server
           vm_type: some-vm

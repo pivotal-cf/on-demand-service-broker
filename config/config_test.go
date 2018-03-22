@@ -139,6 +139,10 @@ var _ = Describe("Broker Config", func() {
 										Name:      "health-check",
 										Instances: []string{"redis-errand/0", "redis-errand/1"},
 									},
+									PreDelete: []serviceadapter.Errand{{
+										Name:      "cleanup",
+										Instances: []string{"redis-errand/0"},
+									}},
 								},
 								InstanceGroups: []serviceadapter.InstanceGroup{
 									{

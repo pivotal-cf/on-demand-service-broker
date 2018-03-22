@@ -53,7 +53,7 @@ func (b *Broker) Deprovision(
 	plan, found := b.serviceOffering.FindPlanByID(deprovisionDetails.PlanID)
 	if found {
 		if errand := plan.PreDeleteErrand(); errand != "" {
-			serviceSpec, err := b.runPreDeleteErrand(ctx, instanceID, errand, plan.LifecycleErrands.PreDelete.Instances, logger)
+			serviceSpec, err := b.runPreDeleteErrand(ctx, instanceID, errand, plan.PreDeleteErrandInstances(), logger)
 			return serviceSpec, b.processError(err, logger)
 		}
 	}

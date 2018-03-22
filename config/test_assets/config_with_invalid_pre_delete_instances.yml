@@ -92,8 +92,8 @@ service_catalog:
         persistence: true
       lifecycle_errands:
         pre_delete:
-          name: health-check
-          instances: [some/invalid/instance]
+          - name: health-check
+            instances: [some/invalid/instance]
       instance_groups:
         - name: redis-server
           vm_type: some-vm

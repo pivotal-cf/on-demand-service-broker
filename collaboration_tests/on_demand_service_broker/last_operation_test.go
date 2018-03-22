@@ -416,10 +416,10 @@ var _ = Describe("Last Operation", func() {
 				ID:   planID,
 				Name: "pre-delete-plan",
 				LifecycleErrands: &sdk.LifecycleErrands{
-					PreDelete: sdk.Errand{
+					PreDelete: []sdk.Errand{{
 						Name:      errandName,
 						Instances: []string{"instance-group-name/0"},
-					},
+					}},
 				},
 			}
 			conf := brokerConfig.Config{
