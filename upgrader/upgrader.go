@@ -182,8 +182,8 @@ func (u *Upgrader) registerInstancesAndCanaries() error {
 		}
 		if len(canaryInstances) == 0 && len(allInstances) > 0 {
 			return fmt.Errorf("Upgrade failed to find a match to the canary selection criteria: %s. "+
-				"Please ensure that this criterion will match 1 or more service instances, "+
-				"or remove the criteria to proceed without canaries", u.canarySelectionParams)
+				"Please ensure these selection criteria will match one or more service instances, "+
+				"or remove `canary_selection_params` to disable selecting canaries from a specific org and space.", u.canarySelectionParams)
 		}
 		if len(canaryInstances) < u.canaries {
 			u.canaries = len(canaryInstances)

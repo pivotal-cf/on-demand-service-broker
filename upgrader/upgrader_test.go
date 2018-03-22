@@ -828,7 +828,8 @@ var _ = Describe("Upgrader", func() {
 					Expect(actualErr).To(MatchError(ContainSubstring("Upgrade failed to find a match to the canary selection criteria: ")))
 					Expect(actualErr).To(MatchError(ContainSubstring("org: the-org")))
 					Expect(actualErr).To(MatchError(ContainSubstring("space: the-space")))
-					Expect(actualErr).To(MatchError(ContainSubstring("Please ensure that this criterion will match 1 or more service instances, or remove the criteria to proceed without canaries")))
+					Expect(actualErr).To(MatchError(ContainSubstring("Please ensure these selection criteria will match one or more service instances, " +
+						"or remove `canary_selection_params` to disable selecting canaries from a specific org and space.")))
 
 					Expect(instanceLister.FilteredInstancesCallCount()).To(Equal(1))
 				})
