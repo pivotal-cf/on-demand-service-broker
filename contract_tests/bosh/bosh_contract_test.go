@@ -34,7 +34,7 @@ var _ = Describe("BOSH client", func() {
 		reporter := boshdirector.NewAsyncTaskReporter()
 		_, err := boshClient.DeleteDeployment(deploymentName, "", logger, reporter)
 		Expect(err).NotTo(HaveOccurred())
-		Eventually(reporter.Finished).Should(Receive())
+		Eventually(reporter.Finished).Should(Receive(), fmt.Sprintf("Timed out waiting for deployment %s to be deleted", deploymentName))
 	})
 
 	verifyContextID := func(expectedContextID string, taskID int) {
@@ -70,14 +70,14 @@ var _ = Describe("BOSH client", func() {
 			reporter := boshdirector.NewAsyncTaskReporter()
 			_, err := boshClient.Deploy(getManifest("successful_deploy.yml", deploymentName), "", logger, reporter)
 			Expect(err).NotTo(HaveOccurred())
-			Eventually(reporter.Finished).Should(Receive())
+			Eventually(reporter.Finished).Should(Receive(), fmt.Sprintf("Timed out waiting for %s to deploy", deploymentName))
 
 			reporter = boshdirector.NewAsyncTaskReporter()
 			taskID, err := boshClient.DeleteDeployment(deploymentName, "some-context-id", logger, reporter)
 			Expect(taskID).To(BeNumerically(">=", 1))
 			Expect(err).NotTo(HaveOccurred())
 			verifyContextID("some-context-id", taskID)
-			Eventually(reporter.Finished).Should(Receive())
+			Eventually(reporter.Finished).Should(Receive(), fmt.Sprintf("Timed out waiting for deployment %s to be deleted", deploymentName))
 		})
 
 		It("returns 0 for task ID and no error when a deployment does not exist", func() {
@@ -100,7 +100,7 @@ var _ = Describe("BOSH client", func() {
 			Expect(taskID).To(BeNumerically(">=", 1))
 
 			verifyContextID("some-context-id", taskID)
-			Eventually(reporter.Finished).Should(Receive())
+			Eventually(reporter.Finished).Should(Receive(), fmt.Sprintf("Timed out waiting for %s to deploy", deploymentName))
 		})
 	})
 
@@ -111,7 +111,7 @@ var _ = Describe("BOSH client", func() {
 
 			_, err := boshClient.Deploy(manifest, "", logger, reporter)
 			Expect(err).NotTo(HaveOccurred())
-			Eventually(reporter.Finished).Should(Receive())
+			Eventually(reporter.Finished).Should(Receive(), fmt.Sprintf("Timed out waiting for %s to deploy", deploymentName))
 
 			returnedManifest, found, getDeploymentErr := boshClient.GetDeployment(deploymentName, logger)
 
@@ -167,7 +167,7 @@ var _ = Describe("BOSH client", func() {
 			taskID, err = boshClient.Deploy(getManifest("successful_deploy.yml", deploymentName), "", logger, reporter)
 			Expect(err).NotTo(HaveOccurred())
 
-			Eventually(reporter.Finished).Should(Receive())
+			Eventually(reporter.Finished).Should(Receive(), fmt.Sprintf("Timed out waiting for %s to deploy", deploymentName))
 		})
 
 		It("succeeds", func() {
@@ -186,7 +186,7 @@ var _ = Describe("BOSH client", func() {
 			taskID, err = boshClient.Deploy(getManifest("successful_deploy.yml", deploymentName), "", logger, reporter)
 			Expect(err).NotTo(HaveOccurred())
 
-			Eventually(reporter.Finished).Should(Receive())
+			Eventually(reporter.Finished).Should(Receive(), fmt.Sprintf("Timed out waiting for %s to deploy", deploymentName))
 		})
 
 		It("succeeds", func() {
@@ -202,7 +202,7 @@ var _ = Describe("BOSH client", func() {
 			_, err := boshClient.Deploy(getManifest("single_vm_deployment.yml", deploymentName), "", logger, reporter)
 			Expect(err).NotTo(HaveOccurred())
 
-			Eventually(reporter.Finished).Should(Receive())
+			Eventually(reporter.Finished).Should(Receive(), fmt.Sprintf("Timed out waiting for %s to deploy", deploymentName))
 		})
 
 		It("succeeds", func() {
@@ -230,7 +230,7 @@ var _ = Describe("BOSH client", func() {
 			reporter := boshdirector.NewAsyncTaskReporter()
 			_, err := boshClient.Deploy(getManifest("single_vm_deployment.yml", deploymentName), "", logger, reporter)
 			Expect(err).NotTo(HaveOccurred())
-			Eventually(reporter.Finished).Should(Receive())
+			Eventually(reporter.Finished).Should(Receive(), fmt.Sprintf("Timed out waiting for %s to deploy", deploymentName))
 
 			By("running the errand")
 			reporter = boshdirector.NewAsyncTaskReporter()
