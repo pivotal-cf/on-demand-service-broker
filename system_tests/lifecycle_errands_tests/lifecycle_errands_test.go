@@ -38,7 +38,6 @@ var _ = Describe("lifecycle errand tests", func() {
 	})
 
 	Describe("post-deploy", func() {
-
 		AfterEach(func() {
 			By("deleting the service instance")
 			deleteServiceSession := cf.Cf("delete-service", serviceInstanceName, "-f")
@@ -63,7 +62,11 @@ var _ = Describe("lifecycle errand tests", func() {
 
 				Expect(boshTasks[1].State).To(Equal(boshdirector.TaskDone))
 				Expect(boshTasks[1].Description).To(ContainSubstring("create deployment"))
+
+				Expect(boshTasks[0].ContextID).NotTo(BeEmpty())
+				Expect(contextIDsMatch(boshTasks[0], boshTasks[1])).To(BeTrue())
 			})
+
 		})
 
 		Context("for a plan with a post-deploy errand", func() {
@@ -86,6 +89,9 @@ var _ = Describe("lifecycle errand tests", func() {
 
 					Expect(boshTasks[1].State).To(Equal(boshdirector.TaskDone))
 					Expect(boshTasks[1].Description).To(ContainSubstring("create deployment"))
+
+					Expect(boshTasks[0].ContextID).NotTo(BeEmpty())
+					Expect(contextIDsMatch(boshTasks[0], boshTasks[1])).To(BeTrue())
 				})
 
 				It("runs post-deploy errand after update", func() {
@@ -243,6 +249,8 @@ var _ = Describe("lifecycle errand tests", func() {
 				Expect(boshTasks[1].State).To(Equal(boshdirector.TaskDone))
 				Expect(boshTasks[1].Description).To(ContainSubstring("run errand"))
 
+				Expect(boshTasks[0].ContextID).NotTo(BeEmpty())
+				Expect(contextIDsMatch(boshTasks[0], boshTasks[1])).To(BeTrue())
 			})
 		})
 
@@ -263,6 +271,9 @@ var _ = Describe("lifecycle errand tests", func() {
 
 				Expect(boshTasks[1].State).To(Equal(boshdirector.TaskDone))
 				Expect(boshTasks[1].Description).To(ContainSubstring("run errand"))
+
+				Expect(boshTasks[0].ContextID).NotTo(BeEmpty())
+				Expect(contextIDsMatch(boshTasks[0], boshTasks[1])).To(BeTrue())
 			})
 		})
 
@@ -320,6 +331,10 @@ var _ = Describe("lifecycle errand tests", func() {
 		})
 	})
 })
+
+func contextIDsMatch(task1, task2 boshdirector.BoshTask) bool {
+	return task1.ContextID == task2.ContextID
+}
 
 func getServiceDeploymentName(serviceInstanceName string) string {
 	getInstanceDetailsCmd := cf.Cf("service", serviceInstanceName, "--guid")
