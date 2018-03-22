@@ -59,7 +59,6 @@
   revision = "8deb2357ddc8bc80025d5f849f305c5f8f8e9e7b"
 
 [[projects]]
-  branch = "context-fix"
   name = "github.com/cloudfoundry/bosh-cli"
   packages = [
     "director",
@@ -68,8 +67,8 @@
     "ui/fmt",
     "ui/table"
   ]
-  revision = "be6c3f31033624da70f8e1b9d8be15a89157c44b"
-  source = "github.com/kieron-pivotal/bosh-cli"
+  revision = "712bfd7271b478ba03c3f604339e2eefbec4647c"
+  version = "v3.0.1"
 
 [[projects]]
   branch = "master"
@@ -420,6 +419,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "5389ce7d39ec60e07ae1d325f47db6d8d8f7171369eddc3a5956c7eb6bf01aba"
+  inputs-digest = "378ac79a369dfa6a1855d17e4146cb92af9684c76f73922d720478b57f7c0918"
   solver-name = "gps-cdcl"
   solver-version = 1
