@@ -86,10 +86,7 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 		upgradeInstanceProperties := findUpgradeAllServiceInstancesProperties(brokerManifest)
 
 		if upgradeInstanceProperties["service_instances_api"] != nil && upgradeInstanceProperties["canary_selection_params"] != nil {
-			filterParams = map[string]string{}
-			for k, v := range upgradeInstanceProperties["canary_selection_params"].(map[interface{}]interface{}) {
-				filterParams[k.(string)] = v.(string)
-			}
+			filterParams = extractFilterParamsFromManifest(upgradeInstanceProperties)
 			instances = serviceInstances[1:2]
 		}
 
@@ -110,7 +107,13 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 
 	It("when there are no service instances provisioned, upgrade-all-service-instances runs successfully", func() {
 		brokerManifest := boshClient.GetManifest(brokerBoshDeploymentName)
-		updateServiceInstancesAPI(brokerManifest, []*testService{}, map[string]string{})
+		upgradeInstanceProperties := findUpgradeAllServiceInstancesProperties(brokerManifest)
+
+		if upgradeInstanceProperties["service_instances_api"] != nil && upgradeInstanceProperties["canary_selection_params"] != nil {
+			filterParams = extractFilterParamsFromManifest(upgradeInstanceProperties)
+		}
+
+		updateServiceInstancesAPI(brokerManifest, []*testService{}, filterParams)
 		updatePlanProperties(brokerManifest)
 		migrateJobProperty(brokerManifest)
 
@@ -236,6 +239,14 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 		}
 	})
 })
+
+func extractFilterParamsFromManifest(upgradeInstanceProperties map[string]interface{}) map[string]string {
+	filterParams := map[string]string{}
+	for k, v := range upgradeInstanceProperties["canary_selection_params"].(map[interface{}]interface{}) {
+		filterParams[k.(string)] = v.(string)
+	}
+	return filterParams
+}
 
 func updatePlanProperties(brokerManifest *bosh.BoshManifest) {
 	testPlan := extractPlanProperty(currentPlan, brokerManifest)
