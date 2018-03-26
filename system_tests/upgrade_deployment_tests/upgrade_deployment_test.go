@@ -53,7 +53,8 @@ var _ = Describe("Upgrading deployment", func() {
 	It("Upgrades from an older release", func() {
 		By("redeploying ODB with latest version")
 		manifest := manifestForUpgrade()
-		changeBrokerReleaseVersion(manifest, latestODBVersion)
+		changeReleaseVersion("on-demand-service-broker", manifest, latestODBVersion)
+		changeReleaseVersion("redis-example-service-adapter", manifest, latestServiceAdapterVersion)
 		boshClient.DeployODB(*manifest)
 
 		By("exercising the service instance")
@@ -85,15 +86,12 @@ func manifestForUpgrade() *bosh.BoshManifest {
 	return manifest
 }
 
-func changeBrokerReleaseVersion(manifest *bosh.BoshManifest, releaseVersion string) {
-	changed := 0
+func changeReleaseVersion(releaseName string, manifest *bosh.BoshManifest, releaseVersion string) {
 	for index, release := range manifest.Releases {
-		if strings.Contains(release.Name, "on-demand-service-broker") || strings.Contains(release.Name, "redis-example-service-adapter") {
+		if strings.Contains(release.Name, releaseName) {
 			manifest.Releases[index].Version = releaseVersion
-			changed++
+			return
 		}
 	}
-	if changed != 2 {
-		Fail("No release found for on-demand-service-broker")
-	}
+	Fail("No release found for " + releaseName)
 }

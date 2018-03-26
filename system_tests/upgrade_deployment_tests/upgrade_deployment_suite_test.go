@@ -19,20 +19,22 @@ import (
 )
 
 var (
-	boshClient               *bosh_helpers.BoshHelperClient
-	latestODBVersion         string
-	brokerBoshDeploymentName string
-	serviceOffering          string
-	ciRootPath               string
-	brokerName               string
-	manifestForUpgradePath   string
-	exampleAppDirName        string
+	boshClient                  *bosh_helpers.BoshHelperClient
+	latestODBVersion            string
+	latestServiceAdapterVersion string
+	brokerBoshDeploymentName    string
+	serviceOffering             string
+	ciRootPath                  string
+	brokerName                  string
+	manifestForUpgradePath      string
+	exampleAppDirName           string
 )
 
 const plan = "dedicated-vm"
 
 var _ = BeforeSuite(func() {
 	latestODBVersion = envMustHave("ODB_VERSION")
+	latestServiceAdapterVersion = envMustHave("SERVICE_ADAPTER_VERSION")
 
 	boshURL := envMustHave("BOSH_URL")
 	boshUsername := envMustHave("BOSH_USERNAME")
