@@ -86,11 +86,14 @@ func manifestForUpgrade() *bosh.BoshManifest {
 }
 
 func changeBrokerReleaseVersion(manifest *bosh.BoshManifest, releaseVersion string) {
+	changed := 0
 	for index, release := range manifest.Releases {
-		if strings.Contains(release.Name, "on-demand-service-broker") {
+		if strings.Contains(release.Name, "on-demand-service-broker") || strings.Contains(release.Name, "redis-example-service-adapter") {
 			manifest.Releases[index].Version = releaseVersion
-			return
+			changed++
 		}
 	}
-	Fail("No release found for on-demand-service-broker")
+	if changed != 2 {
+		Fail("No release found for on-demand-service-broker")
+	}
 }
