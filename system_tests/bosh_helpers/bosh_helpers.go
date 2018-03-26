@@ -158,10 +158,14 @@ func (b *BoshHelperClient) DeployODB(manifest bosh.BoshManifest) {
 	Expect(err).NotTo(HaveOccurred())
 
 	asyncReporter := boshdirector.NewAsyncTaskReporter()
-	_, err = b.Client.Deploy(manifestBytes, "", logger, asyncReporter)
+	taskID, err := b.Client.Deploy(manifestBytes, "", logger, asyncReporter)
 	Expect(err).NotTo(HaveOccurred())
 
 	<-asyncReporter.Finished
+
+	task, err := b.Client.GetTask(taskID, logger)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(task.StateType()).To(Equal(boshdirector.TaskComplete))
 
 	// wait for Broker Route Registration Interval
 	time.Sleep(20 * time.Second)
