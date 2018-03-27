@@ -9,6 +9,7 @@ package task
 import (
 	"log"
 
+	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
@@ -22,6 +23,7 @@ type ServiceAdapterClient interface {
 		previousManifest []byte,
 		previousPlan *serviceadapter.Plan, logger *log.Logger,
 	) ([]byte, error)
+	GeneratePlanSchema(plan serviceadapter.Plan, logger *log.Logger) (brokerapi.ServiceSchemas, error)
 }
 
 type manifestGenerator struct {

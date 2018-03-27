@@ -17,6 +17,7 @@ import (
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
+	brokerfakes "github.com/pivotal-cf/on-demand-service-broker/broker/fakes"
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/noopservicescontroller"
@@ -38,8 +39,8 @@ var _ = Describe("provisioning", func() {
 		instanceID       = "some-instance-id"
 		jsonParams       []byte
 		jsonContext      []byte
-		arbParams        = map[string]interface{}{"foo": "bar"}
-		arbContext       = map[string]interface{}{"platform": "cloudfoundry", "space_guid": "final"}
+		arbParams        map[string]interface{}
+		arbContext       map[string]interface{}
 
 		asyncAllowed = true
 	)
@@ -47,6 +48,10 @@ var _ = Describe("provisioning", func() {
 	BeforeEach(func() {
 		planID = existingPlanID
 		asyncAllowed = true
+
+		arbParams = map[string]interface{}{"foo": "bar"}
+		arbContext = map[string]interface{}{"platform": "cloudfoundry", "space_guid": "final"}
+
 		var err error
 		jsonParams, err = json.Marshal(arbParams)
 		Expect(err).NotTo(HaveOccurred())
@@ -826,6 +831,122 @@ var _ = Describe("provisioning", func() {
 
 		It("returns an error", func() {
 			Expect(provisionErr).To(HaveOccurred())
+		})
+	})
+
+	Context("when plan schemas are not enabled", func() {
+		It("the json schemas are not requested", func() {
+			fakeAdapter := new(brokerfakes.FakeServiceAdapterClient)
+			brokerConfig.EnablePlanSchemas = false
+			broker := createBrokerWithAdapter(fakeAdapter)
+			serviceSpec, provisionErr = broker.Provision(
+				context.Background(),
+				instanceID,
+				brokerapi.ProvisionDetails{
+					PlanID:           planID,
+					RawContext:       jsonContext,
+					RawParameters:    jsonParams,
+					OrganizationGUID: organizationGUID,
+					SpaceGUID:        spaceGUID,
+					ServiceID:        serviceOfferingID,
+				},
+				asyncAllowed,
+			)
+
+			Expect(provisionErr).NotTo(HaveOccurred())
+			Expect(fakeAdapter.GeneratePlanSchemaCallCount()).To(Equal(0))
+		})
+	})
+
+	Context("when plan schemas are enabled", func() {
+		var err error
+		var broker *broker.Broker
+		var fakeAdapter *brokerfakes.FakeServiceAdapterClient
+
+		BeforeEach(func() {
+			fakeAdapter = new(brokerfakes.FakeServiceAdapterClient)
+			fakeAdapter.GeneratePlanSchemaReturns(
+				brokerapi.ServiceSchemas{
+					Instance: brokerapi.ServiceInstanceSchema{
+						Create: brokerapi.Schema{
+							Parameters: map[string]interface{}{
+								"$schema":              "http://json-schema.org/draft-04/schema#",
+								"type":                 "object",
+								"additionalProperties": false,
+								"properties": map[string]interface{}{
+									"auto_create_topics": map[string]interface{}{
+										"description": "Auto create topics",
+										"type":        "boolean",
+									},
+									"default_replication_factor": map[string]interface{}{
+										"description": "Replication factor",
+										"type":        "integer",
+									},
+								},
+							},
+						},
+					},
+				}, nil)
+			brokerConfig.EnablePlanSchemas = true
+			broker = createBrokerWithAdapter(fakeAdapter)
+		})
+
+		JustBeforeEach(func() {
+			serviceSpec, provisionErr = broker.Provision(
+				context.Background(),
+				instanceID,
+				brokerapi.ProvisionDetails{
+					PlanID:           planID,
+					RawContext:       jsonContext,
+					RawParameters:    jsonParams,
+					OrganizationGUID: organizationGUID,
+					SpaceGUID:        spaceGUID,
+					ServiceID:        serviceOfferingID,
+				},
+				asyncAllowed,
+			)
+		})
+
+		Describe("when the provision request config is not valid", func() {
+			BeforeEach(func() {
+				arbParams = map[string]interface{}{
+					"this-is": "clearly-wrong",
+				}
+				jsonParams, err = json.Marshal(arbParams)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("requests the json schemas from the service adapter", func() {
+				Expect(provisionErr).To(HaveOccurred())
+				Expect(fakeAdapter.GeneratePlanSchemaCallCount()).To(Equal(1))
+				Expect(provisionErr.Error()).To(ContainSubstring("Additional property this-is is not allowed"))
+			})
+
+			It("fails", func() {
+				Expect(provisionErr).To(HaveOccurred())
+			})
+		})
+
+		Describe("when the provision request config is valid", func() {
+			var err error
+
+			BeforeEach(func() {
+				arbParams = map[string]interface{}{
+					"auto_create_topics":         true,
+					"default_replication_factor": 55,
+				}
+				jsonParams, err = json.Marshal(arbParams)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("requests the json schemas from the service adapter", func() {
+				Expect(provisionErr).NotTo(HaveOccurred())
+				Expect(fakeAdapter.GeneratePlanSchemaCallCount()).To(Equal(1))
+			})
+
+			It("succeeds", func() {
+				Expect(provisionErr).NotTo(HaveOccurred())
+			})
 		})
 	})
 })

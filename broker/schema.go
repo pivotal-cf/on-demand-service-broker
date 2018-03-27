@@ -18,7 +18,7 @@ func NewValidator(rawSchema map[string]interface{}) *Validator {
 	}
 }
 
-func (v *Validator) ValidateParams(params map[string]interface{}) (bool, error) {
+func (v *Validator) ValidateParams(params map[string]interface{}) error {
 	if v.schema == nil {
 		panic("ValidateSchema() must be called before ValidateParams()")
 	}
@@ -27,10 +27,14 @@ func (v *Validator) ValidateParams(params map[string]interface{}) (bool, error) 
 
 	result, err := gojsonschema.Validate(v.schema, paramsLoader)
 	if err != nil {
-		return false, fmt.Errorf("error occurred when attempting to validate against JSON schema")
+		return fmt.Errorf("error occurred when attempting to validate against JSON schema")
 	}
 
-	return result.Valid(), nil
+	if !result.Valid() {
+		return fmt.Errorf("validation against JSON schema failed - %s", result.Errors())
+	}
+
+	return nil
 }
 
 func (v *Validator) ValidateSchema() error {

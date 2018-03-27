@@ -13,7 +13,6 @@ import (
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	"github.com/pkg/errors"
-	"github.com/xeipuuv/gojsonschema"
 )
 
 func (b *Broker) Services(ctx context.Context) ([]brokerapi.Service, error) {
@@ -108,22 +107,12 @@ func validatePlanSchemas(planSchema brokerapi.ServiceSchemas) error {
 		planSchema.Instance.Update.Parameters,
 		planSchema.Binding.Create.Parameters,
 	} {
-		if schema == nil {
-			return fmt.Errorf("No JSON Schema provided for %s", labels[i])
-		}
-		version, ok := schema["$schema"]
-		if !ok {
-			return fmt.Errorf("No JSON Schema version provided for %s", labels[i])
-		}
-		versionStr, ok := version.(string)
-		if !ok || versionStr != "http://json-schema.org/draft-04/schema#" {
-			return fmt.Errorf("Invalid JSON Schema version for %s", labels[i])
-		}
-		loader := gojsonschema.NewGoLoader(schema)
-		_, err := gojsonschema.NewSchema(loader)
+		validator := NewValidator(schema)
+		err := validator.ValidateSchema()
 		if err != nil {
-			return errors.Wrap(err, "loading error for "+labels[i])
+			return fmt.Errorf("Error validating plan schemas for %s - %s", labels[i], err.Error())
 		}
+
 	}
 	return nil
 }

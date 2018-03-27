@@ -5,6 +5,7 @@ import (
 	"log"
 	"sync"
 
+	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/task"
 	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
@@ -26,6 +27,20 @@ type FakeServiceAdapterClient struct {
 	}
 	generateManifestReturnsOnCall map[int]struct {
 		result1 []byte
+		result2 error
+	}
+	GeneratePlanSchemaStub        func(plan serviceadapter.Plan, logger *log.Logger) (brokerapi.ServiceSchemas, error)
+	generatePlanSchemaMutex       sync.RWMutex
+	generatePlanSchemaArgsForCall []struct {
+		plan   serviceadapter.Plan
+		logger *log.Logger
+	}
+	generatePlanSchemaReturns struct {
+		result1 brokerapi.ServiceSchemas
+		result2 error
+	}
+	generatePlanSchemaReturnsOnCall map[int]struct {
+		result1 brokerapi.ServiceSchemas
 		result2 error
 	}
 	invocations      map[string][][]interface{}
@@ -93,11 +108,65 @@ func (fake *FakeServiceAdapterClient) GenerateManifestReturnsOnCall(i int, resul
 	}{result1, result2}
 }
 
+func (fake *FakeServiceAdapterClient) GeneratePlanSchema(plan serviceadapter.Plan, logger *log.Logger) (brokerapi.ServiceSchemas, error) {
+	fake.generatePlanSchemaMutex.Lock()
+	ret, specificReturn := fake.generatePlanSchemaReturnsOnCall[len(fake.generatePlanSchemaArgsForCall)]
+	fake.generatePlanSchemaArgsForCall = append(fake.generatePlanSchemaArgsForCall, struct {
+		plan   serviceadapter.Plan
+		logger *log.Logger
+	}{plan, logger})
+	fake.recordInvocation("GeneratePlanSchema", []interface{}{plan, logger})
+	fake.generatePlanSchemaMutex.Unlock()
+	if fake.GeneratePlanSchemaStub != nil {
+		return fake.GeneratePlanSchemaStub(plan, logger)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.generatePlanSchemaReturns.result1, fake.generatePlanSchemaReturns.result2
+}
+
+func (fake *FakeServiceAdapterClient) GeneratePlanSchemaCallCount() int {
+	fake.generatePlanSchemaMutex.RLock()
+	defer fake.generatePlanSchemaMutex.RUnlock()
+	return len(fake.generatePlanSchemaArgsForCall)
+}
+
+func (fake *FakeServiceAdapterClient) GeneratePlanSchemaArgsForCall(i int) (serviceadapter.Plan, *log.Logger) {
+	fake.generatePlanSchemaMutex.RLock()
+	defer fake.generatePlanSchemaMutex.RUnlock()
+	return fake.generatePlanSchemaArgsForCall[i].plan, fake.generatePlanSchemaArgsForCall[i].logger
+}
+
+func (fake *FakeServiceAdapterClient) GeneratePlanSchemaReturns(result1 brokerapi.ServiceSchemas, result2 error) {
+	fake.GeneratePlanSchemaStub = nil
+	fake.generatePlanSchemaReturns = struct {
+		result1 brokerapi.ServiceSchemas
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeServiceAdapterClient) GeneratePlanSchemaReturnsOnCall(i int, result1 brokerapi.ServiceSchemas, result2 error) {
+	fake.GeneratePlanSchemaStub = nil
+	if fake.generatePlanSchemaReturnsOnCall == nil {
+		fake.generatePlanSchemaReturnsOnCall = make(map[int]struct {
+			result1 brokerapi.ServiceSchemas
+			result2 error
+		})
+	}
+	fake.generatePlanSchemaReturnsOnCall[i] = struct {
+		result1 brokerapi.ServiceSchemas
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeServiceAdapterClient) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.generateManifestMutex.RLock()
 	defer fake.generateManifestMutex.RUnlock()
+	fake.generatePlanSchemaMutex.RLock()
+	defer fake.generatePlanSchemaMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

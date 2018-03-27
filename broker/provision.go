@@ -105,6 +105,27 @@ func (b *Broker) provisionInstance(ctx context.Context, instanceID string, planI
 		}
 	}
 
+	if b.EnablePlanSchemas {
+		schemas, _ := b.adapterClient.GeneratePlanSchema(plan.AdapterPlan(b.serviceOffering.GlobalProperties), logger)
+		instanceProvisionSchema := schemas.Instance.Create
+
+		validator := NewValidator(instanceProvisionSchema.Parameters)
+		err := validator.ValidateSchema()
+		if err != nil {
+			return errs(err)
+		}
+
+		paramsToValidate, ok := requestParams["parameters"].(map[string]interface{})
+		if !ok {
+			return errs(fmt.Errorf("provision request params are malformed: %s", requestParams["parameters"]))
+		}
+
+		err = validator.ValidateParams(paramsToValidate)
+		if err != nil {
+			return errs(err)
+		}
+	}
+
 	if plan.Quotas.ServiceInstanceLimit != nil {
 		limit := *plan.Quotas.ServiceInstanceLimit
 		planCount, err := b.getPlanCount(ctx, planID, planCounts, logger)
