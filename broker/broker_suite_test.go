@@ -14,6 +14,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/fakes"
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
@@ -85,6 +86,45 @@ var (
 	}
 
 	secondPlan config.Plan
+
+	schemaFixture = brokerapi.ServiceSchemas{
+		Instance: brokerapi.ServiceInstanceSchema{
+			Create: brokerapi.Schema{
+				Parameters: map[string]interface{}{
+					"$schema":              "http://json-schema.org/draft-04/schema#",
+					"type":                 "object",
+					"additionalProperties": false,
+					"properties": map[string]interface{}{
+						"auto_create_topics": map[string]interface{}{
+							"description": "Auto create topics",
+							"type":        "boolean",
+						},
+						"default_replication_factor": map[string]interface{}{
+							"description": "Replication factor",
+							"type":        "integer",
+						},
+					},
+				},
+			},
+			Update: brokerapi.Schema{
+				Parameters: map[string]interface{}{
+					"$schema":              "http://json-schema.org/draft-04/schema#",
+					"type":                 "object",
+					"additionalProperties": false,
+					"properties": map[string]interface{}{
+						"upgrade_auto_create_topics": map[string]interface{}{
+							"description": "Auto create topics",
+							"type":        "boolean",
+						},
+						"upgrade_default_replication_factor": map[string]interface{}{
+							"description": "Replication factor",
+							"type":        "integer",
+						},
+					},
+				},
+			},
+		},
+	}
 )
 
 var _ = BeforeEach(func() {

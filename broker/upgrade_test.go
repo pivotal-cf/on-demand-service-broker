@@ -15,6 +15,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
+	brokerfakes "github.com/pivotal-cf/on-demand-service-broker/broker/fakes"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	"github.com/pivotal-cf/on-demand-service-broker/task"
 )
@@ -137,5 +138,82 @@ var _ = Describe("Upgrade", func() {
 		_, redeployErr = b.Upgrade(context.Background(), instanceID, details, logger)
 
 		Expect(redeployErr).To(BeAssignableToTypeOf(broker.OperationInProgressError{}))
+	})
+
+	It("should not request the json schemas from the service adapter", func() {
+		fakeAdapter := new(brokerfakes.FakeServiceAdapterClient)
+		fakeAdapter.GeneratePlanSchemaReturns(brokerapi.ServiceSchemas{}, fmt.Errorf("derp!"))
+		broker := createBrokerWithAdapter(fakeAdapter)
+
+		_, upgradeErr := broker.Upgrade(context.Background(), instanceID, details, logger)
+
+		Expect(fakeAdapter.GeneratePlanSchemaCallCount()).To(Equal(0))
+		Expect(upgradeErr).NotTo(HaveOccurred())
+	})
+
+	Context("when plan schemas are enabled", func() {
+		var broker *broker.Broker
+		var fakeAdapter *brokerfakes.FakeServiceAdapterClient
+		var upgradeErr error
+
+		BeforeEach(func() {
+			fakeAdapter = new(brokerfakes.FakeServiceAdapterClient)
+			fakeAdapter.GeneratePlanSchemaReturns(schemaFixture, nil)
+			brokerConfig.EnablePlanSchemas = true
+			broker = createBrokerWithAdapter(fakeAdapter)
+		})
+
+		Context("when the plan schema is not a valid JSON Schema", func() {
+			BeforeEach(func() {
+				fakeAdapter.GeneratePlanSchemaReturns(brokerapi.ServiceSchemas{}, fmt.Errorf("derp!"))
+				details.RawParameters = []byte(`{"some-extra-property":"param"}`)
+				upgradeOperationData, upgradeErr = broker.Upgrade(context.Background(), instanceID, details, logger)
+			})
+
+			It("requests the json schemas from the service adapter", func() {
+				Expect(fakeAdapter.GeneratePlanSchemaCallCount()).To(Equal(1))
+			})
+
+			It("the upgrade fails", func() {
+				Expect(upgradeErr).To(HaveOccurred())
+			})
+		})
+
+		Context("when the upgrade request params are not valid", func() {
+			BeforeEach(func() {
+				details.RawParameters = []byte(`{"some-extra-property":"param"}`)
+				upgradeOperationData, upgradeErr = broker.Upgrade(context.Background(), instanceID, details, logger)
+			})
+
+			It("requests the json schemas from the service adapter", func() {
+				Expect(fakeAdapter.GeneratePlanSchemaCallCount()).To(Equal(1))
+			})
+
+			It("the upgrade fails", func() {
+				Expect(upgradeErr).To(HaveOccurred())
+				Expect(upgradeErr.Error()).To(ContainSubstring("validation against JSON schema failed"))
+				Expect(upgradeErr.Error()).To(ContainSubstring(
+					"some-extra-property: Additional property some-extra-property is not allowed",
+				))
+
+			})
+		})
+
+		Context("when the upgrade request params are valid", func() {
+			BeforeEach(func() {
+				details.RawParameters = []byte(
+					`{"upgrade_default_replication_factor": 5, "upgrade_auto_create_topics": true}`,
+				)
+				upgradeOperationData, upgradeErr = broker.Upgrade(context.Background(), instanceID, details, logger)
+			})
+
+			It("requests the json schemas from the service adapter", func() {
+				Expect(fakeAdapter.GeneratePlanSchemaCallCount()).To(Equal(1))
+			})
+
+			It("the upgrade succeeds", func() {
+				Expect(upgradeErr).NotTo(HaveOccurred())
+			})
+		})
 	})
 })

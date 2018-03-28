@@ -865,28 +865,7 @@ var _ = Describe("provisioning", func() {
 
 		BeforeEach(func() {
 			fakeAdapter = new(brokerfakes.FakeServiceAdapterClient)
-			fakeAdapter.GeneratePlanSchemaReturns(
-				brokerapi.ServiceSchemas{
-					Instance: brokerapi.ServiceInstanceSchema{
-						Create: brokerapi.Schema{
-							Parameters: map[string]interface{}{
-								"$schema":              "http://json-schema.org/draft-04/schema#",
-								"type":                 "object",
-								"additionalProperties": false,
-								"properties": map[string]interface{}{
-									"auto_create_topics": map[string]interface{}{
-										"description": "Auto create topics",
-										"type":        "boolean",
-									},
-									"default_replication_factor": map[string]interface{}{
-										"description": "Replication factor",
-										"type":        "integer",
-									},
-								},
-							},
-						},
-					},
-				}, nil)
+			fakeAdapter.GeneratePlanSchemaReturns(schemaFixture, nil)
 			brokerConfig.EnablePlanSchemas = true
 			broker = createBrokerWithAdapter(fakeAdapter)
 		})
@@ -907,7 +886,7 @@ var _ = Describe("provisioning", func() {
 			)
 		})
 
-		Describe("when the provision request config is not valid", func() {
+		Context("when the provision request config is not valid", func() {
 			BeforeEach(func() {
 				arbParams = map[string]interface{}{
 					"this-is": "clearly-wrong",
@@ -927,7 +906,7 @@ var _ = Describe("provisioning", func() {
 			})
 		})
 
-		Describe("when the provision request config is valid", func() {
+		Context("when the provision request config is valid", func() {
 			var err error
 
 			BeforeEach(func() {
@@ -940,7 +919,6 @@ var _ = Describe("provisioning", func() {
 			})
 
 			It("requests the json schemas from the service adapter", func() {
-				Expect(provisionErr).NotTo(HaveOccurred())
 				Expect(fakeAdapter.GeneratePlanSchemaCallCount()).To(Equal(1))
 			})
 
