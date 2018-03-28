@@ -40,10 +40,9 @@ func (b *Broker) getDeploymentInfo(instanceID string, ctx context.Context, actio
 }
 
 func convertDetailsToMap(details brokerapi.DetailsWithRawParameters) (map[string]interface{}, error) {
-	var arbitraryParams map[string]interface{}
+	arbitraryParams := map[string]interface{}{}
 
 	if len(details.GetRawParameters()) > 0 {
-		arbitraryParams = map[string]interface{}{}
 		if err := json.Unmarshal(details.GetRawParameters(), &arbitraryParams); err != nil {
 			return nil, brokerapi.ErrRawParamsInvalid
 		}

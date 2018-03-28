@@ -387,7 +387,7 @@ var _ = Describe("provisioning", func() {
 
 		It("no arbitrary params are passed to the adapter", func() {
 			_, _, actualRequestParams, _, _ := fakeDeployer.CreateArgsForCall(0)
-			Expect(actualRequestParams["parameters"]).To(BeNil())
+			Expect(actualRequestParams["parameters"]).To(HaveLen(0))
 		})
 
 		It("invokes the deployer", func() {
@@ -906,6 +906,18 @@ var _ = Describe("provisioning", func() {
 			})
 		})
 
+		Context("when the provision request config is empty", func() {
+			var err error
+
+			BeforeEach(func() {
+				jsonParams = []byte{}
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("succeeds", func() {
+				Expect(provisionErr).NotTo(HaveOccurred())
+			})
+		})
 		Context("when the provision request config is valid", func() {
 			var err error
 
