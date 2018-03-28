@@ -60,7 +60,8 @@ var _ = Describe("Schema validator", func() {
 
 			err = v.ValidateParams(badParams)
 			Expect(err).To(HaveOccurred())
-			Expect(err).To(MatchError("validation against JSON schema failed - [this-is: Additional property this-is is not allowed]"))
+			Expect(err.Error()).To(ContainSubstring("validation against JSON schema failed"))
+			Expect(err.Error()).To(ContainSubstring("this-is: Additional property this-is is not allowed"))
 		})
 
 		It("does not error when the params are valid", func() {

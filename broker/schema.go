@@ -33,7 +33,7 @@ func (v *Validator) ValidateParams(params map[string]interface{}) error {
 	}
 
 	if !result.Valid() {
-		return fmt.Errorf("validation against JSON schema failed - %s", result.Errors())
+		return fmt.Errorf("validation against JSON schema failed:\n %s", errorFormatter(result.Errors()))
 	}
 
 	return nil
@@ -59,4 +59,13 @@ func (v *Validator) ValidateSchema() error {
 	v.schema = loader
 
 	return nil
+}
+
+func errorFormatter(errs []gojsonschema.ResultError) (prettyErrors string) {
+	for _, err := range errs {
+		prettyErrors += fmt.Sprintf("* %s", err.String())
+	}
+
+	prettyErrors += "\n"
+	return prettyErrors
 }
