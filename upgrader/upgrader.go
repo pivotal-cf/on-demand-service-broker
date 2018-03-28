@@ -259,6 +259,7 @@ func (u *Upgrader) pollRunningTasks() {
 		guid := inst.GUID
 		state, err := u.stateChecker.Check(guid, u.upgradeState.GetUpgradeOperation(guid).Data)
 		if err != nil {
+			u.upgradeState.SetState(guid, services.UpgradeFailed)
 			u.failures = append(u.failures, instanceFailure{guid: guid, err: err})
 			continue
 		}
