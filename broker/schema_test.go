@@ -40,15 +40,13 @@ var _ = Describe("Schema validator", func() {
 	})
 
 	Context("#ValidateParams", func() {
-		It("panics when the schema has not been validated first", func() {
+		It("errors if the schema is invalid (and has not been validated first)", func() {
 			params := map[string]interface{}{"hello": "dave"}
-			v := broker.NewValidator(exampleSchema)
+			v := broker.NewValidator(invalidSchema)
 
-			validationFunc := func() {
-				v.ValidateParams(params)
-			}
+			err := v.ValidateParams(params)
 
-			Expect(validationFunc).To(Panic())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("errors when the provided params are invalid", func() {

@@ -20,7 +20,9 @@ func NewValidator(rawSchema map[string]interface{}) *Validator {
 
 func (v *Validator) ValidateParams(params map[string]interface{}) error {
 	if v.schema == nil {
-		panic("ValidateSchema() must be called before ValidateParams()")
+		if err := v.ValidateSchema(); err != nil {
+			return err
+		}
 	}
 
 	paramsLoader := gojsonschema.NewGoLoader(params)
