@@ -2,6 +2,7 @@ package broker
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/xeipuuv/gojsonschema"
 )
@@ -33,7 +34,7 @@ func (v *Validator) ValidateParams(params map[string]interface{}) error {
 	}
 
 	if !result.Valid() {
-		return fmt.Errorf("validation against JSON schema failed:\n %s", errorFormatter(result.Errors()))
+		return fmt.Errorf("validation against JSON schema failed:\n%s", errorFormatter(result.Errors()))
 	}
 
 	return nil
@@ -61,11 +62,11 @@ func (v *Validator) ValidateSchema() error {
 	return nil
 }
 
-func errorFormatter(errs []gojsonschema.ResultError) (prettyErrors string) {
+func errorFormatter(errs []gojsonschema.ResultError) string {
+	stringErrs := []string{}
 	for _, err := range errs {
-		prettyErrors += fmt.Sprintf("* %s", err.String())
+		stringErrs = append(stringErrs, fmt.Sprintf("* %s", err.String()))
 	}
 
-	prettyErrors += "\n"
-	return prettyErrors
+	return strings.Join(stringErrs, "\n")
 }

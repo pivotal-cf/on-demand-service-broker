@@ -886,7 +886,7 @@ var _ = Describe("provisioning", func() {
 			)
 		})
 
-		Context("when the provision request config is not valid", func() {
+		Context("when the provision request params are not valid", func() {
 			BeforeEach(func() {
 				arbParams = map[string]interface{}{
 					"this-is": "clearly-wrong",
@@ -906,7 +906,7 @@ var _ = Describe("provisioning", func() {
 			})
 		})
 
-		Context("when the provision request config is empty", func() {
+		Context("when the provision request params are empty", func() {
 			var err error
 
 			BeforeEach(func() {
@@ -918,7 +918,8 @@ var _ = Describe("provisioning", func() {
 				Expect(provisionErr).NotTo(HaveOccurred())
 			})
 		})
-		Context("when the provision request config is valid", func() {
+
+		Context("when the provision request params are valid", func() {
 			var err error
 
 			BeforeEach(func() {
@@ -936,6 +937,42 @@ var _ = Describe("provisioning", func() {
 
 			It("succeeds", func() {
 				Expect(provisionErr).NotTo(HaveOccurred())
+			})
+		})
+
+		Context("when the schema allows additional properties", func() {
+			var err error
+
+			BeforeEach(func() {
+				arbParams = map[string]interface{}{
+					"foo": true,
+					"bar": 55,
+				}
+				jsonParams, err = json.Marshal(arbParams)
+				Expect(err).NotTo(HaveOccurred())
+				fakeAdapter.GeneratePlanSchemaReturns(schemaWithAdditionalPropertiesAllowedFixture, nil)
+			})
+
+			It("succeeds", func() {
+				Expect(provisionErr).NotTo(HaveOccurred())
+			})
+		})
+
+		Context("when the schema has required properties", func() {
+			var err error
+
+			BeforeEach(func() {
+				arbParams = map[string]interface{}{
+					"foo": true,
+					"bar": 55,
+				}
+				jsonParams, err = json.Marshal(arbParams)
+				Expect(err).NotTo(HaveOccurred())
+				fakeAdapter.GeneratePlanSchemaReturns(schemaWithRequiredPropertiesFixture, nil)
+			})
+
+			It("reports the required error", func() {
+				Expect(provisionErr).To(MatchError(ContainSubstring("auto_create_topics is required")))
 			})
 		})
 	})

@@ -55,7 +55,7 @@ func (b *Broker) Upgrade(ctx context.Context, instanceID string, details brokera
 
 		params := make(map[string]interface{})
 		err = json.Unmarshal(details.RawParameters, &params)
-		if err != nil {
+		if err != nil && len(details.RawParameters) > 0 {
 			return OperationData{}, fmt.Errorf("provision request params are malformed: %s", details.RawParameters)
 		}
 

@@ -199,6 +199,19 @@ var _ = Describe("Upgrade", func() {
 			})
 		})
 
+		Context("when the upgrade request params are empty", func() {
+			var upgradeErr error
+
+			BeforeEach(func() {
+				details.RawParameters = []byte{}
+				upgradeOperationData, upgradeErr = broker.Upgrade(context.Background(), instanceID, details, logger)
+			})
+
+			It("succeeds", func() {
+				Expect(upgradeErr).NotTo(HaveOccurred())
+			})
+		})
+
 		Context("when the upgrade request params are valid", func() {
 			BeforeEach(func() {
 				details.RawParameters = []byte(

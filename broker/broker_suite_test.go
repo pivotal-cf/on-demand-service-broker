@@ -125,6 +125,51 @@ var (
 			},
 		},
 	}
+
+	schemaWithAdditionalPropertiesAllowedFixture = brokerapi.ServiceSchemas{
+		Instance: brokerapi.ServiceInstanceSchema{
+			Create: brokerapi.Schema{
+				Parameters: map[string]interface{}{
+					"$schema":              "http://json-schema.org/draft-04/schema#",
+					"type":                 "object",
+					"additionalProperties": true,
+					"properties": map[string]interface{}{
+						"auto_create_topics": map[string]interface{}{
+							"description": "Auto create topics",
+							"type":        "boolean",
+						},
+						"default_replication_factor": map[string]interface{}{
+							"description": "Replication factor",
+							"type":        "integer",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	schemaWithRequiredPropertiesFixture = brokerapi.ServiceSchemas{
+		Instance: brokerapi.ServiceInstanceSchema{
+			Create: brokerapi.Schema{
+				Parameters: map[string]interface{}{
+					"$schema":              "http://json-schema.org/draft-04/schema#",
+					"type":                 "object",
+					"additionalProperties": true,
+					"properties": map[string]interface{}{
+						"auto_create_topics": map[string]interface{}{
+							"description": "Auto create topics",
+							"type":        "boolean",
+						},
+						"default_replication_factor": map[string]interface{}{
+							"description": "Replication factor",
+							"type":        "integer",
+						},
+					},
+					"required": []string{"auto_create_topics"},
+				},
+			},
+		},
+	}
 )
 
 var _ = BeforeEach(func() {
