@@ -37,12 +37,11 @@ type testState struct {
 	controller             *processController
 }
 
-func setupTest(states []testState, instanceLister *fakes.FakeInstanceLister, brokerServices *fakes.FakeBrokerServices) {
+func setupTest(states []*testState, instanceLister *fakes.FakeInstanceLister, brokerServices *fakes.FakeBrokerServices) {
 	var instances []service.Instance
 	for i, s := range states {
 		instances = append(instances, s.instance)
 		s.controller = newProcessController(fmt.Sprintf("si_%d", i))
-		states[i] = s
 	}
 	instanceLister.InstancesReturns(instances, nil)
 	instanceLister.LatestInstanceInfoStub = func(i service.Instance) (service.Instance, error) {
@@ -50,11 +49,10 @@ func setupTest(states []testState, instanceLister *fakes.FakeInstanceLister, bro
 	}
 
 	brokerServices.UpgradeInstanceStub = func(instance service.Instance) (services.UpgradeOperation, error) {
-		for i, s := range states {
+		for _, s := range states {
 			if instance.GUID == s.instance.GUID {
 				s.controller.NotifyStart()
 				s.upgradeCallCount++
-				states[i] = s
 				return services.UpgradeOperation{
 					Type: s.upgradeOutput[s.upgradeCallCount-1],
 					Data: broker.OperationData{BoshTaskID: s.taskID, OperationType: broker.OperationTypeUpgrade},
@@ -65,11 +63,10 @@ func setupTest(states []testState, instanceLister *fakes.FakeInstanceLister, bro
 	}
 
 	brokerServices.LastOperationStub = func(guid string, operationData broker.OperationData) (brokerapi.LastOperation, error) {
-		for i, s := range states {
+		for _, s := range states {
 			if guid == s.instance.GUID {
 				s.controller.WaitForSignalToProceed()
 				s.lastOperationCallCount++
-				states[i] = s
 				return brokerapi.LastOperation{
 					State: s.lastOperationOutput[s.lastOperationCallCount-1],
 				}, nil
