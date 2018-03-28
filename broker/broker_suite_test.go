@@ -112,11 +112,11 @@ var (
 					"type":                 "object",
 					"additionalProperties": false,
 					"properties": map[string]interface{}{
-						"upgrade_auto_create_topics": map[string]interface{}{
+						"update_auto_create_topics": map[string]interface{}{
 							"description": "Auto create topics",
 							"type":        "boolean",
 						},
-						"upgrade_default_replication_factor": map[string]interface{}{
+						"update_default_replication_factor": map[string]interface{}{
 							"description": "Replication factor",
 							"type":        "integer",
 						},
@@ -145,6 +145,23 @@ var (
 					},
 				},
 			},
+			Update: brokerapi.Schema{
+				Parameters: map[string]interface{}{
+					"$schema":              "http://json-schema.org/draft-04/schema#",
+					"type":                 "object",
+					"additionalProperties": true,
+					"properties": map[string]interface{}{
+						"update_auto_create_topics": map[string]interface{}{
+							"description": "Auto create topics",
+							"type":        "boolean",
+						},
+						"update_default_replication_factor": map[string]interface{}{
+							"description": "Replication factor",
+							"type":        "integer",
+						},
+					},
+				},
+			},
 		},
 	}
 
@@ -166,6 +183,24 @@ var (
 						},
 					},
 					"required": []string{"auto_create_topics"},
+				},
+			},
+			Update: brokerapi.Schema{
+				Parameters: map[string]interface{}{
+					"$schema":              "http://json-schema.org/draft-04/schema#",
+					"type":                 "object",
+					"additionalProperties": true,
+					"properties": map[string]interface{}{
+						"update_auto_create_topics": map[string]interface{}{
+							"description": "Auto create topics",
+							"type":        "boolean",
+						},
+						"update_default_replication_factor": map[string]interface{}{
+							"description": "Replication factor",
+							"type":        "integer",
+						},
+					},
+					"required": []string{"update_auto_create_topics"},
 				},
 			},
 		},

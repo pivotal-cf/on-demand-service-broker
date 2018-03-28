@@ -17,20 +17,28 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
+	brokerfakes "github.com/pivotal-cf/on-demand-service-broker/broker/fakes"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	"github.com/pivotal-cf/on-demand-service-broker/task"
 )
 
 var _ = Describe("Update", func() {
 	var (
-		updateSpec      brokerapi.UpdateServiceSpec
-		updateDetails   brokerapi.UpdateDetails
-		arbitraryParams map[string]interface{}
-		arbContext      map[string]interface{}
-		serviceID       string
-		orgGUID         string
-		spaceGUID       string
-		boshTaskID      int
+		updateSpec                    brokerapi.UpdateServiceSpec
+		updateDetails                 brokerapi.UpdateDetails
+		arbitraryParams               map[string]interface{}
+		arbContext                    map[string]interface{}
+		serviceID                     string
+		orgGUID                       string
+		spaceGUID                     string
+		boshTaskID                    int
+		updateError                   error
+		newPlanID                     string
+		oldPlanID                     string
+		serialisedArbitraryContext    []byte
+		serialisedArbitraryParameters []byte
+		async                         = true
+		err                           error
 	)
 
 	BeforeEach(func() {
@@ -43,13 +51,7 @@ var _ = Describe("Update", func() {
 	})
 
 	Context("when there is a previous deployment for the service instance", func() {
-		var (
-			updateError error
-			newPlanID   string
-			oldPlanID   string
-			instanceID  = "some-instance-id"
-			async       = true
-		)
+		var instanceID = "some-instance-id"
 
 		BeforeEach(func() {
 			newPlanID = existingPlanID
@@ -60,10 +62,10 @@ var _ = Describe("Update", func() {
 		})
 
 		JustBeforeEach(func() {
-			serialisedArbitraryParameters, err := json.Marshal(arbitraryParams)
+			serialisedArbitraryParameters, err = json.Marshal(arbitraryParams)
 			Expect(err).NotTo(HaveOccurred())
 
-			serialisedArbitraryContext, err := json.Marshal(arbContext)
+			serialisedArbitraryContext, err = json.Marshal(arbContext)
 			Expect(err).NotTo(HaveOccurred())
 
 			updateDetails = brokerapi.UpdateDetails{
@@ -443,7 +445,127 @@ var _ = Describe("Update", func() {
 				Expect(updateError).To(MatchError(ContainSubstring("This service plan requires client support for asynchronous service operations")))
 			})
 		})
+
+		Context("when plan schemas are enabled", func() {
+			var arbitraryParams map[string]interface{}
+			var broker *broker.Broker
+			var fakeAdapter *brokerfakes.FakeServiceAdapterClient
+			var schemaParams []byte
+
+			Context("when there is a previous deployment for the service instance", func() {
+				BeforeEach(func() {
+					fakeAdapter = new(brokerfakes.FakeServiceAdapterClient)
+					fakeAdapter.GeneratePlanSchemaReturns(schemaFixture, nil)
+					brokerConfig.EnablePlanSchemas = true
+					broker = createBrokerWithAdapter(fakeAdapter)
+				})
+
+				JustBeforeEach(func() {
+					updateDetails = brokerapi.UpdateDetails{
+						PlanID:        newPlanID,
+						RawContext:    serialisedArbitraryContext,
+						RawParameters: schemaParams,
+						ServiceID:     serviceOfferingID,
+						PreviousValues: brokerapi.PreviousValues{
+							PlanID:    oldPlanID,
+							OrgID:     orgGUID,
+							ServiceID: serviceID,
+							SpaceID:   spaceGUID,
+						},
+					}
+					updateSpec, updateError = broker.Update(context.Background(), instanceID, updateDetails, async)
+				})
+
+				Context("when the provision request params are not valid", func() {
+					BeforeEach(func() {
+						arbitraryParams = map[string]interface{}{
+							"this-is": "clearly-wrong",
+						}
+						schemaParams, err = json.Marshal(arbitraryParams)
+						Expect(err).NotTo(HaveOccurred())
+					})
+
+					It("requests the json schemas from the service adapter", func() {
+						Expect(updateError).To(HaveOccurred())
+						Expect(fakeAdapter.GeneratePlanSchemaCallCount()).To(Equal(1))
+						Expect(updateError.Error()).To(ContainSubstring("Additional property this-is is not allowed"))
+					})
+
+					It("fails", func() {
+						Expect(updateError).To(HaveOccurred())
+					})
+				})
+
+				Context("when the provision request params are empty", func() {
+					BeforeEach(func() {
+						schemaParams = []byte{}
+					})
+
+					It("succeeds", func() {
+						Expect(updateError).NotTo(HaveOccurred())
+					})
+				})
+
+				Context("when the provision request params are valid", func() {
+					var err error
+
+					BeforeEach(func() {
+						arbitraryParams = map[string]interface{}{
+							"update_auto_create_topics":         true,
+							"update_default_replication_factor": 55,
+						}
+						schemaParams, err = json.Marshal(arbitraryParams)
+						Expect(err).NotTo(HaveOccurred())
+					})
+
+					It("requests the json schemas from the service adapter", func() {
+						Expect(fakeAdapter.GeneratePlanSchemaCallCount()).To(Equal(1))
+					})
+
+					It("succeeds", func() {
+						Expect(updateError).NotTo(HaveOccurred())
+					})
+				})
+
+				Context("when the schema allows additional properties", func() {
+					var err error
+
+					BeforeEach(func() {
+						arbitraryParams = map[string]interface{}{
+							"foo": true,
+							"bar": 55,
+						}
+						schemaParams, err = json.Marshal(arbitraryParams)
+						Expect(err).NotTo(HaveOccurred())
+						fakeAdapter.GeneratePlanSchemaReturns(schemaWithAdditionalPropertiesAllowedFixture, nil)
+					})
+
+					It("succeeds", func() {
+						Expect(updateError).NotTo(HaveOccurred())
+					})
+				})
+
+				Context("when the schema has required properties", func() {
+					var err error
+
+					BeforeEach(func() {
+						arbitraryParams = map[string]interface{}{
+							"foo": true,
+							"bar": 55,
+						}
+						schemaParams, err = json.Marshal(arbitraryParams)
+						Expect(err).NotTo(HaveOccurred())
+						fakeAdapter.GeneratePlanSchemaReturns(schemaWithRequiredPropertiesFixture, nil)
+					})
+
+					It("reports the required error", func() {
+						Expect(updateError).To(MatchError(ContainSubstring("auto_create_topics is required")))
+					})
+				})
+			})
+		})
 	})
+
 })
 
 func unmarshalOperationData(updateSpec brokerapi.UpdateServiceSpec) broker.OperationData {

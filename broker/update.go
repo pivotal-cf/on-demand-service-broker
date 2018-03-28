@@ -56,6 +56,28 @@ func (b *Broker) Update(
 		return brokerapi.UpdateServiceSpec{IsAsync: true}, b.processError(NewGenericError(ctx, err), logger)
 	}
 
+	if b.EnablePlanSchemas {
+		schemas, _ := b.adapterClient.GeneratePlanSchema(plan.AdapterPlan(b.serviceOffering.GlobalProperties), logger)
+		instanceUpdateSchema := schemas.Instance.Update
+
+		validator := NewValidator(instanceUpdateSchema.Parameters)
+		err := validator.ValidateSchema()
+		if err != nil {
+			return brokerapi.UpdateServiceSpec{}, err
+		}
+
+		params := make(map[string]interface{})
+		err = json.Unmarshal(details.RawParameters, &params)
+		if err != nil && len(details.RawParameters) > 0 {
+			return brokerapi.UpdateServiceSpec{}, fmt.Errorf("update request params are malformed: %s", details.RawParameters)
+		}
+
+		err = validator.ValidateParams(params)
+		if err != nil {
+			return brokerapi.UpdateServiceSpec{}, err
+		}
+	}
+
 	var boshContextID string
 	var operationPostDeployErrandName string
 	if plan.PostDeployErrand() != "" {
