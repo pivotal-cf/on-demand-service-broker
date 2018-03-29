@@ -14,6 +14,7 @@ import (
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/brokercontext"
+	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 )
 
 func (b *Broker) Bind(
@@ -50,7 +51,14 @@ func (b *Broker) Bind(
 				fmt.Errorf("finding plan ID %s", details.PlanID),
 			), logger)
 		}
-		schemas, _ := b.adapterClient.GeneratePlanSchema(plan.AdapterPlan(b.serviceOffering.GlobalProperties), logger)
+		schemas, err := b.adapterClient.GeneratePlanSchema(plan.AdapterPlan(b.serviceOffering.GlobalProperties), logger)
+		if err != nil {
+			if _, ok := err.(serviceadapter.NotImplementedError); !ok {
+				return brokerapi.Binding{}, b.processError(err, logger)
+			}
+			logger.Println("enable_plan_schemas is set to true, but the service adapter does not implement generate-plan-schemas")
+			return brokerapi.Binding{}, b.processError(fmt.Errorf("enable_plan_schemas is set to true, but the service adapter does not implement generate-plan-schemas"), logger)
+		}
 		bindingCreateSchema := schemas.Binding.Create
 
 		validator := NewValidator(bindingCreateSchema.Parameters)

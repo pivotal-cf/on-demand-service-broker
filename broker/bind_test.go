@@ -446,6 +446,32 @@ var _ = Describe("Bind", func() {
 			Expect(bindErr).NotTo(HaveOccurred())
 			Expect(fakeAdapter.GeneratePlanSchemaCallCount()).To(Equal(1))
 		})
+
+		It("returns an error if the service adapter fails", func() {
+			fakeAdapter := new(brokerfakes.FakeServiceAdapterClient)
+			fakeAdapter.GeneratePlanSchemaReturns(schemaFixture, errors.New("oops"))
+			b = createBrokerWithAdapter(fakeAdapter)
+
+			bindRequest := generateBindRequestWithParams(map[string]interface{}{})
+
+			_, bindErr = b.Bind(context.Background(), instanceID, bindingID, bindRequest)
+			Expect(bindErr).To(HaveOccurred())
+			Expect(bindErr.Error()).To(ContainSubstring("oops"))
+		})
+
+		It("returns an error if the service adapter does not implement generate_plan_schemas", func() {
+			fakeAdapter := new(brokerfakes.FakeServiceAdapterClient)
+			serviceAdapterError := serviceadapter.NewNotImplementedError("no.")
+			fakeAdapter.GeneratePlanSchemaReturns(schemaFixture, serviceAdapterError)
+			b = createBrokerWithAdapter(fakeAdapter)
+
+			bindRequest := generateBindRequestWithParams(map[string]interface{}{})
+
+			_, bindErr = b.Bind(context.Background(), instanceID, bindingID, bindRequest)
+			Expect(bindErr).To(HaveOccurred())
+			Expect(bindErr.Error()).To(ContainSubstring("enable_plan_schemas is set to true, but the service adapter does not implement generate-plan-schemas"))
+			Expect(logBuffer.String()).To(ContainSubstring("enable_plan_schemas is set to true, but the service adapter does not implement generate-plan-schemas"))
+		})
 	})
 })
 

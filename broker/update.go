@@ -57,11 +57,20 @@ func (b *Broker) Update(
 	}
 
 	if b.EnablePlanSchemas {
-		schemas, _ := b.adapterClient.GeneratePlanSchema(plan.AdapterPlan(b.serviceOffering.GlobalProperties), logger)
+		var schemas brokerapi.ServiceSchemas
+		schemas, err = b.adapterClient.GeneratePlanSchema(plan.AdapterPlan(b.serviceOffering.GlobalProperties), logger)
+		if err != nil {
+			if _, ok := err.(serviceadapter.NotImplementedError); !ok {
+				return brokerapi.UpdateServiceSpec{}, b.processError(err, logger)
+			}
+			logger.Println("enable_plan_schemas is set to true, but the service adapter does not implement generate-plan-schemas")
+			return brokerapi.UpdateServiceSpec{}, b.processError(fmt.Errorf("enable_plan_schemas is set to true, but the service adapter does not implement generate-plan-schemas"), logger)
+		}
+
 		instanceUpdateSchema := schemas.Instance.Update
 
 		validator := NewValidator(instanceUpdateSchema.Parameters)
-		err := validator.ValidateSchema()
+		err = validator.ValidateSchema()
 		if err != nil {
 			return brokerapi.UpdateServiceSpec{}, err
 		}

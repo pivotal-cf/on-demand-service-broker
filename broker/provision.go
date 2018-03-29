@@ -106,11 +106,20 @@ func (b *Broker) provisionInstance(ctx context.Context, instanceID string, planI
 	}
 
 	if b.EnablePlanSchemas {
-		schemas, _ := b.adapterClient.GeneratePlanSchema(plan.AdapterPlan(b.serviceOffering.GlobalProperties), logger)
+		var schemas brokerapi.ServiceSchemas
+		schemas, err = b.adapterClient.GeneratePlanSchema(plan.AdapterPlan(b.serviceOffering.GlobalProperties), logger)
+		if err != nil {
+			if _, ok := err.(serviceadapter.NotImplementedError); !ok {
+				return errs(err)
+			}
+			logger.Println("enable_plan_schemas is set to true, but the service adapter does not implement generate-plan-schemas")
+			return errs(fmt.Errorf("enable_plan_schemas is set to true, but the service adapter does not implement generate-plan-schemas"))
+		}
+
 		instanceProvisionSchema := schemas.Instance.Create
 
 		validator := NewValidator(instanceProvisionSchema.Parameters)
-		err := validator.ValidateSchema()
+		err = validator.ValidateSchema()
 		if err != nil {
 			return errs(err)
 		}

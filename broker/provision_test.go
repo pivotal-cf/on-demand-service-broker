@@ -886,6 +886,31 @@ var _ = Describe("provisioning", func() {
 			)
 		})
 
+		Context("if the service adapter fails", func() {
+			BeforeEach(func() {
+				fakeAdapter.GeneratePlanSchemaReturns(schemaFixture, errors.New("oops"))
+			})
+
+			It("returns an error", func() {
+				Expect(provisionErr).To(HaveOccurred())
+				Expect(provisionErr.Error()).To(ContainSubstring("oops"))
+			})
+
+		})
+
+		Context("if the service adapter does not implement plan schemas", func() {
+			BeforeEach(func() {
+				serviceAdapterError := serviceadapter.NewNotImplementedError("no.")
+				fakeAdapter.GeneratePlanSchemaReturns(schemaFixture, serviceAdapterError)
+			})
+
+			It("returns an error", func() {
+				Expect(provisionErr).To(HaveOccurred())
+				Expect(provisionErr.Error()).To(ContainSubstring("enable_plan_schemas is set to true, but the service adapter does not implement generate-plan-schemas"))
+				Expect(logBuffer.String()).To(ContainSubstring("enable_plan_schemas is set to true, but the service adapter does not implement generate-plan-schemas"))
+			})
+		})
+
 		Context("when the provision request params are not valid", func() {
 			BeforeEach(func() {
 				arbParams = map[string]interface{}{
