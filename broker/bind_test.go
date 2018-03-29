@@ -18,6 +18,7 @@ import (
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
+	brokerfakes "github.com/pivotal-cf/on-demand-service-broker/broker/fakes"
 	"github.com/pivotal-cf/on-demand-service-broker/brokercontext"
 	"github.com/pivotal-cf/on-demand-service-broker/noopservicescontroller"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
@@ -362,4 +363,102 @@ var _ = Describe("Bind", func() {
 			})
 		})
 	})
+
+	It("does not validates the parameters passed to the bind request if plan schemas are not enabled", func() {
+		fakeAdapter := new(brokerfakes.FakeServiceAdapterClient)
+		fakeAdapter.GeneratePlanSchemaReturns(schemaFixture, nil)
+		brokerConfig.EnablePlanSchemas = false
+		b = createBrokerWithAdapter(fakeAdapter)
+
+		bindRequest := generateBindRequestWithParams(map[string]interface{}{
+			"bind_auto_create_topics":         true,
+			"bind_default_replication_factor": 5,
+		})
+
+		_, bindErr = b.Bind(context.Background(), instanceID, bindingID, bindRequest)
+		Expect(bindErr).NotTo(HaveOccurred())
+		Expect(fakeAdapter.GeneratePlanSchemaCallCount()).To(Equal(0))
+	})
+
+	Context("when plan schemas are enabled", func() {
+		BeforeEach(func() {
+			brokerConfig.EnablePlanSchemas = true
+		})
+
+		It("validates the parameters passed to the bind request", func() {
+			fakeAdapter := new(brokerfakes.FakeServiceAdapterClient)
+			fakeAdapter.GeneratePlanSchemaReturns(schemaFixture, nil)
+			b = createBrokerWithAdapter(fakeAdapter)
+
+			bindRequest := generateBindRequestWithParams(map[string]interface{}{
+				"bind_auto_create_topics":         true,
+				"bind_default_replication_factor": 5,
+			})
+
+			_, bindErr = b.Bind(context.Background(), instanceID, bindingID, bindRequest)
+			Expect(bindErr).NotTo(HaveOccurred())
+			Expect(fakeAdapter.GeneratePlanSchemaCallCount()).To(Equal(1))
+		})
+
+		It("returns an error if the parameters are invalid", func() {
+			fakeAdapter := new(brokerfakes.FakeServiceAdapterClient)
+			fakeAdapter.GeneratePlanSchemaReturns(schemaFixture, nil)
+			b = createBrokerWithAdapter(fakeAdapter)
+
+			bindRequest := generateBindRequestWithParams(map[string]interface{}{
+				"bind_auto_create_topics": 1,
+			})
+
+			_, bindErr = b.Bind(context.Background(), instanceID, bindingID, bindRequest)
+			Expect(bindErr).To(HaveOccurred())
+			Expect(bindErr.Error()).To(ContainSubstring(
+				"bind_auto_create_topics: Invalid type. Expected: boolean, given: integer",
+			))
+		})
+
+		It("returns an error if the generated schema is not valid", func() {
+			fakeAdapter := new(brokerfakes.FakeServiceAdapterClient)
+			badSchemaFixture := brokerapi.ServiceSchemas{
+				Binding: brokerapi.ServiceBindingSchema{
+					Create: brokerapi.Schema{invalidSchema},
+				},
+			}
+			fakeAdapter.GeneratePlanSchemaReturns(badSchemaFixture, nil)
+			b = createBrokerWithAdapter(fakeAdapter)
+
+			bindRequest := generateBindRequestWithParams(map[string]interface{}{
+				"bind_auto_create_topics": true,
+			})
+
+			_, bindErr = b.Bind(context.Background(), instanceID, bindingID, bindRequest)
+			Expect(bindErr).To(HaveOccurred())
+			Expect(bindErr.Error()).To(ContainSubstring("failed validating schema - schema does not conform to JSON Schema spec"))
+		})
+
+		It("does not fail if no parameters are provided", func() {
+			fakeAdapter := new(brokerfakes.FakeServiceAdapterClient)
+			fakeAdapter.GeneratePlanSchemaReturns(schemaFixture, nil)
+			b = createBrokerWithAdapter(fakeAdapter)
+
+			bindRequest := generateBindRequestWithParams(map[string]interface{}{})
+
+			_, bindErr = b.Bind(context.Background(), instanceID, bindingID, bindRequest)
+			Expect(bindErr).NotTo(HaveOccurred())
+			Expect(fakeAdapter.GeneratePlanSchemaCallCount()).To(Equal(1))
+		})
+	})
 })
+
+func generateBindRequestWithParams(params map[string]interface{}) brokerapi.BindDetails {
+	serialisedArbitraryParameters, err := json.Marshal(params)
+	Expect(err).NotTo(HaveOccurred())
+	return brokerapi.BindDetails{
+		AppGUID:   "app_guid",
+		PlanID:    existingPlanID,
+		ServiceID: "service_id",
+		BindResource: &brokerapi.BindResource{
+			AppGuid: "app_guid",
+		},
+		RawParameters: serialisedArbitraryParameters,
+	}
+}

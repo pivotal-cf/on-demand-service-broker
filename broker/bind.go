@@ -8,6 +8,7 @@ package broker
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/pborman/uuid"
@@ -39,6 +40,30 @@ func (b *Broker) Bind(
 	mappedParams, err := convertDetailsToMap(detailsWithRawParameters)
 	if err != nil {
 		return brokerapi.Binding{}, b.processError(NewGenericError(ctx, fmt.Errorf("converting to map %s", err)), logger)
+	}
+
+	if b.EnablePlanSchemas {
+		plan, found := b.serviceOffering.FindPlanByID(details.PlanID)
+		if !found {
+			return brokerapi.Binding{}, b.processError(NewDisplayableError(
+				fmt.Errorf("plan %s not found", details.PlanID),
+				fmt.Errorf("finding plan ID %s", details.PlanID),
+			), logger)
+		}
+		schemas, _ := b.adapterClient.GeneratePlanSchema(plan.AdapterPlan(b.serviceOffering.GlobalProperties), logger)
+		bindingCreateSchema := schemas.Binding.Create
+
+		validator := NewValidator(bindingCreateSchema.Parameters)
+
+		params, ok := mappedParams["parameters"].(map[string]interface{})
+		if !ok {
+			return brokerapi.Binding{}, b.processError(NewGenericError(ctx, errors.New("converting parameters to map failed")), logger)
+		}
+
+		err = validator.ValidateParams(params)
+		if err != nil {
+			return brokerapi.Binding{}, b.processError(err, logger)
+		}
 	}
 
 	var createBindingErr error

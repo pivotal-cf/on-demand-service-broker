@@ -65,8 +65,8 @@ func (v *Validator) ValidateSchema() error {
 func errorFormatter(errs []gojsonschema.ResultError) string {
 	stringErrs := []string{}
 	for _, err := range errs {
-		stringErrs = append(stringErrs, fmt.Sprintf("* %s", err.String()))
+		stringErrs = append(stringErrs, err.String())
 	}
 
-	return strings.Join(stringErrs, "\n")
+	return strings.Join(stringErrs, "; ")
 }
