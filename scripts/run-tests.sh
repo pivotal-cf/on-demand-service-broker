@@ -23,5 +23,6 @@ ginkgo \
   -r \
   -cover \
   -trace \
+  -race \
   -skipPackage "${skippackages}" \
   "$@"
