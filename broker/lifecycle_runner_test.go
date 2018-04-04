@@ -8,6 +8,7 @@ package broker_test
 
 import (
 	"errors"
+	"fmt"
 	"log"
 
 	. "github.com/onsi/ginkgo"
@@ -388,7 +389,7 @@ var _ = Describe("Lifecycle runner", func() {
 			operationData = broker.OperationData{
 				BoshContextID: contextID,
 				OperationType: broker.OperationTypeDelete,
-				PlanID:        planID,
+				Errands:       []broker.Errand{{Name: "a-cool-errand"}},
 			}
 		})
 
@@ -477,19 +478,50 @@ var _ = Describe("Lifecycle runner", func() {
 			})
 		})
 
-		Context("when there are more than two tasks for the context id", func() {
-			BeforeEach(func() {
-				boshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{
-					taskProcessing,
-					taskComplete,
-					taskComplete,
-				}, nil)
-			})
+		It("runs all errands in order and trigger the delete deployment", func() {
+			operationData = broker.OperationData{
+				BoshContextID: contextID,
+				OperationType: broker.OperationTypeDelete,
+				Errands:       []broker.Errand{{Name: "some-errand"}, {Name: "some-other-errand"}},
+			}
+			firstErrand := boshdirector.BoshTask{ID: 1, State: boshdirector.TaskProcessing, Description: "errand 1", Result: "result-1", ContextID: contextID}
+			secondErrand := boshdirector.BoshTask{ID: 2, State: boshdirector.TaskProcessing, Description: "errand 2", Result: "result-1", ContextID: contextID}
+			boshClient.GetTaskStub = func(id int, l *log.Logger) (boshdirector.BoshTask, error) {
+				switch id {
+				case secondErrand.ID:
+					return secondErrand, nil
+				case taskProcessing.ID:
+					return taskProcessing, nil
+				default:
+					return boshdirector.BoshTask{}, fmt.Errorf("unexpected task id %d", id)
+				}
+			}
 
-			It("returns an error", func() {
-				_, err := deployRunner.GetTask(deploymentName, operationData, logger)
-				Expect(err).To(HaveOccurred())
-			})
+			boshClient.GetNormalisedTasksByContextReturnsOnCall(0, boshdirector.BoshTasks{firstErrand}, nil)
+			task, _ := deployRunner.GetTask(deploymentName, operationData, logger)
+			Expect(task).To(Equal(firstErrand))
+
+			firstErrand.State = boshdirector.TaskDone
+			boshClient.GetNormalisedTasksByContextReturnsOnCall(1, boshdirector.BoshTasks{firstErrand}, nil)
+			boshClient.RunErrandReturns(secondErrand.ID, nil)
+
+			task, err := deployRunner.GetTask(deploymentName, operationData, logger)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(task).To(Equal(secondErrand))
+
+			secondErrand.State = boshdirector.TaskDone
+
+			boshClient.GetNormalisedTasksByContextReturnsOnCall(2, boshdirector.BoshTasks{secondErrand, firstErrand}, nil)
+			boshClient.DeleteDeploymentReturns(taskProcessing.ID, nil)
+			task, err = deployRunner.GetTask(deploymentName, operationData, logger)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(boshClient.DeleteDeploymentCallCount()).To(Equal(1))
+			Expect(task).To(Equal(taskProcessing))
+
+			boshClient.GetNormalisedTasksByContextReturnsOnCall(3, boshdirector.BoshTasks{taskComplete, secondErrand, firstErrand}, nil)
+			task, err = deployRunner.GetTask(deploymentName, operationData, logger)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(task).To(Equal(taskComplete))
 		})
 
 		Context("when getting tasks errors", func() {

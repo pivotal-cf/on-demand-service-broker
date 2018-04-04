@@ -232,7 +232,7 @@ var _ = Describe("lifecycle errand tests", func() {
 			Eventually(deleteServiceSession, cf.CfTimeout).Should(gexec.Exit(0))
 		})
 
-		Context("for a plan with a colocated pre-delete errand", func() {
+		Context("for a plan with colocated pre-delete errands", func() {
 			BeforeEach(func() {
 				planName = colocatedPreDeletePlan
 			})
@@ -249,8 +249,13 @@ var _ = Describe("lifecycle errand tests", func() {
 				Expect(boshTasks[1].State).To(Equal(boshdirector.TaskDone))
 				Expect(boshTasks[1].Description).To(ContainSubstring("run errand"))
 
+				Expect(boshTasks[2].State).To(Equal(boshdirector.TaskDone))
+				Expect(boshTasks[2].Description).To(ContainSubstring("run errand"))
+
 				Expect(boshTasks[0].ContextID).NotTo(BeEmpty())
-				Expect(contextIDsMatch(boshTasks[0], boshTasks[1])).To(BeTrue())
+				Expect(contextIDsMatch(
+					boshTasks[0], boshTasks[1], boshTasks[2],
+				)).To(BeTrue())
 			})
 		})
 
@@ -332,8 +337,13 @@ var _ = Describe("lifecycle errand tests", func() {
 	})
 })
 
-func contextIDsMatch(task1, task2 boshdirector.BoshTask) bool {
-	return task1.ContextID == task2.ContextID
+func contextIDsMatch(tasks ...boshdirector.BoshTask) bool {
+	ctx := tasks[0].ContextID
+	eq := true
+	for _, task := range tasks {
+		eq = eq && task.ContextID == ctx
+	}
+	return eq
 }
 
 func getServiceDeploymentName(serviceInstanceName string) string {

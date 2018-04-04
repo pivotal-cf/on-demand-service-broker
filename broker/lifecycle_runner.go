@@ -103,27 +103,29 @@ func (l LifeCycleRunner) processPreDelete(
 		return boshdirector.BoshTask{}, err
 	}
 
-	switch len(boshTasks) {
-	case 0:
+	if len(boshTasks) == 0 {
 		return boshdirector.BoshTask{}, fmt.Errorf("no tasks found for context id: %s", operationData.BoshContextID)
-	case 1:
-		task := boshTasks[0]
-		if task.StateType() != boshdirector.TaskComplete {
-			return task, nil
-		}
+	}
 
+	task := boshTasks[0]
+	if task.StateType() != boshdirector.TaskComplete {
+		return task, nil
+	}
+
+	if len(boshTasks) == len(operationData.Errands) {
 		taskID, err := l.boshClient.DeleteDeployment(deploymentName, operationData.BoshContextID, logger, boshdirector.NewAsyncTaskReporter())
 		if err != nil {
 			return boshdirector.BoshTask{}, err
 		}
 		return l.boshClient.GetTask(taskID, logger)
-	case 2:
-		// there must be a delete deployment and it must be the first in the task list
-		return boshTasks[0], nil
-	default:
-		return boshdirector.BoshTask{},
-			fmt.Errorf("unexpected tasks found with context id: %s, tasks: %s", operationData.BoshContextID, boshTasks.ToLog())
 	}
+
+	if len(boshTasks) > len(operationData.Errands) {
+		return task, nil
+	}
+
+	errand := operationData.Errands[len(boshTasks)]
+	return l.runErrand(deploymentName, errand.Name, errand.Instances, operationData.BoshContextID, logger)
 }
 
 func (l LifeCycleRunner) runErrand(deploymentName, errand string, errandInstances []string, contextID string, log *log.Logger) (boshdirector.BoshTask, error) {

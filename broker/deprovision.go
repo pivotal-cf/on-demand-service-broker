@@ -28,7 +28,6 @@ func (b *Broker) Deprovision(
 ) (brokerapi.DeprovisionServiceSpec, error) {
 	b.deploymentLock.Lock()
 	defer b.deploymentLock.Unlock()
-
 	requestID := uuid.New()
 	ctx = brokercontext.New(ctx, string(OperationTypeDelete), requestID, b.serviceOffering.Name, instanceID)
 	logger := b.loggerFactory.NewWithContext(ctx)
