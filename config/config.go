@@ -475,28 +475,21 @@ func (p Plan) PostDeployErrandInstances() []string {
 	return p.LifecycleErrands.PostDeploy.Instances
 }
 
-func (p Plan) PreDeleteErrand() string {
-	if p.LifecycleErrands == nil {
-		return ""
-	}
-
-	if len(p.LifecycleErrands.PreDelete) == 0 {
-		return ""
-	}
-
-	return p.LifecycleErrands.PreDelete[0].Name
+type Errand struct {
+	Name      string
+	Instances []string
 }
 
-func (p Plan) PreDeleteErrandInstances() []string {
-	if p.LifecycleErrands == nil {
-		return nil
+func (p Plan) PreDeleteErrands() []Errand {
+	var errands []Errand
+
+	if p.LifecycleErrands != nil {
+		for _, errand := range p.LifecycleErrands.PreDelete {
+			errands = append(errands, Errand(errand))
+		}
 	}
 
-	if len(p.LifecycleErrands.PreDelete) == 0 {
-		return nil
-	}
-
-	return p.LifecycleErrands.PreDelete[0].Instances
+	return errands
 }
 
 type PlanMetadata struct {

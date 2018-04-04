@@ -425,7 +425,7 @@ var _ = Describe("Last Operation", func() {
 				BoshTaskID:    doneTask.ID,
 				OperationType: operationType,
 				BoshContextID: contextID,
-				Errands:       []broker.Errand{{Name: "foo"}},
+				Errands:       []brokerConfig.Errand{{Name: "foo"}},
 			}
 			StartServer(conf)
 		})
@@ -522,7 +522,7 @@ var _ = Describe("Last Operation", func() {
 		})
 
 		It("runs all errands and delete the deployment", func() {
-			operationData.Errands = []broker.Errand{{Name: "foo"}, {Name: "bar"}}
+			operationData.Errands = []brokerConfig.Errand{{Name: "foo"}, {Name: "bar"}}
 			By("running the first errand")
 			inProgressJSON := `
 				{

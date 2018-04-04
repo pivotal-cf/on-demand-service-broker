@@ -51,8 +51,8 @@ func (b *Broker) Deprovision(
 
 	plan, found := b.serviceOffering.FindPlanByID(deprovisionDetails.PlanID)
 	if found {
-		if errand := plan.PreDeleteErrand(); errand != "" {
-			serviceSpec, err := b.runPreDeleteErrand(ctx, instanceID, errand, plan.PreDeleteErrandInstances(), logger)
+		if errands := plan.PreDeleteErrands(); len(errands) != 0 {
+			serviceSpec, err := b.runPreDeleteErrands(ctx, instanceID, errands, logger)
 			return serviceSpec, b.processError(err, logger)
 		}
 	}
@@ -111,11 +111,10 @@ func (b *Broker) assertNoOperationsInProgress(ctx context.Context, instanceID st
 	return nil
 }
 
-func (b *Broker) runPreDeleteErrand(
+func (b *Broker) runPreDeleteErrands(
 	ctx context.Context,
 	instanceID string,
-	preDeleteErrand string,
-	errandInstances []string,
+	preDeleteErrands []config.Errand,
 	logger *log.Logger,
 ) (brokerapi.DeprovisionServiceSpec, error) {
 	logger.Printf("running pre-delete errand for instance %s\n", instanceID)
@@ -124,8 +123,8 @@ func (b *Broker) runPreDeleteErrand(
 
 	taskID, err := b.boshClient.RunErrand(
 		deploymentName(instanceID),
-		preDeleteErrand,
-		errandInstances,
+		preDeleteErrands[0].Name,
+		preDeleteErrands[0].Instances,
 		boshContextID,
 		logger,
 		boshdirector.NewAsyncTaskReporter(),
@@ -138,7 +137,8 @@ func (b *Broker) runPreDeleteErrand(
 		OperationType:   OperationTypeDelete,
 		BoshTaskID:      taskID,
 		BoshContextID:   boshContextID,
-		PreDeleteErrand: PreDeleteErrand{Name: preDeleteErrand, Instances: errandInstances},
+		PreDeleteErrand: PreDeleteErrand{Name: preDeleteErrands[0].Name, Instances: preDeleteErrands[0].Instances},
+		Errands:         preDeleteErrands,
 	})
 
 	if err != nil {

@@ -389,7 +389,7 @@ var _ = Describe("Lifecycle runner", func() {
 			operationData = broker.OperationData{
 				BoshContextID: contextID,
 				OperationType: broker.OperationTypeDelete,
-				Errands:       []broker.Errand{{Name: "a-cool-errand"}},
+				Errands:       []config.Errand{{Name: "a-cool-errand"}},
 			}
 		})
 
@@ -482,7 +482,7 @@ var _ = Describe("Lifecycle runner", func() {
 			operationData = broker.OperationData{
 				BoshContextID: contextID,
 				OperationType: broker.OperationTypeDelete,
-				Errands:       []broker.Errand{{Name: "some-errand"}, {Name: "some-other-errand"}},
+				Errands:       []config.Errand{{Name: "some-errand"}, {Name: "some-other-errand"}},
 			}
 			firstErrand := boshdirector.BoshTask{ID: 1, State: boshdirector.TaskProcessing, Description: "errand 1", Result: "result-1", ContextID: contextID}
 			secondErrand := boshdirector.BoshTask{ID: 2, State: boshdirector.TaskProcessing, Description: "errand 2", Result: "result-1", ContextID: contextID}

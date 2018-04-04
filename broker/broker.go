@@ -111,7 +111,7 @@ type OperationData struct {
 	PlanID           string `json:",omitempty"`
 	PostDeployErrand PostDeployErrand
 	PreDeleteErrand  PreDeleteErrand
-	Errands          []Errand `json:",omitempty"`
+	Errands          []config.Errand `json:",omitempty"`
 }
 
 type Errand struct {

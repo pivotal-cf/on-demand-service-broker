@@ -361,8 +361,6 @@ var _ = Describe("provisioning", func() {
 			err := json.Unmarshal([]byte(serviceSpec.OperationData), &data)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(data.BoshContextID).NotTo(BeEmpty())
-			Expect(data.PreDeleteErrand.Name).To(Equal(errandName))
-			Expect(data.PreDeleteErrand.Instances).To(Equal([]string{errandInstance}))
 		})
 	})
 

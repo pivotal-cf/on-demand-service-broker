@@ -192,10 +192,6 @@ func (b *Broker) provisionInstance(ctx context.Context, instanceID string, planI
 			Name:      operationPostDeployErrand,
 			Instances: operationPostDeployErrandInstances,
 		},
-		PreDeleteErrand: PreDeleteErrand{
-			Name:      plan.PreDeleteErrand(),
-			Instances: plan.PreDeleteErrandInstances(),
-		},
 	}
 
 	//Dashboard url optional

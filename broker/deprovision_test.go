@@ -221,6 +221,7 @@ var _ = Describe("deprovisioning instances", func() {
 				BoshContextID:   contextID,
 				OperationType:   broker.OperationTypeDelete,
 				PreDeleteErrand: broker.PreDeleteErrand{Name: "cleanup-resources", Instances: nil},
+				Errands:         []config.Errand{{Name: "cleanup-resources", Instances: []string{}}},
 			}))
 		})
 
@@ -265,6 +266,7 @@ var _ = Describe("deprovisioning instances", func() {
 				Expect(data.OperationType).To(Equal(broker.OperationTypeDelete))
 				Expect(data.PreDeleteErrand.Name).To(Equal(errandName))
 				Expect(data.PreDeleteErrand.Instances).To(Equal([]string{errandInstance}))
+				Expect(data.Errands).To(Equal([]config.Errand{{Name: "cleanup-errand", Instances: []string{errandInstance}}}))
 			})
 		})
 
