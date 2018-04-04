@@ -34,7 +34,7 @@ var _ = Describe("Service plan schemas", func() {
 	  "create": {
 		  "parameters": {
 			  "$schema": "http://json-schema.org/draft-04/schema#",
-			  "additionalProperties": false,
+			  "additionalProperties": true,
 			  "properties": {
 				  "auto_create_topics": {
 					  "description": "Auto create topics",
@@ -51,7 +51,7 @@ var _ = Describe("Service plan schemas", func() {
 	  "update": {
 		  "parameters": {
 			  "$schema": "http://json-schema.org/draft-04/schema#",
-			  "additionalProperties": false,
+			  "additionalProperties": true,
 			  "properties": {
 				  "auto_create_topics": {
 					  "description": "Auto create topics",
