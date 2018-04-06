@@ -361,7 +361,7 @@ func (s ServiceOffering) FindPlanByID(id string) (Plan, bool) {
 func (s ServiceOffering) HasLifecycleErrands() bool {
 	for _, plan := range s.Plans {
 		if plan.LifecycleErrands != nil {
-			if plan.LifecycleErrands.PostDeploy.Name != "" || len(plan.LifecycleErrands.PreDelete) > 0 {
+			if len(plan.LifecycleErrands.PostDeploy) > 0 || len(plan.LifecycleErrands.PreDelete) > 0 {
 				return true
 			}
 		}
@@ -373,13 +373,13 @@ func (s ServiceOffering) HasLifecycleErrands() bool {
 func (s ServiceOffering) Validate() error {
 	for _, plan := range s.Plans {
 		if plan.LifecycleErrands != nil {
-			err := s.validateLifecycleErrands(plan.LifecycleErrands.PostDeploy)
-			if err != nil {
-				return err
+			for _, errand := range plan.LifecycleErrands.PostDeploy {
+				if err := s.validateLifecycleErrands(errand); err != nil {
+					return err
+				}
 			}
 			for _, errand := range plan.LifecycleErrands.PreDelete {
-				err = s.validateLifecycleErrands(errand)
-				if err != nil {
+				if err := s.validateLifecycleErrands(errand); err != nil {
 					return err
 				}
 			}
@@ -460,19 +460,19 @@ func mergeProperties(planProperties, globalProperties serviceadapter.Properties)
 }
 
 func (p Plan) PostDeployErrand() string {
-	if p.LifecycleErrands == nil {
+	if p.LifecycleErrands == nil || len(p.LifecycleErrands.PostDeploy) == 0 {
 		return ""
 	}
 
-	return p.LifecycleErrands.PostDeploy.Name
+	return p.LifecycleErrands.PostDeploy[0].Name
 }
 
 func (p Plan) PostDeployErrandInstances() []string {
-	if p.LifecycleErrands == nil {
+	if p.LifecycleErrands == nil || len(p.LifecycleErrands.PostDeploy) == 0 {
 		return nil
 	}
 
-	return p.LifecycleErrands.PostDeploy.Instances
+	return p.LifecycleErrands.PostDeploy[0].Instances
 }
 
 type Errand struct {

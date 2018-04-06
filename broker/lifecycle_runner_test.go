@@ -37,18 +37,18 @@ var _ = Describe("Lifecycle runner", func() {
 		config.Plan{
 			ID: planID,
 			LifecycleErrands: &sdk.LifecycleErrands{
-				PostDeploy: sdk.Errand{
+				PostDeploy: []sdk.Errand{{
 					Name:      errand1,
 					Instances: errandInstances,
-				},
+				}},
 			},
 		},
 		config.Plan{
 			ID: anotherPlanID,
 			LifecycleErrands: &sdk.LifecycleErrands{
-				PostDeploy: sdk.Errand{
+				PostDeploy: []sdk.Errand{{
 					Name: errand2,
-				},
+				}},
 			},
 		},
 		config.Plan{
@@ -148,10 +148,10 @@ var _ = Describe("Lifecycle runner", func() {
 						operationData = broker.OperationData{
 							BoshContextID: contextID,
 							OperationType: broker.OperationTypeCreate,
-							PostDeployErrand: broker.PostDeployErrand{
+							Errands: []config.Errand{{
 								Name:      errand1,
 								Instances: errandInstances,
-							},
+							}},
 						}
 
 						task, err = deployRunner.GetTask(deploymentName, operationData, logger)
@@ -382,6 +382,40 @@ var _ = Describe("Lifecycle runner", func() {
 			Entry("upgrade runs errand", broker.OperationTypeUpgrade, true),
 			Entry("delete does not run errand", broker.OperationTypeDelete, false),
 		)
+
+		Context("when the broker receives old-style operation data (without Errands field)", func() {
+			It("runs the post-deploy errand", func() {
+				operationData = broker.OperationData{
+					BoshContextID: contextID,
+					OperationType: broker.OperationTypeCreate,
+					PostDeployErrand: broker.PostDeployErrand{
+						Name: "some-errand",
+					},
+					Errands: []config.Errand{},
+				}
+				firstErrand := boshdirector.BoshTask{ID: 1, State: boshdirector.TaskProcessing, Description: "errand 1", Result: "result-1", ContextID: contextID}
+				boshClient.GetTaskStub = func(id int, l *log.Logger) (boshdirector.BoshTask, error) {
+					if id == taskProcessing.ID {
+						return taskProcessing, nil
+					}
+
+					return boshdirector.BoshTask{}, fmt.Errorf("unexpected task id %d", id)
+				}
+
+				boshClient.GetNormalisedTasksByContextReturnsOnCall(0, boshdirector.BoshTasks{firstErrand}, nil)
+				task, _ := deployRunner.GetTask(deploymentName, operationData, logger)
+				Expect(task).To(Equal(firstErrand))
+
+				firstErrand.State = boshdirector.TaskDone
+
+				boshClient.GetNormalisedTasksByContextReturnsOnCall(1, boshdirector.BoshTasks{taskComplete, firstErrand}, nil)
+
+				task, err := deployRunner.GetTask(deploymentName, operationData, logger)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(task).To(Equal(taskComplete))
+			})
+		})
+
 	})
 
 	Describe("pre-delete errand", func() {

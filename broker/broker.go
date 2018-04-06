@@ -108,10 +108,10 @@ type OperationData struct {
 	BoshTaskID       int
 	BoshContextID    string `json:",omitempty"`
 	OperationType    OperationType
-	PlanID           string `json:",omitempty"`
-	PostDeployErrand PostDeployErrand
-	PreDeleteErrand  PreDeleteErrand // DEPRECATED: only needed for compatibility with ODB 0.20.x
-	Errands          []config.Errand `json:",omitempty"`
+	PlanID           string           `json:",omitempty"`
+	PostDeployErrand PostDeployErrand // DEPRECATED: only needed for compatibility with ODB 0.20.x
+	PreDeleteErrand  PreDeleteErrand  // DEPRECATED: only needed for compatibility with ODB 0.20.x
+	Errands          []config.Errand  `json:",omitempty"`
 }
 
 type Errand struct {

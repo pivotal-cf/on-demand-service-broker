@@ -78,6 +78,12 @@ func (l LifeCycleRunner) processPostDeployment(
 			return l.runErrand(deploymentName, errand, operationData.PostDeployErrand.Instances, operationData.BoshContextID, logger)
 		}
 
+		if len(operationData.Errands) > 0 {
+			errand := operationData.Errands[0].Name
+			instances := operationData.Errands[0].Instances
+			return l.runErrand(deploymentName, errand, instances, operationData.BoshContextID, logger)
+		}
+
 		if operationData.PlanID == "" {
 			logger.Println("can't determine lifecycle errands, neither PlanID nor PostDeployErrand.Name is present")
 			return task, nil
@@ -112,7 +118,7 @@ func (l LifeCycleRunner) processPreDelete(
 		return task, nil
 	}
 
-	if len(boshTasks) == len(operationData.Errands) || isOldStyleOperationData(boshTasks, operationData) {
+	if len(boshTasks) == len(operationData.Errands) || isOldStylePreDeleteOperationData(boshTasks, operationData) {
 		taskID, err := l.boshClient.DeleteDeployment(deploymentName, operationData.BoshContextID, logger, boshdirector.NewAsyncTaskReporter())
 		if err != nil {
 			return boshdirector.BoshTask{}, err
@@ -128,7 +134,7 @@ func (l LifeCycleRunner) processPreDelete(
 	return l.runErrand(deploymentName, errand.Name, errand.Instances, operationData.BoshContextID, logger)
 }
 
-func isOldStyleOperationData(boshTasks boshdirector.BoshTasks, operationData OperationData) bool {
+func isOldStylePreDeleteOperationData(boshTasks boshdirector.BoshTasks, operationData OperationData) bool {
 	return len(boshTasks) == 1 && operationData.PreDeleteErrand.Name != ""
 }
 

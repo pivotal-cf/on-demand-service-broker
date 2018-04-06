@@ -27,9 +27,11 @@ import (
 
 var _ = Describe("provisioning", func() {
 	var (
-		planID         string
-		errandName     string
-		errandInstance string
+		planID          string
+		errandName      string
+		errandInstance  string
+		errandName2     string
+		errandInstance2 string
 
 		serviceSpec  brokerapi.ProvisionedServiceSpec
 		provisionErr error
@@ -238,19 +240,25 @@ var _ = Describe("provisioning", func() {
 		})
 	})
 
-	Context("when the plan has a post-deploy lifecycle errand", func() {
+	Context("when the plan has post-deploy lifecycle errands", func() {
 		BeforeEach(func() {
 			planID = "post-deploy-errand-plan-id"
 			errandName = "health-check"
 			errandInstance = "post-deploy-instance-group-name/0"
 
+			errandName2 = "health-check-2"
+			errandInstance2 = "post-deploy-instance-group-name/0"
+
 			postDeployErrandPlan := config.Plan{
 				ID: planID,
 				LifecycleErrands: &sdk.LifecycleErrands{
-					PostDeploy: sdk.Errand{
+					PostDeploy: []sdk.Errand{{
 						Name:      errandName,
 						Instances: []string{errandInstance},
-					},
+					}, {
+						Name:      errandName2,
+						Instances: []string{errandInstance2},
+					}},
 				},
 				InstanceGroups: []sdk.InstanceGroup{
 					{
