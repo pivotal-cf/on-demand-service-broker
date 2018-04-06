@@ -220,10 +220,10 @@ var _ = Describe("Last Operation", func() {
 				ID:   planID,
 				Name: "post-deploy-plan",
 				LifecycleErrands: &sdk.LifecycleErrands{
-					PostDeploy: sdk.Errand{
+					PostDeploy: []sdk.Errand{{
 						Name:      errandName,
 						Instances: []string{"instance-group-name/0"},
-					},
+					}},
 				},
 			}
 			conf := brokerConfig.Config{
@@ -634,10 +634,10 @@ var _ = Describe("Last Operation", func() {
 				ID:   planID,
 				Name: "post-deploy-plan",
 				LifecycleErrands: &sdk.LifecycleErrands{
-					PostDeploy: sdk.Errand{
+					PostDeploy: []sdk.Errand{{
 						Name:      errandName,
 						Instances: []string{"instance-group-name/0"},
-					},
+					}},
 				},
 			}
 

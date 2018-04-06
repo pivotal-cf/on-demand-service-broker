@@ -90,10 +90,10 @@ var _ = Describe("Provision service instance", func() {
 							},
 						},
 						LifecycleErrands: &sdk.LifecycleErrands{
-							PostDeploy: sdk.Errand{
+							PostDeploy: []sdk.Errand{{
 								Name:      "health-check",
 								Instances: []string{"health-check-instance/0", "health-check-instance/1"},
-							},
+							}},
 						},
 					},
 				},

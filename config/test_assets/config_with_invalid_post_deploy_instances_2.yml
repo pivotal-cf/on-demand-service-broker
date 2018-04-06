@@ -92,7 +92,7 @@ service_catalog:
         persistence: true
       lifecycle_errands:
         post_deploy:
-          name: health-check
+        - name: health-check
           instances: [some/invalid/]
       instance_groups:
         - name: redis-server

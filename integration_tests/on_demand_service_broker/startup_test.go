@@ -401,9 +401,9 @@ var _ = Describe("Startup", func() {
 							},
 						},
 						LifecycleErrands: &serviceadapter.LifecycleErrands{
-							PostDeploy: serviceadapter.Errand{
+							PostDeploy: []serviceadapter.Errand{{
 								Name: "health-check",
-							},
+							}},
 						},
 					}
 
@@ -459,9 +459,9 @@ var _ = Describe("Startup", func() {
 							},
 						},
 						LifecycleErrands: &serviceadapter.LifecycleErrands{
-							PostDeploy: serviceadapter.Errand{
+							PostDeploy: []serviceadapter.Errand{{
 								Name: "health-check",
-							},
+							}},
 						},
 					}
 
@@ -521,9 +521,9 @@ var _ = Describe("Startup", func() {
 							},
 						},
 						LifecycleErrands: &serviceadapter.LifecycleErrands{
-							PostDeploy: serviceadapter.Errand{
+							PostDeploy: []serviceadapter.Errand{{
 								Name: "health-check",
-							},
+							}},
 						},
 					}
 

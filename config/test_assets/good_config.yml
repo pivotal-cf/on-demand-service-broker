@@ -93,7 +93,7 @@ service_catalog:
         persistence: true
       lifecycle_errands:
         post_deploy:
-          name: health-check
+        - name: health-check
           instances: [redis-errand/0, redis-errand/1]
         pre_delete:
         - name: cleanup

@@ -135,10 +135,10 @@ var _ = Describe("Broker Config", func() {
 									"persistence": true,
 								},
 								LifecycleErrands: &serviceadapter.LifecycleErrands{
-									PostDeploy: serviceadapter.Errand{
+									PostDeploy: []serviceadapter.Errand{{
 										Name:      "health-check",
 										Instances: []string{"redis-errand/0", "redis-errand/1"},
-									},
+									}},
 									PreDelete: []serviceadapter.Errand{{
 										Name:      "cleanup",
 										Instances: []string{"redis-errand/0"},

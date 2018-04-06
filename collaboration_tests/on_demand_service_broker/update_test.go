@@ -61,9 +61,9 @@ var _ = Describe("Update a service instance", func() {
 							},
 						},
 						LifecycleErrands: &sdk.LifecycleErrands{
-							PostDeploy: sdk.Errand{
+							PostDeploy: []sdk.Errand{{
 								Name: "health-check",
-							},
+							}},
 						},
 					},
 					{

@@ -46,10 +46,10 @@ var _ = Describe("Management API", func() {
 						ID:     dedicatedPlanID,
 						Quotas: brokerConfig.Quotas{ServiceInstanceLimit: &dedicatedPlanQuota},
 						LifecycleErrands: &sdk.LifecycleErrands{
-							PostDeploy: sdk.Errand{
+							PostDeploy: []sdk.Errand{{
 								Name:      "post-deploy-errand",
 								Instances: instances,
-							},
+							}},
 						},
 					},
 					{
