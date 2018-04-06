@@ -217,11 +217,10 @@ var _ = Describe("deprovisioning instances", func() {
 
 			Expect(json.Unmarshal([]byte(deprovisionSpec.OperationData), &operationData)).To(Succeed())
 			Expect(operationData).To(Equal(broker.OperationData{
-				BoshTaskID:      errandTaskID,
-				BoshContextID:   contextID,
-				OperationType:   broker.OperationTypeDelete,
-				PreDeleteErrand: broker.PreDeleteErrand{Name: "cleanup-resources", Instances: nil},
-				Errands:         []config.Errand{{Name: "cleanup-resources", Instances: []string{}}},
+				BoshTaskID:    errandTaskID,
+				BoshContextID: contextID,
+				OperationType: broker.OperationTypeDelete,
+				Errands:       []config.Errand{{Name: "cleanup-resources", Instances: []string{}}},
 			}))
 		})
 
@@ -264,8 +263,8 @@ var _ = Describe("deprovisioning instances", func() {
 				Expect(json.Unmarshal([]byte(deprovisionSpec.OperationData), &data)).To(Succeed())
 				Expect(data.BoshContextID).To(Equal(contextID))
 				Expect(data.OperationType).To(Equal(broker.OperationTypeDelete))
-				Expect(data.PreDeleteErrand.Name).To(Equal(errandName))
-				Expect(data.PreDeleteErrand.Instances).To(Equal([]string{errandInstance}))
+				Expect(data.Errands[0].Name).To(Equal(errandName))
+				Expect(data.Errands[0].Instances).To(Equal([]string{errandInstance}))
 				Expect(data.Errands).To(Equal([]config.Errand{{Name: "cleanup-errand", Instances: []string{errandInstance}}}))
 			})
 		})

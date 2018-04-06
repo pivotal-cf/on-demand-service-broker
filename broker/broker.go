@@ -110,7 +110,7 @@ type OperationData struct {
 	OperationType    OperationType
 	PlanID           string `json:",omitempty"`
 	PostDeployErrand PostDeployErrand
-	PreDeleteErrand  PreDeleteErrand
+	PreDeleteErrand  PreDeleteErrand // DEPRECATED: only needed for compatibility with ODB 0.20.x
 	Errands          []config.Errand `json:",omitempty"`
 }
 

@@ -534,5 +534,44 @@ var _ = Describe("Lifecycle runner", func() {
 				Expect(err).To(MatchError("some err"))
 			})
 		})
+
+		Context("when the broker receives old-style operation data (without Errands field)", func() {
+			It("runs the pre-delete errand and deletes the deployment", func() {
+				operationData = broker.OperationData{
+					BoshContextID: contextID,
+					OperationType: broker.OperationTypeDelete,
+					PreDeleteErrand: broker.PreDeleteErrand{
+						Name: "some-errand",
+					},
+					Errands: []config.Errand{},
+				}
+				firstErrand := boshdirector.BoshTask{ID: 1, State: boshdirector.TaskProcessing, Description: "errand 1", Result: "result-1", ContextID: contextID}
+				boshClient.GetTaskStub = func(id int, l *log.Logger) (boshdirector.BoshTask, error) {
+					if id == taskProcessing.ID {
+						return taskProcessing, nil
+					}
+
+					return boshdirector.BoshTask{}, fmt.Errorf("unexpected task id %d", id)
+				}
+
+				boshClient.GetNormalisedTasksByContextReturnsOnCall(0, boshdirector.BoshTasks{firstErrand}, nil)
+				task, _ := deployRunner.GetTask(deploymentName, operationData, logger)
+				Expect(task).To(Equal(firstErrand))
+
+				firstErrand.State = boshdirector.TaskDone
+
+				boshClient.GetNormalisedTasksByContextReturnsOnCall(1, boshdirector.BoshTasks{firstErrand}, nil)
+				boshClient.DeleteDeploymentReturns(taskProcessing.ID, nil)
+				task, err := deployRunner.GetTask(deploymentName, operationData, logger)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(boshClient.DeleteDeploymentCallCount()).To(Equal(1))
+				Expect(task).To(Equal(taskProcessing))
+
+				boshClient.GetNormalisedTasksByContextReturnsOnCall(2, boshdirector.BoshTasks{taskComplete, firstErrand}, nil)
+				task, err = deployRunner.GetTask(deploymentName, operationData, logger)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(task).To(Equal(taskComplete))
+			})
+		})
 	})
 })

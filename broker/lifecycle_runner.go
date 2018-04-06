@@ -112,7 +112,7 @@ func (l LifeCycleRunner) processPreDelete(
 		return task, nil
 	}
 
-	if len(boshTasks) == len(operationData.Errands) {
+	if len(boshTasks) == len(operationData.Errands) || isOldStyleOperationData(boshTasks, operationData) {
 		taskID, err := l.boshClient.DeleteDeployment(deploymentName, operationData.BoshContextID, logger, boshdirector.NewAsyncTaskReporter())
 		if err != nil {
 			return boshdirector.BoshTask{}, err
@@ -126,6 +126,10 @@ func (l LifeCycleRunner) processPreDelete(
 
 	errand := operationData.Errands[len(boshTasks)]
 	return l.runErrand(deploymentName, errand.Name, errand.Instances, operationData.BoshContextID, logger)
+}
+
+func isOldStyleOperationData(boshTasks boshdirector.BoshTasks, operationData OperationData) bool {
+	return len(boshTasks) == 1 && operationData.PreDeleteErrand.Name != ""
 }
 
 func (l LifeCycleRunner) runErrand(deploymentName, errand string, errandInstances []string, contextID string, log *log.Logger) (boshdirector.BoshTask, error) {

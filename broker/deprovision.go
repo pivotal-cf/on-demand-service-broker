@@ -134,11 +134,10 @@ func (b *Broker) runPreDeleteErrands(
 	}
 
 	operationData, err := json.Marshal(OperationData{
-		OperationType:   OperationTypeDelete,
-		BoshTaskID:      taskID,
-		BoshContextID:   boshContextID,
-		PreDeleteErrand: PreDeleteErrand{Name: preDeleteErrands[0].Name, Instances: preDeleteErrands[0].Instances},
-		Errands:         preDeleteErrands,
+		OperationType: OperationTypeDelete,
+		BoshTaskID:    taskID,
+		BoshContextID: boshContextID,
+		Errands:       preDeleteErrands,
 	})
 
 	if err != nil {
