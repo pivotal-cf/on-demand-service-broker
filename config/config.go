@@ -459,20 +459,16 @@ func mergeProperties(planProperties, globalProperties serviceadapter.Properties)
 	return properties
 }
 
-func (p Plan) PostDeployErrand() string {
-	if p.LifecycleErrands == nil || len(p.LifecycleErrands.PostDeploy) == 0 {
-		return ""
+func (p Plan) PostDeployErrands() []Errand {
+	var errands []Errand
+
+	if p.LifecycleErrands != nil {
+		for _, errand := range p.LifecycleErrands.PostDeploy {
+			errands = append(errands, Errand(errand))
+		}
 	}
 
-	return p.LifecycleErrands.PostDeploy[0].Name
-}
-
-func (p Plan) PostDeployErrandInstances() []string {
-	if p.LifecycleErrands == nil || len(p.LifecycleErrands.PostDeploy) == 0 {
-		return nil
-	}
-
-	return p.LifecycleErrands.PostDeploy[0].Instances
+	return errands
 }
 
 type Errand struct {

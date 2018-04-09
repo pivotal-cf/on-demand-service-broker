@@ -64,38 +64,31 @@ func (l LifeCycleRunner) processPostDeployment(
 		return boshdirector.BoshTask{}, err
 	}
 
-	switch len(boshTasks) {
-	case 0:
+	if len(boshTasks) == 0 {
 		return boshdirector.BoshTask{}, fmt.Errorf("no tasks found for context id: %s", operationData.BoshContextID)
-	case 1:
-		task := boshTasks[0]
-
-		if task.StateType() != boshdirector.TaskComplete {
-			return task, nil
-		}
-
-		if errand := operationData.PostDeployErrand.Name; errand != "" {
-			return l.runErrand(deploymentName, errand, operationData.PostDeployErrand.Instances, operationData.BoshContextID, logger)
-		}
-
-		if len(operationData.Errands) > 0 {
-			errand := operationData.Errands[0].Name
-			instances := operationData.Errands[0].Instances
-			return l.runErrand(deploymentName, errand, instances, operationData.BoshContextID, logger)
-		}
-
-		if operationData.PlanID == "" {
-			logger.Println("can't determine lifecycle errands, neither PlanID nor PostDeployErrand.Name is present")
-			return task, nil
-		}
-
-		return l.runErrandFromConfig(task, deploymentName, operationData, logger)
-	case 2:
-		return boshTasks[0], nil
-	default:
-		return boshdirector.BoshTask{},
-			fmt.Errorf("unexpected tasks found with context id: %s, tasks: %s", operationData.BoshContextID, boshTasks.ToLog())
 	}
+
+	task := boshTasks[0]
+
+	if task.StateType() != boshdirector.TaskComplete {
+		return task, nil
+	}
+
+	if isOldStylePostDeployOperationData(boshTasks, operationData) {
+		return l.runErrand(deploymentName, operationData.PostDeployErrand.Name, operationData.PostDeployErrand.Instances, operationData.BoshContextID, logger)
+	}
+
+	nextErrandIndex := len(boshTasks) - 1
+	if nextErrandIndex < len(operationData.Errands) {
+		errand := operationData.Errands[nextErrandIndex].Name
+		instances := operationData.Errands[nextErrandIndex].Instances
+		return l.runErrand(deploymentName, errand, instances, operationData.BoshContextID, logger)
+	}
+
+	if len(operationData.Errands) == 0 && operationData.PostDeployErrand.Name == "" {
+		logger.Println("can't determine lifecycle errands, neither PlanID nor PostDeployErrand.Name is present")
+	}
+	return task, nil
 }
 
 func (l LifeCycleRunner) processPreDelete(
@@ -138,6 +131,10 @@ func isOldStylePreDeleteOperationData(boshTasks boshdirector.BoshTasks, operatio
 	return len(boshTasks) == 1 && operationData.PreDeleteErrand.Name != ""
 }
 
+func isOldStylePostDeployOperationData(boshTasks boshdirector.BoshTasks, operationData OperationData) bool {
+	return len(boshTasks) == 1 && operationData.PostDeployErrand.Name != ""
+}
+
 func (l LifeCycleRunner) runErrand(deploymentName, errand string, errandInstances []string, contextID string, log *log.Logger) (boshdirector.BoshTask, error) {
 	taskID, err := l.boshClient.RunErrand(deploymentName, errand, errandInstances, contextID, log, boshdirector.NewAsyncTaskReporter())
 	if err != nil {
@@ -150,19 +147,4 @@ func (l LifeCycleRunner) runErrand(deploymentName, errand string, errandInstance
 	}
 
 	return task, nil
-}
-
-func (l LifeCycleRunner) runErrandFromConfig(task boshdirector.BoshTask, deploymentName string, operationData OperationData, logger *log.Logger) (boshdirector.BoshTask, error) {
-	plan, found := l.plans.FindByID(operationData.PlanID)
-	if !found {
-		logger.Printf("can't determine lifecycle errands, plan with id %s not found\n", operationData.PlanID)
-		return task, nil
-	}
-
-	errand := plan.PostDeployErrand()
-	if errand == "" {
-		return task, nil
-	}
-
-	return l.runErrand(deploymentName, errand, plan.PostDeployErrandInstances(), operationData.BoshContextID, logger)
 }

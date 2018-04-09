@@ -266,8 +266,8 @@ var _ = Describe("Provision service instance", func() {
 		Expect(operationData.BoshTaskID).To(Equal(taskID), "task id")
 		Expect(operationData.BoshContextID).NotTo(BeEmpty(), "context id")
 		Expect(operationData.PlanID).To(BeEmpty(), "plan id")
-		Expect(operationData.PostDeployErrand.Name).To(Equal("health-check"), "post-deploy errand name")
-		Expect(operationData.PostDeployErrand.Instances).To(Equal([]string{"health-check-instance/0", "health-check-instance/1"}), "post-deploy errand instances")
+		Expect(operationData.Errands[0].Name).To(Equal("health-check"), "post-deploy errand name")
+		Expect(operationData.Errands[0].Instances).To(Equal([]string{"health-check-instance/0", "health-check-instance/1"}), "post-deploy errand instances")
 	})
 
 	It("responds with 409 when another instance with the same id is provisioned", func() {

@@ -37,10 +37,9 @@ func (b *Broker) Upgrade(ctx context.Context, instanceID string, details brokera
 	}
 
 	var boshContextID string
-	var operationPostDeployErrand string
+
 	if plan.LifecycleErrands != nil {
 		boshContextID = uuid.New()
-		operationPostDeployErrand = plan.PostDeployErrand()
 	}
 
 	if b.EnablePlanSchemas {
@@ -90,9 +89,6 @@ func (b *Broker) Upgrade(ctx context.Context, instanceID string, details brokera
 		BoshContextID: boshContextID,
 		BoshTaskID:    taskID,
 		OperationType: OperationTypeUpgrade,
-		PostDeployErrand: PostDeployErrand{
-			Name:      operationPostDeployErrand,
-			Instances: plan.PostDeployErrandInstances(),
-		},
+		Errands:       plan.PostDeployErrands(),
 	}, nil
 }

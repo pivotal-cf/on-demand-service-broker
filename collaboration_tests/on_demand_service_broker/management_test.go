@@ -311,9 +311,10 @@ var _ = Describe("Management API", func() {
 				OperationType: broker.OperationTypeUpgrade,
 				BoshTaskID:    123,
 				BoshContextID: operationData.BoshContextID,
-				PostDeployErrand: broker.PostDeployErrand{
-					Name: "post-deploy-errand",
-				},
+				Errands: []brokerConfig.Errand{{
+					Name:      "post-deploy-errand",
+					Instances: []string{},
+				}},
 			}))
 		})
 
@@ -344,10 +345,10 @@ var _ = Describe("Management API", func() {
 					OperationType: broker.OperationTypeUpgrade,
 					BoshTaskID:    123,
 					BoshContextID: operationData.BoshContextID,
-					PostDeployErrand: broker.PostDeployErrand{
+					Errands: []brokerConfig.Errand{{
 						Name:      "post-deploy-errand",
 						Instances: []string{"instance-group-name/0"},
-					},
+					}},
 				}))
 			})
 		})

@@ -145,10 +145,10 @@ var _ = Describe("Update a service instance", func() {
 			var operationData broker.OperationData
 			Expect(json.NewDecoder(strings.NewReader(updateResponse.OperationData)).Decode(&operationData)).To(Succeed())
 			Expect(operationData).To(Equal(broker.OperationData{
-				OperationType:    broker.OperationTypeUpdate,
-				BoshTaskID:       updateTaskID,
-				BoshContextID:    boshContextId,
-				PostDeployErrand: broker.PostDeployErrand{Name: "health-check"},
+				OperationType: broker.OperationTypeUpdate,
+				BoshTaskID:    updateTaskID,
+				BoshContextID: boshContextId,
+				Errands:       []brokerConfig.Errand{{Name: "health-check"}},
 			}))
 
 			By("logging the bind request")

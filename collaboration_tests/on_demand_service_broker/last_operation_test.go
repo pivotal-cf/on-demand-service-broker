@@ -687,6 +687,7 @@ var _ = Describe("Last Operation", func() {
 				OperationType: operationType,
 				BoshContextID: "some-context-id",
 				PlanID:        planID,
+				Errands:       []brokerConfig.Errand{{Name: "foo"}},
 			}
 
 			fakeBoshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{doneTask}, nil)

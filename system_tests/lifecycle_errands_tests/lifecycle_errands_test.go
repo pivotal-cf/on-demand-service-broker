@@ -55,16 +55,19 @@ var _ = Describe("lifecycle errand tests", func() {
 				cf.AwaitServiceCreation(serviceInstanceName)
 
 				boshTasks := boshClient.GetTasksForDeployment(getServiceDeploymentName(serviceInstanceName))
-				Expect(boshTasks).To(HaveLen(2))
+				Expect(boshTasks).To(HaveLen(3))
 
 				Expect(boshTasks[0].State).To(Equal(boshdirector.TaskDone))
 				Expect(boshTasks[0].Description).To(ContainSubstring("run errand"))
 
 				Expect(boshTasks[1].State).To(Equal(boshdirector.TaskDone))
-				Expect(boshTasks[1].Description).To(ContainSubstring("create deployment"))
+				Expect(boshTasks[1].Description).To(ContainSubstring("run errand"))
+
+				Expect(boshTasks[2].State).To(Equal(boshdirector.TaskDone))
+				Expect(boshTasks[2].Description).To(ContainSubstring("create deployment"))
 
 				Expect(boshTasks[0].ContextID).NotTo(BeEmpty())
-				Expect(contextIDsMatch(boshTasks[0], boshTasks[1])).To(BeTrue())
+				Expect(contextIDsMatch(boshTasks[0], boshTasks[1], boshTasks[2])).To(BeTrue())
 			})
 
 		})

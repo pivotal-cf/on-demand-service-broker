@@ -16,6 +16,7 @@ import (
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	brokerfakes "github.com/pivotal-cf/on-demand-service-broker/broker/fakes"
+	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	"github.com/pivotal-cf/on-demand-service-broker/task"
 )
@@ -89,10 +90,10 @@ var _ = Describe("Upgrade", func() {
 					BoshTaskID:    boshTaskID,
 					OperationType: broker.OperationTypeUpgrade,
 					BoshContextID: upgradeOperationData.BoshContextID,
-					PostDeployErrand: broker.PostDeployErrand{
+					Errands: []config.Errand{{
 						Name:      "health-check",
 						Instances: []string{"redis-server/0"},
-					},
+					}},
 				},
 			))
 		})

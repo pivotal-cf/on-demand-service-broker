@@ -88,10 +88,9 @@ func (b *Broker) Update(
 	}
 
 	var boshContextID string
-	var operationPostDeployErrandName string
+
 	if plan.PostDeployErrand() != "" {
 		boshContextID = uuid.New()
-		operationPostDeployErrandName = plan.PostDeployErrand()
 	}
 
 	boshTaskID, _, err := b.deployer.Update(
@@ -126,10 +125,7 @@ func (b *Broker) Update(
 		BoshTaskID:    boshTaskID,
 		OperationType: OperationTypeUpdate,
 		BoshContextID: boshContextID,
-		PostDeployErrand: PostDeployErrand{
-			Name:      operationPostDeployErrandName,
-			Instances: plan.PostDeployErrandInstances(),
-		},
+		Errands:       plan.PostDeployErrands(),
 	})
 	if err != nil {
 		return brokerapi.UpdateServiceSpec{IsAsync: true}, b.processError(NewGenericError(brokercontext.WithBoshTaskID(ctx, boshTaskID), err), logger)
