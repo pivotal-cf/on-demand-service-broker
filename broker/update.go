@@ -89,7 +89,7 @@ func (b *Broker) Update(
 
 	var boshContextID string
 
-	if plan.PostDeployErrand() != "" {
+	if len(plan.PostDeployErrands()) > 0 {
 		boshContextID = uuid.New()
 	}
 
