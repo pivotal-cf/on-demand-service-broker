@@ -29,6 +29,7 @@ var _ = Describe("Provision service instance", func() {
 		planWithQuotaID    = "plan-with-quota"
 		planWithErrandID   = "plan-with-errand"
 		instanceID         = "some-instance-id"
+		serviceID          = "service-id"
 	)
 
 	var (
@@ -48,6 +49,7 @@ var _ = Describe("Provision service instance", func() {
 			ServiceCatalog: brokerConfig.ServiceOffering{
 				GlobalQuotas: brokerConfig.Quotas{ServiceInstanceLimit: &globalQuota},
 				Name:         serviceName,
+				ID:           serviceID,
 				Plans: brokerConfig.Plans{
 					{
 						Name:       "some-other-plan",

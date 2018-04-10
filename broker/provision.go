@@ -11,6 +11,8 @@ import (
 	"fmt"
 	"log"
 
+	"net/http"
+
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
@@ -131,7 +133,8 @@ func (b *Broker) provisionInstance(ctx context.Context, instanceID string, planI
 
 		err = validator.ValidateParams(paramsToValidate)
 		if err != nil {
-			return errs(err)
+			failureResp := brokerapi.NewFailureResponseBuilder(err, http.StatusBadRequest, "params-validation-failed").WithEmptyResponse().Build()
+			return errs(failureResp)
 		}
 	}
 

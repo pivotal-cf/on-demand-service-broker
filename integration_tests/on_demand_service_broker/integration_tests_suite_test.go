@@ -257,6 +257,7 @@ func provisionInstanceWithAsyncFlag(instanceID, planID string, arbitraryParams m
 		return &http.Response{}, err
 	}
 	provisionReq = basicAuthBrokerRequest(provisionReq)
+	provisionReq.Header.Set("X-Broker-API-version", "2.13")
 
 	return http.DefaultClient.Do(provisionReq)
 }

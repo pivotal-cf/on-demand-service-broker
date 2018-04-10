@@ -33,9 +33,10 @@ var _ = Describe("Shutdown of the broker process", func() {
 				Port:                serverPort, Username: brokerUsername, Password: brokerPassword,
 			},
 			ServiceCatalog: brokerConfig.ServiceOffering{
+				ID:   serviceID,
 				Name: serviceName,
 				Plans: brokerConfig.Plans{
-					{Name: "some-plan", ID: "some-plan"},
+					{Name: dedicatedPlanDisplayName, ID: dedicatedPlanID},
 				},
 			},
 		}
@@ -63,7 +64,8 @@ var _ = Describe("Shutdown of the broker process", func() {
 		}
 
 		go func() {
-			resp, _ := doProvisionRequest("some-instance-id", "some-plan", nil, true)
+			defer GinkgoRecover()
+			resp, _ := doProvisionRequest("some-instance-id", dedicatedPlanID, nil, true)
 			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
 		}()
 
@@ -101,7 +103,7 @@ var _ = Describe("Shutdown of the broker process", func() {
 		}
 
 		go func() {
-			resp, _ := doProvisionRequest("some-instance-id", "some-plan", nil, true)
+			resp, _ := doProvisionRequest("some-instance-id", dedicatedPlanID, nil, true)
 			defer GinkgoRecover()
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 		}()

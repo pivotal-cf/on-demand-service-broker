@@ -12,6 +12,8 @@ import (
 	"errors"
 	"fmt"
 
+	"net/http"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/brokerapi"
@@ -932,6 +934,10 @@ var _ = Describe("provisioning", func() {
 				Expect(provisionErr).To(HaveOccurred())
 				Expect(fakeAdapter.GeneratePlanSchemaCallCount()).To(Equal(1))
 				Expect(provisionErr.Error()).To(ContainSubstring("Additional property this-is is not allowed"))
+				Expect(provisionErr).To(BeAssignableToTypeOf(&brokerapi.FailureResponse{}))
+
+				actualErr := provisionErr.(*brokerapi.FailureResponse)
+				Expect(actualErr.ValidatedStatusCode(nil)).To(Equal(http.StatusBadRequest))
 			})
 
 			It("fails", func() {
