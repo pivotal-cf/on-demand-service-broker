@@ -7,7 +7,6 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/bosh_helpers"
-	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/cf_helpers"
 	. "github.com/pivotal-cf/on-demand-service-broker/system_tests/upgrade_all/shared"
 )
 
@@ -15,9 +14,6 @@ var serviceInstances []*TestService
 var canaryServiceInstances []*TestService
 
 var dataPersistenceEnabled bool
-
-const brokerIGName = "broker"
-const brokerJobName = "broker"
 
 var _ = Describe("upgrade-all-service-instances errand", func() {
 	var (
@@ -45,12 +41,12 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 		config.BoshClient.DeployODB(*config.OriginalBrokerManifest)
 	})
 
-	It("when there are multiple service instances provisioned, upgrade-all-service-instances runs successfully", func() {
+	It("upgrade-all-service-instances runs successfully", func() {
 		brokerManifest := config.BoshClient.GetManifest(config.BrokerBoshDeploymentName)
 		serviceInstances = CreateServiceInstances(config, dataPersistenceEnabled)
 
-		UpdatePlanProperties(brokerManifest, config, brokerIGName, brokerJobName)
-		MigrateJobProperty(brokerManifest, config, brokerIGName, brokerJobName)
+		UpdatePlanProperties(brokerManifest, config)
+		MigrateJobProperty(brokerManifest, config)
 
 		By("deploying the modified broker manifest")
 		config.BoshClient.DeployODB(*brokerManifest)
@@ -63,12 +59,6 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 		for _, service := range serviceInstances {
 			deploymentName := GetServiceDeploymentName(service.Name)
 			manifest := config.BoshClient.GetManifest(deploymentName)
-
-			if dataPersistenceEnabled {
-				By("ensuring data still exists", func() {
-					Expect(cf.GetFromTestApp(service.AppURL, "foo")).To(Equal("bar"))
-				})
-			}
 
 			By(fmt.Sprintf("upgrading instance '%s'", service.Name))
 			instanceGroupProperties := bosh_helpers.FindInstanceGroupProperties(manifest, "redis")

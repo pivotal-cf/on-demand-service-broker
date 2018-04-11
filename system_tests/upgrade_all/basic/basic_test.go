@@ -15,9 +15,6 @@ var canaryServiceInstances []*TestService
 
 var dataPersistenceEnabled bool
 
-const brokerIGName = "broker"
-const brokerJobName = "broker"
-
 var _ = Describe("upgrade-all-service-instances errand", func() {
 	var (
 		filterParams map[string]string
@@ -49,7 +46,7 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 		serviceInstances = CreateServiceInstances(config, dataPersistenceEnabled)
 
 		By("causing an upgrade error")
-		testPlan := ExtractPlanProperty(config.CurrentPlan, brokerManifest, brokerIGName, brokerJobName)
+		testPlan := ExtractPlanProperty(config.CurrentPlan, brokerManifest)
 
 		redisServer := testPlan["instance_groups"].([]interface{})[0].(map[interface{}]interface{})
 		redisServer["vm_type"] = "doesntexist"
@@ -65,8 +62,8 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 	It("when there are no service instances provisioned, upgrade-all-service-instances runs successfully", func() {
 		brokerManifest := config.BoshClient.GetManifest(config.BrokerBoshDeploymentName)
 
-		UpdatePlanProperties(brokerManifest, config, brokerIGName, brokerJobName)
-		MigrateJobProperty(brokerManifest, config, brokerIGName, brokerJobName)
+		UpdatePlanProperties(brokerManifest, config)
+		MigrateJobProperty(brokerManifest, config)
 
 		By("deploying the modified broker manifest")
 		config.BoshClient.DeployODB(*brokerManifest)
@@ -81,8 +78,8 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 		brokerManifest := config.BoshClient.GetManifest(config.BrokerBoshDeploymentName)
 		serviceInstances = CreateServiceInstances(config, dataPersistenceEnabled)
 
-		UpdatePlanProperties(brokerManifest, config, brokerIGName, brokerJobName)
-		MigrateJobProperty(brokerManifest, config, brokerIGName, brokerJobName)
+		UpdatePlanProperties(brokerManifest, config)
+		MigrateJobProperty(brokerManifest, config)
 
 		By("deploying the modified broker manifest")
 		config.BoshClient.DeployODB(*brokerManifest)
@@ -95,11 +92,9 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 			deploymentName := GetServiceDeploymentName(service.Name)
 			manifest := config.BoshClient.GetManifest(deploymentName)
 
-			if dataPersistenceEnabled {
-				By("ensuring data still exists", func() {
-					Expect(cf.GetFromTestApp(service.AppURL, "foo")).To(Equal("bar"))
-				})
-			}
+			By("ensuring data still exists", func() {
+				Expect(cf.GetFromTestApp(service.AppURL, "foo")).To(Equal("bar"))
+			})
 
 			By(fmt.Sprintf("upgrading instance '%s'", service.Name))
 			instanceGroupProperties := bosh_helpers.FindInstanceGroupProperties(manifest, "redis")

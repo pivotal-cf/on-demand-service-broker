@@ -1,16 +1,26 @@
 package shared
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"log"
+	"net/http"
+	"os"
 	"path"
 	"regexp"
 	"strings"
 	"sync"
+	"time"
 
+	"github.com/craigfurman/herottp"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
 	"github.com/pborman/uuid"
+	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
+	cfClient "github.com/pivotal-cf/on-demand-service-broker/cf"
+	"github.com/pivotal-cf/on-demand-service-broker/service"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/bosh_helpers"
 	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/cf_helpers"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
@@ -23,6 +33,14 @@ type TestService struct {
 	AppURL  string
 }
 
+const (
+	brokerIGName  = "broker"
+	brokerJobName = "broker"
+)
+
+func CfCreateSpace(spaceName string) {
+	Eventually(cf.Cf("create-space", spaceName)).Should(gexec.Exit(0))
+}
 func CfDeleteSpace(spaceName string) {
 	Eventually(cf.Cf("delete-space", spaceName, "-f")).Should(gexec.Exit(0))
 }
@@ -76,6 +94,105 @@ func CreateServiceInstances(config *Config, dataPersistenceEnabled bool) []*Test
 	return newInstances
 }
 
+func UpdateServiceInstancesAPI(brokerManifest *bosh.BoshManifest, filteredServices []*TestService, filterParams map[string]string, config *Config) {
+	upgradeInstanceProperties := FindUpgradeAllServiceInstancesProperties(brokerManifest)
+	authHeaderBuilder, err := authorizationheader.NewUserTokenAuthHeaderBuilder(
+		os.Getenv("CF_UAA_URL"),
+		"cf",
+		"",
+		os.Getenv("CF_USERNAME"),
+		os.Getenv("CF_PASSWORD"),
+		true,
+		[]byte(""),
+	)
+	Expect(err).NotTo(HaveOccurred())
+
+	cfCli, err := cfClient.New(os.Getenv("CF_URL"), authHeaderBuilder, []byte(""), true)
+	Expect(err).NotTo(HaveOccurred())
+
+	logger := log.New(GinkgoWriter, "", log.LstdFlags)
+
+	instances, err := cfCli.GetInstancesOfServiceOffering(config.ServiceGUID, logger)
+	Expect(err).NotTo(HaveOccurred())
+
+	instancesJson, err := json.Marshal(instances)
+	Expect(err).NotTo(HaveOccurred())
+
+	var filteredInstances []service.Instance
+	for _, instance := range instances {
+		for _, filteredInstance := range filteredServices {
+			if instance.GUID == filteredInstance.GUID {
+				filteredInstances = append(filteredInstances, instance)
+			}
+		}
+	}
+	filteredInstancesJson, err := json.Marshal(filteredInstances)
+	Expect(err).NotTo(HaveOccurred())
+
+	serviceInstanceAPIConfig, ok := upgradeInstanceProperties["service_instances_api"].(map[interface{}]interface{})
+	Expect(ok).To(BeTrue())
+	url, ok := serviceInstanceAPIConfig["url"].(string)
+	Expect(ok).To(BeTrue())
+	authentication, ok := serviceInstanceAPIConfig["authentication"].(map[interface{}]interface{})
+	Expect(ok).To(BeTrue())
+	basic, ok := authentication["basic"].(map[interface{}]interface{})
+	Expect(ok).To(BeTrue())
+	username, ok := basic["username"].(string)
+	Expect(ok).To(BeTrue())
+	password, ok := basic["password"].(string)
+	Expect(ok).To(BeTrue())
+
+	Expect(url).NotTo(Equal(""), "url")
+	Expect(username).NotTo(Equal(""), "username")
+	Expect(password).NotTo(Equal(""), "password")
+
+	url = strings.Replace(url, "https", "http", 1)
+
+	httpClient := herottp.New(herottp.Config{
+		Timeout: 30 * time.Second,
+	})
+
+	basicAuthHeaderBuilder := authorizationheader.NewBasicAuthHeaderBuilder(
+		username,
+		password,
+	)
+
+	request, err := http.NewRequest(
+		http.MethodPost,
+		url,
+		bytes.NewReader(instancesJson),
+	)
+	Expect(err).NotTo(HaveOccurred())
+
+	err = basicAuthHeaderBuilder.AddAuthHeader(request, logger)
+	Expect(err).NotTo(HaveOccurred())
+
+	resp, err := httpClient.Do(request)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(resp.StatusCode).To(Equal(http.StatusOK))
+
+	if len(filterParams) > 0 {
+		filteredInstancesRequest, err := http.NewRequest(
+			http.MethodPost,
+			url,
+			bytes.NewReader(filteredInstancesJson),
+		)
+		Expect(err).NotTo(HaveOccurred())
+		q := filteredInstancesRequest.URL.Query()
+		for k, v := range filterParams {
+			q.Set(k, v)
+		}
+		filteredInstancesRequest.URL.RawQuery = q.Encode()
+
+		err = basicAuthHeaderBuilder.AddAuthHeader(filteredInstancesRequest, logger)
+		Expect(err).NotTo(HaveOccurred())
+
+		filteredInstancesResponse, err := httpClient.Do(filteredInstancesRequest)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(filteredInstancesResponse.StatusCode).To(Equal(http.StatusOK))
+	}
+}
+
 func DeleteServiceInstances(instancesToDelete []*TestService, dataPersistenceEnabled bool) {
 	var wg sync.WaitGroup
 
@@ -110,7 +227,7 @@ func DeleteServiceInstances(instancesToDelete []*TestService, dataPersistenceEna
 	wg.Wait()
 }
 
-func ExtractPlanProperty(planName string, manifest *bosh.BoshManifest, brokerIGName, brokerJobName string) map[interface{}]interface{} {
+func ExtractPlanProperty(planName string, manifest *bosh.BoshManifest) map[interface{}]interface{} {
 	var brokerJob bosh.Job
 	for _, ig := range manifest.InstanceGroups {
 		if ig.Name == brokerIGName {
@@ -152,13 +269,13 @@ func GetServiceDeploymentName(serviceInstanceName string) string {
 	return fmt.Sprintf("%s%s", "service-instance_", serviceInstanceID)
 }
 
-func UpdatePlanProperties(brokerManifest *bosh.BoshManifest, config *Config, brokerIGName, brokerJobName string) {
-	testPlan := ExtractPlanProperty(config.CurrentPlan, brokerManifest, brokerIGName, brokerJobName)
+func UpdatePlanProperties(brokerManifest *bosh.BoshManifest, config *Config) {
+	testPlan := ExtractPlanProperty(config.CurrentPlan, brokerManifest)
 	testPlan["properties"] = map[interface{}]interface{}{"persistence": false}
 }
 
-func MigrateJobProperty(brokerManifest *bosh.BoshManifest, config *Config, brokerIGName, brokerJobName string) {
-	testPlan := ExtractPlanProperty(config.CurrentPlan, brokerManifest, brokerIGName, brokerJobName)
+func MigrateJobProperty(brokerManifest *bosh.BoshManifest, config *Config) {
+	testPlan := ExtractPlanProperty(config.CurrentPlan, brokerManifest)
 	brokerJobs := bosh_helpers.FindInstanceGroupJobs(brokerManifest, brokerIGName)
 	serviceAdapterJob := ExtractServiceAdapterJob(brokerJobs)
 	Expect(serviceAdapterJob).ToNot(BeNil(), "Couldn't find service adapter job in existing manifest")
@@ -174,4 +291,8 @@ func MigrateJobProperty(brokerManifest *bosh.BoshManifest, config *Config, broke
 	testPlanInstanceGroup["migrated_from"] = []map[interface{}]interface{}{
 		{"name": oldRedisServerName},
 	}
+}
+
+func FindUpgradeAllServiceInstancesProperties(brokerManifest *bosh.BoshManifest) map[string]interface{} {
+	return bosh_helpers.FindJobProperties(brokerManifest, brokerJobName, "upgrade-all-service-instances")
 }
