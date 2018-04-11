@@ -8,7 +8,6 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/bosh_helpers"
-	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/cf_helpers"
 	. "github.com/pivotal-cf/on-demand-service-broker/system_tests/upgrade_all/shared"
 )
 
@@ -71,10 +70,6 @@ var _ = Describe("parallel upgrade-all errand with canaries", func() {
 		for _, service := range serviceInstances {
 			deploymentName := GetServiceDeploymentName(service.Name)
 			manifest := config.BoshClient.GetManifest(deploymentName)
-
-			By("ensuring data still exists", func() {
-				Expect(cf.GetFromTestApp(service.AppURL, "foo")).To(Equal("bar"))
-			})
 
 			By(fmt.Sprintf("upgrading instance '%s'", service.Name))
 			instanceGroupProperties := bosh_helpers.FindInstanceGroupProperties(manifest, "redis")
