@@ -42,7 +42,13 @@ var _ = Describe("parallel upgrade-all errand with canaries and SI API", func() 
 		canaryServiceInstances = serviceInstances[len(serviceInstances)-1 : len(serviceInstances)]
 		nonCanaryInstances = serviceInstances[:len(serviceInstances)-1]
 
-		UpdateServiceInstancesAPI(brokerManifest, canaryServiceInstances, map[string]string{}, config)
+		upgradeInstanceProperties := FindUpgradeAllServiceInstancesProperties(brokerManifest)
+		filterParams := map[string]string{}
+		for k, v := range upgradeInstanceProperties["canary_selection_params"].(map[interface{}]interface{}) {
+			filterParams[k.(string)] = v.(string)
+		}
+
+		UpdateServiceInstancesAPI(brokerManifest, canaryServiceInstances, filterParams, config)
 
 		By("logging stdout to the errand output")
 		boshOutput := config.BoshClient.RunErrand(config.BrokerBoshDeploymentName, "upgrade-all-service-instances", []string{}, "")
