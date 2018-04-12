@@ -25,6 +25,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/fakes"
 	"github.com/pivotal-cf/on-demand-service-broker/brokeraugmenter"
+	credhubfakes "github.com/pivotal-cf/on-demand-service-broker/credhubbroker/fakes"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 )
 
@@ -41,23 +42,28 @@ const (
 )
 
 var (
-	stopServer         chan os.Signal
-	serverPort         = rand.Intn(math.MaxInt16-1024) + 1024
-	serverURL          = fmt.Sprintf("localhost:%d", serverPort)
-	fakeServiceAdapter *fakes.FakeServiceAdapterClient
-	fakeBoshClient     *fakes.FakeBoshClient
-	fakeCfClient       *fakes.FakeCloudFoundryClient
-	fakeDeployer       *fakes.FakeDeployer
-	loggerBuffer       *gbytes.Buffer
-	shouldSendSigterm  bool
+	stopServer                 chan os.Signal
+	serverPort                 = rand.Intn(math.MaxInt16-1024) + 1024
+	serverURL                  = fmt.Sprintf("localhost:%d", serverPort)
+	fakeServiceAdapter         *fakes.FakeServiceAdapterClient
+	fakeCredentialStoreFactory *credhubfakes.FakeCredentialStoreFactory
+	fakeCredentialStore        *credhubfakes.FakeCredentialStore
+	fakeBoshClient             *fakes.FakeBoshClient
+	fakeCfClient               *fakes.FakeCloudFoundryClient
+	fakeDeployer               *fakes.FakeDeployer
+	loggerBuffer               *gbytes.Buffer
+	shouldSendSigterm          bool
 )
 
 var _ = BeforeEach(func() {
 	fakeBoshClient = new(fakes.FakeBoshClient)
 	fakeServiceAdapter = new(fakes.FakeServiceAdapterClient)
+	fakeCredentialStoreFactory = new(credhubfakes.FakeCredentialStoreFactory)
+	fakeCredentialStore = new(credhubfakes.FakeCredentialStore)
 	fakeCfClient = new(fakes.FakeCloudFoundryClient)
 	fakeDeployer = new(fakes.FakeDeployer)
 
+	fakeCredentialStoreFactory.NewReturns(fakeCredentialStore, nil)
 })
 
 var _ = AfterEach(func() {
@@ -89,7 +95,7 @@ func StartServerWithStopHandler(conf config.Config, stopServerChan chan os.Signa
 		loggerFactory,
 	)
 	Expect(err).NotTo(HaveOccurred())
-	fakeBroker, err := brokeraugmenter.New(conf, fakeOnDemandBroker, nil, loggerFactory)
+	fakeBroker, err := brokeraugmenter.New(conf, fakeOnDemandBroker, fakeCredentialStoreFactory, loggerFactory)
 	Expect(err).NotTo(HaveOccurred())
 	server := apiserver.New(
 		conf,
