@@ -181,6 +181,9 @@ var _ = Describe("Catalog", func() {
 	})
 
 	It("includes arbitrary fields", func() {
+		serviceCatalog.Metadata.AdditionalMetadata = map[string]interface{}{
+			"random": "george",
+		}
 		serviceCatalog.Plans[0].Metadata.AdditionalMetadata = map[string]interface{}{
 			"arbitrary": "bill",
 		}
@@ -194,6 +197,11 @@ var _ = Describe("Catalog", func() {
 		Expect(services[0].Plans[0].Metadata.AdditionalMetadata).To(Equal(
 			map[string]interface{}{
 				"arbitrary": "bill",
+			},
+		))
+		Expect(services[0].Metadata.AdditionalMetadata).To(Equal(
+			map[string]interface{}{
+				"random": "george",
 			},
 		))
 	})

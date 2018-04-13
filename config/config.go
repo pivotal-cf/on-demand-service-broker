@@ -501,13 +501,14 @@ type PlanCost struct {
 }
 
 type ServiceMetadata struct {
-	DisplayName         string `yaml:"display_name"`
-	ImageURL            string `yaml:"image_url"`
-	LongDescription     string `yaml:"long_description"`
-	ProviderDisplayName string `yaml:"provider_display_name"`
-	DocumentationURL    string `yaml:"documentation_url"`
-	SupportURL          string `yaml:"support_url"`
-	Shareable           bool   `yaml:"shareable"`
+	DisplayName         string                 `yaml:"display_name"`
+	ImageURL            string                 `yaml:"image_url"`
+	LongDescription     string                 `yaml:"long_description"`
+	ProviderDisplayName string                 `yaml:"provider_display_name"`
+	DocumentationURL    string                 `yaml:"documentation_url"`
+	SupportURL          string                 `yaml:"support_url"`
+	Shareable           bool                   `yaml:"shareable"`
+	AdditionalMetadata  map[string]interface{} `yaml:"additional_metadata,inline,omitempty"`
 }
 
 type DashboardClient struct {

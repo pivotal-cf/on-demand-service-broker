@@ -127,6 +127,9 @@ var _ = Describe("Catalog", func() {
 			serviceCatalogConfig.Plans[0].Metadata.AdditionalMetadata = map[string]interface{}{
 				"yo": "bill",
 			}
+			serviceCatalogConfig.Metadata.AdditionalMetadata = map[string]interface{}{
+				"random": "george",
+			}
 			conf := brokerConfig.Config{
 				Broker: brokerConfig.Broker{
 					Port: serverPort, Username: brokerUsername, Password: brokerPassword,
@@ -165,6 +168,9 @@ var _ = Describe("Catalog", func() {
 							DocumentationUrl:    serviceMetaDataDocumentationURL,
 							SupportUrl:          serviceMetaDataSupportURL,
 							Shareable:           &trueVar,
+							AdditionalMetadata: map[string]interface{}{
+								"random": "george",
+							},
 						},
 						DashboardClient: &brokerapi.ServiceDashboardClient{
 							ID:          "client-id-1",

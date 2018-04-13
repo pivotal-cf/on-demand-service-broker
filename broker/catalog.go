@@ -85,6 +85,7 @@ func (b *Broker) Services(ctx context.Context) ([]brokerapi.Service, error) {
 				DocumentationUrl:    b.serviceOffering.Metadata.DocumentationURL,
 				SupportUrl:          b.serviceOffering.Metadata.SupportURL,
 				Shareable:           &b.serviceOffering.Metadata.Shareable,
+				AdditionalMetadata:  b.serviceOffering.Metadata.AdditionalMetadata,
 			},
 			DashboardClient: dashboardClient,
 			Requires:        requiredPermissions(b.serviceOffering.Requires),

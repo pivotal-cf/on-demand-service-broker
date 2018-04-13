@@ -58,6 +58,7 @@ service_catalog:
     documentation_url: "some url"
     support_url: "some url"
     shareable: true
+    managers: 137
   tags:
     - some-tag
     - some-other-tag

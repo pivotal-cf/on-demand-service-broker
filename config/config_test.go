@@ -198,6 +198,9 @@ var _ = Describe("Broker Config", func() {
 				Expect(conf.ServiceCatalog.Plans[0].Metadata.AdditionalMetadata).To(Equal(map[string]interface{}{
 					"workers": 42,
 				}))
+				Expect(conf.ServiceCatalog.Metadata.AdditionalMetadata).To(Equal(map[string]interface{}{
+					"managers": 137,
+				}))
 			})
 
 		})
@@ -597,6 +600,37 @@ var _ = Describe("Broker Config", func() {
 							Metadata: config.PlanMetadata{
 								AdditionalMetadata: map[string]interface{}{
 									"yo": "bill",
+								},
+							},
+						},
+					},
+				},
+			}
+
+			marshalled, err := yaml.Marshal(conf)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(marshalled).To(SatisfyAll(
+				Not(ContainSubstring("additional")),
+				ContainSubstring("yo: bill"),
+			))
+		})
+
+		It("add arbitrary fields to service metadata", func() {
+			conf := config.Config{
+				ServiceCatalog: config.ServiceOffering{
+					Metadata: config.ServiceMetadata{
+						AdditionalMetadata: map[string]interface{}{
+							"yo": "bill",
+						},
+					},
+					Plans: []config.Plan{
+						{
+							ID:          "optional-disk-plan-id",
+							Name:        "optional-disk-plan",
+							Description: "optional-disk-plan-description",
+							InstanceGroups: []serviceadapter.InstanceGroup{
+								{
+									VMType: "optional-disk-vm",
 								},
 							},
 						},
