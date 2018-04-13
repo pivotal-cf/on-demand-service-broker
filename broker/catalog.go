@@ -31,9 +31,10 @@ func (b *Broker) Services(ctx context.Context) ([]brokerapi.Service, error) {
 			Free:        plan.Free,
 			Bindable:    plan.Bindable,
 			Metadata: &brokerapi.ServicePlanMetadata{
-				DisplayName: plan.Metadata.DisplayName,
-				Bullets:     plan.Metadata.Bullets,
-				Costs:       planCosts,
+				DisplayName:        plan.Metadata.DisplayName,
+				Bullets:            plan.Metadata.Bullets,
+				Costs:              planCosts,
+				AdditionalMetadata: plan.Metadata.AdditionalMetadata,
 			},
 		}
 

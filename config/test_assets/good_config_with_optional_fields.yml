@@ -80,6 +80,7 @@ service_catalog:
           - bullet one
           - bullet two
           - bullet three
+        workers: 42
         costs:
           - amount:
               usd: 99.0

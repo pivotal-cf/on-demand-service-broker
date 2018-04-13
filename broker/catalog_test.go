@@ -180,6 +180,24 @@ var _ = Describe("Catalog", func() {
 		})
 	})
 
+	It("includes arbitrary fields", func() {
+		serviceCatalog.Plans[0].Metadata.AdditionalMetadata = map[string]interface{}{
+			"arbitrary": "bill",
+		}
+		b, brokerCreationErr = createBroker([]broker.StartupChecker{}, noopservicescontroller.New())
+		Expect(brokerCreationErr).NotTo(HaveOccurred())
+
+		contextWithoutRequestID := context.Background()
+		services, err := b.Services(contextWithoutRequestID)
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(services[0].Plans[0].Metadata.AdditionalMetadata).To(Equal(
+			map[string]interface{}{
+				"arbitrary": "bill",
+			},
+		))
+	})
+
 	Context("a plan includes a dashboard", func() {
 		It("includes the dashboard in the catalog", func() {
 			serviceCatalog.DashboardClient = &config.DashboardClient{

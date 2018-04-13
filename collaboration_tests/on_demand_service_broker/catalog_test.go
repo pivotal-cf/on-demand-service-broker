@@ -124,6 +124,9 @@ var _ = Describe("Catalog", func() {
 		BeforeEach(func() {
 			serviceCatalogConfig := defaultServiceCatalogConfig()
 			serviceCatalogConfig.Requires = []string{"syslog_drain", "route_forwarding"}
+			serviceCatalogConfig.Plans[0].Metadata.AdditionalMetadata = map[string]interface{}{
+				"yo": "bill",
+			}
 			conf := brokerConfig.Config{
 				Broker: brokerConfig.Broker{
 					Port: serverPort, Username: brokerUsername, Password: brokerPassword,
@@ -185,6 +188,9 @@ var _ = Describe("Catalog", func() {
 											Unit:   dedicatedPlanCostUnit,
 											Amount: dedicatedPlanCostAmount,
 										},
+									},
+									AdditionalMetadata: map[string]interface{}{
+										"yo": "bill",
 									},
 								},
 								Schemas: &defaultSchemas,

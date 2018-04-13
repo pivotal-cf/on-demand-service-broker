@@ -489,9 +489,10 @@ func (p Plan) PreDeleteErrands() []Errand {
 }
 
 type PlanMetadata struct {
-	DisplayName string     `yaml:"display_name"`
-	Bullets     []string   `yaml:"bullets,omitempty"`
-	Costs       []PlanCost `yaml:"costs"`
+	DisplayName        string                 `yaml:"display_name"`
+	Bullets            []string               `yaml:"bullets,omitempty"`
+	Costs              []PlanCost             `yaml:"costs"`
+	AdditionalMetadata map[string]interface{} `yaml:"additional_metadata,inline,omitempty"`
 }
 
 type PlanCost struct {

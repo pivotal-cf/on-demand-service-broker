@@ -195,6 +195,9 @@ var _ = Describe("Broker Config", func() {
 				Expect(parseErr).NotTo(HaveOccurred())
 				Expect(conf.Broker.ExposeOperationalErrors).To(BeTrue())
 				Expect(conf.Broker.EnablePlanSchemas).To(BeTrue())
+				Expect(conf.ServiceCatalog.Plans[0].Metadata.AdditionalMetadata).To(Equal(map[string]interface{}{
+					"workers": 42,
+				}))
 			})
 
 		})
@@ -576,6 +579,37 @@ var _ = Describe("Broker Config", func() {
 			}
 
 			Expect(yaml.Marshal(conf)).NotTo(ContainSubstring("persistent_disk_type"))
+		})
+
+		It("add arbitrary fields to plan metadata", func() {
+			conf := config.Config{
+				ServiceCatalog: config.ServiceOffering{
+					Plans: []config.Plan{
+						{
+							ID:          "optional-disk-plan-id",
+							Name:        "optional-disk-plan",
+							Description: "optional-disk-plan-description",
+							InstanceGroups: []serviceadapter.InstanceGroup{
+								{
+									VMType: "optional-disk-vm",
+								},
+							},
+							Metadata: config.PlanMetadata{
+								AdditionalMetadata: map[string]interface{}{
+									"yo": "bill",
+								},
+							},
+						},
+					},
+				},
+			}
+
+			marshalled, err := yaml.Marshal(conf)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(marshalled).To(SatisfyAll(
+				Not(ContainSubstring("additional")),
+				ContainSubstring("yo: bill"),
+			))
 		})
 
 		It("doesn't serialize the metadata/bullets, if not specified", func() {
