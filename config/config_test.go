@@ -186,6 +186,18 @@ var _ = Describe("Broker Config", func() {
 			})
 		})
 
+		Context("and the config has optional global resource quotas", func() {
+			BeforeEach(func() {
+				configFileName = "good_config_with_global_resource_quotas.yml"
+			})
+
+			It("returns config object", func() {
+				Expect(parseErr).NotTo(HaveOccurred())
+				Expect(conf.ServiceCatalog.GlobalQuotas.ResourceLimits["ips"]).To(Equal(1))
+				Expect(conf.ServiceCatalog.Plans[0].ResourceCosts["ips"]).To(Equal(1))
+			})
+		})
+
 		Context("and the config has the expose_operational_errors flag", func() {
 			BeforeEach(func() {
 				configFileName = "good_config_with_optional_fields.yml"

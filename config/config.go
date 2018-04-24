@@ -432,6 +432,7 @@ type Plan struct {
 	InstanceGroups   []serviceadapter.InstanceGroup   `yaml:"instance_groups,omitempty"`
 	Update           *serviceadapter.Update           `yaml:"update,omitempty"`
 	LifecycleErrands *serviceadapter.LifecycleErrands `yaml:"lifecycle_errands,omitempty"`
+	ResourceCosts    map[string]int                   `yaml:"resource_costs,omitempty"`
 }
 
 func (p Plan) AdapterPlan(globalProperties serviceadapter.Properties) serviceadapter.Plan {
@@ -518,7 +519,8 @@ type DashboardClient struct {
 }
 
 type Quotas struct {
-	ServiceInstanceLimit *int `yaml:"service_instance_limit,omitempty"`
+	ServiceInstanceLimit *int           `yaml:"service_instance_limit,omitempty"`
+	ResourceLimits       map[string]int `yaml:"resource_limits,omitempty"`
 }
 
 type CanarySelectionParams map[string]string
