@@ -339,6 +339,24 @@ func createBrokerWithAdapter(serviceAdapter *fakes.FakeServiceAdapterClient) *br
 	return broker
 }
 
+func createBrokerWithServiceCatalog(catalog config.ServiceOffering) *broker.Broker {
+	var client broker.CloudFoundryClient = cfClient
+
+	broker, err := broker.New(
+		boshClient,
+		client,
+		catalog,
+		brokerConfig,
+		[]broker.StartupChecker{},
+		serviceAdapter,
+		fakeDeployer,
+		loggerFactory,
+	)
+
+	Expect(err).NotTo(HaveOccurred())
+	return broker
+}
+
 func createBroker(startupCheckers []broker.StartupChecker, overrideClient ...broker.CloudFoundryClient) (*broker.Broker, error) {
 	var client broker.CloudFoundryClient = cfClient
 	if len(overrideClient) > 0 {

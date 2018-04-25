@@ -18,4 +18,4 @@ cf api ${CF_URL} --skip-ssl-validation
 cf auth ${CF_USERNAME} ${CF_PASSWORD}
 cf target -o ${CF_ORG} -s ${CF_SPACE} # must already exist
 
-ginkgo -randomizeSuites=true -randomizeAllSpecs=true -keepGoing=true -race -failOnPending -skipPackage upgrade_deployment_tests "$@"
+ginkgo -v -randomizeSuites=true -randomizeAllSpecs=true -keepGoing=true -race -failOnPending -skipPackage upgrade_deployment_tests "$@"

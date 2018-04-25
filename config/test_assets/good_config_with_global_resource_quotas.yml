@@ -92,8 +92,6 @@ service_catalog:
               usd: 0.99
               eur: 0.49
             unit: 1GB of messages over 20GB
-      quotas:
-        service_instance_limit: 1
       properties:
         persistence: true
       lifecycle_errands:

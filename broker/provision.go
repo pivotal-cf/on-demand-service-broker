@@ -17,6 +17,7 @@ import (
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/brokercontext"
+	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 )
 
@@ -107,37 +108,6 @@ func (b *Broker) provisionInstance(ctx context.Context, instanceID string, planI
 		}
 	}
 
-	if b.EnablePlanSchemas {
-		var schemas brokerapi.ServiceSchemas
-		schemas, err = b.adapterClient.GeneratePlanSchema(plan.AdapterPlan(b.serviceOffering.GlobalProperties), logger)
-		if err != nil {
-			if _, ok := err.(serviceadapter.NotImplementedError); !ok {
-				return errs(err)
-			}
-			logger.Println("enable_plan_schemas is set to true, but the service adapter does not implement generate-plan-schemas")
-			return errs(fmt.Errorf("enable_plan_schemas is set to true, but the service adapter does not implement generate-plan-schemas"))
-		}
-
-		instanceProvisionSchema := schemas.Instance.Create
-
-		validator := NewValidator(instanceProvisionSchema.Parameters)
-		err = validator.ValidateSchema()
-		if err != nil {
-			return errs(err)
-		}
-
-		paramsToValidate, ok := requestParams["parameters"].(map[string]interface{})
-		if !ok {
-			return errs(fmt.Errorf("provision request params are malformed: %s", requestParams["parameters"]))
-		}
-
-		err = validator.ValidateParams(paramsToValidate)
-		if err != nil {
-			failureResp := brokerapi.NewFailureResponseBuilder(err, http.StatusBadRequest, "params-validation-failed").WithEmptyResponse().Build()
-			return errs(failureResp)
-		}
-	}
-
 	if plan.Quotas.ServiceInstanceLimit != nil {
 		limit := *plan.Quotas.ServiceInstanceLimit
 		planCount, err := b.getPlanCount(ctx, planID, planCounts, logger)
@@ -151,6 +121,14 @@ func (b *Broker) provisionInstance(ctx context.Context, instanceID string, planI
 				fmt.Errorf("plan quota exceeded for plan ID %s", planID),
 			))
 		}
+	}
+
+	if err := b.checkGlobalResourceQuotaNotExceeded(ctx, plan, logger); err != nil {
+		return errs(err)
+	}
+
+	if err := b.checkPlanSchemas(ctx, requestParams, plan, logger); err != nil {
+		return errs(err)
 	}
 
 	var boshContextID string
@@ -197,6 +175,87 @@ func (b *Broker) provisionInstance(ctx context.Context, instanceID string, planI
 	}
 
 	return operationData, dashboardUrl, nil
+}
+
+func (b *Broker) getAllPlanCounts(ctx context.Context, serviceOfferingID string, logger *log.Logger) (map[string]int, error) {
+	var brokerPlanCounts = make(map[string]int)
+
+	cfPlanCounts, err := b.cfClient.CountInstancesOfServiceOffering(serviceOfferingID, logger)
+	if err != nil {
+		return nil, NewGenericError(ctx, err)
+	}
+	for plan, count := range cfPlanCounts {
+		id := plan.ServicePlanEntity.UniqueID
+		brokerPlanCounts[id] = count
+	}
+
+	return brokerPlanCounts, nil
+}
+
+func (b *Broker) checkGlobalResourceQuotaNotExceeded(ctx context.Context, plan config.Plan, logger *log.Logger) error {
+	if b.serviceOffering.GlobalQuotas.ResourceLimits != nil {
+		planCounts, err := b.getAllPlanCounts(ctx, b.serviceOffering.ID, logger)
+		if err != nil {
+			return err
+		}
+
+		for kind, limit := range b.serviceOffering.GlobalQuotas.ResourceLimits {
+			var currentUsage int
+
+			for _, p := range b.serviceOffering.Plans {
+				instanceCount := planCounts[plan.ID]
+				cost, ok := p.ResourceCosts[kind]
+				if ok {
+					currentUsage += cost * instanceCount
+				}
+			}
+			required := plan.ResourceCosts[kind]
+			if (currentUsage + required) > limit {
+				return NewDisplayableError(
+					fmt.Errorf("global quota of %s: %v would be exceeded by this deployment", kind, limit),
+					fmt.Errorf("global quota of %s: %v would be exceeded by this deployment - "+
+						"current usage is %v and this deployment needs a further %v", kind, limit, currentUsage, required),
+				)
+			}
+		}
+	}
+
+	return nil
+}
+
+func (b *Broker) checkPlanSchemas(ctx context.Context, requestParams map[string]interface{}, plan config.Plan, logger *log.Logger) error {
+	if b.EnablePlanSchemas {
+		var schemas brokerapi.ServiceSchemas
+		schemas, err := b.adapterClient.GeneratePlanSchema(plan.AdapterPlan(b.serviceOffering.GlobalProperties), logger)
+		if err != nil {
+			if _, ok := err.(serviceadapter.NotImplementedError); !ok {
+				return err
+			}
+			logger.Println("enable_plan_schemas is set to true, but the service adapter does not implement generate-plan-schemas")
+			return fmt.Errorf("enable_plan_schemas is set to true, but the service adapter does not implement generate-plan-schemas")
+		}
+
+		instanceProvisionSchema := schemas.Instance.Create
+
+		validator := NewValidator(instanceProvisionSchema.Parameters)
+		err = validator.ValidateSchema()
+		if err != nil {
+			return err
+		}
+
+		paramsToValidate, ok := requestParams["parameters"].(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("provision request params are malformed: %s", requestParams["parameters"])
+		}
+
+		err = validator.ValidateParams(paramsToValidate)
+		if err != nil {
+			failureResp := brokerapi.NewFailureResponseBuilder(err, http.StatusBadRequest, "params-validation-failed").WithEmptyResponse().Build()
+			return failureResp
+		}
+	}
+
+	return nil
 }
 
 func (b *Broker) getPlanCount(ctx context.Context, planID string, planCounts map[string]int, logger *log.Logger) (int, error) {
