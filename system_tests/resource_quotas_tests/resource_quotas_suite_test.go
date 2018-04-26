@@ -85,7 +85,7 @@ var _ = AfterSuite(func() {
 
 func TestQuotasTests(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Quotas Suite")
+	RunSpecs(t, "Resource Quotas Suite")
 }
 
 func envMustHave(key string) string {

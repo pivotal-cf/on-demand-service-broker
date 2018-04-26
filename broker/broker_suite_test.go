@@ -61,6 +61,7 @@ var (
 			UpdateWatchTime: "100-200",
 			MaxInFlight:     5,
 		},
+		ResourceCosts: map[string]int{},
 		Quotas: config.Quotas{
 			ServiceInstanceLimit: &existingPlanServiceInstanceLimit,
 		},

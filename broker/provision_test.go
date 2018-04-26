@@ -62,6 +62,7 @@ var _ = Describe("provisioning", func() {
 		jsonContext, err = json.Marshal(arbContext)
 		Expect(err).NotTo(HaveOccurred())
 		boshClient.GetDeploymentReturns(nil, false, nil)
+
 	})
 
 	JustBeforeEach(func() {
@@ -546,7 +547,7 @@ var _ = Describe("provisioning", func() {
 
 	Context("when count instances of plan fails", func() {
 		BeforeEach(func() {
-			cfClient.CountInstancesOfPlanReturns(0, fmt.Errorf("count fail"))
+			cfClient.CountInstancesOfServiceOfferingReturns(nil, fmt.Errorf("count fail"))
 		})
 
 		Context("and no global quota is configured", func() {
@@ -649,40 +650,19 @@ var _ = Describe("provisioning", func() {
 
 	Context("when the plan quota is reached", func() {
 		BeforeEach(func() {
-			cfClient.CountInstancesOfPlanReturns(existingPlanServiceInstanceLimit, nil)
+			planCounts := map[cf.ServicePlan]int{
+				cfServicePlan("1234", existingPlanID, "url", "name"): serviceOfferingServiceInstanceLimit,
+				cfServicePlan("1234", secondPlanID, "url", "name"):   0,
+			}
+			cfClient.CountInstancesOfServiceOfferingReturns(planCounts, nil)
 		})
 
-		Context("and no global quota is set", func() {
+		It("fails", func() {
+			By("returning an error")
+			Expect(provisionErr).To(HaveOccurred())
 
-			It("counts the instances for the right plan", func() {
-				Expect(cfClient.CountInstancesOfPlanCallCount()).To(Equal(1))
-				actualServiceID, actualPlanID, _ := cfClient.CountInstancesOfPlanArgsForCall(0)
-
-				Expect(actualServiceID).To(Equal(serviceOfferingID))
-				Expect(actualPlanID).To(Equal(planID))
-			})
-
-			It("returns an error", func() {
-				Expect(provisionErr).To(HaveOccurred())
-			})
-
-			It("makes no deployments", func() {
-				Expect(fakeDeployer.CreateCallCount()).To(BeZero())
-			})
-		})
-
-		Context("and the global quota is set", func() {
-			It("counts the instances of each plan", func() {
-				Expect(cfClient.CountInstancesOfPlanCallCount()).To(Equal(1))
-			})
-
-			It("returns an error", func() {
-				Expect(provisionErr).To(HaveOccurred())
-			})
-
-			It("makes no deployments", func() {
-				Expect(fakeDeployer.CreateCallCount()).To(BeZero())
-			})
+			By("not deploying")
+			Expect(fakeDeployer.CreateCallCount()).To(BeZero())
 		})
 	})
 
@@ -772,107 +752,83 @@ var _ = Describe("provisioning", func() {
 		})
 	})
 
-	Context("when the global resource quota is reached", func() {
-		When("trying to deploy a new instance that costs against the global quota", func() {
-			JustBeforeEach(func() {
-				plan := existingPlan
-
-				plan.Quotas = config.Quotas{}
-				plan.ResourceCosts = map[string]int{"ips": 1}
-
-				catalogWithResourceQuotas := serviceCatalog
-				catalogWithResourceQuotas.GlobalQuotas.ServiceInstanceLimit = nil
-				catalogWithResourceQuotas.GlobalQuotas.ResourceLimits = map[string]int{"ips": 1}
-				catalogWithResourceQuotas.Plans = config.Plans{plan, secondPlan}
-				fakeDeployer = new(brokerfakes.FakeDeployer)
-				b = createBrokerWithServiceCatalog(catalogWithResourceQuotas)
-
-				serviceSpec, provisionErr = b.Provision(
-					context.Background(),
-					instanceID,
-					brokerapi.ProvisionDetails{
-						PlanID:           planID,
-						RawContext:       jsonContext,
-						RawParameters:    jsonParams,
-						OrganizationGUID: organizationGUID,
-						SpaceGUID:        spaceGUID,
-						ServiceID:        serviceOfferingID,
-					},
-					asyncAllowed,
-				)
-			})
-
-			BeforeEach(func() {
-				planCounts := map[cf.ServicePlan]int{
-					cfServicePlan("1234", existingPlanID, "url", "name"): 1,
-				}
-				cfClient.CountInstancesOfServiceOfferingReturns(planCounts, nil)
-			})
-
-			It("returns an error", func() {
-				Expect(provisionErr).To(HaveOccurred())
-				Expect(provisionErr.Error()).To(ContainSubstring(
-					"global quota of ips: 1 would be exceeded by this deployment",
-				))
-			})
-
-			It("counts the number of instances", func() {
-				Expect(cfClient.CountInstancesOfPlanCallCount()).To(Equal(1))
-			})
-
-			It("makes no deployments", func() {
-				Expect(fakeDeployer.CreateCallCount()).To(BeZero())
-			})
-
-			Context("and getting plan counts fails", func() {
+	Describe("global resource quotas", func() {
+		Context("when no quota is set", func() {
+			When("a provision of a plan with a resource cost is requested", func() {
 				BeforeEach(func() {
-					cfClient.CountInstancesOfServiceOfferingReturns(nil, errors.New("oh dear"))
+					existingPlan.ResourceCosts["memory"] = 99
 				})
 
-				It("returns an error", func() {
-					Expect(provisionErr).To(HaveOccurred())
+				It("succeeds", func() {
+					Expect(provisionErr).NotTo(HaveOccurred())
 				})
 			})
 		})
 
-		When("the plan doesn't cost against the global quota", func() {
-			JustBeforeEach(func() {
-				plan := existingPlan
+		Context("when a quota is set and has been reached", func() {
+			When("a provision is requested", func() {
+				JustBeforeEach(func() {
+					plan := existingPlan
 
-				plan.Quotas = config.Quotas{}
-				plan.ResourceCosts = map[string]int{"ips": 1}
+					plan.Quotas = config.Quotas{}
+					plan.ResourceCosts = map[string]int{"ips": 1}
 
-				catalogWithResourceQuotas := serviceCatalog
-				catalogWithResourceQuotas.GlobalQuotas.ServiceInstanceLimit = nil
-				catalogWithResourceQuotas.GlobalQuotas.ResourceLimits = map[string]int{"ips": 1}
-				catalogWithResourceQuotas.Plans = config.Plans{plan, secondPlan}
+					catalogWithResourceQuotas := serviceCatalog
+					catalogWithResourceQuotas.GlobalQuotas.ServiceInstanceLimit = nil
+					catalogWithResourceQuotas.GlobalQuotas.ResourceLimits = map[string]int{"ips": 1}
+					catalogWithResourceQuotas.Plans = config.Plans{plan, secondPlan}
+					fakeDeployer = new(brokerfakes.FakeDeployer)
+					b = createBrokerWithServiceCatalog(catalogWithResourceQuotas)
+				})
 
-				b = createBrokerWithServiceCatalog(catalogWithResourceQuotas)
+				BeforeEach(func() {
+					planCounts := map[cf.ServicePlan]int{
+						cfServicePlan("1234", existingPlanID, "url", "name"): 1,
+					}
+					cfClient.CountInstancesOfServiceOfferingReturns(planCounts, nil)
+				})
 
-				serviceSpec, provisionErr = b.Provision(
-					context.Background(),
-					instanceID,
-					brokerapi.ProvisionDetails{
-						PlanID:           secondPlanID,
-						RawContext:       jsonContext,
-						RawParameters:    jsonParams,
-						OrganizationGUID: organizationGUID,
-						SpaceGUID:        spaceGUID,
-						ServiceID:        serviceOfferingID,
-					},
-					asyncAllowed,
-				)
-			})
+				It("fails to provision when the quota is already reached", func() {
+					serviceSpec, provisionErr = b.Provision(
+						context.Background(),
+						instanceID,
+						brokerapi.ProvisionDetails{
+							PlanID:           planID,
+							RawContext:       jsonContext,
+							RawParameters:    jsonParams,
+							OrganizationGUID: organizationGUID,
+							SpaceGUID:        spaceGUID,
+							ServiceID:        serviceOfferingID,
+						},
+						asyncAllowed,
+					)
 
-			BeforeEach(func() {
-				planCounts := map[cf.ServicePlan]int{
-					cfServicePlan("1234", existingPlanID, "url", "name"): 1,
-				}
-				cfClient.CountInstancesOfServiceOfferingReturns(planCounts, nil)
-			})
+					By("erroring")
+					Expect(provisionErr).To(HaveOccurred())
+					Expect(provisionErr.Error()).To(ContainSubstring(
+						"global quota of ips: 1 would be exceeded by this deployment",
+					))
 
-			It("should deploy successfully", func() {
-				Expect(provisionErr).NotTo(HaveOccurred())
+					By("not trying to deploy")
+					Expect(fakeDeployer.CreateCallCount()).To(BeZero())
+				})
+
+				It("provisions successfully when the plan doesn't count against the global quota", func() {
+					serviceSpec, provisionErr = b.Provision(
+						context.Background(),
+						instanceID,
+						brokerapi.ProvisionDetails{
+							PlanID:           secondPlanID,
+							RawContext:       jsonContext,
+							RawParameters:    jsonParams,
+							OrganizationGUID: organizationGUID,
+							SpaceGUID:        spaceGUID,
+							ServiceID:        serviceOfferingID,
+						},
+						asyncAllowed,
+					)
+					Expect(provisionErr).NotTo(HaveOccurred())
+				})
 			})
 		})
 	})

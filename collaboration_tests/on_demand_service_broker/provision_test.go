@@ -42,6 +42,15 @@ var _ = Describe("Provision service instance", func() {
 	BeforeEach(func() {
 		arbitraryParams = map[string]interface{}{"some": "prop"}
 
+		planCounts := map[cf.ServicePlan]int{
+			cf.ServicePlan{
+				ServicePlanEntity: cf.ServicePlanEntity{
+					UniqueID: planWithQuotaID,
+				},
+			}: 0,
+		}
+		fakeCfClient.CountInstancesOfServiceOfferingReturns(planCounts, nil)
+
 		conf = brokerConfig.Config{
 			Broker: brokerConfig.Broker{
 				Port: serverPort, Username: brokerUsername, Password: brokerPassword,
@@ -108,15 +117,11 @@ var _ = Describe("Provision service instance", func() {
 	})
 
 	It("handles the request correctly when CF is disabled", func() {
-		fakeCfClient.CountInstancesOfPlanReturns(0, errors.New("cf not configured"))
+		fakeCfClient.CountInstancesOfServiceOfferingReturns(make(map[cf.ServicePlan]int), nil)
 
 		By("fulfilling the request when the plan has no quota")
 		resp, _ := doProvisionRequest(instanceID, planWithoutQuotaID, arbitraryParams, true)
 		Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
-
-		By("rejecting the request when the plan has quota")
-		resp, _ = doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, true)
-		Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 	})
 
 	It("responds with 202 when the plan has no quota", func() {
@@ -309,7 +314,6 @@ var _ = Describe("Provision service instance", func() {
 	})
 
 	Context("when expose_operational_errors is enabled", func() {
-
 		BeforeEach(func() {
 			conf.Broker.ExposeOperationalErrors = true
 		})
@@ -341,7 +345,14 @@ var _ = Describe("Provision service instance", func() {
 	})
 
 	It("responds with 500 when the plan quota is reached", func() {
-		fakeCfClient.CountInstancesOfPlanReturns(planQuota, nil)
+		planCounts := map[cf.ServicePlan]int{
+			cf.ServicePlan{
+				ServicePlanEntity: cf.ServicePlanEntity{
+					UniqueID: planWithQuotaID,
+				},
+			}: 5,
+		}
+		fakeCfClient.CountInstancesOfServiceOfferingReturns(planCounts, nil)
 		resp, bodyContent := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, true)
 		Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 

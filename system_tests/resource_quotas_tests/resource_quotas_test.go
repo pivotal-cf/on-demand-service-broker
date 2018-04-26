@@ -62,13 +62,12 @@ var _ = Describe("quotas", func() {
 				Expect(session).To(gbytes.Say(globalQuotaError))
 
 				By("deleting instance to free up global quota")
-				Eventually(cf.Cf("delete-service", instanceB, "-f"), cf.CfTimeout).Should(gexec.Exit(0))
-				cf.AwaitServiceDeletion(instanceB)
+				Eventually(cf.Cf("delete-service", instanceA, "-f"), cf.CfTimeout).Should(gexec.Exit(0))
+				cf.AwaitServiceDeletion(instanceA)
 
 				By("creating a service instance with newly freed quota")
 				Eventually(cf.Cf("create-service", serviceOffering, planA, instanceB), cf.CfTimeout).Should(gexec.Exit(0))
 				cf.AwaitServiceCreation(instanceB)
-
 			})
 		})
 	})

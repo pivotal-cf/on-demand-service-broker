@@ -17,6 +17,7 @@ import (
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/brokercontext"
+	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 )
@@ -100,22 +101,23 @@ func (b *Broker) provisionInstance(ctx context.Context, instanceID string, planI
 		))
 	}
 
-	var planCounts map[string]int
+	cfPlanCounts, err := b.cfClient.CountInstancesOfServiceOffering(b.serviceOffering.ID, logger)
+	if err != nil {
+		return errs(NewGenericError(ctx, err))
+	}
+
+	planCounts := b.getAllPlanCounts(ctx, cfPlanCounts, logger)
+
 	if b.serviceOffering.GlobalQuotas.ServiceInstanceLimit != nil {
-		planCounts, err = b.checkGlobalQuota(ctx, b.serviceOffering.ID, logger)
+		err = b.checkGlobalQuota(ctx, planCounts, logger)
 		if err != nil {
 			return errs(err)
 		}
 	}
-
 	if plan.Quotas.ServiceInstanceLimit != nil {
 		limit := *plan.Quotas.ServiceInstanceLimit
-		planCount, err := b.getPlanCount(ctx, planID, planCounts, logger)
-		if err != nil {
-			return errs(err)
-		}
-
-		if planCount >= limit {
+		count, ok := planCounts[planID]
+		if ok && count >= limit {
 			return errs(NewDisplayableError(
 				brokerapi.ErrPlanQuotaExceeded,
 				fmt.Errorf("plan quota exceeded for plan ID %s", planID),
@@ -123,7 +125,7 @@ func (b *Broker) provisionInstance(ctx context.Context, instanceID string, planI
 		}
 	}
 
-	if err := b.checkGlobalResourceQuotaNotExceeded(ctx, plan, logger); err != nil {
+	if err := b.checkGlobalResourceQuotaNotExceeded(ctx, plan, planCounts, logger); err != nil {
 		return errs(err)
 	}
 
@@ -177,28 +179,19 @@ func (b *Broker) provisionInstance(ctx context.Context, instanceID string, planI
 	return operationData, dashboardUrl, nil
 }
 
-func (b *Broker) getAllPlanCounts(ctx context.Context, serviceOfferingID string, logger *log.Logger) (map[string]int, error) {
+func (b *Broker) getAllPlanCounts(ctx context.Context, cfPlanCounts map[cf.ServicePlan]int, logger *log.Logger) map[string]int {
 	var brokerPlanCounts = make(map[string]int)
 
-	cfPlanCounts, err := b.cfClient.CountInstancesOfServiceOffering(serviceOfferingID, logger)
-	if err != nil {
-		return nil, NewGenericError(ctx, err)
-	}
 	for plan, count := range cfPlanCounts {
 		id := plan.ServicePlanEntity.UniqueID
 		brokerPlanCounts[id] = count
 	}
 
-	return brokerPlanCounts, nil
+	return brokerPlanCounts
 }
 
-func (b *Broker) checkGlobalResourceQuotaNotExceeded(ctx context.Context, plan config.Plan, logger *log.Logger) error {
+func (b *Broker) checkGlobalResourceQuotaNotExceeded(ctx context.Context, plan config.Plan, planCounts map[string]int, logger *log.Logger) error {
 	if b.serviceOffering.GlobalQuotas.ResourceLimits != nil {
-		planCounts, err := b.getAllPlanCounts(ctx, b.serviceOffering.ID, logger)
-		if err != nil {
-			return err
-		}
-
 		for kind, limit := range b.serviceOffering.GlobalQuotas.ResourceLimits {
 			var currentUsage int
 
@@ -258,44 +251,22 @@ func (b *Broker) checkPlanSchemas(ctx context.Context, requestParams map[string]
 	return nil
 }
 
-func (b *Broker) getPlanCount(ctx context.Context, planID string, planCounts map[string]int, logger *log.Logger) (int, error) {
-	var planCount int
-
-	if planCounts != nil {
-		planCount = planCounts[planID]
-	} else {
-		var countErr error
-		planCount, countErr = b.cfClient.CountInstancesOfPlan(b.serviceOffering.ID, planID, logger)
-		if countErr != nil {
-			return 0, NewGenericError(ctx, fmt.Errorf("could not count instances of plan: %s", countErr))
-		}
-	}
-
-	return planCount, nil
-}
-
 func (b *Broker) checkGlobalQuota(
 	ctx context.Context,
-	serviceOfferingID string,
+	planCounts map[string]int,
 	logger *log.Logger,
-) (map[string]int, error) {
-
-	planCounts, err := b.cfClient.CountInstancesOfServiceOffering(serviceOfferingID, logger)
-	if err != nil {
-		return nil, NewGenericError(ctx, err)
-	}
-
+) error {
 	var totalServiceInstances = 0
 	for _, count := range planCounts {
 		totalServiceInstances += count
 	}
 
 	if b.serviceOffering.GlobalQuotas.ServiceInstanceLimit != nil && totalServiceInstances >= *b.serviceOffering.GlobalQuotas.ServiceInstanceLimit {
-		return nil, NewDisplayableError(
+		return NewDisplayableError(
 			brokerapi.ErrServiceQuotaExceeded,
 			fmt.Errorf("service quota exceeded for service ID %s", b.serviceOffering.ID),
 		)
 	}
 
-	return nil, nil
+	return nil
 }
