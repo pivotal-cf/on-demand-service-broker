@@ -8,8 +8,10 @@ package broker
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
+	"strings"
 
 	"net/http"
 
@@ -129,6 +131,10 @@ func (b *Broker) provisionInstance(ctx context.Context, instanceID string, planI
 		return errs(err)
 	}
 
+	if err := b.checkPlanResourceQuotaNotExceeded(ctx, plan, planCounts, logger); err != nil {
+		return errs(err)
+	}
+
 	if err := b.checkPlanSchemas(ctx, requestParams, plan, logger); err != nil {
 		return errs(err)
 	}
@@ -190,32 +196,6 @@ func (b *Broker) getAllPlanCounts(ctx context.Context, cfPlanCounts map[cf.Servi
 	return brokerPlanCounts
 }
 
-func (b *Broker) checkGlobalResourceQuotaNotExceeded(ctx context.Context, plan config.Plan, planCounts map[string]int, logger *log.Logger) error {
-	if b.serviceOffering.GlobalQuotas.ResourceLimits != nil {
-		for kind, limit := range b.serviceOffering.GlobalQuotas.ResourceLimits {
-			var currentUsage int
-
-			for _, p := range b.serviceOffering.Plans {
-				instanceCount := planCounts[plan.ID]
-				cost, ok := p.ResourceCosts[kind]
-				if ok {
-					currentUsage += cost * instanceCount
-				}
-			}
-			required := plan.ResourceCosts[kind]
-			if (currentUsage + required) > limit {
-				return NewDisplayableError(
-					fmt.Errorf("global quota of %s: %v would be exceeded by this deployment", kind, limit),
-					fmt.Errorf("global quota of %s: %v would be exceeded by this deployment - "+
-						"current usage is %v and this deployment needs a further %v", kind, limit, currentUsage, required),
-				)
-			}
-		}
-	}
-
-	return nil
-}
-
 func (b *Broker) checkPlanSchemas(ctx context.Context, requestParams map[string]interface{}, plan config.Plan, logger *log.Logger) error {
 	if b.EnablePlanSchemas {
 		var schemas brokerapi.ServiceSchemas
@@ -269,4 +249,70 @@ func (b *Broker) checkGlobalQuota(
 	}
 
 	return nil
+}
+
+func (b *Broker) checkGlobalResourceQuotaNotExceeded(ctx context.Context, plan config.Plan, planCounts map[string]int, logger *log.Logger) error {
+	if b.serviceOffering.GlobalQuotas.ResourceLimits == nil {
+		return nil
+	}
+	errs := []error{}
+	for kind, limit := range b.serviceOffering.GlobalQuotas.ResourceLimits {
+		var currentUsage int
+
+		for _, p := range b.serviceOffering.Plans {
+			instanceCount := planCounts[plan.ID]
+			cost, ok := p.ResourceCosts[kind]
+			if ok {
+				currentUsage += cost * instanceCount
+			}
+		}
+		required := plan.ResourceCosts[kind]
+		if (currentUsage + required) > limit {
+			errs = append(errs, NewDisplayableError(
+				fmt.Errorf("global quota of %s: %v would be exceeded by this deployment", kind, limit),
+				fmt.Errorf("global quota of %s: %v would be exceeded by this deployment - "+
+					"current usage is %v and this deployment needs a further %v", kind, limit, currentUsage, required),
+			))
+		}
+	}
+
+	return joinErrors(errs)
+}
+
+func (b *Broker) checkPlanResourceQuotaNotExceeded(ctx context.Context, plan config.Plan, planCounts map[string]int, logger *log.Logger) error {
+	if plan.Quotas.ResourceLimits == nil {
+		return nil
+	}
+
+	errs := []error{}
+	for kind, limit := range plan.Quotas.ResourceLimits {
+		var currentUsage int
+
+		instanceCount := planCounts[plan.ID]
+		cost, ok := plan.ResourceCosts[kind]
+		if ok {
+			currentUsage += cost * instanceCount
+		}
+
+		if (currentUsage + cost) > limit {
+			errs = append(errs, NewDisplayableError(
+				fmt.Errorf("plan quota of %s: %v would be exceeded by this deployment", kind, limit),
+				fmt.Errorf("plan quota of %s: %v would be exceeded by this deployment - "+
+					"current usage is %v and this deployment needs a further %v", kind, limit, currentUsage, cost),
+			))
+		}
+	}
+	return joinErrors(errs)
+}
+
+func joinErrors(errs []error) error {
+	if len(errs) == 0 {
+		return nil
+	}
+
+	str := []string{}
+	for _, e := range errs {
+		str = append(str, e.Error())
+	}
+	return errors.New(strings.Join(str, "; "))
 }

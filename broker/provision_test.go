@@ -752,6 +752,90 @@ var _ = Describe("provisioning", func() {
 		})
 	})
 
+	Describe("plan resource quotas", func() {
+		When("a quota is set and has been reached", func() {
+			JustBeforeEach(func() {
+				plan := existingPlan
+
+				plan.Quotas = config.Quotas{
+					ResourceLimits: map[string]int{"ips": 10, "memory": 50},
+				}
+				plan.ResourceCosts = map[string]int{"ips": 5, "memory": 20}
+
+				catalogWithResourceQuotas := serviceCatalog
+				catalogWithResourceQuotas.GlobalQuotas.ServiceInstanceLimit = nil
+				catalogWithResourceQuotas.GlobalQuotas.ResourceLimits = nil
+				catalogWithResourceQuotas.Plans = config.Plans{plan, secondPlan}
+				fakeDeployer = new(brokerfakes.FakeDeployer)
+				b = createBrokerWithServiceCatalog(catalogWithResourceQuotas)
+			})
+
+			BeforeEach(func() {
+				planCounts := map[cf.ServicePlan]int{
+					cfServicePlan("1234", existingPlanID, "url", "name"): 2,
+				}
+				cfClient.CountInstancesOfServiceOfferingReturns(planCounts, nil)
+			})
+
+			It("fails to provision when the quota is already reached", func() {
+				serviceSpec, provisionErr = b.Provision(
+					context.Background(),
+					instanceID,
+					brokerapi.ProvisionDetails{
+						PlanID:           planID,
+						RawContext:       jsonContext,
+						RawParameters:    jsonParams,
+						OrganizationGUID: organizationGUID,
+						SpaceGUID:        spaceGUID,
+						ServiceID:        serviceOfferingID,
+					},
+					asyncAllowed,
+				)
+
+				By("erroring")
+				Expect(provisionErr).To(HaveOccurred())
+				Expect(provisionErr.Error()).To(ContainSubstring(
+					"plan quota of ips: 10 would be exceeded by this deployment",
+				))
+				Expect(provisionErr.Error()).To(ContainSubstring(
+					"plan quota of memory: 50 would be exceeded by this deployment",
+				))
+
+				By("not trying to deploy")
+				Expect(fakeDeployer.CreateCallCount()).To(BeZero())
+			})
+
+			It("provisions successfully when the plan doesn't count against the plan quota", func() {
+				serviceSpec, provisionErr = b.Provision(
+					context.Background(),
+					instanceID,
+					brokerapi.ProvisionDetails{
+						PlanID:           secondPlanID,
+						RawContext:       jsonContext,
+						RawParameters:    jsonParams,
+						OrganizationGUID: organizationGUID,
+						SpaceGUID:        spaceGUID,
+						ServiceID:        serviceOfferingID,
+					},
+					asyncAllowed,
+				)
+				Expect(provisionErr).NotTo(HaveOccurred())
+			})
+		})
+
+		Context("when no plan quota is set", func() {
+			When("a provision of a plan with a resource cost is requested", func() {
+				BeforeEach(func() {
+					existingPlan.ResourceCosts["memory"] = 99
+				})
+
+				It("succeeds", func() {
+					Expect(provisionErr).NotTo(HaveOccurred())
+				})
+			})
+		})
+	})
+
 	Describe("global resource quotas", func() {
 		Context("when no quota is set", func() {
 			When("a provision of a plan with a resource cost is requested", func() {
@@ -771,11 +855,11 @@ var _ = Describe("provisioning", func() {
 					plan := existingPlan
 
 					plan.Quotas = config.Quotas{}
-					plan.ResourceCosts = map[string]int{"ips": 1}
+					plan.ResourceCosts = map[string]int{"ips": 1, "memory": 6}
 
 					catalogWithResourceQuotas := serviceCatalog
 					catalogWithResourceQuotas.GlobalQuotas.ServiceInstanceLimit = nil
-					catalogWithResourceQuotas.GlobalQuotas.ResourceLimits = map[string]int{"ips": 1}
+					catalogWithResourceQuotas.GlobalQuotas.ResourceLimits = map[string]int{"ips": 1, "memory": 10}
 					catalogWithResourceQuotas.Plans = config.Plans{plan, secondPlan}
 					fakeDeployer = new(brokerfakes.FakeDeployer)
 					b = createBrokerWithServiceCatalog(catalogWithResourceQuotas)
@@ -807,6 +891,9 @@ var _ = Describe("provisioning", func() {
 					Expect(provisionErr).To(HaveOccurred())
 					Expect(provisionErr.Error()).To(ContainSubstring(
 						"global quota of ips: 1 would be exceeded by this deployment",
+					))
+					Expect(provisionErr.Error()).To(ContainSubstring(
+						"global quota of memory: 10 would be exceeded by this deployment",
 					))
 
 					By("not trying to deploy")
