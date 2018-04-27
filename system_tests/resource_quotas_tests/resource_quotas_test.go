@@ -17,20 +17,23 @@ import (
 	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/cf_helpers"
 )
 
-var _ = Describe("quotas", func() {
-	const (
-		planA = "dedicated-vm" //Quota: IPs 1; 1 instance uses 1 IP
-	)
+var instanceA string
+var instanceB string
 
-	var (
+var _ = Describe("quotas", func() {
+	BeforeEach(func() {
 		instanceA = fmt.Sprintf("instance-%s", uuid.New()[:7])
-	)
+		instanceB = fmt.Sprintf("instance-%s", uuid.New()[:7])
+	})
 
 	Describe("global quotas", func() {
 		const (
+			planA = "dedicated-vm" //Quota: IPs 1; 1 instance uses 1 IP
+		)
+
+		const (
 			globalQuotaError = "global quota of ips: 1 would be exceeded by this deployment"
 		)
-		var instanceB = fmt.Sprintf("instance-%s", uuid.New()[:7])
 
 		Context("when the global limit is reached", func() {
 			BeforeEach(func() {
@@ -67,6 +70,55 @@ var _ = Describe("quotas", func() {
 
 				By("creating a service instance with newly freed quota")
 				Eventually(cf.Cf("create-service", serviceOffering, planA, instanceB), cf.CfTimeout).Should(gexec.Exit(0))
+				cf.AwaitServiceCreation(instanceB)
+			})
+		})
+	})
+
+	Describe("plan quotas", func() {
+		const (
+			planWithQuota = "dedicated-high-memory-vm" //Quota: memory 50; 1 instance uses 40
+		)
+
+		const (
+			planQuotaError = "plan quota of memory: 50 would be exceeded by this deployment"
+		)
+
+		Context("when the plan limit is reached", func() {
+			BeforeEach(func() {
+				Eventually(cf.Cf("create-service", serviceOffering, planWithQuota, instanceA), cf.CfTimeout).Should(gexec.Exit(0))
+				cf.AwaitServiceCreation(instanceA)
+			})
+
+			AfterEach(func() {
+				cf.AwaitInProgressOperations(instanceA)
+				cf.AwaitInProgressOperations(instanceB)
+
+				Eventually(cf.Cf("delete-service", instanceA, "-f"), cf.CfTimeout).Should(gexec.Exit())
+				Eventually(cf.Cf("delete-service", instanceB, "-f"), cf.CfTimeout).Should(gexec.Exit())
+
+				cf.AwaitServiceDeletion(instanceA)
+				cf.AwaitServiceDeletion(instanceB)
+			})
+
+			It("respects plan quotas", func() {
+				By("creating a service when quota is maxed")
+				session := cf.Cf("create-service", serviceOffering, planWithQuota, instanceB)
+				Eventually(session, cf.CfTimeout).Should(gexec.Exit())
+
+				if session.ExitCode() == 0 {
+					By("waiting for creation to finish, plan quota was not enforced.")
+					cf.AwaitServiceCreation(instanceB)
+				}
+
+				Expect(session).To(gbytes.Say(planQuotaError))
+
+				By("deleting instance to free up plan quota")
+				Eventually(cf.Cf("delete-service", instanceA, "-f"), cf.CfTimeout).Should(gexec.Exit(0))
+				cf.AwaitServiceDeletion(instanceA)
+
+				By("creating a service instance with newly freed quota")
+				Eventually(cf.Cf("create-service", serviceOffering, planWithQuota, instanceB), cf.CfTimeout).Should(gexec.Exit(0))
 				cf.AwaitServiceCreation(instanceB)
 			})
 		})

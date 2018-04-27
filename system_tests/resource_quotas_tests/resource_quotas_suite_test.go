@@ -65,8 +65,18 @@ var _ = BeforeSuite(func() {
 	serviceCatalog := brokerJob.Properties["service_catalog"].(map[interface{}]interface{})
 	serviceCatalog["global_quotas"] = map[interface{}]interface{}{"resource_limits": map[string]int{"ips": 1}}
 
-	dedicatedVMPlan := serviceCatalog["plans"].([]interface{})[0].(map[interface{}]interface{})
+	plans := serviceCatalog["plans"].([]interface{})
+
+	// add global resource quota
+	dedicatedVMPlan := findPlanByName(plans, "dedicated-high-memory-vm")
 	dedicatedVMPlan["resource_costs"] = map[interface{}]interface{}{"ips": 1}
+
+	// add plan-level resource quota
+	dedicatedHighMemoryVMPlan := findPlanByName(plans, "dedicated-high-memory-vm")
+	dedicatedHighMemoryVMPlan["resource_costs"] = map[interface{}]interface{}{"memory": 40}
+	dedicatedHighMemoryVMPlan["quotas"] = map[interface{}]interface{}{
+		"resource_limits": map[interface{}]interface{}{"memory": 50},
+	}
 
 	By("deploying the modified broker manifest")
 	boshClient.DeployODB(*newBrokerManifest)
@@ -92,4 +102,15 @@ func envMustHave(key string) string {
 	value := os.Getenv(key)
 	Expect(value).NotTo(BeEmpty(), fmt.Sprintf("must set %s", key))
 	return value
+}
+
+func findPlanByName(plans []interface{}, name string) map[interface{}]interface{} {
+	for _, plan := range plans {
+		planMap := plan.(map[interface{}]interface{})
+		if planMap["name"] == "dedicated-high-memory-vm" {
+			return planMap
+		}
+	}
+	Fail("Plan " + name + " not found in manifest")
+	return nil
 }
