@@ -32,7 +32,7 @@ var _ = Describe("quotas", func() {
 		)
 
 		const (
-			globalQuotaError = "global quota of ips: 1 would be exceeded by this deployment"
+			globalQuotaError = "global quotas [ips (limit 1)] would be exceeded by this deployment"
 		)
 
 		Context("when the global limit is reached", func() {
@@ -81,7 +81,7 @@ var _ = Describe("quotas", func() {
 		)
 
 		const (
-			planQuotaError = "plan quota of memory: 50 would be exceeded by this deployment"
+			planQuotaError = "plan quotas [memory (limit 50)] would be exceeded by this deployment"
 		)
 
 		Context("when the plan limit is reached", func() {
@@ -111,7 +111,7 @@ var _ = Describe("quotas", func() {
 					cf.AwaitServiceCreation(instanceB)
 				}
 
-				Expect(session).To(gbytes.Say(planQuotaError))
+				Expect(contents(session)).To(ContainSubstring(planQuotaError))
 
 				By("deleting instance to free up plan quota")
 				Eventually(cf.Cf("delete-service", instanceA, "-f"), cf.CfTimeout).Should(gexec.Exit(0))
@@ -124,3 +124,7 @@ var _ = Describe("quotas", func() {
 		})
 	})
 })
+
+func contents(session *gexec.Session) string {
+	return string(session.Buffer().Contents())
+}

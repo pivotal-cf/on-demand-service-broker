@@ -795,10 +795,7 @@ var _ = Describe("provisioning", func() {
 				By("erroring")
 				Expect(provisionErr).To(HaveOccurred())
 				Expect(provisionErr.Error()).To(ContainSubstring(
-					"plan quota of ips: 10 would be exceeded by this deployment",
-				))
-				Expect(provisionErr.Error()).To(ContainSubstring(
-					"plan quota of memory: 50 would be exceeded by this deployment",
+					"plan quotas [ips (limit 10), memory (limit 50)] would be exceeded by this deployment",
 				))
 
 				By("not trying to deploy")
@@ -890,10 +887,7 @@ var _ = Describe("provisioning", func() {
 					By("erroring")
 					Expect(provisionErr).To(HaveOccurred())
 					Expect(provisionErr.Error()).To(ContainSubstring(
-						"global quota of ips: 1 would be exceeded by this deployment",
-					))
-					Expect(provisionErr.Error()).To(ContainSubstring(
-						"global quota of memory: 10 would be exceeded by this deployment",
+						"global quotas [ips (limit 1), memory (limit 10)] would be exceeded by this deployment",
 					))
 
 					By("not trying to deploy")

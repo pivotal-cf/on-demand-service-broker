@@ -8,7 +8,6 @@ package broker
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -251,11 +250,20 @@ func (b *Broker) checkGlobalQuota(
 	return nil
 }
 
+type exceededQuota struct {
+	name     string
+	limit    int
+	usage    int
+	required int
+}
+
 func (b *Broker) checkGlobalResourceQuotaNotExceeded(ctx context.Context, plan config.Plan, planCounts map[string]int, logger *log.Logger) error {
 	if b.serviceOffering.GlobalQuotas.ResourceLimits == nil {
 		return nil
 	}
-	errs := []error{}
+
+	var exceededQuotas []exceededQuota
+
 	for kind, limit := range b.serviceOffering.GlobalQuotas.ResourceLimits {
 		var currentUsage int
 
@@ -268,15 +276,24 @@ func (b *Broker) checkGlobalResourceQuotaNotExceeded(ctx context.Context, plan c
 		}
 		required := plan.ResourceCosts[kind]
 		if (currentUsage + required) > limit {
-			errs = append(errs, NewDisplayableError(
-				fmt.Errorf("global quota of %s: %v would be exceeded by this deployment", kind, limit),
-				fmt.Errorf("global quota of %s: %v would be exceeded by this deployment - "+
-					"current usage is %v and this deployment needs a further %v", kind, limit, currentUsage, required),
-			))
+			exceededQuotas = append(exceededQuotas, exceededQuota{kind, limit, currentUsage, required})
 		}
 	}
 
-	return joinErrors(errs)
+	if exceededQuotas == nil {
+		return nil
+	}
+
+	userDetail := []string{}
+	opDetail := []string{}
+	for _, q := range exceededQuotas {
+		userDetail = append(userDetail, fmt.Sprintf("%s (limit %d)", q.name, q.limit))
+		opDetail = append(opDetail, fmt.Sprintf("%s: (limit %d, used %d, required %d)", q.name, q.limit, q.usage, q.required))
+	}
+
+	return NewDisplayableError(
+		fmt.Errorf("global quotas [%s] would be exceeded by this deployment", strings.Join(userDetail, ", ")),
+		fmt.Errorf("global quotas [%s] would be exceeded by this deployment", strings.Join(opDetail, ", ")))
 }
 
 func (b *Broker) checkPlanResourceQuotaNotExceeded(ctx context.Context, plan config.Plan, planCounts map[string]int, logger *log.Logger) error {
@@ -284,7 +301,8 @@ func (b *Broker) checkPlanResourceQuotaNotExceeded(ctx context.Context, plan con
 		return nil
 	}
 
-	errs := []error{}
+	var exceededQuotas []exceededQuota
+
 	for kind, limit := range plan.Quotas.ResourceLimits {
 		var currentUsage int
 
@@ -295,24 +313,22 @@ func (b *Broker) checkPlanResourceQuotaNotExceeded(ctx context.Context, plan con
 		}
 
 		if (currentUsage + cost) > limit {
-			errs = append(errs, NewDisplayableError(
-				fmt.Errorf("plan quota of %s: %v would be exceeded by this deployment", kind, limit),
-				fmt.Errorf("plan quota of %s: %v would be exceeded by this deployment - "+
-					"current usage is %v and this deployment needs a further %v", kind, limit, currentUsage, cost),
-			))
+			exceededQuotas = append(exceededQuotas, exceededQuota{kind, limit, currentUsage, cost})
 		}
 	}
-	return joinErrors(errs)
-}
 
-func joinErrors(errs []error) error {
-	if len(errs) == 0 {
+	if exceededQuotas == nil {
 		return nil
 	}
 
-	str := []string{}
-	for _, e := range errs {
-		str = append(str, e.Error())
+	userDetail := []string{}
+	opDetail := []string{}
+	for _, q := range exceededQuotas {
+		userDetail = append(userDetail, fmt.Sprintf("%s (limit %d)", q.name, q.limit))
+		opDetail = append(opDetail, fmt.Sprintf("%s: (limit %d, used %d, required %d)", q.name, q.limit, q.usage, q.required))
 	}
-	return errors.New(strings.Join(str, "; "))
+
+	return NewDisplayableError(
+		fmt.Errorf("plan quotas [%s] would be exceeded by this deployment", strings.Join(userDetail, ", ")),
+		fmt.Errorf("plan quotas [%s] would be exceeded by this deployment", strings.Join(opDetail, ", ")))
 }
