@@ -11,7 +11,6 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/pborman/uuid"
 	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/cf_helpers"
@@ -62,7 +61,7 @@ var _ = Describe("quotas", func() {
 					cf.AwaitServiceCreation(instanceB)
 				}
 
-				Expect(session).To(gbytes.Say(globalQuotaError))
+				Expect(contents(session)).To(ContainSubstring(globalQuotaError))
 
 				By("deleting instance to free up global quota")
 				Eventually(cf.Cf("delete-service", instanceA, "-f"), cf.CfTimeout).Should(gexec.Exit(0))

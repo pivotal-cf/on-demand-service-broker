@@ -68,7 +68,7 @@ var _ = BeforeSuite(func() {
 	plans := serviceCatalog["plans"].([]interface{})
 
 	// add global resource quota
-	dedicatedVMPlan := findPlanByName(plans, "dedicated-high-memory-vm")
+	dedicatedVMPlan := findPlanByName(plans, "dedicated-vm")
 	dedicatedVMPlan["resource_costs"] = map[interface{}]interface{}{"ips": 1}
 
 	// add plan-level resource quota

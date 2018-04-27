@@ -886,9 +886,10 @@ var _ = Describe("provisioning", func() {
 
 					By("erroring")
 					Expect(provisionErr).To(HaveOccurred())
-					Expect(provisionErr.Error()).To(ContainSubstring(
-						"global quotas [ips (limit 1), memory (limit 10)] would be exceeded by this deployment",
-					))
+					Expect(provisionErr.Error()).To(ContainSubstring("global quotas ["))
+					Expect(provisionErr.Error()).To(ContainSubstring("ips (limit 1)"))
+					Expect(provisionErr.Error()).To(ContainSubstring("memory (limit 10)"))
+					Expect(provisionErr.Error()).To(ContainSubstring("] would be exceeded by this deployment"))
 
 					By("not trying to deploy")
 					Expect(fakeDeployer.CreateCallCount()).To(BeZero())
