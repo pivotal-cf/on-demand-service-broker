@@ -107,7 +107,7 @@ func envMustHave(key string) string {
 func findPlanByName(plans []interface{}, name string) map[interface{}]interface{} {
 	for _, plan := range plans {
 		planMap := plan.(map[interface{}]interface{})
-		if planMap["name"] == "dedicated-high-memory-vm" {
+		if planMap["name"] == name {
 			return planMap
 		}
 	}

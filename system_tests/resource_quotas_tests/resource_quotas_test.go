@@ -27,7 +27,7 @@ var _ = Describe("quotas", func() {
 
 	Describe("global quotas", func() {
 		const (
-			planA = "dedicated-vm" //Quota: IPs 1; 1 instance uses 1 IP
+			dedicatedVMPlan = "dedicated-vm" //Quota: IPs 1; 1 instance uses 1 IP
 		)
 
 		const (
@@ -36,7 +36,7 @@ var _ = Describe("quotas", func() {
 
 		Context("when the global limit is reached", func() {
 			BeforeEach(func() {
-				Eventually(cf.Cf("create-service", serviceOffering, planA, instanceA), cf.CfTimeout).Should(gexec.Exit(0))
+				Eventually(cf.Cf("create-service", serviceOffering, dedicatedVMPlan, instanceA), cf.CfTimeout).Should(gexec.Exit(0))
 				cf.AwaitServiceCreation(instanceA)
 			})
 
@@ -53,7 +53,7 @@ var _ = Describe("quotas", func() {
 
 			It("respects global quotas", func() {
 				By("creating a service when quota is maxed")
-				session := cf.Cf("create-service", serviceOffering, planA, instanceB)
+				session := cf.Cf("create-service", serviceOffering, dedicatedVMPlan, instanceB)
 				Eventually(session, cf.CfTimeout).Should(gexec.Exit())
 
 				if session.ExitCode() == 0 {
@@ -68,7 +68,7 @@ var _ = Describe("quotas", func() {
 				cf.AwaitServiceDeletion(instanceA)
 
 				By("creating a service instance with newly freed quota")
-				Eventually(cf.Cf("create-service", serviceOffering, planA, instanceB), cf.CfTimeout).Should(gexec.Exit(0))
+				Eventually(cf.Cf("create-service", serviceOffering, dedicatedVMPlan, instanceB), cf.CfTimeout).Should(gexec.Exit(0))
 				cf.AwaitServiceCreation(instanceB)
 			})
 		})
