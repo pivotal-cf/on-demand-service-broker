@@ -31,7 +31,7 @@ var _ = Describe("quotas", func() {
 		)
 
 		const (
-			globalQuotaError = "global quotas [ips (limit 1)] would be exceeded by this deployment"
+			globalQuotaError = "global quotas [ips: (limit 1, used 1, requires 1)] would be exceeded by this deployment"
 		)
 
 		Context("when the global limit is reached", func() {
@@ -80,7 +80,7 @@ var _ = Describe("quotas", func() {
 		)
 
 		const (
-			planQuotaError = "plan quotas [memory (limit 50)] would be exceeded by this deployment"
+			planQuotaError = "plan quotas [memory: (limit 50, used 40, requires 40)] would be exceeded by this deployment"
 		)
 
 		Context("when the plan limit is reached", func() {
