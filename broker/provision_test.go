@@ -795,8 +795,8 @@ var _ = Describe("provisioning", func() {
 				By("erroring")
 				Expect(provisionErr).To(HaveOccurred())
 				Expect(provisionErr.Error()).To(SatisfyAll(
-					ContainSubstring("ips (limit 10)"),
-					ContainSubstring("memory (limit 50)"),
+					ContainSubstring("ips: (limit 10, used 10, requires 5)"),
+					ContainSubstring("memory: (limit 50, used 40, requires 20)"),
 					ContainSubstring("would be exceeded by this deployment"),
 				))
 
@@ -888,10 +888,12 @@ var _ = Describe("provisioning", func() {
 
 					By("erroring")
 					Expect(provisionErr).To(HaveOccurred())
-					Expect(provisionErr.Error()).To(ContainSubstring("global quotas ["))
-					Expect(provisionErr.Error()).To(ContainSubstring("ips (limit 1)"))
-					Expect(provisionErr.Error()).To(ContainSubstring("memory (limit 10)"))
-					Expect(provisionErr.Error()).To(ContainSubstring("] would be exceeded by this deployment"))
+					Expect(provisionErr.Error()).To(SatisfyAll(
+						ContainSubstring("global quotas ["),
+						ContainSubstring("ips: (limit 1, used 1, requires 1)"),
+						ContainSubstring("memory: (limit 10, used 6, requires 6)"),
+						ContainSubstring("] would be exceeded by this deployment"),
+					))
 
 					By("not trying to deploy")
 					Expect(fakeDeployer.CreateCallCount()).To(BeZero())
@@ -913,6 +915,77 @@ var _ = Describe("provisioning", func() {
 					)
 					Expect(provisionErr).NotTo(HaveOccurred())
 				})
+			})
+		})
+	})
+
+	Describe("global resource quotas and plan resource quotas", func() {
+		Context("when a both global and plan quota have been reached", func() {
+			JustBeforeEach(func() {
+				plan := existingPlan
+
+				plan.Quotas = config.Quotas{
+					ResourceLimits: map[string]int{"ips": 1},
+				}
+				plan.ResourceCosts = map[string]int{"ips": 1, "memory": 6}
+
+				catalogWithResourceQuotas := serviceCatalog
+				catalogWithResourceQuotas.GlobalQuotas.ServiceInstanceLimit = nil
+				catalogWithResourceQuotas.GlobalQuotas.ResourceLimits = map[string]int{"memory": 10}
+				catalogWithResourceQuotas.Plans = config.Plans{plan, secondPlan}
+				fakeDeployer = new(brokerfakes.FakeDeployer)
+				b = createBrokerWithServiceCatalog(catalogWithResourceQuotas)
+			})
+
+			BeforeEach(func() {
+				planCounts := map[cf.ServicePlan]int{
+					cfServicePlan("1234", existingPlanID, "url", "name"): 1,
+				}
+				cfClient.CountInstancesOfServiceOfferingReturns(planCounts, nil)
+			})
+
+			It("fails to provision when the quota is already reached", func() {
+				serviceSpec, provisionErr = b.Provision(
+					context.Background(),
+					instanceID,
+					brokerapi.ProvisionDetails{
+						PlanID:           planID,
+						RawContext:       jsonContext,
+						RawParameters:    jsonParams,
+						OrganizationGUID: organizationGUID,
+						SpaceGUID:        spaceGUID,
+						ServiceID:        serviceOfferingID,
+					},
+					asyncAllowed,
+				)
+
+				By("erroring")
+				Expect(provisionErr).To(HaveOccurred())
+				Expect(provisionErr.Error()).To(SatisfyAll(
+					ContainSubstring("global quotas [memory: (limit 10, used 6, requires 6)]"),
+					ContainSubstring("plan quotas [ips: (limit 1, used 1, requires 1)]"),
+					ContainSubstring("would be exceeded by this deployment"),
+				))
+
+				By("not trying to deploy")
+				Expect(fakeDeployer.CreateCallCount()).To(BeZero())
+			})
+
+			It("provisions successfully when the plan doesn't count against the global quota", func() {
+				serviceSpec, provisionErr = b.Provision(
+					context.Background(),
+					instanceID,
+					brokerapi.ProvisionDetails{
+						PlanID:           secondPlanID,
+						RawContext:       jsonContext,
+						RawParameters:    jsonParams,
+						OrganizationGUID: organizationGUID,
+						SpaceGUID:        spaceGUID,
+						ServiceID:        serviceOfferingID,
+					},
+					asyncAllowed,
+				)
+				Expect(provisionErr).NotTo(HaveOccurred())
 			})
 		})
 	})
