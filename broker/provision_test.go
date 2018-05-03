@@ -794,8 +794,10 @@ var _ = Describe("provisioning", func() {
 
 				By("erroring")
 				Expect(provisionErr).To(HaveOccurred())
-				Expect(provisionErr.Error()).To(ContainSubstring(
-					"plan quotas [ips (limit 10), memory (limit 50)] would be exceeded by this deployment",
+				Expect(provisionErr.Error()).To(SatisfyAll(
+					ContainSubstring("ips (limit 10)"),
+					ContainSubstring("memory (limit 50)"),
+					ContainSubstring("would be exceeded by this deployment"),
 				))
 
 				By("not trying to deploy")

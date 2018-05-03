@@ -235,6 +235,7 @@ var _ = BeforeEach(func() {
 			"super":             "yes",
 			"a_global_property": "overrides_global_value",
 		},
+		ResourceCosts: map[string]int{},
 		InstanceGroups: []serviceadapter.InstanceGroup{
 			{
 				Name:               existingPlanInstanceGroupName,
