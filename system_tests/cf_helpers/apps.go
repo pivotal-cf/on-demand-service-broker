@@ -51,7 +51,7 @@ func PushAndBindApp(appName, serviceName, testAppPath string) string {
 	Eventually(Cf("bind-service", appName, serviceName), CfTimeout).Should(gexec.Exit(0))
 
 	// The first time apps start, it is very slow as the buildpack downloads runtimes and caches them
-	Eventually(Cf("start", appName), LongCfTimeout).Should(gexec.Exit(0))
+	Eventually(CfWithTimeout(LongCfTimeout, "start", appName), LongCfTimeout).Should(gexec.Exit(0))
 	appDetails := Cf("app", appName)
 	Eventually(appDetails, CfTimeout).Should(gexec.Exit(0))
 	appDetailsOutput := string(appDetails.Buffer().Contents())

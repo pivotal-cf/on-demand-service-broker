@@ -10,7 +10,7 @@ import (
 const RETRY_LIMIT = 3
 const COMMAND_TIMEOUT = CfTimeout
 
-func executeWithTimeout(args ...string) *gexec.Session {
+func CfWithTimeout(timeout time.Duration, args ...string) *gexec.Session {
 	session := cf.Cf(args...)
 
 	select {
@@ -24,7 +24,7 @@ func executeWithTimeout(args ...string) *gexec.Session {
 func Cf(args ...string) *gexec.Session {
 	var s *gexec.Session
 	for i := 0; i < RETRY_LIMIT; i++ {
-		s = executeWithTimeout(args...)
+		s = CfWithTimeout(COMMAND_TIMEOUT, args...)
 		if s.ExitCode() == 0 {
 			return s
 		}
