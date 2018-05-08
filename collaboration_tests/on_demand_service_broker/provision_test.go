@@ -345,12 +345,13 @@ var _ = Describe("Provision service instance", func() {
 	})
 
 	It("responds with 500 when the plan quota is reached", func() {
+		instanceLimit := 5
 		planCounts := map[cf.ServicePlan]int{
 			cf.ServicePlan{
 				ServicePlanEntity: cf.ServicePlanEntity{
 					UniqueID: planWithQuotaID,
 				},
-			}: 5,
+			}: instanceLimit,
 		}
 		fakeCfClient.CountInstancesOfServiceOfferingReturns(planCounts, nil)
 		resp, bodyContent := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, true)
@@ -358,7 +359,9 @@ var _ = Describe("Provision service instance", func() {
 
 		var errorResponse map[string]string
 		Expect(json.Unmarshal(bodyContent, &errorResponse)).To(Succeed())
-		Expect(errorResponse).To(Equal(map[string]string{"description": "The quota for this service plan has been exceeded. Please contact your Operator for help."}))
+		Expect(errorResponse).To(Equal(map[string]string{
+			"description": fmt.Sprintf("plan instance limit exceeded for service ID: %s. Total instances: %d", serviceID, instanceLimit),
+		}))
 	})
 
 	It("responds with 500 when the global quota is reached", func() {
@@ -367,13 +370,16 @@ var _ = Describe("Provision service instance", func() {
 				UniqueID: planWithQuotaID,
 			},
 		}
+		instanceLimit := 12
 		fakeCfClient.CountInstancesOfServiceOfferingReturns(map[cf.ServicePlan]int{servicePlan: globalQuota}, nil)
 		resp, bodyContent := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, true)
 		Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 
 		var errorResponse map[string]string
 		Expect(json.Unmarshal(bodyContent, &errorResponse)).To(Succeed())
-		Expect(errorResponse).To(Equal(map[string]string{"description": "The quota for this service has been exceeded. Please contact your Operator for help."}))
+		Expect(errorResponse).To(Equal(map[string]string{
+			"description": fmt.Sprintf("plan instance limit exceeded for service ID: %s. Total instances: %d, global instance limit exceeded for service ID: %s. Total instances: %d", serviceID, instanceLimit, serviceID, instanceLimit),
+		}))
 	})
 
 	It("responds with 422 when async is set to false", func() {
