@@ -28,7 +28,7 @@ var (
 )
 
 var _ = BeforeSuite(func() {
-	serviceOffering = envMustHave("SERVICE_NAME")
+	serviceOffering = envMustHave("SERVICE_OFFERING_NAME")
 	brokerName = envMustHave("BROKER_NAME")
 	brokerURL = envMustHave("BROKER_URL")
 	brokerUsername := envMustHave("BROKER_USERNAME")

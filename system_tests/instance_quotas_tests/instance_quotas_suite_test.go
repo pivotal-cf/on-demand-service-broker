@@ -37,7 +37,7 @@ var _ = BeforeSuite(func() {
 	brokerPassword = envMustHave("BROKER_PASSWORD")
 	brokerURL = envMustHave("BROKER_URL")
 	brokerBoshDeploymentName = envMustHave("BROKER_DEPLOYMENT_NAME")
-	serviceOffering = envMustHave("SERVICE_NAME")
+	serviceOffering = envMustHave("SERVICE_OFFERING_NAME")
 
 	boshURL := envMustHave("BOSH_URL")
 	boshUsername := envMustHave("BOSH_USERNAME")

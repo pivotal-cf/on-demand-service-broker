@@ -48,7 +48,7 @@ var _ = BeforeSuite(func() {
 	brokerPassword := envMustHave("BROKER_PASSWORD")
 	brokerURL := envMustHave("BROKER_URL")
 
-	serviceOffering = envMustHave("SERVICE_NAME")
+	serviceOffering = envMustHave("SERVICE_OFFERING_NAME")
 
 	ciRootPath = envMustHave("CI_ROOT_PATH")
 	exampleAppDirName = envMustHave("EXAMPLE_APP_DIR_NAME")

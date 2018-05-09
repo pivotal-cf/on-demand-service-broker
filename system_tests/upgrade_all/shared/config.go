@@ -39,7 +39,7 @@ func (c *Config) InitConfig() {
 	c.BrokerPassword = envMustHave("BROKER_PASSWORD")
 	c.BrokerURL = envMustHave("BROKER_URL")
 	c.BrokerBoshDeploymentName = envMustHave("BROKER_DEPLOYMENT_NAME")
-	c.ServiceOffering = envMustHave("SERVICE_NAME")
+	c.ServiceOffering = envMustHave("SERVICE_OFFERING_NAME")
 
 	c.BoshURL = envMustHave("BOSH_URL")
 	c.BoshUsername = envMustHave("BOSH_USERNAME")
@@ -52,7 +52,7 @@ func (c *Config) InitConfig() {
 	c.CiRootPath = envMustHave("CI_ROOT_PATH")
 	c.ExampleAppDirName = envMustHave("EXAMPLE_APP_DIR_NAME")
 
-	c.ServiceGUID = envMustHave("SERVICE_GUID")
+	c.ServiceGUID = envMustHave("SERVICE_OFFERING_ID")
 	c.CfSpace = envMustHave("CF_SPACE")
 
 	if uaaURL == "" {

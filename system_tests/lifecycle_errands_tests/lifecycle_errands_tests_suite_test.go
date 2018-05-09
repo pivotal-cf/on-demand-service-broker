@@ -49,7 +49,7 @@ func parseEnv() {
 	brokerUsername = envMustHave("BROKER_USERNAME")
 	brokerPassword = envMustHave("BROKER_PASSWORD")
 	brokerURL = envMustHave("BROKER_URL")
-	serviceOffering = envMustHave("SERVICE_NAME")
+	serviceOffering = envMustHave("SERVICE_OFFERING_NAME")
 	boshURL := envMustHave("BOSH_URL")
 	boshUsername := envMustHave("BOSH_USERNAME")
 	boshPassword := envMustHave("BOSH_PASSWORD")
