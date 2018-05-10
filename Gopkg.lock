@@ -285,8 +285,8 @@
     ".",
     "auth"
   ]
-  revision = "bc29a3e7d6f911097c2c4998fc7cc7a408cc4268"
-  version = "v2.0.1"
+  revision = "30e0c68f20b6560bb99f7c0b6019db2652816d3f"
+  version = "v2.0.2"
 
 [[projects]]
   branch = "master"
@@ -295,7 +295,7 @@
     "bosh",
     "serviceadapter"
   ]
-  revision = "623fff52bdbc8ac45b4ae3e12ba8a5089d4cc182"
+  revision = "8e483f3c40b6afa9be12c75991ff0bafc560c550"
 
 [[projects]]
   branch = "master"
