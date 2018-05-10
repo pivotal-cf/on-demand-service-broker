@@ -71,7 +71,7 @@ var _ = Describe("quotas", func() {
 				By("updating to a plan with maxed quota")
 				session := cf.Cf("update-service", instanceB, "-p", planA)
 				Eventually(session, cf.CfTimeout).Should(gexec.Exit())
-				Expect(session).To(gbytes.Say(fmt.Sprintf(planQuotaTemplate, serviceOffering, 1)))
+				Expect(session).To(gbytes.Say("The quota for this service plan has been exceeded. Please contact your Operator for help."))
 
 				By("deleting instance to free up quota")
 				Eventually(cf.Cf("delete-service", instanceA, "-f"), cf.CfTimeout).Should(gexec.Exit(0))
@@ -124,7 +124,7 @@ var _ = Describe("quotas", func() {
 					cf.AwaitServiceCreation(instanceC)
 				}
 
-				Expect(session).To(gbytes.Say(fmt.Sprintf(globalQuotaTemplate, serviceOffering, 1)))
+				Expect(session).To(gbytes.Say(fmt.Sprintf(globalQuotaTemplate, serviceOffering, 2)))
 
 				By("deleting instance to free up global quota")
 				Eventually(cf.Cf("delete-service", instanceB, "-f"), cf.CfTimeout).Should(gexec.Exit(0))
