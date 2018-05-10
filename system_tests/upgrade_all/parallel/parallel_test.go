@@ -78,8 +78,11 @@ var _ = Describe("parallel upgrade-all errand with canaries", func() {
 		Expect(b).To(SatisfyAll(
 			gbytes.Say(fmt.Sprintf(`\[%s\] Starting to upgrade service instance`, instanceGUIDs[1])),
 			gbytes.Say(fmt.Sprintf(`\[%s\] Starting to upgrade service instance`, instanceGUIDs[2])),
-			gbytes.Say(fmt.Sprintf(`\[%s\] Result: Service Instance upgrade success`, instanceGUIDs[1])),
-			gbytes.Say(fmt.Sprintf(`\[%s\] Result: Service Instance upgrade success`, instanceGUIDs[2])),
+		))
+
+		Expect(boshOutput.StdOut).To(SatisfyAll(
+			ContainSubstring(fmt.Sprintf(`\[%s\] Result: Service Instance upgrade success`, instanceGUIDs[1])),
+			ContainSubstring(fmt.Sprintf(`\[%s\] Result: Service Instance upgrade success`, instanceGUIDs[2])),
 		))
 
 		for _, service := range serviceInstances {
