@@ -18,18 +18,14 @@ package broker
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
-	"strings"
-
 	"net/http"
 
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/brokercontext"
-	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 )
@@ -118,32 +114,9 @@ func (b *Broker) provisionInstance(ctx context.Context, instanceID string, planI
 		return errs(NewGenericError(ctx, err))
 	}
 
-	planCounts := b.getAllPlanCounts(ctx, cfPlanCounts, logger)
-
-	var quotasErrors []error
-
-	if err := b.checkPlanServiceCount(ctx, plan, planCounts, logger); err != nil {
-		quotasErrors = append(quotasErrors, err)
-	}
-
-	if err := b.checkGlobalServiceCount(ctx, planCounts, logger); err != nil {
-		quotasErrors = append(quotasErrors, err)
-	}
-
-	if err := b.checkGlobalResourceQuotaNotExceeded(ctx, plan, planCounts, logger); err != nil {
-		quotasErrors = append(quotasErrors, err)
-	}
-
-	if err := b.checkPlanResourceQuotaNotExceeded(ctx, plan, planCounts, logger); err != nil {
-		quotasErrors = append(quotasErrors, err)
-	}
-
-	if len(quotasErrors) > 0 {
-		errorStrings := []string{}
-		for _, e := range quotasErrors {
-			errorStrings = append(errorStrings, e.Error())
-		}
-		return errs(errors.New(strings.Join(errorStrings, ", ")))
+	quotasErrors, ok := b.checkQuotas(ctx, plan, cfPlanCounts, b.serviceOffering.ID, logger)
+	if !ok {
+		return errs(quotasErrors)
 	}
 
 	if err := b.checkPlanSchemas(ctx, requestParams, plan, logger); err != nil {
@@ -196,17 +169,6 @@ func (b *Broker) provisionInstance(ctx context.Context, instanceID string, planI
 	return operationData, dashboardUrl, nil
 }
 
-func (b *Broker) getAllPlanCounts(ctx context.Context, cfPlanCounts map[cf.ServicePlan]int, logger *log.Logger) map[string]int {
-	var brokerPlanCounts = make(map[string]int)
-
-	for plan, count := range cfPlanCounts {
-		id := plan.ServicePlanEntity.UniqueID
-		brokerPlanCounts[id] = count
-	}
-
-	return brokerPlanCounts
-}
-
 func (b *Broker) checkPlanSchemas(ctx context.Context, requestParams map[string]interface{}, plan config.Plan, logger *log.Logger) error {
 	if b.EnablePlanSchemas {
 		var schemas brokerapi.ServiceSchemas
@@ -240,109 +202,4 @@ func (b *Broker) checkPlanSchemas(ctx context.Context, requestParams map[string]
 	}
 
 	return nil
-}
-
-func (b *Broker) checkPlanServiceCount(ctx context.Context, plan config.Plan, planCounts map[string]int, logger *log.Logger) error {
-	if plan.Quotas.ServiceInstanceLimit == nil {
-		return nil
-	}
-
-	limit := *plan.Quotas.ServiceInstanceLimit
-	count, ok := planCounts[plan.ID]
-	if ok && count >= limit {
-		return fmt.Errorf("plan instance limit exceeded for service ID: %s. Total instances: %d", b.serviceOffering.ID, count)
-	}
-	return nil
-}
-
-func (b *Broker) checkGlobalServiceCount(ctx context.Context, planCounts map[string]int, logger *log.Logger) error {
-	if b.serviceOffering.GlobalQuotas.ServiceInstanceLimit == nil {
-		return nil
-	}
-
-	var totalServiceInstances = 0
-	for _, count := range planCounts {
-		totalServiceInstances += count
-	}
-
-	if totalServiceInstances >= *b.serviceOffering.GlobalQuotas.ServiceInstanceLimit {
-		return fmt.Errorf("global instance limit exceeded for service ID: %s. Total instances: %d", b.serviceOffering.ID, totalServiceInstances)
-	}
-
-	return nil
-}
-
-type exceededQuota struct {
-	name     string
-	limit    int
-	usage    int
-	required int
-}
-
-func (b *Broker) checkGlobalResourceQuotaNotExceeded(ctx context.Context, plan config.Plan, planCounts map[string]int, logger *log.Logger) error {
-	if b.serviceOffering.GlobalQuotas.ResourceLimits == nil {
-		return nil
-	}
-
-	var exceededQuotas []exceededQuota
-
-	for kind, limit := range b.serviceOffering.GlobalQuotas.ResourceLimits {
-		var currentUsage int
-
-		for _, p := range b.serviceOffering.Plans {
-			instanceCount := planCounts[plan.ID]
-			cost, ok := p.ResourceCosts[kind]
-			if ok {
-				currentUsage += cost * instanceCount
-			}
-		}
-		required := plan.ResourceCosts[kind]
-		if (currentUsage + required) > limit {
-			exceededQuotas = append(exceededQuotas, exceededQuota{kind, limit, currentUsage, required})
-		}
-	}
-
-	if exceededQuotas == nil {
-		return nil
-	}
-
-	errorDetails := []string{}
-	for _, q := range exceededQuotas {
-		errorDetails = append(errorDetails, fmt.Sprintf("%s: (limit %d, used %d, requires %d)", q.name, q.limit, q.usage, q.required))
-	}
-
-	return fmt.Errorf("global quotas [%s] would be exceeded by this deployment", strings.Join(errorDetails, ", "))
-}
-
-func (b *Broker) checkPlanResourceQuotaNotExceeded(ctx context.Context, plan config.Plan, planCounts map[string]int, logger *log.Logger) error {
-	if plan.Quotas.ResourceLimits == nil {
-		return nil
-	}
-
-	var exceededQuotas []exceededQuota
-
-	for kind, limit := range plan.Quotas.ResourceLimits {
-		var currentUsage int
-
-		instanceCount := planCounts[plan.ID]
-		cost, ok := plan.ResourceCosts[kind]
-		if ok {
-			currentUsage += cost * instanceCount
-		}
-
-		if (currentUsage + cost) > limit {
-			exceededQuotas = append(exceededQuotas, exceededQuota{kind, limit, currentUsage, cost})
-		}
-	}
-
-	if exceededQuotas == nil {
-		return nil
-	}
-
-	errorDetails := []string{}
-	for _, q := range exceededQuotas {
-		errorDetails = append(errorDetails, fmt.Sprintf("%s: (limit %d, used %d, requires %d)", q.name, q.limit, q.usage, q.required))
-	}
-
-	return fmt.Errorf("plan quotas [%s] would be exceeded by this deployment", strings.Join(errorDetails, ", "))
 }

@@ -12,7 +12,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/brokerapi"
@@ -45,28 +44,14 @@ func (b *Broker) Update(
 	}
 
 	if details.PreviousValues.PlanID != plan.ID {
-		var quotasErrors []error
-
 		cfPlanCounts, err := b.cfClient.CountInstancesOfServiceOffering(b.serviceOffering.ID, logger)
 		if err != nil {
 			return brokerapi.UpdateServiceSpec{IsAsync: true}, b.processError(NewGenericError(ctx, err), logger)
 		}
-		planCounts := b.getAllPlanCounts(ctx, cfPlanCounts, logger)
-		if err := b.checkGlobalResourceQuotaNotExceeded(ctx, plan, planCounts, logger); err != nil {
-			quotasErrors = append(quotasErrors, err)
-		}
-		if err := b.checkPlanServiceCount(ctx, plan, planCounts, logger); err != nil {
-			quotasErrors = append(quotasErrors, err)
-		}
-		if err := b.checkPlanResourceQuotaNotExceeded(ctx, plan, planCounts, logger); err != nil {
-			quotasErrors = append(quotasErrors, err)
-		}
-		if len(quotasErrors) > 0 {
-			errorStrings := []string{}
-			for _, e := range quotasErrors {
-				errorStrings = append(errorStrings, e.Error())
-			}
-			return brokerapi.UpdateServiceSpec{IsAsync: true}, b.processError(errors.New(strings.Join(errorStrings, ", ")), logger)
+
+		quotasErrors, ok := b.checkQuotas(ctx, plan, cfPlanCounts, b.serviceOffering.ID, logger)
+		if !ok {
+			return brokerapi.UpdateServiceSpec{IsAsync: true}, b.processError(quotasErrors, logger)
 		}
 	}
 
