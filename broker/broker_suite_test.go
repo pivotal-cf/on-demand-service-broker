@@ -23,6 +23,13 @@ import (
 	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
 
+type quotaCase struct {
+	GlobalResourceLimits map[string]int
+	PlanResourceLimits   map[string]int
+	GlobalInstanceLimit  *int
+	PlanInstanceLimit    *int
+}
+
 const (
 	serviceOfferingID = "service-id"
 

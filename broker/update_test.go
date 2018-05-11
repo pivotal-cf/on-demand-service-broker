@@ -18,11 +18,128 @@ import (
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	brokerfakes "github.com/pivotal-cf/on-demand-service-broker/broker/fakes"
+	"github.com/pivotal-cf/on-demand-service-broker/cf"
+	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	"github.com/pivotal-cf/on-demand-service-broker/task"
 )
 
 var _ = Describe("Update", func() {
+	When("quotas are enabled", func() {
+		updateWithQuotas := func(q quotaCase, oldPlanInstanceCount, newPlanInstanceCount int, arbitraryParams, arbitraryContext map[string]interface{}) error {
+			newPlan := existingPlan
+			oldPlan := secondPlan
+			newPlan.Quotas = config.Quotas{}
+			newPlan.ResourceCosts = map[string]int{"ips": 1, "memory": 1}
+			catalogWithResourceQuotas := serviceCatalog
+
+			planCounts := map[cf.ServicePlan]int{
+				cfServicePlan("guid_1234", newPlan.ID, "url", "name"): newPlanInstanceCount,
+				cfServicePlan("guid_2345", oldPlan.ID, "url", "name"): oldPlanInstanceCount,
+			}
+			cfClient.CountInstancesOfServiceOfferingReturns(planCounts, nil)
+
+			// set up quotas
+			if q.PlanInstanceLimit != nil {
+				newPlan.Quotas.ServiceInstanceLimit = q.PlanInstanceLimit
+			}
+			if len(q.PlanResourceLimits) > 0 {
+				newPlan.Quotas.ResourceLimits = q.PlanResourceLimits
+			}
+			if len(q.GlobalResourceLimits) > 0 {
+				catalogWithResourceQuotas.GlobalQuotas.ResourceLimits = q.GlobalResourceLimits
+			}
+			if q.GlobalInstanceLimit != nil {
+				catalogWithResourceQuotas.GlobalQuotas.ServiceInstanceLimit = q.GlobalInstanceLimit
+			} else {
+				limit := 50
+				catalogWithResourceQuotas.GlobalQuotas.ServiceInstanceLimit = &limit
+			}
+
+			catalogWithResourceQuotas.Plans = config.Plans{newPlan, oldPlan}
+			fakeDeployer = new(brokerfakes.FakeDeployer)
+			b = createBrokerWithServiceCatalog(catalogWithResourceQuotas)
+
+			serialisedArbitraryParameters, err := json.Marshal(arbitraryParams)
+			Expect(err).NotTo(HaveOccurred())
+
+			serialisedArbitraryContext, err := json.Marshal(arbContext)
+			Expect(err).NotTo(HaveOccurred())
+
+			updateDetails := brokerapi.UpdateDetails{
+				PlanID:        newPlan.ID,
+				RawParameters: serialisedArbitraryParameters,
+				RawContext:    serialisedArbitraryContext,
+				ServiceID:     "serviceID",
+				PreviousValues: brokerapi.PreviousValues{
+					PlanID:    oldPlan.ID,
+					OrgID:     "organizsationGUID",
+					ServiceID: "serviceID",
+					SpaceID:   "spaceGUID",
+				},
+			}
+			_, updateErr := b.Update(
+				context.Background(),
+				instanceID,
+				updateDetails,
+				asyncAllowed,
+			)
+
+			return updateErr
+		}
+
+		It("fails if the instance would exceed the global resource limit", func() {
+			updateErr := updateWithQuotas(
+				quotaCase{map[string]int{"ips": 4}, nil, nil, nil},
+				1,
+				4,
+				map[string]interface{}{}, map[string]interface{}{},
+			)
+			Expect(updateErr).To(MatchError("global quotas [ips: (limit 4, used 4, requires 1)] would be exceeded by this deployment"))
+		})
+
+		It("fails if the instance would exceed the plan resource limit", func() {
+			updateErr := updateWithQuotas(
+				quotaCase{nil, map[string]int{"ips": 4}, nil, nil},
+				1,
+				4,
+				map[string]interface{}{}, map[string]interface{}{},
+			)
+			Expect(updateErr).To(MatchError("plan quotas [ips: (limit 4, used 4, requires 1)] would be exceeded by this deployment"))
+		})
+
+		It("fails if the instance would exceed the plan instance limit", func() {
+			count := 4
+			updateErr := updateWithQuotas(
+				quotaCase{nil, nil, nil, &count},
+				1,
+				4,
+				map[string]interface{}{}, map[string]interface{}{},
+			)
+			Expect(updateErr).To(MatchError("plan instance limit exceeded for service ID: service-id. Total instances: 4"))
+			Expect(boshClient.GetDeploymentCallCount()).To(BeZero())
+			Expect(fakeDeployer.UpdateCallCount()).To(BeZero())
+		})
+
+		It("fails and output multiple errors when more than one quotas is exceeded", func() {
+			count := 4
+			updateErr := updateWithQuotas(
+				quotaCase{map[string]int{"ips": 4}, map[string]int{"ips": 4}, nil, &count},
+				1,
+				4,
+				map[string]interface{}{}, map[string]interface{}{},
+			)
+			Expect(updateErr.Error()).To(SatisfyAll(
+				ContainSubstring("global quotas [ips: (limit 4, used 4, requires 1)] would be exceeded by this deployment"),
+				ContainSubstring("plan quotas [ips: (limit 4, used 4, requires 1)] would be exceeded by this deployment"),
+				ContainSubstring("plan instance limit exceeded for service ID: service-id. Total instances: 4"),
+			))
+
+			Expect(boshClient.GetDeploymentCallCount()).To(BeZero())
+			Expect(fakeDeployer.UpdateCallCount()).To(BeZero())
+		})
+	})
+
 	var (
 		updateSpec                    brokerapi.UpdateServiceSpec
 		updateDetails                 brokerapi.UpdateDetails
@@ -57,7 +174,8 @@ var _ = Describe("Update", func() {
 			newPlanID = existingPlanID
 			oldPlanID = secondPlanID
 
-			cfClient.CountInstancesOfPlanReturns(0, nil)
+			planCounts := map[cf.ServicePlan]int{}
+			cfClient.CountInstancesOfServiceOfferingReturns(planCounts, nil)
 			fakeDeployer.UpdateReturns(boshTaskID, []byte("new-manifest-fetched-from-adapter"), nil)
 		})
 
@@ -108,13 +226,6 @@ var _ = Describe("Update", func() {
 					Expect(updateError).NotTo(HaveOccurred())
 				})
 
-				It("counts the instances of the plan in Cloud Controller", func() {
-					Expect(cfClient.CountInstancesOfPlanCallCount()).To(Equal(1))
-					actualServiceOfferingID, actualPlanID, _ := cfClient.CountInstancesOfPlanArgsForCall(0)
-					Expect(actualServiceOfferingID).To(Equal(serviceID))
-					Expect(actualPlanID).To(Equal(newPlanID))
-				})
-
 				It("calls the deployer without a bosh context id", func() {
 					Expect(fakeDeployer.UpdateCallCount()).To(Equal(1))
 					_, _, _, _, actualBoshContextID, _ := fakeDeployer.UpdateArgsForCall(0)
@@ -135,29 +246,10 @@ var _ = Describe("Update", func() {
 				})
 			})
 
-			Context("but the new plan's quota has been reached", func() {
-				BeforeEach(func() {
-					cfClient.CountInstancesOfPlanReturns(existingPlanServiceInstanceLimit, nil)
-				})
-
-				It("returns an error", func() {
-					Expect(updateError).To(HaveOccurred())
-				})
-
-				It("does not redeploy", func() {
-					Expect(boshClient.GetDeploymentCallCount()).To(BeZero())
-					Expect(fakeDeployer.UpdateCallCount()).To(BeZero())
-				})
-			})
-
 			Context("but the new plan does not have a quota", func() {
 				BeforeEach(func() {
 					newPlanID = secondPlanID
 					oldPlanID = existingPlanID
-				})
-
-				It("does not count the instances of the plan in Cloud Controller", func() {
-					Expect(cfClient.CountInstancesOfPlanCallCount()).To(Equal(0))
 				})
 
 				It("does not error", func() {
@@ -329,7 +421,7 @@ var _ = Describe("Update", func() {
 
 		Context("when the service instances for the plan cannot be counted", func() {
 			BeforeEach(func() {
-				cfClient.CountInstancesOfPlanReturns(0, fmt.Errorf("count error"))
+				cfClient.CountInstancesOfServiceOfferingReturns(nil, fmt.Errorf("count error"))
 			})
 
 			Describe("returned error", func() {
@@ -371,7 +463,7 @@ var _ = Describe("Update", func() {
 			})
 
 			It("logs the error", func() {
-				Expect(logBuffer.String()).To(ContainSubstring("error: error counting instances of plan: count error"))
+				Expect(logBuffer.String()).To(ContainSubstring("count error"))
 			})
 
 			It("does not redeploy", func() {

@@ -28,6 +28,7 @@ import (
 	"github.com/onsi/gomega/gbytes"
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
+	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	brokerConfig "github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	"github.com/pivotal-cf/on-demand-service-broker/task"
@@ -60,6 +61,7 @@ var _ = Describe("Update a service instance", func() {
 			},
 			ServiceCatalog: brokerConfig.ServiceOffering{
 				Name: serviceName,
+				ID:   "service-id",
 				Plans: brokerConfig.Plans{
 					{Name: "some-plan", ID: oldPlanID},
 					{Name: "other-plan", ID: newPlanID, Quotas: brokerConfig.Quotas{ServiceInstanceLimit: &one}},
@@ -215,14 +217,17 @@ var _ = Describe("Update a service instance", func() {
 		})
 
 		It("fails with 500 if there plan's quota has been reached", func() {
+			fakeCfClient.CountInstancesOfServiceOfferingReturns(map[cf.ServicePlan]int{
+				cf.ServicePlan{ServicePlanEntity: cf.ServicePlanEntity{UniqueID: quotaReachedPlanID}}: 1,
+			}, nil)
 			detailsMap["plan_id"] = quotaReachedPlanID
 			resp, bodyContent := doUpdateRequest(detailsMap, instanceID)
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 
 			var body brokerapi.ErrorResponse
 			Expect(json.Unmarshal(bodyContent, &body)).To(Succeed())
-			Expect(body.Description).To(Equal(
-				"The quota for this service plan has been exceeded. Please contact your Operator for help.",
+			Expect(body.Description).To(ContainSubstring(
+				"plan instance limit exceeded for service ID: service-id. Total instances: 1",
 			))
 		})
 
@@ -269,7 +274,7 @@ var _ = Describe("Update a service instance", func() {
 		})
 
 		It("fails with 500 if CF api is unavailable", func() {
-			fakeCfClient.CountInstancesOfPlanReturns(0, errors.New("oops"))
+			fakeCfClient.CountInstancesOfServiceOfferingReturns(nil, errors.New("oops"))
 
 			resp, bodyContent := doUpdateRequest(detailsMap, instanceID)
 

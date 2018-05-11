@@ -7,12 +7,8 @@
 package broker
 
 import (
-	"context"
-	"fmt"
 	"log"
 
-	"github.com/pivotal-cf/brokerapi"
-	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/service"
 )
 
@@ -32,22 +28,4 @@ func (b *Broker) FilteredInstances(orgName, spaceName string, logger *log.Logger
 	}
 
 	return instances, nil
-}
-
-func (b *Broker) validatePlanQuota(ctx context.Context, serviceID string, plan config.Plan, logger *log.Logger) error {
-	if plan.Quotas.ServiceInstanceLimit == nil {
-		return nil
-	}
-	limit := *plan.Quotas.ServiceInstanceLimit
-
-	count, err := b.cfClient.CountInstancesOfPlan(serviceID, plan.ID, logger)
-	if err != nil {
-		return NewGenericError(ctx, fmt.Errorf("error counting instances of plan: %s", err))
-	}
-
-	if count >= limit {
-		return NewDisplayableError(brokerapi.ErrPlanQuotaExceeded, fmt.Errorf("plan quota exceeded for plan ID %s", plan.ID))
-	}
-
-	return nil
 }

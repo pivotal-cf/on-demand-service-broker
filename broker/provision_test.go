@@ -824,13 +824,6 @@ var _ = Describe("plan quotas", func() {
 
 	})
 
-	type quotaCase struct {
-		GlobalResourceLimits map[string]int
-		PlanResourceLimits   map[string]int
-		GlobalInstanceLimit  *int
-		PlanInstanceLimit    *int
-	}
-
 	deployWithQuotas := func(q quotaCase, planToDeploy string, existingInstanceCount int) error {
 		planCounts := map[cf.ServicePlan]int{
 			cfServicePlan("1234", existingPlanID, "url", "name"): existingInstanceCount,
