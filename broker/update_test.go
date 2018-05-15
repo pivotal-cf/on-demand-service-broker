@@ -82,7 +82,7 @@ var _ = Describe("Update", func() {
 				context.Background(),
 				instanceID,
 				updateDetails,
-				asyncAllowed,
+				true,
 			)
 
 			return updateErr
