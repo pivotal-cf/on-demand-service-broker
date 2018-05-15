@@ -41,12 +41,15 @@ func (c commandRunner) RunWithInputParams(inputParams interface{}, arg ...string
 
 	b := bytes.NewBuffer([]byte{})
 	err = json.NewEncoder(b).Encode(inputParams)
+
 	if err != nil {
 		return nil, nil, nil, err // not tested
 	}
 
-	io.WriteString(pipe, b.String())
-	pipe.Close()
+	go func() {
+		defer pipe.Close()
+		io.WriteString(pipe, b.String())
+	}()
 
 	return c.run(cmd)
 }

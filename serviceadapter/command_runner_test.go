@@ -10,6 +10,10 @@ import (
 	"io/ioutil"
 	"os"
 
+	"math/rand"
+
+	"fmt"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
@@ -147,12 +151,13 @@ var _ = Describe("CommandRunner", func() {
 
 		Context("when the command runs normally", func() {
 			BeforeEach(func() {
-				inputParams = "some-input-params"
+				inputParams = randSeq(500000)
+
 				scriptPath = createScript(`while read line; do echo $line; done; echo error >&2`)
 			})
 
 			It("succeeds", func() {
-				Expect(stdout).To(Equal("\"some-input-params\"\n"))
+				Expect(stdout).To(Equal(fmt.Sprintf("\"%s\"\n", inputParams)))
 				Expect(stderr).To(Equal("error\n"))
 				Expect(runErr).NotTo(HaveOccurred())
 				Expect(*actualExitCode).To(BeZero())
@@ -184,3 +189,13 @@ var _ = Describe("CommandRunner", func() {
 		})
 	})
 })
+
+var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+func randSeq(n int) string {
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letters[rand.Intn(len(letters))]
+	}
+	return string(b)
+}
