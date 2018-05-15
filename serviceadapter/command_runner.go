@@ -10,17 +10,53 @@ import (
 	"bytes"
 	"os/exec"
 	"syscall"
+
+	"encoding/json"
+
+	"io"
+
+	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
 
 func NewCommandRunner() CommandRunner {
 	return commandRunner{}
 }
 
-type commandRunner struct{}
+type commandRunner struct {
+	inputParams sdk.InputParams
+}
 
 func (c commandRunner) Run(arg ...string) ([]byte, []byte, *int, error) {
-	var stderr bytes.Buffer
 	cmd := exec.Command(arg[0], arg[1:]...)
+	return c.run(cmd)
+}
+
+func (c commandRunner) RunWithInputParams(inputParams interface{}, arg ...string) ([]byte, []byte, *int, error) {
+	cmd := exec.Command(arg[0], arg[1:]...)
+
+	pipe, err := cmd.StdinPipe()
+	if err != nil {
+		return nil, nil, nil, err // not tested
+	}
+
+	b := bytes.NewBuffer([]byte{})
+	err = json.NewEncoder(b).Encode(inputParams)
+	if err != nil {
+		return nil, nil, nil, err // not tested
+	}
+
+	io.WriteString(pipe, b.String())
+	pipe.Close()
+
+	return c.run(cmd)
+}
+
+func intPtr(val int) *int {
+	return &val
+}
+
+func (c commandRunner) run(cmd *exec.Cmd) ([]byte, []byte, *int, error) {
+	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 
 	stdout, err := cmd.Output()
@@ -37,8 +73,4 @@ func (c commandRunner) Run(arg ...string) ([]byte, []byte, *int, error) {
 	}
 
 	return stdout, stderr.Bytes(), exitCode, err
-}
-
-func intPtr(val int) *int {
-	return &val
 }

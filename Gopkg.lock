@@ -295,7 +295,7 @@
     "bosh",
     "serviceadapter"
   ]
-  revision = "8e483f3c40b6afa9be12c75991ff0bafc560c550"
+  revision = "568e36b5aa1209ad432f580b27c82b0677f356ff"
 
 [[projects]]
   branch = "master"

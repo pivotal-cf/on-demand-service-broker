@@ -7,7 +7,6 @@
 package serviceadapter_test
 
 import (
-	"encoding/json"
 	"errors"
 	"io"
 	"log"
@@ -15,6 +14,10 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
+
+	"encoding/json"
+
+	"strings"
 
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter/fakes"
@@ -36,6 +39,8 @@ var _ = Describe("external service adapter", func() {
 		params            map[string]interface{}
 		previousManifest  []byte
 
+		inputParams sdk.InputParams
+
 		manifest    []byte
 		generateErr error
 	)
@@ -49,6 +54,7 @@ var _ = Describe("external service adapter", func() {
 			ExternalBinPath: externalBinPath,
 		}
 		cmdRunner.RunReturns([]byte(validManifestContent), []byte(""), intPtr(serviceadapter.SuccessExitCode), nil)
+		cmdRunner.RunWithInputParamsReturns([]byte(validManifestContent), []byte(""), intPtr(serviceadapter.SuccessExitCode), nil)
 
 		serviceDeployment = sdk.ServiceDeployment{
 			DeploymentName: "a-service-deployment",
@@ -84,13 +90,24 @@ var _ = Describe("external service adapter", func() {
 				},
 			},
 		}
+
+		inputParams = sdk.InputParams{
+			GenerateManifest: sdk.GenerateManifestParams{
+				ServiceDeployment: toJson(serviceDeployment),
+				Plan:              planToJson(plan),
+				PreviousPlan:      planToJson(*previousPlan),
+				PreviousManifest:  string(previousManifest),
+				RequestParameters: toJson(params),
+			},
+		}
+
 	})
 
 	JustBeforeEach(func() {
 		manifest, generateErr = a.GenerateManifest(serviceDeployment, plan, params, previousManifest, previousPlan, logger)
 	})
 
-	It("invokes external manifest generator with serialised parameters", func() {
+	It("invokes external manifest generator with serialised parameters when 'UsingStdin' not set", func() {
 		serialisedServiceDeployment, err := json.Marshal(serviceDeployment)
 		Expect(err).NotTo(HaveOccurred())
 
@@ -233,4 +250,145 @@ stemcells:
 			Expect(argsPassed[6]).To(Equal("null"))
 		})
 	})
+
+	When("UsingStdin is set to true", func() {
+		BeforeEach(func() {
+			a.UsingStdin = true
+		})
+
+		It("invokes external manifest generator with serialised parameters in the stdin", func() {
+			Expect(cmdRunner.RunCallCount()).To(Equal(0))
+			Expect(cmdRunner.RunWithInputParamsCallCount()).To(Equal(1))
+			actualInputParams, argsPassed := cmdRunner.RunWithInputParamsArgsForCall(0)
+			Expect(argsPassed).To(ConsistOf(
+				externalBinPath,
+				"generate-manifest",
+				"-stdin",
+			))
+			Expect(actualInputParams).To(Equal(inputParams))
+		})
+
+		Context("when the external service adapter succeeds", func() {
+			Context("when the generated manifest is invalid", func() {
+				Context("with an incorrect deployment name", func() {
+					BeforeEach(func() {
+						invalidManifestContent := "name: not-the-deployment-name-given-to-the-adapter"
+						cmdRunner.RunWithInputParamsReturns([]byte(invalidManifestContent), []byte(""), intPtr(serviceadapter.SuccessExitCode), nil)
+					})
+
+					It("returns an error", func() {
+						Expect(generateErr).To(MatchError(ContainSubstring("external service adapter generated manifest with an incorrect deployment name at /thing. expected name: 'a-service-deployment', returned name: 'not-the-deployment-name-given-to-the-adapter'")))
+					})
+				})
+
+				Context("with an invalid release version", func() {
+					BeforeEach(func() {
+						invalidManifestContent := `---
+name: a-service-deployment
+releases:
+- version: 42.latest`
+						cmdRunner.RunWithInputParamsReturns([]byte(invalidManifestContent), []byte(""), intPtr(serviceadapter.SuccessExitCode), nil)
+					})
+
+					It("returns an error", func() {
+						Expect(generateErr).To(MatchError(ContainSubstring("external service adapter generated manifest with an incorrect version at /thing. expected exact version but returned version: '42.latest'")))
+					})
+				})
+
+				Context("with an invalid stemcell version", func() {
+					BeforeEach(func() {
+						invalidManifestContent := `---
+name: a-service-deployment
+stemcells:
+- version: 42.latest`
+						cmdRunner.RunWithInputParamsReturns([]byte(invalidManifestContent), []byte(""), intPtr(serviceadapter.SuccessExitCode), nil)
+					})
+
+					It("returns an error", func() {
+						Expect(generateErr).To(MatchError(ContainSubstring("external service adapter generated manifest with an incorrect version at /thing. expected exact version but returned version: '42.latest'")))
+					})
+				})
+
+				Context("that cannot be unmarshalled", func() {
+					BeforeEach(func() {
+						cmdRunner.RunWithInputParamsReturns([]byte("unparseable"), []byte(""), intPtr(serviceadapter.SuccessExitCode), nil)
+					})
+
+					It("returns an error", func() {
+						Expect(generateErr).To(MatchError("external service adapter generated manifest that is not valid YAML at /thing. stderr: ''"))
+					})
+				})
+			})
+		})
+
+		Context("when the external service adapter exits with status 10", func() {
+			BeforeEach(func() {
+				cmdRunner.RunWithInputParamsReturns([]byte("I'm stdout"), []byte("I'm stderr"), intPtr(sdk.NotImplementedExitCode), nil)
+			})
+
+			It("returns an error", func() {
+				Expect(generateErr).To(BeAssignableToTypeOf(serviceadapter.NotImplementedError{}))
+				Expect(generateErr.Error()).NotTo(ContainSubstring("stdout"))
+				Expect(generateErr.Error()).NotTo(ContainSubstring("stderr"))
+			})
+
+			It("logs a message to the operator", func() {
+				Expect(logs).To(gbytes.Say("external service adapter exited with 10 at /thing: stdout: 'I'm stdout', stderr: 'I'm stderr'\n"))
+			})
+		})
+
+		Context("when the external service adapter fails", func() {
+			Context("when there is a operator error message and a user error message", func() {
+				BeforeEach(func() {
+					cmdRunner.RunWithInputParamsReturns([]byte("I'm stdout"), []byte("I'm stderr"), intPtr(sdk.ErrorExitCode), nil)
+				})
+
+				It("returns an UnknownFailureError", func() {
+					commandError, ok := generateErr.(serviceadapter.UnknownFailureError)
+					Expect(ok).To(BeTrue(), "error should be an SDK GenericError")
+					Expect(commandError.Error()).To(Equal("I'm stdout"))
+				})
+
+				It("logs a message to the operator", func() {
+					Expect(logs).To(gbytes.Say("external service adapter exited with 1 at /thing: stdout: 'I'm stdout', stderr: 'I'm stderr'\n"))
+				})
+			})
+		})
+
+		Context("when the external service adapter fails, without an exit code", func() {
+			var err = errors.New("oops")
+			BeforeEach(func() {
+				cmdRunner.RunWithInputParamsReturns(nil, nil, nil, err)
+			})
+
+			It("returns an error", func() {
+				Expect(generateErr).To(MatchError("an error occurred running external service adapter at /thing: 'oops'. stdout: '', stderr: ''"))
+			})
+		})
+
+		Context("previous plan is nil", func() {
+			BeforeEach(func() {
+				previousPlan = nil
+			})
+
+			It("it writes 'null' to the argument list", func() {
+				By("erroring")
+				Expect(generateErr).ToNot(HaveOccurred())
+
+				actualInputParams, _ := cmdRunner.RunWithInputParamsArgsForCall(0)
+				Expect(actualInputParams.(sdk.InputParams).GenerateManifest.PreviousPlan).To(Equal("null"))
+			})
+		})
+	})
 })
+
+func planToJson(plan sdk.Plan) string {
+	plan.Properties = serviceadapter.SanitiseForJSON(plan.Properties)
+	return toJson(plan)
+}
+
+func toJson(i interface{}) string {
+	b := gbytes.NewBuffer()
+	json.NewEncoder(b).Encode(i)
+	return strings.TrimRight(string(b.Contents()), "\n")
+}

@@ -40,6 +40,7 @@ type Broker struct {
 	DisableCFStartupChecks     bool `yaml:"disable_cf_startup_checks"`
 	ExposeOperationalErrors    bool `yaml:"expose_operational_errors"`
 	EnablePlanSchemas          bool `yaml:"enable_plan_schemas"`
+	UsingStdin                 bool `yaml:"use_stdin"`
 }
 
 type Authentication struct {

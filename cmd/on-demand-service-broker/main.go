@@ -106,6 +106,7 @@ func startBroker(conf config.Config, logger *log.Logger, loggerFactory *loggerfa
 	serviceAdapter := &serviceadapter.Client{
 		ExternalBinPath: conf.ServiceAdapter.Path,
 		CommandRunner:   serviceadapter.NewCommandRunner(),
+		UsingStdin:      conf.Broker.UsingStdin,
 	}
 
 	manifestGenerator := task.NewManifestGenerator(

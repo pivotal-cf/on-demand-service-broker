@@ -7,9 +7,10 @@
 package serviceadapter
 
 import (
-	"encoding/json"
 	"log"
 	"strings"
+
+	"encoding/json"
 
 	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 	"gopkg.in/yaml.v2"
@@ -54,11 +55,33 @@ func (c *Client) GenerateManifest(serviceDeployment sdk.ServiceDeployment, plan 
 		return nil, err
 	}
 
-	stdout, stderr, exitCode, err := c.CommandRunner.Run(
-		c.ExternalBinPath, "generate-manifest", string(serialisedServiceDeployment),
-		string(serialisedPlan), string(serialisedRequestParams),
-		string(previousManifest), string(serialisedPreviousPlan),
-	)
+	var stdout, stderr []byte
+	var exitCode *int
+
+	if c.UsingStdin {
+		inputParams := sdk.InputParams{
+			GenerateManifest: sdk.GenerateManifestParams{
+				ServiceDeployment: string(serialisedServiceDeployment),
+				Plan:              string(serialisedPlan),
+				RequestParameters: string(serialisedRequestParams),
+				PreviousPlan:      string(serialisedPreviousPlan),
+				PreviousManifest:  string(previousManifest),
+			},
+		}
+
+		stdout, stderr, exitCode, err = c.CommandRunner.RunWithInputParams(
+			inputParams,
+			c.ExternalBinPath, "generate-manifest",
+			"-stdin",
+		)
+	} else {
+		stdout, stderr, exitCode, err = c.CommandRunner.Run(
+			c.ExternalBinPath, "generate-manifest",
+			string(serialisedServiceDeployment),
+			string(serialisedPlan), string(serialisedRequestParams),
+			string(previousManifest), string(serialisedPreviousPlan),
+		)
+	}
 
 	if err != nil {
 		return nil, adapterError(c.ExternalBinPath, stdout, stderr, err)

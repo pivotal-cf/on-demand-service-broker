@@ -57,6 +57,7 @@ var _ = Describe("Broker Config", func() {
 						ExposeOperationalErrors:    false,
 						EnablePlanSchemas:          false,
 						ShutdownTimeoutSecs:        10,
+						UsingStdin:                 true,
 					},
 					Bosh: config.Bosh{
 						URL:         "some-url",

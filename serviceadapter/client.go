@@ -18,11 +18,13 @@ const SuccessExitCode = 0
 //go:generate counterfeiter -o fakes/fake_command_runner.go . CommandRunner
 type CommandRunner interface {
 	Run(arg ...string) ([]byte, []byte, *int, error)
+	RunWithInputParams(inputParams interface{}, arg ...string) ([]byte, []byte, *int, error)
 }
 
 type Client struct {
 	ExternalBinPath string
 	CommandRunner   CommandRunner
+	UsingStdin      bool
 }
 
 func SanitiseForJSON(properties sdk.Properties) sdk.Properties {

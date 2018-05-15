@@ -25,14 +25,6 @@ var _ = Describe("CommandRunner", func() {
 		actualExitCode *int
 	)
 
-	JustBeforeEach(func() {
-		runner := serviceadapter.NewCommandRunner()
-		var stdoutBytes, stderrBytes []byte
-		stdoutBytes, stderrBytes, actualExitCode, runErr = runner.Run(scriptPath)
-		stdout = string(stdoutBytes)
-		stderr = string(stderrBytes)
-	})
-
 	var createScript = func(script string) string {
 		tempFile, err := ioutil.TempFile("", "cmd")
 		Expect(err).NotTo(HaveOccurred())
@@ -51,80 +43,144 @@ var _ = Describe("CommandRunner", func() {
 		return tempFile.Name()
 	}
 
-	AfterEach(func() {
-		os.Remove(scriptPath)
+	Describe("Run", func() {
+		JustBeforeEach(func() {
+			runner := serviceadapter.NewCommandRunner()
+			var stdoutBytes, stderrBytes []byte
+			stdoutBytes, stderrBytes, actualExitCode, runErr = runner.Run(scriptPath)
+			stdout = string(stdoutBytes)
+			stderr = string(stderrBytes)
+		})
+
+		AfterEach(func() {
+			os.Remove(scriptPath)
+		})
+
+		Context("when the command runs normally", func() {
+			BeforeEach(func() {
+				scriptPath = createScript("echo output; echo error >&2")
+			})
+
+			It("returns the text written to standard output", func() {
+				Expect(stdout).To(Equal("output\n"))
+			})
+
+			It("returns the text written to standard error", func() {
+				Expect(stderr).To(Equal("error\n"))
+			})
+
+			It("returns no error", func() {
+				Expect(runErr).NotTo(HaveOccurred())
+			})
+
+			It("returns exit 0", func() {
+				Expect(*actualExitCode).To(BeZero())
+			})
+		})
+
+		Context("when the command does not exist", func() {
+			BeforeEach(func() {
+				scriptPath = "/no/such/script"
+			})
+
+			It("returns an error", func() {
+				Expect(runErr).To(HaveOccurred())
+			})
+
+			It("returns no exit code", func() {
+				Expect(actualExitCode).To(BeNil())
+			})
+		})
+
+		Context("when the command exists but is not executable", func() {
+			BeforeEach(func() {
+				scriptPath = createScript("this is not a script")
+				os.Chmod(scriptPath, 0644)
+			})
+
+			It("returns an error", func() {
+				Expect(runErr).To(HaveOccurred())
+			})
+
+			It("returns no exit code", func() {
+				Expect(actualExitCode).To(BeNil())
+			})
+		})
+
+		Context("when the command exits with nonzero status", func() {
+			BeforeEach(func() {
+				scriptPath = createScript("echo output; echo error >&2; exit 23")
+			})
+
+			It("returns the text written to standard output", func() {
+				Expect(stdout).To(Equal("output\n"))
+			})
+
+			It("returns the text written to standard error", func() {
+				Expect(stderr).To(Equal("error\n"))
+			})
+
+			It("returns no error", func() {
+				Expect(runErr).NotTo(HaveOccurred())
+			})
+
+			It("returns exit 23", func() {
+				Expect(*actualExitCode).To(Equal(23))
+			})
+		})
 	})
 
-	Context("when the command runs normally", func() {
-		BeforeEach(func() {
-			scriptPath = createScript("echo output; echo error >&2")
+	Describe("RunWithInputParams", func() {
+		var inputParams string
+
+		JustBeforeEach(func() {
+			runner := serviceadapter.NewCommandRunner()
+			var stdoutBytes, stderrBytes []byte
+			stdoutBytes, stderrBytes, actualExitCode, runErr = runner.RunWithInputParams(inputParams, scriptPath)
+			stdout = string(stdoutBytes)
+			stderr = string(stderrBytes)
 		})
 
-		It("returns the text written to standard output", func() {
-			Expect(stdout).To(Equal("output\n"))
+		AfterEach(func() {
+			os.Remove(scriptPath)
 		})
 
-		It("returns the text written to standard error", func() {
-			Expect(stderr).To(Equal("error\n"))
+		Context("when the command runs normally", func() {
+			BeforeEach(func() {
+				inputParams = "some-input-params"
+				scriptPath = createScript(`while read line; do echo $line; done; echo error >&2`)
+			})
+
+			It("succeeds", func() {
+				Expect(stdout).To(Equal("\"some-input-params\"\n"))
+				Expect(stderr).To(Equal("error\n"))
+				Expect(runErr).NotTo(HaveOccurred())
+				Expect(*actualExitCode).To(BeZero())
+			})
 		})
 
-		It("returns no error", func() {
-			Expect(runErr).NotTo(HaveOccurred())
+		Context("when the command fails to run", func() {
+			BeforeEach(func() {
+				scriptPath = "/no/such/script"
+			})
+
+			It("returns an error", func() {
+				Expect(runErr).To(HaveOccurred())
+				Expect(actualExitCode).To(BeNil())
+			})
 		})
 
-		It("returns exit 0", func() {
-			Expect(*actualExitCode).To(BeZero())
-		})
-	})
+		Context("when the command exits with nonzero status", func() {
+			BeforeEach(func() {
+				scriptPath = createScript("echo output; echo error >&2; exit 23")
+			})
 
-	Context("when the command does not exist", func() {
-		BeforeEach(func() {
-			scriptPath = "/no/such/script"
-		})
-
-		It("returns an error", func() {
-			Expect(runErr).To(HaveOccurred())
-		})
-
-		It("returns no exit code", func() {
-			Expect(actualExitCode).To(BeNil())
-		})
-	})
-
-	Context("when the command exists but is not executable", func() {
-		BeforeEach(func() {
-			scriptPath = createScript("this is not a script")
-			os.Chmod(scriptPath, 0644)
-		})
-
-		It("returns an error", func() {
-			Expect(runErr).To(HaveOccurred())
-		})
-
-		It("returns no exit code", func() {
-			Expect(actualExitCode).To(BeNil())
-		})
-	})
-
-	Context("when the command exits with nonzero status", func() {
-		BeforeEach(func() {
-			scriptPath = createScript("echo output; echo error >&2; exit 23")
-		})
-
-		It("returns the text written to standard output", func() {
-			Expect(stdout).To(Equal("output\n"))
-		})
-
-		It("returns the text written to standard error", func() {
-			Expect(stderr).To(Equal("error\n"))
-		})
-
-		It("returns no error", func() {
-			Expect(runErr).NotTo(HaveOccurred())
-		})
-
-		It("returns exit 23", func() {
-			Expect(*actualExitCode).To(Equal(23))
+			It("returns the text written to standard output", func() {
+				Expect(stdout).To(Equal("output\n"))
+				Expect(stderr).To(Equal("error\n"))
+				Expect(runErr).NotTo(HaveOccurred())
+				Expect(*actualExitCode).To(Equal(23))
+			})
 		})
 	})
 })

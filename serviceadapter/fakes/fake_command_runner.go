@@ -25,6 +25,24 @@ type FakeCommandRunner struct {
 		result3 *int
 		result4 error
 	}
+	RunWithInputParamsStub        func(inputParams interface{}, arg ...string) ([]byte, []byte, *int, error)
+	runWithInputParamsMutex       sync.RWMutex
+	runWithInputParamsArgsForCall []struct {
+		inputParams interface{}
+		arg         []string
+	}
+	runWithInputParamsReturns struct {
+		result1 []byte
+		result2 []byte
+		result3 *int
+		result4 error
+	}
+	runWithInputParamsReturnsOnCall map[int]struct {
+		result1 []byte
+		result2 []byte
+		result3 *int
+		result4 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -86,11 +104,71 @@ func (fake *FakeCommandRunner) RunReturnsOnCall(i int, result1 []byte, result2 [
 	}{result1, result2, result3, result4}
 }
 
+func (fake *FakeCommandRunner) RunWithInputParams(inputParams interface{}, arg ...string) ([]byte, []byte, *int, error) {
+	fake.runWithInputParamsMutex.Lock()
+	ret, specificReturn := fake.runWithInputParamsReturnsOnCall[len(fake.runWithInputParamsArgsForCall)]
+	fake.runWithInputParamsArgsForCall = append(fake.runWithInputParamsArgsForCall, struct {
+		inputParams interface{}
+		arg         []string
+	}{inputParams, arg})
+	fake.recordInvocation("RunWithInputParams", []interface{}{inputParams, arg})
+	fake.runWithInputParamsMutex.Unlock()
+	if fake.RunWithInputParamsStub != nil {
+		return fake.RunWithInputParamsStub(inputParams, arg...)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3, ret.result4
+	}
+	return fake.runWithInputParamsReturns.result1, fake.runWithInputParamsReturns.result2, fake.runWithInputParamsReturns.result3, fake.runWithInputParamsReturns.result4
+}
+
+func (fake *FakeCommandRunner) RunWithInputParamsCallCount() int {
+	fake.runWithInputParamsMutex.RLock()
+	defer fake.runWithInputParamsMutex.RUnlock()
+	return len(fake.runWithInputParamsArgsForCall)
+}
+
+func (fake *FakeCommandRunner) RunWithInputParamsArgsForCall(i int) (interface{}, []string) {
+	fake.runWithInputParamsMutex.RLock()
+	defer fake.runWithInputParamsMutex.RUnlock()
+	return fake.runWithInputParamsArgsForCall[i].inputParams, fake.runWithInputParamsArgsForCall[i].arg
+}
+
+func (fake *FakeCommandRunner) RunWithInputParamsReturns(result1 []byte, result2 []byte, result3 *int, result4 error) {
+	fake.RunWithInputParamsStub = nil
+	fake.runWithInputParamsReturns = struct {
+		result1 []byte
+		result2 []byte
+		result3 *int
+		result4 error
+	}{result1, result2, result3, result4}
+}
+
+func (fake *FakeCommandRunner) RunWithInputParamsReturnsOnCall(i int, result1 []byte, result2 []byte, result3 *int, result4 error) {
+	fake.RunWithInputParamsStub = nil
+	if fake.runWithInputParamsReturnsOnCall == nil {
+		fake.runWithInputParamsReturnsOnCall = make(map[int]struct {
+			result1 []byte
+			result2 []byte
+			result3 *int
+			result4 error
+		})
+	}
+	fake.runWithInputParamsReturnsOnCall[i] = struct {
+		result1 []byte
+		result2 []byte
+		result3 *int
+		result4 error
+	}{result1, result2, result3, result4}
+}
+
 func (fake *FakeCommandRunner) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.runMutex.RLock()
 	defer fake.runMutex.RUnlock()
+	fake.runWithInputParamsMutex.RLock()
+	defer fake.runWithInputParamsMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
