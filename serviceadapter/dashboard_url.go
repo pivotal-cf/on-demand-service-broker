@@ -20,7 +20,34 @@ func (c *Client) GenerateDashboardUrl(instanceID string, plan sdk.Plan, manifest
 		return "", err
 	}
 
-	stdout, stderr, exitCode, err := c.CommandRunner.Run(c.ExternalBinPath, "dashboard-url", instanceID, string(planJSON), string(manifest))
+	var stdout, stderr []byte
+	var exitCode *int
+
+	if c.UsingStdin {
+		inputParams := sdk.InputParams{
+			DashboardUrl: sdk.DashboardUrlParams{
+				InstanceId: instanceID,
+				Plan:       string(planJSON),
+				Manifest:   string(manifest),
+			},
+		}
+
+		stdout, stderr, exitCode, err = c.CommandRunner.RunWithInputParams(
+			inputParams,
+			c.ExternalBinPath,
+			"dashboard-url",
+			"-stdin",
+		)
+	} else {
+		stdout, stderr, exitCode, err = c.CommandRunner.Run(
+			c.ExternalBinPath,
+			"dashboard-url",
+			instanceID,
+			string(planJSON),
+			string(manifest),
+		)
+	}
+
 	if err != nil {
 		return "", adapterError(c.ExternalBinPath, stdout, stderr, err)
 	}

@@ -63,116 +63,242 @@ var _ = Describe("dashboard url", func() {
 		dashboardUrlJSON := []byte(`{ "dashboard_url": "https://someurl.com"}`)
 
 		cmdRunner.RunReturns(dashboardUrlJSON, []byte("I'm stderr"), intPtr(serviceadapter.SuccessExitCode), nil)
+		cmdRunner.RunWithInputParamsReturns(dashboardUrlJSON, []byte("I'm stderr"), intPtr(serviceadapter.SuccessExitCode), nil)
 	})
 
 	JustBeforeEach(func() {
 		actualDashboardUrl, actualError = a.GenerateDashboardUrl(instanceID, plan, manifest, logger)
 	})
+	Context("when stdin is not set", func() {
 
-	It("invokes external dashboard url generator with serialised params", func() {
-		Expect(cmdRunner.RunCallCount()).To(Equal(1))
-		planJson, err := json.Marshal(plan)
-		Expect(err).NotTo(HaveOccurred())
-		argsPassed := cmdRunner.RunArgsForCall(0)
-		Expect(argsPassed).To(ConsistOf(externalBinPath, "dashboard-url", instanceID, string(planJson), string(manifest)))
-	})
-
-	It("returns a dashboard url", func() {
-		Expect(actualDashboardUrl).To(Equal("https://someurl.com"))
-	})
-
-	It("has no error", func() {
-		Expect(actualError).NotTo(HaveOccurred())
-	})
-
-	It("logs adapter stderr", func() {
-		Expect(logs).To(gbytes.Say("I'm stderr"))
-	})
-
-	Context("when plan properties are formatted as map[interface][interface]", func() {
-		BeforeEach(func() {
-			plan = sdk.Plan{
-				Properties: sdk.Properties{
-					"foo": "bar",
-					"baz": map[interface{}]interface{}{
-						"qux": "quux",
-					},
-				},
-			}
-		})
-
-		It("converts plan properties to be json serializable", func() {
-			Expect(actualError).NotTo(HaveOccurred())
+		It("invokes external dashboard url generator with serialised params", func() {
 			Expect(cmdRunner.RunCallCount()).To(Equal(1))
-			argsPassed := cmdRunner.RunArgsForCall(0)
-
-			convertedPlan := sdk.Plan{
-				Properties: sdk.Properties{
-					"foo": "bar",
-					"baz": map[string]interface{}{
-						"qux": "quux",
-					},
-				},
-			}
-
-			convertedPlanJson, err := json.Marshal(convertedPlan)
+			planJson, err := json.Marshal(plan)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(argsPassed).To(ConsistOf(externalBinPath, "dashboard-url", instanceID, string(convertedPlanJson), string(manifest)))
-		})
-	})
-
-	Context("adapter did not implement the dashboard url subcommand", func() {
-		BeforeEach(func() {
-			cmdRunner.RunReturns([]byte("stdout"), []byte("stderr"), intPtr(sdk.NotImplementedExitCode), nil)
+			argsPassed := cmdRunner.RunArgsForCall(0)
+			Expect(argsPassed).To(ConsistOf(externalBinPath, "dashboard-url", instanceID, string(planJson), string(manifest)))
 		})
 
-		It("returns the correct error", func() {
-			Expect(actualError).To(BeAssignableToTypeOf(serviceadapter.NotImplementedError{}))
-			Expect(actualError.Error()).NotTo(ContainSubstring("stdout"))
-			Expect(actualError.Error()).NotTo(ContainSubstring("stderr"))
+		It("returns a dashboard url", func() {
+			Expect(actualDashboardUrl).To(Equal("https://someurl.com"))
 		})
 
-		It("logs the operator error message", func() {
-			Expect(logs).To(gbytes.Say("external service adapter exited with 10 at /thing: stdout: 'stdout', stderr: 'stderr'"))
-		})
-	})
-
-	Context("when the external service adapter fails, without an exit code", func() {
-		var err = errors.New("oops")
-
-		BeforeEach(func() {
-			cmdRunner.RunReturns(nil, nil, nil, err)
+		It("has no error", func() {
+			Expect(actualError).NotTo(HaveOccurred())
 		})
 
-		It("returns an error", func() {
-			Expect(actualError).To(MatchError("an error occurred running external service adapter at /thing: 'oops'. stdout: '', stderr: ''"))
+		It("logs adapter stderr", func() {
+			Expect(logs).To(gbytes.Say("I'm stderr"))
 		})
-	})
 
-	Context("when the external service adapter fails", func() {
-		Context("when there is a operator error message and a user error message", func() {
+		Context("when plan properties are formatted as map[interface][interface]", func() {
 			BeforeEach(func() {
-				cmdRunner.RunReturns([]byte("I'm stdout"), []byte("I'm stderr"), intPtr(sdk.ErrorExitCode), nil)
+				plan = sdk.Plan{
+					Properties: sdk.Properties{
+						"foo": "bar",
+						"baz": map[interface{}]interface{}{
+							"qux": "quux",
+						},
+					},
+				}
 			})
 
-			It("returns an UnknownFailureError", func() {
-				Expect(actualError).To(BeAssignableToTypeOf(serviceadapter.UnknownFailureError{}))
-				Expect(actualError.Error()).To(Equal("I'm stdout"))
+			It("converts plan properties to be json serializable", func() {
+				Expect(actualError).NotTo(HaveOccurred())
+				Expect(cmdRunner.RunCallCount()).To(Equal(1))
+				argsPassed := cmdRunner.RunArgsForCall(0)
+
+				convertedPlan := sdk.Plan{
+					Properties: sdk.Properties{
+						"foo": "bar",
+						"baz": map[string]interface{}{
+							"qux": "quux",
+						},
+					},
+				}
+
+				convertedPlanJson, err := json.Marshal(convertedPlan)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(argsPassed).To(ConsistOf(externalBinPath, "dashboard-url", instanceID, string(convertedPlanJson), string(manifest)))
+			})
+		})
+
+		Context("adapter did not implement the dashboard url subcommand", func() {
+			BeforeEach(func() {
+				cmdRunner.RunReturns([]byte("stdout"), []byte("stderr"), intPtr(sdk.NotImplementedExitCode), nil)
 			})
 
-			It("logs an message to the operator", func() {
-				Expect(logs).To(gbytes.Say("external service adapter exited with 1 at /thing: stdout: 'I'm stdout', stderr: 'I'm stderr'"))
+			It("returns the correct error", func() {
+				Expect(actualError).To(BeAssignableToTypeOf(serviceadapter.NotImplementedError{}))
+				Expect(actualError.Error()).NotTo(ContainSubstring("stdout"))
+				Expect(actualError.Error()).NotTo(ContainSubstring("stderr"))
+			})
+
+			It("logs the operator error message", func() {
+				Expect(logs).To(gbytes.Say("external service adapter exited with 10 at /thing: stdout: 'stdout', stderr: 'stderr'"))
+			})
+		})
+
+		Context("when the external service adapter fails, without an exit code", func() {
+			var err = errors.New("oops")
+
+			BeforeEach(func() {
+				cmdRunner.RunReturns(nil, nil, nil, err)
+			})
+
+			It("returns an error", func() {
+				Expect(actualError).To(MatchError("an error occurred running external service adapter at /thing: 'oops'. stdout: '', stderr: ''"))
+			})
+		})
+
+		Context("when the external service adapter fails", func() {
+			Context("when there is a operator error message and a user error message", func() {
+				BeforeEach(func() {
+					cmdRunner.RunReturns([]byte("I'm stdout"), []byte("I'm stderr"), intPtr(sdk.ErrorExitCode), nil)
+				})
+
+				It("returns an UnknownFailureError", func() {
+					Expect(actualError).To(BeAssignableToTypeOf(serviceadapter.UnknownFailureError{}))
+					Expect(actualError.Error()).To(Equal("I'm stdout"))
+				})
+
+				It("logs an message to the operator", func() {
+					Expect(logs).To(gbytes.Say("external service adapter exited with 1 at /thing: stdout: 'I'm stdout', stderr: 'I'm stderr'"))
+				})
+			})
+		})
+
+		Context("cannot deserialise response", func() {
+			BeforeEach(func() {
+				cmdRunner.RunReturns([]byte("invalid json"), []byte("I'm stderr"), intPtr(serviceadapter.SuccessExitCode), nil)
+			})
+
+			It("returns an error", func() {
+				Expect(actualError).To(HaveOccurred())
 			})
 		})
 	})
 
-	Context("cannot deserialise response", func() {
+	Context("when stdin is set", func() {
 		BeforeEach(func() {
-			cmdRunner.RunReturns([]byte("invalid json"), []byte("I'm stderr"), intPtr(serviceadapter.SuccessExitCode), nil)
+			a.UsingStdin = true
 		})
 
-		It("returns an error", func() {
-			Expect(actualError).To(HaveOccurred())
+		It("generates the dashboard url", func() {
+			planJson, err := json.Marshal(plan)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("invoking the handler")
+			Expect(cmdRunner.RunCallCount()).To(Equal(0))
+			Expect(cmdRunner.RunWithInputParamsCallCount()).To(Equal(1))
+			inputParams, argsPassed := cmdRunner.RunWithInputParamsArgsForCall(0)
+			Expect(inputParams.(sdk.InputParams)).To(Equal(sdk.InputParams{
+				DashboardUrl: sdk.DashboardUrlParams{
+					InstanceId: instanceID, Plan: string(planJson), Manifest: string(manifest),
+				},
+			}))
+			Expect(argsPassed).To(ConsistOf(externalBinPath, "dashboard-url", "-stdin"))
+
+			By("returns a dashboard url")
+			Expect(actualDashboardUrl).To(Equal("https://someurl.com"))
+
+			By("not returning an error")
+			Expect(actualError).NotTo(HaveOccurred())
+
+			By("logging the adapter stderr")
+			Expect(logs).To(gbytes.Say("I'm stderr"))
+		})
+
+		Context("when plan properties are formatted as map[interface][interface]", func() {
+			BeforeEach(func() {
+				plan = sdk.Plan{
+					Properties: sdk.Properties{
+						"foo": "bar",
+						"baz": map[interface{}]interface{}{
+							"qux": "quux",
+						},
+					},
+				}
+			})
+
+			It("converts plan properties to be json serializable", func() {
+				Expect(actualError).NotTo(HaveOccurred())
+				Expect(cmdRunner.RunWithInputParamsCallCount()).To(Equal(1))
+				inputParams, argsPassed := cmdRunner.RunWithInputParamsArgsForCall(0)
+
+				convertedPlan := sdk.Plan{
+					Properties: sdk.Properties{
+						"foo": "bar",
+						"baz": map[string]interface{}{
+							"qux": "quux",
+						},
+					},
+				}
+
+				convertedPlanJson, err := json.Marshal(convertedPlan)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(inputParams.(sdk.InputParams)).To(Equal(sdk.InputParams{
+					DashboardUrl: sdk.DashboardUrlParams{
+						InstanceId: instanceID, Plan: string(convertedPlanJson), Manifest: string(manifest),
+					},
+				}))
+				Expect(argsPassed).To(ConsistOf(externalBinPath, "dashboard-url", "-stdin"))
+			})
+		})
+
+		Context("adapter did not implement the dashboard url subcommand", func() {
+			BeforeEach(func() {
+				cmdRunner.RunWithInputParamsReturns([]byte("stdout"), []byte("stderr"), intPtr(sdk.NotImplementedExitCode), nil)
+			})
+
+			It("returns the correct error", func() {
+				Expect(actualError).To(BeAssignableToTypeOf(serviceadapter.NotImplementedError{}))
+				Expect(actualError.Error()).NotTo(ContainSubstring("stdout"))
+				Expect(actualError.Error()).NotTo(ContainSubstring("stderr"))
+			})
+
+			It("logs the operator error message", func() {
+				Expect(logs).To(gbytes.Say("external service adapter exited with 10 at /thing: stdout: 'stdout', stderr: 'stderr'"))
+			})
+		})
+
+		Context("when the external service adapter fails, without an exit code", func() {
+			var err = errors.New("oops")
+
+			BeforeEach(func() {
+				cmdRunner.RunWithInputParamsReturns(nil, nil, nil, err)
+			})
+
+			It("returns an error", func() {
+				Expect(actualError).To(MatchError("an error occurred running external service adapter at /thing: 'oops'. stdout: '', stderr: ''"))
+			})
+		})
+
+		Context("when the external service adapter fails", func() {
+			Context("when there is a operator error message and a user error message", func() {
+				BeforeEach(func() {
+					cmdRunner.RunWithInputParamsReturns([]byte("I'm stdout"), []byte("I'm stderr"), intPtr(sdk.ErrorExitCode), nil)
+				})
+
+				It("returns an UnknownFailureError", func() {
+					Expect(actualError).To(BeAssignableToTypeOf(serviceadapter.UnknownFailureError{}))
+					Expect(actualError.Error()).To(Equal("I'm stdout"))
+				})
+
+				It("logs an message to the operator", func() {
+					Expect(logs).To(gbytes.Say("external service adapter exited with 1 at /thing: stdout: 'I'm stdout', stderr: 'I'm stderr'"))
+				})
+			})
+		})
+
+		Context("cannot deserialise response", func() {
+			BeforeEach(func() {
+				cmdRunner.RunWithInputParamsReturns([]byte("invalid json"), []byte("I'm stderr"), intPtr(serviceadapter.SuccessExitCode), nil)
+			})
+
+			It("returns an error", func() {
+				Expect(actualError).To(HaveOccurred())
+			})
 		})
 	})
 })
