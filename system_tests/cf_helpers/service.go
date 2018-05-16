@@ -108,7 +108,8 @@ func awaitServicesOperation(serviceName string, successMessageMatcher types.Gome
 
 		contents := session.Buffer().Contents()
 
-		if !strings.Contains(string(contents), "OK") {
+		if strings.Contains(string(contents), "FAILED") &&
+			(strings.Contains(string(contents), "Server error, status code:") || strings.Contains(string(contents), "Error reading response")) {
 			time.Sleep(time.Second * 5)
 			return false
 		}
