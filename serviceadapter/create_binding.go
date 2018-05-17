@@ -27,7 +27,24 @@ func (c *Client) CreateBinding(bindingID string, deploymentTopology bosh.BoshVMs
 		return binding, err
 	}
 
-	stdout, stderr, exitCode, err := c.CommandRunner.Run(c.ExternalBinPath, "create-binding", bindingID, string(serialisedBoshVMs), string(manifest), string(serialisedRequestParams))
+	var stdout, stderr []byte
+	var exitCode *int
+
+	if c.UsingStdin {
+		inputParams := sdk.InputParams{
+			CreateBinding: sdk.CreateBindingParams{
+				RequestParameters: string(serialisedRequestParams),
+				BoshVms:           string(serialisedBoshVMs),
+				BindingId:         bindingID,
+				Manifest:          string(manifest),
+			},
+		}
+
+		stdout, stderr, exitCode, err = c.CommandRunner.RunWithInputParams(inputParams, c.ExternalBinPath, "create-binding", "-stdin")
+	} else {
+		stdout, stderr, exitCode, err = c.CommandRunner.Run(c.ExternalBinPath, "create-binding", bindingID, string(serialisedBoshVMs), string(manifest), string(serialisedRequestParams))
+	}
+
 	if err != nil {
 		return binding, adapterError(c.ExternalBinPath, stdout, stderr, err)
 	}
