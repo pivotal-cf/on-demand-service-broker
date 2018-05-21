@@ -13,8 +13,6 @@ import (
 
 	"encoding/json"
 
-	"io"
-
 	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
 
@@ -34,22 +32,13 @@ func (c commandRunner) Run(arg ...string) ([]byte, []byte, *int, error) {
 func (c commandRunner) RunWithInputParams(inputParams interface{}, arg ...string) ([]byte, []byte, *int, error) {
 	cmd := exec.Command(arg[0], arg[1:]...)
 
-	pipe, err := cmd.StdinPipe()
-	if err != nil {
-		return nil, nil, nil, err // not tested
-	}
-
 	b := bytes.NewBuffer([]byte{})
-	err = json.NewEncoder(b).Encode(inputParams)
+	err := json.NewEncoder(b).Encode(inputParams)
 
 	if err != nil {
 		return nil, nil, nil, err // not tested
 	}
-
-	go func() {
-		defer pipe.Close()
-		io.WriteString(pipe, b.String())
-	}()
+	cmd.Stdin = b
 
 	return c.run(cmd)
 }

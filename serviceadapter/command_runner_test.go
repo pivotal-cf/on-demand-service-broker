@@ -135,7 +135,11 @@ var _ = Describe("CommandRunner", func() {
 	})
 
 	Describe("RunWithInputParams", func() {
-		var inputParams string
+		var inputParams interface{}
+
+		BeforeEach(func() {
+			inputParams = ""
+		})
 
 		JustBeforeEach(func() {
 			runner := serviceadapter.NewCommandRunner()
@@ -171,6 +175,18 @@ var _ = Describe("CommandRunner", func() {
 
 			It("returns an error", func() {
 				Expect(runErr).To(HaveOccurred())
+				Expect(actualExitCode).To(BeNil())
+			})
+		})
+
+		Context("when the inputParams cannot be serialized", func() {
+			BeforeEach(func() {
+				inputParams = func() {}
+			})
+
+			It("returns an error", func() {
+				Expect(runErr).To(HaveOccurred())
+				Expect(runErr.Error()).To(ContainSubstring("unsupported type"))
 				Expect(actualExitCode).To(BeNil())
 			})
 		})
