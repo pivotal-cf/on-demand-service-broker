@@ -36,7 +36,7 @@ func (c commandRunner) RunWithInputParams(inputParams interface{}, arg ...string
 	err := json.NewEncoder(b).Encode(inputParams)
 
 	if err != nil {
-		return nil, nil, nil, err // not tested
+		return nil, nil, nil, err
 	}
 	cmd.Stdin = b
 

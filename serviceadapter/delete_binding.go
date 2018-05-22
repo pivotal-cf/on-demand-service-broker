@@ -11,6 +11,7 @@ import (
 	"log"
 
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
+	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
 
 func (c *Client) DeleteBinding(bindingID string, deploymentTopology bosh.BoshVMs, manifest []byte, requestParams map[string]interface{}, logger *log.Logger) error {
@@ -23,8 +24,23 @@ func (c *Client) DeleteBinding(bindingID string, deploymentTopology bosh.BoshVMs
 	if err != nil {
 		return err
 	}
+	var stdout, stderr []byte
+	var exitCode *int
 
-	stdout, stderr, exitCode, err := c.CommandRunner.Run(c.ExternalBinPath, "delete-binding", bindingID, string(serialisedBoshVMs), string(manifest), string(serialisedRequestParams))
+	if c.UsingStdin {
+		inputParams := sdk.InputParams{
+			DeleteBinding: sdk.DeleteBindingParams{
+				BindingId:         bindingID,
+				BoshVms:           string(serialisedBoshVMs),
+				RequestParameters: string(serialisedRequestParams),
+				Manifest:          string(manifest),
+			},
+		}
+		stdout, stderr, exitCode, err = c.CommandRunner.RunWithInputParams(inputParams, c.ExternalBinPath, "delete-binding", "-stdin")
+	} else {
+		stdout, stderr, exitCode, err = c.CommandRunner.Run(c.ExternalBinPath, "delete-binding", bindingID, string(serialisedBoshVMs), string(manifest), string(serialisedRequestParams))
+	}
+
 	if err != nil {
 		return adapterError(c.ExternalBinPath, stdout, stderr, err)
 	}

@@ -42,7 +42,6 @@ type CommandLineHandler struct {
 	Binder                Binder
 	DashboardURLGenerator DashboardUrlGenerator
 	SchemaGenerator       SchemaGenerator
-	InputParamsFile       *os.File
 }
 
 type CLIHandlerError struct {
@@ -64,7 +63,6 @@ func HandleCommandLineInvocation(args []string, manifestGenerator ManifestGenera
 		ManifestGenerator:     manifestGenerator,
 		Binder:                binder,
 		DashboardURLGenerator: dashboardUrlGenerator,
-		InputParamsFile:       os.Stdin,
 	}
 	HandleCLI(args, handler)
 }
@@ -73,7 +71,7 @@ func HandleCommandLineInvocation(args []string, manifestGenerator ManifestGenera
 // line arguments. The first argument at the command line should be one of:
 // generate-manifest, create-binding, delete-binding, dashboard-url.
 func HandleCLI(args []string, handler CommandLineHandler) {
-	err := handler.Handle(args, os.Stdout, os.Stderr)
+	err := handler.Handle(args, os.Stdout, os.Stderr, os.Stdin)
 	switch e := err.(type) {
 	case nil:
 	case CLIHandlerError:
@@ -84,11 +82,7 @@ func HandleCLI(args []string, handler CommandLineHandler) {
 }
 
 // Handle executes required action and returns an error. Writes responses to the writer provided
-func (h CommandLineHandler) Handle(args []string, outputWriter, errorWriter io.Writer) error {
-	if h.InputParamsFile == nil {
-		h.InputParamsFile = os.Stdin
-	}
-
+func (h CommandLineHandler) Handle(args []string, outputWriter, errorWriter io.Writer, inputParamsReader io.Reader) error {
 	supportedCommands := h.generateSupportedCommandsMessage()
 
 	if len(args) < 2 {
@@ -109,7 +103,7 @@ func (h CommandLineHandler) Handle(args []string, outputWriter, errorWriter io.W
 		var serviceDeploymentJSON, planJSON, argsJSON, previousManifestYAML, previousPlanJSON string
 
 		if usingStdin(args, errorWriter) {
-			inputParams, err := readArgs(h.InputParamsFile)
+			inputParams, err := readArgs(inputParamsReader)
 			if err != nil {
 				return CLIHandlerError{ErrorExitCode, fmt.Sprintf("error reading input params JSON, error: %s", err)}
 			}
@@ -142,7 +136,7 @@ func (h CommandLineHandler) Handle(args []string, outputWriter, errorWriter io.W
 		var bindingID, boshVMsJSON, manifestYAML, reqParams string
 
 		if usingStdin(args, errorWriter) {
-			inputParams, err := readArgs(h.InputParamsFile)
+			inputParams, err := readArgs(inputParamsReader)
 			if err != nil {
 				return CLIHandlerError{ErrorExitCode, fmt.Sprintf("error reading input params JSON, error: %s", err)}
 			}
@@ -166,14 +160,30 @@ func (h CommandLineHandler) Handle(args []string, outputWriter, errorWriter io.W
 		if h.Binder == nil {
 			return CLIHandlerError{NotImplementedExitCode, "binder not implemented"}
 		}
-		if len(args) < 6 {
-			return missingArgsError(args, "<binding-ID> <bosh-VMs-JSON> <manifest-YAML> <request-params-JSON>")
+
+		var bindingID, boshVMsJSON, manifestYAML, unbindingRequestParams string
+
+		if usingStdin(args, errorWriter) {
+			inputParams, err := readArgs(inputParamsReader)
+			if err != nil {
+				return CLIHandlerError{ErrorExitCode, fmt.Sprintf("error reading input params JSON, error: %s", err)}
+			}
+
+			bindingID = inputParams.DeleteBinding.BindingId
+			boshVMsJSON = inputParams.DeleteBinding.BoshVms
+			manifestYAML = inputParams.DeleteBinding.Manifest
+			unbindingRequestParams = inputParams.DeleteBinding.RequestParameters
+		} else {
+			if len(args) < 6 {
+				return missingArgsError(args, "<binding-ID> <bosh-VMs-JSON> <manifest-YAML> <request-params-JSON>")
+			}
+
+			bindingID = args[2]
+			boshVMsJSON = args[3]
+			manifestYAML = args[4]
+			unbindingRequestParams = args[5]
 		}
 
-		bindingID := args[2]
-		boshVMsJSON := args[3]
-		manifestYAML := args[4]
-		unbindingRequestParams := args[5]
 		return h.deleteBinding(bindingID, boshVMsJSON, manifestYAML, unbindingRequestParams, outputWriter)
 	case "dashboard-url":
 		if h.DashboardURLGenerator == nil {
@@ -183,7 +193,7 @@ func (h CommandLineHandler) Handle(args []string, outputWriter, errorWriter io.W
 		var instanceID, planJSON, manifestYAML string
 
 		if usingStdin(args, errorWriter) {
-			inputParams, err := readArgs(h.InputParamsFile)
+			inputParams, err := readArgs(inputParamsReader)
 			if err != nil {
 				return CLIHandlerError{ErrorExitCode, fmt.Sprintf("error reading input params JSON, error: %s", err)}
 			}
@@ -219,7 +229,7 @@ func (h CommandLineHandler) Handle(args []string, outputWriter, errorWriter io.W
 	return nil
 }
 
-func readArgs(f *os.File) (InputParams, error) {
+func readArgs(f io.Reader) (InputParams, error) {
 	var b []byte
 	var err error
 	readComplete := make(chan struct{})
