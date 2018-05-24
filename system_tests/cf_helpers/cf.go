@@ -30,7 +30,7 @@ func CfWithTimeout(timeout time.Duration, args ...string) *gexec.Session {
 
 	select {
 	case <-session.Exited:
-	case <-time.After(COMMAND_TIMEOUT):
+	case <-time.After(timeout):
 		session.Kill().Wait()
 	}
 	return session
