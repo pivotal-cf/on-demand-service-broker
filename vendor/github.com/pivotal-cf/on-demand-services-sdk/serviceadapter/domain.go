@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
@@ -99,11 +100,16 @@ type DeleteBindingParams struct {
 	RequestParameters string `json:"request_parameters"`
 }
 
+type GeneratePlanSchemasParams struct {
+	Plan string `json:"plan"`
+}
+
 type InputParams struct {
-	GenerateManifest GenerateManifestParams `json:"generate_manifest,omitempty"`
-	DashboardUrl     DashboardUrlParams     `json:"dashboard_url,omitempty"`
-	CreateBinding    CreateBindingParams    `json:"create_binding,omitempty"`
-	DeleteBinding    DeleteBindingParams    `json:"delete_binding,omitempty"`
+	GenerateManifest    GenerateManifestParams    `json:"generate_manifest,omitempty"`
+	DashboardUrl        DashboardUrlParams        `json:"dashboard_url,omitempty"`
+	CreateBinding       CreateBindingParams       `json:"create_binding,omitempty"`
+	DeleteBinding       DeleteBindingParams       `json:"delete_binding,omitempty"`
+	GeneratePlanSchemas GeneratePlanSchemasParams `json:"generate_plan_schemas,omitempty"`
 }
 
 const (
@@ -124,6 +130,12 @@ type AppGuidNotProvidedError struct {
 
 type BindingNotFoundError struct {
 	error
+}
+
+type Action interface {
+	IsImplemented() bool
+	ParseArgs(io.Reader, []string) (InputParams, error)
+	Execute(InputParams, io.Writer) error
 }
 
 func NewBindingAlreadyExistsError(err error) BindingAlreadyExistsError {
@@ -290,7 +302,7 @@ type Update struct {
 	Canaries        int                   `json:"canaries" yaml:"canaries"`
 	CanaryWatchTime string                `json:"canary_watch_time" yaml:"canary_watch_time"`
 	UpdateWatchTime string                `json:"update_watch_time" yaml:"update_watch_time"`
-	MaxInFlight     bosh.MaxInFlightValue `json:"max_in_flight, " yaml:"max_in_flight"`
+	MaxInFlight     bosh.MaxInFlightValue `json:"max_in_flight," yaml:"max_in_flight"`
 	Serial          *bool                 `json:"serial,omitempty" yaml:"serial,omitempty"`
 }
 
@@ -349,4 +361,12 @@ type Binding struct {
 	Credentials     map[string]interface{} `json:"credentials"`
 	SyslogDrainURL  string                 `json:"syslog_drain_url,omitempty"`
 	RouteServiceURL string                 `json:"route_service_url,omitempty"`
+}
+
+type MissingArgsError struct {
+	error
+}
+
+func NewMissingArgsError(e string) MissingArgsError {
+	return MissingArgsError{errors.New(e)}
 }

@@ -170,7 +170,6 @@ var _ = Describe("external service adapter", func() {
 			Expect(argsPassed).To(ConsistOf(
 				externalBinPath,
 				"delete-binding",
-				"-stdin",
 			))
 			Expect(actualInputParams).To(Equal(inputParams))
 

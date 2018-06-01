@@ -206,7 +206,6 @@ var _ = Describe("external service adapter", func() {
 			Expect(argsPassed).To(ConsistOf(
 				externalBinPath,
 				"create-binding",
-				"-stdin",
 			))
 			Expect(actualInputParams).To(Equal(sdk.InputParams{
 				CreateBinding: sdk.CreateBindingParams{

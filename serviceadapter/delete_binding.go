@@ -36,7 +36,7 @@ func (c *Client) DeleteBinding(bindingID string, deploymentTopology bosh.BoshVMs
 				Manifest:          string(manifest),
 			},
 		}
-		stdout, stderr, exitCode, err = c.CommandRunner.RunWithInputParams(inputParams, c.ExternalBinPath, "delete-binding", "-stdin")
+		stdout, stderr, exitCode, err = c.CommandRunner.RunWithInputParams(inputParams, c.ExternalBinPath, "delete-binding")
 	} else {
 		stdout, stderr, exitCode, err = c.CommandRunner.Run(c.ExternalBinPath, "delete-binding", bindingID, string(serialisedBoshVMs), string(manifest), string(serialisedRequestParams))
 	}

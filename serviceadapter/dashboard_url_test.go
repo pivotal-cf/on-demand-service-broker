@@ -197,7 +197,7 @@ var _ = Describe("dashboard url", func() {
 					InstanceId: instanceID, Plan: string(planJson), Manifest: string(manifest),
 				},
 			}))
-			Expect(argsPassed).To(ConsistOf(externalBinPath, "dashboard-url", "-stdin"))
+			Expect(argsPassed).To(ConsistOf(externalBinPath, "dashboard-url"))
 
 			By("returns a dashboard url")
 			Expect(actualDashboardUrl).To(Equal("https://someurl.com"))
@@ -242,7 +242,7 @@ var _ = Describe("dashboard url", func() {
 						InstanceId: instanceID, Plan: string(convertedPlanJson), Manifest: string(manifest),
 					},
 				}))
-				Expect(argsPassed).To(ConsistOf(externalBinPath, "dashboard-url", "-stdin"))
+				Expect(argsPassed).To(ConsistOf(externalBinPath, "dashboard-url"))
 			})
 		})
 

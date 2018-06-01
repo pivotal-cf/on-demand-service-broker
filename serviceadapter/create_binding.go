@@ -40,7 +40,7 @@ func (c *Client) CreateBinding(bindingID string, deploymentTopology bosh.BoshVMs
 			},
 		}
 
-		stdout, stderr, exitCode, err = c.CommandRunner.RunWithInputParams(inputParams, c.ExternalBinPath, "create-binding", "-stdin")
+		stdout, stderr, exitCode, err = c.CommandRunner.RunWithInputParams(inputParams, c.ExternalBinPath, "create-binding")
 	} else {
 		stdout, stderr, exitCode, err = c.CommandRunner.Run(c.ExternalBinPath, "create-binding", bindingID, string(serialisedBoshVMs), string(manifest), string(serialisedRequestParams))
 	}

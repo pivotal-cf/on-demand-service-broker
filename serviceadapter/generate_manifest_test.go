@@ -263,7 +263,6 @@ stemcells:
 			Expect(argsPassed).To(ConsistOf(
 				externalBinPath,
 				"generate-manifest",
-				"-stdin",
 			))
 			Expect(actualInputParams).To(Equal(inputParams))
 		})

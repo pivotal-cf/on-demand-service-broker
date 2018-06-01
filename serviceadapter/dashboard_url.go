@@ -36,7 +36,6 @@ func (c *Client) GenerateDashboardUrl(instanceID string, plan sdk.Plan, manifest
 			inputParams,
 			c.ExternalBinPath,
 			"dashboard-url",
-			"-stdin",
 		)
 	} else {
 		stdout, stderr, exitCode, err = c.CommandRunner.Run(

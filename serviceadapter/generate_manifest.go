@@ -72,7 +72,6 @@ func (c *Client) GenerateManifest(serviceDeployment sdk.ServiceDeployment, plan 
 		stdout, stderr, exitCode, err = c.CommandRunner.RunWithInputParams(
 			inputParams,
 			c.ExternalBinPath, "generate-manifest",
-			"-stdin",
 		)
 	} else {
 		stdout, stderr, exitCode, err = c.CommandRunner.Run(

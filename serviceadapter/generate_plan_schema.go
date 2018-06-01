@@ -15,15 +15,28 @@ import (
 )
 
 func (c *Client) GeneratePlanSchema(plan sdk.Plan, logger *log.Logger) (brokerapi.ServiceSchemas, error) {
+	var stdout, stderr []byte
+	var exitCode *int
+	var err error
+
 	plan.Properties = SanitiseForJSON(plan.Properties)
 	serialisedPlan, err := json.Marshal(plan)
 	if err != nil {
 		return brokerapi.ServiceSchemas{}, err
 	}
 
-	stdout, stderr, exitCode, err := c.CommandRunner.Run(
-		c.ExternalBinPath, "generate-plan-schemas", "--plan-json", string(serialisedPlan),
-	)
+	if c.UsingStdin {
+		inputParams := sdk.InputParams{
+			GeneratePlanSchemas: sdk.GeneratePlanSchemasParams{
+				Plan: string(serialisedPlan),
+			},
+		}
+		stdout, stderr, exitCode, err = c.CommandRunner.RunWithInputParams(inputParams, c.ExternalBinPath, "generate-plan-schemas")
+	} else {
+		stdout, stderr, exitCode, err = c.CommandRunner.Run(
+			c.ExternalBinPath, "generate-plan-schemas", "--plan-json", string(serialisedPlan),
+		)
+	}
 
 	if err != nil {
 		return brokerapi.ServiceSchemas{}, adapterError(c.ExternalBinPath, stdout, stderr, err)
