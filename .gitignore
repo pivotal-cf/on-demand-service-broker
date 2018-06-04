@@ -9,3 +9,5 @@ ci/*-local.yml
 *.coverprofile
 .vscode
 *.test
+.envrc-kafka
+.envrc-redis
