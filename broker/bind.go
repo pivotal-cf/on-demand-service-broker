@@ -36,6 +36,11 @@ func (b *Broker) Bind(
 		return brokerapi.Binding{}, b.processError(deploymentErr, logger)
 	}
 
+	secretsMap, err := b.secretResolver.ResolveManifestSecrets(manifest)
+	if err != nil {
+		logger.Printf("failed to resolve manifest secrets: %s", err.Error())
+	}
+
 	logger.Printf("service adapter will create binding with ID %s for instance %s\n", bindingID, instanceID)
 	detailsWithRawParameters := brokerapi.DetailsWithRawParameters(details)
 	mappedParams, err := convertDetailsToMap(detailsWithRawParameters)
@@ -75,8 +80,11 @@ func (b *Broker) Bind(
 	}
 
 	var createBindingErr error
-	binding, createBindingErr := b.adapterClient.CreateBinding(bindingID, vms, manifest, mappedParams, logger)
+	binding, createBindingErr := b.adapterClient.CreateBinding(bindingID, vms, manifest, mappedParams, secretsMap, logger)
 	if createBindingErr != nil {
+		if !b.EnableResolveSecretsAtBind {
+			logger.Printf("broker.resolve_secrets_at_bind was: false ")
+		}
 		logger.Printf("creating binding: %v\n", createBindingErr)
 	}
 

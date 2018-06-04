@@ -34,6 +34,7 @@ var _ = Describe("external service adapter", func() {
 		deploymentTopology bosh.BoshVMs
 		manifest           []byte
 		requestParams      map[string]interface{}
+		secrets            map[string]string
 
 		adapterBinding   sdk.Binding
 		createBindingErr error
@@ -60,10 +61,11 @@ var _ = Describe("external service adapter", func() {
 		deploymentTopology = bosh.BoshVMs{"the-deployment": []string{"a-vm"}}
 		manifest = []byte("a-manifest")
 		requestParams = map[string]interface{}{"foo": "bar"}
+		secrets = map[string]string{"admin-password": "pa55w0rd"}
 	})
 
 	JustBeforeEach(func() {
-		adapterBinding, createBindingErr = a.CreateBinding(bindingID, deploymentTopology, manifest, requestParams, logger)
+		adapterBinding, createBindingErr = a.CreateBinding(bindingID, deploymentTopology, manifest, requestParams, secrets, logger)
 	})
 
 	It("invokes external binding creator with serialised params", func() {
@@ -213,6 +215,7 @@ var _ = Describe("external service adapter", func() {
 					Manifest:          string(manifest),
 					BoshVms:           toJson(deploymentTopology),
 					RequestParameters: toJson(requestParams),
+					Secrets:           toJson(secrets),
 				},
 			}))
 		})

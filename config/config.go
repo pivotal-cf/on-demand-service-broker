@@ -28,19 +28,27 @@ type Config struct {
 	ServiceAdapter    ServiceAdapter    `yaml:"service_adapter"`
 	ServiceDeployment ServiceDeployment `yaml:"service_deployment"`
 	ServiceCatalog    ServiceOffering   `yaml:"service_catalog"`
+	BoshCredhub       BoshCredhub       `yaml:"bosh_credhub"`
 }
 
 type Broker struct {
-	Port                       int
-	Username                   string
-	Password                   string
-	DisableSSLCertVerification bool `yaml:"disable_ssl_cert_verification"`
-	StartUpBanner              bool `yaml:"startup_banner"`
-	ShutdownTimeoutSecs        int  `yaml:"shutdown_timeout_in_seconds"`
-	DisableCFStartupChecks     bool `yaml:"disable_cf_startup_checks"`
-	ExposeOperationalErrors    bool `yaml:"expose_operational_errors"`
-	EnablePlanSchemas          bool `yaml:"enable_plan_schemas"`
-	UsingStdin                 bool `yaml:"use_stdin"`
+	Port                         int
+	Username                     string
+	Password                     string
+	DisableSSLCertVerification   bool `yaml:"disable_ssl_cert_verification"`
+	StartUpBanner                bool `yaml:"startup_banner"`
+	ShutdownTimeoutSecs          int  `yaml:"shutdown_timeout_in_seconds"`
+	DisableCFStartupChecks       bool `yaml:"disable_cf_startup_checks"`
+	ExposeOperationalErrors      bool `yaml:"expose_operational_errors"`
+	EnablePlanSchemas            bool `yaml:"enable_plan_schemas"`
+	UsingStdin                   bool `yaml:"use_stdin"`
+	ResolveManifestSecretsAtBind bool `yaml:"resolve_manifest_secrets_at_bind"`
+}
+
+type BoshCredhub struct {
+	URL            string `yaml:"url"`
+	RootCACert     string `yaml:"root_ca_cert"`
+	Authentication Authentication
 }
 
 type Authentication struct {

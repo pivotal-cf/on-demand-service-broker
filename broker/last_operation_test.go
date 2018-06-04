@@ -237,6 +237,7 @@ var _ = Describe("LastOperation", func() {
 					[]broker.StartupChecker{},
 					serviceAdapter,
 					fakeDeployer,
+					secretResolver,
 					loggerFactory,
 				)
 				Expect(err).NotTo(HaveOccurred())

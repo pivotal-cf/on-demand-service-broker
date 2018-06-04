@@ -12,13 +12,14 @@ import (
 )
 
 type FakeServiceAdapterClient struct {
-	CreateBindingStub        func(bindingID string, deploymentTopology bosh.BoshVMs, manifest []byte, requestParams map[string]interface{}, logger *log.Logger) (serviceadapter.Binding, error)
+	CreateBindingStub        func(bindingID string, deploymentTopology bosh.BoshVMs, manifest []byte, requestParams map[string]interface{}, secretsMap map[string]string, logger *log.Logger) (serviceadapter.Binding, error)
 	createBindingMutex       sync.RWMutex
 	createBindingArgsForCall []struct {
 		bindingID          string
 		deploymentTopology bosh.BoshVMs
 		manifest           []byte
 		requestParams      map[string]interface{}
+		secretsMap         map[string]string
 		logger             *log.Logger
 	}
 	createBindingReturns struct {
@@ -78,7 +79,7 @@ type FakeServiceAdapterClient struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeServiceAdapterClient) CreateBinding(bindingID string, deploymentTopology bosh.BoshVMs, manifest []byte, requestParams map[string]interface{}, logger *log.Logger) (serviceadapter.Binding, error) {
+func (fake *FakeServiceAdapterClient) CreateBinding(bindingID string, deploymentTopology bosh.BoshVMs, manifest []byte, requestParams map[string]interface{}, secretsMap map[string]string, logger *log.Logger) (serviceadapter.Binding, error) {
 	var manifestCopy []byte
 	if manifest != nil {
 		manifestCopy = make([]byte, len(manifest))
@@ -91,12 +92,13 @@ func (fake *FakeServiceAdapterClient) CreateBinding(bindingID string, deployment
 		deploymentTopology bosh.BoshVMs
 		manifest           []byte
 		requestParams      map[string]interface{}
+		secretsMap         map[string]string
 		logger             *log.Logger
-	}{bindingID, deploymentTopology, manifestCopy, requestParams, logger})
-	fake.recordInvocation("CreateBinding", []interface{}{bindingID, deploymentTopology, manifestCopy, requestParams, logger})
+	}{bindingID, deploymentTopology, manifestCopy, requestParams, secretsMap, logger})
+	fake.recordInvocation("CreateBinding", []interface{}{bindingID, deploymentTopology, manifestCopy, requestParams, secretsMap, logger})
 	fake.createBindingMutex.Unlock()
 	if fake.CreateBindingStub != nil {
-		return fake.CreateBindingStub(bindingID, deploymentTopology, manifest, requestParams, logger)
+		return fake.CreateBindingStub(bindingID, deploymentTopology, manifest, requestParams, secretsMap, logger)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -110,10 +112,10 @@ func (fake *FakeServiceAdapterClient) CreateBindingCallCount() int {
 	return len(fake.createBindingArgsForCall)
 }
 
-func (fake *FakeServiceAdapterClient) CreateBindingArgsForCall(i int) (string, bosh.BoshVMs, []byte, map[string]interface{}, *log.Logger) {
+func (fake *FakeServiceAdapterClient) CreateBindingArgsForCall(i int) (string, bosh.BoshVMs, []byte, map[string]interface{}, map[string]string, *log.Logger) {
 	fake.createBindingMutex.RLock()
 	defer fake.createBindingMutex.RUnlock()
-	return fake.createBindingArgsForCall[i].bindingID, fake.createBindingArgsForCall[i].deploymentTopology, fake.createBindingArgsForCall[i].manifest, fake.createBindingArgsForCall[i].requestParams, fake.createBindingArgsForCall[i].logger
+	return fake.createBindingArgsForCall[i].bindingID, fake.createBindingArgsForCall[i].deploymentTopology, fake.createBindingArgsForCall[i].manifest, fake.createBindingArgsForCall[i].requestParams, fake.createBindingArgsForCall[i].secretsMap, fake.createBindingArgsForCall[i].logger
 }
 
 func (fake *FakeServiceAdapterClient) CreateBindingReturns(result1 serviceadapter.Binding, result2 error) {

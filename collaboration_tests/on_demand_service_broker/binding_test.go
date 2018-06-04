@@ -98,7 +98,7 @@ var _ = Describe("Binding", func() {
 
 			By("calling bind on the service adapter")
 			Expect(fakeServiceAdapter.CreateBindingCallCount()).To(Equal(1))
-			id, vms, manifest, params, _ := fakeServiceAdapter.CreateBindingArgsForCall(0)
+			id, vms, manifest, params, _, _ := fakeServiceAdapter.CreateBindingArgsForCall(0)
 			Expect(id).To(Equal(bindingID))
 			Expect(vms).To(Equal(boshVMs))
 			Expect(manifest).To(Equal(boshManifest))
@@ -140,6 +140,27 @@ var _ = Describe("Binding", func() {
 			Expect(responseBody).To(HaveKey("credentials"))
 			Expect(responseBody).NotTo(HaveKey("syslog_drain_url"))
 			Expect(responseBody).NotTo(HaveKey("route_service_url"))
+		})
+
+		It("substitutes credhub references in manifest with plaintext secrets", func() {
+			credhubPath := "/path/to/foo"
+			credhubSecret := "credhub-secret"
+			credhubRef := fmt.Sprintf("((%s))", credhubPath)
+			boshManifest = []byte(fmt.Sprintf(`---
+name: 123
+bob: %s
+`, credhubRef))
+
+			expectedSecrets := map[string]string{
+				credhubPath: credhubSecret,
+			}
+			credhubResolver.BulkGetReturns(expectedSecrets, nil)
+			fakeBoshClient.GetDeploymentReturns(boshManifest, true, nil)
+
+			// fake bosh credhub to respond to path /path/to/something with foobar
+			doBindRequest(instanceID, bindingID, bindDetails)
+			_, _, _, _, secretsMap, _ := fakeServiceAdapter.CreateBindingArgsForCall(0)
+			Expect(secretsMap).To(Equal(expectedSecrets))
 		})
 	})
 

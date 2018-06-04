@@ -208,6 +208,11 @@ var _ = Describe("Broker Config", func() {
 				Expect(parseErr).NotTo(HaveOccurred())
 				Expect(conf.Broker.ExposeOperationalErrors).To(BeTrue())
 				Expect(conf.Broker.EnablePlanSchemas).To(BeTrue())
+				Expect(conf.Broker.ResolveManifestSecretsAtBind).To(BeTrue())
+				Expect(conf.BoshCredhub.URL).To(Equal("https://bosh-credhub:8844/api/"))
+				Expect(conf.BoshCredhub.RootCACert).To(Equal("CERT"))
+				Expect(conf.BoshCredhub.Authentication.UAA.ClientCredentials.ID).To(Equal("credhub_id"))
+				Expect(conf.BoshCredhub.Authentication.UAA.ClientCredentials.Secret).To(Equal("credhub_secret"))
 				Expect(conf.ServiceCatalog.Plans[0].Metadata.AdditionalMetadata).To(Equal(map[string]interface{}{
 					"workers": 42,
 				}))

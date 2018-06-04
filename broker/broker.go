@@ -28,11 +28,13 @@ type Broker struct {
 	cfClient       CloudFoundryClient
 	adapterClient  ServiceAdapterClient
 	deployer       Deployer
+	secretResolver ManifestSecretResolver
 	deploymentLock *sync.Mutex
 
-	serviceOffering         config.ServiceOffering
-	ExposeOperationalErrors bool
-	EnablePlanSchemas       bool
+	serviceOffering            config.ServiceOffering
+	ExposeOperationalErrors    bool
+	EnablePlanSchemas          bool
+	EnableResolveSecretsAtBind bool
 
 	loggerFactory *loggerfactory.LoggerFactory
 }
@@ -45,6 +47,7 @@ func New(
 	startupCheckers []StartupChecker,
 	serviceAdapter ServiceAdapterClient,
 	deployer Deployer,
+	manifestSecretResolver ManifestSecretResolver,
 	loggerFactory *loggerfactory.LoggerFactory,
 ) (*Broker, error) {
 	b := &Broker{
@@ -54,9 +57,11 @@ func New(
 		deployer:       deployer,
 		deploymentLock: &sync.Mutex{},
 
-		serviceOffering:         serviceOffering,
-		ExposeOperationalErrors: brokerConfig.ExposeOperationalErrors,
-		EnablePlanSchemas:       brokerConfig.EnablePlanSchemas,
+		serviceOffering:            serviceOffering,
+		ExposeOperationalErrors:    brokerConfig.ExposeOperationalErrors,
+		EnablePlanSchemas:          brokerConfig.EnablePlanSchemas,
+		EnableResolveSecretsAtBind: brokerConfig.ResolveManifestSecretsAtBind,
+		secretResolver:             manifestSecretResolver,
 
 		loggerFactory: loggerFactory,
 	}
@@ -153,7 +158,7 @@ type Deployer interface {
 
 //go:generate counterfeiter -o fakes/fake_service_adapter_client.go . ServiceAdapterClient
 type ServiceAdapterClient interface {
-	CreateBinding(bindingID string, deploymentTopology bosh.BoshVMs, manifest []byte, requestParams map[string]interface{}, logger *log.Logger) (serviceadapter.Binding, error)
+	CreateBinding(bindingID string, deploymentTopology bosh.BoshVMs, manifest []byte, requestParams map[string]interface{}, secretsMap map[string]string, logger *log.Logger) (serviceadapter.Binding, error)
 	DeleteBinding(bindingID string, deploymentTopology bosh.BoshVMs, manifest []byte, requestParams map[string]interface{}, logger *log.Logger) error
 	GenerateDashboardUrl(instanceID string, plan serviceadapter.Plan, manifest []byte, logger *log.Logger) (string, error)
 	GeneratePlanSchema(plan serviceadapter.Plan, logger *log.Logger) (brokerapi.ServiceSchemas, error)

@@ -42,6 +42,8 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/brokeraugmenter"
 	credhubfakes "github.com/pivotal-cf/on-demand-service-broker/credhubbroker/fakes"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
+	"github.com/pivotal-cf/on-demand-service-broker/manifestsecrets"
+	credstorefakes "github.com/pivotal-cf/on-demand-service-broker/manifestsecrets/fakes"
 )
 
 func TestOnDemandServiceBroker(t *testing.T) {
@@ -68,6 +70,9 @@ var (
 	fakeDeployer               *fakes.FakeDeployer
 	loggerBuffer               *gbytes.Buffer
 	shouldSendSigterm          bool
+	secretResolver             broker.ManifestSecretResolver
+
+	credhubResolver *credstorefakes.FakeBulkGetter
 )
 
 var _ = BeforeEach(func() {
@@ -77,6 +82,10 @@ var _ = BeforeEach(func() {
 	fakeCredentialStore = new(credhubfakes.FakeCredentialStore)
 	fakeCfClient = new(fakes.FakeCloudFoundryClient)
 	fakeDeployer = new(fakes.FakeDeployer)
+
+	credhubPathMatcher := new(manifestsecrets.CredHubPathMatcher)
+	credhubResolver = new(credstorefakes.FakeBulkGetter)
+	secretResolver = manifestsecrets.NewResolver(true, credhubPathMatcher, credhubResolver)
 
 	fakeCredentialStoreFactory.NewReturns(fakeCredentialStore, nil)
 })
@@ -107,6 +116,7 @@ func StartServerWithStopHandler(conf config.Config, stopServerChan chan os.Signa
 		nil,
 		fakeServiceAdapter,
 		fakeDeployer,
+		secretResolver,
 		loggerFactory,
 	)
 	Expect(err).NotTo(HaveOccurred())

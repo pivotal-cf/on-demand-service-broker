@@ -14,7 +14,7 @@ import (
 	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
 
-func (c *Client) CreateBinding(bindingID string, deploymentTopology bosh.BoshVMs, manifest []byte, requestParams map[string]interface{}, logger *log.Logger) (sdk.Binding, error) {
+func (c *Client) CreateBinding(bindingID string, deploymentTopology bosh.BoshVMs, manifest []byte, requestParams map[string]interface{}, secrets map[string]string, logger *log.Logger) (sdk.Binding, error) {
 	var binding sdk.Binding
 
 	serialisedBoshVMs, err := json.Marshal(deploymentTopology)
@@ -23,6 +23,11 @@ func (c *Client) CreateBinding(bindingID string, deploymentTopology bosh.BoshVMs
 	}
 
 	serialisedRequestParams, err := json.Marshal(requestParams)
+	if err != nil {
+		return binding, err
+	}
+
+	serialisedSecrets, err := json.Marshal(secrets)
 	if err != nil {
 		return binding, err
 	}
@@ -37,6 +42,7 @@ func (c *Client) CreateBinding(bindingID string, deploymentTopology bosh.BoshVMs
 				BoshVms:           string(serialisedBoshVMs),
 				BindingId:         bindingID,
 				Manifest:          string(manifest),
+				Secrets:           string(serialisedSecrets),
 			},
 		}
 

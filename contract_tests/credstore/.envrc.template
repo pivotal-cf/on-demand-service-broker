@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+export CREDHUB_CLIENT=
+export CREDHUB_CLIENT_SECRET=
+export CREDHUB_CA_CERT=
+export CREDHUB_URL=
+
+source_up

@@ -13,6 +13,8 @@ import (
 	"log"
 	"os"
 
+	"github.com/cloudfoundry-incubator/credhub-cli/credhub"
+	"github.com/cloudfoundry-incubator/credhub-cli/credhub/auth"
 	"github.com/cloudfoundry/bosh-cli/director"
 	boshuaa "github.com/cloudfoundry/bosh-cli/uaa"
 	boshlog "github.com/cloudfoundry/bosh-utils/logger"
@@ -23,7 +25,9 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/credhubbroker"
+	"github.com/pivotal-cf/on-demand-service-broker/credstore"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
+	"github.com/pivotal-cf/on-demand-service-broker/manifestsecrets"
 	"github.com/pivotal-cf/on-demand-service-broker/noopservicescontroller"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	"github.com/pivotal-cf/on-demand-service-broker/startupchecker"
@@ -128,7 +132,35 @@ func startBroker(conf config.Config, logger *log.Logger, loggerFactory *loggerfa
 		startupchecker.NewBOSHAuthChecker(boshClient, logger),
 	)
 
-	onDemandBroker, err := broker.New(boshClient, cfClient, conf.ServiceCatalog, conf.Broker, startupChecks, serviceAdapter, deploymentManager, loggerFactory)
+	matcher := new(manifestsecrets.CredHubPathMatcher)
+	var boshCredhubClient *credhub.CredHub
+	if conf.Broker.ResolveManifestSecretsAtBind {
+		boshCredhubClient, err = credhub.New(
+			conf.BoshCredhub.URL,
+			credhub.Auth(auth.UaaClientCredentials(
+				conf.BoshCredhub.Authentication.UAA.ClientCredentials.ID,
+				conf.BoshCredhub.Authentication.UAA.ClientCredentials.Secret,
+			)),
+			credhub.CaCerts(conf.BoshCredhub.RootCACert, conf.Bosh.TrustedCert),
+		)
+		if err != nil {
+			logger.Fatalf("error starting broker: %s", err)
+		}
+	}
+	bulkGetter := credstore.New(boshCredhubClient)
+	manifestSecretResolver := manifestsecrets.NewResolver(conf.Broker.ResolveManifestSecretsAtBind, matcher, bulkGetter)
+
+	onDemandBroker, err := broker.New(
+		boshClient,
+		cfClient,
+		conf.ServiceCatalog,
+		conf.Broker,
+		startupChecks,
+		serviceAdapter,
+		deploymentManager,
+		manifestSecretResolver,
+		loggerFactory,
+	)
 	if err != nil {
 		logger.Fatalf("error starting broker: %s", err)
 	}
