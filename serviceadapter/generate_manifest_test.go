@@ -14,6 +14,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
+	yaml "gopkg.in/yaml.v2"
 
 	"encoding/json"
 
@@ -21,6 +22,7 @@ import (
 
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter/fakes"
+	bosh "github.com/pivotal-cf/on-demand-services-sdk/bosh"
 	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
 
@@ -54,7 +56,10 @@ var _ = Describe("external service adapter", func() {
 			ExternalBinPath: externalBinPath,
 		}
 		cmdRunner.RunReturns([]byte(validManifestContent), []byte(""), intPtr(serviceadapter.SuccessExitCode), nil)
-		cmdRunner.RunWithInputParamsReturns([]byte(validManifestContent), []byte(""), intPtr(serviceadapter.SuccessExitCode), nil)
+		jsonDoc := sdk.GenerateManifestOutput{
+			Manifest: validManifestContent,
+		}
+		cmdRunner.RunWithInputParamsReturns([]byte(toJson(jsonDoc)), []byte(""), intPtr(serviceadapter.SuccessExitCode), nil)
 
 		serviceDeployment = sdk.ServiceDeployment{
 			DeploymentName: "a-service-deployment",
@@ -268,10 +273,20 @@ stemcells:
 		})
 
 		Context("when the external service adapter succeeds", func() {
+			When("the outputted data is not valid json", func() {
+				BeforeEach(func() {
+					cmdRunner.RunWithInputParamsReturns([]byte("banana"), []byte(""), intPtr(serviceadapter.SuccessExitCode), nil)
+				})
+
+				It("returns an error", func() {
+					Expect(generateErr).To(MatchError(ContainSubstring("invalid character 'b'")))
+				})
+			})
+
 			Context("when the generated manifest is invalid", func() {
 				Context("with an incorrect deployment name", func() {
 					BeforeEach(func() {
-						invalidManifestContent := "name: not-the-deployment-name-given-to-the-adapter"
+						invalidManifestContent := `{"manifest":"name: not-the-deployment-name-given-to-the-adapter"}`
 						cmdRunner.RunWithInputParamsReturns([]byte(invalidManifestContent), []byte(""), intPtr(serviceadapter.SuccessExitCode), nil)
 					})
 
@@ -282,11 +297,15 @@ stemcells:
 
 				Context("with an invalid release version", func() {
 					BeforeEach(func() {
-						invalidManifestContent := `---
-name: a-service-deployment
-releases:
-- version: 42.latest`
-						cmdRunner.RunWithInputParamsReturns([]byte(invalidManifestContent), []byte(""), intPtr(serviceadapter.SuccessExitCode), nil)
+						jsonDoc := sdk.GenerateManifestOutput{
+							Manifest: toYaml(bosh.BoshManifest{
+								Name: "a-service-deployment",
+								Releases: []bosh.Release{
+									{Version: "42.latest"},
+								},
+							}),
+						}
+						cmdRunner.RunWithInputParamsReturns([]byte(toJson(jsonDoc)), []byte(""), intPtr(serviceadapter.SuccessExitCode), nil)
 					})
 
 					It("returns an error", func() {
@@ -296,11 +315,15 @@ releases:
 
 				Context("with an invalid stemcell version", func() {
 					BeforeEach(func() {
-						invalidManifestContent := `---
-name: a-service-deployment
-stemcells:
-- version: 42.latest`
-						cmdRunner.RunWithInputParamsReturns([]byte(invalidManifestContent), []byte(""), intPtr(serviceadapter.SuccessExitCode), nil)
+						jsonDoc := sdk.GenerateManifestOutput{
+							Manifest: toYaml(bosh.BoshManifest{
+								Name: "a-service-deployment",
+								Stemcells: []bosh.Stemcell{
+									{Version: "42.latest"},
+								},
+							}),
+						}
+						cmdRunner.RunWithInputParamsReturns([]byte(toJson(jsonDoc)), []byte(""), intPtr(serviceadapter.SuccessExitCode), nil)
 					})
 
 					It("returns an error", func() {
@@ -310,19 +333,26 @@ stemcells:
 
 				Context("that cannot be unmarshalled", func() {
 					BeforeEach(func() {
-						cmdRunner.RunWithInputParamsReturns([]byte("unparseable"), []byte(""), intPtr(serviceadapter.SuccessExitCode), nil)
+						jsonDoc := sdk.GenerateManifestOutput{
+							Manifest: "unparseable",
+						}
+						cmdRunner.RunWithInputParamsReturns([]byte(toJson(jsonDoc)), []byte(""), intPtr(serviceadapter.SuccessExitCode), nil)
 					})
 
 					It("returns an error", func() {
 						Expect(generateErr).To(MatchError("external service adapter generated manifest that is not valid YAML at /thing. stderr: ''"))
 					})
 				})
+
 			})
 		})
 
 		Context("when the external service adapter exits with status 10", func() {
 			BeforeEach(func() {
-				cmdRunner.RunWithInputParamsReturns([]byte("I'm stdout"), []byte("I'm stderr"), intPtr(sdk.NotImplementedExitCode), nil)
+				jsonDoc := sdk.GenerateManifestOutput{
+					Manifest: "I'm stdout",
+				}
+				cmdRunner.RunWithInputParamsReturns([]byte(toJson(jsonDoc)), []byte("I'm stderr"), intPtr(sdk.NotImplementedExitCode), nil)
 			})
 
 			It("returns an error", func() {
@@ -339,7 +369,10 @@ stemcells:
 		Context("when the external service adapter fails", func() {
 			Context("when there is a operator error message and a user error message", func() {
 				BeforeEach(func() {
-					cmdRunner.RunWithInputParamsReturns([]byte("I'm stdout"), []byte("I'm stderr"), intPtr(sdk.ErrorExitCode), nil)
+					jsonDoc := sdk.GenerateManifestOutput{
+						Manifest: "I'm stdout",
+					}
+					cmdRunner.RunWithInputParamsReturns([]byte(toJson(jsonDoc)), []byte("I'm stderr"), intPtr(sdk.ErrorExitCode), nil)
 				})
 
 				It("returns an UnknownFailureError", func() {
@@ -371,7 +404,7 @@ stemcells:
 			})
 
 			It("it writes 'null' to the argument list", func() {
-				By("erroring")
+				By("not erroring")
 				Expect(generateErr).ToNot(HaveOccurred())
 
 				actualInputParams, _ := cmdRunner.RunWithInputParamsArgsForCall(0)
@@ -390,4 +423,10 @@ func toJson(i interface{}) string {
 	b := gbytes.NewBuffer()
 	json.NewEncoder(b).Encode(i)
 	return strings.TrimRight(string(b.Contents()), "\n")
+}
+
+func toYaml(i interface{}) string {
+	out, err := yaml.Marshal(i)
+	Expect(err).NotTo(HaveOccurred())
+	return string(out)
 }

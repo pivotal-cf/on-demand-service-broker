@@ -57,6 +57,7 @@ func (c *Client) GenerateManifest(serviceDeployment sdk.ServiceDeployment, plan 
 
 	var stdout, stderr []byte
 	var exitCode *int
+	var jsonOutput []byte
 
 	if c.UsingStdin {
 		inputParams := sdk.InputParams{
@@ -69,10 +70,17 @@ func (c *Client) GenerateManifest(serviceDeployment sdk.ServiceDeployment, plan 
 			},
 		}
 
-		stdout, stderr, exitCode, err = c.CommandRunner.RunWithInputParams(
+		jsonOutput, stderr, exitCode, err = c.CommandRunner.RunWithInputParams(
 			inputParams,
 			c.ExternalBinPath, "generate-manifest",
 		)
+		if err != nil {
+			return nil, adapterError(c.ExternalBinPath, stdout, stderr, err)
+		}
+
+		var manifestOutput sdk.GenerateManifestOutput
+		err = json.Unmarshal(jsonOutput, &manifestOutput)
+		stdout = []byte(manifestOutput.Manifest)
 	} else {
 		stdout, stderr, exitCode, err = c.CommandRunner.Run(
 			c.ExternalBinPath, "generate-manifest",

@@ -99,7 +99,7 @@ func (a *Adapter) GenerateManifest(serviceDeployment serviceadapter.ServiceDeplo
 	return manifest, nil
 }
 
-func (a *Adapter) CreateBinding(bindingID string, deploymentTopology bosh.BoshVMs, manifest bosh.BoshManifest, requestParams serviceadapter.RequestParameters) (serviceadapter.Binding, error) {
+func (a *Adapter) CreateBinding(bindingID string, deploymentTopology bosh.BoshVMs, manifest bosh.BoshManifest, requestParams serviceadapter.RequestParameters, secrets serviceadapter.ManifestSecrets) (serviceadapter.Binding, error) {
 	stderrMessage := os.Getenv(mock.StderrContentForBind)
 	if stderrMessage != "" {
 		a.Logger.Println(stderrMessage)
