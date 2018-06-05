@@ -57,7 +57,7 @@ func (c *Client) GenerateManifest(serviceDeployment sdk.ServiceDeployment, plan 
 
 	var stdout, stderr []byte
 	var exitCode *int
-	var jsonOutput []byte
+	var jsonErr error
 
 	if c.UsingStdin {
 		inputParams := sdk.InputParams{
@@ -70,7 +70,7 @@ func (c *Client) GenerateManifest(serviceDeployment sdk.ServiceDeployment, plan 
 			},
 		}
 
-		jsonOutput, stderr, exitCode, err = c.CommandRunner.RunWithInputParams(
+		stdout, stderr, exitCode, err = c.CommandRunner.RunWithInputParams(
 			inputParams,
 			c.ExternalBinPath, "generate-manifest",
 		)
@@ -79,8 +79,10 @@ func (c *Client) GenerateManifest(serviceDeployment sdk.ServiceDeployment, plan 
 		}
 
 		var manifestOutput sdk.GenerateManifestOutput
-		err = json.Unmarshal(jsonOutput, &manifestOutput)
-		stdout = []byte(manifestOutput.Manifest)
+		jsonErr = json.Unmarshal(stdout, &manifestOutput)
+		if jsonErr == nil {
+			stdout = []byte(manifestOutput.Manifest)
+		}
 	} else {
 		stdout, stderr, exitCode, err = c.CommandRunner.Run(
 			c.ExternalBinPath, "generate-manifest",
@@ -88,15 +90,19 @@ func (c *Client) GenerateManifest(serviceDeployment sdk.ServiceDeployment, plan 
 			string(serialisedPlan), string(serialisedRequestParams),
 			string(previousManifest), string(serialisedPreviousPlan),
 		)
-	}
 
-	if err != nil {
-		return nil, adapterError(c.ExternalBinPath, stdout, stderr, err)
+		if err != nil {
+			return nil, adapterError(c.ExternalBinPath, stdout, stderr, err)
+		}
 	}
 
 	if err := ErrorForExitCode(*exitCode, string(stdout)); err != nil {
 		logger.Printf(adapterFailedMessage(*exitCode, c.ExternalBinPath, stdout, stderr))
 		return nil, err
+	}
+
+	if jsonErr != nil {
+		return nil, adapterError(c.ExternalBinPath, stdout, stderr, jsonErr)
 	}
 
 	logger.Printf("service adapter ran generate-manifest successfully, stderr logs: %s", string(stderr))

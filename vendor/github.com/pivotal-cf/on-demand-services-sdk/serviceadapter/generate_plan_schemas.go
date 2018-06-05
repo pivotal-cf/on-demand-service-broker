@@ -45,6 +45,7 @@ func (g *GeneratePlanSchemasAction) ParseArgs(reader io.Reader, args []string) (
 		}
 
 		inputParams = InputParams{
+			TextOutput: true,
 			GeneratePlanSchemas: GeneratePlanSchemasParams{
 				Plan: *planJSON,
 			},
@@ -82,7 +83,17 @@ func (g *GeneratePlanSchemasAction) Execute(inputParams InputParams, outputWrite
 		fmt.Fprintf(outputWriter, err.Error())
 		return CLIHandlerError{ErrorExitCode, err.Error()}
 	}
-	err = json.NewEncoder(outputWriter).Encode(schema)
+
+	var outputSchema interface{}
+
+	if inputParams.TextOutput {
+		outputSchema = schema
+	} else {
+		b, _ := json.Marshal(schema)
+		outputSchema = GeneratePlanSchemasOutput{string(b)}
+	}
+
+	err = json.NewEncoder(outputWriter).Encode(outputSchema)
 	if err != nil {
 		return errors.Wrap(err, "error marshalling plan schema")
 	}

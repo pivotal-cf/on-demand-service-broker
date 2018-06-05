@@ -185,11 +185,11 @@ var _ = Describe("GeneratePlanSchema", func() {
 		})
 	})
 
-	When("using STDIN is set to false", func() {
+	When("UsingStdin is set to true", func() {
 		BeforeEach(func() {
 			a.UsingStdin = true
 
-			cmdRunner.RunWithInputParamsReturns([]byte(toJson(expectedPlanSchemas)), []byte("I'm stderr"), intPtr(serviceadapter.SuccessExitCode), nil)
+			cmdRunner.RunWithInputParamsReturns([]byte(toJson(sdk.GeneratePlanSchemasOutput{Schemas: toJson(expectedPlanSchemas)})), []byte("I'm stderr"), intPtr(serviceadapter.SuccessExitCode), nil)
 		})
 
 		It("invokes external generate plan schema with plan json", func() {
@@ -221,6 +221,15 @@ var _ = Describe("GeneratePlanSchema", func() {
 			Expect(actualPlanSchemas).To(Equal(expectedPlanSchemas))
 		})
 
+		When("the adapter succeeds but the outputted data is not valid json", func() {
+			BeforeEach(func() {
+				cmdRunner.RunWithInputParamsReturns([]byte("banana"), []byte(""), intPtr(serviceadapter.SuccessExitCode), nil)
+			})
+
+			It("returns an error", func() {
+				Expect(actualError).To(MatchError(ContainSubstring("invalid character 'b'")))
+			})
+		})
 		Context("when plan properties are formatted as map[interface][interface]", func() {
 			BeforeEach(func() {
 				plan = sdk.Plan{
@@ -310,6 +319,24 @@ var _ = Describe("GeneratePlanSchema", func() {
 		})
 	})
 })
+
+func toSDKSchema(schema brokerapi.ServiceSchemas) sdk.PlanSchema {
+	return sdk.PlanSchema{
+		ServiceInstance: sdk.ServiceInstanceSchema{
+			Create: sdk.JSONSchemas{
+				Parameters: schema.Instance.Create.Parameters,
+			},
+			Update: sdk.JSONSchemas{
+				Parameters: schema.Instance.Update.Parameters,
+			},
+		},
+		ServiceBinding: sdk.ServiceBindingSchema{
+			Create: sdk.JSONSchemas{
+				Parameters: schema.Binding.Create.Parameters,
+			},
+		},
+	}
+}
 
 func getPlanSchema() brokerapi.ServiceSchemas {
 	schemas := brokerapi.Schema{
