@@ -369,10 +369,7 @@ stemcells:
 		Context("when the external service adapter fails", func() {
 			Context("when there is a operator error message and a user error message", func() {
 				BeforeEach(func() {
-					jsonDoc := sdk.GenerateManifestOutput{
-						Manifest: "I'm stdout",
-					}
-					cmdRunner.RunWithInputParamsReturns([]byte(toJson(jsonDoc)), []byte("I'm stderr"), intPtr(sdk.ErrorExitCode), nil)
+					cmdRunner.RunWithInputParamsReturns([]byte("I'm stdout"), []byte("I'm stderr"), intPtr(sdk.ErrorExitCode), nil)
 				})
 
 				It("returns an UnknownFailureError", func() {
