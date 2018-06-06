@@ -185,7 +185,7 @@ var _ = Describe("GeneratePlanSchema", func() {
 		})
 	})
 
-	When("using STDIN is set to false", func() {
+	When("UsingStdin is set to true", func() {
 		BeforeEach(func() {
 			a.UsingStdin = true
 
