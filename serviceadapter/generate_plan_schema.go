@@ -18,7 +18,6 @@ func (c *Client) GeneratePlanSchema(plan sdk.Plan, logger *log.Logger) (brokerap
 	var stdout, stderr []byte
 	var exitCode *int
 	var err error
-	var jsonErr error
 
 	plan.Properties = SanitiseForJSON(plan.Properties)
 	serialisedPlan, err := json.Marshal(plan)
@@ -33,31 +32,19 @@ func (c *Client) GeneratePlanSchema(plan sdk.Plan, logger *log.Logger) (brokerap
 			},
 		}
 		stdout, stderr, exitCode, err = c.CommandRunner.RunWithInputParams(inputParams, c.ExternalBinPath, "generate-plan-schemas")
-		if err != nil {
-			return brokerapi.ServiceSchemas{}, adapterError(c.ExternalBinPath, stdout, stderr, err)
-		}
-
-		var schemaOutput sdk.GeneratePlanSchemasOutput
-		jsonErr = json.Unmarshal(stdout, &schemaOutput)
-		if jsonErr == nil {
-			stdout = []byte(schemaOutput.Schemas)
-		}
 	} else {
 		stdout, stderr, exitCode, err = c.CommandRunner.Run(
 			c.ExternalBinPath, "generate-plan-schemas", "--plan-json", string(serialisedPlan),
 		)
-		if err != nil {
-			return brokerapi.ServiceSchemas{}, adapterError(c.ExternalBinPath, stdout, stderr, err)
-		}
 	}
 
-	if err = ErrorForExitCode(*exitCode, string(stdout)); err != nil {
+	if err != nil {
+		return brokerapi.ServiceSchemas{}, adapterError(c.ExternalBinPath, stdout, stderr, err)
+	}
+
+	if err := ErrorForExitCode(*exitCode, string(stdout)); err != nil {
 		logger.Printf(adapterFailedMessage(*exitCode, c.ExternalBinPath, stdout, stderr))
 		return brokerapi.ServiceSchemas{}, err
-	}
-
-	if jsonErr != nil {
-		return brokerapi.ServiceSchemas{}, adapterError(c.ExternalBinPath, stdout, stderr, jsonErr)
 	}
 
 	logger.Printf("service adapter ran generate-plan-schema successfully, stderr logs: %s", string(stderr))
