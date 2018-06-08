@@ -47,7 +47,12 @@ func (e DisplayableError) ErrorForCFUser() error {
 }
 
 func (e DisplayableError) ExtendedCFError() error {
-	return fmt.Errorf("%s, error-message: %s", e.errorForCFUser, e.errorForOperator)
+	switch err := e.errorForCFUser.(type) {
+	case *brokerapi.FailureResponse:
+		return err.AppendErrorMessage(fmt.Sprintf("- error-message: %s", e.errorForOperator))
+	default:
+		return fmt.Errorf("%s - error-message: %s", e.errorForCFUser, e.errorForOperator)
+	}
 }
 
 func (e DisplayableError) Error() string {

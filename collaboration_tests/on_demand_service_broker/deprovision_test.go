@@ -171,7 +171,7 @@ var _ = Describe("Deprovision", func() {
 		BeforeEach(func() {
 			conf := brokerConfig.Config{
 				Broker: brokerConfig.Broker{
-					Port: serverPort, Username: brokerUsername, Password: brokerPassword,
+					Port: serverPort, Username: brokerUsername, Password: brokerPassword, ExposeOperationalErrors: true,
 				},
 				ServiceCatalog: brokerConfig.ServiceOffering{
 					Name: serviceName,
