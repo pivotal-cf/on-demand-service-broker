@@ -261,6 +261,21 @@ var _ = Describe("BOSH client", func() {
 			Expect(output.StdOut).To(Equal("running dummy errand\n"))
 		})
 	})
+
+	Describe("Variables()", func() {
+		It("returns the variables for the deployment", func() {
+			reporter := boshdirector.NewAsyncTaskReporter()
+			_, err := boshClient.Deploy(getManifest("single_vm_deployment.yml", deploymentName), "some-context-id", logger, reporter)
+			Expect(err).NotTo(HaveOccurred())
+
+			Eventually(reporter.Finished).Should(Receive(), fmt.Sprintf("Timed out waiting for %s to deploy", deploymentName))
+
+			variables, err := boshClient.Variables(deploymentName, logger)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(variables).To(HaveLen(1))
+			Expect(variables[0].Path).To(ContainSubstring("a-var"))
+		})
+	})
 })
 
 func getManifest(filename, deploymentName string) []byte {

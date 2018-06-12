@@ -37,3 +37,7 @@ update:
   serial: false
   canary_watch_time: 1000-60000
   update_watch_time: 1000-60000
+
+variables:
+- name: a-var
+  type: password

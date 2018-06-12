@@ -144,6 +144,11 @@ type Info struct {
 	UserAuthentication UserAuthentication `json:"user_authentication"`
 }
 
+type Variable struct {
+	Path string `json:"name"`
+	ID   string `json:"id"`
+}
+
 type UserAuthentication struct {
 	Options AuthenticationOptions
 }
