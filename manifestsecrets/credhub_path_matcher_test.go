@@ -3,104 +3,56 @@ package manifestsecrets_test
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/manifestsecrets"
 )
 
 var _ = Describe("CredhubPathMatcher", func() {
-
 	Describe("Match", func() {
-		When("manifest has no variables block", func() {
-			It("matches all variables", func() {
-				manifest := []byte(`---
-foo: ((/path/to/one))
-bar:
-  sha: ((/path/to/two))
-  quux: ((relative/path))
-another: ((couldBeAVarButIsnt))
-`)
-				expectedMatches := [][]byte{
-					[]byte("/path/to/one"),
-					[]byte("/path/to/two"),
-					[]byte("relative/path"),
-					[]byte("couldBeAVarButIsnt"),
-				}
-
-				matcher := new(manifestsecrets.CredHubPathMatcher)
-				matches, err := matcher.Match(manifest)
-
-				Expect(err).NotTo(HaveOccurred())
-				Expect(matches).To(Equal(expectedMatches))
-			})
-		})
-
-		When("manifest has a variables block", func() {
-			It("ignores the variables in the block", func() {
-				manifest := []byte(`---
-foo: ((/path/to/one))
-bar:
-  sha: ((/path/to/two))
-  quux: ((relative/path))
-another: ((isAVar))
-variables:
-- name: isAVar
-  type: password
-`)
-				expectedMatches := [][]byte{
-					[]byte("/path/to/one"),
-					[]byte("/path/to/two"),
-					[]byte("relative/path"),
-				}
-
-				matcher := new(manifestsecrets.CredHubPathMatcher)
-				matches, err := matcher.Match(manifest)
-
-				Expect(err).NotTo(HaveOccurred())
-				Expect(matches).To(Equal(expectedMatches))
-			})
-		})
-
-		It("returns an error when manifest is invalid", func() {
-			manifest := []byte(`what`)
-			matcher := new(manifestsecrets.CredHubPathMatcher)
-			_, err := matcher.Match(manifest)
-			Expect(err).To(MatchError(ContainSubstring("cannot unmarshal")))
-		})
-	})
-
-	Describe("NamesFromVarsBlock", func() {
-		It("returns a map of variable names in the variables block", func() {
+		It("correctly matches the deployment variables", func() {
 			manifest := []byte(`---
+name: cocoon
+another: ((isAVar))
 foo: ((/path/to/one))
 bar:
   sha: ((/path/to/two))
   quux: ((relative/path))
-another: ((/isAVar))
+  yo: ((/other/absolute/path))
+  yo: ((/absolute/path))
+  fo: ((2isAVar))
+  relative: ((relative))
 variables:
 - name: isAVar
   type: password
-- name: boo
-  type: certificate
+- name: /other/absolute/path
+  type: password
+- name: /absolute/path
+  type: password
+- name: 2isAVar
+  type: password
 `)
+			expectedMatches := map[string]boshdirector.Variable{
+				"/path/to/one":         {Path: "/path/to/one"},
+				"/path/to/two":         {Path: "/path/to/two"},
+				"relative/path":        {Path: "relative/path"},
+				"/other/absolute/path": {Path: "/other/absolute/path", ID: "yet-another-id"},
+				"2isAVar":              {Path: "/baboon/cocoon/2isAVar", ID: "the-id"},
+				"isAVar":               {Path: "/baboon/cocoon/isAVar", ID: "some-id"},
+				"/absolute/path":       {Path: "/absolute/path", ID: "some-other-id"},
+				"relative":             {Path: "/baboon/cocoon/relative", ID: "relative-id"},
+			}
+
 			matcher := new(manifestsecrets.CredHubPathMatcher)
-			variables, err := matcher.NamesFromVarsBlock(manifest)
+			matches, err := matcher.Match(manifest, []boshdirector.Variable{
+				{Path: "/other/absolute/path", ID: "yet-another-id"},
+				{Path: "/baboon/cocoon/2isAVar", ID: "the-id"},
+				{Path: "/baboon/cocoon/isAVar", ID: "some-id"},
+				{Path: "/baboon/cocoon/relative", ID: "relative-id"},
+				{Path: "/absolute/path", ID: "some-other-id"},
+			})
+
 			Expect(err).NotTo(HaveOccurred())
-			Expect(len(variables)).To(Equal(2))
-			Expect(variables["isAVar"]).To(BeTrue())
-			Expect(variables["boo"]).To(BeTrue())
-		})
-
-		It("errors when the manifest is an invalid yaml", func() {
-			manifest := []byte(`what`)
-			matcher := new(manifestsecrets.CredHubPathMatcher)
-			_, err := matcher.NamesFromVarsBlock(manifest)
-			Expect(err).To(MatchError(ContainSubstring("cannot unmarshal")))
-		})
-
-		It("errors when the variables block is invalid", func() {
-			manifest := []byte(`{ "variables" : [{"type":"password"}] }`)
-			matcher := new(manifestsecrets.CredHubPathMatcher)
-			_, err := matcher.NamesFromVarsBlock(manifest)
-			Expect(err).To(MatchError(ContainSubstring("variable without name in variables block")))
+			Expect(matches).To(Equal(expectedMatches))
 		})
 	})
 
@@ -108,12 +60,13 @@ variables:
 		It("both will be found", func() {
 			manifest := []byte("name: ((foo))stuff((bar))")
 			matcher := new(manifestsecrets.CredHubPathMatcher)
-			matches, err := matcher.Match(manifest)
+			matches, err := matcher.Match(manifest, nil)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(matches).To(ConsistOf([][]byte{
-				[]byte("foo"),
-				[]byte("bar"),
-			}))
+			expectedMatches := map[string]boshdirector.Variable{
+				"foo": {Path: "foo"},
+				"bar": {Path: "bar"},
+			}
+			Expect(matches).To(Equal(expectedMatches))
 		})
 	})
 })

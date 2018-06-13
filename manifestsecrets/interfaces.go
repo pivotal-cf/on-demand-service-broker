@@ -1,13 +1,15 @@
 package manifestsecrets
 
+import "github.com/pivotal-cf/on-demand-service-broker/boshdirector"
+
 //go:generate counterfeiter -o fakes/fake_bulk_getter.go . BulkGetter
 
 type BulkGetter interface {
-	BulkGet([][]byte) (map[string]string, error)
+	BulkGet(map[string]boshdirector.Variable) (map[string]string, error)
 }
 
 //go:generate counterfeiter -o fakes/fake_matcher.go . Matcher
 
 type Matcher interface {
-	Match(manifest []byte) ([][]byte, error)
+	Match(manifest []byte, deploymentVariables []boshdirector.Variable) (map[string]boshdirector.Variable, error)
 }

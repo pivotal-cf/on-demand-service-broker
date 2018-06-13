@@ -4,14 +4,15 @@ package fakes
 import (
 	"sync"
 
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/manifestsecrets"
 )
 
 type FakeBulkGetter struct {
-	BulkGetStub        func([][]byte) (map[string]string, error)
+	BulkGetStub        func(map[string]boshdirector.Variable) (map[string]string, error)
 	bulkGetMutex       sync.RWMutex
 	bulkGetArgsForCall []struct {
-		arg1 [][]byte
+		arg1 map[string]boshdirector.Variable
 	}
 	bulkGetReturns struct {
 		result1 map[string]string
@@ -25,18 +26,13 @@ type FakeBulkGetter struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeBulkGetter) BulkGet(arg1 [][]byte) (map[string]string, error) {
-	var arg1Copy [][]byte
-	if arg1 != nil {
-		arg1Copy = make([][]byte, len(arg1))
-		copy(arg1Copy, arg1)
-	}
+func (fake *FakeBulkGetter) BulkGet(arg1 map[string]boshdirector.Variable) (map[string]string, error) {
 	fake.bulkGetMutex.Lock()
 	ret, specificReturn := fake.bulkGetReturnsOnCall[len(fake.bulkGetArgsForCall)]
 	fake.bulkGetArgsForCall = append(fake.bulkGetArgsForCall, struct {
-		arg1 [][]byte
-	}{arg1Copy})
-	fake.recordInvocation("BulkGet", []interface{}{arg1Copy})
+		arg1 map[string]boshdirector.Variable
+	}{arg1})
+	fake.recordInvocation("BulkGet", []interface{}{arg1})
 	fake.bulkGetMutex.Unlock()
 	if fake.BulkGetStub != nil {
 		return fake.BulkGetStub(arg1)
@@ -53,7 +49,7 @@ func (fake *FakeBulkGetter) BulkGetCallCount() int {
 	return len(fake.bulkGetArgsForCall)
 }
 
-func (fake *FakeBulkGetter) BulkGetArgsForCall(i int) [][]byte {
+func (fake *FakeBulkGetter) BulkGetArgsForCall(i int) map[string]boshdirector.Variable {
 	fake.bulkGetMutex.RLock()
 	defer fake.bulkGetMutex.RUnlock()
 	return fake.bulkGetArgsForCall[i].arg1

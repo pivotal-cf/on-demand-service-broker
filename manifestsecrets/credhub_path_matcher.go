@@ -1,53 +1,47 @@
 package manifestsecrets
 
 import (
-	"errors"
+	"fmt"
 	"regexp"
+	"strings"
 
-	yaml "gopkg.in/yaml.v2"
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 )
 
 type CredHubPathMatcher struct{}
 
-func (m *CredHubPathMatcher) Match(manifest []byte) ([][]byte, error) {
+func (m *CredHubPathMatcher) Match(manifest []byte, deploymentVariables []boshdirector.Variable) (map[string]boshdirector.Variable, error) {
 	refs := regexp.MustCompile(`\(\((.*?)\)\)`)
 	matches := refs.FindAllSubmatch(manifest, -1)
 
-	varsBlockNames, err := m.NamesFromVarsBlock(manifest)
-	if err != nil {
-		return nil, err
-	}
+	ret := map[string]boshdirector.Variable{}
 
-	ret := [][]byte{}
 	for _, match := range matches {
-		name := match[1]
-		if !varsBlockNames[string(name)] {
-			ret = append(ret, match[1])
+		name := string(match[1])
+		if strings.HasPrefix(name, "/") {
+			ret[name] = findAbsolutePath(name, deploymentVariables)
+		} else {
+			ret[name] = findRelativePath(name, deploymentVariables)
 		}
 	}
 
 	return ret, nil
 }
 
-func (m *CredHubPathMatcher) NamesFromVarsBlock(manifest []byte) (map[string]bool, error) {
-	var manifestObj struct {
-		Variables []struct {
-			Name string `yaml:"name"`
-		} `yaml:"variables"`
-	}
-
-	err := yaml.Unmarshal(manifest, &manifestObj)
-	if err != nil {
-		return nil, err
-	}
-
-	ret := map[string]bool{}
-	for _, variable := range manifestObj.Variables {
-		if len(variable.Name) == 0 {
-			return nil, errors.New("variable without name in variables block")
+func findAbsolutePath(name string, deploymentVariables []boshdirector.Variable) boshdirector.Variable {
+	for _, v := range deploymentVariables {
+		if v.Path == name {
+			return v
 		}
-		ret[variable.Name] = true
 	}
+	return boshdirector.Variable{Path: name}
+}
 
-	return ret, nil
+func findRelativePath(name string, deploymentVariables []boshdirector.Variable) boshdirector.Variable {
+	for _, v := range deploymentVariables {
+		if strings.HasSuffix(v.Path, fmt.Sprintf("/%s", name)) {
+			return v
+		}
+	}
+	return boshdirector.Variable{Path: name}
 }

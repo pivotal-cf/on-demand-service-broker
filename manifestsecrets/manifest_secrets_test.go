@@ -5,6 +5,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/manifestsecrets"
 	"github.com/pivotal-cf/on-demand-service-broker/manifestsecrets/fakes"
@@ -41,18 +42,14 @@ var _ = Describe("ManifestSecrets", func() {
 			})
 
 			It("calls the dependent components as expected", func() {
-				manifestWithSecrets := []byte("name: ((/some/path))")
-				secrets := [][]byte{
-					[]byte("/some/path"),
-				}
-				secretsValues := map[string]string{
-					"/some/path": "supers3cret",
-				}
+				manifestWithSecrets := []byte("name: ((/some/path))\nvariables:\n-name: /some/var\n  type: password")
+				secrets := map[string]boshdirector.Variable{"/some/path": {Path: "/some/path"}}
+				secretsValues := map[string]string{"/some/path": "supers3cret"}
 
 				fakeMatcher.MatchReturns(secrets, nil)
 				fakeBulkGetter.BulkGetReturns(secretsValues, nil)
 
-				secretsMap, err := resolver.ResolveManifestSecrets(manifestWithSecrets)
+				secretsMap, err := resolver.ResolveManifestSecrets(manifestWithSecrets, []boshdirector.Variable{{Path: "/some/var", ID: "1234"}})
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(fakeMatcher.MatchCallCount()).To(Equal(1))
@@ -66,13 +63,13 @@ var _ = Describe("ManifestSecrets", func() {
 
 			It("returns an error when the matcher errors", func() {
 				fakeMatcher.MatchReturns(nil, errors.New("matcher error"))
-				_, err := resolver.ResolveManifestSecrets([]byte("name: foo"))
+				_, err := resolver.ResolveManifestSecrets([]byte("name: foo"), nil)
 				Expect(err).To(MatchError(ContainSubstring("matcher error")))
 			})
 
 			It("returns an error when secrets fetcher errors", func() {
 				fakeBulkGetter.BulkGetReturns(map[string]string{}, errors.New("something failed"))
-				_, err := resolver.ResolveManifestSecrets([]byte("name: foo"))
+				_, err := resolver.ResolveManifestSecrets([]byte("name: foo"), nil)
 				Expect(err).To(MatchError(ContainSubstring("something failed")))
 			})
 		})

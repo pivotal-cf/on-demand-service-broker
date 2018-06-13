@@ -1,10 +1,13 @@
 package manifestsecrets
 
-import "github.com/pivotal-cf/on-demand-service-broker/broker"
+import (
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
+	"github.com/pivotal-cf/on-demand-service-broker/broker"
+)
 
 type NoopSecretResolver struct{}
 
-func (r *NoopSecretResolver) ResolveManifestSecrets(manifest []byte) (map[string]string, error) {
+func (r *NoopSecretResolver) ResolveManifestSecrets(manifest []byte, deploymentVariables []boshdirector.Variable) (map[string]string, error) {
 	return map[string]string{}, nil
 }
 
@@ -24,8 +27,8 @@ func NewResolver(resolveAtBind bool, matcher Matcher, secretsFetcher BulkGetter)
 	}
 }
 
-func (r *BoshCredHubSecretResolver) ResolveManifestSecrets(manifest []byte) (map[string]string, error) {
-	matches, err := r.matcher.Match(manifest)
+func (r *BoshCredHubSecretResolver) ResolveManifestSecrets(manifest []byte, deploymentVariables []boshdirector.Variable) (map[string]string, error) {
+	matches, err := r.matcher.Match(manifest, deploymentVariables)
 	if err != nil {
 		return nil, err
 	}
