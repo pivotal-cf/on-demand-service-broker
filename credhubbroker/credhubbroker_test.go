@@ -100,7 +100,7 @@ var _ = Describe("CredHub broker", func() {
 			Expect(receivedCreds).To(Equal(creds))
 		})
 
-		It("adds permissions to the credentials in the credential store when an app guid exists", func() {
+		It("adds permissions to the credentials in the credential store when an app guid exists on bind details", func() {
 			fakeCredStore := new(credfakes.FakeCredentialStore)
 			creds := "justAString"
 			bindingResponse := brokerapi.Binding{
@@ -126,6 +126,23 @@ var _ = Describe("CredHub broker", func() {
 			}
 			Expect(returnedCredentialName).To(Equal(expectedCredentialName))
 			Expect(returnedPermissions).To(Equal(expectedPermissions))
+		})
+
+		It("adds permissions to the credentials in the credential store when an app guid exists on bind resource", func() {
+			fakeCredStore := new(credfakes.FakeCredentialStore)
+			creds := "justAString"
+			bindingResponse := brokerapi.Binding{
+				Credentials: creds,
+			}
+			fakeBroker.BindReturns(bindingResponse, nil)
+
+			appGUID := "app-guid"
+			bindDetails.BindResource = &brokerapi.BindResource{}
+			bindDetails.BindResource.AppGuid = appGUID
+
+			credhubBroker := credhubbroker.New(fakeBroker, fakeCredStore, serviceName, loggerFactory)
+			_, err := credhubBroker.Bind(ctx, instanceID, bindingID, bindDetails)
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("adds permissions to the credentials in the credentials store when a credential_client_id exists in the bind resource", func() {
@@ -179,6 +196,7 @@ var _ = Describe("CredHub broker", func() {
 			fakeBroker.BindReturns(emptyCreds, errors.New("error message from base broker"))
 
 			credhubBroker := credhubbroker.New(fakeBroker, fakeCredStore, serviceName, loggerFactory)
+			bindDetails.AppGUID = "some-app-guid"
 			receivedCreds, bindErr := credhubBroker.Bind(ctx, instanceID, bindingID, bindDetails)
 
 			Expect(receivedCreds).To(Equal(emptyCreds))
@@ -194,6 +212,7 @@ var _ = Describe("CredHub broker", func() {
 
 			credhubBroker := credhubbroker.New(fakeBroker, fakeCredStore, serviceName, loggerFactory)
 			fakeCredStore.SetReturns(errors.New("credential store unavailable"))
+			bindDetails.AppGUID = "some-app-guid"
 			_, bindErr := credhubBroker.Bind(ctx, instanceID, bindingID, bindDetails)
 
 			Expect(bindErr.Error()).NotTo(ContainSubstring("credential store unavailable"))

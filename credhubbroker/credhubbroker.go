@@ -50,7 +50,18 @@ func New(broker apiserver.CombinedBroker,
 	}
 }
 
-func (b *CredHubBroker) Bind(ctx context.Context, instanceID, bindingID string, details brokerapi.BindDetails) (brokerapi.Binding, error) {
+func (b *CredHubBroker) Bind(ctx context.Context, instanceID, bindingID string, details brokerapi.BindDetails) (brokerapi.Binding, error) { // TODO: maybe move it up to fail fast?
+	var actor string
+	switch {
+	case details.AppGUID != "":
+		actor = fmt.Sprintf("mtls-app:%s", details.AppGUID)
+	case details.BindResource != nil && details.BindResource.AppGuid != "":
+		actor = fmt.Sprintf("mtls-app:%s", details.BindResource.AppGuid)
+	case details.BindResource != nil && details.BindResource.CredentialClientID != "":
+		actor = fmt.Sprintf("uaa-client:%s", details.BindResource.CredentialClientID)
+	default:
+		return brokerapi.Binding{}, errors.New("No app-guid or credential client ID were provided in the binding request, you must configure one of these")
+	}
 
 	requestID := uuid.New()
 	ctx = brokercontext.WithReqID(ctx, requestID)
@@ -69,17 +80,6 @@ func (b *CredHubBroker) Bind(ctx context.Context, instanceID, bindingID string, 
 		setErr := broker.NewGenericError(ctx, fmt.Errorf("failed to set credentials in credential store: %v", err))
 		logger.Print(setErr)
 		return brokerapi.Binding{}, setErr.ErrorForCFUser()
-	}
-
-	var actor string
-	if details.AppGUID != "" {
-		actor = fmt.Sprintf("mtls-app:%s", details.AppGUID)
-	} else if details.BindResource != nil && details.BindResource.CredentialClientID != "" {
-		actor = fmt.Sprintf("uaa-client:%s", details.BindResource.CredentialClientID)
-	}
-
-	if actor == "" {
-		return brokerapi.Binding{}, errors.New("No app-guid or credential client ID were provided in the binding request, you must configure one of these")
 	}
 
 	additionalPermissions := []permissions.Permission{
