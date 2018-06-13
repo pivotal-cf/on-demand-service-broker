@@ -22,6 +22,19 @@ type FakeCredhubGetter struct {
 		result1 credentials.Credential
 		result2 error
 	}
+	GetByIdStub        func(id string) (credentials.Credential, error)
+	getByIdMutex       sync.RWMutex
+	getByIdArgsForCall []struct {
+		id string
+	}
+	getByIdReturns struct {
+		result1 credentials.Credential
+		result2 error
+	}
+	getByIdReturnsOnCall map[int]struct {
+		result1 credentials.Credential
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -77,11 +90,64 @@ func (fake *FakeCredhubGetter) GetLatestVersionReturnsOnCall(i int, result1 cred
 	}{result1, result2}
 }
 
+func (fake *FakeCredhubGetter) GetById(id string) (credentials.Credential, error) {
+	fake.getByIdMutex.Lock()
+	ret, specificReturn := fake.getByIdReturnsOnCall[len(fake.getByIdArgsForCall)]
+	fake.getByIdArgsForCall = append(fake.getByIdArgsForCall, struct {
+		id string
+	}{id})
+	fake.recordInvocation("GetById", []interface{}{id})
+	fake.getByIdMutex.Unlock()
+	if fake.GetByIdStub != nil {
+		return fake.GetByIdStub(id)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.getByIdReturns.result1, fake.getByIdReturns.result2
+}
+
+func (fake *FakeCredhubGetter) GetByIdCallCount() int {
+	fake.getByIdMutex.RLock()
+	defer fake.getByIdMutex.RUnlock()
+	return len(fake.getByIdArgsForCall)
+}
+
+func (fake *FakeCredhubGetter) GetByIdArgsForCall(i int) string {
+	fake.getByIdMutex.RLock()
+	defer fake.getByIdMutex.RUnlock()
+	return fake.getByIdArgsForCall[i].id
+}
+
+func (fake *FakeCredhubGetter) GetByIdReturns(result1 credentials.Credential, result2 error) {
+	fake.GetByIdStub = nil
+	fake.getByIdReturns = struct {
+		result1 credentials.Credential
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeCredhubGetter) GetByIdReturnsOnCall(i int, result1 credentials.Credential, result2 error) {
+	fake.GetByIdStub = nil
+	if fake.getByIdReturnsOnCall == nil {
+		fake.getByIdReturnsOnCall = make(map[int]struct {
+			result1 credentials.Credential
+			result2 error
+		})
+	}
+	fake.getByIdReturnsOnCall[i] = struct {
+		result1 credentials.Credential
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeCredhubGetter) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.getLatestVersionMutex.RLock()
 	defer fake.getLatestVersionMutex.RUnlock()
+	fake.getByIdMutex.RLock()
+	defer fake.getByIdMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

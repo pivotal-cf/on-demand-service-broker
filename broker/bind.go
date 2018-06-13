@@ -36,7 +36,12 @@ func (b *Broker) Bind(
 		return brokerapi.Binding{}, b.processError(deploymentErr, logger)
 	}
 
-	secretsMap, err := b.secretResolver.ResolveManifestSecrets(manifest)
+	deploymentVariables, err := b.boshClient.Variables(deploymentName(instanceID), logger)
+	if err != nil {
+		logger.Printf("failed to retrieve deployment variables for deployment '%s': %s", deploymentName(instanceID), err)
+	}
+
+	secretsMap, err := b.secretResolver.ResolveManifestSecrets(manifest, deploymentVariables)
 	if err != nil {
 		logger.Printf("failed to resolve manifest secrets: %s", err.Error())
 	}

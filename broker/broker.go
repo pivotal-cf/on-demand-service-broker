@@ -175,6 +175,7 @@ type BoshClient interface {
 	DeleteDeployment(name, contextID string, logger *log.Logger, taskReporter *boshdirector.AsyncTaskReporter) (int, error)
 	GetInfo(logger *log.Logger) (boshdirector.Info, error)
 	RunErrand(deploymentName, errandName string, errandInstances []string, contextID string, logger *log.Logger, taskReporter *boshdirector.AsyncTaskReporter) (int, error)
+	Variables(deploymentName string, logger *log.Logger) ([]boshdirector.Variable, error)
 	VerifyAuth(logger *log.Logger) error
 }
 

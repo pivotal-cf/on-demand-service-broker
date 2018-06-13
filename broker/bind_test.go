@@ -44,7 +44,8 @@ var _ = Describe("Bind", func() {
 		bindResult brokerapi.Binding
 		bindErr    error
 
-		bindRequest brokerapi.BindDetails
+		bindRequest   brokerapi.BindDetails
+		boshVariables []boshdirector.Variable
 	)
 
 	BeforeEach(func() {
@@ -66,6 +67,11 @@ var _ = Describe("Bind", func() {
 			},
 			RawParameters: serialisedArbitraryParameters,
 			RawContext:    serialisedContext,
+		}
+
+		boshVariables = []boshdirector.Variable{
+			{Path: "/foo/bar", ID: "123asd"},
+			{Path: "/some/path", ID: "456zxc"},
 		}
 	})
 
@@ -365,56 +371,6 @@ var _ = Describe("Bind", func() {
 		})
 	})
 
-	Describe("secret resolver", func() {
-		var broker *broker.Broker
-
-		BeforeEach(func() {
-			broker = createDefaultBroker()
-		})
-
-		It("is called with manifest as param", func() {
-			bindResult, bindErr = broker.Bind(context.Background(), instanceID, bindingID, bindRequest)
-			Expect(serviceAdapter.CreateBindingCallCount()).To(Equal(1))
-			Expect(secretResolver.ResolveManifestSecretsCallCount()).To(Equal(1))
-			manifest := secretResolver.ResolveManifestSecretsArgsForCall(0)
-			Expect(manifest).To(Equal(actualManifest))
-		})
-
-		It("logs errors when cannot resolve secrets", func() {
-			resolveError := errors.New("resolve error")
-			secretResolver.ResolveManifestSecretsReturns(nil, resolveError)
-			_, bindErr = broker.Bind(context.Background(), instanceID, bindingID, bindRequest)
-			Expect(bindErr).NotTo(HaveOccurred())
-			Expect(logBuffer.String()).To(ContainSubstring(fmt.Sprintf("failed to resolve manifest secrets: %s", resolveError.Error())))
-		})
-
-		It("logs errors and the status of the feature flag if the adapter is called but it returns an error", func() {
-			fakeAdapter := new(brokerfakes.FakeServiceAdapterClient)
-			fakeAdapter.CreateBindingReturns(sdk.Binding{}, errors.New("secrets needed"))
-			brokerConfig.ResolveManifestSecretsAtBind = false
-
-			b = createBrokerWithAdapter(fakeAdapter)
-
-			_, bindErr = b.Bind(context.Background(), instanceID, bindingID, bindRequest)
-			Expect(bindErr).To(HaveOccurred())
-			Expect(logBuffer.String()).To(ContainSubstring("resolve_secrets_at_bind was: false"))
-			Expect(logBuffer.String()).To(ContainSubstring("secrets needed"))
-		})
-
-		It("logs errors if the adapter is called but it returns an error", func() {
-			fakeAdapter := new(brokerfakes.FakeServiceAdapterClient)
-			fakeAdapter.CreateBindingReturns(sdk.Binding{}, errors.New("secrets needed"))
-			brokerConfig.ResolveManifestSecretsAtBind = true
-
-			b = createBrokerWithAdapter(fakeAdapter)
-
-			_, bindErr = b.Bind(context.Background(), instanceID, bindingID, bindRequest)
-			Expect(bindErr).To(HaveOccurred())
-			Expect(logBuffer.String()).ToNot(ContainSubstring("resolve_secrets_at_bind was:"))
-			Expect(logBuffer.String()).To(ContainSubstring("secrets needed"))
-		})
-	})
-
 	It("does not validates the parameters passed to the bind request if plan schemas are not enabled", func() {
 		fakeAdapter := new(brokerfakes.FakeServiceAdapterClient)
 		fakeAdapter.GeneratePlanSchemaReturns(schemaFixture, nil)
@@ -522,6 +478,67 @@ var _ = Describe("Bind", func() {
 			Expect(bindErr).To(HaveOccurred())
 			Expect(bindErr.Error()).To(ContainSubstring("enable_plan_schemas is set to true, but the service adapter does not implement generate-plan-schemas"))
 			Expect(logBuffer.String()).To(ContainSubstring("enable_plan_schemas is set to true, but the service adapter does not implement generate-plan-schemas"))
+		})
+	})
+
+	Describe("secret resolver", func() {
+		var broker *broker.Broker
+
+		BeforeEach(func() {
+			broker = createDefaultBroker()
+			boshClient.VariablesReturns(boshVariables, nil)
+		})
+
+		It("is called with manifest as param", func() {
+			bindResult, bindErr = broker.Bind(context.Background(), instanceID, bindingID, bindRequest)
+			Expect(serviceAdapter.CreateBindingCallCount()).To(Equal(1))
+			Expect(secretResolver.ResolveManifestSecretsCallCount()).To(Equal(1))
+			manifest, deploymentVariables := secretResolver.ResolveManifestSecretsArgsForCall(0)
+			Expect(manifest).To(Equal(actualManifest))
+			Expect(deploymentVariables).To(Equal([]boshdirector.Variable{
+				{Path: "/foo/bar", ID: "123asd"},
+				{Path: "/some/path", ID: "456zxc"},
+			}))
+		})
+
+		It("logs errors when cannot resolve secrets", func() {
+			resolveError := errors.New("resolve error")
+			secretResolver.ResolveManifestSecretsReturns(nil, resolveError)
+			_, bindErr = broker.Bind(context.Background(), instanceID, bindingID, bindRequest)
+			Expect(bindErr).NotTo(HaveOccurred())
+			Expect(logBuffer.String()).To(ContainSubstring(fmt.Sprintf("failed to resolve manifest secrets: %s", resolveError.Error())))
+		})
+
+		It("logs errors and the status of the feature flag if the adapter is called but it returns an error", func() {
+			fakeAdapter := new(brokerfakes.FakeServiceAdapterClient)
+			fakeAdapter.CreateBindingReturns(sdk.Binding{}, errors.New("secrets needed"))
+			brokerConfig.ResolveManifestSecretsAtBind = false
+
+			b = createBrokerWithAdapter(fakeAdapter)
+
+			_, bindErr = b.Bind(context.Background(), instanceID, bindingID, bindRequest)
+			Expect(bindErr).To(HaveOccurred())
+			Expect(logBuffer.String()).To(ContainSubstring("resolve_secrets_at_bind was: false"))
+			Expect(logBuffer.String()).To(ContainSubstring("secrets needed"))
+		})
+
+		It("logs but not fail when cannot retrieve the deployment variables ", func() {
+			boshClient.VariablesReturns(nil, errors.New("oh noes"))
+			bindResult, bindErr = broker.Bind(context.Background(), instanceID, bindingID, bindRequest)
+			Expect(logBuffer.String()).To(ContainSubstring("failed to retrieve deployment variables"))
+		})
+
+		It("logs errors if the adapter is called but it returns an error", func() {
+			fakeAdapter := new(brokerfakes.FakeServiceAdapterClient)
+			fakeAdapter.CreateBindingReturns(sdk.Binding{}, errors.New("secrets needed"))
+			brokerConfig.ResolveManifestSecretsAtBind = true
+
+			b = createBrokerWithAdapter(fakeAdapter)
+
+			_, bindErr = b.Bind(context.Background(), instanceID, bindingID, bindRequest)
+			Expect(bindErr).To(HaveOccurred())
+			Expect(logBuffer.String()).ToNot(ContainSubstring("resolve_secrets_at_bind was:"))
+			Expect(logBuffer.String()).To(ContainSubstring("secrets needed"))
 		})
 	})
 })

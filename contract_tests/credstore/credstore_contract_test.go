@@ -22,6 +22,7 @@ import (
 	"github.com/cloudfoundry-incubator/credhub-cli/credhub/credentials"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/credstore"
 )
 
@@ -47,9 +48,9 @@ var _ = Describe("Operations", func() {
 
 		It("can fetch secrets from credhub", func() {
 			b := credstore.New(credhubClient)
-			secretsToFetch := [][]byte{
-				[]byte(passwordSecret.Name),
-				[]byte(jsonSecret.Name),
+			secretsToFetch := map[string]boshdirector.Variable{
+				passwordSecret.Name: {Path: passwordSecret.Name},
+				jsonSecret.Name:     {Path: jsonSecret.Name, ID: jsonSecret.Id},
 			}
 			jsonSecretValue, err := json.Marshal(jsonSecret.Value)
 			Expect(err).NotTo(HaveOccurred())
@@ -63,10 +64,41 @@ var _ = Describe("Operations", func() {
 			Expect(actualSecrets).To(Equal(expectedSecrets))
 		})
 
+		It("should use ID when present", func() {
+			b := credstore.New(credhubClient)
+
+			By("creating two versions of the same secret")
+			newPasswordSecret, err := credhubClient.SetPassword(passwordSecret.Name, "newthepass", "overwrite")
+			Expect(err).NotTo(HaveOccurred())
+
+			By("fetching the secret by ID when present")
+			secretsToFetch := map[string]boshdirector.Variable{
+				passwordSecret.Name: {Path: "foo", ID: passwordSecret.Id},
+			}
+			expectedSecrets := map[string]string{
+				passwordSecret.Name: string(passwordSecret.Value),
+			}
+
+			actualSecrets, err := b.BulkGet(secretsToFetch)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(actualSecrets).To(Equal(expectedSecrets))
+
+			By("fetching the secret by Path when Id isn't present")
+			secretsToFetch = map[string]boshdirector.Variable{
+				passwordSecret.Name: {Path: "foo"},
+			}
+			expectedSecrets = map[string]string{
+				passwordSecret.Name: string(newPasswordSecret.Value),
+			}
+			actualSecrets, err = b.BulkGet(secretsToFetch)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(actualSecrets).To(Equal(expectedSecrets))
+		})
+
 		It("errors when the credential don't exist", func() {
 			b := credstore.New(credhubClient)
-			secretsToFetch := [][]byte{
-				[]byte("blah"),
+			secretsToFetch := map[string]boshdirector.Variable{
+				"blah": {Path: "blah"},
 			}
 			_, err := b.BulkGet(secretsToFetch)
 			Expect(err).To(MatchError(ContainSubstring("credential does not exist")))

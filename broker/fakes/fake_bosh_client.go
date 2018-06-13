@@ -144,6 +144,20 @@ type FakeBoshClient struct {
 		result1 int
 		result2 error
 	}
+	VariablesStub        func(deploymentName string, logger *log.Logger) ([]boshdirector.Variable, error)
+	variablesMutex       sync.RWMutex
+	variablesArgsForCall []struct {
+		deploymentName string
+		logger         *log.Logger
+	}
+	variablesReturns struct {
+		result1 []boshdirector.Variable
+		result2 error
+	}
+	variablesReturnsOnCall map[int]struct {
+		result1 []boshdirector.Variable
+		result2 error
+	}
 	VerifyAuthStub        func(logger *log.Logger) error
 	verifyAuthMutex       sync.RWMutex
 	verifyAuthArgsForCall []struct {
@@ -640,6 +654,58 @@ func (fake *FakeBoshClient) RunErrandReturnsOnCall(i int, result1 int, result2 e
 	}{result1, result2}
 }
 
+func (fake *FakeBoshClient) Variables(deploymentName string, logger *log.Logger) ([]boshdirector.Variable, error) {
+	fake.variablesMutex.Lock()
+	ret, specificReturn := fake.variablesReturnsOnCall[len(fake.variablesArgsForCall)]
+	fake.variablesArgsForCall = append(fake.variablesArgsForCall, struct {
+		deploymentName string
+		logger         *log.Logger
+	}{deploymentName, logger})
+	fake.recordInvocation("Variables", []interface{}{deploymentName, logger})
+	fake.variablesMutex.Unlock()
+	if fake.VariablesStub != nil {
+		return fake.VariablesStub(deploymentName, logger)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.variablesReturns.result1, fake.variablesReturns.result2
+}
+
+func (fake *FakeBoshClient) VariablesCallCount() int {
+	fake.variablesMutex.RLock()
+	defer fake.variablesMutex.RUnlock()
+	return len(fake.variablesArgsForCall)
+}
+
+func (fake *FakeBoshClient) VariablesArgsForCall(i int) (string, *log.Logger) {
+	fake.variablesMutex.RLock()
+	defer fake.variablesMutex.RUnlock()
+	return fake.variablesArgsForCall[i].deploymentName, fake.variablesArgsForCall[i].logger
+}
+
+func (fake *FakeBoshClient) VariablesReturns(result1 []boshdirector.Variable, result2 error) {
+	fake.VariablesStub = nil
+	fake.variablesReturns = struct {
+		result1 []boshdirector.Variable
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeBoshClient) VariablesReturnsOnCall(i int, result1 []boshdirector.Variable, result2 error) {
+	fake.VariablesStub = nil
+	if fake.variablesReturnsOnCall == nil {
+		fake.variablesReturnsOnCall = make(map[int]struct {
+			result1 []boshdirector.Variable
+			result2 error
+		})
+	}
+	fake.variablesReturnsOnCall[i] = struct {
+		result1 []boshdirector.Variable
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeBoshClient) VerifyAuth(logger *log.Logger) error {
 	fake.verifyAuthMutex.Lock()
 	ret, specificReturn := fake.verifyAuthReturnsOnCall[len(fake.verifyAuthArgsForCall)]
@@ -709,6 +775,8 @@ func (fake *FakeBoshClient) Invocations() map[string][][]interface{} {
 	defer fake.getInfoMutex.RUnlock()
 	fake.runErrandMutex.RLock()
 	defer fake.runErrandMutex.RUnlock()
+	fake.variablesMutex.RLock()
+	defer fake.variablesMutex.RUnlock()
 	fake.verifyAuthMutex.RLock()
 	defer fake.verifyAuthMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
