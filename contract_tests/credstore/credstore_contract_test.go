@@ -17,11 +17,13 @@ package credstore_test
 
 import (
 	"encoding/json"
+	"log"
 
 	"github.com/cloudfoundry-incubator/credhub-cli/credhub"
 	"github.com/cloudfoundry-incubator/credhub-cli/credhub/credentials"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/credstore"
 )
@@ -59,7 +61,7 @@ var _ = Describe("Operations", func() {
 				jsonSecret.Name:     string(jsonSecretValue),
 			}
 
-			actualSecrets, err := b.BulkGet(secretsToFetch)
+			actualSecrets, err := b.BulkGet(secretsToFetch, nil)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(actualSecrets).To(Equal(expectedSecrets))
 		})
@@ -79,7 +81,7 @@ var _ = Describe("Operations", func() {
 				passwordSecret.Name: string(passwordSecret.Value),
 			}
 
-			actualSecrets, err := b.BulkGet(secretsToFetch)
+			actualSecrets, err := b.BulkGet(secretsToFetch, nil)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(actualSecrets).To(Equal(expectedSecrets))
 
@@ -90,18 +92,21 @@ var _ = Describe("Operations", func() {
 			expectedSecrets = map[string]string{
 				passwordSecret.Name: string(newPasswordSecret.Value),
 			}
-			actualSecrets, err = b.BulkGet(secretsToFetch)
+			actualSecrets, err = b.BulkGet(secretsToFetch, nil)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(actualSecrets).To(Equal(expectedSecrets))
 		})
 
-		It("errors when the credential don't exist", func() {
+		It("logs when the credential don't exist", func() {
 			b := credstore.New(credhubClient)
 			secretsToFetch := map[string]boshdirector.Variable{
 				"blah": {Path: "blah"},
 			}
-			_, err := b.BulkGet(secretsToFetch)
-			Expect(err).To(MatchError(ContainSubstring("credential does not exist")))
+			outputBuffer := gbytes.NewBuffer()
+			logger := log.New(outputBuffer, "contract-tests", log.LstdFlags)
+			_, err := b.BulkGet(secretsToFetch, logger)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(outputBuffer).To(gbytes.Say("Could not resolve blah"))
 		})
 	})
 })
