@@ -41,7 +41,7 @@ func (b *Broker) Bind(
 		logger.Printf("failed to retrieve deployment variables for deployment '%s': %s", deploymentName(instanceID), err)
 	}
 
-	secretsMap, err := b.secretResolver.ResolveManifestSecrets(manifest, deploymentVariables)
+	secretsMap, err := b.secretResolver.ResolveManifestSecrets(manifest, deploymentVariables, logger)
 	if err != nil {
 		logger.Printf("failed to resolve manifest secrets: %s", err.Error())
 	}

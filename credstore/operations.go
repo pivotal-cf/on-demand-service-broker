@@ -3,6 +3,7 @@ package credstore
 import (
 	"encoding/json"
 	"errors"
+	"log"
 
 	"github.com/cloudfoundry-incubator/credhub-cli/credhub/credentials"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
@@ -25,7 +26,7 @@ func New(getter CredhubGetter) *Operations {
 	}
 }
 
-func (b *Operations) BulkGet(secretsToFetch map[string]boshdirector.Variable) (map[string]string, error) {
+func (b *Operations) BulkGet(secretsToFetch map[string]boshdirector.Variable, logger *log.Logger) (map[string]string, error) {
 	ret := map[string]string{}
 	for name, deploymentVar := range secretsToFetch {
 		var c credentials.Credential
@@ -36,6 +37,7 @@ func (b *Operations) BulkGet(secretsToFetch map[string]boshdirector.Variable) (m
 			c, err = b.getter.GetLatestVersion(deploymentVar.Path)
 		}
 		if err != nil {
+			logger.Printf("Could not resolve %s: %s", name, err)
 			continue
 		}
 		switch credValue := c.Value.(type) {

@@ -6,10 +6,14 @@
 
 package broker
 
-import "github.com/pivotal-cf/on-demand-service-broker/boshdirector"
+import (
+	"log"
+
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
+)
 
 //go:generate counterfeiter -o fakes/fake_manifest_secrets_resolver.go . ManifestSecretResolver
 
 type ManifestSecretResolver interface {
-	ResolveManifestSecrets(manifest []byte, deploymentVariables []boshdirector.Variable) (map[string]string, error)
+	ResolveManifestSecrets(manifest []byte, deploymentVariables []boshdirector.Variable, logger *log.Logger) (map[string]string, error)
 }

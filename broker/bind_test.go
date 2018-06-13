@@ -493,7 +493,7 @@ var _ = Describe("Bind", func() {
 			bindResult, bindErr = broker.Bind(context.Background(), instanceID, bindingID, bindRequest)
 			Expect(serviceAdapter.CreateBindingCallCount()).To(Equal(1))
 			Expect(secretResolver.ResolveManifestSecretsCallCount()).To(Equal(1))
-			manifest, deploymentVariables := secretResolver.ResolveManifestSecretsArgsForCall(0)
+			manifest, deploymentVariables, _ := secretResolver.ResolveManifestSecretsArgsForCall(0)
 			Expect(manifest).To(Equal(actualManifest))
 			Expect(deploymentVariables).To(Equal([]boshdirector.Variable{
 				{Path: "/foo/bar", ID: "123asd"},

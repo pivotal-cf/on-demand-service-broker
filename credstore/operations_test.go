@@ -3,11 +3,13 @@ package credstore_test
 import (
 	"errors"
 	"fmt"
+	"log"
 
 	"github.com/cloudfoundry-incubator/credhub-cli/credhub/credentials"
 	"github.com/cloudfoundry-incubator/credhub-cli/credhub/credentials/values"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/credstore"
 	"github.com/pivotal-cf/on-demand-service-broker/credstore/fakes"
@@ -62,7 +64,7 @@ var _ = Describe("Operations", func() {
 				"/other/otherpath": "resolved-for-456",
 			}
 
-			secrets, err := ops.BulkGet(secretsToFetch)
+			secrets, err := ops.BulkGet(secretsToFetch, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("calling GetLatestVersion when there's no ID")
@@ -81,25 +83,32 @@ var _ = Describe("Operations", func() {
 
 			fakeGetter.GetByIdStub = func(id string) (credentials.Credential, error) {
 				if id == "123" {
-					return credentials.Credential{}, errors.New("oops")
+					return credentials.Credential{}, errors.New("oops-1")
 				}
 				return credentials.Credential{Value: fmt.Sprintf("resolved-for-%s", id)}, nil
 			}
 			fakeGetter.GetLatestVersionStub = func(path string) (credentials.Credential, error) {
 				if path == "/some/path" {
-					return credentials.Credential{}, errors.New("oops")
+					return credentials.Credential{}, errors.New("oops-2")
 				}
 				return credentials.Credential{Value: fmt.Sprintf("resolved-for-%s", path)}, nil
 			}
-			secrets, err := ops.BulkGet(secretsToFetch)
+			outputBuffer := gbytes.NewBuffer()
+			logger := log.New(outputBuffer, "unit-test", log.LstdFlags)
+			secrets, err := ops.BulkGet(secretsToFetch, logger)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(secrets).To(Equal(secretsMap))
+			Expect(string(outputBuffer.Contents())).To(
+				SatisfyAll(
+					ContainSubstring("oops-1"),
+					ContainSubstring("oops-2"),
+				))
 		})
 
 		It("errors when cannot marshal the credential", func() {
 			fakeGetter.GetLatestVersionReturnsOnCall(0, credentials.Credential{Value: make(chan int)}, nil)
 
-			_, err := ops.BulkGet(secretsToFetch)
+			_, err := ops.BulkGet(secretsToFetch, nil)
 			Expect(err).To(MatchError(ContainSubstring("failed to marshal")))
 		})
 
@@ -130,7 +139,7 @@ var _ = Describe("Operations", func() {
 				return creds2, nil
 			}
 
-			secrets, err := ops.BulkGet(secretsToFetch)
+			secrets, err := ops.BulkGet(secretsToFetch, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(fakeGetter.GetLatestVersionCallCount()).To(Equal(len(secretsToFetch)))
@@ -145,7 +154,7 @@ var _ = Describe("Operations", func() {
 				"from_vars_block": "resolved-for-/p-bosh/p-deployment/from_vars_block",
 			}
 
-			secrets, err := ops.BulkGet(secretsToFetch)
+			secrets, err := ops.BulkGet(secretsToFetch, nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(fakeGetter.GetLatestVersionCallCount()).To(Equal(len(secretsToFetch)))

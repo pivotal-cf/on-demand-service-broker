@@ -49,13 +49,13 @@ var _ = Describe("ManifestSecrets", func() {
 				fakeMatcher.MatchReturns(secrets, nil)
 				fakeBulkGetter.BulkGetReturns(secretsValues, nil)
 
-				secretsMap, err := resolver.ResolveManifestSecrets(manifestWithSecrets, []boshdirector.Variable{{Path: "/some/var", ID: "1234"}})
+				secretsMap, err := resolver.ResolveManifestSecrets(manifestWithSecrets, []boshdirector.Variable{{Path: "/some/var", ID: "1234"}}, nil)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(fakeMatcher.MatchCallCount()).To(Equal(1))
 
 				Expect(fakeBulkGetter.BulkGetCallCount()).To(Equal(1))
-				secretsToFetch := fakeBulkGetter.BulkGetArgsForCall(0)
+				secretsToFetch, _ := fakeBulkGetter.BulkGetArgsForCall(0)
 				Expect(secretsToFetch).To(Equal(secrets))
 
 				Expect(secretsMap).To(Equal(secretsValues))
@@ -63,13 +63,13 @@ var _ = Describe("ManifestSecrets", func() {
 
 			It("returns an error when the matcher errors", func() {
 				fakeMatcher.MatchReturns(nil, errors.New("matcher error"))
-				_, err := resolver.ResolveManifestSecrets([]byte("name: foo"), nil)
+				_, err := resolver.ResolveManifestSecrets([]byte("name: foo"), nil, nil)
 				Expect(err).To(MatchError(ContainSubstring("matcher error")))
 			})
 
 			It("returns an error when secrets fetcher errors", func() {
 				fakeBulkGetter.BulkGetReturns(map[string]string{}, errors.New("something failed"))
-				_, err := resolver.ResolveManifestSecrets([]byte("name: foo"), nil)
+				_, err := resolver.ResolveManifestSecrets([]byte("name: foo"), nil, nil)
 				Expect(err).To(MatchError(ContainSubstring("something failed")))
 			})
 		})

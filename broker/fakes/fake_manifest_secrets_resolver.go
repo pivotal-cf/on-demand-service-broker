@@ -2,6 +2,7 @@
 package fakes
 
 import (
+	"log"
 	"sync"
 
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
@@ -9,11 +10,12 @@ import (
 )
 
 type FakeManifestSecretResolver struct {
-	ResolveManifestSecretsStub        func(manifest []byte, deploymentVariables []boshdirector.Variable) (map[string]string, error)
+	ResolveManifestSecretsStub        func(manifest []byte, deploymentVariables []boshdirector.Variable, logger *log.Logger) (map[string]string, error)
 	resolveManifestSecretsMutex       sync.RWMutex
 	resolveManifestSecretsArgsForCall []struct {
 		manifest            []byte
 		deploymentVariables []boshdirector.Variable
+		logger              *log.Logger
 	}
 	resolveManifestSecretsReturns struct {
 		result1 map[string]string
@@ -27,7 +29,7 @@ type FakeManifestSecretResolver struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeManifestSecretResolver) ResolveManifestSecrets(manifest []byte, deploymentVariables []boshdirector.Variable) (map[string]string, error) {
+func (fake *FakeManifestSecretResolver) ResolveManifestSecrets(manifest []byte, deploymentVariables []boshdirector.Variable, logger *log.Logger) (map[string]string, error) {
 	var manifestCopy []byte
 	if manifest != nil {
 		manifestCopy = make([]byte, len(manifest))
@@ -43,11 +45,12 @@ func (fake *FakeManifestSecretResolver) ResolveManifestSecrets(manifest []byte, 
 	fake.resolveManifestSecretsArgsForCall = append(fake.resolveManifestSecretsArgsForCall, struct {
 		manifest            []byte
 		deploymentVariables []boshdirector.Variable
-	}{manifestCopy, deploymentVariablesCopy})
-	fake.recordInvocation("ResolveManifestSecrets", []interface{}{manifestCopy, deploymentVariablesCopy})
+		logger              *log.Logger
+	}{manifestCopy, deploymentVariablesCopy, logger})
+	fake.recordInvocation("ResolveManifestSecrets", []interface{}{manifestCopy, deploymentVariablesCopy, logger})
 	fake.resolveManifestSecretsMutex.Unlock()
 	if fake.ResolveManifestSecretsStub != nil {
-		return fake.ResolveManifestSecretsStub(manifest, deploymentVariables)
+		return fake.ResolveManifestSecretsStub(manifest, deploymentVariables, logger)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -61,10 +64,10 @@ func (fake *FakeManifestSecretResolver) ResolveManifestSecretsCallCount() int {
 	return len(fake.resolveManifestSecretsArgsForCall)
 }
 
-func (fake *FakeManifestSecretResolver) ResolveManifestSecretsArgsForCall(i int) ([]byte, []boshdirector.Variable) {
+func (fake *FakeManifestSecretResolver) ResolveManifestSecretsArgsForCall(i int) ([]byte, []boshdirector.Variable, *log.Logger) {
 	fake.resolveManifestSecretsMutex.RLock()
 	defer fake.resolveManifestSecretsMutex.RUnlock()
-	return fake.resolveManifestSecretsArgsForCall[i].manifest, fake.resolveManifestSecretsArgsForCall[i].deploymentVariables
+	return fake.resolveManifestSecretsArgsForCall[i].manifest, fake.resolveManifestSecretsArgsForCall[i].deploymentVariables, fake.resolveManifestSecretsArgsForCall[i].logger
 }
 
 func (fake *FakeManifestSecretResolver) ResolveManifestSecretsReturns(result1 map[string]string, result2 error) {
