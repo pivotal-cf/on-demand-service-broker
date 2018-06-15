@@ -276,6 +276,14 @@ var _ = Describe("BOSH client", func() {
 			Expect(variables[0].Path).To(ContainSubstring("a-var"))
 		})
 	})
+
+	Describe("RawGet", func() {
+		FIt("works", func() {
+			r, err := boshClient.RawGet("/info")
+			Expect(err).NotTo(HaveOccurred())
+			fmt.Printf("r = %+v\n", r)
+		})
+	})
 })
 
 func getManifest(filename, deploymentName string) []byte {

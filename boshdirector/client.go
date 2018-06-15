@@ -7,9 +7,15 @@
 package boshdirector
 
 import (
+	"bytes"
+	"fmt"
 	"log"
+	"net"
+	"net/http"
 	"time"
 
+	"github.com/cloudfoundry/bosh-utils/httpclient"
+	boshlog "github.com/cloudfoundry/bosh-utils/logger"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pkg/errors"
 
@@ -183,4 +189,58 @@ type RequestError struct {
 
 func NewRequestError(e error) RequestError {
 	return RequestError{e}
+}
+
+func (c *Client) RawGet(path string) (string, error) {
+	fileReporter := director.NewNoopFileReporter()
+	logger := boshlog.NewLogger(boshlog.LevelError)
+	config, err := c.directorConfig()
+	if err != nil {
+		return "", nil
+	}
+
+	hc, err := httpClient(config, logger)
+	if err != nil {
+		return "", err
+	}
+
+	cr := director.NewClientRequest(fmt.Sprintf("https://%s:%d", config.Host, config.Port), hc, fileReporter, logger)
+	w := bytes.NewBuffer([]byte{})
+	_, _, err = cr.RawGet(path, w, nil)
+	if err != nil {
+		return "", err
+	}
+	return string(w.Bytes()), nil
+}
+
+func httpClient(config director.FactoryConfig, logger boshlog.Logger) (*httpclient.HTTPClient, error) {
+	certPool, err := config.CACertPool()
+	if err != nil {
+		return nil, err
+	}
+
+	rawClient := httpclient.CreateDefaultClient(certPool)
+	authAdjustment := director.NewAuthRequestAdjustment(
+		config.TokenFunc, config.Client, config.ClientSecret)
+	rawClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+
+		// Since redirected requests are not retried,
+		// forcefully adjust auth token as this is the last chance.
+		err := authAdjustment.Adjust(req, true)
+		if err != nil {
+			return err
+		}
+
+		req.URL.Host = net.JoinHostPort(config.Host, fmt.Sprintf("%d", config.Port))
+		return nil
+	}
+
+	retryClient := httpclient.NewNetworkSafeRetryClient(rawClient, 5, 500*time.Millisecond, logger)
+
+	authedClient := director.NewAdjustableClient(retryClient, authAdjustment)
+
+	httpOpts := httpclient.Opts{NoRedactUrlQuery: true}
+	httpClient := httpclient.NewHTTPClientOpts(authedClient, logger, httpOpts)
+
+	return httpClient, nil
 }
