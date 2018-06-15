@@ -19,14 +19,14 @@ import (
 	"fmt"
 	"os"
 
+	"log"
+	"testing"
+
 	"github.com/cloudfoundry-incubator/credhub-cli/credhub"
 	"github.com/cloudfoundry-incubator/credhub-cli/credhub/auth"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf/on-demand-service-broker/credhubbroker"
-
-	"log"
-	"testing"
+	odbcredhub "github.com/pivotal-cf/on-demand-service-broker/credhub"
 
 	"crypto/x509"
 
@@ -157,18 +157,7 @@ func makeKeyPath(name string) string {
 }
 
 func ensureCredhubIsClean() {
-	clientSecret := os.Getenv("TEST_CREDHUB_CLIENT_SECRET")
-	Expect(clientSecret).ToNot(BeEmpty(), "Expected TEST_CREDHUB_CLIENT_SECRET to be set")
-
-	Expect(caCerts).ToNot(BeEmpty())
-	credhubClient, err := credhub.New(
-		credhubURL,
-		credhub.CaCerts(caCerts...),
-		credhub.Auth(auth.UaaClientCredentials("credhub_cli", clientSecret)),
-	)
-	if err != nil {
-		Fail(fmt.Sprintf("Could not connect to credhub. %s\n", err.Error()))
-	}
+	credhubClient := underlyingCredhubClient()
 
 	testKeys, err := credhubClient.FindByPath(testKeyPrefix())
 	Expect(err).NotTo(HaveOccurred())
@@ -177,11 +166,11 @@ func ensureCredhubIsClean() {
 	}
 }
 
-func credhubCorrectAuth() credhubbroker.CredentialStore {
+func getCredhubStore() *odbcredhub.Store {
 	clientSecret := os.Getenv("TEST_CREDHUB_CLIENT_SECRET")
 	Expect(clientSecret).NotTo(BeEmpty(), "Expected TEST_CREDHUB_CLIENT_SECRET to be set")
 
-	credentialStore, err := credhubbroker.NewCredHubStore(
+	credentialStore, err := odbcredhub.Build(
 		credhubURL,
 		credhub.Auth(auth.UaaClientCredentials("credhub_cli", clientSecret)),
 		credhub.CaCerts(caCerts...),
@@ -190,21 +179,16 @@ func credhubCorrectAuth() credhubbroker.CredentialStore {
 	return credentialStore
 }
 
-func credhubIncorrectAuth() credhubbroker.CredentialStore {
-	credentialStore, err := credhubbroker.NewCredHubStore(
-		credhubURL,
-		credhub.CaCerts(caCerts...),
-		credhub.Auth(auth.UaaClientCredentials("credhub_cli", "reallybadsecret")),
-	)
-	Expect(err).NotTo(HaveOccurred())
-	return credentialStore
-}
+func underlyingCredhubClient() *credhub.CredHub {
+	clientSecret := os.Getenv("TEST_CREDHUB_CLIENT_SECRET")
+	Expect(clientSecret).NotTo(BeEmpty(), "Expected TEST_CREDHUB_CLIENT_SECRET to be set")
+	Expect(caCerts).ToNot(BeEmpty())
 
-func credhubNoUAAConfig() credhubbroker.CredentialStore {
-	credentialStore, err := credhubbroker.NewCredHubStore(
+	credhubClient, err := credhub.New(
 		credhubURL,
+		credhub.Auth(auth.UaaClientCredentials("credhub_cli", clientSecret)),
 		credhub.CaCerts(caCerts...),
 	)
 	Expect(err).NotTo(HaveOccurred())
-	return credentialStore
+	return credhubClient
 }

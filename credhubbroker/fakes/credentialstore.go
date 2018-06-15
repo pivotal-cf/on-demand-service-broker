@@ -32,15 +32,6 @@ type FakeCredentialStore struct {
 	deleteReturnsOnCall map[int]struct {
 		result1 error
 	}
-	AuthenticateStub        func() error
-	authenticateMutex       sync.RWMutex
-	authenticateArgsForCall []struct{}
-	authenticateReturns     struct {
-		result1 error
-	}
-	authenticateReturnsOnCall map[int]struct {
-		result1 error
-	}
 	AddPermissionsStub        func(credentialName string, perms []permissions.Permission) ([]permissions.Permission, error)
 	addPermissionsMutex       sync.RWMutex
 	addPermissionsArgsForCall []struct {
@@ -156,46 +147,6 @@ func (fake *FakeCredentialStore) DeleteReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeCredentialStore) Authenticate() error {
-	fake.authenticateMutex.Lock()
-	ret, specificReturn := fake.authenticateReturnsOnCall[len(fake.authenticateArgsForCall)]
-	fake.authenticateArgsForCall = append(fake.authenticateArgsForCall, struct{}{})
-	fake.recordInvocation("Authenticate", []interface{}{})
-	fake.authenticateMutex.Unlock()
-	if fake.AuthenticateStub != nil {
-		return fake.AuthenticateStub()
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.authenticateReturns.result1
-}
-
-func (fake *FakeCredentialStore) AuthenticateCallCount() int {
-	fake.authenticateMutex.RLock()
-	defer fake.authenticateMutex.RUnlock()
-	return len(fake.authenticateArgsForCall)
-}
-
-func (fake *FakeCredentialStore) AuthenticateReturns(result1 error) {
-	fake.AuthenticateStub = nil
-	fake.authenticateReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeCredentialStore) AuthenticateReturnsOnCall(i int, result1 error) {
-	fake.AuthenticateStub = nil
-	if fake.authenticateReturnsOnCall == nil {
-		fake.authenticateReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.authenticateReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
-}
-
 func (fake *FakeCredentialStore) AddPermissions(credentialName string, perms []permissions.Permission) ([]permissions.Permission, error) {
 	var permsCopy []permissions.Permission
 	if perms != nil {
@@ -260,8 +211,6 @@ func (fake *FakeCredentialStore) Invocations() map[string][][]interface{} {
 	defer fake.setMutex.RUnlock()
 	fake.deleteMutex.RLock()
 	defer fake.deleteMutex.RUnlock()
-	fake.authenticateMutex.RLock()
-	defer fake.authenticateMutex.RUnlock()
 	fake.addPermissionsMutex.RLock()
 	defer fake.addPermissionsMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

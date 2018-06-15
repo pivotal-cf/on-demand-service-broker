@@ -13,7 +13,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/cloudfoundry-incubator/credhub-cli/credhub"
+	credhubclient "github.com/cloudfoundry-incubator/credhub-cli/credhub"
 	"github.com/cloudfoundry-incubator/credhub-cli/credhub/auth"
 	"github.com/cloudfoundry/bosh-cli/director"
 	boshuaa "github.com/cloudfoundry/bosh-cli/uaa"
@@ -21,13 +21,13 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/apiserver"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
-	"github.com/pivotal-cf/on-demand-service-broker/brokeraugmenter"
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
+	"github.com/pivotal-cf/on-demand-service-broker/credhub"
 	"github.com/pivotal-cf/on-demand-service-broker/credhubbroker"
-	"github.com/pivotal-cf/on-demand-service-broker/credstore"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 	"github.com/pivotal-cf/on-demand-service-broker/manifestsecrets"
+	"github.com/pivotal-cf/on-demand-service-broker/network"
 	"github.com/pivotal-cf/on-demand-service-broker/noopservicescontroller"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	"github.com/pivotal-cf/on-demand-service-broker/startupchecker"
@@ -133,24 +133,25 @@ func startBroker(conf config.Config, logger *log.Logger, loggerFactory *loggerfa
 	)
 
 	matcher := new(manifestsecrets.CredHubPathMatcher)
-	var boshCredhubClient *credhub.CredHub
+	var boshCredhubStore *credhub.Store
 	if conf.Broker.ResolveManifestSecretsAtBind {
-		boshCredhubClient, err = credhub.New(
+		boshCredhubStore, err = credhub.Build(
 			conf.BoshCredhub.URL,
-			credhub.Auth(auth.UaaClientCredentials(
+			credhubclient.Auth(auth.UaaClientCredentials(
 				conf.BoshCredhub.Authentication.UAA.ClientCredentials.ID,
 				conf.BoshCredhub.Authentication.UAA.ClientCredentials.Secret,
 			)),
-			credhub.CaCerts(conf.BoshCredhub.RootCACert, conf.Bosh.TrustedCert),
+			credhubclient.CaCerts(conf.BoshCredhub.RootCACert, conf.Bosh.TrustedCert),
 		)
 		if err != nil {
 			logger.Fatalf("error starting broker: %s", err)
 		}
 	}
-	bulkGetter := credstore.New(boshCredhubClient)
-	manifestSecretResolver := manifestsecrets.NewResolver(conf.Broker.ResolveManifestSecretsAtBind, matcher, bulkGetter)
 
-	onDemandBroker, err := broker.New(
+	manifestSecretResolver := manifestsecrets.BuildResolver(conf.Broker.ResolveManifestSecretsAtBind, matcher, boshCredhubStore)
+
+	var onDemandBroker apiserver.CombinedBroker
+	onDemandBroker, err = broker.New(
 		boshClient,
 		cfClient,
 		conf.ServiceCatalog,
@@ -181,14 +182,27 @@ func startBroker(conf config.Config, logger *log.Logger, loggerFactory *loggerfa
 								`)
 	}
 
-	credhubFactory := credhubbroker.CredhubFactory{Conf: conf}
-	combinedBroker, err := brokeraugmenter.New(conf, onDemandBroker, credhubFactory, loggerFactory)
-	if err != nil {
-		logger.Fatalf("Error constructing the CredHub broker: %s", err)
+	if conf.HasCredHub() {
+		err := network.NewHostWaiter().Wait(conf.CredHub.APIURL, 16, 10)
+		if err != nil {
+			logger.Fatalf("error connecting to runtime credhub: %s", err)
+		}
+
+		runtimeCredentialStore, err := credhub.Build(
+			conf.CredHub.APIURL,
+			credhubclient.CaCerts(conf.CredHub.CaCert, conf.CredHub.InternalUAACaCert),
+			credhubclient.Auth(auth.UaaClientCredentials(conf.CredHub.ClientID, conf.CredHub.ClientSecret)),
+		)
+
+		if err != nil {
+			logger.Fatalf("error creating runtime credhub client: %s", err)
+		}
+		onDemandBroker = credhubbroker.New(onDemandBroker, runtimeCredentialStore, conf.ServiceCatalog.Name, loggerFactory)
 	}
+
 	server := apiserver.New(
 		conf,
-		combinedBroker,
+		onDemandBroker,
 		componentName,
 		loggerFactory,
 		logger,

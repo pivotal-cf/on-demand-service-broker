@@ -1,4 +1,4 @@
-package credstore_test
+package credhub_test
 
 import (
 	"testing"

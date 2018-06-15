@@ -21,6 +21,5 @@ import "github.com/cloudfoundry-incubator/credhub-cli/credhub/permissions"
 type CredentialStore interface {
 	Set(key string, value interface{}) error
 	Delete(key string) error
-	Authenticate() error
 	AddPermissions(credentialName string, perms []permissions.Permission) ([]permissions.Permission, error)
 }

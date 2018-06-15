@@ -19,13 +19,13 @@ import (
 	"fmt"
 	"net"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf/on-demand-service-broker/config"
-
 	"os"
 	"syscall"
 	"testing"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	"github.com/pivotal-cf/on-demand-service-broker/config"
 
 	"math/rand"
 
@@ -39,11 +39,11 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/apiserver"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/fakes"
-	"github.com/pivotal-cf/on-demand-service-broker/brokeraugmenter"
+	"github.com/pivotal-cf/on-demand-service-broker/credhubbroker"
 	credhubfakes "github.com/pivotal-cf/on-demand-service-broker/credhubbroker/fakes"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 	"github.com/pivotal-cf/on-demand-service-broker/manifestsecrets"
-	credstorefakes "github.com/pivotal-cf/on-demand-service-broker/manifestsecrets/fakes"
+	manifestsecretsfakes "github.com/pivotal-cf/on-demand-service-broker/manifestsecrets/fakes"
 )
 
 func TestOnDemandServiceBroker(t *testing.T) {
@@ -59,35 +59,31 @@ const (
 )
 
 var (
-	stopServer                 chan os.Signal
-	serverPort                 = rand.Intn(math.MaxInt16-1024) + 1024
-	serverURL                  = fmt.Sprintf("localhost:%d", serverPort)
-	fakeServiceAdapter         *fakes.FakeServiceAdapterClient
-	fakeCredentialStoreFactory *credhubfakes.FakeCredentialStoreFactory
-	fakeCredentialStore        *credhubfakes.FakeCredentialStore
-	fakeBoshClient             *fakes.FakeBoshClient
-	fakeCfClient               *fakes.FakeCloudFoundryClient
-	fakeDeployer               *fakes.FakeDeployer
-	loggerBuffer               *gbytes.Buffer
-	shouldSendSigterm          bool
-	secretResolver             broker.ManifestSecretResolver
+	stopServer          chan os.Signal
+	serverPort          = rand.Intn(math.MaxInt16-1024) + 1024
+	serverURL           = fmt.Sprintf("localhost:%d", serverPort)
+	fakeServiceAdapter  *fakes.FakeServiceAdapterClient
+	fakeCredentialStore *credhubfakes.FakeCredentialStore
+	fakeBoshClient      *fakes.FakeBoshClient
+	fakeCfClient        *fakes.FakeCloudFoundryClient
+	fakeDeployer        *fakes.FakeDeployer
+	loggerBuffer        *gbytes.Buffer
+	shouldSendSigterm   bool
+	secretResolver      broker.ManifestSecretResolver
 
-	credhubResolver *credstorefakes.FakeBulkGetter
+	credhubResolver *manifestsecretsfakes.FakeBulkGetter
 )
 
 var _ = BeforeEach(func() {
 	fakeBoshClient = new(fakes.FakeBoshClient)
 	fakeServiceAdapter = new(fakes.FakeServiceAdapterClient)
-	fakeCredentialStoreFactory = new(credhubfakes.FakeCredentialStoreFactory)
 	fakeCredentialStore = new(credhubfakes.FakeCredentialStore)
 	fakeCfClient = new(fakes.FakeCloudFoundryClient)
 	fakeDeployer = new(fakes.FakeDeployer)
 
 	credhubPathMatcher := new(manifestsecrets.CredHubPathMatcher)
-	credhubResolver = new(credstorefakes.FakeBulkGetter)
-	secretResolver = manifestsecrets.NewResolver(true, credhubPathMatcher, credhubResolver)
-
-	fakeCredentialStoreFactory.NewReturns(fakeCredentialStore, nil)
+	credhubResolver = new(manifestsecretsfakes.FakeBulkGetter)
+	secretResolver = manifestsecrets.BuildResolver(true, credhubPathMatcher, credhubResolver)
 })
 
 var _ = AfterEach(func() {
@@ -120,8 +116,12 @@ func StartServerWithStopHandler(conf config.Config, stopServerChan chan os.Signa
 		loggerFactory,
 	)
 	Expect(err).NotTo(HaveOccurred())
-	fakeBroker, err := brokeraugmenter.New(conf, fakeOnDemandBroker, fakeCredentialStoreFactory, loggerFactory)
-	Expect(err).NotTo(HaveOccurred())
+	var fakeBroker apiserver.CombinedBroker
+	if conf.HasCredHub() {
+		fakeBroker = credhubbroker.New(fakeOnDemandBroker, fakeCredentialStore, conf.ServiceCatalog.Name, loggerFactory)
+	} else {
+		fakeBroker = fakeOnDemandBroker
+	}
 	server := apiserver.New(
 		conf,
 		fakeBroker,

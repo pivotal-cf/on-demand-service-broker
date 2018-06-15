@@ -18,7 +18,7 @@ type BoshCredHubSecretResolver struct {
 	secretsFetcher BulkGetter
 }
 
-func NewResolver(resolveAtBind bool, matcher Matcher, secretsFetcher BulkGetter) broker.ManifestSecretResolver {
+func BuildResolver(resolveAtBind bool, matcher Matcher, secretsFetcher BulkGetter) broker.ManifestSecretResolver {
 	if !resolveAtBind {
 		return new(NoopSecretResolver)
 	}
