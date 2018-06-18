@@ -101,25 +101,31 @@ func (g *GenerateManifestAction) Execute(inputParams InputParams, outputWriter i
 		}
 	}
 
-	manifest, err := g.manifestGenerator.GenerateManifest(serviceDeployment, plan, requestParams, previousManifest, previousPlan)
+	generateManifestOutput, err := g.manifestGenerator.GenerateManifest(serviceDeployment, plan, requestParams, previousManifest, previousPlan)
 	if err != nil {
 		fmt.Fprintf(outputWriter, err.Error())
 		return CLIHandlerError{ErrorExitCode, err.Error()}
 	}
 
-	defer handleErr(&err)
-	manifestBytes, err := yaml.Marshal(manifest)
-	if err != nil {
-		return errors.Wrap(err, "error marshalling bosh manifest")
-	}
-
 	var output []byte
 	if inputParams.TextOutput {
+		defer handleErr(&err)
+		manifestBytes, err := yaml.Marshal(generateManifestOutput.Manifest)
+		if err != nil {
+			return errors.Wrap(err, "error marshalling bosh manifest")
+		}
 		output = manifestBytes
 	} else {
-		output, err = json.Marshal(GenerateManifestOutput{
-			Manifest: string(manifestBytes),
-		})
+		defer handleErr(&err)
+		manifestBytes, err := yaml.Marshal(generateManifestOutput.Manifest)
+		if err != nil {
+			return errors.Wrap(err, "error marshalling manifest yaml output")
+		}
+		marshalledOutput := MarshalledGenerateManifest{
+			Manifest:          string(manifestBytes),
+			ODBManagedSecrets: generateManifestOutput.ODBManagedSecrets,
+		}
+		output, err = json.Marshal(marshalledOutput)
 		if err != nil {
 			return errors.Wrap(err, "error marshalling generate-manifest json output")
 		}
@@ -131,6 +137,6 @@ func (g *GenerateManifestAction) Execute(inputParams InputParams, outputWriter i
 
 func handleErr(err *error) {
 	if v := recover(); v != nil {
-		*err = errors.Wrap(v.(error), "error marshalling bosh manifest")
+		*err = errors.New("error marshalling bosh manifest")
 	}
 }

@@ -55,7 +55,7 @@ func (c *Client) GenerateManifest(serviceDeployment sdk.ServiceDeployment, plan 
 		return nil, err
 	}
 
-	var stdout, stderr []byte
+	var manifest, stdout, stderr []byte
 	var exitCode *int
 	var jsonErr error
 
@@ -74,15 +74,6 @@ func (c *Client) GenerateManifest(serviceDeployment sdk.ServiceDeployment, plan 
 			inputParams,
 			c.ExternalBinPath, "generate-manifest",
 		)
-		if err != nil {
-			return nil, adapterError(c.ExternalBinPath, stdout, stderr, err)
-		}
-
-		var manifestOutput sdk.GenerateManifestOutput
-		jsonErr = json.Unmarshal(stdout, &manifestOutput)
-		if jsonErr == nil {
-			stdout = []byte(manifestOutput.Manifest)
-		}
 	} else {
 		stdout, stderr, exitCode, err = c.CommandRunner.Run(
 			c.ExternalBinPath, "generate-manifest",
@@ -90,10 +81,9 @@ func (c *Client) GenerateManifest(serviceDeployment sdk.ServiceDeployment, plan 
 			string(serialisedPlan), string(serialisedRequestParams),
 			string(previousManifest), string(serialisedPreviousPlan),
 		)
-
-		if err != nil {
-			return nil, adapterError(c.ExternalBinPath, stdout, stderr, err)
-		}
+	}
+	if err != nil {
+		return nil, adapterError(c.ExternalBinPath, stdout, stderr, err)
 	}
 
 	if err := ErrorForExitCode(*exitCode, string(stdout)); err != nil {
@@ -101,18 +91,24 @@ func (c *Client) GenerateManifest(serviceDeployment sdk.ServiceDeployment, plan 
 		return nil, err
 	}
 
-	if jsonErr != nil {
-		return nil, adapterError(c.ExternalBinPath, stdout, stderr, jsonErr)
+	manifest = stdout
+	if c.UsingStdin {
+		var manifestOutput sdk.MarshalledGenerateManifest
+		jsonErr = json.Unmarshal(stdout, &manifestOutput)
+		if jsonErr != nil {
+			return nil, adapterError(c.ExternalBinPath, stdout, stderr, jsonErr)
+		}
+		manifest = []byte(manifestOutput.Manifest)
 	}
 
 	logger.Printf("service adapter ran generate-manifest successfully, stderr logs: %s", string(stderr))
 
 	validator := manifestValidator{deploymentName: serviceDeployment.DeploymentName}
-	if err := validator.validateManifest(c.ExternalBinPath, stdout, stderr); err != nil {
+	if err := validator.validateManifest(c.ExternalBinPath, manifest, stderr); err != nil {
 		return nil, err
 	}
 
-	return stdout, nil
+	return manifest, nil
 }
 
 func (v manifestValidator) validateManifest(adapterPath string, stdout, stderr []byte) error {

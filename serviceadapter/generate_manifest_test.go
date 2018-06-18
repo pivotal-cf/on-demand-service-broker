@@ -28,7 +28,9 @@ import (
 
 var _ = Describe("external service adapter", func() {
 	const externalBinPath = "/thing"
-	const validManifestContent = "name: a-service-deployment"
+	var validManifestContent = sdk.MarshalledGenerateManifest{
+		Manifest: `name: "a-service-deployment"`,
+	}
 
 	var (
 		a                 *serviceadapter.Client
@@ -55,11 +57,8 @@ var _ = Describe("external service adapter", func() {
 			CommandRunner:   cmdRunner,
 			ExternalBinPath: externalBinPath,
 		}
-		cmdRunner.RunReturns([]byte(validManifestContent), []byte(""), intPtr(serviceadapter.SuccessExitCode), nil)
-		jsonDoc := sdk.GenerateManifestOutput{
-			Manifest: validManifestContent,
-		}
-		cmdRunner.RunWithInputParamsReturns([]byte(toJson(jsonDoc)), []byte(""), intPtr(serviceadapter.SuccessExitCode), nil)
+		cmdRunner.RunReturns([]byte(validManifestContent.Manifest), []byte(""), intPtr(serviceadapter.SuccessExitCode), nil)
+		cmdRunner.RunWithInputParamsReturns([]byte(toJson(validManifestContent)), []byte(""), intPtr(serviceadapter.SuccessExitCode), nil)
 
 		serviceDeployment = sdk.ServiceDeployment{
 			DeploymentName: "a-service-deployment",
@@ -140,7 +139,7 @@ var _ = Describe("external service adapter", func() {
 			})
 
 			It("returns the deserialised stdout from the external process as a bosh manifest", func() {
-				Expect(manifest).To(Equal([]byte(validManifestContent)))
+				Expect(manifest).To(Equal([]byte(validManifestContent.Manifest)))
 			})
 		})
 
@@ -297,7 +296,7 @@ stemcells:
 
 				Context("with an invalid release version", func() {
 					BeforeEach(func() {
-						jsonDoc := sdk.GenerateManifestOutput{
+						jsonDoc := sdk.MarshalledGenerateManifest{
 							Manifest: toYaml(bosh.BoshManifest{
 								Name: "a-service-deployment",
 								Releases: []bosh.Release{
@@ -315,7 +314,7 @@ stemcells:
 
 				Context("with an invalid stemcell version", func() {
 					BeforeEach(func() {
-						jsonDoc := sdk.GenerateManifestOutput{
+						jsonDoc := sdk.MarshalledGenerateManifest{
 							Manifest: toYaml(bosh.BoshManifest{
 								Name: "a-service-deployment",
 								Stemcells: []bosh.Stemcell{
@@ -333,7 +332,7 @@ stemcells:
 
 				Context("that cannot be unmarshalled", func() {
 					BeforeEach(func() {
-						jsonDoc := sdk.GenerateManifestOutput{
+						jsonDoc := sdk.MarshalledGenerateManifest{
 							Manifest: "unparseable",
 						}
 						cmdRunner.RunWithInputParamsReturns([]byte(toJson(jsonDoc)), []byte(""), intPtr(serviceadapter.SuccessExitCode), nil)
@@ -349,10 +348,7 @@ stemcells:
 
 		Context("when the external service adapter exits with status 10", func() {
 			BeforeEach(func() {
-				jsonDoc := sdk.GenerateManifestOutput{
-					Manifest: "I'm stdout",
-				}
-				cmdRunner.RunWithInputParamsReturns([]byte(toJson(jsonDoc)), []byte("I'm stderr"), intPtr(sdk.NotImplementedExitCode), nil)
+				cmdRunner.RunWithInputParamsReturns([]byte("I'm stdout"), []byte("I'm stderr"), intPtr(sdk.NotImplementedExitCode), nil)
 			})
 
 			It("returns an error", func() {

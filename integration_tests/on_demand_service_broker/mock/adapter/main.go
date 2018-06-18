@@ -53,12 +53,12 @@ type Adapter struct {
 	Logger *log.Logger
 }
 
-func (a *Adapter) GenerateManifest(serviceDeployment serviceadapter.ServiceDeployment, plan serviceadapter.Plan, requestParams serviceadapter.RequestParameters, previousManifest *bosh.BoshManifest, previousPlan *serviceadapter.Plan) (bosh.BoshManifest, error) {
+func (a *Adapter) GenerateManifest(serviceDeployment serviceadapter.ServiceDeployment, plan serviceadapter.Plan, requestParams serviceadapter.RequestParameters, previousManifest *bosh.BoshManifest, previousPlan *serviceadapter.Plan) (serviceadapter.GenerateManifestOutput, error) {
 	errorMessageForOperator := os.Getenv(mock.StderrContentForGenerate)
 	if errorMessageForOperator != "" {
 		errorMessageForUser := os.Getenv(mock.StdoutContentForGenerate)
 		a.Logger.Println(errorMessageForOperator)
-		return bosh.BoshManifest{}, errors.New(errorMessageForUser)
+		return serviceadapter.GenerateManifestOutput{}, errors.New(errorMessageForUser)
 	}
 
 	manifestMapJson := os.Getenv(mock.StdoutContentForGenerate)
@@ -73,30 +73,30 @@ func (a *Adapter) GenerateManifest(serviceDeployment serviceadapter.ServiceDeplo
 	var manifest bosh.BoshManifest
 	if err := yaml.Unmarshal([]byte(manifestToReturn), &manifest); err != nil {
 		a.Logger.Println(err.Error())
-		return bosh.BoshManifest{}, errors.New("")
+		return serviceadapter.GenerateManifestOutput{}, errors.New("")
 	}
 	if err := serialiseParameter(mock.InputServiceDeploymentForGenerate, serviceDeployment); err != nil {
 		a.Logger.Println(err.Error())
-		return manifest, errors.New("")
+		return serviceadapter.GenerateManifestOutput{Manifest: manifest}, errors.New("")
 	}
 	if err := serialiseParameter(mock.InputPlanForGenerate, plan); err != nil {
 		a.Logger.Println(err.Error())
-		return manifest, errors.New("")
+		return serviceadapter.GenerateManifestOutput{Manifest: manifest}, errors.New("")
 	}
 	if err := serialiseParameter(mock.InputRequestParamsForGenerate, requestParams); err != nil {
 		a.Logger.Println(err.Error())
-		return manifest, errors.New("")
+		return serviceadapter.GenerateManifestOutput{Manifest: manifest}, errors.New("")
 	}
 	if err := serialiseParameter(mock.InputPreviousManifestForGenerate, previousManifest); err != nil {
 		a.Logger.Println(err.Error())
-		return manifest, errors.New("")
+		return serviceadapter.GenerateManifestOutput{Manifest: manifest}, errors.New("")
 	}
 	if err := serialiseParameter(mock.InputPreviousPlanForGenerate, previousPlan); err != nil {
 		a.Logger.Println(err.Error())
-		return manifest, errors.New("")
+		return serviceadapter.GenerateManifestOutput{Manifest: manifest}, errors.New("")
 	}
 
-	return manifest, nil
+	return serviceadapter.GenerateManifestOutput{Manifest: manifest}, nil
 }
 
 func (a *Adapter) CreateBinding(bindingID string, deploymentTopology bosh.BoshVMs, manifest bosh.BoshManifest, requestParams serviceadapter.RequestParameters, secrets serviceadapter.ManifestSecrets) (serviceadapter.Binding, error) {
