@@ -19,21 +19,120 @@ import (
 )
 
 var _ = Describe("Manifest Generator", func() {
+	var (
+		mg              ManifestGenerator
+		serviceStemcell serviceadapter.Stemcell
+		serviceReleases serviceadapter.ServiceReleases
+		serviceAdapter  *fakes.FakeServiceAdapterClient
+		serviceCatalog  config.ServiceOffering
+
+		existingPlan config.Plan
+		secondPlan   config.Plan
+
+		generatedManifestSecrets serviceadapter.ODBManagedSecrets
+	)
+
+	BeforeEach(func() {
+		planServiceInstanceLimit := 3
+		globalServiceInstanceLimit := 5
+
+		existingPlan = config.Plan{
+			ID:   existingPlanID,
+			Name: existingPlanName,
+			Update: &serviceadapter.Update{
+				Canaries:        1,
+				CanaryWatchTime: "100-200",
+				UpdateWatchTime: "100-200",
+				MaxInFlight:     5,
+			},
+			Quotas: config.Quotas{
+				ServiceInstanceLimit: &planServiceInstanceLimit,
+			},
+			Properties: serviceadapter.Properties{
+				"super": "no",
+			},
+			InstanceGroups: []serviceadapter.InstanceGroup{
+				{
+					Name:               existingPlanInstanceGroupName,
+					VMType:             "vm-type",
+					PersistentDiskType: "disk-type",
+					Instances:          42,
+					Networks:           []string{"networks"},
+					AZs:                []string{"my-az1", "my-az2"},
+				},
+				{
+					Name:      "instance-group-name-the-second",
+					VMType:    "vm-type",
+					Instances: 55,
+					Networks:  []string{"networks2"},
+				},
+			},
+		}
+
+		secondPlan = config.Plan{
+			ID: secondPlanID,
+			Properties: serviceadapter.Properties{
+				"super":             "yes",
+				"a_global_property": "overrides_global_value",
+			},
+			InstanceGroups: []serviceadapter.InstanceGroup{
+				{
+					Name:               existingPlanInstanceGroupName,
+					VMType:             "vm-type1",
+					PersistentDiskType: "disk-type1",
+					Instances:          44,
+					Networks:           []string{"networks1"},
+					AZs:                []string{"my-az4", "my-az5"},
+				},
+			},
+		}
+
+		serviceCatalog = config.ServiceOffering{
+			ID:               serviceOfferingID,
+			Name:             "a-cool-redis-service",
+			GlobalProperties: serviceadapter.Properties{"a_global_property": "global_value", "some_other_global_property": "other_global_value"},
+			GlobalQuotas: config.Quotas{
+				ServiceInstanceLimit: &globalServiceInstanceLimit,
+			},
+			Plans: []config.Plan{
+				existingPlan,
+				secondPlan,
+			},
+		}
+
+		serviceReleases = serviceadapter.ServiceReleases{{
+			Name:    "name",
+			Version: "vers",
+			Jobs:    []string{"a", "b"},
+		}}
+
+		serviceStemcell = serviceadapter.Stemcell{
+			OS:      "ubuntu-trusty",
+			Version: "1234",
+		}
+
+		serviceAdapter = new(fakes.FakeServiceAdapterClient)
+
+		generatedManifestSecrets = serviceadapter.ODBManagedSecrets{
+			"foo":    "bar",
+			"secret": "value",
+		}
+
+		mg = NewManifestGenerator(
+			serviceAdapter,
+			serviceCatalog,
+			serviceStemcell,
+			serviceReleases,
+		)
+	})
+
 	Describe("GenerateManifest", func() {
 		var (
-			mg              ManifestGenerator
-			serviceReleases serviceadapter.ServiceReleases
-			serviceStemcell serviceadapter.Stemcell
-
-			manifest []byte
+			generateManifestOutput serviceadapter.MarshalledGenerateManifest
+			manifest               []byte
 
 			err error
 
-			existingPlan config.Plan
-			secondPlan   config.Plan
-
-			serviceAdapter *fakes.FakeServiceAdapterClient
-			serviceCatalog config.ServiceOffering
 			planGUID       string
 			previousPlanID *string
 			requestParams  map[string]interface{}
@@ -41,110 +140,23 @@ var _ = Describe("Manifest Generator", func() {
 		)
 
 		BeforeEach(func() {
-			var (
-				planServiceInstanceLimit   = 3
-				globalServiceInstanceLimit = 5
-			)
-
 			planGUID = existingPlanID
 			previousPlanID = nil
 
 			requestParams = map[string]interface{}{"foo": "bar"}
 
-			existingPlan = config.Plan{
-				ID:   existingPlanID,
-				Name: existingPlanName,
-				Update: &serviceadapter.Update{
-					Canaries:        1,
-					CanaryWatchTime: "100-200",
-					UpdateWatchTime: "100-200",
-					MaxInFlight:     5,
-				},
-				Quotas: config.Quotas{
-					ServiceInstanceLimit: &planServiceInstanceLimit,
-				},
-				Properties: serviceadapter.Properties{
-					"super": "no",
-				},
-				InstanceGroups: []serviceadapter.InstanceGroup{
-					{
-						Name:               existingPlanInstanceGroupName,
-						VMType:             "vm-type",
-						PersistentDiskType: "disk-type",
-						Instances:          42,
-						Networks:           []string{"networks"},
-						AZs:                []string{"my-az1", "my-az2"},
-					},
-					{
-						Name:      "instance-group-name-the-second",
-						VMType:    "vm-type",
-						Instances: 55,
-						Networks:  []string{"networks2"},
-					},
-				},
-			}
-
-			secondPlan = config.Plan{
-				ID: secondPlanID,
-				Properties: serviceadapter.Properties{
-					"super":             "yes",
-					"a_global_property": "overrides_global_value",
-				},
-				InstanceGroups: []serviceadapter.InstanceGroup{
-					{
-						Name:               existingPlanInstanceGroupName,
-						VMType:             "vm-type1",
-						PersistentDiskType: "disk-type1",
-						Instances:          44,
-						Networks:           []string{"networks1"},
-						AZs:                []string{"my-az4", "my-az5"},
-					},
-				},
-			}
-
-			serviceCatalog = config.ServiceOffering{
-				ID:               serviceOfferingID,
-				Name:             "a-cool-redis-service",
-				GlobalProperties: serviceadapter.Properties{"a_global_property": "global_value", "some_other_global_property": "other_global_value"},
-				GlobalQuotas: config.Quotas{
-					ServiceInstanceLimit: &globalServiceInstanceLimit,
-				},
-				Plans: []config.Plan{
-					existingPlan,
-					secondPlan,
-				},
-			}
-
-			serviceReleases = serviceadapter.ServiceReleases{{
-				Name:    "name",
-				Version: "vers",
-				Jobs:    []string{"a", "b"},
-			}}
-
-			serviceStemcell = serviceadapter.Stemcell{
-				OS:      "ubuntu-trusty",
-				Version: "1234",
-			}
-
-			serviceAdapter = new(fakes.FakeServiceAdapterClient)
-
-			mg = NewManifestGenerator(
-				serviceAdapter,
-				serviceCatalog,
-				serviceStemcell,
-				serviceReleases,
-			)
 			oldManifest = []byte("oldmanifest")
 		})
 
 		JustBeforeEach(func() {
-			manifest, err = mg.GenerateManifest(deploymentName, planGUID, requestParams, oldManifest, previousPlanID, logger)
+			generateManifestOutput, err = mg.GenerateManifest(deploymentName, planGUID, requestParams, oldManifest, previousPlanID, logger)
+			manifest = []byte(generateManifestOutput.Manifest)
 		})
 
 		Context("when called with correct arguments", func() {
 			generatedManifest := []byte("some manifest")
 			BeforeEach(func() {
-				serviceAdapter.GenerateManifestReturns(generatedManifest, nil)
+				serviceAdapter.GenerateManifestReturns(serviceadapter.MarshalledGenerateManifest{Manifest: string(generatedManifest), ODBManagedSecrets: generatedManifestSecrets}, nil)
 			})
 
 			It("calls service adapter once", func() {
@@ -153,6 +165,7 @@ var _ = Describe("Manifest Generator", func() {
 
 			It("returns result of adapter", func() {
 				Expect(manifest).To(Equal(generatedManifest))
+				Expect(generateManifestOutput.ODBManagedSecrets).To(Equal(generatedManifestSecrets))
 			})
 
 			It("does not return an error", func() {
@@ -262,12 +275,46 @@ var _ = Describe("Manifest Generator", func() {
 
 		Context("when the adapter returns an error", func() {
 			BeforeEach(func() {
-				serviceAdapter.GenerateManifestReturns(nil, errors.New("oops"))
+				serviceAdapter.GenerateManifestReturns(serviceadapter.MarshalledGenerateManifest{}, errors.New("oops"))
 			})
 
 			It("is returned", func() {
 				Expect(err).To(MatchError("oops"))
 			})
+		})
+	})
+
+	Describe("GenerateSecretPaths", func() {
+		It("generates a list of ManifestSecrets", func() {
+			deploymentName := "the-name"
+			secretsPath := mg.GenerateSecretPaths(deploymentName, generatedManifestSecrets)
+			Expect(secretsPath).To(SatisfyAll(
+				ContainElement(ManifestSecret{Name: "foo", Path: fmt.Sprintf("/odb/%s/%s/foo", serviceOfferingID, deploymentName), Value: generatedManifestSecrets["foo"]}),
+				ContainElement(ManifestSecret{Name: "secret", Path: fmt.Sprintf("/odb/%s/%s/secret", serviceOfferingID, deploymentName), Value: generatedManifestSecrets["secret"]}),
+			))
+		})
+	})
+
+	Describe("ReplaceODBRefs", func() {
+		It("replaces odb_secret:foo with /odb/<dep-name>/<svc-id>/foo", func() {
+			manifest := fmt.Sprintf("name: ((%s:foo))\nsecret: ((%[1]s:bar))", serviceadapter.ODBSecretPrefix)
+			secrets := []ManifestSecret{
+				{Name: "foo", Value: "something", Path: "/odb/jim/bob/foo"},
+				{Name: "bar", Value: "another thing", Path: "/odb/jim/bob/bar"},
+			}
+			expectedManifest := "name: ((/odb/jim/bob/foo))\nsecret: ((/odb/jim/bob/bar))"
+			substitutedManifest := mg.ReplaceODBRefs(manifest, secrets)
+			Expect(substitutedManifest).To(Equal(expectedManifest))
+		})
+
+		It("replaces all occurrences of a managed secret", func() {
+			manifest := fmt.Sprintf("name: ((%s:foo))\nsecret: ((%[1]s:foo))", serviceadapter.ODBSecretPrefix)
+			secrets := []ManifestSecret{
+				{Name: "foo", Value: "something", Path: "/odb/jim/bob/foo"},
+			}
+			expectedManifest := "name: ((/odb/jim/bob/foo))\nsecret: ((/odb/jim/bob/foo))"
+			substitutedManifest := mg.ReplaceODBRefs(manifest, secrets)
+			Expect(substitutedManifest).To(Equal(expectedManifest))
 		})
 	})
 })

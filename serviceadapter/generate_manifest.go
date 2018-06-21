@@ -30,21 +30,21 @@ type manifestValidator struct {
 	deploymentName string
 }
 
-func (c *Client) GenerateManifest(serviceDeployment sdk.ServiceDeployment, plan sdk.Plan, requestParams map[string]interface{}, previousManifest []byte, previousPlan *sdk.Plan, logger *log.Logger) ([]byte, error) {
+func (c *Client) GenerateManifest(serviceDeployment sdk.ServiceDeployment, plan sdk.Plan, requestParams map[string]interface{}, previousManifest []byte, previousPlan *sdk.Plan, logger *log.Logger) (sdk.MarshalledGenerateManifest, error) {
 	serialisedServiceDeployment, err := json.Marshal(serviceDeployment)
 	if err != nil {
-		return nil, err
+		return sdk.MarshalledGenerateManifest{}, err
 	}
 
 	plan.Properties = SanitiseForJSON(plan.Properties)
 	serialisedPlan, err := json.Marshal(plan)
 	if err != nil {
-		return nil, err
+		return sdk.MarshalledGenerateManifest{}, err
 	}
 
 	serialisedRequestParams, err := json.Marshal(requestParams)
 	if err != nil {
-		return nil, err
+		return sdk.MarshalledGenerateManifest{}, err
 	}
 	if previousPlan != nil {
 		previousPlan.Properties = SanitiseForJSON(previousPlan.Properties)
@@ -52,10 +52,11 @@ func (c *Client) GenerateManifest(serviceDeployment sdk.ServiceDeployment, plan 
 
 	serialisedPreviousPlan, err := json.Marshal(previousPlan)
 	if err != nil {
-		return nil, err
+		return sdk.MarshalledGenerateManifest{}, err
 	}
 
-	var manifest, stdout, stderr []byte
+	var stdout, stderr []byte
+	var output sdk.MarshalledGenerateManifest
 	var exitCode *int
 	var jsonErr error
 
@@ -83,38 +84,36 @@ func (c *Client) GenerateManifest(serviceDeployment sdk.ServiceDeployment, plan 
 		)
 	}
 	if err != nil {
-		return nil, adapterError(c.ExternalBinPath, stdout, stderr, err)
+		return sdk.MarshalledGenerateManifest{}, adapterError(c.ExternalBinPath, stdout, stderr, err)
 	}
 
 	if err := ErrorForExitCode(*exitCode, string(stdout)); err != nil {
 		logger.Printf(adapterFailedMessage(*exitCode, c.ExternalBinPath, stdout, stderr))
-		return nil, err
+		return sdk.MarshalledGenerateManifest{}, err
 	}
 
-	manifest = stdout
+	output = sdk.MarshalledGenerateManifest{Manifest: string(stdout)}
 	if c.UsingStdin {
-		var manifestOutput sdk.MarshalledGenerateManifest
-		jsonErr = json.Unmarshal(stdout, &manifestOutput)
+		jsonErr = json.Unmarshal(stdout, &output)
 		if jsonErr != nil {
-			return nil, adapterError(c.ExternalBinPath, stdout, stderr, jsonErr)
+			return sdk.MarshalledGenerateManifest{}, adapterError(c.ExternalBinPath, stdout, stderr, jsonErr)
 		}
-		manifest = []byte(manifestOutput.Manifest)
 	}
 
 	logger.Printf("service adapter ran generate-manifest successfully, stderr logs: %s", string(stderr))
 
 	validator := manifestValidator{deploymentName: serviceDeployment.DeploymentName}
-	if err := validator.validateManifest(c.ExternalBinPath, manifest, stderr); err != nil {
-		return nil, err
+	if err := validator.validateManifest(c.ExternalBinPath, output.Manifest, stderr); err != nil {
+		return sdk.MarshalledGenerateManifest{}, err
 	}
 
-	return manifest, nil
+	return output, nil
 }
 
-func (v manifestValidator) validateManifest(adapterPath string, stdout, stderr []byte) error {
+func (v manifestValidator) validateManifest(adapterPath string, genManifest string, stderr []byte) error {
 	var generatedManifest manifest
 
-	if err := yaml.Unmarshal(stdout, &generatedManifest); err != nil {
+	if err := yaml.Unmarshal([]byte(genManifest), &generatedManifest); err != nil {
 		return invalidYAMLError(adapterPath, stderr)
 	}
 

@@ -7,7 +7,9 @@
 package task
 
 import (
+	"fmt"
 	"log"
+	"strings"
 
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
@@ -22,7 +24,7 @@ type ServiceAdapterClient interface {
 		requestParams map[string]interface{},
 		previousManifest []byte,
 		previousPlan *serviceadapter.Plan, logger *log.Logger,
-	) ([]byte, error)
+	) (serviceadapter.MarshalledGenerateManifest, error)
 	GeneratePlanSchema(plan serviceadapter.Plan, logger *log.Logger) (brokerapi.ServiceSchemas, error)
 }
 
@@ -55,7 +57,7 @@ func (m manifestGenerator) GenerateManifest(
 	oldManifest []byte,
 	previousPlanID *string,
 	logger *log.Logger,
-) (RawBoshManifest, error) {
+) (serviceadapter.MarshalledGenerateManifest, error) {
 
 	serviceDeployment := serviceadapter.ServiceDeployment{
 		DeploymentName: deploymentName,
@@ -66,7 +68,7 @@ func (m manifestGenerator) GenerateManifest(
 	plan, previousPlan, err := m.findPlans(planID, previousPlanID)
 	if err != nil {
 		logger.Println(err)
-		return nil, err
+		return serviceadapter.MarshalledGenerateManifest{}, err
 	}
 
 	logger.Printf("service adapter will generate manifest for deployment %s\n", deploymentName)
@@ -114,4 +116,31 @@ func (m manifestGenerator) findPreviousPlan(previousPlanID string) (*serviceadap
 
 	abridgedPlan := previousPlan.AdapterPlan(m.serviceOffering.GlobalProperties)
 	return &abridgedPlan, nil
+}
+
+func (m manifestGenerator) GenerateSecretPaths(deploymentName string, secretsMap serviceadapter.ODBManagedSecrets) []ManifestSecret {
+	secrets := []ManifestSecret{}
+	for name, val := range secretsMap {
+		secrets = append(secrets, ManifestSecret{
+			Name:  name,
+			Value: val,
+			Path:  fmt.Sprintf("/odb/%s/%s/%s", m.serviceOffering.ID, deploymentName, name),
+		})
+	}
+	return secrets
+}
+
+func (m manifestGenerator) ReplaceODBRefs(manifest string, secrets []ManifestSecret) string {
+	newManifest := manifest
+
+	for _, s := range secrets {
+		newManifest = strings.Replace(
+			newManifest,
+			fmt.Sprintf("((%s:%s))", serviceadapter.ODBSecretPrefix, s.Name),
+			fmt.Sprintf("((%s))", s.Path),
+			-1,
+		)
+	}
+
+	return newManifest
 }

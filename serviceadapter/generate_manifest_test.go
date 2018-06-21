@@ -28,8 +28,11 @@ import (
 
 var _ = Describe("external service adapter", func() {
 	const externalBinPath = "/thing"
-	var validManifestContent = sdk.MarshalledGenerateManifest{
+	var expectedGenerateManifestOutput = sdk.MarshalledGenerateManifest{
 		Manifest: `name: "a-service-deployment"`,
+		ODBManagedSecrets: map[string]interface{}{
+			"pirate_status": "noob",
+		},
 	}
 
 	var (
@@ -45,8 +48,8 @@ var _ = Describe("external service adapter", func() {
 
 		inputParams sdk.InputParams
 
-		manifest    []byte
-		generateErr error
+		generateManifestOutput sdk.MarshalledGenerateManifest
+		generateErr            error
 	)
 
 	BeforeEach(func() {
@@ -57,8 +60,8 @@ var _ = Describe("external service adapter", func() {
 			CommandRunner:   cmdRunner,
 			ExternalBinPath: externalBinPath,
 		}
-		cmdRunner.RunReturns([]byte(validManifestContent.Manifest), []byte(""), intPtr(serviceadapter.SuccessExitCode), nil)
-		cmdRunner.RunWithInputParamsReturns([]byte(toJson(validManifestContent)), []byte(""), intPtr(serviceadapter.SuccessExitCode), nil)
+		cmdRunner.RunReturns([]byte(expectedGenerateManifestOutput.Manifest), []byte(""), intPtr(serviceadapter.SuccessExitCode), nil)
+		cmdRunner.RunWithInputParamsReturns([]byte(toJson(expectedGenerateManifestOutput)), []byte(""), intPtr(serviceadapter.SuccessExitCode), nil)
 
 		serviceDeployment = sdk.ServiceDeployment{
 			DeploymentName: "a-service-deployment",
@@ -108,7 +111,7 @@ var _ = Describe("external service adapter", func() {
 	})
 
 	JustBeforeEach(func() {
-		manifest, generateErr = a.GenerateManifest(serviceDeployment, plan, params, previousManifest, previousPlan, logger)
+		generateManifestOutput, generateErr = a.GenerateManifest(serviceDeployment, plan, params, previousManifest, previousPlan, logger)
 	})
 
 	It("invokes external manifest generator with serialised parameters when 'UsingStdin' not set", func() {
@@ -139,7 +142,11 @@ var _ = Describe("external service adapter", func() {
 			})
 
 			It("returns the deserialised stdout from the external process as a bosh manifest", func() {
-				Expect(manifest).To(Equal([]byte(validManifestContent.Manifest)))
+				By("setting the manifest")
+				Expect(generateManifestOutput.Manifest).To(Equal(expectedGenerateManifestOutput.Manifest))
+
+				By("not setting the secrets")
+				Expect(generateManifestOutput.ODBManagedSecrets).To(BeEmpty())
 			})
 		})
 
@@ -272,17 +279,31 @@ stemcells:
 		})
 
 		Context("when the external service adapter succeeds", func() {
-			When("the outputted data is not valid json", func() {
-				BeforeEach(func() {
-					cmdRunner.RunWithInputParamsReturns([]byte("banana"), []byte(""), intPtr(serviceadapter.SuccessExitCode), nil)
+			Context("when the generated manifest is valid", func() {
+				It("returns no error", func() {
+					Expect(generateErr).ToNot(HaveOccurred())
 				})
 
-				It("returns an error", func() {
-					Expect(generateErr).To(MatchError(ContainSubstring("invalid character 'b'")))
+				It("returns the expected result", func() {
+					By("setting the manifest")
+					Expect(generateManifestOutput.Manifest).To(Equal(expectedGenerateManifestOutput.Manifest))
+
+					By("setting the secrets")
+					Expect(generateManifestOutput.ODBManagedSecrets).To(Equal(expectedGenerateManifestOutput.ODBManagedSecrets))
 				})
 			})
 
 			Context("when the generated manifest is invalid", func() {
+				When("the outputted data is not valid json", func() {
+					BeforeEach(func() {
+						cmdRunner.RunWithInputParamsReturns([]byte("banana"), []byte(""), intPtr(serviceadapter.SuccessExitCode), nil)
+					})
+
+					It("returns an error", func() {
+						Expect(generateErr).To(MatchError(ContainSubstring("invalid character 'b'")))
+					})
+				})
+
 				Context("with an incorrect deployment name", func() {
 					BeforeEach(func() {
 						invalidManifestContent := `{"manifest":"name: not-the-deployment-name-given-to-the-adapter"}`

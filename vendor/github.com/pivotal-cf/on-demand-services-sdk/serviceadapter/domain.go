@@ -114,7 +114,7 @@ type InputParams struct {
 	TextOutput          bool                      `json:"-"`
 }
 
-type ODBManagedSecrets map[string]string
+type ODBManagedSecrets map[string]interface{}
 
 type GenerateManifestOutput struct {
 	Manifest          bosh.BoshManifest `json:"manifest"`
@@ -132,6 +132,8 @@ const (
 	BindingNotFoundErrorExitCode      = 41
 	AppGuidNotProvidedErrorExitCode   = 42
 	BindingAlreadyExistsErrorExitCode = 49
+
+	ODBSecretPrefix = "odb_secret"
 )
 
 type BindingAlreadyExistsError struct {

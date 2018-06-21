@@ -21,22 +21,26 @@ import (
 
 	"github.com/cloudfoundry-incubator/credhub-cli/credhub"
 	"github.com/cloudfoundry-incubator/credhub-cli/credhub/credentials"
+	"github.com/cloudfoundry-incubator/credhub-cli/credhub/credentials/values"
 	"github.com/cloudfoundry-incubator/credhub-cli/credhub/permissions"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	odbcredhub "github.com/pivotal-cf/on-demand-service-broker/credhub"
+	"github.com/pivotal-cf/on-demand-service-broker/task"
 )
 
 var _ = Describe("Credential store", func() {
 
 	var (
-		subject *odbcredhub.Store
+		subject       *odbcredhub.Store
+		credhubClient *credhub.CredHub
 	)
 
 	BeforeEach(func() {
 		subject = getCredhubStore()
+		credhubClient = underlyingCredhubClient()
 	})
 
 	Describe("Set (and delete)", func() {
@@ -60,7 +64,30 @@ var _ = Describe("Credential store", func() {
 			err := subject.Set(keyPath, []interface{}{"asdf"})
 			Expect(err).To(MatchError("Unknown credential type"))
 		})
+	})
 
+	Describe("BulkSet", func() {
+		It("sets multiple values", func() {
+			path1 := makeKeyPath("secret-1")
+			path2 := makeKeyPath("secret-2")
+			err := subject.BulkSet([]task.ManifestSecret{
+				{Name: "secret-1", Path: path1, Value: map[string]interface{}{"hi": "there"}},
+				{Name: "secret-2", Path: path2, Value: "value2"},
+			})
+			Expect(err).NotTo(HaveOccurred())
+			defer func() {
+				credhubClient.Delete(path1)
+				credhubClient.Delete(path2)
+			}()
+
+			cred1, err := credhubClient.GetLatestJSON(path1)
+			Expect(err).NotTo(HaveOccurred(), path1)
+			cred2, err := credhubClient.GetLatestValue(path2)
+			Expect(err).NotTo(HaveOccurred(), path2)
+
+			Expect(cred1.Value).To(Equal(values.JSON{"hi": "there"}))
+			Expect(cred2.Value).To(Equal(values.Value("value2")))
+		})
 	})
 
 	Describe("Add permission", func() {
@@ -86,14 +113,12 @@ var _ = Describe("Credential store", func() {
 
 	Describe("BulkGet", func() {
 		var (
-			credhubClient  *credhub.CredHub
 			jsonSecret     credentials.JSON
 			passwordSecret credentials.Password
 		)
 
 		BeforeEach(func() {
 			var err error
-			credhubClient = underlyingCredhubClient()
 			passwordSecret, err = credhubClient.SetPassword("foo", "thepass", "overwrite")
 			Expect(err).NotTo(HaveOccurred())
 			jsonSecret, err = credhubClient.SetJSON("jsonsecret", map[string]interface{}{"value": "foo"}, "overwrite")

@@ -113,15 +113,6 @@ func startBroker(conf config.Config, logger *log.Logger, loggerFactory *loggerfa
 		UsingStdin:      conf.Broker.UsingStdin,
 	}
 
-	manifestGenerator := task.NewManifestGenerator(
-		serviceAdapter,
-		conf.ServiceCatalog,
-		conf.ServiceDeployment.Stemcell,
-		conf.ServiceDeployment.Releases,
-	)
-
-	deploymentManager := task.NewDeployer(boshClient, manifestGenerator)
-
 	startupChecks = append(startupChecks,
 		startupchecker.NewBOSHDirectorVersionChecker(
 			broker.MinimumMajorStemcellDirectorVersionForODB,
@@ -132,8 +123,8 @@ func startBroker(conf config.Config, logger *log.Logger, loggerFactory *loggerfa
 		startupchecker.NewBOSHAuthChecker(boshClient, logger),
 	)
 
-	matcher := new(manifestsecrets.CredHubPathMatcher)
 	var boshCredhubStore *credhub.Store
+	matcher := new(manifestsecrets.CredHubPathMatcher)
 	if conf.Broker.ResolveManifestSecretsAtBind {
 		boshCredhubStore, err = credhub.Build(
 			conf.BoshCredhub.URL,
@@ -147,6 +138,14 @@ func startBroker(conf config.Config, logger *log.Logger, loggerFactory *loggerfa
 			logger.Fatalf("error starting broker: %s", err)
 		}
 	}
+
+	manifestGenerator := task.NewManifestGenerator(
+		serviceAdapter,
+		conf.ServiceCatalog,
+		conf.ServiceDeployment.Stemcell,
+		conf.ServiceDeployment.Releases,
+	)
+	deploymentManager := task.NewDeployer(boshClient, manifestGenerator, boshCredhubStore)
 
 	manifestSecretResolver := manifestsecrets.BuildResolver(conf.Broker.ResolveManifestSecretsAtBind, matcher, boshCredhubStore)
 

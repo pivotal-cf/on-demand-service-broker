@@ -11,7 +11,7 @@ import (
 )
 
 type FakeServiceAdapterClient struct {
-	GenerateManifestStub        func(serviceReleases serviceadapter.ServiceDeployment, plan serviceadapter.Plan, requestParams map[string]interface{}, previousManifest []byte, previousPlan *serviceadapter.Plan, logger *log.Logger) ([]byte, error)
+	GenerateManifestStub        func(serviceReleases serviceadapter.ServiceDeployment, plan serviceadapter.Plan, requestParams map[string]interface{}, previousManifest []byte, previousPlan *serviceadapter.Plan, logger *log.Logger) (serviceadapter.MarshalledGenerateManifest, error)
 	generateManifestMutex       sync.RWMutex
 	generateManifestArgsForCall []struct {
 		serviceReleases  serviceadapter.ServiceDeployment
@@ -22,11 +22,11 @@ type FakeServiceAdapterClient struct {
 		logger           *log.Logger
 	}
 	generateManifestReturns struct {
-		result1 []byte
+		result1 serviceadapter.MarshalledGenerateManifest
 		result2 error
 	}
 	generateManifestReturnsOnCall map[int]struct {
-		result1 []byte
+		result1 serviceadapter.MarshalledGenerateManifest
 		result2 error
 	}
 	GeneratePlanSchemaStub        func(plan serviceadapter.Plan, logger *log.Logger) (brokerapi.ServiceSchemas, error)
@@ -47,7 +47,7 @@ type FakeServiceAdapterClient struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeServiceAdapterClient) GenerateManifest(serviceReleases serviceadapter.ServiceDeployment, plan serviceadapter.Plan, requestParams map[string]interface{}, previousManifest []byte, previousPlan *serviceadapter.Plan, logger *log.Logger) ([]byte, error) {
+func (fake *FakeServiceAdapterClient) GenerateManifest(serviceReleases serviceadapter.ServiceDeployment, plan serviceadapter.Plan, requestParams map[string]interface{}, previousManifest []byte, previousPlan *serviceadapter.Plan, logger *log.Logger) (serviceadapter.MarshalledGenerateManifest, error) {
 	var previousManifestCopy []byte
 	if previousManifest != nil {
 		previousManifestCopy = make([]byte, len(previousManifest))
@@ -86,24 +86,24 @@ func (fake *FakeServiceAdapterClient) GenerateManifestArgsForCall(i int) (servic
 	return fake.generateManifestArgsForCall[i].serviceReleases, fake.generateManifestArgsForCall[i].plan, fake.generateManifestArgsForCall[i].requestParams, fake.generateManifestArgsForCall[i].previousManifest, fake.generateManifestArgsForCall[i].previousPlan, fake.generateManifestArgsForCall[i].logger
 }
 
-func (fake *FakeServiceAdapterClient) GenerateManifestReturns(result1 []byte, result2 error) {
+func (fake *FakeServiceAdapterClient) GenerateManifestReturns(result1 serviceadapter.MarshalledGenerateManifest, result2 error) {
 	fake.GenerateManifestStub = nil
 	fake.generateManifestReturns = struct {
-		result1 []byte
+		result1 serviceadapter.MarshalledGenerateManifest
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeServiceAdapterClient) GenerateManifestReturnsOnCall(i int, result1 []byte, result2 error) {
+func (fake *FakeServiceAdapterClient) GenerateManifestReturnsOnCall(i int, result1 serviceadapter.MarshalledGenerateManifest, result2 error) {
 	fake.GenerateManifestStub = nil
 	if fake.generateManifestReturnsOnCall == nil {
 		fake.generateManifestReturnsOnCall = make(map[int]struct {
-			result1 []byte
+			result1 serviceadapter.MarshalledGenerateManifest
 			result2 error
 		})
 	}
 	fake.generateManifestReturnsOnCall[i] = struct {
-		result1 []byte
+		result1 serviceadapter.MarshalledGenerateManifest
 		result2 error
 	}{result1, result2}
 }

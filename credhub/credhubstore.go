@@ -26,6 +26,7 @@ import (
 	"github.com/cloudfoundry-incubator/credhub-cli/credhub/credentials/values"
 	"github.com/cloudfoundry-incubator/credhub-cli/credhub/permissions"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
+	"github.com/pivotal-cf/on-demand-service-broker/task"
 )
 
 type Store struct {
@@ -106,4 +107,13 @@ func (c *Store) BulkGet(secretsToFetch map[string]boshdirector.Variable, logger 
 		}
 	}
 	return ret, nil
+}
+
+func (c *Store) BulkSet(secretsToSet []task.ManifestSecret) error {
+	for _, secret := range secretsToSet {
+		if err := c.Set(secret.Path, secret.Value); err != nil {
+			return err
+		}
+	}
+	return nil
 }

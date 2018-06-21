@@ -14,6 +14,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/credhub"
 	"github.com/pivotal-cf/on-demand-service-broker/credhub/fakes"
+	"github.com/pivotal-cf/on-demand-service-broker/task"
 )
 
 var _ = Describe("CredStore", func() {
@@ -236,4 +237,57 @@ var _ = Describe("CredStore", func() {
 		})
 	})
 
+	Describe("BulkSet", func() {
+		It("stores all secrets", func() {
+			secretsToSet := []task.ManifestSecret{
+				{Name: "foo", Path: "/foo/foo", Value: "123"},
+				{Name: "bar", Path: "/foo/bar", Value: map[string]interface{}{"key": "value"}},
+			}
+
+			err := store.BulkSet(secretsToSet)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("calling SetJSON for JSON values")
+			Expect(fakeCredhubClient.SetJSONCallCount()).To(Equal(1), "SetJSON wasn't called")
+			jsonPath, jsonValue, _ := fakeCredhubClient.SetJSONArgsForCall(0)
+			Expect(jsonPath).To(Equal("/foo/bar"))
+			Expect(jsonValue).To(Equal(values.JSON(map[string]interface{}{"key": "value"})))
+
+			By("calling SetValue for string values")
+			Expect(fakeCredhubClient.SetValueCallCount()).To(Equal(1), "SetValue wasn't called")
+			strPath, strValue, _ := fakeCredhubClient.SetValueArgsForCall(0)
+			Expect(strPath).To(Equal("/foo/foo"))
+			Expect(strValue).To(Equal(values.Value("123")))
+		})
+
+		It("errors when one of the credentials is of an unsupported type", func() {
+			secretsToSet := []task.ManifestSecret{
+				{Name: "bar", Path: "/foo/bar", Value: map[string]interface{}{"key": "value"}},
+				{Name: "foo", Path: "/foo/foo", Value: make(chan bool)},
+			}
+
+			err := store.BulkSet(secretsToSet)
+			Expect(err).To(MatchError("Unknown credential type"))
+		})
+
+		It("errors when fail to store json secrets", func() {
+			secretsToSet := []task.ManifestSecret{
+				{Name: "bar", Path: "/foo/bar", Value: map[string]interface{}{"key": "value"}},
+			}
+
+			fakeCredhubClient.SetJSONReturns(credentials.JSON{}, errors.New("can't do it right now"))
+			err := store.BulkSet(secretsToSet)
+			Expect(err).To(MatchError("can't do it right now"))
+		})
+
+		It("errors when fail to store string secrets", func() {
+			secretsToSet := []task.ManifestSecret{
+				{Name: "bar", Path: "/foo/bar", Value: "value"},
+			}
+
+			fakeCredhubClient.SetValueReturns(credentials.Value{}, errors.New("too busy, sorry"))
+			err := store.BulkSet(secretsToSet)
+			Expect(err).To(MatchError("too busy, sorry"))
+		})
+	})
 })

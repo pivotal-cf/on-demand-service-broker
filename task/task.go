@@ -15,6 +15,7 @@ import (
 
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
+	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 	"gopkg.in/yaml.v2"
 )
 
@@ -33,18 +34,34 @@ type ManifestGenerator interface {
 		requestParams map[string]interface{},
 		oldManifest []byte,
 		previousPlanID *string, logger *log.Logger,
-	) (RawBoshManifest, error)
+	) (serviceadapter.MarshalledGenerateManifest, error)
+	GenerateSecretPaths(deploymentName string, secrets serviceadapter.ODBManagedSecrets) []ManifestSecret
+	ReplaceODBRefs(manifest string, secrets []ManifestSecret) string
+}
+
+//go:generate counterfeiter -o fakes/fake_bulk_setter.go . BulkSetter
+
+type BulkSetter interface {
+	BulkSet([]ManifestSecret) error
+}
+
+type ManifestSecret struct {
+	Name  string
+	Path  string
+	Value interface{}
 }
 
 type deployer struct {
 	boshClient        BoshClient
 	manifestGenerator ManifestGenerator
+	bulkSetter        BulkSetter
 }
 
-func NewDeployer(boshClient BoshClient, manifestGenerator ManifestGenerator) deployer {
+func NewDeployer(boshClient BoshClient, manifestGenerator ManifestGenerator, bulkSetter BulkSetter) deployer {
 	return deployer{
 		boshClient:        boshClient,
 		manifestGenerator: manifestGenerator,
+		bulkSetter:        bulkSetter,
 	}
 }
 
@@ -78,7 +95,7 @@ func (d deployer) Update(
 	previousPlanID *string,
 	boshContextID string,
 	logger *log.Logger,
-) (boshTaskID int, manifest []byte, err error) {
+) (int, []byte, error) {
 	if err := d.assertNoOperationsInProgress(deploymentName, logger); err != nil {
 		return 0, nil, err
 	}
@@ -133,7 +150,7 @@ func (d deployer) checkForPendingChanges(
 		return err
 	}
 
-	regeneratedManifest, err := marshalBoshManifest(regeneratedManifestContent)
+	regeneratedManifest, err := marshalBoshManifest([]byte(regeneratedManifestContent.Manifest))
 	if err != nil {
 		return err
 	}
@@ -167,18 +184,27 @@ func (d deployer) doDeploy(
 	logger *log.Logger,
 ) (int, []byte, error) {
 
-	manifest, err := d.manifestGenerator.GenerateManifest(deploymentName, planID, requestParams, oldManifest, previousPlanID, logger)
+	generateManifestOutput, err := d.manifestGenerator.GenerateManifest(deploymentName, planID, requestParams, oldManifest, previousPlanID, logger)
 	if err != nil {
 		return 0, nil, err
 	}
+	manifest := generateManifestOutput.Manifest
 
-	boshTaskID, err := d.boshClient.Deploy(manifest, boshContextID, logger, boshdirector.NewAsyncTaskReporter())
+	if d.bulkSetter != nil {
+		secrets := d.manifestGenerator.GenerateSecretPaths(deploymentName, generateManifestOutput.ODBManagedSecrets)
+		if err = d.bulkSetter.BulkSet(secrets); err != nil {
+			return 0, nil, err
+		}
+		manifest = d.manifestGenerator.ReplaceODBRefs(generateManifestOutput.Manifest, secrets)
+	}
+
+	boshTaskID, err := d.boshClient.Deploy([]byte(manifest), boshContextID, logger, boshdirector.NewAsyncTaskReporter())
 	if err != nil {
 		return 0, nil, fmt.Errorf("error deploying instance: %s\n", err)
 	}
 	logger.Printf("Bosh task ID for %s deployment %s is %d\n", operationType, deploymentName, boshTaskID)
 
-	return boshTaskID, manifest, nil
+	return boshTaskID, []byte(manifest), nil
 }
 
 func marshalBoshManifest(rawManifest []byte) (bosh.BoshManifest, error) {

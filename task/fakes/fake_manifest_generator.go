@@ -6,10 +6,11 @@ import (
 	"sync"
 
 	"github.com/pivotal-cf/on-demand-service-broker/task"
+	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
 
 type FakeManifestGenerator struct {
-	GenerateManifestStub        func(deploymentName, planID string, requestParams map[string]interface{}, oldManifest []byte, previousPlanID *string, logger *log.Logger) (task.RawBoshManifest, error)
+	GenerateManifestStub        func(deploymentName, planID string, requestParams map[string]interface{}, oldManifest []byte, previousPlanID *string, logger *log.Logger) (serviceadapter.MarshalledGenerateManifest, error)
 	generateManifestMutex       sync.RWMutex
 	generateManifestArgsForCall []struct {
 		deploymentName string
@@ -20,18 +21,42 @@ type FakeManifestGenerator struct {
 		logger         *log.Logger
 	}
 	generateManifestReturns struct {
-		result1 task.RawBoshManifest
+		result1 serviceadapter.MarshalledGenerateManifest
 		result2 error
 	}
 	generateManifestReturnsOnCall map[int]struct {
-		result1 task.RawBoshManifest
+		result1 serviceadapter.MarshalledGenerateManifest
 		result2 error
+	}
+	GenerateSecretPathsStub        func(deploymentName string, secrets serviceadapter.ODBManagedSecrets) []task.ManifestSecret
+	generateSecretPathsMutex       sync.RWMutex
+	generateSecretPathsArgsForCall []struct {
+		deploymentName string
+		secrets        serviceadapter.ODBManagedSecrets
+	}
+	generateSecretPathsReturns struct {
+		result1 []task.ManifestSecret
+	}
+	generateSecretPathsReturnsOnCall map[int]struct {
+		result1 []task.ManifestSecret
+	}
+	ReplaceODBRefsStub        func(manifest string, secrets []task.ManifestSecret) string
+	replaceODBRefsMutex       sync.RWMutex
+	replaceODBRefsArgsForCall []struct {
+		manifest string
+		secrets  []task.ManifestSecret
+	}
+	replaceODBRefsReturns struct {
+		result1 string
+	}
+	replaceODBRefsReturnsOnCall map[int]struct {
+		result1 string
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeManifestGenerator) GenerateManifest(deploymentName string, planID string, requestParams map[string]interface{}, oldManifest []byte, previousPlanID *string, logger *log.Logger) (task.RawBoshManifest, error) {
+func (fake *FakeManifestGenerator) GenerateManifest(deploymentName string, planID string, requestParams map[string]interface{}, oldManifest []byte, previousPlanID *string, logger *log.Logger) (serviceadapter.MarshalledGenerateManifest, error) {
 	var oldManifestCopy []byte
 	if oldManifest != nil {
 		oldManifestCopy = make([]byte, len(oldManifest))
@@ -70,26 +95,129 @@ func (fake *FakeManifestGenerator) GenerateManifestArgsForCall(i int) (string, s
 	return fake.generateManifestArgsForCall[i].deploymentName, fake.generateManifestArgsForCall[i].planID, fake.generateManifestArgsForCall[i].requestParams, fake.generateManifestArgsForCall[i].oldManifest, fake.generateManifestArgsForCall[i].previousPlanID, fake.generateManifestArgsForCall[i].logger
 }
 
-func (fake *FakeManifestGenerator) GenerateManifestReturns(result1 task.RawBoshManifest, result2 error) {
+func (fake *FakeManifestGenerator) GenerateManifestReturns(result1 serviceadapter.MarshalledGenerateManifest, result2 error) {
 	fake.GenerateManifestStub = nil
 	fake.generateManifestReturns = struct {
-		result1 task.RawBoshManifest
+		result1 serviceadapter.MarshalledGenerateManifest
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeManifestGenerator) GenerateManifestReturnsOnCall(i int, result1 task.RawBoshManifest, result2 error) {
+func (fake *FakeManifestGenerator) GenerateManifestReturnsOnCall(i int, result1 serviceadapter.MarshalledGenerateManifest, result2 error) {
 	fake.GenerateManifestStub = nil
 	if fake.generateManifestReturnsOnCall == nil {
 		fake.generateManifestReturnsOnCall = make(map[int]struct {
-			result1 task.RawBoshManifest
+			result1 serviceadapter.MarshalledGenerateManifest
 			result2 error
 		})
 	}
 	fake.generateManifestReturnsOnCall[i] = struct {
-		result1 task.RawBoshManifest
+		result1 serviceadapter.MarshalledGenerateManifest
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeManifestGenerator) GenerateSecretPaths(deploymentName string, secrets serviceadapter.ODBManagedSecrets) []task.ManifestSecret {
+	fake.generateSecretPathsMutex.Lock()
+	ret, specificReturn := fake.generateSecretPathsReturnsOnCall[len(fake.generateSecretPathsArgsForCall)]
+	fake.generateSecretPathsArgsForCall = append(fake.generateSecretPathsArgsForCall, struct {
+		deploymentName string
+		secrets        serviceadapter.ODBManagedSecrets
+	}{deploymentName, secrets})
+	fake.recordInvocation("GenerateSecretPaths", []interface{}{deploymentName, secrets})
+	fake.generateSecretPathsMutex.Unlock()
+	if fake.GenerateSecretPathsStub != nil {
+		return fake.GenerateSecretPathsStub(deploymentName, secrets)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.generateSecretPathsReturns.result1
+}
+
+func (fake *FakeManifestGenerator) GenerateSecretPathsCallCount() int {
+	fake.generateSecretPathsMutex.RLock()
+	defer fake.generateSecretPathsMutex.RUnlock()
+	return len(fake.generateSecretPathsArgsForCall)
+}
+
+func (fake *FakeManifestGenerator) GenerateSecretPathsArgsForCall(i int) (string, serviceadapter.ODBManagedSecrets) {
+	fake.generateSecretPathsMutex.RLock()
+	defer fake.generateSecretPathsMutex.RUnlock()
+	return fake.generateSecretPathsArgsForCall[i].deploymentName, fake.generateSecretPathsArgsForCall[i].secrets
+}
+
+func (fake *FakeManifestGenerator) GenerateSecretPathsReturns(result1 []task.ManifestSecret) {
+	fake.GenerateSecretPathsStub = nil
+	fake.generateSecretPathsReturns = struct {
+		result1 []task.ManifestSecret
+	}{result1}
+}
+
+func (fake *FakeManifestGenerator) GenerateSecretPathsReturnsOnCall(i int, result1 []task.ManifestSecret) {
+	fake.GenerateSecretPathsStub = nil
+	if fake.generateSecretPathsReturnsOnCall == nil {
+		fake.generateSecretPathsReturnsOnCall = make(map[int]struct {
+			result1 []task.ManifestSecret
+		})
+	}
+	fake.generateSecretPathsReturnsOnCall[i] = struct {
+		result1 []task.ManifestSecret
+	}{result1}
+}
+
+func (fake *FakeManifestGenerator) ReplaceODBRefs(manifest string, secrets []task.ManifestSecret) string {
+	var secretsCopy []task.ManifestSecret
+	if secrets != nil {
+		secretsCopy = make([]task.ManifestSecret, len(secrets))
+		copy(secretsCopy, secrets)
+	}
+	fake.replaceODBRefsMutex.Lock()
+	ret, specificReturn := fake.replaceODBRefsReturnsOnCall[len(fake.replaceODBRefsArgsForCall)]
+	fake.replaceODBRefsArgsForCall = append(fake.replaceODBRefsArgsForCall, struct {
+		manifest string
+		secrets  []task.ManifestSecret
+	}{manifest, secretsCopy})
+	fake.recordInvocation("ReplaceODBRefs", []interface{}{manifest, secretsCopy})
+	fake.replaceODBRefsMutex.Unlock()
+	if fake.ReplaceODBRefsStub != nil {
+		return fake.ReplaceODBRefsStub(manifest, secrets)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.replaceODBRefsReturns.result1
+}
+
+func (fake *FakeManifestGenerator) ReplaceODBRefsCallCount() int {
+	fake.replaceODBRefsMutex.RLock()
+	defer fake.replaceODBRefsMutex.RUnlock()
+	return len(fake.replaceODBRefsArgsForCall)
+}
+
+func (fake *FakeManifestGenerator) ReplaceODBRefsArgsForCall(i int) (string, []task.ManifestSecret) {
+	fake.replaceODBRefsMutex.RLock()
+	defer fake.replaceODBRefsMutex.RUnlock()
+	return fake.replaceODBRefsArgsForCall[i].manifest, fake.replaceODBRefsArgsForCall[i].secrets
+}
+
+func (fake *FakeManifestGenerator) ReplaceODBRefsReturns(result1 string) {
+	fake.ReplaceODBRefsStub = nil
+	fake.replaceODBRefsReturns = struct {
+		result1 string
+	}{result1}
+}
+
+func (fake *FakeManifestGenerator) ReplaceODBRefsReturnsOnCall(i int, result1 string) {
+	fake.ReplaceODBRefsStub = nil
+	if fake.replaceODBRefsReturnsOnCall == nil {
+		fake.replaceODBRefsReturnsOnCall = make(map[int]struct {
+			result1 string
+		})
+	}
+	fake.replaceODBRefsReturnsOnCall[i] = struct {
+		result1 string
+	}{result1}
 }
 
 func (fake *FakeManifestGenerator) Invocations() map[string][][]interface{} {
@@ -97,6 +225,10 @@ func (fake *FakeManifestGenerator) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.generateManifestMutex.RLock()
 	defer fake.generateManifestMutex.RUnlock()
+	fake.generateSecretPathsMutex.RLock()
+	defer fake.generateSecretPathsMutex.RUnlock()
+	fake.replaceODBRefsMutex.RLock()
+	defer fake.replaceODBRefsMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
