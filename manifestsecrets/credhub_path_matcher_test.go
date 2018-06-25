@@ -32,14 +32,14 @@ variables:
   type: password
 `)
 			expectedMatches := map[string]boshdirector.Variable{
-				"/path/to/one":         {Path: "/path/to/one"},
-				"/path/to/two":         {Path: "/path/to/two"},
-				"relative/path":        {Path: "relative/path"},
-				"/other/absolute/path": {Path: "/other/absolute/path", ID: "yet-another-id"},
-				"2isAVar":              {Path: "/baboon/cocoon/2isAVar", ID: "the-id"},
-				"isAVar":               {Path: "/baboon/cocoon/isAVar", ID: "some-id"},
-				"/absolute/path":       {Path: "/absolute/path", ID: "some-other-id"},
-				"relative":             {Path: "/baboon/cocoon/relative", ID: "relative-id"},
+				"((/path/to/one))":         {Path: "/path/to/one"},
+				"((/path/to/two))":         {Path: "/path/to/two"},
+				"((relative/path))":        {Path: "relative/path"},
+				"((/other/absolute/path))": {Path: "/other/absolute/path", ID: "yet-another-id"},
+				"((2isAVar))":              {Path: "/baboon/cocoon/2isAVar", ID: "the-id"},
+				"((isAVar))":               {Path: "/baboon/cocoon/isAVar", ID: "some-id"},
+				"((/absolute/path))":       {Path: "/absolute/path", ID: "some-other-id"},
+				"((relative))":             {Path: "/baboon/cocoon/relative", ID: "relative-id"},
 			}
 
 			matcher := new(manifestsecrets.CredHubPathMatcher)
@@ -63,8 +63,8 @@ variables:
 			matches, err := matcher.Match(manifest, nil)
 			Expect(err).NotTo(HaveOccurred())
 			expectedMatches := map[string]boshdirector.Variable{
-				"foo": {Path: "foo"},
-				"bar": {Path: "bar"},
+				"((foo))": {Path: "foo"},
+				"((bar))": {Path: "bar"},
 			}
 			Expect(matches).To(Equal(expectedMatches))
 		})
