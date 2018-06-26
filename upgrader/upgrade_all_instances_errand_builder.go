@@ -123,7 +123,7 @@ func brokerServices(conf config.UpgradeAllInstanceErrandConfig, logger *log.Logg
 
 	return services.NewBrokerServices(
 		herottp.New(herottp.Config{
-			Timeout:    30 * time.Second,
+			Timeout:    time.Duration(conf.RequestTimeout) * time.Second,
 			MaxRetries: 5,
 		}),
 		brokerBasicAuthHeaderBuilder,

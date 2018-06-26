@@ -548,6 +548,7 @@ type UpgradeAllInstanceErrandConfig struct {
 	PollingInterval       int                   `yaml:"polling_interval"`
 	AttemptInterval       int                   `yaml:"attempt_interval"`
 	AttemptLimit          int                   `yaml:"attempt_limit"`
+	RequestTimeout        int                   `yaml:"request_timeout"`
 	MaxInFlight           int                   `yaml:"max_in_flight"`
 	Canaries              int                   `yaml:"canaries"`
 	CanarySelectionParams CanarySelectionParams `yaml:"canary_selection_params"`
