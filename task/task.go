@@ -150,6 +150,9 @@ func (d deployer) checkForPendingChanges(
 		return err
 	}
 
+	secrets := d.manifestGenerator.GenerateSecretPaths(deploymentName, regeneratedManifestContent.ODBManagedSecrets)
+	regeneratedManifestContent.Manifest = d.manifestGenerator.ReplaceODBRefs(regeneratedManifestContent.Manifest, secrets)
+
 	regeneratedManifest, err := marshalBoshManifest([]byte(regeneratedManifestContent.Manifest))
 	if err != nil {
 		return err
