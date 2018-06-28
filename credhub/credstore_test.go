@@ -238,6 +238,16 @@ var _ = Describe("CredStore", func() {
 	})
 
 	Describe("BulkSet", func() {
+		It("does not set anything when called with an empty secrets map", func() {
+			secretsToSet := []task.ManifestSecret{}
+
+			err := store.BulkSet(secretsToSet)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(fakeCredhubClient.SetJSONCallCount()).To(Equal(0), "SetJSON was called")
+			Expect(fakeCredhubClient.SetValueCallCount()).To(Equal(0), "SetValue was called")
+		})
+
 		It("stores all secrets", func() {
 			secretsToSet := []task.ManifestSecret{
 				{Name: "foo", Path: "/foo/foo", Value: "123"},

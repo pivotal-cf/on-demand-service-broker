@@ -285,13 +285,23 @@ var _ = Describe("Manifest Generator", func() {
 	})
 
 	Describe("GenerateSecretPaths", func() {
-		It("generates a list of ManifestSecrets", func() {
+		It("generates a list of ManifestSecrets that are present in the manifest", func() {
 			deploymentName := "the-name"
-			secretsPath := mg.GenerateSecretPaths(deploymentName, generatedManifestSecrets)
+			manifest := "name: ((odb_secret:foo))\npassword: ((odb_secret:secret))"
+			generatedManifestSecrets["not_in_manifest"] = "blah"
+			secretsPath := mg.GenerateSecretPaths(deploymentName, manifest, generatedManifestSecrets)
+			Expect(secretsPath).To(HaveLen(2))
 			Expect(secretsPath).To(SatisfyAll(
 				ContainElement(ManifestSecret{Name: "foo", Path: fmt.Sprintf("/odb/%s/%s/foo", serviceOfferingID, deploymentName), Value: generatedManifestSecrets["foo"]}),
 				ContainElement(ManifestSecret{Name: "secret", Path: fmt.Sprintf("/odb/%s/%s/secret", serviceOfferingID, deploymentName), Value: generatedManifestSecrets["secret"]}),
 			))
+		})
+
+		It("returns an empty list of ManifestSecrets when there are no matches in the manifest", func() {
+			deploymentName := "the-name"
+			manifest := "name: foo"
+			secretsPath := mg.GenerateSecretPaths(deploymentName, manifest, generatedManifestSecrets)
+			Expect(secretsPath).To(BeEmpty())
 		})
 	})
 

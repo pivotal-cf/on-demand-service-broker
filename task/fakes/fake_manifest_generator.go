@@ -28,10 +28,11 @@ type FakeManifestGenerator struct {
 		result1 serviceadapter.MarshalledGenerateManifest
 		result2 error
 	}
-	GenerateSecretPathsStub        func(deploymentName string, secrets serviceadapter.ODBManagedSecrets) []task.ManifestSecret
+	GenerateSecretPathsStub        func(deploymentName string, manifest string, secrets serviceadapter.ODBManagedSecrets) []task.ManifestSecret
 	generateSecretPathsMutex       sync.RWMutex
 	generateSecretPathsArgsForCall []struct {
 		deploymentName string
+		manifest       string
 		secrets        serviceadapter.ODBManagedSecrets
 	}
 	generateSecretPathsReturns struct {
@@ -117,17 +118,18 @@ func (fake *FakeManifestGenerator) GenerateManifestReturnsOnCall(i int, result1 
 	}{result1, result2}
 }
 
-func (fake *FakeManifestGenerator) GenerateSecretPaths(deploymentName string, secrets serviceadapter.ODBManagedSecrets) []task.ManifestSecret {
+func (fake *FakeManifestGenerator) GenerateSecretPaths(deploymentName string, manifest string, secrets serviceadapter.ODBManagedSecrets) []task.ManifestSecret {
 	fake.generateSecretPathsMutex.Lock()
 	ret, specificReturn := fake.generateSecretPathsReturnsOnCall[len(fake.generateSecretPathsArgsForCall)]
 	fake.generateSecretPathsArgsForCall = append(fake.generateSecretPathsArgsForCall, struct {
 		deploymentName string
+		manifest       string
 		secrets        serviceadapter.ODBManagedSecrets
-	}{deploymentName, secrets})
-	fake.recordInvocation("GenerateSecretPaths", []interface{}{deploymentName, secrets})
+	}{deploymentName, manifest, secrets})
+	fake.recordInvocation("GenerateSecretPaths", []interface{}{deploymentName, manifest, secrets})
 	fake.generateSecretPathsMutex.Unlock()
 	if fake.GenerateSecretPathsStub != nil {
-		return fake.GenerateSecretPathsStub(deploymentName, secrets)
+		return fake.GenerateSecretPathsStub(deploymentName, manifest, secrets)
 	}
 	if specificReturn {
 		return ret.result1
@@ -141,10 +143,10 @@ func (fake *FakeManifestGenerator) GenerateSecretPathsCallCount() int {
 	return len(fake.generateSecretPathsArgsForCall)
 }
 
-func (fake *FakeManifestGenerator) GenerateSecretPathsArgsForCall(i int) (string, serviceadapter.ODBManagedSecrets) {
+func (fake *FakeManifestGenerator) GenerateSecretPathsArgsForCall(i int) (string, string, serviceadapter.ODBManagedSecrets) {
 	fake.generateSecretPathsMutex.RLock()
 	defer fake.generateSecretPathsMutex.RUnlock()
-	return fake.generateSecretPathsArgsForCall[i].deploymentName, fake.generateSecretPathsArgsForCall[i].secrets
+	return fake.generateSecretPathsArgsForCall[i].deploymentName, fake.generateSecretPathsArgsForCall[i].manifest, fake.generateSecretPathsArgsForCall[i].secrets
 }
 
 func (fake *FakeManifestGenerator) GenerateSecretPathsReturns(result1 []task.ManifestSecret) {

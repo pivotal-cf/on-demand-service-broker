@@ -35,7 +35,7 @@ type ManifestGenerator interface {
 		oldManifest []byte,
 		previousPlanID *string, logger *log.Logger,
 	) (serviceadapter.MarshalledGenerateManifest, error)
-	GenerateSecretPaths(deploymentName string, secrets serviceadapter.ODBManagedSecrets) []ManifestSecret
+	GenerateSecretPaths(deploymentName string, manifest string, secrets serviceadapter.ODBManagedSecrets) []ManifestSecret
 	ReplaceODBRefs(manifest string, secrets []ManifestSecret) string
 }
 
@@ -150,7 +150,7 @@ func (d deployer) checkForPendingChanges(
 		return err
 	}
 
-	secrets := d.manifestGenerator.GenerateSecretPaths(deploymentName, regeneratedManifestContent.ODBManagedSecrets)
+	secrets := d.manifestGenerator.GenerateSecretPaths(deploymentName, regeneratedManifestContent.Manifest, regeneratedManifestContent.ODBManagedSecrets)
 	regeneratedManifestContent.Manifest = d.manifestGenerator.ReplaceODBRefs(regeneratedManifestContent.Manifest, secrets)
 
 	regeneratedManifest, err := marshalBoshManifest([]byte(regeneratedManifestContent.Manifest))
@@ -194,7 +194,7 @@ func (d deployer) doDeploy(
 	manifest := generateManifestOutput.Manifest
 
 	if d.bulkSetter != nil {
-		secrets := d.manifestGenerator.GenerateSecretPaths(deploymentName, generateManifestOutput.ODBManagedSecrets)
+		secrets := d.manifestGenerator.GenerateSecretPaths(deploymentName, manifest, generateManifestOutput.ODBManagedSecrets)
 		if err = d.bulkSetter.BulkSet(secrets); err != nil {
 			return 0, nil, err
 		}

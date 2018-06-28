@@ -118,14 +118,16 @@ func (m manifestGenerator) findPreviousPlan(previousPlanID string) (*serviceadap
 	return &abridgedPlan, nil
 }
 
-func (m manifestGenerator) GenerateSecretPaths(deploymentName string, secretsMap serviceadapter.ODBManagedSecrets) []ManifestSecret {
+func (m manifestGenerator) GenerateSecretPaths(deploymentName string, manifest string, secretsMap serviceadapter.ODBManagedSecrets) []ManifestSecret {
 	secrets := []ManifestSecret{}
 	for name, val := range secretsMap {
-		secrets = append(secrets, ManifestSecret{
-			Name:  name,
-			Value: val,
-			Path:  fmt.Sprintf("/odb/%s/%s/%s", m.serviceOffering.ID, deploymentName, name),
-		})
+		if strings.Contains(manifest, fmt.Sprintf("((%s:%s))", serviceadapter.ODBSecretPrefix, name)) {
+			secrets = append(secrets, ManifestSecret{
+				Name:  name,
+				Value: val,
+				Path:  fmt.Sprintf("/odb/%s/%s/%s", m.serviceOffering.ID, deploymentName, name),
+			})
+		}
 	}
 	return secrets
 }

@@ -126,7 +126,7 @@ var _ = Describe("Deployer", func() {
 				Expect(manifestGenerator.GenerateSecretPathsCallCount()).To(Equal(1))
 
 				By("generating the secret paths")
-				actualDeploymentName, actualSecrets := manifestGenerator.GenerateSecretPathsArgsForCall(0)
+				actualDeploymentName, _, actualSecrets := manifestGenerator.GenerateSecretPathsArgsForCall(0)
 				Expect(actualDeploymentName).To(Equal(deploymentName))
 				Expect(actualSecrets).To(Equal(managedSecrets))
 
@@ -874,9 +874,6 @@ features:
 			Expect(boshClient.DeployCallCount()).To(BeZero())
 		})
 
-		BeforeEach(func() {
-		})
-
 		It("detects changes to the env block in a manifest instance group and prevents deployment", func() {
 			oldManifest = []byte(`---
 instance_groups:
@@ -962,7 +959,6 @@ instance_groups:
 			Expect(deployError.Error()).To(ContainSubstring("error detecting change in manifest, unable to unmarshal manifest"))
 			Expect(manifestGenerator.GenerateManifestCallCount()).To(Equal(1))
 		})
-
 	})
 })
 
