@@ -598,39 +598,6 @@ var _ = Describe("Deployer", func() {
 					Expect(returnedTaskID).To(Equal(boshTaskID))
 				})
 
-				It("ignores manifest secrets during the pending changes check", func() {
-					manifestWithSecrets := serviceadapter.MarshalledGenerateManifest{
-						Manifest: "name: a-manifest\nproperties:\n  password: ((odb_secret:the_password))",
-						ODBManagedSecrets: serviceadapter.ODBManagedSecrets{
-							"the_password": "foo",
-						},
-					}
-					manifestWithInterpolatedSecrets := "name: a-manifest\nproperties:\n  password: ((/odb/foo/bar/the_password))"
-					manifestSecrets := []task.ManifestSecret{
-						{Name: "the_password", Value: "foo", Path: "/odb/foo/bar/the_password"},
-					}
-
-					manifestGenerator.GenerateManifestReturns(manifestWithSecrets, nil)
-					boshClient.GetDeploymentReturns([]byte(manifestWithInterpolatedSecrets), true, nil)
-					manifestGenerator.GenerateSecretPathsReturns(manifestSecrets)
-					manifestGenerator.ReplaceODBRefsReturns(manifestWithInterpolatedSecrets)
-
-					_, deployedManifest, deployError = deployer.Update(
-						deploymentName,
-						planID,
-						requestParams,
-						previousPlanID,
-						boshContextID,
-						logger,
-					)
-
-					Expect(deployError).NotTo(HaveOccurred())
-					Expect(string(deployedManifest)).To(Equal(manifestWithInterpolatedSecrets))
-
-					Expect(manifestGenerator.GenerateSecretPathsCallCount()).To(Equal(2))
-					Expect(manifestGenerator.ReplaceODBRefsCallCount()).To(Equal(2))
-				})
-
 				Context("and there are no parameters configured", func() {
 					It("deploys successfully", func() {
 						requestParams = map[string]interface{}{}
@@ -700,6 +667,35 @@ var _ = Describe("Deployer", func() {
 				Expect(deployError).To(BeAssignableToTypeOf(task.PendingChangesNotAppliedError{}))
 				Expect(boshClient.DeployCallCount()).To(BeZero())
 			})
+		})
+
+		It("fails when previous manifest contains odb managed secret syntax", func() {
+			manifestWithSecrets := serviceadapter.MarshalledGenerateManifest{
+				Manifest: "name: a-manifest\nproperties:\n  password: ((odb_secret:the_password))",
+				ODBManagedSecrets: serviceadapter.ODBManagedSecrets{
+					"the_password": "foo",
+				},
+			}
+			manifestWithInterpolatedSecrets := "name: a-manifest\nproperties:\n  password: ((/odb/foo/bar/the_password))"
+			manifestSecrets := []task.ManifestSecret{
+				{Name: "the_password", Value: "foo", Path: "/odb/foo/bar/the_password"},
+			}
+
+			manifestGenerator.GenerateManifestReturns(manifestWithSecrets, nil)
+			boshClient.GetDeploymentReturns([]byte(manifestWithInterpolatedSecrets), true, nil)
+			manifestGenerator.GenerateSecretPathsReturns(manifestSecrets)
+			manifestGenerator.ReplaceODBRefsReturns(manifestWithInterpolatedSecrets)
+
+			_, deployedManifest, deployError = deployer.Update(
+				deploymentName,
+				planID,
+				requestParams,
+				previousPlanID,
+				boshContextID,
+				logger,
+			)
+
+			Expect(deployError).To(MatchError("There are pending changes"))
 		})
 
 		Context("when the deployment cannot be found", func() {
