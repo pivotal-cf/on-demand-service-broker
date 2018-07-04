@@ -442,6 +442,7 @@ type Plan struct {
 	Update           *serviceadapter.Update           `yaml:"update,omitempty"`
 	LifecycleErrands *serviceadapter.LifecycleErrands `yaml:"lifecycle_errands,omitempty"`
 	ResourceCosts    map[string]int                   `yaml:"resource_costs,omitempty"`
+	BindingWithDNS   []BindingDNS                     `yaml:"binding_with_dns"`
 }
 
 func (p Plan) AdapterPlan(globalProperties serviceadapter.Properties) serviceadapter.Plan {
@@ -563,4 +564,10 @@ type ServiceInstancesAPI struct {
 	URL            string         `yaml:"url"`
 	RootCACert     string         `yaml:"root_ca_cert"`
 	Authentication Authentication `yaml:"authentication"`
+}
+
+type BindingDNS struct {
+	Name          string `yaml:"name"`
+	LinkProvider  string `yaml:"link_provider"`
+	InstanceGroup string `yaml:"instance_group"`
 }

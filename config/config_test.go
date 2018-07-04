@@ -223,6 +223,20 @@ var _ = Describe("Broker Config", func() {
 
 		})
 
+		Context("and the config includes the optional plan property binding_with_dns", func() {
+			BeforeEach(func() {
+				configFileName = "good_config_with_binding_dns_list.yml"
+			})
+
+			It("returns a config object with binding dns properties", func() {
+				Expect(parseErr).NotTo(HaveOccurred())
+				Expect(conf.ServiceCatalog.Plans[0].BindingWithDNS).To(ConsistOf([]config.BindingDNS{
+					{Name: "leader", LinkProvider: "leader_link", InstanceGroup: "redis-server"},
+					{Name: "follower", LinkProvider: "follower_link", InstanceGroup: "redis-server-2"},
+				}))
+			})
+		})
+
 		Context("and the broker password contains escaped special characters", func() {
 			BeforeEach(func() {
 				configFileName = "escaped_config.yml"
