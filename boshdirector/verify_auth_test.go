@@ -32,7 +32,7 @@ var _ = Describe("verifying authentication credentials are correct", func() {
 			},
 		}, nil)
 
-		directorClient, err = boshdirector.New("https://director.example.com", nil, fakeCertAppender, fakeDirectorFactory, fakeUAAFactory, boshAuthConfig, logger)
+		directorClient, err = boshdirector.New("https://director.example.com", nil, fakeCertAppender, fakeDirectorFactory, fakeUAAFactory, boshAuthConfig, fakeBoshHTTPFactory.Spy, logger)
 		Expect(err).NotTo(HaveOccurred())
 	})
 

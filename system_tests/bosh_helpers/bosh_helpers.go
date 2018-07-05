@@ -60,6 +60,7 @@ func New(boshURL, uaaURL, boshUsername, boshPassword, boshCACert string) *BoshHe
 				},
 			},
 		},
+		boshdirector.NewBoshHTTP,
 		logger,
 	)
 
@@ -93,6 +94,7 @@ func NewBasicAuth(boshURL, boshUsername, boshPassword, boshCACert string, disabl
 				Username: boshUsername, Password: boshPassword,
 			},
 		},
+		boshdirector.NewBoshHTTP,
 		logger,
 	)
 

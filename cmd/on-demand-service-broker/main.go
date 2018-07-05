@@ -74,6 +74,7 @@ func startBroker(conf config.Config, logger *log.Logger, loggerFactory *loggerfa
 		directorFactory,
 		uaaFactory,
 		conf.Bosh.Authentication,
+		boshdirector.NewBoshHTTP,
 		logger)
 	if err != nil {
 		logger.Fatalf("error creating bosh client: %s", err)

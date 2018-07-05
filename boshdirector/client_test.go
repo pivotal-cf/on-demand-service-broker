@@ -84,6 +84,7 @@ var _ = Describe("New", func() {
 				fakeDirectorFactory,
 				fakeUAAFactory,
 				boshAuthConfig,
+				fakeBoshHTTPFactory.Spy,
 				logger,
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -134,6 +135,7 @@ var _ = Describe("New", func() {
 					fakeDirectorFactory,
 					fakeUAAFactory,
 					boshAuthConfig,
+					fakeBoshHTTPFactory.Spy,
 					logger,
 				)
 				Expect(err).To(MatchError(ContainSubstring("Failed to build director config from url")))
@@ -148,6 +150,7 @@ var _ = Describe("New", func() {
 					fakeDirectorFactory,
 					fakeUAAFactory,
 					boshAuthConfig,
+					fakeBoshHTTPFactory.Spy,
 					logger,
 				)
 				Expect(err).To(MatchError(ContainSubstring("Failed to build director: could not build director")))
@@ -162,6 +165,7 @@ var _ = Describe("New", func() {
 					fakeDirectorFactory,
 					fakeUAAFactory,
 					boshAuthConfig,
+					fakeBoshHTTPFactory.Spy,
 					logger,
 				)
 
@@ -186,6 +190,7 @@ var _ = Describe("New", func() {
 					fakeDirectorFactory,
 					fakeUAAFactory,
 					boshAuthConfig,
+					fakeBoshHTTPFactory.Spy,
 					logger,
 				)
 				Expect(err).NotTo(HaveOccurred())
@@ -208,6 +213,7 @@ var _ = Describe("New", func() {
 					fakeDirectorFactory,
 					fakeUAAFactory,
 					boshAuthConfig,
+					fakeBoshHTTPFactory.Spy,
 					logger,
 				)
 				Expect(err).NotTo(HaveOccurred())
@@ -224,6 +230,7 @@ var _ = Describe("New", func() {
 					fakeDirectorFactory,
 					fakeUAAFactory,
 					boshAuthConfig,
+					fakeBoshHTTPFactory.Spy,
 					logger,
 				)
 				Expect(err).NotTo(HaveOccurred())
@@ -261,6 +268,7 @@ var _ = Describe("New", func() {
 				fakeDirectorFactory,
 				fakeUAAFactory,
 				basicAuthConfig,
+				fakeBoshHTTPFactory.Spy,
 				logger,
 			)
 			Expect(err).NotTo(HaveOccurred())

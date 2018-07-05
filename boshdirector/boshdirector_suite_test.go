@@ -26,6 +26,7 @@ var (
 	fakeDirectorFactory *fakes.FakeDirectorFactory
 	fakeUAAFactory      *fakes.FakeUAAFactory
 	fakeUAA             *fakes.FakeUAA
+	fakeBoshHTTPFactory *fakes.FakeHTTPFactory
 	logger              *log.Logger
 	boshAuthConfig      config.Authentication
 )
@@ -36,6 +37,7 @@ var _ = BeforeEach(func() {
 	fakeUAAFactory = new(fakes.FakeUAAFactory)
 	fakeUAA = new(fakes.FakeUAA)
 	fakeDirector = new(fakes.FakeDirector)
+	fakeBoshHTTPFactory = new(fakes.FakeHTTPFactory)
 	boshAuthConfig = config.Authentication{
 		UAA: config.UAAAuthentication{
 			ClientCredentials: config.ClientCredentials{
@@ -71,6 +73,7 @@ var _ = JustBeforeEach(func() {
 		fakeDirectorFactory,
 		fakeUAAFactory,
 		boshAuthConfig,
+		fakeBoshHTTPFactory.Spy,
 		logger,
 	)
 	Expect(err).NotTo(HaveOccurred())

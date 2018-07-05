@@ -98,7 +98,7 @@ var _ = Describe("Binding", func() {
 
 			By("calling bind on the service adapter")
 			Expect(fakeServiceAdapter.CreateBindingCallCount()).To(Equal(1))
-			id, vms, manifest, params, _, _ := fakeServiceAdapter.CreateBindingArgsForCall(0)
+			id, vms, manifest, params, _, _, _ := fakeServiceAdapter.CreateBindingArgsForCall(0)
 			Expect(id).To(Equal(bindingID))
 			Expect(vms).To(Equal(boshVMs))
 			Expect(manifest).To(Equal(boshManifest))
@@ -158,7 +158,7 @@ var _ = Describe("Binding", func() {
 
 					// fake bosh credhub to respond to path /path/to/something with foobar
 					doBindRequest(instanceID, bindingID, bindDetails)
-					_, _, _, _, secretsMap, _ := fakeServiceAdapter.CreateBindingArgsForCall(0)
+					_, _, _, _, secretsMap, _, _ := fakeServiceAdapter.CreateBindingArgsForCall(0)
 					Expect(secretsMap).To(Equal(expectedSecrets))
 				})
 			})
@@ -178,7 +178,7 @@ variables:
 					fakeBoshClient.GetDeploymentReturns(boshManifest, true, nil)
 
 					doBindRequest(instanceID, bindingID, bindDetails)
-					_, _, _, _, secretsMap, _ := fakeServiceAdapter.CreateBindingArgsForCall(0)
+					_, _, _, _, secretsMap, _, _ := fakeServiceAdapter.CreateBindingArgsForCall(0)
 					Expect(secretsMap).To(Equal(expectedSecrets))
 				})
 			})

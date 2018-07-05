@@ -40,6 +40,7 @@ var _ = Describe("Bind", func() {
 		actualManifest      = []byte("valid manifest")
 		arbitraryParameters = map[string]interface{}{"arb": "param"}
 		arbitraryContext    = map[string]interface{}{"platform": "cloudfoundry"}
+		actualDNSAddresses  map[string]string
 
 		bindResult brokerapi.Binding
 		bindErr    error
@@ -73,6 +74,12 @@ var _ = Describe("Bind", func() {
 			{Path: "/foo/bar", ID: "123asd"},
 			{Path: "/some/path", ID: "456zxc"},
 		}
+
+		actualDNSAddresses = map[string]string{
+			"config1": "some.dns.bosh",
+			"config2": "some-other.dns.bosh",
+		}
+		boshClient.GetDNSAddressesReturns(actualDNSAddresses, nil)
 	})
 
 	Context("request ID", func() {
@@ -100,18 +107,17 @@ var _ = Describe("Bind", func() {
 	})
 
 	Context("when CF integration is disabled", func() {
-
 		It("returns that is provisioning asynchronously", func() {
-
 			b, brokerCreationErr = createBroker([]broker.StartupChecker{}, noopservicescontroller.New())
 			Expect(brokerCreationErr).NotTo(HaveOccurred())
 
 			bindResult, bindErr = b.Bind(context.Background(), instanceID, bindingID, bindRequest)
 			Expect(serviceAdapter.CreateBindingCallCount()).To(Equal(1))
-			passedBindingID, passedVms, passedManifest, passedRequestParameters, _, _ := serviceAdapter.CreateBindingArgsForCall(0)
+			passedBindingID, passedVms, passedManifest, passedRequestParameters, _, passedDNSAddresses, _ := serviceAdapter.CreateBindingArgsForCall(0)
 			Expect(passedBindingID).To(Equal(bindingID))
 			Expect(passedVms).To(Equal(boshVms))
 			Expect(passedManifest).To(Equal(actualManifest))
+			Expect(passedDNSAddresses).To(Equal(actualDNSAddresses))
 			Expect(passedRequestParameters).To(Equal(map[string]interface{}{
 				"app_guid":   "app_guid",
 				"plan_id":    "plan_id",
@@ -126,7 +132,6 @@ var _ = Describe("Bind", func() {
 	})
 
 	Context("with default CF client", func() {
-
 		JustBeforeEach(func() {
 			b = createDefaultBroker()
 			bindResult, bindErr = b.Bind(context.Background(), instanceID, bindingID, bindRequest)
@@ -138,12 +143,13 @@ var _ = Describe("Bind", func() {
 			Expect(actualServiceDeploymentName).To(Equal(serviceDeploymentName))
 		})
 
-		It("creates the binding using the bosh topology and admin credentials", func() {
+		It("creates the binding using the bosh topology, admin credentials and bosh dns addresses", func() {
 			Expect(serviceAdapter.CreateBindingCallCount()).To(Equal(1))
-			passedBindingID, passedVms, passedManifest, passedRequestParameters, _, _ := serviceAdapter.CreateBindingArgsForCall(0)
+			passedBindingID, passedVms, passedManifest, passedRequestParameters, _, passedDNSAddresses, _ := serviceAdapter.CreateBindingArgsForCall(0)
 			Expect(passedBindingID).To(Equal(bindingID))
 			Expect(passedVms).To(Equal(boshVms))
 			Expect(passedManifest).To(Equal(actualManifest))
+			Expect(passedDNSAddresses).To(Equal(actualDNSAddresses))
 			Expect(passedRequestParameters).To(Equal(map[string]interface{}{
 				"app_guid":   "app_guid",
 				"plan_id":    "plan_id",
@@ -283,6 +289,20 @@ var _ = Describe("Bind", func() {
 
 			It("returns the try again later error for the user", func() {
 				Expect(bindErr).To(MatchError(ContainSubstring("Currently unable to bind service instance, please try again later")))
+			})
+		})
+
+		Context("when bind has a bosh DNS request error", func() {
+			BeforeEach(func() {
+				boshClient.GetDNSAddressesReturns(nil, boshdirector.NewRequestError(errors.New("could not find link provider")))
+			})
+
+			It("logs the error", func() {
+				Expect(logBuffer.String()).To(ContainSubstring("error: failed to get required DNS info: could not find link provider"))
+			})
+
+			It("returns generic error message to user", func() {
+				Expect(bindErr).To(MatchError(ContainSubstring("There was a problem completing your request. Please")))
 			})
 		})
 

@@ -44,7 +44,7 @@ var _ = Describe("BOSH client", func() {
 		SetDefaultEventuallyTimeout(1 * time.Minute)
 		boshClient = NewBOSHClient()
 		logger = loggerfactory.New(GinkgoWriter, "contract-test", loggerfactory.Flags).New()
-		deploymentName = "bill_" + uuid.New()
+		deploymentName = "bill-" + uuid.New()
 	})
 
 	AfterEach(func() {
@@ -282,18 +282,23 @@ var _ = Describe("BOSH client", func() {
 	Describe("raw httpclient commands", func() {
 		var (
 			cloudConfigJSON = `{"name": "test", "type": "cloud", "content": "--- {}"}`
+			boshHTTP        boshdirector.HTTP
 		)
+
+		BeforeEach(func() {
+			boshHTTP = boshdirector.NewBoshHTTP(boshClient)
+		})
 
 		Describe("RawGet", func() {
 			It("returns valid info", func() {
-				r, err := boshClient.RawGet("/info")
+				r, err := boshHTTP.RawGet("/info")
 				Expect(err).NotTo(HaveOccurred())
 
 				boshInfo := struct {
-					Name string `yaml:"name"`
-					UUID string `yaml:"uuid"`
-					User string `yaml:"user"`
-					CPI  string `yaml:"cpi"`
+					Name string
+					UUID string
+					User string
+					CPI  string
 				}{}
 
 				err = json.Unmarshal([]byte(r), &boshInfo)
@@ -307,18 +312,18 @@ var _ = Describe("BOSH client", func() {
 
 		Describe("RawPost()", func() {
 			AfterEach(func() {
-				_, err := boshClient.RawDelete("/configs?type=cloud&name=test")
+				_, err := boshHTTP.RawDelete("/configs?type=cloud&name=test")
 				Expect(err).NotTo(HaveOccurred())
 			})
 
 			It("can set cloud config", func() {
-				r, err := boshClient.RawPost("/configs", cloudConfigJSON, "application/json")
+				r, err := boshHTTP.RawPost("/configs", cloudConfigJSON, "application/json")
 				Expect(err).NotTo(HaveOccurred())
 
 				postResponse := struct {
-					Content string `yaml:"content"`
-					Name    string `yaml:"name"`
-					Type    string `yaml:"type"`
+					Content string
+					Name    string
+					Type    string
 				}{}
 
 				err = json.Unmarshal([]byte(r), &postResponse)
@@ -331,17 +336,50 @@ var _ = Describe("BOSH client", func() {
 
 		Describe("RawDelete()", func() {
 			BeforeEach(func() {
-				_, err := boshClient.RawPost("/configs", cloudConfigJSON, "application/json")
+				_, err := boshHTTP.RawPost("/configs", cloudConfigJSON, "application/json")
 				Expect(err).NotTo(HaveOccurred())
 			})
 
 			It("can delete a cloud config", func() {
-				_, err := boshClient.RawDelete("/configs?type=cloud&name=test")
+				_, err := boshHTTP.RawDelete("/configs?type=cloud&name=test")
 				Expect(err).NotTo(HaveOccurred())
 			})
 		})
 	})
 
+	Describe("LinksAPI", func() {
+		BeforeEach(func() {
+			reporter := boshdirector.NewAsyncTaskReporter()
+			_, err := boshClient.Deploy(getManifest("deployment_with_link_provider.yml", deploymentName), "some-context-id", logger, reporter)
+			Expect(err).NotTo(HaveOccurred())
+
+			Eventually(reporter.Finished).Should(Receive(), fmt.Sprintf("Timed out waiting for %s to deploy", deploymentName))
+		})
+
+		AfterEach(func() {
+			reporter := boshdirector.NewAsyncTaskReporter()
+			_, err := boshClient.DeleteDeployment(deploymentName, "", logger, reporter)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("uses bosh links api calls to get bosh dns address", func() {
+			instanceGroupName := "dummy"
+			providerName := "link_from_dummy"
+
+			linkProviderId, err := boshClient.LinkProviderID(deploymentName, instanceGroupName, providerName)
+			Expect(err).NotTo(HaveOccurred())
+
+			linkConsumerId, err := boshClient.CreateLinkConsumer(linkProviderId)
+			Expect(err).NotTo(HaveOccurred())
+
+			linkAddress, err := boshClient.GetLinkAddress(linkConsumerId)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(linkAddress).To(MatchRegexp(`\.dummy\..*\.bosh$`))
+
+			err = boshClient.DeleteLinkConsumer(linkConsumerId)
+			Expect(err).NotTo(HaveOccurred())
+		})
+	})
 })
 
 func getManifest(filename, deploymentName string) []byte {

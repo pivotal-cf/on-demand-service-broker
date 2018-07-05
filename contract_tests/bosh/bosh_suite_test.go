@@ -84,6 +84,7 @@ func NewBOSHClient() *boshdirector.Client {
 		factory,
 		uaaFactory,
 		boshAuthConfig,
+		boshdirector.NewBoshHTTP,
 		logger,
 	)
 	Expect(err).NotTo(HaveOccurred())
@@ -123,6 +124,7 @@ func NewBOSHClientWithBadCredentials() *boshdirector.Client {
 		factory,
 		uaaFactory,
 		boshAuthConfig,
+		boshdirector.NewBoshHTTP,
 		logger,
 	)
 	Expect(err).NotTo(HaveOccurred())

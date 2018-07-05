@@ -7,6 +7,7 @@ import (
 
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
+	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 )
 
@@ -168,6 +169,20 @@ type FakeBoshClient struct {
 	}
 	verifyAuthReturnsOnCall map[int]struct {
 		result1 error
+	}
+	GetDNSAddressesStub        func(deploymentName string, requestedDNS []config.BindingDNS) (map[string]string, error)
+	getDNSAddressesMutex       sync.RWMutex
+	getDNSAddressesArgsForCall []struct {
+		deploymentName string
+		requestedDNS   []config.BindingDNS
+	}
+	getDNSAddressesReturns struct {
+		result1 map[string]string
+		result2 error
+	}
+	getDNSAddressesReturnsOnCall map[int]struct {
+		result1 map[string]string
+		result2 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -754,6 +769,63 @@ func (fake *FakeBoshClient) VerifyAuthReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
+func (fake *FakeBoshClient) GetDNSAddresses(deploymentName string, requestedDNS []config.BindingDNS) (map[string]string, error) {
+	var requestedDNSCopy []config.BindingDNS
+	if requestedDNS != nil {
+		requestedDNSCopy = make([]config.BindingDNS, len(requestedDNS))
+		copy(requestedDNSCopy, requestedDNS)
+	}
+	fake.getDNSAddressesMutex.Lock()
+	ret, specificReturn := fake.getDNSAddressesReturnsOnCall[len(fake.getDNSAddressesArgsForCall)]
+	fake.getDNSAddressesArgsForCall = append(fake.getDNSAddressesArgsForCall, struct {
+		deploymentName string
+		requestedDNS   []config.BindingDNS
+	}{deploymentName, requestedDNSCopy})
+	fake.recordInvocation("GetDNSAddresses", []interface{}{deploymentName, requestedDNSCopy})
+	fake.getDNSAddressesMutex.Unlock()
+	if fake.GetDNSAddressesStub != nil {
+		return fake.GetDNSAddressesStub(deploymentName, requestedDNS)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.getDNSAddressesReturns.result1, fake.getDNSAddressesReturns.result2
+}
+
+func (fake *FakeBoshClient) GetDNSAddressesCallCount() int {
+	fake.getDNSAddressesMutex.RLock()
+	defer fake.getDNSAddressesMutex.RUnlock()
+	return len(fake.getDNSAddressesArgsForCall)
+}
+
+func (fake *FakeBoshClient) GetDNSAddressesArgsForCall(i int) (string, []config.BindingDNS) {
+	fake.getDNSAddressesMutex.RLock()
+	defer fake.getDNSAddressesMutex.RUnlock()
+	return fake.getDNSAddressesArgsForCall[i].deploymentName, fake.getDNSAddressesArgsForCall[i].requestedDNS
+}
+
+func (fake *FakeBoshClient) GetDNSAddressesReturns(result1 map[string]string, result2 error) {
+	fake.GetDNSAddressesStub = nil
+	fake.getDNSAddressesReturns = struct {
+		result1 map[string]string
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeBoshClient) GetDNSAddressesReturnsOnCall(i int, result1 map[string]string, result2 error) {
+	fake.GetDNSAddressesStub = nil
+	if fake.getDNSAddressesReturnsOnCall == nil {
+		fake.getDNSAddressesReturnsOnCall = make(map[int]struct {
+			result1 map[string]string
+			result2 error
+		})
+	}
+	fake.getDNSAddressesReturnsOnCall[i] = struct {
+		result1 map[string]string
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeBoshClient) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -779,6 +851,8 @@ func (fake *FakeBoshClient) Invocations() map[string][][]interface{} {
 	defer fake.variablesMutex.RUnlock()
 	fake.verifyAuthMutex.RLock()
 	defer fake.verifyAuthMutex.RUnlock()
+	fake.getDNSAddressesMutex.RLock()
+	defer fake.getDNSAddressesMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

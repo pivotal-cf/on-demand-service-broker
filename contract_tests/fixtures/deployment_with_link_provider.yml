@@ -1,0 +1,36 @@
+---
+name: dep_with_link
+
+releases:
+- name: dummy
+  version: latest
+
+stemcells:
+- alias: trusty
+  os: ubuntu-trusty
+  version: latest
+
+instance_groups:
+- name: dummy
+  instances: 1
+  vm_type: t2.nano
+  stemcell: trusty
+  azs: [z1]
+  networks:
+  - name: default
+  jobs:
+  - name: dummy_with_link
+    release: dummy
+    provides:
+      link_from_dummy: {shared: true}
+
+update:
+  canaries: 1
+  max_in_flight: 6
+  serial: false
+  canary_watch_time: 1000-60000
+  update_watch_time: 1000-60000
+
+variables:
+- name: a-var
+  type: password

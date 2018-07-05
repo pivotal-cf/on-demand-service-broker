@@ -23,6 +23,7 @@ func (b *Broker) Bind(
 	bindingID string,
 	details brokerapi.BindDetails,
 ) (brokerapi.Binding, error) {
+
 	requestID := uuid.New()
 	if len(brokercontext.GetReqID(ctx)) > 0 {
 		requestID = brokercontext.GetReqID(ctx)
@@ -53,8 +54,8 @@ func (b *Broker) Bind(
 		return brokerapi.Binding{}, b.processError(NewGenericError(ctx, fmt.Errorf("converting to map %s", err)), logger)
 	}
 
+	plan, found := b.serviceOffering.FindPlanByID(details.PlanID)
 	if b.EnablePlanSchemas {
-		plan, found := b.serviceOffering.FindPlanByID(details.PlanID)
 		if !found {
 			return brokerapi.Binding{}, b.processError(NewDisplayableError(
 				fmt.Errorf("plan %s not found", details.PlanID),
@@ -84,8 +85,12 @@ func (b *Broker) Bind(
 		}
 	}
 
-	var createBindingErr error
-	binding, createBindingErr := b.adapterClient.CreateBinding(bindingID, vms, manifest, mappedParams, secretsMap, logger)
+	dnsAddresses, err := b.boshClient.GetDNSAddresses(details.ServiceID, plan.BindingWithDNS)
+	if err != nil {
+		return brokerapi.Binding{}, b.processError(NewGenericError(ctx, fmt.Errorf("failed to get required DNS info: %s", err)), logger)
+	}
+
+	binding, createBindingErr := b.adapterClient.CreateBinding(bindingID, vms, manifest, mappedParams, secretsMap, dnsAddresses, logger)
 	if createBindingErr != nil {
 		if !b.EnableResolveSecretsAtBind {
 			logger.Printf("broker.resolve_secrets_at_bind was: false ")

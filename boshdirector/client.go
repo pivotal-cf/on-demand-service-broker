@@ -7,15 +7,9 @@
 package boshdirector
 
 import (
-	"bytes"
-	"fmt"
 	"log"
-	"net"
-	"net/http"
 	"time"
 
-	"github.com/cloudfoundry/bosh-utils/httpclient"
-	boshlog "github.com/cloudfoundry/bosh-utils/logger"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pkg/errors"
 
@@ -33,6 +27,7 @@ type Client struct {
 	boshAuth        config.Authentication
 	uaaFactory      UAAFactory
 	directorFactory DirectorFactory
+	boshHTTP        HTTP
 }
 
 //go:generate counterfeiter -o fakes/fake_director.go . Director
@@ -70,7 +65,23 @@ type CertAppender interface {
 	AppendCertsFromPEM(pemCerts []byte) (ok bool)
 }
 
-func New(url string, trustedCertPEM []byte, certAppender CertAppender, directorFactory DirectorFactory, uaaFactory UAAFactory, boshAuth config.Authentication, logger *log.Logger) (*Client, error) {
+//go:generate counterfeiter -o fakes/fake_boshhttp.go . HTTP
+
+type HTTP interface {
+	RawGet(path string) (string, error)
+	RawPost(path, data, contentType string) (string, error)
+	RawDelete(path string) (string, error)
+}
+
+func New(url string,
+	trustedCertPEM []byte,
+	certAppender CertAppender,
+	directorFactory DirectorFactory,
+	uaaFactory UAAFactory,
+	boshAuth config.Authentication,
+	boshHTTPFactory HTTPFactory,
+	logger *log.Logger) (*Client, error) {
+
 	certAppender.AppendCertsFromPEM(trustedCertPEM)
 
 	noAuthClient := &Client{url: url, trustedCertPEM: trustedCertPEM, directorFactory: directorFactory}
@@ -79,7 +90,7 @@ func New(url string, trustedCertPEM []byte, certAppender CertAppender, directorF
 		return nil, errors.Wrap(err, "error fetching BOSH director information")
 	}
 
-	return &Client{
+	client := &Client{
 		trustedCertPEM:  trustedCertPEM,
 		boshAuth:        boshAuth,
 		uaaFactory:      uaaFactory,
@@ -87,7 +98,9 @@ func New(url string, trustedCertPEM []byte, certAppender CertAppender, directorF
 		PollingInterval: 5,
 		url:             url,
 		BoshInfo:        boshInfo,
-	}, nil
+	}
+	client.boshHTTP = boshHTTPFactory(client)
+	return client, nil
 }
 
 func (c *Client) Director(taskReporter director.TaskReporter) (director.Director, error) {
@@ -189,107 +202,4 @@ type RequestError struct {
 
 func NewRequestError(e error) RequestError {
 	return RequestError{e}
-}
-
-func (c *Client) RawGet(path string) (string, error) {
-	fileReporter := director.NewNoopFileReporter()
-	logger := boshlog.NewLogger(boshlog.LevelError)
-	config, err := c.directorConfig()
-	if err != nil {
-		return "", nil
-	}
-
-	hc, err := httpClient(config, logger)
-	if err != nil {
-		return "", err
-	}
-
-	cr := director.NewClientRequest(fmt.Sprintf("https://%s:%d", config.Host, config.Port), hc, fileReporter, logger)
-	w := bytes.NewBuffer([]byte{})
-	_, _, err = cr.RawGet(path, w, nil)
-	if err != nil {
-		return "", err
-	}
-	return string(w.Bytes()), nil
-}
-
-func (c *Client) RawPost(path, data, contentType string) (string, error) {
-	fileReporter := director.NewNoopFileReporter()
-	logger := boshlog.NewLogger(boshlog.LevelError)
-	config, err := c.directorConfig()
-	if err != nil {
-		return "", nil
-	}
-
-	hc, err := httpClient(config, logger)
-	if err != nil {
-		return "", err
-	}
-
-	cr := director.NewClientRequest(fmt.Sprintf("https://%s:%d", config.Host, config.Port), hc, fileReporter, logger)
-
-	var contentTypeWrapper func(*http.Request)
-	if contentType != "" {
-		contentTypeWrapper = func(req *http.Request) {
-			req.Header.Add("Content-Type", contentType)
-		}
-	}
-	w, _, err := cr.RawPost(path, []byte(data), contentTypeWrapper)
-	if err != nil {
-		return "", err
-	}
-	return string(w), nil
-}
-
-func (c *Client) RawDelete(path string) (string, error) {
-	fileReporter := director.NewNoopFileReporter()
-	logger := boshlog.NewLogger(boshlog.LevelError)
-	config, err := c.directorConfig()
-	if err != nil {
-		return "", nil
-	}
-
-	hc, err := httpClient(config, logger)
-	if err != nil {
-		return "", err
-	}
-
-	cr := director.NewClientRequest(fmt.Sprintf("https://%s:%d", config.Host, config.Port), hc, fileReporter, logger)
-	r, _, err := cr.RawDelete(path)
-	if err != nil {
-		return "", err
-	}
-	return string(r), nil
-}
-
-func httpClient(config director.FactoryConfig, logger boshlog.Logger) (*httpclient.HTTPClient, error) {
-	certPool, err := config.CACertPool()
-	if err != nil {
-		return nil, err
-	}
-
-	rawClient := httpclient.CreateDefaultClient(certPool)
-	authAdjustment := director.NewAuthRequestAdjustment(
-		config.TokenFunc, config.Client, config.ClientSecret)
-	rawClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
-
-		// Since redirected requests are not retried,
-		// forcefully adjust auth token as this is the last chance.
-		err := authAdjustment.Adjust(req, true)
-		if err != nil {
-			return err
-		}
-
-		req.URL.Host = net.JoinHostPort(config.Host, fmt.Sprintf("%d", config.Port))
-		return nil
-	}
-
-	retryClient := httpclient.NewNetworkSafeRetryClient(rawClient, 5, 500*time.Millisecond, logger)
-
-	authedClient := director.NewAdjustableClient(retryClient, authAdjustment)
-
-	httpOpts := httpclient.Opts{NoRedactUrlQuery: true}
-	httpClient := httpclient.NewHTTPClientOpts(authedClient, logger, httpOpts)
-
-	return httpClient, nil
 }

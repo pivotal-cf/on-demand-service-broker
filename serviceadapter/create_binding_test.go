@@ -35,6 +35,7 @@ var _ = Describe("external service adapter", func() {
 		manifest           []byte
 		requestParams      map[string]interface{}
 		secrets            map[string]string
+		dnsAddresses       map[string]string
 
 		adapterBinding   sdk.Binding
 		createBindingErr error
@@ -62,10 +63,15 @@ var _ = Describe("external service adapter", func() {
 		manifest = []byte("a-manifest")
 		requestParams = map[string]interface{}{"foo": "bar"}
 		secrets = map[string]string{"admin-password": "pa55w0rd"}
+		dnsAddresses = map[string]string{
+			"config1": "some.dns.bosh",
+			"config2": "some-other.dns.bosh",
+		}
 	})
 
 	JustBeforeEach(func() {
-		adapterBinding, createBindingErr = a.CreateBinding(bindingID, deploymentTopology, manifest, requestParams, secrets, logger)
+		adapterBinding, createBindingErr = a.CreateBinding(bindingID, deploymentTopology,
+			manifest, requestParams, secrets, dnsAddresses, logger)
 	})
 
 	It("invokes external binding creator with serialised params", func() {
