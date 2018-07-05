@@ -23,6 +23,8 @@ import (
 
 	"io/ioutil"
 
+	"encoding/json"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pborman/uuid"
@@ -277,13 +279,69 @@ var _ = Describe("BOSH client", func() {
 		})
 	})
 
-	Describe("RawGet", func() {
-		FIt("works", func() {
-			r, err := boshClient.RawGet("/info")
-			Expect(err).NotTo(HaveOccurred())
-			fmt.Printf("r = %+v\n", r)
+	Describe("raw httpclient commands", func() {
+		var (
+			cloudConfigJSON = `{"name": "test", "type": "cloud", "content": "--- {}"}`
+		)
+
+		Describe("RawGet", func() {
+			It("returns valid info", func() {
+				r, err := boshClient.RawGet("/info")
+				Expect(err).NotTo(HaveOccurred())
+
+				boshInfo := struct {
+					Name string `yaml:"name"`
+					UUID string `yaml:"uuid"`
+					User string `yaml:"user"`
+					CPI  string `yaml:"cpi"`
+				}{}
+
+				err = json.Unmarshal([]byte(r), &boshInfo)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(boshInfo.Name).ToNot(BeEmpty())
+				Expect(boshInfo.UUID).ToNot(BeEmpty())
+				Expect(boshInfo.User).ToNot(BeEmpty())
+				Expect(boshInfo.CPI).ToNot(BeEmpty())
+			})
+		})
+
+		Describe("RawPost()", func() {
+			AfterEach(func() {
+				_, err := boshClient.RawDelete("/configs?type=cloud&name=test")
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("can set cloud config", func() {
+				r, err := boshClient.RawPost("/configs", cloudConfigJSON, "application/json")
+				Expect(err).NotTo(HaveOccurred())
+
+				postResponse := struct {
+					Content string `yaml:"content"`
+					Name    string `yaml:"name"`
+					Type    string `yaml:"type"`
+				}{}
+
+				err = json.Unmarshal([]byte(r), &postResponse)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(postResponse.Content).To(Equal("--- {}"))
+				Expect(postResponse.Name).To(Equal("test"))
+				Expect(postResponse.Type).To(Equal("cloud"))
+			})
+		})
+
+		Describe("RawDelete()", func() {
+			BeforeEach(func() {
+				_, err := boshClient.RawPost("/configs", cloudConfigJSON, "application/json")
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("can delete a cloud config", func() {
+				_, err := boshClient.RawDelete("/configs?type=cloud&name=test")
+				Expect(err).NotTo(HaveOccurred())
+			})
 		})
 	})
+
 })
 
 func getManifest(filename, deploymentName string) []byte {

@@ -213,6 +213,55 @@ func (c *Client) RawGet(path string) (string, error) {
 	return string(w.Bytes()), nil
 }
 
+func (c *Client) RawPost(path, data, contentType string) (string, error) {
+	fileReporter := director.NewNoopFileReporter()
+	logger := boshlog.NewLogger(boshlog.LevelError)
+	config, err := c.directorConfig()
+	if err != nil {
+		return "", nil
+	}
+
+	hc, err := httpClient(config, logger)
+	if err != nil {
+		return "", err
+	}
+
+	cr := director.NewClientRequest(fmt.Sprintf("https://%s:%d", config.Host, config.Port), hc, fileReporter, logger)
+
+	var contentTypeWrapper func(*http.Request)
+	if contentType != "" {
+		contentTypeWrapper = func(req *http.Request) {
+			req.Header.Add("Content-Type", contentType)
+		}
+	}
+	w, _, err := cr.RawPost(path, []byte(data), contentTypeWrapper)
+	if err != nil {
+		return "", err
+	}
+	return string(w), nil
+}
+
+func (c *Client) RawDelete(path string) (string, error) {
+	fileReporter := director.NewNoopFileReporter()
+	logger := boshlog.NewLogger(boshlog.LevelError)
+	config, err := c.directorConfig()
+	if err != nil {
+		return "", nil
+	}
+
+	hc, err := httpClient(config, logger)
+	if err != nil {
+		return "", err
+	}
+
+	cr := director.NewClientRequest(fmt.Sprintf("https://%s:%d", config.Host, config.Port), hc, fileReporter, logger)
+	r, _, err := cr.RawDelete(path)
+	if err != nil {
+		return "", err
+	}
+	return string(r), nil
+}
+
 func httpClient(config director.FactoryConfig, logger boshlog.Logger) (*httpclient.HTTPClient, error) {
 	certPool, err := config.CACertPool()
 	if err != nil {
