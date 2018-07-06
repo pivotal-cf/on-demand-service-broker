@@ -85,7 +85,7 @@ func (b *Broker) Bind(
 		}
 	}
 
-	dnsAddresses, err := b.boshClient.GetDNSAddresses(details.ServiceID, plan.BindingWithDNS)
+	dnsAddresses, err := b.boshClient.GetDNSAddresses(deploymentName(instanceID), plan.BindingWithDNS)
 	if err != nil {
 		return brokerapi.Binding{}, b.processError(NewGenericError(ctx, fmt.Errorf("failed to get required DNS info: %s", err)), logger)
 	}

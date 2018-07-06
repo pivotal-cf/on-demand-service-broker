@@ -38,15 +38,34 @@ var _ = Describe("Binding", func() {
 		boshVMs                bosh.BoshVMs
 		bindDetails            brokerapi.BindDetails
 		bindingRequestDetails  map[string]interface{}
+		bindingWithDNSConf     []brokerConfig.BindingDNS
+		bindingWithDNSDetails  map[string]string
 	)
 
 	BeforeEach(func() {
+		bindingWithDNSConf = []brokerConfig.BindingDNS{
+			{
+				Name:          "config-1",
+				LinkProvider:  "link-provider",
+				InstanceGroup: "instance-group",
+			},
+		}
+		bindingWithDNSDetails = map[string]string{
+			"config-1": "some.names.bosh",
+		}
+
 		conf := brokerConfig.Config{
 			Broker: brokerConfig.Broker{
 				Port: serverPort, Username: brokerUsername, Password: brokerPassword,
 			},
 			ServiceCatalog: brokerConfig.ServiceOffering{
 				Name: serviceName,
+				Plans: []brokerConfig.Plan{
+					{
+						ID:             "plan-id",
+						BindingWithDNS: bindingWithDNSConf,
+					},
+				},
 			},
 		}
 
@@ -80,6 +99,7 @@ var _ = Describe("Binding", func() {
 
 	Describe("a successful binding", func() {
 		It("generates a meaningful response", func() {
+			fakeBoshClient.GetDNSAddressesReturns(bindingWithDNSDetails, nil)
 			fakeServiceAdapter.CreateBindingReturns(sdk.Binding{
 				Credentials:     map[string]interface{}{"user": "bill", "password": "redflag"},
 				SyslogDrainURL:  "other.fqdn",
@@ -96,13 +116,19 @@ var _ = Describe("Binding", func() {
 			deploymentName, _ = fakeBoshClient.GetDeploymentArgsForCall(0)
 			Expect(deploymentName).To(Equal(expectedDeploymentName))
 
+			By("fetching the Bosh DNS config")
+			dnsDeploymentName, bindingBoshDNSConfig := fakeBoshClient.GetDNSAddressesArgsForCall(0)
+			Expect(dnsDeploymentName).To(Equal(expectedDeploymentName))
+			Expect(bindingBoshDNSConfig).To(Equal(bindingWithDNSConf))
+
 			By("calling bind on the service adapter")
 			Expect(fakeServiceAdapter.CreateBindingCallCount()).To(Equal(1))
-			id, vms, manifest, params, _, _, _ := fakeServiceAdapter.CreateBindingArgsForCall(0)
+			id, vms, manifest, params, _, boshDNS, _ := fakeServiceAdapter.CreateBindingArgsForCall(0)
 			Expect(id).To(Equal(bindingID))
 			Expect(vms).To(Equal(boshVMs))
 			Expect(manifest).To(Equal(boshManifest))
 			Expect(params).To(Equal(bindingRequestDetails))
+			Expect(boshDNS).To(Equal(bindingWithDNSDetails))
 
 			By("returning the correct status code")
 			Expect(response.StatusCode).To(Equal(http.StatusCreated))
@@ -242,6 +268,30 @@ variables:
 
 		It("responds with status 500 and a generic message when talking to bosh fails", func() {
 			fakeBoshClient.GetDeploymentReturns(nil, false, errors.New("oops"))
+			response, bodyContent := doBindRequest(instanceID, bindingID, bindDetails)
+
+			By("returning the correct status code")
+			Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+
+			By("returning the correct error message")
+			var errorResponse brokerapi.ErrorResponse
+			Expect(json.Unmarshal(bodyContent, &errorResponse)).To(Succeed())
+
+			Expect(errorResponse.Description).To(SatisfyAll(
+				ContainSubstring(
+					"There was a problem completing your request. Please contact your operations team providing the following information: ",
+				),
+				MatchRegexp(
+					`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`,
+				),
+				ContainSubstring(fmt.Sprintf("service: %s", serviceName)),
+				ContainSubstring(fmt.Sprintf("service-instance-guid: %s", instanceID)),
+				ContainSubstring("operation: bind"),
+			))
+		})
+
+		It("responds with status 500 and a generic message when getting bosh DNS fails", func() {
+			fakeBoshClient.GetDNSAddressesReturns(nil, errors.New("oops"))
 			response, bodyContent := doBindRequest(instanceID, bindingID, bindDetails)
 
 			By("returning the correct status code")

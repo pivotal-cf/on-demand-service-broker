@@ -281,5 +281,15 @@ var _ = Describe("LinksApi", func() {
 			_, err := c.GetDNSAddresses("cf", []config.BindingDNS{{Name: "config-1", LinkProvider: "doppler", InstanceGroup: "doppler"}})
 			Expect(err).ToNot(HaveOccurred())
 		})
+
+		It("successfully returns empty map when empty dns config passed in, even if Raw* would error", func() {
+			fakeBoshHTTP.RawGetReturns("", errors.New("oops"))
+
+			_, err := c.GetDNSAddresses("cf", nil)
+			Expect(err).ToNot(HaveOccurred())
+
+			_, err = c.GetDNSAddresses("cf", []config.BindingDNS{})
+			Expect(err).ToNot(HaveOccurred())
+		})
 	})
 })
