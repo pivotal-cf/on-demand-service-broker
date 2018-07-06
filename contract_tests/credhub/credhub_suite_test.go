@@ -89,6 +89,7 @@ func getBoshManifest(deploymentName string) ([]byte, error) {
 		directorFactory,
 		uaaFactory,
 		config.Authentication{UAA: config.UAAAuthentication{ClientCredentials: config.ClientCredentials{ID: username, Secret: password}}},
+		boshdirector.NewBoshHTTP,
 		logger,
 	)
 
