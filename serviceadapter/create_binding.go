@@ -40,6 +40,11 @@ func (c *Client) CreateBinding(
 		return binding, err
 	}
 
+	serialisedDNSAddresses, _ := json.Marshal(dnsAddresses)
+	if err != nil {
+		return binding, err
+	}
+
 	var stdout, stderr []byte
 	var exitCode *int
 
@@ -51,6 +56,7 @@ func (c *Client) CreateBinding(
 				BindingId:         bindingID,
 				Manifest:          string(manifest),
 				Secrets:           string(serialisedSecrets),
+				DNSAddresses:      string(serialisedDNSAddresses),
 			},
 		}
 

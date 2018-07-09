@@ -295,7 +295,7 @@
     "bosh",
     "serviceadapter"
   ]
-  revision = "072f8ee421d26c6b5ae853c6354f00441d82a98b"
+  revision = "a1535fcc41bcc4d77d988f31aba2f9e4badadcaf"
 
 [[projects]]
   branch = "master"
@@ -419,6 +419,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "d6c7cde97f45fa9f415919e39e578b5c9455cfece6e76a9ecf10ddedf609666d"
+  inputs-digest = "b30135eddd1298cb17946f47040b39f7c640ff21a4990262d9c5ec4a66f6bf72"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -222,6 +222,7 @@ var _ = Describe("external service adapter", func() {
 					BoshVms:           toJson(deploymentTopology),
 					RequestParameters: toJson(requestParams),
 					Secrets:           toJson(secrets),
+					DNSAddresses:      toJson(dnsAddresses),
 				},
 			}))
 		})
