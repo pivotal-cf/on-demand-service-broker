@@ -93,7 +93,7 @@ var _ = Describe("On-demand service broker", func() {
 				Expect(err).NotTo(HaveOccurred())
 				return
 			case <-timeoutChan:
-				Fail("timed out after 1 minute")
+				Fail("timed out after 5 minute")
 				return
 			}
 		}
@@ -128,6 +128,16 @@ var _ = Describe("On-demand service broker", func() {
 			serviceName := newServiceName()
 			cf.CreateService(serviceOffering, t.Plan, serviceName, string(t.ArbitraryParams))
 
+			By("creating a service key")
+			serviceKeyName := uuid.New()[:7]
+			cf.CreateServiceKey(serviceName, serviceKeyName)
+			serviceKey := cf.GetServiceKey(serviceName, serviceKeyName)
+			Expect(serviceKey).NotTo(BeNil())
+
+			if t.BindingDNSAttribute != "" {
+				testBindingWithDNS(serviceKey, t.BindingDNSAttribute)
+			}
+
 			By("allowing an app to bind to the service instance")
 			testAppURL := cf.PushAndBindApp(testAppName, serviceName, exampleAppPath)
 			defer func() {
@@ -142,12 +152,6 @@ var _ = Describe("On-demand service broker", func() {
 			if shouldTestCredhubRef {
 				testCredhubRef(testAppName)
 			}
-
-			By("creating a service key")
-			serviceKeyName := uuid.New()[:7]
-			cf.CreateServiceKey(serviceName, serviceKeyName)
-			serviceKey := cf.GetServiceKey(serviceName, serviceKeyName)
-			Expect(serviceKey).NotTo(BeNil())
 
 			By("providing a functional service instance")
 			testServiceWithExampleApp(exampleAppType, testAppURL)
@@ -193,6 +197,21 @@ var _ = Describe("On-demand service broker", func() {
 })
 
 type GinkgoFirehosePrinter struct{}
+
+func testBindingWithDNS(serviceKeyRaw, bindingDNSAttribute string) {
+	serviceKeyWithoutMessageSlice := strings.Split(serviceKeyRaw, "\n")[1:]
+	onlyServiceKey := strings.Join(serviceKeyWithoutMessageSlice, "\n")
+	var serviceKey map[string]interface{}
+	json.Unmarshal([]byte(onlyServiceKey), &serviceKey)
+
+	dnsInfo, ok := serviceKey[bindingDNSAttribute]
+	Expect(ok).To(BeTrue(), fmt.Sprintf("%s not returned in binding", bindingDNSAttribute))
+
+	dnsInfoMap, ok := dnsInfo.(map[string]interface{})
+	Expect(ok).To(BeTrue(), fmt.Sprintf("Unable to convert dns info to map[string]interface{}, got:%t", dnsInfo))
+
+	Expect(len(dnsInfoMap)).To(BeNumerically(">", 0))
+}
 
 func (c GinkgoFirehosePrinter) Print(title, dump string) {
 	fmt.Fprintf(GinkgoWriter, "firehose: %s\n---%s\n---\n", title, dump)

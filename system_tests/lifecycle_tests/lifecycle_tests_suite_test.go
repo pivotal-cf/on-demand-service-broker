@@ -57,9 +57,10 @@ func parseTests() []LifecycleTest {
 }
 
 type LifecycleTest struct {
-	Plan            string          `json:"plan"`
-	UpdateToPlan    string          `json:"update_to_plan"`
-	ArbitraryParams json.RawMessage `json:"arbitrary_params"`
+	Plan                string          `json:"plan"`
+	UpdateToPlan        string          `json:"update_to_plan"`
+	ArbitraryParams     json.RawMessage `json:"arbitrary_params"`
+	BindingDNSAttribute string          `json:"binding_dns_attribute"`
 }
 
 var _ = SynchronizedBeforeSuite(func() []byte {
@@ -92,6 +93,11 @@ var _ = SynchronizedAfterSuite(func() {}, func() {
 	services := parseServiceNames(string(session.Buffer().Contents()))
 
 	for _, service := range services {
+		serviceKeysRaw := cf.Cf("service-keys", service)
+		serviceKeys := strings.Split(string(serviceKeysRaw.Buffer().Contents()), "\n")[3:]
+		for _, serviceKey := range serviceKeys {
+			Eventually(cf.Cf("delete-service-key", service, serviceKey, "-f"), time.Minute).Should(gexec.Exit(0))
+		}
 		Eventually(cf.Cf("delete-service", service, "-f"), time.Minute).Should(gexec.Exit(0))
 	}
 
