@@ -20,6 +20,7 @@ import (
 	boshlog "github.com/cloudfoundry/bosh-utils/logger"
 	"github.com/pivotal-cf/on-demand-service-broker/apiserver"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
+	"github.com/pivotal-cf/on-demand-service-broker/boshlinks"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
@@ -74,6 +75,7 @@ func startBroker(conf config.Config, logger *log.Logger, loggerFactory *loggerfa
 		directorFactory,
 		uaaFactory,
 		conf.Bosh.Authentication,
+		boshlinks.NewDNSRetriever,
 		boshdirector.NewBoshHTTP,
 		logger)
 	if err != nil {

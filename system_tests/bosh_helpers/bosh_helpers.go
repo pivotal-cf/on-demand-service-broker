@@ -20,6 +20,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
+	"github.com/pivotal-cf/on-demand-service-broker/boshlinks"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 	"gopkg.in/yaml.v2"
@@ -60,6 +61,7 @@ func New(boshURL, uaaURL, boshUsername, boshPassword, boshCACert string) *BoshHe
 				},
 			},
 		},
+		boshlinks.NewDNSRetriever,
 		boshdirector.NewBoshHTTP,
 		logger,
 	)
@@ -94,6 +96,7 @@ func NewBasicAuth(boshURL, boshUsername, boshPassword, boshCACert string, disabl
 				Username: boshUsername, Password: boshPassword,
 			},
 		},
+		boshlinks.NewDNSRetriever,
 		boshdirector.NewBoshHTTP,
 		logger,
 	)

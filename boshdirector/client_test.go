@@ -34,7 +34,6 @@ var _ = Describe("New", func() {
 		fakeDirector, fakeDirectorUnauthenticated *fakes.FakeDirector
 		fakeDirectorFactory                       *fakes.FakeDirectorFactory
 		fakeUAAFactory                            *fakes.FakeUAAFactory
-		fakeUAA                                   *fakes.FakeUAA
 	)
 
 	BeforeEach(func() {
@@ -42,7 +41,6 @@ var _ = Describe("New", func() {
 		fakeDirectorFactory = new(fakes.FakeDirectorFactory)
 		fakeDirectorUnauthenticated = new(fakes.FakeDirector)
 		fakeDirector = new(fakes.FakeDirector)
-		fakeUAA = new(fakes.FakeUAA)
 		fakeUAAFactory = new(fakes.FakeUAAFactory)
 
 		fakeCertAppender.AppendCertsFromPEMReturns(true)
@@ -84,6 +82,7 @@ var _ = Describe("New", func() {
 				fakeDirectorFactory,
 				fakeUAAFactory,
 				boshAuthConfig,
+				fakeDNSRetrieverFactory.Spy,
 				fakeBoshHTTPFactory.Spy,
 				logger,
 			)
@@ -135,6 +134,7 @@ var _ = Describe("New", func() {
 					fakeDirectorFactory,
 					fakeUAAFactory,
 					boshAuthConfig,
+					fakeDNSRetrieverFactory.Spy,
 					fakeBoshHTTPFactory.Spy,
 					logger,
 				)
@@ -150,6 +150,7 @@ var _ = Describe("New", func() {
 					fakeDirectorFactory,
 					fakeUAAFactory,
 					boshAuthConfig,
+					fakeDNSRetrieverFactory.Spy,
 					fakeBoshHTTPFactory.Spy,
 					logger,
 				)
@@ -165,6 +166,7 @@ var _ = Describe("New", func() {
 					fakeDirectorFactory,
 					fakeUAAFactory,
 					boshAuthConfig,
+					fakeDNSRetrieverFactory.Spy,
 					fakeBoshHTTPFactory.Spy,
 					logger,
 				)
@@ -190,6 +192,7 @@ var _ = Describe("New", func() {
 					fakeDirectorFactory,
 					fakeUAAFactory,
 					boshAuthConfig,
+					fakeDNSRetrieverFactory.Spy,
 					fakeBoshHTTPFactory.Spy,
 					logger,
 				)
@@ -213,6 +216,7 @@ var _ = Describe("New", func() {
 					fakeDirectorFactory,
 					fakeUAAFactory,
 					boshAuthConfig,
+					fakeDNSRetrieverFactory.Spy,
 					fakeBoshHTTPFactory.Spy,
 					logger,
 				)
@@ -230,6 +234,7 @@ var _ = Describe("New", func() {
 					fakeDirectorFactory,
 					fakeUAAFactory,
 					boshAuthConfig,
+					fakeDNSRetrieverFactory.Spy,
 					fakeBoshHTTPFactory.Spy,
 					logger,
 				)
@@ -268,6 +273,7 @@ var _ = Describe("New", func() {
 				fakeDirectorFactory,
 				fakeUAAFactory,
 				basicAuthConfig,
+				fakeDNSRetrieverFactory.Spy,
 				fakeBoshHTTPFactory.Spy,
 				logger,
 			)

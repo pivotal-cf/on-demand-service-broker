@@ -27,7 +27,7 @@ type Client struct {
 	boshAuth        config.Authentication
 	uaaFactory      UAAFactory
 	directorFactory DirectorFactory
-	boshHTTP        HTTP
+	dnsRetriever    DNSRetriever
 }
 
 //go:generate counterfeiter -o fakes/fake_director.go . Director
@@ -73,12 +73,26 @@ type HTTP interface {
 	RawDelete(path string) (string, error)
 }
 
+//go:generate counterfeiter -o fakes/fake_dns_retriever.go . DNSRetriever
+
+type DNSRetriever interface {
+	LinkProviderID(deploymentName, instanceGroupName, providerName string) (string, error)
+	CreateLinkConsumer(providerID string) (string, error)
+	GetLinkAddress(consumerLinkID string) (string, error)
+	DeleteLinkConsumer(consumerID string) error
+}
+
+//go:generate counterfeiter -o fakes/fake_dns_retriever_factory.go . DNSRetrieverFactory
+
+type DNSRetrieverFactory func(HTTP) DNSRetriever
+
 func New(url string,
 	trustedCertPEM []byte,
 	certAppender CertAppender,
 	directorFactory DirectorFactory,
 	uaaFactory UAAFactory,
 	boshAuth config.Authentication,
+	dnsRetrieverFactory DNSRetrieverFactory,
 	boshHTTPFactory HTTPFactory,
 	logger *log.Logger) (*Client, error) {
 
@@ -99,7 +113,7 @@ func New(url string,
 		url:             url,
 		BoshInfo:        boshInfo,
 	}
-	client.boshHTTP = boshHTTPFactory(client)
+	client.dnsRetriever = dnsRetrieverFactory(boshHTTPFactory(client))
 	return client, nil
 }
 

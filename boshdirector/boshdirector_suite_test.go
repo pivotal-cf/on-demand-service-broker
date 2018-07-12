@@ -21,14 +21,15 @@ import (
 var (
 	c *boshdirector.Client
 
-	fakeCertAppender    *fakes.FakeCertAppender
-	fakeDirector        *fakes.FakeDirector
-	fakeDirectorFactory *fakes.FakeDirectorFactory
-	fakeUAAFactory      *fakes.FakeUAAFactory
-	fakeUAA             *fakes.FakeUAA
-	fakeBoshHTTPFactory *fakes.FakeHTTPFactory
-	logger              *log.Logger
-	boshAuthConfig      config.Authentication
+	fakeCertAppender        *fakes.FakeCertAppender
+	fakeDirector            *fakes.FakeDirector
+	fakeDirectorFactory     *fakes.FakeDirectorFactory
+	fakeUAAFactory          *fakes.FakeUAAFactory
+	fakeUAA                 *fakes.FakeUAA
+	fakeBoshHTTPFactory     *fakes.FakeHTTPFactory
+	fakeDNSRetrieverFactory *fakes.FakeDNSRetrieverFactory
+	logger                  *log.Logger
+	boshAuthConfig          config.Authentication
 )
 
 var _ = BeforeEach(func() {
@@ -38,6 +39,7 @@ var _ = BeforeEach(func() {
 	fakeUAA = new(fakes.FakeUAA)
 	fakeDirector = new(fakes.FakeDirector)
 	fakeBoshHTTPFactory = new(fakes.FakeHTTPFactory)
+	fakeDNSRetrieverFactory = new(fakes.FakeDNSRetrieverFactory)
 	boshAuthConfig = config.Authentication{
 		UAA: config.UAAAuthentication{
 			ClientCredentials: config.ClientCredentials{
@@ -73,6 +75,7 @@ var _ = JustBeforeEach(func() {
 		fakeDirectorFactory,
 		fakeUAAFactory,
 		boshAuthConfig,
+		fakeDNSRetrieverFactory.Spy,
 		fakeBoshHTTPFactory.Spy,
 		logger,
 	)
