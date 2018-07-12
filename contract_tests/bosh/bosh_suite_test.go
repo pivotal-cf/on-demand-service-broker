@@ -28,6 +28,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
+	"github.com/pivotal-cf/on-demand-service-broker/boshlinks"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 
@@ -84,6 +85,7 @@ func NewBOSHClient() *boshdirector.Client {
 		factory,
 		uaaFactory,
 		boshAuthConfig,
+		boshlinks.NewDNSRetriever,
 		boshdirector.NewBoshHTTP,
 		logger,
 	)
@@ -124,6 +126,7 @@ func NewBOSHClientWithBadCredentials() *boshdirector.Client {
 		factory,
 		uaaFactory,
 		boshAuthConfig,
+		boshlinks.NewDNSRetriever,
 		boshdirector.NewBoshHTTP,
 		logger,
 	)

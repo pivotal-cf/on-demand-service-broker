@@ -26,6 +26,7 @@ import (
 	"github.com/cloudfoundry-incubator/credhub-cli/credhub/auth"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pivotal-cf/on-demand-service-broker/boshlinks"
 	odbcredhub "github.com/pivotal-cf/on-demand-service-broker/credhub"
 
 	"crypto/x509"
@@ -89,6 +90,7 @@ func getBoshManifest(deploymentName string) ([]byte, error) {
 		directorFactory,
 		uaaFactory,
 		config.Authentication{UAA: config.UAAAuthentication{ClientCredentials: config.ClientCredentials{ID: username, Secret: password}}},
+		boshlinks.NewDNSRetriever,
 		boshdirector.NewBoshHTTP,
 		logger,
 	)

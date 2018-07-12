@@ -29,6 +29,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
+	"github.com/pivotal-cf/on-demand-service-broker/boshlinks"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 	"gopkg.in/yaml.v2"
 )
@@ -348,12 +349,15 @@ var _ = Describe("BOSH client", func() {
 	})
 
 	Describe("LinksAPI", func() {
+		var dnsRetriever boshdirector.DNSRetriever
 		BeforeEach(func() {
 			reporter := boshdirector.NewAsyncTaskReporter()
 			_, err := boshClient.Deploy(getManifest("deployment_with_link_provider.yml", deploymentName), "some-context-id", logger, reporter)
 			Expect(err).NotTo(HaveOccurred())
 
 			Eventually(reporter.Finished).Should(Receive(), fmt.Sprintf("Timed out waiting for %s to deploy", deploymentName))
+
+			dnsRetriever = boshlinks.NewDNSRetriever(boshdirector.NewBoshHTTP(boshClient))
 		})
 
 		AfterEach(func() {
@@ -366,17 +370,17 @@ var _ = Describe("BOSH client", func() {
 			instanceGroupName := "dummy"
 			providerName := "link_from_dummy"
 
-			linkProviderId, err := boshClient.LinkProviderID(deploymentName, instanceGroupName, providerName)
+			linkProviderId, err := dnsRetriever.LinkProviderID(deploymentName, instanceGroupName, providerName)
 			Expect(err).NotTo(HaveOccurred())
 
-			linkConsumerId, err := boshClient.CreateLinkConsumer(linkProviderId)
+			linkConsumerId, err := dnsRetriever.CreateLinkConsumer(linkProviderId)
 			Expect(err).NotTo(HaveOccurred())
 
-			linkAddress, err := boshClient.GetLinkAddress(linkConsumerId)
+			linkAddress, err := dnsRetriever.GetLinkAddress(linkConsumerId)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(linkAddress).To(MatchRegexp(`\.dummy\..*\.bosh$`))
 
-			err = boshClient.DeleteLinkConsumer(linkConsumerId)
+			err = dnsRetriever.DeleteLinkConsumer(linkConsumerId)
 			Expect(err).NotTo(HaveOccurred())
 		})
 	})
