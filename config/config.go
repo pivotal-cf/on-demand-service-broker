@@ -567,7 +567,12 @@ type ServiceInstancesAPI struct {
 }
 
 type BindingDNS struct {
-	Name          string `yaml:"name"`
-	LinkProvider  string `yaml:"link_provider"`
-	InstanceGroup string `yaml:"instance_group"`
+	Name          string               `yaml:"name"`
+	LinkProvider  string               `yaml:"link_provider"`
+	InstanceGroup string               `yaml:"instance_group"`
+	Properties    BindingDNSProperties `yaml:"properties"`
+}
+
+type BindingDNSProperties struct {
+	AZS []string `yaml:"azs"`
 }

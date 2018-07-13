@@ -78,7 +78,7 @@ type HTTP interface {
 type DNSRetriever interface {
 	LinkProviderID(deploymentName, instanceGroupName, providerName string) (string, error)
 	CreateLinkConsumer(providerID string) (string, error)
-	GetLinkAddress(consumerLinkID string) (string, error)
+	GetLinkAddress(consumerLinkID string, azs []string) (string, error)
 	DeleteLinkConsumer(consumerID string) error
 }
 

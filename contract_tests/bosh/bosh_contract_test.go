@@ -376,9 +376,14 @@ var _ = Describe("BOSH client", func() {
 			linkConsumerId, err := dnsRetriever.CreateLinkConsumer(linkProviderId)
 			Expect(err).NotTo(HaveOccurred())
 
-			linkAddress, err := dnsRetriever.GetLinkAddress(linkConsumerId)
+			linkAddress, err := dnsRetriever.GetLinkAddress(linkConsumerId, nil)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(linkAddress).To(MatchRegexp(`\.dummy\..*\.bosh$`))
+
+			linkAddressWithAZs, err := dnsRetriever.GetLinkAddress(linkConsumerId, []string{"z1", "z2"})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(linkAddressWithAZs).To(MatchRegexp(`\.dummy\..*\.bosh$`))
+			Expect(linkAddressWithAZs).NotTo(Equal(linkAddress))
 
 			err = dnsRetriever.DeleteLinkConsumer(linkConsumerId)
 			Expect(err).NotTo(HaveOccurred())

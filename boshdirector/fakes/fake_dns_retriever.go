@@ -36,10 +36,11 @@ type FakeDNSRetriever struct {
 		result1 string
 		result2 error
 	}
-	GetLinkAddressStub        func(consumerLinkID string) (string, error)
+	GetLinkAddressStub        func(consumerLinkID string, azs []string) (string, error)
 	getLinkAddressMutex       sync.RWMutex
 	getLinkAddressArgsForCall []struct {
 		consumerLinkID string
+		azs            []string
 	}
 	getLinkAddressReturns struct {
 		result1 string
@@ -168,16 +169,22 @@ func (fake *FakeDNSRetriever) CreateLinkConsumerReturnsOnCall(i int, result1 str
 	}{result1, result2}
 }
 
-func (fake *FakeDNSRetriever) GetLinkAddress(consumerLinkID string) (string, error) {
+func (fake *FakeDNSRetriever) GetLinkAddress(consumerLinkID string, azs []string) (string, error) {
+	var azsCopy []string
+	if azs != nil {
+		azsCopy = make([]string, len(azs))
+		copy(azsCopy, azs)
+	}
 	fake.getLinkAddressMutex.Lock()
 	ret, specificReturn := fake.getLinkAddressReturnsOnCall[len(fake.getLinkAddressArgsForCall)]
 	fake.getLinkAddressArgsForCall = append(fake.getLinkAddressArgsForCall, struct {
 		consumerLinkID string
-	}{consumerLinkID})
-	fake.recordInvocation("GetLinkAddress", []interface{}{consumerLinkID})
+		azs            []string
+	}{consumerLinkID, azsCopy})
+	fake.recordInvocation("GetLinkAddress", []interface{}{consumerLinkID, azsCopy})
 	fake.getLinkAddressMutex.Unlock()
 	if fake.GetLinkAddressStub != nil {
-		return fake.GetLinkAddressStub(consumerLinkID)
+		return fake.GetLinkAddressStub(consumerLinkID, azs)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -191,10 +198,10 @@ func (fake *FakeDNSRetriever) GetLinkAddressCallCount() int {
 	return len(fake.getLinkAddressArgsForCall)
 }
 
-func (fake *FakeDNSRetriever) GetLinkAddressArgsForCall(i int) string {
+func (fake *FakeDNSRetriever) GetLinkAddressArgsForCall(i int) (string, []string) {
 	fake.getLinkAddressMutex.RLock()
 	defer fake.getLinkAddressMutex.RUnlock()
-	return fake.getLinkAddressArgsForCall[i].consumerLinkID
+	return fake.getLinkAddressArgsForCall[i].consumerLinkID, fake.getLinkAddressArgsForCall[i].azs
 }
 
 func (fake *FakeDNSRetriever) GetLinkAddressReturns(result1 string, result2 error) {

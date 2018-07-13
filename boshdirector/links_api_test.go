@@ -18,6 +18,7 @@ var _ = Describe("LinksApi", func() {
 			providerID     = "78"
 			consumerID     = "3808"
 			dopplerAddress = "doppler.dns.bosh"
+			azs            = []string{"bob", "jim"}
 		)
 
 		BeforeEach(func() {
@@ -29,7 +30,16 @@ var _ = Describe("LinksApi", func() {
 		})
 
 		It("returns a map of dns addresses", func() {
-			boshDnsAddresses, err := c.GetDNSAddresses("cf", []config.BindingDNS{{Name: "config-1", LinkProvider: "linker", InstanceGroup: "doppler"}})
+			boshDnsAddresses, err := c.GetDNSAddresses("cf", []config.BindingDNS{
+				{
+					Name:          "config-1",
+					LinkProvider:  "linker",
+					InstanceGroup: "doppler",
+					Properties: config.BindingDNSProperties{
+						AZS: azs,
+					},
+				},
+			})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(fakeDNSRetriever.LinkProviderIDCallCount()).To(Equal(1))
 			Expect(fakeDNSRetriever.CreateLinkConsumerCallCount()).To(Equal(1))
@@ -42,7 +52,10 @@ var _ = Describe("LinksApi", func() {
 			Expect(linkProvider).To(Equal("linker"))
 
 			Expect(fakeDNSRetriever.CreateLinkConsumerArgsForCall(0)).To(Equal(providerID))
-			Expect(fakeDNSRetriever.GetLinkAddressArgsForCall(0)).To(Equal(consumerID))
+			actualConsumerID, actualAzs := fakeDNSRetriever.GetLinkAddressArgsForCall(0)
+			Expect(actualConsumerID).To(Equal(consumerID))
+			Expect(actualAzs).To(Equal(azs))
+
 			Expect(fakeDNSRetriever.DeleteLinkConsumerArgsForCall(0)).To(Equal(consumerID))
 
 			Expect(boshDnsAddresses).To(Equal(map[string]string{"config-1": dopplerAddress}))

@@ -3,6 +3,7 @@ package boshlinks
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pkg/errors"
@@ -18,8 +19,12 @@ func NewDNSRetriever(boshHTTP boshdirector.HTTP) boshdirector.DNSRetriever {
 	}
 }
 
-func (d *DNSRetriever) GetLinkAddress(consumerLinkID string) (string, error) {
-	response, err := d.httpClient.RawGet(fmt.Sprintf("/link_address?link_id=%s", consumerLinkID))
+func (d *DNSRetriever) GetLinkAddress(consumerLinkID string, azs []string) (string, error) {
+	path := fmt.Sprintf("/link_address?link_id=%s", consumerLinkID)
+	for _, az := range azs {
+		path += "&azs[]=" + url.PathEscape(az)
+	}
+	response, err := d.httpClient.RawGet(path)
 	if err != nil {
 		return "", errors.Wrap(err, "HTTP GET on /link_address endpoint failed: "+response)
 	}
