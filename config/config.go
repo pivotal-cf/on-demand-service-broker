@@ -574,5 +574,6 @@ type BindingDNS struct {
 }
 
 type BindingDNSProperties struct {
-	AZS []string `yaml:"azs"`
+	AZS    []string `yaml:"azs"`
+	Status string   `yaml:"status"`
 }

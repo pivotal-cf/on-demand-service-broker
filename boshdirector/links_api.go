@@ -30,7 +30,7 @@ func (c *Client) GetDNSAddresses(deploymentName string, dnsRequest []config.Bind
 			return nil, err
 		}
 
-		addr, err := c.dnsRetriever.GetLinkAddress(consumerId, req.Properties.AZS)
+		addr, err := c.dnsRetriever.GetLinkAddress(consumerId, req.Properties.AZS, req.Properties.Status)
 		if err != nil {
 			return nil, err
 		}

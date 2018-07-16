@@ -19,11 +19,20 @@ func NewDNSRetriever(boshHTTP boshdirector.HTTP) boshdirector.DNSRetriever {
 	}
 }
 
-func (d *DNSRetriever) GetLinkAddress(consumerLinkID string, azs []string) (string, error) {
+func (d *DNSRetriever) GetLinkAddress(consumerLinkID string, azs []string, status string) (string, error) {
 	path := fmt.Sprintf("/link_address?link_id=%s", consumerLinkID)
 	for _, az := range azs {
 		path += "&azs[]=" + url.PathEscape(az)
 	}
+
+	if status != "" {
+		if !d.validStatusOption(status) {
+			return "", errors.New("status must be one of the following options: <default | healthy | unhealthy | all>")
+		}
+
+		path = fmt.Sprintf("%s&status=%s", path, status)
+	}
+
 	response, err := d.httpClient.RawGet(path)
 	if err != nil {
 		return "", errors.Wrap(err, "HTTP GET on /link_address endpoint failed: "+response)
@@ -105,4 +114,14 @@ func (d *DNSRetriever) CreateLinkConsumer(providerID string) (string, error) {
 func (d *DNSRetriever) DeleteLinkConsumer(consumerID string) error {
 	response, err := d.httpClient.RawDelete(fmt.Sprintf("/links/%s", consumerID))
 	return errors.Wrap(err, fmt.Sprintf("HTTP DELETE on /links/:id endpoint failed: %s", response))
+}
+
+func (d *DNSRetriever) validStatusOption(status string) bool {
+	options := []string{"default", "healthy", "unhealthy", "all"}
+	for _, option := range options {
+		if option == status {
+			return true
+		}
+	}
+	return false
 }

@@ -197,18 +197,18 @@ var _ = Describe("Boshlinks", func() {
 		It("returns the address when bosh get call is successful", func() {
 			azs := []string{"europe1"}
 			consumerLinkID := "123"
-			addr, err := subject.GetLinkAddress(consumerLinkID, azs)
+			addr, err := subject.GetLinkAddress(consumerLinkID, azs, "healthy")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(addr).To(Equal("q-s0.dummy.default.dep-with-link.bosh"))
 
 			path := fakeBoshHTTP.RawGetArgsForCall(0)
-			Expect(path).To(Equal("/link_address?link_id=123&azs[]=europe1"))
+			Expect(path).To(Equal("/link_address?link_id=123&azs[]=europe1&status=healthy"))
 		})
 
 		It("correctly supports multi-azs with special characters", func() {
 			azs := []string{"europe1", "europe/2"}
 			consumerLinkID := "123"
-			_, err := subject.GetLinkAddress(consumerLinkID, azs)
+			_, err := subject.GetLinkAddress(consumerLinkID, azs, "")
 			Expect(err).NotTo(HaveOccurred())
 
 			path := fakeBoshHTTP.RawGetArgsForCall(0)
@@ -217,22 +217,38 @@ var _ = Describe("Boshlinks", func() {
 
 		It("calls the api without azs when no azs are supplied", func() {
 			consumerLinkID := "123"
-			_, err := subject.GetLinkAddress(consumerLinkID, []string{})
+			_, err := subject.GetLinkAddress(consumerLinkID, []string{}, "")
 			Expect(err).NotTo(HaveOccurred())
 
 			path := fakeBoshHTTP.RawGetArgsForCall(0)
 			Expect(path).To(Equal("/link_address?link_id=123"))
 		})
 
+		It("calls the api without status when no status is supplied", func() {
+			consumerLinkID := "123"
+			_, err := subject.GetLinkAddress(consumerLinkID, []string{}, "")
+			Expect(err).NotTo(HaveOccurred())
+
+			path := fakeBoshHTTP.RawGetArgsForCall(0)
+			Expect(path).To(Equal("/link_address?link_id=123"))
+		})
+
+		It("returns an error if status option is invalid", func() {
+			consumerLinkID := "123"
+			_, err := subject.GetLinkAddress(consumerLinkID, []string{}, "invalid-option")
+
+			Expect(err).To(MatchError(ContainSubstring("status must be one of the following options: <default | healthy | unhealthy | all>")))
+		})
+
 		It("returns an error when RawGet errors", func() {
 			fakeBoshHTTP.RawGetReturns(`{}`, errors.New("something went wrong"))
-			_, err := subject.GetLinkAddress("123", nil)
+			_, err := subject.GetLinkAddress("123", nil, "")
 			Expect(err).To(MatchError(ContainSubstring("HTTP GET on /link_address endpoint failed")))
 		})
 
 		It("returns an error when the response is not marshalable to obj", func() {
 			fakeBoshHTTP.RawGetReturns(`[]`, nil)
-			_, err := subject.GetLinkAddress("123", nil)
+			_, err := subject.GetLinkAddress("123", nil, "")
 			Expect(err).To(MatchError(ContainSubstring("cannot unmarshal link address JSON")))
 		})
 	})

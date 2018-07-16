@@ -19,6 +19,7 @@ var _ = Describe("LinksApi", func() {
 			consumerID     = "3808"
 			dopplerAddress = "doppler.dns.bosh"
 			azs            = []string{"bob", "jim"}
+			status         = "healthy"
 		)
 
 		BeforeEach(func() {
@@ -36,7 +37,8 @@ var _ = Describe("LinksApi", func() {
 					LinkProvider:  "linker",
 					InstanceGroup: "doppler",
 					Properties: config.BindingDNSProperties{
-						AZS: azs,
+						AZS:    azs,
+						Status: status,
 					},
 				},
 			})
@@ -52,9 +54,10 @@ var _ = Describe("LinksApi", func() {
 			Expect(linkProvider).To(Equal("linker"))
 
 			Expect(fakeDNSRetriever.CreateLinkConsumerArgsForCall(0)).To(Equal(providerID))
-			actualConsumerID, actualAzs := fakeDNSRetriever.GetLinkAddressArgsForCall(0)
+			actualConsumerID, actualAzs, actualStatus := fakeDNSRetriever.GetLinkAddressArgsForCall(0)
 			Expect(actualConsumerID).To(Equal(consumerID))
 			Expect(actualAzs).To(Equal(azs))
+			Expect(actualStatus).To(Equal(status))
 
 			Expect(fakeDNSRetriever.DeleteLinkConsumerArgsForCall(0)).To(Equal(consumerID))
 

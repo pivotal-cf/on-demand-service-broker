@@ -36,11 +36,12 @@ type FakeDNSRetriever struct {
 		result1 string
 		result2 error
 	}
-	GetLinkAddressStub        func(consumerLinkID string, azs []string) (string, error)
+	GetLinkAddressStub        func(consumerLinkID string, azs []string, status string) (string, error)
 	getLinkAddressMutex       sync.RWMutex
 	getLinkAddressArgsForCall []struct {
 		consumerLinkID string
 		azs            []string
+		status         string
 	}
 	getLinkAddressReturns struct {
 		result1 string
@@ -169,7 +170,7 @@ func (fake *FakeDNSRetriever) CreateLinkConsumerReturnsOnCall(i int, result1 str
 	}{result1, result2}
 }
 
-func (fake *FakeDNSRetriever) GetLinkAddress(consumerLinkID string, azs []string) (string, error) {
+func (fake *FakeDNSRetriever) GetLinkAddress(consumerLinkID string, azs []string, status string) (string, error) {
 	var azsCopy []string
 	if azs != nil {
 		azsCopy = make([]string, len(azs))
@@ -180,11 +181,12 @@ func (fake *FakeDNSRetriever) GetLinkAddress(consumerLinkID string, azs []string
 	fake.getLinkAddressArgsForCall = append(fake.getLinkAddressArgsForCall, struct {
 		consumerLinkID string
 		azs            []string
-	}{consumerLinkID, azsCopy})
-	fake.recordInvocation("GetLinkAddress", []interface{}{consumerLinkID, azsCopy})
+		status         string
+	}{consumerLinkID, azsCopy, status})
+	fake.recordInvocation("GetLinkAddress", []interface{}{consumerLinkID, azsCopy, status})
 	fake.getLinkAddressMutex.Unlock()
 	if fake.GetLinkAddressStub != nil {
-		return fake.GetLinkAddressStub(consumerLinkID, azs)
+		return fake.GetLinkAddressStub(consumerLinkID, azs, status)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -198,10 +200,10 @@ func (fake *FakeDNSRetriever) GetLinkAddressCallCount() int {
 	return len(fake.getLinkAddressArgsForCall)
 }
 
-func (fake *FakeDNSRetriever) GetLinkAddressArgsForCall(i int) (string, []string) {
+func (fake *FakeDNSRetriever) GetLinkAddressArgsForCall(i int) (string, []string, string) {
 	fake.getLinkAddressMutex.RLock()
 	defer fake.getLinkAddressMutex.RUnlock()
-	return fake.getLinkAddressArgsForCall[i].consumerLinkID, fake.getLinkAddressArgsForCall[i].azs
+	return fake.getLinkAddressArgsForCall[i].consumerLinkID, fake.getLinkAddressArgsForCall[i].azs, fake.getLinkAddressArgsForCall[i].status
 }
 
 func (fake *FakeDNSRetriever) GetLinkAddressReturns(result1 string, result2 error) {

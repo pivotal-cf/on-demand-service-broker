@@ -49,7 +49,8 @@ var _ = Describe("Binding", func() {
 				LinkProvider:  "link-provider",
 				InstanceGroup: "instance-group",
 				Properties: brokerConfig.BindingDNSProperties{
-					AZS: []string{"europe-a1", "antartica-z1"},
+					AZS:    []string{"europe-a1", "antartica-z1"},
+					Status: "healthy",
 				},
 			},
 		}
