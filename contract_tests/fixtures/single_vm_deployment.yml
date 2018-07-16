@@ -30,6 +30,11 @@ instance_groups:
   jobs:
   - name: dummy_errand
     release: dummy
+    properties:
+      some_ref: ((/some/cert.ca))
+      generated_cert: ((my-cert.certificate))
+      whole_cert: ((my-cert))
+      relative_path: ((cert))
 
 update:
   canaries: 1
@@ -41,3 +46,8 @@ update:
 variables:
 - name: a-var
   type: password
+- name: my-cert
+  type: certificate
+  options:
+    is_ca: true
+    common_name: bob.foo.bar

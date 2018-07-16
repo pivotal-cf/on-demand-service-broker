@@ -275,8 +275,11 @@ var _ = Describe("BOSH client", func() {
 
 			variables, err := boshClient.Variables(deploymentName, logger)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(variables).To(HaveLen(1))
+
+			By("Not returning the bosh variables for direct credhub references without a corresponding entry in bosh variables section")
+			Expect(variables).To(HaveLen(2))
 			Expect(variables[0].Path).To(ContainSubstring("a-var"))
+			Expect(variables[1].Path).To(MatchRegexp("my-cert$"))
 		})
 	})
 
