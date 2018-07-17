@@ -218,5 +218,8 @@ func marshalBoshManifest(rawManifest []byte) (bosh.BoshManifest, error) {
 }
 
 func ignoreUpdateBlock(manifest *bosh.BoshManifest) {
-	manifest.Update = &bosh.Update{}
+	manifest.Update = nil
+	for i := range manifest.InstanceGroups {
+		manifest.InstanceGroups[i].Update = nil
+	}
 }

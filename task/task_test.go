@@ -786,6 +786,51 @@ var _ = Describe("Deployer", func() {
 			Expect(string(manifestToDeploy)).To(Equal(string(generatedManifest)))
 		})
 
+		It("ignores the update block in an instance_group when the manifest generator generates a new manifest with a different update block", func() {
+			previousPlanID = stringPointer(existingPlanID)
+			oldManifest = []byte(`
+---
+name: a-manifest
+instance_groups:
+- name: foo
+update:
+  canaries: 5
+  max_in_flight: 1
+`)
+
+			boshClient.GetDeploymentReturns(oldManifest, true, nil)
+			generatedManifest := `
+name: a-manifest
+instance_groups:
+- name: foo
+  update:
+    canaries: 4
+    max_in_flight: 10
+`
+			requestParams = map[string]interface{}{"foo": "bar"}
+
+			manifestGenerator.GenerateManifestReturns(serviceadapter.MarshalledGenerateManifest{Manifest: string(generatedManifest)}, nil)
+			boshClient.DeployReturns(42, nil)
+
+			returnedTaskID, deployedManifest, deployError = deployer.Update(
+				deploymentName,
+				planID,
+				requestParams,
+				previousPlanID,
+				boshContextID,
+				logger,
+			)
+
+			Expect(deployError).To(BeNil())
+
+			Expect(manifestGenerator.GenerateManifestCallCount()).To(Equal(2))
+			_, _, passedRequestParams, _, _, _ := manifestGenerator.GenerateManifestArgsForCall(1)
+			Expect(passedRequestParams).To(Equal(requestParams))
+
+			manifestToDeploy, _, _, _ := boshClient.DeployArgsForCall(0)
+			Expect(string(manifestToDeploy)).To(Equal(string(generatedManifest)))
+		})
+
 		It("detects changes to the tags block in a manifest and prevents deployment", func() {
 			oldManifest = []byte(`---
 tags:
