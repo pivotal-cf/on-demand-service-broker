@@ -130,7 +130,7 @@ var _ = Describe("Boshlinks", func() {
 			providerName := "reverse_log_proxy"
 			fakeBoshHTTP.RawGetReturns(`{}`, errors.New("something went wrong"))
 			_, err := subject.LinkProviderID(deploymentName, instanceGroupName, providerName)
-			Expect(err).To(MatchError(ContainSubstring("HTTP GET on /link_providers endpoint failed")))
+			Expect(err).To(MatchError(ContainSubstring("HTTP GET on /link_providers?deployment=cf endpoint failed")))
 		})
 
 		It("returns an error when the response is invalid JSON", func() {
@@ -242,8 +242,8 @@ var _ = Describe("Boshlinks", func() {
 
 		It("returns an error when RawGet errors", func() {
 			fakeBoshHTTP.RawGetReturns(`{}`, errors.New("something went wrong"))
-			_, err := subject.GetLinkAddress("123", nil, "")
-			Expect(err).To(MatchError(ContainSubstring("HTTP GET on /link_address endpoint failed")))
+			_, err := subject.GetLinkAddress("123", nil, "healthy")
+			Expect(err).To(MatchError(ContainSubstring("HTTP GET on /link_address?link_id=123&status=healthy endpoint failed")))
 		})
 
 		It("returns an error when the response is not marshalable to obj", func() {

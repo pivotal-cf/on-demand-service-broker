@@ -35,7 +35,7 @@ func (d *DNSRetriever) GetLinkAddress(consumerLinkID string, azs []string, statu
 
 	response, err := d.httpClient.RawGet(path)
 	if err != nil {
-		return "", errors.Wrap(err, "HTTP GET on /link_address endpoint failed: "+response)
+		return "", errors.Wrap(err, fmt.Sprintf("HTTP GET on %s endpoint failed: %s", path, response))
 	}
 
 	var respObj struct {
@@ -50,9 +50,10 @@ func (d *DNSRetriever) GetLinkAddress(consumerLinkID string, azs []string, statu
 }
 
 func (d *DNSRetriever) LinkProviderID(deploymentName, instanceGroupName, providerName string) (string, error) {
-	response, err := d.httpClient.RawGet(fmt.Sprintf("/link_providers?deployment=%s", deploymentName))
+	path := fmt.Sprintf("/link_providers?deployment=%s", deploymentName)
+	response, err := d.httpClient.RawGet(path)
 	if err != nil {
-		return "", errors.Wrap(err, "HTTP GET on /link_providers endpoint failed")
+		return "", errors.Wrap(err, fmt.Sprintf("HTTP GET on %s endpoint failed: %s", path, response))
 	}
 
 	var providers []struct {
