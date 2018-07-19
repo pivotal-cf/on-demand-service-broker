@@ -15,7 +15,7 @@ import (
 )
 
 var _ = Describe("service instance with pending changes", func() {
-	var expectedErrMsg = "Service cannot be updated at this time, please try again later or contact your operator for more information"
+	var expectedErrMsg = "The service broker has been updated, and this service instance is out of date. Please contact your operator."
 
 	It("prevents a plan change", func() {
 		session := cf.Cf("update-service", serviceInstanceName, "-p", "dedicated-high-memory-vm")
