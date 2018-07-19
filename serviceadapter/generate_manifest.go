@@ -75,6 +75,7 @@ func (c *Client) GenerateManifest(serviceDeployment sdk.ServiceDeployment, plan 
 			inputParams,
 			c.ExternalBinPath, "generate-manifest",
 		)
+		// { "manifest":"...","secrets": {"key":"value","jsonObj":{"foo":"bar"}}}
 	} else {
 		stdout, stderr, exitCode, err = c.CommandRunner.Run(
 			c.ExternalBinPath, "generate-manifest",
@@ -92,12 +93,13 @@ func (c *Client) GenerateManifest(serviceDeployment sdk.ServiceDeployment, plan 
 		return sdk.MarshalledGenerateManifest{}, err
 	}
 
-	output = sdk.MarshalledGenerateManifest{Manifest: string(stdout)}
 	if c.UsingStdin {
 		jsonErr = json.Unmarshal(stdout, &output)
 		if jsonErr != nil {
 			return sdk.MarshalledGenerateManifest{}, adapterError(c.ExternalBinPath, stdout, stderr, jsonErr)
 		}
+	} else { // old adapter format
+		output = sdk.MarshalledGenerateManifest{Manifest: string(stdout)}
 	}
 
 	logger.Printf("service adapter ran generate-manifest successfully, stderr logs: %s", string(stderr))

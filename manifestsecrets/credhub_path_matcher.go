@@ -40,7 +40,8 @@ func findAbsolutePath(name string, deploymentVariables []boshdirector.Variable) 
 
 func findRelativePath(name string, deploymentVariables []boshdirector.Variable) boshdirector.Variable {
 	for _, v := range deploymentVariables {
-		if strings.HasSuffix(v.Path, fmt.Sprintf("/%s", name)) {
+		namePieces := strings.Split(name, ".")
+		if strings.HasSuffix(v.Path, fmt.Sprintf("/%s", namePieces[0])) {
 			return v
 		}
 	}

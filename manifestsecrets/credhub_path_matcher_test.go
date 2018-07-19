@@ -21,6 +21,8 @@ bar:
   yo: ((/absolute/path))
   fo: ((2isAVar))
   relative: ((relative))
+	subkey1: ((relative.subkey1))
+	subkey2: ((relative.subkey2))
 variables:
 - name: isAVar
   type: password
@@ -40,6 +42,8 @@ variables:
 				"((isAVar))":               {Path: "/baboon/cocoon/isAVar", ID: "some-id"},
 				"((/absolute/path))":       {Path: "/absolute/path", ID: "some-other-id"},
 				"((relative))":             {Path: "/baboon/cocoon/relative", ID: "relative-id"},
+				"((relative.subkey1))":     {Path: "/baboon/cocoon/relative", ID: "relative-id"},
+				"((relative.subkey2))":     {Path: "/baboon/cocoon/relative", ID: "relative-id"},
 			}
 
 			matcher := new(manifestsecrets.CredHubPathMatcher)
@@ -49,6 +53,8 @@ variables:
 				{Path: "/baboon/cocoon/isAVar", ID: "some-id"},
 				{Path: "/baboon/cocoon/relative", ID: "relative-id"},
 				{Path: "/absolute/path", ID: "some-other-id"},
+				{Path: "/baboon/cocoon/relative", ID: "relative-id"},
+				{Path: "/not/in/manifest", ID: "not-in-manifest-id"},
 			})
 
 			Expect(err).NotTo(HaveOccurred())

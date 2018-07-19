@@ -17,7 +17,9 @@ package credhub
 
 import (
 	"errors"
+	"fmt"
 	"log"
+	"strings"
 
 	"encoding/json"
 
@@ -86,6 +88,7 @@ func (c *Store) BulkGet(secretsToFetch map[string]boshdirector.Variable, logger 
 	for name, deploymentVar := range secretsToFetch {
 		var cred credentials.Credential
 		var err error
+
 		if deploymentVar.ID != "" {
 			cred, err = c.credhubClient.GetById(deploymentVar.ID)
 		} else {
@@ -95,18 +98,75 @@ func (c *Store) BulkGet(secretsToFetch map[string]boshdirector.Variable, logger 
 			logger.Printf("Could not resolve %s: %s", name, err)
 			continue
 		}
-		switch credValue := cred.Value.(type) {
-		case string:
-			ret[name] = credValue
-		default:
-			credValueJSON, err := json.Marshal(credValue)
-			if err != nil {
-				return nil, errors.New("failed to marshal secret: " + err.Error())
-			}
-			ret[name] = string(credValueJSON)
+
+		var keyValue string
+
+		namePieces := strings.Split(strings.Trim(name, "()"), ".")
+		if len(namePieces) == 2 {
+			keyValue, err = getSubKey(cred.Value, namePieces[1])
+		} else {
+			keyValue, err = getKey(cred.Value)
 		}
+
+		if err != nil {
+			logger.Println(err.Error())
+			continue
+		}
+		ret[name] = keyValue
+
 	}
 	return ret, nil
+}
+
+func getKey(requestedValue interface{}) (string, error) {
+	switch credValue := requestedValue.(type) {
+	case string:
+		return credValue, nil
+	case map[string]interface{}:
+		// this will catch structured types: certificate, user, rsa, ssh
+		credValueJSON, err := json.Marshal(credValue)
+
+		if err != nil {
+			return "", errors.New("failed to marshal secret: " + err.Error())
+		}
+		return string(credValueJSON), nil
+
+	default:
+		return "", fmt.Errorf("unexpected datatype received from credhub %T", credValue)
+	}
+}
+
+func getSubKey(credValue interface{}, subkey string) (string, error) {
+	var requestedValue string
+
+	switch credValue := credValue.(type) {
+	case map[string]interface{}:
+		var jsonPart interface{}
+		var ok bool
+		if jsonPart, ok = credValue[subkey]; !ok {
+			return "", fmt.Errorf("credential does not contain key '%s'", subkey)
+		}
+
+		if jsonStr, ok := jsonPart.(string); ok {
+			requestedValue = jsonStr
+			break
+		}
+
+		partBytes, err := json.Marshal(jsonPart)
+		if err != nil {
+			return "", err
+		}
+
+		requestedValue = string(partBytes)
+
+	case string:
+		return "", fmt.Errorf("string type credential cannot have key '%s'", subkey)
+
+	default:
+		return "", fmt.Errorf("unknown credential type")
+	}
+
+	return requestedValue, nil
 }
 
 func (c *Store) BulkSet(secretsToSet []task.ManifestSecret) error {

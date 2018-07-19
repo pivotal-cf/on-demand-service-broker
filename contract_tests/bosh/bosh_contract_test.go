@@ -272,6 +272,11 @@ var _ = Describe("BOSH client", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			Eventually(reporter.Finished).Should(Receive(), fmt.Sprintf("Timed out waiting for %s to deploy", deploymentName))
+			select {
+			case deploymentErr := <-reporter.Err:
+				Fail(fmt.Sprintf("Deployment failed: %v", deploymentErr.Error()))
+			default:
+			}
 
 			variables, err := boshClient.Variables(deploymentName, logger)
 			Expect(err).NotTo(HaveOccurred())
