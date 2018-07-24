@@ -14,6 +14,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
+	"github.com/pivotal-cf/on-demand-service-broker/credhub"
 	"github.com/pivotal-cf/on-demand-service-broker/task"
 	"github.com/pivotal-cf/on-demand-service-broker/task/fakes"
 	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
@@ -148,12 +149,15 @@ var _ = Describe("Deployer", func() {
 
 			When("Bosh credhub is not configured/enabled", func() {
 				BeforeEach(func() {
-					deployer = task.NewDeployer(boshClient, manifestGenerator, nil)
+					var b *credhub.Store
+					deployer = task.NewDeployer(boshClient, manifestGenerator, b)
 				})
 
 				It("doesn't error", func() {
 					_, _, deployError = deployer.Create(deploymentName, planID, requestParams, boshContextID, logger)
 					Expect(deployError).ToNot(HaveOccurred())
+
+					Expect(bulkSetter.BulkSetCallCount()).To(Equal(0))
 				})
 			})
 		})

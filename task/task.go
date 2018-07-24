@@ -190,7 +190,7 @@ func (d deployer) doDeploy(
 	}
 	manifest := generateManifestOutput.Manifest
 
-	if d.bulkSetter != nil {
+	if d.bulkSetter != nil && !reflect.ValueOf(d.bulkSetter).IsNil() {
 		secrets := d.manifestGenerator.GenerateSecretPaths(deploymentName, manifest, generateManifestOutput.ODBManagedSecrets)
 		if err = d.bulkSetter.BulkSet(secrets); err != nil {
 			return 0, nil, err
