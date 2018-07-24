@@ -10,7 +10,7 @@ import (
 type NoopSecretResolver struct{}
 
 func (r *NoopSecretResolver) ResolveManifestSecrets(manifest []byte, deploymentVariables []boshdirector.Variable, logger *log.Logger) (map[string]string, error) {
-	return map[string]string{}, nil
+	return nil, nil
 }
 
 type BoshCredHubSecretResolver struct {
