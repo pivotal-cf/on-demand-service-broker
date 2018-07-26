@@ -18,6 +18,7 @@ package startupchecker
 import (
 	"fmt"
 
+	"github.com/coreos/go-semver/semver"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 )
@@ -25,21 +26,24 @@ import (
 type BOSHDirectorVersionChecker struct {
 	minimumMajorStemcellDirectorVersionForODB            int
 	minimumMajorSemverDirectorVersionForLifecycleErrands int
+	minimumSemverVersionForBindingWithDNS                semver.Version
 	boshInfo                                             boshdirector.Info
-	serviceOffering                                      config.ServiceOffering
+	brokerConfig                                         config.Config
 }
 
 func NewBOSHDirectorVersionChecker(
 	minimumMajorStemcellDirectorVersionForODB int,
 	minimumMajorSemverDirectorVersionForLifecycleErrands int,
+	minimumSemverVersionForBindingWithDNS string,
 	boshInfo boshdirector.Info,
-	serviceOffering config.ServiceOffering,
+	config config.Config,
 ) *BOSHDirectorVersionChecker {
 	return &BOSHDirectorVersionChecker{
 		minimumMajorStemcellDirectorVersionForODB:            minimumMajorStemcellDirectorVersionForODB,
 		minimumMajorSemverDirectorVersionForLifecycleErrands: minimumMajorSemverDirectorVersionForLifecycleErrands,
-		boshInfo:        boshInfo,
-		serviceOffering: serviceOffering,
+		minimumSemverVersionForBindingWithDNS:                *semver.New(minimumSemverVersionForBindingWithDNS),
+		boshInfo:     boshInfo,
+		brokerConfig: config,
 	}
 }
 
@@ -53,7 +57,10 @@ func (c *BOSHDirectorVersionChecker) Check() error {
 	if !c.directorVersionSufficientForODB(directorVersion) {
 		return fmt.Errorf("%sAPI version is insufficient, ODB requires BOSH v257+.", errPrefix)
 	}
-	if c.serviceOffering.HasLifecycleErrands() && !c.directorVersionSufficientForLifecycleErrands(directorVersion) {
+	if c.brokerConfig.HasBindingWithDNSConfigured() && !c.directorVersionSufficientForBindingWithDNS(directorVersion) {
+		return fmt.Errorf("%sAPI version for 'binding_with_dns' feature is insufficient. This feature requires BOSH v266.3+ (got v%s)", errPrefix, directorVersion.Version)
+	}
+	if c.brokerConfig.ServiceCatalog.HasLifecycleErrands() && !c.directorVersionSufficientForLifecycleErrands(directorVersion) {
 		return fmt.Errorf(
 			"%sAPI version is insufficient, one or more plans are configured with lifecycle_errands which require BOSH v%d+.",
 			errPrefix,
@@ -65,11 +72,16 @@ func (c *BOSHDirectorVersionChecker) Check() error {
 }
 
 func (c *BOSHDirectorVersionChecker) directorVersionSufficientForODB(directorVersion boshdirector.Version) bool {
-	return directorVersion.VersionType == boshdirector.SemverDirectorVersionType ||
-		directorVersion.MajorVersion >= c.minimumMajorStemcellDirectorVersionForODB
+	return directorVersion.Type == boshdirector.SemverDirectorVersionType ||
+		int(directorVersion.Version.Major) >= c.minimumMajorStemcellDirectorVersionForODB
+}
+
+func (c *BOSHDirectorVersionChecker) directorVersionSufficientForBindingWithDNS(directorVersion boshdirector.Version) bool {
+	return directorVersion.Type == boshdirector.SemverDirectorVersionType &&
+		c.minimumSemverVersionForBindingWithDNS.Compare(directorVersion.Version) <= 0
 }
 
 func (c *BOSHDirectorVersionChecker) directorVersionSufficientForLifecycleErrands(directorVersion boshdirector.Version) bool {
-	return directorVersion.VersionType == boshdirector.SemverDirectorVersionType &&
-		directorVersion.MajorVersion >= c.minimumMajorSemverDirectorVersionForLifecycleErrands
+	return directorVersion.Type == boshdirector.SemverDirectorVersionType &&
+		int(directorVersion.Version.Major) >= c.minimumMajorSemverDirectorVersionForLifecycleErrands
 }

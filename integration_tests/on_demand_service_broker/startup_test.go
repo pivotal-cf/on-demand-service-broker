@@ -537,6 +537,29 @@ var _ = Describe("Startup", func() {
 			})
 		})
 
+		Context("with a sufficient semver version for binding_with_dns", func() {
+			BeforeEach(func() {
+				boshDirector.VerifyAndMock(
+					mockbosh.Info().RespondsWithVersion("266.3.0 (00000000)", boshDirector.UAAURL),
+					mockbosh.Info().RespondsWithVersion("266.3.0 (00000000)", boshDirector.UAAURL),
+				)
+				cfAPI.VerifyAndMock(
+					mockcfapi.GetInfo().RespondsWithSufficientAPIVersion(),
+					mockcfapi.ListServiceOfferings().RespondsWithNoServiceOfferings(),
+				)
+			})
+
+			Context("and binding_with_dns is configured in a plan", func() {
+				It("does not fail at start up", func() {
+					conf.ServiceCatalog.Plans[0].BindingWithDNS = []config.BindingDNS{
+						{Name: "leader", LinkProvider: "redis", InstanceGroup: "redis-server"},
+					}
+					runningBroker = startBroker(conf)
+					Consistently(runningBroker).ShouldNot(gexec.Exit())
+				})
+			})
+		})
+
 		Context("with an insufficient stemcell version for ODB", func() {
 			BeforeEach(func() {
 				boshDirector.VerifyAndMock(
@@ -621,6 +644,36 @@ var _ = Describe("Startup", func() {
 
 				Eventually(runningBroker).Should(gexec.Exit())
 				Expect(runningBroker.ExitCode()).ToNot(Equal(0))
+			})
+		})
+
+		Context("with insufficient BOSH version for 'binding_with_dns'", func() {
+			BeforeEach(func() {
+				boshDirector.VerifyAndMock(
+					mockbosh.Info().RespondsWithVersion("260.0.0 (00000000)", boshDirector.UAAURL),
+					mockbosh.Info().RespondsWithVersion("260.0.0 (00000000)", boshDirector.UAAURL),
+				)
+				cfAPI.VerifyAndMock(
+					mockcfapi.GetInfo().RespondsWithSufficientAPIVersion(),
+					mockcfapi.ListServiceOfferings().RespondsWithNoServiceOfferings(),
+				)
+			})
+
+			It("fails to start when a plan uses the feature", func() {
+				conf.ServiceCatalog.Plans[0].BindingWithDNS = []config.BindingDNS{
+					{Name: "leader", LinkProvider: "redis", InstanceGroup: "redis-server"},
+				}
+				runningBroker = startBrokerWithoutPortCheck(conf)
+
+				Eventually(runningBroker.Out).Should(gbytes.Say("BOSH Director error: API version for 'binding_with_dns' feature is insufficient. This feature requires BOSH v266.3+"))
+
+				Eventually(runningBroker).Should(gexec.Exit())
+				Expect(runningBroker.ExitCode()).ToNot(Equal(0))
+			})
+
+			It("starts successfully when no plan uses the feature", func() {
+				runningBroker = startBroker(conf)
+				Consistently(runningBroker).ShouldNot(gexec.Exit())
 			})
 		})
 	})

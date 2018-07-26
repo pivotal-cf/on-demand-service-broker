@@ -110,6 +110,52 @@ var _ = Describe("BOSH Director Version Checker", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
+	Context("binding_with_dns", func() {
+		When("a plan is configured with binding_with_dns", func() {
+			BeforeEach(func() {
+				serviceCatalog.Plans = []config.Plan{
+					{
+						Name:           "some-plan",
+						ID:             "the-big-plan",
+						InstanceGroups: []serviceadapter.InstanceGroup{},
+						BindingWithDNS: []config.BindingDNS{
+							{Name: "foo", LinkProvider: "bar", InstanceGroup: "some"},
+						},
+					},
+				}
+			})
+			It("errors when the BOSH version does not support", func() {
+				boshInfo := createBOSHInfoWithMajorVersion(
+					266,
+					boshdirector.VersionType("semver"),
+				)
+				c := createBOSHDirectorVersionChecker(boshInfo, serviceCatalog)
+				err := c.Check()
+				Expect(err).To(MatchError("BOSH Director error: API version for 'binding_with_dns' feature is insufficient. This feature requires BOSH v266.3+ (got v266.1.0)"))
+			})
+
+			It("succeed when the BOSH version supports", func() {
+				boshInfo := createBOSHInfoWithMajorVersion(
+					267,
+					boshdirector.VersionType("semver"),
+				)
+				c := createBOSHDirectorVersionChecker(boshInfo, serviceCatalog)
+				Expect(c.Check()).To(Succeed())
+			})
+		})
+
+		When("no plans are configured with binding_with_dns", func() {
+			It("should not fail", func() {
+				boshInfo := createBOSHInfoWithMajorVersion(
+					262,
+					boshdirector.VersionType("semver"),
+				)
+				c := createBOSHDirectorVersionChecker(boshInfo, serviceCatalog)
+				Expect(c.Check()).To(Succeed())
+			})
+		})
+	})
+
 	It("returns an error when the BOSH director version in unrecognised", func() {
 		boshInfo := boshdirector.Info{Version: "0000 (00000000)"}
 		c := createBOSHDirectorVersionChecker(boshInfo, serviceCatalog)
@@ -121,7 +167,7 @@ var _ = Describe("BOSH Director Version Checker", func() {
 func createBOSHInfoWithMajorVersion(majorVersion int, versionType boshdirector.VersionType) boshdirector.Info {
 	var version string
 	if versionType == "semver" {
-		version = fmt.Sprintf("%s.0.0", strconv.Itoa(majorVersion))
+		version = fmt.Sprintf("%s.1.0", strconv.Itoa(majorVersion))
 	} else if versionType == "stemcell" {
 		version = fmt.Sprintf("1.%s.0.0", strconv.Itoa(majorVersion))
 	}
@@ -132,7 +178,8 @@ func createBOSHDirectorVersionChecker(boshInfo boshdirector.Info, catalog config
 	return NewBOSHDirectorVersionChecker(
 		broker.MinimumMajorStemcellDirectorVersionForODB,
 		broker.MinimumMajorSemverDirectorVersionForLifecycleErrands,
+		broker.MinimumSemverVersionForBindingWithDNS,
 		boshInfo,
-		catalog,
+		config.Config{ServiceCatalog: catalog},
 	)
 }

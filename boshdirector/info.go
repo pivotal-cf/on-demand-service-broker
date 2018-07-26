@@ -9,10 +9,10 @@ package boshdirector
 import (
 	"fmt"
 	"log"
-	"strconv"
 	"strings"
 
 	"github.com/cloudfoundry/bosh-cli/director"
+	"github.com/coreos/go-semver/semver"
 	"github.com/pkg/errors"
 )
 
@@ -76,7 +76,10 @@ func newBoshDirectorVersion(rawVersion string) (Version, error) {
 	var versionType VersionType
 
 	switch len(versionNumbers) {
-	case semiSemverVersionLength, semverVersionLength:
+	case semiSemverVersionLength:
+		versionType = SemverDirectorVersionType
+		versionNumbers = []string{versionNumbers[0], versionNumbers[1], "0"}
+	case semverVersionLength:
 		versionType = SemverDirectorVersionType
 	case stemcellVersionLength:
 		versionType = StemcellDirectorVersionType
@@ -85,12 +88,12 @@ func newBoshDirectorVersion(rawVersion string) (Version, error) {
 		return Version{}, unrecognisedBoshDirectorVersionError(rawVersion)
 	}
 
-	majorVersion, err := strconv.Atoi(versionNumbers[0])
+	version, err := semver.NewVersion(strings.Join(versionNumbers, "."))
 	if err != nil {
 		return Version{}, unrecognisedBoshDirectorVersionError(rawVersion)
 	}
 
-	return Version{MajorVersion: majorVersion, VersionType: versionType}, nil
+	return Version{Version: *version, Type: versionType}, nil
 }
 
 func unrecognisedBoshDirectorVersionError(rawVersion string) error {

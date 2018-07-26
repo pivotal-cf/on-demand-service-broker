@@ -786,6 +786,41 @@ var _ = Describe("ServiceOffering", func() {
 			Expect(found).To(BeFalse())
 		})
 	})
+
+	Context("HasBindingWithDNSConfigured", func() {
+		var conf config.Config
+		conf.ServiceCatalog.Plans = []config.Plan{
+			{
+				ID:   "planId",
+				Name: "planName",
+				BindingWithDNS: []config.BindingDNS{
+					{
+						Name:          "foo",
+						LinkProvider:  "bar",
+						InstanceGroup: "baz",
+					},
+				},
+			},
+		}
+
+		It("returns true when 'binding_with_dns' is configured", func() {
+			isConfigured := conf.HasBindingWithDNSConfigured()
+			Expect(isConfigured).To(BeTrue(), "Expected to return true because a plan is configured with 'binding_with_dns'")
+		})
+
+		It("returns false when 'binding_with_dns' is nil", func() {
+			conf.ServiceCatalog.Plans[0].BindingWithDNS = nil
+			isConfigured := conf.HasBindingWithDNSConfigured()
+			Expect(isConfigured).To(BeFalse(), "Expected to return false because the only plan has 'binding_with_dns' configured to be nil")
+		})
+
+		It("returns false when 'binding_with_dns' is empty", func() {
+			conf.ServiceCatalog.Plans[0].BindingWithDNS = []config.BindingDNS{}
+			isConfigured := conf.HasBindingWithDNSConfigured()
+			Expect(isConfigured).To(BeFalse(), "Expected to return false because the only plan has 'binding_with_dns' configured to be empty")
+		})
+
+	})
 })
 
 var _ = Describe("CF#NewAuthHeaderBuilder", func() {

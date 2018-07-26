@@ -117,6 +117,15 @@ func (c Config) HasCredHub() bool {
 	return c.CredHub != CredHub{}
 }
 
+func (c Config) HasBindingWithDNSConfigured() bool {
+	for _, plan := range c.ServiceCatalog.Plans {
+		if len(plan.BindingWithDNS) > 0 {
+			return true
+		}
+	}
+	return false
+}
+
 func (b Broker) Validate() error {
 	if b.Port == 0 {
 		return errors.New("broker.port can't be empty")

@@ -120,8 +120,9 @@ func startBroker(conf config.Config, logger *log.Logger, loggerFactory *loggerfa
 		startupchecker.NewBOSHDirectorVersionChecker(
 			broker.MinimumMajorStemcellDirectorVersionForODB,
 			broker.MinimumMajorSemverDirectorVersionForLifecycleErrands,
+			broker.MinimumSemverVersionForBindingWithDNS,
 			boshClient.BoshInfo,
-			conf.ServiceCatalog,
+			conf,
 		),
 		startupchecker.NewBOSHAuthChecker(boshClient, logger),
 	)

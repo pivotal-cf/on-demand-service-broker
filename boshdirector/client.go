@@ -15,6 +15,7 @@ import (
 
 	"github.com/cloudfoundry/bosh-cli/director"
 	boshuaa "github.com/cloudfoundry/bosh-cli/uaa"
+	"github.com/coreos/go-semver/semver"
 )
 
 type Client struct {
@@ -202,8 +203,8 @@ const (
 type VersionType string
 
 type Version struct {
-	MajorVersion int
-	VersionType  VersionType
+	Version semver.Version
+	Type    VersionType
 }
 
 type DeploymentNotFoundError struct {
