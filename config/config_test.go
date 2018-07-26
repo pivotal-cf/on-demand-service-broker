@@ -789,19 +789,21 @@ var _ = Describe("ServiceOffering", func() {
 
 	Context("HasBindingWithDNSConfigured", func() {
 		var conf config.Config
-		conf.ServiceCatalog.Plans = []config.Plan{
-			{
-				ID:   "planId",
-				Name: "planName",
-				BindingWithDNS: []config.BindingDNS{
-					{
-						Name:          "foo",
-						LinkProvider:  "bar",
-						InstanceGroup: "baz",
+		BeforeEach(func() {
+			conf.ServiceCatalog.Plans = []config.Plan{
+				{
+					ID:   "planId",
+					Name: "planName",
+					BindingWithDNS: []config.BindingDNS{
+						{
+							Name:          "foo",
+							LinkProvider:  "bar",
+							InstanceGroup: "baz",
+						},
 					},
 				},
-			},
-		}
+			}
+		})
 
 		It("returns true when 'binding_with_dns' is configured", func() {
 			isConfigured := conf.HasBindingWithDNSConfigured()
