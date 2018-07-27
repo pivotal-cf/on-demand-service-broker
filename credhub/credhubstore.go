@@ -39,6 +39,7 @@ type Store struct {
 type CredhubClient interface {
 	GetById(id string) (credentials.Credential, error)
 	GetLatestVersion(name string) (credentials.Credential, error)
+	FindByPath(path string) (credentials.FindResults, error)
 	SetJSON(name string, value values.JSON, overwrite credhub.Mode) (credentials.JSON, error)
 	SetValue(name string, value values.Value, overwrite credhub.Mode) (credentials.Value, error)
 	AddPermissions(credName string, perms []permissions.Permission) ([]permissions.Permission, error)
@@ -77,6 +78,30 @@ func (c *Store) Set(key string, value interface{}) error {
 
 func (c *Store) AddPermissions(name string, permissions []permissions.Permission) ([]permissions.Permission, error) {
 	return c.credhubClient.AddPermissions(name, permissions)
+}
+
+func (c *Store) FindByPath(path string) ([]string, error) {
+	paths := []string{}
+	findResults, err := c.credhubClient.FindByPath(path)
+	if err != nil {
+		return nil, err
+	}
+	for _, result := range findResults.Credentials {
+		paths = append(paths, result.Name)
+	}
+	return paths, nil
+}
+
+func (c *Store) BulkDelete(keys []string, logger *log.Logger) error {
+	var bulkDeleteErr error
+	for _, key := range keys {
+		deleteErr := c.Delete(key)
+		if deleteErr != nil {
+			logger.Printf("could not delete secret '%s': %s", key, deleteErr)
+			bulkDeleteErr = errors.New("could not delete all secrets")
+		}
+	}
+	return bulkDeleteErr
 }
 
 func (c *Store) Delete(key string) error {

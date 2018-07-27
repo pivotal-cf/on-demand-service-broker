@@ -329,4 +329,90 @@ var _ = Describe("CredStore", func() {
 			Expect(err).To(MatchError("too busy, sorry"))
 		})
 	})
+
+	Describe("FindByPath", func() {
+		It("finds all paths beneath a base path when base path does not end with slash", func() {
+			p := "/some/path"
+			findResults := credentials.FindResults{
+				Credentials: []credentials.Base{
+					{
+						Name:             "/some/path/secret",
+						VersionCreatedAt: "many moons ago",
+					},
+					{
+						Name:             "/some/path/another_secret",
+						VersionCreatedAt: "back in my day",
+					},
+				},
+			}
+			expectedPaths := []string{
+				"/some/path/secret",
+				"/some/path/another_secret",
+			}
+
+			fakeCredhubClient.FindByPathReturns(findResults, nil)
+			paths, err := store.FindByPath(p)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(fakeCredhubClient.FindByPathCallCount()).To(Equal(1))
+			actualName := fakeCredhubClient.FindByPathArgsForCall(0)
+			Expect(actualName).To(Equal(p))
+			Expect(paths).To(Equal(expectedPaths))
+		})
+
+		It("errors when the underlying call fails", func() {
+			p := "/some/path"
+			fakeCredhubClient.FindByPathReturns(credentials.FindResults{}, errors.New("foo"))
+			_, err := store.FindByPath(p)
+			Expect(err).To(MatchError("foo"))
+		})
+	})
+
+	Describe("BulkDelete", func() {
+		var (
+			logBuffer *gbytes.Buffer
+			logger    *log.Logger
+		)
+
+		BeforeEach(func() {
+			logBuffer = gbytes.NewBuffer()
+			logger = log.New(io.Writer(logBuffer), "my-app", log.LstdFlags)
+		})
+
+		It("deletes each secret in secretsToDelete", func() {
+			secretsToDelete := []string{"/some/path/secret", "/some/path/another_secret"}
+			fakeCredhubClient.DeleteReturns(nil)
+
+			err := store.BulkDelete(secretsToDelete, logger)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(fakeCredhubClient.DeleteCallCount()).To(Equal(2))
+			Expect(fakeCredhubClient.DeleteArgsForCall(0)).To(Equal("/some/path/secret"))
+			Expect(fakeCredhubClient.DeleteArgsForCall(1)).To(Equal("/some/path/another_secret"))
+		})
+
+		It("logs an error if a call to delete fails", func() {
+			secretsToDelete := []string{"/some/path/secret", "/some/path/another_secret"}
+			fakeCredhubClient.DeleteReturnsOnCall(0, nil)
+			fakeCredhubClient.DeleteReturnsOnCall(1, errors.New("delete error"))
+
+			err := store.BulkDelete(secretsToDelete, logger)
+
+			Expect(err).To(MatchError("could not delete all secrets"))
+			Expect(logBuffer).To(gbytes.Say("could not delete secret '/some/path/another_secret': delete error"))
+		})
+
+		It("continues deletion even if one fails", func() {
+			secretsToDelete := []string{"/some/path/secret", "/some/path/another_secret", "/some/path/yet_another_secret"}
+			fakeCredhubClient.DeleteReturnsOnCall(0, nil)
+			fakeCredhubClient.DeleteReturnsOnCall(1, errors.New("delete error"))
+			fakeCredhubClient.DeleteReturnsOnCall(2, nil)
+
+			err := store.BulkDelete(secretsToDelete, logger)
+
+			Expect(err).To(MatchError("could not delete all secrets"))
+			Expect(fakeCredhubClient.DeleteCallCount()).To(Equal(3))
+			Expect(fakeCredhubClient.DeleteArgsForCall(2)).To(Equal("/some/path/yet_another_secret"))
+			Expect(logBuffer).ToNot(gbytes.Say("could not delete secret '/some/path/yet_another_secret'"))
+		})
+	})
 })
