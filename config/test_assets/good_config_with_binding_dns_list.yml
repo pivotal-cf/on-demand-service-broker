@@ -14,7 +14,7 @@ broker:
   expose_operational_errors: true
   startup_banner: false
   shutdown_timeout_in_seconds: 10
-  resolve_manifest_secrets_at_bind: true
+  enable_secure_manifests: true
 bosh:
   url: some-url
   root_ca_cert: some-cert

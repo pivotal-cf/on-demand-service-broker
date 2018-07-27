@@ -129,7 +129,7 @@ func startBroker(conf config.Config, logger *log.Logger, loggerFactory *loggerfa
 
 	var boshCredhubStore *credhub.Store
 	matcher := new(manifestsecrets.CredHubPathMatcher)
-	if conf.Broker.ResolveManifestSecretsAtBind {
+	if conf.Broker.EnableSecureManifests {
 		boshCredhubStore, err = credhub.Build(
 			conf.BoshCredhub.URL,
 			credhubclient.Auth(auth.UaaClientCredentials(
@@ -151,7 +151,7 @@ func startBroker(conf config.Config, logger *log.Logger, loggerFactory *loggerfa
 	)
 	deploymentManager := task.NewDeployer(boshClient, manifestGenerator, boshCredhubStore)
 
-	manifestSecretResolver := manifestsecrets.BuildResolver(conf.Broker.ResolveManifestSecretsAtBind, matcher, boshCredhubStore)
+	manifestSecretResolver := manifestsecrets.BuildResolver(conf.Broker.EnableSecureManifests, matcher, boshCredhubStore)
 
 	var onDemandBroker apiserver.CombinedBroker
 	onDemandBroker, err = broker.New(

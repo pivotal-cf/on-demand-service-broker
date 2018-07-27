@@ -92,7 +92,7 @@ func (b *Broker) Bind(
 
 	binding, createBindingErr := b.adapterClient.CreateBinding(bindingID, vms, manifest, mappedParams, secretsMap, dnsAddresses, logger)
 	if createBindingErr != nil {
-		if !b.EnableResolveSecretsAtBind {
+		if !b.EnableSecureManifests {
 			logger.Printf("broker.resolve_secrets_at_bind was: false ")
 		}
 		logger.Printf("creating binding: %v\n", createBindingErr)

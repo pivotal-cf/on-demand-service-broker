@@ -532,7 +532,7 @@ var _ = Describe("Bind", func() {
 		It("logs errors and the status of the feature flag if the adapter is called but it returns an error", func() {
 			fakeAdapter := new(brokerfakes.FakeServiceAdapterClient)
 			fakeAdapter.CreateBindingReturns(sdk.Binding{}, errors.New("secrets needed"))
-			brokerConfig.ResolveManifestSecretsAtBind = false
+			brokerConfig.EnableSecureManifests = false
 
 			b = createBrokerWithAdapter(fakeAdapter)
 
@@ -551,7 +551,7 @@ var _ = Describe("Bind", func() {
 		It("logs errors if the adapter is called but it returns an error", func() {
 			fakeAdapter := new(brokerfakes.FakeServiceAdapterClient)
 			fakeAdapter.CreateBindingReturns(sdk.Binding{}, errors.New("secrets needed"))
-			brokerConfig.ResolveManifestSecretsAtBind = true
+			brokerConfig.EnableSecureManifests = true
 
 			b = createBrokerWithAdapter(fakeAdapter)
 

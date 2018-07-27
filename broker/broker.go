@@ -31,10 +31,10 @@ type Broker struct {
 	secretResolver ManifestSecretResolver
 	deploymentLock *sync.Mutex
 
-	serviceOffering            config.ServiceOffering
-	ExposeOperationalErrors    bool
-	EnablePlanSchemas          bool
-	EnableResolveSecretsAtBind bool
+	serviceOffering         config.ServiceOffering
+	ExposeOperationalErrors bool
+	EnablePlanSchemas       bool
+	EnableSecureManifests   bool
 
 	loggerFactory *loggerfactory.LoggerFactory
 }
@@ -57,11 +57,11 @@ func New(
 		deployer:       deployer,
 		deploymentLock: &sync.Mutex{},
 
-		serviceOffering:            serviceOffering,
-		ExposeOperationalErrors:    brokerConfig.ExposeOperationalErrors,
-		EnablePlanSchemas:          brokerConfig.EnablePlanSchemas,
-		EnableResolveSecretsAtBind: brokerConfig.ResolveManifestSecretsAtBind,
-		secretResolver:             manifestSecretResolver,
+		serviceOffering:         serviceOffering,
+		ExposeOperationalErrors: brokerConfig.ExposeOperationalErrors,
+		EnablePlanSchemas:       brokerConfig.EnablePlanSchemas,
+		EnableSecureManifests:   brokerConfig.EnableSecureManifests,
+		secretResolver:          manifestSecretResolver,
 
 		loggerFactory: loggerFactory,
 	}

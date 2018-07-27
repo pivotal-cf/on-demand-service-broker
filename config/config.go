@@ -32,17 +32,17 @@ type Config struct {
 }
 
 type Broker struct {
-	Port                         int
-	Username                     string
-	Password                     string
-	DisableSSLCertVerification   bool `yaml:"disable_ssl_cert_verification"`
-	StartUpBanner                bool `yaml:"startup_banner"`
-	ShutdownTimeoutSecs          int  `yaml:"shutdown_timeout_in_seconds"`
-	DisableCFStartupChecks       bool `yaml:"disable_cf_startup_checks"`
-	ExposeOperationalErrors      bool `yaml:"expose_operational_errors"`
-	EnablePlanSchemas            bool `yaml:"enable_plan_schemas"`
-	UsingStdin                   bool `yaml:"use_stdin"`
-	ResolveManifestSecretsAtBind bool `yaml:"resolve_manifest_secrets_at_bind"`
+	Port                       int
+	Username                   string
+	Password                   string
+	DisableSSLCertVerification bool `yaml:"disable_ssl_cert_verification"`
+	StartUpBanner              bool `yaml:"startup_banner"`
+	ShutdownTimeoutSecs        int  `yaml:"shutdown_timeout_in_seconds"`
+	DisableCFStartupChecks     bool `yaml:"disable_cf_startup_checks"`
+	ExposeOperationalErrors    bool `yaml:"expose_operational_errors"`
+	EnablePlanSchemas          bool `yaml:"enable_plan_schemas"`
+	UsingStdin                 bool `yaml:"use_stdin"`
+	EnableSecureManifests      bool `yaml:"enable_secure_manifests"`
 }
 
 type BoshCredhub struct {
