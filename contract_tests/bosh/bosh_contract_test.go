@@ -31,7 +31,6 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/boshlinks"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
-	"gopkg.in/yaml.v2"
 )
 
 var _ = Describe("BOSH client", func() {
@@ -61,6 +60,117 @@ var _ = Describe("BOSH client", func() {
 		Expect(task.ContextID).To(Equal(expectedContextID))
 	}
 
+	Describe("deployment operations", func() {
+		It("can control the entire lifecycle of a deployment", func() {
+			reporter := boshdirector.NewAsyncTaskReporter()
+			manifest := getManifest("single_vm_deployment.yml", deploymentName)
+			var (
+				task         boshdirector.BoshTask
+				taskID       int
+				errandTaskID int
+			)
+
+			By("deploying the manifest", func() {
+				var err error
+				taskID, err = boshClient.Deploy(manifest, "some-context-id", logger, reporter)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(taskID).To(BeNumerically(">=", 1))
+				verifyContextID("some-context-id", taskID)
+				Eventually(reporter.Finished).Should(Receive(), fmt.Sprintf("Timed out waiting for %s to deploy", deploymentName))
+				Expect(reporter.State).ToNot(Equal("error"), fmt.Sprintf("Deployment of %s failed", deploymentName))
+			})
+
+			By("checking all the deployed vms", func() {
+				deployments, getDeploymentErr := boshClient.GetDeployments(logger)
+				Expect(getDeploymentErr).NotTo(HaveOccurred())
+				Expect(deployments).To(ContainElement(boshdirector.Deployment{Name: deploymentName}))
+			})
+
+			By("checking that the deployment is there", func() {
+				returnedManifest, found, getDeploymentErr := boshClient.GetDeployment(deploymentName, logger)
+				Expect(found).To(BeTrue())
+				Expect(getDeploymentErr).NotTo(HaveOccurred())
+				Expect(returnedManifest).To(MatchYAML(manifest))
+			})
+
+			By("verifying a single task", func() {
+				var err error
+				task, err = boshClient.GetTask(taskID, logger)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(task.ID).To(Equal(taskID))
+			})
+
+			By("verifying all tasks", func() {
+				tasks, err := boshClient.GetTasks(deploymentName, logger)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(tasks).To(ContainElement(task))
+			})
+
+			By("pulling VM information", func() {
+				vms, err := boshClient.VMs(deploymentName, logger)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(vms["dummy"]).NotTo(BeEmpty())
+			})
+
+			By("pulling the bosh variables", func() {
+				variables, err := boshClient.Variables(deploymentName, logger)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(variables).To(HaveLen(2))
+				Expect(variables[0].Path).To(ContainSubstring("a-var"))
+				Expect(variables[1].Path).To(MatchRegexp("my-cert$"))
+			})
+
+			By("running an errand", func() {
+				var err error
+				errandReporter := boshdirector.NewAsyncTaskReporter()
+				errandTaskID, err = boshClient.RunErrand(deploymentName, "dummy_errand", nil, "some-context-id", logger, errandReporter)
+				Expect(err).NotTo(HaveOccurred())
+				Eventually(errandReporter.Finished).Should(Receive(), "timed out waiting for errand")
+				verifyContextID("some-context-id", errandTaskID)
+			})
+
+			By("getting the task output", func() {
+				output, err := boshClient.GetTaskOutput(errandTaskID, logger)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(output.StdOut).To(Equal("running dummy errand\n"))
+			})
+
+			By("deleting the deployment", func() {
+				deleteDeploymentReporter := boshdirector.NewAsyncTaskReporter()
+				deleteTaskID, err := boshClient.DeleteDeployment(deploymentName, "some-context-id", logger, deleteDeploymentReporter)
+				Expect(deleteTaskID).To(BeNumerically(">=", 1))
+				Expect(err).NotTo(HaveOccurred())
+				verifyContextID("some-context-id", deleteTaskID)
+				Eventually(deleteDeploymentReporter.Finished).Should(Receive(), fmt.Sprintf("Timed out waiting for deployment %s to be deleted", deploymentName))
+
+				By("verifying the deployment was deleted")
+				deployments, getDeploymentErr := boshClient.GetDeployments(logger)
+				Expect(getDeploymentErr).NotTo(HaveOccurred())
+				Expect(deployments).NotTo(ContainElement(boshdirector.Deployment{Name: deploymentName}))
+			})
+		})
+	})
+
+	Describe("when a deployment doesn't exist", func() {
+		When("DeleteDeployment is called", func() {
+			It("returns 0 for task ID and no error", func() {
+				reporter := boshdirector.NewAsyncTaskReporter()
+				taskID, err := boshClient.DeleteDeployment("something-that-does-not-exist", "", logger, reporter)
+				Expect(taskID).To(Equal(0))
+				Expect(err).NotTo(HaveOccurred())
+
+				Eventually(reporter.Finished).Should(Receive())
+			})
+		})
+		When("GetDeployment is called", func() {
+			It("returns false and no error", func() {
+				_, found, getDeploymentErr := boshClient.GetDeployment("sad-face", logger)
+				Expect(found).To(BeFalse())
+				Expect(getDeploymentErr).NotTo(HaveOccurred())
+			})
+		})
+	})
+
 	Describe("GetInfo()", func() {
 		It("talks to the director", func() {
 			info, err := boshClient.GetInfo(logger)
@@ -83,153 +193,6 @@ var _ = Describe("BOSH client", func() {
 		})
 	})
 
-	Describe("DeleteDeployment()", func() {
-		It("deletes the deployment and returns a taskID", func() {
-			reporter := boshdirector.NewAsyncTaskReporter()
-			_, err := boshClient.Deploy(getManifest("successful_deploy.yml", deploymentName), "", logger, reporter)
-			Expect(err).NotTo(HaveOccurred())
-			Eventually(reporter.Finished).Should(Receive(), fmt.Sprintf("Timed out waiting for %s to deploy", deploymentName))
-
-			reporter = boshdirector.NewAsyncTaskReporter()
-			taskID, err := boshClient.DeleteDeployment(deploymentName, "some-context-id", logger, reporter)
-			Expect(taskID).To(BeNumerically(">=", 1))
-			Expect(err).NotTo(HaveOccurred())
-			verifyContextID("some-context-id", taskID)
-			Eventually(reporter.Finished).Should(Receive(), fmt.Sprintf("Timed out waiting for deployment %s to be deleted", deploymentName))
-		})
-
-		It("returns 0 for task ID and no error when a deployment does not exist", func() {
-			reporter := boshdirector.NewAsyncTaskReporter()
-			taskID, err := boshClient.DeleteDeployment("something-that-does-not-exist", "", logger, reporter)
-			Expect(taskID).To(Equal(0))
-			Expect(err).NotTo(HaveOccurred())
-
-			Eventually(reporter.Finished).Should(Receive())
-		})
-	})
-
-	Describe("Deploy()", func() {
-		It("succeeds", func() {
-			reporter := boshdirector.NewAsyncTaskReporter()
-
-			taskID, err := boshClient.Deploy(getManifest("successful_deploy.yml", deploymentName), "some-context-id", logger, reporter)
-
-			Expect(err).NotTo(HaveOccurred())
-			Expect(taskID).To(BeNumerically(">=", 1))
-
-			verifyContextID("some-context-id", taskID)
-			Eventually(reporter.Finished).Should(Receive(), fmt.Sprintf("Timed out waiting for %s to deploy", deploymentName))
-		})
-	})
-
-	Describe("GetDeployment()", func() {
-		It("succeeds and return the manifest when deployment is found", func() {
-			manifest := getManifest("successful_deploy.yml", deploymentName)
-			reporter := boshdirector.NewAsyncTaskReporter()
-
-			_, err := boshClient.Deploy(manifest, "", logger, reporter)
-			Expect(err).NotTo(HaveOccurred())
-			Eventually(reporter.Finished).Should(Receive(), fmt.Sprintf("Timed out waiting for %s to deploy", deploymentName))
-
-			returnedManifest, found, getDeploymentErr := boshClient.GetDeployment(deploymentName, logger)
-
-			type testManifest struct {
-				Name     string
-				Releases []string
-				Update   struct {
-					Canaries        int
-					CanaryWatchTime string `yaml:"canary_watch_time"`
-					UpdateWatchTime string `yaml:"update_watch_time"`
-					MaxInFlight     int    `yaml:"max_in_flight"`
-				}
-				StemCells []struct {
-					Alias string
-					OS    string
-				}
-			}
-
-			var marshalledManifest testManifest
-			var marshalledReturnedManifest testManifest
-			err = yaml.Unmarshal(manifest, &marshalledManifest)
-			Expect(err).NotTo(HaveOccurred())
-			err = yaml.Unmarshal(returnedManifest, &marshalledReturnedManifest)
-			Expect(err).NotTo(HaveOccurred())
-
-			Expect(marshalledManifest).To(Equal(marshalledReturnedManifest))
-			Expect(found).To(BeTrue())
-			Expect(getDeploymentErr).NotTo(HaveOccurred())
-		})
-
-		It("does not fail when deployment is not found", func() {
-			_, found, getDeploymentErr := boshClient.GetDeployment("sad-face", logger)
-
-			Expect(found).To(BeFalse())
-			Expect(getDeploymentErr).NotTo(HaveOccurred())
-		})
-	})
-
-	Describe("GetDeployments()", func() {
-		It("succeeds", func() {
-			deployments, err := boshClient.GetDeployments(logger)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(deployments).To(ContainElement(boshdirector.Deployment{Name: "cf"}))
-		})
-	})
-
-	Describe("GetTask()", func() {
-		var taskID int
-		var err error
-
-		BeforeEach(func() {
-			reporter := boshdirector.NewAsyncTaskReporter()
-			taskID, err = boshClient.Deploy(getManifest("successful_deploy.yml", deploymentName), "", logger, reporter)
-			Expect(err).NotTo(HaveOccurred())
-
-			Eventually(reporter.Finished).Should(Receive(), fmt.Sprintf("Timed out waiting for %s to deploy", deploymentName))
-		})
-
-		It("succeeds", func() {
-			task, err := boshClient.GetTask(taskID, logger)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(task.ID).To(Equal(taskID))
-		})
-	})
-
-	Describe("GetTasks()", func() {
-		var taskID int
-		var err error
-
-		BeforeEach(func() {
-			reporter := boshdirector.NewAsyncTaskReporter()
-			taskID, err = boshClient.Deploy(getManifest("successful_deploy.yml", deploymentName), "", logger, reporter)
-			Expect(err).NotTo(HaveOccurred())
-
-			Eventually(reporter.Finished).Should(Receive(), fmt.Sprintf("Timed out waiting for %s to deploy", deploymentName))
-		})
-
-		It("succeeds", func() {
-			tasks, err := boshClient.GetTasks(deploymentName, logger)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(tasks[0].ID).To(Equal(taskID))
-		})
-	})
-
-	Describe("VMs()", func() {
-		BeforeEach(func() {
-			reporter := boshdirector.NewAsyncTaskReporter()
-			_, err := boshClient.Deploy(getManifest("single_vm_deployment.yml", deploymentName), "", logger, reporter)
-			Expect(err).NotTo(HaveOccurred())
-
-			Eventually(reporter.Finished).Should(Receive(), fmt.Sprintf("Timed out waiting for %s to deploy", deploymentName))
-		})
-
-		It("succeeds", func() {
-			vms, err := boshClient.VMs(deploymentName, logger)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(vms["dummy"]).NotTo(BeEmpty())
-		})
-	})
-
 	Describe("VerifyAuth()", func() {
 		It("validates the credentials", func() {
 			By("succeeding when the creds are correct")
@@ -240,51 +203,6 @@ var _ = Describe("BOSH client", func() {
 			wrongBoshClient := NewBOSHClientWithBadCredentials()
 			err = wrongBoshClient.VerifyAuth(logger)
 			Expect(err).To(MatchError(ContainSubstring("Bad credentials")))
-		})
-	})
-
-	Describe("RunErrand() and GetTaskOutput()", func() {
-		It("succeeds", func() {
-			reporter := boshdirector.NewAsyncTaskReporter()
-			_, err := boshClient.Deploy(getManifest("single_vm_deployment.yml", deploymentName), "", logger, reporter)
-			Expect(err).NotTo(HaveOccurred())
-			Eventually(reporter.Finished).Should(Receive(), fmt.Sprintf("Timed out waiting for %s to deploy", deploymentName))
-
-			By("running the errand")
-			reporter = boshdirector.NewAsyncTaskReporter()
-			taskId, err := boshClient.RunErrand(deploymentName, "dummy_errand", nil, "some-context-id", logger, reporter)
-			Expect(err).NotTo(HaveOccurred())
-
-			By("executing with the correct context id")
-			verifyContextID("some-context-id", taskId)
-
-			By("Getting the task output")
-			output, err := boshClient.GetTaskOutput(taskId, logger)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(output.StdOut).To(Equal("running dummy errand\n"))
-		})
-	})
-
-	Describe("Variables()", func() {
-		It("returns the variables for the deployment", func() {
-			reporter := boshdirector.NewAsyncTaskReporter()
-			_, err := boshClient.Deploy(getManifest("single_vm_deployment.yml", deploymentName), "some-context-id", logger, reporter)
-			Expect(err).NotTo(HaveOccurred())
-
-			Eventually(reporter.Finished).Should(Receive(), fmt.Sprintf("Timed out waiting for %s to deploy", deploymentName))
-			select {
-			case deploymentErr := <-reporter.Err:
-				Fail(fmt.Sprintf("Deployment failed: %v", deploymentErr.Error()))
-			default:
-			}
-
-			variables, err := boshClient.Variables(deploymentName, logger)
-			Expect(err).NotTo(HaveOccurred())
-
-			By("Not returning the bosh variables for direct credhub references without a corresponding entry in bosh variables section")
-			Expect(variables).To(HaveLen(2))
-			Expect(variables[0].Path).To(ContainSubstring("a-var"))
-			Expect(variables[1].Path).To(MatchRegexp("my-cert$"))
 		})
 	})
 
