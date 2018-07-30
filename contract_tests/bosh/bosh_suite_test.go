@@ -53,6 +53,11 @@ var (
 	boshAuthConfig config.Authentication
 )
 
+var _ = BeforeSuite(func() {
+	c = NewBOSHClient()
+	uploadDummyRelease(c)
+})
+
 func NewBOSHClient() *boshdirector.Client {
 	certPEM := []byte(envMustHave("BOSH_CA_CERT"))
 	var err error
@@ -133,4 +138,18 @@ func NewBOSHClientWithBadCredentials() *boshdirector.Client {
 	Expect(err).NotTo(HaveOccurred())
 	c.PollingInterval = 0
 	return c
+}
+
+func uploadDummyRelease(c *boshdirector.Client) {
+	taskReporter := boshdirector.NewAsyncTaskReporter()
+	d, err := c.Director(taskReporter)
+	Expect(err).ToNot(HaveOccurred())
+	err = d.UploadReleaseURL(
+		envMustHave("DUMMY_RELEASE_URL"),
+		envMustHave("DUMMY_RELEASE_SHA"),
+		true,
+		false,
+	)
+	Expect(err).ToNot(HaveOccurred())
+	Eventually(taskReporter.Finished).Should(Receive(), "Timed out uploading dummy-release")
 }

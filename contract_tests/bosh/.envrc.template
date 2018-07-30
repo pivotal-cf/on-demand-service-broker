@@ -4,5 +4,7 @@ export BOSH_USERNAME=
 export BOSH_PASSWORD=
 export BOSH_CA_CERT=
 export BOSH_URL=
+export DUMMY_RELEASE_URL=
+export DUMMY_RELEASE_SHA=
 
 source_up

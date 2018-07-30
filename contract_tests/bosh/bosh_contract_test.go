@@ -364,6 +364,7 @@ var _ = Describe("BOSH client", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			Eventually(reporter.Finished).Should(Receive(), fmt.Sprintf("Timed out waiting for %s to deploy", deploymentName))
+			Expect(reporter.State).ToNot(Equal("error"), "Failed to deploy dummy deployment")
 
 			dnsRetriever = boshlinks.NewDNSRetriever(boshdirector.NewBoshHTTP(boshClient))
 		})
