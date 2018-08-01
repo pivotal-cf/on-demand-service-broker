@@ -151,7 +151,7 @@ func startBroker(conf config.Config, logger *log.Logger, loggerFactory *loggerfa
 	)
 	deploymentManager := task.NewDeployer(boshClient, manifestGenerator, boshCredhubStore)
 
-	manifestSecretResolver := manifestsecrets.BuildResolver(conf.Broker.EnableSecureManifests, matcher, boshCredhubStore)
+	manifestSecretManager := manifestsecrets.BuildManager(conf.Broker.EnableSecureManifests, matcher, boshCredhubStore)
 
 	var onDemandBroker apiserver.CombinedBroker
 	onDemandBroker, err = broker.New(
@@ -162,7 +162,7 @@ func startBroker(conf config.Config, logger *log.Logger, loggerFactory *loggerfa
 		startupChecks,
 		serviceAdapter,
 		deploymentManager,
-		manifestSecretResolver,
+		manifestSecretManager,
 		loggerFactory,
 	)
 	if err != nil {

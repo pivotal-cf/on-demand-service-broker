@@ -12,8 +12,8 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 )
 
-//go:generate counterfeiter -o fakes/fake_manifest_secrets_resolver.go . ManifestSecretResolver
+//go:generate counterfeiter -o fakes/fake_manifest_secrets_manager.go . ManifestSecretManager
 
-type ManifestSecretResolver interface {
+type ManifestSecretManager interface {
 	ResolveManifestSecrets(manifest []byte, deploymentVariables []boshdirector.Variable, logger *log.Logger) (map[string]string, error)
 }

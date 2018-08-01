@@ -9,7 +9,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 )
 
-type FakeManifestSecretResolver struct {
+type FakeManifestSecretManager struct {
 	ResolveManifestSecretsStub        func(manifest []byte, deploymentVariables []boshdirector.Variable, logger *log.Logger) (map[string]string, error)
 	resolveManifestSecretsMutex       sync.RWMutex
 	resolveManifestSecretsArgsForCall []struct {
@@ -29,7 +29,7 @@ type FakeManifestSecretResolver struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeManifestSecretResolver) ResolveManifestSecrets(manifest []byte, deploymentVariables []boshdirector.Variable, logger *log.Logger) (map[string]string, error) {
+func (fake *FakeManifestSecretManager) ResolveManifestSecrets(manifest []byte, deploymentVariables []boshdirector.Variable, logger *log.Logger) (map[string]string, error) {
 	var manifestCopy []byte
 	if manifest != nil {
 		manifestCopy = make([]byte, len(manifest))
@@ -58,19 +58,19 @@ func (fake *FakeManifestSecretResolver) ResolveManifestSecrets(manifest []byte, 
 	return fake.resolveManifestSecretsReturns.result1, fake.resolveManifestSecretsReturns.result2
 }
 
-func (fake *FakeManifestSecretResolver) ResolveManifestSecretsCallCount() int {
+func (fake *FakeManifestSecretManager) ResolveManifestSecretsCallCount() int {
 	fake.resolveManifestSecretsMutex.RLock()
 	defer fake.resolveManifestSecretsMutex.RUnlock()
 	return len(fake.resolveManifestSecretsArgsForCall)
 }
 
-func (fake *FakeManifestSecretResolver) ResolveManifestSecretsArgsForCall(i int) ([]byte, []boshdirector.Variable, *log.Logger) {
+func (fake *FakeManifestSecretManager) ResolveManifestSecretsArgsForCall(i int) ([]byte, []boshdirector.Variable, *log.Logger) {
 	fake.resolveManifestSecretsMutex.RLock()
 	defer fake.resolveManifestSecretsMutex.RUnlock()
 	return fake.resolveManifestSecretsArgsForCall[i].manifest, fake.resolveManifestSecretsArgsForCall[i].deploymentVariables, fake.resolveManifestSecretsArgsForCall[i].logger
 }
 
-func (fake *FakeManifestSecretResolver) ResolveManifestSecretsReturns(result1 map[string]string, result2 error) {
+func (fake *FakeManifestSecretManager) ResolveManifestSecretsReturns(result1 map[string]string, result2 error) {
 	fake.ResolveManifestSecretsStub = nil
 	fake.resolveManifestSecretsReturns = struct {
 		result1 map[string]string
@@ -78,7 +78,7 @@ func (fake *FakeManifestSecretResolver) ResolveManifestSecretsReturns(result1 ma
 	}{result1, result2}
 }
 
-func (fake *FakeManifestSecretResolver) ResolveManifestSecretsReturnsOnCall(i int, result1 map[string]string, result2 error) {
+func (fake *FakeManifestSecretManager) ResolveManifestSecretsReturnsOnCall(i int, result1 map[string]string, result2 error) {
 	fake.ResolveManifestSecretsStub = nil
 	if fake.resolveManifestSecretsReturnsOnCall == nil {
 		fake.resolveManifestSecretsReturnsOnCall = make(map[int]struct {
@@ -92,7 +92,7 @@ func (fake *FakeManifestSecretResolver) ResolveManifestSecretsReturnsOnCall(i in
 	}{result1, result2}
 }
 
-func (fake *FakeManifestSecretResolver) Invocations() map[string][][]interface{} {
+func (fake *FakeManifestSecretManager) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.resolveManifestSecretsMutex.RLock()
@@ -104,7 +104,7 @@ func (fake *FakeManifestSecretResolver) Invocations() map[string][][]interface{}
 	return copiedInvocations
 }
 
-func (fake *FakeManifestSecretResolver) recordInvocation(key string, args []interface{}) {
+func (fake *FakeManifestSecretManager) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
@@ -116,4 +116,4 @@ func (fake *FakeManifestSecretResolver) recordInvocation(key string, args []inte
 	fake.invocations[key] = append(fake.invocations[key], args)
 }
 
-var _ broker.ManifestSecretResolver = new(FakeManifestSecretResolver)
+var _ broker.ManifestSecretManager = new(FakeManifestSecretManager)

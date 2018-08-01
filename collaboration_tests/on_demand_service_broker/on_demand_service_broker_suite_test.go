@@ -69,7 +69,7 @@ var (
 	fakeDeployer        *fakes.FakeDeployer
 	loggerBuffer        *gbytes.Buffer
 	shouldSendSigterm   bool
-	secretResolver      broker.ManifestSecretResolver
+	secretManager       broker.ManifestSecretManager
 
 	credhubResolver *manifestsecretsfakes.FakeBulkGetter
 )
@@ -83,7 +83,7 @@ var _ = BeforeEach(func() {
 
 	credhubPathMatcher := new(manifestsecrets.CredHubPathMatcher)
 	credhubResolver = new(manifestsecretsfakes.FakeBulkGetter)
-	secretResolver = manifestsecrets.BuildResolver(true, credhubPathMatcher, credhubResolver)
+	secretManager = manifestsecrets.BuildManager(true, credhubPathMatcher, credhubResolver)
 })
 
 var _ = AfterEach(func() {
@@ -112,7 +112,7 @@ func StartServerWithStopHandler(conf config.Config, stopServerChan chan os.Signa
 		nil,
 		fakeServiceAdapter,
 		fakeDeployer,
-		secretResolver,
+		secretManager,
 		loggerFactory,
 	)
 	Expect(err).NotTo(HaveOccurred())

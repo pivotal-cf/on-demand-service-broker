@@ -16,13 +16,13 @@ var _ = Describe("ManifestSecrets", func() {
 	Context("resolver construction", func() {
 		When("resolve secrets is enabled", func() {
 			It("returns a credhub resolver", func() {
-				Expect(manifestsecrets.BuildResolver(true, nil, nil)).To(BeAssignableToTypeOf(new(manifestsecrets.BoshCredHubSecretResolver)))
+				Expect(manifestsecrets.BuildManager(true, nil, nil)).To(BeAssignableToTypeOf(new(manifestsecrets.BoshCredHubSecretManager)))
 			})
 		})
 
 		When("resolve secrets is not enabled", func() {
 			It("returns a noop resolver", func() {
-				Expect(manifestsecrets.BuildResolver(false, nil, nil)).To(BeAssignableToTypeOf(new(manifestsecrets.NoopSecretResolver)))
+				Expect(manifestsecrets.BuildManager(false, nil, nil)).To(BeAssignableToTypeOf(new(manifestsecrets.NoopSecretManager)))
 			})
 		})
 	})
@@ -32,13 +32,13 @@ var _ = Describe("ManifestSecrets", func() {
 			var (
 				fakeMatcher    *fakes.FakeMatcher
 				fakeBulkGetter *fakes.FakeBulkGetter
-				resolver       broker.ManifestSecretResolver
+				resolver       broker.ManifestSecretManager
 			)
 
 			BeforeEach(func() {
 				fakeMatcher = new(fakes.FakeMatcher)
 				fakeBulkGetter = new(fakes.FakeBulkGetter)
-				resolver = manifestsecrets.BuildResolver(true, fakeMatcher, fakeBulkGetter)
+				resolver = manifestsecrets.BuildManager(true, fakeMatcher, fakeBulkGetter)
 			})
 
 			It("calls the dependent components as expected", func() {

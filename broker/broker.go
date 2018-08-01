@@ -28,7 +28,7 @@ type Broker struct {
 	cfClient       CloudFoundryClient
 	adapterClient  ServiceAdapterClient
 	deployer       Deployer
-	secretResolver ManifestSecretResolver
+	secretManager  ManifestSecretManager
 	deploymentLock *sync.Mutex
 
 	serviceOffering         config.ServiceOffering
@@ -47,23 +47,21 @@ func New(
 	startupCheckers []StartupChecker,
 	serviceAdapter ServiceAdapterClient,
 	deployer Deployer,
-	manifestSecretResolver ManifestSecretResolver,
+	manifestSecretManager ManifestSecretManager,
 	loggerFactory *loggerfactory.LoggerFactory,
 ) (*Broker, error) {
 	b := &Broker{
-		boshClient:     boshClient,
-		cfClient:       cfClient,
-		adapterClient:  serviceAdapter,
-		deployer:       deployer,
-		deploymentLock: &sync.Mutex{},
-
+		boshClient:              boshClient,
+		cfClient:                cfClient,
+		adapterClient:           serviceAdapter,
+		deployer:                deployer,
+		deploymentLock:          &sync.Mutex{},
 		serviceOffering:         serviceOffering,
 		ExposeOperationalErrors: brokerConfig.ExposeOperationalErrors,
 		EnablePlanSchemas:       brokerConfig.EnablePlanSchemas,
 		EnableSecureManifests:   brokerConfig.EnableSecureManifests,
-		secretResolver:          manifestSecretResolver,
-
-		loggerFactory: loggerFactory,
+		secretManager:           manifestSecretManager,
+		loggerFactory:           loggerFactory,
 	}
 
 	var startupCheckErrMessages []string
