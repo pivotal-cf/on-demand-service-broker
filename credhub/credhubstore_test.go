@@ -330,40 +330,28 @@ var _ = Describe("CredStore", func() {
 		})
 	})
 
-	Describe("FindByPath", func() {
-		It("finds all paths beneath a base path when base path does not end with slash", func() {
-			p := "/some/path"
-			findResults := credentials.FindResults{
+	Describe("FindNameLike", func() {
+		It("can find all secrets containing a portion of a path in their path", func() {
+			fakeCredhubClient.FindByPartialNameReturns(credentials.FindResults{
 				Credentials: []credentials.Base{
-					{
-						Name:             "/some/path/secret",
-						VersionCreatedAt: "many moons ago",
-					},
-					{
-						Name:             "/some/path/another_secret",
-						VersionCreatedAt: "back in my day",
-					},
+					{Name: "/tofu/path"},
+					{Name: "/not-real-cheese/tofu/other/path"},
 				},
-			}
-			expectedPaths := []string{
-				"/some/path/secret",
-				"/some/path/another_secret",
-			}
+			}, nil)
 
-			fakeCredhubClient.FindByPathReturns(findResults, nil)
-			paths, err := store.FindByPath(p)
+			actualPaths, err := store.FindNameLike("tofu", nil)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(fakeCredhubClient.FindByPathCallCount()).To(Equal(1))
-			actualName := fakeCredhubClient.FindByPathArgsForCall(0)
-			Expect(actualName).To(Equal(p))
-			Expect(paths).To(Equal(expectedPaths))
+			Expect(actualPaths).To(ConsistOf([]string{
+				"/tofu/path",
+				"/not-real-cheese/tofu/other/path",
+			}))
 		})
 
-		It("errors when the underlying call fails", func() {
-			p := "/some/path"
-			fakeCredhubClient.FindByPathReturns(credentials.FindResults{}, errors.New("foo"))
-			_, err := store.FindByPath(p)
-			Expect(err).To(MatchError("foo"))
+		It("returns an error when there is an error with the credhub client", func() {
+			fakeCredhubClient.FindByPartialNameReturns(credentials.FindResults{}, errors.New("couldn't do it"))
+
+			_, err := store.FindNameLike("tofu", nil)
+			Expect(err).To(MatchError("couldn't do it"))
 		})
 	})
 
@@ -378,7 +366,7 @@ var _ = Describe("CredStore", func() {
 			logger = log.New(io.Writer(logBuffer), "my-app", log.LstdFlags)
 		})
 
-		It("deletes each secret in secretsToDelete", func() {
+		It("deletes all the secrets for the path provided", func() {
 			secretsToDelete := []string{"/some/path/secret", "/some/path/another_secret"}
 			fakeCredhubClient.DeleteReturns(nil)
 
@@ -392,27 +380,12 @@ var _ = Describe("CredStore", func() {
 
 		It("logs an error if a call to delete fails", func() {
 			secretsToDelete := []string{"/some/path/secret", "/some/path/another_secret"}
-			fakeCredhubClient.DeleteReturnsOnCall(0, nil)
-			fakeCredhubClient.DeleteReturnsOnCall(1, errors.New("delete error"))
+			fakeCredhubClient.DeleteReturns(errors.New("too difficult to delete"))
 
 			err := store.BulkDelete(secretsToDelete, logger)
 
-			Expect(err).To(MatchError("could not delete all secrets"))
-			Expect(logBuffer).To(gbytes.Say("could not delete secret '/some/path/another_secret': delete error"))
-		})
-
-		It("continues deletion even if one fails", func() {
-			secretsToDelete := []string{"/some/path/secret", "/some/path/another_secret", "/some/path/yet_another_secret"}
-			fakeCredhubClient.DeleteReturnsOnCall(0, nil)
-			fakeCredhubClient.DeleteReturnsOnCall(1, errors.New("delete error"))
-			fakeCredhubClient.DeleteReturnsOnCall(2, nil)
-
-			err := store.BulkDelete(secretsToDelete, logger)
-
-			Expect(err).To(MatchError("could not delete all secrets"))
-			Expect(fakeCredhubClient.DeleteCallCount()).To(Equal(3))
-			Expect(fakeCredhubClient.DeleteArgsForCall(2)).To(Equal("/some/path/yet_another_secret"))
-			Expect(logBuffer).ToNot(gbytes.Say("could not delete secret '/some/path/yet_another_secret'"))
+			Expect(err).To(MatchError("too difficult to delete"))
+			Expect(logBuffer).To(gbytes.Say("could not delete secret '/some/path/secret': too difficult to delete"))
 		})
 	})
 })

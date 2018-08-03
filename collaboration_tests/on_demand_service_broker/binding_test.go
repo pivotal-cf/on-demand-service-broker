@@ -183,7 +183,7 @@ var _ = Describe("Binding", func() {
 					expectedSecrets := map[string]string{
 						credhubPath: credhubSecret,
 					}
-					credhubResolver.BulkGetReturns(expectedSecrets, nil)
+					fakeCredhubOperator.BulkGetReturns(expectedSecrets, nil)
 					fakeBoshClient.GetDeploymentReturns(boshManifest, true, nil)
 
 					// fake bosh credhub to respond to path /path/to/something with foobar
@@ -204,7 +204,7 @@ variables:
 					expectedSecrets := map[string]string{
 						"supersecret": "some-secret-value",
 					}
-					credhubResolver.BulkGetReturns(expectedSecrets, nil)
+					fakeCredhubOperator.BulkGetReturns(expectedSecrets, nil)
 					fakeBoshClient.GetDeploymentReturns(boshManifest, true, nil)
 
 					doBindRequest(instanceID, bindingID, bindDetails)

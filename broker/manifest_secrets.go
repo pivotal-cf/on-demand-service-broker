@@ -16,4 +16,5 @@ import (
 
 type ManifestSecretManager interface {
 	ResolveManifestSecrets(manifest []byte, deploymentVariables []boshdirector.Variable, logger *log.Logger) (map[string]string, error)
+	DeleteSecretsForInstance(instanceID string, logger *log.Logger) error
 }

@@ -336,6 +336,10 @@ var _ = Describe("LastOperation", func() {
 				})
 
 				It(fmt.Sprintf("logs the deployment, type: %s, state: %s", testCase.ActualOperationType, testCase.ActualBoshTask.State), testLogMessage(testCase))
+
+				It("does not delete secrets", func() {
+					Expect(secretManager.DeleteSecretsForInstanceCallCount()).To(Equal(0), "delete secrets should not be called")
+				})
 			}
 		}
 
@@ -611,15 +615,81 @@ var _ = Describe("LastOperation", func() {
 				}),
 			)
 
-			Describe("last operation is Successful",
-				testLastOperation(testCase{
-					ActualBoshTask:      boshdirector.BoshTask{State: boshdirector.TaskDone, Description: "it's a task" + "-" + instanceID, ID: taskID},
-					ActualOperationType: broker.OperationTypeDelete,
+			Describe("last operation is Successful", func() {
+				It("cleans up secrets and returns success", func() {
+					operationData, err := json.Marshal(broker.OperationData{
+						OperationType: broker.OperationTypeDelete,
+						BoshTaskID:    taskID,
+					})
+					Expect(err).NotTo(HaveOccurred())
 
-					ExpectedLastOperationState:       brokerapi.Succeeded,
-					ExpectedLastOperationDescription: "Instance deletion completed",
-				}),
-			)
+					boshClient.GetTaskReturns(boshdirector.BoshTask{
+						State:       boshdirector.TaskDone,
+						Description: "it's a task" + "-" + instanceID,
+						ID:          taskID,
+					}, nil)
+					b = createDefaultBroker()
+
+					actualLastOperation, actualLastOperationError := b.LastOperation(context.Background(), instanceID, string(operationData))
+
+					Expect(actualLastOperationError).NotTo(HaveOccurred())
+					Expect(actualLastOperation.State).To(Equal(brokerapi.Succeeded))
+					Expect(actualLastOperation.Description).To(Equal("Instance deletion completed"))
+
+					Expect(boshClient.GetTaskCallCount()).To(Equal(1))
+					actualTaskID, _ := boshClient.GetTaskArgsForCall(0)
+					Expect(actualTaskID).To(Equal(taskID))
+
+					By("deleting secrets")
+					Expect(secretManager.DeleteSecretsForInstanceCallCount()).To(Equal(1), "expected to call secret manager")
+
+					actualInstanceID, _ := secretManager.DeleteSecretsForInstanceArgsForCall(0)
+					Expect(instanceID).To(Equal(actualInstanceID))
+
+					By("logging the deployment, type: delete, state: done")
+					expectedLogMessage := fmt.Sprintf(
+						"BOSH task ID %d status: %s %s deployment for instance %s: Description: %s",
+						taskID,
+						boshdirector.TaskDone,
+						broker.OperationTypeDelete,
+						instanceID,
+						"it's a task"+"-"+instanceID,
+					)
+					Expect(logBuffer.String()).To(ContainSubstring(expectedLogMessage))
+
+				})
+
+				It("fails when deleting a secret fails", func() {
+					operationData, err := json.Marshal(broker.OperationData{
+						OperationType: broker.OperationTypeDelete,
+						BoshTaskID:    taskID,
+					})
+					Expect(err).NotTo(HaveOccurred())
+
+					boshClient.GetTaskReturns(boshdirector.BoshTask{
+						State:       boshdirector.TaskDone,
+						Description: "it's a task" + "-" + instanceID,
+						ID:          taskID,
+					}, nil)
+
+					secretManager.DeleteSecretsForInstanceReturns(errors.New("failed to delete secrets"))
+
+					b = createDefaultBroker()
+
+					_, actualLastOperationError := b.LastOperation(context.Background(), instanceID, string(operationData))
+
+					Expect(actualLastOperationError).To(MatchError(SatisfyAll(
+						ContainSubstring("There was a problem completing your request. Please contact your operations team providing the following information:"),
+						MatchRegexp(`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`),
+						ContainSubstring("service: a-cool-redis-service"),
+						ContainSubstring(fmt.Sprintf("service-instance-guid: %s", instanceID)),
+						ContainSubstring("operation: delete"),
+						Not(ContainSubstring(fmt.Sprintf("task-id"))),
+					)))
+
+					Expect(logBuffer.String()).To(ContainSubstring("failed to delete secrets"))
+				})
+			})
 		})
 
 		Describe("while updating", func() {

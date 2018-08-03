@@ -67,13 +67,24 @@ func (b *Broker) LastOperation(ctx context.Context, instanceID, operationDataRaw
 
 	lifeCycleRunner := NewLifeCycleRunner(b.boshClient, b.serviceOffering.Plans)
 
-	// if the errand isn't already running, GetTask will start it!
+	// if the errand isn't already running, or delete deployment wasn't triggered, GetTask will start it!
 	lastBoshTask, err := lifeCycleRunner.GetTask(deploymentName(instanceID), operationData, logger)
 	if err != nil {
 		return brokerapi.LastOperation{}, b.processError(
 			NewGenericError(ctx, fmt.Errorf("error retrieving tasks from bosh, for deployment '%s': %s", deploymentName(instanceID), err)),
 			logger,
 		)
+	}
+
+	if operationData.OperationType == OperationTypeDelete && lastBoshTask.StateType() == boshdirector.TaskComplete {
+		if err = b.secretManager.DeleteSecretsForInstance(instanceID, logger); err != nil {
+			ctx = brokercontext.WithBoshTaskID(ctx, 0)
+
+			return brokerapi.LastOperation{}, b.processError(
+				NewGenericError(ctx, fmt.Errorf("could not delete secrets from credhub for deployment '%s': %s", deploymentName(instanceID), err)),
+				logger,
+			)
+		}
 	}
 
 	ctx = brokercontext.WithBoshTaskID(ctx, lastBoshTask.ID)

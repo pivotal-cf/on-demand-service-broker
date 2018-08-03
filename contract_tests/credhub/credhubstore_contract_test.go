@@ -27,6 +27,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
+	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	odbcredhub "github.com/pivotal-cf/on-demand-service-broker/credhub"
 	"github.com/pivotal-cf/on-demand-service-broker/task"
@@ -321,4 +322,75 @@ var _ = Describe("Credential store", func() {
 			Expect(logBuffer).To(gbytes.Say("Could not resolve blah"))
 		})
 	})
+
+	Describe("FindNameLike", func() {
+		var (
+			randomGuid string
+			paths      []string
+		)
+
+		BeforeEach(func() {
+			randomGuid = uuid.New()[:7]
+			paths = []string{
+				"/odb/path/" + randomGuid + "/instance/secret",
+				"/pizza/" + randomGuid + "/pie",
+			}
+
+			for p := range paths {
+				_, err := credhubClient.SetValue(paths[p], values.Value("someValue"), "overwrite")
+				Expect(err).NotTo(HaveOccurred())
+			}
+		})
+
+		AfterEach(func() {
+			for p := range paths {
+				err := credhubClient.Delete(paths[p])
+				Expect(err).NotTo(HaveOccurred())
+			}
+		})
+
+		It("can find all secrets containing a portion of a path in their path", func() {
+			actualPaths, err := subject.FindNameLike(randomGuid, nil)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(len(actualPaths)).To(Equal(2))
+			Expect(actualPaths).To(ConsistOf(paths))
+		})
+	})
+
+	Describe("BulkDelete", func() {
+		var (
+			randomGuid string
+			paths      []string
+		)
+
+		BeforeEach(func() {
+			randomGuid = uuid.New()[:7]
+			paths = []string{
+				"/odb/path/" + randomGuid + "/instance/secret",
+				"/pizza/" + randomGuid + "/pie",
+			}
+
+			for p := range paths {
+				_, err := credhubClient.SetValue(paths[p], values.Value("someValue"), "overwrite")
+				Expect(err).NotTo(HaveOccurred())
+			}
+		})
+
+		AfterEach(func() {
+			for p := range paths {
+				credhubClient.Delete(paths[p])
+			}
+		})
+
+		It("can delete all secrets", func() {
+			err := subject.BulkDelete(paths, nil)
+			Expect(err).NotTo(HaveOccurred())
+
+			for p := range paths {
+				_, err := credhubClient.GetLatestValue(paths[p])
+				Expect(err).To(MatchError(ContainSubstring("credential does not exist")))
+			}
+		})
+	})
+
 })

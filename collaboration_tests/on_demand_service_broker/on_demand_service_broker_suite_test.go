@@ -71,7 +71,7 @@ var (
 	shouldSendSigterm   bool
 	secretManager       broker.ManifestSecretManager
 
-	credhubResolver *manifestsecretsfakes.FakeBulkGetter
+	fakeCredhubOperator *manifestsecretsfakes.FakeCredhubOperator
 )
 
 var _ = BeforeEach(func() {
@@ -82,8 +82,8 @@ var _ = BeforeEach(func() {
 	fakeDeployer = new(fakes.FakeDeployer)
 
 	credhubPathMatcher := new(manifestsecrets.CredHubPathMatcher)
-	credhubResolver = new(manifestsecretsfakes.FakeBulkGetter)
-	secretManager = manifestsecrets.BuildManager(true, credhubPathMatcher, credhubResolver)
+	fakeCredhubOperator = new(manifestsecretsfakes.FakeCredhubOperator)
+	secretManager = manifestsecrets.BuildManager(true, credhubPathMatcher, fakeCredhubOperator)
 })
 
 var _ = AfterEach(func() {

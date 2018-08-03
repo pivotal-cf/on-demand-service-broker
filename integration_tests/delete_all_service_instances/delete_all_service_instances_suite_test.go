@@ -17,7 +17,7 @@ import (
 	"github.com/onsi/gomega/gexec"
 )
 
-func TestOrphanDeployments(t *testing.T) {
+func TestDeleteAllServiceInstances(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Delete All Service Instances Suite")
 }

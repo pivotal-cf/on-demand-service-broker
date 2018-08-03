@@ -108,12 +108,16 @@ var _ = Describe("Last Operation", func() {
 			Entry("upgrade is in progress", broker.OperationTypeUpgrade, "upgrade", "Instance upgrade in progress"),
 		)
 
-		DescribeTable("depending on the task state, responds with 200 when", func(taskState, responseState, description string) {
+		DescribeTable("depending on the task state, responds with 200 when", func(taskState, responseState, description string, operation ...broker.OperationType) {
+			op := broker.OperationTypeCreate
+			if len(operation) == 1 {
+				op = operation[0]
+			}
 			fakeBoshClient.GetTaskReturns(boshdirector.BoshTask{ID: boshTaskID, State: taskState}, nil)
 
 			operationData := broker.OperationData{
 				BoshTaskID:    boshTaskID,
-				OperationType: broker.OperationTypeCreate,
+				OperationType: op,
 				BoshContextID: "",
 				PlanID:        dedicatedPlanID,
 				PostDeployErrand: broker.PostDeployErrand{
@@ -147,12 +151,18 @@ var _ = Describe("Last Operation", func() {
 
 			By("logging the appropriate message")
 			Eventually(loggerBuffer).Should(gbytes.Say(
-				fmt.Sprintf(`BOSH task ID %d status: %s create deployment for instance %s`,
+				fmt.Sprintf(`BOSH task ID %d status: %s %s deployment for instance %s`,
 					boshTaskID,
 					taskState,
+					op,
 					instanceID,
 				),
 			))
+
+			if op == broker.OperationTypeDelete {
+				Expect(fakeCredhubOperator.FindNameLikeCallCount()).To(Equal(1), "expected FindNameLike to have been called")
+				Expect(fakeCredhubOperator.BulkDeleteCallCount()).To(Equal(1), "expected BulkDelete to have been called")
+			}
 		},
 			Entry("a task is processing", boshdirector.TaskProcessing, string(brokerapi.InProgress), "Instance provisioning in progress"),
 			Entry("a task is done", boshdirector.TaskDone, string(brokerapi.Succeeded), "Instance provisioning completed"),
@@ -161,6 +171,7 @@ var _ = Describe("Last Operation", func() {
 			Entry("a task is cancelled", boshdirector.TaskCancelled, string(brokerapi.Failed), ""),
 			Entry("a task has errored", boshdirector.TaskError, string(brokerapi.Failed), ""),
 			Entry("a task has an unrecognised state", "other-state", string(brokerapi.Failed), ""),
+			Entry("a delete task completed successfully", boshdirector.TaskDone, string(brokerapi.Succeeded), "Instance deletion completed", broker.OperationTypeDelete),
 		)
 
 		It("responds with 500 if BOSH fails to get the task", func() {
@@ -422,7 +433,6 @@ var _ = Describe("Last Operation", func() {
 		const (
 			operationType = broker.OperationTypeDelete
 			contextID     = "some-context-id"
-			errandName    = "pre-delete-errand"
 		)
 
 		BeforeEach(func() {
@@ -536,7 +546,35 @@ var _ = Describe("Last Operation", func() {
 			))
 		})
 
-		It("runs all errands and delete the deployment", func() {
+		It("returns 500 when the errands and delete task finish successfully but deleting Credhub secrets fails", func() {
+			fakeBoshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{doneTask, doneErrandTask}, nil)
+
+			operationData.BoshTaskID = doneErrandTask.ID
+
+			fakeCredhubOperator.FindNameLikeReturns(nil, errors.New("hear me out: nope"))
+
+			response, bodyContent := doLastOperationRequest(instanceID, operationData)
+
+			By("returning the correct HTTP status code")
+			Expect(response.StatusCode).To(Equal(http.StatusInternalServerError), "request status")
+
+			By("returning the correct response description")
+			var parsedResponse map[string]interface{}
+			Expect(json.Unmarshal(bodyContent, &parsedResponse)).To(Succeed())
+
+			Expect(parsedResponse["description"]).To(SatisfyAll(
+				ContainSubstring("There was a problem completing your request. Please contact your operations team providing the following information:"),
+				MatchRegexp(`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`),
+				ContainSubstring(fmt.Sprintf("service: %s", serviceName)),
+				ContainSubstring(fmt.Sprintf("service-instance-guid: %s", instanceID)),
+				ContainSubstring("operation: delete"),
+			))
+
+			By("logging the appropriate message")
+			Eventually(loggerBuffer).Should(gbytes.Say("hear me out: nope"))
+		})
+
+		It("runs all errands, deletes the deployment and deletes the secrets in Credhub", func() {
 			operationData.Errands = []brokerConfig.Errand{{Name: "foo"}, {Name: "bar"}}
 			By("running the first errand")
 			inProgressJSON := `
@@ -620,10 +658,17 @@ var _ = Describe("Last Operation", func() {
 				),
 			))
 
+			Expect(fakeCredhubOperator.FindNameLikeCallCount()).To(Equal(0), "unexpected call to FindNameLike in credhub operator")
+			Expect(fakeCredhubOperator.BulkDeleteCallCount()).To(Equal(0), "unexpected call to BulkDelete in credhub operator")
+
 			By("checking the deletion is complete")
 			fakeBoshClient.GetNormalisedTasksByContextReturnsOnCall(3, boshdirector.BoshTasks{doneTask, secondErrand, firstErrand}, nil)
 
 			response, bodyContent = doLastOperationRequest(instanceID, operationData)
+
+			By("deleting the secrets from Credhub")
+			Expect(fakeCredhubOperator.FindNameLikeCallCount()).To(Equal(1), "expected to call FindNameLike in credhub operator")
+			Expect(fakeCredhubOperator.BulkDeleteCallCount()).To(Equal(1), "expected to call BulkDelete in credhub operator")
 
 			By("returning the correct HTTP status code")
 			Expect(response.StatusCode).To(Equal(http.StatusOK))

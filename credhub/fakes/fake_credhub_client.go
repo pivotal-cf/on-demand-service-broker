@@ -38,16 +38,16 @@ type FakeCredhubClient struct {
 		result1 credentials.Credential
 		result2 error
 	}
-	FindByPathStub        func(path string) (credentials.FindResults, error)
-	findByPathMutex       sync.RWMutex
-	findByPathArgsForCall []struct {
-		path string
+	FindByPartialNameStub        func(partialName string) (credentials.FindResults, error)
+	findByPartialNameMutex       sync.RWMutex
+	findByPartialNameArgsForCall []struct {
+		partialName string
 	}
-	findByPathReturns struct {
+	findByPartialNameReturns struct {
 		result1 credentials.FindResults
 		result2 error
 	}
-	findByPathReturnsOnCall map[int]struct {
+	findByPartialNameReturnsOnCall map[int]struct {
 		result1 credentials.FindResults
 		result2 error
 	}
@@ -212,52 +212,52 @@ func (fake *FakeCredhubClient) GetLatestVersionReturnsOnCall(i int, result1 cred
 	}{result1, result2}
 }
 
-func (fake *FakeCredhubClient) FindByPath(path string) (credentials.FindResults, error) {
-	fake.findByPathMutex.Lock()
-	ret, specificReturn := fake.findByPathReturnsOnCall[len(fake.findByPathArgsForCall)]
-	fake.findByPathArgsForCall = append(fake.findByPathArgsForCall, struct {
-		path string
-	}{path})
-	fake.recordInvocation("FindByPath", []interface{}{path})
-	fake.findByPathMutex.Unlock()
-	if fake.FindByPathStub != nil {
-		return fake.FindByPathStub(path)
+func (fake *FakeCredhubClient) FindByPartialName(partialName string) (credentials.FindResults, error) {
+	fake.findByPartialNameMutex.Lock()
+	ret, specificReturn := fake.findByPartialNameReturnsOnCall[len(fake.findByPartialNameArgsForCall)]
+	fake.findByPartialNameArgsForCall = append(fake.findByPartialNameArgsForCall, struct {
+		partialName string
+	}{partialName})
+	fake.recordInvocation("FindByPartialName", []interface{}{partialName})
+	fake.findByPartialNameMutex.Unlock()
+	if fake.FindByPartialNameStub != nil {
+		return fake.FindByPartialNameStub(partialName)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.findByPathReturns.result1, fake.findByPathReturns.result2
+	return fake.findByPartialNameReturns.result1, fake.findByPartialNameReturns.result2
 }
 
-func (fake *FakeCredhubClient) FindByPathCallCount() int {
-	fake.findByPathMutex.RLock()
-	defer fake.findByPathMutex.RUnlock()
-	return len(fake.findByPathArgsForCall)
+func (fake *FakeCredhubClient) FindByPartialNameCallCount() int {
+	fake.findByPartialNameMutex.RLock()
+	defer fake.findByPartialNameMutex.RUnlock()
+	return len(fake.findByPartialNameArgsForCall)
 }
 
-func (fake *FakeCredhubClient) FindByPathArgsForCall(i int) string {
-	fake.findByPathMutex.RLock()
-	defer fake.findByPathMutex.RUnlock()
-	return fake.findByPathArgsForCall[i].path
+func (fake *FakeCredhubClient) FindByPartialNameArgsForCall(i int) string {
+	fake.findByPartialNameMutex.RLock()
+	defer fake.findByPartialNameMutex.RUnlock()
+	return fake.findByPartialNameArgsForCall[i].partialName
 }
 
-func (fake *FakeCredhubClient) FindByPathReturns(result1 credentials.FindResults, result2 error) {
-	fake.FindByPathStub = nil
-	fake.findByPathReturns = struct {
+func (fake *FakeCredhubClient) FindByPartialNameReturns(result1 credentials.FindResults, result2 error) {
+	fake.FindByPartialNameStub = nil
+	fake.findByPartialNameReturns = struct {
 		result1 credentials.FindResults
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeCredhubClient) FindByPathReturnsOnCall(i int, result1 credentials.FindResults, result2 error) {
-	fake.FindByPathStub = nil
-	if fake.findByPathReturnsOnCall == nil {
-		fake.findByPathReturnsOnCall = make(map[int]struct {
+func (fake *FakeCredhubClient) FindByPartialNameReturnsOnCall(i int, result1 credentials.FindResults, result2 error) {
+	fake.FindByPartialNameStub = nil
+	if fake.findByPartialNameReturnsOnCall == nil {
+		fake.findByPartialNameReturnsOnCall = make(map[int]struct {
 			result1 credentials.FindResults
 			result2 error
 		})
 	}
-	fake.findByPathReturnsOnCall[i] = struct {
+	fake.findByPartialNameReturnsOnCall[i] = struct {
 		result1 credentials.FindResults
 		result2 error
 	}{result1, result2}
@@ -481,8 +481,8 @@ func (fake *FakeCredhubClient) Invocations() map[string][][]interface{} {
 	defer fake.getByIdMutex.RUnlock()
 	fake.getLatestVersionMutex.RLock()
 	defer fake.getLatestVersionMutex.RUnlock()
-	fake.findByPathMutex.RLock()
-	defer fake.findByPathMutex.RUnlock()
+	fake.findByPartialNameMutex.RLock()
+	defer fake.findByPartialNameMutex.RUnlock()
 	fake.setJSONMutex.RLock()
 	defer fake.setJSONMutex.RUnlock()
 	fake.setValueMutex.RLock()
