@@ -50,6 +50,8 @@ var _ = Describe("deleting all service instances", func() {
 		Eventually(cf.Cf("bind-service", testAppName, serviceInstance1), cf.CfTimeout).Should(gexec.Exit(0))
 		Eventually(cf.Cf("create-service-key", serviceInstance1, serviceKeyName), cf.CfTimeout).Should(gexec.Exit(0))
 
+		relogInToCredhub()
+
 		serviceInstanceGuid1 := cf.GetServiceInstanceGUID(serviceInstance1)
 		verifyCredhubKeysExist(serviceInstanceGuid1)
 
@@ -61,10 +63,19 @@ var _ = Describe("deleting all service instances", func() {
 		cf.AwaitServiceDeletion(serviceInstance2)
 
 		By("removing all credhub references relating to instances that existed when the errand was invoked")
+		relogInToCredhub()
 		verifyCredhubKeysEmpty(serviceInstanceGuid1)
 		verifyCredhubKeysEmpty(serviceInstanceGuid2)
 	})
 })
+
+func relogInToCredhub() {
+	command := exec.Command("credhub", "login", "--client-name", credhubClient, "--client-secret", credhubSecret)
+	session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
+	Expect(err).NotTo(HaveOccurred())
+
+	Eventually(session, time.Second*6).Should(gexec.Exit(0))
+}
 
 func verifyCredhubKeysExist(guid string) {
 	creds := verifyCredhubKeysForInstance(guid)

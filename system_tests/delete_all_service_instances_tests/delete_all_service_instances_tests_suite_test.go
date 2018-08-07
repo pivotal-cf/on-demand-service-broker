@@ -24,6 +24,8 @@ var (
 	brokerURL                string
 	brokerBoshDeploymentName string
 	exampleAppPath           string
+	credhubClient            string
+	credhubSecret            string
 	boshClient               *bosh_helpers.BoshHelperClient
 )
 
@@ -41,6 +43,8 @@ var _ = BeforeSuite(func() {
 	boshCACert := os.Getenv("BOSH_CA_CERT_FILE")
 	disableTLSVerification := boshCACert == ""
 	exampleAppPath = envMustHave("EXAMPLE_APP_PATH")
+	credhubClient = envMustHave("CREDHUB_CLIENT")
+	credhubSecret = envMustHave("CREDHUB_SECRET")
 	Eventually(cf.Cf("create-service-broker", brokerName, brokerUsername, brokerPassword, brokerURL), cf.CfTimeout).Should(gexec.Exit(0))
 	Eventually(cf.Cf("enable-service-access", serviceOffering), cf.CfTimeout).Should(gexec.Exit(0))
 

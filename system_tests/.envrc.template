@@ -18,6 +18,9 @@ export CF_ORG=
 export CF_SPACE=
 export CF_DOMAIN=
 
+export CREDHUB_CLIENT=
+export CREDHUB_SECRET=
+
 export EXAMPLE_APP_PATH=
 
 export TEST_ODB_METRICS=
