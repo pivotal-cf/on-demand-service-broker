@@ -26,6 +26,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
+	"github.com/pivotal-cf/on-demand-service-broker/task"
 
 	"math/rand"
 
@@ -44,6 +45,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 	"github.com/pivotal-cf/on-demand-service-broker/manifestsecrets"
 	manifestsecretsfakes "github.com/pivotal-cf/on-demand-service-broker/manifestsecrets/fakes"
+	taskfakes "github.com/pivotal-cf/on-demand-service-broker/task/fakes"
 )
 
 func TestOnDemandServiceBroker(t *testing.T) {
@@ -59,17 +61,21 @@ const (
 )
 
 var (
-	stopServer          chan os.Signal
-	serverPort          = rand.Intn(math.MaxInt16-1024) + 1024
-	serverURL           = fmt.Sprintf("localhost:%d", serverPort)
-	fakeServiceAdapter  *fakes.FakeServiceAdapterClient
-	fakeCredentialStore *credhubfakes.FakeCredentialStore
-	fakeBoshClient      *fakes.FakeBoshClient
-	fakeCfClient        *fakes.FakeCloudFoundryClient
-	fakeDeployer        *fakes.FakeDeployer
-	loggerBuffer        *gbytes.Buffer
-	shouldSendSigterm   bool
-	secretManager       broker.ManifestSecretManager
+	stopServer                chan os.Signal
+	serverPort                = rand.Intn(math.MaxInt16-1024) + 1024
+	serverURL                 = fmt.Sprintf("localhost:%d", serverPort)
+	deployer                  broker.Deployer
+	fakeServiceAdapter        *fakes.FakeServiceAdapterClient
+	fakeCredentialStore       *credhubfakes.FakeCredentialStore
+	fakeBoshClient            *fakes.FakeBoshClient
+	fakeCfClient              *fakes.FakeCloudFoundryClient
+	fakeTaskBoshClient        *taskfakes.FakeBoshClient
+	fakeTaskManifestGenerator *taskfakes.FakeManifestGenerator
+	fakeTaskBulkSetter        *taskfakes.FakeBulkSetter
+	fakeDeployer              *fakes.FakeDeployer
+	loggerBuffer              *gbytes.Buffer
+	shouldSendSigterm         bool
+	secretManager             broker.ManifestSecretManager
 
 	fakeCredhubOperator *manifestsecretsfakes.FakeCredhubOperator
 )
@@ -79,6 +85,13 @@ var _ = BeforeEach(func() {
 	fakeServiceAdapter = new(fakes.FakeServiceAdapterClient)
 	fakeCredentialStore = new(credhubfakes.FakeCredentialStore)
 	fakeCfClient = new(fakes.FakeCloudFoundryClient)
+
+	fakeTaskBoshClient = new(taskfakes.FakeBoshClient)
+	fakeTaskManifestGenerator = new(taskfakes.FakeManifestGenerator)
+	fakeTaskBulkSetter = new(taskfakes.FakeBulkSetter)
+	deployer = task.NewDeployer(fakeTaskBoshClient, fakeTaskManifestGenerator, fakeTaskBulkSetter)
+
+	// so we can do this work incrementally - delete when finished
 	fakeDeployer = new(fakes.FakeDeployer)
 
 	credhubPathMatcher := new(manifestsecrets.CredHubPathMatcher)
@@ -93,17 +106,28 @@ var _ = AfterEach(func() {
 	}
 })
 
-func StartServer(conf config.Config) {
+func StartServer(conf config.Config, useFakeDeployer ...bool) {
 	stopServer = make(chan os.Signal, 1)
 	conf.Broker.ShutdownTimeoutSecs = 1
 	shouldSendSigterm = true
-	StartServerWithStopHandler(conf, stopServer)
+	StartServerWithStopHandler(conf, stopServer, useFakeDeployer...)
 }
 
-func StartServerWithStopHandler(conf config.Config, stopServerChan chan os.Signal) {
+func StartServerWithStopHandler(conf config.Config, stopServerChan chan os.Signal, useFakeDeployer ...bool) {
 	loggerBuffer = gbytes.NewBuffer()
 	loggerFactory := loggerfactory.New(loggerBuffer, componentName, loggerfactory.Flags)
 	logger := loggerFactory.New()
+
+	fakeTheDeployer := true
+	if len(useFakeDeployer) > 0 {
+		fakeTheDeployer = useFakeDeployer[0]
+	}
+
+	actualDeployer := deployer
+	if fakeTheDeployer {
+		actualDeployer = fakeDeployer
+	}
+
 	fakeOnDemandBroker, err := broker.New(
 		fakeBoshClient,
 		fakeCfClient,
@@ -111,7 +135,7 @@ func StartServerWithStopHandler(conf config.Config, stopServerChan chan os.Signa
 		conf.Broker,
 		nil,
 		fakeServiceAdapter,
-		fakeDeployer,
+		actualDeployer,
 		secretManager,
 		loggerFactory,
 	)
