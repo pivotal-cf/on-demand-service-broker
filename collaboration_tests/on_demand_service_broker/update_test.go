@@ -27,6 +27,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	brokerConfig "github.com/pivotal-cf/on-demand-service-broker/config"
@@ -105,19 +106,22 @@ var _ = Describe("Update a service instance", func() {
 			},
 		}
 
-		StartServer(conf)
+		StartServer(conf, false)
 	})
 
 	Describe("switching plans", func() {
 		It("succeeds when there are no pending changes", func() {
-			fakeDeployer.UpdateReturns(updateTaskID, nil, nil)
+			fakeTaskBoshClient.GetDeploymentReturns(nil, true, nil)
+			fakeTaskBoshClient.DeployReturns(updateTaskID, nil)
 
 			resp, bodyContent := doUpdateRequest(detailsMap, instanceID)
 			By("returning the correct status code")
 			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
 
 			By("calling the adapter with the correct arguments")
-			deploymentName, planId, details, previousPlanID, boshContextId, _ := fakeDeployer.UpdateArgsForCall(0)
+			deploymentName, planId, details, _, previousPlanID, _ := fakeTaskManifestGenerator.GenerateManifestArgsForCall(1)
+			_, boshContextId, _, _ := fakeTaskBoshClient.DeployArgsForCall(0)
+
 			Expect(deploymentName).To(Equal("service-instance_" + instanceID))
 			Expect(planId).To(Equal(newPlanID))
 			Expect(details).To(Equal(detailsMap))
@@ -140,7 +144,8 @@ var _ = Describe("Update a service instance", func() {
 		})
 
 		It("succeeds when the new plan has a post-deploy errand", func() {
-			fakeDeployer.UpdateReturns(updateTaskID, nil, nil)
+			fakeTaskBoshClient.GetDeploymentReturns(nil, true, nil)
+			fakeTaskBoshClient.DeployReturns(updateTaskID, nil)
 
 			detailsMap["plan_id"] = postDeployErrandPlanID
 			resp, bodyContent := doUpdateRequest(detailsMap, instanceID)
@@ -148,7 +153,8 @@ var _ = Describe("Update a service instance", func() {
 			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
 
 			By("calling the adapter with the correct arguments")
-			deploymentName, planId, details, previousPlanID, boshContextId, _ := fakeDeployer.UpdateArgsForCall(0)
+			deploymentName, planId, details, _, previousPlanID, _ := fakeTaskManifestGenerator.GenerateManifestArgsForCall(1)
+			_, boshContextId, _, _ := fakeTaskBoshClient.DeployArgsForCall(0)
 			Expect(deploymentName).To(Equal("service-instance_" + instanceID))
 			Expect(planId).To(Equal(postDeployErrandPlanID))
 			Expect(details).To(Equal(detailsMap))
@@ -173,7 +179,8 @@ var _ = Describe("Update a service instance", func() {
 		})
 
 		It("succeeds when the old plan has a post-deploy errand but the new one doesn't", func() {
-			fakeDeployer.UpdateReturns(updateTaskID, nil, nil)
+			fakeTaskBoshClient.GetDeploymentReturns(nil, true, nil)
+			fakeTaskBoshClient.DeployReturns(updateTaskID, nil)
 
 			detailsMap["previous_values"] = map[string]interface{}{
 				"organization_id": organizationGUID,
@@ -186,7 +193,8 @@ var _ = Describe("Update a service instance", func() {
 			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
 
 			By("calling the adapter with the correct arguments")
-			deploymentName, planId, details, previousPlanID, boshContextId, _ := fakeDeployer.UpdateArgsForCall(0)
+			deploymentName, planId, details, _, previousPlanID, _ := fakeTaskManifestGenerator.GenerateManifestArgsForCall(1)
+			_, boshContextId, _, _ := fakeTaskBoshClient.DeployArgsForCall(0)
 			Expect(deploymentName).To(Equal("service-instance_" + instanceID))
 			Expect(planId).To(Equal(newPlanID))
 			Expect(details).To(Equal(detailsMap))
@@ -209,7 +217,10 @@ var _ = Describe("Update a service instance", func() {
 		})
 
 		It("fails with 422 if there are pending changes", func() {
-			fakeDeployer.UpdateReturns(updateTaskID, nil, task.PendingChangesNotAppliedError{})
+			fakeTaskBoshClient.GetDeploymentReturns([]byte("name: foo"), true, nil)
+			fakeTaskManifestGenerator.GenerateManifestReturns(sdk.MarshalledGenerateManifest{
+				Manifest: "name: bar",
+			}, nil)
 
 			resp, _ := doUpdateRequest(detailsMap, instanceID)
 
@@ -232,7 +243,7 @@ var _ = Describe("Update a service instance", func() {
 		})
 
 		It("fails with 500 if BOSH deployment cannot be found", func() {
-			fakeDeployer.UpdateReturns(updateTaskID, nil, task.NewDeploymentNotFoundError(fmt.Errorf("oops")))
+			fakeTaskBoshClient.GetDeploymentReturns(nil, false, nil)
 
 			resp, bodyContent := doUpdateRequest(detailsMap, instanceID)
 
@@ -248,11 +259,13 @@ var _ = Describe("Update a service instance", func() {
 				ContainSubstring("operation: update"),
 			))
 
-			Eventually(loggerBuffer).Should(gbytes.Say("error deploying instance: oops"))
+			Eventually(loggerBuffer).Should(gbytes.Say("error deploying instance: bosh deployment 'service-instance_some-instance' not found"))
 		})
 
 		It("fails with 500 if BOSH is an operation is in progress", func() {
-			fakeDeployer.UpdateReturns(updateTaskID, nil, task.TaskInProgressError{})
+			fakeTaskBoshClient.GetTasksReturns(boshdirector.BoshTasks{
+				boshdirector.BoshTask{State: boshdirector.TaskProcessing},
+			}, nil)
 
 			resp, bodyContent := doUpdateRequest(detailsMap, instanceID)
 
@@ -263,7 +276,7 @@ var _ = Describe("Update a service instance", func() {
 		})
 
 		It("fails with 500 if BOSH is unavailable", func() {
-			fakeDeployer.UpdateReturns(updateTaskID, nil, task.ServiceError{})
+			fakeTaskBoshClient.GetTasksReturns(nil, errors.New("oops"))
 
 			resp, bodyContent := doUpdateRequest(detailsMap, instanceID)
 
@@ -292,7 +305,8 @@ var _ = Describe("Update a service instance", func() {
 		})
 
 		It("fails with 500 if the previous plan cannot be found", func() {
-			fakeDeployer.UpdateReturns(updateTaskID, nil, task.PlanNotFoundError{PlanGUID: "yo"})
+			fakeTaskBoshClient.GetDeploymentReturns(nil, true, nil)
+			fakeTaskManifestGenerator.GenerateManifestReturns(sdk.MarshalledGenerateManifest{}, task.PlanNotFoundError{PlanGUID: "yo"})
 
 			resp, bodyContent := doUpdateRequest(detailsMap, instanceID)
 
@@ -314,7 +328,8 @@ var _ = Describe("Update a service instance", func() {
 
 		It("fails with 500 when the adapter errors", func() {
 			err := serviceadapter.ErrorForExitCode(400, "")
-			fakeDeployer.UpdateReturns(updateTaskID, nil, err)
+			fakeTaskBoshClient.GetDeploymentReturns(nil, true, nil)
+			fakeTaskManifestGenerator.GenerateManifestReturns(sdk.MarshalledGenerateManifest{}, err)
 
 			resp, bodyContent := doUpdateRequest(detailsMap, instanceID)
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
@@ -333,7 +348,8 @@ var _ = Describe("Update a service instance", func() {
 
 		It("fails with 500 and a descriptive message when the adapter errors", func() {
 			err := serviceadapter.ErrorForExitCode(1, "some cf message")
-			fakeDeployer.UpdateReturns(updateTaskID, nil, err)
+			fakeTaskBoshClient.GetDeploymentReturns(nil, true, nil)
+			fakeTaskManifestGenerator.GenerateManifestReturns(sdk.MarshalledGenerateManifest{}, err)
 
 			resp, bodyContent := doUpdateRequest(detailsMap, instanceID)
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
@@ -346,7 +362,9 @@ var _ = Describe("Update a service instance", func() {
 
 	Describe("without switching plans", func() {
 		It("succeeds even when the quota has been reached", func() {
-			fakeDeployer.UpdateReturns(updateTaskID, nil, nil)
+			fakeTaskBoshClient.GetDeploymentReturns(nil, true, nil)
+			fakeTaskBoshClient.DeployReturns(updateTaskID, nil)
+
 			detailsMap["plan_id"] = quotaReachedPlanID
 			detailsMap["previous_values"] = map[string]interface{}{
 				"organization_id": organizationGUID,
@@ -360,7 +378,8 @@ var _ = Describe("Update a service instance", func() {
 			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
 
 			By("calling the adapter with the correct arguments")
-			deploymentName, planId, details, previousPlanID, boshContextId, _ := fakeDeployer.UpdateArgsForCall(0)
+			deploymentName, planId, details, _, previousPlanID, _ := fakeTaskManifestGenerator.GenerateManifestArgsForCall(1)
+			_, boshContextId, _, _ := fakeTaskBoshClient.DeployArgsForCall(0)
 			Expect(deploymentName).To(Equal("service-instance_" + instanceID))
 			Expect(planId).To(Equal(quotaReachedPlanID))
 			Expect(details).To(Equal(detailsMap))
