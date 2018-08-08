@@ -33,6 +33,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	brokerConfig "github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
+	"github.com/pivotal-cf/on-demand-service-broker/task"
 	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 	"github.com/pkg/errors"
 )
@@ -128,7 +129,7 @@ var _ = Describe("Provision service instance", func() {
 	})
 
 	JustBeforeEach(func() {
-		StartServer(conf)
+		StartServer(conf, false)
 	})
 
 	It("handles the request correctly when CF is disabled", func() {
@@ -146,7 +147,7 @@ var _ = Describe("Provision service instance", func() {
 
 	Context("when the plan has a quota", func() {
 		It("successfully provision the service instance", func() {
-			fakeDeployer.CreateReturns(taskID, nil, nil)
+			fakeTaskBoshClient.DeployReturns(taskID, nil)
 
 			resp, bodyContent := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, true)
 
@@ -167,7 +168,9 @@ var _ = Describe("Provision service instance", func() {
 			Expect(operationData.PlanID).To(BeEmpty(), "plan id")
 
 			By("calling the deployer with the correct parameters")
-			deploymentName, planID, requestParams, boshContextID, _ := fakeDeployer.CreateArgsForCall(0)
+			deploymentName, planID, requestParams, _, _, _ := fakeTaskManifestGenerator.GenerateManifestArgsForCall(0)
+			_, boshContextID, _, _ := fakeTaskBoshClient.DeployArgsForCall(0)
+
 			Expect(deploymentName).To(Equal("service-instance_" + instanceID))
 			Expect(planID).To(Equal(planWithQuotaID))
 			Expect(requestParams).To(Equal(map[string]interface{}{
@@ -185,7 +188,14 @@ var _ = Describe("Provision service instance", func() {
 
 		It("includes the dashboard url when the adapter returns one", func() {
 			boshManifest := []byte(`name: service-instance_` + instanceID)
-			fakeDeployer.CreateReturns(taskID, boshManifest, nil)
+			fakeTaskBoshClient.DeployReturns(taskID, nil)
+			fakeTaskManifestGenerator.GenerateManifestReturns(sdk.MarshalledGenerateManifest{
+				Manifest: string(boshManifest),
+			}, nil)
+			fakeTaskManifestGenerator.ReplaceODBRefsStub = func(manifest string, secrets []task.ManifestSecret) string {
+				return manifest
+			}
+
 			fakeServiceAdapter.GenerateDashboardUrlReturns("http://dashboard.example.com", nil)
 
 			resp, bodyContent := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, true)
@@ -231,7 +241,7 @@ var _ = Describe("Provision service instance", func() {
 		})
 
 		It("responds with 500 when generating the dashboard url fails", func() {
-			fakeDeployer.CreateReturns(taskID, nil, nil)
+			fakeTaskBoshClient.DeployReturns(taskID, nil)
 			fakeServiceAdapter.GenerateDashboardUrlReturns("", errors.New("something went wrong"))
 
 			resp, bodyContent := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, true)
@@ -254,7 +264,6 @@ var _ = Describe("Provision service instance", func() {
 		})
 
 		It("responds with 500 and with a descriptive message when generating the dashboard url fails", func() {
-			fakeDeployer.CreateReturns(taskID, nil, nil)
 			fakeServiceAdapter.GenerateDashboardUrlReturns("", serviceadapter.NewUnknownFailureError("error message for user"))
 			resp, bodyContent := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, true)
 
@@ -268,7 +277,7 @@ var _ = Describe("Provision service instance", func() {
 	})
 
 	It("succeeds when the plan has post-deploy errands configured", func() {
-		fakeDeployer.CreateReturns(taskID, nil, nil)
+		fakeTaskBoshClient.DeployReturns(taskID, nil)
 
 		resp, bodyContent := doProvisionRequest(instanceID, planWithErrandID, arbitraryParams, true)
 
@@ -302,7 +311,7 @@ var _ = Describe("Provision service instance", func() {
 	})
 
 	It("responds with 500 when deployer fails to create", func() {
-		fakeDeployer.CreateReturns(0, nil, errors.New("cant create"))
+		fakeTaskBoshClient.DeployReturns(0, errors.New("cant create"))
 
 		resp, bodyContent := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, true)
 		Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
