@@ -106,7 +106,7 @@ var _ = Describe("Update a service instance", func() {
 			},
 		}
 
-		StartServer(conf, false)
+		StartServer(conf)
 	})
 
 	Describe("switching plans", func() {

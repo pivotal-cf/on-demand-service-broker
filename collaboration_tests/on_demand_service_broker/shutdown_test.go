@@ -59,7 +59,7 @@ var _ = Describe("Shutdown of the broker process", func() {
 
 		shouldSendSigterm = false
 		shutDownChan = make(chan os.Signal, 1)
-		StartServerWithStopHandler(conf, shutDownChan, false)
+		StartServerWithStopHandler(conf, shutDownChan)
 	})
 
 	It("handles SIGTERM and exists gracefully", func() {

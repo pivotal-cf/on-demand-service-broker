@@ -72,7 +72,6 @@ var (
 	fakeTaskBoshClient        *taskfakes.FakeBoshClient
 	fakeTaskManifestGenerator *taskfakes.FakeManifestGenerator
 	fakeTaskBulkSetter        *taskfakes.FakeBulkSetter
-	fakeDeployer              *fakes.FakeDeployer
 	loggerBuffer              *gbytes.Buffer
 	shouldSendSigterm         bool
 	secretManager             broker.ManifestSecretManager
@@ -91,9 +90,6 @@ var _ = BeforeEach(func() {
 	fakeTaskBulkSetter = new(taskfakes.FakeBulkSetter)
 	deployer = task.NewDeployer(fakeTaskBoshClient, fakeTaskManifestGenerator, fakeTaskBulkSetter)
 
-	// so we can do this work incrementally - delete when finished
-	fakeDeployer = new(fakes.FakeDeployer)
-
 	credhubPathMatcher := new(manifestsecrets.CredHubPathMatcher)
 	fakeCredhubOperator = new(manifestsecretsfakes.FakeCredhubOperator)
 	secretManager = manifestsecrets.BuildManager(true, credhubPathMatcher, fakeCredhubOperator)
@@ -106,27 +102,17 @@ var _ = AfterEach(func() {
 	}
 })
 
-func StartServer(conf config.Config, useFakeDeployer ...bool) {
+func StartServer(conf config.Config) {
 	stopServer = make(chan os.Signal, 1)
 	conf.Broker.ShutdownTimeoutSecs = 1
 	shouldSendSigterm = true
-	StartServerWithStopHandler(conf, stopServer, useFakeDeployer...)
+	StartServerWithStopHandler(conf, stopServer)
 }
 
-func StartServerWithStopHandler(conf config.Config, stopServerChan chan os.Signal, useFakeDeployer ...bool) {
+func StartServerWithStopHandler(conf config.Config, stopServerChan chan os.Signal) {
 	loggerBuffer = gbytes.NewBuffer()
 	loggerFactory := loggerfactory.New(loggerBuffer, componentName, loggerfactory.Flags)
 	logger := loggerFactory.New()
-
-	fakeTheDeployer := true
-	if len(useFakeDeployer) > 0 {
-		fakeTheDeployer = useFakeDeployer[0]
-	}
-
-	actualDeployer := deployer
-	if fakeTheDeployer {
-		actualDeployer = fakeDeployer
-	}
 
 	fakeOnDemandBroker, err := broker.New(
 		fakeBoshClient,
@@ -135,7 +121,7 @@ func StartServerWithStopHandler(conf config.Config, stopServerChan chan os.Signa
 		conf.Broker,
 		nil,
 		fakeServiceAdapter,
-		actualDeployer,
+		deployer,
 		secretManager,
 		loggerFactory,
 	)

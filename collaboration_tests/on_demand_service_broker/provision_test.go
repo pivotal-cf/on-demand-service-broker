@@ -129,7 +129,7 @@ var _ = Describe("Provision service instance", func() {
 	})
 
 	JustBeforeEach(func() {
-		StartServer(conf, false)
+		StartServer(conf)
 	})
 
 	It("handles the request correctly when CF is disabled", func() {

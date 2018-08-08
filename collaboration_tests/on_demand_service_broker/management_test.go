@@ -75,7 +75,7 @@ var _ = Describe("Management API", func() {
 			},
 		}
 
-		StartServer(conf, false)
+		StartServer(conf)
 	})
 
 	Describe("GET /mgmt/service_instances", func() {
