@@ -32,7 +32,6 @@ import (
 	brokerConfig "github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/mgmtapi"
 	"github.com/pivotal-cf/on-demand-service-broker/service"
-	"github.com/pivotal-cf/on-demand-service-broker/task"
 	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 	"github.com/pkg/errors"
 )
@@ -76,7 +75,7 @@ var _ = Describe("Management API", func() {
 			},
 		}
 
-		StartServer(conf)
+		StartServer(conf, false)
 	})
 
 	Describe("GET /mgmt/service_instances", func() {
@@ -306,14 +305,16 @@ var _ = Describe("Management API", func() {
 
 		It("responds with the upgrade operation data", func() {
 			taskID := 123
-			fakeDeployer.UpgradeReturns(taskID, nil, nil)
+			fakeTaskBoshClient.GetDeploymentReturns(nil, true, nil)
+			fakeTaskBoshClient.DeployReturns(taskID, nil)
 
 			response, bodyContent := doUpgradeRequest(instanceID, fmt.Sprintf(`{"plan_id": "%s"}`, dedicatedPlanID))
 
 			Expect(response.StatusCode).To(Equal(http.StatusAccepted))
 
 			By("upgrades the correct instance")
-			deploymentName, planID, _, contextID, _ := fakeDeployer.UpgradeArgsForCall(0)
+			deploymentName, planID, _, _, _, _ := fakeTaskManifestGenerator.GenerateManifestArgsForCall(0)
+			_, contextID, _, _ := fakeTaskBoshClient.DeployArgsForCall(0)
 			Expect(deploymentName).To(Equal("service-instance_some-instance-id"))
 			Expect(planID).To(Equal(dedicatedPlanID))
 			Expect(contextID).NotTo(BeEmpty())
@@ -340,14 +341,16 @@ var _ = Describe("Management API", func() {
 
 			It("responds with the upgrade operation data", func() {
 				taskID := 123
-				fakeDeployer.UpgradeReturns(taskID, nil, nil)
+				fakeTaskBoshClient.GetDeploymentReturns(nil, true, nil)
+				fakeTaskBoshClient.DeployReturns(taskID, nil)
 
 				response, bodyContent := doUpgradeRequest(instanceID, fmt.Sprintf(`{"plan_id": "%s"}`, dedicatedPlanID))
 
 				Expect(response.StatusCode).To(Equal(http.StatusAccepted))
 
 				By("upgrades the correct instance")
-				deploymentName, planID, _, contextID, _ := fakeDeployer.UpgradeArgsForCall(0)
+				deploymentName, planID, _, _, _, _ := fakeTaskManifestGenerator.GenerateManifestArgsForCall(0)
+				_, contextID, _, _ := fakeTaskBoshClient.DeployArgsForCall(0)
 				Expect(deploymentName).To(Equal("service-instance_some-instance-id"))
 				Expect(planID).To(Equal(dedicatedPlanID))
 				Expect(contextID).NotTo(BeEmpty())
@@ -369,7 +372,8 @@ var _ = Describe("Management API", func() {
 		})
 
 		It("responds with 410 when instance's deployment cannot be found in BOSH", func() {
-			fakeDeployer.UpgradeReturns(0, nil, task.DeploymentNotFoundError{})
+			// This is the default for the fake, but just to be explicit
+			fakeTaskBoshClient.GetDeploymentReturns(nil, false, nil)
 
 			response, _ := doUpgradeRequest(instanceID, fmt.Sprintf(`{"plan_id": "%s"}`, dedicatedPlanID))
 
@@ -377,7 +381,9 @@ var _ = Describe("Management API", func() {
 		})
 
 		It("responds with 409 when there are incomplete tasks for the instance's deployment", func() {
-			fakeDeployer.UpgradeReturns(0, nil, task.TaskInProgressError{})
+			fakeTaskBoshClient.GetTasksReturns(boshdirector.BoshTasks{
+				{State: boshdirector.TaskProcessing},
+			}, nil)
 
 			response, _ := doUpgradeRequest(instanceID, fmt.Sprintf(`{"plan_id": "%s"}`, dedicatedPlanID))
 
