@@ -1,8 +1,7 @@
 ---
 releases:
 - name: dummy
-  url: https://s3.amazonaws.com/cf-services-internal-builds/dummy-bosh-release/dummy-release-2%2Bdev.1.tgz
-  version: 2+dev.1
+  version: latest
 
 stemcells:
 - alias: trusty
