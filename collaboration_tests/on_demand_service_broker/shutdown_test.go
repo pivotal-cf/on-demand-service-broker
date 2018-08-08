@@ -28,6 +28,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	brokerConfig "github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pkg/errors"
 )
@@ -58,7 +59,7 @@ var _ = Describe("Shutdown of the broker process", func() {
 
 		shouldSendSigterm = false
 		shutDownChan = make(chan os.Signal, 1)
-		StartServerWithStopHandler(conf, shutDownChan)
+		StartServerWithStopHandler(conf, shutDownChan, false)
 	})
 
 	It("handles SIGTERM and exists gracefully", func() {
@@ -72,10 +73,10 @@ var _ = Describe("Shutdown of the broker process", func() {
 		deployStarted := make(chan bool)
 		deployFinished := make(chan bool)
 
-		fakeDeployer.CreateStub = func(name, id string, reqParams map[string]interface{}, boshContextID string, logger *log.Logger) (int, []byte, error) {
+		fakeTaskBoshClient.DeployStub = func(manifest []byte, contextID string, logger *log.Logger, reporter *boshdirector.AsyncTaskReporter) (int, error) {
 			deployStarted <- true
 			<-deployFinished
-			return 0, nil, nil
+			return 0, nil
 		}
 
 		go func() {
@@ -111,10 +112,10 @@ var _ = Describe("Shutdown of the broker process", func() {
 		deployStarted := make(chan bool)
 		deployFinished := make(chan bool)
 
-		fakeDeployer.CreateStub = func(name, id string, reqParams map[string]interface{}, boshContextID string, logger *log.Logger) (int, []byte, error) {
+		fakeTaskBoshClient.DeployStub = func(manifest []byte, contextID string, logger *log.Logger, reporter *boshdirector.AsyncTaskReporter) (int, error) {
 			deployStarted <- true
 			<-deployFinished
-			return 0, nil, errors.New("interrupted")
+			return 0, errors.New("interrupted")
 		}
 
 		go func() {
