@@ -32,6 +32,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	brokerConfig "github.com/pivotal-cf/on-demand-service-broker/config"
+	"github.com/pivotal-cf/on-demand-service-broker/credhub"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	"github.com/pivotal-cf/on-demand-service-broker/task"
 	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
@@ -130,6 +131,23 @@ var _ = Describe("Provision service instance", func() {
 
 	JustBeforeEach(func() {
 		StartServer(conf)
+	})
+
+	When("we are not enabling secure manifests", func() {
+		BeforeEach(func() {
+			var store *credhub.Store
+			deployer = task.NewDeployer(fakeTaskBoshClient, fakeTaskManifestGenerator, store)
+		})
+
+		It("doesn't panic when a unset credhub.Store pointer is used in deployer", func() {
+			fakeTaskManifestGenerator.GenerateSecretPathsReturns([]task.ManifestSecret{{
+				Name:  "bar",
+				Path:  "/odb/broker/bar",
+				Value: "humbug",
+			}})
+			resp, _ := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, true)
+			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
+		})
 	})
 
 	It("handles the request correctly when CF is disabled", func() {
