@@ -12,6 +12,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	. "github.com/pivotal-cf/on-demand-service-broker/task"
 	"github.com/pivotal-cf/on-demand-service-broker/task/fakes"
@@ -255,7 +256,7 @@ var _ = Describe("Manifest Generator", func() {
 			It("fails without generating a manifest", func() {
 				Expect(serviceAdapter.GenerateManifestCallCount()).To(Equal(0))
 
-				Expect(err).To(Equal(PlanNotFoundError{PlanGUID: planGUID}))
+				Expect(err).To(Equal(broker.PlanNotFoundError{PlanGUID: planGUID}))
 				Expect(logBuffer.String()).To(ContainSubstring(planGUID))
 			})
 		})
@@ -268,7 +269,7 @@ var _ = Describe("Manifest Generator", func() {
 
 			It("fails without generating a manifest", func() {
 				Expect(serviceAdapter.GenerateManifestCallCount()).To(Equal(0))
-				Expect(err).To(Equal(PlanNotFoundError{PlanGUID: *previousPlanID}))
+				Expect(err).To(Equal(broker.PlanNotFoundError{PlanGUID: *previousPlanID}))
 				Expect(logBuffer.String()).To(ContainSubstring(*previousPlanID))
 			})
 		})

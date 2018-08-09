@@ -21,7 +21,6 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
-	"github.com/pivotal-cf/on-demand-service-broker/task"
 )
 
 var _ = Describe("Update", func() {
@@ -291,7 +290,7 @@ var _ = Describe("Update", func() {
 
 			Context("but there are pending changes", func() {
 				BeforeEach(func() {
-					fakeDeployer.UpdateReturns(boshTaskID, nil, task.PendingChangesNotAppliedError{})
+					fakeDeployer.UpdateReturns(boshTaskID, nil, broker.PendingChangesNotAppliedError{})
 				})
 
 				It("reports a pending changes are present error", func() {
@@ -479,7 +478,7 @@ var _ = Describe("Update", func() {
 
 			Context("when a deploy has a bosh request error", func() {
 				BeforeEach(func() {
-					fakeDeployer.UpdateReturns(0, []byte{}, task.NewServiceError(fmt.Errorf("network timeout")))
+					fakeDeployer.UpdateReturns(0, []byte{}, broker.NewServiceError(fmt.Errorf("network timeout")))
 				})
 
 				It("logs the error", func() {
@@ -505,7 +504,7 @@ var _ = Describe("Update", func() {
 
 		Context("when bosh is blocked", func() {
 			BeforeEach(func() {
-				fakeDeployer.UpdateReturns(boshTaskID, nil, task.TaskInProgressError{})
+				fakeDeployer.UpdateReturns(boshTaskID, nil, broker.TaskInProgressError{})
 			})
 
 			It("returns an error with the operation in progress message", func() {
@@ -514,7 +513,7 @@ var _ = Describe("Update", func() {
 		})
 
 		Context("when plan not found", func() {
-			planNotFoundError := task.PlanNotFoundError{PlanGUID: "plan-guid"}
+			planNotFoundError := broker.PlanNotFoundError{PlanGUID: "plan-guid"}
 			BeforeEach(func() {
 				fakeDeployer.UpdateReturns(boshTaskID, nil, planNotFoundError)
 			})

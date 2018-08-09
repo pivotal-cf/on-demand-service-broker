@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
@@ -102,7 +103,7 @@ func (m manifestGenerator) findPlans(planID string, previousPlanID *string) (ser
 func (m manifestGenerator) findPlan(planID string) (serviceadapter.Plan, error) {
 	plan, found := m.serviceOffering.FindPlanByID(planID)
 	if !found {
-		return serviceadapter.Plan{}, PlanNotFoundError{PlanGUID: planID}
+		return serviceadapter.Plan{}, broker.PlanNotFoundError{PlanGUID: planID}
 	}
 
 	return plan.AdapterPlan(m.serviceOffering.GlobalProperties), nil
@@ -111,7 +112,7 @@ func (m manifestGenerator) findPlan(planID string) (serviceadapter.Plan, error) 
 func (m manifestGenerator) findPreviousPlan(previousPlanID string) (*serviceadapter.Plan, error) {
 	previousPlan, found := m.serviceOffering.FindPlanByID(previousPlanID)
 	if !found {
-		return new(serviceadapter.Plan), PlanNotFoundError{PlanGUID: previousPlanID}
+		return new(serviceadapter.Plan), broker.PlanNotFoundError{PlanGUID: previousPlanID}
 	}
 
 	abridgedPlan := previousPlan.AdapterPlan(m.serviceOffering.GlobalProperties)

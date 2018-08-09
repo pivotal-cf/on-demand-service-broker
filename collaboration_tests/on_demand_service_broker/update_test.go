@@ -32,7 +32,6 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	brokerConfig "github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
-	"github.com/pivotal-cf/on-demand-service-broker/task"
 	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 	"github.com/pkg/errors"
 )
@@ -306,7 +305,7 @@ var _ = Describe("Update a service instance", func() {
 
 		It("fails with 500 if the previous plan cannot be found", func() {
 			fakeTaskBoshClient.GetDeploymentReturns(nil, true, nil)
-			fakeTaskManifestGenerator.GenerateManifestReturns(sdk.MarshalledGenerateManifest{}, task.PlanNotFoundError{PlanGUID: "yo"})
+			fakeTaskManifestGenerator.GenerateManifestReturns(sdk.MarshalledGenerateManifest{}, broker.PlanNotFoundError{PlanGUID: "yo"})
 
 			resp, bodyContent := doUpdateRequest(detailsMap, instanceID)
 

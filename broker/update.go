@@ -17,7 +17,6 @@ import (
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/brokercontext"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
-	"github.com/pivotal-cf/on-demand-service-broker/task"
 )
 
 func (b *Broker) Update(
@@ -109,17 +108,17 @@ func (b *Broker) Update(
 	)
 
 	switch err := err.(type) {
-	case task.ServiceError:
+	case ServiceError:
 		return brokerapi.UpdateServiceSpec{IsAsync: true}, b.processError(NewBoshRequestError("update", fmt.Errorf("error deploying instance: %s", err)), logger)
-	case task.PendingChangesNotAppliedError:
+	case PendingChangesNotAppliedError:
 		return brokerapi.UpdateServiceSpec{IsAsync: true}, b.processError(brokerapi.NewFailureResponse(
 			errors.New(PendingChangesErrorMessage),
 			http.StatusUnprocessableEntity,
 			UpdateLoggerAction,
 		), logger)
-	case task.TaskInProgressError:
+	case TaskInProgressError:
 		return brokerapi.UpdateServiceSpec{IsAsync: true}, b.processError(errors.New(OperationInProgressMessage), logger)
-	case task.PlanNotFoundError:
+	case PlanNotFoundError:
 		return brokerapi.UpdateServiceSpec{IsAsync: true}, b.processError(err, logger)
 	case serviceadapter.UnknownFailureError:
 		return brokerapi.UpdateServiceSpec{IsAsync: true}, b.processError(adapterToAPIError(ctx, err), logger)

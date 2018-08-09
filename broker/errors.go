@@ -125,3 +125,43 @@ func adapterToAPIError(ctx context.Context, err error) error {
 		return NewGenericError(ctx, err).ErrorForCFUser()
 	}
 }
+
+type PlanNotFoundError struct {
+	PlanGUID string
+}
+
+func (e PlanNotFoundError) Error() string {
+	return fmt.Sprintf("plan %s does not exist", e.PlanGUID)
+}
+
+type DeploymentNotFoundError struct {
+	error
+}
+
+func NewDeploymentNotFoundError(e error) error {
+	return DeploymentNotFoundError{e}
+}
+
+type TaskInProgressError struct {
+	Message string
+}
+
+func (e TaskInProgressError) Error() string {
+	return e.Message
+}
+
+type ServiceError struct {
+	error
+}
+
+func NewServiceError(e error) error {
+	return ServiceError{error: e}
+}
+
+type PendingChangesNotAppliedError struct {
+	error
+}
+
+func NewPendingChangesNotAppliedError(e error) error {
+	return PendingChangesNotAppliedError{error: e}
+}

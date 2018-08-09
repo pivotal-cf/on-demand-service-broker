@@ -14,6 +14,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
+	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/credhub"
 	"github.com/pivotal-cf/on-demand-service-broker/task"
 	"github.com/pivotal-cf/on-demand-service-broker/task/fakes"
@@ -231,7 +232,7 @@ var _ = Describe("Deployer", func() {
 			})
 
 			It("fails because deployment is still in progress", func() {
-				Expect(deployError).To(BeAssignableToTypeOf(task.TaskInProgressError{}))
+				Expect(deployError).To(BeAssignableToTypeOf(broker.TaskInProgressError{}))
 
 				Expect(logBuffer.String()).To(SatisfyAll(
 					ContainSubstring(fmt.Sprintf("deployment %s is still in progress", deploymentName)),
@@ -257,7 +258,7 @@ var _ = Describe("Deployer", func() {
 			})
 
 			It("fails because deployment is still in progress", func() {
-				Expect(deployError).To(BeAssignableToTypeOf(task.TaskInProgressError{}))
+				Expect(deployError).To(BeAssignableToTypeOf(broker.TaskInProgressError{}))
 
 				Expect(logBuffer.String()).To(SatisfyAll(
 					ContainSubstring(fmt.Sprintf("deployment %s is still in progress", deploymentName)),
@@ -426,7 +427,7 @@ var _ = Describe("Deployer", func() {
 			})
 
 			It("returns an error", func() {
-				Expect(deployError).To(BeAssignableToTypeOf(task.TaskInProgressError{}))
+				Expect(deployError).To(BeAssignableToTypeOf(broker.TaskInProgressError{}))
 			})
 
 			It("does not log the previous completed tasks for the deployment", func() {
@@ -461,7 +462,7 @@ var _ = Describe("Deployer", func() {
 			})
 
 			It("returns an error", func() {
-				Expect(deployError).To(BeAssignableToTypeOf(task.TaskInProgressError{}))
+				Expect(deployError).To(BeAssignableToTypeOf(broker.TaskInProgressError{}))
 			})
 
 			It("does not log the previous tasks for the deployment", func() {
@@ -668,7 +669,7 @@ var _ = Describe("Deployer", func() {
 				)
 
 				Expect(deployError).To(HaveOccurred())
-				Expect(deployError).To(BeAssignableToTypeOf(task.PendingChangesNotAppliedError{}))
+				Expect(deployError).To(BeAssignableToTypeOf(broker.PendingChangesNotAppliedError{}))
 				Expect(boshClient.DeployCallCount()).To(BeZero())
 			})
 		})
@@ -859,7 +860,7 @@ tags:
 			)
 
 			Expect(deployError).To(HaveOccurred())
-			Expect(deployError).To(BeAssignableToTypeOf(task.PendingChangesNotAppliedError{}))
+			Expect(deployError).To(BeAssignableToTypeOf(broker.PendingChangesNotAppliedError{}))
 			Expect(boshClient.DeployCallCount()).To(BeZero())
 		})
 
@@ -887,7 +888,7 @@ features:
 			)
 
 			Expect(deployError).To(HaveOccurred())
-			Expect(deployError).To(BeAssignableToTypeOf(task.PendingChangesNotAppliedError{}))
+			Expect(deployError).To(BeAssignableToTypeOf(broker.PendingChangesNotAppliedError{}))
 			Expect(boshClient.DeployCallCount()).To(BeZero())
 		})
 
@@ -915,7 +916,7 @@ features:
 			)
 
 			Expect(deployError).To(HaveOccurred())
-			Expect(deployError).To(BeAssignableToTypeOf(task.PendingChangesNotAppliedError{}))
+			Expect(deployError).To(BeAssignableToTypeOf(broker.PendingChangesNotAppliedError{}))
 			Expect(boshClient.DeployCallCount()).To(BeZero())
 		})
 
@@ -951,7 +952,7 @@ instance_groups:
 			)
 
 			Expect(deployError).To(HaveOccurred())
-			Expect(deployError).To(BeAssignableToTypeOf(task.PendingChangesNotAppliedError{}))
+			Expect(deployError).To(BeAssignableToTypeOf(broker.PendingChangesNotAppliedError{}))
 			Expect(boshClient.DeployCallCount()).To(BeZero())
 		})
 

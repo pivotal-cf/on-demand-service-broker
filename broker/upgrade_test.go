@@ -18,25 +18,20 @@ import (
 	brokerfakes "github.com/pivotal-cf/on-demand-service-broker/broker/fakes"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
-	"github.com/pivotal-cf/on-demand-service-broker/task"
 )
 
 var _ = Describe("Upgrade", func() {
 	var (
-		upgradeOperationData     broker.OperationData
-		details                  brokerapi.UpdateDetails
-		instanceID               string
-		serviceDeploymentName    string
-		logger                   *log.Logger
-		expectedPreviousManifest []byte
-		boshTaskID               int
-		redeployErr              error
+		upgradeOperationData broker.OperationData
+		details              brokerapi.UpdateDetails
+		instanceID           string
+		logger               *log.Logger
+		boshTaskID           int
+		redeployErr          error
 	)
 
 	BeforeEach(func() {
 		instanceID = "some-instance"
-		serviceDeploymentName = deploymentName(instanceID)
-		expectedPreviousManifest = []byte("old-manifest-fetched-from-bosh")
 		boshTaskID = 876
 		details = brokerapi.UpdateDetails{
 			PlanID: existingPlanID,
@@ -135,7 +130,7 @@ var _ = Describe("Upgrade", func() {
 	})
 
 	It("when there is a task in progress on the instance upgrade returns an OperationInProgressError", func() {
-		fakeDeployer.UpgradeReturns(0, nil, task.TaskInProgressError{})
+		fakeDeployer.UpgradeReturns(0, nil, broker.TaskInProgressError{})
 		_, redeployErr = b.Upgrade(context.Background(), instanceID, details, logger)
 
 		Expect(redeployErr).To(BeAssignableToTypeOf(broker.OperationInProgressError{}))

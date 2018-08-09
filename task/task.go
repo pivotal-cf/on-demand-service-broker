@@ -14,6 +14,7 @@ import (
 	"errors"
 
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
+	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 	"gopkg.in/yaml.v2"
@@ -119,7 +120,7 @@ func (d deployer) getDeploymentManifest(deploymentName string, logger *log.Logge
 	}
 
 	if !found {
-		return nil, NewDeploymentNotFoundError(fmt.Errorf("bosh deployment '%s' not found", deploymentName))
+		return nil, broker.NewDeploymentNotFoundError(fmt.Errorf("bosh deployment '%s' not found", deploymentName))
 	}
 
 	return oldManifest, nil
@@ -128,12 +129,12 @@ func (d deployer) getDeploymentManifest(deploymentName string, logger *log.Logge
 func (d deployer) assertNoOperationsInProgress(deploymentName string, logger *log.Logger) error {
 	clientTasks, err := d.boshClient.GetTasks(deploymentName, logger)
 	if err != nil {
-		return NewServiceError(fmt.Errorf("error getting tasks for deployment %s: %s\n", deploymentName, err))
+		return broker.NewServiceError(fmt.Errorf("error getting tasks for deployment %s: %s\n", deploymentName, err))
 	}
 
 	if incompleteTasks := clientTasks.IncompleteTasks(); len(incompleteTasks) != 0 {
 		logger.Printf("deployment %s is still in progress: tasks %s\n", deploymentName, incompleteTasks.ToLog())
-		return TaskInProgressError{Message: "task in progress"}
+		return broker.TaskInProgressError{Message: "task in progress"}
 	}
 
 	return nil
@@ -167,7 +168,7 @@ func (d deployer) checkForPendingChanges(
 	pendingChanges := !manifestsSame
 
 	if pendingChanges {
-		return NewPendingChangesNotAppliedError(errors.New("There are pending changes"))
+		return broker.NewPendingChangesNotAppliedError(errors.New("There are pending changes"))
 	}
 
 	return nil
