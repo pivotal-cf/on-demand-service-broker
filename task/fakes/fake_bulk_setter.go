@@ -4,14 +4,15 @@ package fakes
 import (
 	"sync"
 
+	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/task"
 )
 
 type FakeBulkSetter struct {
-	BulkSetStub        func([]task.ManifestSecret) error
+	BulkSetStub        func([]broker.ManifestSecret) error
 	bulkSetMutex       sync.RWMutex
 	bulkSetArgsForCall []struct {
-		arg1 []task.ManifestSecret
+		arg1 []broker.ManifestSecret
 	}
 	bulkSetReturns struct {
 		result1 error
@@ -23,16 +24,16 @@ type FakeBulkSetter struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeBulkSetter) BulkSet(arg1 []task.ManifestSecret) error {
-	var arg1Copy []task.ManifestSecret
+func (fake *FakeBulkSetter) BulkSet(arg1 []broker.ManifestSecret) error {
+	var arg1Copy []broker.ManifestSecret
 	if arg1 != nil {
-		arg1Copy = make([]task.ManifestSecret, len(arg1))
+		arg1Copy = make([]broker.ManifestSecret, len(arg1))
 		copy(arg1Copy, arg1)
 	}
 	fake.bulkSetMutex.Lock()
 	ret, specificReturn := fake.bulkSetReturnsOnCall[len(fake.bulkSetArgsForCall)]
 	fake.bulkSetArgsForCall = append(fake.bulkSetArgsForCall, struct {
-		arg1 []task.ManifestSecret
+		arg1 []broker.ManifestSecret
 	}{arg1Copy})
 	fake.recordInvocation("BulkSet", []interface{}{arg1Copy})
 	fake.bulkSetMutex.Unlock()
@@ -51,7 +52,7 @@ func (fake *FakeBulkSetter) BulkSetCallCount() int {
 	return len(fake.bulkSetArgsForCall)
 }
 
-func (fake *FakeBulkSetter) BulkSetArgsForCall(i int) []task.ManifestSecret {
+func (fake *FakeBulkSetter) BulkSetArgsForCall(i int) []broker.ManifestSecret {
 	fake.bulkSetMutex.RLock()
 	defer fake.bulkSetMutex.RUnlock()
 	return fake.bulkSetArgsForCall[i].arg1

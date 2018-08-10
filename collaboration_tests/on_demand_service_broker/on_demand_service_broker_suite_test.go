@@ -71,10 +71,12 @@ var (
 	fakeCfClient              *fakes.FakeCloudFoundryClient
 	fakeTaskBoshClient        *taskfakes.FakeBoshClient
 	fakeTaskManifestGenerator *taskfakes.FakeManifestGenerator
+	odbSecrets                manifestsecrets.ODBSecrets
 	fakeTaskBulkSetter        *taskfakes.FakeBulkSetter
 	loggerBuffer              *gbytes.Buffer
 	shouldSendSigterm         bool
 	secretManager             broker.ManifestSecretManager
+	serviceOfferingID         string
 
 	fakeCredhubOperator *manifestsecretsfakes.FakeCredhubOperator
 )
@@ -88,7 +90,9 @@ var _ = BeforeEach(func() {
 	fakeTaskBoshClient = new(taskfakes.FakeBoshClient)
 	fakeTaskManifestGenerator = new(taskfakes.FakeManifestGenerator)
 	fakeTaskBulkSetter = new(taskfakes.FakeBulkSetter)
-	deployer = task.NewDeployer(fakeTaskBoshClient, fakeTaskManifestGenerator, fakeTaskBulkSetter)
+	serviceOfferingID = "simba"
+	odbSecrets = manifestsecrets.ODBSecrets{ServiceOfferingID: serviceOfferingID}
+	deployer = task.NewDeployer(fakeTaskBoshClient, fakeTaskManifestGenerator, odbSecrets, fakeTaskBulkSetter)
 
 	credhubPathMatcher := new(manifestsecrets.CredHubPathMatcher)
 	fakeCredhubOperator = new(manifestsecretsfakes.FakeCredhubOperator)

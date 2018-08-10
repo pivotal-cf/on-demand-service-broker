@@ -14,9 +14,9 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
+	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/credhub"
 	"github.com/pivotal-cf/on-demand-service-broker/credhub/fakes"
-	"github.com/pivotal-cf/on-demand-service-broker/task"
 )
 
 var _ = Describe("CredStore", func() {
@@ -268,7 +268,7 @@ var _ = Describe("CredStore", func() {
 
 	Describe("BulkSet", func() {
 		It("does not set anything when called with an empty secrets map", func() {
-			secretsToSet := []task.ManifestSecret{}
+			secretsToSet := []broker.ManifestSecret{}
 
 			err := store.BulkSet(secretsToSet)
 			Expect(err).NotTo(HaveOccurred())
@@ -278,7 +278,7 @@ var _ = Describe("CredStore", func() {
 		})
 
 		It("stores all secrets", func() {
-			secretsToSet := []task.ManifestSecret{
+			secretsToSet := []broker.ManifestSecret{
 				{Name: "foo", Path: "/foo/foo", Value: "123"},
 				{Name: "bar", Path: "/foo/bar", Value: map[string]interface{}{"key": "value"}},
 			}
@@ -300,7 +300,7 @@ var _ = Describe("CredStore", func() {
 		})
 
 		It("errors when one of the credentials is of an unsupported type", func() {
-			secretsToSet := []task.ManifestSecret{
+			secretsToSet := []broker.ManifestSecret{
 				{Name: "bar", Path: "/foo/bar", Value: map[string]interface{}{"key": "value"}},
 				{Name: "foo", Path: "/foo/foo", Value: make(chan bool)},
 			}
@@ -310,7 +310,7 @@ var _ = Describe("CredStore", func() {
 		})
 
 		It("errors when fail to store json secrets", func() {
-			secretsToSet := []task.ManifestSecret{
+			secretsToSet := []broker.ManifestSecret{
 				{Name: "bar", Path: "/foo/bar", Value: map[string]interface{}{"key": "value"}},
 			}
 
@@ -320,7 +320,7 @@ var _ = Describe("CredStore", func() {
 		})
 
 		It("errors when fail to store string secrets", func() {
-			secretsToSet := []task.ManifestSecret{
+			secretsToSet := []broker.ManifestSecret{
 				{Name: "bar", Path: "/foo/bar", Value: "value"},
 			}
 

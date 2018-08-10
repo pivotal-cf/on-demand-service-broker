@@ -36,32 +36,33 @@ type ManifestGenerator interface {
 		oldManifest []byte,
 		previousPlanID *string, logger *log.Logger,
 	) (serviceadapter.MarshalledGenerateManifest, error)
-	GenerateSecretPaths(deploymentName string, manifest string, secrets serviceadapter.ODBManagedSecrets) []ManifestSecret
-	ReplaceODBRefs(manifest string, secrets []ManifestSecret) string
+}
+
+//go:generate counterfeiter -o fakes/fake_odb_secrets.go . ODBSecrets
+
+type ODBSecrets interface {
+	GenerateSecretPaths(deploymentName, manifest string, secretsMap serviceadapter.ODBManagedSecrets) []broker.ManifestSecret
+	ReplaceODBRefs(manifest string, secrets []broker.ManifestSecret) string
 }
 
 //go:generate counterfeiter -o fakes/fake_bulk_setter.go . BulkSetter
 
 type BulkSetter interface {
-	BulkSet([]ManifestSecret) error
-}
-
-type ManifestSecret struct {
-	Name  string
-	Path  string
-	Value interface{}
+	BulkSet([]broker.ManifestSecret) error
 }
 
 type deployer struct {
 	boshClient        BoshClient
 	manifestGenerator ManifestGenerator
+	odbSecrets        ODBSecrets
 	bulkSetter        BulkSetter
 }
 
-func NewDeployer(boshClient BoshClient, manifestGenerator ManifestGenerator, bulkSetter BulkSetter) deployer {
+func NewDeployer(boshClient BoshClient, manifestGenerator ManifestGenerator, odbSecrets ODBSecrets, bulkSetter BulkSetter) deployer {
 	return deployer{
 		boshClient:        boshClient,
 		manifestGenerator: manifestGenerator,
+		odbSecrets:        odbSecrets,
 		bulkSetter:        bulkSetter,
 	}
 }
@@ -192,11 +193,11 @@ func (d deployer) doDeploy(
 	manifest := generateManifestOutput.Manifest
 
 	if d.bulkSetter != nil && !reflect.ValueOf(d.bulkSetter).IsNil() {
-		secrets := d.manifestGenerator.GenerateSecretPaths(deploymentName, manifest, generateManifestOutput.ODBManagedSecrets)
+		secrets := d.odbSecrets.GenerateSecretPaths(deploymentName, manifest, generateManifestOutput.ODBManagedSecrets)
 		if err = d.bulkSetter.BulkSet(secrets); err != nil {
 			return 0, nil, err
 		}
-		manifest = d.manifestGenerator.ReplaceODBRefs(generateManifestOutput.Manifest, secrets)
+		manifest = d.odbSecrets.ReplaceODBRefs(generateManifestOutput.Manifest, secrets)
 	}
 
 	boshTaskID, err := d.boshClient.Deploy([]byte(manifest), boshContextID, logger, boshdirector.NewAsyncTaskReporter())

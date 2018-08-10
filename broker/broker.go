@@ -133,6 +133,12 @@ type PreDeleteErrand struct {
 	Instances []string `json:",omitempty"`
 }
 
+type ManifestSecret struct {
+	Name  string
+	Path  string
+	Value interface{}
+}
+
 const InstancePrefix = "service-instance_"
 
 func deploymentName(instanceID string) string {

@@ -149,7 +149,8 @@ func startBroker(conf config.Config, logger *log.Logger, loggerFactory *loggerfa
 		conf.ServiceDeployment.Stemcell,
 		conf.ServiceDeployment.Releases,
 	)
-	deploymentManager := task.NewDeployer(boshClient, manifestGenerator, boshCredhubStore)
+	odbSecrets := manifestsecrets.ODBSecrets{ServiceOfferingID: conf.ServiceCatalog.ID}
+	deploymentManager := task.NewDeployer(boshClient, manifestGenerator, odbSecrets, boshCredhubStore)
 
 	manifestSecretManager := manifestsecrets.BuildManager(conf.Broker.EnableSecureManifests, matcher, boshCredhubStore)
 

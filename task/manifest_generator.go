@@ -7,9 +7,7 @@
 package task
 
 import (
-	"fmt"
 	"log"
-	"strings"
 
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
@@ -117,33 +115,4 @@ func (m manifestGenerator) findPreviousPlan(previousPlanID string) (*serviceadap
 
 	abridgedPlan := previousPlan.AdapterPlan(m.serviceOffering.GlobalProperties)
 	return &abridgedPlan, nil
-}
-
-func (m manifestGenerator) GenerateSecretPaths(deploymentName string, manifest string, secretsMap serviceadapter.ODBManagedSecrets) []ManifestSecret {
-	secrets := []ManifestSecret{}
-	for name, val := range secretsMap {
-		if strings.Contains(manifest, fmt.Sprintf("((%s:%s))", serviceadapter.ODBSecretPrefix, name)) {
-			secrets = append(secrets, ManifestSecret{
-				Name:  name,
-				Value: val,
-				Path:  fmt.Sprintf("/odb/%s/%s/%s", m.serviceOffering.ID, deploymentName, name),
-			})
-		}
-	}
-	return secrets
-}
-
-func (m manifestGenerator) ReplaceODBRefs(manifest string, secrets []ManifestSecret) string {
-	newManifest := manifest
-
-	for _, s := range secrets {
-		newManifest = strings.Replace(
-			newManifest,
-			fmt.Sprintf("((%s:%s))", serviceadapter.ODBSecretPrefix, s.Name),
-			fmt.Sprintf("((%s))", s.Path),
-			-1,
-		)
-	}
-
-	return newManifest
 }

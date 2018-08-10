@@ -47,14 +47,16 @@ var _ = Describe("Deployer", func() {
 		oldManifest       []byte
 
 		manifestGenerator *fakes.FakeManifestGenerator
+		odbSecrets        *fakes.FakeODBSecrets
 		bulkSetter        *fakes.FakeBulkSetter
 	)
 
 	BeforeEach(func() {
 		boshClient = new(fakes.FakeBoshClient)
 		manifestGenerator = new(fakes.FakeManifestGenerator)
+		odbSecrets = new(fakes.FakeODBSecrets)
 		bulkSetter = new(fakes.FakeBulkSetter)
-		deployer = task.NewDeployer(boshClient, manifestGenerator, bulkSetter)
+		deployer = task.NewDeployer(boshClient, manifestGenerator, odbSecrets, bulkSetter)
 
 		planID = existingPlanID
 		previousPlanID = nil
@@ -70,7 +72,7 @@ var _ = Describe("Deployer", func() {
 		boshContextID = ""
 
 		manifestGenerator.GenerateManifestReturns(serviceadapter.MarshalledGenerateManifest{Manifest: generatedManifest}, nil)
-		manifestGenerator.ReplaceODBRefsStub = func(m string, s []task.ManifestSecret) string {
+		odbSecrets.ReplaceODBRefsStub = func(m string, s []broker.ManifestSecret) string {
 			return m
 		}
 	})
@@ -98,7 +100,7 @@ var _ = Describe("Deployer", func() {
 		When("there are secrets to be stored", func() {
 			var (
 				managedSecrets    serviceadapter.ODBManagedSecrets
-				manifestSecrets   []task.ManifestSecret
+				manifestSecrets   []broker.ManifestSecret
 				manifestWithPaths string
 			)
 
@@ -108,7 +110,7 @@ var _ = Describe("Deployer", func() {
 					"another_credential": "value_of_that",
 				}
 
-				manifestSecrets = []task.ManifestSecret{
+				manifestSecrets = []broker.ManifestSecret{
 					{Name: "secret_foo", Value: "value_of_foo", Path: "/odb/path/foo"},
 					{Name: "another_credential", Value: "value_of_that", Path: "/odb/path/cred"},
 				}
@@ -120,15 +122,15 @@ var _ = Describe("Deployer", func() {
 				}, nil)
 
 				manifestWithPaths = "name: ((/odb/path/foo))\ncred: ((/odb/path/cred))"
-				manifestGenerator.GenerateSecretPathsReturns(manifestSecrets)
-				manifestGenerator.ReplaceODBRefsReturns(manifestWithPaths)
+				odbSecrets.GenerateSecretPathsReturns(manifestSecrets)
+				odbSecrets.ReplaceODBRefsReturns(manifestWithPaths)
 			})
 
 			It("stores the secrets on credhub", func() {
-				Expect(manifestGenerator.GenerateSecretPathsCallCount()).To(Equal(1))
+				Expect(odbSecrets.GenerateSecretPathsCallCount()).To(Equal(1))
 
 				By("generating the secret paths")
-				actualDeploymentName, _, actualSecrets := manifestGenerator.GenerateSecretPathsArgsForCall(0)
+				actualDeploymentName, _, actualSecrets := odbSecrets.GenerateSecretPathsArgsForCall(0)
 				Expect(actualDeploymentName).To(Equal(deploymentName))
 				Expect(actualSecrets).To(Equal(managedSecrets))
 
@@ -151,7 +153,7 @@ var _ = Describe("Deployer", func() {
 			When("Bosh credhub is not configured/enabled", func() {
 				BeforeEach(func() {
 					var b *credhub.Store
-					deployer = task.NewDeployer(boshClient, manifestGenerator, b)
+					deployer = task.NewDeployer(boshClient, manifestGenerator, odbSecrets, b)
 				})
 
 				It("doesn't error", func() {
@@ -682,14 +684,14 @@ var _ = Describe("Deployer", func() {
 				},
 			}
 			manifestWithInterpolatedSecrets := "name: a-manifest\nproperties:\n  password: ((/odb/foo/bar/the_password))"
-			manifestSecrets := []task.ManifestSecret{
+			manifestSecrets := []broker.ManifestSecret{
 				{Name: "the_password", Value: "foo", Path: "/odb/foo/bar/the_password"},
 			}
 
 			manifestGenerator.GenerateManifestReturns(manifestWithSecrets, nil)
 			boshClient.GetDeploymentReturns([]byte(manifestWithInterpolatedSecrets), true, nil)
-			manifestGenerator.GenerateSecretPathsReturns(manifestSecrets)
-			manifestGenerator.ReplaceODBRefsReturns(manifestWithInterpolatedSecrets)
+			odbSecrets.GenerateSecretPathsReturns(manifestSecrets)
+			odbSecrets.ReplaceODBRefsReturns(manifestWithInterpolatedSecrets)
 
 			_, deployedManifest, deployError = deployer.Update(
 				deploymentName,

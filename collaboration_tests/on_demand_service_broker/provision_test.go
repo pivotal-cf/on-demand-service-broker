@@ -133,20 +133,44 @@ var _ = Describe("Provision service instance", func() {
 		StartServer(conf)
 	})
 
-	When("we are not enabling secure manifests", func() {
+	Describe("ODB Secret handling", func() {
 		BeforeEach(func() {
-			var store *credhub.Store
-			deployer = task.NewDeployer(fakeTaskBoshClient, fakeTaskManifestGenerator, store)
+			fakeTaskManifestGenerator.GenerateManifestReturns(sdk.MarshalledGenerateManifest{
+				Manifest: "name: ((odb_secret:foo))",
+				ODBManagedSecrets: map[string]interface{}{
+					"foo": "bob",
+				},
+			}, nil)
 		})
 
-		It("doesn't panic when a unset credhub.Store pointer is used in deployer", func() {
-			fakeTaskManifestGenerator.GenerateSecretPathsReturns([]task.ManifestSecret{{
-				Name:  "bar",
-				Path:  "/odb/broker/bar",
-				Value: "humbug",
-			}})
-			resp, _ := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, true)
-			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
+		When("secure manifests are not enabled", func() {
+			BeforeEach(func() {
+				var nilStore *credhub.Store
+				deployer = task.NewDeployer(fakeTaskBoshClient, fakeTaskManifestGenerator, odbSecrets, nilStore)
+			})
+
+			It("does not substitute odb_secret references", func() {
+				resp, _ := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, true)
+				Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
+
+				manifest, _, _, _ := fakeTaskBoshClient.DeployArgsForCall(0)
+				Expect(manifest).To(ContainSubstring("((odb_secret:foo))"))
+
+				Expect(fakeTaskBulkSetter.BulkSetCallCount()).To(Equal(0))
+			})
+		})
+
+		When("secure manifests are enabled", func() {
+			It("stores odb_secret secrets in credhub and replaces manifest placeholders", func() {
+				resp, _ := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, true)
+				Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
+
+				manifest, _, _, _ := fakeTaskBoshClient.DeployArgsForCall(0)
+				Expect(manifest).To(ContainSubstring(fmt.Sprintf("/odb/%s/service-instance_%s/foo", serviceOfferingID, instanceID)))
+				Expect(manifest).ToNot(ContainSubstring("((odb_secret:"))
+
+				Expect(fakeTaskBulkSetter.BulkSetCallCount()).To(Equal(1))
+			})
 		})
 	})
 
@@ -210,9 +234,6 @@ var _ = Describe("Provision service instance", func() {
 			fakeTaskManifestGenerator.GenerateManifestReturns(sdk.MarshalledGenerateManifest{
 				Manifest: string(boshManifest),
 			}, nil)
-			fakeTaskManifestGenerator.ReplaceODBRefsStub = func(manifest string, secrets []task.ManifestSecret) string {
-				return manifest
-			}
 
 			fakeServiceAdapter.GenerateDashboardUrlReturns("http://dashboard.example.com", nil)
 
