@@ -29,8 +29,8 @@ import (
 	"github.com/onsi/gomega/gbytes"
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
+	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	odbcredhub "github.com/pivotal-cf/on-demand-service-broker/credhub"
-	"github.com/pivotal-cf/on-demand-service-broker/task"
 )
 
 var _ = Describe("Credential store", func() {
@@ -80,7 +80,7 @@ var _ = Describe("Credential store", func() {
 		It("sets multiple values", func() {
 			path1 := makeKeyPath("secret-1")
 			path2 := makeKeyPath("secret-2")
-			err := subject.BulkSet([]task.ManifestSecret{
+			err := subject.BulkSet([]broker.ManifestSecret{
 				{Name: "secret-1", Path: path1, Value: map[string]interface{}{"hi": "there"}},
 				{Name: "secret-2", Path: path2, Value: "value2"},
 			})
@@ -270,6 +270,7 @@ var _ = Describe("Credential store", func() {
 				secretWithSubkeyName: {Path: certSecret.Name},
 			}
 			jsonSecretValue, err := json.Marshal(jsonSecret.Value)
+			Expect(err).NotTo(HaveOccurred())
 			certSecretValue, err := json.Marshal(certSecret.Value)
 			Expect(err).NotTo(HaveOccurred())
 			expectedSecrets := map[string]string{
