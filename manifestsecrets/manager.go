@@ -22,8 +22,8 @@ type BoshCredHubSecretManager struct {
 	operator CredhubOperator
 }
 
-func BuildManager(resolveAtBind bool, matcher Matcher, secretsFetcher CredhubOperator) broker.ManifestSecretManager {
-	if !resolveAtBind {
+func BuildManager(enableSecureManifests bool, matcher Matcher, secretsFetcher CredhubOperator) broker.ManifestSecretManager {
+	if !enableSecureManifests {
 		return new(NoopSecretManager)
 	}
 
