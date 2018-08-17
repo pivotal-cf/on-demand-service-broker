@@ -14,7 +14,6 @@ func (r *NoopSecretManager) ResolveManifestSecrets(manifest []byte, deploymentVa
 }
 
 func (r *NoopSecretManager) DeleteSecretsForInstance(instanceID string, logger *log.Logger) error {
-	panic("not implemented")
 	return nil
 }
 
