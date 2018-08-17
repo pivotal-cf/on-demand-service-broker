@@ -659,7 +659,7 @@ var _ = Describe("LastOperation", func() {
 
 				})
 
-				It("fails when deleting a secret fails", func() {
+				It("returns failed status and logs detail when deleting a secret fails", func() {
 					operationData, err := json.Marshal(broker.OperationData{
 						OperationType: broker.OperationTypeDelete,
 						BoshTaskID:    taskID,
@@ -676,16 +676,18 @@ var _ = Describe("LastOperation", func() {
 
 					b = createDefaultBroker()
 
-					_, actualLastOperationError := b.LastOperation(context.Background(), instanceID, string(operationData))
+					actualLastOperationData, actualError := b.LastOperation(context.Background(), instanceID, string(operationData))
+					Expect(actualError).NotTo(HaveOccurred())
 
-					Expect(actualLastOperationError).To(MatchError(SatisfyAll(
+					Expect(actualLastOperationData.State).To(Equal(brokerapi.Failed))
+					Expect(actualLastOperationData.Description).To(SatisfyAll(
 						ContainSubstring("There was a problem completing your request. Please contact your operations team providing the following information:"),
 						MatchRegexp(`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`),
 						ContainSubstring("service: a-cool-redis-service"),
 						ContainSubstring(fmt.Sprintf("service-instance-guid: %s", instanceID)),
 						ContainSubstring("operation: delete"),
 						Not(ContainSubstring(fmt.Sprintf("task-id"))),
-					)))
+					))
 
 					Expect(logBuffer.String()).To(ContainSubstring("failed to delete secrets"))
 				})

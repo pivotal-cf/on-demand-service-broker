@@ -26,6 +26,7 @@ func (b *Broker) Deprovision(
 	deprovisionDetails brokerapi.DeprovisionDetails,
 	asyncAllowed bool,
 ) (brokerapi.DeprovisionServiceSpec, error) {
+
 	b.deploymentLock.Lock()
 	defer b.deploymentLock.Unlock()
 	requestID := uuid.New()
@@ -41,7 +42,22 @@ func (b *Broker) Deprovision(
 		return brokerapi.DeprovisionServiceSpec{IsAsync: true}, b.processError(NewBoshRequestError("delete", err), logger)
 	}
 
-	if err := b.assertDeploymentExists(ctx, instanceID, logger); err != nil {
+	deploymentExists, err := b.assertDeploymentExists(ctx, instanceID, logger)
+	if err != nil {
+		return brokerapi.DeprovisionServiceSpec{IsAsync: true}, b.processError(err, logger)
+	}
+
+	if !deploymentExists {
+		var err error
+		err = NewDisplayableError(
+			brokerapi.ErrInstanceDoesNotExist,
+			fmt.Errorf("error deprovisioning: instance %s, not found", instanceID),
+		)
+
+		secretsErr := b.clearSecretsForNotFoundInstance(ctx, instanceID, logger)
+		if secretsErr != nil {
+			err = secretsErr
+		}
 		return brokerapi.DeprovisionServiceSpec{IsAsync: true}, b.processError(err, logger)
 	}
 
@@ -61,27 +77,32 @@ func (b *Broker) Deprovision(
 	return serviceSpec, b.processError(err, logger)
 }
 
-func (b *Broker) assertDeploymentExists(ctx context.Context, instanceID string, logger *log.Logger) error {
+func (b *Broker) clearSecretsForNotFoundInstance(ctx context.Context, instanceID string, logger *log.Logger) error {
+	if err := b.secretManager.DeleteSecretsForInstance(instanceID, logger); err != nil {
+		userError := errors.New("Unable to delete service. Please try again later or contact your operator.")
+		operatorError := NewGenericError(
+			ctx,
+			fmt.Errorf("error deprovisioning: failed to delete secrets for instance %s: %s", deploymentName(instanceID), err),
+		)
+		return NewDisplayableError(userError, operatorError)
+	}
+	return nil
+}
+
+func (b *Broker) assertDeploymentExists(ctx context.Context, instanceID string, logger *log.Logger) (bool, error) {
 	_, deploymentFound, err := b.boshClient.GetDeployment(deploymentName(instanceID), logger)
 
 	switch err.(type) {
 	case boshdirector.RequestError:
-		return NewBoshRequestError("delete", err)
+		return false, NewBoshRequestError("delete", err)
 	case error:
-		return NewGenericError(
+		return false, NewGenericError(
 			ctx,
 			fmt.Errorf("error deprovisioning: cannot get deployment %s: %s", deploymentName(instanceID), err),
 		)
 	}
 
-	if !deploymentFound {
-		return NewDisplayableError(
-			brokerapi.ErrInstanceDoesNotExist,
-			fmt.Errorf("error deprovisioning: instance %s, not found", instanceID),
-		)
-	}
-
-	return nil
+	return deploymentFound, nil
 }
 
 func (b *Broker) assertNoOperationsInProgress(ctx context.Context, instanceID string, logger *log.Logger) error {

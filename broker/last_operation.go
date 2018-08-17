@@ -79,11 +79,9 @@ func (b *Broker) LastOperation(ctx context.Context, instanceID, operationDataRaw
 	if operationData.OperationType == OperationTypeDelete && lastBoshTask.StateType() == boshdirector.TaskComplete {
 		if err = b.secretManager.DeleteSecretsForInstance(instanceID, logger); err != nil {
 			ctx = brokercontext.WithBoshTaskID(ctx, 0)
-
-			return brokerapi.LastOperation{}, b.processError(
-				NewGenericError(ctx, fmt.Errorf("could not delete secrets from credhub for deployment '%s': %s", deploymentName(instanceID), err)),
-				logger,
-			)
+			lastOperation := constructLastOperation(ctx, brokerapi.Failed, lastBoshTask, operationData, b.ExposeOperationalErrors)
+			logger.Printf("Failed to delete credhub secrets for service instance %s. Credhub error: %s\n", instanceID, err.Error())
+			return lastOperation, nil
 		}
 	}
 

@@ -180,7 +180,7 @@ var _ = Describe("Deprovision", func() {
 			StartServer(conf)
 		})
 
-		It("returns 410 when the deployment does not exist", func() {
+		It("returns 410 when the deployment does not exist and any secrets can be removed from credhub", func() {
 			fakeBoshClient.GetDeploymentReturns(nil, false, nil)
 
 			response, bodyContent := doDeprovisionRequest(instanceID, dedicatedPlanID, serviceID, true)
@@ -194,6 +194,28 @@ var _ = Describe("Deprovision", func() {
 			By("logging the delete request")
 			Eventually(loggerBuffer).Should(
 				gbytes.Say(fmt.Sprintf("error deprovisioning: instance %s, not found.", instanceID)),
+			)
+		})
+
+		It("returns 500 when the deployment does not exist and secret removal fails", func() {
+			fakeBoshClient.GetDeploymentReturns(nil, false, nil)
+			fakeCredhubOperator.FindNameLikeReturns(nil, errors.New("Not today, thank you"))
+
+			response, bodyContent := doDeprovisionRequest(instanceID, dedicatedPlanID, serviceID, true)
+
+			By("returning the correct HTTP status")
+			Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+
+			By("returning the correct error data")
+			var errorResponse brokerapi.ErrorResponse
+			Expect(json.Unmarshal(bodyContent, &errorResponse)).To(Succeed())
+			Expect(errorResponse.Description).To(ContainSubstring(
+				"Unable to delete service. Please try again later",
+			))
+
+			By("logging the delete request")
+			Eventually(loggerBuffer).Should(
+				gbytes.Say(fmt.Sprintf("error deprovisioning: failed to delete secrets for instance service-instance_%s", instanceID)),
 			)
 		})
 

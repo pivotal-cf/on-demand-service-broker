@@ -161,9 +161,10 @@ var _ = Describe("deprovisioning instances", func() {
 		})
 	})
 
-	Context("when getting the deployment returns that deployment is not found", func() {
+	Context("when getting the deployment returns that deployment is not found and removing secrets succeeds", func() {
 		BeforeEach(func() {
 			boshClient.GetDeploymentReturns(nil, false, nil)
+			secretManager.DeleteSecretsForInstanceReturns(nil)
 		})
 
 		It("returns an error", func() {
@@ -177,6 +178,22 @@ var _ = Describe("deprovisioning instances", func() {
 		})
 	})
 
+	Context("when getting the deployment returns that deployment is not found and removing secrets fails", func() {
+		BeforeEach(func() {
+			boshClient.GetDeploymentReturns(nil, false, nil)
+			secretManager.DeleteSecretsForInstanceReturns(errors.New("oops"))
+		})
+
+		It("returns an error", func() {
+			Expect(deprovisionErr).To(MatchError("Unable to delete service. Please try again later or contact your operator."))
+		})
+
+		It("logs the error", func() {
+			Expect(logBuffer.String()).To(ContainSubstring(
+				fmt.Sprintf("error deprovisioning: failed to delete secrets for instance service-instance_%s", instanceID),
+			))
+		})
+	})
 	Context("when the deployment has a pre-delete errand", func() {
 		errandTaskID := 123
 

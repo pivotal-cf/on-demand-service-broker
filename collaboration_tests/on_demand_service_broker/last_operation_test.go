@@ -546,7 +546,7 @@ var _ = Describe("Last Operation", func() {
 			))
 		})
 
-		It("returns 500 when the errands and delete task finish successfully but deleting Credhub secrets fails", func() {
+		It("returns 200 with failed status when the errands and delete task finish successfully but deleting Credhub secrets fails", func() {
 			fakeBoshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{doneTask, doneErrandTask}, nil)
 
 			operationData.BoshTaskID = doneErrandTask.ID
@@ -556,7 +556,7 @@ var _ = Describe("Last Operation", func() {
 			response, bodyContent := doLastOperationRequest(instanceID, operationData)
 
 			By("returning the correct HTTP status code")
-			Expect(response.StatusCode).To(Equal(http.StatusInternalServerError), "request status")
+			Expect(response.StatusCode).To(Equal(http.StatusOK), "request status")
 
 			By("returning the correct response description")
 			var parsedResponse map[string]interface{}
@@ -567,6 +567,7 @@ var _ = Describe("Last Operation", func() {
 				MatchRegexp(`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`),
 				ContainSubstring(fmt.Sprintf("service: %s", serviceName)),
 				ContainSubstring(fmt.Sprintf("service-instance-guid: %s", instanceID)),
+				Not(ContainSubstring(fmt.Sprintf("task-id: %d", boshTaskID))),
 				ContainSubstring("operation: delete"),
 			))
 
