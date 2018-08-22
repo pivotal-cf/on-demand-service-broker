@@ -61,15 +61,13 @@ func New(credhubClient CredhubClient) *Store {
 	return &Store{credhubClient: credhubClient}
 }
 
-var noOverwriteMode = credhub.Mode("no-overwrite")
-
 func (c *Store) Set(key string, value interface{}) error {
 	var err error
 	switch credValue := value.(type) {
 	case map[string]interface{}:
-		_, err = c.credhubClient.SetJSON(key, values.JSON(credValue), noOverwriteMode)
+		_, err = c.credhubClient.SetJSON(key, values.JSON(credValue), credhub.Overwrite)
 	case string:
-		_, err = c.credhubClient.SetValue(key, values.Value(credValue), noOverwriteMode)
+		_, err = c.credhubClient.SetValue(key, values.Value(credValue), credhub.Overwrite)
 	default:
 		return errors.New("Unknown credential type")
 	}

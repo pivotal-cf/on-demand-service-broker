@@ -58,7 +58,6 @@ var _ = Describe("Credential store", func() {
 			err = subject.Delete(keyPath)
 			Expect(err).NotTo(HaveOccurred())
 		})
-
 		It("can store plain string values", func() {
 			keyPath := makeKeyPath("stringy-cred")
 			err := subject.Set(keyPath, "I JUST LOVE CREDENTIALS.")
@@ -73,6 +72,26 @@ var _ = Describe("Credential store", func() {
 			keyPath := makeKeyPath("esoteric-cred")
 			err := subject.Set(keyPath, []interface{}{"asdf"})
 			Expect(err).To(MatchError("Unknown credential type"))
+		})
+		It("overwrites existing values", func() {
+			path := makeKeyPath("secret")
+			err := subject.Set(path, map[string]interface{}{"hi": "there"})
+			Expect(err).NotTo(HaveOccurred())
+			defer func() {
+				credhubClient.Delete(path)
+			}()
+
+			cred1, err := credhubClient.GetLatestJSON(path)
+			Expect(err).NotTo(HaveOccurred(), path)
+
+			Expect(cred1.Value).To(Equal(values.JSON{"hi": "there"}))
+
+			err = subject.Set(path, map[string]interface{}{"hello": "again"})
+			Expect(err).NotTo(HaveOccurred())
+			updatedCred, err := credhubClient.GetLatestJSON(path)
+			Expect(err).NotTo(HaveOccurred(), path)
+
+			Expect(updatedCred.Value).To(Equal(values.JSON{"hello": "again"}))
 		})
 	})
 

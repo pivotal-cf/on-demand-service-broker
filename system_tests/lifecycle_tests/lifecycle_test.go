@@ -21,6 +21,7 @@ import (
 	"github.com/onsi/gomega/gexec"
 	"github.com/pborman/uuid"
 	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/cf_helpers"
+	"github.com/pivotal-cf/on-demand-service-broker/system_tests/credhub_helpers"
 )
 
 var _ = Describe("On-demand service broker", func() {
@@ -43,11 +44,6 @@ var _ = Describe("On-demand service broker", func() {
 		cf.PushToTestAppQueue(testAppURL, queue, "bar")
 		Expect(cf.PopFromTestAppQueue(testAppURL, queue)).To(Equal("foo"))
 		Expect(cf.PopFromTestAppQueue(testAppURL, queue)).To(Equal("bar"))
-	}
-
-	updatePlan := func(serviceName, updatedPlanName string) {
-		Eventually(cf.Cf("update-service", serviceName, "-p", updatedPlanName), cf.CfTimeout).Should(gexec.Exit(0))
-		cf.AwaitServiceUpdate(serviceName)
 	}
 
 	updateServiceWithArbParams := func(serviceName string, arbitraryParams json.RawMessage) {
@@ -161,12 +157,29 @@ var _ = Describe("On-demand service broker", func() {
 				testODBMetrics(brokerDeploymentName, serviceOffering, t.Plan)
 			}
 
+			credhub_helpers.RelogInToCredhub(credhubClient, credhubSecret)
+			serviceInstanceGUID := cf.GetServiceInstanceGUID(serviceName)
+			odbSecret := credhub_helpers.GetCredhubValueFor(serviceOffering, serviceInstanceGUID, "odb_managed_secret")
+			Expect(odbSecret["value"]).To(Equal("HardcodedAdapterValue"))
+
 			if t.UpdateToPlan != "" {
 				By(fmt.Sprintf("allowing to update the service instance to plan: '%s'", t.UpdateToPlan))
-				updatePlan(serviceName, t.UpdateToPlan)
+
+				Eventually(
+					cf.Cf("update-service", serviceName, "-p", t.UpdateToPlan, "-c", `{"odb_managed_secret": "newValue"}`),
+					cf.CfTimeout,
+				).Should(gexec.Exit(0))
+				cf.AwaitServiceUpdate(serviceName)
 
 				By("providing a functional service instance post-update")
 				testServiceWithExampleApp(exampleAppType, testAppURL)
+
+				By("updating the value of the credhub stored secret")
+				credhub_helpers.RelogInToCredhub(credhubClient, credhubSecret)
+				serviceInstanceGUID := cf.GetServiceInstanceGUID(serviceName)
+				newOdbSecret := credhub_helpers.GetCredhubValueFor(serviceOffering, serviceInstanceGUID, "odb_managed_secret")
+				Expect(newOdbSecret["name"]).To(Equal(odbSecret["name"]))
+				Expect(newOdbSecret["value"]).To(Equal("newValue"))
 			}
 
 			if len(t.ArbitraryParams) > 0 {

@@ -9,17 +9,12 @@ package delete_all_service_instances_tests
 import (
 	"time"
 
-	"fmt"
-
-	"os/exec"
-
-	"encoding/json"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
 	"github.com/pborman/uuid"
 	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/cf_helpers"
+	"github.com/pivotal-cf/on-demand-service-broker/system_tests/credhub_helpers"
 )
 
 var _ = Describe("deleting all service instances", func() {
@@ -50,60 +45,21 @@ var _ = Describe("deleting all service instances", func() {
 		Eventually(cf.Cf("bind-service", testAppName, serviceInstance1), cf.CfTimeout).Should(gexec.Exit(0))
 		Eventually(cf.Cf("create-service-key", serviceInstance1, serviceKeyName), cf.CfTimeout).Should(gexec.Exit(0))
 
-		relogInToCredhub()
+		credhub_helpers.RelogInToCredhub(credhubClient, credhubSecret)
 
 		serviceInstanceGuid1 := cf.GetServiceInstanceGUID(serviceInstance1)
-		verifyCredhubKeysExist(serviceInstanceGuid1)
+		credhub_helpers.VerifyCredhubKeysExist(serviceOffering, serviceInstanceGuid1)
 
 		serviceInstanceGuid2 := cf.GetServiceInstanceGUID(serviceInstance2)
-		verifyCredhubKeysExist(serviceInstanceGuid2)
+		credhub_helpers.VerifyCredhubKeysExist(serviceOffering, serviceInstanceGuid2)
 
 		boshClient.RunErrand(brokerBoshDeploymentName, "delete-all-service-instances", []string{}, "")
 		cf.AwaitServiceDeletion(serviceInstance1)
 		cf.AwaitServiceDeletion(serviceInstance2)
 
 		By("removing all credhub references relating to instances that existed when the errand was invoked")
-		relogInToCredhub()
-		verifyCredhubKeysEmpty(serviceInstanceGuid1)
-		verifyCredhubKeysEmpty(serviceInstanceGuid2)
+		credhub_helpers.RelogInToCredhub(credhubClient, credhubSecret)
+		credhub_helpers.VerifyCredhubKeysEmpty(serviceOffering, serviceInstanceGuid1)
+		credhub_helpers.VerifyCredhubKeysEmpty(serviceOffering, serviceInstanceGuid2)
 	})
 })
-
-func relogInToCredhub() {
-	command := exec.Command("credhub", "login", "--client-name", credhubClient, "--client-secret", credhubSecret)
-	session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
-	Expect(err).NotTo(HaveOccurred())
-
-	Eventually(session, time.Second*6).Should(gexec.Exit(0))
-}
-
-func verifyCredhubKeysExist(guid string) {
-	creds := verifyCredhubKeysForInstance(guid)
-
-	Expect(creds).To(HaveLen(1), "expected to have 1 Credhub key for instance")
-	Expect(creds[0]["name"]).To(Equal(fmt.Sprintf("/odb/%s/service-instance_%s/odb_managed_secret", serviceOffering, guid)))
-}
-
-func verifyCredhubKeysEmpty(guid string) {
-	creds := verifyCredhubKeysForInstance(guid)
-
-	Expect(creds).To(BeEmpty(), "expected to have no Credhub keys for instance")
-}
-
-func verifyCredhubKeysForInstance(guid string) []map[string]string {
-
-	credhubPath := fmt.Sprintf("/odb/%s/service-instance_%s", serviceOffering, guid)
-
-	command := exec.Command("credhub", "find", "-p", credhubPath, "-j")
-	session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
-	Expect(err).NotTo(HaveOccurred())
-
-	Eventually(session, time.Second*6).Should(gexec.Exit(0))
-
-	var credhubFindResults map[string][]map[string]string
-	err = json.Unmarshal(session.Buffer().Contents(), &credhubFindResults)
-	Expect(err).NotTo(HaveOccurred())
-
-	return credhubFindResults["credentials"]
-
-}

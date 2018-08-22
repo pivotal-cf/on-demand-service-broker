@@ -138,6 +138,9 @@ var _ = Describe("Update a service instance", func() {
 				BoshTaskID:    updateTaskID,
 			}))
 
+			By("setting Credhub secrets")
+			Expect(fakeTaskBulkSetter.BulkSetCallCount()).To(Equal(1))
+
 			By("logging the bind request")
 			Eventually(loggerBuffer).Should(gbytes.Say(`updating instance ` + instanceID))
 		})
