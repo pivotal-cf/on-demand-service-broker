@@ -21,21 +21,22 @@ import (
 )
 
 var (
-	brokerName           string
-	brokerDeploymentName string
-	brokerURL            string
-	brokerUsername       string
-	brokerPassword       string
-	serviceOffering      string
-	serviceID            string
-	dopplerAddress       string
-	exampleAppPath       string
-	exampleAppType       string
-	credhubClient        string
-	credhubSecret        string
-	tests                = parseTests()
-	shouldTestODBMetrics bool
-	shouldTestCredhubRef bool
+	brokerName             string
+	brokerDeploymentName   string
+	brokerURL              string
+	brokerUsername         string
+	brokerPassword         string
+	serviceOffering        string
+	serviceID              string
+	dopplerAddress         string
+	exampleAppPath         string
+	exampleAppType         string
+	credhubClient          string
+	credhubSecret          string
+	tests                  = parseTests()
+	shouldTestODBMetrics   bool
+	shouldTestCredhubRef   bool
+	secureManifestsEnabled bool
 )
 
 func parseTests() []LifecycleTest {
@@ -87,8 +88,11 @@ func parseEnv() {
 	exampleAppType = envMustHave("EXAMPLE_APP_TYPE")
 	shouldTestODBMetrics = os.Getenv("TEST_ODB_METRICS") != ""
 	shouldTestCredhubRef = os.Getenv("TEST_CREDHUB_REF") == "true"
-	credhubClient = envMustHave("CREDHUB_CLIENT")
-	credhubSecret = envMustHave("CREDHUB_SECRET")
+	secureManifestsEnabled = os.Getenv("ENABLE_SECURE_MANIFEST") == "true"
+	if secureManifestsEnabled {
+		credhubClient = envMustHave("CREDHUB_CLIENT")
+		credhubSecret = envMustHave("CREDHUB_SECRET")
+	}
 }
 
 var _ = SynchronizedAfterSuite(func() {}, func() {

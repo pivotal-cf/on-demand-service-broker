@@ -157,10 +157,13 @@ var _ = Describe("On-demand service broker", func() {
 				testODBMetrics(brokerDeploymentName, serviceOffering, t.Plan)
 			}
 
-			credhub_helpers.RelogInToCredhub(credhubClient, credhubSecret)
-			serviceInstanceGUID := cf.GetServiceInstanceGUID(serviceName)
-			odbSecret := credhub_helpers.GetCredhubValueFor(serviceOffering, serviceInstanceGUID, "odb_managed_secret")
-			Expect(odbSecret["value"]).To(Equal("HardcodedAdapterValue"))
+			var odbSecret map[string]string
+			if secureManifestsEnabled {
+				credhub_helpers.RelogInToCredhub(credhubClient, credhubSecret)
+				serviceInstanceGUID := cf.GetServiceInstanceGUID(serviceName)
+				odbSecret = credhub_helpers.GetCredhubValueFor(serviceOffering, serviceInstanceGUID, "odb_managed_secret")
+				Expect(odbSecret["value"]).To(Equal("HardcodedAdapterValue"))
+			}
 
 			if t.UpdateToPlan != "" {
 				By(fmt.Sprintf("allowing to update the service instance to plan: '%s'", t.UpdateToPlan))
@@ -174,12 +177,14 @@ var _ = Describe("On-demand service broker", func() {
 				By("providing a functional service instance post-update")
 				testServiceWithExampleApp(exampleAppType, testAppURL)
 
-				By("updating the value of the credhub stored secret")
-				credhub_helpers.RelogInToCredhub(credhubClient, credhubSecret)
-				serviceInstanceGUID := cf.GetServiceInstanceGUID(serviceName)
-				newOdbSecret := credhub_helpers.GetCredhubValueFor(serviceOffering, serviceInstanceGUID, "odb_managed_secret")
-				Expect(newOdbSecret["name"]).To(Equal(odbSecret["name"]))
-				Expect(newOdbSecret["value"]).To(Equal("newValue"))
+				if secureManifestsEnabled {
+					By("updating the value of the credhub stored secret")
+					credhub_helpers.RelogInToCredhub(credhubClient, credhubSecret)
+					serviceInstanceGUID := cf.GetServiceInstanceGUID(serviceName)
+					newOdbSecret := credhub_helpers.GetCredhubValueFor(serviceOffering, serviceInstanceGUID, "odb_managed_secret")
+					Expect(newOdbSecret["name"]).To(Equal(odbSecret["name"]))
+					Expect(newOdbSecret["value"]).To(Equal("newValue"))
+				}
 			}
 
 			if len(t.ArbitraryParams) > 0 {
