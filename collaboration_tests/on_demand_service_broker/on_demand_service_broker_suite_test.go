@@ -131,7 +131,7 @@ func StartServerWithStopHandler(conf config.Config, stopServerChan chan os.Signa
 	)
 	Expect(err).NotTo(HaveOccurred())
 	var fakeBroker apiserver.CombinedBroker
-	if conf.HasCredHub() {
+	if conf.HasRuntimeCredHub() {
 		fakeBroker = credhubbroker.New(fakeOnDemandBroker, fakeCredentialStore, conf.ServiceCatalog.Name, loggerFactory)
 	} else {
 		fakeBroker = fakeOnDemandBroker

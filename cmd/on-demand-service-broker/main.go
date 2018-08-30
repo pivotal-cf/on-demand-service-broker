@@ -38,8 +38,9 @@ func main() {
 	stopServer := make(chan os.Signal, 1)
 	cfClient := createCfClient(config, logger)
 
-	brokerinitiator.Start(config, boshClient, cfClient, commandRunner, stopServer, loggerFactory)
+	brokerinitiator.Initiate(config, boshClient, cfClient, commandRunner, stopServer, loggerFactory)
 }
+
 func configParser(logger *log.Logger) config.Config {
 	configFilePath := flag.String("configFilePath", "", "path to config file")
 	flag.Parse()
@@ -54,23 +55,28 @@ func configParser(logger *log.Logger) config.Config {
 }
 
 func createCfClient(conf config.Config, logger *log.Logger) broker.CloudFoundryClient {
+	var cfClient broker.CloudFoundryClient
+	if !conf.Broker.DisableCFStartupChecks {
+		cfClient = createRealCfClient(conf, logger, cfClient)
+	} else {
+		cfClient = noopservicescontroller.New()
+	}
+	return cfClient
+}
+
+func createRealCfClient(conf config.Config, logger *log.Logger, cfClient broker.CloudFoundryClient) broker.CloudFoundryClient {
 	cfAuthenticator, err := conf.CF.NewAuthHeaderBuilder(conf.Broker.DisableSSLCertVerification)
 	if err != nil {
 		logger.Fatalf("error creating CF authorization header builder: %s", err)
 	}
-	var cfClient broker.CloudFoundryClient
-	if !conf.Broker.DisableCFStartupChecks {
-		cfClient, err = cf.New(
-			conf.CF.URL,
-			cfAuthenticator,
-			[]byte(conf.CF.TrustedCert),
-			conf.Broker.DisableSSLCertVerification,
-		)
-		if err != nil {
-			logger.Fatalf("error creating Cloud Foundry client: %s", err)
-		}
-	} else {
-		cfClient = noopservicescontroller.New()
+	cfClient, err = cf.New(
+		conf.CF.URL,
+		cfAuthenticator,
+		[]byte(conf.CF.TrustedCert),
+		conf.Broker.DisableSSLCertVerification,
+	)
+	if err != nil {
+		logger.Fatalf("error creating Cloud Foundry client: %s", err)
 	}
 	return cfClient
 }
@@ -80,9 +86,9 @@ func createBoshClient(logger *log.Logger, conf config.Config) *boshdirector.Clie
 	if err != nil {
 		logger.Fatalf("error getting a certificate pool to append our trusted cert to: %s", err)
 	}
-	l := boshlog.NewLogger(boshlog.LevelError)
-	directorFactory := director.NewFactory(l)
-	uaaFactory := boshuaa.NewFactory(l)
+	boshLogger := boshlog.NewLogger(boshlog.LevelError)
+	directorFactory := director.NewFactory(boshLogger)
+	uaaFactory := boshuaa.NewFactory(boshLogger)
 	boshClient, err := boshdirector.New(
 		conf.Bosh.URL,
 		[]byte(conf.Bosh.TrustedCert),

@@ -113,7 +113,7 @@ func (c Config) Validate() error {
 	return nil
 }
 
-func (c Config) HasCredHub() bool {
+func (c Config) HasRuntimeCredHub() bool {
 	return c.CredHub != CredHub{}
 }
 
