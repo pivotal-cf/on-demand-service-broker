@@ -93,6 +93,8 @@ func (b *Broker) processError(err error, logger *log.Logger) error {
 }
 
 const (
+	ComponentName = "on-demand-service-broker"
+
 	OperationTypeCreate  = OperationType("create")
 	OperationTypeUpdate  = OperationType("update")
 	OperationTypeUpgrade = OperationType("upgrade")
