@@ -8,7 +8,6 @@ import (
 	credhub2 "github.com/cloudfoundry-incubator/credhub-cli/credhub"
 	"github.com/cloudfoundry-incubator/credhub-cli/credhub/auth"
 	"github.com/pivotal-cf/on-demand-service-broker/apiserver"
-	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/credhub"
@@ -22,7 +21,7 @@ import (
 )
 
 func Initiate(conf config.Config,
-	boshClient *boshdirector.Client,
+	boshClient broker.BoshClient,
 	cfClient broker.CloudFoundryClient,
 	commandRunner serviceadapter.CommandRunner,
 	stopServer chan os.Signal,
@@ -119,7 +118,7 @@ func buildCredhubStore(conf config.Config, logger *log.Logger) *credhub.Store {
 	return boshCredhubStore
 }
 
-func buildStartupChecks(conf config.Config, cfClient broker.CloudFoundryClient, logger *log.Logger, boshClient *boshdirector.Client) []broker.StartupChecker {
+func buildStartupChecks(conf config.Config, cfClient broker.CloudFoundryClient, logger *log.Logger, boshClient broker.BoshClient) []broker.StartupChecker {
 	var startupChecks []broker.StartupChecker
 	if !conf.Broker.DisableCFStartupChecks {
 		startupChecks = append(
@@ -129,12 +128,16 @@ func buildStartupChecks(conf config.Config, cfClient broker.CloudFoundryClient, 
 		)
 
 	}
+	boshInfo, err := boshClient.GetInfo(logger)
+	if err != nil {
+		logger.Fatalf("error starting broker: %s", err)
+	}
 	startupChecks = append(startupChecks,
 		startupchecker.NewBOSHDirectorVersionChecker(
 			broker.MinimumMajorStemcellDirectorVersionForODB,
 			broker.MinimumMajorSemverDirectorVersionForLifecycleErrands,
 			broker.MinimumSemverVersionForBindingWithDNS,
-			boshClient.BoshInfo,
+			boshInfo,
 			conf,
 		),
 		startupchecker.NewBOSHAuthChecker(boshClient, logger),

@@ -184,6 +184,22 @@ type FakeBoshClient struct {
 		result1 map[string]string
 		result2 error
 	}
+	DeployStub        func(manifest []byte, contextID string, logger *log.Logger, reporter *boshdirector.AsyncTaskReporter) (int, error)
+	deployMutex       sync.RWMutex
+	deployArgsForCall []struct {
+		manifest  []byte
+		contextID string
+		logger    *log.Logger
+		reporter  *boshdirector.AsyncTaskReporter
+	}
+	deployReturns struct {
+		result1 int
+		result2 error
+	}
+	deployReturnsOnCall map[int]struct {
+		result1 int
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -826,6 +842,65 @@ func (fake *FakeBoshClient) GetDNSAddressesReturnsOnCall(i int, result1 map[stri
 	}{result1, result2}
 }
 
+func (fake *FakeBoshClient) Deploy(manifest []byte, contextID string, logger *log.Logger, reporter *boshdirector.AsyncTaskReporter) (int, error) {
+	var manifestCopy []byte
+	if manifest != nil {
+		manifestCopy = make([]byte, len(manifest))
+		copy(manifestCopy, manifest)
+	}
+	fake.deployMutex.Lock()
+	ret, specificReturn := fake.deployReturnsOnCall[len(fake.deployArgsForCall)]
+	fake.deployArgsForCall = append(fake.deployArgsForCall, struct {
+		manifest  []byte
+		contextID string
+		logger    *log.Logger
+		reporter  *boshdirector.AsyncTaskReporter
+	}{manifestCopy, contextID, logger, reporter})
+	fake.recordInvocation("Deploy", []interface{}{manifestCopy, contextID, logger, reporter})
+	fake.deployMutex.Unlock()
+	if fake.DeployStub != nil {
+		return fake.DeployStub(manifest, contextID, logger, reporter)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.deployReturns.result1, fake.deployReturns.result2
+}
+
+func (fake *FakeBoshClient) DeployCallCount() int {
+	fake.deployMutex.RLock()
+	defer fake.deployMutex.RUnlock()
+	return len(fake.deployArgsForCall)
+}
+
+func (fake *FakeBoshClient) DeployArgsForCall(i int) ([]byte, string, *log.Logger, *boshdirector.AsyncTaskReporter) {
+	fake.deployMutex.RLock()
+	defer fake.deployMutex.RUnlock()
+	return fake.deployArgsForCall[i].manifest, fake.deployArgsForCall[i].contextID, fake.deployArgsForCall[i].logger, fake.deployArgsForCall[i].reporter
+}
+
+func (fake *FakeBoshClient) DeployReturns(result1 int, result2 error) {
+	fake.DeployStub = nil
+	fake.deployReturns = struct {
+		result1 int
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeBoshClient) DeployReturnsOnCall(i int, result1 int, result2 error) {
+	fake.DeployStub = nil
+	if fake.deployReturnsOnCall == nil {
+		fake.deployReturnsOnCall = make(map[int]struct {
+			result1 int
+			result2 error
+		})
+	}
+	fake.deployReturnsOnCall[i] = struct {
+		result1 int
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeBoshClient) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -853,6 +928,8 @@ func (fake *FakeBoshClient) Invocations() map[string][][]interface{} {
 	defer fake.verifyAuthMutex.RUnlock()
 	fake.getDNSAddressesMutex.RLock()
 	defer fake.getDNSAddressesMutex.RUnlock()
+	fake.deployMutex.RLock()
+	defer fake.deployMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

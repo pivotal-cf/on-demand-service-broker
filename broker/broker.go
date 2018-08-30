@@ -185,6 +185,7 @@ type BoshClient interface {
 	Variables(deploymentName string, logger *log.Logger) ([]boshdirector.Variable, error)
 	VerifyAuth(logger *log.Logger) error
 	GetDNSAddresses(deploymentName string, requestedDNS []config.BindingDNS) (map[string]string, error)
+	Deploy(manifest []byte, contextID string, logger *log.Logger, reporter *boshdirector.AsyncTaskReporter) (int, error)
 }
 
 //go:generate counterfeiter -o fakes/fake_cloud_foundry_client.go . CloudFoundryClient
