@@ -39,8 +39,17 @@ func (b *Broker) Unbind(
 		"service_id": details.ServiceID,
 	}
 
+	deploymentVariables, err := b.boshClient.Variables(deploymentName(instanceID), logger)
+	if err != nil {
+		logger.Printf("failed to retrieve deployment variables for deployment '%s': %s", deploymentName(instanceID), err)
+	}
+
+	secretsMap, err := b.secretManager.ResolveManifestSecrets(manifest, deploymentVariables, logger)
+	if err != nil {
+		logger.Printf("failed to resolve manifest secrets: %s", err.Error())
+	}
 	logger.Printf("service adapter will delete binding with ID %s for instance %s\n", bindingID, instanceID)
-	err := b.adapterClient.DeleteBinding(bindingID, vms, manifest, requestParams, logger)
+	err = b.adapterClient.DeleteBinding(bindingID, vms, manifest, requestParams, secretsMap, logger)
 
 	if err != nil {
 		logger.Printf("delete binding: %v\n", err)

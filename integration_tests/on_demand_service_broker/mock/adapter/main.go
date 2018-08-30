@@ -145,7 +145,7 @@ func (a *Adapter) CreateBinding(bindingID string, deploymentTopology bosh.BoshVM
 	return credentials, nil
 }
 
-func (a *Adapter) DeleteBinding(bindingID string, deploymentTopology bosh.BoshVMs, manifest bosh.BoshManifest, requestParams serviceadapter.RequestParameters) error {
+func (a *Adapter) DeleteBinding(bindingID string, deploymentTopology bosh.BoshVMs, manifest bosh.BoshManifest, requestParams serviceadapter.RequestParameters, secrets serviceadapter.ManifestSecrets) error {
 	switch os.Getenv(mock.ExitCodeForUnbind) {
 	case mock.BindingNotFoundErrorExitCode:
 		return serviceadapter.NewBindingNotFoundError(nil)

@@ -31,13 +31,14 @@ type FakeServiceAdapterClient struct {
 		result1 serviceadapter.Binding
 		result2 error
 	}
-	DeleteBindingStub        func(bindingID string, deploymentTopology bosh.BoshVMs, manifest []byte, requestParams map[string]interface{}, logger *log.Logger) error
+	DeleteBindingStub        func(bindingID string, deploymentTopology bosh.BoshVMs, manifest []byte, requestParams map[string]interface{}, secretsMap map[string]string, logger *log.Logger) error
 	deleteBindingMutex       sync.RWMutex
 	deleteBindingArgsForCall []struct {
 		bindingID          string
 		deploymentTopology bosh.BoshVMs
 		manifest           []byte
 		requestParams      map[string]interface{}
+		secretsMap         map[string]string
 		logger             *log.Logger
 	}
 	deleteBindingReturns struct {
@@ -142,7 +143,7 @@ func (fake *FakeServiceAdapterClient) CreateBindingReturnsOnCall(i int, result1 
 	}{result1, result2}
 }
 
-func (fake *FakeServiceAdapterClient) DeleteBinding(bindingID string, deploymentTopology bosh.BoshVMs, manifest []byte, requestParams map[string]interface{}, logger *log.Logger) error {
+func (fake *FakeServiceAdapterClient) DeleteBinding(bindingID string, deploymentTopology bosh.BoshVMs, manifest []byte, requestParams map[string]interface{}, secretsMap map[string]string, logger *log.Logger) error {
 	var manifestCopy []byte
 	if manifest != nil {
 		manifestCopy = make([]byte, len(manifest))
@@ -155,12 +156,13 @@ func (fake *FakeServiceAdapterClient) DeleteBinding(bindingID string, deployment
 		deploymentTopology bosh.BoshVMs
 		manifest           []byte
 		requestParams      map[string]interface{}
+		secretsMap         map[string]string
 		logger             *log.Logger
-	}{bindingID, deploymentTopology, manifestCopy, requestParams, logger})
-	fake.recordInvocation("DeleteBinding", []interface{}{bindingID, deploymentTopology, manifestCopy, requestParams, logger})
+	}{bindingID, deploymentTopology, manifestCopy, requestParams, secretsMap, logger})
+	fake.recordInvocation("DeleteBinding", []interface{}{bindingID, deploymentTopology, manifestCopy, requestParams, secretsMap, logger})
 	fake.deleteBindingMutex.Unlock()
 	if fake.DeleteBindingStub != nil {
-		return fake.DeleteBindingStub(bindingID, deploymentTopology, manifest, requestParams, logger)
+		return fake.DeleteBindingStub(bindingID, deploymentTopology, manifest, requestParams, secretsMap, logger)
 	}
 	if specificReturn {
 		return ret.result1
@@ -174,10 +176,10 @@ func (fake *FakeServiceAdapterClient) DeleteBindingCallCount() int {
 	return len(fake.deleteBindingArgsForCall)
 }
 
-func (fake *FakeServiceAdapterClient) DeleteBindingArgsForCall(i int) (string, bosh.BoshVMs, []byte, map[string]interface{}, *log.Logger) {
+func (fake *FakeServiceAdapterClient) DeleteBindingArgsForCall(i int) (string, bosh.BoshVMs, []byte, map[string]interface{}, map[string]string, *log.Logger) {
 	fake.deleteBindingMutex.RLock()
 	defer fake.deleteBindingMutex.RUnlock()
-	return fake.deleteBindingArgsForCall[i].bindingID, fake.deleteBindingArgsForCall[i].deploymentTopology, fake.deleteBindingArgsForCall[i].manifest, fake.deleteBindingArgsForCall[i].requestParams, fake.deleteBindingArgsForCall[i].logger
+	return fake.deleteBindingArgsForCall[i].bindingID, fake.deleteBindingArgsForCall[i].deploymentTopology, fake.deleteBindingArgsForCall[i].manifest, fake.deleteBindingArgsForCall[i].requestParams, fake.deleteBindingArgsForCall[i].secretsMap, fake.deleteBindingArgsForCall[i].logger
 }
 
 func (fake *FakeServiceAdapterClient) DeleteBindingReturns(result1 error) {

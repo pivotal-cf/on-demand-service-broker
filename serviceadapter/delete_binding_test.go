@@ -33,6 +33,7 @@ var _ = Describe("external service adapter", func() {
 		deploymentTopology bosh.BoshVMs
 		manifest           []byte
 		requestParams      map[string]interface{}
+		secrets            map[string]string
 
 		deleteBindingError error
 	)
@@ -49,15 +50,16 @@ var _ = Describe("external service adapter", func() {
 
 		bindingID = "the-binding"
 		deploymentTopology = bosh.BoshVMs{}
-		manifest = []byte("a-manifest")
+		manifest = []byte("property: ((/secret/path))")
 		requestParams = map[string]interface{}{
 			"plan_id":    "some-plan-id",
 			"service_id": "some-service-id",
 		}
+		secrets = map[string]string{"/secret/path": "s3cr3t"}
 	})
 
 	JustBeforeEach(func() {
-		deleteBindingError = a.DeleteBinding(bindingID, deploymentTopology, manifest, requestParams, logger)
+		deleteBindingError = a.DeleteBinding(bindingID, deploymentTopology, manifest, requestParams, secrets, logger)
 	})
 
 	When("UsingStdin is set to false", func() {
@@ -161,6 +163,7 @@ var _ = Describe("external service adapter", func() {
 					BoshVms:           string(serialisedBoshVMs),
 					RequestParameters: string(serialisedRequestParams),
 					Manifest:          string(manifest),
+					Secrets:           toJson(secrets),
 				},
 			}
 

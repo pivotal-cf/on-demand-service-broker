@@ -61,7 +61,7 @@ var _ = Describe("Unbind", func() {
 				},
 			},
 		}
-		boshManifest = []byte(`name: 123`)
+		boshManifest = []byte("name: 123\nsecret: ((/foo/bar))")
 		boshVMs = bosh.BoshVMs{"some-property": []string{"some-value"}}
 		fakeBoshClient.GetDeploymentReturns(boshManifest, true, nil)
 		fakeBoshClient.VMsReturns(boshVMs, nil)
@@ -70,12 +70,19 @@ var _ = Describe("Unbind", func() {
 	})
 
 	It("successfully unbind the service instance", func() {
+
+		secretsMap := map[string]string{"/foo/bar": "some super secret"}
+		fakeCredhubOperator.BulkGetReturns(secretsMap, nil)
+
 		By("retuning the correct status code")
 		resp, _ := doUnbindRequest(instanceID, bindingID, serviceID, dedicatedPlanID)
 		Expect(resp.StatusCode).To(Equal(http.StatusOK))
 
+		Expect(fakeCredhubOperator.BulkGetCallCount()).To(Equal(1))
+
 		By("calling the adapter with the correct arguments")
-		id, deploymentTopology, manifest, requestParams, _ := fakeServiceAdapter.DeleteBindingArgsForCall(0)
+		id, deploymentTopology, manifest, requestParams, actualSecretsMap, _ := fakeServiceAdapter.DeleteBindingArgsForCall(0)
+
 		Expect(id).To(Equal(bindingID))
 		Expect(deploymentTopology).To(Equal(boshVMs))
 		Expect(manifest).To(Equal(boshManifest))
@@ -83,6 +90,7 @@ var _ = Describe("Unbind", func() {
 			"plan_id":    dedicatedPlanID,
 			"service_id": serviceID,
 		}))
+		Expect(actualSecretsMap).To(Equal(secretsMap))
 
 		By("logging the unbind request")
 		Expect(loggerBuffer).To(gbytes.Say("service adapter will delete binding with ID"))

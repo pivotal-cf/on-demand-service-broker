@@ -30,13 +30,15 @@ var _ = Describe("Unbind", func() {
 		planID         = "awesome-plan"
 		deploymentName = broker.InstancePrefix + instanceID
 		boshVms        = bosh.BoshVMs{"redis-server": []string{"an.ip"}}
-		actualManifest = []byte("a valid manifest")
+		actualManifest = []byte("name: foo\npassword: ((/secret/path))")
+		secretsMap     = map[string]string{"/secret/path": "a73ghjdysj3"}
 		unbindErr      error
 	)
 
 	BeforeEach(func() {
 		boshClient.VMsReturns(boshVms, nil)
 		serviceAdapter.DeleteBindingReturns(nil)
+		secretManager.ResolveManifestSecretsReturns(secretsMap, nil)
 		boshClient.GetDeploymentReturns(actualManifest, true, nil)
 	})
 
@@ -51,13 +53,14 @@ var _ = Describe("Unbind", func() {
 		Expect(actualDeploymentName).To(Equal(deploymentName))
 	})
 
-	It("destroys the binding using the bosh topology and admin credentials", func() {
+	It("calls delete-binding on the service adapter client with all expected arguments", func() {
 		Expect(serviceAdapter.DeleteBindingCallCount()).To(Equal(1))
-		passedBindingID, passedVms, passedManifest, passedRequestParams, _ := serviceAdapter.DeleteBindingArgsForCall(0)
+		passedBindingID, passedVms, passedManifest, passedRequestParams, passedSecretsMap, _ := serviceAdapter.DeleteBindingArgsForCall(0)
 		Expect(passedBindingID).To(Equal(bindingID))
 		Expect(passedVms).To(Equal(boshVms))
 		Expect(passedManifest).To(Equal(actualManifest))
 		Expect(passedRequestParams).To(Equal(map[string]interface{}{"service_id": serviceID, "plan_id": planID}))
+		Expect(passedSecretsMap).To(Equal(secretsMap))
 	})
 
 	It("does not error", func() {
@@ -176,6 +179,26 @@ var _ = Describe("Unbind", func() {
 
 		It("returns an error", func() {
 			Expect(unbindErr).To(Equal(brokerapi.ErrInstanceDoesNotExist))
+		})
+	})
+
+	Context("when bosh client cannot return variables for deployment", func() {
+		BeforeEach(func() {
+			boshClient.VariablesReturns(nil, errors.New("oops"))
+		})
+		It("logs a message but calls unbind still", func() {
+			Expect(logBuffer.String()).To(ContainSubstring("failed to retrieve deployment variables"))
+			Expect(serviceAdapter.DeleteBindingCallCount()).To(Equal(1))
+		})
+	})
+
+	Context("when the secretManager cannot resolve manifest secrets", func() {
+		BeforeEach(func() {
+			secretManager.ResolveManifestSecretsReturns(nil, errors.New("oops"))
+		})
+		It("logs a message but calls unbind anyway", func() {
+			Expect(logBuffer.String()).To(ContainSubstring("failed to resolve manifest secrets"))
+			Expect(serviceAdapter.DeleteBindingCallCount()).To(Equal(1))
 		})
 	})
 
