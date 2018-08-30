@@ -44,6 +44,7 @@ var _ = Describe("UAA user credentials for CF", func() {
 		boshDirector.VerifyAndMock(
 			mockbosh.Info().RespondsWithSufficientStemcellVersionForODB(boshDirector.UAAURL),
 			mockbosh.Info().RespondsWithSufficientStemcellVersionForODB(boshDirector.UAAURL),
+			mockbosh.Info().RespondsWithSufficientStemcellVersionForODB(boshDirector.UAAURL),
 		)
 
 		cfUAA = mockuaa.NewUserCredentialsServer(cfClientID, cfClientSecret, cfUsername, cfPassword, "CF UAA token")

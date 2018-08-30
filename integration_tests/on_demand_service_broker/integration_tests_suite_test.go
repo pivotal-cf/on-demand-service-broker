@@ -180,6 +180,7 @@ func startBasicBrokerWithPassingStartupChecks(
 	boshDirector.VerifyAndMock(
 		mockbosh.Info().RespondsWithSufficientVersionForLifecycleErrands(boshDirector.UAAURL),
 		mockbosh.Info().RespondsWithSufficientVersionForLifecycleErrands(boshDirector.UAAURL),
+		mockbosh.Info().RespondsWithSufficientVersionForLifecycleErrands(boshDirector.UAAURL),
 	)
 	return startBroker(conf)
 }

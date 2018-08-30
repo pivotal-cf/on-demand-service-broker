@@ -104,6 +104,7 @@ var _ = Describe("Basic authentication for BOSH", func() {
 			adapter.GenerateManifest().ToReturnManifest(manifestYAML)
 			boshDirector.VerifyAndMock(
 				mockbosh.Info().RespondsOKForBasicAuth(),
+				mockbosh.Info().RespondsOKForBasicAuth(),
 				mockbosh.Info().RespondsUnauthorizedWith("{}"),
 				mockbosh.Info().RespondsOKForBasicAuth(),
 			)
