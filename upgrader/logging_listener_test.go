@@ -138,8 +138,8 @@ var _ = Describe("Logging Listener", func() {
 				result = services.InstanceNotFound
 			})
 
-			It("shows already deleted in CF", func() {
-				Expect(buffer).To(Say(`\[service-instance\] Result: already deleted in CF`))
+			It("shows already deleted from platform", func() {
+				Expect(buffer).To(Say(`\[service-instance\] Result: already deleted from platform`))
 			})
 		})
 
@@ -148,8 +148,8 @@ var _ = Describe("Logging Listener", func() {
 				result = services.OrphanDeployment
 			})
 
-			It("shows already deleted in CF", func() {
-				Expect(buffer).To(Say(`\[service-instance\] Result: orphan CF service instance detected - no corresponding bosh deployment`))
+			It("shows already deleted from platform", func() {
+				Expect(buffer).To(Say(`\[service-instance\] Result: orphan service instance detected - no corresponding bosh deployment`))
 			})
 		})
 
@@ -158,7 +158,7 @@ var _ = Describe("Logging Listener", func() {
 				result = services.OperationInProgress
 			})
 
-			It("shows already deleted in CF", func() {
+			It("shows already deleted from platform", func() {
 				Expect(buffer).To(Say(`\[service-instance\] Result: operation in progress`))
 			})
 		})
@@ -168,7 +168,7 @@ var _ = Describe("Logging Listener", func() {
 				result = services.UpgradeOperationType(-1)
 			})
 
-			It("shows already deleted in CF", func() {
+			It("shows already deleted from platform", func() {
 				Expect(buffer).To(Say(`\[service-instance\] Result: unexpected result`))
 			})
 		})
@@ -191,7 +191,7 @@ var _ = Describe("Logging Listener", func() {
 
 		Expect(buffer).To(Say("Sleep interval until next attempt: 10s"))
 		Expect(buffer).To(Say("Number of successful upgrades so far: 345"))
-		Expect(buffer).To(Say("Number of CF service instance orphans detected so far: 234"))
+		Expect(buffer).To(Say("Number of service instance orphans detected so far: 234"))
 		Expect(buffer).To(Say("Number of deleted instances before upgrade could occur: 567"))
 		Expect(buffer).To(Say("Number of operations in progress \\(to retry\\) so far: 456"))
 	})
@@ -203,7 +203,7 @@ var _ = Describe("Logging Listener", func() {
 
 		Expect(buffer).To(Say("FINISHED UPGRADES Status: SUCCESS; Summary"))
 		Expect(buffer).To(Say("Number of successful upgrades: 34"))
-		Expect(buffer).To(Say("Number of CF service instance orphans detected: 23"))
+		Expect(buffer).To(Say("Number of service instance orphans detected: 23"))
 		Expect(buffer).To(Say("Number of deleted instances before upgrade could occur: 45"))
 		Expect(buffer).To(Say("Number of busy instances which could not be upgraded: 0"))
 		Expect(buffer).To(Say("Number of service instances that failed to upgrade: 0"))
@@ -218,7 +218,7 @@ var _ = Describe("Logging Listener", func() {
 
 		Expect(buffer).To(Say("FINISHED UPGRADES Status: FAILED; Summary"))
 		Expect(buffer).To(Say("Number of successful upgrades: 34"))
-		Expect(buffer).To(Say("Number of CF service instance orphans detected: 23"))
+		Expect(buffer).To(Say("Number of service instance orphans detected: 23"))
 		Expect(buffer).To(Say("Number of deleted instances before upgrade could occur: 45"))
 		Expect(buffer).To(Say("Number of busy instances which could not be upgraded: 56"))
 		Expect(buffer).To(Say("Number of service instances that failed to upgrade: 0"))
@@ -232,7 +232,7 @@ var _ = Describe("Logging Listener", func() {
 
 		Expect(buffer).To(Say("FINISHED UPGRADES Status: FAILED; Summary"))
 		Expect(buffer).To(Say("Number of successful upgrades: 34"))
-		Expect(buffer).To(Say("Number of CF service instance orphans detected: 23"))
+		Expect(buffer).To(Say("Number of service instance orphans detected: 23"))
 		Expect(buffer).To(Say("Number of deleted instances before upgrade could occur: 45"))
 		Expect(buffer).To(Say(`Number of busy instances which could not be upgraded: 1 \[foo\]`))
 		Expect(buffer).To(Say(`Number of service instances that failed to upgrade: 1 \[2f9752c3\-887b\-4ccb\-8693\-7c15811ffbdd\]`))
@@ -245,7 +245,7 @@ var _ = Describe("Logging Listener", func() {
 
 		Expect(buffer).To(Say("FINISHED UPGRADES Status: FAILED; Summary"))
 		Expect(buffer).To(Say("Number of successful upgrades: 34"))
-		Expect(buffer).To(Say("Number of CF service instance orphans detected: 23"))
+		Expect(buffer).To(Say("Number of service instance orphans detected: 23"))
 		Expect(buffer).To(Say("Number of deleted instances before upgrade could occur: 45"))
 		Expect(buffer).To(Say("Number of busy instances which could not be upgraded: 56"))
 		Expect(buffer).To(Say(`Number of service instances that failed to upgrade: 2 \[2f9752c3\-887b\-4ccb\-8693\-7c15811ffbdd, 7a2c7adb\-1d47\-4355\-af39\-41c5a2892b92\]`))

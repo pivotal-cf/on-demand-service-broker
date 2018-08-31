@@ -70,9 +70,9 @@ func (ll LoggingListener) InstanceUpgradeStartResult(instance string, resultType
 	case services.UpgradeAccepted:
 		message = "accepted upgrade"
 	case services.InstanceNotFound:
-		message = "already deleted in CF"
+		message = "already deleted from platform"
 	case services.OrphanDeployment:
-		message = "orphan CF service instance detected - no corresponding bosh deployment"
+		message = "orphan service instance detected - no corresponding bosh deployment"
 	case services.OperationInProgress:
 		message = "operation in progress"
 	default:
@@ -94,7 +94,7 @@ func (ll LoggingListener) Progress(pollingInterval time.Duration, orphanCount, u
 	ll.logger.Printf("Upgrade progress summary: "+
 		"Sleep interval until next attempt: %s; "+
 		"Number of successful upgrades so far: %d; "+
-		"Number of CF service instance orphans detected so far: %d; "+
+		"Number of service instance orphans detected so far: %d; "+
 		"Number of deleted instances before upgrade could occur: %d; "+
 		"Number of operations in progress (to retry) so far: %d",
 		pollingInterval,
@@ -122,7 +122,7 @@ func (ll LoggingListener) Finished(orphanCount, upgradedCount, deletedCount int,
 
 	ll.logger.Printf("FINISHED UPGRADES Status: %s; Summary: "+
 		"Number of successful upgrades: %d; "+
-		"Number of CF service instance orphans detected: %d; "+
+		"Number of service instance orphans detected: %d; "+
 		"Number of deleted instances before upgrade could occur: %d; "+
 		"Number of busy instances which could not be upgraded: %d%s; "+
 		"Number of service instances that failed to upgrade: %d%s",
