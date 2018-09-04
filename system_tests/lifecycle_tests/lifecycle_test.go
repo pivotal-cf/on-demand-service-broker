@@ -8,11 +8,12 @@ package lifecycle_tests
 
 import (
 	"crypto/tls"
-	"encoding/json"
 	"fmt"
 	"regexp"
 	"strings"
 	"time"
+
+	"encoding/json"
 
 	"github.com/cloudfoundry/noaa/consumer"
 	"github.com/cloudfoundry/sonde-go/events"
@@ -29,10 +30,6 @@ var _ = Describe("On-demand service broker", func() {
 		return fmt.Sprintf("instance-%s", uuid.New()[:7])
 	}
 
-	unbindService := func(testAppName, serviceName string) {
-		Eventually(cf.Cf("unbind-service", testAppName, serviceName), cf.CfTimeout).Should(gexec.Exit(0))
-	}
-
 	testCrud := func(testAppURL string) {
 		cf.PutToTestApp(testAppURL, "foo", "bar")
 		Expect(cf.GetFromTestApp(testAppURL, "foo")).To(Equal("bar"))
@@ -46,19 +43,10 @@ var _ = Describe("On-demand service broker", func() {
 		Expect(cf.PopFromTestAppQueue(testAppURL, queue)).To(Equal("bar"))
 	}
 
-	updateServiceWithArbParams := func(serviceName string, arbitraryParams json.RawMessage) {
-		Eventually(cf.Cf("update-service", serviceName, "-c", string(arbitraryParams)), cf.CfTimeout).Should(gexec.Exit(0))
-		cf.AwaitServiceUpdate(serviceName)
-	}
-
-	cfCmdOutput := func(cfArgs ...string) string {
-		cmd := cf.Cf(cfArgs...)
-		Eventually(cmd, cf.CfTimeout).Should(gexec.Exit(0))
-		return string(cmd.Buffer().Contents())
-	}
-
 	getOAuthToken := func() string {
-		oauthTokenOutput := cfCmdOutput("oauth-token")
+		cmd := cf.Cf("oauth-token")
+		Eventually(cmd, cf.CfTimeout).Should(gexec.Exit(0))
+		oauthTokenOutput := string(cmd.Buffer().Contents())
 		oauthTokenRe := regexp.MustCompile(`(?m)^bearer .*$`)
 		authToken := oauthTokenRe.FindString(oauthTokenOutput)
 		Expect(authToken).ToNot(BeEmpty())
@@ -106,15 +94,19 @@ var _ = Describe("On-demand service broker", func() {
 		}
 	}
 
-	testCredhubRef := func(appName string) {
-		By("ensuring credential in app env is credhub-ref")
-		bindingCredentials, err := cf.AppBindingCreds(appName, serviceOffering)
-		Expect(err).NotTo(HaveOccurred())
-		credMap, ok := bindingCredentials.(map[string]interface{})
-		Expect(ok).To(BeTrue())
-		credhubRef, ok := credMap["credhub-ref"].(string)
-		Expect(ok).To(BeTrue(), fmt.Sprintf("unable to find credhub-ref in credentials %+v", credMap))
-		Expect(credhubRef).To(ContainSubstring("/c/%s", serviceID))
+	testBindingWithDNS := func(serviceKeyRaw, bindingDNSAttribute string) {
+		serviceKeyWithoutMessageSlice := strings.Split(serviceKeyRaw, "\n")[1:]
+		onlyServiceKey := strings.Join(serviceKeyWithoutMessageSlice, "\n")
+		var serviceKey map[string]interface{}
+		json.Unmarshal([]byte(onlyServiceKey), &serviceKey)
+
+		dnsInfo, ok := serviceKey[bindingDNSAttribute]
+		Expect(ok).To(BeTrue(), fmt.Sprintf("%s not returned in binding", bindingDNSAttribute))
+
+		dnsInfoMap, ok := dnsInfo.(map[string]interface{})
+		Expect(ok).To(BeTrue(), fmt.Sprintf("Unable to convert dns info to map[string]interface{}, got:%t", dnsInfo))
+
+		Expect(len(dnsInfoMap)).To(BeNumerically(">", 0))
 	}
 
 	lifecycle := func(t LifecycleTest) {
@@ -137,16 +129,19 @@ var _ = Describe("On-demand service broker", func() {
 			By("allowing an app to bind to the service instance")
 			testAppURL := cf.PushAndBindApp(testAppName, serviceName, exampleAppPath)
 			defer func() {
-				Eventually(cf.Cf(
-					"delete",
-					testAppName,
-					"-f",
-					"-r",
-				), cf.CfTimeout).Should(gexec.Exit())
+				Eventually(cf.Cf("delete", testAppName, "-f", "-r"), cf.CfTimeout).Should(gexec.Exit())
 			}()
 
 			if shouldTestCredhubRef {
-				testCredhubRef(testAppName)
+				By("ensuring credential in app env is credhub-ref", func() {
+					bindingCredentials, err := cf.AppBindingCreds(testAppName, serviceOffering)
+					Expect(err).NotTo(HaveOccurred())
+					credMap, ok := bindingCredentials.(map[string]interface{})
+					Expect(ok).To(BeTrue())
+					credhubRef, ok := credMap["credhub-ref"].(string)
+					Expect(ok).To(BeTrue(), fmt.Sprintf("unable to find credhub-ref in credentials %+v", credMap))
+					Expect(credhubRef).To(ContainSubstring("/c/%s", serviceID))
+				})
 			}
 
 			By("providing a functional service instance")
@@ -189,14 +184,15 @@ var _ = Describe("On-demand service broker", func() {
 
 			if len(t.ArbitraryParams) > 0 {
 				By(fmt.Sprintf("allowing to update the service instance with arbitrary params: '%s'", string(t.ArbitraryParams)))
-				updateServiceWithArbParams(serviceName, t.ArbitraryParams)
+				Eventually(cf.Cf("update-service", serviceName, "-c", string(t.ArbitraryParams)), cf.CfTimeout).Should(gexec.Exit(0))
+				cf.AwaitServiceUpdate(serviceName)
 
 				By("providing a functional service instance post-update")
 				testServiceWithExampleApp(exampleAppType, testAppURL)
 			}
 
 			By("allowing the app to be unbound from the service instance")
-			unbindService(testAppName, serviceName)
+			Eventually(cf.Cf("unbind-service", testAppName, serviceName), cf.CfTimeout).Should(gexec.Exit(0))
 
 			By("deleting the service key")
 			Eventually(
@@ -215,21 +211,6 @@ var _ = Describe("On-demand service broker", func() {
 })
 
 type GinkgoFirehosePrinter struct{}
-
-func testBindingWithDNS(serviceKeyRaw, bindingDNSAttribute string) {
-	serviceKeyWithoutMessageSlice := strings.Split(serviceKeyRaw, "\n")[1:]
-	onlyServiceKey := strings.Join(serviceKeyWithoutMessageSlice, "\n")
-	var serviceKey map[string]interface{}
-	json.Unmarshal([]byte(onlyServiceKey), &serviceKey)
-
-	dnsInfo, ok := serviceKey[bindingDNSAttribute]
-	Expect(ok).To(BeTrue(), fmt.Sprintf("%s not returned in binding", bindingDNSAttribute))
-
-	dnsInfoMap, ok := dnsInfo.(map[string]interface{})
-	Expect(ok).To(BeTrue(), fmt.Sprintf("Unable to convert dns info to map[string]interface{}, got:%t", dnsInfo))
-
-	Expect(len(dnsInfoMap)).To(BeNumerically(">", 0))
-}
 
 func (c GinkgoFirehosePrinter) Print(title, dump string) {
 	fmt.Fprintf(GinkgoWriter, "firehose: %s\n---%s\n---\n", title, dump)
