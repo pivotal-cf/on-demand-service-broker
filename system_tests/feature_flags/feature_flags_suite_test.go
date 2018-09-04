@@ -96,7 +96,7 @@ func modifyBrokerManifest(manifest bosh.BoshManifest) bosh.BoshManifest {
 	serviceCatalog := brokerJob.Properties["service_catalog"].(map[interface{}]interface{})
 	plan := serviceCatalog["plans"].([]interface{})[0].(map[interface{}]interface{})
 	plan["name"] = "invalid-vm-type"
-	plan["plan_id"] = "invalid-vm-type-id"
+	plan["plan_id"] = "invalid-vm-type-id" + uuid.New()[:7]
 	instanceGroup := plan["instance_groups"].([]interface{})[0].(map[interface{}]interface{})
 	instanceGroup["vm_type"] = "invalid-vm-type"
 
