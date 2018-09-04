@@ -1,12 +1,18 @@
 package feature_flags_test
 
 import (
+	"fmt"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/pborman/uuid"
 	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/cf_helpers"
+)
+
+const (
+	orphanDeploymentsDetectedExitCode = 10
 )
 
 var _ = Describe("FeatureFlags", func() {
@@ -20,7 +26,15 @@ var _ = Describe("FeatureFlags", func() {
 
 			for _, errand := range errands {
 				By("running " + errand)
-				boshClient.RunErrand(brokerBoshDeploymentName, errand, []string{}, "")
+				if errand == "orphan-deployments" {
+					output := boshClient.RunErrandWithoutCheckingSuccess(brokerBoshDeploymentName, errand, []string{}, "")
+					Expect(output.ExitCode).To(
+						Or(BeZero(), Equal(orphanDeploymentsDetectedExitCode)),
+						fmt.Sprintf("STDOUT:\n%s\n----\nSTDERR:\n%s\n\n", output.StdOut, output.StdErr),
+					)
+				} else {
+					boshClient.RunErrand(brokerBoshDeploymentName, errand, []string{}, "")
+				}
 			}
 		})
 	})
