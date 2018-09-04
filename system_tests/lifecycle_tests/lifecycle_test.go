@@ -122,7 +122,7 @@ var _ = Describe("On-demand service broker", func() {
 			serviceKey := cf.GetServiceKey(serviceName, serviceKeyName)
 			Expect(serviceKey).NotTo(BeNil())
 
-			if t.BindingDNSAttribute != "" {
+			if t.BindingDNSAttribute != "" && shouldTestBindingWithDNS {
 				testBindingWithDNS(serviceKey, t.BindingDNSAttribute)
 			}
 
