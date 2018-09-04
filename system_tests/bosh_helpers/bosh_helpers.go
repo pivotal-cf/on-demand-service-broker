@@ -173,7 +173,7 @@ func (b *BoshHelperClient) DeployODB(manifest bosh.BoshManifest) {
 	Expect(task.StateType()).To(Equal(boshdirector.TaskComplete))
 
 	// wait for Broker Route Registration Interval
-	time.Sleep(20 * time.Second)
+	time.Sleep(30 * time.Second)
 }
 
 func (b *BoshHelperClient) DeploymentExists(deploymentName string) bool {
