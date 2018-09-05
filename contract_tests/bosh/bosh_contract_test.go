@@ -41,7 +41,7 @@ var _ = Describe("BOSH client", func() {
 	)
 
 	BeforeEach(func() {
-		SetDefaultEventuallyTimeout(1 * time.Minute)
+		SetDefaultEventuallyTimeout(30 * time.Minute)
 		boshClient = NewBOSHClient()
 		logger = loggerfactory.New(GinkgoWriter, "contract-test", loggerfactory.Flags).New()
 		deploymentName = "bill-" + uuid.New()
