@@ -69,7 +69,6 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = AfterSuite(func() {
-	boshClient.RunErrand(brokerBoshDeploymentName, "delete-all-service-instances-and-deregister-broker", []string{}, "")
 	boshClient.DeployODB(*originalBrokerManifest)
 	boshClient.RunErrand(brokerBoshDeploymentName, "register-broker", []string{}, "")
 })
