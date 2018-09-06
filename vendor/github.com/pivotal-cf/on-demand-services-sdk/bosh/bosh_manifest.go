@@ -49,10 +49,31 @@ type Addon struct {
 	Jobs []Job  `yaml:"jobs"`
 }
 
+// Variable represents a variable in the `variables` block of a BOSH manifest
 type Variable struct {
 	Name    string                 `yaml:"name"`
 	Type    string                 `yaml:"type"`
 	Options map[string]interface{} `yaml:"options,omitempty"`
+
+	// Variables of type `certificate` can optionally be configured with a
+	// `consumes` block, so generated certificates can be created with automatic
+	// BOSH DNS records in their Common Name and/or Subject Alternative Names.
+	//
+	// Should be used in conjunction to the `custom_provider_definitions` block in
+	// a Job.
+	//
+	// Requires BOSH v267+
+	Consumes *VariableConsumes `yaml:"consumes,omitempty"`
+}
+
+type VariableConsumes struct {
+	AlternativeName VariableConsumesLink `yaml:"alternative_name,omitempty"`
+	CommonName      VariableConsumesLink `yaml:"common_name,omitempty"`
+}
+
+type VariableConsumesLink struct {
+	From       string                 `yaml:"from"`
+	Properties map[string]interface{} `yaml:"properties,omitempty"`
 }
 
 type Release struct {

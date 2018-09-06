@@ -16,11 +16,18 @@
 package bosh
 
 type Job struct {
-	Name       string                  `yaml:"name"`
-	Release    string                  `yaml:"release"`
-	Provides   map[string]ProvidesLink `yaml:"provides,omitempty"`
-	Consumes   map[string]interface{}  `yaml:"consumes,omitempty"`
-	Properties map[string]interface{}  `yaml:"properties,omitempty"`
+	Name                      string                     `yaml:"name"`
+	Release                   string                     `yaml:"release"`
+	Provides                  map[string]ProvidesLink    `yaml:"provides,omitempty"`
+	Consumes                  map[string]interface{}     `yaml:"consumes,omitempty"`
+	CustomProviderDefinitions []CustomProviderDefinition `yaml:"custom_provider_definitions,omitempty"`
+	Properties                map[string]interface{}     `yaml:"properties,omitempty"`
+}
+
+type CustomProviderDefinition struct {
+	Name       string   `yaml:"name"`
+	Type       string   `yaml:"type"`
+	Properties []string `yaml:"properties,omitempty"`
 }
 
 type ProvidesLink struct {
@@ -32,6 +39,17 @@ type ConsumesLink struct {
 	From       string `yaml:"from,omitempty"`
 	Deployment string `yaml:"deployment,omitempty"`
 	Network    string `yaml:"network,omitempty"`
+}
+
+func (j Job) AddCustomProviderDefinition(name, providerType string, properties []string) Job {
+	if j.CustomProviderDefinitions == nil {
+		j.CustomProviderDefinitions = []CustomProviderDefinition{}
+	}
+	j.CustomProviderDefinitions = append(
+		j.CustomProviderDefinitions,
+		CustomProviderDefinition{Name: name, Type: providerType, Properties: properties},
+	)
+	return j
 }
 
 func (j Job) AddSharedProvidesLink(name string) Job {
