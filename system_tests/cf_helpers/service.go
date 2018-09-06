@@ -67,7 +67,11 @@ func AwaitServiceCreationWithTimeout(serviceName string, timeout time.Duration) 
 }
 
 func AwaitServiceDeletion(serviceName string) {
-	awaitServicesOperation(serviceName, Not(ContainSubstring(serviceName)))
+	awaitServiceOperation(cfService(serviceName),
+		ContainSubstring(fmt.Sprintf("Service instance %s not found", serviceName)),
+		ContainSubstring("failed"),
+		LongCfTimeout,
+	)
 }
 
 func AwaitServiceUpdate(serviceName string) {
@@ -97,44 +101,6 @@ func AwaitServiceDeletionFailure(serviceName string) {
 	)
 }
 
-func awaitServicesOperation(serviceName string, successMessageMatcher types.GomegaMatcher) {
-	cfCommand := func() *gexec.Session {
-		return Cf("services")
-	}
-
-	Eventually(func() bool {
-		session := cfCommand()
-		Eventually(session, CfTimeout).Should(gexec.Exit(), "'cf services' command timed out")
-
-		contents := session.Buffer().Contents()
-
-		if strings.Contains(string(contents), "FAILED") &&
-			(strings.Contains(string(contents), "Server error, status code:") || strings.Contains(string(contents), "Error reading response")) {
-			time.Sleep(time.Second * 5)
-			return false
-		}
-
-		match, err := successMessageMatcher.Match(contents)
-		if err != nil {
-			Fail(err.Error())
-		}
-
-		if match {
-			return true
-		}
-
-		lines := strings.Split(string(contents), "\n")
-		for _, line := range lines {
-			if strings.Contains(line, serviceName) && strings.Contains(line, "failed") {
-				Fail(fmt.Sprintf("cf operation on service instance '%s' failed:\n"+string(contents), serviceName))
-			}
-		}
-
-		time.Sleep(time.Second * 5)
-		return false
-	}, LongCfTimeout).Should(BeTrue())
-}
-
 func awaitServiceOperation(
 	cfCommand func() *gexec.Session,
 	successMessageMatcher types.GomegaMatcher,
@@ -145,7 +111,11 @@ func awaitServiceOperation(
 		session := cfCommand()
 		Eventually(session, CfTimeout).Should(gexec.Exit(), "'cf service' command timed out")
 
-		contents := session.Buffer().Contents()
+		contentsOut := session.Out.Contents()
+		contentsErr := session.Err.Contents()
+		contentsOut = append(contentsOut, byte(0))
+		contents := append(contentsOut, contentsErr...)
+		session.Buffer()
 
 		match, err := successMessageMatcher.Match(contents)
 		if err != nil {

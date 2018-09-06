@@ -24,8 +24,8 @@ var _ = Describe("quotas", func() {
 	)
 
 	var (
-		instanceA = fmt.Sprintf("instance-%s", uuid.New()[:7])
-		instanceB = fmt.Sprintf("instance-%s", uuid.New()[:7])
+		instanceA = fmt.Sprintf("instanceA-%s", uuid.New()[:7])
+		instanceB = fmt.Sprintf("instanceB-%s", uuid.New()[:7])
 	)
 
 	Describe("plan quotas", func() {
@@ -89,7 +89,7 @@ var _ = Describe("quotas", func() {
 			globalQuotaTemplate = "global instance limit exceeded for service ID: %s. Total instances: %d"
 		)
 
-		var instanceC = fmt.Sprintf("instance-%s", uuid.New()[:7])
+		var instanceC = fmt.Sprintf("instanceC-%s", uuid.New()[:7])
 
 		Context("when the global limit is reached", func() {
 			BeforeEach(func() {
