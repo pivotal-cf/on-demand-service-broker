@@ -124,23 +124,22 @@ var _ = Describe("BOSH Director Version Checker", func() {
 					},
 				}
 			})
-			It("errors when the BOSH version does not support", func() {
-				boshInfo := createBOSHInfoWithMajorVersion(
-					266,
-					boshdirector.VersionType("semver"),
-				)
-				c := createBOSHDirectorVersionChecker(boshInfo, serviceCatalog)
-				err := c.Check()
-				Expect(err).To(MatchError("BOSH Director error: API version for 'binding_with_dns' feature is insufficient. This feature requires BOSH v266.3+ (got v266.1.0)"))
+
+			It("errors when the minimum BOSH version is not satisfied", func() {
+				for _, v := range []string{"265.0.0", "266.11.0", "267.5.0"} {
+					boshInfo := boshdirector.Info{Version: v}
+					c := createBOSHDirectorVersionChecker(boshInfo, serviceCatalog)
+					err := c.Check()
+					Expect(err).To(MatchError(fmt.Sprintf("BOSH Director error: API version for 'binding_with_dns' feature is insufficient. This feature requires BOSH v266.12+ / v267.6+ (got v%s)", v)), fmt.Sprintf("Expected error for version %s", v))
+				}
 			})
 
-			It("succeed when the BOSH version supports", func() {
-				boshInfo := createBOSHInfoWithMajorVersion(
-					267,
-					boshdirector.VersionType("semver"),
-				)
-				c := createBOSHDirectorVersionChecker(boshInfo, serviceCatalog)
-				Expect(c.Check()).To(Succeed())
+			It("succeed when the minimum BOSH version is satisfied", func() {
+				for _, v := range []string{"266.12.0", "267.6.0", "268.0.0"} {
+					boshInfo := boshdirector.Info{Version: v}
+					c := createBOSHDirectorVersionChecker(boshInfo, serviceCatalog)
+					Expect(c.Check()).To(Succeed(), fmt.Sprintf("Expected version %s to succeed", v))
+				}
 			})
 		})
 
@@ -178,7 +177,6 @@ func createBOSHDirectorVersionChecker(boshInfo boshdirector.Info, catalog config
 	return NewBOSHDirectorVersionChecker(
 		broker.MinimumMajorStemcellDirectorVersionForODB,
 		broker.MinimumMajorSemverDirectorVersionForLifecycleErrands,
-		broker.MinimumSemverVersionForBindingWithDNS,
 		boshInfo,
 		config.Config{ServiceCatalog: catalog},
 	)

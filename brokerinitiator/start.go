@@ -136,7 +136,6 @@ func buildStartupChecks(conf config.Config, cfClient broker.CloudFoundryClient, 
 		startupchecker.NewBOSHDirectorVersionChecker(
 			broker.MinimumMajorStemcellDirectorVersionForODB,
 			broker.MinimumMajorSemverDirectorVersionForLifecycleErrands,
-			broker.MinimumSemverVersionForBindingWithDNS,
 			boshInfo,
 			conf,
 		),

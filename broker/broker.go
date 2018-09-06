@@ -105,7 +105,6 @@ const (
 	MinimumCFVersion                                     = "2.57.0"
 	MinimumMajorStemcellDirectorVersionForODB            = 3262
 	MinimumMajorSemverDirectorVersionForLifecycleErrands = 261
-	MinimumSemverVersionForBindingWithDNS                = "266.3.0"
 )
 
 type OperationType string

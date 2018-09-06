@@ -34,14 +34,12 @@ type BOSHDirectorVersionChecker struct {
 func NewBOSHDirectorVersionChecker(
 	minimumMajorStemcellDirectorVersionForODB int,
 	minimumMajorSemverDirectorVersionForLifecycleErrands int,
-	minimumSemverVersionForBindingWithDNS string,
 	boshInfo boshdirector.Info,
 	config config.Config,
 ) *BOSHDirectorVersionChecker {
 	return &BOSHDirectorVersionChecker{
 		minimumMajorStemcellDirectorVersionForODB:            minimumMajorStemcellDirectorVersionForODB,
 		minimumMajorSemverDirectorVersionForLifecycleErrands: minimumMajorSemverDirectorVersionForLifecycleErrands,
-		minimumSemverVersionForBindingWithDNS:                *semver.New(minimumSemverVersionForBindingWithDNS),
 		boshInfo:     boshInfo,
 		brokerConfig: config,
 	}
@@ -58,7 +56,7 @@ func (c *BOSHDirectorVersionChecker) Check() error {
 		return fmt.Errorf("%sAPI version is insufficient, ODB requires BOSH v257+.", errPrefix)
 	}
 	if c.brokerConfig.HasBindingWithDNSConfigured() && !c.directorVersionSufficientForBindingWithDNS(directorVersion) {
-		return fmt.Errorf("%sAPI version for 'binding_with_dns' feature is insufficient. This feature requires BOSH v266.3+ (got v%s)", errPrefix, directorVersion.Version)
+		return fmt.Errorf("%sAPI version for 'binding_with_dns' feature is insufficient. This feature requires BOSH v266.12+ / v267.6+ (got v%s)", errPrefix, directorVersion.Version)
 	}
 	if c.brokerConfig.ServiceCatalog.HasLifecycleErrands() && !c.directorVersionSufficientForLifecycleErrands(directorVersion) {
 		return fmt.Errorf(
@@ -77,8 +75,22 @@ func (c *BOSHDirectorVersionChecker) directorVersionSufficientForODB(directorVer
 }
 
 func (c *BOSHDirectorVersionChecker) directorVersionSufficientForBindingWithDNS(directorVersion boshdirector.Version) bool {
-	return directorVersion.Type == boshdirector.SemverDirectorVersionType &&
-		c.minimumSemverVersionForBindingWithDNS.Compare(directorVersion.Version) <= 0
+	if directorVersion.Type == boshdirector.SemverDirectorVersionType {
+		if directorVersion.Version.Major < 266 {
+			return false
+		}
+
+		if directorVersion.Version.Major == 266 && directorVersion.Version.Minor < 12 {
+			return false
+		}
+
+		if directorVersion.Version.Major == 267 && directorVersion.Version.Minor < 6 {
+			return false
+		}
+
+		return true
+	}
+	return false
 }
 
 func (c *BOSHDirectorVersionChecker) directorVersionSufficientForLifecycleErrands(directorVersion boshdirector.Version) bool {

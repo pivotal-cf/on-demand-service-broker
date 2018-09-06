@@ -547,9 +547,9 @@ var _ = Describe("Startup", func() {
 		Context("with a sufficient semver version for binding_with_dns", func() {
 			BeforeEach(func() {
 				boshDirector.VerifyAndMock(
-					mockbosh.Info().RespondsWithVersion("266.3.0 (00000000)", boshDirector.UAAURL),
-					mockbosh.Info().RespondsWithVersion("266.3.0 (00000000)", boshDirector.UAAURL),
-					mockbosh.Info().RespondsWithVersion("266.3.0 (00000000)", boshDirector.UAAURL),
+					mockbosh.Info().RespondsWithVersion("266.12.0 (00000000)", boshDirector.UAAURL),
+					mockbosh.Info().RespondsWithVersion("266.12.0 (00000000)", boshDirector.UAAURL),
+					mockbosh.Info().RespondsWithVersion("266.12.0 (00000000)", boshDirector.UAAURL),
 				)
 				cfAPI.VerifyAndMock(
 					mockcfapi.GetInfo().RespondsWithSufficientAPIVersion(),
@@ -661,9 +661,9 @@ var _ = Describe("Startup", func() {
 		Context("with insufficient BOSH version for 'binding_with_dns'", func() {
 			BeforeEach(func() {
 				boshDirector.VerifyAndMock(
-					mockbosh.Info().RespondsWithVersion("260.0.0 (00000000)", boshDirector.UAAURL),
-					mockbosh.Info().RespondsWithVersion("260.0.0 (00000000)", boshDirector.UAAURL),
-					mockbosh.Info().RespondsWithVersion("260.0.0 (00000000)", boshDirector.UAAURL),
+					mockbosh.Info().RespondsWithVersion("266.11.0 (00000000)", boshDirector.UAAURL),
+					mockbosh.Info().RespondsWithVersion("266.11.0 (00000000)", boshDirector.UAAURL),
+					mockbosh.Info().RespondsWithVersion("266.11.0 (00000000)", boshDirector.UAAURL),
 				)
 				cfAPI.VerifyAndMock(
 					mockcfapi.GetInfo().RespondsWithSufficientAPIVersion(),
@@ -677,7 +677,7 @@ var _ = Describe("Startup", func() {
 				}
 				runningBroker = startBrokerWithoutPortCheck(conf)
 
-				Eventually(runningBroker.Out).Should(gbytes.Say("BOSH Director error: API version for 'binding_with_dns' feature is insufficient. This feature requires BOSH v266.3+"))
+				Eventually(runningBroker.Out).Should(gbytes.Say(`BOSH Director error: API version for 'binding_with_dns' feature is insufficient. This feature requires BOSH v266.12\+ / v267.6\+`))
 
 				Eventually(runningBroker).Should(gexec.Exit())
 				Expect(runningBroker.ExitCode()).ToNot(Equal(0))
