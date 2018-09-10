@@ -17,6 +17,7 @@ package bosh_test
 
 import (
 	"fmt"
+	"regexp"
 	"time"
 
 	"log"
@@ -115,9 +116,24 @@ var _ = Describe("BOSH client", func() {
 			By("pulling the bosh variables", func() {
 				variables, err := boshClient.Variables(deploymentName, logger)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(variables).To(HaveLen(2))
-				Expect(variables[0].Path).To(ContainSubstring("a-var"))
-				Expect(variables[1].Path).To(MatchRegexp("my-cert$"))
+
+				odbVar1Matcher, err := regexp.Compile("a-var$")
+				Expect(err).NotTo(HaveOccurred())
+				odbVar2Matcher, err := regexp.Compile("my-cert$")
+				Expect(err).NotTo(HaveOccurred())
+
+				var var1Found bool
+				var var2Found bool
+
+				for _, variable := range variables {
+					if odbVar1Matcher.Match([]byte(variable.Path)) {
+						var1Found = true
+					} else if odbVar2Matcher.Match([]byte(variable.Path)) {
+						var2Found = true
+					}
+				}
+				Expect(var1Found).To(BeTrue())
+				Expect(var2Found).To(BeTrue())
 			})
 
 			By("running an errand", func() {
