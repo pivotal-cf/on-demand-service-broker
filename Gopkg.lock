@@ -346,15 +346,15 @@
   version = "v1.1"
 
 [[projects]]
-  digest = "1:e762f1ba1f127c77f831e96bd8fc85a866421eae05be939b153f4b35a4bde02d"
+  digest = "1:e9318e10b2c07e6d28d6da640be6afaff2f2584296ba2a21e921ec27d30e64c1"
   name = "github.com/pivotal-cf/brokerapi"
   packages = [
     ".",
     "auth",
   ]
   pruneopts = "NUT"
-  revision = "633c7acd4d3a4d5e787c17728ea18b20681bf471"
-  version = "v2.0.3"
+  revision = "1d947bc993fc9a770418577540bebabb8657980a"
+  version = "v2.0.5"
 
 [[projects]]
   branch = "master"

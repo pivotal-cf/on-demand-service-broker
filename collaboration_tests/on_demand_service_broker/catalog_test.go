@@ -18,6 +18,7 @@ package on_demand_service_broker_test
 import (
 	"errors"
 	"fmt"
+	"sync"
 
 	brokerConfig "github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
@@ -116,6 +117,9 @@ var _ = Describe("Catalog", func() {
 											Amount: dedicatedPlanCostAmount,
 										},
 									},
+									AdditionalMetadata: map[string]interface{}{
+										"foo": "bar",
+									},
 								},
 							},
 							{
@@ -132,6 +136,28 @@ var _ = Describe("Catalog", func() {
 					},
 				},
 			}))
+		})
+
+		It("can deal with concurrent requests", func() {
+			fakeServiceAdapter.GeneratePlanSchemaReturns(defaultSchemas, nil)
+
+			var wg sync.WaitGroup
+			const threads = 2
+			wg.Add(threads)
+
+			for i := 0; i < threads; i++ {
+				go func() {
+					defer wg.Done()
+					defer GinkgoRecover()
+
+					response, _ := doCatalogRequest()
+
+					By("returning the correct HTTP status")
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+
+				}()
+			}
+			wg.Wait()
 		})
 	})
 
@@ -313,6 +339,9 @@ func defaultServiceCatalogConfig() brokerConfig.ServiceOffering {
 							Amount: dedicatedPlanCostAmount,
 							Unit:   dedicatedPlanCostUnit,
 						},
+					},
+					AdditionalMetadata: map[string]interface{}{
+						"foo": "bar",
 					},
 				},
 				Quotas: brokerConfig.Quotas{
