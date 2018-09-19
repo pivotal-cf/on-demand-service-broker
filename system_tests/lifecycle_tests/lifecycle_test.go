@@ -129,7 +129,15 @@ var _ = Describe("On-demand service broker", func() {
 			By("allowing an app to bind to the service instance")
 			testAppURL := cf.PushAndBindApp(testAppName, serviceName, exampleAppPath)
 			defer func() {
+				Eventually(cf.Cf("unbind-service", testAppName, serviceName), cf.CfTimeout).Should(gexec.Exit())
 				Eventually(cf.Cf("delete", testAppName, "-f", "-r"), cf.CfTimeout).Should(gexec.Exit())
+
+				Eventually(
+					cf.Cf("delete-service-key", "-f", serviceName, serviceKeyName),
+					cf.CfTimeout,
+				).Should(gexec.Exit())
+
+				cf.DeleteService(serviceName)
 			}()
 
 			if shouldTestCredhubRef {
