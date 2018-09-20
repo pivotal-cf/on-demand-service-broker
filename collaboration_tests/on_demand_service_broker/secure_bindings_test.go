@@ -110,7 +110,7 @@ var _ = Describe("Secure Binding", func() {
 		It("fails when cannot set credentials in credhub", func() {
 			fakeCredentialStore.SetReturns(errors.New("oops"))
 
-			By("retuning the correct status code")
+			By("returning the correct status code")
 			resp, _ := doBindRequest(instanceID, bindingID, bindDetails)
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 		})

@@ -19,8 +19,10 @@ func (b *Broker) Unbind(
 	instanceID,
 	bindingID string,
 	details brokerapi.UnbindDetails,
-) error {
+	asyncAllowed bool,
+) (brokerapi.UnbindSpec, error) {
 
+	emptyUnbindSpec := brokerapi.UnbindSpec{}
 	requestID := uuid.New()
 	if len(brokercontext.GetReqID(ctx)) > 0 {
 		requestID = brokercontext.GetReqID(ctx)
@@ -31,7 +33,7 @@ func (b *Broker) Unbind(
 
 	manifest, vms, deploymentErr := b.getDeploymentInfo(instanceID, ctx, "unbind", logger)
 	if deploymentErr != nil {
-		return b.processError(deploymentErr, logger)
+		return emptyUnbindSpec, b.processError(deploymentErr, logger)
 	}
 
 	requestParams := map[string]interface{}{
@@ -56,8 +58,8 @@ func (b *Broker) Unbind(
 	}
 
 	if err := adapterToAPIError(ctx, err); err != nil {
-		return b.processError(err, logger)
+		return emptyUnbindSpec, b.processError(err, logger)
 	}
 
-	return nil
+	return emptyUnbindSpec, nil
 }

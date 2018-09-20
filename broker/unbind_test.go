@@ -32,7 +32,9 @@ var _ = Describe("Unbind", func() {
 		boshVms        = bosh.BoshVMs{"redis-server": []string{"an.ip"}}
 		actualManifest = []byte("name: foo\npassword: ((/secret/path))")
 		secretsMap     = map[string]string{"/secret/path": "a73ghjdysj3"}
+		unbindResponse brokerapi.UnbindSpec
 		unbindErr      error
+		asyncAllowed   bool
 	)
 
 	BeforeEach(func() {
@@ -40,11 +42,12 @@ var _ = Describe("Unbind", func() {
 		serviceAdapter.DeleteBindingReturns(nil)
 		secretManager.ResolveManifestSecretsReturns(secretsMap, nil)
 		boshClient.GetDeploymentReturns(actualManifest, true, nil)
+		asyncAllowed = false
 	})
 
 	JustBeforeEach(func() {
 		b = createDefaultBroker()
-		unbindErr = b.Unbind(context.Background(), instanceID, bindingID, brokerapi.UnbindDetails{ServiceID: serviceID, PlanID: planID})
+		unbindResponse, unbindErr = b.Unbind(context.Background(), instanceID, bindingID, brokerapi.UnbindDetails{ServiceID: serviceID, PlanID: planID}, asyncAllowed)
 	})
 
 	It("asks bosh for VMs from a deployment named by the manifest generator", func() {
@@ -67,6 +70,19 @@ var _ = Describe("Unbind", func() {
 		Expect(unbindErr).NotTo(HaveOccurred())
 	})
 
+	It("returns synchronously when async is not allowed", func() {
+		Expect(unbindResponse.IsAsync).To(BeFalse())
+	})
+
+	Context("when async responses are allowed", func() {
+		BeforeEach(func() {
+			asyncAllowed = true
+		})
+		It("returns synchronously anyway", func() {
+			Expect(unbindResponse.IsAsync).To(BeFalse())
+		})
+	})
+
 	Context("request ID", func() {
 		It("generates a new request ID when no request ID is present in the ctx", func() {
 			Expect(logBuffer.String()).To(MatchRegexp(
@@ -80,7 +96,7 @@ var _ = Describe("Unbind", func() {
 				ServiceID: serviceID,
 				PlanID:    planID,
 			}
-			b.Unbind(contextWithReqID, instanceID, bindingID, unbindDetails)
+			b.Unbind(contextWithReqID, instanceID, bindingID, unbindDetails, false)
 
 			Expect(logBuffer.String()).To(ContainSubstring(requestID))
 		})

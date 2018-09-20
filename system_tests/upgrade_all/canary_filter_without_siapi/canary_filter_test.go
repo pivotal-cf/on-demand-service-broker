@@ -57,7 +57,6 @@ var _ = Describe("parallel upgrade-all errand with canaries", func() {
 
 		serviceInstances = CreateServiceInstances(config, dataPersistenceEnabled)
 
-		filterParams := map[string]string{}
 		for k, v := range upgradeInstanceProperties["canary_selection_params"].(map[interface{}]interface{}) {
 			filterParams[k.(string)] = v.(string)
 		}

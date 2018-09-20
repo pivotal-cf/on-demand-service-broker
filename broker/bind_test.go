@@ -88,7 +88,7 @@ var _ = Describe("Bind", func() {
 			Expect(brokerCreationErr).NotTo(HaveOccurred())
 
 			contextWithoutRequestID := context.Background()
-			bindResult, bindErr = b.Bind(contextWithoutRequestID, instanceID, bindingID, bindRequest)
+			bindResult, bindErr = b.Bind(contextWithoutRequestID, instanceID, bindingID, bindRequest, false)
 
 			Expect(logBuffer.String()).To(MatchRegexp(
 				`\[[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\]`))
@@ -100,7 +100,7 @@ var _ = Describe("Bind", func() {
 
 			requestID := uuid.New()
 			contextWithReqID := brokercontext.WithReqID(context.Background(), requestID)
-			bindResult, bindErr = b.Bind(contextWithReqID, instanceID, bindingID, bindRequest)
+			bindResult, bindErr = b.Bind(contextWithReqID, instanceID, bindingID, bindRequest, false)
 
 			Expect(logBuffer.String()).To(ContainSubstring(requestID))
 		})
@@ -111,7 +111,7 @@ var _ = Describe("Bind", func() {
 			b, brokerCreationErr = createBroker([]broker.StartupChecker{}, noopservicescontroller.New())
 			Expect(brokerCreationErr).NotTo(HaveOccurred())
 
-			bindResult, bindErr = b.Bind(context.Background(), instanceID, bindingID, bindRequest)
+			bindResult, bindErr = b.Bind(context.Background(), instanceID, bindingID, bindRequest, false)
 			Expect(serviceAdapter.CreateBindingCallCount()).To(Equal(1))
 			passedBindingID, passedVms, passedManifest, passedRequestParameters, _, passedDNSAddresses, _ := serviceAdapter.CreateBindingArgsForCall(0)
 			Expect(passedBindingID).To(Equal(bindingID))
@@ -132,9 +132,15 @@ var _ = Describe("Bind", func() {
 	})
 
 	Context("with default CF client", func() {
+		var asyncAllowed bool
+
+		BeforeEach(func() {
+			asyncAllowed = false
+		})
+
 		JustBeforeEach(func() {
 			b = createDefaultBroker()
-			bindResult, bindErr = b.Bind(context.Background(), instanceID, bindingID, bindRequest)
+			bindResult, bindErr = b.Bind(context.Background(), instanceID, bindingID, bindRequest, asyncAllowed)
 		})
 
 		It("asks bosh for VMs from a deployment named by the manifest generator", func() {
@@ -168,6 +174,20 @@ var _ = Describe("Bind", func() {
 				SyslogDrainURL:  adapterBindingResponse.SyslogDrainURL,
 				RouteServiceURL: adapterBindingResponse.RouteServiceURL,
 			}))
+		})
+
+		It("returns synchronous response when asyncAllowed is false", func() {
+			Expect(bindResult.IsAsync).To(BeFalse(), "returned unexpected async bind response")
+		})
+
+		Context("asyncAllowed is passed as true", func() {
+			BeforeEach(func() {
+				asyncAllowed = true
+			})
+
+			It("bind ignores asyncAllowed and returns synchronous response", func() {
+				Expect(bindResult.IsAsync).To(BeFalse(), "returned unexpected async bind response")
+			})
 		})
 
 		It("does not error", func() {
@@ -402,7 +422,7 @@ var _ = Describe("Bind", func() {
 			"bind_default_replication_factor": 5,
 		})
 
-		_, bindErr = b.Bind(context.Background(), instanceID, bindingID, bindRequest)
+		_, bindErr = b.Bind(context.Background(), instanceID, bindingID, bindRequest, false)
 		Expect(bindErr).NotTo(HaveOccurred())
 		Expect(fakeAdapter.GeneratePlanSchemaCallCount()).To(Equal(0))
 	})
@@ -422,7 +442,7 @@ var _ = Describe("Bind", func() {
 				"bind_default_replication_factor": 5,
 			})
 
-			_, bindErr = b.Bind(context.Background(), instanceID, bindingID, bindRequest)
+			_, bindErr = b.Bind(context.Background(), instanceID, bindingID, bindRequest, false)
 			Expect(bindErr).NotTo(HaveOccurred())
 			Expect(fakeAdapter.GeneratePlanSchemaCallCount()).To(Equal(1))
 		})
@@ -436,7 +456,7 @@ var _ = Describe("Bind", func() {
 				"bind_auto_create_topics": 1,
 			})
 
-			_, bindErr = b.Bind(context.Background(), instanceID, bindingID, bindRequest)
+			_, bindErr = b.Bind(context.Background(), instanceID, bindingID, bindRequest, false)
 			Expect(bindErr).To(HaveOccurred())
 			Expect(bindErr.Error()).To(ContainSubstring(
 				"bind_auto_create_topics: Invalid type. Expected: boolean, given: integer",
@@ -447,7 +467,7 @@ var _ = Describe("Bind", func() {
 			fakeAdapter := new(brokerfakes.FakeServiceAdapterClient)
 			badSchemaFixture := brokerapi.ServiceSchemas{
 				Binding: brokerapi.ServiceBindingSchema{
-					Create: brokerapi.Schema{invalidSchema},
+					Create: brokerapi.Schema{Parameters: invalidSchema},
 				},
 			}
 			fakeAdapter.GeneratePlanSchemaReturns(badSchemaFixture, nil)
@@ -457,7 +477,7 @@ var _ = Describe("Bind", func() {
 				"bind_auto_create_topics": true,
 			})
 
-			_, bindErr = b.Bind(context.Background(), instanceID, bindingID, bindRequest)
+			_, bindErr = b.Bind(context.Background(), instanceID, bindingID, bindRequest, false)
 			Expect(bindErr).To(HaveOccurred())
 			Expect(bindErr.Error()).To(ContainSubstring("failed validating schema - schema does not conform to JSON Schema spec"))
 		})
@@ -469,7 +489,7 @@ var _ = Describe("Bind", func() {
 
 			bindRequest := generateBindRequestWithParams(map[string]interface{}{})
 
-			_, bindErr = b.Bind(context.Background(), instanceID, bindingID, bindRequest)
+			_, bindErr = b.Bind(context.Background(), instanceID, bindingID, bindRequest, false)
 			Expect(bindErr).NotTo(HaveOccurred())
 			Expect(fakeAdapter.GeneratePlanSchemaCallCount()).To(Equal(1))
 		})
@@ -481,7 +501,7 @@ var _ = Describe("Bind", func() {
 
 			bindRequest := generateBindRequestWithParams(map[string]interface{}{})
 
-			_, bindErr = b.Bind(context.Background(), instanceID, bindingID, bindRequest)
+			_, bindErr = b.Bind(context.Background(), instanceID, bindingID, bindRequest, false)
 			Expect(bindErr).To(HaveOccurred())
 			Expect(bindErr.Error()).To(ContainSubstring("oops"))
 		})
@@ -494,7 +514,7 @@ var _ = Describe("Bind", func() {
 
 			bindRequest := generateBindRequestWithParams(map[string]interface{}{})
 
-			_, bindErr = b.Bind(context.Background(), instanceID, bindingID, bindRequest)
+			_, bindErr = b.Bind(context.Background(), instanceID, bindingID, bindRequest, false)
 			Expect(bindErr).To(HaveOccurred())
 			Expect(bindErr.Error()).To(ContainSubstring("enable_plan_schemas is set to true, but the service adapter does not implement generate-plan-schemas"))
 			Expect(logBuffer.String()).To(ContainSubstring("enable_plan_schemas is set to true, but the service adapter does not implement generate-plan-schemas"))
@@ -510,7 +530,7 @@ var _ = Describe("Bind", func() {
 		})
 
 		It("is called with manifest as param", func() {
-			bindResult, bindErr = broker.Bind(context.Background(), instanceID, bindingID, bindRequest)
+			bindResult, bindErr = broker.Bind(context.Background(), instanceID, bindingID, bindRequest, false)
 			Expect(serviceAdapter.CreateBindingCallCount()).To(Equal(1))
 			Expect(secretManager.ResolveManifestSecretsCallCount()).To(Equal(1))
 			manifest, deploymentVariables, _ := secretManager.ResolveManifestSecretsArgsForCall(0)
@@ -524,7 +544,7 @@ var _ = Describe("Bind", func() {
 		It("logs errors when cannot resolve secrets", func() {
 			resolveError := errors.New("resolve error")
 			secretManager.ResolveManifestSecretsReturns(nil, resolveError)
-			_, bindErr = broker.Bind(context.Background(), instanceID, bindingID, bindRequest)
+			_, bindErr = broker.Bind(context.Background(), instanceID, bindingID, bindRequest, false)
 			Expect(bindErr).NotTo(HaveOccurred())
 			Expect(logBuffer.String()).To(ContainSubstring(fmt.Sprintf("failed to resolve manifest secrets: %s", resolveError.Error())))
 		})
@@ -536,7 +556,7 @@ var _ = Describe("Bind", func() {
 
 			b = createBrokerWithAdapter(fakeAdapter)
 
-			_, bindErr = b.Bind(context.Background(), instanceID, bindingID, bindRequest)
+			_, bindErr = b.Bind(context.Background(), instanceID, bindingID, bindRequest, false)
 			Expect(bindErr).To(HaveOccurred())
 			Expect(logBuffer.String()).To(ContainSubstring("resolve_secrets_at_bind was: false"))
 			Expect(logBuffer.String()).To(ContainSubstring("secrets needed"))
@@ -544,7 +564,7 @@ var _ = Describe("Bind", func() {
 
 		It("logs but not fail when cannot retrieve the deployment variables ", func() {
 			boshClient.VariablesReturns(nil, errors.New("oh noes"))
-			bindResult, bindErr = broker.Bind(context.Background(), instanceID, bindingID, bindRequest)
+			bindResult, bindErr = broker.Bind(context.Background(), instanceID, bindingID, bindRequest, false)
 			Expect(logBuffer.String()).To(ContainSubstring("failed to retrieve deployment variables"))
 		})
 
@@ -555,7 +575,7 @@ var _ = Describe("Bind", func() {
 
 			b = createBrokerWithAdapter(fakeAdapter)
 
-			_, bindErr = b.Bind(context.Background(), instanceID, bindingID, bindRequest)
+			_, bindErr = b.Bind(context.Background(), instanceID, bindingID, bindRequest, false)
 			Expect(bindErr).To(HaveOccurred())
 			Expect(logBuffer.String()).ToNot(ContainSubstring("resolve_secrets_at_bind was:"))
 			Expect(logBuffer.String()).To(ContainSubstring("secrets needed"))

@@ -76,14 +76,14 @@ var _ = Describe("CredHub broker", func() {
 
 			bindDetails.AppGUID = "an-app"
 
-			response, err := credhubBroker.Bind(ctx, instanceID, bindingID, bindDetails)
+			response, err := credhubBroker.Bind(ctx, instanceID, bindingID, bindDetails, false)
 
 			By("verifying responses of bind")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(response.Credentials).To(Equal(expectedBindingCredentials))
 
 			By("logging that we are storing credentials")
-			brokerctx, _, _, _ := fakeBroker.BindArgsForCall(0)
+			brokerctx, _, _, _, _ := fakeBroker.BindArgsForCall(0)
 			requestID := brokercontext.GetReqID(brokerctx)
 
 			Expect(logBuffer.String()).To(SatisfyAll(
@@ -112,7 +112,7 @@ var _ = Describe("CredHub broker", func() {
 			bindDetails.AppGUID = appGUID
 
 			credhubBroker := credhubbroker.New(fakeBroker, fakeCredStore, serviceName, loggerFactory)
-			credhubBroker.Bind(ctx, instanceID, bindingID, bindDetails)
+			credhubBroker.Bind(ctx, instanceID, bindingID, bindDetails, false)
 
 			Expect(fakeCredStore.AddPermissionsCallCount()).To(Equal(1))
 			returnedCredentialName, returnedPermissions := fakeCredStore.AddPermissionsArgsForCall(0)
@@ -141,7 +141,7 @@ var _ = Describe("CredHub broker", func() {
 			bindDetails.BindResource.AppGuid = appGUID
 
 			credhubBroker := credhubbroker.New(fakeBroker, fakeCredStore, serviceName, loggerFactory)
-			_, err := credhubBroker.Bind(ctx, instanceID, bindingID, bindDetails)
+			_, err := credhubBroker.Bind(ctx, instanceID, bindingID, bindDetails, false)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -159,7 +159,7 @@ var _ = Describe("CredHub broker", func() {
 			}
 
 			credhubBroker := credhubbroker.New(fakeBroker, fakeCredStore, serviceName, loggerFactory)
-			credhubBroker.Bind(ctx, instanceID, bindingID, bindDetails)
+			credhubBroker.Bind(ctx, instanceID, bindingID, bindDetails, false)
 
 			Expect(fakeCredStore.AddPermissionsCallCount()).To(Equal(1))
 			returnedCredentialName, returnedPermissions := fakeCredStore.AddPermissionsArgsForCall(0)
@@ -185,7 +185,7 @@ var _ = Describe("CredHub broker", func() {
 			fakeBroker.BindReturns(bindingResponse, nil)
 
 			credhubBroker := credhubbroker.New(fakeBroker, fakeCredStore, serviceName, loggerFactory)
-			_, err := credhubBroker.Bind(ctx, instanceID, bindingID, bindDetails)
+			_, err := credhubBroker.Bind(ctx, instanceID, bindingID, bindDetails, false)
 
 			Expect(err).To(MatchError(Equal("No app-guid or credential client ID were provided in the binding request, you must configure one of these")))
 		})
@@ -197,7 +197,7 @@ var _ = Describe("CredHub broker", func() {
 
 			credhubBroker := credhubbroker.New(fakeBroker, fakeCredStore, serviceName, loggerFactory)
 			bindDetails.AppGUID = "some-app-guid"
-			receivedCreds, bindErr := credhubBroker.Bind(ctx, instanceID, bindingID, bindDetails)
+			receivedCreds, bindErr := credhubBroker.Bind(ctx, instanceID, bindingID, bindDetails, false)
 
 			Expect(receivedCreds).To(Equal(emptyCreds))
 			Expect(bindErr).To(MatchError("error message from base broker"))
@@ -213,12 +213,12 @@ var _ = Describe("CredHub broker", func() {
 			credhubBroker := credhubbroker.New(fakeBroker, fakeCredStore, serviceName, loggerFactory)
 			fakeCredStore.SetReturns(errors.New("credential store unavailable"))
 			bindDetails.AppGUID = "some-app-guid"
-			_, bindErr := credhubBroker.Bind(ctx, instanceID, bindingID, bindDetails)
+			_, bindErr := credhubBroker.Bind(ctx, instanceID, bindingID, bindDetails, false)
 
 			Expect(bindErr.Error()).NotTo(ContainSubstring("credential store unavailable"))
 			Expect(bindErr.Error()).To(ContainSubstring(instanceID))
 
-			brokerctx, _, _, _ := fakeBroker.BindArgsForCall(0)
+			brokerctx, _, _, _, _ := fakeBroker.BindArgsForCall(0)
 			requestID := brokercontext.GetReqID(brokerctx)
 			Expect(bindErr.Error()).To(ContainSubstring(requestID))
 
@@ -239,7 +239,7 @@ var _ = Describe("CredHub broker", func() {
 			fakeCredStore := new(credfakes.FakeCredentialStore)
 			credhubBroker := credhubbroker.New(fakeBroker, fakeCredStore, serviceName, loggerFactory)
 
-			err := credhubBroker.Unbind(ctx, instanceID, bindingID, unbindDetails)
+			_, err := credhubBroker.Unbind(ctx, instanceID, bindingID, unbindDetails, false)
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(fakeBroker.UnbindCallCount()).To(Equal(1))
@@ -254,9 +254,9 @@ var _ = Describe("CredHub broker", func() {
 			fakeCredStore := new(credfakes.FakeCredentialStore)
 
 			credhubBroker := credhubbroker.New(fakeBroker, fakeCredStore, serviceName, loggerFactory)
-			credhubBroker.Unbind(ctx, instanceID, bindingID, unbindDetails)
+			credhubBroker.Unbind(ctx, instanceID, bindingID, unbindDetails, false)
 
-			brokerctx, _, _, _ := fakeBroker.UnbindArgsForCall(0)
+			brokerctx, _, _, _, _ := fakeBroker.UnbindArgsForCall(0)
 			requestID := brokercontext.GetReqID(brokerctx)
 
 			requestIDRegex = `[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`
@@ -266,11 +266,11 @@ var _ = Describe("CredHub broker", func() {
 
 		It("returns an error if the wrapped broker unbind call fails", func() {
 			baseError := errors.New("foo")
-			fakeBroker.UnbindReturns(baseError)
+			fakeBroker.UnbindReturns(brokerapi.UnbindSpec{}, baseError)
 			fakeCredStore := new(credfakes.FakeCredentialStore)
 			credhubBroker := credhubbroker.New(fakeBroker, fakeCredStore, serviceName, loggerFactory)
 
-			err := credhubBroker.Unbind(ctx, instanceID, bindingID, unbindDetails)
+			_, err := credhubBroker.Unbind(ctx, instanceID, bindingID, unbindDetails, false)
 			Expect(err).To(MatchError(baseError))
 		})
 
@@ -280,7 +280,7 @@ var _ = Describe("CredHub broker", func() {
 			fakeCredStore.DeleteReturns(credhubError)
 			credhubBroker := credhubbroker.New(fakeBroker, fakeCredStore, serviceName, loggerFactory)
 
-			err := credhubBroker.Unbind(ctx, instanceID, bindingID, unbindDetails)
+			_, err := credhubBroker.Unbind(ctx, instanceID, bindingID, unbindDetails, false)
 			Expect(err).ToNot(HaveOccurred())
 			credhubRef := constructCredhubRef(unbindDetails.ServiceID, instanceID, bindingID)
 			Expect(logBuffer.String()).To(ContainSubstring(fmt.Sprintf("WARNING: failed to remove key '%s'", credhubRef)))

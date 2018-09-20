@@ -24,6 +24,7 @@ var _ = Describe("LastOperation", func() {
 	Context("failures", func() {
 		var (
 			instanceID    = "a-useful-instance"
+			pollDetails   brokerapi.PollDetails
 			operationData string
 
 			lastOpErr error
@@ -31,7 +32,10 @@ var _ = Describe("LastOperation", func() {
 
 		JustBeforeEach(func() {
 			b = createDefaultBroker()
-			_, lastOpErr = b.LastOperation(context.Background(), instanceID, operationData)
+			pollDetails = brokerapi.PollDetails{
+				OperationData: operationData,
+			}
+			_, lastOpErr = b.LastOperation(context.Background(), instanceID, pollDetails)
 		})
 
 		Context("when task cannot be retrieved from BOSH", func() {
@@ -245,7 +249,8 @@ var _ = Describe("LastOperation", func() {
 				operationData = `{"BoshTaskID": 42, "OperationType": "create"}`
 				boshClient.GetTaskReturns(boshdirector.BoshTask{State: boshdirector.TaskError, Description: "some task", Result: "bosh error"}, nil)
 
-				opResult, _ := b.LastOperation(context.Background(), instanceID, operationData)
+				pollDetails.OperationData = operationData
+				opResult, _ := b.LastOperation(context.Background(), instanceID, pollDetails)
 				Expect(opResult.Description).To(ContainSubstring("bosh error"))
 			})
 		})
@@ -298,7 +303,10 @@ var _ = Describe("LastOperation", func() {
 
 					boshClient.GetTaskReturns(testCase.ActualBoshTask, nil)
 					b = createDefaultBroker()
-					actualLastOperation, actualLastOperationError = b.LastOperation(context.Background(), instanceID, string(operationData))
+					pollDetails := brokerapi.PollDetails{
+						OperationData: string(operationData),
+					}
+					actualLastOperation, actualLastOperationError = b.LastOperation(context.Background(), instanceID, pollDetails)
 				})
 
 				It("retrieves the task by ID", func() {
@@ -630,7 +638,10 @@ var _ = Describe("LastOperation", func() {
 					}, nil)
 					b = createDefaultBroker()
 
-					actualLastOperation, actualLastOperationError := b.LastOperation(context.Background(), instanceID, string(operationData))
+					pollDetails := brokerapi.PollDetails{
+						OperationData: string(operationData),
+					}
+					actualLastOperation, actualLastOperationError := b.LastOperation(context.Background(), instanceID, pollDetails)
 
 					Expect(actualLastOperationError).NotTo(HaveOccurred())
 					Expect(actualLastOperation.State).To(Equal(brokerapi.Succeeded))
@@ -676,7 +687,10 @@ var _ = Describe("LastOperation", func() {
 
 					b = createDefaultBroker()
 
-					actualLastOperationData, actualError := b.LastOperation(context.Background(), instanceID, string(operationData))
+					pollDetails := brokerapi.PollDetails{
+						OperationData: string(operationData),
+					}
+					actualLastOperationData, actualError := b.LastOperation(context.Background(), instanceID, pollDetails)
 					Expect(actualError).NotTo(HaveOccurred())
 
 					Expect(actualLastOperationData.State).To(Equal(brokerapi.Failed))

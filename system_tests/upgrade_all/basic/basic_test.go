@@ -32,8 +32,7 @@ var dataPersistenceEnabled bool
 
 var _ = Describe("upgrade-all-service-instances errand", func() {
 	var (
-		filterParams map[string]string
-		spaceName    string
+		spaceName string
 	)
 
 	BeforeEach(func() {
@@ -41,7 +40,6 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 		config.CurrentPlan = "dedicated-vm"
 		dataPersistenceEnabled = true
 		serviceInstances = []*TestService{}
-		filterParams = map[string]string{}
 		CfTargetSpace(config.CfSpace)
 	})
 

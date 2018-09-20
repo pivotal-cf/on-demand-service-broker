@@ -22,6 +22,7 @@ func (b *Broker) Bind(
 	instanceID,
 	bindingID string,
 	details brokerapi.BindDetails,
+	asyncAllowed bool,
 ) (brokerapi.Binding, error) {
 
 	requestID := uuid.New()

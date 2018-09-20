@@ -28,18 +28,14 @@ import (
 
 var _ = Describe("parallel upgrade-all errand with canaries", func() {
 	var (
-		filterParams           map[string]string
-		spaceName              string
 		serviceInstances       []*TestService
 		dataPersistenceEnabled bool
 	)
 
 	BeforeEach(func() {
-		spaceName = ""
 		config.CurrentPlan = "dedicated-vm"
 		dataPersistenceEnabled = false
 		serviceInstances = []*TestService{}
-		filterParams = map[string]string{}
 		CfTargetSpace(config.CfSpace)
 	})
 

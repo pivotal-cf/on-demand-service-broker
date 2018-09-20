@@ -50,7 +50,7 @@ func New(broker apiserver.CombinedBroker,
 	}
 }
 
-func (b *CredHubBroker) Bind(ctx context.Context, instanceID, bindingID string, details brokerapi.BindDetails) (brokerapi.Binding, error) { // TODO: maybe move it up to fail fast?
+func (b *CredHubBroker) Bind(ctx context.Context, instanceID, bindingID string, details brokerapi.BindDetails, asyncAllowed bool) (brokerapi.Binding, error) {
 	var actor string
 	switch {
 	case details.AppGUID != "":
@@ -67,7 +67,7 @@ func (b *CredHubBroker) Bind(ctx context.Context, instanceID, bindingID string, 
 	ctx = brokercontext.WithReqID(ctx, requestID)
 	logger := b.loggerFactory.NewWithContext(ctx)
 
-	binding, err := b.CombinedBroker.Bind(ctx, instanceID, bindingID, details)
+	binding, err := b.CombinedBroker.Bind(ctx, instanceID, bindingID, details, asyncAllowed)
 	if err != nil {
 		return brokerapi.Binding{}, err
 	}
@@ -94,16 +94,15 @@ func (b *CredHubBroker) Bind(ctx context.Context, instanceID, bindingID string, 
 	return binding, nil
 }
 
-func (b *CredHubBroker) Unbind(ctx context.Context, instanceID, bindingID string, details brokerapi.UnbindDetails) error {
-
+func (b *CredHubBroker) Unbind(ctx context.Context, instanceID, bindingID string, details brokerapi.UnbindDetails, asyncAllowed bool) (brokerapi.UnbindSpec, error) {
 	requestID := uuid.New()
 	ctx = brokercontext.WithReqID(ctx, requestID)
 	logger := b.loggerFactory.NewWithContext(ctx)
 
 	logger.Printf("removing credentials for instance ID: %s, with binding ID: %s\n", instanceID, bindingID)
-	err := b.CombinedBroker.Unbind(ctx, instanceID, bindingID, details)
+	unbind, err := b.CombinedBroker.Unbind(ctx, instanceID, bindingID, details, asyncAllowed)
 	if err != nil {
-		return err
+		return brokerapi.UnbindSpec{}, err
 	}
 
 	key := constructKey(details.ServiceID, instanceID, bindingID)
@@ -112,7 +111,7 @@ func (b *CredHubBroker) Unbind(ctx context.Context, instanceID, bindingID string
 		logger.Printf("WARNING: failed to remove key '%s' from credential store", key)
 	}
 
-	return nil
+	return unbind, nil
 }
 
 func constructKey(serviceID, instanceID, bindingID string) string {

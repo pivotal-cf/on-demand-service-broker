@@ -26,19 +26,15 @@ import (
 
 var _ = Describe("parallel upgrade-all errand with canaries and SI API", func() {
 	var (
-		filterParams           map[string]string
-		spaceName              string
 		serviceInstances       []*TestService
 		dataPersistenceEnabled bool
 		canaryServiceInstances []*TestService
 	)
 
 	BeforeEach(func() {
-		spaceName = ""
 		config.CurrentPlan = "dedicated-vm"
 		dataPersistenceEnabled = false
 		serviceInstances = []*TestService{}
-		filterParams = map[string]string{}
 		CfTargetSpace(config.CfSpace)
 	})
 
