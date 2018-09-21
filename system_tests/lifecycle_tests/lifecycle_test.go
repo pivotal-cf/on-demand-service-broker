@@ -26,89 +26,6 @@ import (
 )
 
 var _ = Describe("On-demand service broker", func() {
-	newServiceName := func() string {
-		return fmt.Sprintf("instance-%s", uuid.New()[:7])
-	}
-
-	testCrud := func(testAppURL string) {
-		cf.PutToTestApp(testAppURL, "foo", "bar")
-		Expect(cf.GetFromTestApp(testAppURL, "foo")).To(Equal("bar"))
-	}
-
-	testFifo := func(testAppURL string) {
-		queue := "a-test-queue"
-		cf.PushToTestAppQueue(testAppURL, queue, "foo")
-		cf.PushToTestAppQueue(testAppURL, queue, "bar")
-		Expect(cf.PopFromTestAppQueue(testAppURL, queue)).To(Equal("foo"))
-		Expect(cf.PopFromTestAppQueue(testAppURL, queue)).To(Equal("bar"))
-	}
-
-	getOAuthToken := func() string {
-		cmd := cf.Cf("oauth-token")
-		Eventually(cmd, cf.CfTimeout).Should(gexec.Exit(0))
-		oauthTokenOutput := string(cmd.Buffer().Contents())
-		oauthTokenRe := regexp.MustCompile(`(?m)^bearer .*$`)
-		authToken := oauthTokenRe.FindString(oauthTokenOutput)
-		Expect(authToken).ToNot(BeEmpty())
-		return authToken
-	}
-
-	testODBMetrics := func(brokerDeploymentName, serviceOfferingName, planName string) {
-		Expect(dopplerAddress).NotTo(BeEmpty())
-		firehoseConsumer := consumer.New(dopplerAddress, &tls.Config{InsecureSkipVerify: true}, nil)
-		firehoseConsumer.SetDebugPrinter(GinkgoFirehosePrinter{})
-		defer firehoseConsumer.Close()
-
-		msgChan, errChan := firehoseConsumer.Firehose("SystemTests-"+uuid.New(), getOAuthToken())
-		timeoutChan := time.After(5 * time.Minute)
-
-		for {
-			select {
-			case msg := <-msgChan:
-				// fmt.Fprintf(GinkgoWriter, "firehose: received message %+v\n", msg)
-				if msg != nil && *msg.EventType == events.Envelope_ValueMetric && strings.HasSuffix(*msg.Deployment, brokerDeploymentName) {
-					fmt.Fprintf(GinkgoWriter, "received metric for deployment %s: %+v\n", brokerDeploymentName, msg)
-					if msg.ValueMetric.GetName() == fmt.Sprintf("/on-demand-broker/%s/%s/total_instances", serviceOfferingName, planName) {
-						fmt.Fprintln(GinkgoWriter, "ODB metrics test successful")
-						return
-					}
-				}
-			case err := <-errChan:
-				Expect(err).NotTo(HaveOccurred())
-				return
-			case <-timeoutChan:
-				Fail("timed out after 5 minute")
-				return
-			}
-		}
-	}
-
-	testServiceWithExampleApp := func(exampleAppType, testAppURL string) {
-		switch exampleAppType {
-		case "crud":
-			testCrud(testAppURL)
-		case "fifo":
-			testFifo(testAppURL)
-		default:
-			Fail(fmt.Sprintf("invalid example app type %s. valid types are: crud, fifo", exampleAppType))
-		}
-	}
-
-	testBindingWithDNS := func(serviceKeyRaw, bindingDNSAttribute string) {
-		serviceKeyWithoutMessageSlice := strings.Split(serviceKeyRaw, "\n")[1:]
-		onlyServiceKey := strings.Join(serviceKeyWithoutMessageSlice, "\n")
-		var serviceKey map[string]interface{}
-		json.Unmarshal([]byte(onlyServiceKey), &serviceKey)
-
-		dnsInfo, ok := serviceKey[bindingDNSAttribute]
-		Expect(ok).To(BeTrue(), fmt.Sprintf("%s not returned in binding", bindingDNSAttribute))
-
-		dnsInfoMap, ok := dnsInfo.(map[string]interface{})
-		Expect(ok).To(BeTrue(), fmt.Sprintf("Unable to convert dns info to map[string]interface{}, got:%t", dnsInfo))
-
-		Expect(len(dnsInfoMap)).To(BeNumerically(">", 0))
-	}
-
 	lifecycle := func(t LifecycleTest) {
 		It("supports the lifecycle of a service instance", func() {
 			By(fmt.Sprintf("allowing creation of a service instance with plan: '%s' and arbitrary params: '%s'", t.Plan, string(t.ArbitraryParams)))
@@ -217,6 +134,89 @@ var _ = Describe("On-demand service broker", func() {
 		lifecycle(test)
 	}
 })
+
+func newServiceName() string {
+	return fmt.Sprintf("instance-%s", uuid.New()[:7])
+}
+
+func testCrud(testAppURL string) {
+	cf.PutToTestApp(testAppURL, "foo", "bar")
+	Expect(cf.GetFromTestApp(testAppURL, "foo")).To(Equal("bar"))
+}
+
+func testFifo(testAppURL string) {
+	queue := "a-test-queue"
+	cf.PushToTestAppQueue(testAppURL, queue, "foo")
+	cf.PushToTestAppQueue(testAppURL, queue, "bar")
+	Expect(cf.PopFromTestAppQueue(testAppURL, queue)).To(Equal("foo"))
+	Expect(cf.PopFromTestAppQueue(testAppURL, queue)).To(Equal("bar"))
+}
+
+func getOAuthToken() string {
+	cmd := cf.Cf("oauth-token")
+	Eventually(cmd, cf.CfTimeout).Should(gexec.Exit(0))
+	oauthTokenOutput := string(cmd.Buffer().Contents())
+	oauthTokenRe := regexp.MustCompile(`(?m)^bearer .*$`)
+	authToken := oauthTokenRe.FindString(oauthTokenOutput)
+	Expect(authToken).ToNot(BeEmpty())
+	return authToken
+}
+
+func testODBMetrics(brokerDeploymentName, serviceOfferingName, planName string) {
+	Expect(dopplerAddress).NotTo(BeEmpty())
+	firehoseConsumer := consumer.New(dopplerAddress, &tls.Config{InsecureSkipVerify: true}, nil)
+	firehoseConsumer.SetDebugPrinter(GinkgoFirehosePrinter{})
+	defer firehoseConsumer.Close()
+
+	msgChan, errChan := firehoseConsumer.Firehose("SystemTests-"+uuid.New(), getOAuthToken())
+	timeoutChan := time.After(5 * time.Minute)
+
+	for {
+		select {
+		case msg := <-msgChan:
+			// fmt.Fprintf(GinkgoWriter, "firehose: received message %+v\n", msg)
+			if msg != nil && *msg.EventType == events.Envelope_ValueMetric && strings.HasSuffix(*msg.Deployment, brokerDeploymentName) {
+				fmt.Fprintf(GinkgoWriter, "received metric for deployment %s: %+v\n", brokerDeploymentName, msg)
+				if msg.ValueMetric.GetName() == fmt.Sprintf("/on-demand-broker/%s/%s/total_instances", serviceOfferingName, planName) {
+					fmt.Fprintln(GinkgoWriter, "ODB metrics test successful")
+					return
+				}
+			}
+		case err := <-errChan:
+			Expect(err).NotTo(HaveOccurred())
+			return
+		case <-timeoutChan:
+			Fail("timed out after 5 minute")
+			return
+		}
+	}
+}
+
+func testServiceWithExampleApp(exampleAppType, testAppURL string) {
+	switch exampleAppType {
+	case "crud":
+		testCrud(testAppURL)
+	case "fifo":
+		testFifo(testAppURL)
+	default:
+		Fail(fmt.Sprintf("invalid example app type %s. valid types are: crud, fifo", exampleAppType))
+	}
+}
+
+func testBindingWithDNS(serviceKeyRaw, bindingDNSAttribute string) {
+	serviceKeyWithoutMessageSlice := strings.Split(serviceKeyRaw, "\n")[1:]
+	onlyServiceKey := strings.Join(serviceKeyWithoutMessageSlice, "\n")
+	var serviceKey map[string]interface{}
+	json.Unmarshal([]byte(onlyServiceKey), &serviceKey)
+
+	dnsInfo, ok := serviceKey[bindingDNSAttribute]
+	Expect(ok).To(BeTrue(), fmt.Sprintf("%s not returned in binding", bindingDNSAttribute))
+
+	dnsInfoMap, ok := dnsInfo.(map[string]interface{})
+	Expect(ok).To(BeTrue(), fmt.Sprintf("Unable to convert dns info to map[string]interface{}, got:%t", dnsInfo))
+
+	Expect(len(dnsInfoMap)).To(BeNumerically(">", 0))
+}
 
 type GinkgoFirehosePrinter struct{}
 
