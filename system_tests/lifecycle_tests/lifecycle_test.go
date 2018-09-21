@@ -22,8 +22,9 @@ import (
 	"github.com/onsi/gomega/gexec"
 	"github.com/pborman/uuid"
 	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/cf_helpers"
-	"github.com/pivotal-cf/on-demand-service-broker/system_tests/credhub_helpers"
 )
+
+var credhubPath = "/odb/sys/test/secret-" + uuid.New()[:7]
 
 var _ = Describe("On-demand service broker", func() {
 	var (
@@ -31,6 +32,14 @@ var _ = Describe("On-demand service broker", func() {
 		serviceName    string
 		serviceKeyName string
 	)
+
+	BeforeEach(func() {
+		testAppName = uuid.New()[:7]
+		serviceName = newServiceName()
+		serviceKeyName = uuid.New()[:7]
+
+		credhubCLI.SetCredhubValueFor(credhubPath)
+	})
 
 	AfterEach(func() {
 		Eventually(cf.Cf("unbind-service", testAppName, serviceName), cf.CfTimeout).Should(gexec.Exit())
@@ -42,17 +51,18 @@ var _ = Describe("On-demand service broker", func() {
 		).Should(gexec.Exit())
 
 		cf.DeleteService(serviceName)
+
+		credhubCLI.DeleteCredhubValueFor(credhubPath)
 	})
 
 	lifecycle := func(t LifecycleTest) {
 		It("supports the lifecycle of a service instance", func() {
-			By(fmt.Sprintf("allowing creation of a service instance with plan: '%s' and arbitrary params: '%s'", t.Plan, string(t.ArbitraryParams)))
-			testAppName = uuid.New()[:7]
-			serviceName = newServiceName()
-			cf.CreateService(serviceOffering, t.Plan, serviceName, string(t.ArbitraryParams))
+			rawArbitraryParams := prepareArbitraryParams(t)
+
+			By(fmt.Sprintf("allowing creation of a service instance with plan: '%s' and arbitrary params: '%s'", t.Plan, rawArbitraryParams))
+			cf.CreateService(serviceOffering, t.Plan, serviceName, rawArbitraryParams)
 
 			By("creating a service key")
-			serviceKeyName = uuid.New()[:7]
 			cf.CreateServiceKey(serviceName, serviceKeyName)
 			serviceKey := cf.GetServiceKey(serviceName, serviceKeyName)
 			Expect(serviceKey).NotTo(BeNil())
@@ -86,9 +96,8 @@ var _ = Describe("On-demand service broker", func() {
 
 			var odbSecret map[string]string
 			if secureManifestsEnabled {
-				credhub_helpers.RelogInToCredhub(credhubClient, credhubSecret)
 				serviceInstanceGUID := cf.GetServiceInstanceGUID(serviceName)
-				odbSecret = credhub_helpers.GetCredhubValueFor(serviceOffering, serviceInstanceGUID, "odb_managed_secret")
+				odbSecret = credhubCLI.GetCredhubValueFor(serviceOffering, serviceInstanceGUID, "odb_managed_secret")
 				Expect(odbSecret["value"]).To(Equal("HardcodedAdapterValue"))
 			}
 
@@ -106,17 +115,16 @@ var _ = Describe("On-demand service broker", func() {
 
 				if secureManifestsEnabled {
 					By("updating the value of the credhub stored secret")
-					credhub_helpers.RelogInToCredhub(credhubClient, credhubSecret)
 					serviceInstanceGUID := cf.GetServiceInstanceGUID(serviceName)
-					newOdbSecret := credhub_helpers.GetCredhubValueFor(serviceOffering, serviceInstanceGUID, "odb_managed_secret")
+					newOdbSecret := credhubCLI.GetCredhubValueFor(serviceOffering, serviceInstanceGUID, "odb_managed_secret")
 					Expect(newOdbSecret["name"]).To(Equal(odbSecret["name"]))
 					Expect(newOdbSecret["value"]).To(Equal("newValue"))
 				}
 			}
 
 			if len(t.ArbitraryParams) > 0 {
-				By(fmt.Sprintf("allowing to update the service instance with arbitrary params: '%s'", string(t.ArbitraryParams)))
-				Eventually(cf.Cf("update-service", serviceName, "-c", string(t.ArbitraryParams)), cf.CfTimeout).Should(gexec.Exit(0))
+				By(fmt.Sprintf("allowing to update the service instance with arbitrary params: '%s'", rawArbitraryParams))
+				Eventually(cf.Cf("update-service", serviceName, "-c", rawArbitraryParams), cf.CfTimeout).Should(gexec.Exit(0))
 				cf.AwaitServiceUpdate(serviceName)
 
 				By("providing a functional service instance post-update")
@@ -141,6 +149,25 @@ var _ = Describe("On-demand service broker", func() {
 		lifecycle(test)
 	}
 })
+
+func toJsonString(obj interface{}) string {
+	b, err := json.Marshal(obj)
+	Expect(err).ToNot(HaveOccurred())
+	return string(b)
+}
+
+func addCredhubPathToArbitraryParams(arbitraryParams map[string]interface{}, credhubPath string) map[string]interface{} {
+	arbitraryParams["credhub_secret_path"] = credhubPath
+	return arbitraryParams
+}
+
+func prepareArbitraryParams(t LifecycleTest) string {
+	arbitraryParams := t.ArbitraryParams
+	if t.HasCredhubSecretPath {
+		arbitraryParams = addCredhubPathToArbitraryParams(arbitraryParams, credhubPath)
+	}
+	return toJsonString(arbitraryParams)
+}
 
 func newServiceName() string {
 	return fmt.Sprintf("instance-%s", uuid.New()[:7])

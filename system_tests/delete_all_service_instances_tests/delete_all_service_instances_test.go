@@ -14,7 +14,6 @@ import (
 	"github.com/onsi/gomega/gexec"
 	"github.com/pborman/uuid"
 	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/cf_helpers"
-	"github.com/pivotal-cf/on-demand-service-broker/system_tests/credhub_helpers"
 )
 
 var _ = Describe("deleting all service instances", func() {
@@ -45,21 +44,18 @@ var _ = Describe("deleting all service instances", func() {
 		Eventually(cf.Cf("bind-service", testAppName, serviceInstance1), cf.CfTimeout).Should(gexec.Exit(0))
 		Eventually(cf.Cf("create-service-key", serviceInstance1, serviceKeyName), cf.CfTimeout).Should(gexec.Exit(0))
 
-		credhub_helpers.RelogInToCredhub(credhubClient, credhubSecret)
-
 		serviceInstanceGuid1 := cf.GetServiceInstanceGUID(serviceInstance1)
-		credhub_helpers.VerifyCredhubKeysExist(serviceOffering, serviceInstanceGuid1)
+		credhubCLI.VerifyCredhubKeysExist(serviceOffering, serviceInstanceGuid1)
 
 		serviceInstanceGuid2 := cf.GetServiceInstanceGUID(serviceInstance2)
-		credhub_helpers.VerifyCredhubKeysExist(serviceOffering, serviceInstanceGuid2)
+		credhubCLI.VerifyCredhubKeysExist(serviceOffering, serviceInstanceGuid2)
 
 		boshClient.RunErrand(brokerBoshDeploymentName, "delete-all-service-instances", []string{}, "")
 		cf.AwaitServiceDeletion(serviceInstance1)
 		cf.AwaitServiceDeletion(serviceInstance2)
 
 		By("removing all credhub references relating to instances that existed when the errand was invoked")
-		credhub_helpers.RelogInToCredhub(credhubClient, credhubSecret)
-		credhub_helpers.VerifyCredhubKeysEmpty(serviceOffering, serviceInstanceGuid1)
-		credhub_helpers.VerifyCredhubKeysEmpty(serviceOffering, serviceInstanceGuid2)
+		credhubCLI.VerifyCredhubKeysEmpty(serviceOffering, serviceInstanceGuid1)
+		credhubCLI.VerifyCredhubKeysEmpty(serviceOffering, serviceInstanceGuid2)
 	})
 })

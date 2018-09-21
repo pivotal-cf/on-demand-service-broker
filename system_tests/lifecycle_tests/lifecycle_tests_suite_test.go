@@ -14,6 +14,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/pivotal-cf/on-demand-service-broker/system_tests/credhub_helpers"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
@@ -31,13 +33,13 @@ var (
 	dopplerAddress           string
 	exampleAppPath           string
 	exampleAppType           string
-	credhubClient            string
-	credhubSecret            string
 	tests                    = parseTests()
 	shouldTestODBMetrics     bool
 	shouldTestCredhubRef     bool
 	shouldTestBindingWithDNS bool
 	secureManifestsEnabled   bool
+
+	credhubCLI *credhub_helpers.CredHubCLI
 )
 
 func parseTests() []LifecycleTest {
@@ -61,10 +63,11 @@ func parseTests() []LifecycleTest {
 }
 
 type LifecycleTest struct {
-	Plan                string          `json:"plan"`
-	UpdateToPlan        string          `json:"update_to_plan"`
-	ArbitraryParams     json.RawMessage `json:"arbitrary_params"`
-	BindingDNSAttribute string          `json:"binding_dns_attribute"`
+	Plan                 string                 `json:"plan"`
+	UpdateToPlan         string                 `json:"update_to_plan"`
+	ArbitraryParams      map[string]interface{} `json:"arbitrary_params"`
+	BindingDNSAttribute  string                 `json:"binding_dns_attribute"`
+	HasCredhubSecretPath bool                   `json:"has_credhub_secret_path"`
 }
 
 var _ = SynchronizedBeforeSuite(func() []byte {
@@ -92,8 +95,7 @@ func parseEnv() {
 	shouldTestBindingWithDNS = os.Getenv("TEST_BINDING_WITH_DNS") == "true"
 	secureManifestsEnabled = os.Getenv("ENABLE_SECURE_MANIFEST") == "true"
 	if secureManifestsEnabled {
-		credhubClient = envMustHave("CREDHUB_CLIENT")
-		credhubSecret = envMustHave("CREDHUB_SECRET")
+		credhubCLI = credhub_helpers.NewCredHubCLI(envMustHave("CREDHUB_CLIENT"), envMustHave("CREDHUB_SECRET"))
 	}
 }
 
