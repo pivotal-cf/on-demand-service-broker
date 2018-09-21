@@ -26,15 +26,33 @@ import (
 )
 
 var _ = Describe("On-demand service broker", func() {
+	var (
+		testAppName    string
+		serviceName    string
+		serviceKeyName string
+	)
+
+	AfterEach(func() {
+		Eventually(cf.Cf("unbind-service", testAppName, serviceName), cf.CfTimeout).Should(gexec.Exit())
+		Eventually(cf.Cf("delete", testAppName, "-f", "-r"), cf.CfTimeout).Should(gexec.Exit())
+
+		Eventually(
+			cf.Cf("delete-service-key", "-f", serviceName, serviceKeyName),
+			cf.CfTimeout,
+		).Should(gexec.Exit())
+
+		cf.DeleteService(serviceName)
+	})
+
 	lifecycle := func(t LifecycleTest) {
 		It("supports the lifecycle of a service instance", func() {
 			By(fmt.Sprintf("allowing creation of a service instance with plan: '%s' and arbitrary params: '%s'", t.Plan, string(t.ArbitraryParams)))
-			testAppName := uuid.New()[:7]
-			serviceName := newServiceName()
+			testAppName = uuid.New()[:7]
+			serviceName = newServiceName()
 			cf.CreateService(serviceOffering, t.Plan, serviceName, string(t.ArbitraryParams))
 
 			By("creating a service key")
-			serviceKeyName := uuid.New()[:7]
+			serviceKeyName = uuid.New()[:7]
 			cf.CreateServiceKey(serviceName, serviceKeyName)
 			serviceKey := cf.GetServiceKey(serviceName, serviceKeyName)
 			Expect(serviceKey).NotTo(BeNil())
@@ -45,17 +63,6 @@ var _ = Describe("On-demand service broker", func() {
 
 			By("allowing an app to bind to the service instance")
 			testAppURL := cf.PushAndBindApp(testAppName, serviceName, exampleAppPath)
-			defer func() {
-				Eventually(cf.Cf("unbind-service", testAppName, serviceName), cf.CfTimeout).Should(gexec.Exit())
-				Eventually(cf.Cf("delete", testAppName, "-f", "-r"), cf.CfTimeout).Should(gexec.Exit())
-
-				Eventually(
-					cf.Cf("delete-service-key", "-f", serviceName, serviceKeyName),
-					cf.CfTimeout,
-				).Should(gexec.Exit())
-
-				cf.DeleteService(serviceName)
-			}()
 
 			if shouldTestCredhubRef {
 				By("ensuring credential in app env is credhub-ref", func() {
