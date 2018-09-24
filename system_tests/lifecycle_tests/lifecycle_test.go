@@ -38,7 +38,9 @@ var _ = Describe("On-demand service broker", func() {
 		serviceName = newServiceName()
 		serviceKeyName = uuid.New()[:7]
 
-		credhubCLI.SetCredhubValueFor(credhubPath)
+		if secureManifestsEnabled {
+			credhubCLI.SetCredhubValueFor(credhubPath)
+		}
 	})
 
 	AfterEach(func() {
@@ -52,7 +54,9 @@ var _ = Describe("On-demand service broker", func() {
 
 		cf.DeleteService(serviceName)
 
-		credhubCLI.DeleteCredhubValueFor(credhubPath)
+		if secureManifestsEnabled {
+			credhubCLI.DeleteCredhubValueFor(credhubPath)
+		}
 	})
 
 	lifecycle := func(t LifecycleTest) {
