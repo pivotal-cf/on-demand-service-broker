@@ -167,7 +167,7 @@ func addCredhubPathToArbitraryParams(arbitraryParams map[string]interface{}, cre
 
 func prepareArbitraryParams(t LifecycleTest) string {
 	arbitraryParams := t.ArbitraryParams
-	if t.HasCredhubSecretPath {
+	if secureManifestsEnabled && t.HasCredhubSecretPath {
 		arbitraryParams = addCredhubPathToArbitraryParams(arbitraryParams, credhubPath)
 	}
 	return toJsonString(arbitraryParams)
@@ -224,7 +224,7 @@ func testODBMetrics(brokerDeploymentName, serviceOfferingName, planName string) 
 			Expect(err).NotTo(HaveOccurred())
 			return
 		case <-timeoutChan:
-			Fail("timed out after 5 minute")
+			Fail("Service Metrics test timed out after 5 minutes.")
 			return
 		}
 	}
