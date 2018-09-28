@@ -13,6 +13,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
+	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/integration_tests/helpers"
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp/mockbroker"
@@ -33,10 +34,20 @@ var _ = Describe("Orphan Deployments", func() {
 	BeforeEach(func() {
 		odb = mockbroker.New()
 		odb.ExpectedBasicAuth(brokerUsername, brokerPassword)
+		c := config.OrphanDeploymentsErrandConfig{
+			BrokerAPI: config.BrokerAPI{
+				URL: odb.URL,
+				Authentication: config.Authentication{
+					Basic: config.UserCredentials{
+						Username: brokerUsername,
+						Password: brokerPassword,
+					},
+				},
+			},
+			ServiceInstancesAPI: config.ServiceInstancesAPI{},
+		}
 		params = []string{
-			"-brokerUsername", brokerUsername,
-			"-brokerPassword", brokerPassword,
-			"-brokerUrl", odb.URL,
+			"-configPath", write(c),
 		}
 	})
 
@@ -102,22 +113,6 @@ var _ = Describe("Orphan Deployments", func() {
 		))
 	})
 
-	It("fails when the broker URL is invalid", func() {
-		invalidURL := "$%#$%##$@#$#%$^&%^&$##$%@#"
-		params = []string{
-			"-brokerUsername", brokerUsername,
-			"-brokerPassword", brokerPassword,
-			"-brokerUrl", invalidURL,
-		}
-		session := helpers.StartBinaryWithParams(binaryPath, params)
-
-		Eventually(session).Should(gexec.Exit(1))
-		Expect(string(session.Err.Contents())).To(SatisfyAll(
-			ContainSubstring(errorMessage),
-			ContainSubstring("invalid URL"),
-		))
-	})
-
 	It("fails when the response is invalid JSON", func() {
 		odb.AppendMocks(mockbroker.OrphanDeployments().RespondsOKWith("invalid json"))
 
@@ -129,4 +124,39 @@ var _ = Describe("Orphan Deployments", func() {
 			gbytes.Say("invalid character 'i'"),
 		))
 	})
+
+	When("invoking the binary with broken arguments", func() {
+		It("fails when the config path is not provided", func() {
+			params = []string{}
+			session := helpers.StartBinaryWithParams(binaryPath, params)
+
+			Eventually(session).Should(gexec.Exit(1))
+			Expect(session.Err).To(gbytes.Say("-configPath must be given as argument"))
+		})
+
+		It("fails when the config path is provided, but empty", func() {
+			params = []string{"-configPath"}
+			session := helpers.StartBinaryWithParams(binaryPath, params)
+
+			Eventually(session).Should(gexec.Exit(2))
+			Expect(session.Err).To(gbytes.Say("flag needs an argument: -configPath"))
+		})
+
+		It("fails when the config path can't be read", func() {
+			params = []string{"-configPath", "/not/a/file"}
+			session := helpers.StartBinaryWithParams(binaryPath, params)
+
+			Eventually(session).Should(gexec.Exit(1))
+			Expect(session.Err).To(gbytes.Say("open /not/a/file: no such file or directory"))
+		})
+
+		It("fails when the config file can't be correctly parsed", func() {
+			params = []string{"-configPath", write([]byte("--1--"))}
+			session := helpers.StartBinaryWithParams(binaryPath, params)
+
+			Eventually(session).Should(gexec.Exit(1))
+			Expect(session.Err).To(gbytes.Say("failed to unmarshal errand config"))
+		})
+	})
+
 })

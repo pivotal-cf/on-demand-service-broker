@@ -10,14 +10,16 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
-
 	"time"
 
 	"github.com/craigfurman/herottp"
 	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
+	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
+	yaml "gopkg.in/yaml.v2"
 )
 
 const (
@@ -29,16 +31,33 @@ func main() {
 	loggerFactory := loggerfactory.New(os.Stderr, "orphan-deployments", loggerfactory.Flags)
 	logger := loggerFactory.New()
 
-	brokerUsername := flag.String("brokerUsername", "", "username for the broker")
-	brokerPassword := flag.String("brokerPassword", "", "password for the broker")
-	brokerURL := flag.String("brokerUrl", "", "url of the broker")
+	var configPath string
+	flag.StringVar(&configPath, "configPath", "", "path to orphan-deployment errand config")
 	flag.Parse()
+
+	if configPath == "" {
+		logger.Fatalln("-configPath must be given as argument")
+	}
+
+	contents, err := ioutil.ReadFile(configPath)
+	if err != nil {
+		logger.Fatalln(err.Error())
+	}
+
+	var errandConfig config.OrphanDeploymentsErrandConfig
+	if err := yaml.Unmarshal(contents, &errandConfig); err != nil {
+		logger.Fatalf("failed to unmarshal errand config: %s\n", err.Error())
+	}
 
 	httpClient := herottp.New(herottp.Config{
 		Timeout: 30 * time.Second,
 	})
-	authHeaderBuilder := authorizationheader.NewBasicAuthHeaderBuilder(*brokerUsername, *brokerPassword)
-	brokerServices := services.NewBrokerServices(httpClient, authHeaderBuilder, *brokerURL, logger)
+
+	brokerUsername := errandConfig.BrokerAPI.Authentication.Basic.Username
+	brokerPassword := errandConfig.BrokerAPI.Authentication.Basic.Password
+
+	authHeaderBuilder := authorizationheader.NewBasicAuthHeaderBuilder(brokerUsername, brokerPassword)
+	brokerServices := services.NewBrokerServices(httpClient, authHeaderBuilder, errandConfig.BrokerAPI.URL, logger)
 
 	orphans, err := brokerServices.OrphanDeployments()
 	if err != nil {

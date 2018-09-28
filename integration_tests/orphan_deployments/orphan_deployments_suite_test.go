@@ -7,11 +7,13 @@
 package orphan_deployments_test
 
 import (
+	"io/ioutil"
 	"testing"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
+	"gopkg.in/yaml.v2"
 )
 
 func TestOrphanDeployments(t *testing.T) {
@@ -19,7 +21,9 @@ func TestOrphanDeployments(t *testing.T) {
 	RunSpecs(t, "Orphan Deployments Suite")
 }
 
-var binaryPath string
+var (
+	binaryPath string
+)
 
 var _ = SynchronizedBeforeSuite(func() []byte {
 	binaryPath, err := gexec.Build("github.com/pivotal-cf/on-demand-service-broker/cmd/orphan-deployments")
@@ -33,3 +37,17 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 var _ = SynchronizedAfterSuite(func() {}, func() {
 	gexec.CleanupBuildArtifacts()
 })
+
+func write(c interface{}) string {
+	b, err := yaml.Marshal(c)
+	Expect(err).ToNot(HaveOccurred(), "can't marshal orphan deployment errand config")
+
+	file, err := ioutil.TempFile("", "config")
+	Expect(err).NotTo(HaveOccurred())
+	defer file.Close()
+
+	_, err = file.Write(b)
+	Expect(err).NotTo(HaveOccurred())
+
+	return file.Name()
+}

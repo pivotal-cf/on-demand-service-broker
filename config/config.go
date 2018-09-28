@@ -586,3 +586,8 @@ type BindingDNSProperties struct {
 	AZS    []string `yaml:"azs"`
 	Status string   `yaml:"status"`
 }
+
+type OrphanDeploymentsErrandConfig struct {
+	BrokerAPI           BrokerAPI           `yaml:"broker_api"`
+	ServiceInstancesAPI ServiceInstancesAPI `yaml:"service_instances_api"`
+}
