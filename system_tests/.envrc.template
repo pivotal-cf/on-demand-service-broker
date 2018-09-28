@@ -37,4 +37,8 @@ export SERVICE_GUID=
 
 export LIFECYCLE_TESTS_CONFIG=
 
+export SIAPI_URL=
+export SIAPI_USERNAME=
+export SIAPI_PASSWORD=
+
 source_up
