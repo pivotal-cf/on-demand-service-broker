@@ -25,94 +25,71 @@ var _ = Describe("Orphan Deployments", func() {
 
 	BeforeEach(func() {
 		logger = loggerFactory.NewWithRequestID()
-	})
-
-	JustBeforeEach(func() {
 		b = createDefaultBroker()
+	})
+
+	It("returns an empty list when there are no instances or deployments", func() {
 		orphans, orphanDeploymentsErr = b.OrphanDeployments(logger)
+
+		Expect(orphanDeploymentsErr).NotTo(HaveOccurred())
+		Expect(orphans).To(BeEmpty())
 	})
 
-	Context("when there are no instances or deployments", func() {
-		It("returns an empty list", func() {
-			Expect(orphanDeploymentsErr).NotTo(HaveOccurred())
-			Expect(orphans).To(BeEmpty())
-		})
+	It("returns an empty list when there is no orphan instances", func() {
+		cfClient.GetInstancesOfServiceOfferingReturns([]service.Instance{{GUID: "one"}}, nil)
+		boshClient.GetDeploymentsReturns([]boshdirector.Deployment{{Name: "service-instance_one"}}, nil)
+
+		orphans, orphanDeploymentsErr = b.OrphanDeployments(logger)
+
+		Expect(orphanDeploymentsErr).NotTo(HaveOccurred())
+		Expect(orphans).To(BeEmpty())
 	})
 
-	Context("when there is an instance with a deployment", func() {
-		BeforeEach(func() {
-			cfClient.GetInstancesOfServiceOfferingReturns([]service.Instance{{GUID: "one"}}, nil)
-			boshClient.GetDeploymentsReturns([]boshdirector.Deployment{{Name: "service-instance_one"}}, nil)
-		})
+	It("returns an empty list when there is an instance but no deployment", func() {
+		cfClient.GetInstancesOfServiceOfferingReturns([]service.Instance{{GUID: "one"}}, nil)
+		boshClient.GetDeploymentsReturns([]boshdirector.Deployment{}, nil)
 
-		It("returns an empty list", func() {
-			Expect(orphanDeploymentsErr).NotTo(HaveOccurred())
-			Expect(orphans).To(BeEmpty())
-		})
+		orphans, orphanDeploymentsErr = b.OrphanDeployments(logger)
+
+		Expect(orphanDeploymentsErr).NotTo(HaveOccurred())
+		Expect(orphans).To(BeEmpty())
 	})
 
-	Context("when there are no instances and one deployment", func() {
-		BeforeEach(func() {
-			cfClient.GetInstancesOfServiceOfferingReturns([]service.Instance{}, nil)
-			boshClient.GetDeploymentsReturns([]boshdirector.Deployment{{Name: "service-instance_one"}}, nil)
-		})
+	It("returns a list of one orphan when there are no instances but one deployment", func() {
+		cfClient.GetInstancesOfServiceOfferingReturns([]service.Instance{}, nil)
+		boshClient.GetDeploymentsReturns([]boshdirector.Deployment{{Name: "service-instance_one"}}, nil)
 
-		It("returns a list of one orphan deployment", func() {
-			Expect(orphanDeploymentsErr).NotTo(HaveOccurred())
-			Expect(orphans).To(ConsistOf("service-instance_one"))
-		})
+		orphans, orphanDeploymentsErr = b.OrphanDeployments(logger)
+
+		Expect(orphanDeploymentsErr).NotTo(HaveOccurred())
+		Expect(orphans).To(ConsistOf("service-instance_one"))
 	})
 
-	Context("when there is one instance and no deployments", func() {
-		BeforeEach(func() {
-			cfClient.GetInstancesOfServiceOfferingReturns([]service.Instance{{GUID: "one"}}, nil)
-			boshClient.GetDeploymentsReturns([]boshdirector.Deployment{}, nil)
-		})
+	It("ignores non-odb deployments", func() {
+		deployments := []boshdirector.Deployment{{Name: "not-a-service-instance"}, {Name: "acme-deployment"}}
+		boshClient.GetDeploymentsReturns(deployments, nil)
 
-		It("returns a list of one orphan deployment", func() {
-			Expect(orphanDeploymentsErr).NotTo(HaveOccurred())
-			Expect(orphans).To(BeEmpty())
-		})
+		orphans, orphanDeploymentsErr = b.OrphanDeployments(logger)
+
+		Expect(orphanDeploymentsErr).NotTo(HaveOccurred())
+		Expect(orphans).To(BeEmpty())
 	})
 
-	Context("when there is one orphan deployment and two non-ODB deployments", func() {
-		BeforeEach(func() {
-			cfClient.GetInstancesOfServiceOfferingReturns([]service.Instance{{GUID: "one"}}, nil)
-			deployments := []boshdirector.Deployment{
-				{Name: "service-instance_one"},
-				{Name: "not-a-service-instance"},
-				{Name: "acme-deployment"},
-				{Name: "service-instance_two"},
-			}
-			boshClient.GetDeploymentsReturns(deployments, nil)
-		})
+	It("logs an error when getting the list of instances fails", func() {
+		cfClient.GetInstancesOfServiceOfferingReturns([]service.Instance{}, errors.New("error listing instances: listing error"))
 
-		It("returns a list of one orphan deployment", func() {
-			Expect(orphanDeploymentsErr).NotTo(HaveOccurred())
-			Expect(orphans).To(ConsistOf("service-instance_two"))
-		})
+		orphans, orphanDeploymentsErr = b.OrphanDeployments(logger)
+
+		Expect(orphanDeploymentsErr).To(HaveOccurred())
+		Expect(logBuffer.String()).To(ContainSubstring("error listing instances: listing error"))
 	})
 
-	Context("when the getting the list of instances fails", func() {
-		BeforeEach(func() {
-			cfClient.GetInstancesOfServiceOfferingReturns([]service.Instance{}, errors.New("error listing instances: listing error"))
-		})
+	It("logs an error when getting the list of deployments fails", func() {
+		boshClient.GetDeploymentsReturns([]boshdirector.Deployment{}, errors.New("error getting deployments: get deployment error"))
 
-		It("broker logs an error", func() {
-			Expect(orphanDeploymentsErr).To(HaveOccurred())
-			Expect(logBuffer.String()).To(ContainSubstring("error listing instances: listing error"))
-		})
-	})
+		orphans, orphanDeploymentsErr = b.OrphanDeployments(logger)
 
-	Context("when the getting the list of deployments fails", func() {
-		BeforeEach(func() {
-			cfClient.GetInstancesOfServiceOfferingReturns([]service.Instance{{GUID: "one"}}, nil)
-			boshClient.GetDeploymentsReturns([]boshdirector.Deployment{}, errors.New("error getting deployments: get deployment error"))
-		})
-
-		It("broker logs an error", func() {
-			Expect(orphanDeploymentsErr).To(HaveOccurred())
-			Expect(logBuffer.String()).To(ContainSubstring("error getting deployments: get deployment error"))
-		})
+		Expect(orphanDeploymentsErr).To(HaveOccurred())
+		Expect(logBuffer.String()).To(ContainSubstring("error getting deployments: get deployment error"))
 	})
 })
