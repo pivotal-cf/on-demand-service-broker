@@ -19,6 +19,8 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/pivotal-cf/on-demand-service-broker/service"
+
 	"os"
 	"syscall"
 	"testing"
@@ -79,6 +81,8 @@ var (
 	serviceOfferingID         string
 
 	fakeCredhubOperator *manifestsecretsfakes.FakeCredhubOperator
+
+	instanceLister service.InstanceLister
 )
 
 var _ = BeforeEach(func() {
@@ -114,9 +118,14 @@ func StartServer(conf config.Config) {
 }
 
 func StartServerWithStopHandler(conf config.Config, stopServerChan chan os.Signal) {
+	var err error
+
 	loggerBuffer = gbytes.NewBuffer()
 	loggerFactory := loggerfactory.New(loggerBuffer, componentName, loggerfactory.Flags)
 	logger := loggerFactory.New()
+
+	instanceLister, err = service.BuildInstanceLister(fakeCfClient, conf.ServiceCatalog.ID, conf.ServiceInstancesAPI, logger)
+	Expect(err).ToNot(HaveOccurred(), "unexpected error building instance lister")
 
 	fakeOnDemandBroker, err := broker.New(
 		fakeBoshClient,
@@ -127,6 +136,7 @@ func StartServerWithStopHandler(conf config.Config, stopServerChan chan os.Signa
 		fakeServiceAdapter,
 		deployer,
 		secretManager,
+		instanceLister,
 		loggerFactory,
 	)
 	Expect(err).NotTo(HaveOccurred())

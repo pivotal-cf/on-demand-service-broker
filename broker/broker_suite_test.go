@@ -20,6 +20,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
+	servicefakes "github.com/pivotal-cf/on-demand-service-broker/service/fakes"
 	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
 
@@ -45,17 +46,18 @@ const (
 )
 
 var (
-	b                 *broker.Broker
-	brokerCreationErr error
-	boshClient        *fakes.FakeBoshClient
-	cfClient          *fakes.FakeCloudFoundryClient
-	serviceAdapter    *fakes.FakeServiceAdapterClient
-	fakeDeployer      *fakes.FakeDeployer
-	serviceCatalog    config.ServiceOffering
-	logBuffer         *bytes.Buffer
-	loggerFactory     *loggerfactory.LoggerFactory
-	brokerConfig      config.Broker
-	secretManager     *fakes.FakeManifestSecretManager
+	b                  *broker.Broker
+	brokerCreationErr  error
+	boshClient         *fakes.FakeBoshClient
+	cfClient           *fakes.FakeCloudFoundryClient
+	serviceAdapter     *fakes.FakeServiceAdapterClient
+	fakeDeployer       *fakes.FakeDeployer
+	fakeInstanceLister *servicefakes.FakeInstanceLister
+	serviceCatalog     config.ServiceOffering
+	logBuffer          *bytes.Buffer
+	loggerFactory      *loggerfactory.LoggerFactory
+	brokerConfig       config.Broker
+	secretManager      *fakes.FakeManifestSecretManager
 
 	existingPlanServiceInstanceLimit    = 3
 	serviceOfferingServiceInstanceLimit = 5
@@ -282,6 +284,7 @@ var _ = BeforeEach(func() {
 	serviceAdapter = new(fakes.FakeServiceAdapterClient)
 	fakeDeployer = new(fakes.FakeDeployer)
 	secretManager = new(fakes.FakeManifestSecretManager)
+	fakeInstanceLister = new(servicefakes.FakeInstanceLister)
 	cfClient = new(fakes.FakeCloudFoundryClient)
 	cfClient.GetAPIVersionReturns("2.57.0", nil)
 
@@ -344,6 +347,7 @@ func createBrokerWithAdapter(serviceAdapter *fakes.FakeServiceAdapterClient) *br
 		serviceAdapter,
 		fakeDeployer,
 		secretManager,
+		fakeInstanceLister,
 		loggerFactory,
 	)
 
@@ -363,6 +367,7 @@ func createBrokerWithServiceCatalog(catalog config.ServiceOffering) *broker.Brok
 		serviceAdapter,
 		fakeDeployer,
 		secretManager,
+		fakeInstanceLister,
 		loggerFactory,
 	)
 
@@ -384,6 +389,7 @@ func createBroker(startupCheckers []broker.StartupChecker, overrideClient ...bro
 		serviceAdapter,
 		fakeDeployer,
 		secretManager,
+		fakeInstanceLister,
 		loggerFactory,
 	)
 }

@@ -13,7 +13,7 @@ import (
 )
 
 func (b *Broker) Instances(logger *log.Logger) ([]service.Instance, error) {
-	instances, err := b.cfClient.GetInstancesOfServiceOffering(b.serviceOffering.ID, logger)
+	instances, err := b.instanceLister.Instances()
 	if err != nil {
 		return nil, b.processError(err, logger)
 	}

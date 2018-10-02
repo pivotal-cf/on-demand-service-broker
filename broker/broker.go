@@ -29,6 +29,7 @@ type Broker struct {
 	adapterClient  ServiceAdapterClient
 	deployer       Deployer
 	secretManager  ManifestSecretManager
+	instanceLister service.InstanceLister
 	deploymentLock *sync.Mutex
 
 	serviceOffering         config.ServiceOffering
@@ -48,6 +49,7 @@ func New(
 	serviceAdapter ServiceAdapterClient,
 	deployer Deployer,
 	manifestSecretManager ManifestSecretManager,
+	instanceLister service.InstanceLister,
 	loggerFactory *loggerfactory.LoggerFactory,
 ) (*Broker, error) {
 	b := &Broker{
@@ -61,6 +63,7 @@ func New(
 		EnablePlanSchemas:       brokerConfig.EnablePlanSchemas,
 		EnableSecureManifests:   brokerConfig.EnableSecureManifests,
 		secretManager:           manifestSecretManager,
+		instanceLister:          instanceLister,
 		loggerFactory:           loggerFactory,
 	}
 

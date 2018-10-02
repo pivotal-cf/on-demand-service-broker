@@ -242,6 +242,7 @@ var _ = Describe("LastOperation", func() {
 					serviceAdapter,
 					fakeDeployer,
 					secretManager,
+					fakeInstanceLister,
 					loggerFactory,
 				)
 				Expect(err).NotTo(HaveOccurred())

@@ -36,7 +36,7 @@ var _ = Describe("Orphan Deployments", func() {
 	})
 
 	It("returns an empty list when there is no orphan instances", func() {
-		cfClient.GetInstancesOfServiceOfferingReturns([]service.Instance{{GUID: "one"}}, nil)
+		fakeInstanceLister.InstancesReturns([]service.Instance{{GUID: "one"}}, nil)
 		boshClient.GetDeploymentsReturns([]boshdirector.Deployment{{Name: "service-instance_one"}}, nil)
 
 		orphans, orphanDeploymentsErr = b.OrphanDeployments(logger)
@@ -45,18 +45,7 @@ var _ = Describe("Orphan Deployments", func() {
 		Expect(orphans).To(BeEmpty())
 	})
 
-	It("returns an empty list when there is an instance but no deployment", func() {
-		cfClient.GetInstancesOfServiceOfferingReturns([]service.Instance{{GUID: "one"}}, nil)
-		boshClient.GetDeploymentsReturns([]boshdirector.Deployment{}, nil)
-
-		orphans, orphanDeploymentsErr = b.OrphanDeployments(logger)
-
-		Expect(orphanDeploymentsErr).NotTo(HaveOccurred())
-		Expect(orphans).To(BeEmpty())
-	})
-
 	It("returns a list of one orphan when there are no instances but one deployment", func() {
-		cfClient.GetInstancesOfServiceOfferingReturns([]service.Instance{}, nil)
 		boshClient.GetDeploymentsReturns([]boshdirector.Deployment{{Name: "service-instance_one"}}, nil)
 
 		orphans, orphanDeploymentsErr = b.OrphanDeployments(logger)
@@ -76,7 +65,7 @@ var _ = Describe("Orphan Deployments", func() {
 	})
 
 	It("logs an error when getting the list of instances fails", func() {
-		cfClient.GetInstancesOfServiceOfferingReturns([]service.Instance{}, errors.New("error listing instances: listing error"))
+		fakeInstanceLister.InstancesReturns([]service.Instance{}, errors.New("error listing instances: listing error"))
 
 		orphans, orphanDeploymentsErr = b.OrphanDeployments(logger)
 

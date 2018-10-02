@@ -5,6 +5,8 @@ import (
 	"log"
 	"os"
 
+	"github.com/pivotal-cf/on-demand-service-broker/service"
+
 	credhub2 "github.com/cloudfoundry-incubator/credhub-cli/credhub"
 	"github.com/cloudfoundry-incubator/credhub-cli/credhub/auth"
 	"github.com/pivotal-cf/on-demand-service-broker/apiserver"
@@ -50,6 +52,11 @@ func Initiate(conf config.Config,
 
 	manifestSecretManager := manifestsecrets.BuildManager(conf.Broker.EnableSecureManifests, new(manifestsecrets.CredHubPathMatcher), boshCredhubStore)
 
+	instanceLister, err := service.BuildInstanceLister(cfClient, conf.ServiceCatalog.ID, conf.ServiceInstancesAPI, logger)
+	if err != nil {
+		logger.Fatalf("error building instance lister: %s", err)
+	}
+
 	var onDemandBroker apiserver.CombinedBroker
 	onDemandBroker, err = broker.New(
 		boshClient,
@@ -60,6 +67,7 @@ func Initiate(conf config.Config,
 		serviceAdapter,
 		deploymentManager,
 		manifestSecretManager,
+		instanceLister,
 		loggerFactory,
 	)
 	if err != nil {
