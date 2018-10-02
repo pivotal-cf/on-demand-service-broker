@@ -15,7 +15,54 @@
 
 package service
 
+import (
+	"crypto/x509"
+	"fmt"
+	"log"
+	"time"
+
+	"github.com/craigfurman/herottp"
+	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
+	"github.com/pivotal-cf/on-demand-service-broker/config"
+)
+
 type Instance struct {
 	GUID         string `json:"service_instance_id"`
 	PlanUniqueID string `json:"plan_id"`
+}
+
+//go:generate counterfeiter -o fakes/fake_instance_lister.go . InstanceLister
+// InstanceLister provides a interface to query service instances present in the platform
+type InstanceLister interface {
+	Instances() ([]Instance, error)
+}
+
+//go:generate counterfeiter -o fakes/fake_lister_client.go . ListerClient
+type ListerClient interface {
+	GetInstancesOfServiceOffering(string, *log.Logger) ([]Instance, error)
+}
+
+func BuildInstanceLister(client ListerClient, serviceOfferingID string, siapiConfig config.ServiceInstancesAPI, logger *log.Logger) (InstanceLister, error) {
+	if siapiConfig.URL == "" {
+		return NewCFServiceInstanceLister(client, serviceOfferingID, logger), nil
+	}
+
+	certPool, err := x509.SystemCertPool()
+	if err != nil {
+		return nil, fmt.Errorf("error getting a certificate pool to append our trusted cert to: %s", err)
+	}
+	cert := siapiConfig.RootCACert
+	certPool.AppendCertsFromPEM([]byte(cert))
+
+	httpClient := herottp.New(herottp.Config{
+		Timeout: 30 * time.Second,
+		RootCAs: certPool,
+	})
+
+	authHeaderBuilder := authorizationheader.NewBasicAuthHeaderBuilder(
+		siapiConfig.Authentication.Basic.Username,
+		siapiConfig.Authentication.Basic.Password,
+	)
+
+	return NewInstanceLister(httpClient, authHeaderBuilder, siapiConfig.URL, true, logger), nil
 }
