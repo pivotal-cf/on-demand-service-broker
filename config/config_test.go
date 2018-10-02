@@ -82,6 +82,16 @@ var _ = Describe("Broker Config", func() {
 							},
 						},
 					},
+					ServiceInstancesAPI: config.ServiceInstancesAPI{
+						URL:        "some-si-api-url",
+						RootCACert: "some-cert",
+						Authentication: config.Authentication{
+							Basic: config.UserCredentials{
+								Username: "si-api-username",
+								Password: "si-api-password",
+							},
+						},
+					},
 					ServiceAdapter: config.ServiceAdapter{
 						Path: "test_assets/executable.sh",
 					},

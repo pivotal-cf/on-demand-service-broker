@@ -21,14 +21,15 @@ import (
 )
 
 type Config struct {
-	Broker            Broker
-	Bosh              Bosh
-	CF                CF
-	CredHub           CredHub           `yaml:"credhub"`
-	ServiceAdapter    ServiceAdapter    `yaml:"service_adapter"`
-	ServiceDeployment ServiceDeployment `yaml:"service_deployment"`
-	ServiceCatalog    ServiceOffering   `yaml:"service_catalog"`
-	BoshCredhub       BoshCredhub       `yaml:"bosh_credhub"`
+	Broker              Broker
+	Bosh                Bosh
+	CF                  CF
+	ServiceInstancesAPI ServiceInstancesAPI `yaml:"service_instances_api"`
+	CredHub             CredHub             `yaml:"credhub"`
+	ServiceAdapter      ServiceAdapter      `yaml:"service_adapter"`
+	ServiceDeployment   ServiceDeployment   `yaml:"service_deployment"`
+	ServiceCatalog      ServiceOffering     `yaml:"service_catalog"`
+	BoshCredhub         BoshCredhub         `yaml:"bosh_credhub"`
 }
 
 type Broker struct {
