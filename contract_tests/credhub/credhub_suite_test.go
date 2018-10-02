@@ -19,24 +19,14 @@ import (
 	"fmt"
 	"os"
 
-	"log"
 	"testing"
 
 	"github.com/cloudfoundry-incubator/credhub-cli/credhub"
 	"github.com/cloudfoundry-incubator/credhub-cli/credhub/auth"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf/on-demand-service-broker/boshlinks"
 	odbcredhub "github.com/pivotal-cf/on-demand-service-broker/credhub"
 
-	"crypto/x509"
-
-	boshdir "github.com/cloudfoundry/bosh-cli/director"
-	boshuaa "github.com/cloudfoundry/bosh-cli/uaa"
-	boshlog "github.com/cloudfoundry/bosh-utils/logger"
-	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
-	"github.com/pivotal-cf/on-demand-service-broker/config"
-	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 	"github.com/totherme/unstructured"
 )
 
@@ -54,61 +44,17 @@ func TestContractTests(t *testing.T) {
 
 var _ = BeforeSuite(func() {
 	dev_env = os.Getenv("DEV_ENV")
-	caCerts = extractCAsFromManifest()
+	cfUAACACert := os.Getenv("CF_UAA_CA_CERT")
+	Expect(cfUAACACert).ToNot(BeEmpty())
+	cfCredhubCACert := os.Getenv("CF_CREDHUB_CA_CERT")
+	Expect(cfCredhubCACert).ToNot(BeEmpty())
+	caCerts = []string{cfUAACACert, cfCredhubCACert}
 	ensureCredhubIsClean()
 })
 
 var _ = AfterSuite(func() {
 	ensureCredhubIsClean()
 })
-
-func getBoshManifest(deploymentName string) ([]byte, error) {
-	logger := log.New(GinkgoWriter, "", loggerfactory.Flags)
-	certPool, err := x509.SystemCertPool()
-	if err != nil {
-		return []byte{}, err
-	}
-
-	boshURL := os.Getenv("BOSH_URL")
-	Expect(boshURL).NotTo(BeEmpty(), "Expected BOSH_URL to be set")
-
-	l := boshlog.NewLogger(boshlog.LevelError)
-	directorFactory := boshdir.NewFactory(l)
-	uaaFactory := boshuaa.NewFactory(l)
-
-	username := os.Getenv("BOSH_USERNAME")
-	Expect(username).NotTo(BeEmpty(), "Expected BOSH_USERNAME to be set")
-	password := os.Getenv("BOSH_PASSWORD")
-	Expect(password).NotTo(BeEmpty(), "Expected BOSH_PASSWORD to be set")
-	boshCert := os.Getenv("BOSH_CA_CERT")
-	Expect(boshCert).NotTo(BeEmpty(), "Expected BOSH_CA_CERT to be set")
-
-	boshClient, err := boshdirector.New(
-		boshURL,
-		[]byte(boshCert),
-		certPool,
-		directorFactory,
-		uaaFactory,
-		config.Authentication{UAA: config.UAAAuthentication{ClientCredentials: config.ClientCredentials{ID: username, Secret: password}}},
-		boshlinks.NewDNSRetriever,
-		boshdirector.NewBoshHTTP,
-		logger,
-	)
-
-	if err != nil {
-		return []byte{}, err
-	}
-
-	cfRawManifest, exists, err := boshClient.GetDeployment(deploymentName, logger)
-	if err != nil {
-		return []byte{}, err
-	}
-
-	if !exists {
-		return []byte{}, fmt.Errorf("deployment '%s' not found", deploymentName)
-	}
-	return cfRawManifest, nil
-}
 
 func nameIsCredhubMatcher(data unstructured.Data) bool {
 	val, err := data.GetByPointer("/name")
@@ -120,35 +66,6 @@ func nameIsCredhubMatcher(data unstructured.Data) bool {
 		return false
 	}
 	return stringVal == "credhub"
-}
-
-func extractCAsFromManifest() []string {
-	cfRawManifest, err := getBoshManifest("cf")
-	Expect(err).NotTo(HaveOccurred())
-
-	cfManifest, err := unstructured.ParseYAML(string(cfRawManifest))
-	Expect(err).NotTo(HaveOccurred())
-
-	igs, err := cfManifest.GetByPointer("/instance_groups")
-	Expect(err).NotTo(HaveOccurred())
-
-	credhubGroup, found := igs.FindElem(nameIsCredhubMatcher)
-	Expect(found).To(BeTrue())
-
-	jobs, err := credhubGroup.GetByPointer("/jobs")
-	Expect(err).NotTo(HaveOccurred())
-	credhubJob, found := jobs.FindElem(nameIsCredhubMatcher)
-	Expect(found).To(BeTrue())
-
-	credhubProperties, err := credhubJob.GetByPointer("/properties/credhub")
-	Expect(err).NotTo(HaveOccurred())
-
-	uaaCert, err := credhubProperties.GetByPointer("/authentication/uaa/ca_certs/0")
-	Expect(err).NotTo(HaveOccurred())
-	credhubCert, err := credhubProperties.GetByPointer("/tls/ca")
-	Expect(err).NotTo(HaveOccurred())
-
-	return []string{uaaCert.UnsafeStringValue(), credhubCert.UnsafeStringValue()}
 }
 
 func testKeyPrefix() string {
