@@ -44,7 +44,6 @@ var _ = Describe("Orphan Deployments", func() {
 					},
 				},
 			},
-			ServiceInstancesAPI: config.ServiceInstancesAPI{},
 		}
 		params = []string{
 			"-configPath", write(c),
@@ -56,7 +55,7 @@ var _ = Describe("Orphan Deployments", func() {
 		odb.Close()
 	})
 
-	It("succeeds when no orphan deployments are detected", func() {
+	It("exits with 0 when no orphan deployments are detected", func() {
 		odb.AppendMocks(mockbroker.OrphanDeployments().RespondsOKWith("[]"))
 
 		session := helpers.StartBinaryWithParams(binaryPath, params)
@@ -65,7 +64,7 @@ var _ = Describe("Orphan Deployments", func() {
 		Expect(string(session.Out.Contents())).To(Equal("[]\n"))
 	})
 
-	It("fails with exit code 10 when orphan deployments are detected", func() {
+	It("exits with code 10 when orphan deployments are detected", func() {
 		orphanBoshDeploymentsDetectedMessage := "Orphan BOSH deployments detected with no corresponding service instance in Cloud Foundry. Before deleting any deployment it is recommended to verify the service instance no longer exists in Cloud Foundry and any data is safe to delete."
 		listOfDeployments := `[{"deployment_name":"service-instance_one"},{"deployment_name":"service-instance_two"}]`
 		odb.AppendMocks(mockbroker.OrphanDeployments().RespondsOKWith(listOfDeployments))

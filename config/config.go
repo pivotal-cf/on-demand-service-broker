@@ -589,6 +589,5 @@ type BindingDNSProperties struct {
 }
 
 type OrphanDeploymentsErrandConfig struct {
-	BrokerAPI           BrokerAPI           `yaml:"broker_api"`
-	ServiceInstancesAPI ServiceInstancesAPI `yaml:"service_instances_api"`
+	BrokerAPI BrokerAPI `yaml:"broker_api"`
 }
