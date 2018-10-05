@@ -18,7 +18,7 @@ import (
 
 const (
 	GenericErrorPrefix         = "There was a problem completing your request. Please contact your operations team providing the following information:"
-	PendingChangesErrorMessage = "The service broker has been updated, and this service instance is out of date. Please contact your operator."
+	PendingChangesErrorMessage = "Regenerated manifest differs from original. The service broker may have been updated since this service instance was provisioned. Please contact your operator."
 	OperationInProgressMessage = "An operation is in progress for your service instance. Please try again later."
 
 	UpdateLoggerAction = ""
