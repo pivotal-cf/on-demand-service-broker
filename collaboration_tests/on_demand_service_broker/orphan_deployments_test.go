@@ -62,7 +62,7 @@ var _ = Describe("Orphan Deployments", func() {
 	})
 
 	Context("with CF configured in the broker", func() {
-		BeforeEach(func() {
+		JustBeforeEach(func() {
 			conf := brokerConfig.Config{
 				Broker: brokerConfig.Broker{
 					Port: serverPort, Username: brokerUsername, Password: brokerPassword,
@@ -89,18 +89,22 @@ var _ = Describe("Orphan Deployments", func() {
 			Expect(session).To(gbytes.Say(`\[\]`))
 		})
 
-		It("exits 10 when orphan deployments are found through CF", func() {
-			fakeBoshClient.GetDeploymentsReturns([]boshdirector.Deployment{
-				{Name: "service-instance_1"},
-			}, nil)
+		Context("with a single bosh deployment", func() {
+			BeforeEach(func() {
+				fakeBoshClient.GetDeploymentsReturns([]boshdirector.Deployment{
+					{Name: "service-instance_1"},
+				}, nil)
+			})
 
-			cmd := exec.Command(orphanDeploymentsBinary, "-configPath", errandConfigPath)
-			session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
-			Expect(err).ToNot(HaveOccurred())
-			Eventually(session).Should(gexec.Exit(10), "expected exit code 10 for presence of orphans")
+			It("exits 10 when orphan deployments are found through CF", func() {
+				cmd := exec.Command(orphanDeploymentsBinary, "-configPath", errandConfigPath)
+				session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).ToNot(HaveOccurred())
+				Eventually(session).Should(gexec.Exit(10), "expected exit code 10 for presence of orphans")
 
-			Expect(fakeCfClient.GetInstancesOfServiceOfferingCallCount()).To(Equal(1), "CF Client wasn't called")
-			Expect(session).To(gbytes.Say(`\[{"deployment_name":"service-instance_1"}\]`))
+				Expect(fakeCfClient.GetInstancesOfServiceOfferingCallCount()).To(Equal(1), "CF Client wasn't called")
+				Expect(session).To(gbytes.Say(`\[{"deployment_name":"service-instance_1"}\]`))
+			})
 		})
 	})
 
