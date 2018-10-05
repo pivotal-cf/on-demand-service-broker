@@ -113,7 +113,7 @@ var _ = Describe("Orphan Deployments", func() {
 			SIAPIServer *ghttp.Server
 		)
 
-		BeforeEach(func() {
+		JustBeforeEach(func() {
 			SIAPIServer = ghttp.NewServer()
 
 			conf := brokerConfig.Config{
@@ -147,49 +147,49 @@ var _ = Describe("Orphan Deployments", func() {
 			SIAPIServer.Close()
 		})
 
-		It("exits 10 when orphan deployments found through SI API", func() {
-			SIAPIServer.AppendHandlers(
-				ghttp.CombineHandlers(
+		Context("with 1 deployment in BOSH", func() {
+			BeforeEach(func() {
+				fakeBoshClient.GetDeploymentsReturns([]boshdirector.Deployment{
+					{Name: "service-instance_1"},
+				}, nil)
+			})
+
+			It("exits 10 when orphan deployments found through SI API", func() {
+				SIAPIServer.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/"),
+						ghttp.VerifyBasicAuth("foo", "bar"),
+						ghttp.RespondWith(http.StatusOK, `[]`, http.Header{"Content-type": {"application/json"}}),
+					),
+				)
+
+				cmd := exec.Command(orphanDeploymentsBinary, "-configPath", errandConfigPath)
+				session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).ToNot(HaveOccurred())
+
+				Eventually(session).Should(gexec.Exit(10), "expected exit code 10 for presence of orphans")
+				Expect(SIAPIServer.ReceivedRequests()).To(HaveLen(1), "No request was sent through the SI API")
+
+				Expect(fakeCfClient.GetInstancesOfServiceOfferingCallCount()).To(Equal(0))
+				Expect(session).To(gbytes.Say(`\[{"deployment_name":"service-instance_1"}\]`))
+			})
+
+			It("exits 0 when there are no orphans", func() {
+				SIAPIServer.AppendHandlers(ghttp.CombineHandlers(
 					ghttp.VerifyRequest("GET", "/"),
 					ghttp.VerifyBasicAuth("foo", "bar"),
-					ghttp.RespondWith(http.StatusOK, `[]`, http.Header{"Content-type": {"application/json"}}),
-				),
-			)
+					ghttp.RespondWith(http.StatusOK, `[{"service_instance_id":"1"}]`, http.Header{"Content-type": {"application/json"}}),
+				))
 
-			fakeBoshClient.GetDeploymentsReturns([]boshdirector.Deployment{
-				{Name: "service-instance_1"},
-			}, nil)
+				cmd := exec.Command(orphanDeploymentsBinary, "-configPath", errandConfigPath)
+				session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).ToNot(HaveOccurred())
+				Eventually(session).Should(gexec.Exit(0), "expected exit code 0 for presence of orphans")
 
-			cmd := exec.Command(orphanDeploymentsBinary, "-configPath", errandConfigPath)
-			session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
-			Expect(err).ToNot(HaveOccurred())
+				Expect(session).To(gbytes.Say(`\[\]`))
 
-			Eventually(session).Should(gexec.Exit(10), "expected exit code 10 for presence of orphans")
-			Expect(SIAPIServer.ReceivedRequests()).To(HaveLen(1), "No request was sent through the SI API")
-
-			Expect(fakeCfClient.GetInstancesOfServiceOfferingCallCount()).To(Equal(0))
-			Expect(session).To(gbytes.Say(`\[{"deployment_name":"service-instance_1"}\]`))
-		})
-
-		It("exits 0 when there are no orphans", func() {
-			SIAPIServer.AppendHandlers(ghttp.CombineHandlers(
-				ghttp.VerifyRequest("GET", "/"),
-				ghttp.VerifyBasicAuth("foo", "bar"),
-				ghttp.RespondWith(http.StatusOK, `[{"service_instance_id":"1"}]`, http.Header{"Content-type": {"application/json"}}),
-			))
-
-			fakeBoshClient.GetDeploymentsReturns([]boshdirector.Deployment{
-				{Name: "service-instance_1"},
-			}, nil)
-
-			cmd := exec.Command(orphanDeploymentsBinary, "-configPath", errandConfigPath)
-			session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
-			Expect(err).ToNot(HaveOccurred())
-			Eventually(session).Should(gexec.Exit(0), "expected exit code 0 for presence of orphans")
-
-			Expect(session).To(gbytes.Say(`\[\]`))
-
-			Expect(fakeCfClient.GetInstancesOfServiceOfferingCallCount()).To(Equal(0), "Unexpected call to CF")
+				Expect(fakeCfClient.GetInstancesOfServiceOfferingCallCount()).To(Equal(0), "Unexpected call to CF")
+			})
 		})
 	})
 
