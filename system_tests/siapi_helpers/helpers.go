@@ -30,7 +30,6 @@ func UpdateServiceInstancesAPI(serviceApiConfig SIAPIConfig, instances []service
 	}
 
 	url := strings.Replace(serviceApiConfig.URL, "https", "http", 1)
-	url = url + "/service_instances"
 
 	httpClient := herottp.New(herottp.Config{
 		Timeout: 30 * time.Second,
