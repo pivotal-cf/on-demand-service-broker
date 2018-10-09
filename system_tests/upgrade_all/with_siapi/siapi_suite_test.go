@@ -24,13 +24,19 @@ import (
 )
 
 var (
-	config *shared.Config
+	config      *shared.Config
+	siapiConfig shared.SIAPIConfig
 )
 
 var _ = BeforeSuite(func() {
 	config = &shared.Config{}
 	config.InitConfig()
 	config.RegisterBroker()
+	siapiConfig = shared.SIAPIConfig{
+		URL:      shared.EnvMustHave("SIAPI_URL"),
+		Password: shared.EnvMustHave("SIAPI_PASSWORD"),
+		Username: shared.EnvMustHave("SIAPI_USERNAME"),
+	}
 })
 
 var _ = AfterSuite(func() {

@@ -109,8 +109,13 @@ func CreateServiceInstances(config *Config, dataPersistenceEnabled bool) []*Test
 	return newInstances
 }
 
-func UpdateServiceInstancesAPI(brokerManifest *bosh.BoshManifest, filteredServices []*TestService, filterParams map[string]string, config *Config) {
-	upgradeInstanceProperties := FindUpgradeAllServiceInstancesProperties(brokerManifest)
+type SIAPIConfig struct {
+	URL      string
+	Username string
+	Password string
+}
+
+func UpdateServiceInstancesAPI(servicesApiConfig SIAPIConfig, filteredServices []*TestService, filterParams map[string]string, config *Config) {
 	authHeaderBuilder, err := authorizationheader.NewUserTokenAuthHeaderBuilder(
 		os.Getenv("CF_UAA_URL"),
 		"cf",
@@ -144,32 +149,15 @@ func UpdateServiceInstancesAPI(brokerManifest *bosh.BoshManifest, filteredServic
 	filteredInstancesJson, err := json.Marshal(filteredInstances)
 	Expect(err).NotTo(HaveOccurred())
 
-	serviceInstanceAPIConfig, ok := upgradeInstanceProperties["service_instances_api"].(map[interface{}]interface{})
-	Expect(ok).To(BeTrue())
-	url, ok := serviceInstanceAPIConfig["url"].(string)
-	Expect(ok).To(BeTrue())
-	authentication, ok := serviceInstanceAPIConfig["authentication"].(map[interface{}]interface{})
-	Expect(ok).To(BeTrue())
-	basic, ok := authentication["basic"].(map[interface{}]interface{})
-	Expect(ok).To(BeTrue())
-	username, ok := basic["username"].(string)
-	Expect(ok).To(BeTrue())
-	password, ok := basic["password"].(string)
-	Expect(ok).To(BeTrue())
-
-	Expect(url).NotTo(Equal(""), "url")
-	Expect(username).NotTo(Equal(""), "username")
-	Expect(password).NotTo(Equal(""), "password")
-
-	url = strings.Replace(url, "https", "http", 1)
+	url := strings.Replace(servicesApiConfig.URL, "https", "http", 1)
 
 	httpClient := herottp.New(herottp.Config{
 		Timeout: 30 * time.Second,
 	})
 
 	basicAuthHeaderBuilder := authorizationheader.NewBasicAuthHeaderBuilder(
-		username,
-		password,
+		servicesApiConfig.Username,
+		servicesApiConfig.Password,
 	)
 
 	request, err := http.NewRequest(
@@ -310,4 +298,9 @@ func MigrateJobProperty(brokerManifest *bosh.BoshManifest, config *Config) {
 
 func FindUpgradeAllServiceInstancesProperties(brokerManifest *bosh.BoshManifest) map[string]interface{} {
 	return bosh_helpers.FindJobProperties(brokerManifest, brokerJobName, "upgrade-all-service-instances")
+}
+func EnvMustHave(key string) string {
+	value := os.Getenv(key)
+	Expect(value).ToNot(BeEmpty(), fmt.Sprintf("must set %s", key))
+	return value
 }

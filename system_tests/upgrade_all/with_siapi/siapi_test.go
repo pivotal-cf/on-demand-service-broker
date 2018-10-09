@@ -51,7 +51,7 @@ var _ = Describe("parallel upgrade-all errand and SIAPI", func() {
 		brokerManifest := config.BoshClient.GetManifest(config.BrokerBoshDeploymentName)
 		serviceInstances = CreateServiceInstances(config, dataPersistenceEnabled)
 
-		UpdateServiceInstancesAPI(brokerManifest, serviceInstances, filterParams, config)
+		UpdateServiceInstancesAPI(siapiConfig, serviceInstances, filterParams, config)
 		UpdatePlanProperties(brokerManifest, config)
 		MigrateJobProperty(brokerManifest, config)
 

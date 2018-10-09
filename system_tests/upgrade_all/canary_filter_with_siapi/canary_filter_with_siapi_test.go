@@ -59,7 +59,7 @@ var _ = Describe("parallel upgrade-all errand with canaries and SI API", func() 
 			filterParams[k.(string)] = v.(string)
 		}
 
-		UpdateServiceInstancesAPI(brokerManifest, canaryServiceInstances, filterParams, config)
+		UpdateServiceInstancesAPI(siapiConfig, canaryServiceInstances, filterParams, config)
 
 		By("logging stdout to the errand output")
 		boshOutput := config.BoshClient.RunErrand(config.BrokerBoshDeploymentName, "upgrade-all-service-instances", []string{}, "")
@@ -67,6 +67,7 @@ var _ = Describe("parallel upgrade-all errand with canaries and SI API", func() 
 		logMatcher := "(?s)STARTING CANARY UPGRADES(.*)FINISHED CANARY UPGRADES(.*)FINISHED UPGRADES"
 		re := regexp.MustCompile(logMatcher)
 		matches := re.FindStringSubmatch(boshOutput.StdOut)
+		Expect(matches).To(HaveLen(3))
 		for _, instance := range canaryServiceInstances {
 			Expect(matches[1]).To(ContainSubstring(instance.GUID), fmt.Sprintf("Canary instances %v not present in canary instances upgraded", canaryServiceInstances))
 			Expect(matches[2]).NotTo(ContainSubstring(instance.GUID), fmt.Sprintf("Canary instances %v present in non-canary instances upgraded", canaryServiceInstances))

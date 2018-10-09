@@ -16,7 +16,6 @@
 package orphan_deployments_tests
 
 import (
-	"fmt"
 	"os"
 	"testing"
 
@@ -26,6 +25,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/bosh_helpers"
 	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/cf_helpers"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/siapi_helpers"
+	"github.com/pivotal-cf/on-demand-service-broker/system_tests/upgrade_all/shared"
 )
 
 var (
@@ -37,17 +37,17 @@ var (
 )
 
 var _ = BeforeSuite(func() {
-	brokerName = envMustHave("BROKER_NAME")
-	brokerBoshDeploymentName = envMustHave("BROKER_DEPLOYMENT_NAME")
-	serviceOffering = envMustHave("SERVICE_OFFERING_NAME")
+	brokerName = shared.EnvMustHave("BROKER_NAME")
+	brokerBoshDeploymentName = shared.EnvMustHave("BROKER_DEPLOYMENT_NAME")
+	serviceOffering = shared.EnvMustHave("SERVICE_OFFERING_NAME")
 
-	brokerURL := envMustHave("BROKER_URL")
-	brokerUsername := envMustHave("BROKER_USERNAME")
-	brokerPassword := envMustHave("BROKER_PASSWORD")
+	brokerURL := shared.EnvMustHave("BROKER_URL")
+	brokerUsername := shared.EnvMustHave("BROKER_USERNAME")
+	brokerPassword := shared.EnvMustHave("BROKER_PASSWORD")
 	uaaURL := os.Getenv("UAA_URL")
-	boshURL := envMustHave("BOSH_URL")
-	boshUsername := envMustHave("BOSH_USERNAME")
-	boshPassword := envMustHave("BOSH_PASSWORD")
+	boshURL := shared.EnvMustHave("BOSH_URL")
+	boshUsername := shared.EnvMustHave("BOSH_USERNAME")
+	boshPassword := shared.EnvMustHave("BOSH_PASSWORD")
 	boshCACert := os.Getenv("BOSH_CA_CERT_FILE")
 
 	Eventually(cf.Cf("create-service-broker", brokerName, brokerUsername, brokerPassword, brokerURL), cf.CfTimeout).Should(gexec.Exit(0))
@@ -60,9 +60,9 @@ var _ = BeforeSuite(func() {
 	}
 
 	siapiConfig = siapi_helpers.SIAPIConfig{
-		URL:      envMustHave("SIAPI_URL"),
-		Password: envMustHave("SIAPI_PASSWORD"),
-		Username: envMustHave("SIAPI_USERNAME"),
+		URL:      shared.EnvMustHave("SIAPI_URL"),
+		Password: shared.EnvMustHave("SIAPI_PASSWORD"),
+		Username: shared.EnvMustHave("SIAPI_USERNAME"),
 	}
 })
 
@@ -73,10 +73,4 @@ var _ = AfterSuite(func() {
 func TestOrphanDeploymentsTests(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Orphan Deployments Errand With SIAPI Test Suite")
-}
-
-func envMustHave(key string) string {
-	value := os.Getenv(key)
-	Expect(value).ToNot(BeEmpty(), fmt.Sprintf("must set %s", key))
-	return value
 }
