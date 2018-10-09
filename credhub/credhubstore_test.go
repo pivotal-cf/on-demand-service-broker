@@ -8,7 +8,6 @@ import (
 
 	"code.cloudfoundry.org/credhub-cli/credhub/credentials"
 	"code.cloudfoundry.org/credhub-cli/credhub/credentials/values"
-	"code.cloudfoundry.org/credhub-cli/credhub/permissions"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -244,24 +243,24 @@ var _ = Describe("CredStore", func() {
 	Describe("Add Permission", func() {
 		It("can add permissions to a path", func() {
 			p := "/some/path"
-			perms := []permissions.Permission{
-				{Actor: "jim", Operations: []string{"read", "corrupt"}},
-			}
-			_, err := store.AddPermissions(p, perms)
+			expectedActor := "jim"
+			expectedOps := []string{"read", "corrupt"}
+
+			_, err := store.AddPermission(p, expectedActor, expectedOps)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(fakeCredhubClient.AddPermissionsCallCount()).To(Equal(1))
-			actualName, actualPerms := fakeCredhubClient.AddPermissionsArgsForCall(0)
+			Expect(fakeCredhubClient.AddPermissionCallCount()).To(Equal(1))
+			actualName, actualActor, actualOps := fakeCredhubClient.AddPermissionArgsForCall(0)
 			Expect(actualName).To(Equal(p))
-			Expect(actualPerms).To(Equal(perms))
+			Expect(actualActor).To(Equal(expectedActor))
+			Expect(actualOps).To(Equal(expectedOps))
 		})
 
 		It("returns an error if the underlying call fails", func() {
 			p := "/some/path"
-			perms := []permissions.Permission{
-				{Actor: "jim", Operations: []string{"read", "corrupt"}},
-			}
-			fakeCredhubClient.AddPermissionsReturns(nil, errors.New("you're joking, right?"))
-			_, err := store.AddPermissions(p, perms)
+			expectedActor := "jim"
+			expectedOps := []string{"read", "corrupt"}
+			fakeCredhubClient.AddPermissionReturns(nil, errors.New("you're joking, right?"))
+			_, err := store.AddPermission(p, expectedActor, expectedOps)
 			Expect(err).To(MatchError("you're joking, right?"))
 		})
 	})
