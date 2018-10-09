@@ -23,10 +23,10 @@ import (
 
 	"encoding/json"
 
-	"github.com/cloudfoundry-incubator/credhub-cli/credhub"
-	"github.com/cloudfoundry-incubator/credhub-cli/credhub/credentials"
-	"github.com/cloudfoundry-incubator/credhub-cli/credhub/credentials/values"
-	"github.com/cloudfoundry-incubator/credhub-cli/credhub/permissions"
+	"code.cloudfoundry.org/credhub-cli/credhub"
+	"code.cloudfoundry.org/credhub-cli/credhub/credentials"
+	"code.cloudfoundry.org/credhub-cli/credhub/credentials/values"
+	"code.cloudfoundry.org/credhub-cli/credhub/permissions"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 )
@@ -40,8 +40,8 @@ type CredhubClient interface {
 	GetById(id string) (credentials.Credential, error)
 	GetLatestVersion(name string) (credentials.Credential, error)
 	FindByPartialName(partialName string) (credentials.FindResults, error)
-	SetJSON(name string, value values.JSON, overwrite credhub.Mode) (credentials.JSON, error)
-	SetValue(name string, value values.Value, overwrite credhub.Mode) (credentials.Value, error)
+	SetJSON(name string, value values.JSON) (credentials.JSON, error)
+	SetValue(name string, value values.Value) (credentials.Value, error)
 	AddPermissions(credName string, perms []permissions.Permission) ([]permissions.Permission, error)
 	Delete(name string) error
 }
@@ -65,9 +65,9 @@ func (c *Store) Set(key string, value interface{}) error {
 	var err error
 	switch credValue := value.(type) {
 	case map[string]interface{}:
-		_, err = c.credhubClient.SetJSON(key, values.JSON(credValue), credhub.Overwrite)
+		_, err = c.credhubClient.SetJSON(key, values.JSON(credValue))
 	case string:
-		_, err = c.credhubClient.SetValue(key, values.Value(credValue), credhub.Overwrite)
+		_, err = c.credhubClient.SetValue(key, values.Value(credValue))
 	default:
 		return errors.New("Unknown credential type")
 	}

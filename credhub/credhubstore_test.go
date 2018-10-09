@@ -6,9 +6,9 @@ import (
 	"io"
 	"log"
 
-	"github.com/cloudfoundry-incubator/credhub-cli/credhub/credentials"
-	"github.com/cloudfoundry-incubator/credhub-cli/credhub/credentials/values"
-	"github.com/cloudfoundry-incubator/credhub-cli/credhub/permissions"
+	"code.cloudfoundry.org/credhub-cli/credhub/credentials"
+	"code.cloudfoundry.org/credhub-cli/credhub/credentials/values"
+	"code.cloudfoundry.org/credhub-cli/credhub/permissions"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -206,7 +206,7 @@ var _ = Describe("CredStore", func() {
 			err := store.Set("/path/to/secret", secret)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(fakeCredhubClient.SetJSONCallCount()).To(Equal(1))
-			path, val, _ := fakeCredhubClient.SetJSONArgsForCall(0)
+			path, val := fakeCredhubClient.SetJSONArgsForCall(0)
 			Expect(path).To(Equal("/path/to/secret"))
 			Expect(val).To(Equal(values.JSON(secret)))
 		})
@@ -215,7 +215,7 @@ var _ = Describe("CredStore", func() {
 			err := store.Set("/path/to/secret", "caravan")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(fakeCredhubClient.SetValueCallCount()).To(Equal(1))
-			path, val, _ := fakeCredhubClient.SetValueArgsForCall(0)
+			path, val := fakeCredhubClient.SetValueArgsForCall(0)
 			Expect(path).To(Equal("/path/to/secret"))
 			Expect(val).To(Equal(values.Value("caravan")))
 		})
@@ -288,13 +288,13 @@ var _ = Describe("CredStore", func() {
 
 			By("calling SetJSON for JSON values")
 			Expect(fakeCredhubClient.SetJSONCallCount()).To(Equal(1), "SetJSON wasn't called")
-			jsonPath, jsonValue, _ := fakeCredhubClient.SetJSONArgsForCall(0)
+			jsonPath, jsonValue := fakeCredhubClient.SetJSONArgsForCall(0)
 			Expect(jsonPath).To(Equal("/foo/bar"))
 			Expect(jsonValue).To(Equal(values.JSON(map[string]interface{}{"key": "value"})))
 
 			By("calling SetValue for string values")
 			Expect(fakeCredhubClient.SetValueCallCount()).To(Equal(1), "SetValue wasn't called")
-			strPath, strValue, _ := fakeCredhubClient.SetValueArgsForCall(0)
+			strPath, strValue := fakeCredhubClient.SetValueArgsForCall(0)
 			Expect(strPath).To(Equal("/foo/foo"))
 			Expect(strValue).To(Equal(values.Value("123")))
 		})
