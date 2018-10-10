@@ -4,7 +4,7 @@ package fakes
 import (
 	"sync"
 
-	"github.com/cloudfoundry-incubator/credhub-cli/credhub/permissions"
+	"code.cloudfoundry.org/credhub-cli/credhub/permissions"
 	"github.com/pivotal-cf/on-demand-service-broker/credhubbroker"
 )
 

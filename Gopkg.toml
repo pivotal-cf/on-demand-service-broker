@@ -25,6 +25,10 @@
   go-tests = true
   non-go = true
 
+[[override]]
+ name = "github.com/cloudfoundry/socks5-proxy"
+ revision = "3c6b4eec9c2d16c1dac4c42bdb5f755ba09daff8"
+
 [[constraint]]
   branch = "master"
   name = "code.cloudfoundry.org/lager"
@@ -32,10 +36,6 @@
 [[constraint]]
   branch = "master"
   name = "github.com/cloudfoundry-incubator/cf-test-helpers"
-
-[[constraint]]
-  branch = "master"
-  name = "github.com/cloudfoundry-incubator/credhub-cli"
 
 [[constraint]]
   name = "github.com/cloudfoundry/noaa"
@@ -100,7 +100,6 @@
 [[constraint]]
   branch = "master"
   name = "github.com/cloudfoundry/bosh-utils"
-  source = "github.com/simonjjones/bosh-utils"
 
 [[constraint]]
   branch = "master"

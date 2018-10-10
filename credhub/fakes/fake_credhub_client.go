@@ -4,10 +4,9 @@ package fakes
 import (
 	"sync"
 
-	credhubcredhub_cli "github.com/cloudfoundry-incubator/credhub-cli/credhub"
-	"github.com/cloudfoundry-incubator/credhub-cli/credhub/credentials"
-	"github.com/cloudfoundry-incubator/credhub-cli/credhub/credentials/values"
-	"github.com/cloudfoundry-incubator/credhub-cli/credhub/permissions"
+	"code.cloudfoundry.org/credhub-cli/credhub/credentials"
+	"code.cloudfoundry.org/credhub-cli/credhub/credentials/values"
+	"code.cloudfoundry.org/credhub-cli/credhub/permissions"
 	"github.com/pivotal-cf/on-demand-service-broker/credhub"
 )
 
@@ -51,12 +50,11 @@ type FakeCredhubClient struct {
 		result1 credentials.FindResults
 		result2 error
 	}
-	SetJSONStub        func(name string, value values.JSON, overwrite credhubcredhub_cli.Mode) (credentials.JSON, error)
+	SetJSONStub        func(name string, value values.JSON) (credentials.JSON, error)
 	setJSONMutex       sync.RWMutex
 	setJSONArgsForCall []struct {
-		name      string
-		value     values.JSON
-		overwrite credhubcredhub_cli.Mode
+		name  string
+		value values.JSON
 	}
 	setJSONReturns struct {
 		result1 credentials.JSON
@@ -66,12 +64,11 @@ type FakeCredhubClient struct {
 		result1 credentials.JSON
 		result2 error
 	}
-	SetValueStub        func(name string, value values.Value, overwrite credhubcredhub_cli.Mode) (credentials.Value, error)
+	SetValueStub        func(name string, value values.Value) (credentials.Value, error)
 	setValueMutex       sync.RWMutex
 	setValueArgsForCall []struct {
-		name      string
-		value     values.Value
-		overwrite credhubcredhub_cli.Mode
+		name  string
+		value values.Value
 	}
 	setValueReturns struct {
 		result1 credentials.Value
@@ -263,18 +260,17 @@ func (fake *FakeCredhubClient) FindByPartialNameReturnsOnCall(i int, result1 cre
 	}{result1, result2}
 }
 
-func (fake *FakeCredhubClient) SetJSON(name string, value values.JSON, overwrite credhubcredhub_cli.Mode) (credentials.JSON, error) {
+func (fake *FakeCredhubClient) SetJSON(name string, value values.JSON) (credentials.JSON, error) {
 	fake.setJSONMutex.Lock()
 	ret, specificReturn := fake.setJSONReturnsOnCall[len(fake.setJSONArgsForCall)]
 	fake.setJSONArgsForCall = append(fake.setJSONArgsForCall, struct {
-		name      string
-		value     values.JSON
-		overwrite credhubcredhub_cli.Mode
-	}{name, value, overwrite})
-	fake.recordInvocation("SetJSON", []interface{}{name, value, overwrite})
+		name  string
+		value values.JSON
+	}{name, value})
+	fake.recordInvocation("SetJSON", []interface{}{name, value})
 	fake.setJSONMutex.Unlock()
 	if fake.SetJSONStub != nil {
-		return fake.SetJSONStub(name, value, overwrite)
+		return fake.SetJSONStub(name, value)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -288,10 +284,10 @@ func (fake *FakeCredhubClient) SetJSONCallCount() int {
 	return len(fake.setJSONArgsForCall)
 }
 
-func (fake *FakeCredhubClient) SetJSONArgsForCall(i int) (string, values.JSON, credhubcredhub_cli.Mode) {
+func (fake *FakeCredhubClient) SetJSONArgsForCall(i int) (string, values.JSON) {
 	fake.setJSONMutex.RLock()
 	defer fake.setJSONMutex.RUnlock()
-	return fake.setJSONArgsForCall[i].name, fake.setJSONArgsForCall[i].value, fake.setJSONArgsForCall[i].overwrite
+	return fake.setJSONArgsForCall[i].name, fake.setJSONArgsForCall[i].value
 }
 
 func (fake *FakeCredhubClient) SetJSONReturns(result1 credentials.JSON, result2 error) {
@@ -316,18 +312,17 @@ func (fake *FakeCredhubClient) SetJSONReturnsOnCall(i int, result1 credentials.J
 	}{result1, result2}
 }
 
-func (fake *FakeCredhubClient) SetValue(name string, value values.Value, overwrite credhubcredhub_cli.Mode) (credentials.Value, error) {
+func (fake *FakeCredhubClient) SetValue(name string, value values.Value) (credentials.Value, error) {
 	fake.setValueMutex.Lock()
 	ret, specificReturn := fake.setValueReturnsOnCall[len(fake.setValueArgsForCall)]
 	fake.setValueArgsForCall = append(fake.setValueArgsForCall, struct {
-		name      string
-		value     values.Value
-		overwrite credhubcredhub_cli.Mode
-	}{name, value, overwrite})
-	fake.recordInvocation("SetValue", []interface{}{name, value, overwrite})
+		name  string
+		value values.Value
+	}{name, value})
+	fake.recordInvocation("SetValue", []interface{}{name, value})
 	fake.setValueMutex.Unlock()
 	if fake.SetValueStub != nil {
-		return fake.SetValueStub(name, value, overwrite)
+		return fake.SetValueStub(name, value)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -341,10 +336,10 @@ func (fake *FakeCredhubClient) SetValueCallCount() int {
 	return len(fake.setValueArgsForCall)
 }
 
-func (fake *FakeCredhubClient) SetValueArgsForCall(i int) (string, values.Value, credhubcredhub_cli.Mode) {
+func (fake *FakeCredhubClient) SetValueArgsForCall(i int) (string, values.Value) {
 	fake.setValueMutex.RLock()
 	defer fake.setValueMutex.RUnlock()
-	return fake.setValueArgsForCall[i].name, fake.setValueArgsForCall[i].value, fake.setValueArgsForCall[i].overwrite
+	return fake.setValueArgsForCall[i].name, fake.setValueArgsForCall[i].value
 }
 
 func (fake *FakeCredhubClient) SetValueReturns(result1 credentials.Value, result2 error) {
