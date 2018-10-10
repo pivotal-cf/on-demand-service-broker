@@ -86,11 +86,12 @@ var _ = Describe("Secure Binding", func() {
 			Expect(key).To(Equal(expectedRef))
 			Expect(credentials).To(Equal(bindings.Credentials))
 
-			Expect(fakeCredentialStore.AddPermissionCallCount()).To(Equal(1))
-			key, actor, ops := fakeCredentialStore.AddPermissionArgsForCall(0)
+			Expect(fakeCredentialStore.AddPermissionsCallCount()).To(Equal(1))
+			key, additionalPermissions := fakeCredentialStore.AddPermissionsArgsForCall(0)
 			Expect(key).To(Equal(expectedRef))
-			Expect(actor).To(Equal("mtls-app:app-guid"))
-			Expect(ops).To(Equal([]string{"read"}))
+			Expect(additionalPermissions).To(HaveLen(1))
+			Expect(additionalPermissions[0].Actor).To(Equal("mtls-app:app-guid"))
+			Expect(additionalPermissions[0].Operations).To(Equal([]string{"read"}))
 
 			By("returning the correct binding metadata")
 			var responseBody brokerapi.Binding

@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"io"
 
+	"code.cloudfoundry.org/credhub-cli/credhub/permissions"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/brokerapi"
@@ -113,16 +114,18 @@ var _ = Describe("CredHub broker", func() {
 			credhubBroker := credhubbroker.New(fakeBroker, fakeCredStore, serviceName, loggerFactory)
 			credhubBroker.Bind(ctx, instanceID, bindingID, bindDetails, false)
 
-			Expect(fakeCredStore.AddPermissionCallCount()).To(Equal(1))
-			returnedCredentialName, returnedActor, returnedOps := fakeCredStore.AddPermissionArgsForCall(0)
+			Expect(fakeCredStore.AddPermissionsCallCount()).To(Equal(1))
+			returnedCredentialName, returnedPermissions := fakeCredStore.AddPermissionsArgsForCall(0)
 
 			expectedCredentialName := constructCredhubRef(bindDetails.ServiceID, instanceID, bindingID)
-			expectedActor := fmt.Sprintf("mtls-app:%s", appGUID)
-			expectedOps := []string{"read"}
-
+			expectedPermissions := []permissions.Permission{
+				{
+					Actor:      fmt.Sprintf("mtls-app:%s", appGUID),
+					Operations: []string{"read"},
+				},
+			}
 			Expect(returnedCredentialName).To(Equal(expectedCredentialName))
-			Expect(returnedActor).To(Equal(expectedActor))
-			Expect(returnedOps).To(Equal(expectedOps))
+			Expect(returnedPermissions).To(Equal(expectedPermissions))
 		})
 
 		It("adds permissions to the credentials in the credential store when an app guid exists on bind resource", func() {
@@ -158,16 +161,19 @@ var _ = Describe("CredHub broker", func() {
 			credhubBroker := credhubbroker.New(fakeBroker, fakeCredStore, serviceName, loggerFactory)
 			credhubBroker.Bind(ctx, instanceID, bindingID, bindDetails, false)
 
-			Expect(fakeCredStore.AddPermissionCallCount()).To(Equal(1))
-			returnedCredentialName, returnedActor, returnedOps := fakeCredStore.AddPermissionArgsForCall(0)
+			Expect(fakeCredStore.AddPermissionsCallCount()).To(Equal(1))
+			returnedCredentialName, returnedPermissions := fakeCredStore.AddPermissionsArgsForCall(0)
 
 			expectedCredentialName := constructCredhubRef(bindDetails.ServiceID, instanceID, bindingID)
-			expectedActor := fmt.Sprintf("uaa-client:%s", credentialClientID)
-			expectedOps := []string{"read"}
+			expectedPermissions := []permissions.Permission{
+				{
+					Actor:      fmt.Sprintf("uaa-client:%s", credentialClientID),
+					Operations: []string{"read"},
+				},
+			}
 
 			Expect(returnedCredentialName).To(Equal(expectedCredentialName))
-			Expect(returnedActor).To(Equal(expectedActor))
-			Expect(returnedOps).To(Equal(expectedOps))
+			Expect(returnedPermissions).To(Equal(expectedPermissions))
 		})
 
 		It("returns an error when neither app guid or credential_client_id exist in bind request", func() {

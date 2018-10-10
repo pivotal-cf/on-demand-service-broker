@@ -42,7 +42,7 @@ type CredhubClient interface {
 	FindByPartialName(partialName string) (credentials.FindResults, error)
 	SetJSON(name string, value values.JSON) (credentials.JSON, error)
 	SetValue(name string, value values.Value) (credentials.Value, error)
-	AddPermission(credName string, actor string, ops []string) (*permissions.Permission, error)
+	AddPermissions(credName string, perms []permissions.Permission) ([]permissions.Permission, error)
 	Delete(name string) error
 }
 
@@ -74,8 +74,8 @@ func (c *Store) Set(key string, value interface{}) error {
 	return err
 }
 
-func (c *Store) AddPermission(credName string, actor string, ops []string) (*permissions.Permission, error) {
-	return c.credhubClient.AddPermission(credName, actor, ops)
+func (c *Store) AddPermissions(name string, permissions []permissions.Permission) ([]permissions.Permission, error) {
+	return c.credhubClient.AddPermissions(name, permissions)
 }
 
 func (c *Store) BulkDelete(paths []string, logger *log.Logger) error {

@@ -10,8 +10,7 @@
   revision = "1fea04828a6fb034280dcb5d07f39f5b7f5739e9"
 
 [[projects]]
-  branch = "master"
-  digest = "1:fd2183e5bff8533e7a546bac44ab5e66daca2ff67807652d64f62d86f7067b89"
+  digest = "1:aa7467842dbb6ab19453891c7455b0f7e16be5ca4e785b1c60293db7a2a0b0d8"
   name = "code.cloudfoundry.org/credhub-cli"
   packages = [
     "credhub",
@@ -25,7 +24,8 @@
     "errors",
   ]
   pruneopts = "NUT"
-  revision = "434d1d2bd6f7a6f85516c45b8ac54c384629da29"
+  revision = "8ce74fcab29428a399b0c1c00c0d77f5fc1946b2"
+  version = "2.0.0"
 
 [[projects]]
   branch = "master"
@@ -101,6 +101,7 @@
   ]
   pruneopts = "NUT"
   revision = "15c556314b68953d0449541ded010b033767c805"
+  source = "github.com/cloudfoundry/bosh-utils"
 
 [[projects]]
   branch = "master"

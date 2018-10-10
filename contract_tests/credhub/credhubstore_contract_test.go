@@ -23,6 +23,7 @@ import (
 	"code.cloudfoundry.org/credhub-cli/credhub"
 	"code.cloudfoundry.org/credhub-cli/credhub/credentials"
 	"code.cloudfoundry.org/credhub-cli/credhub/credentials/values"
+	"code.cloudfoundry.org/credhub-cli/credhub/permissions"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -124,7 +125,9 @@ var _ = Describe("Credential store", func() {
 			err := subject.Set(keyPath, map[string]interface{}{"hi": "there"})
 			Expect(err).NotTo(HaveOccurred())
 
-			_, err = subject.AddPermission(keyPath, "alice", []string{"read"})
+			_, err = subject.AddPermissions(keyPath, []permissions.Permission{
+				{Actor: "alice", Operations: []string{"read"}},
+			})
 			Expect(err).NotTo(HaveOccurred())
 		})
 	})
@@ -150,33 +153,33 @@ var _ = Describe("Credential store", func() {
 
 		BeforeEach(func() {
 			var err error
-			valueSecret, err = credhubClient.SetValue("value-name", values.Value("value-secret"))
+			valueSecret, err = credhubClient.SetValue("value-name", values.Value("value-secret"), "overwrite")
 			Expect(err).NotTo(HaveOccurred())
-			passwordSecret, err = credhubClient.SetPassword("password-name", "password")
+			passwordSecret, err = credhubClient.SetPassword("password-name", "password", "overwrite")
 			Expect(err).NotTo(HaveOccurred())
-			jsonSecret, err = credhubClient.SetJSON("jsonsecret", values.JSON{"value": "foo"})
+			jsonSecret, err = credhubClient.SetJSON("jsonsecret", values.JSON{"value": "foo"}, "overwrite")
 			Expect(err).NotTo(HaveOccurred())
 			val := values.Certificate{
 				Ca:          "-----BEGIN CERTIFICATE-----\nMIIDSjCCAjKgAwIBAgIUIwnRYqjEnzeMzNYuoctat+bi818wDQYJKoZIhvcNAQEL\nBQAwGTEXMBUGA1UEAxMOdG9tLmRpY2suaGFycnkwHhcNMTgwNzE2MTU0MzQwWhcN\nMTkwNzE2MTU0MzQwWjAZMRcwFQYDVQQDEw50b20uZGljay5oYXJyeTCCASIwDQYJ\nKoZIhvcNAQEBBQADggEPADCCAQoCggEBALzyeXfpTM0ek6FVzTuOjpBYGLk2Kdl3\nAJ2gKx1FDqyeXS2Hn9nEEWAWYAQ4xvZzI1gnYm/2EXmZ1t4fY4fL6XXwjirNtOyF\n+R5UvG6uVdyfQU+FNnqnE2TQ37wNr8oWCfpoVr0T1Z9n7fPnZZg0+DRXv6x/1bzG\nqfl029bxxJMl64psR8Ew8UfrZ7zT+/URE7ex1XznwWM68rfllGaB7myPjXG6Io6I\nn7fptsCFqI7/EwofjNARIqoRwmbdpOOVz53kR0WeppfiafPsKEC0KT4hvJqgdVr7\nt4YDD4JDdCNTX/NL4BOl3pp9iBpCnz2Rk9E3tEd8JUkcjTc86KsQLYUCAwEAAaOB\niTCBhjAdBgNVHQ4EFgQU8RxuIlg9XT6/S+HDOWfUayaOvWUwVAYDVR0jBE0wS4AU\n8RxuIlg9XT6/S+HDOWfUayaOvWWhHaQbMBkxFzAVBgNVBAMTDnRvbS5kaWNrLmhh\ncnJ5ghQjCdFiqMSfN4zM1i6hy1q35uLzXzAPBgNVHRMBAf8EBTADAQH/MA0GCSqG\nSIb3DQEBCwUAA4IBAQCu50sl64yo8n8/JRDEVibFwjmJj8h+ajcFGcFK9/iBq1Do\n4q8wibMH35sP9kDTGPJqu0IPxKUBaxkzZgIFjf7ujmyv5zEVQIqj9TdJiZs1QwkA\nKUaSBsFLSH9pweZhLVOgYab/ywc3xaKiQCuLAFovFKgqhfW5K6z3XpTEwknfP2Sj\n3An9KN9ZTp+x0f85oCuB8MXHyRTBF+js1pAMdfBGD6VnAfxn3QFx72x3x7YgG2zh\nyGNByRONHukFlzraQQ986237DXdhcAedkMA+OIZl+drLbEXDuPJT/dWp255FasZ4\n+pjdblNisoHZhV3W36NWxoQycjES2siEm8xHO43f\n-----END CERTIFICATE-----\n",
 				Certificate: "-----BEGIN CERTIFICATE-----\nMIIDSjCCAjKgAwIBAgIUIwnRYqjEnzeMzNYuoctat+bi818wDQYJKoZIhvcNAQEL\nBQAwGTEXMBUGA1UEAxMOdG9tLmRpY2suaGFycnkwHhcNMTgwNzE2MTU0MzQwWhcN\nMTkwNzE2MTU0MzQwWjAZMRcwFQYDVQQDEw50b20uZGljay5oYXJyeTCCASIwDQYJ\nKoZIhvcNAQEBBQADggEPADCCAQoCggEBALzyeXfpTM0ek6FVzTuOjpBYGLk2Kdl3\nAJ2gKx1FDqyeXS2Hn9nEEWAWYAQ4xvZzI1gnYm/2EXmZ1t4fY4fL6XXwjirNtOyF\n+R5UvG6uVdyfQU+FNnqnE2TQ37wNr8oWCfpoVr0T1Z9n7fPnZZg0+DRXv6x/1bzG\nqfl029bxxJMl64psR8Ew8UfrZ7zT+/URE7ex1XznwWM68rfllGaB7myPjXG6Io6I\nn7fptsCFqI7/EwofjNARIqoRwmbdpOOVz53kR0WeppfiafPsKEC0KT4hvJqgdVr7\nt4YDD4JDdCNTX/NL4BOl3pp9iBpCnz2Rk9E3tEd8JUkcjTc86KsQLYUCAwEAAaOB\niTCBhjAdBgNVHQ4EFgQU8RxuIlg9XT6/S+HDOWfUayaOvWUwVAYDVR0jBE0wS4AU\n8RxuIlg9XT6/S+HDOWfUayaOvWWhHaQbMBkxFzAVBgNVBAMTDnRvbS5kaWNrLmhh\ncnJ5ghQjCdFiqMSfN4zM1i6hy1q35uLzXzAPBgNVHRMBAf8EBTADAQH/MA0GCSqG\nSIb3DQEBCwUAA4IBAQCu50sl64yo8n8/JRDEVibFwjmJj8h+ajcFGcFK9/iBq1Do\n4q8wibMH35sP9kDTGPJqu0IPxKUBaxkzZgIFjf7ujmyv5zEVQIqj9TdJiZs1QwkA\nKUaSBsFLSH9pweZhLVOgYab/ywc3xaKiQCuLAFovFKgqhfW5K6z3XpTEwknfP2Sj\n3An9KN9ZTp+x0f85oCuB8MXHyRTBF+js1pAMdfBGD6VnAfxn3QFx72x3x7YgG2zh\nyGNByRONHukFlzraQQ986237DXdhcAedkMA+OIZl+drLbEXDuPJT/dWp255FasZ4\n+pjdblNisoHZhV3W36NWxoQycjES2siEm8xHO43f\n-----END CERTIFICATE-----\n",
 				PrivateKey:  "-----BEGIN RSA PRIVATE KEY-----\nMIIEogIBAAKCAQEAvPJ5d+lMzR6ToVXNO46OkFgYuTYp2XcAnaArHUUOrJ5dLYef\n2cQRYBZgBDjG9nMjWCdib/YReZnW3h9jh8vpdfCOKs207IX5HlS8bq5V3J9BT4U2\neqcTZNDfvA2vyhYJ+mhWvRPVn2ft8+dlmDT4NFe/rH/VvMap+XTb1vHEkyXrimxH\nwTDxR+tnvNP79RETt7HVfOfBYzryt+WUZoHubI+Ncboijoift+m2wIWojv8TCh+M\n0BEiqhHCZt2k45XPneRHRZ6ml+Jp8+woQLQpPiG8mqB1Wvu3hgMPgkN0I1Nf80vg\nE6Xemn2IGkKfPZGT0Te0R3wlSRyNNzzoqxAthQIDAQABAoIBAFjfjHb0i6VnnnUi\nkJhU44XNikOD0IdzTBzYO69WziIvkxBZXLznVmzl2V/i/OLrIVLTo5+aFHon/EMa\nbIxxQ2ywK47Clzkxgw3bOY6t/cD6P5QRyqBCegLPpI0luuvJFgRsk2/4JmEGV4yD\n6OuA7sZgB84xiu1yXHzzlHwz2AyF2JL8dXe82DM33DnlERdT93pvoOgd4G65fnlw\nUVj4qMXaLlCRX3kDVyLInNfUHfTBNLAd31K2pRbNfgh6/A+hszO2lOU4jY3C6dGl\nJvcjMl/MP1flwCd8sN5OqWaSw8vvDpKy3V0T/nbvVmkxBmIRWFNUGip0tzB739m0\noMHL1/kCgYEA42d3LzYp7Kq6bDCe4DNfuEN3KfFAgCV56mjXm3IG82G+qkwE5HX5\nlzsVI6CFzgLHIC0y5k36q3PN9YV3bVBzyumBLsGqfmYpc3n0RNsBdCSYFBWx8Skm\nMO6a2MBb+DO7VAFbNj66k8zSgUSxtnNETvVmdQ8DLfvk1Ygs5DORwR8CgYEA1LUC\n8b3y+JadEHX9cTmew8Hm5eEzna8UjQsEHdmsPwDkayNzoqEQc7dyZmAvxgLmPDtt\nT6co/Js2MLgzGwjlK9/Wxl4BhWdAJltIY4T43pCnpTI5gder5lYJXDwIDU/SSp08\nrxSr0KaFfrdXeku1I//wbUpR/J+O2PBzGuLJCNsCgYB+YRQFsu5dzwxH8EV7iFGc\nEDJ7ps4X6bv1oEqi4x4lyJ6z+geGCGKrv3QiFqYGNdkAct4kzBWRj4xY9NHIeLvB\ne0AGAi+Ei7ZhrNcqJSSLrYKvNtdrlVjaPODlsRHrwKRNLWvJm9cJKP2cRdcV9L1z\nvEIysCMuPR2R5lo8gMRyNQKBgHnqIfzi7W9UDEQSDKin6Pq0mZ4qvMXlQrcwmDRv\nvc0Cuuk5kZ6mCGL6w0QwX1Fz+fiN6zJbUh+u6pl0Cj61k3zZOCXMXbzTmC4j5dK8\ntVQDv0LtDY8BSZKkv4qxEcBnftWrV8vV4kCeISem+CmtWO6AVJKfpWxRG7P15VOE\npss/AoGASRnijgkQE8cOuzoUSkYcNaKhRxo3m6OC7j2h6/Y3kLq1R9HgziEfoBpk\nkc1zdGLK02jHXLndbq07PHxNX6UctZllS/UjKNNgPgEjrGpmCy5K3CCxVR74plwo\nbbOUktEp2PuBY28iHugtbFWKqsqEx1O0r2/1tRxkEKUdKumnnYU=\n-----END RSA PRIVATE KEY-----\n",
 			}
-			certSecret, err = credhubClient.SetCertificate("certsecret", val)
+			certSecret, err = credhubClient.SetCertificate("certsecret", val, "overwrite")
 			Expect(err).NotTo(HaveOccurred())
 			rsaSecret, err = credhubClient.SetRSA("rsa-name", values.RSA{
 				PublicKey:  "-----BEGIN RSA PUBLIC KEY-----\nMIIEogIBAAKCAQEAvPJ5d+lMzR6ToVXNO46OkFgYuTYp2XcAnaArHUUOrJ5dLYef\n2cQRYBZgBDjG9nMjWCdib/YReZnW3h9jh8vpdfCOKs207IX5HlS8bq5V3J9BT4U2\neqcTZNDfvA2vyhYJ+mhWvRPVn2ft8+dlmDT4NFe/rH/VvMap+XTb1vHEkyXrimxH\nwTDxR+tnvNP79RETt7HVfOfBYzryt+WUZoHubI+Ncboijoift+m2wIWojv8TCh+M\n0BEiqhHCZt2k45XPneRHRZ6ml+Jp8+woQLQpPiG8mqB1Wvu3hgMPgkN0I1Nf80vg\nE6Xemn2IGkKfPZGT0Te0R3wlSRyNNzzoqxAthQIDAQABAoIBAFjfjHb0i6VnnnUi\nkJhU44XNikOD0IdzTBzYO69WziIvkxBZXLznVmzl2V/i/OLrIVLTo5+aFHon/EMa\nbIxxQ2ywK47Clzkxgw3bOY6t/cD6P5QRyqBCegLPpI0luuvJFgRsk2/4JmEGV4yD\n6OuA7sZgB84xiu1yXHzzlHwz2AyF2JL8dXe82DM33DnlERdT93pvoOgd4G65fnlw\nUVj4qMXaLlCRX3kDVyLInNfUHfTBNLAd31K2pRbNfgh6/A+hszO2lOU4jY3C6dGl\nJvcjMl/MP1flwCd8sN5OqWaSw8vvDpKy3V0T/nbvVmkxBmIRWFNUGip0tzB739m0\noMHL1/kCgYEA42d3LzYp7Kq6bDCe4DNfuEN3KfFAgCV56mjXm3IG82G+qkwE5HX5\nlzsVI6CFzgLHIC0y5k36q3PN9YV3bVBzyumBLsGqfmYpc3n0RNsBdCSYFBWx8Skm\nMO6a2MBb+DO7VAFbNj66k8zSgUSxtnNETvVmdQ8DLfvk1Ygs5DORwR8CgYEA1LUC\n8b3y+JadEHX9cTmew8Hm5eEzna8UjQsEHdmsPwDkayNzoqEQc7dyZmAvxgLmPDtt\nT6co/Js2MLgzGwjlK9/Wxl4BhWdAJltIY4T43pCnpTI5gder5lYJXDwIDU/SSp08\nrxSr0KaFfrdXeku1I//wbUpR/J+O2PBzGuLJCNsCgYB+YRQFsu5dzwxH8EV7iFGc\nEDJ7ps4X6bv1oEqi4x4lyJ6z+geGCGKrv3QiFqYGNdkAct4kzBWRj4xY9NHIeLvB\ne0AGAi+Ei7ZhrNcqJSSLrYKvNtdrlVjaPODlsRHrwKRNLWvJm9cJKP2cRdcV9L1z\nvEIysCMuPR2R5lo8gMRyNQKBgHnqIfzi7W9UDEQSDKin6Pq0mZ4qvMXlQrcwmDRv\nvc0Cuuk5kZ6mCGL6w0QwX1Fz+fiN6zJbUh+u6pl0Cj61k3zZOCXMXbzTmC4j5dK8\ntVQDv0LtDY8BSZKkv4qxEcBnftWrV8vV4kCeISem+CmtWO6AVJKfpWxRG7P15VOE\npss/AoGASRnijgkQE8cOuzoUSkYcNaKhRxo3m6OC7j2h6/Y3kLq1R9HgziEfoBpk\nkc1zdGLK02jHXLndbq07PHxNX6UctZllS/UjKNNgPgEjrGpmCy5K3CCxVR74plwo\nbbOUktEp2PuBY28iHugtbFWKqsqEx1O0r2/1tRxkEKUdKumnnYU=\n-----END RSA PRIVATE KEY-----\n",
 				PrivateKey: "-----BEGIN RSA PRIVATE KEY-----\nMIIEogIBAAKCAQEAvPJ5d+lMzR6ToVXNO46OkFgYuTYp2XcAnaArHUUOrJ5dLYef\n2cQRYBZgBDjG9nMjWCdib/YReZnW3h9jh8vpdfCOKs207IX5HlS8bq5V3J9BT4U2\neqcTZNDfvA2vyhYJ+mhWvRPVn2ft8+dlmDT4NFe/rH/VvMap+XTb1vHEkyXrimxH\nwTDxR+tnvNP79RETt7HVfOfBYzryt+WUZoHubI+Ncboijoift+m2wIWojv8TCh+M\n0BEiqhHCZt2k45XPneRHRZ6ml+Jp8+woQLQpPiG8mqB1Wvu3hgMPgkN0I1Nf80vg\nE6Xemn2IGkKfPZGT0Te0R3wlSRyNNzzoqxAthQIDAQABAoIBAFjfjHb0i6VnnnUi\nkJhU44XNikOD0IdzTBzYO69WziIvkxBZXLznVmzl2V/i/OLrIVLTo5+aFHon/EMa\nbIxxQ2ywK47Clzkxgw3bOY6t/cD6P5QRyqBCegLPpI0luuvJFgRsk2/4JmEGV4yD\n6OuA7sZgB84xiu1yXHzzlHwz2AyF2JL8dXe82DM33DnlERdT93pvoOgd4G65fnlw\nUVj4qMXaLlCRX3kDVyLInNfUHfTBNLAd31K2pRbNfgh6/A+hszO2lOU4jY3C6dGl\nJvcjMl/MP1flwCd8sN5OqWaSw8vvDpKy3V0T/nbvVmkxBmIRWFNUGip0tzB739m0\noMHL1/kCgYEA42d3LzYp7Kq6bDCe4DNfuEN3KfFAgCV56mjXm3IG82G+qkwE5HX5\nlzsVI6CFzgLHIC0y5k36q3PN9YV3bVBzyumBLsGqfmYpc3n0RNsBdCSYFBWx8Skm\nMO6a2MBb+DO7VAFbNj66k8zSgUSxtnNETvVmdQ8DLfvk1Ygs5DORwR8CgYEA1LUC\n8b3y+JadEHX9cTmew8Hm5eEzna8UjQsEHdmsPwDkayNzoqEQc7dyZmAvxgLmPDtt\nT6co/Js2MLgzGwjlK9/Wxl4BhWdAJltIY4T43pCnpTI5gder5lYJXDwIDU/SSp08\nrxSr0KaFfrdXeku1I//wbUpR/J+O2PBzGuLJCNsCgYB+YRQFsu5dzwxH8EV7iFGc\nEDJ7ps4X6bv1oEqi4x4lyJ6z+geGCGKrv3QiFqYGNdkAct4kzBWRj4xY9NHIeLvB\ne0AGAi+Ei7ZhrNcqJSSLrYKvNtdrlVjaPODlsRHrwKRNLWvJm9cJKP2cRdcV9L1z\nvEIysCMuPR2R5lo8gMRyNQKBgHnqIfzi7W9UDEQSDKin6Pq0mZ4qvMXlQrcwmDRv\nvc0Cuuk5kZ6mCGL6w0QwX1Fz+fiN6zJbUh+u6pl0Cj61k3zZOCXMXbzTmC4j5dK8\ntVQDv0LtDY8BSZKkv4qxEcBnftWrV8vV4kCeISem+CmtWO6AVJKfpWxRG7P15VOE\npss/AoGASRnijgkQE8cOuzoUSkYcNaKhRxo3m6OC7j2h6/Y3kLq1R9HgziEfoBpk\nkc1zdGLK02jHXLndbq07PHxNX6UctZllS/UjKNNgPgEjrGpmCy5K3CCxVR74plwo\nbbOUktEp2PuBY28iHugtbFWKqsqEx1O0r2/1tRxkEKUdKumnnYU=\n-----END RSA PRIVATE KEY-----\n",
-			})
+			}, "overwrite")
 			Expect(err).NotTo(HaveOccurred())
 			sshSecret, err = credhubClient.SetSSH("ssh-name", values.SSH{
 				PublicKey:  "-----BEGIN RSA PUBLIC KEY-----\nMIIEogIBAAKCAQEAvPJ5d+lMzR6ToVXNO46OkFgYuTYp2XcAnaArHUUOrJ5dLYef\n2cQRYBZgBDjG9nMjWCdib/YReZnW3h9jh8vpdfCOKs207IX5HlS8bq5V3J9BT4U2\neqcTZNDfvA2vyhYJ+mhWvRPVn2ft8+dlmDT4NFe/rH/VvMap+XTb1vHEkyXrimxH\nwTDxR+tnvNP79RETt7HVfOfBYzryt+WUZoHubI+Ncboijoift+m2wIWojv8TCh+M\n0BEiqhHCZt2k45XPneRHRZ6ml+Jp8+woQLQpPiG8mqB1Wvu3hgMPgkN0I1Nf80vg\nE6Xemn2IGkKfPZGT0Te0R3wlSRyNNzzoqxAthQIDAQABAoIBAFjfjHb0i6VnnnUi\nkJhU44XNikOD0IdzTBzYO69WziIvkxBZXLznVmzl2V/i/OLrIVLTo5+aFHon/EMa\nbIxxQ2ywK47Clzkxgw3bOY6t/cD6P5QRyqBCegLPpI0luuvJFgRsk2/4JmEGV4yD\n6OuA7sZgB84xiu1yXHzzlHwz2AyF2JL8dXe82DM33DnlERdT93pvoOgd4G65fnlw\nUVj4qMXaLlCRX3kDVyLInNfUHfTBNLAd31K2pRbNfgh6/A+hszO2lOU4jY3C6dGl\nJvcjMl/MP1flwCd8sN5OqWaSw8vvDpKy3V0T/nbvVmkxBmIRWFNUGip0tzB739m0\noMHL1/kCgYEA42d3LzYp7Kq6bDCe4DNfuEN3KfFAgCV56mjXm3IG82G+qkwE5HX5\nlzsVI6CFzgLHIC0y5k36q3PN9YV3bVBzyumBLsGqfmYpc3n0RNsBdCSYFBWx8Skm\nMO6a2MBb+DO7VAFbNj66k8zSgUSxtnNETvVmdQ8DLfvk1Ygs5DORwR8CgYEA1LUC\n8b3y+JadEHX9cTmew8Hm5eEzna8UjQsEHdmsPwDkayNzoqEQc7dyZmAvxgLmPDtt\nT6co/Js2MLgzGwjlK9/Wxl4BhWdAJltIY4T43pCnpTI5gder5lYJXDwIDU/SSp08\nrxSr0KaFfrdXeku1I//wbUpR/J+O2PBzGuLJCNsCgYB+YRQFsu5dzwxH8EV7iFGc\nEDJ7ps4X6bv1oEqi4x4lyJ6z+geGCGKrv3QiFqYGNdkAct4kzBWRj4xY9NHIeLvB\ne0AGAi+Ei7ZhrNcqJSSLrYKvNtdrlVjaPODlsRHrwKRNLWvJm9cJKP2cRdcV9L1z\nvEIysCMuPR2R5lo8gMRyNQKBgHnqIfzi7W9UDEQSDKin6Pq0mZ4qvMXlQrcwmDRv\nvc0Cuuk5kZ6mCGL6w0QwX1Fz+fiN6zJbUh+u6pl0Cj61k3zZOCXMXbzTmC4j5dK8\ntVQDv0LtDY8BSZKkv4qxEcBnftWrV8vV4kCeISem+CmtWO6AVJKfpWxRG7P15VOE\npss/AoGASRnijgkQE8cOuzoUSkYcNaKhRxo3m6OC7j2h6/Y3kLq1R9HgziEfoBpk\nkc1zdGLK02jHXLndbq07PHxNX6UctZllS/UjKNNgPgEjrGpmCy5K3CCxVR74plwo\nbbOUktEp2PuBY28iHugtbFWKqsqEx1O0r2/1tRxkEKUdKumnnYU=\n-----END RSA PRIVATE KEY-----\n",
 				PrivateKey: "-----BEGIN RSA PRIVATE KEY-----\nMIIEogIBAAKCAQEAvPJ5d+lMzR6ToVXNO46OkFgYuTYp2XcAnaArHUUOrJ5dLYef\n2cQRYBZgBDjG9nMjWCdib/YReZnW3h9jh8vpdfCOKs207IX5HlS8bq5V3J9BT4U2\neqcTZNDfvA2vyhYJ+mhWvRPVn2ft8+dlmDT4NFe/rH/VvMap+XTb1vHEkyXrimxH\nwTDxR+tnvNP79RETt7HVfOfBYzryt+WUZoHubI+Ncboijoift+m2wIWojv8TCh+M\n0BEiqhHCZt2k45XPneRHRZ6ml+Jp8+woQLQpPiG8mqB1Wvu3hgMPgkN0I1Nf80vg\nE6Xemn2IGkKfPZGT0Te0R3wlSRyNNzzoqxAthQIDAQABAoIBAFjfjHb0i6VnnnUi\nkJhU44XNikOD0IdzTBzYO69WziIvkxBZXLznVmzl2V/i/OLrIVLTo5+aFHon/EMa\nbIxxQ2ywK47Clzkxgw3bOY6t/cD6P5QRyqBCegLPpI0luuvJFgRsk2/4JmEGV4yD\n6OuA7sZgB84xiu1yXHzzlHwz2AyF2JL8dXe82DM33DnlERdT93pvoOgd4G65fnlw\nUVj4qMXaLlCRX3kDVyLInNfUHfTBNLAd31K2pRbNfgh6/A+hszO2lOU4jY3C6dGl\nJvcjMl/MP1flwCd8sN5OqWaSw8vvDpKy3V0T/nbvVmkxBmIRWFNUGip0tzB739m0\noMHL1/kCgYEA42d3LzYp7Kq6bDCe4DNfuEN3KfFAgCV56mjXm3IG82G+qkwE5HX5\nlzsVI6CFzgLHIC0y5k36q3PN9YV3bVBzyumBLsGqfmYpc3n0RNsBdCSYFBWx8Skm\nMO6a2MBb+DO7VAFbNj66k8zSgUSxtnNETvVmdQ8DLfvk1Ygs5DORwR8CgYEA1LUC\n8b3y+JadEHX9cTmew8Hm5eEzna8UjQsEHdmsPwDkayNzoqEQc7dyZmAvxgLmPDtt\nT6co/Js2MLgzGwjlK9/Wxl4BhWdAJltIY4T43pCnpTI5gder5lYJXDwIDU/SSp08\nrxSr0KaFfrdXeku1I//wbUpR/J+O2PBzGuLJCNsCgYB+YRQFsu5dzwxH8EV7iFGc\nEDJ7ps4X6bv1oEqi4x4lyJ6z+geGCGKrv3QiFqYGNdkAct4kzBWRj4xY9NHIeLvB\ne0AGAi+Ei7ZhrNcqJSSLrYKvNtdrlVjaPODlsRHrwKRNLWvJm9cJKP2cRdcV9L1z\nvEIysCMuPR2R5lo8gMRyNQKBgHnqIfzi7W9UDEQSDKin6Pq0mZ4qvMXlQrcwmDRv\nvc0Cuuk5kZ6mCGL6w0QwX1Fz+fiN6zJbUh+u6pl0Cj61k3zZOCXMXbzTmC4j5dK8\ntVQDv0LtDY8BSZKkv4qxEcBnftWrV8vV4kCeISem+CmtWO6AVJKfpWxRG7P15VOE\npss/AoGASRnijgkQE8cOuzoUSkYcNaKhRxo3m6OC7j2h6/Y3kLq1R9HgziEfoBpk\nkc1zdGLK02jHXLndbq07PHxNX6UctZllS/UjKNNgPgEjrGpmCy5K3CCxVR74plwo\nbbOUktEp2PuBY28iHugtbFWKqsqEx1O0r2/1tRxkEKUdKumnnYU=\n-----END RSA PRIVATE KEY-----\n",
-			})
+			}, "overwrite")
 			Expect(err).NotTo(HaveOccurred())
 			userSecret, err = credhubClient.SetUser("user-name", values.User{
 				Username: "bob",
 				Password: "pass",
-			})
+			}, "overwrite")
 			Expect(err).NotTo(HaveOccurred())
 
 		})
@@ -303,7 +306,7 @@ var _ = Describe("Credential store", func() {
 
 		It("should use ID when present", func() {
 			By("creating two versions of the same secret")
-			newPasswordSecret, err := credhubClient.SetPassword(passwordSecret.Name, "newthepass")
+			newPasswordSecret, err := credhubClient.SetPassword(passwordSecret.Name, "newthepass", "overwrite")
 			Expect(err).NotTo(HaveOccurred())
 
 			By("fetching the secret by ID when present")
@@ -354,7 +357,7 @@ var _ = Describe("Credential store", func() {
 			}
 
 			for p := range paths {
-				_, err := credhubClient.SetValue(paths[p], values.Value("someValue"))
+				_, err := credhubClient.SetValue(paths[p], values.Value("someValue"), "overwrite")
 				Expect(err).NotTo(HaveOccurred())
 			}
 		})
@@ -388,7 +391,7 @@ var _ = Describe("Credential store", func() {
 			}
 
 			for p := range paths {
-				_, err := credhubClient.SetValue(paths[p], values.Value("someValue"))
+				_, err := credhubClient.SetValue(paths[p], values.Value("someValue"), "overwrite")
 				Expect(err).NotTo(HaveOccurred())
 			}
 		})
