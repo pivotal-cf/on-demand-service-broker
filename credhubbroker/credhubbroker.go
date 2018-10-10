@@ -20,7 +20,7 @@ import (
 	"errors"
 	"fmt"
 
-	"code.cloudfoundry.org/credhub-cli/credhub/permissions"
+	"github.com/cloudfoundry-incubator/credhub-cli/credhub/permissions"
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/apiserver"

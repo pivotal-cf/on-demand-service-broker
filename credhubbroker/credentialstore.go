@@ -15,7 +15,7 @@
 
 package credhubbroker
 
-import "code.cloudfoundry.org/credhub-cli/credhub/permissions"
+import "github.com/cloudfoundry-incubator/credhub-cli/credhub/permissions"
 
 //go:generate counterfeiter -o fakes/credentialstore.go . CredentialStore
 type CredentialStore interface {

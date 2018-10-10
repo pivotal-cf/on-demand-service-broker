@@ -10,24 +10,6 @@
   revision = "1fea04828a6fb034280dcb5d07f39f5b7f5739e9"
 
 [[projects]]
-  digest = "1:aa7467842dbb6ab19453891c7455b0f7e16be5ca4e785b1c60293db7a2a0b0d8"
-  name = "code.cloudfoundry.org/credhub-cli"
-  packages = [
-    "credhub",
-    "credhub/auth",
-    "credhub/auth/uaa",
-    "credhub/credentials",
-    "credhub/credentials/generate",
-    "credhub/credentials/values",
-    "credhub/permissions",
-    "credhub/server",
-    "errors",
-  ]
-  pruneopts = "NUT"
-  revision = "8ce74fcab29428a399b0c1c00c0d77f5fc1946b2"
-  version = "2.0.0"
-
-[[projects]]
   branch = "master"
   digest = "1:bc8e726b0ac938981d62a7fdbc14aa9314e8af92c75d3858cb583e563d41802b"
   name = "code.cloudfoundry.org/lager"
@@ -73,6 +55,24 @@
   revision = "820a007a30e27f0a63666254fc19d1198536eb33"
 
 [[projects]]
+  branch = "master"
+  digest = "1:6818bb38aa299f13ae8c9cd9af900953f84c1c4b019d74995e23af15eb99cc09"
+  name = "github.com/cloudfoundry-incubator/credhub-cli"
+  packages = [
+    "credhub",
+    "credhub/auth",
+    "credhub/auth/uaa",
+    "credhub/credentials",
+    "credhub/credentials/generate",
+    "credhub/credentials/values",
+    "credhub/permissions",
+    "credhub/server",
+    "errors",
+  ]
+  pruneopts = "NUT"
+  revision = "8deb2357ddc8bc80025d5f849f305c5f8f8e9e7b"
+
+[[projects]]
   digest = "1:e9ccf090649915d54e0d11a1cfd3918b8d35303b10a2ad67705afa73ea0659c5"
   name = "github.com/cloudfoundry/bosh-cli"
   packages = [
@@ -88,7 +88,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:bcaa2381e43fa6ad89ec76d5c1066dd76c4cd572cdea9a17f37515f97550245d"
+  digest = "1:0a473a5fd3b7bd5154a30040a4029d68d8b25c6bacf9e5566b85830239962f01"
   name = "github.com/cloudfoundry/bosh-utils"
   packages = [
     "crypto",
@@ -100,16 +100,8 @@
     "uuid",
   ]
   pruneopts = "NUT"
-  revision = "15c556314b68953d0449541ded010b033767c805"
-  source = "github.com/cloudfoundry/bosh-utils"
-
-[[projects]]
-  branch = "master"
-  digest = "1:3d3a6beb04065e29628f9d4f8fefeca4cc96932a8b0b83a03e9a3405b3538c11"
-  name = "github.com/cloudfoundry/go-socks5"
-  packages = ["."]
-  pruneopts = "NUT"
-  revision = "54f73bdb8a8e85a6611d3d29ab9bbf98c2a060d7"
+  revision = "373fd3440dbce357028e51efa932e1b6fc351f05"
+  source = "github.com/simonjjones/bosh-utils"
 
 [[projects]]
   digest = "1:f48de98789e8f4f9c799f29698fb0e0e1da12fb17b9ed7bb056883fea5d4ebac"
@@ -125,11 +117,12 @@
   version = "v2.1.0"
 
 [[projects]]
-  digest = "1:59947b4e4884947608f78e6835925a276504e16439f3cb9198d13f3a35233ea3"
+  branch = "master"
+  digest = "1:7c95c514a36e955c5f44b9d700adbb89739e198a26d7a01ed56eb0432aa6d380"
   name = "github.com/cloudfoundry/socks5-proxy"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "3c6b4eec9c2d16c1dac4c42bdb5f755ba09daff8"
+  revision = "a5dbd34501d246ab6c004c9afebb5bd0dd9d7d22"
 
 [[projects]]
   branch = "master"
@@ -178,6 +171,14 @@
   pruneopts = "NUT"
   revision = "570b54cabe6b8eb0bc2dfce68d964677d63b5260"
   version = "v1.5.0"
+
+[[projects]]
+  branch = "master"
+  digest = "1:7bff8f17b8ed4b64e69f48580f853edc9cf9aeb9535eecebd86f206af270f9c3"
+  name = "github.com/genevievelesperance/go-socks5"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "f07e0bb84629ba30f60da69274cd1d9dbb4a1d08"
 
 [[projects]]
   digest = "1:81466b4218bf6adddac2572a30ac733a9255919bc2f470b4827a317bd4ee1756"
@@ -517,13 +518,13 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
-    "code.cloudfoundry.org/credhub-cli/credhub",
-    "code.cloudfoundry.org/credhub-cli/credhub/auth",
-    "code.cloudfoundry.org/credhub-cli/credhub/credentials",
-    "code.cloudfoundry.org/credhub-cli/credhub/credentials/values",
-    "code.cloudfoundry.org/credhub-cli/credhub/permissions",
     "code.cloudfoundry.org/lager",
     "github.com/cloudfoundry-incubator/cf-test-helpers/cf",
+    "github.com/cloudfoundry-incubator/credhub-cli/credhub",
+    "github.com/cloudfoundry-incubator/credhub-cli/credhub/auth",
+    "github.com/cloudfoundry-incubator/credhub-cli/credhub/credentials",
+    "github.com/cloudfoundry-incubator/credhub-cli/credhub/credentials/values",
+    "github.com/cloudfoundry-incubator/credhub-cli/credhub/permissions",
     "github.com/cloudfoundry/bosh-cli/director",
     "github.com/cloudfoundry/bosh-cli/uaa",
     "github.com/cloudfoundry/bosh-utils/httpclient",

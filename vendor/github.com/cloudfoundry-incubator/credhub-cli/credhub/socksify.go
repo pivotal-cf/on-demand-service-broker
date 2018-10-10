@@ -1,4 +1,4 @@
-package httpclient
+package credhub
 
 import (
 	"io/ioutil"
@@ -8,22 +8,20 @@ import (
 	"strings"
 	"sync"
 
-	bosherr "github.com/cloudfoundry/bosh-utils/errors"
-	proxy "github.com/cloudfoundry/socks5-proxy"
-
+	"github.com/cloudfoundry/socks5-proxy"
 	goproxy "golang.org/x/net/proxy"
 )
+
+type DialFunc func(network, address string) (net.Conn, error)
 
 type ProxyDialer interface {
 	Dialer(string, string) (proxy.DialFunc, error)
 }
 
-type DialFunc func(network, address string) (net.Conn, error)
-
 func (f DialFunc) Dial(network, address string) (net.Conn, error) { return f(network, address) }
 
 func SOCKS5DialFuncFromEnvironment(origDialer DialFunc, socks5Proxy ProxyDialer) DialFunc {
-	allProxy := os.Getenv("BOSH_ALL_PROXY")
+	allProxy := os.Getenv("CREDHUB_PROXY")
 	if len(allProxy) == 0 {
 		return origDialer
 	}
@@ -73,7 +71,7 @@ func SOCKS5DialFuncFromEnvironment(origDialer DialFunc, socks5Proxy ProxyDialer)
 			if dialer == nil {
 				proxyDialer, err := socks5Proxy.Dialer(string(proxySSHKey), proxyURL.Host)
 				if err != nil {
-					return nil, bosherr.WrapErrorf(err, "Creating SOCKS5 dialer")
+					return nil, err
 				}
 				dialer = proxyDialer
 			}
