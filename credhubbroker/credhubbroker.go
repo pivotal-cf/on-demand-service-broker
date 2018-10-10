@@ -20,7 +20,6 @@ import (
 	"errors"
 	"fmt"
 
-	"code.cloudfoundry.org/credhub-cli/credhub/permissions"
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/apiserver"
@@ -82,13 +81,7 @@ func (b *CredHubBroker) Bind(ctx context.Context, instanceID, bindingID string, 
 		return brokerapi.Binding{}, setErr.ErrorForCFUser()
 	}
 
-	additionalPermissions := []permissions.Permission{
-		{
-			Actor:      actor,
-			Operations: []string{"read"},
-		},
-	}
-	b.credStore.AddPermissions(key, additionalPermissions)
+	b.credStore.AddPermission(key, actor, []string{"read"})
 
 	binding.Credentials = map[string]string{"credhub-ref": key}
 	return binding, nil

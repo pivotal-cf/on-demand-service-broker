@@ -78,18 +78,19 @@ type FakeCredhubClient struct {
 		result1 credentials.Value
 		result2 error
 	}
-	AddPermissionsStub        func(credName string, perms []permissions.Permission) ([]permissions.Permission, error)
-	addPermissionsMutex       sync.RWMutex
-	addPermissionsArgsForCall []struct {
+	AddPermissionStub        func(credName string, actor string, ops []string) (*permissions.Permission, error)
+	addPermissionMutex       sync.RWMutex
+	addPermissionArgsForCall []struct {
 		credName string
-		perms    []permissions.Permission
+		actor    string
+		ops      []string
 	}
-	addPermissionsReturns struct {
-		result1 []permissions.Permission
+	addPermissionReturns struct {
+		result1 *permissions.Permission
 		result2 error
 	}
-	addPermissionsReturnsOnCall map[int]struct {
-		result1 []permissions.Permission
+	addPermissionReturnsOnCall map[int]struct {
+		result1 *permissions.Permission
 		result2 error
 	}
 	DeleteStub        func(name string) error
@@ -364,59 +365,60 @@ func (fake *FakeCredhubClient) SetValueReturnsOnCall(i int, result1 credentials.
 	}{result1, result2}
 }
 
-func (fake *FakeCredhubClient) AddPermissions(credName string, perms []permissions.Permission) ([]permissions.Permission, error) {
-	var permsCopy []permissions.Permission
-	if perms != nil {
-		permsCopy = make([]permissions.Permission, len(perms))
-		copy(permsCopy, perms)
+func (fake *FakeCredhubClient) AddPermission(credName string, actor string, ops []string) (*permissions.Permission, error) {
+	var opsCopy []string
+	if ops != nil {
+		opsCopy = make([]string, len(ops))
+		copy(opsCopy, ops)
 	}
-	fake.addPermissionsMutex.Lock()
-	ret, specificReturn := fake.addPermissionsReturnsOnCall[len(fake.addPermissionsArgsForCall)]
-	fake.addPermissionsArgsForCall = append(fake.addPermissionsArgsForCall, struct {
+	fake.addPermissionMutex.Lock()
+	ret, specificReturn := fake.addPermissionReturnsOnCall[len(fake.addPermissionArgsForCall)]
+	fake.addPermissionArgsForCall = append(fake.addPermissionArgsForCall, struct {
 		credName string
-		perms    []permissions.Permission
-	}{credName, permsCopy})
-	fake.recordInvocation("AddPermissions", []interface{}{credName, permsCopy})
-	fake.addPermissionsMutex.Unlock()
-	if fake.AddPermissionsStub != nil {
-		return fake.AddPermissionsStub(credName, perms)
+		actor    string
+		ops      []string
+	}{credName, actor, opsCopy})
+	fake.recordInvocation("AddPermission", []interface{}{credName, actor, opsCopy})
+	fake.addPermissionMutex.Unlock()
+	if fake.AddPermissionStub != nil {
+		return fake.AddPermissionStub(credName, actor, ops)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.addPermissionsReturns.result1, fake.addPermissionsReturns.result2
+	return fake.addPermissionReturns.result1, fake.addPermissionReturns.result2
 }
 
-func (fake *FakeCredhubClient) AddPermissionsCallCount() int {
-	fake.addPermissionsMutex.RLock()
-	defer fake.addPermissionsMutex.RUnlock()
-	return len(fake.addPermissionsArgsForCall)
+func (fake *FakeCredhubClient) AddPermissionCallCount() int {
+	fake.addPermissionMutex.RLock()
+	defer fake.addPermissionMutex.RUnlock()
+	return len(fake.addPermissionArgsForCall)
 }
 
-func (fake *FakeCredhubClient) AddPermissionsArgsForCall(i int) (string, []permissions.Permission) {
-	fake.addPermissionsMutex.RLock()
-	defer fake.addPermissionsMutex.RUnlock()
-	return fake.addPermissionsArgsForCall[i].credName, fake.addPermissionsArgsForCall[i].perms
+func (fake *FakeCredhubClient) AddPermissionArgsForCall(i int) (string, string, []string) {
+	fake.addPermissionMutex.RLock()
+	defer fake.addPermissionMutex.RUnlock()
+	return fake.addPermissionArgsForCall[i].credName, fake.addPermissionArgsForCall[i].actor, fake.addPermissionArgsForCall[i].ops
 }
 
-func (fake *FakeCredhubClient) AddPermissionsReturns(result1 []permissions.Permission, result2 error) {
-	fake.AddPermissionsStub = nil
-	fake.addPermissionsReturns = struct {
-		result1 []permissions.Permission
+func (fake *FakeCredhubClient) AddPermissionReturns(result1 *permissions.Permission, result2 error) {
+	fake.AddPermissionStub = nil
+	fake.addPermissionReturns = struct {
+		result1 *permissions.Permission
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeCredhubClient) AddPermissionsReturnsOnCall(i int, result1 []permissions.Permission, result2 error) {
-	fake.AddPermissionsStub = nil
-	if fake.addPermissionsReturnsOnCall == nil {
-		fake.addPermissionsReturnsOnCall = make(map[int]struct {
-			result1 []permissions.Permission
+func (fake *FakeCredhubClient) AddPermissionReturnsOnCall(i int, result1 *permissions.Permission, result2 error) {
+	fake.AddPermissionStub = nil
+	if fake.addPermissionReturnsOnCall == nil {
+		fake.addPermissionReturnsOnCall = make(map[int]struct {
+			result1 *permissions.Permission
 			result2 error
 		})
 	}
-	fake.addPermissionsReturnsOnCall[i] = struct {
-		result1 []permissions.Permission
+	fake.addPermissionReturnsOnCall[i] = struct {
+		result1 *permissions.Permission
 		result2 error
 	}{result1, result2}
 }
@@ -482,8 +484,8 @@ func (fake *FakeCredhubClient) Invocations() map[string][][]interface{} {
 	defer fake.setJSONMutex.RUnlock()
 	fake.setValueMutex.RLock()
 	defer fake.setValueMutex.RUnlock()
-	fake.addPermissionsMutex.RLock()
-	defer fake.addPermissionsMutex.RUnlock()
+	fake.addPermissionMutex.RLock()
+	defer fake.addPermissionMutex.RUnlock()
 	fake.deleteMutex.RLock()
 	defer fake.deleteMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

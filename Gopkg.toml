@@ -104,3 +104,7 @@
 [[constraint]]
   branch = "master"
   name = "github.com/xeipuuv/gojsonschema"
+
+[[constraint]]
+  name = "code.cloudfoundry.org/credhub-cli"
+  branch = "master"
