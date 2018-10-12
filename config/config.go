@@ -44,6 +44,7 @@ type Broker struct {
 	EnablePlanSchemas          bool `yaml:"enable_plan_schemas"`
 	UsingStdin                 bool `yaml:"use_stdin"`
 	EnableSecureManifests      bool `yaml:"enable_secure_manifests"`
+	TLS                        TLSConfig
 }
 
 type BoshCredhub struct {
@@ -83,6 +84,11 @@ type CF struct {
 	URL            string
 	TrustedCert    string `yaml:"root_ca_cert"`
 	Authentication Authentication
+}
+
+type TLSConfig struct {
+	CertFile string `yaml:"cert_file"`
+	KeyFile  string `yaml:"key_file"`
 }
 
 func (c Config) Validate() error {

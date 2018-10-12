@@ -91,9 +91,18 @@ func StartAndWait(conf config.Config, server *http.Server, logger *log.Logger, s
 		close(stopped)
 	}()
 	logger.Println("Listening on", server.Addr)
-	err := server.ListenAndServe()
+	var err error
+	if TLSConfigured(conf) {
+		err = server.ListenAndServeTLS(conf.Broker.TLS.CertFile, conf.Broker.TLS.KeyFile)
+	} else {
+		err = server.ListenAndServe()
+	}
 	if err != http.ErrServerClosed {
 		logger.Fatalf("Error listening and serving: %v\n", err)
 	}
 	<-stopped
+}
+
+func TLSConfigured(conf config.Config) bool {
+	return conf.Broker.TLS.CertFile != ""
 }

@@ -16,6 +16,8 @@
 package on_demand_service_broker_test
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"net"
 
@@ -178,6 +180,43 @@ func doRequest(method, url string, body io.Reader, requestModifiers ...func(r *h
 
 	req.Close = true
 	resp, err := http.DefaultClient.Do(req)
+	Expect(err).ToNot(HaveOccurred())
+
+	bodyContent, err := ioutil.ReadAll(resp.Body)
+	Expect(err).NotTo(HaveOccurred())
+
+	Expect(resp.Body.Close()).To(Succeed())
+	return resp, bodyContent
+}
+
+func doHTTPSRequest(method, url string, body io.Reader, caCertFile string, requestModifiers ...func(r *http.Request)) (*http.Response, []byte) {
+	Expect(url).To(ContainSubstring("https"))
+
+	// Load CA cert
+	caCert, err := ioutil.ReadFile(caCertFile)
+	Expect(err).NotTo(HaveOccurred())
+	caCertPool := x509.NewCertPool()
+	caCertPool.AppendCertsFromPEM(caCert)
+
+	// Setup HTTPS client
+	tlsConfig := &tls.Config{
+		RootCAs: caCertPool,
+	}
+	transport := &http.Transport{TLSClientConfig: tlsConfig}
+	client := &http.Client{Transport: transport}
+
+	req, err := http.NewRequest(method, url, body)
+	Expect(err).ToNot(HaveOccurred())
+
+	req.SetBasicAuth(brokerUsername, brokerPassword)
+	req.Header.Set("X-Broker-API-Version", "2.14")
+
+	for _, f := range requestModifiers {
+		f(req)
+	}
+
+	req.Close = true
+	resp, err := client.Do(req)
 	Expect(err).ToNot(HaveOccurred())
 
 	bodyContent, err := ioutil.ReadAll(resp.Body)
