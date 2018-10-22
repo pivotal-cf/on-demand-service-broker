@@ -41,6 +41,7 @@ var _ = Describe("Server Protocol", func() {
 			Expect(response.StatusCode).To(Equal(http.StatusOK))
 			catalog := make(map[string][]brokerapi.Service)
 			Expect(json.Unmarshal(bodyContent, &catalog)).To(Succeed())
+			Expect(catalog["services"][0].Name).To(Equal(serviceName))
 		})
 
 		It("does not serve HTTP", func() {

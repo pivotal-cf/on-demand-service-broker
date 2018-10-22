@@ -92,7 +92,7 @@ func StartAndWait(conf config.Config, server *http.Server, logger *log.Logger, s
 	}()
 	logger.Println("Listening on", server.Addr)
 	var err error
-	if TLSConfigured(conf) {
+	if conf.HasTLS() {
 		err = server.ListenAndServeTLS(conf.Broker.TLS.CertFile, conf.Broker.TLS.KeyFile)
 	} else {
 		err = server.ListenAndServe()
@@ -101,8 +101,4 @@ func StartAndWait(conf config.Config, server *http.Server, logger *log.Logger, s
 		logger.Fatalf("Error listening and serving: %v\n", err)
 	}
 	<-stopped
-}
-
-func TLSConfigured(conf config.Config) bool {
-	return conf.Broker.TLS.CertFile != ""
 }

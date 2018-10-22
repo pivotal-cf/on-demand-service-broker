@@ -195,6 +195,10 @@ var _ = Describe("Broker Config", func() {
 				Expect(parseErr).NotTo(HaveOccurred())
 				Expect(conf).To(Equal(expected))
 			})
+
+			It("knows that TLS is not configured", func() {
+				Expect(conf.HasTLS()).To(BeFalse())
+			})
 		})
 
 		Context("and the config has optional global resource quotas", func() {
@@ -247,6 +251,23 @@ var _ = Describe("Broker Config", func() {
 			})
 		})
 
+		Context("and the config includes the optional broker TLS configuraiton", func() {
+			BeforeEach(func() {
+				configFileName = "good_config_with_tls.yml"
+			})
+
+			It("returns a config object with tls properties", func() {
+				Expect(parseErr).NotTo(HaveOccurred())
+				Expect(conf.Broker.TLS).To(Equal(config.TLSConfig{
+					CertFile: "/var/vcap/jobs/broker/certs/broker.crt",
+					KeyFile:  "/var/vcap/jobs/broker/certs/broker.key",
+				}))
+			})
+
+			It("knows that TLS is configured", func() {
+				Expect(conf.HasTLS()).To(BeTrue())
+			})
+		})
 		Context("and the broker password contains escaped special characters", func() {
 			BeforeEach(func() {
 				configFileName = "escaped_config.yml"
