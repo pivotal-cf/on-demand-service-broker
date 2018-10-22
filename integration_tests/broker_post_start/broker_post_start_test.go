@@ -24,8 +24,9 @@ import (
 
 var _ = Describe("Broker Post-start Check", func() {
 	const (
-		brokerUsername = "broker username"
-		brokerPassword = "broker password"
+		brokerUsername          = "broker username"
+		brokerPassword          = "broker password"
+		pathToValidBrokerConfig = "test_assets/good_config.yml"
 	)
 
 	var (
@@ -48,6 +49,7 @@ var _ = Describe("Broker Post-start Check", func() {
 			"-brokerPassword", brokerPassword,
 			"-brokerPort", port,
 			"-timeout", "1",
+			"-configFilePath", pathToValidBrokerConfig,
 		}
 		cmd = exec.Command(binaryPath, params...)
 	})
@@ -94,6 +96,7 @@ var _ = Describe("Broker Post-start Check", func() {
 				"-brokerPassword", brokerPassword,
 				"-brokerPort", port,
 				"-timeout", "3",
+				"-configFilePath", pathToValidBrokerConfig,
 			}
 			cmd = exec.Command(binaryPath, params...)
 		})
@@ -140,6 +143,7 @@ var _ = Describe("Broker Post-start Check", func() {
 				"-brokerUsername", brokerUsername,
 				"-brokerPassword", brokerPassword,
 				"-brokerPort", "$%#$%##$@#$#%$^&%^&$##$%@#",
+				"-configFilePath", pathToValidBrokerConfig,
 			}
 			cmd = exec.Command(binaryPath, params...)
 		})
@@ -147,6 +151,23 @@ var _ = Describe("Broker Post-start Check", func() {
 		It("fails to start", func() {
 			Expect(session.ExitCode()).To(Equal(1))
 			Expect(session).To(gbytes.Say("error creating request:"))
+		})
+	})
+
+	Context("when the broker config file path is invalid", func() {
+		BeforeEach(func() {
+			params := []string{
+				"-brokerUsername", brokerUsername,
+				"-brokerPassword", brokerPassword,
+				"-brokerPort", port,
+				"-configFilePath", "not a real nor ## valid file",
+			}
+			cmd = exec.Command(binaryPath, params...)
+		})
+
+		It("fails to start", func() {
+			Expect(session.ExitCode()).To(Equal(1))
+			Expect(session).To(gbytes.Say("no such file or directory"))
 		})
 	})
 })

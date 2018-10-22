@@ -24,7 +24,7 @@ func main() {
 	brokerPassword := flag.String("brokerPassword", "", "password for the broker")
 	brokerPort := flag.String("brokerPort", "", "port of the broker")
 	timeout := flag.Int("timeout", 120, "timeout in seconds for the post-start check")
-	configFilePath := flag.String("brokerConfigFilePath", "", "path to config file")
+	configFilePath := flag.String("configFilePath", "", "path to config file")
 	flag.Parse()
 
 	loggerFactory := loggerfactory.New(os.Stdout, "broker-post-start", loggerfactory.Flags)
