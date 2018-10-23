@@ -11,3 +11,4 @@ ci/*-local.yml
 *.test
 .envrc-kafka
 .envrc-redis
+.idea
