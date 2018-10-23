@@ -7,6 +7,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"flag"
 	"fmt"
 	"log"
@@ -14,7 +15,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/craigfurman/herottp"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 )
@@ -28,48 +28,60 @@ func main() {
 	flag.Parse()
 
 	loggerFactory := loggerfactory.New(os.Stdout, "broker-post-start", loggerfactory.Flags)
-
 	logger := loggerFactory.New()
 	logger.Println("Starting broker post-start check, waiting for broker to start serving catalog.")
+
 	conf := parseConfig(logger, configFilePath)
 
+	var (
+		brokerCatalogURL string
+		transport        *http.Transport
+	)
+
 	if conf.HasTLS() {
-		// TODO: enable post_start check to use HTTPS.
+
+		brokerCatalogURL = fmt.Sprintf("https://localhost:%s/v2/catalog", *brokerPort)
+		tlsConfig := &tls.Config{
+			InsecureSkipVerify: true,
+		}
+		tlsConfig.BuildNameToCertificate()
+		transport = &http.Transport{TLSClientConfig: tlsConfig}
 
 	} else {
-		brokerCatalogURL := fmt.Sprintf("http://localhost:%s/v2/catalog", *brokerPort)
-		request, err := http.NewRequest("GET", brokerCatalogURL, nil)
-		if err != nil {
-			logger.Printf("error creating request: %s\n", err)
-			os.Exit(1)
-		}
-		request.SetBasicAuth(*brokerUsername, *brokerPassword)
-		request.Header.Add("X-Broker-Api-Version", "2.13")
 
-		client := herottp.New(herottp.Config{
-			Timeout: 30 * time.Second,
-		})
+		brokerCatalogURL = fmt.Sprintf("http://localhost:%s/v2/catalog", *brokerPort)
+		transport = &http.Transport{}
+	}
 
-		go func() {
-			for {
-				response, err := client.Do(request)
-				if err != nil {
-					logger.Printf("error performing request: %s", err)
-				} else if response.StatusCode != http.StatusOK {
-					logger.Printf("expected status 200, was %d, from %s\n", response.StatusCode, brokerCatalogURL)
-				} else {
-					logger.Println("Broker post-start check successful")
-					os.Exit(0)
-				}
-				time.Sleep(1 * time.Second)
-			}
-		}()
-
-		<-time.After(time.Duration(*timeout) * time.Second)
-
-		logger.Println("Broker post-start check failed")
+	request, err := http.NewRequest("GET", brokerCatalogURL, nil)
+	if err != nil {
+		logger.Printf("error creating request: %s\n", err)
 		os.Exit(1)
 	}
+	request.SetBasicAuth(*brokerUsername, *brokerPassword)
+	request.Header.Add("X-Broker-Api-Version", "2.13")
+
+	client := &http.Client{Transport: transport, Timeout: 30 * time.Second}
+
+	go func() {
+		for {
+			response, err := client.Do(request)
+			if err != nil {
+				logger.Printf("error performing request: %s", err)
+			} else if response.StatusCode != http.StatusOK {
+				logger.Printf("expected status 200, was %d, from %s\n", response.StatusCode, brokerCatalogURL)
+			} else {
+				logger.Println("Broker post-start check successful")
+				os.Exit(0)
+			}
+			time.Sleep(1 * time.Second)
+		}
+	}()
+
+	<-time.After(time.Duration(*timeout) * time.Second)
+
+	logger.Println("Broker post-start check failed")
+	os.Exit(1)
 }
 
 func parseConfig(logger *log.Logger, configFilePath *string) config.Config {

@@ -24,9 +24,10 @@ import (
 
 var _ = Describe("Broker Post-start Check", func() {
 	const (
-		brokerUsername          = "broker username"
-		brokerPassword          = "broker password"
-		pathToValidBrokerConfig = "test_assets/good_config.yml"
+		brokerUsername           = "broker username"
+		brokerPassword           = "broker password"
+		pathToValidConfig        = "test_assets/good_config.yml"
+		pathToValidConfigWithTLS = "test_assets/good_config_with_tls.yml"
 	)
 
 	var (
@@ -36,43 +37,179 @@ var _ = Describe("Broker Post-start Check", func() {
 		port    string
 	)
 
-	BeforeEach(func() {
-		server = ghttp.NewServer()
-		serverURL, err := url.Parse(server.URL())
-		Expect(err).NotTo(HaveOccurred())
-		parts := strings.Split(serverURL.Host, ":")
-		Expect(parts).To(HaveLen(2))
-		port = parts[1]
-
-		params := []string{
-			"-brokerUsername", brokerUsername,
-			"-brokerPassword", brokerPassword,
-			"-brokerPort", port,
-			"-timeout", "1",
-			"-configFilePath", pathToValidBrokerConfig,
-		}
-		cmd = exec.Command(binaryPath, params...)
-	})
-
-	JustBeforeEach(func() {
-		var err error
-		session, err = gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
-		Expect(err).NotTo(HaveOccurred())
-		Eventually(session, time.Second*6).Should(gexec.Exit())
-	})
-
-	AfterEach(func() {
-		server.Close()
-	})
-
-	Context("when ODB responds with 200", func() {
+	Context("when the broker is configured without TLS", func() {
 		BeforeEach(func() {
+			server = ghttp.NewServer()
+			serverURL, err := url.Parse(server.URL())
+			Expect(err).NotTo(HaveOccurred())
+			parts := strings.Split(serverURL.Host, ":")
+			Expect(parts).To(HaveLen(2))
+			port = parts[1]
+
+			params := []string{
+				"-brokerUsername", brokerUsername,
+				"-brokerPassword", brokerPassword,
+				"-brokerPort", port,
+				"-timeout", "1",
+				"-configFilePath", pathToValidConfig,
+			}
+			cmd = exec.Command(binaryPath, params...)
+		})
+
+		JustBeforeEach(func() {
+			var err error
+			session, err = gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
+			Expect(err).NotTo(HaveOccurred())
+			Eventually(session, time.Second*6).Should(gexec.Exit())
+		})
+
+		AfterEach(func() {
+			server.Close()
+		})
+
+		Context("when ODB responds with 200", func() {
+			BeforeEach(func() {
+				server.AppendHandlers(ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "/v2/catalog"),
+					ghttp.VerifyBasicAuth(brokerUsername, brokerPassword),
+					ghttp.VerifyHeader(http.Header{"X-Broker-API-Version": []string{"2.13"}}),
+					ghttp.RespondWith(http.StatusOK, nil),
+				))
+			})
+
+			It("exits successfully", func() {
+				Expect(session.ExitCode()).To(Equal(0))
+				Expect(server.ReceivedRequests()).To(HaveLen(1))
+				Expect(session).To(gbytes.Say("Starting broker post-start check, waiting for broker to start serving catalog."))
+				Expect(session).To(gbytes.Say("Broker post-start check successful"))
+			})
+		})
+
+		Context("when the ODB responds with 500", func() {
+			BeforeEach(func() {
+				server.AppendHandlers(
+					ghttp.RespondWith(http.StatusInternalServerError, nil),
+					ghttp.RespondWith(http.StatusInternalServerError, nil),
+					ghttp.RespondWith(http.StatusOK, nil),
+				)
+
+				params := []string{
+					"-brokerUsername", brokerUsername,
+					"-brokerPassword", brokerPassword,
+					"-brokerPort", port,
+					"-timeout", "3",
+					"-configFilePath", pathToValidConfig,
+				}
+				cmd = exec.Command(binaryPath, params...)
+			})
+
+			It("retries", func() {
+				Expect(session.ExitCode()).To(Equal(0))
+				Expect(server.ReceivedRequests()).To(HaveLen(3), "retries")
+				Expect(session).To(gbytes.Say(fmt.Sprintf("expected status 200, was 500, from http://localhost:%s/v2/catalog", port)))
+				Expect(session).To(gbytes.Say(fmt.Sprintf("expected status 200, was 500, from http://localhost:%s/v2/catalog", port)))
+				Expect(session).To(gbytes.Say("Broker post-start check successful"))
+			})
+		})
+
+		Context("when the ODB takes longer than the timeout to respond", func() {
+			BeforeEach(func() {
+				longRequestHandler := func(w http.ResponseWriter, req *http.Request) {
+					time.Sleep(1100 * time.Millisecond)
+				}
+
+				server.AppendHandlers(longRequestHandler)
+			})
+
+			It("fails with error", func() {
+				Expect(session.ExitCode()).To(Equal(1))
+				Expect(session).To(gbytes.Say("Broker post-start check failed"))
+			})
+		})
+
+		Context("when the ODB does not respond", func() {
+			BeforeEach(func() {
+				server.Close()
+			})
+
+			It("fails with network error", func() {
+				Expect(session.ExitCode()).To(Equal(1))
+				Expect(session).To(gbytes.Say("connection refused"))
+				Expect(session).To(gbytes.Say("Broker post-start check failed"))
+			})
+		})
+
+		Context("when the broker port is invalid", func() {
+			BeforeEach(func() {
+				params := []string{
+					"-brokerUsername", brokerUsername,
+					"-brokerPassword", brokerPassword,
+					"-brokerPort", "$%#$%##$@#$#%$^&%^&$##$%@#",
+					"-configFilePath", pathToValidConfig,
+				}
+				cmd = exec.Command(binaryPath, params...)
+			})
+
+			It("fails to start", func() {
+				Expect(session.ExitCode()).To(Equal(1))
+				Expect(session).To(gbytes.Say("error creating request:"))
+			})
+		})
+
+		Context("when the broker config file path is invalid", func() {
+			BeforeEach(func() {
+				params := []string{
+					"-brokerUsername", brokerUsername,
+					"-brokerPassword", brokerPassword,
+					"-brokerPort", port,
+					"-configFilePath", "not a real nor ## valid file",
+				}
+				cmd = exec.Command(binaryPath, params...)
+			})
+
+			It("fails to start", func() {
+				Expect(session.ExitCode()).To(Equal(1))
+				Expect(session).To(gbytes.Say("no such file or directory"))
+			})
+		})
+	})
+
+	Context("when the broker is configured with TLS", func() {
+		BeforeEach(func() {
+			server = ghttp.NewTLSServer()
+			serverURL, err := url.Parse(server.URL())
+			Expect(err).NotTo(HaveOccurred())
+			parts := strings.Split(serverURL.Host, ":")
+			Expect(parts).To(HaveLen(2))
+			port = parts[1]
+
+			params := []string{
+				"-brokerUsername", brokerUsername,
+				"-brokerPassword", brokerPassword,
+				"-brokerPort", port,
+				"-timeout", "1",
+				"-configFilePath", pathToValidConfigWithTLS,
+			}
+
+			cmd = exec.Command(binaryPath, params...)
+
 			server.AppendHandlers(ghttp.CombineHandlers(
 				ghttp.VerifyRequest("GET", "/v2/catalog"),
 				ghttp.VerifyBasicAuth(brokerUsername, brokerPassword),
 				ghttp.VerifyHeader(http.Header{"X-Broker-API-Version": []string{"2.13"}}),
 				ghttp.RespondWith(http.StatusOK, nil),
 			))
+		})
+
+		JustBeforeEach(func() {
+			var err error
+			session, err = gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
+			Expect(err).NotTo(HaveOccurred())
+			Eventually(session, time.Second*6).Should(gexec.Exit())
+		})
+
+		AfterEach(func() {
+			server.Close()
 		})
 
 		It("exits successfully", func() {
@@ -83,91 +220,4 @@ var _ = Describe("Broker Post-start Check", func() {
 		})
 	})
 
-	Context("when the ODB responds with 500", func() {
-		BeforeEach(func() {
-			server.AppendHandlers(
-				ghttp.RespondWith(http.StatusInternalServerError, nil),
-				ghttp.RespondWith(http.StatusInternalServerError, nil),
-				ghttp.RespondWith(http.StatusOK, nil),
-			)
-
-			params := []string{
-				"-brokerUsername", brokerUsername,
-				"-brokerPassword", brokerPassword,
-				"-brokerPort", port,
-				"-timeout", "3",
-				"-configFilePath", pathToValidBrokerConfig,
-			}
-			cmd = exec.Command(binaryPath, params...)
-		})
-
-		It("retries", func() {
-			Expect(session.ExitCode()).To(Equal(0))
-			Expect(server.ReceivedRequests()).To(HaveLen(3), "retries")
-			Expect(session).To(gbytes.Say(fmt.Sprintf("expected status 200, was 500, from http://localhost:%s/v2/catalog", port)))
-			Expect(session).To(gbytes.Say(fmt.Sprintf("expected status 200, was 500, from http://localhost:%s/v2/catalog", port)))
-			Expect(session).To(gbytes.Say("Broker post-start check successful"))
-		})
-	})
-
-	Context("when the ODB takes longer than the timeout to respond", func() {
-		BeforeEach(func() {
-			longRequestHandler := func(w http.ResponseWriter, req *http.Request) {
-				time.Sleep(1100 * time.Millisecond)
-			}
-
-			server.AppendHandlers(longRequestHandler)
-		})
-
-		It("fails with error", func() {
-			Expect(session.ExitCode()).To(Equal(1))
-			Expect(session).To(gbytes.Say("Broker post-start check failed"))
-		})
-	})
-
-	Context("when the ODB does not respond", func() {
-		BeforeEach(func() {
-			server.Close()
-		})
-
-		It("fails with network error", func() {
-			Expect(session.ExitCode()).To(Equal(1))
-			Expect(session).To(gbytes.Say("connection refused"))
-			Expect(session).To(gbytes.Say("Broker post-start check failed"))
-		})
-	})
-
-	Context("when the broker port is invalid", func() {
-		BeforeEach(func() {
-			params := []string{
-				"-brokerUsername", brokerUsername,
-				"-brokerPassword", brokerPassword,
-				"-brokerPort", "$%#$%##$@#$#%$^&%^&$##$%@#",
-				"-configFilePath", pathToValidBrokerConfig,
-			}
-			cmd = exec.Command(binaryPath, params...)
-		})
-
-		It("fails to start", func() {
-			Expect(session.ExitCode()).To(Equal(1))
-			Expect(session).To(gbytes.Say("error creating request:"))
-		})
-	})
-
-	Context("when the broker config file path is invalid", func() {
-		BeforeEach(func() {
-			params := []string{
-				"-brokerUsername", brokerUsername,
-				"-brokerPassword", brokerPassword,
-				"-brokerPort", port,
-				"-configFilePath", "not a real nor ## valid file",
-			}
-			cmd = exec.Command(binaryPath, params...)
-		})
-
-		It("fails to start", func() {
-			Expect(session.ExitCode()).To(Equal(1))
-			Expect(session).To(gbytes.Say("no such file or directory"))
-		})
-	})
 })
