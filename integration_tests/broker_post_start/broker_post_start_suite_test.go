@@ -14,7 +14,7 @@ import (
 	"github.com/onsi/gomega/gexec"
 )
 
-func TestOrphanDeployments(t *testing.T) {
+func TestBrokerPostStartChecks(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Broker Post-start Suite")
 }

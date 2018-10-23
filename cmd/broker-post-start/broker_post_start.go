@@ -44,7 +44,6 @@ func main() {
 		tlsConfig := &tls.Config{
 			InsecureSkipVerify: true,
 		}
-		tlsConfig.BuildNameToCertificate()
 		transport = &http.Transport{TLSClientConfig: tlsConfig}
 
 	} else {

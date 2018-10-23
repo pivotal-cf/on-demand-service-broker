@@ -189,7 +189,7 @@ func doRequest(method, url string, body io.Reader, requestModifiers ...func(r *h
 	return resp, bodyContent
 }
 
-func doHTTPSRequest(method, url string, body io.Reader, caCertFile string, requestModifiers ...func(r *http.Request)) (*http.Response, []byte) {
+func doHTTPSRequest(method, url string, body io.Reader, caCertFile string, cipherSuites []uint16, requestModifiers ...func(r *http.Request)) (*http.Response, []byte) {
 	Expect(url).To(ContainSubstring("https"))
 
 	// Load CA cert
@@ -200,7 +200,8 @@ func doHTTPSRequest(method, url string, body io.Reader, caCertFile string, reque
 
 	// Setup HTTPS client
 	tlsConfig := &tls.Config{
-		RootCAs: caCertPool,
+		RootCAs:      caCertPool,
+		CipherSuites: cipherSuites,
 	}
 	transport := &http.Transport{TLSClientConfig: tlsConfig}
 	client := &http.Client{Transport: transport}

@@ -8,6 +8,7 @@ package apiserver
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"log"
 	"net/http"
@@ -93,6 +94,15 @@ func StartAndWait(conf config.Config, server *http.Server, logger *log.Logger, s
 	logger.Println("Listening on", server.Addr)
 	var err error
 	if conf.HasTLS() {
+		acceptableCipherSuites := []uint16{
+			tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+		}
+		tlsConfig := tls.Config{
+			CipherSuites: acceptableCipherSuites,
+			MinVersion:   tls.VersionTLS12,
+		}
+		server.TLSConfig = &tlsConfig
 		err = server.ListenAndServeTLS(conf.Broker.TLS.CertFile, conf.Broker.TLS.KeyFile)
 	} else {
 		err = server.ListenAndServe()

@@ -199,10 +199,7 @@ var _ = Describe("Broker Post-start Check", func() {
 				ghttp.VerifyHeader(http.Header{"X-Broker-API-Version": []string{"2.13"}}),
 				ghttp.RespondWith(http.StatusOK, nil),
 			))
-		})
 
-		JustBeforeEach(func() {
-			var err error
 			session, err = gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
 			Eventually(session, time.Second*6).Should(gexec.Exit())
