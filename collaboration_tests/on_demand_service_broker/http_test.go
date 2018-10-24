@@ -4,7 +4,9 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
+	"os"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
@@ -44,20 +46,19 @@ var _ = Describe("Server Protocol", func() {
 		})
 
 		It("serves HTTPS", func() {
-			response, bodyContent := doHTTPSRequest(http.MethodGet, fmt.Sprintf("https://%s/v2/catalog", serverURL), nil, caCertFile, acceptableCipherSuites)
+			response, bodyContent, err := doHTTPSRequest(http.MethodGet, fmt.Sprintf("https://%s/v2/catalog", serverURL), caCertFile, acceptableCipherSuites, 0)
+			Expect(err).NotTo(HaveOccurred())
 
 			Expect(response.StatusCode).To(Equal(http.StatusOK))
 			catalog := make(map[string][]brokerapi.Service)
 			Expect(json.Unmarshal(bodyContent, &catalog)).To(Succeed())
 			Expect(catalog["services"][0].Name).To(Equal(serviceName))
-
-			// Expect(loggerBuffer).Should(gbytes.Say("http: TLS handshake error"))
 		})
 
 		DescribeTable("can use the desired cipher suites",
 			func(cipher uint16) {
-				response, _ := doHTTPSRequest(http.MethodGet, fmt.Sprintf("https://%s/v2/catalog", serverURL), nil, caCertFile, []uint16{cipher})
-
+				response, _, err := doHTTPSRequest(http.MethodGet, fmt.Sprintf("https://%s/v2/catalog", serverURL), caCertFile, []uint16{cipher}, 0)
+				Expect(err).NotTo(HaveOccurred())
 				Expect(response.StatusCode).To(Equal(http.StatusOK))
 				Expect(response.TLS.CipherSuite).To(Equal(cipher))
 			},
@@ -70,44 +71,20 @@ var _ = Describe("Server Protocol", func() {
 
 		DescribeTable("does not serve when the client uses an unacceptable cipher",
 			func(cipher uint16) {
-				url := fmt.Sprintf("https://%s/v2/catalog", serverURL)
-				tlsConfig := &tls.Config{
-					CipherSuites:       []uint16{cipher},
-					InsecureSkipVerify: true,
-				}
-				transport := &http.Transport{TLSClientConfig: tlsConfig}
-				client := &http.Client{Transport: transport}
-
-				req, err := http.NewRequest(http.MethodGet, url, nil)
-				Expect(err).ToNot(HaveOccurred())
-
-				req.SetBasicAuth(brokerUsername, brokerPassword)
-				req.Header.Set("X-Broker-API-Version", "2.14")
-
-				_, err = client.Do(req)
+				log.SetOutput(GinkgoWriter)
+				_, _, err := doHTTPSRequest(http.MethodGet, fmt.Sprintf("https://%s/v2/catalog", serverURL), caCertFile, []uint16{cipher}, 0)
+				log.SetOutput(os.Stdout)
 				Expect(err).To(MatchError(ContainSubstring("remote error: tls: handshake failure")))
 			},
 			Entry("TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305", tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305),
-			Entry("TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305", tls.TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA),
-			Entry("TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305", tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256),
+			Entry("TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA", tls.TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA),
+			Entry("TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256", tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256),
 		)
 
 		It("refuses to serve TLS 1.1", func() {
-			url := fmt.Sprintf("https://%s/v2/catalog", serverURL)
-			tlsConfig := &tls.Config{
-				InsecureSkipVerify: true,
-				MinVersion:         tls.VersionTLS11,
-				MaxVersion:         tls.VersionTLS11,
-			}
-			transport := &http.Transport{TLSClientConfig: tlsConfig}
-			client := &http.Client{Transport: transport}
-
-			req, err := http.NewRequest(http.MethodGet, url, nil)
-			Expect(err).ToNot(HaveOccurred())
-
-			req.SetBasicAuth(brokerUsername, brokerPassword)
-			req.Header.Set("X-Broker-API-Version", "2.14")
-			_, err = client.Do(req)
+			log.SetOutput(GinkgoWriter)
+			_, _, err := doHTTPSRequest(http.MethodGet, fmt.Sprintf("https://%s/v2/catalog", serverURL), caCertFile, acceptableCipherSuites, tls.VersionTLS11)
+			log.SetOutput(os.Stdout)
 			Expect(err).To(MatchError(ContainSubstring("remote error: tls: protocol version not supported")))
 		})
 
@@ -115,12 +92,10 @@ var _ = Describe("Server Protocol", func() {
 			req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("http://%s/v2/catalog", serverURL), nil)
 			Expect(err).ToNot(HaveOccurred())
 
-			req.SetBasicAuth(brokerUsername, brokerPassword)
-			req.Header.Set("X-Broker-API-Version", "2.14")
-			req.Close = true
-
+			log.SetOutput(GinkgoWriter)
 			_, err = http.DefaultClient.Do(req)
-			Expect(err).To(MatchError(ContainSubstring("HTTP/1.x transport connection broken: malformed HTTP response")))
+			log.SetOutput(os.Stdout)
+			Expect(err).To(MatchError(ContainSubstring("malformed HTTP response")))
 		})
 	})
 
@@ -143,6 +118,7 @@ var _ = Describe("Server Protocol", func() {
 			Expect(response.StatusCode).To(Equal(http.StatusOK))
 			catalog := make(map[string][]brokerapi.Service)
 			Expect(json.Unmarshal(bodyContent, &catalog)).To(Succeed())
+			Expect(catalog["services"][0].Name).To(Equal(serviceName))
 		})
 	})
 })

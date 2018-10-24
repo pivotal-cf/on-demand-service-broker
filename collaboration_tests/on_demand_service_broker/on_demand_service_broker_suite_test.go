@@ -19,7 +19,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"net"
 
 	"github.com/pivotal-cf/on-demand-service-broker/service"
 
@@ -156,15 +155,7 @@ func StartServerWithStopHandler(conf config.Config, stopServerChan chan os.Signa
 		logger,
 	)
 	go apiserver.StartAndWait(conf, server, logger, stopServerChan)
-	Eventually(func() bool {
-		conn, _ := net.Dial("tcp", serverURL)
-		if conn != nil {
-			Expect(conn.Close()).To(Succeed())
-			return true
-		}
-		return false
-	}).Should(BeTrue(), "Server did not start")
-	Expect(loggerBuffer).To(gbytes.Say("Listening on"))
+	Eventually(loggerBuffer).Should(gbytes.Say("Listening on"))
 }
 
 func doRequest(method, url string, body io.Reader, requestModifiers ...func(r *http.Request)) (*http.Response, []byte) {
@@ -189,7 +180,7 @@ func doRequest(method, url string, body io.Reader, requestModifiers ...func(r *h
 	return resp, bodyContent
 }
 
-func doHTTPSRequest(method, url string, body io.Reader, caCertFile string, cipherSuites []uint16, requestModifiers ...func(r *http.Request)) (*http.Response, []byte) {
+func doHTTPSRequest(method, url string, caCertFile string, cipherSuites []uint16, maxTLSVersion uint16) (*http.Response, []byte, error) {
 	Expect(url).To(ContainSubstring("https"))
 
 	// Load CA cert
@@ -203,26 +194,27 @@ func doHTTPSRequest(method, url string, body io.Reader, caCertFile string, ciphe
 		RootCAs:      caCertPool,
 		CipherSuites: cipherSuites,
 	}
+	if maxTLSVersion != 0 {
+		tlsConfig.MaxVersion = maxTLSVersion
+	}
 	transport := &http.Transport{TLSClientConfig: tlsConfig}
 	client := &http.Client{Transport: transport}
 
-	req, err := http.NewRequest(method, url, body)
+	req, err := http.NewRequest(method, url, nil)
 	Expect(err).ToNot(HaveOccurred())
 
 	req.SetBasicAuth(brokerUsername, brokerPassword)
 	req.Header.Set("X-Broker-API-Version", "2.14")
 
-	for _, f := range requestModifiers {
-		f(req)
-	}
-
 	req.Close = true
 	resp, err := client.Do(req)
-	Expect(err).ToNot(HaveOccurred())
+	if err != nil {
+		return nil, nil, err
+	}
 
+	defer resp.Body.Close()
 	bodyContent, err := ioutil.ReadAll(resp.Body)
 	Expect(err).NotTo(HaveOccurred())
 
-	Expect(resp.Body.Close()).To(Succeed())
-	return resp, bodyContent
+	return resp, bodyContent, nil
 }
