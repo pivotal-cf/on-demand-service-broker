@@ -1,7 +1,3 @@
-
-# generate server private key
-openssl genrsa -out mybroker.key 2048
-
 # use credhub to generate a certificate
 isl-credhub generate -n collaboration_test_cert -t certificate --ca=/islington/root_ca -d 3650 -c localhost -o Pivotal -y GB -a localhost
 
