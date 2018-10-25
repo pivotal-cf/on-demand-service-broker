@@ -33,176 +33,36 @@ var _ = Describe("Broker Post-start Check", func() {
 	var (
 		session *gexec.Session
 		server  *ghttp.Server
-		cmd     *exec.Cmd
 		port    string
 	)
 
 	Context("when the broker is configured without TLS", func() {
 		BeforeEach(func() {
 			server = ghttp.NewServer()
-			serverURL, err := url.Parse(server.URL())
-			Expect(err).NotTo(HaveOccurred())
-			parts := strings.Split(serverURL.Host, ":")
-			Expect(parts).To(HaveLen(2))
-			port = parts[1]
-
-			params := []string{
-				"-brokerUsername", brokerUsername,
-				"-brokerPassword", brokerPassword,
-				"-brokerPort", port,
-				"-timeout", "1",
-				"-configFilePath", pathToValidConfig,
-			}
-			cmd = exec.Command(binaryPath, params...)
-		})
-
-		JustBeforeEach(func() {
-			var err error
-			session, err = gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
-			Expect(err).NotTo(HaveOccurred())
-			Eventually(session, time.Second*6).Should(gexec.Exit())
+			port = extractPort(server.URL())
+			appendDefaultHandlers(server, brokerUsername, brokerPassword)
 		})
 
 		AfterEach(func() {
 			server.Close()
 		})
 
-		Context("when ODB responds with 200", func() {
-			BeforeEach(func() {
-				server.AppendHandlers(ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/v2/catalog"),
-					ghttp.VerifyBasicAuth(brokerUsername, brokerPassword),
-					ghttp.VerifyHeader(http.Header{"X-Broker-API-Version": []string{"2.13"}}),
-					ghttp.RespondWith(http.StatusOK, nil),
-				))
-			})
+		It("exits successfully when the ODB responds with 200", func() {
+			session = executeBinary(brokerUsername, brokerPassword, port, pathToValidConfig, "1")
 
-			It("exits successfully", func() {
-				Expect(session.ExitCode()).To(Equal(0))
-				Expect(server.ReceivedRequests()).To(HaveLen(1))
-				Expect(session).To(gbytes.Say("Starting broker post-start check, waiting for broker to start serving catalog."))
-				Expect(session).To(gbytes.Say("Broker post-start check successful"))
-			})
-		})
-
-		Context("when the ODB responds with 500", func() {
-			BeforeEach(func() {
-				server.AppendHandlers(
-					ghttp.RespondWith(http.StatusInternalServerError, nil),
-					ghttp.RespondWith(http.StatusInternalServerError, nil),
-					ghttp.RespondWith(http.StatusOK, nil),
-				)
-
-				params := []string{
-					"-brokerUsername", brokerUsername,
-					"-brokerPassword", brokerPassword,
-					"-brokerPort", port,
-					"-timeout", "3",
-					"-configFilePath", pathToValidConfig,
-				}
-				cmd = exec.Command(binaryPath, params...)
-			})
-
-			It("retries", func() {
-				Expect(session.ExitCode()).To(Equal(0))
-				Expect(server.ReceivedRequests()).To(HaveLen(3), "retries")
-				Expect(session).To(gbytes.Say(fmt.Sprintf("expected status 200, was 500, from http://localhost:%s/v2/catalog", port)))
-				Expect(session).To(gbytes.Say(fmt.Sprintf("expected status 200, was 500, from http://localhost:%s/v2/catalog", port)))
-				Expect(session).To(gbytes.Say("Broker post-start check successful"))
-			})
-		})
-
-		Context("when the ODB takes longer than the timeout to respond", func() {
-			BeforeEach(func() {
-				longRequestHandler := func(w http.ResponseWriter, req *http.Request) {
-					time.Sleep(1100 * time.Millisecond)
-				}
-
-				server.AppendHandlers(longRequestHandler)
-			})
-
-			It("fails with error", func() {
-				Expect(session.ExitCode()).To(Equal(1))
-				Expect(session).To(gbytes.Say("Broker post-start check failed"))
-			})
-		})
-
-		Context("when the ODB does not respond", func() {
-			BeforeEach(func() {
-				server.Close()
-			})
-
-			It("fails with network error", func() {
-				Expect(session.ExitCode()).To(Equal(1))
-				Expect(session).To(gbytes.Say("connection refused"))
-				Expect(session).To(gbytes.Say("Broker post-start check failed"))
-			})
-		})
-
-		Context("when the broker port is invalid", func() {
-			BeforeEach(func() {
-				params := []string{
-					"-brokerUsername", brokerUsername,
-					"-brokerPassword", brokerPassword,
-					"-brokerPort", "$%#$%##$@#$#%$^&%^&$##$%@#",
-					"-configFilePath", pathToValidConfig,
-				}
-				cmd = exec.Command(binaryPath, params...)
-			})
-
-			It("fails to start", func() {
-				Expect(session.ExitCode()).To(Equal(1))
-				Expect(session).To(gbytes.Say("error creating request:"))
-			})
-		})
-
-		Context("when the broker config file path is invalid", func() {
-			BeforeEach(func() {
-				params := []string{
-					"-brokerUsername", brokerUsername,
-					"-brokerPassword", brokerPassword,
-					"-brokerPort", port,
-					"-configFilePath", "not a real nor ## valid file",
-				}
-				cmd = exec.Command(binaryPath, params...)
-			})
-
-			It("fails to start", func() {
-				Expect(session.ExitCode()).To(Equal(1))
-				Expect(session).To(gbytes.Say("no such file or directory"))
-			})
+			Expect(session.ExitCode()).To(Equal(0))
+			Expect(server.ReceivedRequests()).To(HaveLen(1))
+			Expect(session).To(gbytes.Say("Starting broker post-start check, waiting for broker to start serving catalog."))
+			Expect(session).To(gbytes.Say("Broker post-start check successful"))
 		})
 	})
 
 	Context("when the broker is configured with TLS", func() {
 		BeforeEach(func() {
 			server = ghttp.NewTLSServer()
-			serverURL, err := url.Parse(server.URL())
-			Expect(err).NotTo(HaveOccurred())
-			parts := strings.Split(serverURL.Host, ":")
-			Expect(parts).To(HaveLen(2))
-			port = parts[1]
-
-			params := []string{
-				"-brokerUsername", brokerUsername,
-				"-brokerPassword", brokerPassword,
-				"-brokerPort", port,
-				"-timeout", "1",
-				"-configFilePath", pathToValidConfigWithTLS,
-			}
-
-			cmd = exec.Command(binaryPath, params...)
-
-			server.AppendHandlers(ghttp.CombineHandlers(
-				ghttp.VerifyRequest("GET", "/v2/catalog"),
-				ghttp.VerifyBasicAuth(brokerUsername, brokerPassword),
-				ghttp.VerifyHeader(http.Header{"X-Broker-API-Version": []string{"2.13"}}),
-				ghttp.RespondWith(http.StatusOK, nil),
-			))
-
-			session, err = gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
-			Expect(err).NotTo(HaveOccurred())
-			Eventually(session, time.Second*6).Should(gexec.Exit())
+			port = extractPort(server.URL())
+			appendDefaultHandlers(server, brokerUsername, brokerPassword)
+			session = executeBinary(brokerUsername, brokerPassword, port, pathToValidConfigWithTLS, "1")
 		})
 
 		AfterEach(func() {
@@ -217,4 +77,99 @@ var _ = Describe("Broker Post-start Check", func() {
 		})
 	})
 
+	Describe("error handling", func() {
+		BeforeEach(func() {
+			server = ghttp.NewServer()
+			port = extractPort(server.URL())
+		})
+
+		AfterEach(func() {
+			server.Close()
+		})
+
+		It("retries when the ODB responds with 500", func() {
+			server.AppendHandlers(
+				ghttp.RespondWith(http.StatusInternalServerError, nil),
+				ghttp.RespondWith(http.StatusInternalServerError, nil),
+				ghttp.RespondWith(http.StatusOK, nil),
+			)
+
+			session = executeBinary(brokerUsername, brokerPassword, port, pathToValidConfig, "3")
+
+			Expect(session.ExitCode()).To(Equal(0), "wrong exit code")
+			Expect(server.ReceivedRequests()).To(HaveLen(3), "retries")
+			Expect(session).To(gbytes.Say(fmt.Sprintf("expected status 200, was 500, from http://localhost:%s/v2/catalog", port)))
+			Expect(session).To(gbytes.Say(fmt.Sprintf("expected status 200, was 500, from http://localhost:%s/v2/catalog", port)))
+			Expect(session).To(gbytes.Say("Broker post-start check successful"))
+		})
+
+		It("fails with error when the ODB takes longer than the timeout to respond", func() {
+			longRequestHandler := func(w http.ResponseWriter, req *http.Request) {
+				time.Sleep(1100 * time.Millisecond)
+			}
+			server.AppendHandlers(longRequestHandler)
+
+			session = executeBinary(brokerUsername, brokerPassword, port, pathToValidConfig, "1")
+
+			Expect(session.ExitCode()).To(Equal(1))
+			Expect(session).To(gbytes.Say("Broker post-start check failed"))
+		})
+
+		It("fails with network error when the ODB does not respond", func() {
+			server.Close()
+
+			session = executeBinary(brokerUsername, brokerPassword, port, pathToValidConfig, "1")
+
+			Expect(session.ExitCode()).To(Equal(1))
+			Expect(session).To(gbytes.Say("connection refused"))
+			Expect(session).To(gbytes.Say("Broker post-start check failed"))
+		})
+
+		It("fails to start when the broker port is invalid", func() {
+			session = executeBinary(brokerUsername, brokerPassword, "$%#$%##$@#$#%$^&%^&$##$%@#", pathToValidConfig, "1")
+
+			Expect(session.ExitCode()).To(Equal(1))
+			Expect(session).To(gbytes.Say("error creating request:"))
+		})
+
+		It("fails to start when the broker config file path is invalid", func() {
+			session = executeBinary(brokerUsername, brokerPassword, port, "not a real path", "1")
+
+			Expect(session.ExitCode()).To(Equal(1))
+			Expect(session).To(gbytes.Say("no such file or directory"))
+		})
+	})
 })
+
+func extractPort(stringURL string) string {
+	serverURL, err := url.Parse(stringURL)
+	Expect(err).NotTo(HaveOccurred())
+	parts := strings.Split(serverURL.Host, ":")
+	Expect(parts).To(HaveLen(2))
+	return parts[1]
+}
+
+func executeBinary(brokerUsername, brokerPassword, port, pathToConfig, timeout string) *gexec.Session {
+	params := []string{
+		"-brokerUsername", brokerUsername,
+		"-brokerPassword", brokerPassword,
+		"-brokerPort", port,
+		"-timeout", timeout,
+		"-configFilePath", pathToConfig,
+	}
+	cmd := exec.Command(binaryPath, params...)
+
+	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
+	Expect(err).ToNot(HaveOccurred())
+	Eventually(session, time.Second*5).Should(gexec.Exit())
+	return session
+}
+
+func appendDefaultHandlers(server *ghttp.Server, brokerUsername, brokerPassword string) {
+	server.AppendHandlers(ghttp.CombineHandlers(
+		ghttp.VerifyRequest("GET", "/v2/catalog"),
+		ghttp.VerifyBasicAuth(brokerUsername, brokerPassword),
+		ghttp.VerifyHeader(http.Header{"X-Broker-API-Version": []string{"2.13"}}),
+		ghttp.RespondWith(http.StatusOK, nil),
+	))
+}
