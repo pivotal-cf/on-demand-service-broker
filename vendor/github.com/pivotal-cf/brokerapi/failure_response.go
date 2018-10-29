@@ -11,8 +11,9 @@ import (
 
 	"fmt"
 
-	"code.cloudfoundry.org/lager"
 	"errors"
+
+	"code.cloudfoundry.org/lager"
 )
 
 // FailureResponse can be returned from any of the `ServiceBroker` interface methods
