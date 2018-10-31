@@ -34,7 +34,9 @@ type ManifestGenerator interface {
 		planID string,
 		requestParams map[string]interface{},
 		oldManifest []byte,
-		previousPlanID *string, logger *log.Logger,
+		previousPlanID *string,
+		secretsMap map[string]string,
+		logger *log.Logger,
 	) (serviceadapter.MarshalledGenerateManifest, error)
 }
 
@@ -73,7 +75,7 @@ func (d deployer) Create(deploymentName, planID string, requestParams map[string
 		return 0, nil, err
 	}
 
-	return d.doDeploy(deploymentName, planID, "create", requestParams, nil, nil, boshContextID, logger)
+	return d.doDeploy(deploymentName, planID, "create", requestParams, nil, nil, boshContextID, nil, logger)
 }
 
 func (d deployer) Upgrade(deploymentName, planID string, previousPlanID *string, boshContextID string, logger *log.Logger) (int, []byte, error) {
@@ -87,7 +89,7 @@ func (d deployer) Upgrade(deploymentName, planID string, previousPlanID *string,
 		return 0, nil, err
 	}
 
-	return d.doDeploy(deploymentName, planID, "upgrade", nil, oldManifest, previousPlanID, boshContextID, logger)
+	return d.doDeploy(deploymentName, planID, "upgrade", nil, oldManifest, previousPlanID, boshContextID, nil, logger)
 }
 
 func (d deployer) Update(
@@ -96,6 +98,7 @@ func (d deployer) Update(
 	requestParams map[string]interface{},
 	previousPlanID *string,
 	boshContextID string,
+	oldSecretsMap map[string]string,
 	logger *log.Logger,
 ) (int, []byte, error) {
 	if err := d.assertNoOperationsInProgress(deploymentName, logger); err != nil {
@@ -107,11 +110,11 @@ func (d deployer) Update(
 		return 0, nil, err
 	}
 
-	if err := d.checkForPendingChanges(deploymentName, previousPlanID, oldManifest, logger); err != nil {
+	if err := d.checkForPendingChanges(deploymentName, previousPlanID, oldManifest, oldSecretsMap, logger); err != nil {
 		return 0, nil, err
 	}
 
-	return d.doDeploy(deploymentName, planID, "update", requestParams, oldManifest, previousPlanID, boshContextID, logger)
+	return d.doDeploy(deploymentName, planID, "update", requestParams, oldManifest, previousPlanID, boshContextID, oldSecretsMap, logger)
 }
 
 func (d deployer) getDeploymentManifest(deploymentName string, logger *log.Logger) ([]byte, error) {
@@ -145,9 +148,10 @@ func (d deployer) checkForPendingChanges(
 	deploymentName string,
 	previousPlanID *string,
 	rawOldManifest RawBoshManifest,
+	oldSecretsMap map[string]string,
 	logger *log.Logger,
 ) error {
-	regeneratedManifestContent, err := d.manifestGenerator.GenerateManifest(deploymentName, *previousPlanID, map[string]interface{}{}, rawOldManifest, previousPlanID, logger)
+	regeneratedManifestContent, err := d.manifestGenerator.GenerateManifest(deploymentName, *previousPlanID, map[string]interface{}{}, rawOldManifest, previousPlanID, oldSecretsMap, logger)
 	if err != nil {
 		return err
 	}
@@ -183,10 +187,11 @@ func (d deployer) doDeploy(
 	oldManifest []byte,
 	previousPlanID *string,
 	boshContextID string,
+	oldSecretsMap map[string]string,
 	logger *log.Logger,
 ) (int, []byte, error) {
 
-	generateManifestOutput, err := d.manifestGenerator.GenerateManifest(deploymentName, planID, requestParams, oldManifest, previousPlanID, logger)
+	generateManifestOutput, err := d.manifestGenerator.GenerateManifest(deploymentName, planID, requestParams, oldManifest, previousPlanID, oldSecretsMap, logger)
 	if err != nil {
 		return 0, nil, err
 	}

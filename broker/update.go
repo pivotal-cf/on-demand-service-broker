@@ -98,12 +98,28 @@ func (b *Broker) Update(
 		boshContextID = uuid.New()
 	}
 
+	manifest, _, err := b.boshClient.GetDeployment(deploymentName(instanceID), logger)
+	if err != nil {
+		return brokerapi.UpdateServiceSpec{IsAsync: true}, b.processError(NewGenericError(ctx, err), logger)
+	}
+
+	deploymentVariables, err := b.boshClient.Variables(deploymentName(instanceID), logger)
+	if err != nil {
+		return brokerapi.UpdateServiceSpec{IsAsync: true}, b.processError(NewGenericError(ctx, err), logger)
+	}
+
+	secretMap, err := b.secretManager.ResolveManifestSecrets(manifest, deploymentVariables, logger)
+	if err != nil {
+		return brokerapi.UpdateServiceSpec{IsAsync: true}, b.processError(NewGenericError(ctx, err), logger)
+	}
+
 	boshTaskID, _, err := b.deployer.Update(
 		deploymentName(instanceID),
 		details.PlanID,
 		detailsMap,
 		&details.PreviousValues.PlanID,
 		boshContextID,
+		secretMap,
 		logger,
 	)
 

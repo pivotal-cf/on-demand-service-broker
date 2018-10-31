@@ -11,7 +11,7 @@ import (
 
 var _ = Describe("GetBinding", func() {
 	It("returns an error", func() {
-		_, err := b.GetBinding(context.Background(), instanceID, "bID")
+		_, err := b.GetBinding(context.Background(), "instanceID", "bID")
 		fresp, ok := err.(*brokerapi.FailureResponse)
 		Expect(ok).To(BeTrue(), "err wasn't a FailureResponse")
 		logger := lager.NewLogger("test")

@@ -40,7 +40,7 @@ var _ = Describe("Unbind", func() {
 	BeforeEach(func() {
 		boshClient.VMsReturns(boshVms, nil)
 		serviceAdapter.DeleteBindingReturns(nil)
-		secretManager.ResolveManifestSecretsReturns(secretsMap, nil)
+		fakeSecretManager.ResolveManifestSecretsReturns(secretsMap, nil)
 		boshClient.GetDeploymentReturns(actualManifest, true, nil)
 		asyncAllowed = false
 	})
@@ -210,7 +210,7 @@ var _ = Describe("Unbind", func() {
 
 	Context("when the secretManager cannot resolve manifest secrets", func() {
 		BeforeEach(func() {
-			secretManager.ResolveManifestSecretsReturns(nil, errors.New("oops"))
+			fakeSecretManager.ResolveManifestSecretsReturns(nil, errors.New("oops"))
 		})
 		It("logs a message but calls unbind anyway", func() {
 			Expect(logBuffer.String()).To(ContainSubstring("failed to resolve manifest secrets"))

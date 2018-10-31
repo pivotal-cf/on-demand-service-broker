@@ -18,9 +18,12 @@ package on_demand_service_broker_test
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"fmt"
 
 	"github.com/pivotal-cf/on-demand-service-broker/service"
+	odbserviceadapter "github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
+	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 
 	"os"
 	"syscall"
@@ -48,6 +51,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 	"github.com/pivotal-cf/on-demand-service-broker/manifestsecrets"
 	manifestsecretsfakes "github.com/pivotal-cf/on-demand-service-broker/manifestsecrets/fakes"
+	serviceadapterfakes "github.com/pivotal-cf/on-demand-service-broker/serviceadapter/fakes"
 	taskfakes "github.com/pivotal-cf/on-demand-service-broker/task/fakes"
 )
 
@@ -64,22 +68,24 @@ const (
 )
 
 var (
-	stopServer                chan os.Signal
-	serverPort                = rand.Intn(math.MaxInt16-1024) + 1024
-	serverURL                 = fmt.Sprintf("localhost:%d", serverPort)
-	deployer                  broker.Deployer
-	fakeServiceAdapter        *fakes.FakeServiceAdapterClient
-	fakeCredentialStore       *credhubfakes.FakeCredentialStore
-	fakeBoshClient            *fakes.FakeBoshClient
-	fakeCfClient              *fakes.FakeCloudFoundryClient
-	fakeTaskBoshClient        *taskfakes.FakeBoshClient
-	fakeTaskManifestGenerator *taskfakes.FakeManifestGenerator
-	odbSecrets                manifestsecrets.ODBSecrets
-	fakeTaskBulkSetter        *taskfakes.FakeBulkSetter
-	loggerBuffer              *gbytes.Buffer
-	shouldSendSigterm         bool
-	secretManager             broker.ManifestSecretManager
-	serviceOfferingID         string
+	stopServer               chan os.Signal
+	serverPort               = rand.Intn(math.MaxInt16-1024) + 1024
+	serverURL                = fmt.Sprintf("localhost:%d", serverPort)
+	deployer                 broker.Deployer
+	fakeServiceAdapter       *fakes.FakeServiceAdapterClient
+	fakeCredentialStore      *credhubfakes.FakeCredentialStore
+	fakeBoshClient           *fakes.FakeBoshClient
+	fakeCfClient             *fakes.FakeCloudFoundryClient
+	fakeTaskBoshClient       *taskfakes.FakeBoshClient
+	fakeCommandRunner        *serviceadapterfakes.FakeCommandRunner
+	taskServiceAdapterClient *odbserviceadapter.Client
+	taskManifestGenerator    task.ManifestGenerator
+	odbSecrets               manifestsecrets.ODBSecrets
+	fakeTaskBulkSetter       *taskfakes.FakeBulkSetter
+	loggerBuffer             *gbytes.Buffer
+	shouldSendSigterm        bool
+	secretManager            broker.ManifestSecretManager
+	serviceOfferingID        string
 
 	fakeCredhubOperator *manifestsecretsfakes.FakeCredhubOperator
 
@@ -92,12 +98,28 @@ var _ = BeforeEach(func() {
 	fakeCredentialStore = new(credhubfakes.FakeCredentialStore)
 	fakeCfClient = new(fakes.FakeCloudFoundryClient)
 
-	fakeTaskBoshClient = new(taskfakes.FakeBoshClient)
-	fakeTaskManifestGenerator = new(taskfakes.FakeManifestGenerator)
-	fakeTaskBulkSetter = new(taskfakes.FakeBulkSetter)
 	serviceOfferingID = "simba"
 	odbSecrets = manifestsecrets.ODBSecrets{ServiceOfferingID: serviceOfferingID}
-	deployer = task.NewDeployer(fakeTaskBoshClient, fakeTaskManifestGenerator, odbSecrets, fakeTaskBulkSetter)
+	fakeTaskBoshClient = new(taskfakes.FakeBoshClient)
+	fakeCommandRunner = new(serviceadapterfakes.FakeCommandRunner)
+
+	generateManifestOutput := serviceadapter.MarshalledGenerateManifest{
+		Manifest: `name: service-instance_some-instance-id`,
+		ODBManagedSecrets: map[string]interface{}{
+			"": nil,
+		},
+	}
+	generateManifestOutputBytes, err := json.Marshal(generateManifestOutput)
+	Expect(err).NotTo(HaveOccurred())
+	zero := 0
+	fakeCommandRunner.RunWithInputParamsReturns(generateManifestOutputBytes, []byte{}, &zero, nil)
+
+	taskServiceAdapterClient = &odbserviceadapter.Client{
+		CommandRunner: fakeCommandRunner,
+		UsingStdin:    true,
+	}
+
+	fakeTaskBulkSetter = new(taskfakes.FakeBulkSetter)
 
 	credhubPathMatcher := new(manifestsecrets.CredHubPathMatcher)
 	fakeCredhubOperator = new(manifestsecretsfakes.FakeCredhubOperator)
@@ -120,6 +142,9 @@ func StartServer(conf config.Config) {
 
 func StartServerWithStopHandler(conf config.Config, stopServerChan chan os.Signal) {
 	var err error
+
+	taskManifestGenerator = task.NewManifestGenerator(taskServiceAdapterClient, conf.ServiceCatalog, serviceadapter.Stemcell{}, serviceadapter.ServiceReleases{})
+	deployer = task.NewDeployer(fakeTaskBoshClient, taskManifestGenerator, odbSecrets, fakeTaskBulkSetter)
 
 	loggerBuffer = gbytes.NewBuffer()
 	loggerFactory := loggerfactory.New(loggerBuffer, componentName, loggerfactory.Flags)

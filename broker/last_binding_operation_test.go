@@ -11,9 +11,8 @@ import (
 )
 
 var _ = Describe("LastBindingOperation", func() {
-
 	It("returns an appropriate error", func() {
-		_, err := b.LastBindingOperation(context.Background(), instanceID, "bID", brokerapi.PollDetails{})
+		_, err := b.LastBindingOperation(context.Background(), "instanceID", "bID", brokerapi.PollDetails{})
 		fresp, ok := err.(*brokerapi.FailureResponse)
 		Expect(ok).To(BeTrue(), "err wasn't a FailureResponse")
 		logger := lager.NewLogger("test")

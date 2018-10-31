@@ -30,12 +30,20 @@ type manifestValidator struct {
 	deploymentName string
 }
 
-func (c *Client) GenerateManifest(serviceDeployment sdk.ServiceDeployment, plan sdk.Plan, requestParams map[string]interface{}, previousManifest []byte, previousPlan *sdk.Plan, logger *log.Logger) (sdk.MarshalledGenerateManifest, error) {
+func (c *Client) GenerateManifest(
+	serviceDeployment sdk.ServiceDeployment,
+	plan sdk.Plan,
+	requestParams map[string]interface{},
+	previousManifest []byte,
+	previousPlan *sdk.Plan,
+	previousSecrets map[string]string,
+	logger *log.Logger,
+) (sdk.MarshalledGenerateManifest, error) {
+
 	serialisedServiceDeployment, err := json.Marshal(serviceDeployment)
 	if err != nil {
 		return sdk.MarshalledGenerateManifest{}, err
 	}
-
 	plan.Properties = SanitiseForJSON(plan.Properties)
 	serialisedPlan, err := json.Marshal(plan)
 	if err != nil {
@@ -55,6 +63,11 @@ func (c *Client) GenerateManifest(serviceDeployment sdk.ServiceDeployment, plan 
 		return sdk.MarshalledGenerateManifest{}, err
 	}
 
+	serialisedPreviousSecrets, err := json.Marshal(previousSecrets)
+	if err != nil {
+		return sdk.MarshalledGenerateManifest{}, err
+	}
+
 	var stdout, stderr []byte
 	var output sdk.MarshalledGenerateManifest
 	var exitCode *int
@@ -68,9 +81,9 @@ func (c *Client) GenerateManifest(serviceDeployment sdk.ServiceDeployment, plan 
 				RequestParameters: string(serialisedRequestParams),
 				PreviousPlan:      string(serialisedPreviousPlan),
 				PreviousManifest:  string(previousManifest),
+				PreviousSecrets:   string(serialisedPreviousSecrets),
 			},
 		}
-
 		stdout, stderr, exitCode, err = c.CommandRunner.RunWithInputParams(
 			inputParams,
 			c.ExternalBinPath, "generate-manifest",
@@ -92,7 +105,6 @@ func (c *Client) GenerateManifest(serviceDeployment sdk.ServiceDeployment, plan 
 		logger.Printf(adapterFailedMessage(*exitCode, c.ExternalBinPath, stdout, stderr))
 		return sdk.MarshalledGenerateManifest{}, err
 	}
-
 	if c.UsingStdin {
 		jsonErr = json.Unmarshal(stdout, &output)
 		if jsonErr != nil {

@@ -53,7 +53,14 @@ type Adapter struct {
 	Logger *log.Logger
 }
 
-func (a *Adapter) GenerateManifest(serviceDeployment serviceadapter.ServiceDeployment, plan serviceadapter.Plan, requestParams serviceadapter.RequestParameters, previousManifest *bosh.BoshManifest, previousPlan *serviceadapter.Plan) (serviceadapter.GenerateManifestOutput, error) {
+func (a *Adapter) GenerateManifest(
+	serviceDeployment serviceadapter.ServiceDeployment,
+	plan serviceadapter.Plan,
+	requestParams serviceadapter.RequestParameters,
+	previousManifest *bosh.BoshManifest,
+	previousPlan *serviceadapter.Plan,
+	previousSecret serviceadapter.ManifestSecrets) (serviceadapter.GenerateManifestOutput, error) {
+
 	errorMessageForOperator := os.Getenv(mock.StderrContentForGenerate)
 	if errorMessageForOperator != "" {
 		errorMessageForUser := os.Getenv(mock.StdoutContentForGenerate)

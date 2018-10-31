@@ -43,19 +43,22 @@ var _ = Describe("Update a service instance", func() {
 		newPlanID              = "new-plan-id"
 		postDeployErrandPlanID = "with-post-deploy"
 		quotaReachedPlanID     = "quota-reached"
-		instanceID             = "some-instance"
+		instanceID             = "some-instance-id"
 		updateTaskID           = 43
 	)
 
 	var (
-		detailsMap      map[string]interface{}
-		updateArbParams map[string]interface{}
+		detailsMap         map[string]interface{}
+		updateArbParams    map[string]interface{}
+		expectedSecretsMap map[string]string
+		conf               brokerConfig.Config
+		oldManifest        []byte
 	)
 
 	BeforeEach(func() {
 		zero := 0
 		one := 1
-		conf := brokerConfig.Config{
+		conf = brokerConfig.Config{
 			Broker: brokerConfig.Broker{
 				Port: serverPort, Username: brokerUsername, Password: brokerPassword,
 			},
@@ -104,28 +107,21 @@ var _ = Describe("Update a service instance", func() {
 				"space_id":        "space-guid",
 			},
 		}
-
+		expectedSecretsMap = map[string]string{
+			"secret": "value",
+		}
+		oldManifest = []byte(`name: service-instance_some-instance-id`)
 		StartServer(conf)
 	})
 
 	Describe("switching plans", func() {
 		It("succeeds when there are no pending changes", func() {
-			fakeTaskBoshClient.GetDeploymentReturns(nil, true, nil)
+			fakeTaskBoshClient.GetDeploymentReturns(oldManifest, true, nil)
 			fakeTaskBoshClient.DeployReturns(updateTaskID, nil)
 
 			resp, bodyContent := doUpdateRequest(detailsMap, instanceID)
 			By("returning the correct status code")
 			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
-
-			By("calling the adapter with the correct arguments")
-			deploymentName, planId, details, _, previousPlanID, _ := fakeTaskManifestGenerator.GenerateManifestArgsForCall(1)
-			_, boshContextId, _, _ := fakeTaskBoshClient.DeployArgsForCall(0)
-
-			Expect(deploymentName).To(Equal("service-instance_" + instanceID))
-			Expect(planId).To(Equal(newPlanID))
-			Expect(details).To(Equal(detailsMap))
-			Expect(*previousPlanID).To(Equal(oldPlanID))
-			Expect(boshContextId).To(BeEmpty())
 
 			By("including the operation data in the response")
 			var updateResponse brokerapi.UpdateResponse
@@ -138,15 +134,12 @@ var _ = Describe("Update a service instance", func() {
 				BoshTaskID:    updateTaskID,
 			}))
 
-			By("setting Credhub secrets")
-			Expect(fakeTaskBulkSetter.BulkSetCallCount()).To(Equal(1))
-
 			By("logging the bind request")
 			Eventually(loggerBuffer).Should(gbytes.Say(`updating instance ` + instanceID))
 		})
 
 		It("succeeds when the new plan has a post-deploy errand", func() {
-			fakeTaskBoshClient.GetDeploymentReturns(nil, true, nil)
+			fakeTaskBoshClient.GetDeploymentReturns(oldManifest, true, nil)
 			fakeTaskBoshClient.DeployReturns(updateTaskID, nil)
 
 			detailsMap["plan_id"] = postDeployErrandPlanID
@@ -155,13 +148,25 @@ var _ = Describe("Update a service instance", func() {
 			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
 
 			By("calling the adapter with the correct arguments")
-			deploymentName, planId, details, _, previousPlanID, _ := fakeTaskManifestGenerator.GenerateManifestArgsForCall(1)
 			_, boshContextId, _, _ := fakeTaskBoshClient.DeployArgsForCall(0)
-			Expect(deploymentName).To(Equal("service-instance_" + instanceID))
-			Expect(planId).To(Equal(postDeployErrandPlanID))
-			Expect(details).To(Equal(detailsMap))
-			Expect(*previousPlanID).To(Equal(oldPlanID))
-			Expect(boshContextId).NotTo(BeEmpty())
+
+			input, actualOthers := fakeCommandRunner.RunWithInputParamsArgsForCall(1)
+			actualInput, ok := input.(sdk.InputParams)
+			Expect(ok).To(BeTrue(), "command runner takes a sdk.inputparams obj")
+			Expect(actualOthers[1]).To(Equal("generate-manifest"))
+			Expect(actualInput.GenerateManifest.ServiceDeployment).To(ContainSubstring("service-instance_" + instanceID))
+
+			var plan sdk.Plan
+			err := json.Unmarshal([]byte(actualInput.GenerateManifest.Plan), &plan)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(plan.LifecycleErrands.PostDeploy).To(Equal(conf.ServiceCatalog.Plans[2].LifecycleErrands.PostDeploy))
+
+			var reqParams map[string]interface{}
+			err = json.Unmarshal([]byte(actualInput.GenerateManifest.RequestParameters), &reqParams)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(reqParams).To(Equal(detailsMap))
 
 			By("including the operation data in the response")
 			var updateResponse brokerapi.UpdateResponse
@@ -181,7 +186,7 @@ var _ = Describe("Update a service instance", func() {
 		})
 
 		It("succeeds when the old plan has a post-deploy errand but the new one doesn't", func() {
-			fakeTaskBoshClient.GetDeploymentReturns(nil, true, nil)
+			fakeTaskBoshClient.GetDeploymentReturns(oldManifest, true, nil)
 			fakeTaskBoshClient.DeployReturns(updateTaskID, nil)
 
 			detailsMap["previous_values"] = map[string]interface{}{
@@ -195,13 +200,30 @@ var _ = Describe("Update a service instance", func() {
 			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
 
 			By("calling the adapter with the correct arguments")
-			deploymentName, planId, details, _, previousPlanID, _ := fakeTaskManifestGenerator.GenerateManifestArgsForCall(1)
 			_, boshContextId, _, _ := fakeTaskBoshClient.DeployArgsForCall(0)
-			Expect(deploymentName).To(Equal("service-instance_" + instanceID))
-			Expect(planId).To(Equal(newPlanID))
-			Expect(details).To(Equal(detailsMap))
-			Expect(*previousPlanID).To(Equal(postDeployErrandPlanID))
 			Expect(boshContextId).To(BeEmpty())
+
+			input, actualOthers := fakeCommandRunner.RunWithInputParamsArgsForCall(1)
+			actualInput, ok := input.(sdk.InputParams)
+			Expect(ok).To(BeTrue(), "command runner takes a sdk.inputparams obj")
+			Expect(actualOthers[1]).To(Equal("generate-manifest"))
+			Expect(actualInput.GenerateManifest.ServiceDeployment).To(ContainSubstring("service-instance_" + instanceID))
+
+			var plan sdk.Plan
+			err := json.Unmarshal([]byte(actualInput.GenerateManifest.Plan), &plan)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(plan.LifecycleErrands.PostDeploy).To(BeNil())
+
+			var previousPlan sdk.Plan
+			err = json.Unmarshal([]byte(actualInput.GenerateManifest.PreviousPlan), &previousPlan)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(previousPlan.LifecycleErrands.PostDeploy).To(Equal(conf.ServiceCatalog.Plans[2].LifecycleErrands.PostDeploy))
+
+			var reqParams map[string]interface{}
+			err = json.Unmarshal([]byte(actualInput.GenerateManifest.RequestParameters), &reqParams)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(reqParams).To(Equal(detailsMap))
 
 			By("including the operation data in the response")
 			var updateResponse brokerapi.UpdateResponse
@@ -219,10 +241,20 @@ var _ = Describe("Update a service instance", func() {
 		})
 
 		It("fails with 422 if there are pending changes", func() {
-			fakeTaskBoshClient.GetDeploymentReturns([]byte("name: foo"), true, nil)
-			fakeTaskManifestGenerator.GenerateManifestReturns(sdk.MarshalledGenerateManifest{
-				Manifest: "name: bar",
-			}, nil)
+			fakeTaskBoshClient.GetDeploymentReturns([]byte("name: service-instance_some-instance-id"), true, nil)
+
+			boshManifest := []byte(`---
+name: service-instance_some-instance-id
+properties:
+  bob: like-a-duck`)
+			manifest := sdk.MarshalledGenerateManifest{
+				Manifest: string(boshManifest),
+			}
+			manifestBytes, err := json.Marshal(manifest)
+			Expect(err).NotTo(HaveOccurred())
+			zero := 0
+
+			fakeCommandRunner.RunWithInputParamsReturns(manifestBytes, []byte{}, &zero, nil)
 
 			resp, _ := doUpdateRequest(detailsMap, instanceID)
 
@@ -261,7 +293,7 @@ var _ = Describe("Update a service instance", func() {
 				ContainSubstring("operation: update"),
 			))
 
-			Eventually(loggerBuffer).Should(gbytes.Say("error deploying instance: bosh deployment 'service-instance_some-instance' not found"))
+			Eventually(loggerBuffer).Should(gbytes.Say("error deploying instance: bosh deployment 'service-instance_some-instance-id' not found"))
 		})
 
 		It("fails with 500 if BOSH is an operation is in progress", func() {
@@ -308,14 +340,14 @@ var _ = Describe("Update a service instance", func() {
 
 		It("fails with 500 if the previous plan cannot be found", func() {
 			fakeTaskBoshClient.GetDeploymentReturns(nil, true, nil)
-			fakeTaskManifestGenerator.GenerateManifestReturns(sdk.MarshalledGenerateManifest{}, broker.PlanNotFoundError{PlanGUID: "yo"})
 
+			detailsMap["plan_id"] = "yo"
 			resp, bodyContent := doUpdateRequest(detailsMap, instanceID)
 
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 			var body brokerapi.ErrorResponse
 			Expect(json.Unmarshal(bodyContent, &body)).To(Succeed())
-			Expect(body.Description).To(ContainSubstring("plan yo does not exist"))
+			Expect(body.Description).To(ContainSubstring("Plan yo not found"))
 		})
 
 		It("fails with 500 if the new plan cannot be found", func() {
@@ -330,8 +362,9 @@ var _ = Describe("Update a service instance", func() {
 
 		It("fails with 500 when the adapter errors", func() {
 			err := serviceadapter.ErrorForExitCode(400, "")
+			fourHundred := 400
+			fakeCommandRunner.RunWithInputParamsReturns([]byte{}, []byte{}, &fourHundred, err)
 			fakeTaskBoshClient.GetDeploymentReturns(nil, true, nil)
-			fakeTaskManifestGenerator.GenerateManifestReturns(sdk.MarshalledGenerateManifest{}, err)
 
 			resp, bodyContent := doUpdateRequest(detailsMap, instanceID)
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
@@ -348,24 +381,74 @@ var _ = Describe("Update a service instance", func() {
 			))
 		})
 
-		It("fails with 500 and a descriptive message when the adapter errors", func() {
-			err := serviceadapter.ErrorForExitCode(1, "some cf message")
+		It("fails with 500 and a generic message, with adapter stderr in the logs, when adapter returns non-zero exit code", func() {
+			one := 1
+			fakeCommandRunner.RunWithInputParamsReturns([]byte{}, []byte("stderr error message"), &one, nil)
 			fakeTaskBoshClient.GetDeploymentReturns(nil, true, nil)
-			fakeTaskManifestGenerator.GenerateManifestReturns(sdk.MarshalledGenerateManifest{}, err)
 
 			resp, bodyContent := doUpdateRequest(detailsMap, instanceID)
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 
 			var body brokerapi.ErrorResponse
 			Expect(json.Unmarshal(bodyContent, &body)).To(Succeed())
-			Expect(body.Description).To(ContainSubstring("some cf message"))
+			Expect(body.Description).To(ContainSubstring("There was a problem completing your request"))
+			Eventually(loggerBuffer).Should(gbytes.Say("stderr error message"))
+		})
+
+		It("fails with 500 when BOSH cannot get the deployment for manifest secrets", func() {
+			fakeBoshClient.GetDeploymentReturns(nil, false, errors.New("error getting deployment"))
+
+			resp, bodyContent := doUpdateRequest(detailsMap, instanceID)
+
+			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
+			var body brokerapi.ErrorResponse
+			Expect(json.Unmarshal(bodyContent, &body)).To(Succeed())
+			Expect(body.Description).To(SatisfyAll(
+				ContainSubstring("There was a problem completing your request. "),
+				ContainSubstring("operation: update"),
+			))
+
+			Eventually(loggerBuffer).Should(gbytes.Say("error getting deployment"))
+		})
+
+		It("fails with 500 when BOSH cannot get deployment variables", func() {
+			fakeBoshClient.VariablesReturns(nil, errors.New("error getting variables"))
+
+			resp, bodyContent := doUpdateRequest(detailsMap, instanceID)
+
+			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
+			var body brokerapi.ErrorResponse
+			Expect(json.Unmarshal(bodyContent, &body)).To(Succeed())
+			Expect(body.Description).To(SatisfyAll(
+				ContainSubstring("There was a problem completing your request. "),
+				ContainSubstring("operation: update"),
+			))
+
+			Eventually(loggerBuffer).Should(gbytes.Say("error getting variables"))
+		})
+
+		It("fails with 500 when the secret manager cannot resolve secrets", func() {
+			fakeCredhubOperator.BulkGetReturns(nil, errors.New("could not get secrets"))
+
+			resp, bodyContent := doUpdateRequest(detailsMap, instanceID)
+
+			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
+			var body brokerapi.ErrorResponse
+			Expect(json.Unmarshal(bodyContent, &body)).To(Succeed())
+			Expect(body.Description).To(SatisfyAll(
+				ContainSubstring("There was a problem completing your request. "),
+				ContainSubstring("operation: update"),
+			))
+
+			Eventually(loggerBuffer).Should(gbytes.Say("could not get secrets"))
 		})
 	})
 
 	Describe("without switching plans", func() {
 		It("succeeds even when the quota has been reached", func() {
-			fakeTaskBoshClient.GetDeploymentReturns(nil, true, nil)
+			fakeTaskBoshClient.GetDeploymentReturns(oldManifest, true, nil)
 			fakeTaskBoshClient.DeployReturns(updateTaskID, nil)
+			fakeCredhubOperator.BulkGetReturns(expectedSecretsMap, nil)
 
 			detailsMap["plan_id"] = quotaReachedPlanID
 			detailsMap["previous_values"] = map[string]interface{}{
@@ -380,12 +463,32 @@ var _ = Describe("Update a service instance", func() {
 			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
 
 			By("calling the adapter with the correct arguments")
-			deploymentName, planId, details, _, previousPlanID, _ := fakeTaskManifestGenerator.GenerateManifestArgsForCall(1)
+			input, actualOthers := fakeCommandRunner.RunWithInputParamsArgsForCall(1)
+			actualInput, ok := input.(sdk.InputParams)
+			Expect(ok).To(BeTrue(), "command runner takes a sdk.inputparams obj")
+			Expect(actualOthers[1]).To(Equal("generate-manifest"))
+			Expect(actualInput.GenerateManifest.ServiceDeployment).To(ContainSubstring("service-instance_" + instanceID))
+
+			expectedSecretsMapJson, err := json.Marshal(expectedSecretsMap)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(actualInput.GenerateManifest.PreviousSecrets).To(Equal(string(expectedSecretsMapJson)))
+
+			var plan sdk.Plan
+			err = json.Unmarshal([]byte(actualInput.GenerateManifest.Plan), &plan)
+			Expect(err).NotTo(HaveOccurred())
+
+			var previousPlan sdk.Plan
+			err = json.Unmarshal([]byte(actualInput.GenerateManifest.PreviousPlan), &previousPlan)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(plan).To(Equal(previousPlan))
+
+			var reqParams map[string]interface{}
+			err = json.Unmarshal([]byte(actualInput.GenerateManifest.RequestParameters), &reqParams)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(reqParams).To(Equal(detailsMap))
+
 			_, boshContextId, _, _ := fakeTaskBoshClient.DeployArgsForCall(0)
-			Expect(deploymentName).To(Equal("service-instance_" + instanceID))
-			Expect(planId).To(Equal(quotaReachedPlanID))
-			Expect(details).To(Equal(detailsMap))
-			Expect(*previousPlanID).To(Equal(quotaReachedPlanID))
 			Expect(boshContextId).To(BeEmpty())
 
 			By("including the operation data in the response")

@@ -41,6 +41,7 @@ var _ = Describe("Management API", func() {
 		globalQuota  = 12
 		globalQuotas brokerConfig.Quotas
 		instances    []string
+		conf         brokerConfig.Config
 	)
 
 	BeforeEach(func() {
@@ -48,7 +49,7 @@ var _ = Describe("Management API", func() {
 	})
 
 	JustBeforeEach(func() {
-		conf := brokerConfig.Config{
+		conf = brokerConfig.Config{
 			Broker: brokerConfig.Broker{
 				Port: serverPort, Username: brokerUsername, Password: brokerPassword,
 			},
@@ -313,10 +314,13 @@ var _ = Describe("Management API", func() {
 			Expect(response.StatusCode).To(Equal(http.StatusAccepted))
 
 			By("upgrades the correct instance")
-			deploymentName, planID, _, _, _, _ := fakeTaskManifestGenerator.GenerateManifestArgsForCall(0)
+			input, actualOthers := fakeCommandRunner.RunWithInputParamsArgsForCall(0)
+			actualInput, ok := input.(sdk.InputParams)
+			Expect(ok).To(BeTrue(), "command runner takes a sdk.inputparams obj")
+			Expect(actualOthers[1]).To(Equal("generate-manifest"))
+			Expect(actualInput.GenerateManifest.ServiceDeployment).To(ContainSubstring(`"deployment_name":"service-instance_some-instance-id"`))
+
 			_, contextID, _, _ := fakeTaskBoshClient.DeployArgsForCall(0)
-			Expect(deploymentName).To(Equal("service-instance_some-instance-id"))
-			Expect(planID).To(Equal(dedicatedPlanID))
 			Expect(contextID).NotTo(BeEmpty())
 
 			By("returning the correct operation data")
@@ -349,10 +353,13 @@ var _ = Describe("Management API", func() {
 				Expect(response.StatusCode).To(Equal(http.StatusAccepted))
 
 				By("upgrades the correct instance")
-				deploymentName, planID, _, _, _, _ := fakeTaskManifestGenerator.GenerateManifestArgsForCall(0)
+				input, actualOthers := fakeCommandRunner.RunWithInputParamsArgsForCall(0)
+				actualInput, ok := input.(sdk.InputParams)
+				Expect(ok).To(BeTrue(), "command runner takes a sdk.inputparams obj")
+				Expect(actualOthers[1]).To(Equal("generate-manifest"))
+				Expect(actualInput.GenerateManifest.ServiceDeployment).To(ContainSubstring(`"deployment_name":"service-instance_some-instance-id"`))
+
 				_, contextID, _, _ := fakeTaskBoshClient.DeployArgsForCall(0)
-				Expect(deploymentName).To(Equal("service-instance_some-instance-id"))
-				Expect(planID).To(Equal(dedicatedPlanID))
 				Expect(contextID).NotTo(BeEmpty())
 
 				By("returning the correct operation data")

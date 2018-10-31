@@ -45,6 +45,7 @@ var _ = Describe("external service adapter", func() {
 		previousPlan      *sdk.Plan
 		params            map[string]interface{}
 		previousManifest  []byte
+		previousSecrets   map[string]string
 
 		inputParams sdk.InputParams
 
@@ -97,6 +98,7 @@ var _ = Describe("external service adapter", func() {
 				},
 			},
 		}
+		previousSecrets = map[string]string{"sup": "yeah!"}
 
 		inputParams = sdk.InputParams{
 			GenerateManifest: sdk.GenerateManifestParams{
@@ -105,13 +107,14 @@ var _ = Describe("external service adapter", func() {
 				PreviousPlan:      planToJson(*previousPlan),
 				PreviousManifest:  string(previousManifest),
 				RequestParameters: toJson(params),
+				PreviousSecrets:   toJson(previousSecrets),
 			},
 		}
 
 	})
 
 	JustBeforeEach(func() {
-		generateManifestOutput, generateErr = a.GenerateManifest(serviceDeployment, plan, params, previousManifest, previousPlan, logger)
+		generateManifestOutput, generateErr = a.GenerateManifest(serviceDeployment, plan, params, previousManifest, previousPlan, previousSecrets, logger)
 	})
 
 	It("invokes external manifest generator with serialised parameters when 'UsingStdin' not set", func() {

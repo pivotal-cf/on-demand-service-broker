@@ -23,7 +23,7 @@ import (
 
 type deployer interface {
 	Create(deploymentName, planID string, requestParams map[string]interface{}, boshContextID string, logger *log.Logger) (int, []byte, error)
-	Update(deploymentName, planID string, requestParams map[string]interface{}, previousPlanID *string, boshContextID string, logger *log.Logger) (int, []byte, error)
+	Update(deploymentName, planID string, requestParams map[string]interface{}, previousPlanID *string, boshContextID string, secretsMap map[string]string, logger *log.Logger) (int, []byte, error)
 	Upgrade(deploymentName, planID string, previousPlanID *string, boshContextID string, logger *log.Logger) (int, []byte, error)
 }
 
@@ -45,6 +45,7 @@ var _ = Describe("Deployer", func() {
 		copyParams        map[string]interface{}
 		generatedManifest string
 		oldManifest       []byte
+		secretsMap        map[string]string
 
 		manifestGenerator *fakes.FakeManifestGenerator
 		odbSecrets        *fakes.FakeODBSecrets
@@ -74,6 +75,10 @@ var _ = Describe("Deployer", func() {
 		manifestGenerator.GenerateManifestReturns(serviceadapter.MarshalledGenerateManifest{Manifest: generatedManifest}, nil)
 		odbSecrets.ReplaceODBRefsStub = func(m string, s []broker.ManifestSecret) string {
 			return m
+		}
+		secretsMap = map[string]string{
+			"((foo))": "b4r",
+			"o0p5":    "p4ssw0rd",
 		}
 	})
 
@@ -524,13 +529,35 @@ var _ = Describe("Deployer", func() {
 				params,
 				previousPlanID,
 				boshContextID,
+				secretsMap,
 				logger,
 			)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(manifestGenerator.GenerateManifestCallCount()).To(Equal(2))
-			_, _, actualRequestParams, _, _, _ := manifestGenerator.GenerateManifestArgsForCall(1)
+			_, _, actualRequestParams, _, _, _, _ := manifestGenerator.GenerateManifestArgsForCall(1)
 			Expect(actualRequestParams).To(Equal(copyParams))
+		})
+
+		Context("passing secret map", func() {
+			It("manifest regeneration is passed the secrets map", func() {
+				_, _, err := deployer.Update(
+					deploymentName,
+					planID,
+					nil,
+					previousPlanID,
+					boshContextID,
+					secretsMap,
+					logger,
+				)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(manifestGenerator.GenerateManifestCallCount()).To(Equal(2))
+				for i := 0; i < 2; i++ {
+					_, _, _, _, _, actualSecretsMap, _ := manifestGenerator.GenerateManifestArgsForCall(i)
+					Expect(actualSecretsMap).To(Equal(secretsMap), fmt.Sprintf("call %d", i+1))
+				}
+			})
 		})
 
 		Context("and the manifest generator fails to generate the manifest the first time", func() {
@@ -545,6 +572,7 @@ var _ = Describe("Deployer", func() {
 					requestParams,
 					previousPlanID,
 					boshContextID,
+					secretsMap,
 					logger,
 				)
 
@@ -561,6 +589,7 @@ var _ = Describe("Deployer", func() {
 						requestParams map[string]interface{},
 						previousManifest []byte,
 						_ *string,
+						_ map[string]string,
 						_ *log.Logger,
 					) (serviceadapter.MarshalledGenerateManifest, error) {
 						if len(requestParams) > 0 {
@@ -579,6 +608,7 @@ var _ = Describe("Deployer", func() {
 						requestParams,
 						previousPlanID,
 						boshContextID,
+						secretsMap,
 						logger,
 					)
 
@@ -592,10 +622,10 @@ var _ = Describe("Deployer", func() {
 
 					Expect(manifestGenerator.GenerateManifestCallCount()).To(Equal(2))
 
-					_, _, passedRequestParams, _, _, _ := manifestGenerator.GenerateManifestArgsForCall(0)
+					_, _, passedRequestParams, _, _, _, _ := manifestGenerator.GenerateManifestArgsForCall(0)
 					Expect(passedRequestParams).To(BeEmpty())
 
-					_, _, passedRequestParams, _, _, _ = manifestGenerator.GenerateManifestArgsForCall(1)
+					_, _, passedRequestParams, _, _, _, _ = manifestGenerator.GenerateManifestArgsForCall(1)
 					Expect(passedRequestParams).To(Equal(requestParams))
 
 					Expect(boshClient.DeployCallCount()).To(Equal(1))
@@ -615,6 +645,7 @@ var _ = Describe("Deployer", func() {
 							requestParams,
 							previousPlanID,
 							boshContextID,
+							secretsMap,
 							logger,
 						)
 
@@ -630,6 +661,7 @@ var _ = Describe("Deployer", func() {
 						requestParams map[string]interface{},
 						previousManifest []byte,
 						_ *string,
+						_ map[string]string,
 						_ *log.Logger,
 					) (serviceadapter.MarshalledGenerateManifest, error) {
 						if len(requestParams) > 0 {
@@ -646,6 +678,7 @@ var _ = Describe("Deployer", func() {
 						requestParams,
 						previousPlanID,
 						boshContextID,
+						secretsMap,
 						logger,
 					)
 
@@ -667,6 +700,7 @@ var _ = Describe("Deployer", func() {
 					requestParams,
 					previousPlanID,
 					boshContextID,
+					secretsMap,
 					logger,
 				)
 
@@ -699,6 +733,7 @@ var _ = Describe("Deployer", func() {
 				requestParams,
 				previousPlanID,
 				boshContextID,
+				secretsMap,
 				logger,
 			)
 
@@ -717,6 +752,7 @@ var _ = Describe("Deployer", func() {
 					requestParams,
 					previousPlanID,
 					boshContextID,
+					secretsMap,
 					logger,
 				)
 
@@ -737,6 +773,7 @@ var _ = Describe("Deployer", func() {
 					requestParams,
 					previousPlanID,
 					boshContextID,
+					secretsMap,
 					logger,
 				)
 
@@ -756,6 +793,7 @@ var _ = Describe("Deployer", func() {
 					requestParams,
 					previousPlanID,
 					boshContextID,
+					secretsMap,
 					logger,
 				)
 
@@ -780,13 +818,14 @@ var _ = Describe("Deployer", func() {
 				requestParams,
 				previousPlanID,
 				boshContextID,
+				secretsMap,
 				logger,
 			)
 
 			Expect(deployError).To(BeNil())
 
 			Expect(manifestGenerator.GenerateManifestCallCount()).To(Equal(2))
-			_, _, passedRequestParams, _, _, _ := manifestGenerator.GenerateManifestArgsForCall(1)
+			_, _, passedRequestParams, _, _, _, _ := manifestGenerator.GenerateManifestArgsForCall(1)
 			Expect(passedRequestParams).To(Equal(requestParams))
 
 			manifestToDeploy, _, _, _ := boshClient.DeployArgsForCall(0)
@@ -825,13 +864,14 @@ instance_groups:
 				requestParams,
 				previousPlanID,
 				boshContextID,
+				secretsMap,
 				logger,
 			)
 
 			Expect(deployError).To(BeNil())
 
 			Expect(manifestGenerator.GenerateManifestCallCount()).To(Equal(2))
-			_, _, passedRequestParams, _, _, _ := manifestGenerator.GenerateManifestArgsForCall(1)
+			_, _, passedRequestParams, _, _, _, _ := manifestGenerator.GenerateManifestArgsForCall(1)
 			Expect(passedRequestParams).To(Equal(requestParams))
 
 			manifestToDeploy, _, _, _ := boshClient.DeployArgsForCall(0)
@@ -858,6 +898,7 @@ tags:
 				requestParams,
 				previousPlanID,
 				boshContextID,
+				secretsMap,
 				logger,
 			)
 
@@ -886,6 +927,7 @@ features:
 				requestParams,
 				previousPlanID,
 				boshContextID,
+				secretsMap,
 				logger,
 			)
 
@@ -914,6 +956,7 @@ features:
 				requestParams,
 				previousPlanID,
 				boshContextID,
+				secretsMap,
 				logger,
 			)
 
@@ -950,6 +993,7 @@ instance_groups:
 				requestParams,
 				previousPlanID,
 				boshContextID,
+				secretsMap,
 				logger,
 			)
 
@@ -976,6 +1020,7 @@ instance_groups:
 				requestParams,
 				previousPlanID,
 				boshContextID,
+				secretsMap,
 				logger,
 			)
 
@@ -1001,6 +1046,7 @@ instance_groups:
 				requestParams,
 				previousPlanID,
 				boshContextID,
+				secretsMap,
 				logger,
 			)
 

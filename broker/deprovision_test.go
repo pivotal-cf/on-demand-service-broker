@@ -164,7 +164,7 @@ var _ = Describe("deprovisioning instances", func() {
 	Context("when getting the deployment returns that deployment is not found and removing secrets succeeds", func() {
 		BeforeEach(func() {
 			boshClient.GetDeploymentReturns(nil, false, nil)
-			secretManager.DeleteSecretsForInstanceReturns(nil)
+			fakeSecretManager.DeleteSecretsForInstanceReturns(nil)
 		})
 
 		It("returns an error", func() {
@@ -181,7 +181,7 @@ var _ = Describe("deprovisioning instances", func() {
 	Context("when getting the deployment returns that deployment is not found and removing secrets fails", func() {
 		BeforeEach(func() {
 			boshClient.GetDeploymentReturns(nil, false, nil)
-			secretManager.DeleteSecretsForInstanceReturns(errors.New("oops"))
+			fakeSecretManager.DeleteSecretsForInstanceReturns(errors.New("oops"))
 		})
 
 		It("returns an error", func() {

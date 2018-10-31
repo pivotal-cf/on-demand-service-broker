@@ -13,17 +13,574 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/pivotal-cf/on-demand-service-broker/config"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	brokerfakes "github.com/pivotal-cf/on-demand-service-broker/broker/fakes"
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
-	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 )
 
 var _ = Describe("Update", func() {
+	var (
+		instanceID                 = "some-instance-id"
+		updateSpec                 brokerapi.UpdateServiceSpec
+		updateDetails              brokerapi.UpdateDetails
+		arbitraryParams            map[string]interface{}
+		arbContext                 map[string]interface{}
+		expectedSecretsMap         map[string]string
+		serviceID                  string
+		orgGUID                    string
+		spaceGUID                  string
+		boshTaskID                 int
+		updateError                error
+		newPlanID                  string
+		oldPlanID                  string
+		serialisedArbitraryContext []byte
+		async                      = true
+		err                        error
+	)
+
+	BeforeEach(func() {
+		arbitraryParams = map[string]interface{}{"foo": "bar"}
+		serviceID = "serviceID"
+		orgGUID = "organizationGUID"
+		spaceGUID = "spaceGUID"
+		boshTaskID = 447
+		arbContext = map[string]interface{}{"platform": "cloudfoundry", "space_guid": "final"}
+
+		newPlanID = existingPlanID
+		oldPlanID = secondPlanID
+
+		planCounts := map[cf.ServicePlan]int{}
+		cfClient.CountInstancesOfServiceOfferingReturns(planCounts, nil)
+		fakeDeployer.UpdateReturns(boshTaskID, []byte("new-manifest-fetched-from-adapter"), nil)
+
+		expectedSecretsMap = map[string]string{
+			"foo": "b4r",
+		}
+		fakeSecretManager.ResolveManifestSecretsReturns(expectedSecretsMap, nil)
+	})
+
+	JustBeforeEach(func() {
+		updateSpec, updateError = updateService(arbitraryParams, arbContext, instanceID, newPlanID, serviceID, oldPlanID, orgGUID, spaceGUID, async)
+	})
+
+	It("invokes the deployer with the correct arguments", func() {
+		Expect(fakeDeployer.UpdateCallCount()).To(Equal(1))
+		_, planID, actualRequestParams, _, _, actualSecretsMap, _ := fakeDeployer.UpdateArgsForCall(0)
+
+		Expect(actualRequestParams).To(Equal(map[string]interface{}{
+			"plan_id":    planID,
+			"context":    arbContext,
+			"parameters": arbitraryParams,
+			"service_id": serviceID,
+			"previous_values": map[string]interface{}{
+				"space_id":        spaceGUID,
+				"organization_id": orgGUID,
+				"plan_id":         oldPlanID,
+				"service_id":      serviceID,
+			},
+		}))
+
+		Expect(actualSecretsMap).To(Equal(expectedSecretsMap))
+	})
+
+	Context("the request is switching plan", func() {
+		Context("but the new plan's quota has not been met", func() {
+			It("does not error", func() {
+				Expect(updateError).NotTo(HaveOccurred())
+			})
+
+			It("calls the deployer without a bosh context id", func() {
+				Expect(fakeDeployer.UpdateCallCount()).To(Equal(1))
+				_, _, _, _, actualBoshContextID, _, _ := fakeDeployer.UpdateArgsForCall(0)
+				Expect(actualBoshContextID).To(BeEmpty())
+			})
+
+			It("returns in an asynchronous fashion", func() {
+				Expect(updateSpec.IsAsync).To(BeTrue())
+			})
+
+			It("returns the bosh task ID and operation type", func() {
+				data := unmarshalOperationData(updateSpec)
+				Expect(data).To(Equal(broker.OperationData{BoshTaskID: boshTaskID, OperationType: broker.OperationTypeUpdate}))
+			})
+
+			It("logs with a request ID", func() {
+				Expect(logBuffer.String()).To(MatchRegexp(`\[[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\] \d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2} updating instance`))
+			})
+		})
+
+		Context("but the new plan does not have a quota", func() {
+			BeforeEach(func() {
+				newPlanID = secondPlanID
+				oldPlanID = existingPlanID
+			})
+
+			It("does not error", func() {
+				Expect(updateError).NotTo(HaveOccurred())
+			})
+
+			It("returns the bosh task ID and operation type", func() {
+				data := unmarshalOperationData(updateSpec)
+				Expect(data).To(Equal(broker.OperationData{BoshTaskID: boshTaskID, OperationType: broker.OperationTypeUpdate}))
+			})
+		})
+
+		Context("and the new plan has a post-deploy errand", func() {
+			BeforeEach(func() {
+				newPlanID = postDeployErrandPlanID
+			})
+
+			It("does not error", func() {
+				Expect(updateError).NotTo(HaveOccurred())
+			})
+
+			It("returns that is operated asynchronously", func() {
+				Expect(updateSpec.IsAsync).To(BeTrue())
+			})
+
+			It("returns the correct operation data", func() {
+				data := unmarshalOperationData(updateSpec)
+				Expect(data.OperationType).To(Equal(broker.OperationTypeUpdate))
+				Expect(data.BoshContextID).NotTo(BeEmpty())
+				Expect(data.Errands[0].Name).To(Equal("health-check"))
+			})
+
+			It("calls the deployer with a bosh context id", func() {
+				Expect(fakeDeployer.UpdateCallCount()).To(Equal(1))
+				_, _, _, _, actualBoshContextID, _, _ := fakeDeployer.UpdateArgsForCall(0)
+				Expect(actualBoshContextID).NotTo(BeEmpty())
+			})
+		})
+
+		Context("but there are pending changes", func() {
+			BeforeEach(func() {
+				fakeDeployer.UpdateReturns(boshTaskID, nil, broker.PendingChangesNotAppliedError{})
+			})
+
+			It("reports a pending changes are present error", func() {
+				expectedFailureResponse := brokerapi.NewFailureResponse(
+					errors.New(broker.PendingChangesErrorMessage),
+					http.StatusUnprocessableEntity,
+					broker.UpdateLoggerAction,
+				)
+				Expect(updateError).To(Equal(expectedFailureResponse))
+			})
+		})
+	})
+
+	Context("changing arbitrary params", func() {
+		BeforeEach(func() {
+			newPlanID = secondPlanID
+			oldPlanID = secondPlanID
+		})
+
+		Context("and there are no pending changes", func() {
+			Context("and the plan's quota has not been met", func() {
+				BeforeEach(func() {
+					newPlanID = existingPlanID
+					oldPlanID = existingPlanID
+				})
+
+				It("does not error", func() {
+					Expect(updateError).NotTo(HaveOccurred())
+				})
+
+				It("returns that is operated asynchronously", func() {
+					Expect(updateSpec.IsAsync).To(BeTrue())
+				})
+
+				It("returns the bosh task ID and operation type", func() {
+					data := unmarshalOperationData(updateSpec)
+					Expect(data).To(Equal(broker.OperationData{BoshTaskID: boshTaskID, OperationType: broker.OperationTypeUpdate}))
+				})
+			})
+
+			Context("and the plan's quota has been met", func() {
+				BeforeEach(func() {
+					newPlanID = existingPlanID
+					oldPlanID = existingPlanID
+
+					cfClient.CountInstancesOfPlanReturns(existingPlanServiceInstanceLimit, nil)
+				})
+
+				It("does not error", func() {
+					Expect(updateError).NotTo(HaveOccurred())
+				})
+
+				It("returns that is operated asynchronously", func() {
+					Expect(updateSpec.IsAsync).To(BeTrue())
+				})
+
+				It("returns the bosh task ID and operation type", func() {
+					data := unmarshalOperationData(updateSpec)
+					Expect(data).To(Equal(broker.OperationData{BoshTaskID: boshTaskID, OperationType: broker.OperationTypeUpdate}))
+				})
+			})
+
+			Context("and the plan does not have a quota", func() {
+				It("does not count the instances of the plan in Cloud Controller", func() {
+					Expect(cfClient.CountInstancesOfPlanCallCount()).To(Equal(0))
+				})
+
+				It("does not error", func() {
+					Expect(updateError).NotTo(HaveOccurred())
+				})
+
+				It("returns that is operated asynchronously", func() {
+					Expect(updateSpec.IsAsync).To(BeTrue())
+				})
+
+				It("returns the bosh task ID and operation type", func() {
+					data := unmarshalOperationData(updateSpec)
+					Expect(data).To(Equal(broker.OperationData{BoshTaskID: boshTaskID, OperationType: broker.OperationTypeUpdate}))
+				})
+			})
+
+			Context("and the plan has a post-deploy errand", func() {
+				BeforeEach(func() {
+					newPlanID = postDeployErrandPlanID
+					oldPlanID = postDeployErrandPlanID
+				})
+
+				It("does not error", func() {
+					Expect(updateError).NotTo(HaveOccurred())
+				})
+
+				It("returns that is operated asynchronously", func() {
+					Expect(updateSpec.IsAsync).To(BeTrue())
+				})
+
+				It("returns the correct operation data", func() {
+					data := unmarshalOperationData(updateSpec)
+					Expect(data.OperationType).To(Equal(broker.OperationTypeUpdate))
+					Expect(data.BoshContextID).NotTo(BeEmpty())
+					Expect(data.Errands[0].Name).To(Equal("health-check"))
+					Expect(data.Errands[0].Instances).To(Equal([]string{"redis-server/0"}))
+				})
+
+				It("calls the deployer with a bosh context id", func() {
+					Expect(fakeDeployer.UpdateCallCount()).To(Equal(1))
+					_, _, _, _, actualBoshContextID, _, _ := fakeDeployer.UpdateArgsForCall(0)
+					Expect(actualBoshContextID).NotTo(BeEmpty())
+				})
+			})
+		})
+	})
+
+	When("the plan cannot be found in config", func() {
+		BeforeEach(func() {
+			newPlanID = "non-existent-plan-id"
+		})
+
+		It("reports the error without redeploying", func() {
+			expectedMessage := fmt.Sprintf("Plan %s not found", newPlanID)
+			Expect(updateError).To(MatchError(ContainSubstring(expectedMessage)))
+
+			Expect(logBuffer.String()).To(ContainSubstring(expectedMessage))
+			Expect(boshClient.GetDeploymentCallCount()).To(BeZero())
+			Expect(fakeDeployer.UpdateCallCount()).To(BeZero())
+		})
+	})
+
+	When("the service instances for the plan cannot be counted", func() {
+		BeforeEach(func() {
+			cfClient.CountInstancesOfServiceOfferingReturns(nil, fmt.Errorf("count error"))
+		})
+
+		Describe("returned error", func() {
+			It("includes a standard message", func() {
+				Expect(updateError).To(MatchError(ContainSubstring(
+					"There was a problem completing your request. Please contact your operations team providing the following information:",
+				)))
+			})
+
+			It("includes the broker request id", func() {
+				Expect(updateError).To(MatchError(MatchRegexp(
+					`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`,
+				)))
+			})
+
+			It("includes the service name", func() {
+				Expect(updateError).To(MatchError(ContainSubstring(
+					"service: a-cool-redis-service",
+				)))
+			})
+
+			It("includes a service instance guid", func() {
+				Expect(updateError).To(MatchError(ContainSubstring(
+					fmt.Sprintf("service-instance-guid: %s", instanceID),
+				)))
+			})
+
+			It("includes the operation type", func() {
+				Expect(updateError).To(MatchError(ContainSubstring(
+					"operation: update",
+				)))
+			})
+
+			It("does NOT include the bosh task id", func() {
+				Expect(updateError).NotTo(MatchError(ContainSubstring(
+					"task-id:",
+				)))
+			})
+		})
+
+		It("logs the error", func() {
+			Expect(logBuffer.String()).To(ContainSubstring("count error"))
+		})
+
+		It("does not redeploy", func() {
+			Expect(fakeDeployer.UpdateCallCount()).To(BeZero())
+		})
+	})
+
+	When("the bosh director is unavailable", func() {
+		BeforeEach(func() {
+			newPlanID = existingPlanID
+			oldPlanID = existingPlanID
+		})
+
+		When("a deploy has a bosh request error", func() {
+			BeforeEach(func() {
+				fakeDeployer.UpdateReturns(0, []byte{}, broker.NewServiceError(fmt.Errorf("network timeout")))
+			})
+
+			It("logs the error", func() {
+				Expect(logBuffer.String()).To(ContainSubstring("error: error deploying instance: network timeout"))
+			})
+
+			It("returns the try again later error for the user", func() {
+				Expect(updateError).To(MatchError(ContainSubstring("Currently unable to update service instance, please try again later")))
+			})
+		})
+	})
+
+	When("the adapter client fails", func() {
+		unknownFailureError := serviceadapter.NewUnknownFailureError("unknown failure")
+		BeforeEach(func() {
+			fakeDeployer.UpdateReturns(boshTaskID, nil, unknownFailureError)
+		})
+
+		It("returns an API error", func() {
+			Expect(updateError).To(Equal(unknownFailureError))
+		})
+	})
+
+	When("bosh is blocked", func() {
+		BeforeEach(func() {
+			fakeDeployer.UpdateReturns(boshTaskID, nil, broker.TaskInProgressError{})
+		})
+
+		It("returns an error with the operation in progress message", func() {
+			Expect(updateError).To(MatchError(ContainSubstring(broker.OperationInProgressMessage)))
+		})
+	})
+
+	When("plan not found", func() {
+		planNotFoundError := broker.PlanNotFoundError{PlanGUID: "plan-guid"}
+		BeforeEach(func() {
+			fakeDeployer.UpdateReturns(boshTaskID, nil, planNotFoundError)
+		})
+
+		It("returns an error with the operation in progress message", func() {
+			Expect(updateError).To(Equal(planNotFoundError))
+		})
+	})
+
+	When("asked for a synchronous update", func() {
+		BeforeEach(func() {
+			async = false
+		})
+
+		AfterEach(func() {
+			async = true
+		})
+
+		It("responds with async required error", func() {
+			Expect(updateError).To(MatchError(ContainSubstring("This service plan requires client support for asynchronous service operations")))
+		})
+	})
+
+	When("plan schemas are enabled", func() {
+		var arbitraryParams map[string]interface{}
+		var broker *broker.Broker
+		var fakeAdapter *brokerfakes.FakeServiceAdapterClient
+		var schemaParams []byte
+
+		Context("when there is a previous deployment for the service instance", func() {
+			BeforeEach(func() {
+				fakeAdapter = new(brokerfakes.FakeServiceAdapterClient)
+				fakeAdapter.GeneratePlanSchemaReturns(schemaFixture, nil)
+				brokerConfig.EnablePlanSchemas = true
+				broker = createBrokerWithAdapter(fakeAdapter)
+			})
+
+			JustBeforeEach(func() {
+				updateDetails = brokerapi.UpdateDetails{
+					PlanID:        newPlanID,
+					RawContext:    serialisedArbitraryContext,
+					RawParameters: schemaParams,
+					ServiceID:     serviceOfferingID,
+					PreviousValues: brokerapi.PreviousValues{
+						PlanID:    oldPlanID,
+						OrgID:     orgGUID,
+						ServiceID: serviceID,
+						SpaceID:   spaceGUID,
+					},
+				}
+				updateSpec, updateError = broker.Update(context.Background(), instanceID, updateDetails, async)
+			})
+
+			Context("if the service adapter fails", func() {
+				BeforeEach(func() {
+					fakeAdapter.GeneratePlanSchemaReturns(schemaFixture, errors.New("oops"))
+				})
+
+				It("returns an error", func() {
+					Expect(updateError).To(HaveOccurred())
+					Expect(updateError.Error()).To(ContainSubstring("oops"))
+				})
+
+			})
+
+			Context("if the service adapter does not implement plan schemas", func() {
+				BeforeEach(func() {
+					serviceAdapterError := serviceadapter.NewNotImplementedError("no.")
+					fakeAdapter.GeneratePlanSchemaReturns(schemaFixture, serviceAdapterError)
+				})
+
+				It("returns an error", func() {
+					Expect(updateError).To(HaveOccurred())
+					Expect(updateError.Error()).To(ContainSubstring("enable_plan_schemas is set to true, but the service adapter does not implement generate-plan-schemas"))
+					Expect(logBuffer.String()).To(ContainSubstring("enable_plan_schemas is set to true, but the service adapter does not implement generate-plan-schemas"))
+				})
+			})
+
+			Context("when the provision request params are not valid", func() {
+				BeforeEach(func() {
+					arbitraryParams = map[string]interface{}{
+						"this-is": "clearly-wrong",
+					}
+					schemaParams, err = json.Marshal(arbitraryParams)
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				It("requests the json schemas from the service adapter", func() {
+					Expect(updateError).To(HaveOccurred())
+					Expect(fakeAdapter.GeneratePlanSchemaCallCount()).To(Equal(1))
+					Expect(updateError.Error()).To(ContainSubstring("Additional property this-is is not allowed"))
+				})
+
+				It("fails", func() {
+					Expect(updateError).To(HaveOccurred())
+				})
+			})
+
+			Context("when the provision request params are empty", func() {
+				BeforeEach(func() {
+					schemaParams = []byte{}
+				})
+
+				It("succeeds", func() {
+					Expect(updateError).NotTo(HaveOccurred())
+				})
+			})
+
+			Context("when the provision request params are valid", func() {
+				var err error
+
+				BeforeEach(func() {
+					arbitraryParams = map[string]interface{}{
+						"update_auto_create_topics":         true,
+						"update_default_replication_factor": 55,
+					}
+					schemaParams, err = json.Marshal(arbitraryParams)
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				It("requests the json schemas from the service adapter", func() {
+					Expect(fakeAdapter.GeneratePlanSchemaCallCount()).To(Equal(1))
+				})
+
+				It("succeeds", func() {
+					Expect(updateError).NotTo(HaveOccurred())
+				})
+			})
+
+			Context("when the schema allows additional properties", func() {
+				var err error
+
+				BeforeEach(func() {
+					arbitraryParams = map[string]interface{}{
+						"foo": true,
+						"bar": 55,
+					}
+					schemaParams, err = json.Marshal(arbitraryParams)
+					Expect(err).NotTo(HaveOccurred())
+					fakeAdapter.GeneratePlanSchemaReturns(schemaWithAdditionalPropertiesAllowedFixture, nil)
+				})
+
+				It("succeeds", func() {
+					Expect(updateError).NotTo(HaveOccurred())
+				})
+			})
+
+			Context("when the schema has required properties", func() {
+				var err error
+
+				BeforeEach(func() {
+					arbitraryParams = map[string]interface{}{
+						"foo": true,
+						"bar": 55,
+					}
+					schemaParams, err = json.Marshal(arbitraryParams)
+					Expect(err).NotTo(HaveOccurred())
+					fakeAdapter.GeneratePlanSchemaReturns(schemaWithRequiredPropertiesFixture, nil)
+				})
+
+				It("reports the required error", func() {
+					Expect(updateError).To(MatchError(ContainSubstring("auto_create_topics is required")))
+				})
+			})
+		})
+	})
+
+	When("the manifest cannot be retrieved", func() {
+		It("returns an error", func() {
+			boshClient.GetDeploymentReturns(nil, false, errors.New("no deployment"))
+
+			updateSpec, updateError = updateService(arbitraryParams, arbContext, instanceID, newPlanID, serviceID, oldPlanID, orgGUID, spaceGUID, async)
+			Expect(updateError).To(MatchError(ContainSubstring("There was a problem completing your request")))
+			Expect(logBuffer.String()).To(ContainSubstring("no deployment"))
+		})
+	})
+
+	When("BOSH variables cannot be retrieved", func() {
+		It("returns an error", func() {
+			boshClient.VariablesReturns(nil, errors.New("no variables"))
+
+			updateSpec, updateError = updateService(arbitraryParams, arbContext, instanceID, newPlanID, serviceID, oldPlanID, orgGUID, spaceGUID, async)
+			Expect(updateError).To(MatchError(ContainSubstring("There was a problem completing your request")))
+			Expect(logBuffer.String()).To(ContainSubstring("no variables"))
+		})
+	})
+
+	When("secrets cannot be resolved", func() {
+		It("returns an error", func() {
+			fakeSecretManager.ResolveManifestSecretsReturns(nil, errors.New("no secrets"))
+
+			_, updateError = updateService(arbitraryParams, arbContext, instanceID, newPlanID, serviceID, oldPlanID, orgGUID, spaceGUID, async)
+			Expect(updateError).To(MatchError(ContainSubstring("There was a problem completing your request")))
+			Expect(logBuffer.String()).To(ContainSubstring("no secrets"))
+		})
+	})
+
 	When("quotas are enabled", func() {
 		updateWithQuotas := func(q quotaCase, oldPlanInstanceCount, newPlanInstanceCount int, arbitraryParams, arbitraryContext map[string]interface{}) error {
 			newPlan := existingPlan
@@ -116,8 +673,6 @@ var _ = Describe("Update", func() {
 				map[string]interface{}{}, map[string]interface{}{},
 			)
 			Expect(updateErr).To(MatchError("plan instance limit exceeded for service ID: service-id. Total instances: 4"))
-			Expect(boshClient.GetDeploymentCallCount()).To(BeZero())
-			Expect(fakeDeployer.UpdateCallCount()).To(BeZero())
 		})
 
 		It("fails and output multiple errors when more than one quotas is exceeded", func() {
@@ -133,556 +688,39 @@ var _ = Describe("Update", func() {
 				ContainSubstring("plan quotas [ips: (limit 4, used 4, requires 1)] would be exceeded by this deployment"),
 				ContainSubstring("plan instance limit exceeded for service ID: service-id. Total instances: 4"),
 			))
-
-			Expect(boshClient.GetDeploymentCallCount()).To(BeZero())
-			Expect(fakeDeployer.UpdateCallCount()).To(BeZero())
 		})
 	})
-
-	var (
-		updateSpec                    brokerapi.UpdateServiceSpec
-		updateDetails                 brokerapi.UpdateDetails
-		arbitraryParams               map[string]interface{}
-		arbContext                    map[string]interface{}
-		serviceID                     string
-		orgGUID                       string
-		spaceGUID                     string
-		boshTaskID                    int
-		updateError                   error
-		newPlanID                     string
-		oldPlanID                     string
-		serialisedArbitraryContext    []byte
-		serialisedArbitraryParameters []byte
-		async                         = true
-		err                           error
-	)
-
-	BeforeEach(func() {
-		arbitraryParams = map[string]interface{}{"foo": "bar"}
-		serviceID = "serviceID"
-		orgGUID = "organizationGUID"
-		spaceGUID = "spaceGUID"
-		boshTaskID = 447
-		arbContext = map[string]interface{}{"platform": "cloudfoundry", "space_guid": "final"}
-	})
-
-	Context("when there is a previous deployment for the service instance", func() {
-		var instanceID = "some-instance-id"
-
-		BeforeEach(func() {
-			newPlanID = existingPlanID
-			oldPlanID = secondPlanID
-
-			planCounts := map[cf.ServicePlan]int{}
-			cfClient.CountInstancesOfServiceOfferingReturns(planCounts, nil)
-			fakeDeployer.UpdateReturns(boshTaskID, []byte("new-manifest-fetched-from-adapter"), nil)
-		})
-
-		JustBeforeEach(func() {
-			serialisedArbitraryParameters, err = json.Marshal(arbitraryParams)
-			Expect(err).NotTo(HaveOccurred())
-
-			serialisedArbitraryContext, err = json.Marshal(arbContext)
-			Expect(err).NotTo(HaveOccurred())
-
-			updateDetails = brokerapi.UpdateDetails{
-				PlanID:        newPlanID,
-				RawParameters: serialisedArbitraryParameters,
-				RawContext:    serialisedArbitraryContext,
-				ServiceID:     serviceID,
-				PreviousValues: brokerapi.PreviousValues{
-					PlanID:    oldPlanID,
-					OrgID:     orgGUID,
-					ServiceID: serviceID,
-					SpaceID:   spaceGUID,
-				},
-			}
-
-			b = createDefaultBroker()
-			updateSpec, updateError = b.Update(context.Background(), instanceID, updateDetails, async)
-		})
-
-		It("invokes the deployer successfully", func() {
-			Expect(fakeDeployer.UpdateCallCount()).To(Equal(1))
-			_, planID, actualRequestParams, _, _, _ := fakeDeployer.UpdateArgsForCall(0)
-			Expect(actualRequestParams).To(Equal(map[string]interface{}{
-				"plan_id":    planID,
-				"context":    arbContext,
-				"parameters": arbitraryParams,
-				"service_id": serviceID,
-				"previous_values": map[string]interface{}{
-					"space_id":        spaceGUID,
-					"organization_id": orgGUID,
-					"plan_id":         oldPlanID,
-					"service_id":      serviceID,
-				},
-			}))
-		})
-
-		Context("and the request is switching plan", func() {
-			Context("but the new plan's quota has not been met", func() {
-				It("does not error", func() {
-					Expect(updateError).NotTo(HaveOccurred())
-				})
-
-				It("calls the deployer without a bosh context id", func() {
-					Expect(fakeDeployer.UpdateCallCount()).To(Equal(1))
-					_, _, _, _, actualBoshContextID, _ := fakeDeployer.UpdateArgsForCall(0)
-					Expect(actualBoshContextID).To(BeEmpty())
-				})
-
-				It("returns in an asynchronous fashion", func() {
-					Expect(updateSpec.IsAsync).To(BeTrue())
-				})
-
-				It("returns the bosh task ID and operation type", func() {
-					data := unmarshalOperationData(updateSpec)
-					Expect(data).To(Equal(broker.OperationData{BoshTaskID: boshTaskID, OperationType: broker.OperationTypeUpdate}))
-				})
-
-				It("logs with a request ID", func() {
-					Expect(logBuffer.String()).To(MatchRegexp(`\[[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\] \d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2} updating instance`))
-				})
-			})
-
-			Context("but the new plan does not have a quota", func() {
-				BeforeEach(func() {
-					newPlanID = secondPlanID
-					oldPlanID = existingPlanID
-				})
-
-				It("does not error", func() {
-					Expect(updateError).NotTo(HaveOccurred())
-				})
-
-				It("returns the bosh task ID and operation type", func() {
-					data := unmarshalOperationData(updateSpec)
-					Expect(data).To(Equal(broker.OperationData{BoshTaskID: boshTaskID, OperationType: broker.OperationTypeUpdate}))
-				})
-			})
-
-			Context("and the new plan has a post-deploy errand", func() {
-				BeforeEach(func() {
-					newPlanID = postDeployErrandPlanID
-				})
-
-				It("does not error", func() {
-					Expect(updateError).NotTo(HaveOccurred())
-				})
-
-				It("returns that is operated asynchronously", func() {
-					Expect(updateSpec.IsAsync).To(BeTrue())
-				})
-
-				It("returns the correct operation data", func() {
-					data := unmarshalOperationData(updateSpec)
-					Expect(data.OperationType).To(Equal(broker.OperationTypeUpdate))
-					Expect(data.BoshContextID).NotTo(BeEmpty())
-					Expect(data.Errands[0].Name).To(Equal("health-check"))
-				})
-
-				It("calls the deployer with a bosh context id", func() {
-					Expect(fakeDeployer.UpdateCallCount()).To(Equal(1))
-					_, _, _, _, actualBoshContextID, _ := fakeDeployer.UpdateArgsForCall(0)
-					Expect(actualBoshContextID).NotTo(BeEmpty())
-				})
-			})
-
-			Context("but there are pending changes", func() {
-				BeforeEach(func() {
-					fakeDeployer.UpdateReturns(boshTaskID, nil, broker.PendingChangesNotAppliedError{})
-				})
-
-				It("reports a pending changes are present error", func() {
-					expectedFailureResponse := brokerapi.NewFailureResponse(
-						errors.New(broker.PendingChangesErrorMessage),
-						http.StatusUnprocessableEntity,
-						broker.UpdateLoggerAction,
-					)
-					Expect(updateError).To(Equal(expectedFailureResponse))
-				})
-			})
-		})
-
-		Context("and changing arbitrary params", func() {
-			BeforeEach(func() {
-				newPlanID = secondPlanID
-				oldPlanID = secondPlanID
-			})
-
-			Context("and there are no pending changes", func() {
-				Context("and the plan's quota has not been met", func() {
-					BeforeEach(func() {
-						newPlanID = existingPlanID
-						oldPlanID = existingPlanID
-					})
-
-					It("does not error", func() {
-						Expect(updateError).NotTo(HaveOccurred())
-					})
-
-					It("returns that is operated asynchronously", func() {
-						Expect(updateSpec.IsAsync).To(BeTrue())
-					})
-
-					It("returns the bosh task ID and operation type", func() {
-						data := unmarshalOperationData(updateSpec)
-						Expect(data).To(Equal(broker.OperationData{BoshTaskID: boshTaskID, OperationType: broker.OperationTypeUpdate}))
-					})
-				})
-
-				Context("and the plan's quota has been met", func() {
-					BeforeEach(func() {
-						newPlanID = existingPlanID
-						oldPlanID = existingPlanID
-
-						cfClient.CountInstancesOfPlanReturns(existingPlanServiceInstanceLimit, nil)
-					})
-
-					It("does not error", func() {
-						Expect(updateError).NotTo(HaveOccurred())
-					})
-
-					It("returns that is operated asynchronously", func() {
-						Expect(updateSpec.IsAsync).To(BeTrue())
-					})
-
-					It("returns the bosh task ID and operation type", func() {
-						data := unmarshalOperationData(updateSpec)
-						Expect(data).To(Equal(broker.OperationData{BoshTaskID: boshTaskID, OperationType: broker.OperationTypeUpdate}))
-					})
-				})
-
-				Context("and the plan does not have a quota", func() {
-					It("does not count the instances of the plan in Cloud Controller", func() {
-						Expect(cfClient.CountInstancesOfPlanCallCount()).To(Equal(0))
-					})
-
-					It("does not error", func() {
-						Expect(updateError).NotTo(HaveOccurred())
-					})
-
-					It("returns that is operated asynchronously", func() {
-						Expect(updateSpec.IsAsync).To(BeTrue())
-					})
-
-					It("returns the bosh task ID and operation type", func() {
-						data := unmarshalOperationData(updateSpec)
-						Expect(data).To(Equal(broker.OperationData{BoshTaskID: boshTaskID, OperationType: broker.OperationTypeUpdate}))
-					})
-				})
-
-				Context("and the plan has a post-deploy errand", func() {
-					BeforeEach(func() {
-						newPlanID = postDeployErrandPlanID
-						oldPlanID = postDeployErrandPlanID
-					})
-
-					It("does not error", func() {
-						Expect(updateError).NotTo(HaveOccurred())
-					})
-
-					It("returns that is operated asynchronously", func() {
-						Expect(updateSpec.IsAsync).To(BeTrue())
-					})
-
-					It("returns the correct operation data", func() {
-						data := unmarshalOperationData(updateSpec)
-						Expect(data.OperationType).To(Equal(broker.OperationTypeUpdate))
-						Expect(data.BoshContextID).NotTo(BeEmpty())
-						Expect(data.Errands[0].Name).To(Equal("health-check"))
-						Expect(data.Errands[0].Instances).To(Equal([]string{"redis-server/0"}))
-					})
-
-					It("calls the deployer with a bosh context id", func() {
-						Expect(fakeDeployer.UpdateCallCount()).To(Equal(1))
-						_, _, _, _, actualBoshContextID, _ := fakeDeployer.UpdateArgsForCall(0)
-						Expect(actualBoshContextID).NotTo(BeEmpty())
-					})
-				})
-			})
-		})
-
-		Context("when the plan cannot be found in config", func() {
-			BeforeEach(func() {
-				newPlanID = "non-existent-plan-id"
-			})
-
-			It("reports the error without redploying", func() {
-				expectedMessage := fmt.Sprintf("Plan %s not found", newPlanID)
-				Expect(updateError).To(MatchError(ContainSubstring(expectedMessage)))
-
-				Expect(logBuffer.String()).To(ContainSubstring(expectedMessage))
-				Expect(boshClient.GetDeploymentCallCount()).To(BeZero())
-				Expect(fakeDeployer.UpdateCallCount()).To(BeZero())
-			})
-		})
-
-		Context("when the service instances for the plan cannot be counted", func() {
-			BeforeEach(func() {
-				cfClient.CountInstancesOfServiceOfferingReturns(nil, fmt.Errorf("count error"))
-			})
-
-			Describe("returned error", func() {
-				It("includes a standard message", func() {
-					Expect(updateError).To(MatchError(ContainSubstring(
-						"There was a problem completing your request. Please contact your operations team providing the following information:",
-					)))
-				})
-
-				It("includes the broker request id", func() {
-					Expect(updateError).To(MatchError(MatchRegexp(
-						`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`,
-					)))
-				})
-
-				It("includes the service name", func() {
-					Expect(updateError).To(MatchError(ContainSubstring(
-						"service: a-cool-redis-service",
-					)))
-				})
-
-				It("includes a service instance guid", func() {
-					Expect(updateError).To(MatchError(ContainSubstring(
-						fmt.Sprintf("service-instance-guid: %s", instanceID),
-					)))
-				})
-
-				It("includes the operation type", func() {
-					Expect(updateError).To(MatchError(ContainSubstring(
-						"operation: update",
-					)))
-				})
-
-				It("does NOT include the bosh task id", func() {
-					Expect(updateError).NotTo(MatchError(ContainSubstring(
-						"task-id:",
-					)))
-				})
-			})
-
-			It("logs the error", func() {
-				Expect(logBuffer.String()).To(ContainSubstring("count error"))
-			})
-
-			It("does not redeploy", func() {
-				Expect(fakeDeployer.UpdateCallCount()).To(BeZero())
-			})
-		})
-
-		Context("when the bosh director is unavailable", func() {
-			BeforeEach(func() {
-				newPlanID = existingPlanID
-				oldPlanID = existingPlanID
-			})
-
-			Context("when a deploy has a bosh request error", func() {
-				BeforeEach(func() {
-					fakeDeployer.UpdateReturns(0, []byte{}, broker.NewServiceError(fmt.Errorf("network timeout")))
-				})
-
-				It("logs the error", func() {
-					Expect(logBuffer.String()).To(ContainSubstring("error: error deploying instance: network timeout"))
-				})
-
-				It("returns the try again later error for the user", func() {
-					Expect(updateError).To(MatchError(ContainSubstring("Currently unable to update service instance, please try again later")))
-				})
-			})
-		})
-
-		Context("when the adapter client fails", func() {
-			unknownFailureError := serviceadapter.NewUnknownFailureError("unknown failure")
-			BeforeEach(func() {
-				fakeDeployer.UpdateReturns(boshTaskID, nil, unknownFailureError)
-			})
-
-			It("returns an API error", func() {
-				Expect(updateError).To(Equal(unknownFailureError))
-			})
-		})
-
-		Context("when bosh is blocked", func() {
-			BeforeEach(func() {
-				fakeDeployer.UpdateReturns(boshTaskID, nil, broker.TaskInProgressError{})
-			})
-
-			It("returns an error with the operation in progress message", func() {
-				Expect(updateError).To(MatchError(ContainSubstring(broker.OperationInProgressMessage)))
-			})
-		})
-
-		Context("when plan not found", func() {
-			planNotFoundError := broker.PlanNotFoundError{PlanGUID: "plan-guid"}
-			BeforeEach(func() {
-				fakeDeployer.UpdateReturns(boshTaskID, nil, planNotFoundError)
-			})
-
-			It("returns an error with the operation in progress message", func() {
-				Expect(updateError).To(Equal(planNotFoundError))
-			})
-		})
-
-		Context("when asked for a synchronous update", func() {
-			BeforeEach(func() {
-				async = false
-			})
-
-			AfterEach(func() {
-				async = true
-			})
-
-			It("responds with async required error", func() {
-				Expect(updateError).To(MatchError(ContainSubstring("This service plan requires client support for asynchronous service operations")))
-			})
-		})
-
-		Context("when plan schemas are enabled", func() {
-			var arbitraryParams map[string]interface{}
-			var broker *broker.Broker
-			var fakeAdapter *brokerfakes.FakeServiceAdapterClient
-			var schemaParams []byte
-
-			Context("when there is a previous deployment for the service instance", func() {
-				BeforeEach(func() {
-					fakeAdapter = new(brokerfakes.FakeServiceAdapterClient)
-					fakeAdapter.GeneratePlanSchemaReturns(schemaFixture, nil)
-					brokerConfig.EnablePlanSchemas = true
-					broker = createBrokerWithAdapter(fakeAdapter)
-				})
-
-				JustBeforeEach(func() {
-					updateDetails = brokerapi.UpdateDetails{
-						PlanID:        newPlanID,
-						RawContext:    serialisedArbitraryContext,
-						RawParameters: schemaParams,
-						ServiceID:     serviceOfferingID,
-						PreviousValues: brokerapi.PreviousValues{
-							PlanID:    oldPlanID,
-							OrgID:     orgGUID,
-							ServiceID: serviceID,
-							SpaceID:   spaceGUID,
-						},
-					}
-					updateSpec, updateError = broker.Update(context.Background(), instanceID, updateDetails, async)
-				})
-
-				Context("if the service adapter fails", func() {
-					BeforeEach(func() {
-						fakeAdapter.GeneratePlanSchemaReturns(schemaFixture, errors.New("oops"))
-					})
-
-					It("returns an error", func() {
-						Expect(updateError).To(HaveOccurred())
-						Expect(updateError.Error()).To(ContainSubstring("oops"))
-					})
-
-				})
-
-				Context("if the service adapter does not implement plan schemas", func() {
-					BeforeEach(func() {
-						serviceAdapterError := serviceadapter.NewNotImplementedError("no.")
-						fakeAdapter.GeneratePlanSchemaReturns(schemaFixture, serviceAdapterError)
-					})
-
-					It("returns an error", func() {
-						Expect(updateError).To(HaveOccurred())
-						Expect(updateError.Error()).To(ContainSubstring("enable_plan_schemas is set to true, but the service adapter does not implement generate-plan-schemas"))
-						Expect(logBuffer.String()).To(ContainSubstring("enable_plan_schemas is set to true, but the service adapter does not implement generate-plan-schemas"))
-					})
-				})
-
-				Context("when the provision request params are not valid", func() {
-					BeforeEach(func() {
-						arbitraryParams = map[string]interface{}{
-							"this-is": "clearly-wrong",
-						}
-						schemaParams, err = json.Marshal(arbitraryParams)
-						Expect(err).NotTo(HaveOccurred())
-					})
-
-					It("requests the json schemas from the service adapter", func() {
-						Expect(updateError).To(HaveOccurred())
-						Expect(fakeAdapter.GeneratePlanSchemaCallCount()).To(Equal(1))
-						Expect(updateError.Error()).To(ContainSubstring("Additional property this-is is not allowed"))
-					})
-
-					It("fails", func() {
-						Expect(updateError).To(HaveOccurred())
-					})
-				})
-
-				Context("when the provision request params are empty", func() {
-					BeforeEach(func() {
-						schemaParams = []byte{}
-					})
-
-					It("succeeds", func() {
-						Expect(updateError).NotTo(HaveOccurred())
-					})
-				})
-
-				Context("when the provision request params are valid", func() {
-					var err error
-
-					BeforeEach(func() {
-						arbitraryParams = map[string]interface{}{
-							"update_auto_create_topics":         true,
-							"update_default_replication_factor": 55,
-						}
-						schemaParams, err = json.Marshal(arbitraryParams)
-						Expect(err).NotTo(HaveOccurred())
-					})
-
-					It("requests the json schemas from the service adapter", func() {
-						Expect(fakeAdapter.GeneratePlanSchemaCallCount()).To(Equal(1))
-					})
-
-					It("succeeds", func() {
-						Expect(updateError).NotTo(HaveOccurred())
-					})
-				})
-
-				Context("when the schema allows additional properties", func() {
-					var err error
-
-					BeforeEach(func() {
-						arbitraryParams = map[string]interface{}{
-							"foo": true,
-							"bar": 55,
-						}
-						schemaParams, err = json.Marshal(arbitraryParams)
-						Expect(err).NotTo(HaveOccurred())
-						fakeAdapter.GeneratePlanSchemaReturns(schemaWithAdditionalPropertiesAllowedFixture, nil)
-					})
-
-					It("succeeds", func() {
-						Expect(updateError).NotTo(HaveOccurred())
-					})
-				})
-
-				Context("when the schema has required properties", func() {
-					var err error
-
-					BeforeEach(func() {
-						arbitraryParams = map[string]interface{}{
-							"foo": true,
-							"bar": 55,
-						}
-						schemaParams, err = json.Marshal(arbitraryParams)
-						Expect(err).NotTo(HaveOccurred())
-						fakeAdapter.GeneratePlanSchemaReturns(schemaWithRequiredPropertiesFixture, nil)
-					})
-
-					It("reports the required error", func() {
-						Expect(updateError).To(MatchError(ContainSubstring("auto_create_topics is required")))
-					})
-				})
-			})
-		})
-	})
-
 })
+
+func updateService(
+	arbitraryParams map[string]interface{},
+	arbContext map[string]interface{},
+	instanceID, newPlanID, serviceID, oldPlanID, orgGUID, spaceGUID string,
+	async bool,
+) (brokerapi.UpdateServiceSpec, error) {
+
+	serialisedArbitraryParameters, err := json.Marshal(arbitraryParams)
+	Expect(err).NotTo(HaveOccurred())
+
+	serialisedArbitraryContext, err := json.Marshal(arbContext)
+	Expect(err).NotTo(HaveOccurred())
+
+	updateDetails := brokerapi.UpdateDetails{
+		PlanID:        newPlanID,
+		RawParameters: serialisedArbitraryParameters,
+		RawContext:    serialisedArbitraryContext,
+		ServiceID:     serviceID,
+		PreviousValues: brokerapi.PreviousValues{
+			PlanID:    oldPlanID,
+			OrgID:     orgGUID,
+			ServiceID: serviceID,
+			SpaceID:   spaceGUID,
+		},
+	}
+
+	b = createDefaultBroker()
+	return b.Update(context.Background(), instanceID, updateDetails, async)
+}
 
 func unmarshalOperationData(updateSpec brokerapi.UpdateServiceSpec) broker.OperationData {
 	var data broker.OperationData

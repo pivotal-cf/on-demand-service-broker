@@ -32,9 +32,8 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	brokerConfig "github.com/pivotal-cf/on-demand-service-broker/config"
-	"github.com/pivotal-cf/on-demand-service-broker/credhub"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
-	"github.com/pivotal-cf/on-demand-service-broker/task"
+	taskfakes "github.com/pivotal-cf/on-demand-service-broker/task/fakes"
 	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 	"github.com/pkg/errors"
 )
@@ -135,18 +134,23 @@ var _ = Describe("Provision service instance", func() {
 
 	Describe("ODB Secret handling", func() {
 		BeforeEach(func() {
-			fakeTaskManifestGenerator.GenerateManifestReturns(sdk.MarshalledGenerateManifest{
-				Manifest: "name: ((odb_secret:foo))",
+			manifest := sdk.MarshalledGenerateManifest{
+				Manifest: `name: service-instance_some-instance-id
+password: ((odb_secret:foo))`,
 				ODBManagedSecrets: map[string]interface{}{
 					"foo": "bob",
 				},
-			}, nil)
+			}
+			manifestBytes, err := json.Marshal(manifest)
+			Expect(err).NotTo(HaveOccurred())
+			zero := 0
+			fakeCommandRunner.RunWithInputParamsReturns(manifestBytes, []byte{}, &zero, nil)
 		})
 
 		When("secure manifests are not enabled", func() {
 			BeforeEach(func() {
-				var nilStore *credhub.Store
-				deployer = task.NewDeployer(fakeTaskBoshClient, fakeTaskManifestGenerator, odbSecrets, nilStore)
+				var nilStore *taskfakes.FakeBulkSetter
+				fakeTaskBulkSetter = nilStore
 			})
 
 			It("does not substitute odb_secret references", func() {
@@ -155,8 +159,6 @@ var _ = Describe("Provision service instance", func() {
 
 				manifest, _, _, _ := fakeTaskBoshClient.DeployArgsForCall(0)
 				Expect(manifest).To(ContainSubstring("((odb_secret:foo))"))
-
-				Expect(fakeTaskBulkSetter.BulkSetCallCount()).To(Equal(0))
 			})
 		})
 
@@ -210,18 +212,32 @@ var _ = Describe("Provision service instance", func() {
 			Expect(operationData.PlanID).To(BeEmpty(), "plan id")
 
 			By("calling the deployer with the correct parameters")
-			deploymentName, planID, requestParams, _, _, _ := fakeTaskManifestGenerator.GenerateManifestArgsForCall(0)
-			_, boshContextID, _, _ := fakeTaskBoshClient.DeployArgsForCall(0)
 
-			Expect(deploymentName).To(Equal("service-instance_" + instanceID))
-			Expect(planID).To(Equal(planWithQuotaID))
-			Expect(requestParams).To(Equal(map[string]interface{}{
+			input, actualOthers := fakeCommandRunner.RunWithInputParamsArgsForCall(0)
+			actualInput, ok := input.(sdk.InputParams)
+			Expect(ok).To(BeTrue(), "command runner takes a sdk.inputparams obj")
+			Expect(actualOthers[1]).To(Equal("generate-manifest"))
+			Expect(actualInput.GenerateManifest.ServiceDeployment).To(ContainSubstring(`"deployment_name":"service-instance_` + instanceID + `"`))
+
+			var plan sdk.Plan
+			err := json.Unmarshal([]byte(actualInput.GenerateManifest.Plan), &plan)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(plan.Properties["type"]).To(Equal(planWithQuotaID))
+
+			var reqParams map[string]interface{}
+			err = json.Unmarshal([]byte(actualInput.GenerateManifest.RequestParameters), &reqParams)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(reqParams).To(Equal(map[string]interface{}{
 				"plan_id":           planWithQuotaID,
 				"service_id":        serviceID,
 				"space_guid":        spaceGUID,
 				"organization_guid": organizationGUID,
 				"parameters":        arbitraryParams,
 			}))
+
+			_, boshContextID, _, _ := fakeTaskBoshClient.DeployArgsForCall(0)
 			Expect(boshContextID).To(BeEmpty())
 
 			By("logging the incoming request")
@@ -229,11 +245,15 @@ var _ = Describe("Provision service instance", func() {
 		})
 
 		It("includes the dashboard url when the adapter returns one", func() {
-			boshManifest := []byte(`name: service-instance_` + instanceID)
 			fakeTaskBoshClient.DeployReturns(taskID, nil)
-			fakeTaskManifestGenerator.GenerateManifestReturns(sdk.MarshalledGenerateManifest{
+			boshManifest := []byte(`name: service-instance_` + instanceID)
+			taskManifest := sdk.MarshalledGenerateManifest{
 				Manifest: string(boshManifest),
-			}, nil)
+			}
+			manifestBytes, err := json.Marshal(taskManifest)
+			Expect(err).NotTo(HaveOccurred())
+			zero := 0
+			fakeCommandRunner.RunWithInputParamsReturns(manifestBytes, []byte{}, &zero, nil)
 
 			fakeServiceAdapter.GenerateDashboardUrlReturns("http://dashboard.example.com", nil)
 
@@ -246,6 +266,7 @@ var _ = Describe("Provision service instance", func() {
 			By("calling the adapter with the correct arguments")
 			id, plan, manifest, _ := fakeServiceAdapter.GenerateDashboardUrlArgsForCall(0)
 			Expect(id).To(Equal(instanceID))
+			Expect(err).NotTo(HaveOccurred())
 			Expect(plan).To(Equal(sdk.Plan{
 				Properties: sdk.Properties{
 					"type":            "plan-with-quota",

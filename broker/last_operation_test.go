@@ -241,7 +241,7 @@ var _ = Describe("LastOperation", func() {
 					[]broker.StartupChecker{},
 					serviceAdapter,
 					fakeDeployer,
-					secretManager,
+					fakeSecretManager,
 					fakeInstanceLister,
 					loggerFactory,
 				)
@@ -347,7 +347,7 @@ var _ = Describe("LastOperation", func() {
 				It(fmt.Sprintf("logs the deployment, type: %s, state: %s", testCase.ActualOperationType, testCase.ActualBoshTask.State), testLogMessage(testCase))
 
 				It("does not delete secrets", func() {
-					Expect(secretManager.DeleteSecretsForInstanceCallCount()).To(Equal(0), "delete secrets should not be called")
+					Expect(fakeSecretManager.DeleteSecretsForInstanceCallCount()).To(Equal(0), "delete secrets should not be called")
 				})
 			}
 		}
@@ -653,9 +653,9 @@ var _ = Describe("LastOperation", func() {
 					Expect(actualTaskID).To(Equal(taskID))
 
 					By("deleting secrets")
-					Expect(secretManager.DeleteSecretsForInstanceCallCount()).To(Equal(1), "expected to call secret manager")
+					Expect(fakeSecretManager.DeleteSecretsForInstanceCallCount()).To(Equal(1), "expected to call secret manager")
 
-					actualInstanceID, _ := secretManager.DeleteSecretsForInstanceArgsForCall(0)
+					actualInstanceID, _ := fakeSecretManager.DeleteSecretsForInstanceArgsForCall(0)
 					Expect(instanceID).To(Equal(actualInstanceID))
 
 					By("logging the deployment, type: delete, state: done")
@@ -684,7 +684,7 @@ var _ = Describe("LastOperation", func() {
 						ID:          taskID,
 					}, nil)
 
-					secretManager.DeleteSecretsForInstanceReturns(errors.New("failed to delete secrets"))
+					fakeSecretManager.DeleteSecretsForInstanceReturns(errors.New("failed to delete secrets"))
 
 					b = createDefaultBroker()
 

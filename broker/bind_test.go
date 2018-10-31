@@ -53,7 +53,7 @@ var _ = Describe("Bind", func() {
 		boshClient.VMsReturns(boshVms, nil)
 		boshClient.GetDeploymentReturns(actualManifest, true, nil)
 		serviceAdapter.CreateBindingReturns(adapterBindingResponse, nil)
-		secretManager.ResolveManifestSecretsReturns(map[string]string{}, nil)
+		fakeSecretManager.ResolveManifestSecretsReturns(map[string]string{}, nil)
 
 		serialisedArbitraryParameters, err := json.Marshal(arbitraryParameters)
 		Expect(err).NotTo(HaveOccurred())
@@ -532,8 +532,8 @@ var _ = Describe("Bind", func() {
 		It("is called with manifest as param", func() {
 			bindResult, bindErr = broker.Bind(context.Background(), instanceID, bindingID, bindRequest, false)
 			Expect(serviceAdapter.CreateBindingCallCount()).To(Equal(1))
-			Expect(secretManager.ResolveManifestSecretsCallCount()).To(Equal(1))
-			manifest, deploymentVariables, _ := secretManager.ResolveManifestSecretsArgsForCall(0)
+			Expect(fakeSecretManager.ResolveManifestSecretsCallCount()).To(Equal(1))
+			manifest, deploymentVariables, _ := fakeSecretManager.ResolveManifestSecretsArgsForCall(0)
 			Expect(manifest).To(Equal(actualManifest))
 			Expect(deploymentVariables).To(Equal([]boshdirector.Variable{
 				{Path: "/foo/bar", ID: "123asd"},
@@ -543,7 +543,7 @@ var _ = Describe("Bind", func() {
 
 		It("logs errors when cannot resolve secrets", func() {
 			resolveError := errors.New("resolve error")
-			secretManager.ResolveManifestSecretsReturns(nil, resolveError)
+			fakeSecretManager.ResolveManifestSecretsReturns(nil, resolveError)
 			_, bindErr = broker.Bind(context.Background(), instanceID, bindingID, bindRequest, false)
 			Expect(bindErr).NotTo(HaveOccurred())
 			Expect(logBuffer.String()).To(ContainSubstring(fmt.Sprintf("failed to resolve manifest secrets: %s", resolveError.Error())))

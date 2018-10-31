@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/pivotal-cf/on-demand-service-broker/cf"
 
 	"net/http"
 
@@ -20,35 +21,34 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	brokerfakes "github.com/pivotal-cf/on-demand-service-broker/broker/fakes"
-	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/noopservicescontroller"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
 
-var (
-	planID          string
-	errandName      string
-	errandInstance  string
-	errandName2     string
-	errandInstance2 string
+var _ = Describe("Provisioning", func() {
 
-	serviceSpec  brokerapi.ProvisionedServiceSpec
-	provisionErr error
+	var (
+		planID          string
+		errandName      string
+		errandInstance  string
+		errandName2     string
+		errandInstance2 string
 
-	organizationGUID = "a-cf-org"
-	spaceGUID        = "a-cf-space"
-	instanceID       = "some-instance-id"
-	jsonParams       []byte
-	jsonContext      []byte
-	arbParams        map[string]interface{}
-	arbContext       map[string]interface{}
+		serviceSpec  brokerapi.ProvisionedServiceSpec
+		provisionErr error
 
-	asyncAllowed = true
-)
+		organizationGUID = "a-cf-org"
+		spaceGUID        = "a-cf-space"
+		instanceID       = "some-instance-id"
+		jsonParams       []byte
+		jsonContext      []byte
+		arbParams        map[string]interface{}
+		arbContext       map[string]interface{}
 
-var _ = Describe("provisioning", func() {
+		asyncAllowed = true
+	)
 
 	BeforeEach(func() {
 		planID = existingPlanID
@@ -803,201 +803,197 @@ var _ = Describe("provisioning", func() {
 			})
 		})
 	})
-})
 
-var _ = Describe("plan quotas", func() {
-	var provisionErr error
+	Describe("plan quotas", func() {
+		 var provisionErr error
 
-	BeforeEach(func() {
-		planID = existingPlanID
-		asyncAllowed = true
+		 BeforeEach(func() {
+			 planID = existingPlanID
+			 asyncAllowed = true
 
-		arbParams = map[string]interface{}{"foo": "bar"}
-		arbContext = map[string]interface{}{"platform": "cloudfoundry", "space_guid": "final"}
+			 arbParams = map[string]interface{}{"foo": "bar"}
+			 arbContext = map[string]interface{}{"platform": "cloudfoundry", "space_guid": "final"}
 
-		var err error
-		jsonParams, err = json.Marshal(arbParams)
-		Expect(err).NotTo(HaveOccurred())
-		jsonContext, err = json.Marshal(arbContext)
-		Expect(err).NotTo(HaveOccurred())
-		boshClient.GetDeploymentReturns(nil, false, nil)
+			 var err error
+			 jsonParams, err = json.Marshal(arbParams)
+			 Expect(err).NotTo(HaveOccurred())
+			 jsonContext, err = json.Marshal(arbContext)
+			 Expect(err).NotTo(HaveOccurred())
+			 boshClient.GetDeploymentReturns(nil, false, nil)
 
-	})
+		 })
 
-	deployWithQuotas := func(q quotaCase, planToDeploy string, existingInstanceCount int) error {
-		planCounts := map[cf.ServicePlan]int{
-			cfServicePlan("1234", existingPlanID, "url", "name"): existingInstanceCount,
-		}
-		cfClient.CountInstancesOfServiceOfferingReturns(planCounts, nil)
+		 deployWithQuotas := func(q quotaCase, planToDeploy string, existingInstanceCount int) error {
+			 planCounts := map[cf.ServicePlan]int{
+				 cfServicePlan("1234", existingPlanID, "url", "name"): existingInstanceCount,
+			 }
+			 cfClient.CountInstancesOfServiceOfferingReturns(planCounts, nil)
 
-		plan := existingPlan
-		plan.Quotas = config.Quotas{}
-		plan.ResourceCosts = map[string]int{"ips": 1, "memory": 1}
-		catalogWithResourceQuotas := serviceCatalog
+			 plan := existingPlan
+			 plan.Quotas = config.Quotas{}
+			 plan.ResourceCosts = map[string]int{"ips": 1, "memory": 1}
+			 catalogWithResourceQuotas := serviceCatalog
 
-		// set up quotas
-		if q.PlanInstanceLimit != nil {
-			plan.Quotas.ServiceInstanceLimit = q.PlanInstanceLimit
-		}
-		if len(q.PlanResourceLimits) > 0 {
-			plan.Quotas.ResourceLimits = q.PlanResourceLimits
-		}
-		if len(q.GlobalResourceLimits) > 0 {
-			catalogWithResourceQuotas.GlobalQuotas.ResourceLimits = q.GlobalResourceLimits
-		}
-		if q.GlobalInstanceLimit != nil {
-			catalogWithResourceQuotas.GlobalQuotas.ServiceInstanceLimit = q.GlobalInstanceLimit
-		} else {
-			limit := 50
-			catalogWithResourceQuotas.GlobalQuotas.ServiceInstanceLimit = &limit
-		}
+			 // set up quotas
+			 if q.PlanInstanceLimit != nil {
+				 plan.Quotas.ServiceInstanceLimit = q.PlanInstanceLimit
+			 }
+			 if len(q.PlanResourceLimits) > 0 {
+				 plan.Quotas.ResourceLimits = q.PlanResourceLimits
+			 }
+			 if len(q.GlobalResourceLimits) > 0 {
+				 catalogWithResourceQuotas.GlobalQuotas.ResourceLimits = q.GlobalResourceLimits
+			 }
+			 if q.GlobalInstanceLimit != nil {
+				 catalogWithResourceQuotas.GlobalQuotas.ServiceInstanceLimit = q.GlobalInstanceLimit
+			 } else {
+				 limit := 50
+				 catalogWithResourceQuotas.GlobalQuotas.ServiceInstanceLimit = &limit
+			 }
 
-		catalogWithResourceQuotas.Plans = config.Plans{plan, secondPlan}
-		fakeDeployer = new(brokerfakes.FakeDeployer)
-		b = createBrokerWithServiceCatalog(catalogWithResourceQuotas)
+			 catalogWithResourceQuotas.Plans = config.Plans{plan, secondPlan}
+			 fakeDeployer = new(brokerfakes.FakeDeployer)
+			 b = createBrokerWithServiceCatalog(catalogWithResourceQuotas)
 
-		_, provisionErr = b.Provision(
-			context.Background(),
-			instanceID,
-			brokerapi.ProvisionDetails{
-				PlanID:           planToDeploy,
-				RawContext:       jsonContext,
-				RawParameters:    jsonParams,
-				OrganizationGUID: organizationGUID,
-				SpaceGUID:        spaceGUID,
-				ServiceID:        serviceOfferingID,
-			},
-			asyncAllowed,
-		)
+			 _, provisionErr = b.Provision(
+				 context.Background(),
+				 instanceID,
+				 brokerapi.ProvisionDetails{
+					 PlanID:           planToDeploy,
+					 RawContext:       jsonContext,
+					 RawParameters:    jsonParams,
+					 OrganizationGUID: organizationGUID,
+					 SpaceGUID:        spaceGUID,
+					 ServiceID:        serviceOfferingID,
+				 },
+				 asyncAllowed,
+			 )
 
-		return provisionErr
-	}
+			 return provisionErr
+		 }
 
-	Context("when quotas are not enabled", func() {
-		var deployErr error
-		BeforeEach(func() {
-			deployErr = deployWithQuotas(
-				quotaCase{},
-				existingPlanID, 0)
-		})
+		 Context("when quotas are not enabled", func() {
+			 var deployErr error
+			 BeforeEach(func() {
+				 deployErr = deployWithQuotas(
+					 quotaCase{},
+					 existingPlanID, 0)
+			 })
 
-		It("deploy succeeds", func() {
-			Expect(deployErr).NotTo(HaveOccurred())
-		})
+			 It("deploy succeeds", func() {
+				 Expect(deployErr).NotTo(HaveOccurred())
+			 })
 
-		It("an instance create call is made", func() {
-			Expect(fakeDeployer.CreateCallCount()).To(Equal(1))
-		})
+			 It("plan instance count is not checked", func() {
+				 Expect(cfClient.CountInstancesOfPlanCallCount()).To(Equal(0))
+			 })
+		 })
 
-		It("plan instance count is not checked", func() {
-			Expect(cfClient.CountInstancesOfPlanCallCount()).To(Equal(0))
-		})
-	})
+		 It("deploy succeeds when no quotas are reached", func() {
+			 aLot := 99
+			 deployErr := deployWithQuotas(
+				 quotaCase{nil, nil, &aLot, &aLot},
+				 existingPlanID, 10)
+			 Expect(deployErr).NotTo(HaveOccurred())
+		 })
 
-	It("deploy succeeds when no quotas are reached", func() {
-		aLot := 99
-		deployErr := deployWithQuotas(
-			quotaCase{nil, nil, &aLot, &aLot},
-			existingPlanID, 10)
-		Expect(deployErr).NotTo(HaveOccurred())
-	})
+		 Context("instance limits", func() {
+			 It("deploy fails when plan instance limit is reached", func() {
+				 planInstanceLimit := 1
+				 provisionErr = deployWithQuotas(
+					 quotaCase{nil, nil, nil, &planInstanceLimit},
+					 existingPlanID,
+					 1)
 
-	Context("instance limits", func() {
-		It("deploy fails when plan instance limit is reached", func() {
-			planInstanceLimit := 1
-			provisionErr = deployWithQuotas(
-				quotaCase{nil, nil, nil, &planInstanceLimit},
-				existingPlanID,
-				1)
+				 Expect(provisionErr).To(HaveOccurred())
+				 Expect(provisionErr.Error()).To(ContainSubstring("plan instance limit exceeded for service ID: service-id. Total instances: 1"))
+			 })
 
-			Expect(provisionErr).To(HaveOccurred())
-			Expect(provisionErr.Error()).To(ContainSubstring("plan instance limit exceeded for service ID: service-id. Total instances: 1"))
-		})
+			 It("deploy fails when global instance limit is reached", func() {
+				 globalInstanceLimit := 10
+				 provisionErr = deployWithQuotas(
+					 quotaCase{nil, nil, &globalInstanceLimit, nil},
+					 existingPlanID,
+					 10)
 
-		It("deploy fails when global instance limit is reached", func() {
-			globalInstanceLimit := 10
-			provisionErr = deployWithQuotas(
-				quotaCase{nil, nil, &globalInstanceLimit, nil},
-				existingPlanID,
-				10)
+				 Expect(provisionErr).To(HaveOccurred())
+				 Expect(provisionErr.Error()).To(ContainSubstring("global instance limit exceeded for service ID: service-id. Total instances: 10"))
+			 })
+		 })
 
-			Expect(provisionErr).To(HaveOccurred())
-			Expect(provisionErr.Error()).To(ContainSubstring("global instance limit exceeded for service ID: service-id. Total instances: 10"))
-		})
-	})
+		 Context("resource limits", func() {
+			 It("deploy fails when plan resource limit is reached", func() {
+				 planResourceLimits := map[string]int{"ips": 1} // plan costs 1 IP per instance
+				 provisionErr = deployWithQuotas(
+					 quotaCase{nil, planResourceLimits, nil, nil},
+					 existingPlanID,
+					 1)
 
-	Context("resource limits", func() {
-		It("deploy fails when plan resource limit is reached", func() {
-			planResourceLimits := map[string]int{"ips": 1} // plan costs 1 IP per instance
-			provisionErr = deployWithQuotas(
-				quotaCase{nil, planResourceLimits, nil, nil},
-				existingPlanID,
-				1)
+				 Expect(provisionErr).To(HaveOccurred())
+				 Expect(provisionErr.Error()).To(ContainSubstring("plan quotas [ips: (limit 1, used 1, requires 1)] would be exceeded by this deployment"))
+			 })
 
-			Expect(provisionErr).To(HaveOccurred())
-			Expect(provisionErr.Error()).To(ContainSubstring("plan quotas [ips: (limit 1, used 1, requires 1)] would be exceeded by this deployment"))
-		})
+			 It("deploy fails when global resource limit is reached", func() {
+				 globalResourceLimits := map[string]int{"ips": 5} // plan costs 1 IP per instance
+				 provisionErr = deployWithQuotas(
+					 quotaCase{globalResourceLimits, nil, nil, nil},
+					 existingPlanID,
+					 5)
 
-		It("deploy fails when global resource limit is reached", func() {
-			globalResourceLimits := map[string]int{"ips": 5} // plan costs 1 IP per instance
-			provisionErr = deployWithQuotas(
-				quotaCase{globalResourceLimits, nil, nil, nil},
-				existingPlanID,
-				5)
+				 Expect(provisionErr).To(HaveOccurred())
+				 Expect(provisionErr.Error()).To(ContainSubstring("global quotas [ips: (limit 5, used 5, requires 1)] would be exceeded by this deployment"))
+			 })
 
-			Expect(provisionErr).To(HaveOccurred())
-			Expect(provisionErr.Error()).To(ContainSubstring("global quotas [ips: (limit 5, used 5, requires 1)] would be exceeded by this deployment"))
-		})
+			 It("succeeds when plan resource quota is set and has been reached but there is no instance count limit", func() {
+				 planResourceLimits := map[string]int{"ips": 5} // plan costs 1 IP per instance
+				 provisionErr = deployWithQuotas(
+					 quotaCase{nil, planResourceLimits, nil, nil},
+					 secondPlanID,
+					 5)
 
-		It("succeeds when plan resource quota is set and has been reached but there is no instance count limit", func() {
-			planResourceLimits := map[string]int{"ips": 5} // plan costs 1 IP per instance
-			provisionErr = deployWithQuotas(
-				quotaCase{nil, planResourceLimits, nil, nil},
-				secondPlanID,
-				5)
+				 Expect(provisionErr).NotTo(HaveOccurred())
+			 })
+		 })
 
-			Expect(provisionErr).NotTo(HaveOccurred())
-		})
-	})
+		 Describe("when all quotas are reached simultaneously", func() {
+			 var deployErr error
+			 BeforeEach(func() {
+				 planResourceLimits := map[string]int{"ips": 1, "memory": 1} // plan uses 1 IP and 1 memory
+				 globalResourceLimits := map[string]int{"ips": 1}
+				 globalInstanceLimit := 1
+				 planInstanceLimit := 1
 
-	Describe("when all quotas are reached simultaneously", func() {
-		var deployErr error
-		BeforeEach(func() {
-			planResourceLimits := map[string]int{"ips": 1, "memory": 1} // plan uses 1 IP and 1 memory
-			globalResourceLimits := map[string]int{"ips": 1}
-			globalInstanceLimit := 1
-			planInstanceLimit := 1
+				 deployErr = deployWithQuotas(
+					 quotaCase{globalResourceLimits, planResourceLimits, &globalInstanceLimit, &planInstanceLimit},
+					 existingPlanID,
+					 1)
+			 })
 
-			deployErr = deployWithQuotas(
-				quotaCase{globalResourceLimits, planResourceLimits, &globalInstanceLimit, &planInstanceLimit},
-				existingPlanID,
-				1)
-		})
+			 It("deploy fails", func() {
+				 Expect(deployErr).To(HaveOccurred())
+				 Expect(deployErr.Error()).To(SatisfyAll(
+					 ContainSubstring("plan instance limit exceeded for service ID: service-id. Total instances: 1"),
+					 ContainSubstring("global instance limit exceeded for service ID: service-id. Total instances: 1"),
+					 ContainSubstring("global quotas [ips: (limit 1, used 1, requires 1)] would be exceeded by this deployment"),
+					 ContainSubstring("plan quotas ["),
+					 ContainSubstring("ips: (limit 1, used 1, requires 1)"),
+					 ContainSubstring("memory: (limit 1, used 1, requires 1)"),
+					 ContainSubstring("] would be exceeded by this deployment"),
+				 ))
+			 })
+		 })
 
-		It("deploy fails", func() {
-			Expect(deployErr).To(HaveOccurred())
-			Expect(deployErr.Error()).To(SatisfyAll(
-				ContainSubstring("plan instance limit exceeded for service ID: service-id. Total instances: 1"),
-				ContainSubstring("global instance limit exceeded for service ID: service-id. Total instances: 1"),
-				ContainSubstring("global quotas [ips: (limit 1, used 1, requires 1)] would be exceeded by this deployment"),
-				ContainSubstring("plan quotas ["),
-				ContainSubstring("ips: (limit 1, used 1, requires 1)"),
-				ContainSubstring("memory: (limit 1, used 1, requires 1)"),
-				ContainSubstring("] would be exceeded by this deployment"),
-			))
-		})
-	})
+		 Describe("when global resource quotas and plan resource quotas are set, and both have been reached", func() {
+			 It("provisions successfully when the plan doesn't count against the global quota", func() {
+				 planResourceLimits := map[string]int{"ips": 1, "memory": 1} // plan uses 1 IP and 1 memory
+				 globalResourceLimits := map[string]int{"ips": 1}
+				 provisionErr = deployWithQuotas(
+					 quotaCase{globalResourceLimits, planResourceLimits, nil, nil},
+					 secondPlanID,
+					 1)
 
-	Describe("when global resource quotas and plan resource quotas are set, and both have been reached", func() {
-		It("provisions successfully when the plan doesn't count against the global quota", func() {
-			planResourceLimits := map[string]int{"ips": 1, "memory": 1} // plan uses 1 IP and 1 memory
-			globalResourceLimits := map[string]int{"ips": 1}
-			provisionErr = deployWithQuotas(
-				quotaCase{globalResourceLimits, planResourceLimits, nil, nil},
-				secondPlanID,
-				1)
-
-			Expect(provisionErr).NotTo(HaveOccurred())
-		})
-	})
+				 Expect(provisionErr).NotTo(HaveOccurred())
+			 })
+		 })
+	 })
 })
