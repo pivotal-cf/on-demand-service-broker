@@ -12,7 +12,7 @@ import (
 
 var _ = Describe("GetInstance", func() {
 	It("returns an appropriate error", func() {
-		_, err := b.GetInstance(context.Background(), instanceID)
+		_, err := b.GetInstance(context.Background(), "some-instance-id")
 		fresp, ok := err.(*brokerapi.FailureResponse)
 		Expect(ok).To(BeTrue(), "err wasn't a FailureResponse")
 		logger := lager.NewLogger("test")
