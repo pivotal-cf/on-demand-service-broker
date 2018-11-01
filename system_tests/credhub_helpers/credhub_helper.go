@@ -33,8 +33,15 @@ func (c *CredHubCLI) VerifyCredhubKeysExist(serviceOffering, guid string) {
 	c.ensureLoggedIn()
 	creds := c.VerifyCredhubKeysForInstance(serviceOffering, guid)
 
-	Expect(creds).To(HaveLen(1), "expected to have 1 Credhub key for instance")
-	Expect(creds[0]["name"]).To(Equal(fmt.Sprintf("/odb/%s/service-instance_%s/odb_managed_secret", serviceOffering, guid)))
+	var found bool
+	path := fmt.Sprintf("/odb/%s/service-instance_%s/odb_managed_secret", serviceOffering, guid)
+	for _, cred := range creds {
+		if cred["name"] == path {
+			found = true
+			break
+		}
+	}
+	Expect(found).To(BeTrue(), "credhub key not found")
 }
 
 func (c *CredHubCLI) VerifyCredhubKeysEmpty(serviceOffering, guid string) {
