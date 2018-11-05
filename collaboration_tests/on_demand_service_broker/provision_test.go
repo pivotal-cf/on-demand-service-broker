@@ -168,7 +168,7 @@ password: ((odb_secret:foo))`,
 				Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
 
 				manifest, _, _, _ := fakeTaskBoshClient.DeployArgsForCall(0)
-				Expect(manifest).To(ContainSubstring(fmt.Sprintf("/odb/%s/service-instance_%s/foo", serviceOfferingID, instanceID)))
+				Expect(manifest).To(ContainSubstring(fmt.Sprintf("/odb/%s/service-instance_%s/foo", conf.ServiceCatalog.ID, instanceID)))
 				Expect(manifest).ToNot(ContainSubstring("((odb_secret:"))
 
 				Expect(fakeTaskBulkSetter.BulkSetCallCount()).To(Equal(1))

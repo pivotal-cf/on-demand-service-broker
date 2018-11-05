@@ -21,20 +21,18 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/pivotal-cf/on-demand-service-broker/service"
-	odbserviceadapter "github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
+	"github.com/pivotal-cf/on-demand-service-broker/config"
+
+	"github.com/pivotal-cf/on-demand-service-broker/collaboration_tests/helpers"
 	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 
 	"os"
-	"syscall"
 	"testing"
+
+	"math/rand"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf/on-demand-service-broker/config"
-	"github.com/pivotal-cf/on-demand-service-broker/task"
-
-	"math/rand"
 
 	"math"
 
@@ -43,13 +41,8 @@ import (
 	"net/http"
 
 	"github.com/onsi/gomega/gbytes"
-	"github.com/pivotal-cf/on-demand-service-broker/apiserver"
-	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/fakes"
-	"github.com/pivotal-cf/on-demand-service-broker/credhubbroker"
 	credhubfakes "github.com/pivotal-cf/on-demand-service-broker/credhubbroker/fakes"
-	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
-	"github.com/pivotal-cf/on-demand-service-broker/manifestsecrets"
 	manifestsecretsfakes "github.com/pivotal-cf/on-demand-service-broker/manifestsecrets/fakes"
 	serviceadapterfakes "github.com/pivotal-cf/on-demand-service-broker/serviceadapter/fakes"
 	taskfakes "github.com/pivotal-cf/on-demand-service-broker/task/fakes"
@@ -61,35 +54,28 @@ func TestOnDemandServiceBroker(t *testing.T) {
 }
 
 const (
-	componentName  = "collaboration-tests"
 	serviceName    = "service-name"
 	brokerUsername = "username"
 	brokerPassword = "password"
 )
 
 var (
-	stopServer               chan os.Signal
-	serverPort               = rand.Intn(math.MaxInt16-1024) + 1024
-	serverURL                = fmt.Sprintf("localhost:%d", serverPort)
-	deployer                 broker.Deployer
-	fakeServiceAdapter       *fakes.FakeServiceAdapterClient
-	fakeCredentialStore      *credhubfakes.FakeCredentialStore
-	fakeBoshClient           *fakes.FakeBoshClient
-	fakeCfClient             *fakes.FakeCloudFoundryClient
-	fakeTaskBoshClient       *taskfakes.FakeBoshClient
-	fakeCommandRunner        *serviceadapterfakes.FakeCommandRunner
-	taskServiceAdapterClient *odbserviceadapter.Client
-	taskManifestGenerator    task.ManifestGenerator
-	odbSecrets               manifestsecrets.ODBSecrets
-	fakeTaskBulkSetter       *taskfakes.FakeBulkSetter
-	loggerBuffer             *gbytes.Buffer
-	shouldSendSigterm        bool
-	secretManager            broker.ManifestSecretManager
-	serviceOfferingID        string
+	stopServer          chan os.Signal
+	serverPort          = rand.Intn(math.MaxInt16-1024) + 1024
+	serverURL           = fmt.Sprintf("localhost:%d", serverPort)
+	fakeServiceAdapter  *fakes.FakeServiceAdapterClient
+	fakeCredentialStore *credhubfakes.FakeCredentialStore
+	fakeBoshClient      *fakes.FakeBoshClient
+	fakeCfClient        *fakes.FakeCloudFoundryClient
+	fakeTaskBoshClient  *taskfakes.FakeBoshClient
+	fakeCommandRunner   *serviceadapterfakes.FakeCommandRunner
+	fakeTaskBulkSetter  *taskfakes.FakeBulkSetter
+	loggerBuffer        *gbytes.Buffer
+	shouldSendSigterm   bool
 
 	fakeCredhubOperator *manifestsecretsfakes.FakeCredhubOperator
 
-	instanceLister service.InstanceLister
+	brokerServer *helpers.Server
 )
 
 var _ = BeforeEach(func() {
@@ -98,8 +84,6 @@ var _ = BeforeEach(func() {
 	fakeCredentialStore = new(credhubfakes.FakeCredentialStore)
 	fakeCfClient = new(fakes.FakeCloudFoundryClient)
 
-	serviceOfferingID = "simba"
-	odbSecrets = manifestsecrets.ODBSecrets{ServiceOfferingID: serviceOfferingID}
 	fakeTaskBoshClient = new(taskfakes.FakeBoshClient)
 	fakeCommandRunner = new(serviceadapterfakes.FakeCommandRunner)
 
@@ -114,73 +98,50 @@ var _ = BeforeEach(func() {
 	zero := 0
 	fakeCommandRunner.RunWithInputParamsReturns(generateManifestOutputBytes, []byte{}, &zero, nil)
 
-	taskServiceAdapterClient = &odbserviceadapter.Client{
-		CommandRunner: fakeCommandRunner,
-		UsingStdin:    true,
-	}
-
 	fakeTaskBulkSetter = new(taskfakes.FakeBulkSetter)
-
-	credhubPathMatcher := new(manifestsecrets.CredHubPathMatcher)
 	fakeCredhubOperator = new(manifestsecretsfakes.FakeCredhubOperator)
-	secretManager = manifestsecrets.BuildManager(true, credhubPathMatcher, fakeCredhubOperator)
 })
 
 var _ = AfterEach(func() {
 	if shouldSendSigterm {
-		stopServer <- syscall.SIGTERM
-		Eventually(loggerBuffer).Should(gbytes.Say("Server gracefully shut down"))
+		brokerServer.Close()
 	}
 })
 
 func StartServer(conf config.Config) {
-	stopServer = make(chan os.Signal, 1)
-	conf.Broker.ShutdownTimeoutSecs = 1
+	loggerBuffer = gbytes.NewBuffer()
 	shouldSendSigterm = true
-	StartServerWithStopHandler(conf, stopServer)
+	stopServer = make(chan os.Signal, 1)
+	brokerServer = helpers.StartServer(
+		conf,
+		stopServer,
+		fakeCommandRunner,
+		fakeTaskBoshClient,
+		fakeTaskBulkSetter,
+		fakeCfClient,
+		fakeBoshClient,
+		fakeServiceAdapter,
+		fakeCredentialStore,
+		fakeCredhubOperator,
+		loggerBuffer,
+	)
 }
 
 func StartServerWithStopHandler(conf config.Config, stopServerChan chan os.Signal) {
-	var err error
-
-	taskManifestGenerator = task.NewManifestGenerator(taskServiceAdapterClient, conf.ServiceCatalog, serviceadapter.Stemcell{}, serviceadapter.ServiceReleases{})
-	deployer = task.NewDeployer(fakeTaskBoshClient, taskManifestGenerator, odbSecrets, fakeTaskBulkSetter)
-
 	loggerBuffer = gbytes.NewBuffer()
-	loggerFactory := loggerfactory.New(loggerBuffer, componentName, loggerfactory.Flags)
-	logger := loggerFactory.New()
-
-	instanceLister, err = service.BuildInstanceLister(fakeCfClient, conf.ServiceCatalog.ID, conf.ServiceInstancesAPI, logger)
-	Expect(err).ToNot(HaveOccurred(), "unexpected error building instance lister")
-
-	fakeOnDemandBroker, err := broker.New(
-		fakeBoshClient,
-		fakeCfClient,
-		conf.ServiceCatalog,
-		conf.Broker,
-		nil,
-		fakeServiceAdapter,
-		deployer,
-		secretManager,
-		instanceLister,
-		loggerFactory,
-	)
-	Expect(err).NotTo(HaveOccurred())
-	var fakeBroker apiserver.CombinedBroker
-	if conf.HasRuntimeCredHub() {
-		fakeBroker = credhubbroker.New(fakeOnDemandBroker, fakeCredentialStore, conf.ServiceCatalog.Name, loggerFactory)
-	} else {
-		fakeBroker = fakeOnDemandBroker
-	}
-	server := apiserver.New(
+	brokerServer = helpers.StartServer(
 		conf,
-		fakeBroker,
-		componentName,
-		loggerFactory,
-		logger,
+		stopServerChan,
+		fakeCommandRunner,
+		fakeTaskBoshClient,
+		fakeTaskBulkSetter,
+		fakeCfClient,
+		fakeBoshClient,
+		fakeServiceAdapter,
+		fakeCredentialStore,
+		fakeCredhubOperator,
+		loggerBuffer,
 	)
-	go apiserver.StartAndWait(conf, server, logger, stopServerChan)
-	Eventually(loggerBuffer).Should(gbytes.Say("Listening on"))
 }
 
 func doRequest(method, url string, body io.Reader, requestModifiers ...func(r *http.Request)) (*http.Response, []byte) {
