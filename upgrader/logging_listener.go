@@ -63,11 +63,11 @@ func (ll LoggingListener) InstanceUpgradeStarting(instance string, index, totalI
 	ll.logger.Printf("[%s] Starting to upgrade service instance%s", instance, instanceCount)
 }
 
-func (ll LoggingListener) InstanceUpgradeStartResult(instance string, resultType services.UpgradeOperationType) {
+func (ll LoggingListener) InstanceUpgradeStartResult(instance string, resultType services.BOSHOperationType) {
 	var message string
 
 	switch resultType {
-	case services.UpgradeAccepted:
+	case services.OperationAccepted:
 		message = "accepted upgrade"
 	case services.InstanceNotFound:
 		message = "already deleted from platform"

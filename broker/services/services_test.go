@@ -48,7 +48,7 @@ var _ = Describe("Broker Services", func() {
 	})
 
 	Describe("UpgradeInstance", func() {
-		It("returns an upgrade operation", func() {
+		It("returns an bosh operation", func() {
 			brokerServices = services.NewBrokerServices(client, authHeaderBuilder, "http://test.test", logger)
 			planUniqueID := "unique_plan_id"
 			expectedBody := fmt.Sprintf(`{"plan_id": "%s"}`, planUniqueID)

@@ -113,7 +113,7 @@ var _ = Describe("Logging Listener", func() {
 
 	Describe("instance upgrade start result", func() {
 		var (
-			result services.UpgradeOperationType
+			result services.BOSHOperationType
 			buffer *Buffer
 		)
 
@@ -125,7 +125,7 @@ var _ = Describe("Logging Listener", func() {
 
 		Context("when accepted", func() {
 			BeforeEach(func() {
-				result = services.UpgradeAccepted
+				result = services.OperationAccepted
 			})
 
 			It("Shows accepted upgrade", func() {
@@ -165,7 +165,7 @@ var _ = Describe("Logging Listener", func() {
 
 		Context("when error", func() {
 			BeforeEach(func() {
-				result = services.UpgradeOperationType(-1)
+				result = services.BOSHOperationType(-1)
 			})
 
 			It("shows already deleted from platform", func() {

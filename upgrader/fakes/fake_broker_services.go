@@ -12,17 +12,17 @@ import (
 )
 
 type FakeBrokerServices struct {
-	UpgradeInstanceStub        func(instance service.Instance) (services.UpgradeOperation, error)
+	UpgradeInstanceStub        func(instance service.Instance) (services.BOSHOperation, error)
 	upgradeInstanceMutex       sync.RWMutex
 	upgradeInstanceArgsForCall []struct {
 		instance service.Instance
 	}
 	upgradeInstanceReturns struct {
-		result1 services.UpgradeOperation
+		result1 services.BOSHOperation
 		result2 error
 	}
 	upgradeInstanceReturnsOnCall map[int]struct {
-		result1 services.UpgradeOperation
+		result1 services.BOSHOperation
 		result2 error
 	}
 	LastOperationStub        func(instance string, operationData broker.OperationData) (brokerapi.LastOperation, error)
@@ -43,7 +43,7 @@ type FakeBrokerServices struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeBrokerServices) UpgradeInstance(instance service.Instance) (services.UpgradeOperation, error) {
+func (fake *FakeBrokerServices) UpgradeInstance(instance service.Instance) (services.BOSHOperation, error) {
 	fake.upgradeInstanceMutex.Lock()
 	ret, specificReturn := fake.upgradeInstanceReturnsOnCall[len(fake.upgradeInstanceArgsForCall)]
 	fake.upgradeInstanceArgsForCall = append(fake.upgradeInstanceArgsForCall, struct {
@@ -72,24 +72,24 @@ func (fake *FakeBrokerServices) UpgradeInstanceArgsForCall(i int) service.Instan
 	return fake.upgradeInstanceArgsForCall[i].instance
 }
 
-func (fake *FakeBrokerServices) UpgradeInstanceReturns(result1 services.UpgradeOperation, result2 error) {
+func (fake *FakeBrokerServices) UpgradeInstanceReturns(result1 services.BOSHOperation, result2 error) {
 	fake.UpgradeInstanceStub = nil
 	fake.upgradeInstanceReturns = struct {
-		result1 services.UpgradeOperation
+		result1 services.BOSHOperation
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeBrokerServices) UpgradeInstanceReturnsOnCall(i int, result1 services.UpgradeOperation, result2 error) {
+func (fake *FakeBrokerServices) UpgradeInstanceReturnsOnCall(i int, result1 services.BOSHOperation, result2 error) {
 	fake.UpgradeInstanceStub = nil
 	if fake.upgradeInstanceReturnsOnCall == nil {
 		fake.upgradeInstanceReturnsOnCall = make(map[int]struct {
-			result1 services.UpgradeOperation
+			result1 services.BOSHOperation
 			result2 error
 		})
 	}
 	fake.upgradeInstanceReturnsOnCall[i] = struct {
-		result1 services.UpgradeOperation
+		result1 services.BOSHOperation
 		result2 error
 	}{result1, result2}
 }

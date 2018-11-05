@@ -36,11 +36,11 @@ func NewTriggerer(brokerServices BrokerServices, instanceLister InstanceLister, 
 	}
 }
 
-func (t *UpgradeTriggerer) TriggerUpgrade(instance service.Instance) (services.UpgradeOperation, error) {
+func (t *UpgradeTriggerer) TriggerUpgrade(instance service.Instance) (services.BOSHOperation, error) {
 	latestInstance, err := t.instanceLister.LatestInstanceInfo(instance)
 	if err != nil {
 		if err == service.InstanceNotFound {
-			return services.UpgradeOperation{Type: services.InstanceNotFound}, nil
+			return services.BOSHOperation{Type: services.InstanceNotFound}, nil
 		}
 		latestInstance = instance
 		t.logger.FailedToRefreshInstanceInfo(instance.GUID)
@@ -48,7 +48,7 @@ func (t *UpgradeTriggerer) TriggerUpgrade(instance service.Instance) (services.U
 
 	operation, err := t.brokerServices.UpgradeInstance(latestInstance)
 	if err != nil {
-		return services.UpgradeOperation{}, fmt.Errorf("Upgrade failed for service instance %s: %s", instance.GUID, err)
+		return services.BOSHOperation{}, fmt.Errorf("Upgrade failed for service instance %s: %s", instance.GUID, err)
 	}
 
 	return operation, nil

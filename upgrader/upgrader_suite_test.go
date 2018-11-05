@@ -29,7 +29,7 @@ func TestUpgrader(t *testing.T) {
 
 type testState struct {
 	instance               service.Instance
-	upgradeOutput          []services.UpgradeOperationType
+	upgradeOutput          []services.BOSHOperationType
 	upgradeCallCount       int
 	lastOperationOutput    []brokerapi.LastOperationState
 	lastOperationCallCount int
@@ -48,18 +48,18 @@ func setupTest(states []*testState, instanceLister *fakes.FakeInstanceLister, br
 		return i, nil
 	}
 
-	brokerServices.UpgradeInstanceStub = func(instance service.Instance) (services.UpgradeOperation, error) {
+	brokerServices.UpgradeInstanceStub = func(instance service.Instance) (services.BOSHOperation, error) {
 		for _, s := range states {
 			if instance.GUID == s.instance.GUID {
 				s.controller.NotifyStart()
 				s.upgradeCallCount++
-				return services.UpgradeOperation{
+				return services.BOSHOperation{
 					Type: s.upgradeOutput[s.upgradeCallCount-1],
 					Data: broker.OperationData{BoshTaskID: s.taskID, OperationType: broker.OperationTypeUpgrade},
 				}, nil
 			}
 		}
-		return services.UpgradeOperation{}, errors.New("unexpected instance GUID")
+		return services.BOSHOperation{}, errors.New("unexpected instance GUID")
 	}
 
 	brokerServices.LastOperationStub = func(guid string, operationData broker.OperationData) (brokerapi.LastOperation, error) {
@@ -143,7 +143,7 @@ func hasReportedCanariesFinished(fakeListener *fakes.FakeListener, count int) {
 }
 
 func hasReportedInstanceUpgradeStartResult(fakeListener *fakes.FakeListener, idx int,
-	expectedGuid string, expectedStatus services.UpgradeOperationType) {
+	expectedGuid string, expectedStatus services.BOSHOperationType) {
 
 	Expect(fakeListener.InstanceUpgradeStartResultCallCount()).To(BeNumerically(">", idx))
 	guid, upgradeType := fakeListener.InstanceUpgradeStartResultArgsForCall(idx)

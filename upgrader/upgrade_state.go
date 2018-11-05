@@ -24,9 +24,9 @@ import (
 )
 
 type instanceInfo struct {
-	status           services.UpgradeOperationType
+	status           services.BOSHOperationType
 	initialPlan      string
-	upgradeOperation services.UpgradeOperation
+	upgradeOperation services.BOSHOperation
 	couldBeCanary    bool
 }
 
@@ -56,7 +56,7 @@ func NewUpgradeState(canaryInstances, allInstances []service.Instance, canaryLim
 	us.states = map[string]instanceInfo{}
 	for _, i := range allInstances {
 		us.guids = append(us.guids, i.GUID)
-		us.states[i.GUID] = instanceInfo{status: services.UpgradePending, initialPlan: i.PlanUniqueID}
+		us.states[i.GUID] = instanceInfo{status: services.OperationPending, initialPlan: i.PlanUniqueID}
 	}
 	for _, i := range canaryInstances {
 		info, ok := us.states[i.GUID]
@@ -81,26 +81,26 @@ func (us *upgradeState) RewindAndResetBusyInstances() {
 	us.pos = 0
 	for k, v := range us.states {
 		if v.status == services.OperationInProgress {
-			v.status = services.UpgradePending
+			v.status = services.OperationPending
 			us.states[k] = v
 		}
 	}
 }
 
 func (us *upgradeState) HasInstancesToProcess() bool {
-	return len(us.GetInstancesInStates(services.UpgradePending, services.UpgradeAccepted)) > 0
+	return len(us.GetInstancesInStates(services.OperationPending, services.OperationAccepted)) > 0
 }
 
 func (us *upgradeState) HasInstancesProcessing() bool {
-	return len(us.GetInstancesInStates(services.UpgradeAccepted)) > 0
+	return len(us.GetInstancesInStates(services.OperationAccepted)) > 0
 }
 
 func (us *upgradeState) HasFailures() bool {
-	return len(us.GetInstancesInStates(services.UpgradeFailed)) > 0
+	return len(us.GetInstancesInStates(services.OperationFailed)) > 0
 }
 
 func (us *upgradeState) InProgressInstances() []service.Instance {
-	return us.GetInstancesInStates(services.UpgradeAccepted)
+	return us.GetInstancesInStates(services.OperationAccepted)
 }
 
 func (us *upgradeState) CountInProgressInstances() int {
@@ -123,10 +123,10 @@ func (us *upgradeState) NextPending() (service.Instance, error) {
 }
 
 func (us *upgradeState) GetUpgradeIndex() int {
-	return len(us.GetInstancesInStates(services.UpgradeSucceeded, services.UpgradeAccepted, services.InstanceNotFound, services.OrphanDeployment)) + 1
+	return len(us.GetInstancesInStates(services.OperationSucceeded, services.OperationAccepted, services.InstanceNotFound, services.OrphanDeployment)) + 1
 }
 
-func (us *upgradeState) GetGUIDsInStates(states ...services.UpgradeOperationType) (guids []string) {
+func (us *upgradeState) GetGUIDsInStates(states ...services.BOSHOperationType) (guids []string) {
 	guids = []string{}
 	for _, i := range us.GetInstancesInStates(states...) {
 		guids = append(guids, i.GUID)
@@ -134,7 +134,7 @@ func (us *upgradeState) GetGUIDsInStates(states ...services.UpgradeOperationType
 	return
 }
 
-func (us *upgradeState) GetInstancesInStates(states ...services.UpgradeOperationType) (instances []service.Instance) {
+func (us *upgradeState) GetInstancesInStates(states ...services.BOSHOperationType) (instances []service.Instance) {
 	instances = []service.Instance{}
 	for _, guid := range us.guids {
 		inst := us.states[guid]
@@ -153,26 +153,26 @@ func (us *upgradeState) GetInstancesInStates(states ...services.UpgradeOperation
 func (us *upgradeState) Summary() summary {
 	return summary{
 		orphaned:  len(us.GetInstancesInStates(services.OrphanDeployment)),
-		succeeded: len(us.GetInstancesInStates(services.UpgradeSucceeded)),
+		succeeded: len(us.GetInstancesInStates(services.OperationSucceeded)),
 		busy:      len(us.GetInstancesInStates(services.OperationInProgress)),
 		deleted:   len(us.GetInstancesInStates(services.InstanceNotFound)),
 	}
 }
 
-func (us *upgradeState) SetState(guid string, status services.UpgradeOperationType) error {
+func (us *upgradeState) SetState(guid string, status services.BOSHOperationType) error {
 	info := us.states[guid]
 	info.status = status
 	us.states[guid] = info
 	return nil
 }
 
-func (us *upgradeState) SetUpgradeOperation(guid string, upgradeOp services.UpgradeOperation) {
+func (us *upgradeState) SetUpgradeOperation(guid string, upgradeOp services.BOSHOperation) {
 	info := us.states[guid]
 	info.upgradeOperation = upgradeOp
 	us.states[guid] = info
 }
 
-func (us *upgradeState) GetUpgradeOperation(guid string) services.UpgradeOperation {
+func (us *upgradeState) GetUpgradeOperation(guid string) services.BOSHOperation {
 	return us.states[guid].upgradeOperation
 }
 
@@ -192,7 +192,7 @@ func (us *upgradeState) OutstandingCanaryCount() int {
 		if !info.couldBeCanary {
 			continue
 		}
-		if info.status == services.UpgradePending {
+		if info.status == services.OperationPending {
 			pending++
 		} else {
 			triggered++
@@ -262,17 +262,17 @@ func (us *upgradeState) upgradeable(guid string) bool {
 func (us *upgradeState) doingCanariesAndPendingCanary(guid string) bool {
 	return us.processCanaries &&
 		us.states[guid].couldBeCanary &&
-		us.states[guid].status == services.UpgradePending
+		us.states[guid].status == services.OperationPending
 }
 
 func (us *upgradeState) notDoingCanariesAndPendingInstance(guid string) bool {
 	return !us.processCanaries &&
-		us.states[guid].status == services.UpgradePending
+		us.states[guid].status == services.OperationPending
 }
 
-func isFinalState(status services.UpgradeOperationType) bool {
+func isFinalState(status services.BOSHOperationType) bool {
 	// TODO:
 	// * add tests
 	// * add missing states
-	return status != services.OperationInProgress && status != services.UpgradePending && status != services.UpgradeAccepted //status == services.UpgradeSucceeded || status == services.UpgradeFailed
+	return status != services.OperationInProgress && status != services.OperationPending && status != services.OperationAccepted //status == services.OperationSucceeded || status == services.OperationFailed
 }

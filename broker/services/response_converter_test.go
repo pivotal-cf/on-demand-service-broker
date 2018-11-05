@@ -79,11 +79,11 @@ var _ = Describe("Response Converter", func() {
 					Body:       asBody(upgradeOperationJSON()),
 				}
 
-				result, err := converter.UpgradeOperationFrom(&response)
+				result, err := converter.ExtractOperationFrom(&response)
 
 				Expect(err).NotTo(HaveOccurred())
 				Expect(result.Data.OperationType).To(Equal(broker.OperationTypeUpgrade))
-				Expect(result.Type).To(Equal(services.UpgradeAccepted))
+				Expect(result.Type).To(Equal(services.OperationAccepted))
 			})
 
 			It("returns an error when the response body cannot be decoded", func() {
@@ -92,7 +92,7 @@ var _ = Describe("Response Converter", func() {
 					Body:       asBody("{ invalid json }"),
 				}
 
-				_, err := converter.UpgradeOperationFrom(&response)
+				_, err := converter.ExtractOperationFrom(&response)
 
 				Expect(err).To(MatchError(SatisfyAll(
 					ContainSubstring("cannot parse upgrade response"),
@@ -108,7 +108,7 @@ var _ = Describe("Response Converter", func() {
 					Body:       asBody(""),
 				}
 
-				result, err := converter.UpgradeOperationFrom(&response)
+				result, err := converter.ExtractOperationFrom(&response)
 
 				Expect(err).NotTo(HaveOccurred())
 				Expect(result.Type).To(Equal(services.InstanceNotFound))
@@ -122,7 +122,7 @@ var _ = Describe("Response Converter", func() {
 					Body:       asBody(""),
 				}
 
-				result, err := converter.UpgradeOperationFrom(&response)
+				result, err := converter.ExtractOperationFrom(&response)
 
 				Expect(err).NotTo(HaveOccurred())
 				Expect(result.Type).To(Equal(services.OrphanDeployment))
@@ -136,7 +136,7 @@ var _ = Describe("Response Converter", func() {
 					Body:       asBody(""),
 				}
 
-				result, err := converter.UpgradeOperationFrom(&response)
+				result, err := converter.ExtractOperationFrom(&response)
 
 				Expect(err).NotTo(HaveOccurred())
 				Expect(result.Type).To(Equal(services.OperationInProgress))
@@ -150,7 +150,7 @@ var _ = Describe("Response Converter", func() {
 					Body:       asBody(upgradeErrorJSON("upgrade failed")),
 				}
 
-				_, err := converter.UpgradeOperationFrom(&response)
+				_, err := converter.ExtractOperationFrom(&response)
 
 				Expect(err).To(MatchError(SatisfyAll(
 					ContainSubstring("unexpected status code: 500"),
@@ -164,7 +164,7 @@ var _ = Describe("Response Converter", func() {
 					Body:       asBody("{invalid json}"),
 				}
 
-				_, err := converter.UpgradeOperationFrom(&response)
+				_, err := converter.ExtractOperationFrom(&response)
 
 				Expect(err).To(MatchError(SatisfyAll(
 					ContainSubstring("unexpected status code: 500"),
@@ -180,7 +180,7 @@ var _ = Describe("Response Converter", func() {
 					Body:       asBody("an unexpected error occurred"),
 				}
 
-				_, err := converter.UpgradeOperationFrom(&response)
+				_, err := converter.ExtractOperationFrom(&response)
 
 				Expect(err).To(MatchError(SatisfyAll(
 					ContainSubstring("unexpected status code: 418"),

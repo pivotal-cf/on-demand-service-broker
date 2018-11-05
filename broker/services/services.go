@@ -45,16 +45,16 @@ func NewBrokerServices(client HTTPClient, authHeaderBuilder authorizationheader.
 	}
 }
 
-func (b *BrokerServices) UpgradeInstance(instance service.Instance) (UpgradeOperation, error) {
+func (b *BrokerServices) UpgradeInstance(instance service.Instance) (BOSHOperation, error) {
 	body := strings.NewReader(fmt.Sprintf(`{"plan_id": "%s"}`, instance.PlanUniqueID))
 	response, err := b.doRequest(
 		http.MethodPatch,
 		fmt.Sprintf("/mgmt/service_instances/%s", instance.GUID),
 		body)
 	if err != nil {
-		return UpgradeOperation{}, err
+		return BOSHOperation{}, err
 	}
-	return b.converter.UpgradeOperationFrom(response)
+	return b.converter.ExtractOperationFrom(response)
 }
 
 func (b *BrokerServices) LastOperation(instanceGUID string, operationData broker.OperationData) (brokerapi.LastOperation, error) {
@@ -85,10 +85,7 @@ func (b *BrokerServices) OrphanDeployments() ([]mgmtapi.Deployment, error) {
 }
 
 func (b *BrokerServices) doRequest(method, path string, body io.Reader) (*http.Response, error) {
-	request, err := http.NewRequest(
-		method,
-		b.buildURL(path),
-		body)
+	request, err := http.NewRequest(method, b.buildURL(path), body)
 	if err != nil {
 		return nil, err
 	}

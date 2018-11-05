@@ -51,11 +51,11 @@ var _ = Describe("Upgrade triggerer", func() {
 
 	It("returns UpgradeAccepted when the the instance is ready to be upgraded", func() {
 		fakeInstanceLister.LatestInstanceInfoReturns(latestInstance, nil)
-		fakeBrokerService.UpgradeInstanceReturns(services.UpgradeOperation{Type: services.UpgradeAccepted}, nil)
+		fakeBrokerService.UpgradeInstanceReturns(services.BOSHOperation{Type: services.OperationAccepted}, nil)
 
 		operation, err := t.TriggerUpgrade(instance)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(operation).To(Equal(services.UpgradeOperation{Type: services.UpgradeAccepted}))
+		Expect(operation).To(Equal(services.BOSHOperation{Type: services.OperationAccepted}))
 
 		By("checking the latest instance info")
 		Expect(fakeInstanceLister.LatestInstanceInfoCallCount()).To(Equal(1))
@@ -72,7 +72,7 @@ var _ = Describe("Upgrade triggerer", func() {
 		fakeInstanceLister.LatestInstanceInfoReturns(service.Instance{}, errors.New("oops"))
 		operation, err := t.TriggerUpgrade(instance)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(operation).To(Equal(services.UpgradeOperation{}))
+		Expect(operation).To(Equal(services.BOSHOperation{}))
 
 		Expect(fakeBrokerService.UpgradeInstanceCallCount()).To(Equal(1))
 		instanceToUpgrade := fakeBrokerService.UpgradeInstanceArgsForCall(0)
@@ -87,24 +87,24 @@ var _ = Describe("Upgrade triggerer", func() {
 		fakeInstanceLister.LatestInstanceInfoReturns(service.Instance{}, service.InstanceNotFound)
 		operation, err := t.TriggerUpgrade(instance)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(operation).To(Equal(services.UpgradeOperation{Type: services.InstanceNotFound}))
+		Expect(operation).To(Equal(services.BOSHOperation{Type: services.InstanceNotFound}))
 	})
 
 	It("returns an error if the upgrade request fails", func() {
-		fakeBrokerService.UpgradeInstanceReturns(services.UpgradeOperation{}, errors.New("oops"))
+		fakeBrokerService.UpgradeInstanceReturns(services.BOSHOperation{}, errors.New("oops"))
 		_, err := t.TriggerUpgrade(instance)
 		Expect(err).To(MatchError(fmt.Sprintf("Upgrade failed for service instance %s: oops", guid)))
 	})
 
 	DescribeTable("when upgrades returns",
-		func(upgradeResult services.UpgradeOperationType, expectedOperation services.UpgradeOperation) {
-			fakeBrokerService.UpgradeInstanceReturns(services.UpgradeOperation{Type: upgradeResult}, nil)
+		func(upgradeResult services.BOSHOperationType, expectedOperation services.BOSHOperation) {
+			fakeBrokerService.UpgradeInstanceReturns(services.BOSHOperation{Type: upgradeResult}, nil)
 			op, err := t.TriggerUpgrade(instance)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(op).To(Equal(expectedOperation))
 		},
-		Entry("orphan", services.OrphanDeployment, services.UpgradeOperation{Type: services.OrphanDeployment}),
-		Entry("instance not found", services.InstanceNotFound, services.UpgradeOperation{Type: services.InstanceNotFound}),
-		Entry("operation in progress", services.OperationInProgress, services.UpgradeOperation{Type: services.OperationInProgress}),
+		Entry("orphan", services.OrphanDeployment, services.BOSHOperation{Type: services.OrphanDeployment}),
+		Entry("instance not found", services.InstanceNotFound, services.BOSHOperation{Type: services.InstanceNotFound}),
+		Entry("operation in progress", services.OperationInProgress, services.BOSHOperation{Type: services.OperationInProgress}),
 	)
 })

@@ -17,58 +17,57 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/mgmtapi"
 )
 
-type UpgradeOperation struct {
-	Type        UpgradeOperationType
+type BOSHOperation struct {
+	Type        BOSHOperationType
 	Data        broker.OperationData
 	Description string
 }
 
-type UpgradeOperationType string
+type BOSHOperationType string
 
 const (
-	UpgradeAccepted     UpgradeOperationType = "accepted"
-	OperationInProgress UpgradeOperationType = "busy"
-	InstanceNotFound    UpgradeOperationType = "instance-not-found"
-	OrphanDeployment    UpgradeOperationType = "orphan-deployment"
-	UpgradePending      UpgradeOperationType = "not-started"
-
-	UpgradeFailed    UpgradeOperationType = "failed"
-	UpgradeSucceeded UpgradeOperationType = "succeeded"
+	InstanceNotFound    BOSHOperationType = "instance-not-found"
+	OrphanDeployment    BOSHOperationType = "orphan-deployment"
+	OperationAccepted   BOSHOperationType = "accepted"
+	OperationFailed     BOSHOperationType = "failed"
+	OperationInProgress BOSHOperationType = "busy"
+	OperationPending    BOSHOperationType = "not-started"
+	OperationSucceeded  BOSHOperationType = "succeeded"
 )
 
 type ResponseConverter struct{}
 
-func (r ResponseConverter) UpgradeOperationFrom(response *http.Response) (UpgradeOperation, error) {
+func (r ResponseConverter) ExtractOperationFrom(response *http.Response) (BOSHOperation, error) {
 	defer response.Body.Close()
 
 	switch response.StatusCode {
 	case http.StatusAccepted:
 		var operationData broker.OperationData
 		if err := json.NewDecoder(response.Body).Decode(&operationData); err != nil {
-			return UpgradeOperation{}, fmt.Errorf("cannot parse upgrade response: %s", err)
+			return BOSHOperation{}, fmt.Errorf("cannot parse upgrade response: %s", err)
 		}
-		return UpgradeOperation{Type: UpgradeAccepted, Data: operationData}, nil
+		return BOSHOperation{Type: OperationAccepted, Data: operationData}, nil
 	case http.StatusNotFound:
-		return UpgradeOperation{Type: InstanceNotFound}, nil
+		return BOSHOperation{Type: InstanceNotFound}, nil
 	case http.StatusGone:
-		return UpgradeOperation{Type: OrphanDeployment}, nil
+		return BOSHOperation{Type: OrphanDeployment}, nil
 	case http.StatusConflict:
-		return UpgradeOperation{Type: OperationInProgress}, nil
+		return BOSHOperation{Type: OperationInProgress}, nil
 	case http.StatusInternalServerError:
 		var errorResponse brokerapi.ErrorResponse
 		body, _ := ioutil.ReadAll(response.Body)
 		if err := json.Unmarshal(body, &errorResponse); err != nil {
-			return UpgradeOperation{}, fmt.Errorf(
+			return BOSHOperation{}, fmt.Errorf(
 				"unexpected status code: %d. cannot parse upgrade response: '%s'", response.StatusCode, body,
 			)
 		}
 
-		return UpgradeOperation{}, fmt.Errorf(
+		return BOSHOperation{}, fmt.Errorf(
 			"unexpected status code: %d. description: %s", response.StatusCode, errorResponse.Description,
 		)
 	default:
 		body, _ := ioutil.ReadAll(response.Body)
-		return UpgradeOperation{}, fmt.Errorf(
+		return BOSHOperation{}, fmt.Errorf(
 			"unexpected status code: %d. body: %s", response.StatusCode, string(body),
 		)
 	}

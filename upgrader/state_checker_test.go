@@ -42,7 +42,7 @@ var _ = Describe("State checker", func() {
 		stateChecker = upgrader.NewStateChecker(fakeBrokerService)
 	})
 
-	It("returns UpgradeSucceeded when last operation reports success", func() {
+	It("returns OperationSucceeded when last operation reports success", func() {
 		fakeBrokerService.LastOperationReturns(brokerapi.LastOperation{State: brokerapi.Succeeded}, nil)
 
 		state, err := stateChecker.Check(guid, expectedOperationData)
@@ -54,7 +54,7 @@ var _ = Describe("State checker", func() {
 		Expect(guidArg).To(Equal(guid))
 		Expect(operationData).To(Equal(expectedOperationData))
 
-		Expect(state).To(Equal(services.UpgradeOperation{Type: services.UpgradeSucceeded, Data: expectedOperationData}))
+		Expect(state).To(Equal(services.BOSHOperation{Type: services.OperationSucceeded, Data: expectedOperationData}))
 	})
 
 	It("returns an error if it fails to pull last operation", func() {
@@ -64,13 +64,13 @@ var _ = Describe("State checker", func() {
 		Expect(err).To(MatchError("error getting last operation: oops"))
 	})
 
-	It("returns UpgradeFailed when last operation reports failure", func() {
+	It("returns OperationFailed when last operation reports failure", func() {
 		fakeBrokerService.LastOperationReturns(brokerapi.LastOperation{State: brokerapi.Failed}, nil)
 
 		state, err := stateChecker.Check(guid, expectedOperationData)
 		Expect(err).NotTo(HaveOccurred())
 
-		Expect(state).To(Equal(services.UpgradeOperation{Type: services.UpgradeFailed, Data: expectedOperationData}))
+		Expect(state).To(Equal(services.BOSHOperation{Type: services.OperationFailed, Data: expectedOperationData}))
 	})
 
 	It("returns UpgradeInProgress when last operation reports the upgrade is in progress", func() {
@@ -79,13 +79,13 @@ var _ = Describe("State checker", func() {
 		state, err := stateChecker.Check(guid, expectedOperationData)
 		Expect(err).NotTo(HaveOccurred())
 
-		Expect(state).To(Equal(services.UpgradeOperation{Type: services.UpgradeAccepted, Data: expectedOperationData}))
+		Expect(state).To(Equal(services.BOSHOperation{Type: services.OperationAccepted, Data: expectedOperationData}))
 	})
 
 	It("returns an error if last operation returns an unknown state", func() {
 		fakeBrokerService.LastOperationReturns(brokerapi.LastOperation{State: "not-a-state"}, nil)
 
 		_, err := stateChecker.Check(guid, expectedOperationData)
-		Expect(err).To(MatchError("uknown state from last operation: not-a-state"))
+		Expect(err).To(MatchError("unknown state from last operation: not-a-state"))
 	})
 })

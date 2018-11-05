@@ -33,24 +33,24 @@ func NewStateChecker(brokerServices BrokerServices) *LastOperationChecker {
 	}
 }
 
-func (l *LastOperationChecker) Check(guid string, operationData broker.OperationData) (services.UpgradeOperation, error) {
+func (l *LastOperationChecker) Check(guid string, operationData broker.OperationData) (services.BOSHOperation, error) {
 	lastOperation, err := l.brokerServices.LastOperation(guid, operationData)
 	if err != nil {
-		return services.UpgradeOperation{}, fmt.Errorf("error getting last operation: %s", err)
+		return services.BOSHOperation{}, fmt.Errorf("error getting last operation: %s", err)
 	}
 
-	upgradeOperation := services.UpgradeOperation{Data: operationData, Description: lastOperation.Description}
+	boshOperation := services.BOSHOperation{Data: operationData, Description: lastOperation.Description}
 
 	switch lastOperation.State {
 	case brokerapi.Failed:
-		upgradeOperation.Type = services.UpgradeFailed
+		boshOperation.Type = services.OperationFailed
 	case brokerapi.Succeeded:
-		upgradeOperation.Type = services.UpgradeSucceeded
+		boshOperation.Type = services.OperationSucceeded
 	case brokerapi.InProgress:
-		upgradeOperation.Type = services.UpgradeAccepted
+		boshOperation.Type = services.OperationAccepted
 	default:
-		return services.UpgradeOperation{}, fmt.Errorf("uknown state from last operation: %s", lastOperation.State)
+		return services.BOSHOperation{}, fmt.Errorf("unknown state from last operation: %s", lastOperation.State)
 	}
 
-	return upgradeOperation, nil
+	return boshOperation, nil
 }

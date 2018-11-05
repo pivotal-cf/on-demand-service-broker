@@ -48,11 +48,11 @@ type FakeListener struct {
 		totalInstances int
 		isCanary       bool
 	}
-	InstanceUpgradeStartResultStub        func(instance string, status services.UpgradeOperationType)
+	InstanceUpgradeStartResultStub        func(instance string, status services.BOSHOperationType)
 	instanceUpgradeStartResultMutex       sync.RWMutex
 	instanceUpgradeStartResultArgsForCall []struct {
 		instance string
-		status   services.UpgradeOperationType
+		status   services.BOSHOperationType
 	}
 	InstanceUpgradedStub        func(instance string, result string)
 	instanceUpgradedMutex       sync.RWMutex
@@ -252,11 +252,11 @@ func (fake *FakeListener) InstanceUpgradeStartingArgsForCall(i int) (string, int
 	return fake.instanceUpgradeStartingArgsForCall[i].instance, fake.instanceUpgradeStartingArgsForCall[i].index, fake.instanceUpgradeStartingArgsForCall[i].totalInstances, fake.instanceUpgradeStartingArgsForCall[i].isCanary
 }
 
-func (fake *FakeListener) InstanceUpgradeStartResult(instance string, status services.UpgradeOperationType) {
+func (fake *FakeListener) InstanceUpgradeStartResult(instance string, status services.BOSHOperationType) {
 	fake.instanceUpgradeStartResultMutex.Lock()
 	fake.instanceUpgradeStartResultArgsForCall = append(fake.instanceUpgradeStartResultArgsForCall, struct {
 		instance string
-		status   services.UpgradeOperationType
+		status   services.BOSHOperationType
 	}{instance, status})
 	fake.recordInvocation("InstanceUpgradeStartResult", []interface{}{instance, status})
 	fake.instanceUpgradeStartResultMutex.Unlock()
@@ -271,7 +271,7 @@ func (fake *FakeListener) InstanceUpgradeStartResultCallCount() int {
 	return len(fake.instanceUpgradeStartResultArgsForCall)
 }
 
-func (fake *FakeListener) InstanceUpgradeStartResultArgsForCall(i int) (string, services.UpgradeOperationType) {
+func (fake *FakeListener) InstanceUpgradeStartResultArgsForCall(i int) (string, services.BOSHOperationType) {
 	fake.instanceUpgradeStartResultMutex.RLock()
 	defer fake.instanceUpgradeStartResultMutex.RUnlock()
 	return fake.instanceUpgradeStartResultArgsForCall[i].instance, fake.instanceUpgradeStartResultArgsForCall[i].status
