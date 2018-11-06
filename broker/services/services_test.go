@@ -47,14 +47,14 @@ var _ = Describe("Broker Services", func() {
 		logger = loggerFactory.New()
 	})
 
-	Describe("UpgradeInstance", func() {
+	Describe("ProcessInstance", func() {
 		It("returns an bosh operation", func() {
 			brokerServices = services.NewBrokerServices(client, authHeaderBuilder, "http://test.test", logger)
 			planUniqueID := "unique_plan_id"
 			expectedBody := fmt.Sprintf(`{"plan_id": "%s"}`, planUniqueID)
 			client.DoReturns(response(http.StatusNotFound, ""), nil)
 
-			upgradeOperation, err := brokerServices.UpgradeInstance(service.Instance{
+			upgradeOperation, err := brokerServices.ProcessInstance(service.Instance{
 				GUID:         serviceInstanceGUID,
 				PlanUniqueID: planUniqueID,
 			})
@@ -72,7 +72,7 @@ var _ = Describe("Broker Services", func() {
 		It("returns an error when a new request fails to build", func() {
 			brokerServices = services.NewBrokerServices(client, authHeaderBuilder, "$!%#%!@#$!@%", logger)
 
-			_, err := brokerServices.UpgradeInstance(service.Instance{
+			_, err := brokerServices.ProcessInstance(service.Instance{
 				GUID:         serviceInstanceGUID,
 				PlanUniqueID: "unique_plan_id",
 			})
@@ -83,7 +83,7 @@ var _ = Describe("Broker Services", func() {
 			authHeaderBuilder.AddAuthHeaderReturns(errors.New("oops"))
 			brokerServices = services.NewBrokerServices(client, authHeaderBuilder, "http://test.test", logger)
 
-			_, err := brokerServices.UpgradeInstance(service.Instance{
+			_, err := brokerServices.ProcessInstance(service.Instance{
 				GUID:         serviceInstanceGUID,
 				PlanUniqueID: "unique_plan_id",
 			})
@@ -95,7 +95,7 @@ var _ = Describe("Broker Services", func() {
 				brokerServices = services.NewBrokerServices(client, authHeaderBuilder, "http://test.test", logger)
 				client.DoReturns(nil, errors.New("connection error"))
 
-				_, err := brokerServices.UpgradeInstance(service.Instance{
+				_, err := brokerServices.ProcessInstance(service.Instance{
 					GUID:         serviceInstanceGUID,
 					PlanUniqueID: "",
 				})
@@ -109,7 +109,7 @@ var _ = Describe("Broker Services", func() {
 				brokerServices = services.NewBrokerServices(client, authHeaderBuilder, "http://test.test", logger)
 				client.DoReturns(response(http.StatusInternalServerError, "error upgrading instance"), nil)
 
-				_, err := brokerServices.UpgradeInstance(service.Instance{
+				_, err := brokerServices.ProcessInstance(service.Instance{
 					GUID:         serviceInstanceGUID,
 					PlanUniqueID: "",
 				})

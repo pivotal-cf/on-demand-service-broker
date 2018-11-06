@@ -12,16 +12,16 @@ import (
 )
 
 type FakeBrokerServices struct {
-	UpgradeInstanceStub        func(instance service.Instance) (services.BOSHOperation, error)
-	upgradeInstanceMutex       sync.RWMutex
-	upgradeInstanceArgsForCall []struct {
+	ProcessInstanceStub        func(instance service.Instance) (services.BOSHOperation, error)
+	processInstanceMutex       sync.RWMutex
+	processInstanceArgsForCall []struct {
 		instance service.Instance
 	}
-	upgradeInstanceReturns struct {
+	processInstanceReturns struct {
 		result1 services.BOSHOperation
 		result2 error
 	}
-	upgradeInstanceReturnsOnCall map[int]struct {
+	processInstanceReturnsOnCall map[int]struct {
 		result1 services.BOSHOperation
 		result2 error
 	}
@@ -43,52 +43,52 @@ type FakeBrokerServices struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeBrokerServices) UpgradeInstance(instance service.Instance) (services.BOSHOperation, error) {
-	fake.upgradeInstanceMutex.Lock()
-	ret, specificReturn := fake.upgradeInstanceReturnsOnCall[len(fake.upgradeInstanceArgsForCall)]
-	fake.upgradeInstanceArgsForCall = append(fake.upgradeInstanceArgsForCall, struct {
+func (fake *FakeBrokerServices) ProcessInstance(instance service.Instance) (services.BOSHOperation, error) {
+	fake.processInstanceMutex.Lock()
+	ret, specificReturn := fake.processInstanceReturnsOnCall[len(fake.processInstanceArgsForCall)]
+	fake.processInstanceArgsForCall = append(fake.processInstanceArgsForCall, struct {
 		instance service.Instance
 	}{instance})
-	fake.recordInvocation("UpgradeInstance", []interface{}{instance})
-	fake.upgradeInstanceMutex.Unlock()
-	if fake.UpgradeInstanceStub != nil {
-		return fake.UpgradeInstanceStub(instance)
+	fake.recordInvocation("ProcessInstance", []interface{}{instance})
+	fake.processInstanceMutex.Unlock()
+	if fake.ProcessInstanceStub != nil {
+		return fake.ProcessInstanceStub(instance)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.upgradeInstanceReturns.result1, fake.upgradeInstanceReturns.result2
+	return fake.processInstanceReturns.result1, fake.processInstanceReturns.result2
 }
 
-func (fake *FakeBrokerServices) UpgradeInstanceCallCount() int {
-	fake.upgradeInstanceMutex.RLock()
-	defer fake.upgradeInstanceMutex.RUnlock()
-	return len(fake.upgradeInstanceArgsForCall)
+func (fake *FakeBrokerServices) ProcessInstanceCallCount() int {
+	fake.processInstanceMutex.RLock()
+	defer fake.processInstanceMutex.RUnlock()
+	return len(fake.processInstanceArgsForCall)
 }
 
-func (fake *FakeBrokerServices) UpgradeInstanceArgsForCall(i int) service.Instance {
-	fake.upgradeInstanceMutex.RLock()
-	defer fake.upgradeInstanceMutex.RUnlock()
-	return fake.upgradeInstanceArgsForCall[i].instance
+func (fake *FakeBrokerServices) ProcessInstanceArgsForCall(i int) service.Instance {
+	fake.processInstanceMutex.RLock()
+	defer fake.processInstanceMutex.RUnlock()
+	return fake.processInstanceArgsForCall[i].instance
 }
 
-func (fake *FakeBrokerServices) UpgradeInstanceReturns(result1 services.BOSHOperation, result2 error) {
-	fake.UpgradeInstanceStub = nil
-	fake.upgradeInstanceReturns = struct {
+func (fake *FakeBrokerServices) ProcessInstanceReturns(result1 services.BOSHOperation, result2 error) {
+	fake.ProcessInstanceStub = nil
+	fake.processInstanceReturns = struct {
 		result1 services.BOSHOperation
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeBrokerServices) UpgradeInstanceReturnsOnCall(i int, result1 services.BOSHOperation, result2 error) {
-	fake.UpgradeInstanceStub = nil
-	if fake.upgradeInstanceReturnsOnCall == nil {
-		fake.upgradeInstanceReturnsOnCall = make(map[int]struct {
+func (fake *FakeBrokerServices) ProcessInstanceReturnsOnCall(i int, result1 services.BOSHOperation, result2 error) {
+	fake.ProcessInstanceStub = nil
+	if fake.processInstanceReturnsOnCall == nil {
+		fake.processInstanceReturnsOnCall = make(map[int]struct {
 			result1 services.BOSHOperation
 			result2 error
 		})
 	}
-	fake.upgradeInstanceReturnsOnCall[i] = struct {
+	fake.processInstanceReturnsOnCall[i] = struct {
 		result1 services.BOSHOperation
 		result2 error
 	}{result1, result2}
@@ -149,8 +149,8 @@ func (fake *FakeBrokerServices) LastOperationReturnsOnCall(i int, result1 broker
 func (fake *FakeBrokerServices) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.upgradeInstanceMutex.RLock()
-	defer fake.upgradeInstanceMutex.RUnlock()
+	fake.processInstanceMutex.RLock()
+	defer fake.processInstanceMutex.RUnlock()
 	fake.lastOperationMutex.RLock()
 	defer fake.lastOperationMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

@@ -45,7 +45,7 @@ func NewBrokerServices(client HTTPClient, authHeaderBuilder authorizationheader.
 	}
 }
 
-func (b *BrokerServices) UpgradeInstance(instance service.Instance) (BOSHOperation, error) {
+func (b *BrokerServices) ProcessInstance(instance service.Instance) (BOSHOperation, error) {
 	body := strings.NewReader(fmt.Sprintf(`{"plan_id": "%s"}`, instance.PlanUniqueID))
 	response, err := b.doRequest(
 		http.MethodPatch,

@@ -67,7 +67,7 @@ var _ = Describe("Upgrader", func() {
 
 		It("fails when cannot start upgrading an instance", func() {
 			instanceLister.InstancesReturns([]service.Instance{{GUID: "1"}}, nil)
-			brokerServicesClient.UpgradeInstanceReturns(services.BOSHOperation{}, errors.New("oops"))
+			brokerServicesClient.ProcessInstanceReturns(services.BOSHOperation{}, errors.New("oops"))
 
 			u := upgrader.New(&upgraderBuilder)
 			err := u.Upgrade()
@@ -76,7 +76,7 @@ var _ = Describe("Upgrader", func() {
 
 		It("fails when cannot poll last operation", func() {
 			instanceLister.InstancesReturns([]service.Instance{{GUID: "1"}}, nil)
-			brokerServicesClient.UpgradeInstanceReturns(services.BOSHOperation{Type: services.OperationAccepted}, nil)
+			brokerServicesClient.ProcessInstanceReturns(services.BOSHOperation{Type: services.OperationAccepted}, nil)
 			brokerServicesClient.LastOperationReturns(brokerapi.LastOperation{}, errors.New("oops"))
 
 			u := upgrader.New(&upgraderBuilder)
@@ -89,21 +89,21 @@ var _ = Describe("Upgrader", func() {
 		It("uses the new plan for the upgrade", func() {
 			instanceLister.InstancesReturnsOnCall(0, []service.Instance{{GUID: "1", PlanUniqueID: "plan-id-1"}}, nil)
 			instanceLister.LatestInstanceInfoReturnsOnCall(0, service.Instance{GUID: "1", PlanUniqueID: "plan-id-2"}, nil)
-			brokerServicesClient.UpgradeInstanceReturns(services.BOSHOperation{Type: services.OperationAccepted}, nil)
+			brokerServicesClient.ProcessInstanceReturns(services.BOSHOperation{Type: services.OperationAccepted}, nil)
 			brokerServicesClient.LastOperationReturns(brokerapi.LastOperation{State: brokerapi.Succeeded}, nil)
 
 			upgradeTool := upgrader.New(&upgraderBuilder)
 			err := upgradeTool.Upgrade()
 			Expect(err).NotTo(HaveOccurred())
 
-			instance := brokerServicesClient.UpgradeInstanceArgsForCall(0)
+			instance := brokerServicesClient.ProcessInstanceArgsForCall(0)
 			Expect(instance.PlanUniqueID).To(Equal("plan-id-2"))
 		})
 
 		It("continues the upgrade using the previously fetched info if latest instance info call errors", func() {
 			instanceLister.InstancesReturnsOnCall(0, []service.Instance{{GUID: "1", PlanUniqueID: "plan-id-1"}}, nil)
 			instanceLister.LatestInstanceInfoReturnsOnCall(0, service.Instance{}, errors.New("unexpected error"))
-			brokerServicesClient.UpgradeInstanceReturns(services.BOSHOperation{Type: services.OperationAccepted}, nil)
+			brokerServicesClient.ProcessInstanceReturns(services.BOSHOperation{Type: services.OperationAccepted}, nil)
 			brokerServicesClient.LastOperationReturns(brokerapi.LastOperation{State: brokerapi.Succeeded}, nil)
 
 			upgradeTool := upgrader.New(&upgraderBuilder)

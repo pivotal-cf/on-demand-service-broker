@@ -28,7 +28,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/upgrader/fakes"
 )
 
-var _ = Describe("Upgrade triggerer", func() {
+var _ = Describe("Operation triggerer", func() {
 	var (
 		guid               string
 		instance           service.Instance
@@ -49,11 +49,11 @@ var _ = Describe("Upgrade triggerer", func() {
 		t = upgrader.NewTriggerer(fakeBrokerService, fakeInstanceLister, fakeListener)
 	})
 
-	It("returns UpgradeAccepted when the the instance is ready to be upgraded", func() {
+	It("returns OperationAccepted when the the instance is ready to be processed", func() {
 		fakeInstanceLister.LatestInstanceInfoReturns(latestInstance, nil)
-		fakeBrokerService.UpgradeInstanceReturns(services.BOSHOperation{Type: services.OperationAccepted}, nil)
+		fakeBrokerService.ProcessInstanceReturns(services.BOSHOperation{Type: services.OperationAccepted}, nil)
 
-		operation, err := t.TriggerUpgrade(instance)
+		operation, err := t.TriggerOperation(instance)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(operation).To(Equal(services.BOSHOperation{Type: services.OperationAccepted}))
 
@@ -62,21 +62,22 @@ var _ = Describe("Upgrade triggerer", func() {
 		instanceToCheck := fakeInstanceLister.LatestInstanceInfoArgsForCall(0)
 		Expect(instanceToCheck).To(Equal(instance))
 
-		By("requesting to upgrade an instance")
-		Expect(fakeBrokerService.UpgradeInstanceCallCount()).To(Equal(1))
-		instanceToUpgrade := fakeBrokerService.UpgradeInstanceArgsForCall(0)
-		Expect(instanceToUpgrade).To(Equal(latestInstance))
+		By("requesting to process an instance")
+		Expect(fakeBrokerService.ProcessInstanceCallCount()).To(Equal(1))
+		instanceToProcess := fakeBrokerService.ProcessInstanceArgsForCall(0)
+		Expect(instanceToProcess).To(Equal(latestInstance))
 	})
 
 	It("does not return an error if cannot check the latest instance info", func() {
 		fakeInstanceLister.LatestInstanceInfoReturns(service.Instance{}, errors.New("oops"))
-		operation, err := t.TriggerUpgrade(instance)
+
+		operation, err := t.TriggerOperation(instance)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(operation).To(Equal(services.BOSHOperation{}))
 
-		Expect(fakeBrokerService.UpgradeInstanceCallCount()).To(Equal(1))
-		instanceToUpgrade := fakeBrokerService.UpgradeInstanceArgsForCall(0)
-		Expect(instanceToUpgrade).To(Equal(instance))
+		Expect(fakeBrokerService.ProcessInstanceCallCount()).To(Equal(1))
+		instanceToProcess := fakeBrokerService.ProcessInstanceArgsForCall(0)
+		Expect(instanceToProcess).To(Equal(instance))
 
 		Expect(fakeListener.FailedToRefreshInstanceInfoCallCount()).To(Equal(1))
 		guidArg := fakeListener.FailedToRefreshInstanceInfoArgsForCall(0)
@@ -85,21 +86,23 @@ var _ = Describe("Upgrade triggerer", func() {
 
 	It("returns InstanceNotFound if the instance could not be found", func() {
 		fakeInstanceLister.LatestInstanceInfoReturns(service.Instance{}, service.InstanceNotFound)
-		operation, err := t.TriggerUpgrade(instance)
+		operation, err := t.TriggerOperation(instance)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(operation).To(Equal(services.BOSHOperation{Type: services.InstanceNotFound}))
 	})
 
-	It("returns an error if the upgrade request fails", func() {
-		fakeBrokerService.UpgradeInstanceReturns(services.BOSHOperation{}, errors.New("oops"))
-		_, err := t.TriggerUpgrade(instance)
-		Expect(err).To(MatchError(fmt.Sprintf("Upgrade failed for service instance %s: oops", guid)))
+	It("returns an error if the process instance request fails", func() {
+		fakeBrokerService.ProcessInstanceReturns(services.BOSHOperation{}, errors.New("oops"))
+
+		_, err := t.TriggerOperation(instance)
+		Expect(err).To(MatchError(fmt.Sprintf("Operation type: upgrade failed for service instance %s: oops", guid)))
 	})
 
-	DescribeTable("when upgrades returns",
-		func(upgradeResult services.BOSHOperationType, expectedOperation services.BOSHOperation) {
-			fakeBrokerService.UpgradeInstanceReturns(services.BOSHOperation{Type: upgradeResult}, nil)
-			op, err := t.TriggerUpgrade(instance)
+	DescribeTable("when operation returns",
+		func(operationResult services.BOSHOperationType, expectedOperation services.BOSHOperation) {
+			fakeBrokerService.ProcessInstanceReturns(services.BOSHOperation{Type: operationResult}, nil)
+
+			op, err := t.TriggerOperation(instance)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(op).To(Equal(expectedOperation))
 		},

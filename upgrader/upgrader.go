@@ -40,7 +40,7 @@ type Listener interface {
 
 //go:generate counterfeiter -o fakes/fake_broker_services.go . BrokerServices
 type BrokerServices interface {
-	UpgradeInstance(instance service.Instance) (services.BOSHOperation, error)
+	ProcessInstance(instance service.Instance) (services.BOSHOperation, error)
 	LastOperation(instance string, operationData broker.OperationData) (brokerapi.LastOperation, error)
 }
 
@@ -62,7 +62,7 @@ type instanceFailure struct {
 }
 
 type Triggerer interface {
-	TriggerUpgrade(service.Instance) (services.BOSHOperation, error)
+	TriggerOperation(service.Instance) (services.BOSHOperation, error)
 }
 
 type StateChecker interface {
@@ -237,7 +237,7 @@ func (u *Upgrader) triggerUpgrades() {
 			break
 		}
 		u.listener.InstanceOperationStarting(instance.GUID, u.upgradeState.GetUpgradeIndex(), totalInstances, u.upgradeState.IsProcessingCanaries())
-		operation, err := u.triggerer.TriggerUpgrade(instance)
+		operation, err := u.triggerer.TriggerOperation(instance)
 		if err != nil {
 			u.upgradeState.SetState(instance.GUID, services.OperationFailed)
 			u.failures = append(u.failures, instanceFailure{guid: instance.GUID, err: err})

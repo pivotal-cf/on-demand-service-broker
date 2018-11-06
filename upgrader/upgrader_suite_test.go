@@ -48,7 +48,7 @@ func setupTest(states []*testState, instanceLister *fakes.FakeInstanceLister, br
 		return i, nil
 	}
 
-	brokerServices.UpgradeInstanceStub = func(instance service.Instance) (services.BOSHOperation, error) {
+	brokerServices.ProcessInstanceStub = func(instance service.Instance) (services.BOSHOperation, error) {
 		for _, s := range states {
 			if instance.GUID == s.instance.GUID {
 				s.controller.NotifyStart()

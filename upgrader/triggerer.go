@@ -22,21 +22,23 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/service"
 )
 
-type UpgradeTriggerer struct {
+type OperationTriggerer struct {
 	brokerServices BrokerServices
 	instanceLister InstanceLister
 	logger         Listener
+	operationType  string
 }
 
-func NewTriggerer(brokerServices BrokerServices, instanceLister InstanceLister, listener Listener) *UpgradeTriggerer {
-	return &UpgradeTriggerer{
+func NewTriggerer(brokerServices BrokerServices, instanceLister InstanceLister, listener Listener) *OperationTriggerer {
+	return &OperationTriggerer{
 		brokerServices: brokerServices,
 		instanceLister: instanceLister,
 		logger:         listener,
+		operationType:  "upgrade",
 	}
 }
 
-func (t *UpgradeTriggerer) TriggerUpgrade(instance service.Instance) (services.BOSHOperation, error) {
+func (t *OperationTriggerer) TriggerOperation(instance service.Instance) (services.BOSHOperation, error) {
 	latestInstance, err := t.instanceLister.LatestInstanceInfo(instance)
 	if err != nil {
 		if err == service.InstanceNotFound {
@@ -46,9 +48,9 @@ func (t *UpgradeTriggerer) TriggerUpgrade(instance service.Instance) (services.B
 		t.logger.FailedToRefreshInstanceInfo(instance.GUID)
 	}
 
-	operation, err := t.brokerServices.UpgradeInstance(latestInstance)
+	operation, err := t.brokerServices.ProcessInstance(latestInstance)
 	if err != nil {
-		return services.BOSHOperation{}, fmt.Errorf("Upgrade failed for service instance %s: %s", instance.GUID, err)
+		return services.BOSHOperation{}, fmt.Errorf("Operation type: %s failed for service instance %s: %s", t.operationType, instance.GUID, err)
 	}
 
 	return operation, nil
