@@ -66,7 +66,7 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 
 		By("logging stdout to the errand output")
 		boshOutput := config.BoshClient.RunErrand(config.BrokerBoshDeploymentName, "upgrade-all-service-instances", []string{}, "")
-		Expect(boshOutput.StdOut).To(ContainSubstring("STARTING UPGRADES"))
+		Expect(boshOutput.StdOut).To(ContainSubstring("STARTING OPERATION"))
 
 		expectedBoshTasksOrder := []string{"create deployment", "run errand", "create deployment", "run errand", "create deployment", "run errand"}
 		for _, service := range serviceInstances {
