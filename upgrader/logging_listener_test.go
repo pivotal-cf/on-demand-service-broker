@@ -21,37 +21,32 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/upgrader"
 )
 
-const (
-	ten_seconds = time.Duration(10) * time.Second
-)
-
-var (
-	emptyBusyList   = []string{}
-	emptyFailedList = []string{}
-)
-
 var _ = Describe("Logging Listener", func() {
+	var (
+		operationPrefix = "upgrade-all"
+	)
+
 	It("Logs a refresh service instance info error", func() {
 		Expect(logResultsFrom(func(listener upgrader.Listener) { listener.FailedToRefreshInstanceInfo("GUID") })).
 			To(Say(`\[GUID\] Failed to get refreshed list of instances. Continuing with previously fetched info.`))
 	})
 
 	It("Shows starting message", func() {
-		Expect(logResultsFrom(func(listener upgrader.Listener) { listener.Starting(2) })).
-			To(Say("STARTING UPGRADES with 2 concurrent workers"))
+		Expect(logResultsFromAsString(func(listener upgrader.Listener) { listener.Starting(2) })).
+			To(ContainSubstring("[%s] STARTING with 2 concurrent workers", operationPrefix))
 	})
 
 	It("Shows starting canaries message", func() {
-		Expect(logResultsFrom(func(listener upgrader.Listener) {
+		Expect(logResultsFromAsString(func(listener upgrader.Listener) {
 			listener.CanariesStarting(2, config.CanarySelectionParams{})
 		})).
-			To(Say("STARTING CANARY UPGRADES: 2 canaries"))
+			To(ContainSubstring("[%s] STARTING CANARIES: 2 canaries", operationPrefix))
 	})
 
 	It("Shows starting canaries message with filter params", func() {
 		filter := map[string]string{"org": "my-org", "space": "my-space"}
-		Expect(logResultsFrom(func(listener upgrader.Listener) { listener.CanariesStarting(2, filter) })).
-			To(Say("STARTING CANARY UPGRADES: 2 canaries with selection criteria: "))
+		Expect(logResultsFromAsString(func(listener upgrader.Listener) { listener.CanariesStarting(2, filter) })).
+			To(ContainSubstring("[%s] STARTING CANARIES: 2 canaries with selection criteria: ", operationPrefix))
 		Expect(logResultsFrom(func(listener upgrader.Listener) { listener.CanariesStarting(2, filter) })).
 			To(Say("org: my-org"))
 		Expect(logResultsFrom(func(listener upgrader.Listener) { listener.CanariesStarting(2, filter) })).
@@ -59,8 +54,8 @@ var _ = Describe("Logging Listener", func() {
 	})
 
 	It("Shows canaries finished message", func() {
-		Expect(logResultsFrom(func(listener upgrader.Listener) { listener.CanariesFinished() })).
-			To(Say("FINISHED CANARY UPGRADES"))
+		Expect(logResultsFromAsString(func(listener upgrader.Listener) { listener.CanariesFinished() })).
+			To(ContainSubstring("[%s] FINISHED CANARIES", operationPrefix))
 	})
 
 	It("Shows attempt x of y", func() {
@@ -68,58 +63,60 @@ var _ = Describe("Logging Listener", func() {
 			To(Say("Attempt 2/5"))
 	})
 
-	It("Shows upgrading all instances during first attempt", func() {
-		Expect(logResultsFrom(retryAttempt(1, 5))).
-			To(Say("Upgrading all instances"))
+	It("Shows processing all instances during first attempt", func() {
+		Expect(logResultsFromAsString(retryAttempt(1, 5))).
+			To(ContainSubstring("[%s] Processing all instances", operationPrefix))
 	})
 
-	It("Shows upgrading all remaining instances during later attempts", func() {
-		Expect(logResultsFrom(retryAttempt(3, 5))).
-			To(Say("Upgrading all remaining instances"))
+	It("Shows processing all remaining instances during later attempts", func() {
+		Expect(logResultsFromAsString(retryAttempt(3, 5))).
+			To(ContainSubstring("[%s] Processing all remaining instances", operationPrefix))
 	})
 
-	It("Shows upgrading all canaries during first attempt", func() {
-		Expect(logResultsFrom(retryCanariesAttempt(1, 5, 3))).
-			To(Say("Upgrading all canaries"))
+	It("Shows processing all canaries during first attempt", func() {
+		Expect(logResultsFromAsString(retryCanariesAttempt(1, 5, 3))).
+			To(ContainSubstring("[%s] Processing all canaries", operationPrefix))
 	})
 
-	It("Shows upgrading all remaining canaries during later attempts", func() {
-		Expect(logResultsFrom(retryCanariesAttempt(3, 5, 2))).
-			To(Say("Upgrading 2 remaining canaries"))
+	It("Shows processing all remaining canaries during later attempts", func() {
+		Expect(logResultsFromAsString(retryCanariesAttempt(3, 5, 2))).
+			To(ContainSubstring("[%s] Processing 2 remaining canaries", operationPrefix))
 	})
 
-	It("Shows which instances to upgrade", func() {
-		Expect(logResultsFrom(func(listener upgrader.Listener) {
-			listener.InstancesToUpgrade([]service.Instance{{GUID: "one"}, {GUID: "two"}})
-		})).
-			To(Say("Service Instances: one two"))
+	It("Shows which instances to process", func() {
+		Expect(logResultsFromAsString(func(listener upgrader.Listener) {
+			listener.InstancesToProcess([]service.Instance{{GUID: "one"}, {GUID: "two"}})
+		})).To(SatisfyAll(
+			ContainSubstring("[%s] Service Instances: one two", operationPrefix),
+			ContainSubstring("[%s] Total Service Instances found: 2", operationPrefix),
+		))
 	})
 
-	It("Shows which instance has started upgrading", func() {
-		buffer := logResultsFrom(func(listener upgrader.Listener) {
-			listener.InstanceUpgradeStarting("service-instance", 2, 5, false)
+	It("Shows which instance has started processing", func() {
+		buffer := logResultsFromAsString(func(listener upgrader.Listener) {
+			listener.InstanceOperationStarting("service-instance", 2, 5, false)
 		})
 
-		Expect(buffer).To(Say(`\[service-instance\] Starting to upgrade service instance 2 of 5`))
+		Expect(buffer).To(ContainSubstring("[%s] [service-instance] Starting to process service instance 2 of 5", operationPrefix))
 	})
 
 	It("Suppress instance number if it's a canary", func() {
-		buffer := logResultsFrom(func(listener upgrader.Listener) {
-			listener.InstanceUpgradeStarting("service-instance", 2, 5, true)
+		buffer := logResultsFromAsString(func(listener upgrader.Listener) {
+			listener.InstanceOperationStarting("service-instance", 2, 5, true)
 		})
 
-		Expect(buffer).To(Say(`\[service-instance\] Starting to upgrade service instance\n`))
+		Expect(buffer).To(ContainSubstring("[%s] [service-instance] Starting to process service instance\n", operationPrefix))
 	})
 
-	Describe("instance upgrade start result", func() {
+	Describe("InstanceOperationStartResult()", func() {
 		var (
-			result services.BOSHOperationType
-			buffer *Buffer
+			result       services.BOSHOperationType
+			loggedString string
 		)
 
 		JustBeforeEach(func() {
-			buffer = logResultsFrom(func(listener upgrader.Listener) {
-				listener.InstanceUpgradeStartResult("service-instance", result)
+			loggedString = logResultsFromAsString(func(listener upgrader.Listener) {
+				listener.InstanceOperationStartResult("service-instance", result)
 			})
 		})
 
@@ -128,8 +125,8 @@ var _ = Describe("Logging Listener", func() {
 				result = services.OperationAccepted
 			})
 
-			It("Shows accepted upgrade", func() {
-				Expect(buffer).To(Say(`\[service-instance\] Result: accepted upgrade`))
+			It("Shows accepted operation", func() {
+				Expect(loggedString).To(ContainSubstring("[%s] [service-instance] Result: operation accepted", operationPrefix))
 			})
 		})
 
@@ -139,7 +136,7 @@ var _ = Describe("Logging Listener", func() {
 			})
 
 			It("shows already deleted from platform", func() {
-				Expect(buffer).To(Say(`\[service-instance\] Result: already deleted from platform`))
+				Expect(loggedString).To(ContainSubstring("[%s] [service-instance] Result: already deleted from platform", operationPrefix))
 			})
 		})
 
@@ -149,7 +146,7 @@ var _ = Describe("Logging Listener", func() {
 			})
 
 			It("shows already deleted from platform", func() {
-				Expect(buffer).To(Say(`\[service-instance\] Result: orphan service instance detected - no corresponding bosh deployment`))
+				Expect(loggedString).To(ContainSubstring("[%s] [service-instance] Result: orphan service instance detected - no corresponding bosh deployment", operationPrefix))
 			})
 		})
 
@@ -159,7 +156,7 @@ var _ = Describe("Logging Listener", func() {
 			})
 
 			It("shows already deleted from platform", func() {
-				Expect(buffer).To(Say(`\[service-instance\] Result: operation in progress`))
+				Expect(loggedString).To(ContainSubstring("[%s] [service-instance] Result: operation in progress", operationPrefix))
 			})
 		})
 
@@ -169,86 +166,98 @@ var _ = Describe("Logging Listener", func() {
 			})
 
 			It("shows already deleted from platform", func() {
-				Expect(buffer).To(Say(`\[service-instance\] Result: unexpected result`))
+				Expect(loggedString).To(ContainSubstring("[%s] [service-instance] Result: unexpected result", operationPrefix))
 			})
 		})
 	})
 
 	It("Shows which instance is still in progress", func() {
-		Expect(logResultsFrom(func(listener upgrader.Listener) { listener.WaitingFor("one", 999) })).
-			To(Say(`\[one\] Waiting for upgrade to complete: bosh task id 999`))
+		Expect(logResultsFromAsString(func(listener upgrader.Listener) { listener.WaitingFor("one", 999) })).
+			To(ContainSubstring("[%s] [one] Waiting for operation to complete: bosh task id 999", operationPrefix))
 	})
 
-	It("Shows which instance has been upgraded", func() {
-		Expect(logResultsFrom(func(listener upgrader.Listener) { listener.InstanceUpgraded("one", "success") })).
-			To(Say(`\[one\] Result: Service Instance upgrade success`))
+	It("Shows which instance has been processed", func() {
+		Expect(logResultsFromAsString(func(listener upgrader.Listener) { listener.InstanceOperationFinished("one", "success") })).
+			To(ContainSubstring("[%s] [one] Result: Service Instance operation success", operationPrefix))
 	})
 
 	It("Shows a summary of the progress so far", func() {
-		buffer := logResultsFrom(func(listener upgrader.Listener) {
-			listener.Progress(ten_seconds, 234, 345, 456, 567)
+		result := logResultsFromAsString(func(listener upgrader.Listener) {
+			listener.Progress(time.Duration(10)*time.Second, 234, 345, 456, 567)
 		})
 
-		Expect(buffer).To(Say("Sleep interval until next attempt: 10s"))
-		Expect(buffer).To(Say("Number of successful upgrades so far: 345"))
-		Expect(buffer).To(Say("Number of service instance orphans detected so far: 234"))
-		Expect(buffer).To(Say("Number of deleted instances before upgrade could occur: 567"))
-		Expect(buffer).To(Say("Number of operations in progress \\(to retry\\) so far: 456"))
+		Expect(result).To(SatisfyAll(
+			ContainSubstring("[%s] Progress summary:", operationPrefix),
+			ContainSubstring("Sleep interval until next attempt: 10s"),
+			ContainSubstring("Sleep interval until next attempt: 10s"),
+			ContainSubstring("Number of successful operation so far: 345"),
+			ContainSubstring("Number of service instance orphans detected so far: 234"),
+			ContainSubstring("Number of deleted instances before operation could happen: 567"),
+			ContainSubstring("Number of operations in progress (to retry) so far: 456"),
+		))
 	})
 
 	It("Shows a final summary where we completed successfully", func() {
-		buffer := logResultsFrom(func(listener upgrader.Listener) {
-			listener.Finished(23, 34, 45, emptyBusyList, emptyFailedList)
+		result := logResultsFromAsString(func(listener upgrader.Listener) {
+			listener.Finished(23, 34, 45, nil, nil)
 		})
 
-		Expect(buffer).To(Say("FINISHED UPGRADES Status: SUCCESS; Summary"))
-		Expect(buffer).To(Say("Number of successful upgrades: 34"))
-		Expect(buffer).To(Say("Number of service instance orphans detected: 23"))
-		Expect(buffer).To(Say("Number of deleted instances before upgrade could occur: 45"))
-		Expect(buffer).To(Say("Number of busy instances which could not be upgraded: 0"))
-		Expect(buffer).To(Say("Number of service instances that failed to upgrade: 0"))
-		Expect(buffer).NotTo(Say(`\[\]`))
+		Expect(result).To(SatisfyAll(
+			ContainSubstring("[%s] FINISHED PROCESSING Status: SUCCESS; Summary", operationPrefix),
+			ContainSubstring("Number of successful operations: 34"),
+			ContainSubstring("Number of service instance orphans detected: 23"),
+			ContainSubstring("Number of deleted instances before operation could happen: 45"),
+			ContainSubstring("Number of busy instances which could not be processed: 0"),
+			ContainSubstring("Number of service instances that failed to process: 0"),
+			Not(ContainSubstring("[]")),
+		))
 	})
 
 	It("Shows a final summary where instances could not start", func() {
-		buffer := logResultsFrom(func(listener upgrader.Listener) {
+		result := logResultsFromAsString(func(listener upgrader.Listener) {
 			busyList := make([]string, 56)
-			listener.Finished(23, 34, 45, busyList, emptyFailedList)
+			listener.Finished(23, 34, 45, busyList, nil)
 		})
 
-		Expect(buffer).To(Say("FINISHED UPGRADES Status: FAILED; Summary"))
-		Expect(buffer).To(Say("Number of successful upgrades: 34"))
-		Expect(buffer).To(Say("Number of service instance orphans detected: 23"))
-		Expect(buffer).To(Say("Number of deleted instances before upgrade could occur: 45"))
-		Expect(buffer).To(Say("Number of busy instances which could not be upgraded: 56"))
-		Expect(buffer).To(Say("Number of service instances that failed to upgrade: 0"))
-		Expect(buffer).NotTo(Say(`\[\]`))
+		Expect(result).To(SatisfyAll(
+			ContainSubstring("[%s] FINISHED PROCESSING Status: FAILED; Summary", operationPrefix),
+			ContainSubstring("Number of successful operations: 34"),
+			ContainSubstring("Number of service instance orphans detected: 23"),
+			ContainSubstring("Number of deleted instances before operation could happen: 45"),
+			ContainSubstring("Number of busy instances which could not be processed: 56"),
+			ContainSubstring("Number of service instances that failed to process: 0"),
+			Not(ContainSubstring("[]")),
+		))
 	})
 
-	It("Shows a final summary where a single service instance failed to upgrade", func() {
-		buffer := logResultsFrom(func(listener upgrader.Listener) {
+	It("Shows a final summary where a single service instance failed to process", func() {
+		result := logResultsFromAsString(func(listener upgrader.Listener) {
 			listener.Finished(23, 34, 45, []string{"foo"}, []string{"2f9752c3-887b-4ccb-8693-7c15811ffbdd"})
 		})
 
-		Expect(buffer).To(Say("FINISHED UPGRADES Status: FAILED; Summary"))
-		Expect(buffer).To(Say("Number of successful upgrades: 34"))
-		Expect(buffer).To(Say("Number of service instance orphans detected: 23"))
-		Expect(buffer).To(Say("Number of deleted instances before upgrade could occur: 45"))
-		Expect(buffer).To(Say(`Number of busy instances which could not be upgraded: 1 \[foo\]`))
-		Expect(buffer).To(Say(`Number of service instances that failed to upgrade: 1 \[2f9752c3\-887b\-4ccb\-8693\-7c15811ffbdd\]`))
+		Expect(result).To(SatisfyAll(
+			ContainSubstring("[%s] FINISHED PROCESSING Status: FAILED; Summary", operationPrefix),
+			ContainSubstring("Number of successful operations: 34"),
+			ContainSubstring("Number of service instance orphans detected: 23"),
+			ContainSubstring("Number of deleted instances before operation could happen: 45"),
+			ContainSubstring("Number of busy instances which could not be processed: 1 [foo]"),
+			ContainSubstring("Number of service instances that failed to process: 1 [2f9752c3-887b-4ccb-8693-7c15811ffbdd]"),
+		))
 	})
 
-	It("Shows a final summary where multiple services instance failed to upgrade", func() {
-		buffer := logResultsFrom(func(listener upgrader.Listener) {
+	It("Shows a final summary where multiple services instances failed the operation", func() {
+		result := logResultsFromAsString(func(listener upgrader.Listener) {
 			listener.Finished(23, 34, 45, make([]string, 56), []string{"2f9752c3-887b-4ccb-8693-7c15811ffbdd", "7a2c7adb-1d47-4355-af39-41c5a2892b92"})
 		})
 
-		Expect(buffer).To(Say("FINISHED UPGRADES Status: FAILED; Summary"))
-		Expect(buffer).To(Say("Number of successful upgrades: 34"))
-		Expect(buffer).To(Say("Number of service instance orphans detected: 23"))
-		Expect(buffer).To(Say("Number of deleted instances before upgrade could occur: 45"))
-		Expect(buffer).To(Say("Number of busy instances which could not be upgraded: 56"))
-		Expect(buffer).To(Say(`Number of service instances that failed to upgrade: 2 \[2f9752c3\-887b\-4ccb\-8693\-7c15811ffbdd, 7a2c7adb\-1d47\-4355\-af39\-41c5a2892b92\]`))
+		Expect(result).To(SatisfyAll(
+			ContainSubstring("[%s] FINISHED PROCESSING Status: FAILED; Summary", operationPrefix),
+			ContainSubstring("Number of successful operations: 34"),
+			ContainSubstring("Number of service instance orphans detected: 23"),
+			ContainSubstring("Number of deleted instances before operation could happen: 45"),
+			ContainSubstring("Number of busy instances which could not be processed: 56"),
+			ContainSubstring("Number of service instances that failed to process: 2 [2f9752c3-887b-4ccb-8693-7c15811ffbdd, 7a2c7adb-1d47-4355-af39-41c5a2892b92]"),
+		))
 	})
 })
 
@@ -260,6 +269,16 @@ func logResultsFrom(action func(listener upgrader.Listener)) *Buffer {
 	action(listener)
 
 	return logBuffer
+}
+
+func logResultsFromAsString(action func(listener upgrader.Listener)) string {
+	logBuffer := NewBuffer()
+	loggerFactory := loggerfactory.New(io.MultiWriter(GinkgoWriter, logBuffer), "logging-listener-tests", log.LstdFlags)
+	listener := upgrader.NewLoggingListener(loggerFactory.New())
+
+	action(listener)
+
+	return string(logBuffer.Contents())
 }
 
 func retryAttempt(num, limit int) func(listener upgrader.Listener) {

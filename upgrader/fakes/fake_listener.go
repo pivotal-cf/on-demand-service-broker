@@ -35,28 +35,28 @@ type FakeListener struct {
 		limit             int
 		remainingCanaries int
 	}
-	InstancesToUpgradeStub        func(instances []service.Instance)
-	instancesToUpgradeMutex       sync.RWMutex
-	instancesToUpgradeArgsForCall []struct {
+	InstancesToProcessStub        func(instances []service.Instance)
+	instancesToProcessMutex       sync.RWMutex
+	instancesToProcessArgsForCall []struct {
 		instances []service.Instance
 	}
-	InstanceUpgradeStartingStub        func(instance string, index int, totalInstances int, isCanary bool)
-	instanceUpgradeStartingMutex       sync.RWMutex
-	instanceUpgradeStartingArgsForCall []struct {
+	InstanceOperationStartingStub        func(instance string, index int, totalInstances int, isCanary bool)
+	instanceOperationStartingMutex       sync.RWMutex
+	instanceOperationStartingArgsForCall []struct {
 		instance       string
 		index          int
 		totalInstances int
 		isCanary       bool
 	}
-	InstanceUpgradeStartResultStub        func(instance string, status services.BOSHOperationType)
-	instanceUpgradeStartResultMutex       sync.RWMutex
-	instanceUpgradeStartResultArgsForCall []struct {
+	InstanceOperationStartResultStub        func(instance string, status services.BOSHOperationType)
+	instanceOperationStartResultMutex       sync.RWMutex
+	instanceOperationStartResultArgsForCall []struct {
 		instance string
 		status   services.BOSHOperationType
 	}
-	InstanceUpgradedStub        func(instance string, result string)
-	instanceUpgradedMutex       sync.RWMutex
-	instanceUpgradedArgsForCall []struct {
+	InstanceOperationFinishedStub        func(instance string, result string)
+	instanceOperationFinishedMutex       sync.RWMutex
+	instanceOperationFinishedArgsForCall []struct {
 		instance string
 		result   string
 	}
@@ -196,110 +196,110 @@ func (fake *FakeListener) RetryCanariesAttemptArgsForCall(i int) (int, int, int)
 	return fake.retryCanariesAttemptArgsForCall[i].num, fake.retryCanariesAttemptArgsForCall[i].limit, fake.retryCanariesAttemptArgsForCall[i].remainingCanaries
 }
 
-func (fake *FakeListener) InstancesToUpgrade(instances []service.Instance) {
+func (fake *FakeListener) InstancesToProcess(instances []service.Instance) {
 	var instancesCopy []service.Instance
 	if instances != nil {
 		instancesCopy = make([]service.Instance, len(instances))
 		copy(instancesCopy, instances)
 	}
-	fake.instancesToUpgradeMutex.Lock()
-	fake.instancesToUpgradeArgsForCall = append(fake.instancesToUpgradeArgsForCall, struct {
+	fake.instancesToProcessMutex.Lock()
+	fake.instancesToProcessArgsForCall = append(fake.instancesToProcessArgsForCall, struct {
 		instances []service.Instance
 	}{instancesCopy})
-	fake.recordInvocation("InstancesToUpgrade", []interface{}{instancesCopy})
-	fake.instancesToUpgradeMutex.Unlock()
-	if fake.InstancesToUpgradeStub != nil {
-		fake.InstancesToUpgradeStub(instances)
+	fake.recordInvocation("InstancesToProcess", []interface{}{instancesCopy})
+	fake.instancesToProcessMutex.Unlock()
+	if fake.InstancesToProcessStub != nil {
+		fake.InstancesToProcessStub(instances)
 	}
 }
 
-func (fake *FakeListener) InstancesToUpgradeCallCount() int {
-	fake.instancesToUpgradeMutex.RLock()
-	defer fake.instancesToUpgradeMutex.RUnlock()
-	return len(fake.instancesToUpgradeArgsForCall)
+func (fake *FakeListener) InstancesToProcessCallCount() int {
+	fake.instancesToProcessMutex.RLock()
+	defer fake.instancesToProcessMutex.RUnlock()
+	return len(fake.instancesToProcessArgsForCall)
 }
 
-func (fake *FakeListener) InstancesToUpgradeArgsForCall(i int) []service.Instance {
-	fake.instancesToUpgradeMutex.RLock()
-	defer fake.instancesToUpgradeMutex.RUnlock()
-	return fake.instancesToUpgradeArgsForCall[i].instances
+func (fake *FakeListener) InstancesToProcessArgsForCall(i int) []service.Instance {
+	fake.instancesToProcessMutex.RLock()
+	defer fake.instancesToProcessMutex.RUnlock()
+	return fake.instancesToProcessArgsForCall[i].instances
 }
 
-func (fake *FakeListener) InstanceUpgradeStarting(instance string, index int, totalInstances int, isCanary bool) {
-	fake.instanceUpgradeStartingMutex.Lock()
-	fake.instanceUpgradeStartingArgsForCall = append(fake.instanceUpgradeStartingArgsForCall, struct {
+func (fake *FakeListener) InstanceOperationStarting(instance string, index int, totalInstances int, isCanary bool) {
+	fake.instanceOperationStartingMutex.Lock()
+	fake.instanceOperationStartingArgsForCall = append(fake.instanceOperationStartingArgsForCall, struct {
 		instance       string
 		index          int
 		totalInstances int
 		isCanary       bool
 	}{instance, index, totalInstances, isCanary})
-	fake.recordInvocation("InstanceUpgradeStarting", []interface{}{instance, index, totalInstances, isCanary})
-	fake.instanceUpgradeStartingMutex.Unlock()
-	if fake.InstanceUpgradeStartingStub != nil {
-		fake.InstanceUpgradeStartingStub(instance, index, totalInstances, isCanary)
+	fake.recordInvocation("InstanceOperationStarting", []interface{}{instance, index, totalInstances, isCanary})
+	fake.instanceOperationStartingMutex.Unlock()
+	if fake.InstanceOperationStartingStub != nil {
+		fake.InstanceOperationStartingStub(instance, index, totalInstances, isCanary)
 	}
 }
 
-func (fake *FakeListener) InstanceUpgradeStartingCallCount() int {
-	fake.instanceUpgradeStartingMutex.RLock()
-	defer fake.instanceUpgradeStartingMutex.RUnlock()
-	return len(fake.instanceUpgradeStartingArgsForCall)
+func (fake *FakeListener) InstanceOperationStartingCallCount() int {
+	fake.instanceOperationStartingMutex.RLock()
+	defer fake.instanceOperationStartingMutex.RUnlock()
+	return len(fake.instanceOperationStartingArgsForCall)
 }
 
-func (fake *FakeListener) InstanceUpgradeStartingArgsForCall(i int) (string, int, int, bool) {
-	fake.instanceUpgradeStartingMutex.RLock()
-	defer fake.instanceUpgradeStartingMutex.RUnlock()
-	return fake.instanceUpgradeStartingArgsForCall[i].instance, fake.instanceUpgradeStartingArgsForCall[i].index, fake.instanceUpgradeStartingArgsForCall[i].totalInstances, fake.instanceUpgradeStartingArgsForCall[i].isCanary
+func (fake *FakeListener) InstanceOperationStartingArgsForCall(i int) (string, int, int, bool) {
+	fake.instanceOperationStartingMutex.RLock()
+	defer fake.instanceOperationStartingMutex.RUnlock()
+	return fake.instanceOperationStartingArgsForCall[i].instance, fake.instanceOperationStartingArgsForCall[i].index, fake.instanceOperationStartingArgsForCall[i].totalInstances, fake.instanceOperationStartingArgsForCall[i].isCanary
 }
 
-func (fake *FakeListener) InstanceUpgradeStartResult(instance string, status services.BOSHOperationType) {
-	fake.instanceUpgradeStartResultMutex.Lock()
-	fake.instanceUpgradeStartResultArgsForCall = append(fake.instanceUpgradeStartResultArgsForCall, struct {
+func (fake *FakeListener) InstanceOperationStartResult(instance string, status services.BOSHOperationType) {
+	fake.instanceOperationStartResultMutex.Lock()
+	fake.instanceOperationStartResultArgsForCall = append(fake.instanceOperationStartResultArgsForCall, struct {
 		instance string
 		status   services.BOSHOperationType
 	}{instance, status})
-	fake.recordInvocation("InstanceUpgradeStartResult", []interface{}{instance, status})
-	fake.instanceUpgradeStartResultMutex.Unlock()
-	if fake.InstanceUpgradeStartResultStub != nil {
-		fake.InstanceUpgradeStartResultStub(instance, status)
+	fake.recordInvocation("InstanceOperationStartResult", []interface{}{instance, status})
+	fake.instanceOperationStartResultMutex.Unlock()
+	if fake.InstanceOperationStartResultStub != nil {
+		fake.InstanceOperationStartResultStub(instance, status)
 	}
 }
 
-func (fake *FakeListener) InstanceUpgradeStartResultCallCount() int {
-	fake.instanceUpgradeStartResultMutex.RLock()
-	defer fake.instanceUpgradeStartResultMutex.RUnlock()
-	return len(fake.instanceUpgradeStartResultArgsForCall)
+func (fake *FakeListener) InstanceOperationStartResultCallCount() int {
+	fake.instanceOperationStartResultMutex.RLock()
+	defer fake.instanceOperationStartResultMutex.RUnlock()
+	return len(fake.instanceOperationStartResultArgsForCall)
 }
 
-func (fake *FakeListener) InstanceUpgradeStartResultArgsForCall(i int) (string, services.BOSHOperationType) {
-	fake.instanceUpgradeStartResultMutex.RLock()
-	defer fake.instanceUpgradeStartResultMutex.RUnlock()
-	return fake.instanceUpgradeStartResultArgsForCall[i].instance, fake.instanceUpgradeStartResultArgsForCall[i].status
+func (fake *FakeListener) InstanceOperationStartResultArgsForCall(i int) (string, services.BOSHOperationType) {
+	fake.instanceOperationStartResultMutex.RLock()
+	defer fake.instanceOperationStartResultMutex.RUnlock()
+	return fake.instanceOperationStartResultArgsForCall[i].instance, fake.instanceOperationStartResultArgsForCall[i].status
 }
 
-func (fake *FakeListener) InstanceUpgraded(instance string, result string) {
-	fake.instanceUpgradedMutex.Lock()
-	fake.instanceUpgradedArgsForCall = append(fake.instanceUpgradedArgsForCall, struct {
+func (fake *FakeListener) InstanceOperationFinished(instance string, result string) {
+	fake.instanceOperationFinishedMutex.Lock()
+	fake.instanceOperationFinishedArgsForCall = append(fake.instanceOperationFinishedArgsForCall, struct {
 		instance string
 		result   string
 	}{instance, result})
-	fake.recordInvocation("InstanceUpgraded", []interface{}{instance, result})
-	fake.instanceUpgradedMutex.Unlock()
-	if fake.InstanceUpgradedStub != nil {
-		fake.InstanceUpgradedStub(instance, result)
+	fake.recordInvocation("InstanceOperationFinished", []interface{}{instance, result})
+	fake.instanceOperationFinishedMutex.Unlock()
+	if fake.InstanceOperationFinishedStub != nil {
+		fake.InstanceOperationFinishedStub(instance, result)
 	}
 }
 
-func (fake *FakeListener) InstanceUpgradedCallCount() int {
-	fake.instanceUpgradedMutex.RLock()
-	defer fake.instanceUpgradedMutex.RUnlock()
-	return len(fake.instanceUpgradedArgsForCall)
+func (fake *FakeListener) InstanceOperationFinishedCallCount() int {
+	fake.instanceOperationFinishedMutex.RLock()
+	defer fake.instanceOperationFinishedMutex.RUnlock()
+	return len(fake.instanceOperationFinishedArgsForCall)
 }
 
-func (fake *FakeListener) InstanceUpgradedArgsForCall(i int) (string, string) {
-	fake.instanceUpgradedMutex.RLock()
-	defer fake.instanceUpgradedMutex.RUnlock()
-	return fake.instanceUpgradedArgsForCall[i].instance, fake.instanceUpgradedArgsForCall[i].result
+func (fake *FakeListener) InstanceOperationFinishedArgsForCall(i int) (string, string) {
+	fake.instanceOperationFinishedMutex.RLock()
+	defer fake.instanceOperationFinishedMutex.RUnlock()
+	return fake.instanceOperationFinishedArgsForCall[i].instance, fake.instanceOperationFinishedArgsForCall[i].result
 }
 
 func (fake *FakeListener) WaitingFor(instance string, boshTaskId int) {
@@ -445,14 +445,14 @@ func (fake *FakeListener) Invocations() map[string][][]interface{} {
 	defer fake.retryAttemptMutex.RUnlock()
 	fake.retryCanariesAttemptMutex.RLock()
 	defer fake.retryCanariesAttemptMutex.RUnlock()
-	fake.instancesToUpgradeMutex.RLock()
-	defer fake.instancesToUpgradeMutex.RUnlock()
-	fake.instanceUpgradeStartingMutex.RLock()
-	defer fake.instanceUpgradeStartingMutex.RUnlock()
-	fake.instanceUpgradeStartResultMutex.RLock()
-	defer fake.instanceUpgradeStartResultMutex.RUnlock()
-	fake.instanceUpgradedMutex.RLock()
-	defer fake.instanceUpgradedMutex.RUnlock()
+	fake.instancesToProcessMutex.RLock()
+	defer fake.instancesToProcessMutex.RUnlock()
+	fake.instanceOperationStartingMutex.RLock()
+	defer fake.instanceOperationStartingMutex.RUnlock()
+	fake.instanceOperationStartResultMutex.RLock()
+	defer fake.instanceOperationStartResultMutex.RUnlock()
+	fake.instanceOperationFinishedMutex.RLock()
+	defer fake.instanceOperationFinishedMutex.RUnlock()
 	fake.waitingForMutex.RLock()
 	defer fake.waitingForMutex.RUnlock()
 	fake.progressMutex.RLock()

@@ -18,57 +18,60 @@ import (
 )
 
 type LoggingListener struct {
-	logger *log.Logger
+	logger          *log.Logger
+	operationPrefix string
 }
 
 func NewLoggingListener(logger *log.Logger) Listener {
-	return LoggingListener{logger: logger}
+	return LoggingListener{
+		logger:          logger,
+		operationPrefix: "upgrade-all",
+	}
 }
 
 func (ll LoggingListener) Starting(maxInFlight int) {
-	ll.logger.Printf("STARTING UPGRADES with %d concurrent workers\n", maxInFlight)
+	ll.printf("STARTING with %d concurrent workers\n", maxInFlight)
 }
 
 func (ll LoggingListener) RetryAttempt(num, limit int) {
-	var remaining string
-	typeOfUpgrade := "instances"
 	if num > 1 {
-		remaining = "remaining "
+		ll.printf("Processing all remaining instances. Attempt %d/%d\n", num, limit)
+	} else {
+		ll.printf("Processing all instances. Attempt %d/%d\n", num, limit)
 	}
-	ll.logger.Printf("Upgrading all %s%s. Attempt %d/%d\n", remaining, typeOfUpgrade, num, limit)
 }
 
 func (ll LoggingListener) RetryCanariesAttempt(attempt, limit, remainingCanaries int) {
-	remaining := "all"
 	if attempt > 1 {
-		remaining = fmt.Sprintf("%d remaining", remainingCanaries)
+		ll.printf("Processing %d remaining canaries. Attempt %d/%d\n", remainingCanaries, attempt, limit)
+	} else {
+		ll.printf("Processing all canaries. Attempt %d/%d\n", attempt, limit)
 	}
-	ll.logger.Printf("Upgrading %s canaries. Attempt %d/%d\n", remaining, attempt, limit)
 }
 
-func (ll LoggingListener) InstancesToUpgrade(instances []service.Instance) {
+func (ll LoggingListener) InstancesToProcess(instances []service.Instance) {
 	msg := "Service Instances:"
 	for _, instance := range instances {
 		msg = fmt.Sprintf("%s %s", msg, instance.GUID)
 	}
-	ll.logger.Println(msg)
-	ll.logger.Printf("Total Service Instances found in Cloud Foundry: %d\n", len(instances))
+	ll.println(msg)
+	ll.printf("Total Service Instances found: %d\n", len(instances))
 }
 
-func (ll LoggingListener) InstanceUpgradeStarting(instance string, index, totalInstances int, isCanary bool) {
+func (ll LoggingListener) InstanceOperationStarting(instance string, index, totalInstances int, isCanary bool) {
 	var instanceCount string
 	if !isCanary {
 		instanceCount = fmt.Sprintf(" %d of %d", index, totalInstances)
 	}
-	ll.logger.Printf("[%s] Starting to upgrade service instance%s", instance, instanceCount)
+	ll.printf("[%s] Starting to process service instance%s", instance, instanceCount)
 }
 
-func (ll LoggingListener) InstanceUpgradeStartResult(instance string, resultType services.BOSHOperationType) {
+func (ll LoggingListener) InstanceOperationStartResult(instance string, resultType services.BOSHOperationType) {
 	var message string
 
 	switch resultType {
 	case services.OperationAccepted:
-		message = "accepted upgrade"
+		message = "operation accepted"
 	case services.InstanceNotFound:
 		message = "already deleted from platform"
 	case services.OrphanDeployment:
@@ -79,33 +82,33 @@ func (ll LoggingListener) InstanceUpgradeStartResult(instance string, resultType
 		message = "unexpected result"
 	}
 
-	ll.logger.Printf("[%s] Result: %s", instance, message)
+	ll.printf("[%s] Result: %s", instance, message)
 }
 
-func (ll LoggingListener) InstanceUpgraded(instance string, result string) {
-	ll.logger.Printf("[%s] Result: Service Instance upgrade %s\n", instance, result)
+func (ll LoggingListener) InstanceOperationFinished(instance string, result string) {
+	ll.printf("[%s] Result: Service Instance operation %s\n", instance, result)
 }
 
 func (ll LoggingListener) WaitingFor(instance string, boshTaskId int) {
-	ll.logger.Printf("[%s] Waiting for upgrade to complete: bosh task id %d", instance, boshTaskId)
+	ll.printf("[%s] Waiting for operation to complete: bosh task id %d", instance, boshTaskId)
 }
 
-func (ll LoggingListener) Progress(pollingInterval time.Duration, orphanCount, upgradedCount, toRetryCount, deletedCount int) {
-	ll.logger.Printf("Upgrade progress summary: "+
+func (ll LoggingListener) Progress(pollingInterval time.Duration, orphanCount, processCount, toRetryCount, deletedCount int) {
+	ll.printf("Progress summary: "+
 		"Sleep interval until next attempt: %s; "+
-		"Number of successful upgrades so far: %d; "+
+		"Number of successful operation so far: %d; "+
 		"Number of service instance orphans detected so far: %d; "+
-		"Number of deleted instances before upgrade could occur: %d; "+
+		"Number of deleted instances before operation could happen: %d; "+
 		"Number of operations in progress (to retry) so far: %d",
 		pollingInterval,
-		upgradedCount,
+		processCount,
 		orphanCount,
 		deletedCount,
 		toRetryCount,
 	)
 }
 
-func (ll LoggingListener) Finished(orphanCount, upgradedCount, deletedCount int, busyInstances, failedInstances []string) {
+func (ll LoggingListener) Finished(orphanCount, finishedCount, deletedCount int, busyInstances, failedInstances []string) {
 	var failedList string
 	var busyList string
 	if len(failedInstances) > 0 {
@@ -120,14 +123,14 @@ func (ll LoggingListener) Finished(orphanCount, upgradedCount, deletedCount int,
 		status = "FAILED"
 	}
 
-	ll.logger.Printf("FINISHED UPGRADES Status: %s; Summary: "+
-		"Number of successful upgrades: %d; "+
+	ll.printf("FINISHED PROCESSING Status: %s; Summary: "+
+		"Number of successful operations: %d; "+
 		"Number of service instance orphans detected: %d; "+
-		"Number of deleted instances before upgrade could occur: %d; "+
-		"Number of busy instances which could not be upgraded: %d%s; "+
-		"Number of service instances that failed to upgrade: %d%s",
+		"Number of deleted instances before operation could happen: %d; "+
+		"Number of busy instances which could not be processed: %d%s; "+
+		"Number of service instances that failed to process: %d%s",
 		status,
-		upgradedCount,
+		finishedCount,
 		orphanCount,
 		deletedCount,
 		len(busyInstances),
@@ -138,17 +141,26 @@ func (ll LoggingListener) Finished(orphanCount, upgradedCount, deletedCount int,
 }
 
 func (ll LoggingListener) CanariesStarting(canaries int, filter config.CanarySelectionParams) {
-	msg := fmt.Sprintf("STARTING CANARY UPGRADES: %d canaries", canaries)
+	msg := fmt.Sprintf("STARTING CANARIES: %d canaries", canaries)
 	if len(filter) > 0 {
 		msg = fmt.Sprintf("%s with selection criteria: %s", msg, filter)
 	}
-	ll.logger.Println(msg)
+	ll.println(msg)
 }
 
 func (ll LoggingListener) CanariesFinished() {
-	ll.logger.Printf("FINISHED CANARY UPGRADES")
+	ll.printf("FINISHED CANARIES")
 }
 
 func (ll LoggingListener) FailedToRefreshInstanceInfo(instance string) {
 	ll.logger.Printf("[%s] Failed to get refreshed list of instances. Continuing with previously fetched info.\n", instance)
+}
+
+func (ll LoggingListener) printf(args ...interface{}) {
+	mask := fmt.Sprintf("[%s] %s", ll.operationPrefix, args[0])
+	ll.logger.Printf(mask, args[1:]...)
+}
+
+func (ll LoggingListener) println(msg string) {
+	ll.printf(msg + "\n")
 }

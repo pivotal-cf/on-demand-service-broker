@@ -224,7 +224,7 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 
 			Eventually(runningTool, 5*time.Second).Should(gexec.Exit(0))
 			Expect(runningTool).To(gbytes.Say("Sleep interval until next attempt: 2s"))
-			Expect(runningTool).To(gbytes.Say("Number of successful upgrades: 1"))
+			Expect(runningTool).To(gbytes.Say("Number of successful operations: 1"))
 		})
 
 		It("returns unauthorised when incorrect service instances API username provided", func() {
@@ -309,7 +309,7 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 
 			Eventually(runningTool, 5*time.Second).Should(gexec.Exit(0))
 			Expect(runningTool).To(gbytes.Say("Sleep interval until next attempt: 2s"))
-			Expect(runningTool).To(gbytes.Say("Number of successful upgrades: 1"))
+			Expect(runningTool).To(gbytes.Say("Number of successful operations: 1"))
 		})
 
 		It("exits 1 when SIAPI server has TLS enabled but root CA has not been provided to errand", func() {
@@ -370,9 +370,9 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 
 		runningTool := startUpgradeAllInstanceBinary()
 		Eventually(runningTool, 5*time.Second).Should(gexec.Exit(0))
-		Expect(runningTool).To(gbytes.Say("STARTING CANARY UPGRADES: 1 canaries"))
-		Expect(runningTool).To(gbytes.Say("Status: SUCCESS"))
-		Expect(runningTool).To(gbytes.Say("Number of successful upgrades: 2"))
+		Expect(runningTool).To(gbytes.Say(`\[upgrade\-all\] STARTING CANARIES: 1 canaries`))
+		Expect(runningTool).To(gbytes.Say(`\[upgrade\-all\] FINISHED PROCESSING Status: SUCCESS`))
+		Expect(runningTool).To(gbytes.Say("Number of successful operations: 2"))
 	})
 
 	It("uses the canary_selection_params but returns an error if no instances found but instances exist", func() {
@@ -442,8 +442,8 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 
 		Eventually(runningTool, 5*time.Second).Should(gexec.Exit(0))
 		Expect(runningTool).To(gbytes.Say("Sleep interval until next attempt: 2s"))
-		Expect(runningTool).To(gbytes.Say("Status: SUCCESS"))
-		Expect(runningTool).To(gbytes.Say("Number of successful upgrades: 1"))
+		Expect(runningTool).To(gbytes.Say(`\[upgrade\-all\] FINISHED PROCESSING Status: SUCCESS`))
+		Expect(runningTool).To(gbytes.Say("Number of successful operations: 1"))
 	})
 
 	It("when there is one service instance which fails to upgrade, exits with failure and shows summary message", func() {
@@ -471,7 +471,7 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 
 		Eventually(runningTool, 5*time.Second).Should(gexec.Exit(1))
 		Expect(runningTool).To(gbytes.Say("Status: FAILED"))
-		Expect(runningTool).To(gbytes.Say(fmt.Sprintf(`Number of service instances that failed to upgrade: 1 \[%s\]`, instanceID)))
+		Expect(runningTool).To(gbytes.Say(fmt.Sprintf(`Number of service instances that failed to process: 1 \[%s\]`, instanceID)))
 	})
 
 	Context("when the attempt limit is reached", func() {
@@ -498,9 +498,9 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 			runningTool := startUpgradeAllInstanceBinary()
 
 			Eventually(runningTool, 5*time.Second).Should(gexec.Exit(1))
-			Expect(runningTool).To(gbytes.Say("Upgrading all instances. Attempt 1/2"))
-			Expect(runningTool).To(gbytes.Say("Upgrading all remaining instances. Attempt 2/2"))
-			Expect(runningTool).To(gbytes.Say("Number of busy instances which could not be upgraded: 1"))
+			Expect(runningTool).To(gbytes.Say(`\[upgrade\-all\] Processing all instances. Attempt 1/2`))
+			Expect(runningTool).To(gbytes.Say(`\[upgrade\-all\] Processing all remaining instances. Attempt 2/2`))
+			Expect(runningTool).To(gbytes.Say("Number of busy instances which could not be processed: 1"))
 			Expect(runningTool).To(gbytes.Say(fmt.Sprintf("The following instances could not be upgraded: %s", instanceID)))
 		})
 	})
@@ -556,8 +556,8 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 
 			Eventually(runningTool, 5*time.Second).Should(gexec.Exit(0))
 			Expect(runningTool).To(gbytes.Say("Sleep interval until next attempt: 2s"))
-			Expect(runningTool).To(gbytes.Say("Status: SUCCESS"))
-			Expect(runningTool).To(gbytes.Say("Number of successful upgrades: 1"))
+			Expect(runningTool).To(gbytes.Say(`\[upgrade\-all\] FINISHED PROCESSING Status: SUCCESS`))
+			Expect(runningTool).To(gbytes.Say("Number of successful operations: 1"))
 		})
 	})
 
@@ -582,9 +582,9 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 			runningTool := startUpgradeAllInstanceBinary()
 
 			Eventually(runningTool, 5*time.Second).Should(gexec.Exit(0))
-			Expect(runningTool).To(gbytes.Say("Status: SUCCESS"))
-			Expect(runningTool).To(gbytes.Say("Number of successful upgrades: 0"))
-			Expect(runningTool).To(gbytes.Say("Number of deleted instances before upgrade could occur: 1"))
+			Expect(runningTool).To(gbytes.Say(`\[upgrade\-all\] FINISHED PROCESSING Status: SUCCESS`))
+			Expect(runningTool).To(gbytes.Say("Number of successful operations: 0"))
+			Expect(runningTool).To(gbytes.Say("Number of deleted instances before operation could happen: 1"))
 		})
 	})
 
@@ -617,8 +617,8 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 			Eventually(runningTool, 5*time.Second).Should(gexec.Exit(0))
 
 			Expect(runningTool).To(gbytes.Say("Failed to get refreshed list of instances. Continuing with previously fetched info"))
-			Expect(runningTool).To(gbytes.Say("Status: SUCCESS"))
-			Expect(runningTool).To(gbytes.Say("Number of successful upgrades: 1"))
+			Expect(runningTool).To(gbytes.Say(`\[upgrade\-all\] FINISHED PROCESSING Status: SUCCESS`))
+			Expect(runningTool).To(gbytes.Say("Number of successful operations: 1"))
 		})
 	})
 })

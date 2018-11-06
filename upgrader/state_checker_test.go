@@ -73,7 +73,7 @@ var _ = Describe("State checker", func() {
 		Expect(state).To(Equal(services.BOSHOperation{Type: services.OperationFailed, Data: expectedOperationData}))
 	})
 
-	It("returns UpgradeInProgress when last operation reports the upgrade is in progress", func() {
+	It("returns OperationAccepted when last operation reports the upgrade is in progress", func() {
 		fakeBrokerService.LastOperationReturns(brokerapi.LastOperation{State: brokerapi.InProgress}, nil)
 
 		state, err := stateChecker.Check(guid, expectedOperationData)

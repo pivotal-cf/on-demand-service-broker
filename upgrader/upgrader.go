@@ -27,10 +27,10 @@ type Listener interface {
 	Starting(maxInFlight int)
 	RetryAttempt(num, limit int)
 	RetryCanariesAttempt(num, limit, remainingCanaries int)
-	InstancesToUpgrade(instances []service.Instance)
-	InstanceUpgradeStarting(instance string, index int, totalInstances int, isCanary bool)
-	InstanceUpgradeStartResult(instance string, status services.BOSHOperationType)
-	InstanceUpgraded(instance string, result string)
+	InstancesToProcess(instances []service.Instance)
+	InstanceOperationStarting(instance string, index int, totalInstances int, isCanary bool)
+	InstanceOperationStartResult(instance string, status services.BOSHOperationType)
+	InstanceOperationFinished(instance string, result string)
 	WaitingFor(instance string, boshTaskId int)
 	Progress(pollingInterval time.Duration, orphanCount, upgradedCount, upgradesLeftCount, deletedCount int)
 	Finished(orphanCount, upgradedCount, deletedCount int, busyInstances, failedInstances []string)
@@ -111,7 +111,7 @@ func (u *Upgrader) Upgrade() error {
 		return err
 	}
 
-	u.listener.InstancesToUpgrade(u.upgradeState.AllInstances())
+	u.listener.InstancesToProcess(u.upgradeState.AllInstances())
 
 	if u.upgradeState.IsProcessingCanaries() {
 		u.listener.CanariesStarting(u.upgradeState.OutstandingCanaryCount(), u.canarySelectionParams)
@@ -236,7 +236,7 @@ func (u *Upgrader) triggerUpgrades() {
 		if err != nil {
 			break
 		}
-		u.listener.InstanceUpgradeStarting(instance.GUID, u.upgradeState.GetUpgradeIndex(), totalInstances, u.upgradeState.IsProcessingCanaries())
+		u.listener.InstanceOperationStarting(instance.GUID, u.upgradeState.GetUpgradeIndex(), totalInstances, u.upgradeState.IsProcessingCanaries())
 		operation, err := u.triggerer.TriggerUpgrade(instance)
 		if err != nil {
 			u.upgradeState.SetState(instance.GUID, services.OperationFailed)
@@ -245,7 +245,7 @@ func (u *Upgrader) triggerUpgrades() {
 		}
 		u.upgradeState.SetUpgradeOperation(instance.GUID, operation)
 		u.upgradeState.SetState(instance.GUID, operation.Type)
-		u.listener.InstanceUpgradeStartResult(instance.GUID, operation.Type)
+		u.listener.InstanceOperationStartResult(instance.GUID, operation.Type)
 
 		if operation.Type == services.OperationAccepted {
 			u.listener.WaitingFor(instance.GUID, operation.Data.BoshTaskID)
@@ -267,9 +267,9 @@ func (u *Upgrader) pollRunningTasks() {
 
 		switch state.Type {
 		case services.OperationSucceeded:
-			u.listener.InstanceUpgraded(guid, "success")
+			u.listener.InstanceOperationFinished(guid, "success")
 		case services.OperationFailed:
-			u.listener.InstanceUpgraded(guid, "failure")
+			u.listener.InstanceOperationFinished(guid, "failure")
 			upgradeErr := fmt.Errorf("[%s] Upgrade failed: bosh task id %d: %s", guid, state.Data.BoshTaskID, state.Description)
 			u.failures = append(u.failures, instanceFailure{guid: guid, err: upgradeErr})
 		}

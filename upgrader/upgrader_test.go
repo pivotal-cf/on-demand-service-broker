@@ -26,6 +26,8 @@ import (
 var _ = Describe("Upgrader", func() {
 
 	var (
+		emptyBusyList        = []string{}
+		emptyFailedList      = []string{}
 		fakeListener         *fakes.FakeListener
 		brokerServicesClient *fakes.FakeBrokerServices
 		instanceLister       *fakes.FakeInstanceLister
@@ -979,8 +981,8 @@ var _ = Describe("Upgrader", func() {
 				{4, 4, 0},
 				{4, 4, 0},
 			}
-			for i := 0; i < fakeListener.InstanceUpgradeStartingCallCount(); i++ {
-				_, index, total, isCanary := fakeListener.InstanceUpgradeStartingArgsForCall(i)
+			for i := 0; i < fakeListener.InstanceOperationStartingCallCount(); i++ {
+				_, index, total, isCanary := fakeListener.InstanceOperationStartingArgsForCall(i)
 				Expect(index).To(Equal(expectedInstanceCounts[i][0]), fmt.Sprintf("Current instance index; i = %d", i))
 				Expect(total).To(Equal(expectedInstanceCounts[i][1]), "Total pending instances")
 				Expect(isCanary).To(Equal(expectedInstanceCounts[i][2] == 1), "Is Canary")

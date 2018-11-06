@@ -145,8 +145,8 @@ func hasReportedCanariesFinished(fakeListener *fakes.FakeListener, count int) {
 func hasReportedInstanceUpgradeStartResult(fakeListener *fakes.FakeListener, idx int,
 	expectedGuid string, expectedStatus services.BOSHOperationType) {
 
-	Expect(fakeListener.InstanceUpgradeStartResultCallCount()).To(BeNumerically(">", idx))
-	guid, upgradeType := fakeListener.InstanceUpgradeStartResultArgsForCall(idx)
+	Expect(fakeListener.InstanceOperationStartResultCallCount()).To(BeNumerically(">", idx))
+	guid, upgradeType := fakeListener.InstanceOperationStartResultArgsForCall(idx)
 	Expect(guid).To(Equal(expectedGuid))
 	Expect(upgradeType).To(Equal(expectedStatus))
 }
@@ -154,8 +154,8 @@ func hasReportedInstanceUpgradeStartResult(fakeListener *fakes.FakeListener, idx
 func hasReportedInstanceUpgradeStarted(fakeListener *fakes.FakeListener, idx int,
 	expectedInstance string, expectedIndex, expectedTotalInstances int, expectedIsDoingCanaries bool) {
 
-	Expect(fakeListener.InstanceUpgradeStartingCallCount()).To(BeNumerically(">", idx))
-	instance, index, total, canaryFlag := fakeListener.InstanceUpgradeStartingArgsForCall(idx)
+	Expect(fakeListener.InstanceOperationStartingCallCount()).To(BeNumerically(">", idx))
+	instance, index, total, canaryFlag := fakeListener.InstanceOperationStartingArgsForCall(idx)
 	Expect(instance).To(Equal(expectedInstance))
 	Expect(index).To(Equal(expectedIndex), "expected index for instance upgrade started")
 	Expect(total).To(Equal(expectedTotalInstances), "expected total num of instances for instance upgrade started")
@@ -170,16 +170,16 @@ func hasReportedWaitingFor(fakeListener *fakes.FakeListener, idx int, expectedGu
 }
 
 func hasReportedUpgradeState(fakeListener *fakes.FakeListener, idx int, expectedGuid, expectedStatus string) {
-	Expect(fakeListener.InstanceUpgradedCallCount()).To(BeNumerically(">", idx))
+	Expect(fakeListener.InstanceOperationFinishedCallCount()).To(BeNumerically(">", idx))
 
-	guid, status := fakeListener.InstanceUpgradedArgsForCall(idx)
+	guid, status := fakeListener.InstanceOperationFinishedArgsForCall(idx)
 	Expect(guid).To(Equal(expectedGuid))
 	Expect(status).To(Equal(expectedStatus))
 }
 
 func hasReportedInstancesToUpgrade(fakeListener *fakes.FakeListener, instances ...service.Instance) {
-	Expect(fakeListener.InstancesToUpgradeCallCount()).To(Equal(1))
-	Expect(fakeListener.InstancesToUpgradeArgsForCall(0)).To(Equal(instances))
+	Expect(fakeListener.InstancesToProcessCallCount()).To(Equal(1))
+	Expect(fakeListener.InstancesToProcessArgsForCall(0)).To(Equal(instances))
 }
 
 func expectToHaveStarted(controllers ...*processController) {
