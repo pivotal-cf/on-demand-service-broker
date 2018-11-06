@@ -395,7 +395,7 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 
 		runningTool := startUpgradeAllInstanceBinary()
 		Eventually(runningTool, 5*time.Second).Should(gexec.Exit(1))
-		Expect(runningTool).To(gbytes.Say("Upgrade failed to find a match to the canary selection criteria"))
+		Expect(runningTool).To(gbytes.Say("Failed to find a match to the canary selection criteria"))
 	})
 
 	It("returns an error if service-instances api responds with a non-200", func() {
@@ -501,7 +501,7 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 			Expect(runningTool).To(gbytes.Say(`\[upgrade\-all\] Processing all instances. Attempt 1/2`))
 			Expect(runningTool).To(gbytes.Say(`\[upgrade\-all\] Processing all remaining instances. Attempt 2/2`))
 			Expect(runningTool).To(gbytes.Say("Number of busy instances which could not be processed: 1"))
-			Expect(runningTool).To(gbytes.Say(fmt.Sprintf("The following instances could not be upgraded: %s", instanceID)))
+			Expect(runningTool).To(gbytes.Say(fmt.Sprintf("The following instances could not be processed: %s", instanceID)))
 		})
 	})
 

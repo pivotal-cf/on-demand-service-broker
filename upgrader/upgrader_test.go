@@ -362,7 +362,7 @@ var _ = Describe("Upgrader", func() {
 
 			wg.Wait()
 
-			Expect(upgradeErr).To(MatchError(ContainSubstring("The following instances could not be upgraded:")))
+			Expect(upgradeErr).To(MatchError(ContainSubstring("The following instances could not be processed:")))
 
 			hasReportedRetries(fakeListener, 1)
 			hasReportedAttempts(fakeListener, 0, 1, 1)
@@ -398,7 +398,7 @@ var _ = Describe("Upgrader", func() {
 
 			wg.Wait()
 
-			Expect(upgradeErr).To(MatchError(ContainSubstring(fmt.Sprintf("[%s] Upgrade failed: bosh task id %d", states[1].instance.GUID, states[1].taskID))))
+			Expect(upgradeErr).To(MatchError(ContainSubstring(fmt.Sprintf("[%s] Operation failed: bosh task id %d", states[1].instance.GUID, states[1].taskID))))
 
 			hasReportedFinished(fakeListener, 0, 1, 0, []string{}, []string{states[1].instance.GUID})
 		})
@@ -545,8 +545,8 @@ var _ = Describe("Upgrader", func() {
 			Expect(upgradeErr).To(HaveOccurred())
 			Expect(upgradeErr.Error()).To(SatisfyAll(
 				ContainSubstring("2 errors occurred"),
-				ContainSubstring(fmt.Sprintf("[%s] Upgrade failed: bosh task id %d: ", states[0].instance.GUID, states[0].taskID)),
-				ContainSubstring(fmt.Sprintf("[%s] Upgrade failed: bosh task id %d: ", states[1].instance.GUID, states[1].taskID)),
+				ContainSubstring(fmt.Sprintf("[%s] Operation failed: bosh task id %d: ", states[0].instance.GUID, states[0].taskID)),
+				ContainSubstring(fmt.Sprintf("[%s] Operation failed: bosh task id %d: ", states[1].instance.GUID, states[1].taskID)),
 			))
 			hasReportedUpgradeState(fakeListener, 0, states[0].instance.GUID, "failure")
 			hasReportedUpgradeState(fakeListener, 1, states[1].instance.GUID, "failure")
@@ -1264,7 +1264,7 @@ var _ = Describe("Upgrader", func() {
 
 				upgradeErr = upgradeTool.Upgrade()
 				Expect(upgradeErr).To(HaveOccurred())
-				Expect(upgradeErr).To(MatchError(ContainSubstring("Upgrade failed to find a match to the canary selection criteria: ")))
+				Expect(upgradeErr).To(MatchError(ContainSubstring("Failed to find a match to the canary selection criteria: ")))
 				Expect(upgradeErr).To(MatchError(ContainSubstring("org: the-org")))
 				Expect(upgradeErr).To(MatchError(ContainSubstring("space: the-space")))
 				Expect(upgradeErr).To(MatchError(ContainSubstring("Please ensure these selection criteria will match one or more service instances, " +
