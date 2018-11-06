@@ -63,7 +63,7 @@ var _ = Describe("Upgrading deployment", func() {
 		By("running the upgrade errand")
 		taskOutput := boshClient.RunErrand(brokerBoshDeploymentName, "upgrade-all-service-instances", []string{}, "")
 		Expect(taskOutput.ExitCode).To(Equal(0))
-		Expect(taskOutput.StdOut).To(ContainSubstring("Number of successful upgrades: 1"))
+		Expect(taskOutput.StdOut).To(ContainSubstring("Number of successful operations: 1"))
 
 		By("updating the service instance")
 		session := cf.Cf("update-service", serviceInstanceName, "-c", `{"maxclients": 60}`)

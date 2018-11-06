@@ -73,7 +73,7 @@ var _ = Describe("parallel upgrade-all errand with canaries", func() {
 		By("logging stdout to the errand output")
 		boshOutput := config.BoshClient.RunErrand(config.BrokerBoshDeploymentName, "upgrade-all-service-instances", []string{}, "")
 
-		logMatcher := "(?s)STARTING CANARY UPGRADES(.*)FINISHED CANARY UPGRADES(.*)FINISHED UPGRADES"
+		logMatcher := "(?s)STARTING CANARIES(.*)FINISHED CANARIES(.*)FINISHED PROCESSING"
 		re := regexp.MustCompile(logMatcher)
 		matches := re.FindStringSubmatch(boshOutput.StdOut)
 		for _, instance := range canaryServiceInstances {

@@ -60,7 +60,7 @@ var _ = Describe("parallel upgrade-all errand and SIAPI", func() {
 
 		By("logging stdout to the errand output")
 		boshOutput := config.BoshClient.RunErrand(config.BrokerBoshDeploymentName, "upgrade-all-service-instances", []string{}, "")
-		Expect(boshOutput.StdOut).To(ContainSubstring("STARTING UPGRADES"))
+		Expect(boshOutput.StdOut).To(ContainSubstring("STARTING OPERATION"))
 
 		instanceGUIDs := getInstanceGUIDs(boshOutput.StdOut)
 
@@ -69,16 +69,16 @@ var _ = Describe("parallel upgrade-all errand and SIAPI", func() {
 
 		By("upgrading the canary instance first")
 		Expect(b).To(SatisfyAll(
-			gbytes.Say(fmt.Sprintf(`\[%s\] Starting to upgrade service instance`, instanceGUIDs[0])),
-			gbytes.Say(fmt.Sprintf(`\[%s\] Result: Service Instance upgrade success`, instanceGUIDs[0])),
+			gbytes.Say(fmt.Sprintf(`\[%s\] Starting to process service instance`, instanceGUIDs[0])),
+			gbytes.Say(fmt.Sprintf(`\[%s\] Result: Service Instance operation success`, instanceGUIDs[0])),
 		))
 
 		By("upgrading all the non-canary instances")
 		Expect(b).To(SatisfyAll(
-			gbytes.Say(fmt.Sprintf(`\[%s\] Starting to upgrade service instance`, instanceGUIDs[1])),
-			gbytes.Say(fmt.Sprintf(`\[%s\] Starting to upgrade service instance`, instanceGUIDs[2])),
-			gbytes.Say(fmt.Sprintf(`\[%s\] Result: Service Instance upgrade success`, instanceGUIDs[1])),
-			gbytes.Say(fmt.Sprintf(`\[%s\] Result: Service Instance upgrade success`, instanceGUIDs[2])),
+			gbytes.Say(fmt.Sprintf(`\[%s\] Starting to process service instance`, instanceGUIDs[1])),
+			gbytes.Say(fmt.Sprintf(`\[%s\] Starting to process service instance`, instanceGUIDs[2])),
+			gbytes.Say(fmt.Sprintf(`\[%s\] Result: Service Instance operation success`, instanceGUIDs[1])),
+			gbytes.Say(fmt.Sprintf(`\[%s\] Result: Service Instance operation success`, instanceGUIDs[2])),
 		))
 
 		for _, service := range serviceInstances {

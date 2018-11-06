@@ -30,7 +30,7 @@ func NewLoggingListener(logger *log.Logger) Listener {
 }
 
 func (ll LoggingListener) Starting(maxInFlight int) {
-	ll.printf("STARTING with %d concurrent workers\n", maxInFlight)
+	ll.printf("STARTING OPERATION with %d concurrent workers\n", maxInFlight)
 }
 
 func (ll LoggingListener) RetryAttempt(num, limit int) {

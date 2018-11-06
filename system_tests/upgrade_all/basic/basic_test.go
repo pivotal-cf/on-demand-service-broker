@@ -69,7 +69,7 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 
 		boshOutput := config.BoshClient.RunErrandWithoutCheckingSuccess(config.BrokerBoshDeploymentName, "upgrade-all-service-instances", []string{}, "")
 		Expect(boshOutput.ExitCode).To(Equal(1))
-		Expect(boshOutput.StdOut).To(ContainSubstring("Upgrade failed"))
+		Expect(boshOutput.StdOut).To(ContainSubstring("Operation failed"))
 	})
 
 	It("when there are no service instances provisioned, upgrade-all-service-instances runs successfully", func() {
@@ -84,7 +84,7 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 		By("logging stdout to the errand output")
 		boshOutput := config.BoshClient.RunErrand(config.BrokerBoshDeploymentName, "upgrade-all-service-instances", []string{}, "")
 		Expect(boshOutput.ExitCode).To(Equal(0))
-		Expect(boshOutput.StdOut).To(ContainSubstring("STARTING UPGRADES"))
+		Expect(boshOutput.StdOut).To(ContainSubstring("STARTING OPERATION"))
 	})
 
 	It("when there are multiple service instances provisioned, upgrade-all-service-instances runs successfully", func() {
@@ -99,7 +99,7 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 
 		By("logging stdout to the errand output")
 		boshOutput := config.BoshClient.RunErrand(config.BrokerBoshDeploymentName, "upgrade-all-service-instances", []string{}, "")
-		Expect(boshOutput.StdOut).To(ContainSubstring("STARTING UPGRADES"))
+		Expect(boshOutput.StdOut).To(ContainSubstring("STARTING OPERATION"))
 
 		for _, service := range serviceInstances {
 			deploymentName := GetServiceDeploymentName(service.Name)

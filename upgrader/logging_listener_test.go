@@ -33,7 +33,7 @@ var _ = Describe("Logging Listener", func() {
 
 	It("Shows starting message", func() {
 		Expect(logResultsFromAsString(func(listener upgrader.Listener) { listener.Starting(2) })).
-			To(ContainSubstring("[%s] STARTING with 2 concurrent workers", operationPrefix))
+			To(ContainSubstring("[%s] STARTING OPERATION with 2 concurrent workers", operationPrefix))
 	})
 
 	It("Shows starting canaries message", func() {
