@@ -7,6 +7,9 @@
 package helpers
 
 import (
+	"crypto/tls"
+	"fmt"
+	"net/http"
 	"os"
 	"syscall"
 
@@ -99,9 +102,26 @@ func StartServer(
 	)
 
 	go apiserver.StartAndWait(conf, server, logger, stopServerChan)
-	Eventually(loggerBuffer).Should(gbytes.Say("Listening on"))
+	Eventually(func() bool {
+		return CanServeHTTP(server.Addr, conf)
+	}).Should(BeTrue())
 
 	return &Server{stopServerChan: stopServerChan, loggerBuffer: loggerBuffer}
+}
+
+func CanServeHTTP(serverAddr string, conf config.Config) bool {
+	httpSuffix := ""
+	if conf.HasTLS() {
+		httpSuffix = "s"
+	}
+	url := fmt.Sprintf("http%s://%s", httpSuffix, serverAddr)
+	tlsConfig := &tls.Config{
+		InsecureSkipVerify: true,
+	}
+	transport := &http.Transport{TLSClientConfig: tlsConfig}
+	client := &http.Client{Transport: transport}
+	_, err := client.Get(url)
+	return err == nil
 }
 
 func (s *Server) Close() {
