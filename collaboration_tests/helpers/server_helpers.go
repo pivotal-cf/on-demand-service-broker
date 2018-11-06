@@ -56,6 +56,10 @@ func StartServer(
 ) *Server {
 	var err error
 
+	if conf.Broker.ShutdownTimeoutSecs == 0 {
+		conf.Broker.ShutdownTimeoutSecs = 2
+	}
+
 	taskServiceAdapterClient := &odbserviceadapter.Client{
 		CommandRunner: fakeCommandRunner,
 		UsingStdin:    true,
