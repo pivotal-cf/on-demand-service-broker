@@ -270,7 +270,7 @@ func (u *Upgrader) pollRunningTasks() {
 			u.listener.InstanceOperationFinished(guid, "success")
 		case services.OperationFailed:
 			u.listener.InstanceOperationFinished(guid, "failure")
-			upgradeErr := fmt.Errorf("[%s] Upgrade failed: bosh task id %d: %s", guid, state.Data.BoshTaskID, state.Description)
+			upgradeErr := fmt.Errorf("[%s] Operation failed: bosh task id %d: %s", guid, state.Data.BoshTaskID, state.Description)
 			u.failures = append(u.failures, instanceFailure{guid: guid, err: upgradeErr})
 		}
 	}
