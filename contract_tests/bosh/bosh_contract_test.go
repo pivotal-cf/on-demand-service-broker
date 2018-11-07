@@ -349,6 +349,51 @@ var _ = Describe("BOSH client", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 	})
+
+	Describe("configs operations", func() {
+		var (
+			configType    = "dummy"
+			configContent = []byte("{}")
+		)
+
+		AfterEach(func() {
+			_, err := boshClient.DeleteConfig(configType, deploymentName, logger)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("can control the entire lifecycle of a config", func() {
+			By("updating a config", func() {
+				err := boshClient.UpdateConfig(configType, deploymentName, configContent, logger)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			By("checking all the configs", func() {
+				configs, err := boshClient.GetConfigs(deploymentName, logger)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(len(configs)).To(Equal(1))
+				Expect(configs).To(ContainElement(boshdirector.BoshConfig{Type: configType, Name: deploymentName, Content: string(configContent)}))
+			})
+
+			By("checking that the config is there", func() {
+				config, err := boshClient.LatestConfig(configType, deploymentName, logger)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(config.Type).To(Equal(configType))
+				Expect(config.Name).To(Equal(deploymentName))
+				Expect(config.Content).To(Equal(string(configContent)))
+			})
+
+			By("deleting a config", func() {
+				found, err := boshClient.DeleteConfig(configType, deploymentName, logger)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				By("verifying the config was deleted")
+				configs, err := boshClient.GetConfigs(deploymentName, logger)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(len(configs)).To(Equal(0))
+			})
+		})
+	})
 })
 
 func getManifest(filename, deploymentName string) []byte {
