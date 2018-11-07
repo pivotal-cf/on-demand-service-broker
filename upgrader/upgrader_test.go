@@ -44,6 +44,9 @@ var _ = Describe("Upgrader", func() {
 		instanceLister = new(fakes.FakeInstanceLister)
 		fakeSleeper = new(fakes.FakeSleeper)
 
+		triggerer, err := upgrader.NewTriggerer(brokerServicesClient, instanceLister, fakeListener, "upgrade-all")
+		Expect(err).NotTo(HaveOccurred())
+
 		upgraderBuilder = upgrader.Builder{
 			BrokerServices:        brokerServicesClient,
 			ServiceInstanceLister: instanceLister,
@@ -54,6 +57,7 @@ var _ = Describe("Upgrader", func() {
 			MaxInFlight:           1,
 			Canaries:              0,
 			Sleeper:               fakeSleeper,
+			Triggerer:             triggerer,
 		}
 	})
 

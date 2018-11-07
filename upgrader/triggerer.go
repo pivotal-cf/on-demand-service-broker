@@ -16,6 +16,7 @@
 package upgrader
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
@@ -29,13 +30,20 @@ type OperationTriggerer struct {
 	operationType  string
 }
 
-func NewTriggerer(brokerServices BrokerServices, instanceLister InstanceLister, listener Listener) *OperationTriggerer {
+func NewTriggerer(brokerServices BrokerServices, instanceLister InstanceLister, listener Listener, processType string) (*OperationTriggerer, error) {
+	var operationType string
+	if processType == "upgrade-all" {
+		operationType = "upgrade"
+	} else {
+		return &OperationTriggerer{}, errors.New(fmt.Sprintf("Invalid process type: %s", processType))
+	}
+
 	return &OperationTriggerer{
 		brokerServices: brokerServices,
 		instanceLister: instanceLister,
 		logger:         listener,
-		operationType:  "upgrade",
-	}
+		operationType:  operationType,
+	}, nil
 }
 
 func (t *OperationTriggerer) TriggerOperation(instance service.Instance) (services.BOSHOperation, error) {

@@ -61,6 +61,7 @@ type instanceFailure struct {
 	err  error
 }
 
+//go:generate counterfeiter -o fakes/fake_triggerer.go . Triggerer
 type Triggerer interface {
 	TriggerOperation(service.Instance) (services.BOSHOperation, error)
 }
@@ -99,7 +100,7 @@ func New(builder *Builder) *Upgrader {
 		sleeper:               builder.Sleeper,
 		canaries:              builder.Canaries,
 		canarySelectionParams: builder.CanarySelectionParams,
-		triggerer:             NewTriggerer(builder.BrokerServices, builder.ServiceInstanceLister, builder.Listener),
+		triggerer:             builder.Triggerer,
 		stateChecker:          NewStateChecker(builder.BrokerServices),
 	}
 }

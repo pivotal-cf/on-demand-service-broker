@@ -40,7 +40,7 @@ func main() {
 		logger.Fatalln(err.Error())
 	}
 
-	builder, err := upgrader.NewBuilder(conf, logger)
+	builder, err := upgrader.NewBuilder(conf, logger, "upgrade-all")
 	if err != nil {
 		logger.Fatalln(err.Error())
 	}

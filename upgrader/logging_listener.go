@@ -18,14 +18,14 @@ import (
 )
 
 type LoggingListener struct {
-	logger          *log.Logger
-	operationPrefix string
+	logger *log.Logger
+	prefix string
 }
 
-func NewLoggingListener(logger *log.Logger) Listener {
+func NewLoggingListener(logger *log.Logger, processType string) Listener {
 	return LoggingListener{
-		logger:          logger,
-		operationPrefix: "upgrade-all",
+		logger: logger,
+		prefix: processType,
 	}
 }
 
@@ -157,7 +157,7 @@ func (ll LoggingListener) FailedToRefreshInstanceInfo(instance string) {
 }
 
 func (ll LoggingListener) printf(args ...interface{}) {
-	mask := fmt.Sprintf("[%s] %s", ll.operationPrefix, args[0])
+	mask := fmt.Sprintf("[%s] %s", ll.prefix, args[0])
 	ll.logger.Printf(mask, args[1:]...)
 }
 

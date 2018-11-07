@@ -31,8 +31,11 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/service"
 )
 
-var _ = Describe("UpgraderBuilder", func() {
-	var logger *log.Logger
+var _ = Describe("Builder", func() {
+	var (
+		logger           *log.Logger
+		validProcessType = "upgrade-all"
+	)
 
 	BeforeEach(func() {
 		loggerFactory := loggerfactory.New(GinkgoWriter, "upgrade-all-service-instances", loggerfactory.Flags)
@@ -42,7 +45,7 @@ var _ = Describe("UpgraderBuilder", func() {
 	Describe("Broker Services", func() {
 		It("when provided with valid conf returns a expected BrokerServices", func() {
 			conf := updateAllInstanceErrandConfig("user", "password", "http://example.org")
-			builder, err := NewBuilder(conf, logger)
+			builder, err := NewBuilder(conf, logger, validProcessType)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(builder.BrokerServices).To(BeAssignableToTypeOf(&services.BrokerServices{}))
@@ -52,7 +55,7 @@ var _ = Describe("UpgraderBuilder", func() {
 			"when provided with config missing",
 			func(user, password, url string) {
 				conf := updateAllInstanceErrandConfig(user, password, url)
-				_, err := NewBuilder(conf, logger)
+				_, err := NewBuilder(conf, logger, validProcessType)
 
 				Expect(err).To(MatchError(Equal("the brokerUsername, brokerPassword and brokerUrl are required to function")))
 			},
@@ -66,7 +69,7 @@ var _ = Describe("UpgraderBuilder", func() {
 	Describe("Service Instance Lister", func() {
 		It("when provided with valid conf returns an expected ServiceInstanceLister", func() {
 			conf := updateAllInstanceErrandConfig("user", "password", "http://example.org")
-			builder, err := NewBuilder(conf, logger)
+			builder, err := NewBuilder(conf, logger, validProcessType)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(builder.ServiceInstanceLister).To(BeAssignableToTypeOf(&service.ServiceInstanceLister{}))
@@ -79,7 +82,7 @@ var _ = Describe("UpgraderBuilder", func() {
 			func(val int) {
 				conf := updateAllInstanceErrandConfig("user", "password", "http://example.org")
 				conf.PollingInterval = val
-				_, err := NewBuilder(conf, logger)
+				_, err := NewBuilder(conf, logger, validProcessType)
 
 				Expect(err).To(MatchError(Equal("the pollingInterval must be greater than zero")))
 			},
@@ -90,7 +93,7 @@ var _ = Describe("UpgraderBuilder", func() {
 		It("when configured returns the value", func() {
 			conf := updateAllInstanceErrandConfig("user", "password", "http://example.org")
 			conf.PollingInterval = 10
-			builder, err := NewBuilder(conf, logger)
+			builder, err := NewBuilder(conf, logger, validProcessType)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(builder.PollingInterval).To(Equal(10 * time.Second))
@@ -103,7 +106,7 @@ var _ = Describe("UpgraderBuilder", func() {
 			func(val int) {
 				conf := updateAllInstanceErrandConfig("user", "password", "http://example.org")
 				conf.AttemptInterval = val
-				_, err := NewBuilder(conf, logger)
+				_, err := NewBuilder(conf, logger, validProcessType)
 
 				Expect(err).To(MatchError(Equal("the attemptInterval must be greater than zero")))
 			},
@@ -114,7 +117,7 @@ var _ = Describe("UpgraderBuilder", func() {
 		It("when configured returns the value", func() {
 			conf := updateAllInstanceErrandConfig("user", "password", "http://example.org")
 			conf.AttemptInterval = 60
-			builder, err := NewBuilder(conf, logger)
+			builder, err := NewBuilder(conf, logger, validProcessType)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(builder.AttemptInterval).To(Equal(60 * time.Second))
@@ -127,7 +130,7 @@ var _ = Describe("UpgraderBuilder", func() {
 			func(val int) {
 				conf := updateAllInstanceErrandConfig("user", "password", "http://example.org")
 				conf.AttemptLimit = val
-				_, err := NewBuilder(conf, logger)
+				_, err := NewBuilder(conf, logger, validProcessType)
 
 				Expect(err).To(MatchError(Equal("the attempt limit must be greater than zero")))
 			},
@@ -138,7 +141,7 @@ var _ = Describe("UpgraderBuilder", func() {
 		It("when configured returns the value", func() {
 			conf := updateAllInstanceErrandConfig("user", "password", "http://example.org")
 			conf.AttemptLimit = 42
-			builder, err := NewBuilder(conf, logger)
+			builder, err := NewBuilder(conf, logger, validProcessType)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(builder.AttemptLimit).To(Equal(42))
 		})
@@ -150,7 +153,7 @@ var _ = Describe("UpgraderBuilder", func() {
 			func(val int) {
 				conf := updateAllInstanceErrandConfig("user", "password", "http://example.org")
 				conf.MaxInFlight = val
-				_, err := NewBuilder(conf, logger)
+				_, err := NewBuilder(conf, logger, validProcessType)
 
 				Expect(err).To(MatchError(Equal("the max in flight must be greater than zero")))
 			},
@@ -161,7 +164,7 @@ var _ = Describe("UpgraderBuilder", func() {
 		It("when configured returns the value", func() {
 			conf := updateAllInstanceErrandConfig("user", "password", "http://example.org")
 			conf.MaxInFlight = 10
-			builder, err := NewBuilder(conf, logger)
+			builder, err := NewBuilder(conf, logger, validProcessType)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(builder.MaxInFlight).To(Equal(10))
 		})
@@ -173,7 +176,7 @@ var _ = Describe("UpgraderBuilder", func() {
 			func(val int) {
 				conf := updateAllInstanceErrandConfig("user", "password", "http://example.org")
 				conf.Canaries = val
-				_, err := NewBuilder(conf, logger)
+				_, err := NewBuilder(conf, logger, validProcessType)
 
 				Expect(err).To(MatchError(Equal("the number of canaries cannot be negative")))
 			},
@@ -183,7 +186,7 @@ var _ = Describe("UpgraderBuilder", func() {
 		It("when configured returns the value", func() {
 			conf := updateAllInstanceErrandConfig("user", "password", "http://example.org")
 			conf.Canaries = 10
-			builder, err := NewBuilder(conf, logger)
+			builder, err := NewBuilder(conf, logger, validProcessType)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(builder.Canaries).To(Equal(10))
 		})
@@ -194,13 +197,20 @@ var _ = Describe("UpgraderBuilder", func() {
 				"size": "small",
 				"test": "true",
 			}
-			builder, err := NewBuilder(conf, logger)
+			builder, err := NewBuilder(conf, logger, validProcessType)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(builder.CanarySelectionParams).To(Equal(config.CanarySelectionParams{
 				"size": "small",
 				"test": "true",
 			}))
 		})
+	})
+
+	It("returns an error when the Triggerer errors", func() {
+		conf := updateAllInstanceErrandConfig("user", "password", "http://example.org")
+
+		_, err := NewBuilder(conf, logger, "invalid-type")
+		Expect(err).To(MatchError("Invalid process type: invalid-type"))
 	})
 })
 

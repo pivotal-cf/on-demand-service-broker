@@ -43,12 +43,14 @@ type Builder struct {
 	Canaries              int
 	Listener              Listener
 	Sleeper               sleeper
+	Triggerer             Triggerer
 	CanarySelectionParams config.CanarySelectionParams
 }
 
 func NewBuilder(
 	conf config.UpgradeAllInstanceErrandConfig,
 	logger *log.Logger,
+	processType string,
 ) (*Builder, error) {
 
 	brokerServices, err := brokerServices(conf, logger)
@@ -91,7 +93,12 @@ func NewBuilder(
 		return nil, err
 	}
 
-	listener := NewLoggingListener(logger)
+	listener := NewLoggingListener(logger, processType)
+
+	triggerer, err := NewTriggerer(brokerServices, instanceLister, listener, processType)
+	if err != nil {
+		return nil, err
+	}
 
 	b := &Builder{
 		BrokerServices:        brokerServices,
@@ -103,6 +110,7 @@ func NewBuilder(
 		Canaries:              canaries,
 		Listener:              listener,
 		Sleeper:               &tools.RealSleeper{},
+		Triggerer:             triggerer,
 		CanarySelectionParams: canarySelectionParams,
 	}
 
