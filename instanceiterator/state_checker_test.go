@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package upgrader_test
+package instanceiterator_test
 
 import (
 	"errors"
@@ -23,8 +23,8 @@ import (
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
-	"github.com/pivotal-cf/on-demand-service-broker/upgrader"
-	"github.com/pivotal-cf/on-demand-service-broker/upgrader/fakes"
+	"github.com/pivotal-cf/on-demand-service-broker/instanceiterator"
+	"github.com/pivotal-cf/on-demand-service-broker/instanceiterator/fakes"
 )
 
 var _ = Describe("State checker", func() {
@@ -32,14 +32,14 @@ var _ = Describe("State checker", func() {
 		guid                  string
 		expectedOperationData broker.OperationData
 		fakeBrokerService     *fakes.FakeBrokerServices
-		stateChecker          upgrader.StateChecker
+		stateChecker          instanceiterator.StateChecker
 	)
 
 	BeforeEach(func() {
 		guid = "some-guid"
 		expectedOperationData = broker.OperationData{BoshTaskID: 123}
 		fakeBrokerService = new(fakes.FakeBrokerServices)
-		stateChecker = upgrader.NewStateChecker(fakeBrokerService)
+		stateChecker = instanceiterator.NewStateChecker(fakeBrokerService)
 	})
 
 	It("returns OperationSucceeded when last operation reports success", func() {
@@ -73,7 +73,7 @@ var _ = Describe("State checker", func() {
 		Expect(state).To(Equal(services.BOSHOperation{Type: services.OperationFailed, Data: expectedOperationData}))
 	})
 
-	It("returns OperationAccepted when last operation reports the upgrade is in progress", func() {
+	It("returns OperationAccepted when last operation reports the operation is in progress", func() {
 		fakeBrokerService.LastOperationReturns(brokerapi.LastOperation{State: brokerapi.InProgress}, nil)
 
 		state, err := stateChecker.Check(guid, expectedOperationData)

@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package upgrader_test
+package instanceiterator_test
 
 import (
 	"errors"
@@ -23,9 +23,9 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
+	"github.com/pivotal-cf/on-demand-service-broker/instanceiterator"
+	"github.com/pivotal-cf/on-demand-service-broker/instanceiterator/fakes"
 	"github.com/pivotal-cf/on-demand-service-broker/service"
-	"github.com/pivotal-cf/on-demand-service-broker/upgrader"
-	"github.com/pivotal-cf/on-demand-service-broker/upgrader/fakes"
 )
 
 var _ = Describe("Operation triggerer", func() {
@@ -36,7 +36,7 @@ var _ = Describe("Operation triggerer", func() {
 		fakeBrokerService  *fakes.FakeBrokerServices
 		fakeInstanceLister *fakes.FakeInstanceLister
 		fakeListener       *fakes.FakeListener
-		t                  upgrader.Triggerer
+		t                  instanceiterator.Triggerer
 		processType        = "upgrade-all"
 		operationType      = "upgrade"
 	)
@@ -52,7 +52,7 @@ var _ = Describe("Operation triggerer", func() {
 			fakeListener = new(fakes.FakeListener)
 
 			var err error
-			t, err = upgrader.NewTriggerer(fakeBrokerService, fakeInstanceLister, fakeListener, processType)
+			t, err = instanceiterator.NewTriggerer(fakeBrokerService, fakeInstanceLister, fakeListener, processType)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -122,10 +122,10 @@ var _ = Describe("Operation triggerer", func() {
 	Context("Operation Triggerer Instantiation", func() {
 		It("errors when an invalid processType is passed", func() {
 			processType := "not a real process type"
-			t, err := upgrader.NewTriggerer(fakeBrokerService, fakeInstanceLister, fakeListener, processType)
+			t, err := instanceiterator.NewTriggerer(fakeBrokerService, fakeInstanceLister, fakeListener, processType)
 
 			Expect(err).To(MatchError(fmt.Sprintf("Invalid process type: %s", processType)))
-			Expect(t).To(Equal(&upgrader.OperationTriggerer{}))
+			Expect(t).To(Equal(&instanceiterator.OperationTriggerer{}))
 		})
 	})
 })

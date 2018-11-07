@@ -4,8 +4,8 @@ package fakes
 import (
 	"sync"
 
+	"github.com/pivotal-cf/on-demand-service-broker/instanceiterator"
 	"github.com/pivotal-cf/on-demand-service-broker/service"
-	"github.com/pivotal-cf/on-demand-service-broker/upgrader"
 )
 
 type FakeInstanceLister struct {
@@ -223,4 +223,4 @@ func (fake *FakeInstanceLister) recordInvocation(key string, args []interface{})
 	fake.invocations[key] = append(fake.invocations[key], args)
 }
 
-var _ upgrader.InstanceLister = new(FakeInstanceLister)
+var _ instanceiterator.InstanceLister = new(FakeInstanceLister)

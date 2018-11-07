@@ -563,7 +563,7 @@ func (filter CanarySelectionParams) String() string {
 	return strings.Join(filters, ", ")
 }
 
-type UpgradeAllInstanceErrandConfig struct {
+type InstanceIteratorConfig struct {
 	BrokerAPI             BrokerAPI             `yaml:"broker_api"`
 	ServiceInstancesAPI   ServiceInstancesAPI   `yaml:"service_instances_api"`
 	PollingInterval       int                   `yaml:"polling_interval"`

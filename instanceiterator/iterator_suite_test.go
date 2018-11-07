@@ -4,7 +4,7 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 // Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
-package upgrader_test
+package instanceiterator_test
 
 import (
 	"errors"
@@ -18,19 +18,19 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
+	"github.com/pivotal-cf/on-demand-service-broker/instanceiterator/fakes"
 	"github.com/pivotal-cf/on-demand-service-broker/service"
-	"github.com/pivotal-cf/on-demand-service-broker/upgrader/fakes"
 )
 
-func TestUpgrader(t *testing.T) {
+func TestIterator(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Upgrader Suite")
+	RunSpecs(t, "Iterator Suite")
 }
 
 type testState struct {
 	instance               service.Instance
-	upgradeOutput          []services.BOSHOperationType
-	upgradeCallCount       int
+	iteratorOutput         []services.BOSHOperationType
+	iteratorCallCount      int
 	lastOperationOutput    []brokerapi.LastOperationState
 	lastOperationCallCount int
 	taskID                 int
@@ -52,9 +52,9 @@ func setupTest(states []*testState, instanceLister *fakes.FakeInstanceLister, br
 		for _, s := range states {
 			if instance.GUID == s.instance.GUID {
 				s.controller.NotifyStart()
-				s.upgradeCallCount++
+				s.iteratorCallCount++
 				return services.BOSHOperation{
-					Type: s.upgradeOutput[s.upgradeCallCount-1],
+					Type: s.iteratorOutput[s.iteratorCallCount-1],
 					Data: broker.OperationData{BoshTaskID: s.taskID, OperationType: broker.OperationTypeUpgrade},
 				}, nil
 			}
@@ -76,11 +76,11 @@ func setupTest(states []*testState, instanceLister *fakes.FakeInstanceLister, br
 	}
 }
 
-func hasReportedFinished(fakeListener *fakes.FakeListener, expectedOrphans, expectedUpgraded, expectedDeleted int, expectedBusyInstances []string, expectedFailedInstances []string) {
+func hasReportedFinished(fakeListener *fakes.FakeListener, expectedOrphans, expectedProcessed, expectedDeleted int, expectedBusyInstances []string, expectedFailedInstances []string) {
 	Expect(fakeListener.FinishedCallCount()).To(Equal(1), "Finished call count")
-	orphanCount, upgradedCount, deletedCount, busyInstances, failedInstances := fakeListener.FinishedArgsForCall(0)
+	orphanCount, processedCount, deletedCount, busyInstances, failedInstances := fakeListener.FinishedArgsForCall(0)
 	Expect(orphanCount).To(Equal(expectedOrphans), "orphans")
-	Expect(upgradedCount).To(Equal(expectedUpgraded), "upgraded")
+	Expect(processedCount).To(Equal(expectedProcessed), "processed")
 	Expect(deletedCount).To(Equal(expectedDeleted), "deleted")
 	Expect(busyInstances).To(ConsistOf(expectedBusyInstances), "busyInstances")
 	Expect(failedInstances).To(ConsistOf(expectedFailedInstances), "failedInstances")
@@ -121,12 +121,12 @@ func hasReportedStarting(fakeListener *fakes.FakeListener, maxInFlight int) {
 	Expect(threads).To(Equal(maxInFlight))
 }
 
-func hasReportedProgress(fakeListener *fakes.FakeListener, callIndex int, expectedInterval time.Duration, expectedOrphans, expectedUpgraded, expectedToRetry, expectedDeleted int) {
+func hasReportedProgress(fakeListener *fakes.FakeListener, callIndex int, expectedInterval time.Duration, expectedOrphans, expectedProcessed, expectedToRetry, expectedDeleted int) {
 	Expect(fakeListener.ProgressCallCount()).To(BeNumerically(">", callIndex), "callCount")
-	attemptInterval, orphanCount, upgradedCount, toRetryCount, deletedCount := fakeListener.ProgressArgsForCall(callIndex)
+	attemptInterval, orphanCount, processedCount, toRetryCount, deletedCount := fakeListener.ProgressArgsForCall(callIndex)
 	Expect(attemptInterval).To(Equal(expectedInterval), "attempt interval")
 	Expect(orphanCount).To(Equal(expectedOrphans), "orphans")
-	Expect(upgradedCount).To(Equal(expectedUpgraded), "upgraded")
+	Expect(processedCount).To(Equal(expectedProcessed), "processed")
 	Expect(toRetryCount).To(Equal(expectedToRetry), "to retry")
 	Expect(deletedCount).To(Equal(expectedDeleted), "deleted")
 }
@@ -142,23 +142,23 @@ func hasReportedCanariesFinished(fakeListener *fakes.FakeListener, count int) {
 	Expect(fakeListener.CanariesFinishedCallCount()).To(Equal(count), "CanariesFinished() call count")
 }
 
-func hasReportedInstanceUpgradeStartResult(fakeListener *fakes.FakeListener, idx int,
+func hasReportedInstanceOperationStartResult(fakeListener *fakes.FakeListener, idx int,
 	expectedGuid string, expectedStatus services.BOSHOperationType) {
 
 	Expect(fakeListener.InstanceOperationStartResultCallCount()).To(BeNumerically(">", idx))
-	guid, upgradeType := fakeListener.InstanceOperationStartResultArgsForCall(idx)
+	guid, operationType := fakeListener.InstanceOperationStartResultArgsForCall(idx)
 	Expect(guid).To(Equal(expectedGuid))
-	Expect(upgradeType).To(Equal(expectedStatus))
+	Expect(operationType).To(Equal(expectedStatus))
 }
 
-func hasReportedInstanceUpgradeStarted(fakeListener *fakes.FakeListener, idx int,
+func hasReportedInstanceOperationStarted(fakeListener *fakes.FakeListener, idx int,
 	expectedInstance string, expectedIndex, expectedTotalInstances int, expectedIsDoingCanaries bool) {
 
 	Expect(fakeListener.InstanceOperationStartingCallCount()).To(BeNumerically(">", idx))
 	instance, index, total, canaryFlag := fakeListener.InstanceOperationStartingArgsForCall(idx)
 	Expect(instance).To(Equal(expectedInstance))
-	Expect(index).To(Equal(expectedIndex), "expected index for instance upgrade started")
-	Expect(total).To(Equal(expectedTotalInstances), "expected total num of instances for instance upgrade started")
+	Expect(index).To(Equal(expectedIndex), "expected index for instance operation started")
+	Expect(total).To(Equal(expectedTotalInstances), "expected total num of instances for instance operation started")
 	Expect(canaryFlag).To(Equal(expectedIsDoingCanaries), "expected is doing canaries")
 }
 
@@ -169,7 +169,7 @@ func hasReportedWaitingFor(fakeListener *fakes.FakeListener, idx int, expectedGu
 	Expect(taskID).To(Equal(expectedTaskID))
 }
 
-func hasReportedUpgradeState(fakeListener *fakes.FakeListener, idx int, expectedGuid, expectedStatus string) {
+func hasReportedOperationState(fakeListener *fakes.FakeListener, idx int, expectedGuid, expectedStatus string) {
 	Expect(fakeListener.InstanceOperationFinishedCallCount()).To(BeNumerically(">", idx))
 
 	guid, status := fakeListener.InstanceOperationFinishedArgsForCall(idx)
@@ -177,7 +177,7 @@ func hasReportedUpgradeState(fakeListener *fakes.FakeListener, idx int, expected
 	Expect(status).To(Equal(expectedStatus))
 }
 
-func hasReportedInstancesToUpgrade(fakeListener *fakes.FakeListener, instances ...service.Instance) {
+func hasReportedInstancesToProcess(fakeListener *fakes.FakeListener, instances ...service.Instance) {
 	Expect(fakeListener.InstancesToProcessCallCount()).To(Equal(1))
 	Expect(fakeListener.InstancesToProcessArgsForCall(0)).To(Equal(instances))
 }

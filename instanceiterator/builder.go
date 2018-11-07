@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package upgrader
+package instanceiterator
 
 import (
 	"log"
@@ -48,7 +48,7 @@ type Builder struct {
 }
 
 func NewBuilder(
-	conf config.UpgradeAllInstanceErrandConfig,
+	conf config.InstanceIteratorConfig,
 	logger *log.Logger,
 	processType string,
 ) (*Builder, error) {
@@ -117,7 +117,7 @@ func NewBuilder(
 	return b, nil
 }
 
-func brokerServices(conf config.UpgradeAllInstanceErrandConfig, logger *log.Logger) (*services.BrokerServices, error) {
+func brokerServices(conf config.InstanceIteratorConfig, logger *log.Logger) (*services.BrokerServices, error) {
 	if conf.BrokerAPI.Authentication.Basic.Username == "" ||
 		conf.BrokerAPI.Authentication.Basic.Password == "" ||
 		conf.BrokerAPI.URL == "" {
@@ -140,7 +140,7 @@ func brokerServices(conf config.UpgradeAllInstanceErrandConfig, logger *log.Logg
 	), nil
 }
 
-func serviceInstanceLister(conf config.UpgradeAllInstanceErrandConfig, logger *log.Logger) (*service.ServiceInstanceLister, error) {
+func serviceInstanceLister(conf config.InstanceIteratorConfig, logger *log.Logger) (*service.ServiceInstanceLister, error) {
 	certPool, err := x509.SystemCertPool()
 	if err != nil {
 		return &service.ServiceInstanceLister{},
@@ -168,41 +168,41 @@ func serviceInstanceLister(conf config.UpgradeAllInstanceErrandConfig, logger *l
 	), nil
 }
 
-func pollingInterval(conf config.UpgradeAllInstanceErrandConfig) (time.Duration, error) {
+func pollingInterval(conf config.InstanceIteratorConfig) (time.Duration, error) {
 	if conf.PollingInterval <= 0 {
 		return 0, errors.New("the pollingInterval must be greater than zero")
 	}
 	return time.Duration(conf.PollingInterval) * time.Second, nil
 }
 
-func attemptInterval(conf config.UpgradeAllInstanceErrandConfig) (time.Duration, error) {
+func attemptInterval(conf config.InstanceIteratorConfig) (time.Duration, error) {
 	if conf.AttemptInterval <= 0 {
 		return 0, errors.New("the attemptInterval must be greater than zero")
 	}
 	return time.Duration(conf.AttemptInterval) * time.Second, nil
 }
 
-func attemptLimit(conf config.UpgradeAllInstanceErrandConfig) (int, error) {
+func attemptLimit(conf config.InstanceIteratorConfig) (int, error) {
 	if conf.AttemptLimit <= 0 {
 		return 0, errors.New("the attempt limit must be greater than zero")
 	}
 	return conf.AttemptLimit, nil
 }
 
-func maxInFlight(conf config.UpgradeAllInstanceErrandConfig) (int, error) {
+func maxInFlight(conf config.InstanceIteratorConfig) (int, error) {
 	if conf.MaxInFlight <= 0 {
 		return 0, errors.New("the max in flight must be greater than zero")
 	}
 	return conf.MaxInFlight, nil
 }
 
-func canaries(conf config.UpgradeAllInstanceErrandConfig) (int, error) {
+func canaries(conf config.InstanceIteratorConfig) (int, error) {
 	if conf.Canaries < 0 {
 		return 0, errors.New("the number of canaries cannot be negative")
 	}
 	return conf.Canaries, nil
 }
 
-func canarySelectionParams(conf config.UpgradeAllInstanceErrandConfig) (config.CanarySelectionParams, error) {
+func canarySelectionParams(conf config.InstanceIteratorConfig) (config.CanarySelectionParams, error) {
 	return conf.CanarySelectionParams, nil
 }

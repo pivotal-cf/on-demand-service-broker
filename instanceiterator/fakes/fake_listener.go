@@ -7,8 +7,8 @@ import (
 
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
+	"github.com/pivotal-cf/on-demand-service-broker/instanceiterator"
 	"github.com/pivotal-cf/on-demand-service-broker/service"
-	"github.com/pivotal-cf/on-demand-service-broker/upgrader"
 )
 
 type FakeListener struct {
@@ -482,4 +482,4 @@ func (fake *FakeListener) recordInvocation(key string, args []interface{}) {
 	fake.invocations[key] = append(fake.invocations[key], args)
 }
 
-var _ upgrader.Listener = new(FakeListener)
+var _ instanceiterator.Listener = new(FakeListener)

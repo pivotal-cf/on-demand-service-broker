@@ -4,7 +4,7 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 // Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
-package upgrader
+package instanceiterator
 
 import (
 	"fmt"
@@ -93,15 +93,15 @@ func (ll LoggingListener) WaitingFor(instance string, boshTaskId int) {
 	ll.printf("[%s] Waiting for operation to complete: bosh task id %d", instance, boshTaskId)
 }
 
-func (ll LoggingListener) Progress(pollingInterval time.Duration, orphanCount, processCount, toRetryCount, deletedCount int) {
+func (ll LoggingListener) Progress(pollingInterval time.Duration, orphanCount, processedCount, toRetryCount, deletedCount int) {
 	ll.printf("Progress summary: "+
 		"Sleep interval until next attempt: %s; "+
-		"Number of successful operation so far: %d; "+
+		"Number of successful operations so far: %d; "+
 		"Number of service instance orphans detected so far: %d; "+
 		"Number of deleted instances before operation could happen: %d; "+
 		"Number of operations in progress (to retry) so far: %d",
 		pollingInterval,
-		processCount,
+		processedCount,
 		orphanCount,
 		deletedCount,
 		toRetryCount,

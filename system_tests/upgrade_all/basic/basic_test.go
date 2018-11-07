@@ -54,7 +54,7 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 		config.BoshClient.DeployODB(*config.OriginalBrokerManifest)
 	})
 
-	It("exits 1 when the upgrader fails", func() {
+	It("exits 1 when the instanceiterator fails", func() {
 		brokerManifest := config.BoshClient.GetManifest(config.BrokerBoshDeploymentName)
 		serviceInstances = CreateServiceInstances(config, dataPersistenceEnabled)
 

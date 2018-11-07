@@ -12,8 +12,8 @@ import (
 	"os"
 
 	"github.com/pivotal-cf/on-demand-service-broker/config"
+	"github.com/pivotal-cf/on-demand-service-broker/instanceiterator"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
-	"github.com/pivotal-cf/on-demand-service-broker/upgrader"
 	"gopkg.in/yaml.v2"
 )
 
@@ -29,7 +29,7 @@ func main() {
 		logger.Fatalln("-configPath must be given as argument")
 	}
 
-	var conf config.UpgradeAllInstanceErrandConfig
+	var conf config.InstanceIteratorConfig
 	configContents, err := ioutil.ReadFile(configPath)
 	if err != nil {
 		logger.Fatalln(err.Error())
@@ -40,13 +40,13 @@ func main() {
 		logger.Fatalln(err.Error())
 	}
 
-	builder, err := upgrader.NewBuilder(conf, logger, "upgrade-all")
+	builder, err := instanceiterator.NewBuilder(conf, logger, "upgrade-all")
 	if err != nil {
 		logger.Fatalln(err.Error())
 	}
-	upgradeTool := upgrader.New(builder)
+	upgradeTool := instanceiterator.New(builder)
 
-	err = upgradeTool.Upgrade()
+	err = upgradeTool.Iterate()
 	if err != nil {
 		logger.Fatalln(err.Error())
 	}

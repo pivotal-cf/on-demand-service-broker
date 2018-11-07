@@ -7,8 +7,8 @@ import (
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
+	"github.com/pivotal-cf/on-demand-service-broker/instanceiterator"
 	"github.com/pivotal-cf/on-demand-service-broker/service"
-	"github.com/pivotal-cf/on-demand-service-broker/upgrader"
 )
 
 type FakeBrokerServices struct {
@@ -172,4 +172,4 @@ func (fake *FakeBrokerServices) recordInvocation(key string, args []interface{})
 	fake.invocations[key] = append(fake.invocations[key], args)
 }
 
-var _ upgrader.BrokerServices = new(FakeBrokerServices)
+var _ instanceiterator.BrokerServices = new(FakeBrokerServices)

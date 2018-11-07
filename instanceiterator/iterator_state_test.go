@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package upgrader_test
+package instanceiterator_test
 
 import (
 	"fmt"
@@ -22,13 +22,13 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
+	"github.com/pivotal-cf/on-demand-service-broker/instanceiterator"
 	"github.com/pivotal-cf/on-demand-service-broker/service"
-	"github.com/pivotal-cf/on-demand-service-broker/upgrader"
 )
 
-var _ = Describe("Upgrade State", func() {
+var _ = Describe("Iterate State", func() {
 	It("fails if canary instances is not a subset of all the instances", func() {
-		_, err := upgrader.NewUpgradeState([]service.Instance{service.Instance{GUID: "a"}}, []service.Instance{}, 0)
+		_, err := instanceiterator.NewIteratorState([]service.Instance{service.Instance{GUID: "a"}}, []service.Instance{}, 0)
 		Expect(err).To(MatchError(ContainSubstring("Canary 'a' not in")))
 	})
 
@@ -37,7 +37,7 @@ var _ = Describe("Upgrade State", func() {
 			canaries, all := instances(func(i int) bool {
 				return i%2 == 1
 			}, 10)
-			us, err := upgrader.NewUpgradeState(canaries, all, 0)
+			us, err := instanceiterator.NewIteratorState(canaries, all, 0)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(us.IsProcessingCanaries()).To(BeTrue())
 		})
@@ -46,7 +46,7 @@ var _ = Describe("Upgrade State", func() {
 			canaries, all := instances(func(i int) bool {
 				return i%2 == 1
 			}, 10)
-			us, err := upgrader.NewUpgradeState(canaries, all, 0)
+			us, err := instanceiterator.NewIteratorState(canaries, all, 0)
 			Expect(err).NotTo(HaveOccurred())
 
 			canary, err := us.NextPending()
@@ -65,7 +65,7 @@ var _ = Describe("Upgrade State", func() {
 			canaries, all := instances(func(i int) bool {
 				return i%2 == 1
 			}, 2)
-			us, err := upgrader.NewUpgradeState(canaries, all, 0)
+			us, err := instanceiterator.NewIteratorState(canaries, all, 0)
 			Expect(err).NotTo(HaveOccurred())
 			next, err := us.NextPending()
 			Expect(err).NotTo(HaveOccurred())
@@ -76,7 +76,7 @@ var _ = Describe("Upgrade State", func() {
 			canaries, all := instances(func(i int) bool {
 				return i%2 == 1
 			}, 2)
-			us, err := upgrader.NewUpgradeState(canaries, all, 0)
+			us, err := instanceiterator.NewIteratorState(canaries, all, 0)
 			Expect(err).NotTo(HaveOccurred())
 			us.SetState(canaries[0].GUID, services.OperationAccepted)
 
@@ -89,7 +89,7 @@ var _ = Describe("Upgrade State", func() {
 				return i%2 == 1
 			}, 10)
 
-			us, err := upgrader.NewUpgradeState(canaries, all, 0)
+			us, err := instanceiterator.NewIteratorState(canaries, all, 0)
 			Expect(err).NotTo(HaveOccurred())
 
 			us.SetState(all[0].GUID, services.OperationAccepted)
@@ -105,7 +105,7 @@ var _ = Describe("Upgrade State", func() {
 		canaries, all := instances(func(i int) bool {
 			return i%2 == 1
 		}, 2)
-		us, err := upgrader.NewUpgradeState(canaries, all, 0)
+		us, err := instanceiterator.NewIteratorState(canaries, all, 0)
 		Expect(err).NotTo(HaveOccurred())
 
 		err = us.SetState(canaries[0].GUID, services.OperationAccepted)
@@ -113,17 +113,17 @@ var _ = Describe("Upgrade State", func() {
 	})
 
 	Context("Completion", func() {
-		It("returns that the upgrade is completed when there are no more pending instances", func() {
-			us, err := upgrader.NewUpgradeState([]service.Instance{}, []service.Instance{}, 0)
+		It("returns that the process is completed when there are no more pending instances", func() {
+			us, err := instanceiterator.NewIteratorState([]service.Instance{}, []service.Instance{}, 0)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(us.CurrentPhaseIsComplete()).To(Equal(true))
 		})
 
-		DescribeTable("upgrade completed when processing canaries",
+		DescribeTable("process completed when processing canaries",
 			func(limit, complete int, expected bool) {
 				canaries, all := instances(func(i int) bool { return i < 3 }, 10)
-				us, err := upgrader.NewUpgradeState(canaries, all, limit)
+				us, err := instanceiterator.NewIteratorState(canaries, all, limit)
 				Expect(err).NotTo(HaveOccurred())
 
 				for i := 0; i < complete; i++ {
@@ -139,10 +139,10 @@ var _ = Describe("Upgrade State", func() {
 			Entry("with limit 0, completed 3", 0, 3, true),
 		)
 
-		DescribeTable("upgrade completed when processing all the rest",
+		DescribeTable("process completed when processing all the rest",
 			func(complete int, expected bool) {
 				canaries, all := instances(func(i int) bool { return i%3 == 0 }, 10)
-				us, err := upgrader.NewUpgradeState(canaries, all, 7)
+				us, err := instanceiterator.NewIteratorState(canaries, all, 7)
 				Expect(err).NotTo(HaveOccurred())
 
 				us.MarkCanariesCompleted()
@@ -163,7 +163,7 @@ var _ = Describe("Upgrade State", func() {
 		canaries, all := instances(func(i int) bool {
 			return i%2 == 1
 		}, 4)
-		us, err := upgrader.NewUpgradeState(canaries, all, 0)
+		us, err := instanceiterator.NewIteratorState(canaries, all, 0)
 		Expect(err).NotTo(HaveOccurred())
 		next, err := us.NextPending()
 		Expect(err).NotTo(HaveOccurred())

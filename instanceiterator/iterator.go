@@ -4,7 +4,7 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 // Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
-package upgrader
+package instanceiterator
 
 import (
 	"fmt"
@@ -32,8 +32,8 @@ type Listener interface {
 	InstanceOperationStartResult(instance string, status services.BOSHOperationType)
 	InstanceOperationFinished(instance string, result string)
 	WaitingFor(instance string, boshTaskId int)
-	Progress(pollingInterval time.Duration, orphanCount, upgradedCount, upgradesLeftCount, deletedCount int)
-	Finished(orphanCount, upgradedCount, deletedCount int, busyInstances, failedInstances []string)
+	Progress(pollingInterval time.Duration, orphanCount, processedCount, toRetryCount, deletedCount int)
+	Finished(orphanCount, finishedCount, deletedCount int, busyInstances, failedInstances []string)
 	CanariesStarting(canaries int, filter config.CanarySelectionParams)
 	CanariesFinished()
 }
@@ -70,7 +70,7 @@ type StateChecker interface {
 	Check(string, broker.OperationData) (services.BOSHOperation, error)
 }
 
-type Upgrader struct {
+type Iterator struct {
 	brokerServices  BrokerServices
 	instanceLister  InstanceLister
 	pollingInterval time.Duration
@@ -83,13 +83,13 @@ type Upgrader struct {
 	failures              []instanceFailure
 	canaries              int
 	canarySelectionParams config.CanarySelectionParams
-	upgradeState          *upgradeState
+	iteratorState         *iteratorState
 	triggerer             Triggerer
 	stateChecker          StateChecker
 }
 
-func New(builder *Builder) *Upgrader {
-	return &Upgrader{
+func New(builder *Builder) *Iterator {
+	return &Iterator{
 		brokerServices:        builder.BrokerServices,
 		instanceLister:        builder.ServiceInstanceLister,
 		pollingInterval:       builder.PollingInterval,
@@ -105,117 +105,117 @@ func New(builder *Builder) *Upgrader {
 	}
 }
 
-func (u *Upgrader) Upgrade() error {
-	u.listener.Starting(u.maxInFlight)
+func (it *Iterator) Iterate() error {
+	it.listener.Starting(it.maxInFlight)
 
-	if err := u.registerInstancesAndCanaries(); err != nil {
+	if err := it.registerInstancesAndCanaries(); err != nil {
 		return err
 	}
 
-	u.listener.InstancesToProcess(u.upgradeState.AllInstances())
+	it.listener.InstancesToProcess(it.iteratorState.AllInstances())
 
-	if u.upgradeState.IsProcessingCanaries() {
-		u.listener.CanariesStarting(u.upgradeState.OutstandingCanaryCount(), u.canarySelectionParams)
-		if err := u.UpgradeInstancesWithAttempts(); err != nil {
-			u.printSummary()
+	if it.iteratorState.IsProcessingCanaries() {
+		it.listener.CanariesStarting(it.iteratorState.OutstandingCanaryCount(), it.canarySelectionParams)
+		if err := it.IterateInstancesWithAttempts(); err != nil {
+			it.printSummary()
 			return err
 		}
-		u.upgradeState.MarkCanariesCompleted()
-		u.listener.CanariesFinished()
+		it.iteratorState.MarkCanariesCompleted()
+		it.listener.CanariesFinished()
 	}
 
-	if err := u.UpgradeInstancesWithAttempts(); err != nil {
-		u.printSummary()
+	if err := it.IterateInstancesWithAttempts(); err != nil {
+		it.printSummary()
 		return err
 	}
-	u.printSummary()
+	it.printSummary()
 	return nil
 }
 
-func (u *Upgrader) UpgradeInstancesWithAttempts() error {
-	for attempt := 1; attempt <= u.attemptLimit; attempt++ {
-		u.upgradeState.RewindAndResetBusyInstances()
-		u.logRetryAttempt(attempt)
+func (it *Iterator) IterateInstancesWithAttempts() error {
+	for attempt := 1; attempt <= it.attemptLimit; attempt++ {
+		it.iteratorState.RewindAndResetBusyInstances()
+		it.logRetryAttempt(attempt)
 
-		for u.upgradeState.HasInstancesToProcess() {
-			if !u.upgradeState.HasFailures() {
-				u.triggerUpgrades()
+		for it.iteratorState.HasInstancesToProcess() {
+			if !it.iteratorState.HasFailures() {
+				it.triggerOperation()
 			}
-			u.pollRunningTasks()
+			it.pollRunningTasks()
 
-			if u.upgradeState.HasInstancesProcessing() {
-				u.sleeper.Sleep(u.pollingInterval)
+			if it.iteratorState.HasInstancesProcessing() {
+				it.sleeper.Sleep(it.pollingInterval)
 				continue
 			}
 
-			if u.upgradeState.HasFailures() {
-				return u.formatError()
+			if it.iteratorState.HasFailures() {
+				return it.formatError()
 			}
 
-			if u.upgradeState.IsProcessingCanaries() && u.upgradeState.CurrentPhaseIsComplete() {
+			if it.iteratorState.IsProcessingCanaries() && it.iteratorState.CurrentPhaseIsComplete() {
 				return nil
 			}
 		}
 
-		u.reportProgress()
+		it.reportProgress()
 
-		if u.upgradeState.CurrentPhaseIsComplete() {
+		if it.iteratorState.CurrentPhaseIsComplete() {
 			break
 		}
 
-		u.sleeper.Sleep(u.attemptInterval)
+		it.sleeper.Sleep(it.attemptInterval)
 	}
-	return u.checkStillBusyInstances()
+	return it.checkStillBusyInstances()
 }
 
-func (u *Upgrader) registerInstancesAndCanaries() error {
+func (it *Iterator) registerInstancesAndCanaries() error {
 	var canaryInstances []service.Instance
 
-	allInstances, err := u.instanceLister.Instances()
+	allInstances, err := it.instanceLister.Instances()
 	if err != nil {
 		return fmt.Errorf("error listing service instances: %s", err)
 	}
 
-	if len(u.canarySelectionParams) > 0 {
-		canaryInstances, err = u.instanceLister.FilteredInstances(u.canarySelectionParams)
+	if len(it.canarySelectionParams) > 0 {
+		canaryInstances, err = it.instanceLister.FilteredInstances(it.canarySelectionParams)
 		if err != nil {
 			return fmt.Errorf("error listing service instances: %s", err)
 		}
 		if len(canaryInstances) == 0 && len(allInstances) > 0 {
 			return fmt.Errorf("Failed to find a match to the canary selection criteria: %s. "+
 				"Please ensure these selection criteria will match one or more service instances, "+
-				"or remove `canary_selection_params` to disable selecting canaries from a specific org and space.", u.canarySelectionParams)
+				"or remove `canary_selection_params` to disable selecting canaries from a specific org and space.", it.canarySelectionParams)
 		}
-		if len(canaryInstances) < u.canaries {
-			u.canaries = len(canaryInstances)
+		if len(canaryInstances) < it.canaries {
+			it.canaries = len(canaryInstances)
 		}
 	} else {
-		if u.canaries > 0 {
+		if it.canaries > 0 {
 			canaryInstances = allInstances
 		} else {
 			canaryInstances = []service.Instance{}
 		}
 	}
-	u.upgradeState, err = NewUpgradeState(canaryInstances, allInstances, u.canaries)
+	it.iteratorState, err = NewIteratorState(canaryInstances, allInstances, it.canaries)
 	if err != nil {
 		return fmt.Errorf("error with canary instance listing: %s", err)
 	}
 	return nil
 }
 
-func (u *Upgrader) logRetryAttempt(attempt int) {
-	if u.upgradeState.IsProcessingCanaries() {
-		u.listener.RetryCanariesAttempt(attempt, u.attemptLimit, u.upgradeState.OutstandingCanaryCount())
+func (it *Iterator) logRetryAttempt(attempt int) {
+	if it.iteratorState.IsProcessingCanaries() {
+		it.listener.RetryCanariesAttempt(attempt, it.attemptLimit, it.iteratorState.OutstandingCanaryCount())
 	} else {
-		u.listener.RetryAttempt(attempt, u.attemptLimit)
+		it.listener.RetryAttempt(attempt, it.attemptLimit)
 	}
 }
 
-func (u *Upgrader) upgradesToTriggerCount() int {
-	inProg := u.upgradeState.CountInProgressInstances()
-	needed := u.maxInFlight - inProg
-	if u.upgradeState.IsProcessingCanaries() {
-		outstandingCanaries := u.upgradeState.OutstandingCanaryCount()
+func (it *Iterator) operationsToTriggerCount() int {
+	inProg := it.iteratorState.CountInProgressInstances()
+	needed := it.maxInFlight - inProg
+	if it.iteratorState.IsProcessingCanaries() {
+		outstandingCanaries := it.iteratorState.OutstandingCanaryCount()
 		if needed > outstandingCanaries {
 			needed = outstandingCanaries
 		}
@@ -223,92 +223,92 @@ func (u *Upgrader) upgradesToTriggerCount() int {
 	return needed
 }
 
-func (u *Upgrader) triggerUpgrades() {
-	needed := u.upgradesToTriggerCount()
+func (it *Iterator) triggerOperation() {
+	needed := it.operationsToTriggerCount()
 	if needed == 0 {
 		return
 	}
 
-	totalInstances := u.upgradeState.CountInstancesInCurrentPhase()
+	totalInstances := it.iteratorState.CountInstancesInCurrentPhase()
 
 	acceptedCount := 0
 	for acceptedCount < needed {
-		instance, err := u.upgradeState.NextPending()
+		instance, err := it.iteratorState.NextPending()
 		if err != nil {
 			break
 		}
-		u.listener.InstanceOperationStarting(instance.GUID, u.upgradeState.GetUpgradeIndex(), totalInstances, u.upgradeState.IsProcessingCanaries())
-		operation, err := u.triggerer.TriggerOperation(instance)
+		it.listener.InstanceOperationStarting(instance.GUID, it.iteratorState.GetIteratorIndex(), totalInstances, it.iteratorState.IsProcessingCanaries())
+		operation, err := it.triggerer.TriggerOperation(instance)
 		if err != nil {
-			u.upgradeState.SetState(instance.GUID, services.OperationFailed)
-			u.failures = append(u.failures, instanceFailure{guid: instance.GUID, err: err})
+			it.iteratorState.SetState(instance.GUID, services.OperationFailed)
+			it.failures = append(it.failures, instanceFailure{guid: instance.GUID, err: err})
 			return
 		}
-		u.upgradeState.SetUpgradeOperation(instance.GUID, operation)
-		u.upgradeState.SetState(instance.GUID, operation.Type)
-		u.listener.InstanceOperationStartResult(instance.GUID, operation.Type)
+		it.iteratorState.SetOperation(instance.GUID, operation)
+		it.iteratorState.SetState(instance.GUID, operation.Type)
+		it.listener.InstanceOperationStartResult(instance.GUID, operation.Type)
 
 		if operation.Type == services.OperationAccepted {
-			u.listener.WaitingFor(instance.GUID, operation.Data.BoshTaskID)
+			it.listener.WaitingFor(instance.GUID, operation.Data.BoshTaskID)
 			acceptedCount++
 		}
 	}
 }
 
-func (u *Upgrader) pollRunningTasks() {
-	for _, inst := range u.upgradeState.InProgressInstances() {
+func (it *Iterator) pollRunningTasks() {
+	for _, inst := range it.iteratorState.InProgressInstances() {
 		guid := inst.GUID
-		state, err := u.stateChecker.Check(guid, u.upgradeState.GetUpgradeOperation(guid).Data)
+		state, err := it.stateChecker.Check(guid, it.iteratorState.GetOperation(guid).Data)
 		if err != nil {
-			u.upgradeState.SetState(guid, services.OperationFailed)
-			u.failures = append(u.failures, instanceFailure{guid: guid, err: err})
+			it.iteratorState.SetState(guid, services.OperationFailed)
+			it.failures = append(it.failures, instanceFailure{guid: guid, err: err})
 			continue
 		}
-		u.upgradeState.SetState(guid, state.Type)
+		it.iteratorState.SetState(guid, state.Type)
 
 		switch state.Type {
 		case services.OperationSucceeded:
-			u.listener.InstanceOperationFinished(guid, "success")
+			it.listener.InstanceOperationFinished(guid, "success")
 		case services.OperationFailed:
-			u.listener.InstanceOperationFinished(guid, "failure")
-			upgradeErr := fmt.Errorf("[%s] Operation failed: bosh task id %d: %s", guid, state.Data.BoshTaskID, state.Description)
-			u.failures = append(u.failures, instanceFailure{guid: guid, err: upgradeErr})
+			it.listener.InstanceOperationFinished(guid, "failure")
+			err := fmt.Errorf("[%s] Operation failed: bosh task id %d: %s", guid, state.Data.BoshTaskID, state.Description)
+			it.failures = append(it.failures, instanceFailure{guid: guid, err: err})
 		}
 	}
 }
 
-func (u *Upgrader) reportProgress() {
-	summary := u.upgradeState.Summary()
-	u.listener.Progress(u.attemptInterval, summary.orphaned, summary.succeeded, summary.busy, summary.deleted)
+func (it *Iterator) reportProgress() {
+	summary := it.iteratorState.Summary()
+	it.listener.Progress(it.attemptInterval, summary.orphaned, summary.succeeded, summary.busy, summary.deleted)
 }
 
-func (u *Upgrader) printSummary() {
-	summary := u.upgradeState.Summary()
+func (it *Iterator) printSummary() {
+	summary := it.iteratorState.Summary()
 
-	busyInstances := u.upgradeState.GetGUIDsInStates(services.OperationInProgress)
-	failedList := u.failures
+	busyInstances := it.iteratorState.GetGUIDsInStates(services.OperationInProgress)
+	failedList := it.failures
 	var failedInstances []string
 	for _, failure := range failedList {
 		failedInstances = append(failedInstances, failure.guid)
 	}
 
-	u.listener.Finished(summary.orphaned, summary.succeeded, summary.deleted, busyInstances, failedInstances)
+	it.listener.Finished(summary.orphaned, summary.succeeded, summary.deleted, busyInstances, failedInstances)
 }
 
-func (u *Upgrader) checkStillBusyInstances() error {
-	busyInstances := u.upgradeState.GetGUIDsInStates(services.OperationInProgress)
+func (it *Iterator) checkStillBusyInstances() error {
+	busyInstances := it.iteratorState.GetGUIDsInStates(services.OperationInProgress)
 	busyInstancesCount := len(busyInstances)
 
 	if busyInstancesCount == 0 {
 		return nil
 	}
 
-	if u.upgradeState.IsProcessingCanaries() {
-		if !u.upgradeState.canariesCompleted() {
+	if it.iteratorState.IsProcessingCanaries() {
+		if !it.iteratorState.canariesCompleted() {
 			return fmt.Errorf(
-				"canaries didn't upgrade successfully: attempted to upgrade %d canaries, but only found %d instances not already in use by another BOSH task.",
-				u.canaries,
-				u.canaries-busyInstancesCount,
+				"canaries didn't process successfully: attempted to process %d canaries, but only found %d instances not already in use by another BOSH task.",
+				it.canaries,
+				it.canaries-busyInstancesCount,
 			)
 		}
 		return nil
@@ -316,16 +316,16 @@ func (u *Upgrader) checkStillBusyInstances() error {
 	return fmt.Errorf("The following instances could not be processed: %s", strings.Join(busyInstances, ", "))
 }
 
-func (u *Upgrader) formatError() error {
-	err := u.errorFromList()
-	if u.upgradeState.IsProcessingCanaries() {
-		return errors.Wrap(err, "canaries didn't upgrade successfully")
+func (it *Iterator) formatError() error {
+	err := it.errorFromList()
+	if it.iteratorState.IsProcessingCanaries() {
+		return errors.Wrap(err, "canaries didn't process successfully")
 	}
 	return err
 }
 
-func (u *Upgrader) errorFromList() error {
-	failureList := u.failures
+func (it *Iterator) errorFromList() error {
+	failureList := it.failures
 	if len(failureList) == 1 {
 		return failureList[0].err
 	} else if len(failureList) > 1 {

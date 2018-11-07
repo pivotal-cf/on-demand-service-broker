@@ -13,13 +13,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package upgrader_test
+package instanceiterator_test
 
 import (
 	"time"
 
+	. "github.com/pivotal-cf/on-demand-service-broker/instanceiterator"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
-	. "github.com/pivotal-cf/on-demand-service-broker/upgrader"
 
 	"log"
 
@@ -38,7 +38,7 @@ var _ = Describe("Builder", func() {
 	)
 
 	BeforeEach(func() {
-		loggerFactory := loggerfactory.New(GinkgoWriter, "upgrade-all-service-instances", loggerfactory.Flags)
+		loggerFactory := loggerfactory.New(GinkgoWriter, "process-all-service-instances", loggerfactory.Flags)
 		logger = loggerFactory.New()
 	})
 
@@ -214,8 +214,8 @@ var _ = Describe("Builder", func() {
 	})
 })
 
-func updateAllInstanceErrandConfig(brokerUser, brokerPassword, brokerURL string) config.UpgradeAllInstanceErrandConfig {
-	return config.UpgradeAllInstanceErrandConfig{
+func updateAllInstanceErrandConfig(brokerUser, brokerPassword, brokerURL string) config.InstanceIteratorConfig {
+	return config.InstanceIteratorConfig{
 		BrokerAPI: config.BrokerAPI{
 			Authentication: config.Authentication{
 				Basic: config.UserCredentials{

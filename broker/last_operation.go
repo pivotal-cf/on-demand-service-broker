@@ -99,7 +99,7 @@ func constructLastOperation(ctx context.Context, taskState brokerapi.LastOperati
 	description := descriptions[taskState][operationData.OperationType]
 	if taskState == brokerapi.Failed {
 		if operationData.OperationType == OperationTypeUpgrade {
-			description = fmt.Sprintf(description+": %d", lastBoshTask.ID) // Allows upgrader to log BOSH task ID when an upgrade fails
+			description = fmt.Sprintf(description+": %d", lastBoshTask.ID) // Allows instanceiterator to log BOSH task ID when an upgrade fails
 		} else {
 			description = fmt.Sprintf(description+": %s", NewGenericError(ctx, nil).ErrorForCFUser())
 		}
