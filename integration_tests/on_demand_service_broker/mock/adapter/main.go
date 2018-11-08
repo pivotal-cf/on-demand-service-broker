@@ -59,7 +59,8 @@ func (a *Adapter) GenerateManifest(
 	requestParams serviceadapter.RequestParameters,
 	previousManifest *bosh.BoshManifest,
 	previousPlan *serviceadapter.Plan,
-	previousSecret serviceadapter.ManifestSecrets) (serviceadapter.GenerateManifestOutput, error) {
+	previousSecret serviceadapter.ManifestSecrets,
+	previousConfigs serviceadapter.BOSHConfigs) (serviceadapter.GenerateManifestOutput, error) {
 
 	errorMessageForOperator := os.Getenv(mock.StderrContentForGenerate)
 	if errorMessageForOperator != "" {
