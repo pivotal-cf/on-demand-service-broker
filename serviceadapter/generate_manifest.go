@@ -37,6 +37,7 @@ func (c *Client) GenerateManifest(
 	previousManifest []byte,
 	previousPlan *sdk.Plan,
 	previousSecrets map[string]string,
+	previousConfigs map[string]string,
 	logger *log.Logger,
 ) (sdk.MarshalledGenerateManifest, error) {
 
@@ -68,6 +69,11 @@ func (c *Client) GenerateManifest(
 		return sdk.MarshalledGenerateManifest{}, err
 	}
 
+	serialisedPreviousConfigs, err := json.Marshal(previousConfigs)
+	if err != nil {
+		return sdk.MarshalledGenerateManifest{}, err
+	}
+
 	var stdout, stderr []byte
 	var output sdk.MarshalledGenerateManifest
 	var exitCode *int
@@ -82,6 +88,7 @@ func (c *Client) GenerateManifest(
 				PreviousPlan:      string(serialisedPreviousPlan),
 				PreviousManifest:  string(previousManifest),
 				PreviousSecrets:   string(serialisedPreviousSecrets),
+				PreviousConfigs:   string(serialisedPreviousConfigs),
 			},
 		}
 		stdout, stderr, exitCode, err = c.CommandRunner.RunWithInputParams(

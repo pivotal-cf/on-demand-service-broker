@@ -33,6 +33,9 @@ var _ = Describe("external service adapter", func() {
 		ODBManagedSecrets: map[string]interface{}{
 			"pirate_status": "noob",
 		},
+		Configs: map[string]string{
+			"some-config-type": "some-config-content",
+		},
 	}
 
 	var (
@@ -46,6 +49,7 @@ var _ = Describe("external service adapter", func() {
 		params            map[string]interface{}
 		previousManifest  []byte
 		previousSecrets   map[string]string
+		previousConfigs   map[string]string
 
 		inputParams sdk.InputParams
 
@@ -99,6 +103,7 @@ var _ = Describe("external service adapter", func() {
 			},
 		}
 		previousSecrets = map[string]string{"sup": "yeah!"}
+		previousConfigs = map[string]string{"some-config-type": "some-config-content"}
 
 		inputParams = sdk.InputParams{
 			GenerateManifest: sdk.GenerateManifestParams{
@@ -108,13 +113,14 @@ var _ = Describe("external service adapter", func() {
 				PreviousManifest:  string(previousManifest),
 				RequestParameters: toJson(params),
 				PreviousSecrets:   toJson(previousSecrets),
+				PreviousConfigs:   toJson(previousConfigs),
 			},
 		}
 
 	})
 
 	JustBeforeEach(func() {
-		generateManifestOutput, generateErr = a.GenerateManifest(serviceDeployment, plan, params, previousManifest, previousPlan, previousSecrets, logger)
+		generateManifestOutput, generateErr = a.GenerateManifest(serviceDeployment, plan, params, previousManifest, previousPlan, previousSecrets, previousConfigs, logger)
 	})
 
 	It("invokes external manifest generator with serialised parameters when 'UsingStdin' not set", func() {
@@ -150,6 +156,9 @@ var _ = Describe("external service adapter", func() {
 
 				By("not setting the secrets")
 				Expect(generateManifestOutput.ODBManagedSecrets).To(BeEmpty())
+
+				By("not setting the configs")
+				Expect(generateManifestOutput.Configs).To(BeEmpty())
 			})
 		})
 
@@ -293,6 +302,9 @@ stemcells:
 
 					By("setting the secrets")
 					Expect(generateManifestOutput.ODBManagedSecrets).To(Equal(expectedGenerateManifestOutput.ODBManagedSecrets))
+
+					By("setting the configs")
+					Expect(generateManifestOutput.Configs).To(Equal(expectedGenerateManifestOutput.Configs))
 				})
 			})
 
