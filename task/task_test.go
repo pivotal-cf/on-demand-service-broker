@@ -40,6 +40,8 @@ var _ = Describe("Deployer", func() {
 		generatedManifest string
 		oldManifest       []byte
 		secretsMap        map[string]string
+		configsMap        map[string]string
+		boshConfigs       []boshdirector.BoshConfig
 
 		manifestGenerator *fakes.FakeManifestGenerator
 		odbSecrets        *fakes.FakeODBSecrets
@@ -74,6 +76,12 @@ var _ = Describe("Deployer", func() {
 			"((foo))": "b4r",
 			"o0p5":    "p4ssw0rd",
 		}
+		configsMap = map[string]string{
+			"some-config-type": "some-config-content",
+		}
+		boshConfigs = []boshdirector.BoshConfig{
+			boshdirector.BoshConfig{Type: "some-config-type", Name: "some-config-name", Content: "some-config-content"},
+		}
 	})
 
 	Describe("Create()", func() {
@@ -94,6 +102,42 @@ var _ = Describe("Deployer", func() {
 			for k, v := range requestParams {
 				copyParams[k] = v
 			}
+		})
+
+		When("there are configs to be applied", func() {
+			var (
+				boshConfigs serviceadapter.BOSHConfigs
+			)
+
+			BeforeEach(func() {
+				boshConfigs = serviceadapter.BOSHConfigs{
+					"config-type": "config-content",
+				}
+
+				manifestGenerator.GenerateManifestReturns(serviceadapter.MarshalledGenerateManifest{
+					Manifest: generatedManifest,
+					Configs:  boshConfigs,
+				}, nil)
+			})
+
+			It("applies the configs to bosh", func() {
+				Expect(boshClient.UpdateConfigCallCount()).To(Equal(1))
+
+				configType, configName, configContent, _ := boshClient.UpdateConfigArgsForCall(0)
+				Expect(configType).To(Equal("config-type"))
+				Expect(configName).To(Equal(deploymentName))
+				Expect(configContent).To(Equal([]byte("config-content")))
+			})
+
+			When("fails to update bosh configs", func() {
+				BeforeEach(func() {
+					boshClient.UpdateConfigReturns(errors.New("some-error"))
+				})
+
+				It("returns an error", func() {
+					Expect(deployError).To(MatchError(ContainSubstring("some-error")))
+				})
+			})
 		})
 
 		When("there are secrets to be stored", func() {
@@ -494,6 +538,27 @@ var _ = Describe("Deployer", func() {
 				Expect(deployError).To(MatchError(ContainSubstring("error deploying")))
 			})
 		})
+
+		Context("when there are bosh configs", func() {
+			BeforeEach(func() {
+				boshClient.GetConfigsReturns(boshConfigs, nil)
+			})
+
+			It("sends the old configs to service adapter", func() {
+				_, _, _, _, _, _, previousConfigs, _ := manifestGenerator.GenerateManifestArgsForCall(0)
+				Expect(previousConfigs).To(Equal(configsMap))
+			})
+		})
+
+		Context("when getting bosh configs fails", func() {
+			BeforeEach(func() {
+				boshClient.GetConfigsReturns(nil, errors.New("some-error"))
+			})
+
+			It("wraps the error", func() {
+				Expect(deployError).To(MatchError(ContainSubstring("some-error")))
+			})
+		})
 	})
 
 	Describe("Update()", func() {
@@ -529,7 +594,7 @@ var _ = Describe("Deployer", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(manifestGenerator.GenerateManifestCallCount()).To(Equal(2))
-			_, _, actualRequestParams, _, _, _, _ := manifestGenerator.GenerateManifestArgsForCall(1)
+			_, _, actualRequestParams, _, _, _, _, _ := manifestGenerator.GenerateManifestArgsForCall(1)
 			Expect(actualRequestParams).To(Equal(copyParams))
 		})
 
@@ -548,7 +613,7 @@ var _ = Describe("Deployer", func() {
 
 				Expect(manifestGenerator.GenerateManifestCallCount()).To(Equal(2))
 				for i := 0; i < 2; i++ {
-					_, _, _, _, _, actualSecretsMap, _ := manifestGenerator.GenerateManifestArgsForCall(i)
+					_, _, _, _, _, actualSecretsMap, _, _ := manifestGenerator.GenerateManifestArgsForCall(i)
 					Expect(actualSecretsMap).To(Equal(secretsMap), fmt.Sprintf("call %d", i+1))
 				}
 			})
@@ -584,6 +649,7 @@ var _ = Describe("Deployer", func() {
 						previousManifest []byte,
 						_ *string,
 						_ map[string]string,
+						_ map[string]string,
 						_ *log.Logger,
 					) (serviceadapter.MarshalledGenerateManifest, error) {
 						if len(requestParams) > 0 {
@@ -616,10 +682,10 @@ var _ = Describe("Deployer", func() {
 
 					Expect(manifestGenerator.GenerateManifestCallCount()).To(Equal(2))
 
-					_, _, passedRequestParams, _, _, _, _ := manifestGenerator.GenerateManifestArgsForCall(0)
+					_, _, passedRequestParams, _, _, _, _, _ := manifestGenerator.GenerateManifestArgsForCall(0)
 					Expect(passedRequestParams).To(BeEmpty())
 
-					_, _, passedRequestParams, _, _, _, _ = manifestGenerator.GenerateManifestArgsForCall(1)
+					_, _, passedRequestParams, _, _, _, _, _ = manifestGenerator.GenerateManifestArgsForCall(1)
 					Expect(passedRequestParams).To(Equal(requestParams))
 
 					Expect(boshClient.DeployCallCount()).To(Equal(1))
@@ -655,6 +721,7 @@ var _ = Describe("Deployer", func() {
 						requestParams map[string]interface{},
 						previousManifest []byte,
 						_ *string,
+						_ map[string]string,
 						_ map[string]string,
 						_ *log.Logger,
 					) (serviceadapter.MarshalledGenerateManifest, error) {
@@ -796,6 +863,51 @@ var _ = Describe("Deployer", func() {
 			})
 		})
 
+		Context("when there are bosh configs", func() {
+			BeforeEach(func() {
+				boshClient.GetConfigsReturns(boshConfigs, nil)
+			})
+
+			JustBeforeEach(func() {
+				returnedTaskID, deployedManifest, deployError = deployer.Update(
+					deploymentName,
+					planID,
+					requestParams,
+					previousPlanID,
+					boshContextID,
+					secretsMap,
+					logger,
+				)
+			})
+
+			It("sends the old configs to service adapter", func() {
+				_, _, _, _, _, _, previousConfigs, _ := manifestGenerator.GenerateManifestArgsForCall(0)
+				Expect(previousConfigs).To(Equal(configsMap))
+			})
+		})
+
+		Context("when getting bosh configs fails", func() {
+			BeforeEach(func() {
+				boshClient.GetConfigsReturns(nil, errors.New("some-error"))
+			})
+
+			JustBeforeEach(func() {
+				returnedTaskID, deployedManifest, deployError = deployer.Update(
+					deploymentName,
+					planID,
+					requestParams,
+					previousPlanID,
+					boshContextID,
+					secretsMap,
+					logger,
+				)
+			})
+
+			It("wraps the error", func() {
+				Expect(deployError).To(MatchError(ContainSubstring("some-error")))
+			})
+		})
+
 		It("ignores the update block when the manifest generator generates a new manifest with a different update block", func() {
 			previousPlanID = stringPointer(existingPlanID)
 
@@ -819,7 +931,7 @@ var _ = Describe("Deployer", func() {
 			Expect(deployError).To(BeNil())
 
 			Expect(manifestGenerator.GenerateManifestCallCount()).To(Equal(2))
-			_, _, passedRequestParams, _, _, _, _ := manifestGenerator.GenerateManifestArgsForCall(1)
+			_, _, passedRequestParams, _, _, _, _, _ := manifestGenerator.GenerateManifestArgsForCall(1)
 			Expect(passedRequestParams).To(Equal(requestParams))
 
 			manifestToDeploy, _, _, _ := boshClient.DeployArgsForCall(0)
@@ -865,7 +977,7 @@ instance_groups:
 			Expect(deployError).To(BeNil())
 
 			Expect(manifestGenerator.GenerateManifestCallCount()).To(Equal(2))
-			_, _, passedRequestParams, _, _, _, _ := manifestGenerator.GenerateManifestArgsForCall(1)
+			_, _, passedRequestParams, _, _, _, _, _ := manifestGenerator.GenerateManifestArgsForCall(1)
 			Expect(passedRequestParams).To(Equal(requestParams))
 
 			manifestToDeploy, _, _, _ := boshClient.DeployArgsForCall(0)

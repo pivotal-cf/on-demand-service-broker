@@ -2,25 +2,26 @@
 package fakes
 
 import (
-	"log"
-	"sync"
+	log "log"
+	sync "sync"
 
-	"github.com/pivotal-cf/brokerapi"
-	"github.com/pivotal-cf/on-demand-service-broker/task"
-	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
+	brokerapi "github.com/pivotal-cf/brokerapi"
+	task "github.com/pivotal-cf/on-demand-service-broker/task"
+	serviceadapter "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
 
 type FakeServiceAdapterClient struct {
-	GenerateManifestStub        func(serviceReleases serviceadapter.ServiceDeployment, plan serviceadapter.Plan, requestParams map[string]interface{}, previousManifest []byte, previousPlan *serviceadapter.Plan, oldSecretsMap map[string]string, logger *log.Logger) (serviceadapter.MarshalledGenerateManifest, error)
+	GenerateManifestStub        func(serviceadapter.ServiceDeployment, serviceadapter.Plan, map[string]interface{}, []byte, *serviceadapter.Plan, map[string]string, map[string]string, *log.Logger) (serviceadapter.MarshalledGenerateManifest, error)
 	generateManifestMutex       sync.RWMutex
 	generateManifestArgsForCall []struct {
-		serviceReleases  serviceadapter.ServiceDeployment
-		plan             serviceadapter.Plan
-		requestParams    map[string]interface{}
-		previousManifest []byte
-		previousPlan     *serviceadapter.Plan
-		oldSecretsMap    map[string]string
-		logger           *log.Logger
+		arg1 serviceadapter.ServiceDeployment
+		arg2 serviceadapter.Plan
+		arg3 map[string]interface{}
+		arg4 []byte
+		arg5 *serviceadapter.Plan
+		arg6 map[string]string
+		arg7 map[string]string
+		arg8 *log.Logger
 	}
 	generateManifestReturns struct {
 		result1 serviceadapter.MarshalledGenerateManifest
@@ -30,11 +31,11 @@ type FakeServiceAdapterClient struct {
 		result1 serviceadapter.MarshalledGenerateManifest
 		result2 error
 	}
-	GeneratePlanSchemaStub        func(plan serviceadapter.Plan, logger *log.Logger) (brokerapi.ServiceSchemas, error)
+	GeneratePlanSchemaStub        func(serviceadapter.Plan, *log.Logger) (brokerapi.ServiceSchemas, error)
 	generatePlanSchemaMutex       sync.RWMutex
 	generatePlanSchemaArgsForCall []struct {
-		plan   serviceadapter.Plan
-		logger *log.Logger
+		arg1 serviceadapter.Plan
+		arg2 *log.Logger
 	}
 	generatePlanSchemaReturns struct {
 		result1 brokerapi.ServiceSchemas
@@ -48,32 +49,34 @@ type FakeServiceAdapterClient struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeServiceAdapterClient) GenerateManifest(serviceReleases serviceadapter.ServiceDeployment, plan serviceadapter.Plan, requestParams map[string]interface{}, previousManifest []byte, previousPlan *serviceadapter.Plan, oldSecretsMap map[string]string, logger *log.Logger) (serviceadapter.MarshalledGenerateManifest, error) {
-	var previousManifestCopy []byte
-	if previousManifest != nil {
-		previousManifestCopy = make([]byte, len(previousManifest))
-		copy(previousManifestCopy, previousManifest)
+func (fake *FakeServiceAdapterClient) GenerateManifest(arg1 serviceadapter.ServiceDeployment, arg2 serviceadapter.Plan, arg3 map[string]interface{}, arg4 []byte, arg5 *serviceadapter.Plan, arg6 map[string]string, arg7 map[string]string, arg8 *log.Logger) (serviceadapter.MarshalledGenerateManifest, error) {
+	var arg4Copy []byte
+	if arg4 != nil {
+		arg4Copy = make([]byte, len(arg4))
+		copy(arg4Copy, arg4)
 	}
 	fake.generateManifestMutex.Lock()
 	ret, specificReturn := fake.generateManifestReturnsOnCall[len(fake.generateManifestArgsForCall)]
 	fake.generateManifestArgsForCall = append(fake.generateManifestArgsForCall, struct {
-		serviceReleases  serviceadapter.ServiceDeployment
-		plan             serviceadapter.Plan
-		requestParams    map[string]interface{}
-		previousManifest []byte
-		previousPlan     *serviceadapter.Plan
-		oldSecretsMap    map[string]string
-		logger           *log.Logger
-	}{serviceReleases, plan, requestParams, previousManifestCopy, previousPlan, oldSecretsMap, logger})
-	fake.recordInvocation("GenerateManifest", []interface{}{serviceReleases, plan, requestParams, previousManifestCopy, previousPlan, oldSecretsMap, logger})
+		arg1 serviceadapter.ServiceDeployment
+		arg2 serviceadapter.Plan
+		arg3 map[string]interface{}
+		arg4 []byte
+		arg5 *serviceadapter.Plan
+		arg6 map[string]string
+		arg7 map[string]string
+		arg8 *log.Logger
+	}{arg1, arg2, arg3, arg4Copy, arg5, arg6, arg7, arg8})
+	fake.recordInvocation("GenerateManifest", []interface{}{arg1, arg2, arg3, arg4Copy, arg5, arg6, arg7, arg8})
 	fake.generateManifestMutex.Unlock()
 	if fake.GenerateManifestStub != nil {
-		return fake.GenerateManifestStub(serviceReleases, plan, requestParams, previousManifest, previousPlan, oldSecretsMap, logger)
+		return fake.GenerateManifestStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.generateManifestReturns.result1, fake.generateManifestReturns.result2
+	fakeReturns := fake.generateManifestReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeServiceAdapterClient) GenerateManifestCallCount() int {
@@ -82,13 +85,22 @@ func (fake *FakeServiceAdapterClient) GenerateManifestCallCount() int {
 	return len(fake.generateManifestArgsForCall)
 }
 
-func (fake *FakeServiceAdapterClient) GenerateManifestArgsForCall(i int) (serviceadapter.ServiceDeployment, serviceadapter.Plan, map[string]interface{}, []byte, *serviceadapter.Plan, map[string]string, *log.Logger) {
+func (fake *FakeServiceAdapterClient) GenerateManifestCalls(stub func(serviceadapter.ServiceDeployment, serviceadapter.Plan, map[string]interface{}, []byte, *serviceadapter.Plan, map[string]string, map[string]string, *log.Logger) (serviceadapter.MarshalledGenerateManifest, error)) {
+	fake.generateManifestMutex.Lock()
+	defer fake.generateManifestMutex.Unlock()
+	fake.GenerateManifestStub = stub
+}
+
+func (fake *FakeServiceAdapterClient) GenerateManifestArgsForCall(i int) (serviceadapter.ServiceDeployment, serviceadapter.Plan, map[string]interface{}, []byte, *serviceadapter.Plan, map[string]string, map[string]string, *log.Logger) {
 	fake.generateManifestMutex.RLock()
 	defer fake.generateManifestMutex.RUnlock()
-	return fake.generateManifestArgsForCall[i].serviceReleases, fake.generateManifestArgsForCall[i].plan, fake.generateManifestArgsForCall[i].requestParams, fake.generateManifestArgsForCall[i].previousManifest, fake.generateManifestArgsForCall[i].previousPlan, fake.generateManifestArgsForCall[i].oldSecretsMap, fake.generateManifestArgsForCall[i].logger
+	argsForCall := fake.generateManifestArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5, argsForCall.arg6, argsForCall.arg7, argsForCall.arg8
 }
 
 func (fake *FakeServiceAdapterClient) GenerateManifestReturns(result1 serviceadapter.MarshalledGenerateManifest, result2 error) {
+	fake.generateManifestMutex.Lock()
+	defer fake.generateManifestMutex.Unlock()
 	fake.GenerateManifestStub = nil
 	fake.generateManifestReturns = struct {
 		result1 serviceadapter.MarshalledGenerateManifest
@@ -97,6 +109,8 @@ func (fake *FakeServiceAdapterClient) GenerateManifestReturns(result1 serviceada
 }
 
 func (fake *FakeServiceAdapterClient) GenerateManifestReturnsOnCall(i int, result1 serviceadapter.MarshalledGenerateManifest, result2 error) {
+	fake.generateManifestMutex.Lock()
+	defer fake.generateManifestMutex.Unlock()
 	fake.GenerateManifestStub = nil
 	if fake.generateManifestReturnsOnCall == nil {
 		fake.generateManifestReturnsOnCall = make(map[int]struct {
@@ -110,22 +124,23 @@ func (fake *FakeServiceAdapterClient) GenerateManifestReturnsOnCall(i int, resul
 	}{result1, result2}
 }
 
-func (fake *FakeServiceAdapterClient) GeneratePlanSchema(plan serviceadapter.Plan, logger *log.Logger) (brokerapi.ServiceSchemas, error) {
+func (fake *FakeServiceAdapterClient) GeneratePlanSchema(arg1 serviceadapter.Plan, arg2 *log.Logger) (brokerapi.ServiceSchemas, error) {
 	fake.generatePlanSchemaMutex.Lock()
 	ret, specificReturn := fake.generatePlanSchemaReturnsOnCall[len(fake.generatePlanSchemaArgsForCall)]
 	fake.generatePlanSchemaArgsForCall = append(fake.generatePlanSchemaArgsForCall, struct {
-		plan   serviceadapter.Plan
-		logger *log.Logger
-	}{plan, logger})
-	fake.recordInvocation("GeneratePlanSchema", []interface{}{plan, logger})
+		arg1 serviceadapter.Plan
+		arg2 *log.Logger
+	}{arg1, arg2})
+	fake.recordInvocation("GeneratePlanSchema", []interface{}{arg1, arg2})
 	fake.generatePlanSchemaMutex.Unlock()
 	if fake.GeneratePlanSchemaStub != nil {
-		return fake.GeneratePlanSchemaStub(plan, logger)
+		return fake.GeneratePlanSchemaStub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.generatePlanSchemaReturns.result1, fake.generatePlanSchemaReturns.result2
+	fakeReturns := fake.generatePlanSchemaReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeServiceAdapterClient) GeneratePlanSchemaCallCount() int {
@@ -134,13 +149,22 @@ func (fake *FakeServiceAdapterClient) GeneratePlanSchemaCallCount() int {
 	return len(fake.generatePlanSchemaArgsForCall)
 }
 
+func (fake *FakeServiceAdapterClient) GeneratePlanSchemaCalls(stub func(serviceadapter.Plan, *log.Logger) (brokerapi.ServiceSchemas, error)) {
+	fake.generatePlanSchemaMutex.Lock()
+	defer fake.generatePlanSchemaMutex.Unlock()
+	fake.GeneratePlanSchemaStub = stub
+}
+
 func (fake *FakeServiceAdapterClient) GeneratePlanSchemaArgsForCall(i int) (serviceadapter.Plan, *log.Logger) {
 	fake.generatePlanSchemaMutex.RLock()
 	defer fake.generatePlanSchemaMutex.RUnlock()
-	return fake.generatePlanSchemaArgsForCall[i].plan, fake.generatePlanSchemaArgsForCall[i].logger
+	argsForCall := fake.generatePlanSchemaArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeServiceAdapterClient) GeneratePlanSchemaReturns(result1 brokerapi.ServiceSchemas, result2 error) {
+	fake.generatePlanSchemaMutex.Lock()
+	defer fake.generatePlanSchemaMutex.Unlock()
 	fake.GeneratePlanSchemaStub = nil
 	fake.generatePlanSchemaReturns = struct {
 		result1 brokerapi.ServiceSchemas
@@ -149,6 +173,8 @@ func (fake *FakeServiceAdapterClient) GeneratePlanSchemaReturns(result1 brokerap
 }
 
 func (fake *FakeServiceAdapterClient) GeneratePlanSchemaReturnsOnCall(i int, result1 brokerapi.ServiceSchemas, result2 error) {
+	fake.generatePlanSchemaMutex.Lock()
+	defer fake.generatePlanSchemaMutex.Unlock()
 	fake.GeneratePlanSchemaStub = nil
 	if fake.generatePlanSchemaReturnsOnCall == nil {
 		fake.generatePlanSchemaReturnsOnCall = make(map[int]struct {
