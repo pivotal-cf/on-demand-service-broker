@@ -24,6 +24,7 @@ type ServiceAdapterClient interface {
 		previousManifest []byte,
 		previousPlan *serviceadapter.Plan,
 		oldSecretsMap map[string]string,
+		previousConfigs map[string]string,
 		logger *log.Logger,
 	) (serviceadapter.MarshalledGenerateManifest, error)
 	GeneratePlanSchema(plan serviceadapter.Plan, logger *log.Logger) (brokerapi.ServiceSchemas, error)
@@ -58,6 +59,7 @@ func (m manifestGenerator) GenerateManifest(
 	oldManifest []byte,
 	previousPlanID *string,
 	secretsMap map[string]string,
+	previousConfigs map[string]string,
 	logger *log.Logger,
 ) (serviceadapter.MarshalledGenerateManifest, error) {
 
@@ -74,7 +76,7 @@ func (m manifestGenerator) GenerateManifest(
 	}
 	logger.Printf("service adapter will generate manifest for deployment %s\n", deploymentName)
 
-	manifest, err := m.adapterClient.GenerateManifest(serviceDeployment, plan, requestParams, oldManifest, previousPlan, secretsMap, logger)
+	manifest, err := m.adapterClient.GenerateManifest(serviceDeployment, plan, requestParams, oldManifest, previousPlan, secretsMap, previousConfigs, logger)
 	if err != nil {
 		logger.Printf("generate manifest: %v\n", err)
 	}
