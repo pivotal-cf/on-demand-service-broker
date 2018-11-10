@@ -54,10 +54,16 @@ func (b *Broker) Deprovision(
 			fmt.Errorf("error deprovisioning: instance %s, not found", instanceID),
 		)
 
+		deleteConfigsErr := b.deleteConfigsForNotFoundInstance(ctx, instanceID, logger)
+		if deleteConfigsErr != nil {
+			return brokerapi.DeprovisionServiceSpec{IsAsync: true}, b.processError(deleteConfigsErr, logger)
+		}
+
 		secretsErr := b.clearSecretsForNotFoundInstance(ctx, instanceID, logger)
 		if secretsErr != nil {
 			err = secretsErr
 		}
+
 		return brokerapi.DeprovisionServiceSpec{IsAsync: true}, b.processError(err, logger)
 	}
 
@@ -75,6 +81,33 @@ func (b *Broker) Deprovision(
 
 	serviceSpec, err := b.deleteInstance(ctx, instanceID, plan, logger)
 	return serviceSpec, b.processError(err, logger)
+}
+
+func (b *Broker) deleteConfigsForNotFoundInstance(ctx context.Context, instanceID string, logger *log.Logger) error {
+	userError := errors.New("Unable to delete service. Please try again later or contact your operator.")
+
+	configs, err := b.boshClient.GetConfigs(deploymentName(instanceID), logger)
+	if err != nil {
+		operatorError := NewGenericError(
+			ctx,
+			fmt.Errorf("error deprovisioning: failed to get configs for instance %s: %s", deploymentName(instanceID), err),
+		)
+		return NewDisplayableError(userError, operatorError)
+	}
+
+	for _, config := range configs {
+		_, err := b.boshClient.DeleteConfig(config.Type, config.Name, logger)
+		if err != nil {
+			operatorError := NewGenericError(
+				ctx,
+				fmt.Errorf("error deprovisioning: failed to delete configs for instance %s: %s", deploymentName(instanceID), err),
+			)
+			return NewDisplayableError(userError, operatorError)
+		}
+
+	}
+
+	return nil
 }
 
 func (b *Broker) clearSecretsForNotFoundInstance(ctx context.Context, instanceID string, logger *log.Logger) error {

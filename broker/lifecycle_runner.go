@@ -148,3 +148,20 @@ func (l LifeCycleRunner) runErrand(deploymentName, errand string, errandInstance
 
 	return task, nil
 }
+
+func (l LifeCycleRunner) ProcessPostDelete(deploymentName string, log *log.Logger) error {
+	configs, err := l.boshClient.GetConfigs(deploymentName, log)
+	if err != nil {
+		return err
+	}
+
+	for _, config := range configs {
+		_, err := l.boshClient.DeleteConfig(config.Type, config.Name, log)
+		if err != nil {
+			return err
+		}
+
+	}
+
+	return nil
+}

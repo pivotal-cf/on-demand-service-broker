@@ -81,6 +81,13 @@ func (b *Broker) LastOperation(ctx context.Context, instanceID string, pollDetai
 	}
 
 	if operationData.OperationType == OperationTypeDelete && lastBoshTask.StateType() == boshdirector.TaskComplete {
+		if err = lifeCycleRunner.ProcessPostDelete(deploymentName(instanceID), logger); err != nil {
+			ctx = brokercontext.WithBoshTaskID(ctx, 0)
+			lastOperation := constructLastOperation(ctx, brokerapi.Failed, lastBoshTask, operationData, b.ExposeOperationalErrors)
+			logger.Printf("Failed to delete configs for service instance %s: %s\n", instanceID, err.Error())
+			return lastOperation, nil
+		}
+
 		if err = b.secretManager.DeleteSecretsForInstance(instanceID, logger); err != nil {
 			ctx = brokercontext.WithBoshTaskID(ctx, 0)
 			lastOperation := constructLastOperation(ctx, brokerapi.Failed, lastBoshTask, operationData, b.ExposeOperationalErrors)
