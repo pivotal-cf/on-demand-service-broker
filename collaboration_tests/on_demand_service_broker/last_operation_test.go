@@ -547,6 +547,35 @@ var _ = Describe("Last Operation", func() {
 			))
 		})
 
+		It("returns 200 with failed status when the errands and delete task finish successfully but deleting BOSH configs fails", func() {
+			fakeBoshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{doneTask, doneErrandTask}, nil)
+
+			operationData.BoshTaskID = doneErrandTask.ID
+
+			fakeBoshClient.GetConfigsReturns(nil, errors.New("hear me out: nope"))
+
+			response, bodyContent := doLastOperationRequest(instanceID, operationData)
+
+			By("returning the correct HTTP status code")
+			Expect(response.StatusCode).To(Equal(http.StatusOK), "request status")
+
+			By("returning the correct response description")
+			var parsedResponse map[string]interface{}
+			Expect(json.Unmarshal(bodyContent, &parsedResponse)).To(Succeed())
+
+			Expect(parsedResponse["description"]).To(SatisfyAll(
+				ContainSubstring("There was a problem completing your request. Please contact your operations team providing the following information:"),
+				MatchRegexp(`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`),
+				ContainSubstring(fmt.Sprintf("service: %s", serviceName)),
+				ContainSubstring(fmt.Sprintf("service-instance-guid: %s", instanceID)),
+				Not(ContainSubstring(fmt.Sprintf("task-id: %d", boshTaskID))),
+				ContainSubstring("operation: delete"),
+			))
+
+			By("logging the appropriate message")
+			Eventually(loggerBuffer).Should(gbytes.Say("hear me out: nope"))
+		})
+
 		It("returns 200 with failed status when the errands and delete task finish successfully but deleting Credhub secrets fails", func() {
 			fakeBoshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{doneTask, doneErrandTask}, nil)
 
@@ -576,7 +605,7 @@ var _ = Describe("Last Operation", func() {
 			Eventually(loggerBuffer).Should(gbytes.Say("hear me out: nope"))
 		})
 
-		It("runs all errands, deletes the deployment and deletes the secrets in Credhub", func() {
+		It("runs all errands, deletes the deployment and BOSH configs and deletes the secrets in Credhub", func() {
 			operationData.Errands = []brokerConfig.Errand{{Name: "foo"}, {Name: "bar"}}
 			By("running the first errand")
 			inProgressJSON := `
@@ -665,8 +694,12 @@ var _ = Describe("Last Operation", func() {
 
 			By("checking the deletion is complete")
 			fakeBoshClient.GetNormalisedTasksByContextReturnsOnCall(3, boshdirector.BoshTasks{doneTask, secondErrand, firstErrand}, nil)
+			fakeBoshClient.GetConfigsReturns([]boshdirector.BoshConfig{boshdirector.BoshConfig{Type: "some-config-type", Name: "some-config-name"}}, nil)
 
 			response, bodyContent = doLastOperationRequest(instanceID, operationData)
+
+			By("deleting the configs from BOSH")
+			Expect(fakeBoshClient.DeleteConfigCallCount()).To(Equal(1), "expected to call DeleteConfig in bosh")
 
 			By("deleting the secrets from Credhub")
 			Expect(fakeCredhubOperator.FindNameLikeCallCount()).To(Equal(1), "expected to call FindNameLike in credhub operator")

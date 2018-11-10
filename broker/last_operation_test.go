@@ -626,6 +626,96 @@ var _ = Describe("LastOperation", func() {
 			)
 
 			Describe("last operation is Successful", func() {
+				It("cleans up configs and returns success", func() {
+					operationData, err := json.Marshal(broker.OperationData{
+						OperationType: broker.OperationTypeDelete,
+						BoshTaskID:    taskID,
+					})
+					Expect(err).NotTo(HaveOccurred())
+
+					boshClient.GetTaskReturns(boshdirector.BoshTask{
+						State:       boshdirector.TaskDone,
+						Description: "it's a task" + "-" + instanceID,
+						ID:          taskID,
+					}, nil)
+					boshClient.GetConfigsReturns([]boshdirector.BoshConfig{
+						boshdirector.BoshConfig{
+							Type: "some-config-type",
+							Name: "some-config-name",
+						},
+					}, nil)
+					b = createDefaultBroker()
+
+					pollDetails := brokerapi.PollDetails{
+						OperationData: string(operationData),
+					}
+					actualLastOperation, actualLastOperationError := b.LastOperation(context.Background(), instanceID, pollDetails)
+
+					Expect(actualLastOperationError).NotTo(HaveOccurred())
+					Expect(actualLastOperation.State).To(Equal(brokerapi.Succeeded))
+					Expect(actualLastOperation.Description).To(Equal("Instance deletion completed"))
+
+					Expect(boshClient.GetTaskCallCount()).To(Equal(1))
+					actualTaskID, _ := boshClient.GetTaskArgsForCall(0)
+					Expect(actualTaskID).To(Equal(taskID))
+
+					By("deleting configs")
+					Expect(boshClient.DeleteConfigCallCount()).To(Equal(1), "expected to call delete config")
+
+					By("logging the deployment, type: delete, state: done")
+					expectedLogMessage := fmt.Sprintf(
+						"BOSH task ID %d status: %s %s deployment for instance %s: Description: %s",
+						taskID,
+						boshdirector.TaskDone,
+						broker.OperationTypeDelete,
+						instanceID,
+						"it's a task"+"-"+instanceID,
+					)
+					Expect(logBuffer.String()).To(ContainSubstring(expectedLogMessage))
+				})
+
+				It("returns failed status and logs detail when deleting a config fails", func() {
+					operationData, err := json.Marshal(broker.OperationData{
+						OperationType: broker.OperationTypeDelete,
+						BoshTaskID:    taskID,
+					})
+					Expect(err).NotTo(HaveOccurred())
+
+					boshClient.GetTaskReturns(boshdirector.BoshTask{
+						State:       boshdirector.TaskDone,
+						Description: "it's a task" + "-" + instanceID,
+						ID:          taskID,
+					}, nil)
+
+					boshClient.GetConfigsReturns([]boshdirector.BoshConfig{
+						boshdirector.BoshConfig{
+							Type: "some-config-type",
+							Name: "some-config-name",
+						},
+					}, nil)
+					boshClient.DeleteConfigReturns(false, errors.New("failed to delete configs"))
+
+					b = createDefaultBroker()
+
+					pollDetails := brokerapi.PollDetails{
+						OperationData: string(operationData),
+					}
+					actualLastOperationData, actualError := b.LastOperation(context.Background(), instanceID, pollDetails)
+					Expect(actualError).NotTo(HaveOccurred())
+
+					Expect(actualLastOperationData.State).To(Equal(brokerapi.Failed))
+					Expect(actualLastOperationData.Description).To(SatisfyAll(
+						ContainSubstring("There was a problem completing your request. Please contact your operations team providing the following information:"),
+						MatchRegexp(`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`),
+						ContainSubstring("service: a-cool-redis-service"),
+						ContainSubstring(fmt.Sprintf("service-instance-guid: %s", instanceID)),
+						ContainSubstring("operation: delete"),
+						Not(ContainSubstring(fmt.Sprintf("task-id"))),
+					))
+
+					Expect(logBuffer.String()).To(ContainSubstring("failed to delete configs"))
+				})
+
 				It("cleans up secrets and returns success", func() {
 					operationData, err := json.Marshal(broker.OperationData{
 						OperationType: broker.OperationTypeDelete,

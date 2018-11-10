@@ -161,39 +161,83 @@ var _ = Describe("deprovisioning instances", func() {
 		})
 	})
 
-	Context("when getting the deployment returns that deployment is not found and removing secrets succeeds", func() {
+	Context("when getting the deployment returns that deployment is not found", func() {
 		BeforeEach(func() {
 			boshClient.GetDeploymentReturns(nil, false, nil)
-			fakeSecretManager.DeleteSecretsForInstanceReturns(nil)
 		})
 
-		It("returns an error", func() {
-			Expect(deprovisionErr).To(Equal(brokerapi.ErrInstanceDoesNotExist))
+		Context("and removing configs succeeds", func() {
+			BeforeEach(func() {
+				boshConfigs := []boshdirector.BoshConfig{
+					boshdirector.BoshConfig{Type: "some-type", Name: "some-name"},
+				}
+				boshClient.GetConfigsReturns(boshConfigs, nil)
+			})
+
+			It("removes the configs", func() {
+				Expect(boshClient.DeleteConfigCallCount()).To(Equal(1))
+			})
+
+			It("returns an error", func() {
+				Expect(deprovisionErr).To(Equal(brokerapi.ErrInstanceDoesNotExist))
+			})
+
+			It("logs the error", func() {
+				Expect(logBuffer.String()).To(ContainSubstring(
+					fmt.Sprintf("error deprovisioning: instance %s, not found.", instanceID),
+				))
+			})
 		})
 
-		It("logs the error", func() {
-			Expect(logBuffer.String()).To(ContainSubstring(
-				fmt.Sprintf("error deprovisioning: instance %s, not found.", instanceID),
-			))
+		Context("and removing configs fails", func() {
+			BeforeEach(func() {
+				boshClient.GetConfigsReturns(nil, errors.New("oops"))
+			})
+
+			It("returns an error", func() {
+				Expect(deprovisionErr).To(MatchError("Unable to delete service. Please try again later or contact your operator."))
+			})
+
+			It("logs the error", func() {
+				Expect(logBuffer.String()).To(ContainSubstring(
+					fmt.Sprintf("error deprovisioning: failed to get configs for instance service-instance_%s", instanceID),
+				))
+			})
+		})
+
+		Context("and removing secrets succeeds", func() {
+			BeforeEach(func() {
+				fakeSecretManager.DeleteSecretsForInstanceReturns(nil)
+			})
+
+			It("returns an error", func() {
+				Expect(deprovisionErr).To(Equal(brokerapi.ErrInstanceDoesNotExist))
+			})
+
+			It("logs the error", func() {
+				Expect(logBuffer.String()).To(ContainSubstring(
+					fmt.Sprintf("error deprovisioning: instance %s, not found.", instanceID),
+				))
+			})
+		})
+
+		Context("and removing secrets fails", func() {
+			BeforeEach(func() {
+				fakeSecretManager.DeleteSecretsForInstanceReturns(errors.New("oops"))
+			})
+
+			It("returns an error", func() {
+				Expect(deprovisionErr).To(MatchError("Unable to delete service. Please try again later or contact your operator."))
+			})
+
+			It("logs the error", func() {
+				Expect(logBuffer.String()).To(ContainSubstring(
+					fmt.Sprintf("error deprovisioning: failed to delete secrets for instance service-instance_%s", instanceID),
+				))
+			})
 		})
 	})
 
-	Context("when getting the deployment returns that deployment is not found and removing secrets fails", func() {
-		BeforeEach(func() {
-			boshClient.GetDeploymentReturns(nil, false, nil)
-			fakeSecretManager.DeleteSecretsForInstanceReturns(errors.New("oops"))
-		})
-
-		It("returns an error", func() {
-			Expect(deprovisionErr).To(MatchError("Unable to delete service. Please try again later or contact your operator."))
-		})
-
-		It("logs the error", func() {
-			Expect(logBuffer.String()).To(ContainSubstring(
-				fmt.Sprintf("error deprovisioning: failed to delete secrets for instance service-instance_%s", instanceID),
-			))
-		})
-	})
 	Context("when the deployment has a pre-delete errand", func() {
 		errandTaskID := 123
 
