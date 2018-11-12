@@ -100,7 +100,7 @@ var _ = Describe("Iterator", func() {
 			err := iterator.Iterate()
 			Expect(err).NotTo(HaveOccurred())
 
-			instance := brokerServicesClient.ProcessInstanceArgsForCall(0)
+			instance, _ := brokerServicesClient.ProcessInstanceArgsForCall(0)
 			Expect(instance.PlanUniqueID).To(Equal("plan-id-2"))
 		})
 

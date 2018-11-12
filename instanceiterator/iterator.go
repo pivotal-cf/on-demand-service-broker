@@ -40,7 +40,7 @@ type Listener interface {
 
 //go:generate counterfeiter -o fakes/fake_broker_services.go . BrokerServices
 type BrokerServices interface {
-	ProcessInstance(instance service.Instance) (services.BOSHOperation, error)
+	ProcessInstance(instance service.Instance, operationType string) (services.BOSHOperation, error)
 	LastOperation(instance string, operationData broker.OperationData) (brokerapi.LastOperation, error)
 }
 

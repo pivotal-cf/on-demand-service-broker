@@ -53,9 +53,22 @@ type Metric struct {
 func AttachRoutes(r *mux.Router, manageableBroker ManageableBroker, serviceOffering config.ServiceOffering, loggerFactory *loggerfactory.LoggerFactory) {
 	a := &api{manageableBroker: manageableBroker, serviceOffering: serviceOffering, loggerFactory: loggerFactory}
 	r.HandleFunc("/mgmt/service_instances", a.listAllInstances).Methods("GET")
-	r.HandleFunc("/mgmt/service_instances/{instance_id}", a.upgradeInstance).Methods("PATCH")
+
+	r.HandleFunc("/mgmt/service_instances/{instance_id}", a.upgradeInstance).
+		Methods("PATCH").
+		Queries("operation_type", "upgrade")
+
+	r.HandleFunc("/mgmt/service_instances/{instance_id}", badRequestHandler()).
+		Methods("PATCH")
+
 	r.HandleFunc("/mgmt/metrics", a.metrics).Methods("GET")
 	r.HandleFunc("/mgmt/orphan_deployments", a.listOrphanDeployments).Methods("GET")
+}
+
+func badRequestHandler() func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+	}
 }
 
 func (a *api) listOrphanDeployments(w http.ResponseWriter, r *http.Request) {

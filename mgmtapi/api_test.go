@@ -144,7 +144,7 @@ var _ = Describe("Management API", func() {
 		})
 	})
 
-	Describe("upgrading an instance", func() {
+	Describe("process an instance", func() {
 		var (
 			instanceID  = "283974"
 			taskID      = 54321
@@ -154,111 +154,133 @@ var _ = Describe("Management API", func() {
 			upgradeResp *http.Response
 		)
 
-		BeforeEach(func() {
-			requestBody = fmt.Sprintf(`{"plan_id":"%s"}`, planID)
+		Context("when no operation type is provided", func() {
+			It("responds with a 400 Bad Request", func() {
+				var err error
+				resp, err := Patch(fmt.Sprintf("%s/mgmt/service_instances/%s", server.URL, instanceID), requestBody)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(resp.StatusCode).To(Equal(http.StatusBadRequest))
+			})
 		})
 
-		JustBeforeEach(func() {
-			var err error
-			upgradeResp, err = Patch(fmt.Sprintf("%s/mgmt/service_instances/%s", server.URL, instanceID), requestBody)
-			Expect(err).NotTo(HaveOccurred())
+		Context("when the operation type is unknown", func() {
+			It("responds with a 400 Bad Request", func() {
+				var err error
+				operationType := "not_a_real_operation"
+				resp, err := Patch(fmt.Sprintf("%s/mgmt/service_instances/%s?operation_type=%s", server.URL, instanceID, operationType), requestBody)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(resp.StatusCode).To(Equal(http.StatusBadRequest))
+			})
 		})
 
-		Context("when it succeeds", func() {
-			contextID := "some-context-id"
-
+		Context("when the process is an upgrade", func() {
+			const operationType = "upgrade"
 			BeforeEach(func() {
-				manageableBroker.UpgradeReturns(broker.OperationData{
-					BoshTaskID:    taskID,
-					BoshContextID: contextID,
-					PlanID:        planID,
-					OperationType: broker.OperationTypeUpgrade,
-				}, nil)
+				requestBody = fmt.Sprintf(`{"plan_id":"%s"}`, planID)
+			})
+			JustBeforeEach(func() {
+				var err error
+				upgradeResp, err = Patch(fmt.Sprintf("%s/mgmt/service_instances/%s?operation_type=%s", server.URL, instanceID, operationType), requestBody)
+				Expect(err).NotTo(HaveOccurred())
 			})
 
-			It("upgrades the instance using the broker", func() {
-				Expect(manageableBroker.UpgradeCallCount()).To(Equal(1))
-				_, actualInstanceID, actualUpdateDetails, _ := manageableBroker.UpgradeArgsForCall(0)
-				Expect(actualInstanceID).To(Equal(instanceID))
-				Expect(actualUpdateDetails).To(Equal(
-					brokerapi.UpdateDetails{
-						PlanID: planID,
-					},
-				))
+			Context("when it succeeds", func() {
+				contextID := "some-context-id"
+
+				BeforeEach(func() {
+					manageableBroker.UpgradeReturns(broker.OperationData{
+						BoshTaskID:    taskID,
+						BoshContextID: contextID,
+						PlanID:        planID,
+						OperationType: broker.OperationTypeUpgrade,
+					}, nil)
+				})
+
+				It("upgrades the instance using the broker", func() {
+					Expect(manageableBroker.UpgradeCallCount()).To(Equal(1))
+					_, actualInstanceID, actualUpdateDetails, _ := manageableBroker.UpgradeArgsForCall(0)
+					Expect(actualInstanceID).To(Equal(instanceID))
+					Expect(actualUpdateDetails).To(Equal(
+						brokerapi.UpdateDetails{
+							PlanID: planID,
+						},
+					))
+				})
+
+				It("responds with HTTP 202", func() {
+					Expect(upgradeResp.StatusCode).To(Equal(http.StatusAccepted))
+				})
+
+				It("responds with operation data", func() {
+					var upgradeRespBody broker.OperationData
+					Expect(json.NewDecoder(upgradeResp.Body).Decode(&upgradeRespBody)).To(Succeed())
+					Expect(upgradeRespBody.BoshTaskID).To(Equal(taskID))
+					Expect(upgradeRespBody.BoshContextID).To(Equal(contextID))
+					Expect(upgradeRespBody.PlanID).To(Equal(planID))
+					Expect(upgradeRespBody.OperationType).To(Equal(broker.OperationTypeUpgrade))
+				})
 			})
 
-			It("responds with HTTP 202", func() {
-				Expect(upgradeResp.StatusCode).To(Equal(http.StatusAccepted))
+			Context("when the CF service instance is not found", func() {
+				BeforeEach(func() {
+					manageableBroker.UpgradeReturns(broker.OperationData{}, cf.ResourceNotFoundError{})
+				})
+
+				It("responds with HTTP 404 Not Found", func() {
+					Expect(upgradeResp.StatusCode).To(Equal(http.StatusNotFound))
+				})
 			})
 
-			It("responds with operation data", func() {
-				var upgradeRespBody broker.OperationData
-				Expect(json.NewDecoder(upgradeResp.Body).Decode(&upgradeRespBody)).To(Succeed())
-				Expect(upgradeRespBody.BoshTaskID).To(Equal(taskID))
-				Expect(upgradeRespBody.BoshContextID).To(Equal(contextID))
-				Expect(upgradeRespBody.PlanID).To(Equal(planID))
-				Expect(upgradeRespBody.OperationType).To(Equal(broker.OperationTypeUpgrade))
-			})
-		})
+			Context("when the bosh deployment is not found", func() {
+				BeforeEach(func() {
+					manageableBroker.UpgradeReturns(broker.OperationData{}, broker.NewDeploymentNotFoundError(errors.New("error finding deployment")))
+				})
 
-		Context("when the CF service instance is not found", func() {
-			BeforeEach(func() {
-				manageableBroker.UpgradeReturns(broker.OperationData{}, cf.ResourceNotFoundError{})
+				It("responds with HTTP 410 Gone", func() {
+					Expect(upgradeResp.StatusCode).To(Equal(http.StatusGone))
+				})
 			})
 
-			It("responds with HTTP 404 Not Found", func() {
-				Expect(upgradeResp.StatusCode).To(Equal(http.StatusNotFound))
-			})
-		})
+			Context("when there is an operation in progress", func() {
+				BeforeEach(func() {
+					manageableBroker.UpgradeReturns(broker.OperationData{}, broker.NewOperationInProgressError(errors.New("operation in progress error")))
+				})
 
-		Context("when the bosh deployment is not found", func() {
-			BeforeEach(func() {
-				manageableBroker.UpgradeReturns(broker.OperationData{}, broker.NewDeploymentNotFoundError(errors.New("error finding deployment")))
-			})
-
-			It("responds with HTTP 410 Gone", func() {
-				Expect(upgradeResp.StatusCode).To(Equal(http.StatusGone))
-			})
-		})
-
-		Context("when there is an operation in progress", func() {
-			BeforeEach(func() {
-				manageableBroker.UpgradeReturns(broker.OperationData{}, broker.NewOperationInProgressError(errors.New("operation in progress error")))
+				It("responds with HTTP 409 Conflict", func() {
+					Expect(upgradeResp.StatusCode).To(Equal(http.StatusConflict))
+				})
 			})
 
-			It("responds with HTTP 409 Conflict", func() {
-				Expect(upgradeResp.StatusCode).To(Equal(http.StatusConflict))
-			})
-		})
+			Context("when it fails", func() {
+				BeforeEach(func() {
+					manageableBroker.UpgradeReturns(broker.OperationData{}, errors.New("upgrade error"))
+				})
 
-		Context("when it fails", func() {
-			BeforeEach(func() {
-				manageableBroker.UpgradeReturns(broker.OperationData{}, errors.New("upgrade error"))
-			})
+				It("responds with HTTP 500", func() {
+					Expect(upgradeResp.StatusCode).To(Equal(http.StatusInternalServerError))
+				})
 
-			It("responds with HTTP 500", func() {
-				Expect(upgradeResp.StatusCode).To(Equal(http.StatusInternalServerError))
-			})
+				It("includes the upgrade error in the response", func() {
+					Expect(ioutil.ReadAll(upgradeResp.Body)).To(MatchJSON(`{"description": "upgrade error"}`))
+				})
 
-			It("includes the upgrade error in the response", func() {
-				Expect(ioutil.ReadAll(upgradeResp.Body)).To(MatchJSON(`{"description": "upgrade error"}`))
-			})
-
-			It("logs the error", func() {
-				Eventually(logs).Should(gbytes.Say(fmt.Sprintf("error occurred upgrading instance %s: upgrade error", instanceID)))
-			})
-		})
-
-		Context("when no request body is provided", func() {
-			BeforeEach(func() {
-				requestBody = ""
+				It("logs the error", func() {
+					Eventually(logs).Should(gbytes.Say(fmt.Sprintf("error occurred upgrading instance %s: upgrade error", instanceID)))
+				})
 			})
 
-			It("fails with an appropriate error", func() {
-				Expect(upgradeResp.StatusCode).To(Equal(http.StatusUnprocessableEntity))
-				Expect(ioutil.ReadAll(upgradeResp.Body)).To(MatchJSON(`{"description": "Error in request body. Invalid JSON"}`))
-				Eventually(logs).Should(gbytes.Say("error occurred parsing requests body: "))
+			Context("when no request body is provided", func() {
+				BeforeEach(func() {
+					requestBody = ""
+				})
+
+				It("fails with an appropriate error", func() {
+					Expect(upgradeResp.StatusCode).To(Equal(http.StatusUnprocessableEntity))
+					Expect(ioutil.ReadAll(upgradeResp.Body)).To(MatchJSON(`{"description": "Error in request body. Invalid JSON"}`))
+					Eventually(logs).Should(gbytes.Say("error occurred parsing requests body: "))
+				})
 			})
+
 		})
 	})
 

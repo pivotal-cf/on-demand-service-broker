@@ -17,7 +17,8 @@ type upgradeMock struct {
 }
 
 func UpgradeInstance(serviceInstanceGUID string) *upgradeMock {
+	operationType := "upgrade"
 	return &upgradeMock{
-		mockhttp.NewMockedHttpRequest("PATCH", fmt.Sprintf("/mgmt/service_instances/%s", serviceInstanceGUID)),
+		mockhttp.NewMockedHttpRequest("PATCH", fmt.Sprintf("/mgmt/service_instances/%s?operation_type=%s", serviceInstanceGUID, operationType)),
 	}
 }

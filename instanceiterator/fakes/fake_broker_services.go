@@ -12,10 +12,11 @@ import (
 )
 
 type FakeBrokerServices struct {
-	ProcessInstanceStub        func(instance service.Instance) (services.BOSHOperation, error)
+	ProcessInstanceStub        func(instance service.Instance, operationType string) (services.BOSHOperation, error)
 	processInstanceMutex       sync.RWMutex
 	processInstanceArgsForCall []struct {
-		instance service.Instance
+		instance      service.Instance
+		operationType string
 	}
 	processInstanceReturns struct {
 		result1 services.BOSHOperation
@@ -43,16 +44,17 @@ type FakeBrokerServices struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeBrokerServices) ProcessInstance(instance service.Instance) (services.BOSHOperation, error) {
+func (fake *FakeBrokerServices) ProcessInstance(instance service.Instance, operationType string) (services.BOSHOperation, error) {
 	fake.processInstanceMutex.Lock()
 	ret, specificReturn := fake.processInstanceReturnsOnCall[len(fake.processInstanceArgsForCall)]
 	fake.processInstanceArgsForCall = append(fake.processInstanceArgsForCall, struct {
-		instance service.Instance
-	}{instance})
-	fake.recordInvocation("ProcessInstance", []interface{}{instance})
+		instance      service.Instance
+		operationType string
+	}{instance, operationType})
+	fake.recordInvocation("ProcessInstance", []interface{}{instance, operationType})
 	fake.processInstanceMutex.Unlock()
 	if fake.ProcessInstanceStub != nil {
-		return fake.ProcessInstanceStub(instance)
+		return fake.ProcessInstanceStub(instance, operationType)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -66,10 +68,10 @@ func (fake *FakeBrokerServices) ProcessInstanceCallCount() int {
 	return len(fake.processInstanceArgsForCall)
 }
 
-func (fake *FakeBrokerServices) ProcessInstanceArgsForCall(i int) service.Instance {
+func (fake *FakeBrokerServices) ProcessInstanceArgsForCall(i int) (service.Instance, string) {
 	fake.processInstanceMutex.RLock()
 	defer fake.processInstanceMutex.RUnlock()
-	return fake.processInstanceArgsForCall[i].instance
+	return fake.processInstanceArgsForCall[i].instance, fake.processInstanceArgsForCall[i].operationType
 }
 
 func (fake *FakeBrokerServices) ProcessInstanceReturns(result1 services.BOSHOperation, result2 error) {

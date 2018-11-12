@@ -30,7 +30,10 @@ import (
 )
 
 var _ = Describe("Broker Services", func() {
-	const serviceInstanceGUID = "my-service-instance"
+	const (
+		serviceInstanceGUID = "my-service-instance"
+		operationType       = "some-process"
+	)
 
 	var (
 		brokerServices    *services.BrokerServices
@@ -57,7 +60,7 @@ var _ = Describe("Broker Services", func() {
 			upgradeOperation, err := brokerServices.ProcessInstance(service.Instance{
 				GUID:         serviceInstanceGUID,
 				PlanUniqueID: planUniqueID,
-			})
+			}, operationType)
 
 			Expect(err).NotTo(HaveOccurred())
 			request := client.DoArgsForCall(0)
@@ -65,6 +68,8 @@ var _ = Describe("Broker Services", func() {
 			body, err := ioutil.ReadAll(request.Body)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(request.URL.Path).To(Equal("/mgmt/service_instances/" + serviceInstanceGUID))
+			Expect(request.URL.Query()).To(Equal(url.Values{"operation_type": {operationType}}))
+
 			Expect(upgradeOperation.Type).To(Equal(services.InstanceNotFound))
 			Expect(string(body)).To(Equal(expectedBody))
 		})
@@ -75,7 +80,7 @@ var _ = Describe("Broker Services", func() {
 			_, err := brokerServices.ProcessInstance(service.Instance{
 				GUID:         serviceInstanceGUID,
 				PlanUniqueID: "unique_plan_id",
-			})
+			}, operationType)
 			Expect(err).To(HaveOccurred())
 		})
 
@@ -86,7 +91,7 @@ var _ = Describe("Broker Services", func() {
 			_, err := brokerServices.ProcessInstance(service.Instance{
 				GUID:         serviceInstanceGUID,
 				PlanUniqueID: "unique_plan_id",
-			})
+			}, operationType)
 			Expect(err).To(HaveOccurred())
 		})
 
@@ -98,7 +103,7 @@ var _ = Describe("Broker Services", func() {
 				_, err := brokerServices.ProcessInstance(service.Instance{
 					GUID:         serviceInstanceGUID,
 					PlanUniqueID: "",
-				})
+				}, operationType)
 
 				Expect(err).To(HaveOccurred())
 			})
@@ -112,7 +117,7 @@ var _ = Describe("Broker Services", func() {
 				_, err := brokerServices.ProcessInstance(service.Instance{
 					GUID:         serviceInstanceGUID,
 					PlanUniqueID: "",
-				})
+				}, operationType)
 
 				Expect(err).To(HaveOccurred())
 			})

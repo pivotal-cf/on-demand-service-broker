@@ -66,20 +66,20 @@ type FakeListener struct {
 		instance   string
 		boshTaskId int
 	}
-	ProgressStub        func(pollingInterval time.Duration, orphanCount, upgradedCount, upgradesLeftCount, deletedCount int)
+	ProgressStub        func(pollingInterval time.Duration, orphanCount, processedCount, toRetryCount, deletedCount int)
 	progressMutex       sync.RWMutex
 	progressArgsForCall []struct {
-		pollingInterval   time.Duration
-		orphanCount       int
-		upgradedCount     int
-		upgradesLeftCount int
-		deletedCount      int
+		pollingInterval time.Duration
+		orphanCount     int
+		processedCount  int
+		toRetryCount    int
+		deletedCount    int
 	}
-	FinishedStub        func(orphanCount, upgradedCount, deletedCount int, busyInstances, failedInstances []string)
+	FinishedStub        func(orphanCount, finishedCount, deletedCount int, busyInstances, failedInstances []string)
 	finishedMutex       sync.RWMutex
 	finishedArgsForCall []struct {
 		orphanCount     int
-		upgradedCount   int
+		finishedCount   int
 		deletedCount    int
 		busyInstances   []string
 		failedInstances []string
@@ -327,19 +327,19 @@ func (fake *FakeListener) WaitingForArgsForCall(i int) (string, int) {
 	return fake.waitingForArgsForCall[i].instance, fake.waitingForArgsForCall[i].boshTaskId
 }
 
-func (fake *FakeListener) Progress(pollingInterval time.Duration, orphanCount int, upgradedCount int, upgradesLeftCount int, deletedCount int) {
+func (fake *FakeListener) Progress(pollingInterval time.Duration, orphanCount int, processedCount int, toRetryCount int, deletedCount int) {
 	fake.progressMutex.Lock()
 	fake.progressArgsForCall = append(fake.progressArgsForCall, struct {
-		pollingInterval   time.Duration
-		orphanCount       int
-		upgradedCount     int
-		upgradesLeftCount int
-		deletedCount      int
-	}{pollingInterval, orphanCount, upgradedCount, upgradesLeftCount, deletedCount})
-	fake.recordInvocation("Progress", []interface{}{pollingInterval, orphanCount, upgradedCount, upgradesLeftCount, deletedCount})
+		pollingInterval time.Duration
+		orphanCount     int
+		processedCount  int
+		toRetryCount    int
+		deletedCount    int
+	}{pollingInterval, orphanCount, processedCount, toRetryCount, deletedCount})
+	fake.recordInvocation("Progress", []interface{}{pollingInterval, orphanCount, processedCount, toRetryCount, deletedCount})
 	fake.progressMutex.Unlock()
 	if fake.ProgressStub != nil {
-		fake.ProgressStub(pollingInterval, orphanCount, upgradedCount, upgradesLeftCount, deletedCount)
+		fake.ProgressStub(pollingInterval, orphanCount, processedCount, toRetryCount, deletedCount)
 	}
 }
 
@@ -352,10 +352,10 @@ func (fake *FakeListener) ProgressCallCount() int {
 func (fake *FakeListener) ProgressArgsForCall(i int) (time.Duration, int, int, int, int) {
 	fake.progressMutex.RLock()
 	defer fake.progressMutex.RUnlock()
-	return fake.progressArgsForCall[i].pollingInterval, fake.progressArgsForCall[i].orphanCount, fake.progressArgsForCall[i].upgradedCount, fake.progressArgsForCall[i].upgradesLeftCount, fake.progressArgsForCall[i].deletedCount
+	return fake.progressArgsForCall[i].pollingInterval, fake.progressArgsForCall[i].orphanCount, fake.progressArgsForCall[i].processedCount, fake.progressArgsForCall[i].toRetryCount, fake.progressArgsForCall[i].deletedCount
 }
 
-func (fake *FakeListener) Finished(orphanCount int, upgradedCount int, deletedCount int, busyInstances []string, failedInstances []string) {
+func (fake *FakeListener) Finished(orphanCount int, finishedCount int, deletedCount int, busyInstances []string, failedInstances []string) {
 	var busyInstancesCopy []string
 	if busyInstances != nil {
 		busyInstancesCopy = make([]string, len(busyInstances))
@@ -369,15 +369,15 @@ func (fake *FakeListener) Finished(orphanCount int, upgradedCount int, deletedCo
 	fake.finishedMutex.Lock()
 	fake.finishedArgsForCall = append(fake.finishedArgsForCall, struct {
 		orphanCount     int
-		upgradedCount   int
+		finishedCount   int
 		deletedCount    int
 		busyInstances   []string
 		failedInstances []string
-	}{orphanCount, upgradedCount, deletedCount, busyInstancesCopy, failedInstancesCopy})
-	fake.recordInvocation("Finished", []interface{}{orphanCount, upgradedCount, deletedCount, busyInstancesCopy, failedInstancesCopy})
+	}{orphanCount, finishedCount, deletedCount, busyInstancesCopy, failedInstancesCopy})
+	fake.recordInvocation("Finished", []interface{}{orphanCount, finishedCount, deletedCount, busyInstancesCopy, failedInstancesCopy})
 	fake.finishedMutex.Unlock()
 	if fake.FinishedStub != nil {
-		fake.FinishedStub(orphanCount, upgradedCount, deletedCount, busyInstances, failedInstances)
+		fake.FinishedStub(orphanCount, finishedCount, deletedCount, busyInstances, failedInstances)
 	}
 }
 
@@ -390,7 +390,7 @@ func (fake *FakeListener) FinishedCallCount() int {
 func (fake *FakeListener) FinishedArgsForCall(i int) (int, int, int, []string, []string) {
 	fake.finishedMutex.RLock()
 	defer fake.finishedMutex.RUnlock()
-	return fake.finishedArgsForCall[i].orphanCount, fake.finishedArgsForCall[i].upgradedCount, fake.finishedArgsForCall[i].deletedCount, fake.finishedArgsForCall[i].busyInstances, fake.finishedArgsForCall[i].failedInstances
+	return fake.finishedArgsForCall[i].orphanCount, fake.finishedArgsForCall[i].finishedCount, fake.finishedArgsForCall[i].deletedCount, fake.finishedArgsForCall[i].busyInstances, fake.finishedArgsForCall[i].failedInstances
 }
 
 func (fake *FakeListener) CanariesStarting(canaries int, filter config.CanarySelectionParams) {

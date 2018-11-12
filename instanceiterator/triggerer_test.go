@@ -71,8 +71,9 @@ var _ = Describe("Operation triggerer", func() {
 
 			By("requesting to process an instance")
 			Expect(fakeBrokerService.ProcessInstanceCallCount()).To(Equal(1))
-			instanceToProcess := fakeBrokerService.ProcessInstanceArgsForCall(0)
+			instanceToProcess, actualOperationType := fakeBrokerService.ProcessInstanceArgsForCall(0)
 			Expect(instanceToProcess).To(Equal(latestInstance))
+			Expect(actualOperationType).To(Equal(operationType))
 		})
 
 		It("does not return an error if cannot check the latest instance info", func() {
@@ -83,8 +84,9 @@ var _ = Describe("Operation triggerer", func() {
 			Expect(operation).To(Equal(services.BOSHOperation{}))
 
 			Expect(fakeBrokerService.ProcessInstanceCallCount()).To(Equal(1))
-			instanceToProcess := fakeBrokerService.ProcessInstanceArgsForCall(0)
+			instanceToProcess, actualOperationType := fakeBrokerService.ProcessInstanceArgsForCall(0)
 			Expect(instanceToProcess).To(Equal(instance))
+			Expect(actualOperationType).To(Equal(operationType))
 
 			Expect(fakeListener.FailedToRefreshInstanceInfoCallCount()).To(Equal(1))
 			guidArg := fakeListener.FailedToRefreshInstanceInfoArgsForCall(0)

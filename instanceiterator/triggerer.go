@@ -56,7 +56,7 @@ func (t *OperationTriggerer) TriggerOperation(instance service.Instance) (servic
 		t.logger.FailedToRefreshInstanceInfo(instance.GUID)
 	}
 
-	operation, err := t.brokerServices.ProcessInstance(latestInstance)
+	operation, err := t.brokerServices.ProcessInstance(latestInstance, t.operationType)
 	if err != nil {
 		return services.BOSHOperation{}, fmt.Errorf("Operation type: %s failed for service instance %s: %s", t.operationType, instance.GUID, err)
 	}

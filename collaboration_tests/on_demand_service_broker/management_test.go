@@ -299,56 +299,22 @@ var _ = Describe("Management API", func() {
 		})
 	})
 
-	Describe("PATCH /mgmt/service_instances/:id", func() {
+	Describe("PATCH /mgmt/service_instances/:id?operation_type=", func() {
 		const (
 			instanceID = "some-instance-id"
 		)
 
-		It("responds with the upgrade operation data", func() {
-			taskID := 123
-			fakeTaskBoshClient.GetDeploymentReturns(nil, true, nil)
-			fakeTaskBoshClient.DeployReturns(taskID, nil)
-
-			response, bodyContent := doUpgradeRequest(instanceID, fmt.Sprintf(`{"plan_id": "%s"}`, dedicatedPlanID))
-
-			Expect(response.StatusCode).To(Equal(http.StatusAccepted))
-
-			By("upgrades the correct instance")
-			input, actualOthers := fakeCommandRunner.RunWithInputParamsArgsForCall(0)
-			actualInput, ok := input.(sdk.InputParams)
-			Expect(ok).To(BeTrue(), "command runner takes a sdk.inputparams obj")
-			Expect(actualOthers[1]).To(Equal("generate-manifest"))
-			Expect(actualInput.GenerateManifest.ServiceDeployment).To(ContainSubstring(`"deployment_name":"service-instance_some-instance-id"`))
-
-			_, contextID, _, _ := fakeTaskBoshClient.DeployArgsForCall(0)
-			Expect(contextID).NotTo(BeEmpty())
-
-			By("returning the correct operation data")
-			var operationData broker.OperationData
-			Expect(json.Unmarshal(bodyContent, &operationData)).To(Succeed())
-
-			Expect(operationData).To(Equal(broker.OperationData{
-				OperationType: broker.OperationTypeUpgrade,
-				BoshTaskID:    123,
-				BoshContextID: operationData.BoshContextID,
-				Errands: []brokerConfig.Errand{{
-					Name:      "post-deploy-errand",
-					Instances: []string{},
-				}},
-			}))
-		})
-
-		Context("when post-deploy errand instances are provided", func() {
-			BeforeEach(func() {
-				instances = []string{"instance-group-name/0"}
-			})
+		Context("when performing an upgrade", func() {
+			const (
+				operationType = "upgrade"
+			)
 
 			It("responds with the upgrade operation data", func() {
 				taskID := 123
 				fakeTaskBoshClient.GetDeploymentReturns(nil, true, nil)
 				fakeTaskBoshClient.DeployReturns(taskID, nil)
 
-				response, bodyContent := doUpgradeRequest(instanceID, fmt.Sprintf(`{"plan_id": "%s"}`, dedicatedPlanID))
+				response, bodyContent := doProcessRequest(instanceID, fmt.Sprintf(`{"plan_id": "%s"}`, dedicatedPlanID), operationType)
 
 				Expect(response.StatusCode).To(Equal(http.StatusAccepted))
 
@@ -372,43 +338,97 @@ var _ = Describe("Management API", func() {
 					BoshContextID: operationData.BoshContextID,
 					Errands: []brokerConfig.Errand{{
 						Name:      "post-deploy-errand",
-						Instances: []string{"instance-group-name/0"},
+						Instances: []string{},
 					}},
 				}))
 			})
+
+			Context("when post-deploy errand instances are provided", func() {
+				BeforeEach(func() {
+					instances = []string{"instance-group-name/0"}
+				})
+
+				It("responds with the upgrade operation data", func() {
+					taskID := 123
+					fakeTaskBoshClient.GetDeploymentReturns(nil, true, nil)
+					fakeTaskBoshClient.DeployReturns(taskID, nil)
+
+					response, bodyContent := doProcessRequest(instanceID, fmt.Sprintf(`{"plan_id": "%s"}`, dedicatedPlanID), operationType)
+
+					Expect(response.StatusCode).To(Equal(http.StatusAccepted))
+
+					By("upgrades the correct instance")
+					input, actualOthers := fakeCommandRunner.RunWithInputParamsArgsForCall(0)
+					actualInput, ok := input.(sdk.InputParams)
+					Expect(ok).To(BeTrue(), "command runner takes a sdk.inputparams obj")
+					Expect(actualOthers[1]).To(Equal("generate-manifest"))
+					Expect(actualInput.GenerateManifest.ServiceDeployment).To(ContainSubstring(`"deployment_name":"service-instance_some-instance-id"`))
+
+					_, contextID, _, _ := fakeTaskBoshClient.DeployArgsForCall(0)
+					Expect(contextID).NotTo(BeEmpty())
+
+					By("returning the correct operation data")
+					var operationData broker.OperationData
+					Expect(json.Unmarshal(bodyContent, &operationData)).To(Succeed())
+
+					Expect(operationData).To(Equal(broker.OperationData{
+						OperationType: broker.OperationTypeUpgrade,
+						BoshTaskID:    123,
+						BoshContextID: operationData.BoshContextID,
+						Errands: []brokerConfig.Errand{{
+							Name:      "post-deploy-errand",
+							Instances: []string{"instance-group-name/0"},
+						}},
+					}))
+				})
+			})
+
+			It("responds with 422 when the request body is empty", func() {
+				response, _ := doProcessRequest(instanceID, "", operationType)
+
+				Expect(response.StatusCode).To(Equal(http.StatusUnprocessableEntity))
+			})
 		})
 
-		It("responds with 410 when instance's deployment cannot be found in BOSH", func() {
-			// This is the default for the fake, but just to be explicit
-			fakeTaskBoshClient.GetDeploymentReturns(nil, false, nil)
+		Context("With a valid operation type", func() {
 
-			response, _ := doUpgradeRequest(instanceID, fmt.Sprintf(`{"plan_id": "%s"}`, dedicatedPlanID))
+			const (
+				operationType = "upgrade"
+			)
 
-			Expect(response.StatusCode).To(Equal(http.StatusGone))
+			It("responds with 410 when instance's deployment cannot be found in BOSH", func() {
+				// This is the default for the fake, but just to be explicit
+				fakeTaskBoshClient.GetDeploymentReturns(nil, false, nil)
+
+				response, _ := doProcessRequest(instanceID, fmt.Sprintf(`{"plan_id": "%s"}`, dedicatedPlanID), operationType)
+
+				Expect(response.StatusCode).To(Equal(http.StatusGone))
+			})
+
+			It("responds with 409 when there are incomplete tasks for the instance's deployment", func() {
+				fakeTaskBoshClient.GetTasksReturns(boshdirector.BoshTasks{
+					{State: boshdirector.TaskProcessing},
+				}, nil)
+
+				response, _ := doProcessRequest(instanceID, fmt.Sprintf(`{"plan_id": "%s"}`, dedicatedPlanID), operationType)
+
+				Expect(response.StatusCode).To(Equal(http.StatusConflict))
+			})
 		})
 
-		It("responds with 409 when there are incomplete tasks for the instance's deployment", func() {
-			fakeTaskBoshClient.GetTasksReturns(boshdirector.BoshTasks{
-				{State: boshdirector.TaskProcessing},
-			}, nil)
+		It("responds with 400 'Bad Request' when operation_type is unknown", func() {
+			response, _ := doProcessRequest(instanceID, "", "unknown_operation_type")
 
-			response, _ := doUpgradeRequest(instanceID, fmt.Sprintf(`{"plan_id": "%s"}`, dedicatedPlanID))
-
-			Expect(response.StatusCode).To(Equal(http.StatusConflict))
+			Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
 		})
 
-		It("responds with 422 when the request body is empty", func() {
-			response, _ := doUpgradeRequest(instanceID, "")
-
-			Expect(response.StatusCode).To(Equal(http.StatusUnprocessableEntity))
-		})
 	})
 })
 
-func doGetRequest(path string) (*http.Response, []byte) {
-	return doRequest(http.MethodGet, fmt.Sprintf("http://%s/mgmt/%s", serverURL, path), nil)
+func doProcessRequest(serviceInstanceID, body, operationType string) (*http.Response, []byte) {
+	return doRequest(http.MethodPatch, fmt.Sprintf("http://%s/mgmt/service_instances/%s?operation_type=%s", serverURL, serviceInstanceID, operationType), strings.NewReader(body))
 }
 
-func doUpgradeRequest(serviceInstanceID, body string) (*http.Response, []byte) {
-	return doRequest(http.MethodPatch, fmt.Sprintf("http://%s/mgmt/service_instances/%s", serverURL, serviceInstanceID), strings.NewReader(body))
+func doGetRequest(path string) (*http.Response, []byte) {
+	return doRequest(http.MethodGet, fmt.Sprintf("http://%s/mgmt/%s", serverURL, path), nil)
 }

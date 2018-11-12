@@ -45,11 +45,11 @@ func NewBrokerServices(client HTTPClient, authHeaderBuilder authorizationheader.
 	}
 }
 
-func (b *BrokerServices) ProcessInstance(instance service.Instance) (BOSHOperation, error) {
+func (b *BrokerServices) ProcessInstance(instance service.Instance, operationType string) (BOSHOperation, error) {
 	body := strings.NewReader(fmt.Sprintf(`{"plan_id": "%s"}`, instance.PlanUniqueID))
 	response, err := b.doRequest(
 		http.MethodPatch,
-		fmt.Sprintf("/mgmt/service_instances/%s", instance.GUID),
+		fmt.Sprintf("/mgmt/service_instances/%s?operation_type=%s", instance.GUID, operationType),
 		body)
 	if err != nil {
 		return BOSHOperation{}, err
