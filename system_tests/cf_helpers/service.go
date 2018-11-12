@@ -19,7 +19,7 @@ import (
 
 const (
 	CfTimeout     = 2 * time.Minute
-	LongCfTimeout = 30 * time.Minute // This is only so long to support a stressed director. It should be combined with smart fail-fast
+	LongCfTimeout = 60 * time.Minute // This is only so long to support a stressed director. It should be combined with smart fail-fast
 )
 
 func CreateService(serviceOffering, servicePlan, serviceName, arbitraryParams string) {
