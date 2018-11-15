@@ -155,8 +155,8 @@ func newWrappedHttpClient(authHeaderBuilder AuthHeaderBuilder, trustedCertPEM []
 	rootCAs.AppendCertsFromPEM(trustedCertPEM)
 	config := herottp.Config{
 		DisableTLSCertificateVerification: disableTLSCertVerification,
-		RootCAs: rootCAs,
-		Timeout: 30 * time.Second,
+		RootCAs:                           rootCAs,
+		Timeout:                           30 * time.Second,
 	}
 
 	return httpJsonClient{

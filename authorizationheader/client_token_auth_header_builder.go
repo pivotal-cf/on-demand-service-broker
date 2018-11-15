@@ -56,8 +56,8 @@ func NewClientTokenAuthHeaderBuilder(
 		clientSecret: clientSecret,
 		httpClient: herottp.New(herottp.Config{
 			DisableTLSCertificateVerification: disableSSLCertVerification,
-			RootCAs: rootCAs,
-			Timeout: 30 * time.Second,
+			RootCAs:                           rootCAs,
+			Timeout:                           30 * time.Second,
 		}),
 		tokenLock: new(sync.Mutex),
 	}, nil
