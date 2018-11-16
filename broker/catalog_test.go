@@ -17,8 +17,6 @@ package broker_test
 
 import (
 	"context"
-	"errors"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -115,7 +113,7 @@ var _ = Describe("Catalog", func() {
 		setSchemas()
 	})
 
-	It("generates the catalog response if the adapter does not implement generate-plan-schemas and enable_plan_schemas is false", func() {
+	It("generates the catalog response", func() {
 		serviceAdapter.GeneratePlanSchemaReturns(brokerapi.ServiceSchemas{}, serviceadapter.NewNotImplementedError("not implemented"))
 		b, brokerCreationErr = createBroker([]broker.StartupChecker{}, noopservicescontroller.New())
 		Expect(brokerCreationErr).NotTo(HaveOccurred())
@@ -151,48 +149,45 @@ var _ = Describe("Catalog", func() {
 		Expect(serviceAdapter.GeneratePlanSchemaCallCount()).To(BeZero())
 	})
 
-	It("fails if the adapter returns an error when generating plan schemas", func() {
-		serviceAdapter.GeneratePlanSchemaReturns(brokerapi.ServiceSchemas{}, serviceadapter.NewNotImplementedError("not implemented"))
+	It("includes the plan cost", func() {
+		serviceCatalog.Plans[0].Metadata.Costs = []config.PlanCost{
+			{Unit: "dogecoins", Amount: map[string]float64{"value": 1.65}},
+		}
 		b, brokerCreationErr = createBroker([]broker.StartupChecker{}, noopservicescontroller.New())
-		b.EnablePlanSchemas = true
 		Expect(brokerCreationErr).NotTo(HaveOccurred())
 
 		contextWithoutRequestID := context.Background()
-		_, err := b.Services(contextWithoutRequestID)
-		Expect(err).To(MatchError(ContainSubstring("enable_plan_schemas is set to true, but the service adapter does not implement generate-plan-schemas")))
-		Expect(logBuffer.String()).To(ContainSubstring("enable_plan_schemas is set to true, but the service adapter does not implement generate-plan-schemas"))
+		services, err := b.Services(contextWithoutRequestID)
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(services[0].Plans[0].Metadata.Costs).To(Equal(
+			[]brokerapi.ServicePlanCost{
+				{Amount: map[string]float64{"value": 1.65}, Unit: "dogecoins"},
+			},
+		))
 	})
 
-	It("fails if the adapter returns an error when generating plan schemas", func() {
-		serviceAdapter.GeneratePlanSchemaReturns(brokerapi.ServiceSchemas{}, errors.New("oops"))
+	It("includes the plan dashboard", func() {
+		serviceCatalog.DashboardClient = &config.DashboardClient{
+			ID:          "super-id",
+			Secret:      "super-secret",
+			RedirectUri: "super-uri",
+		}
+
 		b, brokerCreationErr = createBroker([]broker.StartupChecker{}, noopservicescontroller.New())
-		b.EnablePlanSchemas = true
 		Expect(brokerCreationErr).NotTo(HaveOccurred())
 
 		contextWithoutRequestID := context.Background()
-		_, err := b.Services(contextWithoutRequestID)
-		Expect(err).To(MatchError("oops"))
-		Expect(logBuffer.String()).NotTo(ContainSubstring("the service adapter does not implement generate-plan-schemas"))
-	})
+		services, err := b.Services(contextWithoutRequestID)
+		Expect(err).ToNot(HaveOccurred())
 
-	Context("a plan includes a cost", func() {
-		It("includes the cost in the catalog", func() {
-			serviceCatalog.Plans[0].Metadata.Costs = []config.PlanCost{
-				{Unit: "dogecoins", Amount: map[string]float64{"value": 1.65}},
-			}
-			b, brokerCreationErr = createBroker([]broker.StartupChecker{}, noopservicescontroller.New())
-			Expect(brokerCreationErr).NotTo(HaveOccurred())
-
-			contextWithoutRequestID := context.Background()
-			services, err := b.Services(contextWithoutRequestID)
-			Expect(err).ToNot(HaveOccurred())
-
-			Expect(services[0].Plans[0].Metadata.Costs).To(Equal(
-				[]brokerapi.ServicePlanCost{
-					{Amount: map[string]float64{"value": 1.65}, Unit: "dogecoins"},
-				},
-			))
-		})
+		Expect(*services[0].DashboardClient).To(Equal(
+			brokerapi.ServiceDashboardClient{
+				ID:          "super-id",
+				Secret:      "super-secret",
+				RedirectURI: "super-uri",
+			},
+		))
 	})
 
 	It("includes arbitrary fields", func() {
@@ -221,29 +216,48 @@ var _ = Describe("Catalog", func() {
 		))
 	})
 
-	Context("a plan includes a dashboard", func() {
-		It("includes the dashboard in the catalog", func() {
-			serviceCatalog.DashboardClient = &config.DashboardClient{
-				ID:          "super-id",
-				Secret:      "super-secret",
-				RedirectUri: "super-uri",
-			}
+	It("for each plan, includes maintenance_info", func() {
 
-			b, brokerCreationErr = createBroker([]broker.StartupChecker{}, noopservicescontroller.New())
-			Expect(brokerCreationErr).NotTo(HaveOccurred())
-
-			contextWithoutRequestID := context.Background()
-			services, err := b.Services(contextWithoutRequestID)
-			Expect(err).ToNot(HaveOccurred())
-
-			Expect(*services[0].DashboardClient).To(Equal(
-				brokerapi.ServiceDashboardClient{
-					ID:          "super-id",
-					Secret:      "super-secret",
-					RedirectURI: "super-uri",
+		serviceCatalog = config.ServiceOffering{
+			ID: serviceOfferingID,
+			MaintenanceInfo: config.MaintenanceInfo{
+			Public: map[string]interface{}{
+				"name":    "yuliana",
+				"vm_type": "small",
+			},
+			},
+			Plans: []config.Plan{
+				{
+					ID: "1",
+					MaintenanceInfo: config.MaintenanceInfo{
+						Public: map[string]interface{}{
+							"name":             "alberto",
+							"stemcell_version": 1234,
+						},
+					},
+				}, {
+					ID: "2",
 				},
-			))
-		})
+			},
+		}
+
+		b, brokerCreationErr = createBroker([]broker.StartupChecker{}, noopservicescontroller.New())
+		Expect(brokerCreationErr).NotTo(HaveOccurred())
+
+		contextWithoutRequestID := context.Background()
+		services, err := b.Services(contextWithoutRequestID)
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(services[0].Plans[0].MaintenanceInfo.Public).To(SatisfyAll(
+			HaveKeyWithValue("name", "alberto"),
+			HaveKeyWithValue("vm_type", "small"),
+			HaveKeyWithValue("stemcell_version", 1234),
+		))
+
+		Expect(services[0].Plans[1].MaintenanceInfo.Public).To(SatisfyAll(
+			HaveKeyWithValue("name", "yuliana"),
+			HaveKeyWithValue("vm_type", "small"),
+		))
 	})
 
 	It("for each plan, calls the adapter to generate the plan schemas", func() {
@@ -325,6 +339,17 @@ var _ = Describe("Catalog", func() {
 		Entry("missing schemas", createSchema, nil, bindingSchema, "instance update"),
 	)
 
+	It("fails if the adapter returns an error when generating plan schemas", func() {
+		serviceAdapter.GeneratePlanSchemaReturns(brokerapi.ServiceSchemas{}, serviceadapter.NewNotImplementedError("not implemented"))
+		b, brokerCreationErr = createBroker([]broker.StartupChecker{}, noopservicescontroller.New())
+		b.EnablePlanSchemas = true
+		Expect(brokerCreationErr).NotTo(HaveOccurred())
+
+		contextWithoutRequestID := context.Background()
+		_, err := b.Services(contextWithoutRequestID)
+		Expect(err).To(MatchError(ContainSubstring("enable_plan_schemas is set to true, but the service adapter does not implement generate-plan-schemas")))
+		Expect(logBuffer.String()).To(ContainSubstring("enable_plan_schemas is set to true, but the service adapter does not implement generate-plan-schemas"))
+	})
 })
 
 func getPlansFromCatalog(serviceCatalog config.ServiceOffering) []brokerapi.ServicePlan {

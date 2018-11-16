@@ -9,8 +9,8 @@ package broker
 import (
 	"context"
 	"fmt"
-
 	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	"github.com/pkg/errors"
 )
@@ -18,7 +18,10 @@ import (
 func (b *Broker) Services(ctx context.Context) ([]brokerapi.Service, error) {
 	logger := b.loggerFactory.NewWithContext(ctx)
 	var servicePlans []brokerapi.ServicePlan
+
 	for _, plan := range b.serviceOffering.Plans {
+		mergedMaintenanceInfo := mergeMaintenanceInfo(b.serviceOffering.MaintenanceInfo, plan.MaintenanceInfo)
+
 		var planCosts []brokerapi.ServicePlanCost
 		for _, cost := range plan.Metadata.Costs {
 			planCosts = append(planCosts, brokerapi.ServicePlanCost{Amount: cost.Amount, Unit: cost.Unit})
@@ -36,6 +39,7 @@ func (b *Broker) Services(ctx context.Context) ([]brokerapi.Service, error) {
 				Costs:              planCosts,
 				AdditionalMetadata: plan.Metadata.AdditionalMetadata,
 			},
+			MaintenanceInfo: mergedMaintenanceInfo,
 		}
 
 		if b.EnablePlanSchemas {
@@ -92,6 +96,26 @@ func (b *Broker) Services(ctx context.Context) ([]brokerapi.Service, error) {
 			Tags:            b.serviceOffering.Tags,
 		},
 	}, nil
+}
+
+func mergeMaintenanceInfo(globalInfo config.MaintenanceInfo, planInfo config.MaintenanceInfo) brokerapi.MaintenanceInfo {
+	ret := brokerapi.MaintenanceInfo{
+		Public: make(map[string]interface{}),
+	}
+
+	for key, value := range globalInfo.Public {
+		ret.Public[key] = value
+	}
+
+	// Duplicates will overwrite the global info
+	for key, value := range planInfo.Public {
+		ret.Public[key] = value
+	}
+
+	if len(ret.Public) == 0 {
+		ret.Public = nil
+	}
+	return ret
 }
 
 func requiredPermissions(permissions []string) []brokerapi.RequiredPermission {

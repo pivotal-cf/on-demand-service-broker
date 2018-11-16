@@ -368,6 +368,10 @@ func Parse(configFilePath string) (Config, error) {
 	return config, nil
 }
 
+type MaintenanceInfo struct {
+	Public map[string]interface{} `yaml:"public,omitempty"`
+}
+
 type ServiceOffering struct {
 	ID               string
 	Name             string `yaml:"service_name"`
@@ -381,6 +385,7 @@ type ServiceOffering struct {
 	GlobalProperties serviceadapter.Properties `yaml:"global_properties"`
 	GlobalQuotas     Quotas                    `yaml:"global_quotas"`
 	Plans            Plans
+	MaintenanceInfo  MaintenanceInfo `yaml:"maintenance_info,omitempty"`
 }
 
 func (s ServiceOffering) FindPlanByID(id string) (Plan, bool) {
@@ -463,6 +468,7 @@ type Plan struct {
 	LifecycleErrands *serviceadapter.LifecycleErrands `yaml:"lifecycle_errands,omitempty"`
 	ResourceCosts    map[string]int                   `yaml:"resource_costs,omitempty"`
 	BindingWithDNS   []BindingDNS                     `yaml:"binding_with_dns"`
+	MaintenanceInfo  MaintenanceInfo                 `yaml:"maintenance_info,omitempty"`
 }
 
 func (p Plan) AdapterPlan(globalProperties serviceadapter.Properties) serviceadapter.Plan {

@@ -70,7 +70,7 @@ var _ = Describe("Catalog", func() {
 			StartServer(conf)
 		})
 
-		It("returns catalog metadata", func() {
+		It("returns catalog", func() {
 			fakeServiceAdapter.GeneratePlanSchemaReturns(defaultSchemas, nil)
 
 			response, bodyContent := doCatalogRequest()
@@ -81,6 +81,12 @@ var _ = Describe("Catalog", func() {
 			By("returning the correct catalog response")
 			catalog := make(map[string][]brokerapi.Service)
 			Expect(json.Unmarshal(bodyContent, &catalog)).To(Succeed())
+			Expect(catalog["services"][0].Plans[0].MaintenanceInfo).To(Equal(brokerapi.MaintenanceInfo{
+				Public: map[string]interface{}{
+					"name":             "gloria",
+					"stemcell_version": "1234",
+				},
+			}))
 			Expect(catalog).To(Equal(map[string][]brokerapi.Service{
 				"services": {
 					{
@@ -121,6 +127,12 @@ var _ = Describe("Catalog", func() {
 										"foo": "bar",
 									},
 								},
+								MaintenanceInfo: brokerapi.MaintenanceInfo{
+									Public: map[string]interface{}{
+										"name":"gloria",
+										"stemcell_version":"1234",
+									},
+								},
 							},
 							{
 								ID:          highMemoryPlanID,
@@ -131,6 +143,11 @@ var _ = Describe("Catalog", func() {
 									DisplayName: highMemoryPlanDisplayName,
 								},
 								Schemas: &defaultSchemas,
+								MaintenanceInfo: brokerapi.MaintenanceInfo{
+									Public: map[string]interface{}{
+										"name":"jorje",
+									},
+								},
 							},
 						},
 					},
@@ -182,7 +199,7 @@ var _ = Describe("Catalog", func() {
 			StartServer(conf)
 		})
 
-		It("returns catalog metadata", func() {
+		It("returns catalog", func() {
 			fakeServiceAdapter.GeneratePlanSchemaReturns(defaultSchemas, nil)
 
 			response, bodyContent := doCatalogRequest()
@@ -241,6 +258,12 @@ var _ = Describe("Catalog", func() {
 									},
 								},
 								Schemas: &defaultSchemas,
+								MaintenanceInfo: brokerapi.MaintenanceInfo{
+									Public: map[string]interface{}{
+										"name":"gloria",
+										"stemcell_version":"1234",
+									},
+								},
 							},
 							{
 								ID:          highMemoryPlanID,
@@ -251,6 +274,11 @@ var _ = Describe("Catalog", func() {
 									DisplayName: highMemoryPlanDisplayName,
 								},
 								Schemas: &defaultSchemas,
+								MaintenanceInfo: brokerapi.MaintenanceInfo{
+									Public: map[string]interface{}{
+										"name":"jorje",
+									},
+								},
 							},
 						},
 					},
@@ -320,9 +348,16 @@ func defaultServiceCatalogConfig() brokerConfig.ServiceOffering {
 			Secret:      "secret-1",
 			RedirectUri: "https://dashboard.url",
 		},
-		Tags:             serviceTags,
-		GlobalProperties: sdk.Properties{"global_property": "global_value"},
-		GlobalQuotas:     brokerConfig.Quotas{},
+		Tags: serviceTags,
+		GlobalProperties: sdk.Properties{
+			"global_property": "global_value",
+		},
+		MaintenanceInfo: brokerConfig.MaintenanceInfo{
+			Public: map[string]interface{}{
+				"name":"jorje",
+			},
+		},
+		GlobalQuotas: brokerConfig.Quotas{},
 		Plans: []brokerConfig.Plan{
 			{
 				Name:        dedicatedPlanName,
@@ -342,6 +377,12 @@ func defaultServiceCatalogConfig() brokerConfig.ServiceOffering {
 					},
 					AdditionalMetadata: map[string]interface{}{
 						"foo": "bar",
+					},
+				},
+				MaintenanceInfo: brokerConfig.MaintenanceInfo{
+					Public: map[string]interface{}{
+						"name":"gloria",
+						"stemcell_version":"1234",
 					},
 				},
 				Quotas: brokerConfig.Quotas{
