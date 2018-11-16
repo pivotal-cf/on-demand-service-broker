@@ -369,7 +369,7 @@ func Parse(configFilePath string) (Config, error) {
 }
 
 type MaintenanceInfo struct {
-	Public map[string]interface{} `yaml:"public,omitempty"`
+	Public map[string]string `yaml:"public,omitempty"`
 }
 
 type ServiceOffering struct {
@@ -468,7 +468,7 @@ type Plan struct {
 	LifecycleErrands *serviceadapter.LifecycleErrands `yaml:"lifecycle_errands,omitempty"`
 	ResourceCosts    map[string]int                   `yaml:"resource_costs,omitempty"`
 	BindingWithDNS   []BindingDNS                     `yaml:"binding_with_dns"`
-	MaintenanceInfo  MaintenanceInfo                 `yaml:"maintenance_info,omitempty"`
+	MaintenanceInfo  MaintenanceInfo                  `yaml:"maintenance_info,omitempty"`
 }
 
 func (p Plan) AdapterPlan(globalProperties serviceadapter.Properties) serviceadapter.Plan {

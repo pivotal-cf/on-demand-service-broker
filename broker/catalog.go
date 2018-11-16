@@ -9,6 +9,7 @@ package broker
 import (
 	"context"
 	"fmt"
+
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
@@ -100,7 +101,7 @@ func (b *Broker) Services(ctx context.Context) ([]brokerapi.Service, error) {
 
 func mergeMaintenanceInfo(globalInfo config.MaintenanceInfo, planInfo config.MaintenanceInfo) brokerapi.MaintenanceInfo {
 	ret := brokerapi.MaintenanceInfo{
-		Public: make(map[string]interface{}),
+		Public: make(map[string]string),
 	}
 
 	for key, value := range globalInfo.Public {

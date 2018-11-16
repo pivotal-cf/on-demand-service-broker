@@ -56,6 +56,9 @@ service_catalog:
       id: "client-id-1"
       secret: "secret-1"
       redirect_uri: "https://dashboard.url"
+  maintenance_info:
+    public:
+      software_version: "12.34"
   metadata:
     display_name: some-service-display-name
     image_url: "http://test.jpg"
@@ -80,6 +83,9 @@ service_catalog:
         canary_watch_time: 1000-30000
         update_watch_time: 1000-30000
         serial: false
+      maintenance_info:
+        public:
+          plan_key: plan_value
       metadata:
         display_name: Dedicated-Cluster
         bullets:

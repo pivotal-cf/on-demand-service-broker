@@ -81,12 +81,6 @@ var _ = Describe("Catalog", func() {
 			By("returning the correct catalog response")
 			catalog := make(map[string][]brokerapi.Service)
 			Expect(json.Unmarshal(bodyContent, &catalog)).To(Succeed())
-			Expect(catalog["services"][0].Plans[0].MaintenanceInfo).To(Equal(brokerapi.MaintenanceInfo{
-				Public: map[string]interface{}{
-					"name":             "gloria",
-					"stemcell_version": "1234",
-				},
-			}))
 			Expect(catalog).To(Equal(map[string][]brokerapi.Service{
 				"services": {
 					{
@@ -128,9 +122,9 @@ var _ = Describe("Catalog", func() {
 									},
 								},
 								MaintenanceInfo: brokerapi.MaintenanceInfo{
-									Public: map[string]interface{}{
-										"name":"gloria",
-										"stemcell_version":"1234",
+									Public: map[string]string{
+										"name":             "gloria",
+										"stemcell_version": "1234",
 									},
 								},
 							},
@@ -144,8 +138,8 @@ var _ = Describe("Catalog", func() {
 								},
 								Schemas: &defaultSchemas,
 								MaintenanceInfo: brokerapi.MaintenanceInfo{
-									Public: map[string]interface{}{
-										"name":"jorje",
+									Public: map[string]string{
+										"name": "jorge",
 									},
 								},
 							},
@@ -259,9 +253,9 @@ var _ = Describe("Catalog", func() {
 								},
 								Schemas: &defaultSchemas,
 								MaintenanceInfo: brokerapi.MaintenanceInfo{
-									Public: map[string]interface{}{
-										"name":"gloria",
-										"stemcell_version":"1234",
+									Public: map[string]string{
+										"name":             "gloria",
+										"stemcell_version": "1234",
 									},
 								},
 							},
@@ -275,8 +269,8 @@ var _ = Describe("Catalog", func() {
 								},
 								Schemas: &defaultSchemas,
 								MaintenanceInfo: brokerapi.MaintenanceInfo{
-									Public: map[string]interface{}{
-										"name":"jorje",
+									Public: map[string]string{
+										"name": "jorge",
 									},
 								},
 							},
@@ -353,8 +347,8 @@ func defaultServiceCatalogConfig() brokerConfig.ServiceOffering {
 			"global_property": "global_value",
 		},
 		MaintenanceInfo: brokerConfig.MaintenanceInfo{
-			Public: map[string]interface{}{
-				"name":"jorje",
+			Public: map[string]string{
+				"name": "jorge",
 			},
 		},
 		GlobalQuotas: brokerConfig.Quotas{},
@@ -380,9 +374,9 @@ func defaultServiceCatalogConfig() brokerConfig.ServiceOffering {
 					},
 				},
 				MaintenanceInfo: brokerConfig.MaintenanceInfo{
-					Public: map[string]interface{}{
-						"name":"gloria",
-						"stemcell_version":"1234",
+					Public: map[string]string{
+						"name":             "gloria",
+						"stemcell_version": "1234",
 					},
 				},
 				Quotas: brokerConfig.Quotas{

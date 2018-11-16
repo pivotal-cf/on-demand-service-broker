@@ -2,9 +2,10 @@ package service_catalog_test
 
 import (
 	"encoding/json"
-	. "github.com/onsi/ginkgo"
 	"io/ioutil"
 	"net/http"
+
+	. "github.com/onsi/ginkgo"
 
 	. "github.com/onsi/gomega"
 )
@@ -29,13 +30,13 @@ var _ = Describe("Version Info in the Service Catalog", func() {
 
 		type CatalogResp struct {
 			Services []struct {
-				Plans          []struct {
+				Plans []struct {
 					MaintenanceInfo struct {
 						Public struct {
-							Name string `json:"name"`
-							StemcellVersion string `json:"stemcell_version"`
-							VMType string `json:"vm_type"`
-							ANumber float64 `json:"a_number"`
+							Name            string  `json:"name"`
+							StemcellVersion string  `json:"stemcell_version"`
+							VMType          string  `json:"vm_type"`
+							ANumber         float64 `json:"a_number"`
 						} `json:"public"`
 					} `json:"maintenance_info"`
 				} `json:"plans"`

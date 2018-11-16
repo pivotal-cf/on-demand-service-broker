@@ -125,12 +125,22 @@ var _ = Describe("Broker Config", func() {
 						},
 						Tags:             []string{"some-tag", "some-other-tag"},
 						GlobalProperties: serviceadapter.Properties{"global_foo": "global_bar"},
+						MaintenanceInfo: config.MaintenanceInfo{
+							Public: map[string]string{
+								"software_version": "12.34",
+							},
+						},
 						Plans: []config.Plan{
 							{
 								ID:          "some-dedicated-plan-id",
 								Name:        "some-dedicated-name",
 								Description: "I'm a dedicated plan",
 								Free:        booleanPointer(true),
+								MaintenanceInfo: config.MaintenanceInfo{
+									Public: map[string]string{
+										"plan_key": "plan_value",
+									},
+								},
 								Metadata: config.PlanMetadata{
 									DisplayName: "Dedicated-Cluster",
 									Bullets:     []string{"bullet one", "bullet two", "bullet three"},

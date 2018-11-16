@@ -17,6 +17,7 @@ package broker_test
 
 import (
 	"context"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -221,18 +222,18 @@ var _ = Describe("Catalog", func() {
 		serviceCatalog = config.ServiceOffering{
 			ID: serviceOfferingID,
 			MaintenanceInfo: config.MaintenanceInfo{
-			Public: map[string]interface{}{
-				"name":    "yuliana",
-				"vm_type": "small",
-			},
+				Public: map[string]string{
+					"name":    "yuliana",
+					"vm_type": "small",
+				},
 			},
 			Plans: []config.Plan{
 				{
 					ID: "1",
 					MaintenanceInfo: config.MaintenanceInfo{
-						Public: map[string]interface{}{
+						Public: map[string]string{
 							"name":             "alberto",
-							"stemcell_version": 1234,
+							"stemcell_version": "1234",
 						},
 					},
 				}, {
@@ -251,7 +252,7 @@ var _ = Describe("Catalog", func() {
 		Expect(services[0].Plans[0].MaintenanceInfo.Public).To(SatisfyAll(
 			HaveKeyWithValue("name", "alberto"),
 			HaveKeyWithValue("vm_type", "small"),
-			HaveKeyWithValue("stemcell_version", 1234),
+			HaveKeyWithValue("stemcell_version", "1234"),
 		))
 
 		Expect(services[0].Plans[1].MaintenanceInfo.Public).To(SatisfyAll(
