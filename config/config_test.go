@@ -125,22 +125,14 @@ var _ = Describe("Broker Config", func() {
 						},
 						Tags:             []string{"some-tag", "some-other-tag"},
 						GlobalProperties: serviceadapter.Properties{"global_foo": "global_bar"},
-						MaintenanceInfo: config.MaintenanceInfo{
-							Public: map[string]string{
-								"software_version": "12.34",
-							},
-						},
+						MaintenanceInfo:  nil,
 						Plans: []config.Plan{
 							{
-								ID:          "some-dedicated-plan-id",
-								Name:        "some-dedicated-name",
-								Description: "I'm a dedicated plan",
-								Free:        booleanPointer(true),
-								MaintenanceInfo: config.MaintenanceInfo{
-									Public: map[string]string{
-										"plan_key": "plan_value",
-									},
-								},
+								ID:              "some-dedicated-plan-id",
+								Name:            "some-dedicated-name",
+								Description:     "I'm a dedicated plan",
+								Free:            booleanPointer(true),
+								MaintenanceInfo: nil,
 								Metadata: config.PlanMetadata{
 									DisplayName: "Dedicated-Cluster",
 									Bullets:     []string{"bullet one", "bullet two", "bullet three"},
@@ -278,6 +270,7 @@ var _ = Describe("Broker Config", func() {
 				Expect(conf.HasTLS()).To(BeTrue())
 			})
 		})
+
 		Context("and the broker password contains escaped special characters", func() {
 			BeforeEach(func() {
 				configFileName = "escaped_config.yml"
@@ -297,6 +290,26 @@ var _ = Describe("Broker Config", func() {
 			It("returns config with the requires field", func() {
 				Expect(conf.ServiceCatalog.Requires).To(Equal([]string{"syslog_drain", "route_forwarding"}))
 				Expect(parseErr).NotTo(HaveOccurred())
+			})
+		})
+
+		Context("when the service catalog has optional 'maintenance_info' field", func() {
+			BeforeEach(func() {
+				configFileName = "config_with_maintenance_info.yml"
+			})
+
+			It("returns config with the maintenance_info field", func() {
+				Expect(parseErr).NotTo(HaveOccurred())
+				Expect(conf.ServiceCatalog.MaintenanceInfo).To(Equal(&config.MaintenanceInfo{
+					Public: map[string]string{
+						"software_version": "12.34",
+					},
+				}))
+				Expect(conf.ServiceCatalog.Plans[0].MaintenanceInfo).To(Equal(&config.MaintenanceInfo{
+					Public: map[string]string{
+						"some_value": "the_value",
+					},
+				}))
 			})
 		})
 

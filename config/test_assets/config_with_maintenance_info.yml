@@ -9,13 +9,8 @@ broker:
   port: 8080
   username: username
   password: password
-  disable_ssl_cert_verification: true
-  startup_banner: false
-  shutdown_timeout_in_seconds: 10
-  use_stdin: true
 bosh:
   url: some-url
-  root_ca_cert: some-cert
   authentication:
     basic:
       username: some-username
@@ -29,13 +24,6 @@ cf:
       user_credentials:
         username: some-cf-username
         password: some-cf-password
-service_instances_api:
-  url: some-si-api-url
-  root_ca_cert: some-cert
-  authentication:
-    basic:
-      username: si-api-username
-      password: si-api-password
 service_adapter:
   path: test_assets/executable.sh
 service_deployment:
@@ -51,61 +39,33 @@ service_catalog:
   service_name: some-marketplace-name
   service_description: some-description
   bindable: true
+  requires: [ "syslog_drain", "route_forwarding"]
   plan_updatable: true
-  dashboard_client:
-      id: "client-id-1"
-      secret: "secret-1"
-      redirect_uri: "https://dashboard.url"
   metadata:
     display_name: some-service-display-name
-    image_url: "http://test.jpg"
-    long_description: "Some description"
-    provider_display_name: "some name"
-    documentation_url: "some url"
-    support_url: "some url"
-    shareable: true
   tags:
     - some-tag
     - some-other-tag
-  global_properties:
-    global_foo: global_bar
+  maintenance_info:
+    public:
+      software_version: "12.34"
   plans:
     - name: some-dedicated-name
       plan_id: some-dedicated-plan-id
       description: I'm a dedicated plan
-      free: true
-      update:
-        canaries: 1
-        max_in_flight: 2
-        canary_watch_time: 1000-30000
-        update_watch_time: 1000-30000
-        serial: false
+      maintenance_info:
+        public:
+          some_value: "the_value"
       metadata:
         display_name: Dedicated-Cluster
         bullets:
           - bullet one
           - bullet two
           - bullet three
-        costs:
-          - amount:
-              usd: 99.0
-              eur: 49.0
-            unit: MONTHLY
-          - amount:
-              usd: 0.99
-              eur: 0.49
-            unit: 1GB of messages over 20GB
       quotas:
         service_instance_limit: 1
       properties:
         persistence: true
-      lifecycle_errands:
-        post_deploy:
-        - name: health-check
-          instances: [redis-errand/0, redis-errand/1]
-        pre_delete:
-        - name: cleanup
-          instances: [redis-errand/0]
       instance_groups:
         - name: redis-server
           vm_type: some-vm
@@ -116,8 +76,3 @@ service_catalog:
           vm_type: some-vm-2
           instances: 3
           networks: [ net4, net5 ]
-        - name: redis-errand
-          vm_type: some-vm-3
-          instances: 2
-          networks: [ net5, net6 ]
-          lifecycle: errand

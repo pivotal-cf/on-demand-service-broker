@@ -221,7 +221,7 @@ var _ = Describe("Catalog", func() {
 
 		serviceCatalog = config.ServiceOffering{
 			ID: serviceOfferingID,
-			MaintenanceInfo: config.MaintenanceInfo{
+			MaintenanceInfo: &config.MaintenanceInfo{
 				Public: map[string]string{
 					"name":    "yuliana",
 					"vm_type": "small",
@@ -230,7 +230,7 @@ var _ = Describe("Catalog", func() {
 			Plans: []config.Plan{
 				{
 					ID: "1",
-					MaintenanceInfo: config.MaintenanceInfo{
+					MaintenanceInfo: &config.MaintenanceInfo{
 						Public: map[string]string{
 							"name":             "alberto",
 							"stemcell_version": "1234",

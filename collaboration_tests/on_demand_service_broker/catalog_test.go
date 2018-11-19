@@ -173,12 +173,12 @@ var _ = Describe("Catalog", func() {
 			serviceCatalogConfig.Metadata.AdditionalMetadata = map[string]interface{}{
 				"random": "george",
 			}
-			serviceCatalogConfig.MaintenanceInfo = brokerConfig.MaintenanceInfo{
+			serviceCatalogConfig.MaintenanceInfo = &brokerConfig.MaintenanceInfo{
 				Public: map[string]string{
 					"name": "jorge",
 				},
 			}
-			serviceCatalogConfig.Plans[0].MaintenanceInfo = brokerConfig.MaintenanceInfo{
+			serviceCatalogConfig.Plans[0].MaintenanceInfo = &brokerConfig.MaintenanceInfo{
 				Public: map[string]string{
 					"stemcell_version": "1234",
 					"name":             "gloria",
