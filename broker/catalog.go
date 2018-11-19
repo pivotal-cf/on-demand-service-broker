@@ -99,7 +99,7 @@ func (b *Broker) Services(ctx context.Context) ([]brokerapi.Service, error) {
 	}, nil
 }
 
-func mergeMaintenanceInfo(globalInfo config.MaintenanceInfo, planInfo config.MaintenanceInfo) brokerapi.MaintenanceInfo {
+func mergeMaintenanceInfo(globalInfo config.MaintenanceInfo, planInfo config.MaintenanceInfo) *brokerapi.MaintenanceInfo {
 	ret := brokerapi.MaintenanceInfo{
 		Public: make(map[string]string),
 	}
@@ -108,15 +108,14 @@ func mergeMaintenanceInfo(globalInfo config.MaintenanceInfo, planInfo config.Mai
 		ret.Public[key] = value
 	}
 
-	// Duplicates will overwrite the global info
 	for key, value := range planInfo.Public {
 		ret.Public[key] = value
 	}
 
 	if len(ret.Public) == 0 {
-		ret.Public = nil
+		return nil
 	}
-	return ret
+	return &ret
 }
 
 func requiredPermissions(permissions []string) []brokerapi.RequiredPermission {

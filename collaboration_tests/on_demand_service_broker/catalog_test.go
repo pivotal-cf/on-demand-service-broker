@@ -121,12 +121,7 @@ var _ = Describe("Catalog", func() {
 										"foo": "bar",
 									},
 								},
-								MaintenanceInfo: brokerapi.MaintenanceInfo{
-									Public: map[string]string{
-										"name":             "gloria",
-										"stemcell_version": "1234",
-									},
-								},
+								MaintenanceInfo: nil,
 							},
 							{
 								ID:          highMemoryPlanID,
@@ -136,12 +131,8 @@ var _ = Describe("Catalog", func() {
 									Bullets:     highMemoryPlanBullets,
 									DisplayName: highMemoryPlanDisplayName,
 								},
-								Schemas: &defaultSchemas,
-								MaintenanceInfo: brokerapi.MaintenanceInfo{
-									Public: map[string]string{
-										"name": "jorge",
-									},
-								},
+								Schemas:         &defaultSchemas,
+								MaintenanceInfo: nil,
 							},
 						},
 					},
@@ -181,6 +172,17 @@ var _ = Describe("Catalog", func() {
 			}
 			serviceCatalogConfig.Metadata.AdditionalMetadata = map[string]interface{}{
 				"random": "george",
+			}
+			serviceCatalogConfig.MaintenanceInfo = brokerConfig.MaintenanceInfo{
+				Public: map[string]string{
+					"name": "jorge",
+				},
+			}
+			serviceCatalogConfig.Plans[0].MaintenanceInfo = brokerConfig.MaintenanceInfo{
+				Public: map[string]string{
+					"stemcell_version": "1234",
+					"name":             "gloria",
+				},
 			}
 			conf := brokerConfig.Config{
 				Broker: brokerConfig.Broker{
@@ -252,7 +254,7 @@ var _ = Describe("Catalog", func() {
 									},
 								},
 								Schemas: &defaultSchemas,
-								MaintenanceInfo: brokerapi.MaintenanceInfo{
+								MaintenanceInfo: &brokerapi.MaintenanceInfo{
 									Public: map[string]string{
 										"name":             "gloria",
 										"stemcell_version": "1234",
@@ -268,7 +270,7 @@ var _ = Describe("Catalog", func() {
 									DisplayName: highMemoryPlanDisplayName,
 								},
 								Schemas: &defaultSchemas,
-								MaintenanceInfo: brokerapi.MaintenanceInfo{
+								MaintenanceInfo: &brokerapi.MaintenanceInfo{
 									Public: map[string]string{
 										"name": "jorge",
 									},
@@ -346,11 +348,6 @@ func defaultServiceCatalogConfig() brokerConfig.ServiceOffering {
 		GlobalProperties: sdk.Properties{
 			"global_property": "global_value",
 		},
-		MaintenanceInfo: brokerConfig.MaintenanceInfo{
-			Public: map[string]string{
-				"name": "jorge",
-			},
-		},
 		GlobalQuotas: brokerConfig.Quotas{},
 		Plans: []brokerConfig.Plan{
 			{
@@ -371,12 +368,6 @@ func defaultServiceCatalogConfig() brokerConfig.ServiceOffering {
 					},
 					AdditionalMetadata: map[string]interface{}{
 						"foo": "bar",
-					},
-				},
-				MaintenanceInfo: brokerConfig.MaintenanceInfo{
-					Public: map[string]string{
-						"name":             "gloria",
-						"stemcell_version": "1234",
 					},
 				},
 				Quotas: brokerConfig.Quotas{
