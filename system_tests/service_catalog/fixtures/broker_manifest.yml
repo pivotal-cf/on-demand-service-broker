@@ -91,7 +91,6 @@ instance_groups:
           public:
             name: mercedes
             stemcell_version: "1234"
-            a_number: 23.10
         id: ((service_catalog_id))
         metadata:
           display_name: Redis

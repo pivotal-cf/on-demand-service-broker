@@ -33,10 +33,9 @@ var _ = Describe("Version Info in the Service Catalog", func() {
 				Plans []struct {
 					MaintenanceInfo struct {
 						Public struct {
-							Name            string  `json:"name"`
-							StemcellVersion string  `json:"stemcell_version"`
-							VMType          string  `json:"vm_type"`
-							ANumber         float64 `json:"a_number"`
+							Name            string `json:"name"`
+							StemcellVersion string `json:"stemcell_version"`
+							VMType          string `json:"vm_type"`
 						} `json:"public"`
 					} `json:"maintenance_info"`
 				} `json:"plans"`
@@ -46,14 +45,12 @@ var _ = Describe("Version Info in the Service Catalog", func() {
 		var catalogResp = CatalogResp{}
 
 		err = json.Unmarshal(bodyContent, &catalogResp)
-		Expect(err).NotTo(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred(), "Error unmarshalling "+string(bodyContent))
 
 		Expect(len(catalogResp.Services[0].Plans)).To(Equal(1))
 
 		Expect(catalogResp.Services[0].Plans[0].MaintenanceInfo.Public.Name).To(Equal("dolores"))
 		Expect(catalogResp.Services[0].Plans[0].MaintenanceInfo.Public.StemcellVersion).To(Equal("1234"))
 		Expect(catalogResp.Services[0].Plans[0].MaintenanceInfo.Public.VMType).To(Equal("small"))
-		Expect(catalogResp.Services[0].Plans[0].MaintenanceInfo.Public.ANumber).To(Equal(23.1))
 	})
-
 })

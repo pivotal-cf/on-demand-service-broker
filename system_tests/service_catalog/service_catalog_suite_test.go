@@ -10,6 +10,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
 	"github.com/pborman/uuid"
+	env "github.com/pivotal-cf/on-demand-service-broker/system_tests/env_helpers"
 )
 
 func TestServiceCatalog(t *testing.T) {
@@ -18,7 +19,11 @@ func TestServiceCatalog(t *testing.T) {
 }
 
 const (
-	longBOSHTimeout = time.Minute * 30
+	longBOSHTimeout          = time.Minute * 30
+	BrokerSystemDomainEnv    = "BROKER_SYSTEM_DOMAIN"
+	BrokerCANameEnv          = "BROKER_CA_NAME"
+	BoshDeploymentVarsEnv    = "BOSH_DEPLOYMENT_VARS"
+	ServiceReleaseVersionEnv = "SERVICE_RELEASE_VERSION"
 )
 
 var (
@@ -30,12 +35,16 @@ var (
 )
 
 var _ = BeforeSuite(func() {
+	Expect(
+		env.ValidateEnvVars(BrokerSystemDomainEnv, BrokerCANameEnv, BoshDeploymentVarsEnv),
+	).To(Succeed())
+
 	uniqueID := uuid.New()[:6]
-	deploymentName = "redis-on-demand-broker-" + uniqueID
-	serviceOffering = "redis-" + uniqueID
+	deploymentName = "redis-catalog-broker-" + uniqueID
+	serviceOffering = "redis-catalog" + uniqueID
 	brokerPassword = uuid.New()[:6]
-	brokerSystemDomain := os.Getenv("BROKER_SYSTEM_DOMAIN")
-	brokerURI = "redis-service-broker-" + uniqueID + "." + brokerSystemDomain
+	brokerSystemDomain = os.Getenv(BrokerSystemDomainEnv)
+	brokerURI = "redis-catalog-broker-" + uniqueID + "." + brokerSystemDomain
 	deployAndRegisterBroker(uniqueID, deploymentName, serviceOffering)
 })
 
@@ -45,13 +54,13 @@ var _ = AfterSuite(func() {
 
 func deployAndRegisterBroker(uniqueID, deploymentName, serviceName string) {
 	devEnv := os.Getenv("DEV_ENV")
-	serviceReleaseVersion := os.Getenv("SERVICE_RELEASE_VERSION")
-	brokerCACredhubName := os.Getenv("BROKER_CA_NAME")
+	serviceReleaseVersion := os.Getenv(ServiceReleaseVersionEnv)
+	brokerCACredhubName := os.Getenv(BrokerCANameEnv)
 	deployArguments := []string{
 		"-d", deploymentName,
 		"-n",
 		"deploy", "./fixtures/broker_manifest.yml",
-		"--vars-file", os.Getenv("BOSH_DEPLOYMENT_VARS"),
+		"--vars-file", os.Getenv(BoshDeploymentVarsEnv),
 		"--var", "broker_ca_name='" + brokerCACredhubName + "'",
 		"--var", "broker_uri=" + brokerURI,
 		"--var", "broker_cn='*" + brokerSystemDomain + "'",
