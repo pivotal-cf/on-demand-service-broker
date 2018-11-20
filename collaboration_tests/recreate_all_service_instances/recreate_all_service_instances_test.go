@@ -129,7 +129,6 @@ var _ = Describe("Recreate all service instances", func() {
 			Expect(err).NotTo(HaveOccurred(), "unexpected error when starting the command")
 
 			Eventually(session).Should(gexec.Exit())
-			fmt.Printf("string(stdout.Contents()) = %+v\n", string(stdout.Contents()))
 			Expect(session.ExitCode()).To(Equal(0), "recreate-all execution failed")
 
 			expectedRecreateCallCount := 2
