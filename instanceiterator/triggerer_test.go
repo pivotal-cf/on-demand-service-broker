@@ -30,74 +30,36 @@ import (
 
 var _ = Describe("Operation triggerer", func() {
 	var (
-		guid               string
-		instance           service.Instance
-		latestInstance     service.Instance
-		fakeBrokerService  *fakes.FakeBrokerServices
-		fakeInstanceLister *fakes.FakeInstanceLister
-		fakeListener       *fakes.FakeListener
-		t                  instanceiterator.Triggerer
-		processType        = "upgrade-all"
-		operationType      = "upgrade"
+		guid              string
+		instance          service.Instance
+		fakeBrokerService *fakes.FakeBrokerServices
+		t                 instanceiterator.Triggerer
+		operationType     = "upgrade"
 	)
 
-	Context("with a Triggerer", func() {
+	Context("with an upgradeTriggerer", func() {
 
 		BeforeEach(func() {
 			guid = "some-guid"
 			instance = service.Instance{GUID: guid}
-			latestInstance = service.Instance{GUID: guid, PlanUniqueID: "plan-unique-id"}
 			fakeBrokerService = new(fakes.FakeBrokerServices)
-			fakeInstanceLister = new(fakes.FakeInstanceLister)
-			fakeListener = new(fakes.FakeListener)
 
 			var err error
-			t, err = instanceiterator.NewTriggerer(fakeBrokerService, fakeInstanceLister, fakeListener, processType)
+			t = instanceiterator.NewUpgradeTriggerer(fakeBrokerService)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("returns OperationAccepted when the the instance is ready to be processed", func() {
-			fakeInstanceLister.LatestInstanceInfoReturns(latestInstance, nil)
 			fakeBrokerService.ProcessInstanceReturns(services.BOSHOperation{Type: services.OperationAccepted}, nil)
 
 			operation, err := t.TriggerOperation(instance)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(operation).To(Equal(services.BOSHOperation{Type: services.OperationAccepted}))
 
-			By("checking the latest instance info")
-			Expect(fakeInstanceLister.LatestInstanceInfoCallCount()).To(Equal(1))
-			instanceToCheck := fakeInstanceLister.LatestInstanceInfoArgsForCall(0)
-			Expect(instanceToCheck).To(Equal(instance))
-
 			By("requesting to process an instance")
 			Expect(fakeBrokerService.ProcessInstanceCallCount()).To(Equal(1))
-			instanceToProcess, actualOperationType := fakeBrokerService.ProcessInstanceArgsForCall(0)
-			Expect(instanceToProcess).To(Equal(latestInstance))
-			Expect(actualOperationType).To(Equal(operationType))
-		})
-
-		It("does not return an error if cannot check the latest instance info", func() {
-			fakeInstanceLister.LatestInstanceInfoReturns(service.Instance{}, errors.New("oops"))
-
-			operation, err := t.TriggerOperation(instance)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(operation).To(Equal(services.BOSHOperation{}))
-
-			Expect(fakeBrokerService.ProcessInstanceCallCount()).To(Equal(1))
-			instanceToProcess, actualOperationType := fakeBrokerService.ProcessInstanceArgsForCall(0)
+			instanceToProcess, _ := fakeBrokerService.ProcessInstanceArgsForCall(0)
 			Expect(instanceToProcess).To(Equal(instance))
-			Expect(actualOperationType).To(Equal(operationType))
-
-			Expect(fakeListener.FailedToRefreshInstanceInfoCallCount()).To(Equal(1))
-			guidArg := fakeListener.FailedToRefreshInstanceInfoArgsForCall(0)
-			Expect(guidArg).To(Equal(guid))
-		})
-
-		It("returns InstanceNotFound if the instance could not be found", func() {
-			fakeInstanceLister.LatestInstanceInfoReturns(service.Instance{}, service.InstanceNotFound)
-			operation, err := t.TriggerOperation(instance)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(operation).To(Equal(services.BOSHOperation{Type: services.InstanceNotFound}))
 		})
 
 		It("returns an error if the process instance request fails", func() {
@@ -121,13 +83,47 @@ var _ = Describe("Operation triggerer", func() {
 		)
 	})
 
-	Context("Operation Triggerer Instantiation", func() {
-		It("errors when an invalid processType is passed", func() {
-			processType := "not a real process type"
-			t, err := instanceiterator.NewTriggerer(fakeBrokerService, fakeInstanceLister, fakeListener, processType)
+	Context("with a recreateTriggerer", func() {
+		BeforeEach(func() {
+			guid = "some-guid"
+			instance = service.Instance{GUID: guid}
+			fakeBrokerService = new(fakes.FakeBrokerServices)
 
-			Expect(err).To(MatchError(fmt.Sprintf("Invalid process type: %s", processType)))
-			Expect(t).To(Equal(&instanceiterator.OperationTriggerer{}))
+			var err error
+			t = instanceiterator.NewRecreateTriggerer(fakeBrokerService)
+			Expect(err).NotTo(HaveOccurred())
 		})
+		It("returns OperationAccepted when the the instance is ready to be processed", func() {
+			fakeBrokerService.ProcessInstanceReturns(services.BOSHOperation{Type: services.OperationAccepted}, nil)
+
+			operation, err := t.TriggerOperation(instance)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(operation).To(Equal(services.BOSHOperation{Type: services.OperationAccepted}))
+
+			By("requesting to process an instance")
+			Expect(fakeBrokerService.ProcessInstanceCallCount()).To(Equal(1))
+			instanceToProcess, _ := fakeBrokerService.ProcessInstanceArgsForCall(0)
+			Expect(instanceToProcess).To(Equal(instance))
+		})
+
+		It("returns an error if the process instance request fails", func() {
+			fakeBrokerService.ProcessInstanceReturns(services.BOSHOperation{}, errors.New("oops"))
+
+			_, err := t.TriggerOperation(instance)
+			Expect(err).To(MatchError(fmt.Sprintf("Operation type: recreate failed for service instance %s: oops", guid)))
+		})
+
+		DescribeTable("when operation returns",
+			func(operationResult services.BOSHOperationType, expectedOperation services.BOSHOperation) {
+				fakeBrokerService.ProcessInstanceReturns(services.BOSHOperation{Type: operationResult}, nil)
+
+				op, err := t.TriggerOperation(instance)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(op).To(Equal(expectedOperation))
+			},
+			Entry("orphan", services.OrphanDeployment, services.BOSHOperation{Type: services.OrphanDeployment}),
+			Entry("instance not found", services.InstanceNotFound, services.BOSHOperation{Type: services.InstanceNotFound}),
+			Entry("operation in progress", services.OperationInProgress, services.BOSHOperation{Type: services.OperationInProgress}),
+		)
 	})
 })

@@ -390,6 +390,47 @@ var _ = Describe("Management API", func() {
 			})
 		})
 
+		Context("when performing a recreate", func() {
+			const (
+				operationType = "recreate"
+			)
+
+			It("responds with the recreate operation data", func() {
+				taskID := 123
+				fakeTaskBoshClient.GetDeploymentReturns(nil, true, nil)
+				fakeTaskBoshClient.RecreateReturns(taskID, nil)
+
+				response, bodyContent := doProcessRequest(instanceID, fmt.Sprintf(`{"plan_id": "%s"}`, dedicatedPlanID), operationType)
+
+				Expect(response.StatusCode).To(Equal(http.StatusAccepted))
+
+				By("recreates the correct instance")
+				deploymentName, _, _, _ := fakeTaskBoshClient.RecreateArgsForCall(0)
+				Expect(deploymentName).To(Equal(fmt.Sprintf("service-instance_%s", instanceID)))
+				Expect(fakeCommandRunner.RunWithInputParamsCallCount()).To(BeZero())
+
+				By("returning the correct operation data")
+				var operationData broker.OperationData
+				Expect(json.Unmarshal(bodyContent, &operationData)).To(Succeed())
+
+				Expect(operationData).To(Equal(broker.OperationData{
+					OperationType: broker.OperationTypeRecreate,
+					BoshTaskID:    123,
+					BoshContextID: operationData.BoshContextID,
+					Errands: []brokerConfig.Errand{{
+						Name:      "post-deploy-errand",
+						Instances: []string{},
+					}},
+				}))
+			})
+
+			It("responds with 422 when the request body is empty", func() {
+				response, _ := doProcessRequest(instanceID, "", operationType)
+
+				Expect(response.StatusCode).To(Equal(http.StatusUnprocessableEntity))
+			})
+		})
+
 		Context("With a valid operation type", func() {
 
 			const (

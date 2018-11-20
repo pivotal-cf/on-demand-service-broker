@@ -71,6 +71,22 @@ type FakeManageableBroker struct {
 		result1 broker.OperationData
 		result2 error
 	}
+	RecreateStub        func(ctx context.Context, instanceID string, updateDetails brokerapi.UpdateDetails, logger *log.Logger) (broker.OperationData, error)
+	recreateMutex       sync.RWMutex
+	recreateArgsForCall []struct {
+		ctx           context.Context
+		instanceID    string
+		updateDetails brokerapi.UpdateDetails
+		logger        *log.Logger
+	}
+	recreateReturns struct {
+		result1 broker.OperationData
+		result2 error
+	}
+	recreateReturnsOnCall map[int]struct {
+		result1 broker.OperationData
+		result2 error
+	}
 	CountInstancesOfPlansStub        func(logger *log.Logger) (map[cf.ServicePlan]int, error)
 	countInstancesOfPlansMutex       sync.RWMutex
 	countInstancesOfPlansArgsForCall []struct {
@@ -297,6 +313,60 @@ func (fake *FakeManageableBroker) UpgradeReturnsOnCall(i int, result1 broker.Ope
 	}{result1, result2}
 }
 
+func (fake *FakeManageableBroker) Recreate(ctx context.Context, instanceID string, updateDetails brokerapi.UpdateDetails, logger *log.Logger) (broker.OperationData, error) {
+	fake.recreateMutex.Lock()
+	ret, specificReturn := fake.recreateReturnsOnCall[len(fake.recreateArgsForCall)]
+	fake.recreateArgsForCall = append(fake.recreateArgsForCall, struct {
+		ctx           context.Context
+		instanceID    string
+		updateDetails brokerapi.UpdateDetails
+		logger        *log.Logger
+	}{ctx, instanceID, updateDetails, logger})
+	fake.recordInvocation("Recreate", []interface{}{ctx, instanceID, updateDetails, logger})
+	fake.recreateMutex.Unlock()
+	if fake.RecreateStub != nil {
+		return fake.RecreateStub(ctx, instanceID, updateDetails, logger)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.recreateReturns.result1, fake.recreateReturns.result2
+}
+
+func (fake *FakeManageableBroker) RecreateCallCount() int {
+	fake.recreateMutex.RLock()
+	defer fake.recreateMutex.RUnlock()
+	return len(fake.recreateArgsForCall)
+}
+
+func (fake *FakeManageableBroker) RecreateArgsForCall(i int) (context.Context, string, brokerapi.UpdateDetails, *log.Logger) {
+	fake.recreateMutex.RLock()
+	defer fake.recreateMutex.RUnlock()
+	return fake.recreateArgsForCall[i].ctx, fake.recreateArgsForCall[i].instanceID, fake.recreateArgsForCall[i].updateDetails, fake.recreateArgsForCall[i].logger
+}
+
+func (fake *FakeManageableBroker) RecreateReturns(result1 broker.OperationData, result2 error) {
+	fake.RecreateStub = nil
+	fake.recreateReturns = struct {
+		result1 broker.OperationData
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeManageableBroker) RecreateReturnsOnCall(i int, result1 broker.OperationData, result2 error) {
+	fake.RecreateStub = nil
+	if fake.recreateReturnsOnCall == nil {
+		fake.recreateReturnsOnCall = make(map[int]struct {
+			result1 broker.OperationData
+			result2 error
+		})
+	}
+	fake.recreateReturnsOnCall[i] = struct {
+		result1 broker.OperationData
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeManageableBroker) CountInstancesOfPlans(logger *log.Logger) (map[cf.ServicePlan]int, error) {
 	fake.countInstancesOfPlansMutex.Lock()
 	ret, specificReturn := fake.countInstancesOfPlansReturnsOnCall[len(fake.countInstancesOfPlansArgsForCall)]
@@ -359,6 +429,8 @@ func (fake *FakeManageableBroker) Invocations() map[string][][]interface{} {
 	defer fake.orphanDeploymentsMutex.RUnlock()
 	fake.upgradeMutex.RLock()
 	defer fake.upgradeMutex.RUnlock()
+	fake.recreateMutex.RLock()
+	defer fake.recreateMutex.RUnlock()
 	fake.countInstancesOfPlansMutex.RLock()
 	defer fake.countInstancesOfPlansMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

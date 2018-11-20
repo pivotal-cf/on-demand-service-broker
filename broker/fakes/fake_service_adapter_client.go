@@ -2,26 +2,26 @@
 package fakes
 
 import (
-	log "log"
-	sync "sync"
+	"log"
+	"sync"
 
-	brokerapi "github.com/pivotal-cf/brokerapi"
-	broker "github.com/pivotal-cf/on-demand-service-broker/broker"
-	bosh "github.com/pivotal-cf/on-demand-services-sdk/bosh"
-	serviceadapter "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
+	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/on-demand-service-broker/broker"
+	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
+	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
 
 type FakeServiceAdapterClient struct {
-	CreateBindingStub        func(string, bosh.BoshVMs, []byte, map[string]interface{}, map[string]string, map[string]string, *log.Logger) (serviceadapter.Binding, error)
+	CreateBindingStub        func(bindingID string, deploymentTopology bosh.BoshVMs, manifest []byte, requestParams map[string]interface{}, secretsMap, dnsAddresses map[string]string, logger *log.Logger) (serviceadapter.Binding, error)
 	createBindingMutex       sync.RWMutex
 	createBindingArgsForCall []struct {
-		arg1 string
-		arg2 bosh.BoshVMs
-		arg3 []byte
-		arg4 map[string]interface{}
-		arg5 map[string]string
-		arg6 map[string]string
-		arg7 *log.Logger
+		bindingID          string
+		deploymentTopology bosh.BoshVMs
+		manifest           []byte
+		requestParams      map[string]interface{}
+		secretsMap         map[string]string
+		dnsAddresses       map[string]string
+		logger             *log.Logger
 	}
 	createBindingReturns struct {
 		result1 serviceadapter.Binding
@@ -31,15 +31,15 @@ type FakeServiceAdapterClient struct {
 		result1 serviceadapter.Binding
 		result2 error
 	}
-	DeleteBindingStub        func(string, bosh.BoshVMs, []byte, map[string]interface{}, map[string]string, *log.Logger) error
+	DeleteBindingStub        func(bindingID string, deploymentTopology bosh.BoshVMs, manifest []byte, requestParams map[string]interface{}, secretsMap map[string]string, logger *log.Logger) error
 	deleteBindingMutex       sync.RWMutex
 	deleteBindingArgsForCall []struct {
-		arg1 string
-		arg2 bosh.BoshVMs
-		arg3 []byte
-		arg4 map[string]interface{}
-		arg5 map[string]string
-		arg6 *log.Logger
+		bindingID          string
+		deploymentTopology bosh.BoshVMs
+		manifest           []byte
+		requestParams      map[string]interface{}
+		secretsMap         map[string]string
+		logger             *log.Logger
 	}
 	deleteBindingReturns struct {
 		result1 error
@@ -47,13 +47,13 @@ type FakeServiceAdapterClient struct {
 	deleteBindingReturnsOnCall map[int]struct {
 		result1 error
 	}
-	GenerateDashboardUrlStub        func(string, serviceadapter.Plan, []byte, *log.Logger) (string, error)
+	GenerateDashboardUrlStub        func(instanceID string, plan serviceadapter.Plan, manifest []byte, logger *log.Logger) (string, error)
 	generateDashboardUrlMutex       sync.RWMutex
 	generateDashboardUrlArgsForCall []struct {
-		arg1 string
-		arg2 serviceadapter.Plan
-		arg3 []byte
-		arg4 *log.Logger
+		instanceID string
+		plan       serviceadapter.Plan
+		manifest   []byte
+		logger     *log.Logger
 	}
 	generateDashboardUrlReturns struct {
 		result1 string
@@ -63,11 +63,11 @@ type FakeServiceAdapterClient struct {
 		result1 string
 		result2 error
 	}
-	GeneratePlanSchemaStub        func(serviceadapter.Plan, *log.Logger) (brokerapi.ServiceSchemas, error)
+	GeneratePlanSchemaStub        func(plan serviceadapter.Plan, logger *log.Logger) (brokerapi.ServiceSchemas, error)
 	generatePlanSchemaMutex       sync.RWMutex
 	generatePlanSchemaArgsForCall []struct {
-		arg1 serviceadapter.Plan
-		arg2 *log.Logger
+		plan   serviceadapter.Plan
+		logger *log.Logger
 	}
 	generatePlanSchemaReturns struct {
 		result1 brokerapi.ServiceSchemas
@@ -81,33 +81,32 @@ type FakeServiceAdapterClient struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeServiceAdapterClient) CreateBinding(arg1 string, arg2 bosh.BoshVMs, arg3 []byte, arg4 map[string]interface{}, arg5 map[string]string, arg6 map[string]string, arg7 *log.Logger) (serviceadapter.Binding, error) {
-	var arg3Copy []byte
-	if arg3 != nil {
-		arg3Copy = make([]byte, len(arg3))
-		copy(arg3Copy, arg3)
+func (fake *FakeServiceAdapterClient) CreateBinding(bindingID string, deploymentTopology bosh.BoshVMs, manifest []byte, requestParams map[string]interface{}, secretsMap map[string]string, dnsAddresses map[string]string, logger *log.Logger) (serviceadapter.Binding, error) {
+	var manifestCopy []byte
+	if manifest != nil {
+		manifestCopy = make([]byte, len(manifest))
+		copy(manifestCopy, manifest)
 	}
 	fake.createBindingMutex.Lock()
 	ret, specificReturn := fake.createBindingReturnsOnCall[len(fake.createBindingArgsForCall)]
 	fake.createBindingArgsForCall = append(fake.createBindingArgsForCall, struct {
-		arg1 string
-		arg2 bosh.BoshVMs
-		arg3 []byte
-		arg4 map[string]interface{}
-		arg5 map[string]string
-		arg6 map[string]string
-		arg7 *log.Logger
-	}{arg1, arg2, arg3Copy, arg4, arg5, arg6, arg7})
-	fake.recordInvocation("CreateBinding", []interface{}{arg1, arg2, arg3Copy, arg4, arg5, arg6, arg7})
+		bindingID          string
+		deploymentTopology bosh.BoshVMs
+		manifest           []byte
+		requestParams      map[string]interface{}
+		secretsMap         map[string]string
+		dnsAddresses       map[string]string
+		logger             *log.Logger
+	}{bindingID, deploymentTopology, manifestCopy, requestParams, secretsMap, dnsAddresses, logger})
+	fake.recordInvocation("CreateBinding", []interface{}{bindingID, deploymentTopology, manifestCopy, requestParams, secretsMap, dnsAddresses, logger})
 	fake.createBindingMutex.Unlock()
 	if fake.CreateBindingStub != nil {
-		return fake.CreateBindingStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7)
+		return fake.CreateBindingStub(bindingID, deploymentTopology, manifest, requestParams, secretsMap, dnsAddresses, logger)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.createBindingReturns
-	return fakeReturns.result1, fakeReturns.result2
+	return fake.createBindingReturns.result1, fake.createBindingReturns.result2
 }
 
 func (fake *FakeServiceAdapterClient) CreateBindingCallCount() int {
@@ -116,22 +115,13 @@ func (fake *FakeServiceAdapterClient) CreateBindingCallCount() int {
 	return len(fake.createBindingArgsForCall)
 }
 
-func (fake *FakeServiceAdapterClient) CreateBindingCalls(stub func(string, bosh.BoshVMs, []byte, map[string]interface{}, map[string]string, map[string]string, *log.Logger) (serviceadapter.Binding, error)) {
-	fake.createBindingMutex.Lock()
-	defer fake.createBindingMutex.Unlock()
-	fake.CreateBindingStub = stub
-}
-
 func (fake *FakeServiceAdapterClient) CreateBindingArgsForCall(i int) (string, bosh.BoshVMs, []byte, map[string]interface{}, map[string]string, map[string]string, *log.Logger) {
 	fake.createBindingMutex.RLock()
 	defer fake.createBindingMutex.RUnlock()
-	argsForCall := fake.createBindingArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5, argsForCall.arg6, argsForCall.arg7
+	return fake.createBindingArgsForCall[i].bindingID, fake.createBindingArgsForCall[i].deploymentTopology, fake.createBindingArgsForCall[i].manifest, fake.createBindingArgsForCall[i].requestParams, fake.createBindingArgsForCall[i].secretsMap, fake.createBindingArgsForCall[i].dnsAddresses, fake.createBindingArgsForCall[i].logger
 }
 
 func (fake *FakeServiceAdapterClient) CreateBindingReturns(result1 serviceadapter.Binding, result2 error) {
-	fake.createBindingMutex.Lock()
-	defer fake.createBindingMutex.Unlock()
 	fake.CreateBindingStub = nil
 	fake.createBindingReturns = struct {
 		result1 serviceadapter.Binding
@@ -140,8 +130,6 @@ func (fake *FakeServiceAdapterClient) CreateBindingReturns(result1 serviceadapte
 }
 
 func (fake *FakeServiceAdapterClient) CreateBindingReturnsOnCall(i int, result1 serviceadapter.Binding, result2 error) {
-	fake.createBindingMutex.Lock()
-	defer fake.createBindingMutex.Unlock()
 	fake.CreateBindingStub = nil
 	if fake.createBindingReturnsOnCall == nil {
 		fake.createBindingReturnsOnCall = make(map[int]struct {
@@ -155,32 +143,31 @@ func (fake *FakeServiceAdapterClient) CreateBindingReturnsOnCall(i int, result1 
 	}{result1, result2}
 }
 
-func (fake *FakeServiceAdapterClient) DeleteBinding(arg1 string, arg2 bosh.BoshVMs, arg3 []byte, arg4 map[string]interface{}, arg5 map[string]string, arg6 *log.Logger) error {
-	var arg3Copy []byte
-	if arg3 != nil {
-		arg3Copy = make([]byte, len(arg3))
-		copy(arg3Copy, arg3)
+func (fake *FakeServiceAdapterClient) DeleteBinding(bindingID string, deploymentTopology bosh.BoshVMs, manifest []byte, requestParams map[string]interface{}, secretsMap map[string]string, logger *log.Logger) error {
+	var manifestCopy []byte
+	if manifest != nil {
+		manifestCopy = make([]byte, len(manifest))
+		copy(manifestCopy, manifest)
 	}
 	fake.deleteBindingMutex.Lock()
 	ret, specificReturn := fake.deleteBindingReturnsOnCall[len(fake.deleteBindingArgsForCall)]
 	fake.deleteBindingArgsForCall = append(fake.deleteBindingArgsForCall, struct {
-		arg1 string
-		arg2 bosh.BoshVMs
-		arg3 []byte
-		arg4 map[string]interface{}
-		arg5 map[string]string
-		arg6 *log.Logger
-	}{arg1, arg2, arg3Copy, arg4, arg5, arg6})
-	fake.recordInvocation("DeleteBinding", []interface{}{arg1, arg2, arg3Copy, arg4, arg5, arg6})
+		bindingID          string
+		deploymentTopology bosh.BoshVMs
+		manifest           []byte
+		requestParams      map[string]interface{}
+		secretsMap         map[string]string
+		logger             *log.Logger
+	}{bindingID, deploymentTopology, manifestCopy, requestParams, secretsMap, logger})
+	fake.recordInvocation("DeleteBinding", []interface{}{bindingID, deploymentTopology, manifestCopy, requestParams, secretsMap, logger})
 	fake.deleteBindingMutex.Unlock()
 	if fake.DeleteBindingStub != nil {
-		return fake.DeleteBindingStub(arg1, arg2, arg3, arg4, arg5, arg6)
+		return fake.DeleteBindingStub(bindingID, deploymentTopology, manifest, requestParams, secretsMap, logger)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.deleteBindingReturns
-	return fakeReturns.result1
+	return fake.deleteBindingReturns.result1
 }
 
 func (fake *FakeServiceAdapterClient) DeleteBindingCallCount() int {
@@ -189,22 +176,13 @@ func (fake *FakeServiceAdapterClient) DeleteBindingCallCount() int {
 	return len(fake.deleteBindingArgsForCall)
 }
 
-func (fake *FakeServiceAdapterClient) DeleteBindingCalls(stub func(string, bosh.BoshVMs, []byte, map[string]interface{}, map[string]string, *log.Logger) error) {
-	fake.deleteBindingMutex.Lock()
-	defer fake.deleteBindingMutex.Unlock()
-	fake.DeleteBindingStub = stub
-}
-
 func (fake *FakeServiceAdapterClient) DeleteBindingArgsForCall(i int) (string, bosh.BoshVMs, []byte, map[string]interface{}, map[string]string, *log.Logger) {
 	fake.deleteBindingMutex.RLock()
 	defer fake.deleteBindingMutex.RUnlock()
-	argsForCall := fake.deleteBindingArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5, argsForCall.arg6
+	return fake.deleteBindingArgsForCall[i].bindingID, fake.deleteBindingArgsForCall[i].deploymentTopology, fake.deleteBindingArgsForCall[i].manifest, fake.deleteBindingArgsForCall[i].requestParams, fake.deleteBindingArgsForCall[i].secretsMap, fake.deleteBindingArgsForCall[i].logger
 }
 
 func (fake *FakeServiceAdapterClient) DeleteBindingReturns(result1 error) {
-	fake.deleteBindingMutex.Lock()
-	defer fake.deleteBindingMutex.Unlock()
 	fake.DeleteBindingStub = nil
 	fake.deleteBindingReturns = struct {
 		result1 error
@@ -212,8 +190,6 @@ func (fake *FakeServiceAdapterClient) DeleteBindingReturns(result1 error) {
 }
 
 func (fake *FakeServiceAdapterClient) DeleteBindingReturnsOnCall(i int, result1 error) {
-	fake.deleteBindingMutex.Lock()
-	defer fake.deleteBindingMutex.Unlock()
 	fake.DeleteBindingStub = nil
 	if fake.deleteBindingReturnsOnCall == nil {
 		fake.deleteBindingReturnsOnCall = make(map[int]struct {
@@ -225,30 +201,29 @@ func (fake *FakeServiceAdapterClient) DeleteBindingReturnsOnCall(i int, result1 
 	}{result1}
 }
 
-func (fake *FakeServiceAdapterClient) GenerateDashboardUrl(arg1 string, arg2 serviceadapter.Plan, arg3 []byte, arg4 *log.Logger) (string, error) {
-	var arg3Copy []byte
-	if arg3 != nil {
-		arg3Copy = make([]byte, len(arg3))
-		copy(arg3Copy, arg3)
+func (fake *FakeServiceAdapterClient) GenerateDashboardUrl(instanceID string, plan serviceadapter.Plan, manifest []byte, logger *log.Logger) (string, error) {
+	var manifestCopy []byte
+	if manifest != nil {
+		manifestCopy = make([]byte, len(manifest))
+		copy(manifestCopy, manifest)
 	}
 	fake.generateDashboardUrlMutex.Lock()
 	ret, specificReturn := fake.generateDashboardUrlReturnsOnCall[len(fake.generateDashboardUrlArgsForCall)]
 	fake.generateDashboardUrlArgsForCall = append(fake.generateDashboardUrlArgsForCall, struct {
-		arg1 string
-		arg2 serviceadapter.Plan
-		arg3 []byte
-		arg4 *log.Logger
-	}{arg1, arg2, arg3Copy, arg4})
-	fake.recordInvocation("GenerateDashboardUrl", []interface{}{arg1, arg2, arg3Copy, arg4})
+		instanceID string
+		plan       serviceadapter.Plan
+		manifest   []byte
+		logger     *log.Logger
+	}{instanceID, plan, manifestCopy, logger})
+	fake.recordInvocation("GenerateDashboardUrl", []interface{}{instanceID, plan, manifestCopy, logger})
 	fake.generateDashboardUrlMutex.Unlock()
 	if fake.GenerateDashboardUrlStub != nil {
-		return fake.GenerateDashboardUrlStub(arg1, arg2, arg3, arg4)
+		return fake.GenerateDashboardUrlStub(instanceID, plan, manifest, logger)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.generateDashboardUrlReturns
-	return fakeReturns.result1, fakeReturns.result2
+	return fake.generateDashboardUrlReturns.result1, fake.generateDashboardUrlReturns.result2
 }
 
 func (fake *FakeServiceAdapterClient) GenerateDashboardUrlCallCount() int {
@@ -257,22 +232,13 @@ func (fake *FakeServiceAdapterClient) GenerateDashboardUrlCallCount() int {
 	return len(fake.generateDashboardUrlArgsForCall)
 }
 
-func (fake *FakeServiceAdapterClient) GenerateDashboardUrlCalls(stub func(string, serviceadapter.Plan, []byte, *log.Logger) (string, error)) {
-	fake.generateDashboardUrlMutex.Lock()
-	defer fake.generateDashboardUrlMutex.Unlock()
-	fake.GenerateDashboardUrlStub = stub
-}
-
 func (fake *FakeServiceAdapterClient) GenerateDashboardUrlArgsForCall(i int) (string, serviceadapter.Plan, []byte, *log.Logger) {
 	fake.generateDashboardUrlMutex.RLock()
 	defer fake.generateDashboardUrlMutex.RUnlock()
-	argsForCall := fake.generateDashboardUrlArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
+	return fake.generateDashboardUrlArgsForCall[i].instanceID, fake.generateDashboardUrlArgsForCall[i].plan, fake.generateDashboardUrlArgsForCall[i].manifest, fake.generateDashboardUrlArgsForCall[i].logger
 }
 
 func (fake *FakeServiceAdapterClient) GenerateDashboardUrlReturns(result1 string, result2 error) {
-	fake.generateDashboardUrlMutex.Lock()
-	defer fake.generateDashboardUrlMutex.Unlock()
 	fake.GenerateDashboardUrlStub = nil
 	fake.generateDashboardUrlReturns = struct {
 		result1 string
@@ -281,8 +247,6 @@ func (fake *FakeServiceAdapterClient) GenerateDashboardUrlReturns(result1 string
 }
 
 func (fake *FakeServiceAdapterClient) GenerateDashboardUrlReturnsOnCall(i int, result1 string, result2 error) {
-	fake.generateDashboardUrlMutex.Lock()
-	defer fake.generateDashboardUrlMutex.Unlock()
 	fake.GenerateDashboardUrlStub = nil
 	if fake.generateDashboardUrlReturnsOnCall == nil {
 		fake.generateDashboardUrlReturnsOnCall = make(map[int]struct {
@@ -296,23 +260,22 @@ func (fake *FakeServiceAdapterClient) GenerateDashboardUrlReturnsOnCall(i int, r
 	}{result1, result2}
 }
 
-func (fake *FakeServiceAdapterClient) GeneratePlanSchema(arg1 serviceadapter.Plan, arg2 *log.Logger) (brokerapi.ServiceSchemas, error) {
+func (fake *FakeServiceAdapterClient) GeneratePlanSchema(plan serviceadapter.Plan, logger *log.Logger) (brokerapi.ServiceSchemas, error) {
 	fake.generatePlanSchemaMutex.Lock()
 	ret, specificReturn := fake.generatePlanSchemaReturnsOnCall[len(fake.generatePlanSchemaArgsForCall)]
 	fake.generatePlanSchemaArgsForCall = append(fake.generatePlanSchemaArgsForCall, struct {
-		arg1 serviceadapter.Plan
-		arg2 *log.Logger
-	}{arg1, arg2})
-	fake.recordInvocation("GeneratePlanSchema", []interface{}{arg1, arg2})
+		plan   serviceadapter.Plan
+		logger *log.Logger
+	}{plan, logger})
+	fake.recordInvocation("GeneratePlanSchema", []interface{}{plan, logger})
 	fake.generatePlanSchemaMutex.Unlock()
 	if fake.GeneratePlanSchemaStub != nil {
-		return fake.GeneratePlanSchemaStub(arg1, arg2)
+		return fake.GeneratePlanSchemaStub(plan, logger)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.generatePlanSchemaReturns
-	return fakeReturns.result1, fakeReturns.result2
+	return fake.generatePlanSchemaReturns.result1, fake.generatePlanSchemaReturns.result2
 }
 
 func (fake *FakeServiceAdapterClient) GeneratePlanSchemaCallCount() int {
@@ -321,22 +284,13 @@ func (fake *FakeServiceAdapterClient) GeneratePlanSchemaCallCount() int {
 	return len(fake.generatePlanSchemaArgsForCall)
 }
 
-func (fake *FakeServiceAdapterClient) GeneratePlanSchemaCalls(stub func(serviceadapter.Plan, *log.Logger) (brokerapi.ServiceSchemas, error)) {
-	fake.generatePlanSchemaMutex.Lock()
-	defer fake.generatePlanSchemaMutex.Unlock()
-	fake.GeneratePlanSchemaStub = stub
-}
-
 func (fake *FakeServiceAdapterClient) GeneratePlanSchemaArgsForCall(i int) (serviceadapter.Plan, *log.Logger) {
 	fake.generatePlanSchemaMutex.RLock()
 	defer fake.generatePlanSchemaMutex.RUnlock()
-	argsForCall := fake.generatePlanSchemaArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
+	return fake.generatePlanSchemaArgsForCall[i].plan, fake.generatePlanSchemaArgsForCall[i].logger
 }
 
 func (fake *FakeServiceAdapterClient) GeneratePlanSchemaReturns(result1 brokerapi.ServiceSchemas, result2 error) {
-	fake.generatePlanSchemaMutex.Lock()
-	defer fake.generatePlanSchemaMutex.Unlock()
 	fake.GeneratePlanSchemaStub = nil
 	fake.generatePlanSchemaReturns = struct {
 		result1 brokerapi.ServiceSchemas
@@ -345,8 +299,6 @@ func (fake *FakeServiceAdapterClient) GeneratePlanSchemaReturns(result1 brokerap
 }
 
 func (fake *FakeServiceAdapterClient) GeneratePlanSchemaReturnsOnCall(i int, result1 brokerapi.ServiceSchemas, result2 error) {
-	fake.generatePlanSchemaMutex.Lock()
-	defer fake.generatePlanSchemaMutex.Unlock()
 	fake.GeneratePlanSchemaStub = nil
 	if fake.generatePlanSchemaReturnsOnCall == nil {
 		fake.generatePlanSchemaReturnsOnCall = make(map[int]struct {

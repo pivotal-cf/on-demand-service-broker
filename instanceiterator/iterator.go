@@ -238,7 +238,20 @@ func (it *Iterator) triggerOperation() {
 			break
 		}
 		it.listener.InstanceOperationStarting(instance.GUID, it.iteratorState.GetIteratorIndex(), totalInstances, it.iteratorState.IsProcessingCanaries())
-		operation, err := it.triggerer.TriggerOperation(instance)
+
+		var operation services.BOSHOperation
+		lastestInstance, err := it.instanceLister.LatestInstanceInfo(instance)
+
+		if err == service.InstanceNotFound {
+			operation, err = services.BOSHOperation{Type: services.InstanceNotFound}, nil
+		} else {
+			if err != nil {
+				it.listener.FailedToRefreshInstanceInfo(instance.GUID)
+				lastestInstance = instance
+			}
+			operation, err = it.triggerer.TriggerOperation(lastestInstance)
+		}
+
 		if err != nil {
 			it.iteratorState.SetState(instance.GUID, services.OperationFailed)
 			it.failures = append(it.failures, instanceFailure{guid: instance.GUID, err: err})

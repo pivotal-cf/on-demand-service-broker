@@ -18,11 +18,11 @@ import (
 )
 
 func main() {
-	loggerFactory := loggerfactory.New(os.Stdout, "upgrade-all-service-instances", loggerfactory.Flags)
+	loggerFactory := loggerfactory.New(os.Stdout, "recreate-all-service-instances", loggerfactory.Flags)
 	logger := loggerFactory.New()
 
 	var configPath string
-	flag.StringVar(&configPath, "configPath", "", "path to upgrade-all-service-instances config")
+	flag.StringVar(&configPath, "configPath", "", "path to recreate-all-service-instances config")
 	flag.Parse()
 
 	if configPath == "" {
@@ -40,11 +40,11 @@ func main() {
 		logger.Fatalln(err.Error())
 	}
 
-	builder, err := instanceiterator.NewBuilder(conf, logger, "upgrade-all")
+	builder, err := instanceiterator.NewBuilder(conf, logger, "recreate-all")
 	if err != nil {
 		logger.Fatalln(err.Error())
 	}
-	builder.SetUpgradeTriggerer()
+	builder.SetRecreateTriggerer()
 	upgradeTool := instanceiterator.New(builder)
 
 	err = upgradeTool.Iterate()

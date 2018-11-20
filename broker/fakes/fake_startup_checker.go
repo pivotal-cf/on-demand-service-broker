@@ -2,17 +2,16 @@
 package fakes
 
 import (
-	sync "sync"
+	"sync"
 
-	broker "github.com/pivotal-cf/on-demand-service-broker/broker"
+	"github.com/pivotal-cf/on-demand-service-broker/broker"
 )
 
 type FakeStartupChecker struct {
 	CheckStub        func() error
 	checkMutex       sync.RWMutex
-	checkArgsForCall []struct {
-	}
-	checkReturns struct {
+	checkArgsForCall []struct{}
+	checkReturns     struct {
 		result1 error
 	}
 	checkReturnsOnCall map[int]struct {
@@ -25,8 +24,7 @@ type FakeStartupChecker struct {
 func (fake *FakeStartupChecker) Check() error {
 	fake.checkMutex.Lock()
 	ret, specificReturn := fake.checkReturnsOnCall[len(fake.checkArgsForCall)]
-	fake.checkArgsForCall = append(fake.checkArgsForCall, struct {
-	}{})
+	fake.checkArgsForCall = append(fake.checkArgsForCall, struct{}{})
 	fake.recordInvocation("Check", []interface{}{})
 	fake.checkMutex.Unlock()
 	if fake.CheckStub != nil {
@@ -35,8 +33,7 @@ func (fake *FakeStartupChecker) Check() error {
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.checkReturns
-	return fakeReturns.result1
+	return fake.checkReturns.result1
 }
 
 func (fake *FakeStartupChecker) CheckCallCount() int {
@@ -45,15 +42,7 @@ func (fake *FakeStartupChecker) CheckCallCount() int {
 	return len(fake.checkArgsForCall)
 }
 
-func (fake *FakeStartupChecker) CheckCalls(stub func() error) {
-	fake.checkMutex.Lock()
-	defer fake.checkMutex.Unlock()
-	fake.CheckStub = stub
-}
-
 func (fake *FakeStartupChecker) CheckReturns(result1 error) {
-	fake.checkMutex.Lock()
-	defer fake.checkMutex.Unlock()
 	fake.CheckStub = nil
 	fake.checkReturns = struct {
 		result1 error
@@ -61,8 +50,6 @@ func (fake *FakeStartupChecker) CheckReturns(result1 error) {
 }
 
 func (fake *FakeStartupChecker) CheckReturnsOnCall(i int, result1 error) {
-	fake.checkMutex.Lock()
-	defer fake.checkMutex.Unlock()
 	fake.CheckStub = nil
 	if fake.checkReturnsOnCall == nil {
 		fake.checkReturnsOnCall = make(map[int]struct {

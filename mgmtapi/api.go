@@ -37,6 +37,7 @@ type ManageableBroker interface {
 	FilteredInstances(orgName, spaceName string, logger *log.Logger) ([]service.Instance, error)
 	OrphanDeployments(logger *log.Logger) ([]string, error)
 	Upgrade(ctx context.Context, instanceID string, updateDetails brokerapi.UpdateDetails, logger *log.Logger) (broker.OperationData, error)
+	Recreate(ctx context.Context, instanceID string, updateDetails brokerapi.UpdateDetails, logger *log.Logger) (broker.OperationData, error)
 	CountInstancesOfPlans(logger *log.Logger) (map[cf.ServicePlan]int, error)
 }
 
@@ -53,6 +54,10 @@ type Metric struct {
 func AttachRoutes(r *mux.Router, manageableBroker ManageableBroker, serviceOffering config.ServiceOffering, loggerFactory *loggerfactory.LoggerFactory) {
 	a := &api{manageableBroker: manageableBroker, serviceOffering: serviceOffering, loggerFactory: loggerFactory}
 	r.HandleFunc("/mgmt/service_instances", a.listAllInstances).Methods("GET")
+
+	r.HandleFunc("/mgmt/service_instances/{instance_id}", a.recreateInstance).
+		Methods("PATCH").
+		Queries("operation_type", "recreate")
 
 	r.HandleFunc("/mgmt/service_instances/{instance_id}", a.upgradeInstance).
 		Methods("PATCH").
@@ -109,6 +114,42 @@ func (a *api) listAllInstances(w http.ResponseWriter, r *http.Request) {
 	}
 
 	a.writeJson(w, instances, logger)
+}
+
+func (a *api) recreateInstance(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	instanceID := vars["instance_id"]
+
+	requestID := uuid.New()
+	ctx := brokercontext.New(r.Context(), string(broker.OperationTypeRecreate), requestID, a.serviceOffering.Name, instanceID)
+
+	logger := a.loggerFactory.NewWithContext(ctx)
+
+	var details brokerapi.UpdateDetails
+	if err := json.NewDecoder(r.Body).Decode(&details); err != nil {
+		logger.Printf("error occurred parsing requests body: %s", err)
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		a.writeJson(w, brokerapi.ErrorResponse{Description: "Error in request body. Invalid JSON"}, logger)
+		return
+	}
+
+	operationData, err := a.manageableBroker.Recreate(ctx, instanceID, details, logger)
+
+	switch err.(type) {
+	case nil:
+		w.WriteHeader(http.StatusAccepted)
+		a.writeJson(w, operationData, logger)
+	case cf.ResourceNotFoundError:
+		w.WriteHeader(http.StatusNotFound)
+	case broker.DeploymentNotFoundError:
+		w.WriteHeader(http.StatusGone)
+	case broker.OperationInProgressError:
+		w.WriteHeader(http.StatusConflict)
+	case error:
+		logger.Printf("error occurred recreating instance %s: %s", instanceID, err)
+		w.WriteHeader(http.StatusInternalServerError)
+		a.writeJson(w, brokerapi.ErrorResponse{Description: err.Error()}, logger)
+	}
 }
 
 func (a *api) upgradeInstance(w http.ResponseWriter, r *http.Request) {

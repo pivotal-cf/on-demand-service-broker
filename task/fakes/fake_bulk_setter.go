@@ -2,10 +2,10 @@
 package fakes
 
 import (
-	sync "sync"
+	"sync"
 
-	broker "github.com/pivotal-cf/on-demand-service-broker/broker"
-	task "github.com/pivotal-cf/on-demand-service-broker/task"
+	"github.com/pivotal-cf/on-demand-service-broker/broker"
+	"github.com/pivotal-cf/on-demand-service-broker/task"
 )
 
 type FakeBulkSetter struct {
@@ -43,8 +43,7 @@ func (fake *FakeBulkSetter) BulkSet(arg1 []broker.ManifestSecret) error {
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.bulkSetReturns
-	return fakeReturns.result1
+	return fake.bulkSetReturns.result1
 }
 
 func (fake *FakeBulkSetter) BulkSetCallCount() int {
@@ -53,22 +52,13 @@ func (fake *FakeBulkSetter) BulkSetCallCount() int {
 	return len(fake.bulkSetArgsForCall)
 }
 
-func (fake *FakeBulkSetter) BulkSetCalls(stub func([]broker.ManifestSecret) error) {
-	fake.bulkSetMutex.Lock()
-	defer fake.bulkSetMutex.Unlock()
-	fake.BulkSetStub = stub
-}
-
 func (fake *FakeBulkSetter) BulkSetArgsForCall(i int) []broker.ManifestSecret {
 	fake.bulkSetMutex.RLock()
 	defer fake.bulkSetMutex.RUnlock()
-	argsForCall := fake.bulkSetArgsForCall[i]
-	return argsForCall.arg1
+	return fake.bulkSetArgsForCall[i].arg1
 }
 
 func (fake *FakeBulkSetter) BulkSetReturns(result1 error) {
-	fake.bulkSetMutex.Lock()
-	defer fake.bulkSetMutex.Unlock()
 	fake.BulkSetStub = nil
 	fake.bulkSetReturns = struct {
 		result1 error
@@ -76,8 +66,6 @@ func (fake *FakeBulkSetter) BulkSetReturns(result1 error) {
 }
 
 func (fake *FakeBulkSetter) BulkSetReturnsOnCall(i int, result1 error) {
-	fake.bulkSetMutex.Lock()
-	defer fake.bulkSetMutex.Unlock()
 	fake.BulkSetStub = nil
 	if fake.bulkSetReturnsOnCall == nil {
 		fake.bulkSetReturnsOnCall = make(map[int]struct {

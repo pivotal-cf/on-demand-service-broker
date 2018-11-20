@@ -2,24 +2,24 @@
 package fakes
 
 import (
-	log "log"
-	sync "sync"
+	"log"
+	"sync"
 
-	task "github.com/pivotal-cf/on-demand-service-broker/task"
-	serviceadapter "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
+	"github.com/pivotal-cf/on-demand-service-broker/task"
+	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
 
 type FakeManifestGenerator struct {
-	GenerateManifestStub        func(string, string, map[string]interface{}, []byte, *string, map[string]string, *log.Logger) (serviceadapter.MarshalledGenerateManifest, error)
+	GenerateManifestStub        func(deploymentName, planID string, requestParams map[string]interface{}, oldManifest []byte, previousPlanID *string, secretsMap map[string]string, logger *log.Logger) (serviceadapter.MarshalledGenerateManifest, error)
 	generateManifestMutex       sync.RWMutex
 	generateManifestArgsForCall []struct {
-		arg1 string
-		arg2 string
-		arg3 map[string]interface{}
-		arg4 []byte
-		arg5 *string
-		arg6 map[string]string
-		arg7 *log.Logger
+		deploymentName string
+		planID         string
+		requestParams  map[string]interface{}
+		oldManifest    []byte
+		previousPlanID *string
+		secretsMap     map[string]string
+		logger         *log.Logger
 	}
 	generateManifestReturns struct {
 		result1 serviceadapter.MarshalledGenerateManifest
@@ -33,33 +33,32 @@ type FakeManifestGenerator struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeManifestGenerator) GenerateManifest(arg1 string, arg2 string, arg3 map[string]interface{}, arg4 []byte, arg5 *string, arg6 map[string]string, arg7 *log.Logger) (serviceadapter.MarshalledGenerateManifest, error) {
-	var arg4Copy []byte
-	if arg4 != nil {
-		arg4Copy = make([]byte, len(arg4))
-		copy(arg4Copy, arg4)
+func (fake *FakeManifestGenerator) GenerateManifest(deploymentName string, planID string, requestParams map[string]interface{}, oldManifest []byte, previousPlanID *string, secretsMap map[string]string, logger *log.Logger) (serviceadapter.MarshalledGenerateManifest, error) {
+	var oldManifestCopy []byte
+	if oldManifest != nil {
+		oldManifestCopy = make([]byte, len(oldManifest))
+		copy(oldManifestCopy, oldManifest)
 	}
 	fake.generateManifestMutex.Lock()
 	ret, specificReturn := fake.generateManifestReturnsOnCall[len(fake.generateManifestArgsForCall)]
 	fake.generateManifestArgsForCall = append(fake.generateManifestArgsForCall, struct {
-		arg1 string
-		arg2 string
-		arg3 map[string]interface{}
-		arg4 []byte
-		arg5 *string
-		arg6 map[string]string
-		arg7 *log.Logger
-	}{arg1, arg2, arg3, arg4Copy, arg5, arg6, arg7})
-	fake.recordInvocation("GenerateManifest", []interface{}{arg1, arg2, arg3, arg4Copy, arg5, arg6, arg7})
+		deploymentName string
+		planID         string
+		requestParams  map[string]interface{}
+		oldManifest    []byte
+		previousPlanID *string
+		secretsMap     map[string]string
+		logger         *log.Logger
+	}{deploymentName, planID, requestParams, oldManifestCopy, previousPlanID, secretsMap, logger})
+	fake.recordInvocation("GenerateManifest", []interface{}{deploymentName, planID, requestParams, oldManifestCopy, previousPlanID, secretsMap, logger})
 	fake.generateManifestMutex.Unlock()
 	if fake.GenerateManifestStub != nil {
-		return fake.GenerateManifestStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7)
+		return fake.GenerateManifestStub(deploymentName, planID, requestParams, oldManifest, previousPlanID, secretsMap, logger)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.generateManifestReturns
-	return fakeReturns.result1, fakeReturns.result2
+	return fake.generateManifestReturns.result1, fake.generateManifestReturns.result2
 }
 
 func (fake *FakeManifestGenerator) GenerateManifestCallCount() int {
@@ -68,22 +67,13 @@ func (fake *FakeManifestGenerator) GenerateManifestCallCount() int {
 	return len(fake.generateManifestArgsForCall)
 }
 
-func (fake *FakeManifestGenerator) GenerateManifestCalls(stub func(string, string, map[string]interface{}, []byte, *string, map[string]string, *log.Logger) (serviceadapter.MarshalledGenerateManifest, error)) {
-	fake.generateManifestMutex.Lock()
-	defer fake.generateManifestMutex.Unlock()
-	fake.GenerateManifestStub = stub
-}
-
 func (fake *FakeManifestGenerator) GenerateManifestArgsForCall(i int) (string, string, map[string]interface{}, []byte, *string, map[string]string, *log.Logger) {
 	fake.generateManifestMutex.RLock()
 	defer fake.generateManifestMutex.RUnlock()
-	argsForCall := fake.generateManifestArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5, argsForCall.arg6, argsForCall.arg7
+	return fake.generateManifestArgsForCall[i].deploymentName, fake.generateManifestArgsForCall[i].planID, fake.generateManifestArgsForCall[i].requestParams, fake.generateManifestArgsForCall[i].oldManifest, fake.generateManifestArgsForCall[i].previousPlanID, fake.generateManifestArgsForCall[i].secretsMap, fake.generateManifestArgsForCall[i].logger
 }
 
 func (fake *FakeManifestGenerator) GenerateManifestReturns(result1 serviceadapter.MarshalledGenerateManifest, result2 error) {
-	fake.generateManifestMutex.Lock()
-	defer fake.generateManifestMutex.Unlock()
 	fake.GenerateManifestStub = nil
 	fake.generateManifestReturns = struct {
 		result1 serviceadapter.MarshalledGenerateManifest
@@ -92,8 +82,6 @@ func (fake *FakeManifestGenerator) GenerateManifestReturns(result1 serviceadapte
 }
 
 func (fake *FakeManifestGenerator) GenerateManifestReturnsOnCall(i int, result1 serviceadapter.MarshalledGenerateManifest, result2 error) {
-	fake.generateManifestMutex.Lock()
-	defer fake.generateManifestMutex.Unlock()
 	fake.GenerateManifestStub = nil
 	if fake.generateManifestReturnsOnCall == nil {
 		fake.generateManifestReturnsOnCall = make(map[int]struct {

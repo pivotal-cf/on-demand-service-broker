@@ -21,18 +21,12 @@ import (
 	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
 
-type deployer interface {
-	Create(deploymentName, planID string, requestParams map[string]interface{}, boshContextID string, logger *log.Logger) (int, []byte, error)
-	Update(deploymentName, planID string, requestParams map[string]interface{}, previousPlanID *string, boshContextID string, secretsMap map[string]string, logger *log.Logger) (int, []byte, error)
-	Upgrade(deploymentName, planID string, previousPlanID *string, boshContextID string, logger *log.Logger) (int, []byte, error)
-}
-
 var _ = Describe("Deployer", func() {
 	const boshTaskID = 42
 
 	var (
 		boshClient    *fakes.FakeBoshClient
-		deployer      deployer
+		deployer      task.Deployer
 		boshContextID string
 
 		deployedManifest []byte
@@ -1053,6 +1047,47 @@ instance_groups:
 			Expect(deployError.Error()).To(ContainSubstring("error detecting change in manifest, unable to unmarshal manifest"))
 			Expect(manifestGenerator.GenerateManifestCallCount()).To(Equal(1))
 		})
+	})
+
+	Describe("Recreate", func() {
+		var err error
+
+		It("calls BOSH recreate", func() {
+			boshClient.GetTasksReturns([]boshdirector.BoshTask{}, nil)
+			boshClient.RecreateReturns(42, nil)
+
+			returnedTaskID, err = deployer.Recreate(deploymentName, planID, boshContextID, logger)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(boshClient.RecreateCallCount()).To(Equal(1), "recreate was not called once")
+			Expect(logBuffer.String()).To(ContainSubstring("Submitted BOSH recreate with task ID"))
+		})
+
+		It("fails when it can't get bosh in progess tasks", func() {
+			boshClient.GetTasksReturns([]boshdirector.BoshTask{}, fmt.Errorf("boom!"))
+			_, err = deployer.Recreate(deploymentName, planID, boshContextID, logger)
+			Expect(err).To(MatchError(ContainSubstring("error getting tasks for deployment")))
+		})
+
+		It("fails if an operation is in progress", func() {
+			boshClient.GetTasksReturns([]boshdirector.BoshTask{{
+				State: "processing",
+			}}, nil)
+
+			_, err = deployer.Recreate(deploymentName, planID, boshContextID, logger)
+			Expect(err).To(MatchError("task in progress"))
+		})
+
+		It("fails when bosh recreate returns an error", func() {
+			boshClient.GetTasksReturns([]boshdirector.BoshTask{}, nil)
+			boshClient.RecreateReturns(0, errors.New("zork"))
+
+			_, err = deployer.Recreate(deploymentName, planID, boshContextID, logger)
+			Expect(err).To(MatchError(ContainSubstring("zork")))
+
+			Expect(logBuffer.String()).To(ContainSubstring("failed to recreate deployment"))
+		})
+
 	})
 })
 

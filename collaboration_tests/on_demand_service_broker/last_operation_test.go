@@ -106,6 +106,7 @@ var _ = Describe("Last Operation", func() {
 			Entry("delete is in progress", broker.OperationTypeDelete, "delete", "Instance deletion in progress"),
 			Entry("update is in progress", broker.OperationTypeUpdate, "update", "Instance update in progress"),
 			Entry("upgrade is in progress", broker.OperationTypeUpgrade, "upgrade", "Instance upgrade in progress"),
+			Entry("recreate is in progress", broker.OperationTypeRecreate, "recreate", "Instance recreate in progress"),
 		)
 
 		DescribeTable("depending on the task state, responds with 200 when", func(taskState, responseState, description string, operation ...broker.OperationType) {

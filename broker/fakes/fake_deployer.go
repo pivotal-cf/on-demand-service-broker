@@ -2,21 +2,21 @@
 package fakes
 
 import (
-	log "log"
-	sync "sync"
+	"log"
+	"sync"
 
-	broker "github.com/pivotal-cf/on-demand-service-broker/broker"
+	"github.com/pivotal-cf/on-demand-service-broker/broker"
 )
 
 type FakeDeployer struct {
-	CreateStub        func(string, string, map[string]interface{}, string, *log.Logger) (int, []byte, error)
+	CreateStub        func(deploymentName, planID string, requestParams map[string]interface{}, boshContextID string, logger *log.Logger) (int, []byte, error)
 	createMutex       sync.RWMutex
 	createArgsForCall []struct {
-		arg1 string
-		arg2 string
-		arg3 map[string]interface{}
-		arg4 string
-		arg5 *log.Logger
+		deploymentName string
+		planID         string
+		requestParams  map[string]interface{}
+		boshContextID  string
+		logger         *log.Logger
 	}
 	createReturns struct {
 		result1 int
@@ -28,16 +28,16 @@ type FakeDeployer struct {
 		result2 []byte
 		result3 error
 	}
-	UpdateStub        func(string, string, map[string]interface{}, *string, string, map[string]string, *log.Logger) (int, []byte, error)
+	UpdateStub        func(deploymentName, planID string, requestParams map[string]interface{}, previousPlanID *string, boshContextID string, secretsMap map[string]string, logger *log.Logger) (int, []byte, error)
 	updateMutex       sync.RWMutex
 	updateArgsForCall []struct {
-		arg1 string
-		arg2 string
-		arg3 map[string]interface{}
-		arg4 *string
-		arg5 string
-		arg6 map[string]string
-		arg7 *log.Logger
+		deploymentName string
+		planID         string
+		requestParams  map[string]interface{}
+		previousPlanID *string
+		boshContextID  string
+		secretsMap     map[string]string
+		logger         *log.Logger
 	}
 	updateReturns struct {
 		result1 int
@@ -49,14 +49,14 @@ type FakeDeployer struct {
 		result2 []byte
 		result3 error
 	}
-	UpgradeStub        func(string, string, *string, string, *log.Logger) (int, []byte, error)
+	UpgradeStub        func(deploymentName, planID string, previousPlanID *string, boshContextID string, logger *log.Logger) (int, []byte, error)
 	upgradeMutex       sync.RWMutex
 	upgradeArgsForCall []struct {
-		arg1 string
-		arg2 string
-		arg3 *string
-		arg4 string
-		arg5 *log.Logger
+		deploymentName string
+		planID         string
+		previousPlanID *string
+		boshContextID  string
+		logger         *log.Logger
 	}
 	upgradeReturns struct {
 		result1 int
@@ -68,30 +68,45 @@ type FakeDeployer struct {
 		result2 []byte
 		result3 error
 	}
+	RecreateStub        func(deploymentName, planID, boshContextID string, logger *log.Logger) (int, error)
+	recreateMutex       sync.RWMutex
+	recreateArgsForCall []struct {
+		deploymentName string
+		planID         string
+		boshContextID  string
+		logger         *log.Logger
+	}
+	recreateReturns struct {
+		result1 int
+		result2 error
+	}
+	recreateReturnsOnCall map[int]struct {
+		result1 int
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeDeployer) Create(arg1 string, arg2 string, arg3 map[string]interface{}, arg4 string, arg5 *log.Logger) (int, []byte, error) {
+func (fake *FakeDeployer) Create(deploymentName string, planID string, requestParams map[string]interface{}, boshContextID string, logger *log.Logger) (int, []byte, error) {
 	fake.createMutex.Lock()
 	ret, specificReturn := fake.createReturnsOnCall[len(fake.createArgsForCall)]
 	fake.createArgsForCall = append(fake.createArgsForCall, struct {
-		arg1 string
-		arg2 string
-		arg3 map[string]interface{}
-		arg4 string
-		arg5 *log.Logger
-	}{arg1, arg2, arg3, arg4, arg5})
-	fake.recordInvocation("Create", []interface{}{arg1, arg2, arg3, arg4, arg5})
+		deploymentName string
+		planID         string
+		requestParams  map[string]interface{}
+		boshContextID  string
+		logger         *log.Logger
+	}{deploymentName, planID, requestParams, boshContextID, logger})
+	fake.recordInvocation("Create", []interface{}{deploymentName, planID, requestParams, boshContextID, logger})
 	fake.createMutex.Unlock()
 	if fake.CreateStub != nil {
-		return fake.CreateStub(arg1, arg2, arg3, arg4, arg5)
+		return fake.CreateStub(deploymentName, planID, requestParams, boshContextID, logger)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.createReturns
-	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
+	return fake.createReturns.result1, fake.createReturns.result2, fake.createReturns.result3
 }
 
 func (fake *FakeDeployer) CreateCallCount() int {
@@ -100,22 +115,13 @@ func (fake *FakeDeployer) CreateCallCount() int {
 	return len(fake.createArgsForCall)
 }
 
-func (fake *FakeDeployer) CreateCalls(stub func(string, string, map[string]interface{}, string, *log.Logger) (int, []byte, error)) {
-	fake.createMutex.Lock()
-	defer fake.createMutex.Unlock()
-	fake.CreateStub = stub
-}
-
 func (fake *FakeDeployer) CreateArgsForCall(i int) (string, string, map[string]interface{}, string, *log.Logger) {
 	fake.createMutex.RLock()
 	defer fake.createMutex.RUnlock()
-	argsForCall := fake.createArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5
+	return fake.createArgsForCall[i].deploymentName, fake.createArgsForCall[i].planID, fake.createArgsForCall[i].requestParams, fake.createArgsForCall[i].boshContextID, fake.createArgsForCall[i].logger
 }
 
 func (fake *FakeDeployer) CreateReturns(result1 int, result2 []byte, result3 error) {
-	fake.createMutex.Lock()
-	defer fake.createMutex.Unlock()
 	fake.CreateStub = nil
 	fake.createReturns = struct {
 		result1 int
@@ -125,8 +131,6 @@ func (fake *FakeDeployer) CreateReturns(result1 int, result2 []byte, result3 err
 }
 
 func (fake *FakeDeployer) CreateReturnsOnCall(i int, result1 int, result2 []byte, result3 error) {
-	fake.createMutex.Lock()
-	defer fake.createMutex.Unlock()
 	fake.CreateStub = nil
 	if fake.createReturnsOnCall == nil {
 		fake.createReturnsOnCall = make(map[int]struct {
@@ -142,28 +146,27 @@ func (fake *FakeDeployer) CreateReturnsOnCall(i int, result1 int, result2 []byte
 	}{result1, result2, result3}
 }
 
-func (fake *FakeDeployer) Update(arg1 string, arg2 string, arg3 map[string]interface{}, arg4 *string, arg5 string, arg6 map[string]string, arg7 *log.Logger) (int, []byte, error) {
+func (fake *FakeDeployer) Update(deploymentName string, planID string, requestParams map[string]interface{}, previousPlanID *string, boshContextID string, secretsMap map[string]string, logger *log.Logger) (int, []byte, error) {
 	fake.updateMutex.Lock()
 	ret, specificReturn := fake.updateReturnsOnCall[len(fake.updateArgsForCall)]
 	fake.updateArgsForCall = append(fake.updateArgsForCall, struct {
-		arg1 string
-		arg2 string
-		arg3 map[string]interface{}
-		arg4 *string
-		arg5 string
-		arg6 map[string]string
-		arg7 *log.Logger
-	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7})
-	fake.recordInvocation("Update", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6, arg7})
+		deploymentName string
+		planID         string
+		requestParams  map[string]interface{}
+		previousPlanID *string
+		boshContextID  string
+		secretsMap     map[string]string
+		logger         *log.Logger
+	}{deploymentName, planID, requestParams, previousPlanID, boshContextID, secretsMap, logger})
+	fake.recordInvocation("Update", []interface{}{deploymentName, planID, requestParams, previousPlanID, boshContextID, secretsMap, logger})
 	fake.updateMutex.Unlock()
 	if fake.UpdateStub != nil {
-		return fake.UpdateStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7)
+		return fake.UpdateStub(deploymentName, planID, requestParams, previousPlanID, boshContextID, secretsMap, logger)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.updateReturns
-	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
+	return fake.updateReturns.result1, fake.updateReturns.result2, fake.updateReturns.result3
 }
 
 func (fake *FakeDeployer) UpdateCallCount() int {
@@ -172,22 +175,13 @@ func (fake *FakeDeployer) UpdateCallCount() int {
 	return len(fake.updateArgsForCall)
 }
 
-func (fake *FakeDeployer) UpdateCalls(stub func(string, string, map[string]interface{}, *string, string, map[string]string, *log.Logger) (int, []byte, error)) {
-	fake.updateMutex.Lock()
-	defer fake.updateMutex.Unlock()
-	fake.UpdateStub = stub
-}
-
 func (fake *FakeDeployer) UpdateArgsForCall(i int) (string, string, map[string]interface{}, *string, string, map[string]string, *log.Logger) {
 	fake.updateMutex.RLock()
 	defer fake.updateMutex.RUnlock()
-	argsForCall := fake.updateArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5, argsForCall.arg6, argsForCall.arg7
+	return fake.updateArgsForCall[i].deploymentName, fake.updateArgsForCall[i].planID, fake.updateArgsForCall[i].requestParams, fake.updateArgsForCall[i].previousPlanID, fake.updateArgsForCall[i].boshContextID, fake.updateArgsForCall[i].secretsMap, fake.updateArgsForCall[i].logger
 }
 
 func (fake *FakeDeployer) UpdateReturns(result1 int, result2 []byte, result3 error) {
-	fake.updateMutex.Lock()
-	defer fake.updateMutex.Unlock()
 	fake.UpdateStub = nil
 	fake.updateReturns = struct {
 		result1 int
@@ -197,8 +191,6 @@ func (fake *FakeDeployer) UpdateReturns(result1 int, result2 []byte, result3 err
 }
 
 func (fake *FakeDeployer) UpdateReturnsOnCall(i int, result1 int, result2 []byte, result3 error) {
-	fake.updateMutex.Lock()
-	defer fake.updateMutex.Unlock()
 	fake.UpdateStub = nil
 	if fake.updateReturnsOnCall == nil {
 		fake.updateReturnsOnCall = make(map[int]struct {
@@ -214,26 +206,25 @@ func (fake *FakeDeployer) UpdateReturnsOnCall(i int, result1 int, result2 []byte
 	}{result1, result2, result3}
 }
 
-func (fake *FakeDeployer) Upgrade(arg1 string, arg2 string, arg3 *string, arg4 string, arg5 *log.Logger) (int, []byte, error) {
+func (fake *FakeDeployer) Upgrade(deploymentName string, planID string, previousPlanID *string, boshContextID string, logger *log.Logger) (int, []byte, error) {
 	fake.upgradeMutex.Lock()
 	ret, specificReturn := fake.upgradeReturnsOnCall[len(fake.upgradeArgsForCall)]
 	fake.upgradeArgsForCall = append(fake.upgradeArgsForCall, struct {
-		arg1 string
-		arg2 string
-		arg3 *string
-		arg4 string
-		arg5 *log.Logger
-	}{arg1, arg2, arg3, arg4, arg5})
-	fake.recordInvocation("Upgrade", []interface{}{arg1, arg2, arg3, arg4, arg5})
+		deploymentName string
+		planID         string
+		previousPlanID *string
+		boshContextID  string
+		logger         *log.Logger
+	}{deploymentName, planID, previousPlanID, boshContextID, logger})
+	fake.recordInvocation("Upgrade", []interface{}{deploymentName, planID, previousPlanID, boshContextID, logger})
 	fake.upgradeMutex.Unlock()
 	if fake.UpgradeStub != nil {
-		return fake.UpgradeStub(arg1, arg2, arg3, arg4, arg5)
+		return fake.UpgradeStub(deploymentName, planID, previousPlanID, boshContextID, logger)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.upgradeReturns
-	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
+	return fake.upgradeReturns.result1, fake.upgradeReturns.result2, fake.upgradeReturns.result3
 }
 
 func (fake *FakeDeployer) UpgradeCallCount() int {
@@ -242,22 +233,13 @@ func (fake *FakeDeployer) UpgradeCallCount() int {
 	return len(fake.upgradeArgsForCall)
 }
 
-func (fake *FakeDeployer) UpgradeCalls(stub func(string, string, *string, string, *log.Logger) (int, []byte, error)) {
-	fake.upgradeMutex.Lock()
-	defer fake.upgradeMutex.Unlock()
-	fake.UpgradeStub = stub
-}
-
 func (fake *FakeDeployer) UpgradeArgsForCall(i int) (string, string, *string, string, *log.Logger) {
 	fake.upgradeMutex.RLock()
 	defer fake.upgradeMutex.RUnlock()
-	argsForCall := fake.upgradeArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5
+	return fake.upgradeArgsForCall[i].deploymentName, fake.upgradeArgsForCall[i].planID, fake.upgradeArgsForCall[i].previousPlanID, fake.upgradeArgsForCall[i].boshContextID, fake.upgradeArgsForCall[i].logger
 }
 
 func (fake *FakeDeployer) UpgradeReturns(result1 int, result2 []byte, result3 error) {
-	fake.upgradeMutex.Lock()
-	defer fake.upgradeMutex.Unlock()
 	fake.UpgradeStub = nil
 	fake.upgradeReturns = struct {
 		result1 int
@@ -267,8 +249,6 @@ func (fake *FakeDeployer) UpgradeReturns(result1 int, result2 []byte, result3 er
 }
 
 func (fake *FakeDeployer) UpgradeReturnsOnCall(i int, result1 int, result2 []byte, result3 error) {
-	fake.upgradeMutex.Lock()
-	defer fake.upgradeMutex.Unlock()
 	fake.UpgradeStub = nil
 	if fake.upgradeReturnsOnCall == nil {
 		fake.upgradeReturnsOnCall = make(map[int]struct {
@@ -284,6 +264,60 @@ func (fake *FakeDeployer) UpgradeReturnsOnCall(i int, result1 int, result2 []byt
 	}{result1, result2, result3}
 }
 
+func (fake *FakeDeployer) Recreate(deploymentName string, planID string, boshContextID string, logger *log.Logger) (int, error) {
+	fake.recreateMutex.Lock()
+	ret, specificReturn := fake.recreateReturnsOnCall[len(fake.recreateArgsForCall)]
+	fake.recreateArgsForCall = append(fake.recreateArgsForCall, struct {
+		deploymentName string
+		planID         string
+		boshContextID  string
+		logger         *log.Logger
+	}{deploymentName, planID, boshContextID, logger})
+	fake.recordInvocation("Recreate", []interface{}{deploymentName, planID, boshContextID, logger})
+	fake.recreateMutex.Unlock()
+	if fake.RecreateStub != nil {
+		return fake.RecreateStub(deploymentName, planID, boshContextID, logger)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fake.recreateReturns.result1, fake.recreateReturns.result2
+}
+
+func (fake *FakeDeployer) RecreateCallCount() int {
+	fake.recreateMutex.RLock()
+	defer fake.recreateMutex.RUnlock()
+	return len(fake.recreateArgsForCall)
+}
+
+func (fake *FakeDeployer) RecreateArgsForCall(i int) (string, string, string, *log.Logger) {
+	fake.recreateMutex.RLock()
+	defer fake.recreateMutex.RUnlock()
+	return fake.recreateArgsForCall[i].deploymentName, fake.recreateArgsForCall[i].planID, fake.recreateArgsForCall[i].boshContextID, fake.recreateArgsForCall[i].logger
+}
+
+func (fake *FakeDeployer) RecreateReturns(result1 int, result2 error) {
+	fake.RecreateStub = nil
+	fake.recreateReturns = struct {
+		result1 int
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeDeployer) RecreateReturnsOnCall(i int, result1 int, result2 error) {
+	fake.RecreateStub = nil
+	if fake.recreateReturnsOnCall == nil {
+		fake.recreateReturnsOnCall = make(map[int]struct {
+			result1 int
+			result2 error
+		})
+	}
+	fake.recreateReturnsOnCall[i] = struct {
+		result1 int
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeDeployer) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -293,6 +327,8 @@ func (fake *FakeDeployer) Invocations() map[string][][]interface{} {
 	defer fake.updateMutex.RUnlock()
 	fake.upgradeMutex.RLock()
 	defer fake.upgradeMutex.RUnlock()
+	fake.recreateMutex.RLock()
+	defer fake.recreateMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

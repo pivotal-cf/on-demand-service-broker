@@ -709,6 +709,146 @@ var _ = Describe("LastOperation", func() {
 			})
 		})
 
+		Describe("while recreating", func() {
+			Describe("last operation is Processing",
+				testLastOperation(testCase{
+					ActualBoshTask:      boshdirector.BoshTask{State: boshdirector.TaskProcessing, Description: "it's a task", ID: taskID},
+					ActualOperationType: broker.OperationTypeRecreate,
+
+					ExpectedLastOperationState:       brokerapi.InProgress,
+					ExpectedLastOperationDescription: "Instance recreate in progress",
+				}),
+			)
+
+			Describe("last operation is Queued",
+				testLastOperation(testCase{
+					ActualBoshTask:      boshdirector.BoshTask{State: boshdirector.TaskQueued, Description: "it's a task", ID: taskID},
+					ActualOperationType: broker.OperationTypeRecreate,
+
+					ExpectedLastOperationState:       brokerapi.InProgress,
+					ExpectedLastOperationDescription: "Instance recreate in progress",
+				}),
+			)
+
+			Describe("last operation is Error",
+				testLastOperation(testCase{
+					ActualBoshTask: boshdirector.BoshTask{
+						State:       boshdirector.TaskError,
+						Result:      "result from error",
+						Description: "it's a task",
+						ID:          taskID,
+					},
+					ActualOperationType: broker.OperationTypeRecreate,
+					LogContains:         "result from error",
+
+					ExpectedLastOperationState: brokerapi.Failed,
+					ExpectedLastOperationDescriptionParts: []string{
+						"Instance recreate failed: There was a problem completing your request. Please contact your operations team providing the following information:",
+						`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`,
+						"service: a-cool-redis-service",
+						fmt.Sprintf("service-instance-guid: %s", instanceID),
+						"operation: recreate",
+						fmt.Sprintf("task-id: %d", taskID),
+					},
+				}),
+			)
+
+			Describe("last operation is Cancelled",
+				testLastOperation(testCase{
+					ActualBoshTask: boshdirector.BoshTask{
+						State:       boshdirector.TaskCancelled,
+						Result:      "result from error",
+						Description: "it's a task",
+						ID:          taskID,
+					},
+					ActualOperationType: broker.OperationTypeRecreate,
+					LogContains:         "result from error",
+
+					ExpectedLastOperationState: brokerapi.Failed,
+					ExpectedLastOperationDescriptionParts: []string{
+						"Instance recreate failed: There was a problem completing your request. Please contact your operations team providing the following information:",
+						`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`,
+						"service: a-cool-redis-service",
+						fmt.Sprintf("service-instance-guid: %s", instanceID),
+						"operation: recreate",
+						fmt.Sprintf("task-id: %d", taskID),
+					},
+				}),
+			)
+
+			Describe("last operation is Cancelling",
+				testLastOperation(testCase{
+					ActualBoshTask: boshdirector.BoshTask{
+						State:       boshdirector.TaskCancelling,
+						Result:      "result from error",
+						Description: "it's a task",
+						ID:          taskID,
+					},
+					ActualOperationType: broker.OperationTypeRecreate,
+					LogContains:         "result from error",
+
+					ExpectedLastOperationState:       brokerapi.InProgress,
+					ExpectedLastOperationDescription: "Instance recreate in progress",
+				}),
+			)
+
+			Describe("last operation is Timed out",
+				testLastOperation(testCase{
+					ActualBoshTask: boshdirector.BoshTask{
+						State:       boshdirector.TaskTimeout,
+						Result:      "result from error",
+						Description: "it's a task",
+						ID:          taskID,
+					},
+					ActualOperationType: broker.OperationTypeRecreate,
+					LogContains:         "result from error",
+
+					ExpectedLastOperationState: brokerapi.Failed,
+					ExpectedLastOperationDescriptionParts: []string{
+						"Instance recreate failed: There was a problem completing your request. Please contact your operations team providing the following information:",
+						`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`,
+						"service: a-cool-redis-service",
+						fmt.Sprintf("service-instance-guid: %s", instanceID),
+						"operation: recreate",
+						fmt.Sprintf("task-id: %d", taskID),
+					},
+				}),
+			)
+
+			Describe("last operation is unrecognised",
+				testLastOperation(testCase{
+					ActualBoshTask: boshdirector.BoshTask{
+						State:       "not the state you were looking for",
+						Result:      "who knows",
+						Description: "it's a task",
+						ID:          taskID,
+					},
+					ActualOperationType: broker.OperationTypeRecreate,
+					LogContains:         "who knows",
+
+					ExpectedLastOperationState: brokerapi.Failed,
+					ExpectedLastOperationDescriptionParts: []string{
+						"Instance recreate failed: There was a problem completing your request. Please contact your operations team providing the following information:",
+						`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`,
+						"service: a-cool-redis-service",
+						fmt.Sprintf("service-instance-guid: %s", instanceID),
+						"operation: recreate",
+						fmt.Sprintf("task-id: %d", taskID),
+					},
+				}),
+			)
+
+			Describe("last operation is Successful",
+				testLastOperation(testCase{
+					ActualBoshTask:      boshdirector.BoshTask{State: boshdirector.TaskDone, Description: "it's a task", ID: taskID},
+					ActualOperationType: broker.OperationTypeRecreate,
+
+					ExpectedLastOperationState:       brokerapi.Succeeded,
+					ExpectedLastOperationDescription: "Instance recreate completed",
+				}),
+			)
+		})
+
 		Describe("while updating", func() {
 			Describe("last operation is Processing",
 				testLastOperation(testCase{

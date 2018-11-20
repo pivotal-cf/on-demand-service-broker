@@ -151,6 +151,18 @@ var _ = Describe("BOSH client", func() {
 				Expect(output.StdOut).To(Equal("running dummy errand\n"))
 			})
 
+			By("recreating the deployment", func() {
+				recreateCtx := "recreate-context-1"
+				recreateReporter := boshdirector.NewAsyncTaskReporter()
+				recreateTaskID, err := boshClient.Recreate(deploymentName, recreateCtx, logger, recreateReporter)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(recreateTaskID).To(BeNumerically(">", 0))
+				// verifyContextID() should be uncommented when BOSH has merged and released https://github.com/cloudfoundry/bosh/pull/2084
+				// verifyContextID(recreateCtx, recreateTaskID)
+				Eventually(recreateReporter.Finished).Should(Receive(), fmt.Sprintf("Timed out waiting for deployment %s to be recreated", deploymentName))
+				Expect(reporter.State).ToNot(Equal("error"), fmt.Sprintf("Recreation of %s failed", deploymentName))
+			})
+
 			By("deleting the deployment", func() {
 				deleteDeploymentReporter := boshdirector.NewAsyncTaskReporter()
 				deleteTaskID, err := boshClient.DeleteDeployment(deploymentName, "some-context-id", logger, deleteDeploymentReporter)

@@ -47,11 +47,7 @@ type Builder struct {
 	CanarySelectionParams config.CanarySelectionParams
 }
 
-func NewBuilder(
-	conf config.InstanceIteratorConfig,
-	logger *log.Logger,
-	processType string,
-) (*Builder, error) {
+func NewBuilder(conf config.InstanceIteratorConfig, logger *log.Logger, logPrefix string) (*Builder, error) {
 
 	brokerServices, err := brokerServices(conf, logger)
 	if err != nil {
@@ -93,12 +89,7 @@ func NewBuilder(
 		return nil, err
 	}
 
-	listener := NewLoggingListener(logger, processType)
-
-	triggerer, err := NewTriggerer(brokerServices, instanceLister, listener, processType)
-	if err != nil {
-		return nil, err
-	}
+	listener := NewLoggingListener(logger, logPrefix)
 
 	b := &Builder{
 		BrokerServices:        brokerServices,
@@ -110,11 +101,26 @@ func NewBuilder(
 		Canaries:              canaries,
 		Listener:              listener,
 		Sleeper:               &tools.RealSleeper{},
-		Triggerer:             triggerer,
 		CanarySelectionParams: canarySelectionParams,
 	}
 
 	return b, nil
+}
+
+func (b *Builder) SetUpgradeTriggerer() error {
+	if b.BrokerServices == nil {
+		return errors.New("unable to set triggerer, brokerServices must not be nil")
+	}
+	b.Triggerer = NewUpgradeTriggerer(b.BrokerServices)
+	return nil
+}
+
+func (b *Builder) SetRecreateTriggerer() error {
+	if b.BrokerServices == nil {
+		return errors.New("unable to set triggerer, brokerServices must not be nil")
+	}
+	b.Triggerer = NewRecreateTriggerer(b.BrokerServices)
+	return nil
 }
 
 func brokerServices(conf config.InstanceIteratorConfig, logger *log.Logger) (*services.BrokerServices, error) {

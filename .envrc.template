@@ -1,0 +1,6 @@
+export SERVICE_RELEASE_VERSION=
+export BROKER_CA_NAME=
+export BROKER_SYSTEM_DOMAIN=
+export BOSH_DEPLOYMENT_VARS=
+
+source_up

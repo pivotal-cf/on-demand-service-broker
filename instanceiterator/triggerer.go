@@ -16,50 +16,44 @@
 package instanceiterator
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
 	"github.com/pivotal-cf/on-demand-service-broker/service"
 )
 
-type OperationTriggerer struct {
+type UpgradeTriggerer struct {
 	brokerServices BrokerServices
-	instanceLister InstanceLister
-	logger         Listener
-	operationType  string
 }
 
-func NewTriggerer(brokerServices BrokerServices, instanceLister InstanceLister, listener Listener, processType string) (*OperationTriggerer, error) {
-	var operationType string
-	if processType == "upgrade-all" {
-		operationType = "upgrade"
-	} else {
-		return &OperationTriggerer{}, errors.New(fmt.Sprintf("Invalid process type: %s", processType))
-	}
-
-	return &OperationTriggerer{
+func NewUpgradeTriggerer(brokerServices BrokerServices) *UpgradeTriggerer {
+	return &UpgradeTriggerer{
 		brokerServices: brokerServices,
-		instanceLister: instanceLister,
-		logger:         listener,
-		operationType:  operationType,
-	}, nil
+	}
 }
 
-func (t *OperationTriggerer) TriggerOperation(instance service.Instance) (services.BOSHOperation, error) {
-	latestInstance, err := t.instanceLister.LatestInstanceInfo(instance)
+func (t *UpgradeTriggerer) TriggerOperation(instance service.Instance) (services.BOSHOperation, error) {
+	operation, err := t.brokerServices.ProcessInstance(instance, "upgrade")
 	if err != nil {
-		if err == service.InstanceNotFound {
-			return services.BOSHOperation{Type: services.InstanceNotFound}, nil
-		}
-		latestInstance = instance
-		t.logger.FailedToRefreshInstanceInfo(instance.GUID)
+		return services.BOSHOperation{}, fmt.Errorf("Operation type: upgrade failed for service instance %s: %s", instance.GUID, err)
 	}
+	return operation, nil
+}
 
-	operation, err := t.brokerServices.ProcessInstance(latestInstance, t.operationType)
+type RecreateTriggerer struct {
+	brokerServices BrokerServices
+}
+
+func NewRecreateTriggerer(brokerServices BrokerServices) *RecreateTriggerer {
+	return &RecreateTriggerer{
+		brokerServices: brokerServices,
+	}
+}
+
+func (t *RecreateTriggerer) TriggerOperation(instance service.Instance) (services.BOSHOperation, error) {
+	operation, err := t.brokerServices.ProcessInstance(instance, "recreate")
 	if err != nil {
-		return services.BOSHOperation{}, fmt.Errorf("Operation type: %s failed for service instance %s: %s", t.operationType, instance.GUID, err)
+		return services.BOSHOperation{}, fmt.Errorf("Operation type: recreate failed for service instance %s: %s", instance.GUID, err)
 	}
-
 	return operation, nil
 }

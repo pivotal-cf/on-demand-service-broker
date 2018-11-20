@@ -98,12 +98,13 @@ func (b *Broker) processError(err error, logger *log.Logger) error {
 const (
 	ComponentName = "on-demand-service-broker"
 
-	OperationTypeCreate  = OperationType("create")
-	OperationTypeUpdate  = OperationType("update")
-	OperationTypeUpgrade = OperationType("upgrade")
-	OperationTypeDelete  = OperationType("delete")
-	OperationTypeBind    = OperationType("bind")
-	OperationTypeUnbind  = OperationType("unbind")
+	OperationTypeCreate   = OperationType("create")
+	OperationTypeUpdate   = OperationType("update")
+	OperationTypeUpgrade  = OperationType("upgrade")
+	OperationTypeRecreate = OperationType("recreate")
+	OperationTypeDelete   = OperationType("delete")
+	OperationTypeBind     = OperationType("bind")
+	OperationTypeUnbind   = OperationType("unbind")
 
 	MinimumCFVersion                                     = "2.57.0"
 	MinimumMajorStemcellDirectorVersionForODB            = 3262
@@ -163,6 +164,7 @@ type Deployer interface {
 	Create(deploymentName, planID string, requestParams map[string]interface{}, boshContextID string, logger *log.Logger) (int, []byte, error)
 	Update(deploymentName, planID string, requestParams map[string]interface{}, previousPlanID *string, boshContextID string, secretsMap map[string]string, logger *log.Logger) (int, []byte, error)
 	Upgrade(deploymentName, planID string, previousPlanID *string, boshContextID string, logger *log.Logger) (int, []byte, error)
+	Recreate(deploymentName, planID, boshContextID string, logger *log.Logger) (int, error)
 }
 
 //go:generate counterfeiter -o fakes/fake_service_adapter_client.go . ServiceAdapterClient
@@ -188,6 +190,7 @@ type BoshClient interface {
 	VerifyAuth(logger *log.Logger) error
 	GetDNSAddresses(deploymentName string, requestedDNS []config.BindingDNS) (map[string]string, error)
 	Deploy(manifest []byte, contextID string, logger *log.Logger, reporter *boshdirector.AsyncTaskReporter) (int, error)
+	Recreate(deploymentName, contextID string, logger *log.Logger, taskReporter *boshdirector.AsyncTaskReporter) (int, error)
 }
 
 //go:generate counterfeiter -o fakes/fake_cloud_foundry_client.go . CloudFoundryClient

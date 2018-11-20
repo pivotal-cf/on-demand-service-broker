@@ -23,6 +23,7 @@ import (
 //go:generate counterfeiter -o fakes/fake_bosh_client.go . BoshClient
 type BoshClient interface {
 	Deploy(manifest []byte, contextID string, logger *log.Logger, reporter *boshdirector.AsyncTaskReporter) (int, error)
+	Recreate(deploymentName, contextID string, logger *log.Logger, taskReporter *boshdirector.AsyncTaskReporter) (int, error)
 	GetTasks(deploymentName string, logger *log.Logger) (boshdirector.BoshTasks, error)
 	GetDeployment(name string, logger *log.Logger) ([]byte, bool, error)
 }
@@ -53,15 +54,15 @@ type BulkSetter interface {
 	BulkSet([]broker.ManifestSecret) error
 }
 
-type deployer struct {
+type Deployer struct {
 	boshClient        BoshClient
 	manifestGenerator ManifestGenerator
 	odbSecrets        ODBSecrets
 	bulkSetter        BulkSetter
 }
 
-func NewDeployer(boshClient BoshClient, manifestGenerator ManifestGenerator, odbSecrets ODBSecrets, bulkSetter BulkSetter) deployer {
-	return deployer{
+func NewDeployer(boshClient BoshClient, manifestGenerator ManifestGenerator, odbSecrets ODBSecrets, bulkSetter BulkSetter) Deployer {
+	return Deployer{
 		boshClient:        boshClient,
 		manifestGenerator: manifestGenerator,
 		odbSecrets:        odbSecrets,
@@ -69,7 +70,7 @@ func NewDeployer(boshClient BoshClient, manifestGenerator ManifestGenerator, odb
 	}
 }
 
-func (d deployer) Create(deploymentName, planID string, requestParams map[string]interface{}, boshContextID string, logger *log.Logger) (int, []byte, error) {
+func (d Deployer) Create(deploymentName, planID string, requestParams map[string]interface{}, boshContextID string, logger *log.Logger) (int, []byte, error) {
 	err := d.assertNoOperationsInProgress(deploymentName, logger)
 	if err != nil {
 		return 0, nil, err
@@ -78,7 +79,7 @@ func (d deployer) Create(deploymentName, planID string, requestParams map[string
 	return d.doDeploy(deploymentName, planID, "create", requestParams, nil, nil, boshContextID, nil, logger)
 }
 
-func (d deployer) Upgrade(deploymentName, planID string, previousPlanID *string, boshContextID string, logger *log.Logger) (int, []byte, error) {
+func (d Deployer) Upgrade(deploymentName, planID string, previousPlanID *string, boshContextID string, logger *log.Logger) (int, []byte, error) {
 	err := d.assertNoOperationsInProgress(deploymentName, logger)
 	if err != nil {
 		return 0, nil, err
@@ -92,7 +93,28 @@ func (d deployer) Upgrade(deploymentName, planID string, previousPlanID *string,
 	return d.doDeploy(deploymentName, planID, "upgrade", nil, oldManifest, previousPlanID, boshContextID, nil, logger)
 }
 
-func (d deployer) Update(
+func (d Deployer) Recreate(
+	deploymentName,
+	planID,
+	boshContextID string,
+	logger *log.Logger,
+) (int, error) {
+
+	if err := d.assertNoOperationsInProgress(deploymentName, logger); err != nil {
+		return 0, err
+	}
+
+	taskID, err := d.boshClient.Recreate(deploymentName, boshContextID, logger, boshdirector.NewAsyncTaskReporter())
+
+	if err != nil {
+		logger.Printf("failed to recreate deployment %q: %s", deploymentName, err)
+		return 0, err
+	}
+	logger.Printf("Submitted BOSH recreate with task ID %d for deployment %q", taskID, deploymentName)
+	return taskID, nil
+}
+
+func (d Deployer) Update(
 	deploymentName,
 	planID string,
 	requestParams map[string]interface{},
@@ -101,6 +123,7 @@ func (d deployer) Update(
 	oldSecretsMap map[string]string,
 	logger *log.Logger,
 ) (int, []byte, error) {
+
 	if err := d.assertNoOperationsInProgress(deploymentName, logger); err != nil {
 		return 0, nil, err
 	}
@@ -117,7 +140,7 @@ func (d deployer) Update(
 	return d.doDeploy(deploymentName, planID, "update", requestParams, oldManifest, previousPlanID, boshContextID, oldSecretsMap, logger)
 }
 
-func (d deployer) getDeploymentManifest(deploymentName string, logger *log.Logger) ([]byte, error) {
+func (d Deployer) getDeploymentManifest(deploymentName string, logger *log.Logger) ([]byte, error) {
 	oldManifest, found, err := d.boshClient.GetDeployment(deploymentName, logger)
 	if err != nil {
 		return nil, err
@@ -130,7 +153,7 @@ func (d deployer) getDeploymentManifest(deploymentName string, logger *log.Logge
 	return oldManifest, nil
 }
 
-func (d deployer) assertNoOperationsInProgress(deploymentName string, logger *log.Logger) error {
+func (d Deployer) assertNoOperationsInProgress(deploymentName string, logger *log.Logger) error {
 	clientTasks, err := d.boshClient.GetTasks(deploymentName, logger)
 	if err != nil {
 		return broker.NewServiceError(fmt.Errorf("error getting tasks for deployment %s: %s\n", deploymentName, err))
@@ -144,7 +167,7 @@ func (d deployer) assertNoOperationsInProgress(deploymentName string, logger *lo
 	return nil
 }
 
-func (d deployer) checkForPendingChanges(
+func (d Deployer) checkForPendingChanges(
 	deploymentName string,
 	previousPlanID *string,
 	rawOldManifest RawBoshManifest,
@@ -179,7 +202,7 @@ func (d deployer) checkForPendingChanges(
 	return nil
 }
 
-func (d deployer) doDeploy(
+func (d Deployer) doDeploy(
 	deploymentName,
 	planID string,
 	operationType string,

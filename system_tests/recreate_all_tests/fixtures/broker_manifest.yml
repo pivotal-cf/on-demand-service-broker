@@ -1,0 +1,191 @@
+---
+name: ((broker_deployment_name))
+
+releases:
+- name: ((broker_release))
+  version: latest
+- name: ((service_adapter_release))
+  version: latest
+- name: routing
+  version: latest
+- name: loggregator
+  version: latest
+- name: consul
+  version: latest
+
+stemcells:
+- alias: xenial
+  os: ubuntu-xenial
+  version: 97.5
+
+variables:
+- name: broker_password
+  type: password
+- name: broker_cert
+  type: certificate
+  options:
+    alternative_names: [((broker_uri))]
+    ca: ((broker_ca_name))
+    common_name: ((broker_cn))
+
+instance_groups:
+- name: broker
+  networks:
+  - name: default
+  stemcell: xenial
+  vm_extensions: []
+  vm_type: t2.small
+  azs: [z1]
+  instances: 1
+  jobs:
+  - name: register-broker
+    release: ((broker_release))
+    properties:
+      broker_name: ((broker_name))
+      broker_uri: https://((broker_uri))
+      cf:
+        admin_password: ((cf.user_credentials.password))
+        admin_username: ((cf.user_credentials.username))
+        api_url: ((cf.api_url))
+      disable_ssl_cert_verification: false
+  - name: recreate-all-service-instances
+    release: ((broker_release))
+    properties: {}
+  - name: delete-all-service-instances-and-deregister-broker
+    properties:
+      broker_name: ((broker_name))
+      polling_interval_seconds: 10
+    release: ((broker_release))
+  - name: service-adapter
+    properties:
+      redis_instance_group_name: redis-server
+    release: ((service_adapter_release))
+  - name: broker
+    release: ((broker_release))
+    properties:
+      disable_ssl_cert_verification: false
+      expose_operational_errors: false
+      password: ((broker_password))
+      port: 8080
+      shutdown_timeout_in_seconds: 10
+      startup_banner: true
+      use_stdin: true
+      username: broker
+      bosh:
+        authentication:
+          uaa:
+            client_id: ((bosh.authentication.username))
+            client_secret: ((bosh.authentication.password))
+        root_ca_cert: ((bosh.root_ca_cert))
+        url: ((bosh.url))
+      cf:
+        authentication:
+          url: ((cf.uaa.url))
+          user_credentials:
+            password: ((cf.user_credentials.password))
+            username: ((cf.user_credentials.username))
+        root_ca_cert: ((cf.root_ca_cert))
+        url: ((cf.api_url))
+      service_catalog:
+        bindable: true
+        global_properties:
+          persistence: true
+        id: ((service_catalog_id))
+        metadata:
+          display_name: Redis
+        plan_updatable: true
+        plans:
+        - name: redis-with-post-deploy
+          plan_id: ((plan_id))
+          lifecycle_errands:
+            post_deploy:
+            - name: health-check
+          metadata:
+            bullets: []
+            display_name: Redis with post-deploy errand plan
+          properties:
+            persistence: false
+          cf_service_access: enable
+          description: Redis with post-deploy errand
+          instance_groups:
+          - name: redis-server
+            azs: [z1]
+            instances: 1
+            networks: [default]
+            vm_type: t2.small
+          - name: health-check
+            azs: [z1]
+            instances: 1
+            lifecycle: errand
+            networks: [default]
+            vm_type: t2.small
+        service_description: Redis Dedicated Instance
+        service_name: ((service_catalog_service_name))
+        tags: [pivotal, redis]
+      service_deployment:
+        releases:
+        - jobs: [redis-server, health-check, cleanup-data]
+          name: ((service_release))
+          version: ((service_release_version))
+        stemcell:
+          os: ubuntu-xenial
+          version: 97.5
+  - name: route_registrar
+    consumes:
+      nats:
+        deployment: cf
+        from: nats
+    properties:
+      route_registrar:
+        routes:
+        - name: ((broker_route_name))
+          port: 8080
+          registration_interval: 20s
+          uris:
+          - ((broker_uri))
+    release: routing
+  - name: metron_agent
+    release: loggregator
+    properties:
+      loggregator:
+        etcd:
+          ca_cert: ((loggregator.etcd.ca_cert))
+          machines:
+          - cf-etcd.service.cf.internal
+          require_ssl: true
+        tls:
+          ca_cert: ((loggregator.tls.ca_cert))
+          metron:
+            cert: ((loggregator.tls.metron.cert))
+            key: ((loggregator.tls.metron.key))
+      loggregator_endpoint:
+        shared_secret: ((metron_endpoint.shared_secret))
+      metron_agent:
+        deployment: ((broker_deployment_name))
+        etcd:
+          client_cert: ((metron_agent.etcd.client_cert))
+          client_key: ((metron_agent.etcd.client_key))
+        protocols:
+        - tls
+        tls:
+          metron:
+            cert: ((metron_agent.tls.metron.cert))
+            key: ((metron_agent.tls.metron.key))
+      metron_endpoint:
+        shared_secret: ((metron_endpoint.shared_secret))
+  - name: consul_agent
+    consumes:
+      consul_client:
+        deployment: cf
+        from: consul_client_link
+      consul_common:
+        deployment: cf
+        from: consul_common_link
+      consul_server: nil
+    release: consul
+
+update:
+  canaries: 1
+  canary_watch_time: 3000-180000
+  max_in_flight: 4
+  update_watch_time: 3000-180000

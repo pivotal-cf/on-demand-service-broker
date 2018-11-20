@@ -21,22 +21,25 @@ import (
 
 var descriptions = map[brokerapi.LastOperationState]map[OperationType]string{
 	brokerapi.InProgress: {
-		OperationTypeCreate:  "Instance provisioning in progress",
-		OperationTypeUpdate:  "Instance update in progress",
-		OperationTypeUpgrade: "Instance upgrade in progress",
-		OperationTypeDelete:  "Instance deletion in progress",
+		OperationTypeCreate:   "Instance provisioning in progress",
+		OperationTypeUpdate:   "Instance update in progress",
+		OperationTypeUpgrade:  "Instance upgrade in progress",
+		OperationTypeDelete:   "Instance deletion in progress",
+		OperationTypeRecreate: "Instance recreate in progress",
 	},
 	brokerapi.Succeeded: {
-		OperationTypeCreate:  "Instance provisioning completed",
-		OperationTypeUpdate:  "Instance update completed",
-		OperationTypeUpgrade: "Instance upgrade completed",
-		OperationTypeDelete:  "Instance deletion completed",
+		OperationTypeCreate:   "Instance provisioning completed",
+		OperationTypeUpdate:   "Instance update completed",
+		OperationTypeUpgrade:  "Instance upgrade completed",
+		OperationTypeDelete:   "Instance deletion completed",
+		OperationTypeRecreate: "Instance recreate completed",
 	},
 	brokerapi.Failed: {
-		OperationTypeCreate:  "Instance provisioning failed",
-		OperationTypeUpdate:  "Instance update failed",
-		OperationTypeUpgrade: "Failed for bosh task",
-		OperationTypeDelete:  "Instance deletion failed",
+		OperationTypeCreate:   "Instance provisioning failed",
+		OperationTypeUpdate:   "Instance update failed",
+		OperationTypeUpgrade:  "Failed for bosh task",
+		OperationTypeDelete:   "Instance deletion failed",
+		OperationTypeRecreate: "Instance recreate failed",
 	},
 }
 

@@ -32,6 +32,7 @@ var _ = Describe("Iterator", func() {
 		brokerServicesClient *fakes.FakeBrokerServices
 		instanceLister       *fakes.FakeInstanceLister
 		fakeSleeper          *fakes.FakeSleeper
+		fakeTriggerer        *fakes.FakeTriggerer
 
 		builder instanceiterator.Builder
 
@@ -44,8 +45,10 @@ var _ = Describe("Iterator", func() {
 		instanceLister = new(fakes.FakeInstanceLister)
 		fakeSleeper = new(fakes.FakeSleeper)
 
-		triggerer, err := instanceiterator.NewTriggerer(brokerServicesClient, instanceLister, fakeListener, "upgrade-all")
-		Expect(err).NotTo(HaveOccurred())
+		fakeTriggerer = new(fakes.FakeTriggerer)
+		fakeTriggerer.TriggerOperationStub = func(inst service.Instance) (services.BOSHOperation, error) {
+			return brokerServicesClient.ProcessInstance(inst, "upgrade")
+		}
 
 		builder = instanceiterator.Builder{
 			BrokerServices:        brokerServicesClient,
@@ -57,7 +60,7 @@ var _ = Describe("Iterator", func() {
 			MaxInFlight:           1,
 			Canaries:              0,
 			Sleeper:               fakeSleeper,
-			Triggerer:             triggerer,
+			Triggerer:             fakeTriggerer,
 		}
 	})
 
@@ -71,6 +74,9 @@ var _ = Describe("Iterator", func() {
 
 		It("fails when cannot start upgrading an instance", func() {
 			instanceLister.InstancesReturns([]service.Instance{{GUID: "1"}}, nil)
+			instanceLister.LatestInstanceInfoStub = func(inst service.Instance) (service.Instance, error) {
+				return inst, nil
+			}
 			brokerServicesClient.ProcessInstanceReturns(services.BOSHOperation{}, errors.New("oops"))
 
 			u := instanceiterator.New(&builder)
@@ -100,7 +106,7 @@ var _ = Describe("Iterator", func() {
 			err := iterator.Iterate()
 			Expect(err).NotTo(HaveOccurred())
 
-			instance, _ := brokerServicesClient.ProcessInstanceArgsForCall(0)
+			instance := fakeTriggerer.TriggerOperationArgsForCall(0)
 			Expect(instance.PlanUniqueID).To(Equal("plan-id-2"))
 		})
 
@@ -127,6 +133,21 @@ var _ = Describe("Iterator", func() {
 
 			hasReportedFinished(fakeListener, 0, 0, 1, emptyBusyList, emptyFailedList)
 			hasReportedInstanceOperationStartResult(fakeListener, 0, "1", services.InstanceNotFound)
+		})
+
+		It("does not return an error if cannot check the latest instance info", func() {
+			instanceLister.LatestInstanceInfoReturns(service.Instance{}, errors.New("oops"))
+			instances := []service.Instance{{GUID: "1", PlanUniqueID: "plan-id-1"}}
+			instanceLister.InstancesReturnsOnCall(0, instances, nil)
+			iterator := instanceiterator.New(&builder)
+
+			err := iterator.Iterate()
+			Expect(err).NotTo(HaveOccurred())
+
+			actualInstance := fakeTriggerer.TriggerOperationArgsForCall(0)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(actualInstance).To(Equal(instances[0]))
+			Expect(fakeListener.FailedToRefreshInstanceInfoCallCount()).To(Equal(1))
 		})
 	})
 
