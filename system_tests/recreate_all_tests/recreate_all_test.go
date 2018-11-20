@@ -14,7 +14,7 @@ import (
 
 var _ = Describe("The recreate-all errand", func() {
 
-	It("recreates all instances and runs their post-deploy errands", func() {
+	It("recreates all instances and DOES NOT run their post-deploy errands", func() {
 		boshServiceInstanceName := broker.InstancePrefix + cf.GetServiceInstanceGUID(serviceInstanceName)
 		oldVMID := getVMIDForServiceInstance(boshServiceInstanceName)
 		Expect(oldVMID).ToNot(BeEmpty(), "unexpected empty vm id")
@@ -26,9 +26,8 @@ var _ = Describe("The recreate-all errand", func() {
 		Expect(oldVMID).ToNot(Equal(newVMID), "VM was not recreated")
 
 		boshTasks := boshTasksForDeployment(boshServiceInstanceName)
-		Expect(boshTasks).To(HaveLen(4), "expected bosh deploy, errand, recreate, errand (reversed)")
-		Expect(boshTasks[0].Description).To(HavePrefix("run errand health-check"))
-		Expect(boshTasks[0].State).To(Equal("done"))
+		Expect(boshTasks).To(HaveLen(3), "expected bosh deploy, errand, recreate (reversed)")
+		Expect(boshTasks[0].Description).ToNot(HavePrefix("run errand health-check"))
 	})
 
 })
