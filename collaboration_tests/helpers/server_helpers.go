@@ -49,6 +49,7 @@ func StartServer(
 	fakeTaskBulkSetter *taskfakes.FakeBulkSetter,
 	fakeCfClient *fakes.FakeCloudFoundryClient,
 	fakeBoshClient *fakes.FakeBoshClient,
+	fakeMapHasher *fakes.FakeHasher,
 	fakeServiceAdapter *fakes.FakeServiceAdapterClient,
 	fakeCredentialStore *credhubfakes.FakeCredentialStore,
 	fakeCredhubOperator *manifestsecretsfakes.FakeCredhubOperator,
@@ -88,6 +89,7 @@ func StartServer(
 		deployer,
 		secretManager,
 		instanceLister,
+		fakeMapHasher,
 		loggerFactory,
 	)
 	Expect(err).NotTo(HaveOccurred())

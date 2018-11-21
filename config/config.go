@@ -369,7 +369,8 @@ func Parse(configFilePath string) (Config, error) {
 }
 
 type MaintenanceInfo struct {
-	Public map[string]string `yaml:"public,omitempty"`
+	Public  map[string]string `yaml:"public,omitempty"`
+	Private map[string]string `yaml:"private,omitempty"`
 }
 
 type ServiceOffering struct {

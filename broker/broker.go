@@ -30,6 +30,7 @@ type Broker struct {
 	deployer       Deployer
 	secretManager  ManifestSecretManager
 	instanceLister service.InstanceLister
+	hasher         Hasher
 	deploymentLock *sync.Mutex
 
 	serviceOffering         config.ServiceOffering
@@ -50,6 +51,7 @@ func New(
 	deployer Deployer,
 	manifestSecretManager ManifestSecretManager,
 	instanceLister service.InstanceLister,
+	hasher Hasher,
 	loggerFactory *loggerfactory.LoggerFactory,
 ) (*Broker, error) {
 	b := &Broker{
@@ -64,6 +66,7 @@ func New(
 		EnableSecureManifests:   brokerConfig.EnableSecureManifests,
 		secretManager:           manifestSecretManager,
 		instanceLister:          instanceLister,
+		hasher:                  hasher,
 		loggerFactory:           loggerFactory,
 	}
 
@@ -201,4 +204,9 @@ type CloudFoundryClient interface {
 	GetInstanceState(serviceInstanceGUID string, logger *log.Logger) (cf.InstanceState, error)
 	GetInstancesOfServiceOffering(serviceOfferingID string, logger *log.Logger) ([]service.Instance, error)
 	GetInstancesOfServiceOfferingByOrgSpace(serviceOfferingID, orgName, spaceName string, logger *log.Logger) ([]service.Instance, error)
+}
+
+//go:generate counterfeiter -o fakes/fake_map_hasher.go . Hasher
+type Hasher interface {
+	Hash(m map[string]string) string
 }

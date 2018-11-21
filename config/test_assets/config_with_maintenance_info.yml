@@ -49,6 +49,8 @@ service_catalog:
   maintenance_info:
     public:
       software_version: "12.34"
+    private:
+      secret_key: some-value
   plans:
     - name: some-dedicated-name
       plan_id: some-dedicated-plan-id
@@ -56,6 +58,8 @@ service_catalog:
       maintenance_info:
         public:
           some_value: "the_value"
+        private:
+          plan_key: plan_value
       metadata:
         display_name: Dedicated-Cluster
         bullets:

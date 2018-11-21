@@ -304,10 +304,16 @@ var _ = Describe("Broker Config", func() {
 					Public: map[string]string{
 						"software_version": "12.34",
 					},
+					Private: map[string]string{
+						"secret_key": "some-value",
+					},
 				}))
 				Expect(conf.ServiceCatalog.Plans[0].MaintenanceInfo).To(Equal(&config.MaintenanceInfo{
 					Public: map[string]string{
 						"some_value": "the_value",
+					},
+					Private: map[string]string{
+						"plan_key": "plan_value",
 					},
 				}))
 			})

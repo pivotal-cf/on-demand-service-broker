@@ -243,6 +243,7 @@ var _ = Describe("LastOperation", func() {
 					fakeDeployer,
 					fakeSecretManager,
 					fakeInstanceLister,
+					fakeMapHasher,
 					loggerFactory,
 				)
 				Expect(err).NotTo(HaveOccurred())

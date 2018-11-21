@@ -68,6 +68,7 @@ func StartServer(conf config.Config) *helpers.Server {
 		fakeTaskBulkSetter,
 		fakeCfClient,
 		fakeBoshClient,
+		new(fakes.FakeHasher),
 		fakeServiceAdapter,
 		fakeCredentialStore,
 		fakeCredhubOperator,

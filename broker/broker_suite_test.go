@@ -58,6 +58,7 @@ var (
 	loggerFactory      *loggerfactory.LoggerFactory
 	brokerConfig       config.Broker
 	fakeSecretManager  *fakes.FakeManifestSecretManager
+	fakeMapHasher      *fakes.FakeHasher
 
 	existingPlanServiceInstanceLimit    = 3
 	serviceOfferingServiceInstanceLimit = 5
@@ -286,6 +287,7 @@ var _ = BeforeEach(func() {
 	fakeSecretManager = new(fakes.FakeManifestSecretManager)
 	fakeInstanceLister = new(servicefakes.FakeInstanceLister)
 	cfClient = new(fakes.FakeCloudFoundryClient)
+	fakeMapHasher = new(fakes.FakeHasher)
 	cfClient.GetAPIVersionReturns("2.57.0", nil)
 
 	serviceCatalog = config.ServiceOffering{
@@ -348,6 +350,7 @@ func createBrokerWithAdapter(serviceAdapter *fakes.FakeServiceAdapterClient) *br
 		fakeDeployer,
 		fakeSecretManager,
 		fakeInstanceLister,
+		fakeMapHasher,
 		loggerFactory,
 	)
 
@@ -368,6 +371,7 @@ func createBrokerWithServiceCatalog(catalog config.ServiceOffering) *broker.Brok
 		fakeDeployer,
 		fakeSecretManager,
 		fakeInstanceLister,
+		fakeMapHasher,
 		loggerFactory,
 	)
 
@@ -390,6 +394,7 @@ func createBroker(startupCheckers []broker.StartupChecker, overrideClient ...bro
 		fakeDeployer,
 		fakeSecretManager,
 		fakeInstanceLister,
+		fakeMapHasher,
 		loggerFactory,
 	)
 }

@@ -218,6 +218,13 @@ var _ = Describe("Catalog", func() {
 	})
 
 	It("for each plan, includes maintenance_info", func() {
+		fakeMapHasher.HashStub = func(m map[string]string) string {
+			var s string
+			for key, value := range m {
+				s += key + ":" + value + ";"
+			}
+			return s
+		}
 
 		serviceCatalog = config.ServiceOffering{
 			ID: serviceOfferingID,
@@ -225,6 +232,10 @@ var _ = Describe("Catalog", func() {
 				Public: map[string]string{
 					"name":    "yuliana",
 					"vm_type": "small",
+				},
+				Private: map[string]string{
+					"secret":      "globalvalue",
+					"otherglobal": "othervalue",
 				},
 			},
 			Plans: []config.Plan{
@@ -234,6 +245,9 @@ var _ = Describe("Catalog", func() {
 						Public: map[string]string{
 							"name":             "alberto",
 							"stemcell_version": "1234",
+						},
+						Private: map[string]string{
+							"secret": "planvalue",
 						},
 					},
 				}, {
@@ -255,9 +269,19 @@ var _ = Describe("Catalog", func() {
 			HaveKeyWithValue("stemcell_version", "1234"),
 		))
 
+		Expect(services[0].Plans[0].MaintenanceInfo.Private).To(SatisfyAll(
+			ContainSubstring("secret:planvalue;"),
+			ContainSubstring("otherglobal:othervalue"),
+		))
+
 		Expect(services[0].Plans[1].MaintenanceInfo.Public).To(SatisfyAll(
 			HaveKeyWithValue("name", "yuliana"),
 			HaveKeyWithValue("vm_type", "small"),
+		))
+
+		Expect(services[0].Plans[1].MaintenanceInfo.Private).To(SatisfyAll(
+			ContainSubstring("secret:globalvalue;"),
+			ContainSubstring("otherglobal:othervalue"),
 		))
 	})
 

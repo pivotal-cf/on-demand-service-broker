@@ -21,7 +21,14 @@ func (b *Broker) Services(ctx context.Context) ([]brokerapi.Service, error) {
 	var servicePlans []brokerapi.ServicePlan
 
 	for _, plan := range b.serviceOffering.Plans {
-		mergedMaintenanceInfo := mergeMaintenanceInfo(b.serviceOffering.MaintenanceInfo, plan.MaintenanceInfo)
+		var maintenanceInfo *brokerapi.MaintenanceInfo
+		mergedPublic, mergedPrivate := mergeMaintenanceInfo(b.serviceOffering.MaintenanceInfo, plan.MaintenanceInfo)
+		if mergedPublic != nil || mergedPrivate != nil {
+			maintenanceInfo = &brokerapi.MaintenanceInfo{
+				Public:  mergedPublic,
+				Private: b.hasher.Hash(mergedPrivate),
+			}
+		}
 
 		var planCosts []brokerapi.ServicePlanCost
 		for _, cost := range plan.Metadata.Costs {
@@ -40,7 +47,7 @@ func (b *Broker) Services(ctx context.Context) ([]brokerapi.Service, error) {
 				Costs:              planCosts,
 				AdditionalMetadata: plan.Metadata.AdditionalMetadata,
 			},
-			MaintenanceInfo: mergedMaintenanceInfo,
+			MaintenanceInfo: maintenanceInfo,
 		}
 
 		if b.EnablePlanSchemas {
@@ -99,30 +106,31 @@ func (b *Broker) Services(ctx context.Context) ([]brokerapi.Service, error) {
 	}, nil
 }
 
-func copyMap(src, dst map[string]string) {
+func copyMap(dst, src map[string]string) {
 	for key, value := range src {
 		dst[key] = value
 	}
 }
 
-func mergeMaintenanceInfo(globalInfo *config.MaintenanceInfo, planInfo *config.MaintenanceInfo) *brokerapi.MaintenanceInfo {
+func mergeMaintenanceInfo(globalInfo *config.MaintenanceInfo, planInfo *config.MaintenanceInfo) (map[string]string, map[string]string) {
 	if globalInfo == nil && planInfo == nil {
-		return nil
+		return nil, nil
 	}
 
 	publicMap := make(map[string]string)
+	privateMap := make(map[string]string)
 
 	if globalInfo != nil {
-		copyMap(globalInfo.Public, publicMap)
+		copyMap(publicMap, globalInfo.Public)
+		copyMap(privateMap, globalInfo.Private)
 	}
 
 	if planInfo != nil {
-		copyMap(planInfo.Public, publicMap)
+		copyMap(publicMap, planInfo.Public)
+		copyMap(privateMap, planInfo.Private)
 	}
 
-	return &brokerapi.MaintenanceInfo{
-		Public: publicMap,
-	}
+	return publicMap, privateMap
 }
 
 func requiredPermissions(permissions []string) []brokerapi.RequiredPermission {

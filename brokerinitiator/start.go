@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/pivotal-cf/on-demand-service-broker/hasher"
 	"github.com/pivotal-cf/on-demand-service-broker/service"
 
 	credhub2 "code.cloudfoundry.org/credhub-cli/credhub"
@@ -68,6 +69,7 @@ func Initiate(conf config.Config,
 		deploymentManager,
 		manifestSecretManager,
 		instanceLister,
+		&hasher.MapHasher{},
 		loggerFactory,
 	)
 	if err != nil {

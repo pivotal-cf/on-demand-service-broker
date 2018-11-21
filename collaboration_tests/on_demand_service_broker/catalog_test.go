@@ -165,6 +165,13 @@ var _ = Describe("Catalog", func() {
 
 	Context("with optional fields", func() {
 		BeforeEach(func() {
+			fakeMapHasher.HashStub = func(m map[string]string) string {
+				var s string
+				for key, value := range m {
+					s += "hashed-" + key + "-" + value + ";"
+				}
+				return s
+			}
 			serviceCatalogConfig := defaultServiceCatalogConfig()
 			serviceCatalogConfig.Requires = []string{"syslog_drain", "route_forwarding"}
 			serviceCatalogConfig.Plans[0].Metadata.AdditionalMetadata = map[string]interface{}{
@@ -177,11 +184,17 @@ var _ = Describe("Catalog", func() {
 				Public: map[string]string{
 					"name": "jorge",
 				},
+				Private: map[string]string{
+					"secret": "global_value",
+				},
 			}
 			serviceCatalogConfig.Plans[0].MaintenanceInfo = &brokerConfig.MaintenanceInfo{
 				Public: map[string]string{
 					"stemcell_version": "1234",
 					"name":             "gloria",
+				},
+				Private: map[string]string{
+					"secret": "plan_value",
 				},
 			}
 			conf := brokerConfig.Config{
@@ -259,6 +272,7 @@ var _ = Describe("Catalog", func() {
 										"name":             "gloria",
 										"stemcell_version": "1234",
 									},
+									Private: "hashed-secret-plan_value;",
 								},
 							},
 							{
@@ -274,6 +288,7 @@ var _ = Describe("Catalog", func() {
 									Public: map[string]string{
 										"name": "jorge",
 									},
+									Private: "hashed-secret-global_value;",
 								},
 							},
 						},

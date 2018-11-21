@@ -66,6 +66,7 @@ var (
 	fakeServiceAdapter  *fakes.FakeServiceAdapterClient
 	fakeCredentialStore *credhubfakes.FakeCredentialStore
 	fakeBoshClient      *fakes.FakeBoshClient
+	fakeMapHasher       *fakes.FakeHasher
 	fakeCfClient        *fakes.FakeCloudFoundryClient
 	fakeTaskBoshClient  *taskfakes.FakeBoshClient
 	fakeCommandRunner   *serviceadapterfakes.FakeCommandRunner
@@ -80,6 +81,7 @@ var (
 
 var _ = BeforeEach(func() {
 	fakeBoshClient = new(fakes.FakeBoshClient)
+	fakeMapHasher = new(fakes.FakeHasher)
 	fakeServiceAdapter = new(fakes.FakeServiceAdapterClient)
 	fakeCredentialStore = new(credhubfakes.FakeCredentialStore)
 	fakeCfClient = new(fakes.FakeCloudFoundryClient)
@@ -120,6 +122,7 @@ func StartServer(conf config.Config) {
 		fakeTaskBulkSetter,
 		fakeCfClient,
 		fakeBoshClient,
+		fakeMapHasher,
 		fakeServiceAdapter,
 		fakeCredentialStore,
 		fakeCredhubOperator,
@@ -137,6 +140,7 @@ func StartServerWithStopHandler(conf config.Config, stopServerChan chan os.Signa
 		fakeTaskBulkSetter,
 		fakeCfClient,
 		fakeBoshClient,
+		fakeMapHasher,
 		fakeServiceAdapter,
 		fakeCredentialStore,
 		fakeCredhubOperator,
