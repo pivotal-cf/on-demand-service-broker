@@ -15,8 +15,8 @@ releases:
 
 stemcells:
 - alias: xenial
-  os: ubuntu-xenial
-  version: 97.5
+  os: ((bosh.stemcell.os))
+  version: "((bosh.stemcell.version))"
 
 variables:
 - name: broker_password
@@ -122,8 +122,8 @@ instance_groups:
           name: ((service_release))
           version: ((service_release_version))
         stemcell:
-          os: ubuntu-xenial
-          version: 97.5
+          os: ((bosh.stemcell.os))
+          version: "((bosh.stemcell.version))"
   - name: route_registrar
     consumes:
       nats:
