@@ -25,11 +25,11 @@ variables:
 instance_groups:
 - name: broker
   networks:
-  - name: default
+  - name: ((bosh.services_subnet))
   stemcell: xenial
   vm_extensions: []
-  vm_type: t2.small
-  azs: [z1]
+  vm_type: ((bosh.vm_type))
+  azs: [((bosh.az))]
   instances: 1
   jobs:
   - name: register-broker
@@ -103,16 +103,16 @@ instance_groups:
           description: Redis with post-deploy errand
           instance_groups:
           - name: redis-server
-            azs: [z1]
+            azs: [((bosh.az))]
             instances: 1
-            networks: [default]
-            vm_type: t2.small
+            networks: [((bosh.services_subnet))]
+            vm_type: ((bosh.vm_type))
           - name: health-check
-            azs: [z1]
+            azs: [((bosh.az))]
             instances: 1
             lifecycle: errand
-            networks: [default]
-            vm_type: t2.small
+            networks: [((bosh.services_subnet))]
+            vm_type: ((bosh.vm_type))
         service_description: Redis Dedicated Instance
         service_name: ((service_catalog_service_name))
         tags: [pivotal, redis]
