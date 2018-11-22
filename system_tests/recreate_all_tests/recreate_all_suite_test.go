@@ -38,11 +38,14 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = AfterSuite(func() {
-	// deregisterAndDeleteBroker(deploymentName)
+	deregisterAndDeleteBroker(deploymentName)
 })
 
 func deployAndRegisterBroker(uniqueID, deploymentName, serviceName string) {
 	devEnv := os.Getenv("DEV_ENV")
+	if devEnv != "" {
+		devEnv = "-" + devEnv
+	}
 	serviceReleaseVersion := os.Getenv("SERVICE_RELEASE_VERSION")
 	brokerSystemDomain := os.Getenv("BROKER_SYSTEM_DOMAIN")
 	deployArguments := []string{
@@ -53,9 +56,9 @@ func deployAndRegisterBroker(uniqueID, deploymentName, serviceName string) {
 		"--var", "broker_uri=redis-service-broker-" + uniqueID + "." + brokerSystemDomain,
 		"--var", "broker_cn='*" + brokerSystemDomain + "'",
 		"--var", "broker_deployment_name=" + deploymentName,
-		"--var", "broker_release=on-demand-service-broker-" + devEnv,
-		"--var", "service_adapter_release=redis-example-service-adapter-" + devEnv,
-		"--var", "service_release=redis-service-" + devEnv,
+		"--var", "broker_release=on-demand-service-broker" + devEnv,
+		"--var", "service_adapter_release=redis-example-service-adapter" + devEnv,
+		"--var", "service_release=redis-service" + devEnv,
 		"--var", "service_release_version=" + serviceReleaseVersion,
 		"--var", "broker_name=" + serviceName,
 		"--var", "broker_route_name=redis-odb-" + uniqueID,

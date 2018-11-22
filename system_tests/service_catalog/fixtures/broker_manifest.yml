@@ -21,12 +21,6 @@ stemcells:
 variables:
 - name: broker_password
   type: password
-- name: broker_cert
-  type: certificate
-  options:
-    alternative_names: [((broker_uri))]
-    ca: ((broker_ca_name))
-    common_name: ((broker_cn))
 
 instance_groups:
 - name: broker

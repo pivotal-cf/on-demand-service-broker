@@ -36,7 +36,7 @@ var (
 
 var _ = BeforeSuite(func() {
 	Expect(
-		env.ValidateEnvVars(BrokerSystemDomainEnv, BrokerCANameEnv, BoshDeploymentVarsEnv),
+		env.ValidateEnvVars(BrokerSystemDomainEnv, BoshDeploymentVarsEnv),
 	).To(Succeed())
 
 	uniqueID := uuid.New()[:6]
@@ -54,20 +54,21 @@ var _ = AfterSuite(func() {
 
 func deployAndRegisterBroker(uniqueID, deploymentName, serviceName string) {
 	devEnv := os.Getenv("DEV_ENV")
+	if devEnv != "" {
+		devEnv = "-" + devEnv
+	}
 	serviceReleaseVersion := os.Getenv(ServiceReleaseVersionEnv)
-	brokerCACredhubName := os.Getenv(BrokerCANameEnv)
 	deployArguments := []string{
 		"-d", deploymentName,
 		"-n",
 		"deploy", "./fixtures/broker_manifest.yml",
 		"--vars-file", os.Getenv(BoshDeploymentVarsEnv),
-		"--var", "broker_ca_name='" + brokerCACredhubName + "'",
 		"--var", "broker_uri=" + brokerURI,
 		"--var", "broker_cn='*" + brokerSystemDomain + "'",
 		"--var", "broker_deployment_name=" + deploymentName,
-		"--var", "broker_release=on-demand-service-broker-" + devEnv,
-		"--var", "service_adapter_release=redis-example-service-adapter-" + devEnv,
-		"--var", "service_release=redis-service-" + devEnv,
+		"--var", "broker_release=on-demand-service-broker" + devEnv,
+		"--var", "service_adapter_release=redis-example-service-adapter" + devEnv,
+		"--var", "service_release=redis-service" + devEnv,
 		"--var", "service_release_version=" + serviceReleaseVersion,
 		"--var", "broker_name=" + serviceName,
 		"--var", "broker_route_name=redis-odb-" + uniqueID,
