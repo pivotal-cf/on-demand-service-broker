@@ -44,14 +44,12 @@ var _ = AfterSuite(func() {
 func deployAndRegisterBroker(uniqueID, deploymentName, serviceName string) {
 	devEnv := os.Getenv("DEV_ENV")
 	serviceReleaseVersion := os.Getenv("SERVICE_RELEASE_VERSION")
-	brokerCACredhubName := os.Getenv("BROKER_CA_NAME")
 	brokerSystemDomain := os.Getenv("BROKER_SYSTEM_DOMAIN")
 	deployArguments := []string{
 		"-d", deploymentName,
 		"-n",
 		"deploy", "./fixtures/broker_manifest.yml",
 		"--vars-file", os.Getenv("BOSH_DEPLOYMENT_VARS"),
-		"--var", "broker_ca_name='" + brokerCACredhubName + "'",
 		"--var", "broker_uri=redis-service-broker-" + uniqueID + "." + brokerSystemDomain,
 		"--var", "broker_cn='*" + brokerSystemDomain + "'",
 		"--var", "broker_deployment_name=" + deploymentName,
