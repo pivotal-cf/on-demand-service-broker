@@ -170,10 +170,10 @@ instance_groups:
   - name: consul_agent
     consumes:
       consul_client:
-        deployment: cf
+        deployment: ((cf.deployment_name))
         from: consul_client_link
       consul_common:
-        deployment: cf
+        deployment: ((cf.deployment_name))
         from: consul_common_link
       consul_server: nil
     release: consul
