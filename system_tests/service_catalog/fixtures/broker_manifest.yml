@@ -143,7 +143,7 @@ instance_groups:
   - name: route_registrar
     consumes:
       nats:
-        deployment: cf
+        deployment: ((cf.deployment_name))
         from: nats
     properties:
       route_registrar:
