@@ -1,7 +1,7 @@
 ---
 
 - type: replace
-  path: /jobs/-
+  path: /instance_groups/name=broker/jobs/-
   value:
 	  name: bpm
 		release: bpm
