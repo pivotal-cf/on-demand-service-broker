@@ -25,7 +25,7 @@ variables:
 instance_groups:
 - name: broker
   networks:
-  - name: ((bosh.services_subnet))
+  - name: ((bosh.ert_subnet))
   stemcell: xenial
   vm_extensions: []
   vm_type: ((bosh.vm_type))
