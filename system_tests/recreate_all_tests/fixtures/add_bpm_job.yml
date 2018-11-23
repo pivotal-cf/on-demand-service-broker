@@ -5,3 +5,9 @@
   value:
     name: bpm
     release: bpm
+
+- type: replace
+  path: /releases/-
+  value:
+    name: bpm
+    version: latest
