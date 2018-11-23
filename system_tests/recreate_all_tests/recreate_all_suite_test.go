@@ -48,6 +48,8 @@ func deployAndRegisterBroker(uniqueID, deploymentName, serviceName string) {
 	}
 	serviceReleaseVersion := os.Getenv("SERVICE_RELEASE_VERSION")
 	brokerSystemDomain := os.Getenv("BROKER_SYSTEM_DOMAIN")
+	bpmAvailable := os.Getenv("BPM_AVAILABLE") == "true"
+
 	deployArguments := []string{
 		"-d", deploymentName,
 		"-n",
@@ -66,6 +68,10 @@ func deployAndRegisterBroker(uniqueID, deploymentName, serviceName string) {
 		"--var", "service_catalog_service_name=redis-" + uniqueID,
 		"--var", "plan_id=redis-post-deploy-plan-redis-" + uniqueID,
 	}
+	if bpmAvailable {
+		deployArguments = append(deployArguments, []string{"--ops-file", "./fixtures/add_bpm_job.yml"}...)
+	}
+
 	cmd := exec.Command("bosh", deployArguments...)
 	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
 	Expect(err).NotTo(HaveOccurred(), "failed to run bosh deploy command")

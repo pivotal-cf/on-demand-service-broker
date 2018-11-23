@@ -1,0 +1,7 @@
+---
+
+- type: replace
+  path: /jobs/-
+  value:
+	  name: bpm
+		release: bpm
