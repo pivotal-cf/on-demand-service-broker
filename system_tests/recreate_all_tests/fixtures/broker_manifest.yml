@@ -25,9 +25,10 @@ variables:
 instance_groups:
 - name: broker
   networks:
-  - name: ((bosh.ert_subnet))
+  - name: ((bosh.services_subnet))
   stemcell: xenial
-  vm_extensions: []
+  vm_extensions:
+  - public_ip
   vm_type: ((bosh.vm_type))
   azs: [((bosh.az))]
   instances: 1
