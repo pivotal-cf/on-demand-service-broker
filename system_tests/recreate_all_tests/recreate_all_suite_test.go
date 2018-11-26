@@ -60,7 +60,7 @@ func deployAndRegisterBroker(uniqueID, deploymentName, serviceName string) {
 		"--var", "broker_deployment_name=" + deploymentName,
 		"--var", "broker_release=on-demand-service-broker" + devEnv,
 		"--var", "service_adapter_release=redis-example-service-adapter" + devEnv,
-		"--var", "service_release=redis-service" + devEnv,
+		"--var", "service_release=redis-example-service" + devEnv,
 		"--var", "service_release_version=" + serviceReleaseVersion,
 		"--var", "broker_name=" + serviceName,
 		"--var", "broker_route_name=redis-odb-" + uniqueID,
