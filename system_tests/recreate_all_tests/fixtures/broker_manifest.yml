@@ -3,7 +3,7 @@ name: ((broker_deployment_name))
 
 releases:
 - name: ((broker_release))
-  version: latest
+  version: ((odb_version))
 - name: ((service_adapter_release))
   version: latest
 - name: routing

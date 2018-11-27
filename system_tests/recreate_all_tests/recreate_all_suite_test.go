@@ -50,6 +50,7 @@ func deployAndRegisterBroker(uniqueID, deploymentName, serviceName string) {
 	serviceReleaseName := os.Getenv("SERVICE_RELEASE_NAME")
 	brokerSystemDomain := os.Getenv("BROKER_SYSTEM_DOMAIN")
 	bpmAvailable := os.Getenv("BPM_AVAILABLE") == "true"
+	odbVersion := os.Getenv("ODB_VERSION")
 
 	deployArguments := []string{
 		"-d", deploymentName,
@@ -68,6 +69,7 @@ func deployAndRegisterBroker(uniqueID, deploymentName, serviceName string) {
 		"--var", "service_catalog_id=redis-" + uniqueID,
 		"--var", "service_catalog_service_name=redis-" + uniqueID,
 		"--var", "plan_id=redis-post-deploy-plan-redis-" + uniqueID,
+		"--var", "odb_version=" + odbVersion,
 	}
 	if bpmAvailable {
 		deployArguments = append(deployArguments, []string{"--ops-file", "./fixtures/add_bpm_job.yml"}...)
