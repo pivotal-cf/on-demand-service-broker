@@ -15,8 +15,8 @@ releases:
 
 stemcells:
 - alias: xenial
-  os: ((bosh.stemcell.os))
-  version: "((bosh.stemcell.version))"
+  os: ((meta.stemcell.os))
+  version: "((meta.stemcell.version))"
 
 variables:
 - name: broker_password
@@ -25,12 +25,12 @@ variables:
 instance_groups:
 - name: broker
   networks:
-  - name: ((bosh.services_subnet))
+  - name: ((meta.services_subnet))
   stemcell: xenial
   vm_extensions:
   - public_ip
-  vm_type: ((bosh.vm_type))
-  azs: [((bosh.az))]
+  vm_type: ((meta.vm_type))
+  azs: [((meta.az))]
   instances: 1
   jobs:
   - name: register-broker
@@ -104,16 +104,16 @@ instance_groups:
           description: Redis with post-deploy errand
           instance_groups:
           - name: redis-server
-            azs: [((bosh.az))]
+            azs: [((meta.az))]
             instances: 1
-            networks: [((bosh.services_subnet))]
-            vm_type: ((bosh.vm_type))
+            networks: [((meta.services_subnet))]
+            vm_type: ((meta.vm_type))
           - name: health-check
-            azs: [((bosh.az))]
+            azs: [((meta.az))]
             instances: 1
             lifecycle: errand
-            networks: [((bosh.services_subnet))]
-            vm_type: ((bosh.vm_type))
+            networks: [((meta.services_subnet))]
+            vm_type: ((meta.vm_type))
         service_description: Redis Dedicated Instance
         service_name: ((service_catalog_service_name))
         tags: [pivotal, redis]
@@ -123,8 +123,8 @@ instance_groups:
           name: ((service_release))
           version: ((service_release_version))
         stemcell:
-          os: ((bosh.stemcell.os))
-          version: "((bosh.stemcell.version))"
+          os: ((meta.stemcell.os))
+          version: "((meta.stemcell.version))"
   - name: route_registrar
     consumes:
       nats:
