@@ -1,6 +1,8 @@
 package recreate_all_test
 
 import (
+	"crypto/tls"
+	"net/http"
 	"os"
 	"os/exec"
 	"testing"
@@ -51,13 +53,14 @@ func deployAndRegisterBroker(uniqueID, deploymentName, serviceName string) {
 	brokerSystemDomain := os.Getenv("BROKER_SYSTEM_DOMAIN")
 	bpmAvailable := os.Getenv("BPM_AVAILABLE") == "true"
 	odbVersion := os.Getenv("ODB_VERSION")
+	brokerURI := "redis-service-broker-" + uniqueID + "." + brokerSystemDomain
 
 	deployArguments := []string{
 		"-d", deploymentName,
 		"-n",
 		"deploy", "./fixtures/broker_manifest.yml",
 		"--vars-file", os.Getenv("BOSH_DEPLOYMENT_VARS"),
-		"--var", "broker_uri=redis-service-broker-" + uniqueID + "." + brokerSystemDomain,
+		"--var", "broker_uri=" + brokerURI,
 		"--var", "broker_cn='*" + brokerSystemDomain + "'",
 		"--var", "broker_deployment_name=" + deploymentName,
 		"--var", "broker_release=on-demand-service-broker" + devEnv,
@@ -80,6 +83,10 @@ func deployAndRegisterBroker(uniqueID, deploymentName, serviceName string) {
 	Expect(err).NotTo(HaveOccurred(), "failed to run bosh deploy command")
 	Eventually(session, longBOSHTimeout).Should(gexec.Exit(0), "deployment failed")
 
+	Eventually(func() bool {
+		return brokerRespondsOnCatalogEndpoint(brokerURI)
+	}, 30*time.Second).Should(BeTrue(), "broker catalog endpoint did not come up in reasonable time")
+
 	cmd = exec.Command("bosh", "-n", "-d", deploymentName, "run-errand", "register-broker")
 	session, err = gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
 	Expect(err).NotTo(HaveOccurred(), "failed to run register-broker errand")
@@ -97,4 +104,21 @@ func deregisterAndDeleteBroker(deploymentName string) {
 	session, err = gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
 	Expect(err).NotTo(HaveOccurred(), "failed to run delete deployment")
 	Eventually(session, longBOSHTimeout).Should(gexec.Exit(0), "deregistration failed")
+}
+
+func brokerRespondsOnCatalogEndpoint(brokerURI string) bool {
+	transport := &http.Transport{
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true,
+		},
+	}
+	client := http.Client{
+		Transport: transport,
+	}
+	res, err := client.Get("https://" + brokerURI + "/v2/catalog")
+	if err != nil {
+		return false
+	}
+
+	return res.StatusCode == http.StatusUnauthorized
 }
