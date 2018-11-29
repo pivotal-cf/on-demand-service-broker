@@ -2,6 +2,7 @@ package recreate_all_test
 
 import (
 	"crypto/tls"
+	"fmt"
 	"net/http"
 	"os"
 	"os/exec"
@@ -32,10 +33,12 @@ var (
 
 var _ = BeforeSuite(func() {
 	uniqueID := uuid.New()[:6]
-	deploymentName = "redis-on-demand-broker" + uniqueID
-	serviceOffering = "redis-" + uniqueID
-	serviceInstanceName = "service-" + uniqueID
-	deployAndRegisterBroker(uniqueID, deploymentName, serviceOffering)
+	systemTestSuffix := "-recreate-" + uniqueID
+	// test deployments must begin with "redis-on-demand-broker-" to be automatically cleaned up
+	deploymentName = "redis-on-demand-broker" + systemTestSuffix
+	serviceOffering = "redis" + systemTestSuffix
+	serviceInstanceName = "service" + systemTestSuffix
+	deployAndRegisterBroker(systemTestSuffix, deploymentName, serviceOffering)
 	cf.CreateService(serviceOffering, "redis-with-post-deploy", serviceInstanceName, "")
 })
 
@@ -43,7 +46,7 @@ var _ = AfterSuite(func() {
 	deregisterAndDeleteBroker(deploymentName)
 })
 
-func deployAndRegisterBroker(uniqueID, deploymentName, serviceName string) {
+func deployAndRegisterBroker(systemTestSuffix, deploymentName, serviceName string) {
 	devEnv := os.Getenv("DEV_ENV")
 	if devEnv != "" {
 		devEnv = "-" + devEnv
@@ -53,7 +56,16 @@ func deployAndRegisterBroker(uniqueID, deploymentName, serviceName string) {
 	brokerSystemDomain := os.Getenv("BROKER_SYSTEM_DOMAIN")
 	bpmAvailable := os.Getenv("BPM_AVAILABLE") == "true"
 	odbVersion := os.Getenv("ODB_VERSION")
-	brokerURI := "redis-service-broker-" + uniqueID + "." + brokerSystemDomain
+	brokerURI := "redis-service-broker" + systemTestSuffix + "." + brokerSystemDomain
+
+	fmt.Println("--- System Test Details ---")
+	fmt.Println("")
+	fmt.Printf("deploymentName        = %+v\n", deploymentName)
+	fmt.Printf("serviceReleaseVersion = %+v\n", serviceReleaseVersion)
+	fmt.Printf("odbVersion            = %+v\n", odbVersion)
+	fmt.Printf("brokerURI             = %+v\n", brokerURI)
+	fmt.Printf("brokerSystemDomain    = %+v\n", brokerSystemDomain)
+	fmt.Println("")
 
 	deployArguments := []string{
 		"-d", deploymentName,
@@ -68,10 +80,10 @@ func deployAndRegisterBroker(uniqueID, deploymentName, serviceName string) {
 		"--var", "service_release=" + serviceReleaseName + devEnv,
 		"--var", "service_release_version=" + serviceReleaseVersion,
 		"--var", "broker_name=" + serviceName,
-		"--var", "broker_route_name=redis-odb-" + uniqueID,
-		"--var", "service_catalog_id=redis-" + uniqueID,
-		"--var", "service_catalog_service_name=redis-" + uniqueID,
-		"--var", "plan_id=redis-post-deploy-plan-redis-" + uniqueID,
+		"--var", "broker_route_name=redis-odb" + systemTestSuffix,
+		"--var", "service_catalog_id=redis" + systemTestSuffix,
+		"--var", "service_catalog_service_name=redis" + systemTestSuffix,
+		"--var", "plan_id=redis-post-deploy-plan-redis" + systemTestSuffix,
 		"--var", "odb_version=" + odbVersion,
 	}
 	if bpmAvailable {
