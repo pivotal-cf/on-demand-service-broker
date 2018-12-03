@@ -3,7 +3,7 @@ name: ((broker_deployment_name))
 
 releases:
 - name: ((broker_release))
-  version: latest
+  version: ((odb_version))
 - name: ((service_adapter_release))
   version: latest
 - name: routing
@@ -15,8 +15,8 @@ releases:
 
 stemcells:
 - alias: xenial
-  os: ubuntu-xenial
-  version: 97.5
+  os: ((meta.stemcell.os))
+  version: "((meta.stemcell.version))"
 
 variables:
 - name: broker_password
@@ -25,18 +25,19 @@ variables:
 instance_groups:
 - name: broker
   networks:
-  - name: default
+  - name: ((meta.services_subnet))
   stemcell: xenial
-  vm_extensions: []
-  vm_type: t2.small
-  azs: [z1]
+  vm_extensions:
+  - public_ip
+  vm_type: ((meta.vm_type))
+  azs: [((meta.az))]
   instances: 1
   jobs:
   - name: register-broker
     release: ((broker_release))
     properties:
       broker_name: ((broker_name))
-      broker_uri: http://((broker_uri))
+      broker_uri: https://((broker_uri))
       cf:
         admin_password: ((cf.user_credentials.password))
         admin_username: ((cf.user_credentials.username))
@@ -110,10 +111,10 @@ instance_groups:
           description: Redis small
           instance_groups:
           - name: redis-server
-            azs: [z1]
+            azs: [((meta.az))]
+            networks: [((meta.services_subnet))]
+            vm_type: ((meta.vm_type))
             instances: 1
-            networks: [default]
-            vm_type: t2.small
         - name: redis-plan-2
           plan_id: ((plan_id))-2
           metadata:
@@ -125,10 +126,10 @@ instance_groups:
           description: Redis other plan
           instance_groups:
           - name: redis-server
-            azs: [z1]
+            azs: [((meta.az))]
             instances: 1
-            networks: [default]
-            vm_type: t2.small
+            networks: [((meta.services_subnet))]
+            vm_type: ((meta.vm_type))
         service_description: Redis Dedicated Instance
         service_name: ((service_catalog_service_name))
         tags: [pivotal, redis]
@@ -138,8 +139,8 @@ instance_groups:
           name: ((service_release))
           version: ((service_release_version))
         stemcell:
-          os: ubuntu-xenial
-          version: 97.5
+          os: ((meta.stemcell.os))
+          version: "((meta.stemcell.version))"
   - name: route_registrar
     consumes:
       nats:
@@ -186,10 +187,10 @@ instance_groups:
   - name: consul_agent
     consumes:
       consul_client:
-        deployment: cf
+        deployment: ((cf.deployment_name))
         from: consul_client_link
       consul_common:
-        deployment: cf
+        deployment: ((cf.deployment_name))
         from: consul_common_link
       consul_server: nil
     release: consul

@@ -1,6 +1,7 @@
 package service_catalog_test
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"testing"
@@ -40,24 +41,38 @@ var _ = BeforeSuite(func() {
 	).To(Succeed())
 
 	uniqueID := uuid.New()[:6]
-	deploymentName = "redis-catalog-broker-" + uniqueID
-	serviceOffering = "redis-catalog" + uniqueID
+	systemTestSuffix := "-catalog-" + uniqueID
+	deploymentName = "redis-on-demand-broker" + systemTestSuffix
+	serviceOffering = "redis" + systemTestSuffix
+
 	brokerPassword = uuid.New()[:6]
 	brokerSystemDomain = os.Getenv(BrokerSystemDomainEnv)
-	brokerURI = "redis-catalog-broker-" + uniqueID + "." + brokerSystemDomain
-	deployAndRegisterBroker(uniqueID, deploymentName, serviceOffering)
+	brokerURI = "redis-service-broker" + systemTestSuffix + "." + brokerSystemDomain
+	deployAndRegisterBroker(systemTestSuffix, deploymentName, serviceOffering)
 })
 
 var _ = AfterSuite(func() {
 	deregisterAndDeleteBroker(deploymentName)
 })
 
-func deployAndRegisterBroker(uniqueID, deploymentName, serviceName string) {
+func deployAndRegisterBroker(systemTestSuffix, deploymentName, serviceName string) {
 	devEnv := os.Getenv("DEV_ENV")
 	if devEnv != "" {
 		devEnv = "-" + devEnv
 	}
 	serviceReleaseVersion := os.Getenv(ServiceReleaseVersionEnv)
+	bpmAvailable := os.Getenv("BPM_AVAILABLE") == "true"
+	odbVersion := os.Getenv("ODB_VERSION")
+
+	fmt.Println("--- System Test Details ---")
+	fmt.Println("")
+	fmt.Printf("deploymentName        = %+v\n", deploymentName)
+	fmt.Printf("serviceReleaseVersion = %+v\n", serviceReleaseVersion)
+	fmt.Printf("odbVersion            = %+v\n", odbVersion)
+	fmt.Printf("brokerURI             = %+v\n", brokerURI)
+	fmt.Printf("brokerSystemDomain    = %+v\n", brokerSystemDomain)
+	fmt.Println("")
+
 	deployArguments := []string{
 		"-d", deploymentName,
 		"-n",
@@ -71,12 +86,17 @@ func deployAndRegisterBroker(uniqueID, deploymentName, serviceName string) {
 		"--var", "service_release=redis-service" + devEnv,
 		"--var", "service_release_version=" + serviceReleaseVersion,
 		"--var", "broker_name=" + serviceName,
-		"--var", "broker_route_name=redis-odb-" + uniqueID,
-		"--var", "service_catalog_id=redis-" + uniqueID,
-		"--var", "service_catalog_service_name=redis-" + uniqueID,
-		"--var", "plan_id=redis-small" + uniqueID,
+		"--var", "broker_route_name=redis-odb" + systemTestSuffix,
+		"--var", "service_catalog_id=redis" + systemTestSuffix,
+		"--var", "service_catalog_service_name=redis" + systemTestSuffix,
+		"--var", "plan_id=redis-small" + systemTestSuffix,
 		"--var", "broker_password=" + brokerPassword,
+		"--var", "odb_version=" + odbVersion,
 	}
+	if bpmAvailable {
+		deployArguments = append(deployArguments, []string{"--ops-file", "./fixtures/add_bpm_job.yml"}...)
+	}
+
 	cmd := exec.Command("bosh", deployArguments...)
 	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
 	Expect(err).NotTo(HaveOccurred(), "failed to run bosh deploy command")
