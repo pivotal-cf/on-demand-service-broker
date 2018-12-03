@@ -11,7 +11,7 @@ type MapHasher struct {
 }
 
 func (h *MapHasher) Hash(m map[string]string) string {
-	sortedKeys := sortMapKeys(m)
+	sortedKeys := sortedMapKeys(m)
 	strToHash := buildString(m, sortedKeys)
 
 	if strToHash == "" {
@@ -22,7 +22,7 @@ func (h *MapHasher) Hash(m map[string]string) string {
 	return hex.EncodeToString(hash[:])
 }
 
-func sortMapKeys(m map[string]string) []string {
+func sortedMapKeys(m map[string]string) []string {
 	keys := []string{}
 	for key := range m {
 		keys = append(keys, key)
@@ -34,7 +34,9 @@ func sortMapKeys(m map[string]string) []string {
 func buildString(m map[string]string, sortedKeys []string) string {
 	var str string
 	for _, key := range sortedKeys {
-		str = fmt.Sprintf("%s%s:%s;", str, key, m[key])
+		keyHash := sha256.Sum256([]byte(key))
+		valueHash := sha256.Sum256([]byte(m[key]))
+		str = fmt.Sprintf("%s%s%s", str, keyHash, valueHash)
 	}
 	return str
 }

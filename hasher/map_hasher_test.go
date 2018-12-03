@@ -19,11 +19,17 @@ var _ = Describe("MapHasher", func() {
 			m := map[string]string{"key": "value"}
 
 			hashed := subject.Hash(m)
-			Expect(hashed).To(Equal("ef939ae1b4f1d77a1085fa660d02c06ea159accc441d9243da7fede8401f89b5"))
+			Expect(hashed).To(Equal("81dc6f83e3da3843e6d79fc3cf866ed57e2a50fc89e1879053bef112dc889512"))
 			Expect(hashed).To(HaveLen(64))
 
-			m["other_key"] = "othervalue"
-			Expect(hashed).NotTo(Equal(subject.Hash(m)))
+			m = map[string]string{"key": "other-value"}
+			Expect(hashed).NotTo(Equal(subject.Hash(m)), "Changes in values should change the hash result")
+
+			m = map[string]string{"key2": "value"}
+			Expect(hashed).NotTo(Equal(subject.Hash(m)), "Changes in keys should change the hash result")
+
+			m = map[string]string{"key": "value"}
+			Expect(hashed).To(Equal(subject.Hash(m)), "An identical map should generate the same hash")
 		})
 
 		It("returns empty when the map is nil", func() {
