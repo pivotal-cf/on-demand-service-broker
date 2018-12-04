@@ -43,7 +43,7 @@ instance_groups:
         admin_username: ((cf.user_credentials.username))
         api_url: ((cf.api_url))
       disable_ssl_cert_verification: false
-  - name: deregister-broker
+  - name: delete-all-service-instances-and-deregister-broker
     properties:
       broker_name: ((broker_name))
       polling_interval_seconds: 10

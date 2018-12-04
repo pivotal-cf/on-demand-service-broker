@@ -13,10 +13,10 @@ import (
 var _ = Describe("Version Info in the Service Catalog", func() {
 
 	It("returns the global and plan version info combined for a plan", func() {
-		req, err := http.NewRequest(http.MethodGet, "http://"+brokerURI+"/v2/catalog", nil)
+		req, err := http.NewRequest(http.MethodGet, "http://"+brokerInfo.URI+"/v2/catalog", nil)
 		Expect(err).ToNot(HaveOccurred())
 
-		req.SetBasicAuth("broker", brokerPassword)
+		req.SetBasicAuth("broker", brokerInfo.BrokerPassword)
 		req.Header.Set("X-Broker-API-Version", "2.14")
 		req.Close = true
 
