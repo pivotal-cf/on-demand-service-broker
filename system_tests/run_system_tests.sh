@@ -15,7 +15,12 @@ if [[ $# -eq 0 ]]; then
 fi
 
 cf api ${CF_URL} --skip-ssl-validation
-cf auth ${CF_USERNAME} ${CF_PASSWORD}
+
+if [ -n "${CF_CLIENT_ID:-""}" ]; then
+  cf auth "$CF_CLIENT_ID" "$CF_CLIENT_SECRET" --client-credentials
+else
+  cf auth $CF_USERNAME $CF_PASSWORD
+fi
 cf target -o ${CF_ORG} -s ${CF_SPACE} # must already exist
 
 ginkgo -v -randomizeSuites=true -randomizeAllSpecs=true -keepGoing=true -race -failOnPending -skipPackage upgrade_deployment_tests "$@"
