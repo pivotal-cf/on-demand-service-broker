@@ -5,6 +5,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pborman/uuid"
 
 	bosh "github.com/pivotal-cf/on-demand-service-broker/system_tests/bosh_helpers"
 )
@@ -19,7 +20,8 @@ var (
 )
 
 var _ = BeforeSuite(func() {
-	brokerInfo = bosh.DeployAndRegisterBroker("catalog")
+	uniqueID := uuid.New()[:6]
+	brokerInfo = bosh.DeployAndRegisterBroker("-catalog-" + uniqueID)
 })
 
 var _ = AfterSuite(func() {

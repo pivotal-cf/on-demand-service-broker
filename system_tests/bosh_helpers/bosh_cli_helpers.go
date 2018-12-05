@@ -78,16 +78,15 @@ type BrokerInfo struct {
 	ServiceOffering string
 	TestSuffix      string
 	BrokerPassword  string
+	BrokerUsername  string
 }
 
-func DeployAndRegisterBroker(testIdentifier string) BrokerInfo {
+func DeployAndRegisterBroker(systemTestSuffix string, opsFiles ...string) BrokerInfo {
 	devEnv := os.Getenv("DEV_ENV")
 	if devEnv != "" {
 		devEnv = "-" + devEnv
 	}
-	uniqueID := uuid.New()[:6]
 	brokerPassword := uuid.New()[:6]
-	systemTestSuffix := "-" + testIdentifier + "-" + uniqueID
 	deploymentName := "redis-on-demand-broker" + systemTestSuffix
 	serviceOffering := "redis" + systemTestSuffix
 	serviceReleaseVersion := os.Getenv("SERVICE_RELEASE_VERSION")
@@ -97,13 +96,14 @@ func DeployAndRegisterBroker(testIdentifier string) BrokerInfo {
 	odbVersion := os.Getenv("ODB_VERSION")
 	brokerURI := "redis-service-broker" + systemTestSuffix + "." + brokerSystemDomain
 
-	fmt.Println("--- System Test Details ---")
+	fmt.Println("     --- Deploying System Test Broker ---")
 	fmt.Println("")
 	fmt.Printf("deploymentName        = %+v\n", deploymentName)
 	fmt.Printf("serviceReleaseVersion = %+v\n", serviceReleaseVersion)
 	fmt.Printf("odbVersion            = %+v\n", odbVersion)
 	fmt.Printf("brokerURI             = %+v\n", brokerURI)
 	fmt.Printf("brokerSystemDomain    = %+v\n", brokerSystemDomain)
+	fmt.Printf("opsFiles              = %+v\n", opsFiles)
 	fmt.Println("")
 
 	deployArguments := []string{
@@ -126,6 +126,9 @@ func DeployAndRegisterBroker(testIdentifier string) BrokerInfo {
 		"--var", "broker_password=" + brokerPassword,
 		"--var", "odb_version=" + odbVersion,
 	}
+	for _, opsFile := range opsFiles {
+		deployArguments = append(deployArguments, []string{"--ops-file", "./fixtures/" + opsFile}...)
+	}
 	if bpmAvailable {
 		deployArguments = append(deployArguments, []string{"--ops-file", "./fixtures/add_bpm_job.yml"}...)
 	}
@@ -147,6 +150,7 @@ func DeployAndRegisterBroker(testIdentifier string) BrokerInfo {
 		ServiceOffering: serviceOffering,
 		TestSuffix:      systemTestSuffix,
 		BrokerPassword:  brokerPassword,
+		BrokerUsername:  "broker",
 	}
 }
 

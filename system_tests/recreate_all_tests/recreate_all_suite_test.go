@@ -5,6 +5,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pborman/uuid"
 	bosh "github.com/pivotal-cf/on-demand-service-broker/system_tests/bosh_helpers"
 	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/cf_helpers"
 )
@@ -20,7 +21,8 @@ var (
 )
 
 var _ = BeforeSuite(func() {
-	brokerInfo = bosh.DeployAndRegisterBroker("recreate")
+	uniqueID := uuid.New()[:6]
+	brokerInfo = bosh.DeployAndRegisterBroker("-recreate-" + uniqueID)
 	serviceInstanceName = "service" + brokerInfo.TestSuffix
 	cf.CreateService(brokerInfo.ServiceOffering, "redis-with-post-deploy", serviceInstanceName, "")
 })
