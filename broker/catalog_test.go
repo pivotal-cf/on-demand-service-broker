@@ -390,6 +390,12 @@ func getPlansFromCatalog(serviceCatalog config.ServiceOffering) []brokerapi.Serv
 				Bullets:     plan.Metadata.Bullets,
 				DisplayName: plan.Metadata.DisplayName,
 			},
+			MaintenanceInfo: &brokerapi.MaintenanceInfo{
+				Public: map[string]string{
+					"version": "fancy",
+				},
+				Private: "jimmy",
+			},
 		})
 	}
 	return servicePlans

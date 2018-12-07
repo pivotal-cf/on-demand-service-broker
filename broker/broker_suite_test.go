@@ -288,6 +288,7 @@ var _ = BeforeEach(func() {
 	fakeInstanceLister = new(servicefakes.FakeInstanceLister)
 	cfClient = new(fakes.FakeCloudFoundryClient)
 	fakeMapHasher = new(fakes.FakeHasher)
+	fakeMapHasher.HashReturns("jimmy")
 	cfClient.GetAPIVersionReturns("2.57.0", nil)
 
 	serviceCatalog = config.ServiceOffering{
@@ -296,6 +297,12 @@ var _ = BeforeEach(func() {
 		GlobalProperties: serviceadapter.Properties{"a_global_property": "global_value", "some_other_global_property": "other_global_value"},
 		GlobalQuotas: config.Quotas{
 			ServiceInstanceLimit: &serviceOfferingServiceInstanceLimit,
+		},
+		MaintenanceInfo: &config.MaintenanceInfo{
+			Public: map[string]string{
+				"version": "fancy",
+			},
+			Private: map[string]string{"secret": "secret"},
 		},
 		Plans: []config.Plan{
 			existingPlan,

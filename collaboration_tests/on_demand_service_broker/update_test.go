@@ -48,7 +48,7 @@ var _ = Describe("Update a service instance", func() {
 	)
 
 	var (
-		detailsMap         map[string]interface{}
+		detailsMap         brokerapi.UpdateDetails
 		updateArbParams    map[string]interface{}
 		expectedSecretsMap map[string]string
 		conf               brokerConfig.Config
@@ -65,6 +65,11 @@ var _ = Describe("Update a service instance", func() {
 			ServiceCatalog: brokerConfig.ServiceOffering{
 				Name: serviceName,
 				ID:   "service-id",
+				MaintenanceInfo: &brokerConfig.MaintenanceInfo{
+					Public: map[string]string{
+						"version": "2",
+					},
+				},
 				Plans: brokerConfig.Plans{
 					{Name: "some-plan", ID: oldPlanID},
 					{Name: "other-plan", ID: newPlanID, Quotas: brokerConfig.Quotas{ServiceInstanceLimit: &one}},
@@ -96,15 +101,15 @@ var _ = Describe("Update a service instance", func() {
 		}
 
 		updateArbParams = map[string]interface{}{"some": "params"}
-		detailsMap = map[string]interface{}{
-			"plan_id":    newPlanID,
-			"parameters": updateArbParams,
-			"service_id": serviceID,
-			"previous_values": map[string]interface{}{
-				"organization_id": organizationGUID,
-				"service_id":      serviceID,
-				"plan_id":         oldPlanID,
-				"space_id":        "space-guid",
+		detailsMap = brokerapi.UpdateDetails{
+			PlanID:        newPlanID,
+			RawParameters: toJson(updateArbParams),
+			ServiceID:     serviceID,
+			PreviousValues: brokerapi.PreviousValues{
+				OrgID:     organizationGUID,
+				ServiceID: serviceID,
+				PlanID:    oldPlanID,
+				SpaceID:   "space-guid",
 			},
 		}
 		expectedSecretsMap = map[string]string{
@@ -142,7 +147,7 @@ var _ = Describe("Update a service instance", func() {
 			fakeTaskBoshClient.GetDeploymentReturns(oldManifest, true, nil)
 			fakeTaskBoshClient.DeployReturns(updateTaskID, nil)
 
-			detailsMap["plan_id"] = postDeployErrandPlanID
+			detailsMap.PlanID = postDeployErrandPlanID
 			resp, bodyContent := doUpdateRequest(detailsMap, instanceID)
 			By("returning the correct status code")
 			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
@@ -162,7 +167,7 @@ var _ = Describe("Update a service instance", func() {
 
 			Expect(plan.LifecycleErrands.PostDeploy).To(Equal(conf.ServiceCatalog.Plans[2].LifecycleErrands.PostDeploy))
 
-			var reqParams map[string]interface{}
+			var reqParams brokerapi.UpdateDetails
 			err = json.Unmarshal([]byte(actualInput.GenerateManifest.RequestParameters), &reqParams)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -189,12 +194,13 @@ var _ = Describe("Update a service instance", func() {
 			fakeTaskBoshClient.GetDeploymentReturns(oldManifest, true, nil)
 			fakeTaskBoshClient.DeployReturns(updateTaskID, nil)
 
-			detailsMap["previous_values"] = map[string]interface{}{
-				"organization_id": organizationGUID,
-				"service_id":      serviceID,
-				"plan_id":         postDeployErrandPlanID,
-				"space_id":        "space-guid",
+			detailsMap.PreviousValues = brokerapi.PreviousValues{
+				OrgID:     organizationGUID,
+				ServiceID: serviceID,
+				PlanID:    postDeployErrandPlanID,
+				SpaceID:   "space-guid",
 			}
+
 			resp, bodyContent := doUpdateRequest(detailsMap, instanceID)
 			By("returning the correct status code")
 			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
@@ -219,7 +225,7 @@ var _ = Describe("Update a service instance", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(previousPlan.LifecycleErrands.PostDeploy).To(Equal(conf.ServiceCatalog.Plans[2].LifecycleErrands.PostDeploy))
 
-			var reqParams map[string]interface{}
+			var reqParams brokerapi.UpdateDetails
 			err = json.Unmarshal([]byte(actualInput.GenerateManifest.RequestParameters), &reqParams)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -265,7 +271,7 @@ properties:
 			fakeCfClient.CountInstancesOfServiceOfferingReturns(map[cf.ServicePlan]int{
 				cf.ServicePlan{ServicePlanEntity: cf.ServicePlanEntity{UniqueID: quotaReachedPlanID}}: 1,
 			}, nil)
-			detailsMap["plan_id"] = quotaReachedPlanID
+			detailsMap.PlanID = quotaReachedPlanID
 			resp, bodyContent := doUpdateRequest(detailsMap, instanceID)
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 
@@ -341,7 +347,7 @@ properties:
 		It("fails with 500 if the previous plan cannot be found", func() {
 			fakeTaskBoshClient.GetDeploymentReturns(nil, true, nil)
 
-			detailsMap["plan_id"] = "yo"
+			detailsMap.PlanID = "yo"
 			resp, bodyContent := doUpdateRequest(detailsMap, instanceID)
 
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
@@ -351,7 +357,7 @@ properties:
 		})
 
 		It("fails with 500 if the new plan cannot be found", func() {
-			detailsMap["plan_id"] = "macarena"
+			detailsMap.PlanID = "macarena"
 			resp, bodyContent := doUpdateRequest(detailsMap, instanceID)
 
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
@@ -450,12 +456,12 @@ properties:
 			fakeTaskBoshClient.DeployReturns(updateTaskID, nil)
 			fakeCredhubOperator.BulkGetReturns(expectedSecretsMap, nil)
 
-			detailsMap["plan_id"] = quotaReachedPlanID
-			detailsMap["previous_values"] = map[string]interface{}{
-				"organization_id": organizationGUID,
-				"service_id":      serviceID,
-				"plan_id":         quotaReachedPlanID,
-				"space_id":        "space-guid",
+			detailsMap.PlanID = quotaReachedPlanID
+			detailsMap.PreviousValues = brokerapi.PreviousValues{
+				OrgID:     organizationGUID,
+				ServiceID: serviceID,
+				PlanID:    quotaReachedPlanID,
+				SpaceID:   "space-guid",
 			}
 
 			resp, bodyContent := doUpdateRequest(detailsMap, instanceID)
@@ -482,7 +488,7 @@ properties:
 			Expect(err).NotTo(HaveOccurred())
 			Expect(plan).To(Equal(previousPlan))
 
-			var reqParams map[string]interface{}
+			var reqParams brokerapi.UpdateDetails
 			err = json.Unmarshal([]byte(actualInput.GenerateManifest.RequestParameters), &reqParams)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -506,9 +512,121 @@ properties:
 			Eventually(loggerBuffer).Should(gbytes.Say(`updating instance ` + instanceID))
 		})
 	})
+
+	When("upgrading with maintenance_info", func() {
+		BeforeEach(func() {
+			oldManifest := "name: service-instance_some-instance-id"
+			fakeTaskBoshClient.GetDeploymentReturns([]byte(oldManifest), true, nil)
+
+			regeneratedManifest := []byte(`
+name: service-instance_some-instance-id
+properties:
+  bob: like-a-duck`)
+			manifest := sdk.MarshalledGenerateManifest{Manifest: string(regeneratedManifest)}
+			manifestBytes, err := json.Marshal(manifest)
+			Expect(err).NotTo(HaveOccurred())
+			zero := 0
+			fakeCommandRunner.RunWithInputParamsReturns(manifestBytes, []byte{}, &zero, nil)
+			detailsMap.MaintenanceInfo = brokerapi.MaintenanceInfo{
+				Public: map[string]string{
+					"version": "2",
+				},
+			}
+			detailsMap.PlanID = oldPlanID
+			detailsMap.RawParameters = []byte("{}")
+		})
+
+		It("succeeds", func() {
+
+			// detailsMap = map[string]interface{}{
+			// 	"plan_id":    oldPlanID,
+			// 	"service_id": serviceID,
+			// 	"maintenance_info": map[string]interface{}{
+			// 		"public": map[string]string{
+			// 			"version": "2",
+			// 		},
+			// 	},
+			// 	"previous_values": map[string]interface{}{
+			// 		"plan_id": oldPlanID,
+			// 	},
+			// }
+
+			resp, _ := doUpdateRequest(detailsMap, instanceID)
+
+			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
+		})
+
+		It("fails when maintenance_info doesn't match the catalog maintenance_info", func() {
+			detailsMap.MaintenanceInfo = brokerapi.MaintenanceInfo{
+				Public: map[string]string{
+					"version": "3",
+				},
+			}
+
+			// detailsMap = map[string]interface{}{
+			// 	"plan_id":    oldPlanID,
+			// 	"service_id": serviceID,
+			// 	"maintenance_info": map[string]interface{}{
+			// 		"public": map[string]string{
+			// 			"version": "3",
+			// 		},
+			// 	},
+			// 	"previous_values": map[string]interface{}{
+			// 		"plan_id": oldPlanID,
+			// 	},
+			// }
+
+			resp, _ := doUpdateRequest(detailsMap, instanceID)
+
+			Expect(resp.StatusCode).To(Equal(http.StatusUnprocessableEntity))
+		})
+
+		It("fails when arbitrary params are passed in", func() {
+			detailsMap.RawParameters = []byte(`{"foo":"bar"}`)
+			// detailsMap = map[string]interface{}{
+			// 	"plan_id":    oldPlanID,
+			// 	"service_id": serviceID,
+			// 	"maintenance_info": map[string]interface{}{
+			// 		"public": map[string]string{
+			// 			"version": "2",
+			// 		},
+			// 	},
+			// 	"previous_values": map[string]interface{}{
+			// 		"plan_id": oldPlanID,
+			// 	},
+			// 	"parameters": map[string]interface{}{
+			// 		"foo": "bar",
+			// 	},
+			// }
+
+			resp, _ := doUpdateRequest(detailsMap, instanceID)
+
+			Expect(resp.StatusCode).To(Equal(http.StatusUnprocessableEntity))
+		})
+
+		It("fails when a new plan is passed", func() {
+			detailsMap.PlanID = newPlanID
+			// detailsMap = map[string]interface{}{
+			// 	"plan_id":    newPlanID,
+			// 	"service_id": serviceID,
+			// 	"maintenance_info": map[string]interface{}{
+			// 		"public": map[string]string{
+			// 			"version": "2",
+			// 		},
+			// 	},
+			// 	"previous_values": map[string]interface{}{
+			// 		"plan_id": oldPlanID,
+			// 	},
+			// }
+
+			resp, _ := doUpdateRequest(detailsMap, instanceID)
+
+			Expect(resp.StatusCode).To(Equal(http.StatusUnprocessableEntity))
+		})
+	})
 })
 
-func doUpdateRequest(body map[string]interface{}, instanceID string) (*http.Response, []byte) {
+func doUpdateRequest(body interface{}, instanceID string) (*http.Response, []byte) {
 	bodyBytes, err := json.Marshal(body)
 	Expect(err).NotTo(HaveOccurred())
 	return doRequest(

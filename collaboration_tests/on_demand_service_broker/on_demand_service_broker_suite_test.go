@@ -208,3 +208,8 @@ func doHTTPSRequest(method, url string, caCertFile string, cipherSuites []uint16
 
 	return resp, bodyContent, nil
 }
+
+func toJson(obj interface{}) []byte {
+	bytes, _ := json.Marshal(obj)
+	return bytes
+}

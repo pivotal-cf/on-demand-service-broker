@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"reflect"
 
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/brokerapi"
@@ -113,15 +114,60 @@ func (b *Broker) Update(
 		return brokerapi.UpdateServiceSpec{IsAsync: true}, b.processError(NewGenericError(ctx, err), logger)
 	}
 
-	boshTaskID, _, err := b.deployer.Update(
-		deploymentName(instanceID),
-		details.PlanID,
-		detailsMap,
-		&details.PreviousValues.PlanID,
-		boshContextID,
-		secretMap,
-		logger,
-	)
+	var boshTaskID int
+	var operationType OperationType
+	if details.MaintenanceInfo.Private != "" || details.MaintenanceInfo.Public != nil {
+		if details.PlanID != details.PreviousValues.PlanID {
+			return brokerapi.UpdateServiceSpec{},
+				b.processError(brokerapi.NewFailureResponse(
+					errors.New("maintenance_info is passed indicating upgrade, but the plan has been updated"),
+					http.StatusUnprocessableEntity,
+					UpdateLoggerAction,
+				), logger)
+		}
+		if params := detailsMap["parameters"]; len(params.(map[string]interface{})) > 0 {
+			return brokerapi.UpdateServiceSpec{},
+				b.processError(brokerapi.NewFailureResponse(
+					errors.New("maintenance_info is passed indicating upgrade, but arbitrary params were passed"),
+					http.StatusUnprocessableEntity,
+					UpdateLoggerAction,
+				), logger)
+		}
+
+		planMaintenanceInfo, err := b.getMaintenanceInfoForPlan(plan.ID)
+		if err != nil {
+			return brokerapi.UpdateServiceSpec{IsAsync: true}, b.processError(NewGenericError(ctx, err), logger)
+		}
+
+		if !reflect.DeepEqual(*planMaintenanceInfo, details.MaintenanceInfo) {
+			return brokerapi.UpdateServiceSpec{},
+				b.processError(brokerapi.NewFailureResponse(
+					errors.New("passed maintenance_info does not match the catalog maintenance_info"),
+					http.StatusUnprocessableEntity,
+					UpdateLoggerAction,
+				), logger)
+		}
+
+		operationType = OperationTypeUpgrade
+		boshTaskID, _, err = b.deployer.Upgrade(
+			deploymentName(instanceID),
+			details.PlanID,
+			&details.PreviousValues.PlanID,
+			boshContextID,
+			logger,
+		)
+	} else {
+		operationType = OperationTypeUpdate
+		boshTaskID, _, err = b.deployer.Update(
+			deploymentName(instanceID),
+			details.PlanID,
+			detailsMap,
+			&details.PreviousValues.PlanID,
+			boshContextID,
+			secretMap,
+			logger,
+		)
+	}
 
 	switch err := err.(type) {
 	case ServiceError:
@@ -144,7 +190,7 @@ func (b *Broker) Update(
 
 	operationData, err := json.Marshal(OperationData{
 		BoshTaskID:    boshTaskID,
-		OperationType: OperationTypeUpdate,
+		OperationType: operationType,
 		BoshContextID: boshContextID,
 		Errands:       plan.PostDeployErrands(),
 	})
@@ -153,4 +199,19 @@ func (b *Broker) Update(
 	}
 
 	return brokerapi.UpdateServiceSpec{IsAsync: true, OperationData: string(operationData)}, nil
+}
+
+func (b *Broker) getMaintenanceInfoForPlan(id string) (*brokerapi.MaintenanceInfo, error) {
+	services, err := b.Services(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
+	for _, plan := range services[0].Plans {
+		if plan.ID == id {
+			return plan.MaintenanceInfo, nil
+		}
+	}
+
+	return nil, fmt.Errorf("plan %s not found", id)
 }
