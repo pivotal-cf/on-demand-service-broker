@@ -140,12 +140,7 @@ func (b *Broker) Update(
 		}
 
 		if !reflect.DeepEqual(*planMaintenanceInfo, details.MaintenanceInfo) {
-			return brokerapi.UpdateServiceSpec{},
-				b.processError(brokerapi.NewFailureResponse(
-					errors.New("passed maintenance_info does not match the catalog maintenance_info"),
-					http.StatusUnprocessableEntity,
-					UpdateLoggerAction,
-				), logger)
+			return brokerapi.UpdateServiceSpec{}, b.processError(brokerapi.ErrMaintenanceInfoConflict, logger)
 		}
 
 		operationType = OperationTypeUpgrade

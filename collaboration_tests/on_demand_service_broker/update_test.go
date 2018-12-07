@@ -537,20 +537,6 @@ properties:
 		})
 
 		It("succeeds", func() {
-
-			// detailsMap = map[string]interface{}{
-			// 	"plan_id":    oldPlanID,
-			// 	"service_id": serviceID,
-			// 	"maintenance_info": map[string]interface{}{
-			// 		"public": map[string]string{
-			// 			"version": "2",
-			// 		},
-			// 	},
-			// 	"previous_values": map[string]interface{}{
-			// 		"plan_id": oldPlanID,
-			// 	},
-			// }
-
 			resp, _ := doUpdateRequest(detailsMap, instanceID)
 
 			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
@@ -563,42 +549,18 @@ properties:
 				},
 			}
 
-			// detailsMap = map[string]interface{}{
-			// 	"plan_id":    oldPlanID,
-			// 	"service_id": serviceID,
-			// 	"maintenance_info": map[string]interface{}{
-			// 		"public": map[string]string{
-			// 			"version": "3",
-			// 		},
-			// 	},
-			// 	"previous_values": map[string]interface{}{
-			// 		"plan_id": oldPlanID,
-			// 	},
-			// }
-
-			resp, _ := doUpdateRequest(detailsMap, instanceID)
+			resp, body := doUpdateRequest(detailsMap, instanceID)
 
 			Expect(resp.StatusCode).To(Equal(http.StatusUnprocessableEntity))
+			Expect(resp.Header.Get("Content-Type")).To(Equal("application/json"))
+			bodyJSON := map[string]interface{}{}
+			err := json.Unmarshal(body, &bodyJSON)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(bodyJSON["error"]).To(Equal("MaintenanceInfoConflict"))
 		})
 
 		It("fails when arbitrary params are passed in", func() {
 			detailsMap.RawParameters = []byte(`{"foo":"bar"}`)
-			// detailsMap = map[string]interface{}{
-			// 	"plan_id":    oldPlanID,
-			// 	"service_id": serviceID,
-			// 	"maintenance_info": map[string]interface{}{
-			// 		"public": map[string]string{
-			// 			"version": "2",
-			// 		},
-			// 	},
-			// 	"previous_values": map[string]interface{}{
-			// 		"plan_id": oldPlanID,
-			// 	},
-			// 	"parameters": map[string]interface{}{
-			// 		"foo": "bar",
-			// 	},
-			// }
-
 			resp, _ := doUpdateRequest(detailsMap, instanceID)
 
 			Expect(resp.StatusCode).To(Equal(http.StatusUnprocessableEntity))
@@ -606,19 +568,6 @@ properties:
 
 		It("fails when a new plan is passed", func() {
 			detailsMap.PlanID = newPlanID
-			// detailsMap = map[string]interface{}{
-			// 	"plan_id":    newPlanID,
-			// 	"service_id": serviceID,
-			// 	"maintenance_info": map[string]interface{}{
-			// 		"public": map[string]string{
-			// 			"version": "2",
-			// 		},
-			// 	},
-			// 	"previous_values": map[string]interface{}{
-			// 		"plan_id": oldPlanID,
-			// 	},
-			// }
-
 			resp, _ := doUpdateRequest(detailsMap, instanceID)
 
 			Expect(resp.StatusCode).To(Equal(http.StatusUnprocessableEntity))
