@@ -2,13 +2,13 @@
 - type: replace
   path: /instance_groups/name=broker/jobs/name=broker/properties/service_catalog/plans/name=redis-small/lifecycle_errands?
   value:
-    pre_delete:
-      - name: cleanup-data
+    post_deploy:
+      - name: health-check
         instances: [redis-server/0]
 
 - type: replace
   path:  /instance_groups/name=broker/jobs/name=broker/properties/service_deployment/releases/name=((service_release))/jobs/-
-  value: cleanup-data
+  value: health-check
 
 - type: replace
   path:  /instance_groups/name=broker/jobs/name=broker/properties/service_catalog/plans/name=redis-small/properties/colocated_errand?

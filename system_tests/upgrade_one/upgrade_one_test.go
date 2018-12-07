@@ -55,7 +55,7 @@ var _ = Describe("Upgrade One Service Instance", func() {
 
 		url := fmt.Sprintf("http://%s/v2/service_instances/%s?accepts_incomplete=true", brokerInfo.URI, serviceInstanceGUID)
 		response, bodyContent := doRequest(http.MethodPatch, url, body)
-		Expect(response.Status).To(Equal(http.StatusAccepted))
+		Expect(response.StatusCode).To(Equal(http.StatusAccepted))
 
 		updateResponse := brokerapi.UpdateResponse{}
 		err = json.Unmarshal(bodyContent, &updateResponse)
@@ -75,7 +75,7 @@ func pollLastOperation(instanceID, operationData string) {
 	sleeps := 0
 	for {
 		resp, bodyContent := doLastOperationRequest(instanceID, operationData)
-		Expect(resp.Status).To(Equal(http.StatusOK))
+		Expect(resp.StatusCode).To(Equal(http.StatusOK))
 
 		lastOperationResponse := brokerapi.LastOperationResponse{}
 		err := json.Unmarshal(bodyContent, &lastOperationResponse)
