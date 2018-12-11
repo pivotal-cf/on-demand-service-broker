@@ -573,6 +573,38 @@ properties:
 			Expect(resp.StatusCode).To(Equal(http.StatusUnprocessableEntity))
 		})
 	})
+
+	When("the broker is deployed with nil maintenance info", func() {
+		When("upgrading with maintenance info", func() {
+			It("fails with an appropriate error", func() {
+				brokerServer.Close()
+
+				conf.ServiceCatalog.MaintenanceInfo = nil
+				StartServer(conf)
+
+				oldManifest := "name: service-instance_some-instance-id"
+				fakeTaskBoshClient.GetDeploymentReturns([]byte(oldManifest), true, nil)
+
+				detailsMap.MaintenanceInfo = brokerapi.MaintenanceInfo{
+					Public: map[string]string{
+						"version": "2",
+					},
+				}
+				detailsMap.PlanID = oldPlanID
+				detailsMap.RawParameters = []byte("{}")
+
+				resp, body := doUpdateRequest(detailsMap, instanceID)
+
+				Expect(resp.StatusCode).To(Equal(http.StatusUnprocessableEntity))
+
+				bodyJSON := map[string]interface{}{}
+				err := json.Unmarshal(body, &bodyJSON)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(bodyJSON["error"]).To(Equal("MaintenanceInfoConflict"))
+			})
+		})
+	})
+
 })
 
 func doUpdateRequest(body interface{}, instanceID string) (*http.Response, []byte) {

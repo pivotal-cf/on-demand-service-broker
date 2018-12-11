@@ -11,8 +11,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"reflect"
+
+	"github.com/pivotal-cf/on-demand-service-broker/config"
 
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/brokerapi"
@@ -37,22 +40,9 @@ func (b *Broker) Update(
 		return brokerapi.UpdateServiceSpec{}, b.processError(brokerapi.ErrAsyncRequired, logger)
 	}
 
-	plan, found := b.serviceOffering.FindPlanByID(details.PlanID)
-	if !found {
-		message := fmt.Sprintf("Plan %s not found", details.PlanID)
-		return brokerapi.UpdateServiceSpec{IsAsync: true}, b.processError(errors.New(message), logger)
-	}
-
-	if details.PreviousValues.PlanID != plan.ID {
-		cfPlanCounts, err := b.cfClient.CountInstancesOfServiceOffering(b.serviceOffering.ID, logger)
-		if err != nil {
-			return brokerapi.UpdateServiceSpec{IsAsync: true}, b.processError(NewGenericError(ctx, err), logger)
-		}
-
-		quotasErrors, ok := b.checkQuotas(ctx, plan, cfPlanCounts, b.serviceOffering.ID, logger)
-		if !ok {
-			return brokerapi.UpdateServiceSpec{IsAsync: true}, b.processError(quotasErrors, logger)
-		}
+	plan, err := checkPlanExists(b, details, logger, ctx)
+	if err != nil {
+		return brokerapi.UpdateServiceSpec{IsAsync: true}, b.processError(err, logger)
 	}
 
 	logger.Printf("updating instance %s", instanceID)
@@ -139,6 +129,10 @@ func (b *Broker) Update(
 			return brokerapi.UpdateServiceSpec{IsAsync: true}, b.processError(NewGenericError(ctx, err), logger)
 		}
 
+		if planMaintenanceInfo == nil {
+			return brokerapi.UpdateServiceSpec{}, b.processError(brokerapi.ErrMaintenanceInfoNilConflict, logger)
+		}
+
 		if !reflect.DeepEqual(*planMaintenanceInfo, details.MaintenanceInfo) {
 			return brokerapi.UpdateServiceSpec{}, b.processError(brokerapi.ErrMaintenanceInfoConflict, logger)
 		}
@@ -209,4 +203,25 @@ func (b *Broker) getMaintenanceInfoForPlan(id string) (*brokerapi.MaintenanceInf
 	}
 
 	return nil, fmt.Errorf("plan %s not found", id)
+}
+
+func checkPlanExists(b *Broker, details brokerapi.UpdateDetails, logger *log.Logger, ctx context.Context) (config.Plan, error) {
+	plan, found := b.serviceOffering.FindPlanByID(details.PlanID)
+	if !found {
+		message := fmt.Sprintf("Plan %s not found", details.PlanID)
+		return config.Plan{}, errors.New(message)
+	}
+
+	if details.PreviousValues.PlanID != plan.ID {
+		cfPlanCounts, err := b.cfClient.CountInstancesOfServiceOffering(b.serviceOffering.ID, logger)
+		if err != nil {
+			return config.Plan{}, NewGenericError(ctx, err)
+		}
+
+		quotasErrors, ok := b.checkQuotas(ctx, plan, cfPlanCounts, b.serviceOffering.ID, logger)
+		if !ok {
+			return config.Plan{}, quotasErrors
+		}
+	}
+	return plan, nil
 }
