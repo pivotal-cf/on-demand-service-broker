@@ -39,8 +39,6 @@ instance_groups:
       broker_name: ((broker_name))
       broker_uri: https://((broker_uri))
       cf:
-        admin_password: ((cf.user_credentials.password))
-        admin_username: ((cf.user_credentials.username))
         api_url: ((cf.api_url))
       disable_ssl_cert_verification: false
   - name: delete-all-service-instances-and-deregister-broker
