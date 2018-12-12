@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
@@ -13,6 +14,7 @@ import (
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/pborman/uuid"
+	yaml "gopkg.in/yaml.v2"
 
 	. "github.com/onsi/gomega"
 )
@@ -106,11 +108,13 @@ func DeployAndRegisterBroker(systemTestSuffix string, opsFiles ...string) Broker
 	fmt.Printf("opsFiles              = %+v\n", opsFiles)
 	fmt.Println("")
 
+	varsFile := os.Getenv("BOSH_DEPLOYMENT_VARS")
+
 	deployArguments := []string{
 		"-d", deploymentName,
 		"-n",
 		"deploy", "./fixtures/broker_manifest.yml",
-		"--vars-file", os.Getenv("BOSH_DEPLOYMENT_VARS"),
+		"--vars-file", varsFile,
 		"--var", "broker_uri=" + brokerURI,
 		"--var", "broker_cn='*" + brokerSystemDomain + "'",
 		"--var", "broker_deployment_name=" + deploymentName,
@@ -133,6 +137,10 @@ func DeployAndRegisterBroker(systemTestSuffix string, opsFiles ...string) Broker
 		deployArguments = append(deployArguments, []string{"--ops-file", "./fixtures/add_bpm_job.yml"}...)
 	}
 
+	if ClientCredentialsAreInVarsFile(varsFile) {
+		deployArguments = append(deployArguments, []string{"--ops-file", "./fixtures/remove_cf_user_creds.yml"}...)
+	}
+
 	cmd := exec.Command("bosh", deployArguments...)
 	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
 	Expect(err).NotTo(HaveOccurred(), "failed to run bosh deploy command")
@@ -152,6 +160,23 @@ func DeployAndRegisterBroker(systemTestSuffix string, opsFiles ...string) Broker
 		BrokerPassword:  brokerPassword,
 		BrokerUsername:  "broker",
 	}
+}
+
+func ClientCredentialsAreInVarsFile(varsFile string) bool {
+	var test struct {
+		CF struct {
+			ClientCredentials struct {
+				ClientID string `yaml:"client_id"`
+			} `yaml:"client_credentials"`
+		} `yaml:"cf"`
+	}
+	f, err := os.Open(varsFile)
+	Expect(err).NotTo(HaveOccurred())
+	varsFileContents, err := ioutil.ReadAll(f)
+	Expect(err).NotTo(HaveOccurred())
+	err = yaml.Unmarshal(varsFileContents, &test)
+	Expect(err).NotTo(HaveOccurred())
+	return test.CF.ClientCredentials.ClientID != ""
 }
 
 func DeregisterAndDeleteBroker(deploymentName string) {
