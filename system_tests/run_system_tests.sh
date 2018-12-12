@@ -16,7 +16,7 @@ fi
 
 cf api ${CF_URL} --skip-ssl-validation
 
-if [ -n "${CF_CLIENT_ID:-""}" ]; then
+if [[ -n "${CF_CLIENT_ID:-""}" && "${CF_CLIENT_ID:-""}" != "null" ]]; then
   cf auth "$CF_CLIENT_ID" "$CF_CLIENT_SECRET" --client-credentials
 else
   cf auth $CF_USERNAME $CF_PASSWORD
