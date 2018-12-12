@@ -74,6 +74,9 @@ instance_groups:
       cf:
         authentication:
           url: ((cf.uaa.url))
+          client_credentials:
+            client_id: ((cf.client_credentials.client_id))
+            secret: ((cf.client_credentials.client_secret))
           user_credentials:
             password: ((cf.user_credentials.password))
             username: ((cf.user_credentials.username))
