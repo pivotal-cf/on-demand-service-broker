@@ -247,7 +247,7 @@ var _ = Describe("Update a service instance", func() {
 		})
 
 		It("fails with 422 if there are pending changes", func() {
-			fakeTaskBoshClient.GetDeploymentReturns([]byte("name: service-instance_some-instance-id"), true, nil)
+			fakeTaskBoshClient.GetDeploymentReturns(oldManifest, true, nil)
 
 			boshManifest := []byte(`---
 name: service-instance_some-instance-id
@@ -540,6 +540,8 @@ properties:
 			resp, _ := doUpdateRequest(detailsMap, instanceID)
 
 			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
+
+			Eventually(loggerBuffer).Should(gbytes.Say(`upgrading instance ` + instanceID))
 		})
 
 		It("fails when maintenance_info doesn't match the catalog maintenance_info", func() {

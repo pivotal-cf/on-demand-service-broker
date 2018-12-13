@@ -40,102 +40,33 @@ func (b *Broker) Update(
 		return brokerapi.UpdateServiceSpec{}, b.processError(brokerapi.ErrAsyncRequired, logger)
 	}
 
-	plan, err := checkPlanExists(b, details, logger, ctx)
+	plan, err := b.checkPlanExists(details, logger, ctx)
 	if err != nil {
-		return brokerapi.UpdateServiceSpec{IsAsync: true}, b.processError(err, logger)
+		return brokerapi.UpdateServiceSpec{}, b.processError(err, logger)
 	}
 
-	logger.Printf("updating instance %s", instanceID)
 	detailsWithRawParameters := brokerapi.DetailsWithRawParameters(details)
 	detailsMap, err := convertDetailsToMap(detailsWithRawParameters)
 	if err != nil {
-		return brokerapi.UpdateServiceSpec{IsAsync: true}, b.processError(NewGenericError(ctx, err), logger)
-	}
-
-	if b.EnablePlanSchemas {
-		var schemas brokerapi.ServiceSchemas
-		schemas, err = b.adapterClient.GeneratePlanSchema(plan.AdapterPlan(b.serviceOffering.GlobalProperties), logger)
-		if err != nil {
-			if _, ok := err.(serviceadapter.NotImplementedError); !ok {
-				return brokerapi.UpdateServiceSpec{}, b.processError(err, logger)
-			}
-			logger.Println("enable_plan_schemas is set to true, but the service adapter does not implement generate-plan-schemas")
-			return brokerapi.UpdateServiceSpec{}, b.processError(fmt.Errorf("enable_plan_schemas is set to true, but the service adapter does not implement generate-plan-schemas"), logger)
-		}
-
-		instanceUpdateSchema := schemas.Instance.Update
-
-		validator := NewValidator(instanceUpdateSchema.Parameters)
-		err = validator.ValidateSchema()
-		if err != nil {
-			return brokerapi.UpdateServiceSpec{}, err
-		}
-
-		params := make(map[string]interface{})
-		err = json.Unmarshal(details.RawParameters, &params)
-		if err != nil && len(details.RawParameters) > 0 {
-			return brokerapi.UpdateServiceSpec{}, fmt.Errorf("update request params are malformed: %s", details.RawParameters)
-		}
-
-		err = validator.ValidateParams(params)
-		if err != nil {
-			return brokerapi.UpdateServiceSpec{}, err
-		}
+		return brokerapi.UpdateServiceSpec{}, b.processError(NewGenericError(ctx, err), logger)
 	}
 
 	var boshContextID string
-
 	if len(plan.PostDeployErrands()) > 0 {
 		boshContextID = uuid.New()
 	}
 
-	manifest, _, err := b.boshClient.GetDeployment(deploymentName(instanceID), logger)
-	if err != nil {
-		return brokerapi.UpdateServiceSpec{IsAsync: true}, b.processError(NewGenericError(ctx, err), logger)
-	}
-
-	deploymentVariables, err := b.boshClient.Variables(deploymentName(instanceID), logger)
-	if err != nil {
-		return brokerapi.UpdateServiceSpec{IsAsync: true}, b.processError(NewGenericError(ctx, err), logger)
-	}
-
-	secretMap, err := b.secretManager.ResolveManifestSecrets(manifest, deploymentVariables, logger)
-	if err != nil {
-		return brokerapi.UpdateServiceSpec{IsAsync: true}, b.processError(NewGenericError(ctx, err), logger)
-	}
-
 	var boshTaskID int
 	var operationType OperationType
-	if details.MaintenanceInfo.Private != "" || details.MaintenanceInfo.Public != nil {
-		if details.PlanID != details.PreviousValues.PlanID {
-			return brokerapi.UpdateServiceSpec{},
-				b.processError(brokerapi.NewFailureResponse(
-					errors.New("maintenance_info is passed indicating upgrade, but the plan has been updated"),
-					http.StatusUnprocessableEntity,
-					UpdateLoggerAction,
-				), logger)
-		}
-		if params := detailsMap["parameters"]; len(params.(map[string]interface{})) > 0 {
-			return brokerapi.UpdateServiceSpec{},
-				b.processError(brokerapi.NewFailureResponse(
-					errors.New("maintenance_info is passed indicating upgrade, but arbitrary params were passed"),
-					http.StatusUnprocessableEntity,
-					UpdateLoggerAction,
-				), logger)
-		}
 
-		planMaintenanceInfo, err := b.getMaintenanceInfoForPlan(plan.ID)
+	if b.isUpgrade(details) {
+
+		updateSpec, err := b.validateUpgrade(details, detailsMap, plan, logger, ctx)
 		if err != nil {
-			return brokerapi.UpdateServiceSpec{IsAsync: true}, b.processError(NewGenericError(ctx, err), logger)
+			return updateSpec, err
 		}
 
-		if planMaintenanceInfo == nil {
-			return brokerapi.UpdateServiceSpec{}, b.processError(brokerapi.ErrMaintenanceInfoNilConflict, logger)
-		}
-
-		if !reflect.DeepEqual(*planMaintenanceInfo, details.MaintenanceInfo) {
-			return brokerapi.UpdateServiceSpec{}, b.processError(brokerapi.ErrMaintenanceInfoConflict, logger)
-		}
+		logger.Printf("upgrading instance %s", instanceID)
 
 		operationType = OperationTypeUpgrade
 		boshTaskID, _, err = b.deployer.Upgrade(
@@ -145,7 +76,27 @@ func (b *Broker) Update(
 			boshContextID,
 			logger,
 		)
+
 	} else {
+
+		err = b.validateQuotasForUpdate(plan, details, logger, ctx)
+		if err != nil {
+			return brokerapi.UpdateServiceSpec{}, b.processError(err, logger)
+		}
+
+		err = b.validatePlanSchemas(plan, details, logger)
+		if err != nil {
+			return brokerapi.UpdateServiceSpec{}, b.processError(err, logger)
+		}
+
+		var secretMap map[string]string
+		secretMap, err = b.getSecretMap(instanceID, logger)
+		if err != nil {
+			return brokerapi.UpdateServiceSpec{}, b.processError(NewGenericError(ctx, err), logger)
+		}
+
+		logger.Printf("updating instance %s", instanceID)
+
 		operationType = OperationTypeUpdate
 		boshTaskID, _, err = b.deployer.Update(
 			deploymentName(instanceID),
@@ -160,21 +111,21 @@ func (b *Broker) Update(
 
 	switch err := err.(type) {
 	case ServiceError:
-		return brokerapi.UpdateServiceSpec{IsAsync: true}, b.processError(NewBoshRequestError("update", fmt.Errorf("error deploying instance: %s", err)), logger)
+		return brokerapi.UpdateServiceSpec{}, b.processError(NewBoshRequestError("update", fmt.Errorf("error deploying instance: %s", err)), logger)
 	case PendingChangesNotAppliedError:
-		return brokerapi.UpdateServiceSpec{IsAsync: true}, b.processError(brokerapi.NewFailureResponse(
+		return brokerapi.UpdateServiceSpec{}, b.processError(brokerapi.NewFailureResponse(
 			errors.New(PendingChangesErrorMessage),
 			http.StatusUnprocessableEntity,
 			UpdateLoggerAction,
 		), logger)
 	case TaskInProgressError:
-		return brokerapi.UpdateServiceSpec{IsAsync: true}, b.processError(errors.New(OperationInProgressMessage), logger)
+		return brokerapi.UpdateServiceSpec{}, b.processError(errors.New(OperationInProgressMessage), logger)
 	case PlanNotFoundError:
-		return brokerapi.UpdateServiceSpec{IsAsync: true}, b.processError(err, logger)
+		return brokerapi.UpdateServiceSpec{}, b.processError(err, logger)
 	case serviceadapter.UnknownFailureError:
-		return brokerapi.UpdateServiceSpec{IsAsync: true}, b.processError(adapterToAPIError(ctx, err), logger)
+		return brokerapi.UpdateServiceSpec{}, b.processError(adapterToAPIError(ctx, err), logger)
 	case error:
-		return brokerapi.UpdateServiceSpec{IsAsync: true}, b.processError(NewGenericError(ctx, fmt.Errorf("error deploying instance: %s", err)), logger)
+		return brokerapi.UpdateServiceSpec{}, b.processError(NewGenericError(ctx, fmt.Errorf("error deploying instance: %s", err)), logger)
 	}
 
 	operationData, err := json.Marshal(OperationData{
@@ -184,10 +135,66 @@ func (b *Broker) Update(
 		Errands:       plan.PostDeployErrands(),
 	})
 	if err != nil {
-		return brokerapi.UpdateServiceSpec{IsAsync: true}, b.processError(NewGenericError(brokercontext.WithBoshTaskID(ctx, boshTaskID), err), logger)
+		return brokerapi.UpdateServiceSpec{}, b.processError(NewGenericError(brokercontext.WithBoshTaskID(ctx, boshTaskID), err), logger)
 	}
 
 	return brokerapi.UpdateServiceSpec{IsAsync: true, OperationData: string(operationData)}, nil
+}
+
+func (b *Broker) checkPlanExists(details brokerapi.UpdateDetails, logger *log.Logger, ctx context.Context) (config.Plan, error) {
+	plan, found := b.serviceOffering.FindPlanByID(details.PlanID)
+	if !found {
+		message := fmt.Sprintf("Plan %s not found", details.PlanID)
+		return config.Plan{}, errors.New(message)
+	}
+
+	return plan, nil
+}
+
+func (b *Broker) isUpgrade(details brokerapi.UpdateDetails) bool {
+	return details.MaintenanceInfo.Private != "" || details.MaintenanceInfo.Public != nil
+}
+
+func (b *Broker) validateUpgrade(
+	details brokerapi.UpdateDetails,
+	detailsMap map[string]interface{},
+	plan config.Plan,
+	logger *log.Logger,
+	ctx context.Context,
+) (brokerapi.UpdateServiceSpec, error) {
+
+	if details.PlanID != details.PreviousValues.PlanID {
+		return brokerapi.UpdateServiceSpec{},
+			b.processError(brokerapi.NewFailureResponse(
+				errors.New("maintenance_info is passed indicating upgrade, but the plan has been updated"),
+				http.StatusUnprocessableEntity,
+				UpdateLoggerAction,
+			), logger)
+	}
+
+	if params := detailsMap["parameters"]; len(params.(map[string]interface{})) > 0 {
+		return brokerapi.UpdateServiceSpec{},
+			b.processError(brokerapi.NewFailureResponse(
+				errors.New("maintenance_info is passed indicating upgrade, but arbitrary params were passed"),
+				http.StatusUnprocessableEntity,
+				UpdateLoggerAction,
+			), logger)
+	}
+
+	planMaintenanceInfo, err := b.getMaintenanceInfoForPlan(plan.ID)
+	if err != nil {
+		return brokerapi.UpdateServiceSpec{}, b.processError(NewGenericError(ctx, err), logger)
+	}
+
+	if planMaintenanceInfo == nil {
+		return brokerapi.UpdateServiceSpec{}, b.processError(brokerapi.ErrMaintenanceInfoNilConflict, logger)
+	}
+
+	if !reflect.DeepEqual(*planMaintenanceInfo, details.MaintenanceInfo) {
+		return brokerapi.UpdateServiceSpec{}, b.processError(brokerapi.ErrMaintenanceInfoConflict, logger)
+	}
+
+	return brokerapi.UpdateServiceSpec{}, nil
 }
 
 func (b *Broker) getMaintenanceInfoForPlan(id string) (*brokerapi.MaintenanceInfo, error) {
@@ -205,23 +212,73 @@ func (b *Broker) getMaintenanceInfoForPlan(id string) (*brokerapi.MaintenanceInf
 	return nil, fmt.Errorf("plan %s not found", id)
 }
 
-func checkPlanExists(b *Broker, details brokerapi.UpdateDetails, logger *log.Logger, ctx context.Context) (config.Plan, error) {
-	plan, found := b.serviceOffering.FindPlanByID(details.PlanID)
-	if !found {
-		message := fmt.Sprintf("Plan %s not found", details.PlanID)
-		return config.Plan{}, errors.New(message)
-	}
-
+func (b *Broker) validateQuotasForUpdate(plan config.Plan, details brokerapi.UpdateDetails, logger *log.Logger, ctx context.Context) error {
 	if details.PreviousValues.PlanID != plan.ID {
 		cfPlanCounts, err := b.cfClient.CountInstancesOfServiceOffering(b.serviceOffering.ID, logger)
 		if err != nil {
-			return config.Plan{}, NewGenericError(ctx, err)
+			return NewGenericError(ctx, err)
 		}
 
 		quotasErrors, ok := b.checkQuotas(ctx, plan, cfPlanCounts, b.serviceOffering.ID, logger)
 		if !ok {
-			return config.Plan{}, quotasErrors
+			return quotasErrors
 		}
 	}
-	return plan, nil
+
+	return nil
+}
+
+func (b *Broker) validatePlanSchemas(plan config.Plan, details brokerapi.UpdateDetails, logger *log.Logger) error {
+
+	if b.EnablePlanSchemas {
+		var schemas brokerapi.ServiceSchemas
+		schemas, err := b.adapterClient.GeneratePlanSchema(plan.AdapterPlan(b.serviceOffering.GlobalProperties), logger)
+		if err != nil {
+			if _, ok := err.(serviceadapter.NotImplementedError); !ok {
+				return err
+			}
+			logger.Println("enable_plan_schemas is set to true, but the service adapter does not implement generate-plan-schemas")
+			return fmt.Errorf("enable_plan_schemas is set to true, but the service adapter does not implement generate-plan-schemas")
+		}
+
+		instanceUpdateSchema := schemas.Instance.Update
+
+		validator := NewValidator(instanceUpdateSchema.Parameters)
+		err = validator.ValidateSchema()
+		if err != nil {
+			return err
+		}
+
+		params := make(map[string]interface{})
+		err = json.Unmarshal(details.RawParameters, &params)
+		if err != nil && len(details.RawParameters) > 0 {
+			return fmt.Errorf("update request params are malformed: %s", details.RawParameters)
+		}
+
+		err = validator.ValidateParams(params)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (b *Broker) getSecretMap(instanceID string, logger *log.Logger) (map[string]string, error) {
+	manifest, _, err := b.boshClient.GetDeployment(deploymentName(instanceID), logger)
+	if err != nil {
+		return nil, err
+	}
+
+	deploymentVariables, err := b.boshClient.Variables(deploymentName(instanceID), logger)
+	if err != nil {
+		return nil, err
+	}
+
+	secretMap, err := b.secretManager.ResolveManifestSecrets(manifest, deploymentVariables, logger)
+	if err != nil {
+		return nil, err
+	}
+
+	return secretMap, nil
 }

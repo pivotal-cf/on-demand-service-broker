@@ -727,6 +727,8 @@ var _ = Describe("Update", func() {
 				IsAsync:       true,
 				OperationData: string(opData),
 			}))
+
+			Expect(logBuffer.String()).To(MatchRegexp(`\[[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\] \d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2} upgrading instance`))
 		})
 
 		It("fails when plan also changes", func() {
