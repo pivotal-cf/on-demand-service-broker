@@ -426,7 +426,7 @@ func getPlansFromCatalog(serviceCatalog config.ServiceOffering) []brokerapi.Serv
 				Public: map[string]string{
 					"version": "fancy",
 				},
-				Private: "jimmy",
+				Private: "secret:secret;",
 			},
 		})
 	}

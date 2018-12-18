@@ -288,7 +288,7 @@ var _ = BeforeEach(func() {
 	fakeInstanceLister = new(servicefakes.FakeInstanceLister)
 	cfClient = new(fakes.FakeCloudFoundryClient)
 	fakeMapHasher = new(fakes.FakeHasher)
-	fakeMapHasher.HashReturns("jimmy")
+	fakeMapHasher.HashStub = ReturnSameValueHasher
 	cfClient.GetAPIVersionReturns("2.57.0", nil)
 
 	serviceCatalog = config.ServiceOffering{
@@ -404,4 +404,12 @@ func createBroker(startupCheckers []broker.StartupChecker, overrideClient ...bro
 		fakeMapHasher,
 		loggerFactory,
 	)
+}
+
+func ReturnSameValueHasher (m map[string]string) string {
+	var s string
+	for key, value := range m {
+		s += key + ":" + value + ";"
+	}
+	return s
 }

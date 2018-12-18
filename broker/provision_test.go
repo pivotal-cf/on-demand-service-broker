@@ -47,13 +47,16 @@ var _ = Describe("Provisioning", func() {
 		jsonContext      []byte
 		arbParams        map[string]interface{}
 		arbContext       map[string]interface{}
+		maintenanceInfo  brokerapi.MaintenanceInfo
 
 		asyncAllowed = true
+		deployTaskID int
 	)
 
 	BeforeEach(func() {
 		planID = existingPlanID
 		asyncAllowed = true
+		deployTaskID = 123
 
 		arbParams = map[string]interface{}{"foo": "bar"}
 		arbContext = map[string]interface{}{"platform": "cloudfoundry", "space_guid": "final"}
@@ -79,6 +82,7 @@ var _ = Describe("Provisioning", func() {
 				OrganizationGUID: organizationGUID,
 				SpaceGUID:        spaceGUID,
 				ServiceID:        serviceOfferingID,
+				MaintenanceInfo:  maintenanceInfo,
 			},
 			asyncAllowed,
 		)
@@ -87,7 +91,6 @@ var _ = Describe("Provisioning", func() {
 	Context("when bosh deploys the release successfully", func() {
 		var (
 			newlyGeneratedManifest []byte
-			deployTaskID           = 123
 		)
 
 		BeforeEach(func() {
@@ -113,6 +116,7 @@ var _ = Describe("Provisioning", func() {
 				"organization_guid": organizationGUID,
 				"space_guid":        spaceGUID,
 				"service_id":        serviceOfferingID,
+				"maintenance_info":  map[string]interface{}{},
 			}))
 			Expect(actualPlan).To(Equal(planID))
 			Expect(actualDeploymentName).To(Equal(deploymentName(instanceID)))
@@ -994,6 +998,66 @@ var _ = Describe("Provisioning", func() {
 					1)
 
 				Expect(provisionErr).NotTo(HaveOccurred())
+			})
+		})
+	})
+
+	Context("when maintenance info is passed", func() {
+		BeforeEach(func() {
+			maintenanceInfo = brokerapi.MaintenanceInfo{
+				Public: map[string]string{
+					"edition": "gold millennium",
+				},
+				Private: "",
+			}
+			newlyGeneratedManifest := []byte("a newly generated manifest")
+			fakeDeployer.CreateReturns(deployTaskID, newlyGeneratedManifest, nil)
+		})
+
+		Context("with a broker configured with maintenance info", func() {
+			BeforeEach(func() {
+				serviceCatalog.MaintenanceInfo = &config.MaintenanceInfo{
+					Public: map[string]string{
+						"edition": "gold millennium",
+					},
+					Private: map[string]string{},
+				}
+			})
+
+			It("provisions successfully when the maintenance info matches", func() {
+				Expect(provisionErr).NotTo(HaveOccurred())
+
+				var operationData broker.OperationData
+				Expect(json.Unmarshal([]byte(serviceSpec.OperationData), &operationData)).To(Succeed())
+				Expect(operationData).To(Equal(
+					broker.OperationData{BoshTaskID: deployTaskID, OperationType: broker.OperationTypeCreate},
+				))
+			})
+
+			When("the passed maintenance info does not match", func() {
+				BeforeEach(func() {
+					serviceCatalog.MaintenanceInfo = &config.MaintenanceInfo{
+						Public: map[string]string{
+							"edition": "1st",
+						},
+						Private: map[string]string{},
+					}
+				})
+				It("errors", func() {
+					Expect(provisionErr).To(HaveOccurred())
+					Expect(provisionErr).To(Equal(brokerapi.ErrMaintenanceInfoConflict))
+				})
+			})
+		})
+
+		Context("with a broker configured without maintenance info", func() {
+			BeforeEach(func() {
+				serviceCatalog.MaintenanceInfo = nil
+			})
+
+			It("fails to provision", func() {
+				Expect(provisionErr).To(HaveOccurred())
+				Expect(provisionErr).To(Equal(brokerapi.ErrMaintenanceInfoNilConflict))
 			})
 		})
 	})

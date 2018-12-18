@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"reflect"
 
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/brokerapi"
@@ -48,6 +49,22 @@ func (b *Broker) Provision(ctx context.Context, instanceID string, details broke
 	requestParams, err := convertDetailsToMap(detailsWithRawParameters)
 	if err != nil {
 		return brokerapi.ProvisionedServiceSpec{}, b.processError(err, logger)
+	}
+
+
+	if details.MaintenanceInfo.Private != "" || details.MaintenanceInfo.Public != nil {
+		planMaintenanceInfo, err := b.getMaintenanceInfoForPlan(details.PlanID)
+		if err != nil {
+			return brokerapi.ProvisionedServiceSpec{}, b.processError(err, logger)
+		}
+
+		if planMaintenanceInfo == nil {
+			return brokerapi.ProvisionedServiceSpec{}, b.processError(brokerapi.ErrMaintenanceInfoNilConflict, logger)
+		}
+
+		if !reflect.DeepEqual(*planMaintenanceInfo, details.MaintenanceInfo) {
+			return brokerapi.ProvisionedServiceSpec{}, b.processError(brokerapi.ErrMaintenanceInfoConflict, logger)
+		}
 	}
 
 	_, err = b.boshClient.GetInfo(logger)

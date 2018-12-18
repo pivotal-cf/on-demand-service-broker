@@ -16,6 +16,7 @@
 package on_demand_service_broker_test
 
 import (
+	"github.com/pivotal-cf/brokerapi"
 	"log"
 	"os"
 
@@ -81,7 +82,7 @@ var _ = Describe("Shutdown of the broker process", func() {
 
 		go func() {
 			defer GinkgoRecover()
-			resp, _ := doProvisionRequest("some-instance-id", dedicatedPlanID, nil, true)
+			resp, _ := doProvisionRequest("some-instance-id", dedicatedPlanID, nil, brokerapi.MaintenanceInfo{}, true)
 			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
 		}()
 
@@ -119,7 +120,7 @@ var _ = Describe("Shutdown of the broker process", func() {
 		}
 
 		go func() {
-			resp, _ := doProvisionRequest("some-instance-id", dedicatedPlanID, nil, true)
+			resp, _ := doProvisionRequest("some-instance-id", dedicatedPlanID, nil,brokerapi.MaintenanceInfo{}, true)
 			defer GinkgoRecover()
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 		}()

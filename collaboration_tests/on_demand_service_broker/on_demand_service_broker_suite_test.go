@@ -82,6 +82,7 @@ var (
 var _ = BeforeEach(func() {
 	fakeBoshClient = new(fakes.FakeBoshClient)
 	fakeMapHasher = new(fakes.FakeHasher)
+	fakeMapHasher.HashStub = ReturnSameValueHasher
 	fakeServiceAdapter = new(fakes.FakeServiceAdapterClient)
 	fakeCredentialStore = new(credhubfakes.FakeCredentialStore)
 	fakeCfClient = new(fakes.FakeCloudFoundryClient)
@@ -212,4 +213,12 @@ func doHTTPSRequest(method, url string, caCertFile string, cipherSuites []uint16
 func toJson(obj interface{}) []byte {
 	bytes, _ := json.Marshal(obj)
 	return bytes
+}
+
+func ReturnSameValueHasher (m map[string]string) string {
+	var s string
+	for key, value := range m {
+		s += key + ":" + value + ";"
+	}
+	return s
 }

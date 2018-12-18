@@ -706,7 +706,7 @@ var _ = Describe("Update", func() {
 				Public: map[string]string{
 					"version": "fancy",
 				},
-				Private: "jimmy",
+				Private: "secret:secret;",
 			}
 		})
 
