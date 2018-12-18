@@ -112,7 +112,7 @@ var _ = Describe("Creating a service", func() {
 			}
 
 			Expect(resp.StatusCode).To(Equal(http.StatusUnprocessableEntity))
-			Expect(string(bodyContent)).To(ContainSubstring("maintenanceInfoConflict"))
+			Expect(string(bodyContent)).To(ContainSubstring("MaintenanceInfoConflict"))
 
 		})
 	})
