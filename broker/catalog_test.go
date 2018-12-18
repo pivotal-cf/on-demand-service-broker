@@ -322,6 +322,38 @@ var _ = Describe("Catalog", func() {
 		}
 	})
 
+	It("caches the catalog", func() {
+		planSchema := brokerapi.ServiceSchemas{
+			Instance: brokerapi.ServiceInstanceSchema{
+				Create: createSchema,
+				Update: updateSchema,
+			},
+			Binding: brokerapi.ServiceBindingSchema{
+				Create: bindingSchema,
+			},
+		}
+
+		serviceAdapter.GeneratePlanSchemaReturns(planSchema, nil)
+		b, brokerCreationErr = createBroker([]broker.StartupChecker{}, noopservicescontroller.New())
+		b.EnablePlanSchemas = true
+
+		Expect(brokerCreationErr).NotTo(HaveOccurred())
+
+		contextWithoutRequestID := context.Background()
+		services, err := b.Services(contextWithoutRequestID)
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(serviceAdapter.GeneratePlanSchemaCallCount()).To(Equal(len(services[0].Plans)))
+
+		By("invoking Services() again to get cached value", func() {
+			servicesII, err := b.Services(contextWithoutRequestID)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(servicesII).To(Equal(services))
+			Expect(serviceAdapter.GeneratePlanSchemaCallCount()).To(Equal(len(services[0].Plans)))
+		})
+
+	})
+
 	DescribeTable("when the generated schema is invalid",
 		func(create, update, binding brokerapi.Schema, errorLabel string) {
 			planSchema := brokerapi.ServiceSchemas{

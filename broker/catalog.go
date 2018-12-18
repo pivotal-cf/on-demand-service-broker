@@ -17,6 +17,13 @@ import (
 )
 
 func (b *Broker) Services(ctx context.Context) ([]brokerapi.Service, error) {
+	b.catalogLock.Lock()
+	defer b.catalogLock.Unlock()
+
+	if b.cachedCatalog != nil {
+		return b.cachedCatalog, nil
+	}
+
 	logger := b.loggerFactory.NewWithContext(ctx)
 	var servicePlans []brokerapi.ServicePlan
 
@@ -81,7 +88,7 @@ func (b *Broker) Services(ctx context.Context) ([]brokerapi.Service, error) {
 		}
 	}
 
-	return []brokerapi.Service{
+	b.cachedCatalog = []brokerapi.Service{
 		{
 			ID:            b.serviceOffering.ID,
 			Name:          b.serviceOffering.Name,
@@ -103,7 +110,8 @@ func (b *Broker) Services(ctx context.Context) ([]brokerapi.Service, error) {
 			Requires:        requiredPermissions(b.serviceOffering.Requires),
 			Tags:            b.serviceOffering.Tags,
 		},
-	}, nil
+	}
+	return b.cachedCatalog, nil
 }
 
 func copyMap(dst, src map[string]string) {

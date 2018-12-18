@@ -39,6 +39,8 @@ type Broker struct {
 	EnableSecureManifests   bool
 
 	loggerFactory *loggerfactory.LoggerFactory
+	catalogLock   sync.Mutex
+	cachedCatalog []brokerapi.Service
 }
 
 func New(
