@@ -40,14 +40,14 @@ var _ = Describe("Provisioning", func() {
 		serviceSpec  brokerapi.ProvisionedServiceSpec
 		provisionErr error
 
-		organizationGUID = "a-cf-org"
-		spaceGUID        = "a-cf-space"
-		instanceID       = "some-instance-id"
-		jsonParams       []byte
-		jsonContext      []byte
-		arbParams        map[string]interface{}
-		arbContext       map[string]interface{}
-		maintenanceInfo  brokerapi.MaintenanceInfo
+		organizationGUID        = "a-cf-org"
+		spaceGUID               = "a-cf-space"
+		instanceID              = "some-instance-id"
+		jsonParams             []byte
+		jsonContext            []byte
+		arbParams              map[string]interface{}
+		arbContext             map[string]interface{}
+		requestMaintenanceInfo brokerapi.MaintenanceInfo
 
 		asyncAllowed = true
 		deployTaskID int
@@ -57,6 +57,7 @@ var _ = Describe("Provisioning", func() {
 		planID = existingPlanID
 		asyncAllowed = true
 		deployTaskID = 123
+		requestMaintenanceInfo = brokerapi.MaintenanceInfo{}
 
 		arbParams = map[string]interface{}{"foo": "bar"}
 		arbContext = map[string]interface{}{"platform": "cloudfoundry", "space_guid": "final"}
@@ -82,7 +83,7 @@ var _ = Describe("Provisioning", func() {
 				OrganizationGUID: organizationGUID,
 				SpaceGUID:        spaceGUID,
 				ServiceID:        serviceOfferingID,
-				MaintenanceInfo:  maintenanceInfo,
+				MaintenanceInfo:  requestMaintenanceInfo,
 			},
 			asyncAllowed,
 		)
@@ -1004,7 +1005,7 @@ var _ = Describe("Provisioning", func() {
 
 	Context("when maintenance info is passed", func() {
 		BeforeEach(func() {
-			maintenanceInfo = brokerapi.MaintenanceInfo{
+			requestMaintenanceInfo = brokerapi.MaintenanceInfo{
 				Public: map[string]string{
 					"edition": "gold millennium",
 				},

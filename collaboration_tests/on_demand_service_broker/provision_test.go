@@ -487,39 +487,37 @@ password: ((odb_secret:foo))`,
 		Expect(errorResponse.Description).To(ContainSubstring("Currently unable to create service instance, please try again later"))
 	})
 
-	Context("passing maintenance_info with the provision request", func() {
-		// have the maintenance_info we're going to pass in
-		brokerMaintenanceInfo := brokerConfig.MaintenanceInfo{
-			Public: map[string]string{
-				"foo": "bar",
-			},
-			Private: map[string]string{
-				"Secret": "superSecret",
-			},
-		}
-		requestMaintenanceInfo := brokerapi.MaintenanceInfo{
-			Public: map[string]string{
-				"foo": "bar",
-			},
-			Private: "Secret:superSecret;", // this matches the hash stub function
-		}
+	When("the broker is configured with maintenance_info", func(){
+		var requestMaintenanceInfo brokerapi.MaintenanceInfo
 
-		When("maintenance_info matches that stored on the broker", func() {
-			// set maintenance_info in the conf (before each)
-			BeforeEach(func() {
-				conf.ServiceCatalog.MaintenanceInfo = &brokerMaintenanceInfo
-			})
+		BeforeEach(func(){
+			brokerMaintenanceInfo := brokerConfig.MaintenanceInfo{
+				Public: map[string]string{
+					"foo": "bar",
+				},
+				Private: map[string]string{
+					"Secret": "superSecret",
+				},
+			}
+			conf.ServiceCatalog.MaintenanceInfo = &brokerMaintenanceInfo
+			requestMaintenanceInfo = brokerapi.MaintenanceInfo{
+				Public: map[string]string{
+					"foo": "bar",
+				},
+				Private: "Secret:superSecret;", // this is what is produced by the stubbed hash function
+			}
+		})
 
+		When("maintenance_info in the request matches that stored on the broker", func() {
 			It("accepts the provision request", func() {
 				resp, _ := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, requestMaintenanceInfo, true)
 				Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
 			})
 		})
 
-		When("maintenance_info does not match that stored on the broker", func() {
+		When("maintenance_info in the request does not match that stored on the broker", func() {
 			// set dodgy maintenance_info on the conf (before each)
 			BeforeEach(func() {
-				conf.ServiceCatalog.MaintenanceInfo = &brokerMaintenanceInfo
 				requestMaintenanceInfo.Public["extra"] = "testing"
 			})
 			It("returns UnprocessableEntity with maintenanceInfoConflict error", func() {
@@ -532,18 +530,23 @@ password: ((odb_secret:foo))`,
 				}`))
 			})
 		})
+	})
+	When("the broker does not have maintenance_info", func() {
+		// leave no maintenance_info on the conf (before each)
+		It("returns UnprocessableEntity with maintenanceInfoConflict error", func() {
+			requestMaintenanceInfo := brokerapi.MaintenanceInfo{
+				Public: map[string]string{
+					"foo": "bar",
+				},
+				Private: "Secret:superSecret;", // this is what is produced by the stubbed hash function
+			}
+			resp, bodyContent := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, requestMaintenanceInfo, true)
+			Expect(resp.StatusCode).To(Equal(http.StatusUnprocessableEntity))
 
-		When("the broker does not have maintenance_info", func() {
-			// leave no maintenance_info on the conf (before each)
-			It("returns UnprocessableEntity with maintenanceInfoConflict error", func() {
-				resp, bodyContent := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, requestMaintenanceInfo, true)
-				Expect(resp.StatusCode).To(Equal(http.StatusUnprocessableEntity))
-
-				Expect(bodyContent).To(MatchJSON(`{
+			Expect(bodyContent).To(MatchJSON(`{
 					"error":"MaintenanceInfoConflict",
 					"description":"maintenance_info was passed, but the broker catalog contains no maintenance_info"
 				}`))
-			})
 		})
 	})
 })
