@@ -352,8 +352,8 @@
     "middlewares/originating_identity_header",
   ]
   pruneopts = "NUT"
-  revision = "63fe461ff045fb037a43cf1635578120dc891c16"
-  version = "v4.2.0"
+  revision = "644cda48aed126142816ea9fdf0c676e7d66032e"
+  version = "v4.2.1"
 
 [[projects]]
   branch = "master"
@@ -364,7 +364,7 @@
     "serviceadapter",
   ]
   pruneopts = "NUT"
-  revision = "4e25eeb97468eb615c0eff3c99f2dbd6cc7011de"
+  revision = "b257a57e90c56f05d5a41abc41ab5828ed4e1293"
 
 [[projects]]
   branch = "master"
