@@ -34,84 +34,91 @@ var _ = Describe("Catalog", func() {
 		invalidTypeSchema, invalidVersionSchema, noVersionSchema brokerapi.Schema
 	)
 
-	setSchemas := func() {
-		createSchema = brokerapi.Schema{
-			Parameters: map[string]interface{}{
-				"$schema": "http://json-schema.org/draft-04/schema#",
-				"type":    "object",
-				"properties": map[string]interface{}{
-					"create-prop": map[string]interface{}{
-						"description": "create prop",
-						"type":        "integer",
-					},
+	createSchema = brokerapi.Schema{
+		Parameters: map[string]interface{}{
+			"$schema": "http://json-schema.org/draft-04/schema#",
+			"type":    "object",
+			"properties": map[string]interface{}{
+				"create-prop": map[string]interface{}{
+					"description": "create prop",
+					"type":        "integer",
 				},
 			},
-		}
-		updateSchema = brokerapi.Schema{
-			Parameters: map[string]interface{}{
-				"$schema": "http://json-schema.org/draft-04/schema#",
-				"type":    "object",
-				"properties": map[string]interface{}{
-					"some-update-prop": map[string]interface{}{
-						"description": "some update prop create topics",
-						"type":        "boolean",
-					},
+		},
+	}
+	updateSchema = brokerapi.Schema{
+		Parameters: map[string]interface{}{
+			"$schema": "http://json-schema.org/draft-04/schema#",
+			"type":    "object",
+			"properties": map[string]interface{}{
+				"some-update-prop": map[string]interface{}{
+					"description": "some update prop create topics",
+					"type":        "boolean",
 				},
 			},
-		}
-		bindingSchema = brokerapi.Schema{
-			Parameters: map[string]interface{}{
-				"$schema": "http://json-schema.org/draft-04/schema#",
-				"type":    "object",
-				"properties": map[string]interface{}{
-					"binding-prop": map[string]interface{}{
-						"description": "binding",
-						"type":        "boolean",
-					},
+		},
+	}
+	bindingSchema = brokerapi.Schema{
+		Parameters: map[string]interface{}{
+			"$schema": "http://json-schema.org/draft-04/schema#",
+			"type":    "object",
+			"properties": map[string]interface{}{
+				"binding-prop": map[string]interface{}{
+					"description": "binding",
+					"type":        "boolean",
 				},
 			},
-		}
-		noVersionSchema = brokerapi.Schema{
-			Parameters: map[string]interface{}{
-				"type": "object",
-				"properties": map[string]interface{}{
-					"some-prop": map[string]interface{}{
-						"description": "create prop",
-						"type":        "string",
-					},
+		},
+	}
+	noVersionSchema = brokerapi.Schema{
+		Parameters: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"some-prop": map[string]interface{}{
+					"description": "create prop",
+					"type":        "string",
 				},
 			},
-		}
-		invalidVersionSchema = brokerapi.Schema{
-			Parameters: map[string]interface{}{
-				"$schema": "http://json-schema.org/draft-03/schema#",
-				"type":    "object",
-				"properties": map[string]interface{}{
-					"some-prop": map[string]interface{}{
-						"description": "create prop",
-						"type":        "string",
-					},
+		},
+	}
+	invalidVersionSchema = brokerapi.Schema{
+		Parameters: map[string]interface{}{
+			"$schema": "http://json-schema.org/draft-03/schema#",
+			"type":    "object",
+			"properties": map[string]interface{}{
+				"some-prop": map[string]interface{}{
+					"description": "create prop",
+					"type":        "string",
 				},
 			},
-		}
-		invalidTypeSchema = brokerapi.Schema{
-			Parameters: map[string]interface{}{
-				"$schema": "http://json-schema.org/draft-04/schema#",
-				"type":    "object",
-				"properties": map[string]interface{}{
-					"some-prop": map[string]interface{}{
-						"description": "create prop",
-						"type":        "fool",
-					},
+		},
+	}
+	invalidTypeSchema = brokerapi.Schema{
+		Parameters: map[string]interface{}{
+			"$schema": "http://json-schema.org/draft-04/schema#",
+			"type":    "object",
+			"properties": map[string]interface{}{
+				"some-prop": map[string]interface{}{
+					"description": "create prop",
+					"type":        "fool",
 				},
 			},
-		}
+		},
 	}
 
-	setSchemas()
-
 	BeforeEach(func() {
-		setSchemas()
+		serviceCatalog = config.ServiceOffering{
+			ID:   serviceOfferingID,
+			Name: "a-cool-redis-service",
+			Plans: []config.Plan{
+				{
+					ID:   existingPlanID,
+					Name: existingPlanName,
+				}, {
+					ID: secondPlanID,
+				},
+			},
+		}
 	})
 
 	It("generates the catalog response", func() {
@@ -421,12 +428,6 @@ func getPlansFromCatalog(serviceCatalog config.ServiceOffering) []brokerapi.Serv
 			Metadata: &brokerapi.ServicePlanMetadata{
 				Bullets:     plan.Metadata.Bullets,
 				DisplayName: plan.Metadata.DisplayName,
-			},
-			MaintenanceInfo: &brokerapi.MaintenanceInfo{
-				Public: map[string]string{
-					"version": "fancy",
-				},
-				Private: "secret:secret;",
 			},
 		})
 	}

@@ -257,6 +257,11 @@ var _ = BeforeEach(func() {
 				AZs:                []string{"my-az4", "my-az5"},
 			},
 		},
+		MaintenanceInfo: &config.MaintenanceInfo{
+			Public: map[string]string{
+				"plan_specific": "value",
+			},
+		},
 	}
 
 	postDeployErrandPlan := config.Plan{
@@ -406,7 +411,7 @@ func createBroker(startupCheckers []broker.StartupChecker, overrideClient ...bro
 	)
 }
 
-func ReturnSameValueHasher (m map[string]string) string {
+func ReturnSameValueHasher(m map[string]string) string {
 	var s string
 	for key, value := range m {
 		s += key + ":" + value + ";"

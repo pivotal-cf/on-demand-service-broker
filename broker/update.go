@@ -59,8 +59,22 @@ func (b *Broker) Update(
 	var boshTaskID int
 	var operationType OperationType
 
-	if b.isUpgrade(details) {
+	if details.MaintenanceInfo.Private != "" || details.MaintenanceInfo.Public != nil {
+		brokerMaintenanceInfo, err := b.getMaintenanceInfoForPlan(details.PlanID)
+		if err != nil {
+			return brokerapi.UpdateServiceSpec{}, b.processError(NewGenericError(ctx, err), logger)
+		}
 
+		if brokerMaintenanceInfo != nil && !reflect.DeepEqual(*brokerMaintenanceInfo, details.MaintenanceInfo) {
+			return brokerapi.UpdateServiceSpec{}, b.processError(brokerapi.ErrMaintenanceInfoConflict, logger)
+		}
+
+		if brokerMaintenanceInfo == nil {
+			return brokerapi.UpdateServiceSpec{}, b.processError(brokerapi.ErrMaintenanceInfoNilConflict, logger)
+		}
+	}
+
+	if b.isUpgrade(details) {
 		updateSpec, err := b.validateUpgrade(details, detailsMap, plan, logger, ctx)
 		if err != nil {
 			return updateSpec, err
@@ -78,7 +92,6 @@ func (b *Broker) Update(
 		)
 
 	} else {
-
 		err = b.validateQuotasForUpdate(plan, details, logger, ctx)
 		if err != nil {
 			return brokerapi.UpdateServiceSpec{}, b.processError(err, logger)
@@ -152,7 +165,10 @@ func (b *Broker) checkPlanExists(details brokerapi.UpdateDetails, logger *log.Lo
 }
 
 func (b *Broker) isUpgrade(details brokerapi.UpdateDetails) bool {
-	return details.MaintenanceInfo.Private != "" || details.MaintenanceInfo.Public != nil
+	if details.MaintenanceInfo.Private != "" || details.MaintenanceInfo.Public != nil {
+		return details.PlanID == details.PreviousValues.PlanID
+	}
+	return false
 }
 
 func (b *Broker) validateUpgrade(
@@ -163,15 +179,6 @@ func (b *Broker) validateUpgrade(
 	ctx context.Context,
 ) (brokerapi.UpdateServiceSpec, error) {
 
-	if details.PlanID != details.PreviousValues.PlanID {
-		return brokerapi.UpdateServiceSpec{},
-			b.processError(brokerapi.NewFailureResponse(
-				errors.New("maintenance_info is passed indicating upgrade, but the plan has been updated"),
-				http.StatusUnprocessableEntity,
-				UpdateLoggerAction,
-			), logger)
-	}
-
 	if params := detailsMap["parameters"]; len(params.(map[string]interface{})) > 0 {
 		return brokerapi.UpdateServiceSpec{},
 			b.processError(brokerapi.NewFailureResponse(
@@ -179,19 +186,6 @@ func (b *Broker) validateUpgrade(
 				http.StatusUnprocessableEntity,
 				UpdateLoggerAction,
 			), logger)
-	}
-
-	planMaintenanceInfo, err := b.getMaintenanceInfoForPlan(plan.ID)
-	if err != nil {
-		return brokerapi.UpdateServiceSpec{}, b.processError(NewGenericError(ctx, err), logger)
-	}
-
-	if planMaintenanceInfo == nil {
-		return brokerapi.UpdateServiceSpec{}, b.processError(brokerapi.ErrMaintenanceInfoNilConflict, logger)
-	}
-
-	if !reflect.DeepEqual(*planMaintenanceInfo, details.MaintenanceInfo) {
-		return brokerapi.UpdateServiceSpec{}, b.processError(brokerapi.ErrMaintenanceInfoConflict, logger)
 	}
 
 	return brokerapi.UpdateServiceSpec{}, nil

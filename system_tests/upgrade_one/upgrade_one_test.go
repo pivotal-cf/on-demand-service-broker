@@ -38,7 +38,6 @@ var _ = Describe("Upgrade One Service Instance", func() {
 		// redeploy the broker, adding a lifecycle errand, and changing the maintenance_info
 		brokerInfo = bosh.DeployAndRegisterBroker(brokerInfo.TestSuffix, "add_lifecycle_errand.yml", "update_maintenance_info.yml")
 
-		serviceInstanceGUID := cf.GetServiceInstanceGUID(serviceInstanceName)
 		catalog := getCatalog(brokerInfo)
 
 		updateBody := UpdateBody{
@@ -49,10 +48,12 @@ var _ = Describe("Upgrade One Service Instance", func() {
 			},
 			PlanID: catalog.Services[0].Plans[0].ID,
 		}
+
 		bodyBytes, err := json.Marshal(updateBody)
 		Expect(err).NotTo(HaveOccurred())
 		body := bytes.NewBuffer(bodyBytes)
 
+		serviceInstanceGUID := cf.GetServiceInstanceGUID(serviceInstanceName)
 		url := fmt.Sprintf("http://%s/v2/service_instances/%s?accepts_incomplete=true", brokerInfo.URI, serviceInstanceGUID)
 		response, bodyContent := doRequest(http.MethodPatch, url, body)
 		Expect(response.StatusCode).To(Equal(http.StatusAccepted))

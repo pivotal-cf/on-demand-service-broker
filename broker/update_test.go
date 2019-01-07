@@ -54,8 +54,8 @@ var _ = Describe("Update", func() {
 		boshTaskID = 447
 		arbContext = map[string]interface{}{"platform": "cloudfoundry", "space_guid": "final"}
 
-		newPlanID = existingPlanID
-		oldPlanID = secondPlanID
+		newPlanID = secondPlanID
+		oldPlanID = existingPlanID
 
 		planCounts := map[cf.ServicePlan]int{}
 		cfClient.CountInstancesOfServiceOfferingReturns(planCounts, nil)
@@ -69,7 +69,20 @@ var _ = Describe("Update", func() {
 		testBroker = createDefaultBroker()
 	})
 
-	When("its an update", func() {
+	Context("before determining whether the operation is an update or an upgrade", func() {
+		It("errors if the maintenance_info for the plan cannot be determined", func() {
+			fakeAdapter := new(brokerfakes.FakeServiceAdapterClient)
+			fakeAdapter.GeneratePlanSchemaReturns(brokerapi.ServiceSchemas{}, errors.New("oops"))
+			brokerConfig.EnablePlanSchemas = true
+			testBroker = createBrokerWithAdapter(fakeAdapter)
+
+			_, updateError = updateService(testBroker, arbitraryParams, arbContext, instanceID, newPlanID, serviceID, oldPlanID, orgGUID, spaceGUID, async, maintenanceInfo)
+			Expect(updateError).To(HaveOccurred())
+			Expect(updateError.Error()).To(ContainSubstring("oops"))
+		})
+	})
+
+	When("it is an update", func() {
 		JustBeforeEach(func() {
 			updateSpec, updateError = updateService(testBroker, arbitraryParams, arbContext, instanceID, newPlanID, serviceID, oldPlanID, orgGUID, spaceGUID, async, maintenanceInfo)
 		})
@@ -96,7 +109,7 @@ var _ = Describe("Update", func() {
 		})
 
 		Context("the request is switching plan", func() {
-			Context("but the new plan's quota has not been met", func() {
+			Context("and the new plan's quota has not been met", func() {
 				It("does not error", func() {
 					Expect(updateError).NotTo(HaveOccurred())
 				})
@@ -121,7 +134,7 @@ var _ = Describe("Update", func() {
 				})
 			})
 
-			Context("but the new plan does not have a quota", func() {
+			Context("and the new plan does not have a quota", func() {
 				BeforeEach(func() {
 					newPlanID = secondPlanID
 					oldPlanID = existingPlanID
@@ -161,6 +174,40 @@ var _ = Describe("Update", func() {
 					Expect(fakeDeployer.UpdateCallCount()).To(Equal(1))
 					_, _, _, _, actualBoshContextID, _, _ := fakeDeployer.UpdateArgsForCall(0)
 					Expect(actualBoshContextID).NotTo(BeEmpty())
+				})
+			})
+
+			Context("and the incoming maintenance_info matches the broker maintenance_info", func() {
+				BeforeEach(func() {
+					arbitraryParams = nil
+					catalog, err := b.Services(context.Background())
+					Expect(err).NotTo(HaveOccurred())
+					maintenanceInfo = *catalog[0].Plans[1].MaintenanceInfo
+					Expect(secondPlan.ID).To(Equal(catalog[0].Plans[1].ID))
+					newPlanID = secondPlan.ID
+				})
+
+				It("does not error", func() {
+					Expect(updateError).NotTo(HaveOccurred())
+				})
+			})
+
+			Context("but the incoming maintenance_info does not match the broker maintenance_info", func() {
+				BeforeEach(func() {
+					arbitraryParams = nil
+					catalog, err := b.Services(context.Background())
+					Expect(err).NotTo(HaveOccurred())
+					maintenanceInfo = brokerapi.MaintenanceInfo{
+						Public: map[string]string{
+							"bogus": "value",
+						},
+					}
+					Expect(secondPlan.ID).To(Equal(catalog[0].Plans[1].ID))
+					newPlanID = secondPlan.ID
+				})
+
+				It("fails", func() {
+					Expect(updateError).To(MatchError("passed maintenance_info does not match the catalog maintenance_info"))
 				})
 			})
 
@@ -479,7 +526,6 @@ var _ = Describe("Update", func() {
 
 					It("requests the json schemas from the service adapter", func() {
 						Expect(updateError).To(HaveOccurred())
-						Expect(fakeAdapter.GeneratePlanSchemaCallCount()).To(Equal(1))
 						Expect(updateError.Error()).To(ContainSubstring("Additional property this-is is not allowed"))
 					})
 
@@ -508,10 +554,6 @@ var _ = Describe("Update", func() {
 						}
 						schemaParams, err = json.Marshal(arbitraryParams)
 						Expect(err).NotTo(HaveOccurred())
-					})
-
-					It("requests the json schemas from the service adapter", func() {
-						Expect(fakeAdapter.GeneratePlanSchemaCallCount()).To(Equal(1))
 					})
 
 					It("succeeds", func() {
@@ -699,7 +741,7 @@ var _ = Describe("Update", func() {
 
 	})
 
-	When("it is an upgrade (due to maintenance_info being passed in)", func() {
+	When("it is an upgrade", func() {
 		BeforeEach(func() {
 			fakeDeployer.UpgradeReturns(50, nil, nil)
 			maintenanceInfo = brokerapi.MaintenanceInfo{
@@ -711,7 +753,7 @@ var _ = Describe("Update", func() {
 		})
 
 		It("accepts the upgrade", func() {
-			updateSpec, updateError = updateService(testBroker, nil, arbContext, instanceID, oldPlanID, serviceID, oldPlanID, orgGUID, spaceGUID, async, maintenanceInfo)
+			updateSpec, updateError = updateService(testBroker, nil, arbContext, instanceID, existingPlanID, serviceID, existingPlanID, orgGUID, spaceGUID, async, maintenanceInfo)
 
 			Expect(fakeDeployer.UpdateCallCount()).To(Equal(0), "Update was called")
 			Expect(updateError).NotTo(HaveOccurred())
@@ -729,11 +771,6 @@ var _ = Describe("Update", func() {
 			}))
 
 			Expect(logBuffer.String()).To(MatchRegexp(`\[[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\] \d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2} upgrading instance`))
-		})
-
-		It("fails when plan also changes", func() {
-			updateSpec, updateError = updateService(testBroker, nil, arbContext, instanceID, newPlanID, serviceID, oldPlanID, orgGUID, spaceGUID, async, maintenanceInfo)
-			Expect(updateError).To(MatchError("maintenance_info is passed indicating upgrade, but the plan has been updated"))
 		})
 
 		It("fails when arbitrary params are also passed", func() {
@@ -758,21 +795,11 @@ var _ = Describe("Update", func() {
 			Expect(updateError).To(MatchError("Plan foo not found"))
 		})
 
-		It("fails when cannot find the plan", func() {
-			brokerConfig.EnablePlanSchemas = true
-			serviceAdapter.GeneratePlanSchemaReturns(schemaFixture, nil)
-			serviceAdapter.GeneratePlanSchemaReturnsOnCall(1, brokerapi.ServiceSchemas{}, errors.New("can't generate schemas"))
-			testBroker = createDefaultBroker()
-
-			updateSpec, updateError = updateService(testBroker, map[string]interface{}{}, arbContext, instanceID, oldPlanID, serviceID, oldPlanID, orgGUID, spaceGUID, async, maintenanceInfo)
-			Expect(updateError).To(MatchError(ContainSubstring("contact your operations team")))
-		})
-
 		It("fails when the broker has no maintenance info", func() {
 			serviceCatalog.MaintenanceInfo = nil
 			testBroker = createDefaultBroker()
 
-			updateSpec, updateError = updateService(testBroker, map[string]interface{}{}, arbContext, instanceID, oldPlanID, serviceID, oldPlanID, orgGUID, spaceGUID, async, maintenanceInfo)
+			updateSpec, updateError = updateService(testBroker, map[string]interface{}{}, arbContext, instanceID, existingPlanID, serviceID, existingPlanID, orgGUID, spaceGUID, async, maintenanceInfo)
 			Expect(updateError).To(MatchError(ContainSubstring("maintenance_info was passed, but the broker catalog contains no maintenance_info")))
 		})
 	})

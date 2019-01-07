@@ -48,7 +48,7 @@ var _ = Describe("Update a service instance", func() {
 	)
 
 	var (
-		detailsMap         brokerapi.UpdateDetails
+		requestBody        brokerapi.UpdateDetails
 		updateArbParams    map[string]interface{}
 		expectedSecretsMap map[string]string
 		conf               brokerConfig.Config
@@ -72,7 +72,16 @@ var _ = Describe("Update a service instance", func() {
 				},
 				Plans: brokerConfig.Plans{
 					{Name: "some-plan", ID: oldPlanID},
-					{Name: "other-plan", ID: newPlanID, Quotas: brokerConfig.Quotas{ServiceInstanceLimit: &one}},
+					{
+						Name:   "other-plan",
+						ID:     newPlanID,
+						Quotas: brokerConfig.Quotas{ServiceInstanceLimit: &one},
+						MaintenanceInfo: &brokerConfig.MaintenanceInfo{
+							Public: map[string]string{
+								"plan_size": "big",
+							},
+						},
+					},
 					{
 						Name: "post-deploy-errand-plan",
 						ID:   postDeployErrandPlanID,
@@ -101,7 +110,7 @@ var _ = Describe("Update a service instance", func() {
 		}
 
 		updateArbParams = map[string]interface{}{"some": "params"}
-		detailsMap = brokerapi.UpdateDetails{
+		requestBody = brokerapi.UpdateDetails{
 			PlanID:        newPlanID,
 			RawParameters: toJson(updateArbParams),
 			ServiceID:     serviceID,
@@ -124,7 +133,7 @@ var _ = Describe("Update a service instance", func() {
 			fakeTaskBoshClient.GetDeploymentReturns(oldManifest, true, nil)
 			fakeTaskBoshClient.DeployReturns(updateTaskID, nil)
 
-			resp, bodyContent := doUpdateRequest(detailsMap, instanceID)
+			resp, bodyContent := doUpdateRequest(requestBody, instanceID)
 			By("returning the correct status code")
 			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
 
@@ -147,8 +156,8 @@ var _ = Describe("Update a service instance", func() {
 			fakeTaskBoshClient.GetDeploymentReturns(oldManifest, true, nil)
 			fakeTaskBoshClient.DeployReturns(updateTaskID, nil)
 
-			detailsMap.PlanID = postDeployErrandPlanID
-			resp, bodyContent := doUpdateRequest(detailsMap, instanceID)
+			requestBody.PlanID = postDeployErrandPlanID
+			resp, bodyContent := doUpdateRequest(requestBody, instanceID)
 			By("returning the correct status code")
 			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
 
@@ -171,7 +180,7 @@ var _ = Describe("Update a service instance", func() {
 			err = json.Unmarshal([]byte(actualInput.GenerateManifest.RequestParameters), &reqParams)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(reqParams).To(Equal(detailsMap))
+			Expect(reqParams).To(Equal(requestBody))
 
 			By("including the operation data in the response")
 			var updateResponse brokerapi.UpdateResponse
@@ -194,14 +203,14 @@ var _ = Describe("Update a service instance", func() {
 			fakeTaskBoshClient.GetDeploymentReturns(oldManifest, true, nil)
 			fakeTaskBoshClient.DeployReturns(updateTaskID, nil)
 
-			detailsMap.PreviousValues = brokerapi.PreviousValues{
+			requestBody.PreviousValues = brokerapi.PreviousValues{
 				OrgID:     organizationGUID,
 				ServiceID: serviceID,
 				PlanID:    postDeployErrandPlanID,
 				SpaceID:   "space-guid",
 			}
 
-			resp, bodyContent := doUpdateRequest(detailsMap, instanceID)
+			resp, bodyContent := doUpdateRequest(requestBody, instanceID)
 			By("returning the correct status code")
 			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
 
@@ -229,7 +238,7 @@ var _ = Describe("Update a service instance", func() {
 			err = json.Unmarshal([]byte(actualInput.GenerateManifest.RequestParameters), &reqParams)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(reqParams).To(Equal(detailsMap))
+			Expect(reqParams).To(Equal(requestBody))
 
 			By("including the operation data in the response")
 			var updateResponse brokerapi.UpdateResponse
@@ -244,6 +253,23 @@ var _ = Describe("Update a service instance", func() {
 
 			By("logging the bind request")
 			Eventually(loggerBuffer).Should(gbytes.Say(`updating instance ` + instanceID))
+		})
+
+		It("succeeds when the maintenance_info for the new plan matches the broker maintenance_info", func() {
+			requestBody.MaintenanceInfo = brokerapi.MaintenanceInfo{
+				Public: map[string]string{
+					"version":   "2",
+					"plan_size": "big",
+				},
+			}
+			requestBody.PlanID = newPlanID
+
+			fakeTaskBoshClient.GetDeploymentReturns(oldManifest, true, nil)
+			fakeTaskBoshClient.DeployReturns(updateTaskID, nil)
+
+			resp, _ := doUpdateRequest(requestBody, instanceID)
+
+			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
 		})
 
 		It("fails with 422 if there are pending changes", func() {
@@ -262,7 +288,24 @@ properties:
 
 			fakeCommandRunner.RunWithInputParamsReturns(manifestBytes, []byte{}, &zero, nil)
 
-			resp, _ := doUpdateRequest(detailsMap, instanceID)
+			resp, _ := doUpdateRequest(requestBody, instanceID)
+
+			Expect(resp.StatusCode).To(Equal(http.StatusUnprocessableEntity))
+		})
+
+		It("fails with 422 if the incoming maintenance_info does not match the broker maintenance_info", func() {
+			requestBody.MaintenanceInfo = brokerapi.MaintenanceInfo{
+				Public: map[string]string{
+					"version":   "2",
+					"plan_size": "small",
+				},
+			}
+			requestBody.PlanID = newPlanID
+
+			fakeTaskBoshClient.GetDeploymentReturns(oldManifest, true, nil)
+			fakeTaskBoshClient.DeployReturns(updateTaskID, nil)
+
+			resp, _ := doUpdateRequest(requestBody, instanceID)
 
 			Expect(resp.StatusCode).To(Equal(http.StatusUnprocessableEntity))
 		})
@@ -271,8 +314,8 @@ properties:
 			fakeCfClient.CountInstancesOfServiceOfferingReturns(map[cf.ServicePlan]int{
 				cf.ServicePlan{ServicePlanEntity: cf.ServicePlanEntity{UniqueID: quotaReachedPlanID}}: 1,
 			}, nil)
-			detailsMap.PlanID = quotaReachedPlanID
-			resp, bodyContent := doUpdateRequest(detailsMap, instanceID)
+			requestBody.PlanID = quotaReachedPlanID
+			resp, bodyContent := doUpdateRequest(requestBody, instanceID)
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 
 			var body brokerapi.ErrorResponse
@@ -285,7 +328,7 @@ properties:
 		It("fails with 500 if BOSH deployment cannot be found", func() {
 			fakeTaskBoshClient.GetDeploymentReturns(nil, false, nil)
 
-			resp, bodyContent := doUpdateRequest(detailsMap, instanceID)
+			resp, bodyContent := doUpdateRequest(requestBody, instanceID)
 
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 			var body brokerapi.ErrorResponse
@@ -307,7 +350,7 @@ properties:
 				boshdirector.BoshTask{State: boshdirector.TaskProcessing},
 			}, nil)
 
-			resp, bodyContent := doUpdateRequest(detailsMap, instanceID)
+			resp, bodyContent := doUpdateRequest(requestBody, instanceID)
 
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 			var body brokerapi.ErrorResponse
@@ -318,7 +361,7 @@ properties:
 		It("fails with 500 if BOSH is unavailable", func() {
 			fakeTaskBoshClient.GetTasksReturns(nil, errors.New("oops"))
 
-			resp, bodyContent := doUpdateRequest(detailsMap, instanceID)
+			resp, bodyContent := doUpdateRequest(requestBody, instanceID)
 
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 			var body brokerapi.ErrorResponse
@@ -329,7 +372,7 @@ properties:
 		It("fails with 500 if CF api is unavailable", func() {
 			fakeCfClient.CountInstancesOfServiceOfferingReturns(nil, errors.New("oops"))
 
-			resp, bodyContent := doUpdateRequest(detailsMap, instanceID)
+			resp, bodyContent := doUpdateRequest(requestBody, instanceID)
 
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 			var body brokerapi.ErrorResponse
@@ -347,8 +390,8 @@ properties:
 		It("fails with 500 if the previous plan cannot be found", func() {
 			fakeTaskBoshClient.GetDeploymentReturns(nil, true, nil)
 
-			detailsMap.PlanID = "yo"
-			resp, bodyContent := doUpdateRequest(detailsMap, instanceID)
+			requestBody.PlanID = "yo"
+			resp, bodyContent := doUpdateRequest(requestBody, instanceID)
 
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 			var body brokerapi.ErrorResponse
@@ -357,8 +400,8 @@ properties:
 		})
 
 		It("fails with 500 if the new plan cannot be found", func() {
-			detailsMap.PlanID = "macarena"
-			resp, bodyContent := doUpdateRequest(detailsMap, instanceID)
+			requestBody.PlanID = "macarena"
+			resp, bodyContent := doUpdateRequest(requestBody, instanceID)
 
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 			var body brokerapi.ErrorResponse
@@ -372,7 +415,7 @@ properties:
 			fakeCommandRunner.RunWithInputParamsReturns([]byte{}, []byte{}, &fourHundred, err)
 			fakeTaskBoshClient.GetDeploymentReturns(nil, true, nil)
 
-			resp, bodyContent := doUpdateRequest(detailsMap, instanceID)
+			resp, bodyContent := doUpdateRequest(requestBody, instanceID)
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 
 			var body brokerapi.ErrorResponse
@@ -392,7 +435,7 @@ properties:
 			fakeCommandRunner.RunWithInputParamsReturns([]byte{}, []byte("stderr error message"), &one, nil)
 			fakeTaskBoshClient.GetDeploymentReturns(nil, true, nil)
 
-			resp, bodyContent := doUpdateRequest(detailsMap, instanceID)
+			resp, bodyContent := doUpdateRequest(requestBody, instanceID)
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 
 			var body brokerapi.ErrorResponse
@@ -404,7 +447,7 @@ properties:
 		It("fails with 500 when BOSH cannot get the deployment for manifest secrets", func() {
 			fakeBoshClient.GetDeploymentReturns(nil, false, errors.New("error getting deployment"))
 
-			resp, bodyContent := doUpdateRequest(detailsMap, instanceID)
+			resp, bodyContent := doUpdateRequest(requestBody, instanceID)
 
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 			var body brokerapi.ErrorResponse
@@ -420,7 +463,7 @@ properties:
 		It("fails with 500 when BOSH cannot get deployment variables", func() {
 			fakeBoshClient.VariablesReturns(nil, errors.New("error getting variables"))
 
-			resp, bodyContent := doUpdateRequest(detailsMap, instanceID)
+			resp, bodyContent := doUpdateRequest(requestBody, instanceID)
 
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 			var body brokerapi.ErrorResponse
@@ -436,7 +479,7 @@ properties:
 		It("fails with 500 when the secret manager cannot resolve secrets", func() {
 			fakeCredhubOperator.BulkGetReturns(nil, errors.New("could not get secrets"))
 
-			resp, bodyContent := doUpdateRequest(detailsMap, instanceID)
+			resp, bodyContent := doUpdateRequest(requestBody, instanceID)
 
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 			var body brokerapi.ErrorResponse
@@ -456,15 +499,15 @@ properties:
 			fakeTaskBoshClient.DeployReturns(updateTaskID, nil)
 			fakeCredhubOperator.BulkGetReturns(expectedSecretsMap, nil)
 
-			detailsMap.PlanID = quotaReachedPlanID
-			detailsMap.PreviousValues = brokerapi.PreviousValues{
+			requestBody.PlanID = quotaReachedPlanID
+			requestBody.PreviousValues = brokerapi.PreviousValues{
 				OrgID:     organizationGUID,
 				ServiceID: serviceID,
 				PlanID:    quotaReachedPlanID,
 				SpaceID:   "space-guid",
 			}
 
-			resp, bodyContent := doUpdateRequest(detailsMap, instanceID)
+			resp, bodyContent := doUpdateRequest(requestBody, instanceID)
 			By("returning the correct status code")
 			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
 
@@ -492,7 +535,7 @@ properties:
 			err = json.Unmarshal([]byte(actualInput.GenerateManifest.RequestParameters), &reqParams)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(reqParams).To(Equal(detailsMap))
+			Expect(reqParams).To(Equal(requestBody))
 
 			_, boshContextId, _, _ := fakeTaskBoshClient.DeployArgsForCall(0)
 			Expect(boshContextId).To(BeEmpty())
@@ -527,17 +570,17 @@ properties:
 			Expect(err).NotTo(HaveOccurred())
 			zero := 0
 			fakeCommandRunner.RunWithInputParamsReturns(manifestBytes, []byte{}, &zero, nil)
-			detailsMap.MaintenanceInfo = brokerapi.MaintenanceInfo{
+			requestBody.MaintenanceInfo = brokerapi.MaintenanceInfo{
 				Public: map[string]string{
 					"version": "2",
 				},
 			}
-			detailsMap.PlanID = oldPlanID
-			detailsMap.RawParameters = []byte("{}")
+			requestBody.PlanID = oldPlanID
+			requestBody.RawParameters = []byte("{}")
 		})
 
 		It("succeeds", func() {
-			resp, _ := doUpdateRequest(detailsMap, instanceID)
+			resp, _ := doUpdateRequest(requestBody, instanceID)
 
 			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
 
@@ -545,13 +588,13 @@ properties:
 		})
 
 		It("fails when maintenance_info doesn't match the catalog maintenance_info", func() {
-			detailsMap.MaintenanceInfo = brokerapi.MaintenanceInfo{
+			requestBody.MaintenanceInfo = brokerapi.MaintenanceInfo{
 				Public: map[string]string{
 					"version": "3",
 				},
 			}
 
-			resp, body := doUpdateRequest(detailsMap, instanceID)
+			resp, body := doUpdateRequest(requestBody, instanceID)
 
 			Expect(resp.StatusCode).To(Equal(http.StatusUnprocessableEntity))
 			Expect(resp.Header.Get("Content-Type")).To(Equal("application/json"))
@@ -562,22 +605,22 @@ properties:
 		})
 
 		It("fails when arbitrary params are passed in", func() {
-			detailsMap.RawParameters = []byte(`{"foo":"bar"}`)
-			resp, _ := doUpdateRequest(detailsMap, instanceID)
+			requestBody.RawParameters = []byte(`{"foo":"bar"}`)
+			resp, _ := doUpdateRequest(requestBody, instanceID)
 
 			Expect(resp.StatusCode).To(Equal(http.StatusUnprocessableEntity))
 		})
 
 		It("fails when a new plan is passed", func() {
-			detailsMap.PlanID = newPlanID
-			resp, _ := doUpdateRequest(detailsMap, instanceID)
+			requestBody.PlanID = newPlanID
+			resp, _ := doUpdateRequest(requestBody, instanceID)
 
 			Expect(resp.StatusCode).To(Equal(http.StatusUnprocessableEntity))
 		})
 	})
 
 	When("the broker is deployed with nil maintenance info", func() {
-		When("upgrading with maintenance info", func() {
+		When("the operation includes maintenance info", func() {
 			It("fails with an appropriate error", func() {
 				brokerServer.Close()
 
@@ -587,15 +630,15 @@ properties:
 				oldManifest := "name: service-instance_some-instance-id"
 				fakeTaskBoshClient.GetDeploymentReturns([]byte(oldManifest), true, nil)
 
-				detailsMap.MaintenanceInfo = brokerapi.MaintenanceInfo{
+				requestBody.MaintenanceInfo = brokerapi.MaintenanceInfo{
 					Public: map[string]string{
 						"version": "2",
 					},
 				}
-				detailsMap.PlanID = oldPlanID
-				detailsMap.RawParameters = []byte("{}")
+				requestBody.PlanID = oldPlanID
+				requestBody.RawParameters = []byte("{}")
 
-				resp, body := doUpdateRequest(detailsMap, instanceID)
+				resp, body := doUpdateRequest(requestBody, instanceID)
 
 				Expect(resp.StatusCode).To(Equal(http.StatusUnprocessableEntity))
 
