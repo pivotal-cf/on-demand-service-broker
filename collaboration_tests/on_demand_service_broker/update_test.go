@@ -18,7 +18,11 @@ package on_demand_service_broker_test
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
+	"github.com/pivotal-cf/on-demand-service-broker/cf"
+	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	"net/http"
 
 	"strings"
@@ -27,13 +31,9 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/pivotal-cf/brokerapi"
-	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
-	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	brokerConfig "github.com/pivotal-cf/on-demand-service-broker/config"
-	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
-	"github.com/pkg/errors"
 )
 
 var _ = Describe("Update a service instance", func() {
@@ -125,14 +125,32 @@ var _ = Describe("Update a service instance", func() {
 			"secret": "value",
 		}
 		oldManifest = []byte(`name: service-instance_some-instance-id`)
+		fakeTaskBoshClient.GetDeploymentReturns(oldManifest, true, nil)
+		fakeTaskBoshClient.DeployReturns(updateTaskID, nil)
 		StartServer(conf)
 	})
 
-	Describe("switching plans", func() {
-		It("succeeds when there are no pending changes", func() {
-			fakeTaskBoshClient.GetDeploymentReturns(oldManifest, true, nil)
-			fakeTaskBoshClient.DeployReturns(updateTaskID, nil)
+	Describe("and nothing has changed", func() {
+		It("accepts the request", func() {
+			requestBody = brokerapi.UpdateDetails{
+				PlanID:        oldPlanID,
+				RawParameters: toJson(nil),
+				ServiceID:     serviceID,
+				PreviousValues: brokerapi.PreviousValues{
+					PlanID: oldPlanID,
+				},
+			}
 
+			resp, _ := doUpdateRequest(requestBody, instanceID)
+
+			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
+
+			Eventually(loggerBuffer).Should(gbytes.Say(`updating instance ` + instanceID))
+		})
+	})
+
+	Describe("updating plans", func() {
+		It("succeeds when there are no pending changes", func() {
 			resp, bodyContent := doUpdateRequest(requestBody, instanceID)
 			By("returning the correct status code")
 			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
@@ -148,41 +166,16 @@ var _ = Describe("Update a service instance", func() {
 				BoshTaskID:    updateTaskID,
 			}))
 
-			By("logging the bind request")
+			By("logging the update request")
 			Eventually(loggerBuffer).Should(gbytes.Say(`updating instance ` + instanceID))
 		})
 
 		It("succeeds when the new plan has a post-deploy errand", func() {
-			fakeTaskBoshClient.GetDeploymentReturns(oldManifest, true, nil)
-			fakeTaskBoshClient.DeployReturns(updateTaskID, nil)
-
 			requestBody.PlanID = postDeployErrandPlanID
-			resp, bodyContent := doUpdateRequest(requestBody, instanceID)
-			By("returning the correct status code")
-			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
-
-			By("calling the adapter with the correct arguments")
+			_, bodyContent := doUpdateRequest(requestBody, instanceID)
 			_, boshContextId, _, _ := fakeTaskBoshClient.DeployArgsForCall(0)
 
-			input, actualOthers := fakeCommandRunner.RunWithInputParamsArgsForCall(1)
-			actualInput, ok := input.(sdk.InputParams)
-			Expect(ok).To(BeTrue(), "command runner takes a sdk.inputparams obj")
-			Expect(actualOthers[1]).To(Equal("generate-manifest"))
-			Expect(actualInput.GenerateManifest.ServiceDeployment).To(ContainSubstring("service-instance_" + instanceID))
-
-			var plan sdk.Plan
-			err := json.Unmarshal([]byte(actualInput.GenerateManifest.Plan), &plan)
-			Expect(err).NotTo(HaveOccurred())
-
-			Expect(plan.LifecycleErrands.PostDeploy).To(Equal(conf.ServiceCatalog.Plans[2].LifecycleErrands.PostDeploy))
-
-			var reqParams brokerapi.UpdateDetails
-			err = json.Unmarshal([]byte(actualInput.GenerateManifest.RequestParameters), &reqParams)
-			Expect(err).NotTo(HaveOccurred())
-
-			Expect(reqParams).To(Equal(requestBody))
-
-			By("including the operation data in the response")
+			By("including errands in the operation data")
 			var updateResponse brokerapi.UpdateResponse
 			Expect(json.Unmarshal(bodyContent, &updateResponse)).To(Succeed())
 
@@ -195,14 +188,11 @@ var _ = Describe("Update a service instance", func() {
 				Errands:       []brokerConfig.Errand{{Name: "health-check"}},
 			}))
 
-			By("logging the bind request")
+			By("logging the update request")
 			Eventually(loggerBuffer).Should(gbytes.Say(`updating instance ` + instanceID))
 		})
 
 		It("succeeds when the old plan has a post-deploy errand but the new one doesn't", func() {
-			fakeTaskBoshClient.GetDeploymentReturns(oldManifest, true, nil)
-			fakeTaskBoshClient.DeployReturns(updateTaskID, nil)
-
 			requestBody.PreviousValues = brokerapi.PreviousValues{
 				OrgID:     organizationGUID,
 				ServiceID: serviceID,
@@ -210,37 +200,9 @@ var _ = Describe("Update a service instance", func() {
 				SpaceID:   "space-guid",
 			}
 
-			resp, bodyContent := doUpdateRequest(requestBody, instanceID)
-			By("returning the correct status code")
-			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
+			_, bodyContent := doUpdateRequest(requestBody, instanceID)
 
-			By("calling the adapter with the correct arguments")
-			_, boshContextId, _, _ := fakeTaskBoshClient.DeployArgsForCall(0)
-			Expect(boshContextId).To(BeEmpty())
-
-			input, actualOthers := fakeCommandRunner.RunWithInputParamsArgsForCall(1)
-			actualInput, ok := input.(sdk.InputParams)
-			Expect(ok).To(BeTrue(), "command runner takes a sdk.inputparams obj")
-			Expect(actualOthers[1]).To(Equal("generate-manifest"))
-			Expect(actualInput.GenerateManifest.ServiceDeployment).To(ContainSubstring("service-instance_" + instanceID))
-
-			var plan sdk.Plan
-			err := json.Unmarshal([]byte(actualInput.GenerateManifest.Plan), &plan)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(plan.LifecycleErrands.PostDeploy).To(BeNil())
-
-			var previousPlan sdk.Plan
-			err = json.Unmarshal([]byte(actualInput.GenerateManifest.PreviousPlan), &previousPlan)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(previousPlan.LifecycleErrands.PostDeploy).To(Equal(conf.ServiceCatalog.Plans[2].LifecycleErrands.PostDeploy))
-
-			var reqParams brokerapi.UpdateDetails
-			err = json.Unmarshal([]byte(actualInput.GenerateManifest.RequestParameters), &reqParams)
-			Expect(err).NotTo(HaveOccurred())
-
-			Expect(reqParams).To(Equal(requestBody))
-
-			By("including the operation data in the response")
+			By("not including errands in the operation data")
 			var updateResponse brokerapi.UpdateResponse
 			Expect(json.Unmarshal(bodyContent, &updateResponse)).To(Succeed())
 
@@ -251,7 +213,7 @@ var _ = Describe("Update a service instance", func() {
 				BoshTaskID:    updateTaskID,
 			}))
 
-			By("logging the bind request")
+			By("logging the update request")
 			Eventually(loggerBuffer).Should(gbytes.Say(`updating instance ` + instanceID))
 		})
 
@@ -264,50 +226,9 @@ var _ = Describe("Update a service instance", func() {
 			}
 			requestBody.PlanID = newPlanID
 
-			fakeTaskBoshClient.GetDeploymentReturns(oldManifest, true, nil)
-			fakeTaskBoshClient.DeployReturns(updateTaskID, nil)
-
 			resp, _ := doUpdateRequest(requestBody, instanceID)
 
 			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
-		})
-
-		It("fails with 422 if there are pending changes", func() {
-			fakeTaskBoshClient.GetDeploymentReturns(oldManifest, true, nil)
-
-			boshManifest := []byte(`---
-name: service-instance_some-instance-id
-properties:
-  bob: like-a-duck`)
-			manifest := sdk.MarshalledGenerateManifest{
-				Manifest: string(boshManifest),
-			}
-			manifestBytes, err := json.Marshal(manifest)
-			Expect(err).NotTo(HaveOccurred())
-			zero := 0
-
-			fakeCommandRunner.RunWithInputParamsReturns(manifestBytes, []byte{}, &zero, nil)
-
-			resp, _ := doUpdateRequest(requestBody, instanceID)
-
-			Expect(resp.StatusCode).To(Equal(http.StatusUnprocessableEntity))
-		})
-
-		It("fails with 422 if the incoming maintenance_info does not match the broker maintenance_info", func() {
-			requestBody.MaintenanceInfo = brokerapi.MaintenanceInfo{
-				Public: map[string]string{
-					"version":   "2",
-					"plan_size": "small",
-				},
-			}
-			requestBody.PlanID = newPlanID
-
-			fakeTaskBoshClient.GetDeploymentReturns(oldManifest, true, nil)
-			fakeTaskBoshClient.DeployReturns(updateTaskID, nil)
-
-			resp, _ := doUpdateRequest(requestBody, instanceID)
-
-			Expect(resp.StatusCode).To(Equal(http.StatusUnprocessableEntity))
 		})
 
 		It("fails with 500 if there plan's quota has been reached", func() {
@@ -325,178 +246,28 @@ properties:
 			))
 		})
 
-		It("fails with 500 if BOSH deployment cannot be found", func() {
-			fakeTaskBoshClient.GetDeploymentReturns(nil, false, nil)
+		It("fails with 422 when the incoming maintenance_info doesn't match the broker maintenance_info for the new plan", func() {
+			requestBody.MaintenanceInfo = brokerapi.MaintenanceInfo{
+				Public: map[string]string{
+					"version":   "2",
+					"plan_size": "small",
+				},
+			}
+			requestBody.PlanID = newPlanID
 
-			resp, bodyContent := doUpdateRequest(requestBody, instanceID)
+			resp, _ := doUpdateRequest(requestBody, instanceID)
 
-			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
-			var body brokerapi.ErrorResponse
-			Expect(json.Unmarshal(bodyContent, &body)).To(Succeed())
-			Expect(body.Description).To(SatisfyAll(
-				Not(ContainSubstring("task-id:")),
-				ContainSubstring("There was a problem completing your request. Please contact your operations team providing the following information: "),
-				MatchRegexp(`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`),
-				ContainSubstring(fmt.Sprintf("service: %s", serviceName)),
-				ContainSubstring(fmt.Sprintf("service-instance-guid: %s", instanceID)),
-				ContainSubstring("operation: update"),
-			))
-
-			Eventually(loggerBuffer).Should(gbytes.Say("error deploying instance: bosh deployment 'service-instance_some-instance-id' not found"))
-		})
-
-		It("fails with 500 if BOSH is an operation is in progress", func() {
-			fakeTaskBoshClient.GetTasksReturns(boshdirector.BoshTasks{
-				boshdirector.BoshTask{State: boshdirector.TaskProcessing},
-			}, nil)
-
-			resp, bodyContent := doUpdateRequest(requestBody, instanceID)
-
-			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
-			var body brokerapi.ErrorResponse
-			Expect(json.Unmarshal(bodyContent, &body)).To(Succeed())
-			Expect(body.Description).To(ContainSubstring("An operation is in progress for your service instance. Please try again later."))
-		})
-
-		It("fails with 500 if BOSH is unavailable", func() {
-			fakeTaskBoshClient.GetTasksReturns(nil, errors.New("oops"))
-
-			resp, bodyContent := doUpdateRequest(requestBody, instanceID)
-
-			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
-			var body brokerapi.ErrorResponse
-			Expect(json.Unmarshal(bodyContent, &body)).To(Succeed())
-			Expect(body.Description).To(ContainSubstring("Currently unable to update service instance, please try again later"))
-		})
-
-		It("fails with 500 if CF api is unavailable", func() {
-			fakeCfClient.CountInstancesOfServiceOfferingReturns(nil, errors.New("oops"))
-
-			resp, bodyContent := doUpdateRequest(requestBody, instanceID)
-
-			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
-			var body brokerapi.ErrorResponse
-			Expect(json.Unmarshal(bodyContent, &body)).To(Succeed())
-			Expect(body.Description).To(SatisfyAll(
-				Not(ContainSubstring("task-id:")),
-				ContainSubstring("There was a problem completing your request. Please contact your operations team providing the following information: "),
-				MatchRegexp(`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`),
-				ContainSubstring(fmt.Sprintf("service: %s", serviceName)),
-				ContainSubstring(fmt.Sprintf("service-instance-guid: %s", instanceID)),
-				ContainSubstring("operation: update"),
-			))
-		})
-
-		It("fails with 500 if the previous plan cannot be found", func() {
-			fakeTaskBoshClient.GetDeploymentReturns(nil, true, nil)
-
-			requestBody.PlanID = "yo"
-			resp, bodyContent := doUpdateRequest(requestBody, instanceID)
-
-			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
-			var body brokerapi.ErrorResponse
-			Expect(json.Unmarshal(bodyContent, &body)).To(Succeed())
-			Expect(body.Description).To(ContainSubstring("Plan yo not found"))
-		})
-
-		It("fails with 500 if the new plan cannot be found", func() {
-			requestBody.PlanID = "macarena"
-			resp, bodyContent := doUpdateRequest(requestBody, instanceID)
-
-			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
-			var body brokerapi.ErrorResponse
-			Expect(json.Unmarshal(bodyContent, &body)).To(Succeed())
-			Expect(body.Description).To(ContainSubstring("Plan macarena not found"))
-		})
-
-		It("fails with 500 when the adapter errors", func() {
-			err := serviceadapter.ErrorForExitCode(400, "")
-			fourHundred := 400
-			fakeCommandRunner.RunWithInputParamsReturns([]byte{}, []byte{}, &fourHundred, err)
-			fakeTaskBoshClient.GetDeploymentReturns(nil, true, nil)
-
-			resp, bodyContent := doUpdateRequest(requestBody, instanceID)
-			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
-
-			var body brokerapi.ErrorResponse
-			Expect(json.Unmarshal(bodyContent, &body)).To(Succeed())
-			Expect(body.Description).To(SatisfyAll(
-				Not(ContainSubstring("task-id:")),
-				ContainSubstring("There was a problem completing your request. Please contact your operations team providing the following information: "),
-				MatchRegexp(`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`),
-				ContainSubstring(fmt.Sprintf("service: %s", serviceName)),
-				ContainSubstring(fmt.Sprintf("service-instance-guid: %s", instanceID)),
-				ContainSubstring("operation: update"),
-			))
-		})
-
-		It("fails with 500 and a generic message, with adapter stderr in the logs, when adapter returns non-zero exit code", func() {
-			one := 1
-			fakeCommandRunner.RunWithInputParamsReturns([]byte{}, []byte("stderr error message"), &one, nil)
-			fakeTaskBoshClient.GetDeploymentReturns(nil, true, nil)
-
-			resp, bodyContent := doUpdateRequest(requestBody, instanceID)
-			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
-
-			var body brokerapi.ErrorResponse
-			Expect(json.Unmarshal(bodyContent, &body)).To(Succeed())
-			Expect(body.Description).To(ContainSubstring("There was a problem completing your request"))
-			Eventually(loggerBuffer).Should(gbytes.Say("stderr error message"))
-		})
-
-		It("fails with 500 when BOSH cannot get the deployment for manifest secrets", func() {
-			fakeBoshClient.GetDeploymentReturns(nil, false, errors.New("error getting deployment"))
-
-			resp, bodyContent := doUpdateRequest(requestBody, instanceID)
-
-			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
-			var body brokerapi.ErrorResponse
-			Expect(json.Unmarshal(bodyContent, &body)).To(Succeed())
-			Expect(body.Description).To(SatisfyAll(
-				ContainSubstring("There was a problem completing your request. "),
-				ContainSubstring("operation: update"),
-			))
-
-			Eventually(loggerBuffer).Should(gbytes.Say("error getting deployment"))
-		})
-
-		It("fails with 500 when BOSH cannot get deployment variables", func() {
-			fakeBoshClient.VariablesReturns(nil, errors.New("error getting variables"))
-
-			resp, bodyContent := doUpdateRequest(requestBody, instanceID)
-
-			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
-			var body brokerapi.ErrorResponse
-			Expect(json.Unmarshal(bodyContent, &body)).To(Succeed())
-			Expect(body.Description).To(SatisfyAll(
-				ContainSubstring("There was a problem completing your request. "),
-				ContainSubstring("operation: update"),
-			))
-
-			Eventually(loggerBuffer).Should(gbytes.Say("error getting variables"))
-		})
-
-		It("fails with 500 when the secret manager cannot resolve secrets", func() {
-			fakeCredhubOperator.BulkGetReturns(nil, errors.New("could not get secrets"))
-
-			resp, bodyContent := doUpdateRequest(requestBody, instanceID)
-
-			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
-			var body brokerapi.ErrorResponse
-			Expect(json.Unmarshal(bodyContent, &body)).To(Succeed())
-			Expect(body.Description).To(SatisfyAll(
-				ContainSubstring("There was a problem completing your request. "),
-				ContainSubstring("operation: update"),
-			))
-
-			Eventually(loggerBuffer).Should(gbytes.Say("could not get secrets"))
+			Expect(resp.StatusCode).To(Equal(http.StatusUnprocessableEntity))
 		})
 	})
 
-	Describe("without switching plans", func() {
+	Describe("updating arbitrary parameters", func() {
+		BeforeEach(func() {
+			requestBody.RawParameters = []byte(`{"foo":"bar"}`)
+			requestBody.PlanID = requestBody.PreviousValues.PlanID
+		})
+
 		It("succeeds even when the quota has been reached", func() {
-			fakeTaskBoshClient.GetDeploymentReturns(oldManifest, true, nil)
-			fakeTaskBoshClient.DeployReturns(updateTaskID, nil)
 			fakeCredhubOperator.BulkGetReturns(expectedSecretsMap, nil)
 
 			requestBody.PlanID = quotaReachedPlanID
@@ -511,34 +282,35 @@ properties:
 			By("returning the correct status code")
 			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
 
-			By("calling the adapter with the correct arguments")
-			input, actualOthers := fakeCommandRunner.RunWithInputParamsArgsForCall(1)
-			actualInput, ok := input.(sdk.InputParams)
-			Expect(ok).To(BeTrue(), "command runner takes a sdk.inputparams obj")
-			Expect(actualOthers[1]).To(Equal("generate-manifest"))
-			Expect(actualInput.GenerateManifest.ServiceDeployment).To(ContainSubstring("service-instance_" + instanceID))
+			By("calling the adapter with the correct arguments", func() {
+				input, actualOthers := fakeCommandRunner.RunWithInputParamsArgsForCall(1)
+				actualInput, ok := input.(sdk.InputParams)
+				Expect(ok).To(BeTrue(), "command runner takes a sdk.inputparams obj")
+				Expect(actualOthers[1]).To(Equal("generate-manifest"))
+				Expect(actualInput.GenerateManifest.ServiceDeployment).To(ContainSubstring("service-instance_" + instanceID))
 
-			expectedSecretsMapJson, err := json.Marshal(expectedSecretsMap)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(actualInput.GenerateManifest.PreviousSecrets).To(Equal(string(expectedSecretsMapJson)))
+				expectedSecretsMapJson, err := json.Marshal(expectedSecretsMap)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(actualInput.GenerateManifest.PreviousSecrets).To(Equal(string(expectedSecretsMapJson)))
 
-			var plan sdk.Plan
-			err = json.Unmarshal([]byte(actualInput.GenerateManifest.Plan), &plan)
-			Expect(err).NotTo(HaveOccurred())
+				var plan sdk.Plan
+				err = json.Unmarshal([]byte(actualInput.GenerateManifest.Plan), &plan)
+				Expect(err).NotTo(HaveOccurred())
 
-			var previousPlan sdk.Plan
-			err = json.Unmarshal([]byte(actualInput.GenerateManifest.PreviousPlan), &previousPlan)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(plan).To(Equal(previousPlan))
+				var previousPlan sdk.Plan
+				err = json.Unmarshal([]byte(actualInput.GenerateManifest.PreviousPlan), &previousPlan)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(plan).To(Equal(previousPlan))
 
-			var reqParams brokerapi.UpdateDetails
-			err = json.Unmarshal([]byte(actualInput.GenerateManifest.RequestParameters), &reqParams)
-			Expect(err).NotTo(HaveOccurred())
+				var reqParams brokerapi.UpdateDetails
+				err = json.Unmarshal([]byte(actualInput.GenerateManifest.RequestParameters), &reqParams)
+				Expect(err).NotTo(HaveOccurred())
 
-			Expect(reqParams).To(Equal(requestBody))
+				Expect(reqParams).To(Equal(requestBody))
 
-			_, boshContextId, _, _ := fakeTaskBoshClient.DeployArgsForCall(0)
-			Expect(boshContextId).To(BeEmpty())
+				_, boshContextId, _, _ := fakeTaskBoshClient.DeployArgsForCall(0)
+				Expect(boshContextId).To(BeEmpty())
+			})
 
 			By("including the operation data in the response")
 			var updateResponse brokerapi.UpdateResponse
@@ -551,12 +323,41 @@ properties:
 				BoshTaskID:    updateTaskID,
 			}))
 
-			By("logging the bind request")
+			By("logging the update request")
 			Eventually(loggerBuffer).Should(gbytes.Say(`updating instance ` + instanceID))
+		})
+
+		It("succeeds when called without maintenance info", func() {
+			resp, _ := doUpdateRequest(requestBody, instanceID)
+
+			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
+		})
+
+		It("succeeds when called with maintenance info", func() {
+			requestBody.MaintenanceInfo = brokerapi.MaintenanceInfo{
+				Public: map[string]string{
+					"version": "2",
+				},
+			}
+			resp, _ := doUpdateRequest(requestBody, instanceID)
+
+			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
+		})
+
+		It("fails when maintenance info doesnt match the catalog maintenance_info", func() {
+			requestBody.MaintenanceInfo = brokerapi.MaintenanceInfo{
+				Public: map[string]string{
+					"version": "2",
+					"foo":     "bar",
+				},
+			}
+			resp, _ := doUpdateRequest(requestBody, instanceID)
+
+			Expect(resp.StatusCode).To(Equal(http.StatusUnprocessableEntity))
 		})
 	})
 
-	When("upgrading with maintenance_info", func() {
+	Describe("updating maintenance_info", func() {
 		BeforeEach(func() {
 			oldManifest := "name: service-instance_some-instance-id"
 			fakeTaskBoshClient.GetDeploymentReturns([]byte(oldManifest), true, nil)
@@ -579,7 +380,7 @@ properties:
 			requestBody.RawParameters = []byte("{}")
 		})
 
-		It("succeeds", func() {
+		It("succeeds when no other changes are supplied", func() {
 			resp, _ := doUpdateRequest(requestBody, instanceID)
 
 			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
@@ -604,49 +405,219 @@ properties:
 			Expect(bodyJSON["error"]).To(Equal("MaintenanceInfoConflict"))
 		})
 
-		It("fails when arbitrary params are passed in", func() {
-			requestBody.RawParameters = []byte(`{"foo":"bar"}`)
-			resp, _ := doUpdateRequest(requestBody, instanceID)
+		When("the catalog doesn't include maintenance_info for plans", func() {
+			When("the operation includes maintenance info", func() {
+				It("fails with an appropriate error", func() {
+					brokerServer.Close()
 
-			Expect(resp.StatusCode).To(Equal(http.StatusUnprocessableEntity))
-		})
+					conf.ServiceCatalog.MaintenanceInfo = nil
+					StartServer(conf)
 
-		It("fails when a new plan is passed", func() {
-			requestBody.PlanID = newPlanID
-			resp, _ := doUpdateRequest(requestBody, instanceID)
+					oldManifest := "name: service-instance_some-instance-id"
+					fakeTaskBoshClient.GetDeploymentReturns([]byte(oldManifest), true, nil)
 
-			Expect(resp.StatusCode).To(Equal(http.StatusUnprocessableEntity))
+					requestBody.MaintenanceInfo = brokerapi.MaintenanceInfo{
+						Public: map[string]string{
+							"version": "2",
+						},
+					}
+					requestBody.PlanID = oldPlanID
+					requestBody.RawParameters = []byte("{}")
+
+					resp, body := doUpdateRequest(requestBody, instanceID)
+
+					Expect(resp.StatusCode).To(Equal(http.StatusUnprocessableEntity))
+
+					bodyJSON := map[string]interface{}{}
+					err := json.Unmarshal(body, &bodyJSON)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(bodyJSON["error"]).To(Equal("MaintenanceInfoConflict"))
+				})
+			})
 		})
 	})
 
-	When("the broker is deployed with nil maintenance info", func() {
-		When("the operation includes maintenance info", func() {
-			It("fails with an appropriate error", func() {
-				brokerServer.Close()
-
-				conf.ServiceCatalog.MaintenanceInfo = nil
-				StartServer(conf)
-
-				oldManifest := "name: service-instance_some-instance-id"
-				fakeTaskBoshClient.GetDeploymentReturns([]byte(oldManifest), true, nil)
-
-				requestBody.MaintenanceInfo = brokerapi.MaintenanceInfo{
+	Describe("but updating fails", func() {
+		BeforeEach(func() {
+			requestBody = brokerapi.UpdateDetails{
+				PlanID:        newPlanID,
+				RawParameters: toJson(updateArbParams),
+				ServiceID:     serviceID,
+				PreviousValues: brokerapi.PreviousValues{
+					OrgID:     organizationGUID,
+					ServiceID: serviceID,
+					PlanID:    oldPlanID,
+					SpaceID:   "space-guid",
+				},
+				MaintenanceInfo: brokerapi.MaintenanceInfo{
 					Public: map[string]string{
-						"version": "2",
+						"version":   "2",
+						"plan_size": "big",
 					},
-				}
-				requestBody.PlanID = oldPlanID
-				requestBody.RawParameters = []byte("{}")
+				},
+			}
+		})
 
-				resp, body := doUpdateRequest(requestBody, instanceID)
+		It("responds with 422 when there are pending changes", func() {
+			boshManifest := []byte(`---
+name: service-instance_some-instance-id
+properties:
+  bob: like-a-duck`)
+			manifest := sdk.MarshalledGenerateManifest{
+				Manifest: string(boshManifest),
+			}
+			manifestBytes, err := json.Marshal(manifest)
+			Expect(err).NotTo(HaveOccurred())
+			zero := 0
 
-				Expect(resp.StatusCode).To(Equal(http.StatusUnprocessableEntity))
+			fakeCommandRunner.RunWithInputParamsReturns(manifestBytes, []byte{}, &zero, nil)
 
-				bodyJSON := map[string]interface{}{}
-				err := json.Unmarshal(body, &bodyJSON)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(bodyJSON["error"]).To(Equal("MaintenanceInfoConflict"))
-			})
+			resp, _ := doUpdateRequest(requestBody, instanceID)
+
+			Expect(resp.StatusCode).To(Equal(http.StatusUnprocessableEntity))
+		})
+
+		It("responds with 500 if BOSH deployment cannot be found", func() {
+			fakeTaskBoshClient.GetDeploymentReturns(nil, false, nil)
+
+			resp, bodyContent := doUpdateRequest(requestBody, instanceID)
+
+			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
+			var body brokerapi.ErrorResponse
+			Expect(json.Unmarshal(bodyContent, &body)).To(Succeed())
+			Expect(body.Description).To(SatisfyAll(
+				Not(ContainSubstring("task-id:")),
+				ContainSubstring("There was a problem completing your request. Please contact your operations team providing the following information: "),
+				MatchRegexp(`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`),
+				ContainSubstring(fmt.Sprintf("service: %s", serviceName)),
+				ContainSubstring(fmt.Sprintf("service-instance-guid: %s", instanceID)),
+				ContainSubstring("operation: update"),
+			))
+
+			Eventually(loggerBuffer).Should(gbytes.Say("error deploying instance: bosh deployment 'service-instance_some-instance-id' not found"))
+		})
+
+		It("responds with 500 if BOSH is an operation is in progress", func() {
+			fakeTaskBoshClient.GetTasksReturns(boshdirector.BoshTasks{
+				boshdirector.BoshTask{State: boshdirector.TaskProcessing},
+			}, nil)
+
+			resp, bodyContent := doUpdateRequest(requestBody, instanceID)
+
+			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
+			var body brokerapi.ErrorResponse
+			Expect(json.Unmarshal(bodyContent, &body)).To(Succeed())
+			Expect(body.Description).To(ContainSubstring("An operation is in progress for your service instance. Please try again later."))
+		})
+
+		It("responds with 500 if BOSH is unavailable", func() {
+			fakeTaskBoshClient.GetTasksReturns(nil, errors.New("oops"))
+
+			resp, bodyContent := doUpdateRequest(requestBody, instanceID)
+
+			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
+			var body brokerapi.ErrorResponse
+			Expect(json.Unmarshal(bodyContent, &body)).To(Succeed())
+			Expect(body.Description).To(ContainSubstring("Currently unable to update service instance, please try again later"))
+		})
+
+		It("responds with 500 if CF api is unavailable", func() {
+			fakeCfClient.CountInstancesOfServiceOfferingReturns(nil, errors.New("oops"))
+
+			resp, bodyContent := doUpdateRequest(requestBody, instanceID)
+
+			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
+			var body brokerapi.ErrorResponse
+			Expect(json.Unmarshal(bodyContent, &body)).To(Succeed())
+			Expect(body.Description).To(SatisfyAll(
+				Not(ContainSubstring("task-id:")),
+				ContainSubstring("There was a problem completing your request. Please contact your operations team providing the following information: "),
+				MatchRegexp(`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`),
+				ContainSubstring(fmt.Sprintf("service: %s", serviceName)),
+				ContainSubstring(fmt.Sprintf("service-instance-guid: %s", instanceID)),
+				ContainSubstring("operation: update"),
+			))
+		})
+
+		It("responds with 500 if the planID cannot be found", func() {
+			requestBody.PlanID = "macarena"
+			resp, bodyContent := doUpdateRequest(requestBody, instanceID)
+
+			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
+			var body brokerapi.ErrorResponse
+			Expect(json.Unmarshal(bodyContent, &body)).To(Succeed())
+			Expect(body.Description).To(ContainSubstring("Plan macarena not found"))
+		})
+
+		It("responds with 500 when the adapter errors", func() {
+			err := serviceadapter.ErrorForExitCode(400, "")
+			fourHundred := 400
+			fakeCommandRunner.RunWithInputParamsReturns([]byte{}, []byte("stderr error message"), &fourHundred, err)
+			fakeTaskBoshClient.GetDeploymentReturns(nil, true, nil)
+
+			resp, bodyContent := doUpdateRequest(requestBody, instanceID)
+			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
+
+			var body brokerapi.ErrorResponse
+			Expect(json.Unmarshal(bodyContent, &body)).To(Succeed())
+			Expect(body.Description).To(SatisfyAll(
+				Not(ContainSubstring("task-id:")),
+				ContainSubstring("There was a problem completing your request. Please contact your operations team providing the following information: "),
+				MatchRegexp(`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`),
+				ContainSubstring(fmt.Sprintf("service: %s", serviceName)),
+				ContainSubstring(fmt.Sprintf("service-instance-guid: %s", instanceID)),
+				ContainSubstring("operation: update"),
+			))
+
+			Eventually(loggerBuffer).Should(gbytes.Say("stderr error message"))
+		})
+
+		It("responds with 500 when BOSH cannot get the deployment", func() {
+			fakeBoshClient.GetDeploymentReturns(nil, false, errors.New("error getting deployment"))
+
+			resp, bodyContent := doUpdateRequest(requestBody, instanceID)
+
+			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
+			var body brokerapi.ErrorResponse
+			Expect(json.Unmarshal(bodyContent, &body)).To(Succeed())
+			Expect(body.Description).To(SatisfyAll(
+				ContainSubstring("There was a problem completing your request. "),
+				ContainSubstring("operation: update"),
+			))
+
+			Eventually(loggerBuffer).Should(gbytes.Say("error getting deployment"))
+		})
+
+		It("responds with 500 when BOSH cannot get deployment variables", func() {
+			fakeBoshClient.VariablesReturns(nil, errors.New("error getting variables"))
+
+			resp, bodyContent := doUpdateRequest(requestBody, instanceID)
+
+			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
+			var body brokerapi.ErrorResponse
+			Expect(json.Unmarshal(bodyContent, &body)).To(Succeed())
+			Expect(body.Description).To(SatisfyAll(
+				ContainSubstring("There was a problem completing your request. "),
+				ContainSubstring("operation: update"),
+			))
+
+			Eventually(loggerBuffer).Should(gbytes.Say("error getting variables"))
+		})
+
+		It("responds with 500 when the secrets manager cannot resolve secrets", func() {
+			fakeCredhubOperator.BulkGetReturns(nil, errors.New("could not get secrets"))
+
+			resp, bodyContent := doUpdateRequest(requestBody, instanceID)
+
+			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
+			var body brokerapi.ErrorResponse
+			Expect(json.Unmarshal(bodyContent, &body)).To(Succeed())
+			Expect(body.Description).To(SatisfyAll(
+				ContainSubstring("There was a problem completing your request. "),
+				ContainSubstring("operation: update"),
+			))
+
+			Eventually(loggerBuffer).Should(gbytes.Say("could not get secrets"))
 		})
 	})
 

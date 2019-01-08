@@ -231,6 +231,7 @@ var _ = Describe("Update", func() {
 			BeforeEach(func() {
 				newPlanID = secondPlanID
 				oldPlanID = secondPlanID
+				arbitraryParams = map[string]interface{}{"foo": "bar"}
 			})
 
 			Context("and there are no pending changes", func() {
@@ -321,6 +322,32 @@ var _ = Describe("Update", func() {
 						Expect(fakeDeployer.UpdateCallCount()).To(Equal(1))
 						_, _, _, _, actualBoshContextID, _, _ := fakeDeployer.UpdateArgsForCall(0)
 						Expect(actualBoshContextID).NotTo(BeEmpty())
+					})
+				})
+
+				Context("and the incoming maintenance_info matches the broker maintenance_info", func() {
+					BeforeEach(func() {
+						catalog, err := b.Services(context.Background())
+						Expect(err).NotTo(HaveOccurred())
+						maintenanceInfo = *catalog[0].Plans[1].MaintenanceInfo
+					})
+
+					It("does not error", func() {
+						Expect(updateError).NotTo(HaveOccurred())
+					})
+				})
+
+				Context("but the incoming maintenance_info does not match the broker maintenance_info", func() {
+					BeforeEach(func() {
+						maintenanceInfo = brokerapi.MaintenanceInfo{
+							Public: map[string]string{
+								"bogus": "value",
+							},
+						}
+					})
+
+					It("fails", func() {
+						Expect(updateError).To(MatchError("passed maintenance_info does not match the catalog maintenance_info"))
 					})
 				})
 			})
@@ -771,11 +798,6 @@ var _ = Describe("Update", func() {
 			}))
 
 			Expect(logBuffer.String()).To(MatchRegexp(`\[[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\] \d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2} upgrading instance`))
-		})
-
-		It("fails when arbitrary params are also passed", func() {
-			updateSpec, updateError = updateService(testBroker, arbitraryParams, arbContext, instanceID, oldPlanID, serviceID, oldPlanID, orgGUID, spaceGUID, async, maintenanceInfo)
-			Expect(updateError).To(MatchError("maintenance_info is passed indicating upgrade, but arbitrary params were passed"))
 		})
 
 		It("fails when the requested maintenance info does not match the actual maintenance info for the plan", func() {

@@ -45,12 +45,6 @@ func (b *Broker) Update(
 		return brokerapi.UpdateServiceSpec{}, b.processError(err, logger)
 	}
 
-	detailsWithRawParameters := brokerapi.DetailsWithRawParameters(details)
-	detailsMap, err := convertDetailsToMap(detailsWithRawParameters)
-	if err != nil {
-		return brokerapi.UpdateServiceSpec{}, b.processError(NewGenericError(ctx, err), logger)
-	}
-
 	var boshContextID string
 	if len(plan.PostDeployErrands()) > 0 {
 		boshContextID = uuid.New()
@@ -59,27 +53,18 @@ func (b *Broker) Update(
 	var boshTaskID int
 	var operationType OperationType
 
-	if details.MaintenanceInfo.Private != "" || details.MaintenanceInfo.Public != nil {
-		brokerMaintenanceInfo, err := b.getMaintenanceInfoForPlan(details.PlanID)
-		if err != nil {
-			return brokerapi.UpdateServiceSpec{}, b.processError(NewGenericError(ctx, err), logger)
-		}
-
-		if brokerMaintenanceInfo != nil && !reflect.DeepEqual(*brokerMaintenanceInfo, details.MaintenanceInfo) {
-			return brokerapi.UpdateServiceSpec{}, b.processError(brokerapi.ErrMaintenanceInfoConflict, logger)
-		}
-
-		if brokerMaintenanceInfo == nil {
-			return brokerapi.UpdateServiceSpec{}, b.processError(brokerapi.ErrMaintenanceInfoNilConflict, logger)
-		}
+	err = b.validateMaintenanceInfo(details, ctx)
+	if err != nil {
+		return brokerapi.UpdateServiceSpec{}, b.processError(err, logger)
 	}
 
-	if b.isUpgrade(details) {
-		updateSpec, err := b.validateUpgrade(details, detailsMap, plan, logger, ctx)
-		if err != nil {
-			return updateSpec, err
-		}
+	detailsWithRawParameters := brokerapi.DetailsWithRawParameters(details)
+	detailsMap, err := convertDetailsToMap(detailsWithRawParameters)
+	if err != nil {
+		return brokerapi.UpdateServiceSpec{}, b.processError(NewGenericError(ctx, err), logger)
+	}
 
+	if b.isUpgrade(details, detailsMap) {
 		logger.Printf("upgrading instance %s", instanceID)
 
 		operationType = OperationTypeUpgrade
@@ -90,7 +75,6 @@ func (b *Broker) Update(
 			boshContextID,
 			logger,
 		)
-
 	} else {
 		err = b.validateQuotasForUpdate(plan, details, logger, ctx)
 		if err != nil {
@@ -122,6 +106,24 @@ func (b *Broker) Update(
 		)
 	}
 
+	if err != nil {
+		return b.handleUpdateError(err, logger, ctx)
+	}
+
+	operationData, err := json.Marshal(OperationData{
+		BoshTaskID:    boshTaskID,
+		OperationType: operationType,
+		BoshContextID: boshContextID,
+		Errands:       plan.PostDeployErrands(),
+	})
+	if err != nil {
+		return brokerapi.UpdateServiceSpec{}, b.processError(NewGenericError(brokercontext.WithBoshTaskID(ctx, boshTaskID), err), logger)
+	}
+
+	return brokerapi.UpdateServiceSpec{IsAsync: true, OperationData: string(operationData)}, nil
+}
+
+func (b *Broker) handleUpdateError(err error, logger *log.Logger, ctx context.Context) (brokerapi.UpdateServiceSpec, error) {
 	switch err := err.(type) {
 	case ServiceError:
 		return brokerapi.UpdateServiceSpec{}, b.processError(NewBoshRequestError("update", fmt.Errorf("error deploying instance: %s", err)), logger)
@@ -140,18 +142,7 @@ func (b *Broker) Update(
 	case error:
 		return brokerapi.UpdateServiceSpec{}, b.processError(NewGenericError(ctx, fmt.Errorf("error deploying instance: %s", err)), logger)
 	}
-
-	operationData, err := json.Marshal(OperationData{
-		BoshTaskID:    boshTaskID,
-		OperationType: operationType,
-		BoshContextID: boshContextID,
-		Errands:       plan.PostDeployErrands(),
-	})
-	if err != nil {
-		return brokerapi.UpdateServiceSpec{}, b.processError(NewGenericError(brokercontext.WithBoshTaskID(ctx, boshTaskID), err), logger)
-	}
-
-	return brokerapi.UpdateServiceSpec{IsAsync: true, OperationData: string(operationData)}, nil
+	return brokerapi.UpdateServiceSpec{}, nil
 }
 
 func (b *Broker) checkPlanExists(details brokerapi.UpdateDetails, logger *log.Logger, ctx context.Context) (config.Plan, error) {
@@ -164,31 +155,12 @@ func (b *Broker) checkPlanExists(details brokerapi.UpdateDetails, logger *log.Lo
 	return plan, nil
 }
 
-func (b *Broker) isUpgrade(details brokerapi.UpdateDetails) bool {
+func (b *Broker) isUpgrade(details brokerapi.UpdateDetails, detailsMap map[string]interface{}) bool {
 	if details.MaintenanceInfo.Private != "" || details.MaintenanceInfo.Public != nil {
-		return details.PlanID == details.PreviousValues.PlanID
+		params := detailsMap["parameters"]
+		return details.PlanID == details.PreviousValues.PlanID && len(params.(map[string]interface{})) == 0
 	}
 	return false
-}
-
-func (b *Broker) validateUpgrade(
-	details brokerapi.UpdateDetails,
-	detailsMap map[string]interface{},
-	plan config.Plan,
-	logger *log.Logger,
-	ctx context.Context,
-) (brokerapi.UpdateServiceSpec, error) {
-
-	if params := detailsMap["parameters"]; len(params.(map[string]interface{})) > 0 {
-		return brokerapi.UpdateServiceSpec{},
-			b.processError(brokerapi.NewFailureResponse(
-				errors.New("maintenance_info is passed indicating upgrade, but arbitrary params were passed"),
-				http.StatusUnprocessableEntity,
-				UpdateLoggerAction,
-			), logger)
-	}
-
-	return brokerapi.UpdateServiceSpec{}, nil
 }
 
 func (b *Broker) getMaintenanceInfoForPlan(id string) (*brokerapi.MaintenanceInfo, error) {
@@ -204,6 +176,24 @@ func (b *Broker) getMaintenanceInfoForPlan(id string) (*brokerapi.MaintenanceInf
 	}
 
 	return nil, fmt.Errorf("plan %s not found", id)
+}
+
+func (b *Broker) validateMaintenanceInfo(details brokerapi.UpdateDetails, ctx context.Context) error {
+	if details.MaintenanceInfo.Private != "" || details.MaintenanceInfo.Public != nil {
+		brokerMaintenanceInfo, err := b.getMaintenanceInfoForPlan(details.PlanID)
+		if err != nil {
+			return NewGenericError(ctx, err)
+		}
+
+		if brokerMaintenanceInfo != nil && !reflect.DeepEqual(*brokerMaintenanceInfo, details.MaintenanceInfo) {
+			return brokerapi.ErrMaintenanceInfoConflict
+		}
+
+		if brokerMaintenanceInfo == nil {
+			return brokerapi.ErrMaintenanceInfoNilConflict
+		}
+	}
+	return nil
 }
 
 func (b *Broker) validateQuotasForUpdate(plan config.Plan, details brokerapi.UpdateDetails, logger *log.Logger, ctx context.Context) error {
