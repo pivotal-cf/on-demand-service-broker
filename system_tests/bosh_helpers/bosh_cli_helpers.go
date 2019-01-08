@@ -162,6 +162,35 @@ func DeployAndRegisterBroker(systemTestSuffix string, opsFiles ...string) Broker
 	}
 }
 
+func GetBOSHConfig(configType, configName string) (string, error) {
+	args := []string{
+		"config",
+		"--type", configType,
+		"--name", configName,
+	}
+	cmd := exec.Command("bosh", args...)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", err
+	}
+
+	return string(out), nil
+}
+
+func DeleteBOSHConfig(configType, configName string) error {
+	args := []string{
+		"delete-config",
+		"--type", configType,
+		"--name", configName,
+		"-n",
+	}
+	cmd := exec.Command("bosh", args...)
+	if err := cmd.Run(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func ClientCredentialsAreInVarsFile(varsFile string) bool {
 	var test struct {
 		CF struct {
