@@ -148,8 +148,7 @@ func (b *Broker) handleUpdateError(err error, logger *log.Logger, ctx context.Co
 func (b *Broker) checkPlanExists(details brokerapi.UpdateDetails, logger *log.Logger, ctx context.Context) (config.Plan, error) {
 	plan, found := b.serviceOffering.FindPlanByID(details.PlanID)
 	if !found {
-		message := fmt.Sprintf("Plan %s not found", details.PlanID)
-		return config.Plan{}, errors.New(message)
+		return config.Plan{}, PlanNotFoundError{PlanGUID: details.PlanID}
 	}
 
 	return plan, nil

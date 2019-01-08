@@ -546,7 +546,7 @@ properties:
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 			var body brokerapi.ErrorResponse
 			Expect(json.Unmarshal(bodyContent, &body)).To(Succeed())
-			Expect(body.Description).To(ContainSubstring("Plan macarena not found"))
+			Expect(body.Description).To(ContainSubstring("plan macarena does not exist"))
 		})
 
 		It("responds with 500 when the adapter errors", func() {

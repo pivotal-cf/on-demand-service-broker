@@ -11,9 +11,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net/http"
-
 	"github.com/pivotal-cf/on-demand-service-broker/config"
+	"net/http"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -26,24 +25,24 @@ import (
 
 var _ = Describe("Update", func() {
 	var (
-		instanceID                 = "some-instance-id"
-		updateSpec                 brokerapi.UpdateServiceSpec
-		updateDetails              brokerapi.UpdateDetails
-		arbitraryParams            map[string]interface{}
-		arbContext                 map[string]interface{}
-		expectedSecretsMap         map[string]string
-		serviceID                  string
-		orgGUID                    string
-		spaceGUID                  string
-		boshTaskID                 int
-		updateError                error
-		newPlanID                  string
-		oldPlanID                  string
-		serialisedArbitraryContext []byte
-		async                      = true
-		maintenanceInfo            brokerapi.MaintenanceInfo
-		err                        error
-		testBroker                 *broker.Broker
+		instanceID                              = "some-instance-id"
+		updateSpec                              brokerapi.UpdateServiceSpec
+		updateDetails                           brokerapi.UpdateDetails
+		arbitraryParams                         map[string]interface{}
+		arbContext                              map[string]interface{}
+		expectedSecretsMap                      map[string]string
+		serviceID                               string
+		orgGUID                                 string
+		spaceGUID                               string
+		boshTaskID                              int
+		updateError                             error
+		newPlanID                               string
+		oldPlanID                               string
+		serialisedArbitraryContext              []byte
+		async                                   = true
+		maintenanceInfo, oldPlanMaintenanceInfo brokerapi.MaintenanceInfo
+		err                                     error
+		testBroker                              *broker.Broker
 	)
 
 	BeforeEach(func() {
@@ -67,24 +66,32 @@ var _ = Describe("Update", func() {
 		fakeSecretManager.ResolveManifestSecretsReturns(expectedSecretsMap, nil)
 		maintenanceInfo = brokerapi.MaintenanceInfo{}
 		testBroker = createDefaultBroker()
-	})
+		catalog, err := testBroker.Services(context.Background())
+		Expect(err).NotTo(HaveOccurred())
+		oldPlanMaintenanceInfo = *catalog[0].Plans[0].MaintenanceInfo
 
-	Context("before determining whether the operation is an update or an upgrade", func() {
-		It("errors if the maintenance_info for the plan cannot be determined", func() {
-			fakeAdapter := new(brokerfakes.FakeServiceAdapterClient)
-			fakeAdapter.GeneratePlanSchemaReturns(brokerapi.ServiceSchemas{}, errors.New("oops"))
-			brokerConfig.EnablePlanSchemas = true
-			testBroker = createBrokerWithAdapter(fakeAdapter)
-
-			_, updateError = updateService(testBroker, arbitraryParams, arbContext, instanceID, newPlanID, serviceID, oldPlanID, orgGUID, spaceGUID, async, maintenanceInfo)
-			Expect(updateError).To(HaveOccurred())
-			Expect(updateError.Error()).To(ContainSubstring("oops"))
-		})
 	})
 
 	When("it is an update", func() {
+		var updateDetails brokerapi.UpdateDetails
 		JustBeforeEach(func() {
-			updateSpec, updateError = updateService(testBroker, arbitraryParams, arbContext, instanceID, newPlanID, serviceID, oldPlanID, orgGUID, spaceGUID, async, maintenanceInfo)
+			serialisedArbitraryContext, err := json.Marshal(arbContext)
+			Expect(err).NotTo(HaveOccurred())
+
+			serialisedArbitraryParameters, err := json.Marshal(arbitraryParams)
+			Expect(err).NotTo(HaveOccurred())
+
+			updateDetails = brokerapi.UpdateDetails{
+				PlanID:     newPlanID,
+				ServiceID:  serviceID,
+				RawContext: serialisedArbitraryContext,
+				PreviousValues: brokerapi.PreviousValues{
+					PlanID: oldPlanID,
+				},
+				MaintenanceInfo: maintenanceInfo,
+				RawParameters:   serialisedArbitraryParameters,
+			}
+			updateSpec, updateError = b.Update(context.Background(), instanceID, updateDetails, async)
 		})
 
 		It("invokes the deployer with the correct arguments", func() {
@@ -97,10 +104,10 @@ var _ = Describe("Update", func() {
 				"parameters": arbitraryParams,
 				"service_id": serviceID,
 				"previous_values": map[string]interface{}{
-					"space_id":        spaceGUID,
-					"organization_id": orgGUID,
+					"space_id":        "",
+					"organization_id": "",
 					"plan_id":         oldPlanID,
-					"service_id":      serviceID,
+					"service_id":      "",
 				},
 				"maintenance_info": map[string]interface{}{},
 			}))
@@ -192,25 +199,6 @@ var _ = Describe("Update", func() {
 				})
 			})
 
-			Context("but the incoming maintenance_info does not match the broker maintenance_info", func() {
-				BeforeEach(func() {
-					arbitraryParams = nil
-					catalog, err := b.Services(context.Background())
-					Expect(err).NotTo(HaveOccurred())
-					maintenanceInfo = brokerapi.MaintenanceInfo{
-						Public: map[string]string{
-							"bogus": "value",
-						},
-					}
-					Expect(secondPlan.ID).To(Equal(catalog[0].Plans[1].ID))
-					newPlanID = secondPlan.ID
-				})
-
-				It("fails", func() {
-					Expect(updateError).To(MatchError("passed maintenance_info does not match the catalog maintenance_info"))
-				})
-			})
-
 			Context("but there are pending changes", func() {
 				BeforeEach(func() {
 					fakeDeployer.UpdateReturns(boshTaskID, nil, broker.PendingChangesNotAppliedError{})
@@ -231,7 +219,7 @@ var _ = Describe("Update", func() {
 			BeforeEach(func() {
 				newPlanID = secondPlanID
 				oldPlanID = secondPlanID
-				arbitraryParams = map[string]interface{}{"foo": "bar"}
+				arbitraryParams = map[string]interface{}{"new": "value"}
 			})
 
 			Context("and there are no pending changes", func() {
@@ -353,21 +341,6 @@ var _ = Describe("Update", func() {
 			})
 		})
 
-		When("the plan cannot be found in config", func() {
-			BeforeEach(func() {
-				newPlanID = "non-existent-plan-id"
-			})
-
-			It("reports the error without redeploying", func() {
-				expectedMessage := fmt.Sprintf("Plan %s not found", newPlanID)
-				Expect(updateError).To(MatchError(ContainSubstring(expectedMessage)))
-
-				Expect(logBuffer.String()).To(ContainSubstring(expectedMessage))
-				Expect(boshClient.GetDeploymentCallCount()).To(BeZero())
-				Expect(fakeDeployer.UpdateCallCount()).To(BeZero())
-			})
-		})
-
 		When("the service instances for the plan cannot be counted", func() {
 			BeforeEach(func() {
 				cfClient.CountInstancesOfServiceOfferingReturns(nil, fmt.Errorf("count error"))
@@ -417,73 +390,6 @@ var _ = Describe("Update", func() {
 
 			It("does not redeploy", func() {
 				Expect(fakeDeployer.UpdateCallCount()).To(BeZero())
-			})
-		})
-
-		When("the bosh director is unavailable", func() {
-			BeforeEach(func() {
-				newPlanID = existingPlanID
-				oldPlanID = existingPlanID
-			})
-
-			When("a deploy has a bosh request error", func() {
-				BeforeEach(func() {
-					fakeDeployer.UpdateReturns(0, []byte{}, broker.NewServiceError(fmt.Errorf("network timeout")))
-				})
-
-				It("logs the error", func() {
-					Expect(logBuffer.String()).To(ContainSubstring("error: error deploying instance: network timeout"))
-				})
-
-				It("returns the try again later error for the user", func() {
-					Expect(updateError).To(MatchError(ContainSubstring("Currently unable to update service instance, please try again later")))
-				})
-			})
-		})
-
-		When("the adapter client fails", func() {
-			unknownFailureError := serviceadapter.NewUnknownFailureError("unknown failure")
-			BeforeEach(func() {
-				fakeDeployer.UpdateReturns(boshTaskID, nil, unknownFailureError)
-			})
-
-			It("returns an API error", func() {
-				Expect(updateError).To(Equal(unknownFailureError))
-			})
-		})
-
-		When("bosh is blocked", func() {
-			BeforeEach(func() {
-				fakeDeployer.UpdateReturns(boshTaskID, nil, broker.TaskInProgressError{})
-			})
-
-			It("returns an error with the operation in progress message", func() {
-				Expect(updateError).To(MatchError(ContainSubstring(broker.OperationInProgressMessage)))
-			})
-		})
-
-		When("plan not found", func() {
-			planNotFoundError := broker.PlanNotFoundError{PlanGUID: "plan-guid"}
-			BeforeEach(func() {
-				fakeDeployer.UpdateReturns(boshTaskID, nil, planNotFoundError)
-			})
-
-			It("returns an error with the operation in progress message", func() {
-				Expect(updateError).To(Equal(planNotFoundError))
-			})
-		})
-
-		When("asked for a synchronous update", func() {
-			BeforeEach(func() {
-				async = false
-			})
-
-			AfterEach(func() {
-				async = true
-			})
-
-			It("responds with async required error", func() {
-				Expect(updateError).To(MatchError(ContainSubstring("This service plan requires client support for asynchronous service operations")))
 			})
 		})
 
@@ -630,7 +536,8 @@ var _ = Describe("Update", func() {
 			It("returns an error", func() {
 				boshClient.GetDeploymentReturns(nil, false, errors.New("no deployment"))
 
-				updateSpec, updateError = updateService(testBroker, arbitraryParams, arbContext, instanceID, newPlanID, serviceID, oldPlanID, orgGUID, spaceGUID, async, maintenanceInfo)
+				updateSpec, updateError = testBroker.Update(context.Background(), instanceID, updateDetails, async)
+
 				Expect(updateError).To(MatchError(ContainSubstring("There was a problem completing your request")))
 				Expect(logBuffer.String()).To(ContainSubstring("no deployment"))
 			})
@@ -640,7 +547,8 @@ var _ = Describe("Update", func() {
 			It("returns an error", func() {
 				boshClient.VariablesReturns(nil, errors.New("no variables"))
 
-				updateSpec, updateError = updateService(testBroker, arbitraryParams, arbContext, instanceID, newPlanID, serviceID, oldPlanID, orgGUID, spaceGUID, async, maintenanceInfo)
+				updateSpec, updateError = testBroker.Update(context.Background(), instanceID, updateDetails, async)
+
 				Expect(updateError).To(MatchError(ContainSubstring("There was a problem completing your request")))
 				Expect(logBuffer.String()).To(ContainSubstring("no variables"))
 			})
@@ -650,7 +558,8 @@ var _ = Describe("Update", func() {
 			It("returns an error", func() {
 				fakeSecretManager.ResolveManifestSecretsReturns(nil, errors.New("no secrets"))
 
-				_, updateError = updateService(testBroker, arbitraryParams, arbContext, instanceID, newPlanID, serviceID, oldPlanID, orgGUID, spaceGUID, async, maintenanceInfo)
+				updateSpec, updateError = testBroker.Update(context.Background(), instanceID, updateDetails, async)
+
 				Expect(updateError).To(MatchError(ContainSubstring("There was a problem completing your request")))
 				Expect(logBuffer.String()).To(ContainSubstring("no secrets"))
 			})
@@ -771,16 +680,25 @@ var _ = Describe("Update", func() {
 	When("it is an upgrade", func() {
 		BeforeEach(func() {
 			fakeDeployer.UpgradeReturns(50, nil, nil)
-			maintenanceInfo = brokerapi.MaintenanceInfo{
-				Public: map[string]string{
-					"version": "fancy",
+			fakeDeployer.UpdateReturns(-1, nil, errors.New("fail"))
+			updateDetails = brokerapi.UpdateDetails{
+				PlanID:     oldPlanID,
+				ServiceID:  serviceID,
+				RawContext: serialisedArbitraryContext,
+				PreviousValues: brokerapi.PreviousValues{
+					PlanID: oldPlanID,
 				},
-				Private: "secret:secret;",
+				MaintenanceInfo: brokerapi.MaintenanceInfo{
+					Public: map[string]string{
+						"version": "fancy",
+					},
+					Private: "secret:secret;",
+				},
 			}
 		})
 
 		It("accepts the upgrade", func() {
-			updateSpec, updateError = updateService(testBroker, nil, arbContext, instanceID, existingPlanID, serviceID, existingPlanID, orgGUID, spaceGUID, async, maintenanceInfo)
+			updateSpec, updateError = testBroker.Update(context.Background(), instanceID, updateDetails, async)
 
 			Expect(fakeDeployer.UpdateCallCount()).To(Equal(0), "Update was called")
 			Expect(updateError).NotTo(HaveOccurred())
@@ -799,65 +717,135 @@ var _ = Describe("Update", func() {
 
 			Expect(logBuffer.String()).To(MatchRegexp(`\[[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\] \d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2} upgrading instance`))
 		})
+	})
+
+	Describe("regardless of the type of update", func() {
+		var testCases []brokerapi.UpdateDetails
+
+		BeforeEach(func() {
+			testCases = []brokerapi.UpdateDetails{
+				{
+					PlanID:    newPlanID,
+					ServiceID: serviceID,
+					PreviousValues: brokerapi.PreviousValues{
+						PlanID: oldPlanID,
+					},
+				},
+				{
+					PlanID:    oldPlanID,
+					ServiceID: serviceID,
+					PreviousValues: brokerapi.PreviousValues{
+						PlanID: oldPlanID,
+					},
+					RawParameters: []byte(`{"foo":"bar"}`),
+				},
+				{
+					PlanID:    oldPlanID,
+					ServiceID: serviceID,
+					PreviousValues: brokerapi.PreviousValues{
+						PlanID: oldPlanID,
+					},
+					MaintenanceInfo: oldPlanMaintenanceInfo,
+				},
+			}
+		})
+
+		It("fails when plan is not found", func() {
+			for i, t := range testCases {
+				invalidPlanId := "invalid-plan-guid"
+				planNotFoundError := broker.PlanNotFoundError{PlanGUID: invalidPlanId}
+
+				t.PlanID = invalidPlanId
+
+				updateSpec, updateError = testBroker.Update(context.Background(), instanceID, t, async)
+
+				Expect(updateError).To(Equal(planNotFoundError), fmt.Sprintf("test case %d", i))
+
+				Expect(boshClient.GetDeploymentCallCount()).To(BeZero())
+				Expect(fakeDeployer.UpdateCallCount()).To(BeZero())
+			}
+		})
+
+		It("responds with async required error when asked for a synchronous update", func() {
+			for i, t := range testCases {
+				updateSpec, updateError = testBroker.Update(context.Background(), instanceID, t, false)
+
+				Expect(updateError).To(MatchError(
+					ContainSubstring("This service plan requires client support for asynchronous service operations")),
+					fmt.Sprintf("test case %d", i))
+			}
+		})
+
+		It("returns a 'try again' message when deployer reports service errors", func() {
+			for i, t := range testCases {
+				fakeDeployer.UpdateReturns(0, []byte{}, broker.NewServiceError(fmt.Errorf("network timeout")))
+				fakeDeployer.UpgradeReturns(0, []byte{}, broker.NewServiceError(fmt.Errorf("network timeout")))
+
+				updateSpec, updateError = testBroker.Update(context.Background(), instanceID, t, async)
+
+				Expect(logBuffer.String()).To(ContainSubstring("error: error deploying instance: network timeout"), fmt.Sprintf("test case %d", i))
+				Expect(updateError).To(MatchError(ContainSubstring("Currently unable to update service instance, please try again later")), fmt.Sprintf("test case %d", i))
+			}
+		})
+
+		It("returns an operation in progress error when deployer reports task in progress", func() {
+			for i, t := range testCases {
+				fakeDeployer.UpdateReturns(boshTaskID, nil, broker.TaskInProgressError{})
+				fakeDeployer.UpgradeReturns(boshTaskID, nil, broker.TaskInProgressError{})
+
+				updateSpec, updateError = testBroker.Update(context.Background(), instanceID, t, async)
+
+				Expect(updateError).To(MatchError(ContainSubstring(broker.OperationInProgressMessage)), fmt.Sprintf("test case %d", i))
+			}
+		})
+
+		It("returns an API error when the adapter client fails with UnknownFailureError", func() {
+			for i, t := range testCases {
+				unknownFailureError := serviceadapter.NewUnknownFailureError("unknown failure")
+				fakeDeployer.UpdateReturns(boshTaskID, nil, unknownFailureError)
+				fakeDeployer.UpgradeReturns(boshTaskID, nil, unknownFailureError)
+
+				updateSpec, updateError = testBroker.Update(context.Background(), instanceID, t, async)
+
+				Expect(updateError).To(Equal(unknownFailureError), fmt.Sprintf("test case %d", i))
+			}
+		})
 
 		It("fails when the requested maintenance info does not match the actual maintenance info for the plan", func() {
-			testCases := []brokerapi.MaintenanceInfo{
+			maintenanceInfos := []brokerapi.MaintenanceInfo{
 				{Public: map[string]string{"version": "plain"}},
 				{Public: map[string]string{"version": "fancy"}, Private: "foo"},
 				{Private: "some"},
 			}
-			for _, t := range testCases {
-				updateSpec, updateError = updateService(testBroker, nil, arbContext, instanceID, oldPlanID, serviceID, oldPlanID, orgGUID, spaceGUID, async, t)
-				Expect(updateError).To(MatchError("passed maintenance_info does not match the catalog maintenance_info"))
+			for _, info := range maintenanceInfos {
+				for i, t := range testCases {
+					t.MaintenanceInfo = info
+					updateSpec, updateError = testBroker.Update(context.Background(), instanceID, t, async)
+
+					Expect(updateError).To(
+						MatchError("passed maintenance_info does not match the catalog maintenance_info"),
+						fmt.Sprintf("test case %d", i),
+					)
+				}
 			}
 		})
 
-		It("fails when cannot find the plan", func() {
-			updateSpec, updateError = updateService(testBroker, nil, arbContext, instanceID, "foo", serviceID, "foo", orgGUID, spaceGUID, async, maintenanceInfo)
-			Expect(updateError).To(MatchError("Plan foo not found"))
-		})
-
 		It("fails when the broker has no maintenance info", func() {
-			serviceCatalog.MaintenanceInfo = nil
-			testBroker = createDefaultBroker()
+			for i, t := range testCases {
+				serviceCatalog.MaintenanceInfo = nil
+				testBroker = createDefaultBroker()
+				t.PlanID = oldPlanID
+				t.MaintenanceInfo = oldPlanMaintenanceInfo
+				updateSpec, updateError = testBroker.Update(context.Background(), instanceID, t, async)
+				Expect(updateError).To(MatchError(
+					ContainSubstring("maintenance_info was passed, but the broker catalog contains no maintenance_info")),
+					fmt.Sprintf("test case %d", i),
+				)
 
-			updateSpec, updateError = updateService(testBroker, map[string]interface{}{}, arbContext, instanceID, existingPlanID, serviceID, existingPlanID, orgGUID, spaceGUID, async, maintenanceInfo)
-			Expect(updateError).To(MatchError(ContainSubstring("maintenance_info was passed, but the broker catalog contains no maintenance_info")))
+			}
 		})
 	})
 })
-
-func updateService(
-	b *broker.Broker,
-	arbitraryParams map[string]interface{},
-	arbContext map[string]interface{},
-	instanceID, newPlanID, serviceID, oldPlanID, orgGUID, spaceGUID string,
-	async bool,
-	maintenanceInfo brokerapi.MaintenanceInfo,
-) (brokerapi.UpdateServiceSpec, error) {
-
-	serialisedArbitraryParameters, err := json.Marshal(arbitraryParams)
-	Expect(err).NotTo(HaveOccurred())
-
-	serialisedArbitraryContext, err := json.Marshal(arbContext)
-	Expect(err).NotTo(HaveOccurred())
-
-	updateDetails := brokerapi.UpdateDetails{
-		PlanID:        newPlanID,
-		RawParameters: serialisedArbitraryParameters,
-		RawContext:    serialisedArbitraryContext,
-		ServiceID:     serviceID,
-		PreviousValues: brokerapi.PreviousValues{
-			PlanID:    oldPlanID,
-			OrgID:     orgGUID,
-			ServiceID: serviceID,
-			SpaceID:   spaceGUID,
-		},
-		MaintenanceInfo: maintenanceInfo,
-	}
-
-	return b.Update(context.Background(), instanceID, updateDetails, async)
-}
 
 func unmarshalOperationData(updateSpec brokerapi.UpdateServiceSpec) broker.OperationData {
 	var data broker.OperationData
