@@ -1,6 +1,7 @@
-package service_catalog_test
+package with_maintenance_info_test
 
 import (
+	"os"
 	"testing"
 
 	. "github.com/onsi/ginkgo"
@@ -21,9 +22,11 @@ var (
 
 var _ = BeforeSuite(func() {
 	uniqueID := uuid.New()[:6]
-	brokerInfo = bosh.DeployAndRegisterBroker("-catalog-" + uniqueID)
+	brokerInfo = bosh.DeployAndRegisterBroker("-catalog-"+uniqueID, "update_service_catalog.yml")
 })
 
 var _ = AfterSuite(func() {
-	bosh.DeregisterAndDeleteBroker(brokerInfo.DeploymentName)
+	if os.Getenv("KEEP_ALIVE") != "true" {
+		bosh.DeregisterAndDeleteBroker(brokerInfo.DeploymentName)
+	}
 })

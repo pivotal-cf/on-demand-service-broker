@@ -22,7 +22,7 @@ var (
 
 var _ = BeforeSuite(func() {
 	uniqueID := uuid.New()[:6]
-	brokerInfo = bosh.DeployAndRegisterBroker("-recreate-" + uniqueID)
+	brokerInfo = bosh.DeployAndRegisterBroker("-recreate-"+uniqueID, "update_service_catalog.yml")
 	serviceInstanceName = "service" + brokerInfo.TestSuffix
 	cf.CreateService(brokerInfo.ServiceOffering, "redis-with-post-deploy", serviceInstanceName, "")
 })

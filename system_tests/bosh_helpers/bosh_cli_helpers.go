@@ -4,19 +4,18 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/pborman/uuid"
-	yaml "gopkg.in/yaml.v2"
-
-	. "github.com/onsi/gomega"
 )
 
 const (
@@ -26,6 +25,15 @@ const (
 type BoshTaskOutput struct {
 	Description string `json:"description"`
 	State       string `json:"state"`
+}
+
+type BrokerInfo struct {
+	URI             string
+	DeploymentName  string
+	ServiceOffering string
+	TestSuffix      string
+	BrokerPassword  string
+	BrokerUsername  string
 }
 
 func TasksForDeployment(boshServiceInstanceName string) []BoshTaskOutput {
@@ -74,16 +82,15 @@ func VMIDForDeployment(deploymentName string) string {
 	return boshOutput.Tables[0].Rows[0].VMCID
 }
 
-type BrokerInfo struct {
-	URI             string
-	DeploymentName  string
-	ServiceOffering string
-	TestSuffix      string
-	BrokerPassword  string
-	BrokerUsername  string
+func DeployAndRegisterBroker(systemTestSuffix string, opsFiles ...string) BrokerInfo {
+	var args []string
+	for _, opsFile := range opsFiles {
+		args = append(args, []string{"--ops-file", "./fixtures/" + opsFile}...)
+	}
+	return deployAndRegisterBroker(systemTestSuffix, args...)
 }
 
-func DeployAndRegisterBroker(systemTestSuffix string, opsFiles ...string) BrokerInfo {
+func deployAndRegisterBroker(systemTestSuffix string, opsFiles ...string) BrokerInfo {
 	devEnv := os.Getenv("DEV_ENV")
 	if devEnv != "" {
 		devEnv = "-" + devEnv
@@ -91,11 +98,26 @@ func DeployAndRegisterBroker(systemTestSuffix string, opsFiles ...string) Broker
 	brokerPassword := uuid.New()[:6]
 	deploymentName := "redis-on-demand-broker" + systemTestSuffix
 	serviceOffering := "redis" + systemTestSuffix
-	serviceReleaseVersion := os.Getenv("SERVICE_RELEASE_VERSION")
-	serviceReleaseName := os.Getenv("SERVICE_RELEASE_NAME")
+	serviceReleaseName := os.Getenv("SERVICE_RELEASE_NAME") + devEnv
+
 	brokerSystemDomain := os.Getenv("BROKER_SYSTEM_DOMAIN")
 	bpmAvailable := os.Getenv("BPM_AVAILABLE") == "true"
 	odbVersion := os.Getenv("ODB_VERSION")
+	if odbVersion == "" {
+		fmt.Println("⚠ ODB version not set. Falling back to latest ⚠")
+		odbVersion = "latest"
+	}
+
+	serviceReleaseVersion := os.Getenv("SERVICE_RELEASE_VERSION")
+	if serviceReleaseVersion == "" {
+		fmt.Println("⚠ Service Release version not set. Falling back to latest available ⚠")
+		serviceReleaseVersion = getLatestServiceReleaseVersion(serviceReleaseName)
+	}
+
+	odbReleaseTemplatesPath := os.Getenv("ODB_RELEASE_TEMPLATES_PATH")
+	baseManifest := filepath.Join(odbReleaseTemplatesPath, "base_odb_manifest.yml")
+	redisAdapterOpsFile := filepath.Join(odbReleaseTemplatesPath, "operations", "redis.yml")
+
 	brokerURI := "redis-service-broker" + systemTestSuffix + "." + brokerSystemDomain
 
 	fmt.Println("     --- Deploying System Test Broker ---")
@@ -113,14 +135,15 @@ func DeployAndRegisterBroker(systemTestSuffix string, opsFiles ...string) Broker
 	deployArguments := []string{
 		"-d", deploymentName,
 		"-n",
-		"deploy", "./fixtures/broker_manifest.yml",
+		"deploy", baseManifest,
 		"--vars-file", varsFile,
+		"--var", "stemcell_alias=xenial",
 		"--var", "broker_uri=" + brokerURI,
 		"--var", "broker_cn='*" + brokerSystemDomain + "'",
 		"--var", "broker_deployment_name=" + deploymentName,
 		"--var", "broker_release=on-demand-service-broker" + devEnv,
 		"--var", "service_adapter_release=redis-example-service-adapter" + devEnv,
-		"--var", "service_release=" + serviceReleaseName + devEnv,
+		"--var", "service_release=" + serviceReleaseName,
 		"--var", "service_release_version=" + serviceReleaseVersion,
 		"--var", "broker_name=" + serviceOffering,
 		"--var", "broker_route_name=redis-odb" + systemTestSuffix,
@@ -128,17 +151,16 @@ func DeployAndRegisterBroker(systemTestSuffix string, opsFiles ...string) Broker
 		"--var", "service_catalog_service_name=redis" + systemTestSuffix,
 		"--var", "plan_id=redis-post-deploy-plan-redis" + systemTestSuffix,
 		"--var", "broker_password=" + brokerPassword,
-		"--var", "odb_version=" + odbVersion,
+		"--var", "broker_version=" + odbVersion,
+		"--var", "service_adapter_version=latest",
+		"--var", "instance_groups_vm_extensions=[public_ip]",
+		"--var", "disable_ssl_cert_verification=false",
+		"--ops-file", redisAdapterOpsFile,
 	}
-	for _, opsFile := range opsFiles {
-		deployArguments = append(deployArguments, []string{"--ops-file", "./fixtures/" + opsFile}...)
-	}
-	if bpmAvailable {
-		deployArguments = append(deployArguments, []string{"--ops-file", "./fixtures/add_bpm_job.yml"}...)
-	}
+	deployArguments = append(deployArguments, opsFiles...)
 
-	if ClientCredentialsAreInVarsFile(varsFile) {
-		deployArguments = append(deployArguments, []string{"--ops-file", "./fixtures/remove_cf_user_creds.yml"}...)
+	if bpmAvailable {
+		deployArguments = append(deployArguments, []string{"--ops-file", filepath.Join(odbReleaseTemplatesPath, "operations", "add_bpm_job.yml")}...)
 	}
 
 	cmd := exec.Command("bosh", deployArguments...)
@@ -191,23 +213,6 @@ func DeleteBOSHConfig(configType, configName string) error {
 	return nil
 }
 
-func ClientCredentialsAreInVarsFile(varsFile string) bool {
-	var test struct {
-		CF struct {
-			ClientCredentials struct {
-				ClientID string `yaml:"client_id"`
-			} `yaml:"client_credentials"`
-		} `yaml:"cf"`
-	}
-	f, err := os.Open(varsFile)
-	Expect(err).NotTo(HaveOccurred())
-	varsFileContents, err := ioutil.ReadAll(f)
-	Expect(err).NotTo(HaveOccurred())
-	err = yaml.Unmarshal(varsFileContents, &test)
-	Expect(err).NotTo(HaveOccurred())
-	return test.CF.ClientCredentials.ClientID != ""
-}
-
 func DeregisterAndDeleteBroker(deploymentName string) {
 	RunErrand(deploymentName, "delete-all-service-instances-and-deregister-broker")
 
@@ -232,4 +237,31 @@ func brokerRespondsOnCatalogEndpoint(brokerURI string) bool {
 	}
 
 	return res.StatusCode == http.StatusUnauthorized
+}
+
+func getLatestServiceReleaseVersion(releaseName string) string {
+	releasesOutput := gbytes.NewBuffer()
+	cmd := exec.Command("bosh", "releases", "--json")
+	session, err := gexec.Start(cmd, releasesOutput, GinkgoWriter)
+	Expect(err).NotTo(HaveOccurred(), "failed to run delete deployment")
+	Eventually(session, LongBOSHTimeout).Should(gexec.Exit(0), "failed to retrieve bosh releases")
+
+	var boshOutput struct {
+		Tables []struct {
+			Rows []struct {
+				Name    string
+				Version string
+			}
+		}
+	}
+	Expect(json.Unmarshal(releasesOutput.Contents(), &boshOutput)).NotTo(HaveOccurred())
+	Expect(boshOutput.Tables).To(HaveLen(1))
+	for _, release := range boshOutput.Tables[0].Rows {
+		if release.Name == releaseName {
+			return strings.TrimRight(release.Version, "*")
+		}
+	}
+
+	Fail("Could not find version for " + releaseName + " release")
+	return ""
 }
