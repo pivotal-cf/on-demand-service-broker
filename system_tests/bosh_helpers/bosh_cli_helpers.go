@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
@@ -16,6 +17,7 @@ import (
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/pborman/uuid"
+	yaml "gopkg.in/yaml.v2"
 )
 
 const (
@@ -163,6 +165,10 @@ func deployAndRegisterBroker(systemTestSuffix string, opsFiles ...string) Broker
 		deployArguments = append(deployArguments, []string{"--ops-file", filepath.Join(odbReleaseTemplatesPath, "operations", "add_bpm_job.yml")}...)
 	}
 
+	if noClientCredentialsInVarsFile(varsFile) {
+		deployArguments = append(deployArguments, []string{"--ops-file", filepath.Join(odbReleaseTemplatesPath, "operations", "cf_uaa_user.yml")}...)
+	}
+
 	cmd := exec.Command("bosh", deployArguments...)
 	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
 	Expect(err).NotTo(HaveOccurred(), "failed to run bosh deploy command")
@@ -264,4 +270,21 @@ func getLatestServiceReleaseVersion(releaseName string) string {
 
 	Fail("Could not find version for " + releaseName + " release")
 	return ""
+}
+
+func noClientCredentialsInVarsFile(varsFile string) bool {
+	var test struct {
+		CF struct {
+			ClientCredentials struct {
+				ClientID string `yaml:"client_id"`
+			} `yaml:"client_credentials"`
+		} `yaml:"cf"`
+	}
+	f, err := os.Open(varsFile)
+	Expect(err).NotTo(HaveOccurred())
+	varsFileContents, err := ioutil.ReadAll(f)
+	Expect(err).NotTo(HaveOccurred())
+	err = yaml.Unmarshal(varsFileContents, &test)
+	Expect(err).NotTo(HaveOccurred())
+	return test.CF.ClientCredentials.ClientID == ""
 }
