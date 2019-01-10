@@ -253,6 +253,17 @@ var _ = Describe("Broker Config", func() {
 			})
 		})
 
+		Context("and the bosh configs are disabled", func() {
+			BeforeEach(func() {
+				configFileName = "good_config_with_disabled_bosh_configs.yml"
+			})
+
+			It("returns a config object with disable_bosh_configs set to true", func() {
+				Expect(parseErr).NotTo(HaveOccurred())
+				Expect(conf.Broker.DisableBoshConfigs).To(BeTrue())
+			})
+		})
+
 		Context("and the config includes the optional broker TLS configuraiton", func() {
 			BeforeEach(func() {
 				configFileName = "good_config_with_tls.yml"

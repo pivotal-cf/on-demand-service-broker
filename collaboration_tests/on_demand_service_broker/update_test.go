@@ -20,10 +20,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
-	"net/http"
 
 	"strings"
 
@@ -127,6 +128,9 @@ var _ = Describe("Update a service instance", func() {
 		oldManifest = []byte(`name: service-instance_some-instance-id`)
 		fakeTaskBoshClient.GetDeploymentReturns(oldManifest, true, nil)
 		fakeTaskBoshClient.DeployReturns(updateTaskID, nil)
+	})
+
+	JustBeforeEach(func() {
 		StartServer(conf)
 	})
 
@@ -432,6 +436,65 @@ properties:
 					err := json.Unmarshal(body, &bodyJSON)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(bodyJSON["error"]).To(Equal("MaintenanceInfoConflict"))
+				})
+			})
+		})
+	})
+
+	Context("dynamic bosh config creation", func() {
+		When("bosh configs feature flag is disabled", func() {
+			BeforeEach(func() {
+				conf.Broker.DisableBoshConfigs = true
+			})
+
+			When("adapter returns configs in GenerateManifest", func() {
+				BeforeEach(func() {
+					generateManifestOutput := sdk.MarshalledGenerateManifest{
+						Manifest: `name: service-instance_some-instance-id`,
+						ODBManagedSecrets: map[string]interface{}{
+							"": nil,
+						},
+						Configs: sdk.BOSHConfigs{"cloud": `{}`},
+					}
+					generateManifestOutputBytes, err := json.Marshal(generateManifestOutput)
+					Expect(err).NotTo(HaveOccurred())
+					zero := 0
+					fakeCommandRunner.RunWithInputParamsReturns(generateManifestOutputBytes, []byte{}, &zero, nil)
+				})
+
+				It("fails when generate manifest output contains configs", func() {
+					resp, _ := doUpdateRequest(requestBody, instanceID)
+					Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
+				})
+
+				It("doesn't query BOSH for configs nor try to update them", func() {
+					doUpdateRequest(requestBody, instanceID)
+
+					Expect(fakeTaskBoshClient.UpdateConfigCallCount()).To(Equal(0), "UpdateConfig should not have been called")
+					Expect(fakeTaskBoshClient.GetConfigsCallCount()).To(Equal(0), "GetConfigs should not have been called")
+				})
+			})
+
+			When("adapter doesn't returns configs in GenerateManifest", func() {
+				BeforeEach(func() {
+					generateManifestOutput := sdk.MarshalledGenerateManifest{
+						Manifest: `name: service-instance_some-instance-id`,
+						ODBManagedSecrets: map[string]interface{}{
+							"": nil,
+						},
+					}
+					generateManifestOutputBytes, err := json.Marshal(generateManifestOutput)
+					Expect(err).NotTo(HaveOccurred())
+					zero := 0
+					fakeCommandRunner.RunWithInputParamsReturns(generateManifestOutputBytes, []byte{}, &zero, nil)
+				})
+
+				It("updates without getting or update bosh configs", func() {
+					resp, _ := doUpdateRequest(requestBody, instanceID)
+
+					Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
+					Expect(fakeTaskBoshClient.UpdateConfigCallCount()).To(Equal(0), "UpdateConfig should not have been called")
+					Expect(fakeTaskBoshClient.GetConfigsCallCount()).To(Equal(0), "GetConfigs should not have been called")
 				})
 			})
 		})

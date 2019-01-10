@@ -17,7 +17,6 @@ import (
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
-	"github.com/pivotal-cf/on-demand-service-broker/config"
 )
 
 var _ = Describe("LastOperation", func() {
@@ -28,6 +27,7 @@ var _ = Describe("LastOperation", func() {
 			operationData string
 
 			lastOpErr error
+			opResult  brokerapi.LastOperation
 		)
 
 		JustBeforeEach(func() {
@@ -35,7 +35,7 @@ var _ = Describe("LastOperation", func() {
 			pollDetails = brokerapi.PollDetails{
 				OperationData: operationData,
 			}
-			_, lastOpErr = b.LastOperation(context.Background(), instanceID, pollDetails)
+			opResult, lastOpErr = b.LastOperation(context.Background(), instanceID, pollDetails)
 		})
 
 		Context("when task cannot be retrieved from BOSH", func() {
@@ -232,27 +232,13 @@ var _ = Describe("LastOperation", func() {
 		})
 
 		Context("the broker is configured to expose operational errors", func() {
-			It("exposes the error", func() {
-				b, err := broker.New(
-					boshClient,
-					cfClient,
-					serviceCatalog,
-					config.Broker{ExposeOperationalErrors: true},
-					[]broker.StartupChecker{},
-					serviceAdapter,
-					fakeDeployer,
-					fakeSecretManager,
-					fakeInstanceLister,
-					fakeMapHasher,
-					loggerFactory,
-				)
-				Expect(err).NotTo(HaveOccurred())
-
-				operationData = `{"BoshTaskID": 42, "OperationType": "create"}`
+			BeforeEach(func() {
+				brokerConfig.ExposeOperationalErrors = true
 				boshClient.GetTaskReturns(boshdirector.BoshTask{State: boshdirector.TaskError, Description: "some task", Result: "bosh error"}, nil)
+				operationData = `{"BoshTaskID": 42, "OperationType": "create"}`
+			})
 
-				pollDetails.OperationData = operationData
-				opResult, _ := b.LastOperation(context.Background(), instanceID, pollDetails)
+			It("exposes the error", func() {
 				Expect(opResult.Description).To(ContainSubstring("bosh error"))
 			})
 		})
@@ -493,8 +479,16 @@ var _ = Describe("LastOperation", func() {
 		})
 
 		Describe("while deleting", func() {
+			var operationData []byte
+
 			BeforeEach(func() {
 				boshClient.GetDeploymentReturns([]byte("mani"), true, nil)
+				var err error
+				operationData, err = json.Marshal(broker.OperationData{
+					OperationType: broker.OperationTypeDelete,
+					BoshTaskID:    taskID,
+				})
+				Expect(err).NotTo(HaveOccurred())
 			})
 
 			Describe("last operation is Processing",
@@ -627,12 +621,6 @@ var _ = Describe("LastOperation", func() {
 
 			Describe("last operation is Successful", func() {
 				It("cleans up configs and returns success", func() {
-					operationData, err := json.Marshal(broker.OperationData{
-						OperationType: broker.OperationTypeDelete,
-						BoshTaskID:    taskID,
-					})
-					Expect(err).NotTo(HaveOccurred())
-
 					boshClient.GetTaskReturns(boshdirector.BoshTask{
 						State:       boshdirector.TaskDone,
 						Description: "it's a task" + "-" + instanceID,
@@ -796,6 +784,28 @@ var _ = Describe("LastOperation", func() {
 					))
 
 					Expect(logBuffer.String()).To(ContainSubstring("failed to delete secrets"))
+				})
+
+				Context("bosh configs are disabled", func() {
+					BeforeEach(func() {
+						brokerConfig.DisableBoshConfigs = true
+						boshClient.GetTaskReturns(boshdirector.BoshTask{
+							State:       boshdirector.TaskDone,
+							Description: "it's a task" + "-" + instanceID,
+							ID:          taskID,
+						}, nil)
+						b = createDefaultBroker()
+					})
+
+					It("doesn't call GetConfigs or DeleteConfig", func() {
+						_, err := b.LastOperation(context.Background(), instanceID, brokerapi.PollDetails{
+							OperationData: string(operationData),
+						})
+						Expect(err).NotTo(HaveOccurred())
+
+						Expect(boshClient.GetConfigsCallCount()).To(Equal(0), "GetConfigs was called")
+						Expect(boshClient.DeleteConfigCallCount()).To(Equal(0), "DeleteConfig was called")
+					})
 				})
 			})
 		})

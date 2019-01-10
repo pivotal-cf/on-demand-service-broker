@@ -235,7 +235,7 @@ password: ((odb_secret:foo))`,
 				"space_guid":        spaceGUID,
 				"organization_guid": organizationGUID,
 				"parameters":        arbitraryParams,
-				"maintenance_info": map[string]interface{}{},
+				"maintenance_info":  map[string]interface{}{},
 			}))
 
 			_, boshContextID, _, _ := fakeTaskBoshClient.DeployArgsForCall(0)
@@ -487,10 +487,10 @@ password: ((odb_secret:foo))`,
 		Expect(errorResponse.Description).To(ContainSubstring("Currently unable to create service instance, please try again later"))
 	})
 
-	When("the broker is configured with maintenance_info", func(){
+	When("the broker is configured with maintenance_info", func() {
 		var requestMaintenanceInfo brokerapi.MaintenanceInfo
 
-		BeforeEach(func(){
+		BeforeEach(func() {
 			brokerMaintenanceInfo := brokerConfig.MaintenanceInfo{
 				Public: map[string]string{
 					"foo": "bar",
@@ -547,6 +547,76 @@ password: ((odb_secret:foo))`,
 					"error":"MaintenanceInfoConflict",
 					"description":"maintenance_info was passed, but the broker catalog contains no maintenance_info"
 				}`))
+		})
+	})
+
+	Context("dynamic bosh config creation", func() {
+		When("the service adapter returns bosh config during generate manifest", func() {
+			BeforeEach(func() {
+				generateManifestOutput := sdk.MarshalledGenerateManifest{
+					Manifest: `name: service-instance_some-instance-id`,
+					ODBManagedSecrets: map[string]interface{}{
+						"": nil,
+					},
+					Configs: sdk.BOSHConfigs{"cloud": `{}`},
+				}
+				generateManifestOutputBytes, err := json.Marshal(generateManifestOutput)
+				Expect(err).NotTo(HaveOccurred())
+				zero := 0
+				fakeCommandRunner.RunWithInputParamsReturns(generateManifestOutputBytes, []byte{}, &zero, nil)
+			})
+
+			It("calls bosh to create the new bosh config", func() {
+				resp, _ := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, brokerapi.MaintenanceInfo{}, true)
+				Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
+
+				Expect(fakeTaskBoshClient.UpdateConfigCallCount()).To(Equal(1))
+				configType, configName, configContent, _ := fakeTaskBoshClient.UpdateConfigArgsForCall(0)
+				Expect(configType).To(Equal("cloud"))
+				Expect(configName).To(Equal("service-instance_some-instance-id"))
+				Expect(configContent).To(Equal([]byte("{}")))
+			})
+		})
+
+		When("bosh configs feature flag is disabled", func() {
+			BeforeEach(func() {
+				conf.Broker.DisableBoshConfigs = true
+			})
+
+			It("returns an error if the adapter returns bosh configs from generate manifest", func() {
+				generateManifestOutput := sdk.MarshalledGenerateManifest{
+					Manifest: `name: service-instance_some-instance-id`,
+					ODBManagedSecrets: map[string]interface{}{
+						"": nil,
+					},
+					Configs: sdk.BOSHConfigs{"cloud": `{}`},
+				}
+				generateManifestOutputBytes, err := json.Marshal(generateManifestOutput)
+				Expect(err).NotTo(HaveOccurred())
+				zero := 0
+				fakeCommandRunner.RunWithInputParamsReturns(generateManifestOutputBytes, []byte{}, &zero, nil)
+
+				resp, _ := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, brokerapi.MaintenanceInfo{}, true)
+				Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
+				Expect(fakeTaskBoshClient.UpdateConfigCallCount()).To(Equal(0), "UpdateConfig should not have been called")
+			})
+
+			It("doesn't update the bosh configs when the adapter doesn't return bosh configs from generate manifest", func() {
+				generateManifestOutput := sdk.MarshalledGenerateManifest{
+					Manifest: `name: service-instance_some-instance-id`,
+					ODBManagedSecrets: map[string]interface{}{
+						"": nil,
+					},
+				}
+				generateManifestOutputBytes, err := json.Marshal(generateManifestOutput)
+				Expect(err).NotTo(HaveOccurred())
+				zero := 0
+				fakeCommandRunner.RunWithInputParamsReturns(generateManifestOutputBytes, []byte{}, &zero, nil)
+
+				resp, _ := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, brokerapi.MaintenanceInfo{}, true)
+				Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
+				Expect(fakeTaskBoshClient.UpdateConfigCallCount()).To(Equal(0), "UpdateConfig should not have been called")
+			})
 		})
 	})
 })

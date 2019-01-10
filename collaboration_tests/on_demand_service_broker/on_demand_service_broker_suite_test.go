@@ -95,6 +95,7 @@ var _ = BeforeEach(func() {
 		ODBManagedSecrets: map[string]interface{}{
 			"": nil,
 		},
+		Configs: serviceadapter.BOSHConfigs{"cloud": `{"foo":"bar"}`},
 	}
 	generateManifestOutputBytes, err := json.Marshal(generateManifestOutput)
 	Expect(err).NotTo(HaveOccurred())
@@ -215,7 +216,7 @@ func toJson(obj interface{}) []byte {
 	return bytes
 }
 
-func ReturnSameValueHasher (m map[string]string) string {
+func ReturnSameValueHasher(m map[string]string) string {
 	var s string
 	for key, value := range m {
 		s += key + ":" + value + ";"

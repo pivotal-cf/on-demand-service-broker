@@ -40,9 +40,9 @@ var _ = Describe("Provisioning", func() {
 		serviceSpec  brokerapi.ProvisionedServiceSpec
 		provisionErr error
 
-		organizationGUID        = "a-cf-org"
-		spaceGUID               = "a-cf-space"
-		instanceID              = "some-instance-id"
+		organizationGUID       = "a-cf-org"
+		spaceGUID              = "a-cf-space"
+		instanceID             = "some-instance-id"
 		jsonParams             []byte
 		jsonContext            []byte
 		arbParams              map[string]interface{}

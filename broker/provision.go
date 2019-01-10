@@ -51,7 +51,6 @@ func (b *Broker) Provision(ctx context.Context, instanceID string, details broke
 		return brokerapi.ProvisionedServiceSpec{}, b.processError(err, logger)
 	}
 
-
 	if details.MaintenanceInfo.Private != "" || details.MaintenanceInfo.Public != nil {
 		planMaintenanceInfo, err := b.getMaintenanceInfoForPlan(details.PlanID)
 		if err != nil {

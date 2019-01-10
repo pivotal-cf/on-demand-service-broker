@@ -38,17 +38,10 @@ import (
 
 var _ = Describe("Management API", func() {
 	var (
-		globalQuota  = 12
-		globalQuotas brokerConfig.Quotas
-		instances    []string
-		conf         brokerConfig.Config
+		conf brokerConfig.Config
 	)
 
 	BeforeEach(func() {
-		instances = []string{}
-	})
-
-	JustBeforeEach(func() {
 		conf = brokerConfig.Config{
 			Broker: brokerConfig.Broker{
 				Port: serverPort, Username: brokerUsername, Password: brokerPassword,
@@ -63,7 +56,7 @@ var _ = Describe("Management API", func() {
 						LifecycleErrands: &sdk.LifecycleErrands{
 							PostDeploy: []sdk.Errand{{
 								Name:      "post-deploy-errand",
-								Instances: instances,
+								Instances: []string{},
 							}},
 						},
 					},
@@ -72,10 +65,11 @@ var _ = Describe("Management API", func() {
 						ID:   highMemoryPlanID,
 					},
 				},
-				GlobalQuotas: globalQuotas,
 			},
 		}
+	})
 
+	JustBeforeEach(func() {
 		StartServer(conf)
 	})
 
@@ -190,7 +184,8 @@ var _ = Describe("Management API", func() {
 		)
 
 		BeforeEach(func() {
-			globalQuotas = brokerConfig.Quotas{ServiceInstanceLimit: &globalQuota}
+			quota := 12
+			conf.ServiceCatalog.GlobalQuotas = brokerConfig.Quotas{ServiceInstanceLimit: &quota}
 			servicePlan := cf.ServicePlan{
 				ServicePlanEntity: cf.ServicePlanEntity{
 					UniqueID: dedicatedPlanID,
@@ -244,7 +239,7 @@ var _ = Describe("Management API", func() {
 
 		Context("when no global quota is configured", func() {
 			BeforeEach(func() {
-				globalQuotas = brokerConfig.Quotas{}
+				conf.ServiceCatalog.GlobalQuotas = brokerConfig.Quotas{}
 			})
 
 			It("does not include global quota metric", func() {
@@ -328,6 +323,9 @@ var _ = Describe("Management API", func() {
 				_, contextID, _, _ := fakeTaskBoshClient.DeployArgsForCall(0)
 				Expect(contextID).NotTo(BeEmpty())
 
+				By("updating the bosh configs")
+				Expect(fakeTaskBoshClient.UpdateConfigCallCount()).To(Equal(1), "UpdateConfig should have been called")
+
 				By("returning the correct operation data")
 				var operationData broker.OperationData
 				Expect(json.Unmarshal(bodyContent, &operationData)).To(Succeed())
@@ -345,7 +343,7 @@ var _ = Describe("Management API", func() {
 
 			Context("when post-deploy errand instances are provided", func() {
 				BeforeEach(func() {
-					instances = []string{"instance-group-name/0"}
+					conf.ServiceCatalog.Plans[0].LifecycleErrands.PostDeploy[0].Instances = []string{"instance-group-name/0"}
 				})
 
 				It("responds with the upgrade operation data", func() {
@@ -387,6 +385,42 @@ var _ = Describe("Management API", func() {
 				response, _ := doProcessRequest(instanceID, "", operationType)
 
 				Expect(response.StatusCode).To(Equal(http.StatusUnprocessableEntity))
+			})
+
+			When("Bosh configs are disabled", func() {
+				BeforeEach(func() {
+					conf.Broker.DisableBoshConfigs = true
+
+					taskID := 123
+					fakeTaskBoshClient.GetDeploymentReturns(nil, true, nil)
+					fakeTaskBoshClient.DeployReturns(taskID, nil)
+				})
+
+				It("succeeds when generate manifest output doesn't include bosh configs", func() {
+					generateManifestOutput := sdk.MarshalledGenerateManifest{
+						Manifest: `name: service-instance_some-instance-id`,
+						ODBManagedSecrets: map[string]interface{}{
+							"": nil,
+						},
+					}
+					generateManifestOutputBytes, err := json.Marshal(generateManifestOutput)
+					Expect(err).NotTo(HaveOccurred())
+					zero := 0
+					fakeCommandRunner.RunWithInputParamsReturns(generateManifestOutputBytes, []byte{}, &zero, nil)
+
+					response, _ := doProcessRequest(instanceID, fmt.Sprintf(`{"plan_id": "%s"}`, dedicatedPlanID), operationType)
+
+					Expect(response.StatusCode).To(Equal(http.StatusAccepted))
+					Expect(fakeTaskBoshClient.GetConfigsCallCount()).To(Equal(0), "GetConfigs shouldn't be called")
+					Expect(fakeTaskBoshClient.UpdateConfigCallCount()).To(Equal(0), "UpdateConfig shouldn't be called")
+				})
+
+				It("fails when the adapter generate manifest output includes bosh configs", func() {
+					response, _ := doProcessRequest(instanceID, fmt.Sprintf(`{"plan_id": "%s"}`, dedicatedPlanID), operationType)
+					Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+					Expect(fakeTaskBoshClient.GetConfigsCallCount()).To(Equal(0), "GetConfigs shouldn't be called")
+					Expect(fakeTaskBoshClient.UpdateConfigCallCount()).To(Equal(0), "UpdateConfig shouldn't be called")
+				})
 			})
 		})
 

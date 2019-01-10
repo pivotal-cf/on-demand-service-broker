@@ -58,10 +58,11 @@ type BulkSetter interface {
 }
 
 type Deployer struct {
-	boshClient        BoshClient
-	manifestGenerator ManifestGenerator
-	odbSecrets        ODBSecrets
-	bulkSetter        BulkSetter
+	boshClient         BoshClient
+	manifestGenerator  ManifestGenerator
+	odbSecrets         ODBSecrets
+	bulkSetter         BulkSetter
+	DisableBoshConfigs bool
 }
 
 func NewDeployer(boshClient BoshClient, manifestGenerator ManifestGenerator, odbSecrets ODBSecrets, bulkSetter BulkSetter) Deployer {
@@ -93,9 +94,12 @@ func (d Deployer) Upgrade(deploymentName, planID string, previousPlanID *string,
 		return 0, nil, err
 	}
 
-	oldConfigs, err := d.getConfigs(deploymentName, logger)
-	if err != nil {
-		return 0, nil, err
+	var oldConfigs map[string]string
+	if !d.DisableBoshConfigs {
+		oldConfigs, err = d.getConfigs(deploymentName, logger)
+		if err != nil {
+			return 0, nil, err
+		}
 	}
 
 	return d.doDeploy(deploymentName, planID, "upgrade", nil, oldManifest, previousPlanID, boshContextID, nil, oldConfigs, logger)
@@ -141,11 +145,13 @@ func (d Deployer) Update(
 		return 0, nil, err
 	}
 
-	oldConfigs, err := d.getConfigs(deploymentName, logger)
-	if err != nil {
-		return 0, nil, err
+	var oldConfigs map[string]string
+	if !d.DisableBoshConfigs {
+		oldConfigs, err = d.getConfigs(deploymentName, logger)
+		if err != nil {
+			return 0, nil, err
+		}
 	}
-
 	if err := d.checkForPendingChanges(deploymentName, previousPlanID, oldManifest, oldSecretsMap, oldConfigs, logger); err != nil {
 		return 0, nil, err
 	}
@@ -257,10 +263,15 @@ func (d Deployer) doDeploy(
 		manifest = d.odbSecrets.ReplaceODBRefs(generateManifestOutput.Manifest, secrets)
 	}
 
-	for configType, configContent := range generateManifestOutput.Configs {
-		err := d.boshClient.UpdateConfig(configType, deploymentName, []byte(configContent), logger)
-		if err != nil {
-			return 0, nil, fmt.Errorf("error updating config: %s\n", err)
+	if d.DisableBoshConfigs && len(generateManifestOutput.Configs) > 0 {
+		return 0, nil, errors.New("adapter returned bosh configs but feature is turned off")
+	}
+	if !d.DisableBoshConfigs {
+		for configType, configContent := range generateManifestOutput.Configs {
+			err := d.boshClient.UpdateConfig(configType, deploymentName, []byte(configContent), logger)
+			if err != nil {
+				return 0, nil, fmt.Errorf("error updating config: %s\n", err)
+			}
 		}
 	}
 

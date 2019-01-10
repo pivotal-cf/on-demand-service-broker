@@ -50,6 +50,7 @@ func Initiate(conf config.Config,
 	boshCredhubStore := buildCredhubStore(conf, logger)
 
 	deploymentManager := task.NewDeployer(boshClient, manifestGenerator, odbSecrets, boshCredhubStore)
+	deploymentManager.DisableBoshConfigs = conf.Broker.DisableBoshConfigs
 
 	manifestSecretManager := manifestsecrets.BuildManager(conf.Broker.EnableSecureManifests, new(manifestsecrets.CredHubPathMatcher), boshCredhubStore)
 

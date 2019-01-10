@@ -54,9 +54,11 @@ func (b *Broker) Deprovision(
 			fmt.Errorf("error deprovisioning: instance %s, not found", instanceID),
 		)
 
-		deleteConfigsErr := b.deleteConfigsForNotFoundInstance(ctx, instanceID, logger)
-		if deleteConfigsErr != nil {
-			return brokerapi.DeprovisionServiceSpec{IsAsync: true}, b.processError(deleteConfigsErr, logger)
+		if !b.DisableBoshConfigs {
+			deleteConfigsErr := b.deleteConfigsForNotFoundInstance(ctx, instanceID, logger)
+			if deleteConfigsErr != nil {
+				return brokerapi.DeprovisionServiceSpec{IsAsync: true}, b.processError(deleteConfigsErr, logger)
+			}
 		}
 
 		secretsErr := b.clearSecretsForNotFoundInstance(ctx, instanceID, logger)

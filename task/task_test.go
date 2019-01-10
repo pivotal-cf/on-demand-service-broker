@@ -138,6 +138,16 @@ var _ = Describe("Deployer", func() {
 					Expect(deployError).To(MatchError(ContainSubstring("some-error")))
 				})
 			})
+
+			When("bosh configs is disabled on the deployer", func() {
+				BeforeEach(func() {
+					deployer.DisableBoshConfigs = true
+				})
+
+				It("doesn't call UpdateConfig", func() {
+					Expect(boshClient.UpdateConfigCallCount()).To(Equal(0))
+				})
+			})
 		})
 
 		When("there are secrets to be stored", func() {
@@ -559,6 +569,20 @@ var _ = Describe("Deployer", func() {
 				Expect(deployError).To(MatchError(ContainSubstring("some-error")))
 			})
 		})
+
+		Context("bosh configs is disabled on the deployer", func() {
+			BeforeEach(func() {
+				deployer.DisableBoshConfigs = true
+				boshClient.DeployReturns(boshTaskID, nil)
+			})
+
+			It("doesn't call UpdateConfig or GetConfigs", func() {
+				Expect(deployError).NotTo(HaveOccurred())
+				Expect(returnedTaskID).To(Equal(boshTaskID))
+				Expect(boshClient.UpdateConfigCallCount()).To(Equal(0), "UpdateConfig shouldn't be called")
+				Expect(boshClient.GetConfigsCallCount()).To(Equal(0), "GetConfigs shouldn't be called")
+			})
+		})
 	})
 
 	Describe("Update()", func() {
@@ -905,6 +929,30 @@ var _ = Describe("Deployer", func() {
 
 			It("wraps the error", func() {
 				Expect(deployError).To(MatchError(ContainSubstring("some-error")))
+			})
+		})
+
+		When("bosh configs is disabled on the deployer", func() {
+			BeforeEach(func() {
+				deployer.DisableBoshConfigs = true
+				boshClient.DeployReturns(boshTaskID, nil)
+			})
+
+			It("doesn't call UpdateConfig or GetConfigs", func() {
+				returnedTaskID, _, deployError = deployer.Update(
+					deploymentName,
+					planID,
+					requestParams,
+					previousPlanID,
+					boshContextID,
+					secretsMap,
+					logger,
+				)
+
+				Expect(deployError).NotTo(HaveOccurred())
+				Expect(returnedTaskID).To(Equal(boshTaskID))
+				Expect(boshClient.UpdateConfigCallCount()).To(Equal(0), "UpdateConfig shouldn't be called")
+				Expect(boshClient.GetConfigsCallCount()).To(Equal(0), "GetConfigs shouldn't be called")
 			})
 		})
 

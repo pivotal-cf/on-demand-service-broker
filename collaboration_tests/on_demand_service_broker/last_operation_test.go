@@ -436,9 +436,10 @@ var _ = Describe("Last Operation", func() {
 			contextID     = "some-context-id"
 		)
 
-		BeforeEach(func() {
+		var conf brokerConfig.Config
 
-			conf := brokerConfig.Config{
+		BeforeEach(func() {
+			conf = brokerConfig.Config{
 				Broker: brokerConfig.Broker{
 					Port: serverPort, Username: brokerUsername, Password: brokerPassword,
 				},
@@ -453,6 +454,9 @@ var _ = Describe("Last Operation", func() {
 				BoshContextID: contextID,
 				Errands:       []brokerConfig.Errand{{Name: "foo"}},
 			}
+		})
+
+		JustBeforeEach(func() {
 			StartServer(conf)
 		})
 
@@ -715,6 +719,23 @@ var _ = Describe("Last Operation", func() {
 					"description": "Instance deletion completed"
 				}`,
 			))
+		})
+
+		Context("bosh configs are disabled", func() {
+			BeforeEach(func() {
+				conf.Broker.DisableBoshConfigs = true
+			})
+
+			It("will not call GetGonfigs or DeleteConfig", func() {
+				fakeBoshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{doneTask}, nil)
+				fakeBoshClient.GetTaskReturns(doneTask, nil)
+
+				resp, _ := doLastOperationRequest(instanceID, operationData)
+				Expect(resp.StatusCode).To(Equal(http.StatusOK))
+
+				Expect(fakeBoshClient.GetConfigsCallCount()).To(Equal(0), "GetConfigs was called")
+				Expect(fakeBoshClient.DeleteConfigCallCount()).To(Equal(0), "DeleteConfig was called")
+			})
 		})
 	})
 

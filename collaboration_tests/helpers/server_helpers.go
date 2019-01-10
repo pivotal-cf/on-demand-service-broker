@@ -69,6 +69,7 @@ func StartServer(
 	taskManifestGenerator := task.NewManifestGenerator(taskServiceAdapterClient, conf.ServiceCatalog, serviceadapter.Stemcell{}, serviceadapter.ServiceReleases{})
 	odbSecrets := manifestsecrets.ODBSecrets{ServiceOfferingID: conf.ServiceCatalog.ID}
 	deployer := task.NewDeployer(fakeTaskBoshClient, taskManifestGenerator, odbSecrets, fakeTaskBulkSetter)
+	deployer.DisableBoshConfigs = conf.Broker.DisableBoshConfigs
 
 	loggerFactory := loggerfactory.New(loggerBuffer, "collaboration-tests", loggerfactory.Flags)
 	logger := loggerFactory.New()

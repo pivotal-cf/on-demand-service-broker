@@ -11,8 +11,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"net/http"
+
+	"github.com/pivotal-cf/on-demand-service-broker/config"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

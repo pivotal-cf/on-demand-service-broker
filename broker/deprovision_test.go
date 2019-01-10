@@ -166,6 +166,17 @@ var _ = Describe("deprovisioning instances", func() {
 			boshClient.GetDeploymentReturns(nil, false, nil)
 		})
 
+		Context("and disable_bosh_configs is true", func() {
+			BeforeEach(func() {
+				brokerConfig.DisableBoshConfigs = true
+			})
+
+			It("doesn't call GetConfigs or DeleteConfigs", func() {
+				Expect(boshClient.GetConfigsCallCount()).To(Equal(0), "GetConfigs was called")
+				Expect(boshClient.DeleteConfigCallCount()).To(Equal(0), "DeleteConfig was called")
+			})
+		})
+
 		Context("and removing configs succeeds", func() {
 			BeforeEach(func() {
 				boshConfigs := []boshdirector.BoshConfig{

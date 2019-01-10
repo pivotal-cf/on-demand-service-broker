@@ -37,6 +37,7 @@ type Broker struct {
 	ExposeOperationalErrors bool
 	EnablePlanSchemas       bool
 	EnableSecureManifests   bool
+	DisableBoshConfigs      bool
 
 	loggerFactory *loggerfactory.LoggerFactory
 	catalogLock   sync.Mutex
@@ -66,6 +67,7 @@ func New(
 		ExposeOperationalErrors: brokerConfig.ExposeOperationalErrors,
 		EnablePlanSchemas:       brokerConfig.EnablePlanSchemas,
 		EnableSecureManifests:   brokerConfig.EnableSecureManifests,
+		DisableBoshConfigs:      brokerConfig.DisableBoshConfigs,
 		secretManager:           manifestSecretManager,
 		instanceLister:          instanceLister,
 		hasher:                  hasher,

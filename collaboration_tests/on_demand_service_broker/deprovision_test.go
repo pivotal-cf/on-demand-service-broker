@@ -168,8 +168,10 @@ var _ = Describe("Deprovision", func() {
 	})
 
 	Context("the failure scenarios", func() {
+		var conf brokerConfig.Config
+
 		BeforeEach(func() {
-			conf := brokerConfig.Config{
+			conf = brokerConfig.Config{
 				Broker: brokerConfig.Broker{
 					Port: serverPort, Username: brokerUsername, Password: brokerPassword, ExposeOperationalErrors: true,
 				},
@@ -177,6 +179,9 @@ var _ = Describe("Deprovision", func() {
 					Name: serviceName,
 				},
 			}
+		})
+
+		JustBeforeEach(func() {
 			StartServer(conf)
 		})
 
@@ -255,6 +260,19 @@ var _ = Describe("Deprovision", func() {
 				Eventually(loggerBuffer).Should(
 					gbytes.Say(fmt.Sprintf("error deprovisioning: failed to delete secrets for instance service-instance_%s", instanceID)),
 				)
+			})
+
+			Context("and disable_bosh_configs is true", func() {
+				BeforeEach(func() {
+					conf.Broker.DisableBoshConfigs = true
+				})
+
+				It("should not get or delete configs", func() {
+					doDeprovisionRequest(instanceID, dedicatedPlanID, serviceID, true)
+
+					Expect(fakeBoshClient.GetConfigsCallCount()).To(Equal(0), "GetConfig was called")
+					Expect(fakeBoshClient.DeleteConfigCallCount()).To(Equal(0), "DeleteConfig was called")
+				})
 			})
 		})
 
