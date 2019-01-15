@@ -106,7 +106,7 @@ var _ = Describe("external service adapter", func() {
 		previousConfigs = map[string]string{"some-config-type": "some-config-content"}
 
 		inputParams = sdk.InputParams{
-			GenerateManifest: sdk.GenerateManifestParams{
+			GenerateManifest: sdk.GenerateManifestJSONParams{
 				ServiceDeployment: toJson(serviceDeployment),
 				Plan:              planToJson(plan),
 				PreviousPlan:      planToJson(*previousPlan),

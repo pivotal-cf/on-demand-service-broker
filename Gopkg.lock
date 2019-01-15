@@ -357,14 +357,14 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:53ef457ee8cd5855c94d2e45dd23c643dae5d60c2ef2fcaa09b43b0899815bf9"
+  digest = "1:16c01679dc3348587dc43c23f4a1d145e3d3eaaf96a57cfe74b35b09a4d11f76"
   name = "github.com/pivotal-cf/on-demand-services-sdk"
   packages = [
     "bosh",
     "serviceadapter",
   ]
   pruneopts = "NUT"
-  revision = "b1d490659b246dd443407b2a7873c6b0ed85701d"
+  revision = "10bdca2abdecbc0e38068c5b7b0d9656a03661f8"
 
 [[projects]]
   branch = "master"

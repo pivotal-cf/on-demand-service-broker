@@ -81,7 +81,7 @@ func (c *Client) GenerateManifest(
 
 	if c.UsingStdin {
 		inputParams := sdk.InputParams{
-			GenerateManifest: sdk.GenerateManifestParams{
+			GenerateManifest: sdk.GenerateManifestJSONParams{
 				ServiceDeployment: string(serialisedServiceDeployment),
 				Plan:              string(serialisedPlan),
 				RequestParameters: string(serialisedRequestParams),

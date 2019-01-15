@@ -53,15 +53,7 @@ type Adapter struct {
 	Logger *log.Logger
 }
 
-func (a *Adapter) GenerateManifest(
-	serviceDeployment serviceadapter.ServiceDeployment,
-	plan serviceadapter.Plan,
-	requestParams serviceadapter.RequestParameters,
-	previousManifest *bosh.BoshManifest,
-	previousPlan *serviceadapter.Plan,
-	previousSecret serviceadapter.ManifestSecrets,
-	previousConfigs serviceadapter.BOSHConfigs) (serviceadapter.GenerateManifestOutput, error) {
-
+func (a *Adapter) GenerateManifest(params serviceadapter.GenerateManifestParams) (serviceadapter.GenerateManifestOutput, error) {
 	errorMessageForOperator := os.Getenv(mock.StderrContentForGenerate)
 	if errorMessageForOperator != "" {
 		errorMessageForUser := os.Getenv(mock.StdoutContentForGenerate)
@@ -73,7 +65,7 @@ func (a *Adapter) GenerateManifest(
 
 	var manifestMap map[string]string
 	json.Unmarshal([]byte(manifestMapJson), &manifestMap)
-	manifestToReturn, found := manifestMap[serviceDeployment.DeploymentName]
+	manifestToReturn, found := manifestMap[params.ServiceDeployment.DeploymentName]
 	if !found {
 		manifestToReturn = manifestMap[mock.GenerateManifestDefaultKey]
 	}
@@ -83,23 +75,23 @@ func (a *Adapter) GenerateManifest(
 		a.Logger.Println(err.Error())
 		return serviceadapter.GenerateManifestOutput{}, errors.New("")
 	}
-	if err := serialiseParameter(mock.InputServiceDeploymentForGenerate, serviceDeployment); err != nil {
+	if err := serialiseParameter(mock.InputServiceDeploymentForGenerate, params.ServiceDeployment); err != nil {
 		a.Logger.Println(err.Error())
 		return serviceadapter.GenerateManifestOutput{Manifest: manifest}, errors.New("")
 	}
-	if err := serialiseParameter(mock.InputPlanForGenerate, plan); err != nil {
+	if err := serialiseParameter(mock.InputPlanForGenerate, params.Plan); err != nil {
 		a.Logger.Println(err.Error())
 		return serviceadapter.GenerateManifestOutput{Manifest: manifest}, errors.New("")
 	}
-	if err := serialiseParameter(mock.InputRequestParamsForGenerate, requestParams); err != nil {
+	if err := serialiseParameter(mock.InputRequestParamsForGenerate, params.RequestParams); err != nil {
 		a.Logger.Println(err.Error())
 		return serviceadapter.GenerateManifestOutput{Manifest: manifest}, errors.New("")
 	}
-	if err := serialiseParameter(mock.InputPreviousManifestForGenerate, previousManifest); err != nil {
+	if err := serialiseParameter(mock.InputPreviousManifestForGenerate, params.PreviousManifest); err != nil {
 		a.Logger.Println(err.Error())
 		return serviceadapter.GenerateManifestOutput{Manifest: manifest}, errors.New("")
 	}
-	if err := serialiseParameter(mock.InputPreviousPlanForGenerate, previousPlan); err != nil {
+	if err := serialiseParameter(mock.InputPreviousPlanForGenerate, params.PreviousPlan); err != nil {
 		a.Logger.Println(err.Error())
 		return serviceadapter.GenerateManifestOutput{Manifest: manifest}, errors.New("")
 	}
