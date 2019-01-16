@@ -99,7 +99,7 @@ func (a *Adapter) GenerateManifest(params serviceadapter.GenerateManifestParams)
 	return serviceadapter.GenerateManifestOutput{Manifest: manifest}, nil
 }
 
-func (a *Adapter) CreateBinding(bindingID string, deploymentTopology bosh.BoshVMs, manifest bosh.BoshManifest, requestParams serviceadapter.RequestParameters, secrets serviceadapter.ManifestSecrets, dnsAddresses serviceadapter.DNSAddresses) (serviceadapter.Binding, error) {
+func (a *Adapter) CreateBinding(params serviceadapter.CreateBindingParams) (serviceadapter.Binding, error) {
 	stderrMessage := os.Getenv(mock.StderrContentForBind)
 	if stderrMessage != "" {
 		a.Logger.Println(stderrMessage)
@@ -122,22 +122,22 @@ func (a *Adapter) CreateBinding(bindingID string, deploymentTopology bosh.BoshVM
 		return serviceadapter.Binding{}, errors.New("")
 	}
 
-	if err := serialiseParameter(mock.InputIDForBind, bindingID); err != nil {
+	if err := serialiseParameter(mock.InputIDForBind, params.BindingID); err != nil {
 		a.Logger.Println(err.Error())
 		return serviceadapter.Binding{}, errors.New("")
 	}
 
-	if err := serialiseParameter(mock.InputBoshVmsForBind, deploymentTopology); err != nil {
+	if err := serialiseParameter(mock.InputBoshVmsForBind, params.DeploymentTopology); err != nil {
 		a.Logger.Println(err.Error())
 		return serviceadapter.Binding{}, errors.New("")
 	}
 
-	if err := serialiseParameter(mock.InputManifestForBind, manifest); err != nil {
+	if err := serialiseParameter(mock.InputManifestForBind, params.Manifest); err != nil {
 		a.Logger.Println(err.Error())
 		return serviceadapter.Binding{}, errors.New("")
 	}
 
-	if err := serialiseParameter(mock.InputRequestParamsForBind, requestParams); err != nil {
+	if err := serialiseParameter(mock.InputRequestParamsForBind, params.RequestParams); err != nil {
 		a.Logger.Println(err.Error())
 		return serviceadapter.Binding{}, errors.New("")
 	}
@@ -145,7 +145,7 @@ func (a *Adapter) CreateBinding(bindingID string, deploymentTopology bosh.BoshVM
 	return credentials, nil
 }
 
-func (a *Adapter) DeleteBinding(bindingID string, deploymentTopology bosh.BoshVMs, manifest bosh.BoshManifest, requestParams serviceadapter.RequestParameters, secrets serviceadapter.ManifestSecrets) error {
+func (a *Adapter) DeleteBinding(params serviceadapter.DeleteBindingParams) error {
 	switch os.Getenv(mock.ExitCodeForUnbind) {
 	case mock.BindingNotFoundErrorExitCode:
 		return serviceadapter.NewBindingNotFoundError(nil)
@@ -156,19 +156,19 @@ func (a *Adapter) DeleteBinding(bindingID string, deploymentTopology bosh.BoshVM
 		return errors.New(errorMessageForUser)
 	}
 
-	if err := serialiseParameter(mock.InputIDForUnBind, bindingID); err != nil {
+	if err := serialiseParameter(mock.InputIDForUnBind, params.BindingID); err != nil {
 		a.Logger.Println(err.Error())
 		return errors.New("")
 	}
-	if err := serialiseParameter(mock.InputBoshVmsForUnBind, deploymentTopology); err != nil {
+	if err := serialiseParameter(mock.InputBoshVmsForUnBind, params.DeploymentTopology); err != nil {
 		a.Logger.Println(err.Error())
 		return errors.New("")
 	}
-	if err := serialiseParameter(mock.InputManifestForUnBind, manifest); err != nil {
+	if err := serialiseParameter(mock.InputManifestForUnBind, params.Manifest); err != nil {
 		a.Logger.Println(err.Error())
 		return errors.New("")
 	}
-	if err := serialiseParameter(mock.InputRequestParamsForUnBind, requestParams); err != nil {
+	if err := serialiseParameter(mock.InputRequestParamsForUnBind, params.RequestParams); err != nil {
 		a.Logger.Println(err.Error())
 		return errors.New("")
 	}

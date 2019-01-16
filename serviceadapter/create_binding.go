@@ -50,7 +50,7 @@ func (c *Client) CreateBinding(
 
 	if c.UsingStdin {
 		inputParams := sdk.InputParams{
-			CreateBinding: sdk.CreateBindingParams{
+			CreateBinding: sdk.CreateBindingJSONParams{
 				RequestParameters: string(serialisedRequestParams),
 				BoshVms:           string(serialisedBoshVMs),
 				BindingId:         bindingID,

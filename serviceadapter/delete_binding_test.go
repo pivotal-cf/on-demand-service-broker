@@ -158,7 +158,7 @@ var _ = Describe("external service adapter", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			inputParams = sdk.InputParams{
-				DeleteBinding: sdk.DeleteBindingParams{
+				DeleteBinding: sdk.DeleteBindingJSONParams{
 					BindingId:         bindingID,
 					BoshVms:           string(serialisedBoshVMs),
 					RequestParameters: string(serialisedRequestParams),

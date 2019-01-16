@@ -216,7 +216,7 @@ var _ = Describe("external service adapter", func() {
 				"create-binding",
 			))
 			Expect(actualInputParams).To(Equal(sdk.InputParams{
-				CreateBinding: sdk.CreateBindingParams{
+				CreateBinding: sdk.CreateBindingJSONParams{
 					BindingId:         bindingID,
 					Manifest:          string(manifest),
 					BoshVms:           toJson(deploymentTopology),

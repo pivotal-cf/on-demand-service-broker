@@ -35,7 +35,7 @@ func (c *Client) DeleteBinding(bindingID string, deploymentTopology bosh.BoshVMs
 
 	if c.UsingStdin {
 		inputParams := sdk.InputParams{
-			DeleteBinding: sdk.DeleteBindingParams{
+			DeleteBinding: sdk.DeleteBindingJSONParams{
 				BindingId:         bindingID,
 				BoshVms:           string(serialisedBoshVMs),
 				RequestParameters: string(serialisedRequestParams),
