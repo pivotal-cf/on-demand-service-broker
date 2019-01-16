@@ -12,6 +12,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pivotal-cf/on-demand-service-broker/system_tests/env_helpers"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -93,6 +95,13 @@ func DeployAndRegisterBroker(systemTestSuffix string, opsFiles ...string) Broker
 }
 
 func deployAndRegisterBroker(systemTestSuffix string, opsFiles ...string) BrokerInfo {
+	err := env_helpers.ValidateEnvVars(
+		"SERVICE_RELEASE_NAME",
+		"BROKER_SYSTEM_DOMAIN",
+		"ODB_RELEASE_TEMPLATES_PATH",
+		"BOSH_DEPLOYMENT_VARS",
+	)
+	Expect(err).ToNot(HaveOccurred())
 	devEnv := os.Getenv("DEV_ENV")
 	if devEnv != "" {
 		devEnv = "-" + devEnv
@@ -104,6 +113,7 @@ func deployAndRegisterBroker(systemTestSuffix string, opsFiles ...string) Broker
 
 	brokerSystemDomain := os.Getenv("BROKER_SYSTEM_DOMAIN")
 	bpmAvailable := os.Getenv("BPM_AVAILABLE") == "true"
+	consulRequired := os.Getenv("CONSUL_REQUIRED") == "true"
 	odbVersion := os.Getenv("ODB_VERSION")
 	if odbVersion == "" {
 		fmt.Println("⚠ ODB version not set. Falling back to latest ⚠")
@@ -165,9 +175,15 @@ func deployAndRegisterBroker(systemTestSuffix string, opsFiles ...string) Broker
 		deployArguments = append(deployArguments, []string{"--ops-file", filepath.Join(odbReleaseTemplatesPath, "operations", "add_bpm_job.yml")}...)
 	}
 
+	if consulRequired {
+		deployArguments = append(deployArguments, []string{"--ops-file", filepath.Join(odbReleaseTemplatesPath, "operations", "add_consul.yml")}...)
+	}
+
 	if noClientCredentialsInVarsFile(varsFile) {
 		deployArguments = append(deployArguments, []string{"--ops-file", filepath.Join(odbReleaseTemplatesPath, "operations", "cf_uaa_user.yml")}...)
 	}
+
+	deployArguments = append(deployArguments, []string{"--ops-file", filepath.Join(odbReleaseTemplatesPath, "operations", "service_metrics.yml")}...)
 
 	cmd := exec.Command("bosh", deployArguments...)
 	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
