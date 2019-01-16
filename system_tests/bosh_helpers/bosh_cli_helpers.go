@@ -183,8 +183,6 @@ func deployAndRegisterBroker(systemTestSuffix string, opsFiles ...string) Broker
 		deployArguments = append(deployArguments, []string{"--ops-file", filepath.Join(odbReleaseTemplatesPath, "operations", "cf_uaa_user.yml")}...)
 	}
 
-	deployArguments = append(deployArguments, []string{"--ops-file", filepath.Join(odbReleaseTemplatesPath, "operations", "service_metrics.yml")}...)
-
 	cmd := exec.Command("bosh", deployArguments...)
 	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
 	Expect(err).NotTo(HaveOccurred(), "failed to run bosh deploy command")
