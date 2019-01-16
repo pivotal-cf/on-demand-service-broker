@@ -25,7 +25,7 @@ func (c *Client) GenerateDashboardUrl(instanceID string, plan sdk.Plan, manifest
 
 	if c.UsingStdin {
 		inputParams := sdk.InputParams{
-			DashboardUrl: sdk.DashboardUrlParams{
+			DashboardUrl: sdk.DashboardUrlJSONParams{
 				InstanceId: instanceID,
 				Plan:       string(planJSON),
 				Manifest:   string(manifest),

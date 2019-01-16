@@ -176,18 +176,18 @@ func (a *Adapter) DeleteBinding(params serviceadapter.DeleteBindingParams) error
 	return nil
 }
 
-func (a *Adapter) DashboardUrl(instanceID string, plan serviceadapter.Plan, manifest bosh.BoshManifest) (serviceadapter.DashboardUrl, error) {
-	if err := serialiseParameter(mock.InputInstanceIDForGenerateDashboardUrl, instanceID); err != nil {
+func (a *Adapter) DashboardUrl(params serviceadapter.DashboardUrlParams) (serviceadapter.DashboardUrl, error) {
+	if err := serialiseParameter(mock.InputInstanceIDForGenerateDashboardUrl, params.InstanceID); err != nil {
 		a.Logger.Println(err.Error())
 		return serviceadapter.DashboardUrl{}, errors.New("")
 	}
 
-	if err := serialiseParameter(mock.InputPlanForGenerateDashboardUrl, plan); err != nil {
+	if err := serialiseParameter(mock.InputPlanForGenerateDashboardUrl, params.Plan); err != nil {
 		a.Logger.Println(err.Error())
 		return serviceadapter.DashboardUrl{}, errors.New("")
 	}
 
-	if err := serialiseParameter(mock.InputManifestForGenerateDashboardUrl, manifest); err != nil {
+	if err := serialiseParameter(mock.InputManifestForGenerateDashboardUrl, params.Manifest); err != nil {
 		a.Logger.Println(err.Error())
 		return serviceadapter.DashboardUrl{}, errors.New("")
 	}

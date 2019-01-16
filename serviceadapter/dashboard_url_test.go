@@ -193,7 +193,7 @@ var _ = Describe("dashboard url", func() {
 			Expect(cmdRunner.RunWithInputParamsCallCount()).To(Equal(1))
 			inputParams, argsPassed := cmdRunner.RunWithInputParamsArgsForCall(0)
 			Expect(inputParams.(sdk.InputParams)).To(Equal(sdk.InputParams{
-				DashboardUrl: sdk.DashboardUrlParams{
+				DashboardUrl: sdk.DashboardUrlJSONParams{
 					InstanceId: instanceID, Plan: string(planJson), Manifest: string(manifest),
 				},
 			}))
@@ -238,7 +238,7 @@ var _ = Describe("dashboard url", func() {
 				convertedPlanJson, err := json.Marshal(convertedPlan)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(inputParams.(sdk.InputParams)).To(Equal(sdk.InputParams{
-					DashboardUrl: sdk.DashboardUrlParams{
+					DashboardUrl: sdk.DashboardUrlJSONParams{
 						InstanceId: instanceID, Plan: string(convertedPlanJson), Manifest: string(manifest),
 					},
 				}))

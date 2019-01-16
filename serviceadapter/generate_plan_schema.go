@@ -27,7 +27,7 @@ func (c *Client) GeneratePlanSchema(plan sdk.Plan, logger *log.Logger) (brokerap
 
 	if c.UsingStdin {
 		inputParams := sdk.InputParams{
-			GeneratePlanSchemas: sdk.GeneratePlanSchemasParams{
+			GeneratePlanSchemas: sdk.GeneratePlanSchemasJSONParams{
 				Plan: string(serialisedPlan),
 			},
 		}

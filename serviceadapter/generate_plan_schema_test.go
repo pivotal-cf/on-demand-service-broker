@@ -199,7 +199,7 @@ var _ = Describe("GeneratePlanSchema", func() {
 			Expect(cmdRunner.RunWithInputParamsCallCount()).To(Equal(1))
 
 			expectedInputParams := sdk.InputParams{
-				GeneratePlanSchemas: sdk.GeneratePlanSchemasParams{
+				GeneratePlanSchemas: sdk.GeneratePlanSchemasJSONParams{
 					Plan: toJson(plan),
 				},
 			}
