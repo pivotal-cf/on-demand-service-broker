@@ -171,8 +171,8 @@ func deployAndRegisterBroker(systemTestSuffix string, opsFiles ...string) Broker
 	}
 	deployArguments = append(deployArguments, opsFiles...)
 
-	if bpmAvailable {
-		deployArguments = append(deployArguments, []string{"--ops-file", filepath.Join(odbReleaseTemplatesPath, "operations", "add_bpm_job.yml")}...)
+	if !bpmAvailable {
+		deployArguments = append(deployArguments, []string{"--ops-file", filepath.Join(odbReleaseTemplatesPath, "operations", "remove_bpm.yml")}...)
 	}
 
 	if consulRequired {
