@@ -242,11 +242,7 @@ func DeleteBOSHConfig(configType, configName string) error {
 
 func DeregisterAndDeleteBroker(deploymentName string) {
 	RunErrand(deploymentName, "delete-all-service-instances-and-deregister-broker")
-
-	cmd := exec.Command("bosh", "-n", "-d", deploymentName, "delete-deployment")
-	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
-	Expect(err).NotTo(HaveOccurred(), "failed to run delete deployment")
-	Eventually(session, LongBOSHTimeout).Should(gexec.Exit(0), "deregistration failed")
+	DeleteDeployment(deploymentName)
 }
 
 func brokerRespondsOnCatalogEndpoint(brokerURI string) bool {
@@ -308,4 +304,14 @@ func noClientCredentialsInVarsFile(varsFile string) bool {
 	err = yaml.Unmarshal(varsFileContents, &test)
 	Expect(err).NotTo(HaveOccurred())
 	return test.CF.ClientCredentials.ClientID == ""
+}
+
+func DeleteDeployment(deploymentName string) {
+	cmd := exec.Command("bosh", "-n", "-d", deploymentName, "delete-deployment")
+	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
+	Expect(err).NotTo(HaveOccurred(), "failed to run delete deployment")
+	Eventually(session, LongBOSHTimeout).Should(
+		gexec.Exit(0),
+		"delete-deployment failed",
+	)
 }

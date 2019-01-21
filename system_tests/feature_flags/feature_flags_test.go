@@ -11,39 +11,69 @@ import (
 	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/cf_helpers"
 )
 
-const (
-	orphanDeploymentsDetectedExitCode = 10
-)
-
 var _ = Describe("FeatureFlags", func() {
-	When("disable_ssl_cert_verification is true", func() {
-		It("can run all the errands successfully", func() {
-			errands := []string{
-				"register-broker",
-				"upgrade-all-service-instances",
-				"delete-all-service-instances",
-				"deregister-broker",
-			}
+	var (
+		brokerInfo bosh.BrokerInfo
+	)
 
-			for _, errand := range errands {
-				By("running " + errand)
-				bosh.RunErrand(brokerInfo.DeploymentName, errand)
-			}
+	When("disable_ssl_cert_verification is true", func() {
+		var brokerRegistered bool
+
+		BeforeEach(func() {
+			uniqueID := uuid.New()[:6]
+			brokerInfo = bosh.DeployAndRegisterBroker(
+				"-feature-flag-"+uniqueID,
+				"update_service_catalog.yml", "disable_cf_ssl_verification.yml")
 		})
 
-		It("can run the orphan-deployment errand successfully", func() {
-			session := bosh.RunErrand(
-				brokerInfo.DeploymentName,
-				"orphan-deployments",
-				Or(gexec.Exit(0), gexec.Exit(1)),
-			)
-			if session.ExitCode() == 1 {
-				Expect(session.Buffer()).To(gbytes.Say("Orphan BOSH deployments detected"))
+		It("can run all the errands successfully", func() {
+			By("running the register-broker", func() {
+				bosh.RunErrand(brokerInfo.DeploymentName, "register-broker")
+				brokerRegistered = true
+			})
+
+			By("running upgrade-all-service-instances", func() {
+				bosh.RunErrand(brokerInfo.DeploymentName, "upgrade-all-service-instances")
+			})
+
+			By("running the orphan-deployments", func() {
+				session := bosh.RunErrand(
+					brokerInfo.DeploymentName,
+					"orphan-deployments",
+					Or(gexec.Exit(0), gexec.Exit(1)),
+				)
+				if session.ExitCode() == 1 {
+					Expect(session.Buffer()).To(gbytes.Say("Orphan BOSH deployments detected"))
+				}
+			})
+
+			By("running delete-all-service-instances", func() {
+				bosh.RunErrand(brokerInfo.DeploymentName, "delete-all-service-instances")
+			})
+
+			By("running deregister-broker", func() {
+				bosh.RunErrand(brokerInfo.DeploymentName, "deregister-broker")
+				brokerRegistered = false
+			})
+		})
+
+		AfterEach(func() {
+			if brokerRegistered {
+				bosh.DeregisterAndDeleteBroker(brokerInfo.DeploymentName)
+			} else {
+				bosh.DeleteDeployment(brokerInfo.DeploymentName)
 			}
 		})
 	})
 
 	When("expose_operational_errors is true", func() {
+		BeforeEach(func() {
+			uniqueID := uuid.New()[:6]
+			brokerInfo = bosh.DeployAndRegisterBroker(
+				"-feature-flag-"+uniqueID,
+				"update_service_catalog.yml", "expose_operational_errors.yml")
+		})
+
 		It("correctly exposes operational errors", func() {
 			bosh.RunErrand(brokerInfo.DeploymentName, "register-broker")
 			serviceName := uuid.New()[:8]
@@ -58,6 +88,10 @@ var _ = Describe("FeatureFlags", func() {
 
 			cf.DeleteService(serviceName)
 			cf.AwaitServiceDeletion(serviceName)
+		})
+
+		AfterEach(func() {
+			bosh.DeregisterAndDeleteBroker(brokerInfo.DeploymentName)
 		})
 	})
 })

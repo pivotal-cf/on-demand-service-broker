@@ -1,0 +1,3 @@
+- type: replace
+  path: /instance_groups/name=broker/jobs/name=broker/properties/disable_ssl_cert_verification?
+  value: true

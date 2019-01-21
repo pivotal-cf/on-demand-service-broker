@@ -34,11 +34,3 @@
     lifecycle_errands:
       post_deploy:
         - name: health-check
-
-- type: replace
-  path: /instance_groups/name=broker/jobs/name=broker/properties/expose_operational_errors?
-  value: true
-
-- type: replace
-  path: /instance_groups/name=broker/jobs/name=broker/properties/disable_ssl_cert_verification?
-  value: true
