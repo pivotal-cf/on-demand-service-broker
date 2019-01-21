@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"github.com/onsi/gomega/types"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -58,11 +59,17 @@ func TasksForDeployment(boshServiceInstanceName string) []BoshTaskOutput {
 	return boshOutput.Tables[0].Rows
 }
 
-func RunErrand(deploymentName, errandName string) *gexec.Session {
+func RunErrand(deploymentName, errandName string, optionalMatcher ...types.GomegaMatcher) *gexec.Session {
+	var matcher types.GomegaMatcher
+	if optionalMatcher == nil {
+		matcher = gexec.Exit(0)
+	} else {
+		matcher = optionalMatcher[0]
+	}
 	cmd := exec.Command("bosh", "-n", "-d", deploymentName, "run-errand", errandName)
 	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
 	Expect(err).NotTo(HaveOccurred(), "failed to run errand "+errandName)
-	Eventually(session, LongBOSHTimeout).Should(gexec.Exit(0), errandName+" execution failed")
+	Eventually(session, LongBOSHTimeout).Should(matcher, errandName+" execution failed")
 	return session
 }
 

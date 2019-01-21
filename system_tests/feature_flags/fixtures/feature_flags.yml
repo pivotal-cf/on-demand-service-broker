@@ -1,0 +1,44 @@
+- type: replace
+  path: /instance_groups/name=broker/jobs/name=broker/properties/service_catalog/plans?
+  value:
+  - name: invalid-vm-type
+    plan_id: invalid-vm-type-id-((plan_id))
+    properties: {persistence: false}
+    metadata: {bullets: [], display_name: Redis with post-deploy errand plan}
+    cf_service_access: enable
+    description: Redis with invalid vm type
+    instance_groups:
+      - name: redis-server
+        azs: [((meta.az))]
+        instances: 1
+        networks: [((meta.services_subnet))]
+        vm_type: invalid-vm-type
+  - name: redis-with-post-deploy
+    plan_id: post-deploy-((plan_id))
+    properties: {persistence: false}
+    metadata: {bullets: [], display_name: Redis with post-deploy errand plan}
+    cf_service_access: enable
+    description: Redis with post-deploy errand
+    instance_groups:
+      - name: redis-server
+        azs: [((meta.az))]
+        instances: 1
+        networks: [((meta.services_subnet))]
+        vm_type: ((meta.vm_type))
+      - name: health-check
+        azs: [((meta.az))]
+        instances: 1
+        lifecycle: errand
+        networks: [((meta.services_subnet))]
+        vm_type: ((meta.vm_type))
+    lifecycle_errands:
+      post_deploy:
+        - name: health-check
+
+- type: replace
+  path: /instance_groups/name=broker/jobs/name=broker/properties/expose_operational_errors?
+  value: true
+
+- type: replace
+  path: /instance_groups/name=broker/jobs/name=broker/properties/disable_ssl_cert_verification?
+  value: true
