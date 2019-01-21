@@ -95,7 +95,6 @@ func (c *Client) GenerateManifest(
 			inputParams,
 			c.ExternalBinPath, "generate-manifest",
 		)
-		// { "manifest":"...","secrets": {"key":"value","jsonObj":{"foo":"bar"}}}
 	} else {
 		stdout, stderr, exitCode, err = c.CommandRunner.Run(
 			c.ExternalBinPath, "generate-manifest",
