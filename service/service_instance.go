@@ -57,6 +57,7 @@ func BuildInstanceLister(client ListerClient, serviceOfferingID string, siapiCon
 	httpClient := herottp.New(herottp.Config{
 		Timeout: 30 * time.Second,
 		RootCAs: certPool,
+		DisableTLSCertificateVerification: siapiConfig.DisableSSLCertVerification,
 	})
 
 	authHeaderBuilder := authorizationheader.NewBasicAuthHeaderBuilder(

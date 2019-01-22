@@ -85,6 +85,7 @@ var _ = Describe("Broker Config", func() {
 					ServiceInstancesAPI: config.ServiceInstancesAPI{
 						URL:        "some-si-api-url",
 						RootCACert: "some-cert",
+						DisableSSLCertVerification: true,
 						Authentication: config.Authentication{
 							Basic: config.UserCredentials{
 								Username: "si-api-username",

@@ -591,6 +591,7 @@ type BrokerAPI struct {
 type ServiceInstancesAPI struct {
 	URL            string         `yaml:"url"`
 	RootCACert     string         `yaml:"root_ca_cert"`
+	DisableSSLCertVerification bool `yaml:"disable_ssl_cert_verification"`
 	Authentication Authentication `yaml:"authentication"`
 }
 

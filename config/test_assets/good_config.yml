@@ -32,6 +32,7 @@ cf:
 service_instances_api:
   url: some-si-api-url
   root_ca_cert: some-cert
+  disable_ssl_cert_verification: true
   authentication:
     basic:
       username: si-api-username
