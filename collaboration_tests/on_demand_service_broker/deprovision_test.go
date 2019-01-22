@@ -190,7 +190,7 @@ var _ = Describe("Deprovision", func() {
 				fakeBoshClient.GetDeploymentReturns(nil, false, nil)
 			})
 
-			It("returns 410 when configs can be removed from bosh", func() {
+			It("returns 410 when bosh configs and secrets can be removed", func() {
 				response, bodyContent := doDeprovisionRequest(instanceID, dedicatedPlanID, serviceID, true)
 
 				By("returning the correct HTTP status")
@@ -206,7 +206,7 @@ var _ = Describe("Deprovision", func() {
 			})
 
 			It("returns 500 when configs removal fails", func() {
-				fakeBoshClient.GetConfigsReturns(nil, errors.New("Not today, thank you"))
+				fakeBoshClient.GetConfigsReturns(nil, errors.New("not today, thank you"))
 
 				response, bodyContent := doDeprovisionRequest(instanceID, dedicatedPlanID, serviceID, true)
 
@@ -226,23 +226,8 @@ var _ = Describe("Deprovision", func() {
 				)
 			})
 
-			It("returns 410 when secrets can be removed from credhub", func() {
-				response, bodyContent := doDeprovisionRequest(instanceID, dedicatedPlanID, serviceID, true)
-
-				By("returning the correct HTTP status")
-				Expect(response.StatusCode).To(Equal(http.StatusGone))
-
-				By("returning no body")
-				Expect(bodyContent).To(MatchJSON("{}"))
-
-				By("logging the delete request")
-				Eventually(loggerBuffer).Should(
-					gbytes.Say(fmt.Sprintf("error deprovisioning: instance %s, not found.", instanceID)),
-				)
-			})
-
-			It("returns 500 when secret removal fails", func() {
-				fakeCredhubOperator.FindNameLikeReturns(nil, errors.New("Not today, thank you"))
+			It("returns 500 when config removal succeeds but secret removal fails", func() {
+				fakeCredhubOperator.FindNameLikeReturns(nil, errors.New("not today, thank you"))
 
 				response, bodyContent := doDeprovisionRequest(instanceID, dedicatedPlanID, serviceID, true)
 

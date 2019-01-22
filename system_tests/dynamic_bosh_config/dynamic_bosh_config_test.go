@@ -20,7 +20,7 @@ var _ = Describe("DynamicBoshConfig", func() {
 		serviceId = ""
 	})
 
-	It("does something", func() {
+	It("handles bosh configs during the lifecycle of a service instance", func() {
 
 		serviceInstanceName = "service" + brokerInfo.TestSuffix
 		boshConfig := fmt.Sprintf(`{"vm_extensions_config": "vm_extensions: [{name: vm-ext%s}]"}`, brokerInfo.TestSuffix)
@@ -32,6 +32,8 @@ var _ = Describe("DynamicBoshConfig", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(configDetails).To(ContainSubstring("name: vm-ext" + brokerInfo.TestSuffix))
+
+		// update and check bosh configs
 
 		cf.DeleteService(serviceInstanceName)
 

@@ -177,39 +177,30 @@ var _ = Describe("deprovisioning instances", func() {
 			})
 		})
 
-		Context("and removing configs succeeds", func() {
+		Context("bosh configs can be deleted", func() {
 			BeforeEach(func() {
 				boshConfigs := []boshdirector.BoshConfig{
-					boshdirector.BoshConfig{Type: "some-type", Name: "some-name"},
+					{Type: "some-type", Name: "some-name"},
 				}
 				boshClient.GetConfigsReturns(boshConfigs, nil)
 			})
 
-			It("removes the configs", func() {
+			It("deletes the bosh configs and returns expected error about missing deployment", func() {
 				Expect(boshClient.DeleteConfigCallCount()).To(Equal(1))
-			})
-
-			It("returns an error", func() {
 				Expect(deprovisionErr).To(Equal(brokerapi.ErrInstanceDoesNotExist))
-			})
-
-			It("logs the error", func() {
 				Expect(logBuffer.String()).To(ContainSubstring(
 					fmt.Sprintf("error deprovisioning: instance %s, not found.", instanceID),
 				))
 			})
 		})
 
-		Context("and removing configs fails", func() {
+		Context("getting bosh configs fails", func() {
 			BeforeEach(func() {
 				boshClient.GetConfigsReturns(nil, errors.New("oops"))
 			})
 
-			It("returns an error", func() {
+			It("returns error about deleting service", func() {
 				Expect(deprovisionErr).To(MatchError("Unable to delete service. Please try again later or contact your operator."))
-			})
-
-			It("logs the error", func() {
 				Expect(logBuffer.String()).To(ContainSubstring(
 					fmt.Sprintf("error deprovisioning: failed to get configs for instance service-instance_%s", instanceID),
 				))

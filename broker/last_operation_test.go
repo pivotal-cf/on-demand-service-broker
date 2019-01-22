@@ -620,18 +620,22 @@ var _ = Describe("LastOperation", func() {
 			)
 
 			Describe("last operation is Successful", func() {
-				It("cleans up configs and returns success", func() {
+				BeforeEach(func() {
 					boshClient.GetTaskReturns(boshdirector.BoshTask{
 						State:       boshdirector.TaskDone,
 						Description: "it's a task" + "-" + instanceID,
 						ID:          taskID,
 					}, nil)
+
 					boshClient.GetConfigsReturns([]boshdirector.BoshConfig{
-						boshdirector.BoshConfig{
+						{
 							Type: "some-config-type",
 							Name: "some-config-name",
 						},
 					}, nil)
+				})
+
+				It("cleans up configs and returns success", func() {
 					b = createDefaultBroker()
 
 					pollDetails := brokerapi.PollDetails{
@@ -669,18 +673,6 @@ var _ = Describe("LastOperation", func() {
 					})
 					Expect(err).NotTo(HaveOccurred())
 
-					boshClient.GetTaskReturns(boshdirector.BoshTask{
-						State:       boshdirector.TaskDone,
-						Description: "it's a task" + "-" + instanceID,
-						ID:          taskID,
-					}, nil)
-
-					boshClient.GetConfigsReturns([]boshdirector.BoshConfig{
-						boshdirector.BoshConfig{
-							Type: "some-config-type",
-							Name: "some-config-name",
-						},
-					}, nil)
 					boshClient.DeleteConfigReturns(false, errors.New("failed to delete configs"))
 
 					b = createDefaultBroker()
@@ -711,11 +703,6 @@ var _ = Describe("LastOperation", func() {
 					})
 					Expect(err).NotTo(HaveOccurred())
 
-					boshClient.GetTaskReturns(boshdirector.BoshTask{
-						State:       boshdirector.TaskDone,
-						Description: "it's a task" + "-" + instanceID,
-						ID:          taskID,
-					}, nil)
 					b = createDefaultBroker()
 
 					pollDetails := brokerapi.PollDetails{
@@ -757,12 +744,6 @@ var _ = Describe("LastOperation", func() {
 					})
 					Expect(err).NotTo(HaveOccurred())
 
-					boshClient.GetTaskReturns(boshdirector.BoshTask{
-						State:       boshdirector.TaskDone,
-						Description: "it's a task" + "-" + instanceID,
-						ID:          taskID,
-					}, nil)
-
 					fakeSecretManager.DeleteSecretsForInstanceReturns(errors.New("failed to delete secrets"))
 
 					b = createDefaultBroker()
@@ -787,17 +768,10 @@ var _ = Describe("LastOperation", func() {
 				})
 
 				Context("bosh configs are disabled", func() {
-					BeforeEach(func() {
-						brokerConfig.DisableBoshConfigs = true
-						boshClient.GetTaskReturns(boshdirector.BoshTask{
-							State:       boshdirector.TaskDone,
-							Description: "it's a task" + "-" + instanceID,
-							ID:          taskID,
-						}, nil)
-						b = createDefaultBroker()
-					})
-
 					It("doesn't call GetConfigs or DeleteConfig", func() {
+						brokerConfig.DisableBoshConfigs = true
+						b = createDefaultBroker()
+
 						_, err := b.LastOperation(context.Background(), instanceID, brokerapi.PollDetails{
 							OperationData: string(operationData),
 						})

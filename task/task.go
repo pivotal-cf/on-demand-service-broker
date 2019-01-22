@@ -96,7 +96,7 @@ func (d Deployer) Upgrade(deploymentName, planID string, previousPlanID *string,
 
 	var oldConfigs map[string]string
 	if !d.DisableBoshConfigs {
-		oldConfigs, err = d.getConfigs(deploymentName, logger)
+		oldConfigs, err = d.getConfigMap(deploymentName, logger)
 		if err != nil {
 			return 0, nil, err
 		}
@@ -147,7 +147,7 @@ func (d Deployer) Update(
 
 	var oldConfigs map[string]string
 	if !d.DisableBoshConfigs {
-		oldConfigs, err = d.getConfigs(deploymentName, logger)
+		oldConfigs, err = d.getConfigMap(deploymentName, logger)
 		if err != nil {
 			return 0, nil, err
 		}
@@ -172,7 +172,7 @@ func (d Deployer) getDeploymentManifest(deploymentName string, logger *log.Logge
 	return oldManifest, nil
 }
 
-func (d Deployer) getConfigs(deploymentName string, logger *log.Logger) (map[string]string, error) {
+func (d Deployer) getConfigMap(deploymentName string, logger *log.Logger) (map[string]string, error) {
 	boshConfigs, err := d.boshClient.GetConfigs(deploymentName, logger)
 	if err != nil {
 		return nil, err
