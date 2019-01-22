@@ -5,7 +5,6 @@ import (
 	"log"
 	"os"
 
-	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/hasher"
 	"github.com/pivotal-cf/on-demand-service-broker/service"
 
@@ -25,7 +24,8 @@ import (
 )
 
 func Initiate(conf config.Config,
-	boshClient *boshdirector.Client,
+	brokerBoshClient broker.BoshClient,
+	taskBoshClient task.BoshClient,
 	cfClient broker.CloudFoundryClient,
 	commandRunner serviceadapter.CommandRunner,
 	stopServer chan os.Signal,
@@ -33,7 +33,7 @@ func Initiate(conf config.Config,
 
 	logger := loggerFactory.New()
 	var err error
-	startupChecks := buildStartupChecks(conf, cfClient, logger, boshClient)
+	startupChecks := buildStartupChecks(conf, cfClient, logger, brokerBoshClient)
 
 	serviceAdapter := &serviceadapter.Client{
 		ExternalBinPath: conf.ServiceAdapter.Path,
@@ -50,7 +50,7 @@ func Initiate(conf config.Config,
 	odbSecrets := manifestsecrets.ODBSecrets{ServiceOfferingID: conf.ServiceCatalog.ID}
 	boshCredhubStore := buildCredhubStore(conf, logger)
 
-	deploymentManager := task.NewDeployer(boshClient, manifestGenerator, odbSecrets, boshCredhubStore)
+	deploymentManager := task.NewDeployer(taskBoshClient, manifestGenerator, odbSecrets, boshCredhubStore)
 	deploymentManager.DisableBoshConfigs = conf.Broker.DisableBoshConfigs
 
 	manifestSecretManager := manifestsecrets.BuildManager(conf.Broker.EnableSecureManifests, new(manifestsecrets.CredHubPathMatcher), boshCredhubStore)
@@ -62,7 +62,7 @@ func Initiate(conf config.Config,
 
 	var onDemandBroker apiserver.CombinedBroker
 	onDemandBroker, err = broker.New(
-		boshClient,
+		brokerBoshClient,
 		cfClient,
 		conf.ServiceCatalog,
 		conf.Broker,

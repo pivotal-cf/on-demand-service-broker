@@ -38,7 +38,7 @@ func main() {
 	stopServer := make(chan os.Signal, 1)
 	cfClient := createCfClient(config, logger)
 
-	brokerinitiator.Initiate(config, boshClient, cfClient, commandRunner, stopServer, loggerFactory)
+	brokerinitiator.Initiate(config, boshClient, boshClient, cfClient, commandRunner, stopServer, loggerFactory)
 }
 
 func configParser(logger *log.Logger) config.Config {
