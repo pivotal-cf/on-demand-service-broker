@@ -34,6 +34,13 @@ var _ = Describe("getting bosh configs", func() {
 				Content: configContent,
 				Team:    "some-config-team",
 			},
+			{
+				ID:      "some-other-config-id",
+				Type:    configType + "-2nd",
+				Name:    configName + "-2nd",
+				Content: configContent + "-2nd",
+				Team:    "some-other-config-team",
+			},
 		}
 	})
 
@@ -47,6 +54,11 @@ var _ = Describe("getting bosh configs", func() {
 					Type:    configType,
 					Name:    configName,
 					Content: configContent,
+				},
+				{
+					Type:    configType + "-2nd",
+					Name:    configName + "-2nd",
+					Content: configContent + "-2nd",
 				},
 			}))
 			Expect(listConfigsErr).NotTo(HaveOccurred())
