@@ -1,0 +1,55 @@
+
+- type: replace
+  path: /instance_groups/name=broker/jobs/name=broker/properties/service_catalog/plans?
+  value:
+    - name: dedicated-vm
+      description: Redis Dedicated Instance
+      plan_id: ((plan_id1))
+      instance_groups:
+      - azs: [((meta.az))]
+        instances: 1
+        name: redis-server
+        networks: [((meta.services_subnet))]
+        persistent_disk_type: 10GB
+        vm_type: ((meta.vm_type))
+      metadata:
+        bullets: []
+        display_name: Redis Dedicated Instance
+      properties:
+        plan_secret: plansecret
+
+    - name: dedicated-high-memory-vm
+      plan_id: ((plan_id2))
+      cf_service_access: enable
+      description: Dedicated high memory VM, no persistence, suitable for use
+        as a cache
+      instance_groups:
+      - azs: [((meta.az))]
+        instances: 1
+        name: redis-server
+        networks: [((meta.services_subnet))]
+        persistent_disk_type: 10GB
+        vm_type: ((meta.vm_type))
+      metadata:
+        bullets: []
+        display_name: Redis Dedicated High Memory VM
+      properties:
+        persistence: false
+
+- type: replace
+  path: /variables/-
+  value:
+    name: plan_id1
+    type: password
+    options:
+      length: 40
+
+- type: replace
+  path: /variables/-
+  value:
+    name: plan_id2
+    type: password
+    options:
+      length: 40
+
+

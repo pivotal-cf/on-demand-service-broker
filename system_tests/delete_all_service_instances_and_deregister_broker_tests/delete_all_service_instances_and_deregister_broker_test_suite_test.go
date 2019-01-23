@@ -14,26 +14,21 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
+	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/bosh_helpers"
 	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/cf_helpers"
 )
 
 var (
-	serviceOffering          string
-	brokerName               string
-	brokerURL                string
-	brokerBoshDeploymentName string
-	exampleAppPath           string
-	boshClient               *bosh_helpers.BoshHelperClient
+	exampleAppPath string
+	boshClient     *bosh_helpers.BoshHelperClient
+	brokerInfo     bosh_helpers.BrokerInfo
 )
 
 var _ = BeforeSuite(func() {
-	serviceOffering = envMustHave("SERVICE_OFFERING_NAME")
-	brokerName = envMustHave("BROKER_NAME")
-	brokerURL = envMustHave("BROKER_URL")
-	brokerUsername := envMustHave("BROKER_USERNAME")
-	brokerPassword := envMustHave("BROKER_PASSWORD")
-	brokerBoshDeploymentName = envMustHave("BROKER_DEPLOYMENT_NAME")
+	uniqueID := uuid.New()[:6]
+	brokerInfo = bosh_helpers.DeployAndRegisterBroker("-delete-all-"+uniqueID, "update_service_catalog.yml")
+
 	boshURL := envMustHave("BOSH_URL")
 	boshUsername := envMustHave("BOSH_USERNAME")
 	boshPassword := envMustHave("BOSH_PASSWORD")
@@ -41,8 +36,6 @@ var _ = BeforeSuite(func() {
 	boshCACert := os.Getenv("BOSH_CA_CERT_FILE")
 	disableTLSVerification := boshCACert == ""
 	exampleAppPath = envMustHave("EXAMPLE_APP_PATH")
-	Eventually(cf.Cf("create-service-broker", brokerName, brokerUsername, brokerPassword, brokerURL), cf.CfTimeout).Should(gexec.Exit(0))
-	Eventually(cf.Cf("enable-service-access", serviceOffering), cf.CfTimeout).Should(gexec.Exit(0))
 
 	if uaaURL == "" {
 		boshClient = bosh_helpers.NewBasicAuth(boshURL, boshUsername, boshPassword, boshCACert, disableTLSVerification)
@@ -52,7 +45,10 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = AfterSuite(func() {
-	Eventually(cf.Cf("delete-service-broker", brokerName, "-f"), cf.CfTimeout).Should(gexec.Exit(0))
+	bosh_helpers.RunErrand(brokerInfo.DeploymentName, "delete-all-service-instances")
+	session := cf.Cf("delete-service-broker", "-f", brokerInfo.ServiceOffering)
+	Eventually(session, cf.CfTimeout).Should(gexec.Exit())
+	boshClient.DeleteDeployment(brokerInfo.DeploymentName)
 	gexec.CleanupBuildArtifacts()
 })
 

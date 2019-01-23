@@ -24,8 +24,8 @@ var _ = Describe("purge instances and deregister broker", func() {
 	testAppName := uuid.New()[:7]
 
 	BeforeEach(func() {
-		Eventually(cf.Cf("create-service", serviceOffering, "dedicated-vm", serviceInstance1), cf.CfTimeout).Should(gexec.Exit(0))
-		Eventually(cf.Cf("create-service", serviceOffering, "dedicated-high-memory-vm", serviceInstance2), cf.CfTimeout).Should(gexec.Exit(0))
+		Eventually(cf.Cf("create-service", brokerInfo.ServiceOffering, "dedicated-vm", serviceInstance1), cf.CfTimeout).Should(gexec.Exit(0))
+		Eventually(cf.Cf("create-service", brokerInfo.ServiceOffering, "dedicated-high-memory-vm", serviceInstance2), cf.CfTimeout).Should(gexec.Exit(0))
 		cf.AwaitServiceCreation(serviceInstance1)
 		cf.AwaitServiceCreation(serviceInstance2)
 	})
@@ -45,15 +45,15 @@ var _ = Describe("purge instances and deregister broker", func() {
 		Eventually(cf.Cf("bind-service", testAppName, serviceInstance1), cf.CfTimeout).Should(gexec.Exit(0))
 		Eventually(cf.Cf("create-service-key", serviceInstance1, serviceKeyName), cf.CfTimeout).Should(gexec.Exit(0))
 
-		output := boshClient.RunErrand(brokerBoshDeploymentName, "delete-all-service-instances-and-deregister-broker", []string{}, "")
+		output := boshClient.RunErrand(brokerInfo.DeploymentName, "delete-all-service-instances-and-deregister-broker", []string{}, "")
 
 		Expect(output.StdOut).To(ContainSubstring("FINISHED PURGE INSTANCES AND DEREGISTER BROKER"))
 		Expect(output.ExitCode).To(Equal(0))
 
 		cf.AwaitServiceDeletion(serviceInstance1)
 		cf.AwaitServiceDeletion(serviceInstance2)
-		session := cf.Cf("marketplace", "-s", serviceOffering)
+		session := cf.Cf("marketplace", "-s", brokerInfo.ServiceOffering)
 		Eventually(session, cf.CfTimeout).Should(gexec.Exit(1))
-		Expect(session).Should(gbytes.Say("Service offering %s not found", serviceOffering))
+		Expect(session).Should(gbytes.Say("Service offering %s not found", brokerInfo.ServiceOffering))
 	})
 })
