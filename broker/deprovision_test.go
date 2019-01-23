@@ -207,6 +207,23 @@ var _ = Describe("deprovisioning instances", func() {
 			})
 		})
 
+		Context("deleting bosh configs fails", func() {
+			BeforeEach(func() {
+				boshConfigs := []boshdirector.BoshConfig{
+					{Type: "some-type", Name: "some-name"},
+				}
+				boshClient.GetConfigsReturns(boshConfigs, nil)
+				boshClient.DeleteConfigReturns(false, errors.New("oops"))
+			})
+
+			It("returns error about deleting service", func() {
+				Expect(deprovisionErr).To(MatchError("Unable to delete service. Please try again later or contact your operator."))
+				Expect(logBuffer.String()).To(ContainSubstring(
+					fmt.Sprintf("error deprovisioning: failed to delete configs for instance service-instance_%s", instanceID),
+				))
+			})
+		})
+
 		Context("and removing secrets succeeds", func() {
 			BeforeEach(func() {
 				fakeSecretManager.DeleteSecretsForInstanceReturns(nil)
