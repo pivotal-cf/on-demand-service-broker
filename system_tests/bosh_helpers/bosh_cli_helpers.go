@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"github.com/onsi/gomega/types"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -12,6 +11,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/onsi/gomega/types"
 
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/env_helpers"
 
@@ -119,7 +120,7 @@ func deployAndRegisterBroker(systemTestSuffix string, opsFiles ...string) Broker
 	serviceReleaseName := os.Getenv("SERVICE_RELEASE_NAME") + devEnv
 
 	brokerSystemDomain := os.Getenv("BROKER_SYSTEM_DOMAIN")
-	bpmAvailable := os.Getenv("BPM_AVAILABLE") == "true"
+	disableBPM := os.Getenv("DISABLE_BPM") == "true"
 	consulRequired := os.Getenv("CONSUL_REQUIRED") == "true"
 	odbVersion := os.Getenv("ODB_VERSION")
 	if odbVersion == "" {
@@ -178,7 +179,7 @@ func deployAndRegisterBroker(systemTestSuffix string, opsFiles ...string) Broker
 	}
 	deployArguments = append(deployArguments, opsFiles...)
 
-	if !bpmAvailable {
+	if disableBPM {
 		deployArguments = append(deployArguments, []string{"--ops-file", filepath.Join(odbReleaseTemplatesPath, "operations", "remove_bpm.yml")}...)
 	}
 
