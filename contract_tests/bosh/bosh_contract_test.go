@@ -374,14 +374,6 @@ var _ = Describe("BOSH client", func() {
 				Expect(configs).To(ContainElement(boshdirector.BoshConfig{Type: configType, Name: deploymentName, Content: string(configContent)}))
 			})
 
-			By("checking that the config is there", func() {
-				config, err := boshClient.LatestConfig(configType, deploymentName, logger)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(config.Type).To(Equal(configType))
-				Expect(config.Name).To(Equal(deploymentName))
-				Expect(config.Content).To(Equal(string(configContent)))
-			})
-
 			By("deleting a config", func() {
 				found, err := boshClient.DeleteConfig(configType, deploymentName, logger)
 				Expect(err).NotTo(HaveOccurred())
