@@ -200,6 +200,7 @@ type BoshClient interface {
 	Recreate(deploymentName, contextID string, logger *log.Logger, taskReporter *boshdirector.AsyncTaskReporter) (int, error)
 	GetConfigs(configName string, logger *log.Logger) ([]boshdirector.BoshConfig, error)
 	DeleteConfig(configType, configName string, logger *log.Logger) (bool, error)
+	DeleteConfigs(configName string, logger *log.Logger) error
 }
 
 //go:generate counterfeiter -o fakes/fake_cloud_foundry_client.go . CloudFoundryClient

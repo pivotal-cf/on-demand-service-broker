@@ -158,3 +158,75 @@ var _ = Describe("deleting bosh config", func() {
 		})
 	})
 })
+
+var _ = Describe("deleting bosh configs", func() {
+	var (
+		configType       = "some-config-type"
+		configName       = "some-config-name"
+		configContent    = "some-config-content"
+		directorConfigs  []director.Config
+		deleteConfigsErr error
+	)
+
+	BeforeEach(func() {
+		directorConfigs = []director.Config{
+			{
+				ID:      "some-config-id",
+				Type:    configType,
+				Name:    configName,
+				Content: configContent,
+				Team:    "some-config-team",
+			},
+			{
+				ID:      "some-other-config-id",
+				Type:    configType + "-2nd",
+				Name:    configName + "-2nd",
+				Content: configContent + "-2nd",
+				Team:    "some-other-config-team",
+			},
+		}
+	})
+
+	Describe("DeleteConfigs", func() {
+		It("deletes all configs", func() {
+			fakeDirector.ListConfigsReturns(directorConfigs, nil)
+			deleteConfigsErr = c.DeleteConfigs(configName, logger)
+
+			Expect(deleteConfigsErr).NotTo(HaveOccurred())
+			Expect(fakeDirector.DeleteConfigCallCount()).To(Equal(2))
+		})
+
+		It("does not delete any config when there are not any bosh configs", func() {
+			fakeDirector.ListConfigsReturns([]director.Config{}, nil)
+			deleteConfigsErr = c.DeleteConfigs(configName, logger)
+
+			Expect(deleteConfigsErr).NotTo(HaveOccurred())
+			Expect(fakeDirector.DeleteConfigCallCount()).To(Equal(0))
+		})
+
+		It("returns an error when the director can't be built", func() {
+			fakeDirectorFactory.NewReturns(nil, errors.New("can't get director"))
+			deleteConfigsErr = c.DeleteConfigs(configName, logger)
+
+			Expect(deleteConfigsErr).To(HaveOccurred())
+			Expect(deleteConfigsErr).To(MatchError(ContainSubstring("Failed to build director: can't get director")))
+		})
+
+		It("returns an error when the client cannot list configs", func() {
+			fakeDirector.ListConfigsReturns([]director.Config{}, errors.New("oops"))
+			deleteConfigsErr = c.DeleteConfigs(configName, logger)
+
+			Expect(deleteConfigsErr).To(HaveOccurred())
+			Expect(deleteConfigsErr).To(MatchError(ContainSubstring(`BOSH error getting configs for "some-config-name`)))
+		})
+
+		It("rreturns an error when the client cannot delete the config", func() {
+			fakeDirector.ListConfigsReturns(directorConfigs, nil)
+			fakeDirector.DeleteConfigReturns(false, errors.New("oops"))
+			deleteConfigsErr = c.DeleteConfigs(configName, logger)
+
+			Expect(deleteConfigsErr).To(HaveOccurred())
+			Expect(deleteConfigsErr).To(MatchError(ContainSubstring(`BOSH error deleting "some-config-type" config "some-config-name"`)))
+		})
+	})
+})

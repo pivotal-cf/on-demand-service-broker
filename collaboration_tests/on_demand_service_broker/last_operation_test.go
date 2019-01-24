@@ -556,7 +556,7 @@ var _ = Describe("Last Operation", func() {
 
 			operationData.BoshTaskID = doneErrandTask.ID
 
-			fakeBoshClient.GetConfigsReturns(nil, errors.New("hear me out: nope"))
+			fakeBoshClient.DeleteConfigsReturns(errors.New("hear me out: nope"))
 
 			response, bodyContent := doLastOperationRequest(instanceID, operationData)
 
@@ -703,7 +703,7 @@ var _ = Describe("Last Operation", func() {
 			response, bodyContent = doLastOperationRequest(instanceID, operationData)
 
 			By("deleting the configs from BOSH")
-			Expect(fakeBoshClient.DeleteConfigCallCount()).To(Equal(1), "expected to call DeleteConfig in bosh")
+			Expect(fakeBoshClient.DeleteConfigsCallCount()).To(Equal(1), "expected to call DeleteConfig in bosh")
 
 			By("deleting the secrets from Credhub")
 			Expect(fakeCredhubOperator.FindNameLikeCallCount()).To(Equal(1), "expected to call FindNameLike in credhub operator")

@@ -27,6 +27,18 @@ type FakeBoshClient struct {
 		result1 bool
 		result2 error
 	}
+	DeleteConfigsStub        func(string, *log.Logger) error
+	deleteConfigsMutex       sync.RWMutex
+	deleteConfigsArgsForCall []struct {
+		arg1 string
+		arg2 *log.Logger
+	}
+	deleteConfigsReturns struct {
+		result1 error
+	}
+	deleteConfigsReturnsOnCall map[int]struct {
+		result1 error
+	}
 	DeleteDeploymentStub        func(string, string, *log.Logger, *boshdirector.AsyncTaskReporter) (int, error)
 	deleteDeploymentMutex       sync.RWMutex
 	deleteDeploymentArgsForCall []struct {
@@ -206,20 +218,6 @@ type FakeBoshClient struct {
 		result1 int
 		result2 error
 	}
-	UpdateConfigStub        func(string, string, []byte, *log.Logger) error
-	updateConfigMutex       sync.RWMutex
-	updateConfigArgsForCall []struct {
-		arg1 string
-		arg2 string
-		arg3 []byte
-		arg4 *log.Logger
-	}
-	updateConfigReturns struct {
-		result1 error
-	}
-	updateConfigReturnsOnCall map[int]struct {
-		result1 error
-	}
 	VMsStub        func(string, *log.Logger) (bosh.BoshVMs, error)
 	vMsMutex       sync.RWMutex
 	vMsArgsForCall []struct {
@@ -326,6 +324,67 @@ func (fake *FakeBoshClient) DeleteConfigReturnsOnCall(i int, result1 bool, resul
 		result1 bool
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeBoshClient) DeleteConfigs(arg1 string, arg2 *log.Logger) error {
+	fake.deleteConfigsMutex.Lock()
+	ret, specificReturn := fake.deleteConfigsReturnsOnCall[len(fake.deleteConfigsArgsForCall)]
+	fake.deleteConfigsArgsForCall = append(fake.deleteConfigsArgsForCall, struct {
+		arg1 string
+		arg2 *log.Logger
+	}{arg1, arg2})
+	fake.recordInvocation("DeleteConfigs", []interface{}{arg1, arg2})
+	fake.deleteConfigsMutex.Unlock()
+	if fake.DeleteConfigsStub != nil {
+		return fake.DeleteConfigsStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.deleteConfigsReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeBoshClient) DeleteConfigsCallCount() int {
+	fake.deleteConfigsMutex.RLock()
+	defer fake.deleteConfigsMutex.RUnlock()
+	return len(fake.deleteConfigsArgsForCall)
+}
+
+func (fake *FakeBoshClient) DeleteConfigsCalls(stub func(string, *log.Logger) error) {
+	fake.deleteConfigsMutex.Lock()
+	defer fake.deleteConfigsMutex.Unlock()
+	fake.DeleteConfigsStub = stub
+}
+
+func (fake *FakeBoshClient) DeleteConfigsArgsForCall(i int) (string, *log.Logger) {
+	fake.deleteConfigsMutex.RLock()
+	defer fake.deleteConfigsMutex.RUnlock()
+	argsForCall := fake.deleteConfigsArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeBoshClient) DeleteConfigsReturns(result1 error) {
+	fake.deleteConfigsMutex.Lock()
+	defer fake.deleteConfigsMutex.Unlock()
+	fake.DeleteConfigsStub = nil
+	fake.deleteConfigsReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeBoshClient) DeleteConfigsReturnsOnCall(i int, result1 error) {
+	fake.deleteConfigsMutex.Lock()
+	defer fake.deleteConfigsMutex.Unlock()
+	fake.DeleteConfigsStub = nil
+	if fake.deleteConfigsReturnsOnCall == nil {
+		fake.deleteConfigsReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.deleteConfigsReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
 }
 
 func (fake *FakeBoshClient) DeleteDeployment(arg1 string, arg2 string, arg3 *log.Logger, arg4 *boshdirector.AsyncTaskReporter) (int, error) {
@@ -1123,74 +1182,6 @@ func (fake *FakeBoshClient) RunErrandReturnsOnCall(i int, result1 int, result2 e
 	}{result1, result2}
 }
 
-func (fake *FakeBoshClient) UpdateConfig(arg1 string, arg2 string, arg3 []byte, arg4 *log.Logger) error {
-	var arg3Copy []byte
-	if arg3 != nil {
-		arg3Copy = make([]byte, len(arg3))
-		copy(arg3Copy, arg3)
-	}
-	fake.updateConfigMutex.Lock()
-	ret, specificReturn := fake.updateConfigReturnsOnCall[len(fake.updateConfigArgsForCall)]
-	fake.updateConfigArgsForCall = append(fake.updateConfigArgsForCall, struct {
-		arg1 string
-		arg2 string
-		arg3 []byte
-		arg4 *log.Logger
-	}{arg1, arg2, arg3Copy, arg4})
-	fake.recordInvocation("UpdateConfig", []interface{}{arg1, arg2, arg3Copy, arg4})
-	fake.updateConfigMutex.Unlock()
-	if fake.UpdateConfigStub != nil {
-		return fake.UpdateConfigStub(arg1, arg2, arg3, arg4)
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.updateConfigReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakeBoshClient) UpdateConfigCallCount() int {
-	fake.updateConfigMutex.RLock()
-	defer fake.updateConfigMutex.RUnlock()
-	return len(fake.updateConfigArgsForCall)
-}
-
-func (fake *FakeBoshClient) UpdateConfigCalls(stub func(string, string, []byte, *log.Logger) error) {
-	fake.updateConfigMutex.Lock()
-	defer fake.updateConfigMutex.Unlock()
-	fake.UpdateConfigStub = stub
-}
-
-func (fake *FakeBoshClient) UpdateConfigArgsForCall(i int) (string, string, []byte, *log.Logger) {
-	fake.updateConfigMutex.RLock()
-	defer fake.updateConfigMutex.RUnlock()
-	argsForCall := fake.updateConfigArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
-}
-
-func (fake *FakeBoshClient) UpdateConfigReturns(result1 error) {
-	fake.updateConfigMutex.Lock()
-	defer fake.updateConfigMutex.Unlock()
-	fake.UpdateConfigStub = nil
-	fake.updateConfigReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeBoshClient) UpdateConfigReturnsOnCall(i int, result1 error) {
-	fake.updateConfigMutex.Lock()
-	defer fake.updateConfigMutex.Unlock()
-	fake.UpdateConfigStub = nil
-	if fake.updateConfigReturnsOnCall == nil {
-		fake.updateConfigReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.updateConfigReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
-}
-
 func (fake *FakeBoshClient) VMs(arg1 string, arg2 *log.Logger) (bosh.BoshVMs, error) {
 	fake.vMsMutex.Lock()
 	ret, specificReturn := fake.vMsReturnsOnCall[len(fake.vMsArgsForCall)]
@@ -1384,6 +1375,8 @@ func (fake *FakeBoshClient) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.deleteConfigMutex.RLock()
 	defer fake.deleteConfigMutex.RUnlock()
+	fake.deleteConfigsMutex.RLock()
+	defer fake.deleteConfigsMutex.RUnlock()
 	fake.deleteDeploymentMutex.RLock()
 	defer fake.deleteDeploymentMutex.RUnlock()
 	fake.deployMutex.RLock()
@@ -1408,8 +1401,6 @@ func (fake *FakeBoshClient) Invocations() map[string][][]interface{} {
 	defer fake.recreateMutex.RUnlock()
 	fake.runErrandMutex.RLock()
 	defer fake.runErrandMutex.RUnlock()
-	fake.updateConfigMutex.RLock()
-	defer fake.updateConfigMutex.RUnlock()
 	fake.vMsMutex.RLock()
 	defer fake.vMsMutex.RUnlock()
 	fake.variablesMutex.RLock()

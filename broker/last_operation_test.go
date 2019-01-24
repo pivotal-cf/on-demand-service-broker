@@ -652,7 +652,7 @@ var _ = Describe("LastOperation", func() {
 					Expect(actualTaskID).To(Equal(taskID))
 
 					By("deleting configs")
-					Expect(boshClient.DeleteConfigCallCount()).To(Equal(1), "expected to call delete config")
+					Expect(boshClient.DeleteConfigsCallCount()).To(Equal(1), "expected to call delete config")
 
 					By("logging the deployment, type: delete, state: done")
 					expectedLogMessage := fmt.Sprintf(
@@ -666,14 +666,14 @@ var _ = Describe("LastOperation", func() {
 					Expect(logBuffer.String()).To(ContainSubstring(expectedLogMessage))
 				})
 
-				It("returns failed status and logs detail when deleting a config fails", func() {
+				It("returns failed status and logs detail when deleting configs fails", func() {
 					operationData, err := json.Marshal(broker.OperationData{
 						OperationType: broker.OperationTypeDelete,
 						BoshTaskID:    taskID,
 					})
 					Expect(err).NotTo(HaveOccurred())
 
-					boshClient.DeleteConfigReturns(false, errors.New("failed to delete configs"))
+					boshClient.DeleteConfigsReturns(errors.New("failed to delete configs"))
 
 					b = createDefaultBroker()
 
