@@ -87,7 +87,13 @@ var _ = Describe("On-demand-broker with maintenance_info", func() {
 
 		By("successfully upgrading a single service instance to the latest version", func() {
 			// redeploy the broker, adding a lifecycle errand, and changing the maintenance_info
-			brokerInfo = bosh.DeployAndRegisterBroker(brokerInfo.TestSuffix, "update_service_catalog.yml", "add_lifecycle_errand.yml", "update_maintenance_info.yml")
+			brokerInfo = bosh.DeployAndRegisterBroker(
+				brokerInfo.TestSuffix,
+				[]string{
+					"update_service_catalog.yml",
+					"add_lifecycle_errand.yml",
+					"update_maintenance_info.yml"},
+			)
 			newMaintenanceInfo := retrieveCatalog().Services[0].Plans[0].MaintenanceInfo
 
 			updateBody := UpdateBody{

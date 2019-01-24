@@ -156,8 +156,9 @@ func serviceInstanceLister(conf config.InstanceIteratorConfig, logger *log.Logge
 	certPool.AppendCertsFromPEM([]byte(cert))
 
 	httpClient := herottp.New(herottp.Config{
-		Timeout: 30 * time.Second,
-		RootCAs: certPool,
+		Timeout:                           30 * time.Second,
+		RootCAs:                           certPool,
+		DisableTLSCertificateVerification: conf.ServiceInstancesAPI.DisableSSLCertVerification,
 	})
 
 	manuallyConfigured := !strings.Contains(conf.ServiceInstancesAPI.URL, conf.BrokerAPI.URL)

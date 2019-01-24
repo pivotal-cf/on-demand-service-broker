@@ -41,4 +41,8 @@ export SIAPI_URL=
 export SIAPI_USERNAME=
 export SIAPI_PASSWORD=
 
+export BOSH_GW_USER=
+export BOSH_GW_HOST=
+export BOSH_GW_PRIVATE_KEY=
+
 source_up

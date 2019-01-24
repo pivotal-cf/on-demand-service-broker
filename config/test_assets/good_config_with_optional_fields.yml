@@ -49,6 +49,12 @@ service_deployment:
   stemcell:
     os: ubuntu-trusty
     version: 1234
+service_instances_api:
+  url: "someawsomeapi.com/service_instances"
+  authentication:
+    username: user
+    password: password123allcaps
+  disable_ssl_cert_verification: true
 service_catalog:
   id: some-id
   service_name: some-marketplace-name

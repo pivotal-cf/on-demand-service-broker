@@ -42,7 +42,9 @@ type ListerClient interface {
 	GetInstancesOfServiceOffering(string, *log.Logger) ([]Instance, error)
 }
 
-func BuildInstanceLister(client ListerClient, serviceOfferingID string, siapiConfig config.ServiceInstancesAPI, logger *log.Logger) (InstanceLister, error) {
+func BuildInstanceLister(
+	client ListerClient, serviceOfferingID string, siapiConfig config.ServiceInstancesAPI, logger *log.Logger,
+) (InstanceLister, error) {
 	if siapiConfig.URL == "" {
 		return NewCFServiceInstanceLister(client, serviceOfferingID, logger), nil
 	}
@@ -55,8 +57,9 @@ func BuildInstanceLister(client ListerClient, serviceOfferingID string, siapiCon
 	certPool.AppendCertsFromPEM([]byte(cert))
 
 	httpClient := herottp.New(herottp.Config{
-		Timeout: 30 * time.Second,
-		RootCAs: certPool,
+		Timeout:                           30 * time.Second,
+		RootCAs:                           certPool,
+		DisableTLSCertificateVerification: siapiConfig.DisableSSLCertVerification,
 	})
 
 	authHeaderBuilder := authorizationheader.NewBasicAuthHeaderBuilder(

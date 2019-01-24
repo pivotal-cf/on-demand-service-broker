@@ -42,6 +42,38 @@ type BrokerInfo struct {
 	BrokerUsername  string
 }
 
+type deploymentProperties struct {
+	BrokerCN                  string
+	BrokerDeploymentVarsPath  string
+	BrokerPassword            string
+	BrokerReleaseName         string
+	BrokerRoute               string
+	BrokerSystemDomain        string
+	BrokerURI                 string
+	BrokerUsername            string
+	ConsulRequired            string
+	DeploymentName            string
+	DisableBPM                bool
+	OdbReleaseTemplatesPath   string
+	OdbVersion                string
+	ServiceAdapterReleaseName string
+	ServiceReleaseName        string
+	ServiceReleaseVersion     string
+	UniqueID                  string
+}
+
+type EnvVars struct {
+	DevEnv                   string
+	BrokerSystemDomain       string
+	DisableBPM               bool
+	ConsulRequired           string
+	OdbVersion               string
+	ServiceReleaseName       string
+	ServiceReleaseVersion    string
+	OdbReleaseTemplatesPath  string
+	BrokerDeploymentVarsPath string
+}
+
 func TasksForDeployment(boshServiceInstanceName string) []BoshTaskOutput {
 	cmd := exec.Command("bosh", "-n", "-d", boshServiceInstanceName, "tasks", "--recent", "--json")
 	stdout := gbytes.NewBuffer()
@@ -74,6 +106,12 @@ func RunErrand(deploymentName, errandName string, optionalMatcher ...types.Gomeg
 	return session
 }
 
+func WaitBrokerToStart(brokerURI string) {
+	Eventually(func() bool {
+		return brokerRespondsOnCatalogEndpoint(brokerURI)
+	}, 30*time.Second).Should(BeTrue(), "broker catalog endpoint did not come up in a reasonable time")
+}
+
 func VMIDForDeployment(deploymentName string) string {
 	cmd := exec.Command("bosh", "-n", "-d", deploymentName, "--json", "vms")
 	stdout := gbytes.NewBuffer()
@@ -94,15 +132,33 @@ func VMIDForDeployment(deploymentName string) string {
 	return boshOutput.Tables[0].Rows[0].VMCID
 }
 
-func DeployAndRegisterBroker(systemTestSuffix string, opsFiles ...string) BrokerInfo {
+func DeployBroker(systemTestSuffix string, opsFiles []string, deploymentArguments ...string) BrokerInfo {
 	var args []string
 	for _, opsFile := range opsFiles {
 		args = append(args, []string{"--ops-file", "./fixtures/" + opsFile}...)
 	}
-	return deployAndRegisterBroker(systemTestSuffix, args...)
+	args = append(args, deploymentArguments...)
+	return deploy(systemTestSuffix, args...)
 }
 
-func deployAndRegisterBroker(systemTestSuffix string, opsFiles ...string) BrokerInfo {
+func DeployAndRegisterBroker(systemTestSuffix string, opsFiles []string, deploymentArguments ...string) BrokerInfo {
+	brokerInfo := DeployBroker(systemTestSuffix, opsFiles, deploymentArguments...)
+	RunErrand(brokerInfo.DeploymentName, "register-broker")
+	return brokerInfo
+}
+
+func RunOnVM(deploymentName, VMName, command, brokerURI string) {
+	cmd := exec.Command("bosh", "-d", deploymentName, "ssh", VMName, "-c", command)
+	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
+	Expect(err).NotTo(HaveOccurred(), "failed to run ssh")
+	Eventually(session, LongBOSHTimeout).Should(gexec.Exit(0), "Expected to SSH successfully")
+
+	WaitBrokerToStart(brokerURI)
+}
+
+func getEnvVars() EnvVars {
+	envVars := EnvVars{}
+
 	err := env_helpers.ValidateEnvVars(
 		"SERVICE_RELEASE_NAME",
 		"BROKER_SYSTEM_DOMAIN",
@@ -110,84 +166,110 @@ func deployAndRegisterBroker(systemTestSuffix string, opsFiles ...string) Broker
 		"BOSH_DEPLOYMENT_VARS",
 	)
 	Expect(err).ToNot(HaveOccurred())
-	devEnv := os.Getenv("DEV_ENV")
+
+	envVars.DevEnv = os.Getenv("DEV_ENV")
+	envVars.BrokerSystemDomain = os.Getenv("BROKER_SYSTEM_DOMAIN")
+	envVars.DisableBPM = os.Getenv("DISABLE_BPM") == "true"
+	envVars.ConsulRequired = os.Getenv("CONSUL_REQUIRED")
+	envVars.OdbVersion = os.Getenv("ODB_VERSION")
+	envVars.ServiceReleaseName = os.Getenv("SERVICE_RELEASE_NAME")
+	envVars.ServiceReleaseVersion = os.Getenv("SERVICE_RELEASE_VERSION")
+	envVars.OdbReleaseTemplatesPath = os.Getenv("ODB_RELEASE_TEMPLATES_PATH")
+	envVars.BrokerDeploymentVarsPath = os.Getenv("BOSH_DEPLOYMENT_VARS")
+	return envVars
+}
+
+func buildDeploymentArguments(systemTestSuffix string) deploymentProperties {
+	envVars := getEnvVars()
+
+	devEnv := envVars.DevEnv
 	if devEnv != "" {
 		devEnv = "-" + devEnv
 	}
-	brokerPassword := uuid.New()[:6]
-	deploymentName := "redis-on-demand-broker" + systemTestSuffix
-	serviceOffering := "redis" + systemTestSuffix
-	serviceReleaseName := os.Getenv("SERVICE_RELEASE_NAME") + devEnv
 
-	brokerSystemDomain := os.Getenv("BROKER_SYSTEM_DOMAIN")
-	disableBPM := os.Getenv("DISABLE_BPM") == "true"
-	consulRequired := os.Getenv("CONSUL_REQUIRED") == "true"
-	odbVersion := os.Getenv("ODB_VERSION")
+	odbVersion := envVars.OdbVersion
 	if odbVersion == "" {
 		fmt.Println("⚠ ODB version not set. Falling back to latest ⚠")
 		odbVersion = "latest"
 	}
 
-	serviceReleaseVersion := os.Getenv("SERVICE_RELEASE_VERSION")
+	serviceReleaseName := envVars.ServiceReleaseName + devEnv
+
+	serviceReleaseVersion := envVars.ServiceReleaseVersion
 	if serviceReleaseVersion == "" {
 		fmt.Println("⚠ Service Release version not set. Falling back to latest available ⚠")
 		serviceReleaseVersion = getLatestServiceReleaseVersion(serviceReleaseName)
 	}
 
-	odbReleaseTemplatesPath := os.Getenv("ODB_RELEASE_TEMPLATES_PATH")
+	return deploymentProperties{
+		BrokerReleaseName:         "on-demand-service-broker" + devEnv,
+		BrokerCN:                  "'*" + envVars.BrokerSystemDomain + "'",
+		BrokerDeploymentVarsPath:  envVars.BrokerDeploymentVarsPath,
+		BrokerPassword:            uuid.New()[:6],
+		BrokerRoute:               "redis-odb" + systemTestSuffix,
+		BrokerSystemDomain:        envVars.BrokerSystemDomain,
+		BrokerURI:                 "redis-service-broker" + systemTestSuffix + "." + envVars.BrokerSystemDomain,
+		BrokerUsername:            "broker",
+		ConsulRequired:            envVars.ConsulRequired,
+		DeploymentName:            "redis-on-demand-broker" + systemTestSuffix,
+		DisableBPM:                envVars.DisableBPM,
+		OdbReleaseTemplatesPath:   envVars.OdbReleaseTemplatesPath,
+		OdbVersion:                odbVersion,
+		ServiceAdapterReleaseName: "redis-example-service-adapter" + devEnv,
+		ServiceReleaseVersion:     serviceReleaseVersion,
+		UniqueID:                  "redis" + systemTestSuffix,
+		ServiceReleaseName:        serviceReleaseName,
+	}
+}
+
+func deploy(systemTestSuffix string, deployCmdArgs ...string) BrokerInfo {
+
+	variables := buildDeploymentArguments(systemTestSuffix)
+
+	odbReleaseTemplatesPath := variables.OdbReleaseTemplatesPath
 	baseManifest := filepath.Join(odbReleaseTemplatesPath, "base_odb_manifest.yml")
 	redisAdapterOpsFile := filepath.Join(odbReleaseTemplatesPath, "operations", "redis.yml")
 
-	brokerURI := "redis-service-broker" + systemTestSuffix + "." + brokerSystemDomain
-
-	fmt.Println("     --- Deploying System Test Broker ---")
-	fmt.Println("")
-	fmt.Printf("deploymentName        = %+v\n", deploymentName)
-	fmt.Printf("serviceReleaseVersion = %+v\n", serviceReleaseVersion)
-	fmt.Printf("odbVersion            = %+v\n", odbVersion)
-	fmt.Printf("brokerURI             = %+v\n", brokerURI)
-	fmt.Printf("brokerSystemDomain    = %+v\n", brokerSystemDomain)
-	fmt.Printf("opsFiles              = %+v\n", opsFiles)
-	fmt.Println("")
-
-	varsFile := os.Getenv("BOSH_DEPLOYMENT_VARS")
+	logDeploymentProperties(variables, deployCmdArgs)
 
 	deployArguments := []string{
-		"-d", deploymentName,
+		"-d", variables.DeploymentName,
 		"-n",
 		"deploy", baseManifest,
-		"--vars-file", varsFile,
-		"--var", "stemcell_alias=xenial",
-		"--var", "broker_uri=" + brokerURI,
-		"--var", "broker_cn='*" + brokerSystemDomain + "'",
-		"--var", "broker_deployment_name=" + deploymentName,
-		"--var", "broker_release=on-demand-service-broker" + devEnv,
-		"--var", "service_adapter_release=redis-example-service-adapter" + devEnv,
-		"--var", "service_release=" + serviceReleaseName,
-		"--var", "service_release_version=" + serviceReleaseVersion,
-		"--var", "broker_name=" + serviceOffering,
-		"--var", "broker_route_name=redis-odb" + systemTestSuffix,
-		"--var", "service_catalog_id=redis" + systemTestSuffix,
-		"--var", "service_catalog_service_name=redis" + systemTestSuffix,
-		"--var", "plan_id=redis-post-deploy-plan-redis" + systemTestSuffix,
-		"--var", "broker_password=" + brokerPassword,
-		"--var", "broker_version=" + odbVersion,
+		"--vars-file", variables.BrokerDeploymentVarsPath,
+		"--var", "broker_cn=" + variables.BrokerCN,
+		"--var", "broker_deployment_name=" + variables.DeploymentName,
+		"--var", "broker_name=" + variables.UniqueID,
+		"--var", "broker_password=" + variables.BrokerPassword,
+		"--var", "broker_release=" + variables.BrokerReleaseName,
+		"--var", "broker_route_name=" + variables.BrokerRoute,
+		"--var", "broker_uri=" + variables.BrokerURI,
+		"--var", "broker_version=" + variables.OdbVersion,
+		"--var", "plan_id=" + variables.UniqueID,
+		"--var", "service_adapter_release=" + variables.ServiceAdapterReleaseName,
 		"--var", "service_adapter_version=latest",
+		"--var", "service_catalog_id=" + variables.UniqueID,
+		"--var", "service_catalog_service_name=" + variables.UniqueID,
+		"--var", "service_release=" + variables.ServiceReleaseName,
+		"--var", "service_release_version=" + variables.ServiceReleaseVersion,
 		"--var", "instance_groups_vm_extensions=[public_ip]",
 		"--var", "disable_ssl_cert_verification=false",
+		"--var", "stemcell_alias=xenial",
+
 		"--ops-file", redisAdapterOpsFile,
 	}
-	deployArguments = append(deployArguments, opsFiles...)
+	deployArguments = append(deployArguments, deployCmdArgs...)
 
-	if disableBPM {
+	if variables.DisableBPM {
 		deployArguments = append(deployArguments, []string{"--ops-file", filepath.Join(odbReleaseTemplatesPath, "operations", "remove_bpm.yml")}...)
 	}
 
+	consulRequired := variables.ConsulRequired == "true"
 	if consulRequired {
 		deployArguments = append(deployArguments, []string{"--ops-file", filepath.Join(odbReleaseTemplatesPath, "operations", "add_consul.yml")}...)
 	}
 
-	if noClientCredentialsInVarsFile(varsFile) {
+	if noClientCredentialsInVarsFile(variables.BrokerDeploymentVarsPath) {
 		deployArguments = append(deployArguments, []string{"--ops-file", filepath.Join(odbReleaseTemplatesPath, "operations", "cf_uaa_user.yml")}...)
 	}
 
@@ -196,20 +278,28 @@ func deployAndRegisterBroker(systemTestSuffix string, opsFiles ...string) Broker
 	Expect(err).NotTo(HaveOccurred(), "failed to run bosh deploy command")
 	Eventually(session, LongBOSHTimeout).Should(gexec.Exit(0), "deployment failed")
 
-	Eventually(func() bool {
-		return brokerRespondsOnCatalogEndpoint(brokerURI)
-	}, 30*time.Second).Should(BeTrue(), "broker catalog endpoint did not come up in a reasonable time")
-
-	RunErrand(deploymentName, "register-broker")
+	WaitBrokerToStart(variables.BrokerURI)
 
 	return BrokerInfo{
-		URI:             brokerURI,
-		DeploymentName:  deploymentName,
-		ServiceOffering: serviceOffering,
+		URI:             variables.BrokerURI,
+		DeploymentName:  variables.DeploymentName,
+		ServiceOffering: variables.UniqueID,
 		TestSuffix:      systemTestSuffix,
-		BrokerPassword:  brokerPassword,
-		BrokerUsername:  "broker",
+		BrokerPassword:  variables.BrokerPassword,
+		BrokerUsername:  variables.BrokerUsername,
 	}
+}
+
+func logDeploymentProperties(variables deploymentProperties, deployCmdArgs []string) {
+	fmt.Println("     --- Deploying System Test Broker ---")
+	fmt.Println("")
+	fmt.Printf("deploymentName        = %+v\n", variables.DeploymentName)
+	fmt.Printf("serviceReleaseVersion = %+v\n", variables.ServiceReleaseVersion)
+	fmt.Printf("odbVersion            = %+v\n", variables.OdbVersion)
+	fmt.Printf("brokerURI             = %+v\n", variables.BrokerURI)
+	fmt.Printf("brokerSystemDomain    = %+v\n", variables.BrokerSystemDomain)
+	fmt.Printf("deployCmdArgs              = %+v\n", deployCmdArgs)
+	fmt.Println("")
 }
 
 func GetBOSHConfig(configType, configName string) (string, error) {
@@ -239,6 +329,16 @@ func DeleteBOSHConfig(configType, configName string) error {
 		return err
 	}
 	return nil
+}
+
+func DeleteDeployment(deploymentName string) {
+	cmd := exec.Command("bosh", "-n", "-d", deploymentName, "delete-deployment")
+	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
+	Expect(err).NotTo(HaveOccurred(), "failed to run delete deployment")
+	Eventually(session, LongBOSHTimeout).Should(
+		gexec.Exit(0),
+		"delete-deployment failed",
+	)
 }
 
 func DeregisterAndDeleteBroker(deploymentName string) {
@@ -305,14 +405,4 @@ func noClientCredentialsInVarsFile(varsFile string) bool {
 	err = yaml.Unmarshal(varsFileContents, &test)
 	Expect(err).NotTo(HaveOccurred())
 	return test.CF.ClientCredentials.ClientID == ""
-}
-
-func DeleteDeployment(deploymentName string) {
-	cmd := exec.Command("bosh", "-n", "-d", deploymentName, "delete-deployment")
-	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
-	Expect(err).NotTo(HaveOccurred(), "failed to run delete deployment")
-	Eventually(session, LongBOSHTimeout).Should(
-		gexec.Exit(0),
-		"delete-deployment failed",
-	)
 }

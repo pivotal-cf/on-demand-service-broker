@@ -91,6 +91,7 @@ var _ = Describe("Broker Config", func() {
 								Password: "si-api-password",
 							},
 						},
+						DisableSSLCertVerification: false,
 					},
 					ServiceAdapter: config.ServiceAdapter{
 						Path: "test_assets/executable.sh",
@@ -640,6 +641,19 @@ var _ = Describe("Broker Config", func() {
 
 				It("returns an error", func() {
 					Expect(parseErr).To(MatchError(ContainSubstring(latestFailureMessage)))
+				})
+			})
+		})
+
+		Context("Service Instance API", func() {
+			When("disable ssl cert verification is set", func() {
+				BeforeEach(func() {
+					configFileName = "good_config_with_optional_fields.yml"
+				})
+
+				It("returns the correct config object", func() {
+					Expect(parseErr).NotTo(HaveOccurred())
+					Expect(conf.ServiceInstancesAPI.DisableSSLCertVerification).To(BeTrue())
 				})
 			})
 		})
