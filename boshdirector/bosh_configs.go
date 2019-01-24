@@ -12,6 +12,12 @@ const (
 	boshConfigsLimit = 30
 )
 
+type BoshConfig struct {
+	Type    string
+	Name    string
+	Content string
+}
+
 func (c *Client) GetConfigs(configName string, logger *log.Logger) ([]BoshConfig, error) {
 	var configs []BoshConfig
 
