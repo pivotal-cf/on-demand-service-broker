@@ -53,10 +53,13 @@ export BOSH_DEPLOYMENT_VARS="$broker_dep_vars"
 export SI_API_PATH="${SI_API_PATH:-"$HOME/workspace/example-service-instances-api/"}"
 
 create_and_upload_releases() {
-  # bosh create-release --name redis-service --force --dir
-  echo "Upload your releases and press enter"
-  bosh upload-release https://bosh.io/d/github.com/cloudfoundry-incubator/consul-release?v=198
-  # read
+  $odb_release_path/vbox/create-and-upload-releases.sh $odb_release_path
+  $odb_release_path/vbox/create-and-upload-releases.sh $odb_release_path/examples/redis-example-service-adapter-release
+  $odb_release_path/vbox/create-and-upload-releases.sh $odb_release_path/examples/redis-example-service-release
 }
+
+if [ -z "${SKIP_UPLOAD_RELEASES:-""}" ]; then
+    create_and_upload_releases
+fi
 
 "$(dirname $0)"/run_system_tests.sh "$@"
