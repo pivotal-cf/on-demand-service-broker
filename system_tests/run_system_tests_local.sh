@@ -3,9 +3,12 @@
 usage() {
   echo "Usage: $(basename "$0") [vars.yml] [system tests]"
   echo
-  echo '$ODB_BROKER_RELEASE_PATH: path to on-demand-broker-release directory'
-  echo 'vars.yml: path to broker deployment variables [$BROKER_DEPLOYMENT_VARS]'
-  echo 'system tests: comma separated list of system tests to run. Defaults to all.'
+  echo 'Command Arguments:'
+  echo '  vars.yml: path to broker deployment variables [$BROKER_DEPLOYMENT_VARS]'
+  echo '  system tests: comma separated list of system tests to run. Defaults to all.'
+  echo 'Environment variables:'
+  echo '  $ODB_BROKER_RELEASE_PATH: path to on-demand-broker-release directory'
+  echo '  $SI_API_PATH: path to example-service-instance-api app directory (https://github.com/pivotal-cf-experimental/example-service-instances-api)'
   exit
 }
 
@@ -46,6 +49,8 @@ if [ ! -d "$ODB_RELEASE_TEMPLATES_PATH" ]; then
   usage
 fi
 export BOSH_DEPLOYMENT_VARS="$broker_dep_vars"
+
+export SI_API_PATH="${SI_API_PATH:-"$HOME/workspace/example-service-instances-api/"}"
 
 create_and_upload_releases() {
   # bosh create-release --name redis-service --force --dir
