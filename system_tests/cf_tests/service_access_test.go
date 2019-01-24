@@ -28,7 +28,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 
-	cf_system_tests_helper "github.com/pivotal-cf/on-demand-service-broker/system_tests/cf_helpers"
+	cf_system_tests_helper "github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/cf_helpers"
 )
 
 var _ = Describe("cf.Client.DisableServiceAccess", func() {

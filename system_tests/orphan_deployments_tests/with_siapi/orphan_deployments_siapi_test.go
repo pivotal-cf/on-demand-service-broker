@@ -23,8 +23,8 @@ import (
 	"github.com/onsi/gomega/gexec"
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/on-demand-service-broker/service"
-	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/cf_helpers"
-	"github.com/pivotal-cf/on-demand-service-broker/system_tests/siapi_helpers"
+	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/cf_helpers"
+	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/siapi_helpers"
 )
 
 var _ = Describe("orphan deployments errand", func() {

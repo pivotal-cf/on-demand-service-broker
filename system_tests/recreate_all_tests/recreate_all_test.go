@@ -4,8 +4,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
-	bosh "github.com/pivotal-cf/on-demand-service-broker/system_tests/bosh_helpers"
-	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/cf_helpers"
+	bosh "github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
+	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/cf_helpers"
 )
 
 var _ = Describe("The recreate-all errand", func() {

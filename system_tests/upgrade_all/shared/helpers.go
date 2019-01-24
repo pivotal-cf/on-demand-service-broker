@@ -36,8 +36,8 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
 	cfClient "github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/service"
-	"github.com/pivotal-cf/on-demand-service-broker/system_tests/bosh_helpers"
-	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/cf_helpers"
+	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
+	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/cf_helpers"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 )
 

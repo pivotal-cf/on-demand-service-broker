@@ -12,7 +12,7 @@ import (
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
-	bosh "github.com/pivotal-cf/on-demand-service-broker/system_tests/bosh_helpers"
+	bosh "github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
 
 	. "github.com/onsi/ginkgo"
 

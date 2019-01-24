@@ -14,7 +14,7 @@ import (
 
 	"github.com/onsi/gomega/types"
 
-	"github.com/pivotal-cf/on-demand-service-broker/system_tests/env_helpers"
+	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/env_helperss/env_helpers"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

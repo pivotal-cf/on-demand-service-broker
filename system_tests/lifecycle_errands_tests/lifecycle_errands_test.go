@@ -17,7 +17,7 @@ import (
 	"github.com/onsi/gomega/gexec"
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
-	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/cf_helpers"
+	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/cf_helpers"
 )
 
 var _ = Describe("lifecycle errand tests", func() {

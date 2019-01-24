@@ -6,8 +6,8 @@ import (
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/pborman/uuid"
-	bosh "github.com/pivotal-cf/on-demand-service-broker/system_tests/bosh_helpers"
-	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/cf_helpers"
+	bosh "github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
+	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/cf_helpers"
 	"os"
 )
 
