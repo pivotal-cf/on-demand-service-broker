@@ -353,7 +353,7 @@ var _ = Describe("BOSH client", func() {
 	Describe("configs operations", func() {
 		var (
 			configType    = "dummy"
-			configContent = []byte("{}")
+			configContent = []byte("vm_extensions: [{name: dummy}]")
 		)
 
 		AfterEach(func() {
