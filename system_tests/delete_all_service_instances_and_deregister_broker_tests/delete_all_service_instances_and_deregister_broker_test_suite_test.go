@@ -27,7 +27,7 @@ var (
 
 var _ = BeforeSuite(func() {
 	uniqueID := uuid.New()[:6]
-	brokerInfo = bosh_helpers.DeployAndRegisterBroker("-delete-all-"+uniqueID, "update_service_catalog.yml")
+	brokerInfo = bosh_helpers.DeployAndRegisterBroker("-delete-all-"+uniqueID, []string{"update_service_catalog.yml"})
 
 	boshURL := envMustHave("BOSH_URL")
 	boshUsername := envMustHave("BOSH_USERNAME")
