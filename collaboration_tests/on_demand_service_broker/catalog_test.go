@@ -21,7 +21,6 @@ import (
 	"sync"
 
 	brokerConfig "github.com/pivotal-cf/on-demand-service-broker/config"
-	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 
 	"net/http"
@@ -55,6 +54,17 @@ var _ = Describe("Catalog", func() {
 		},
 	}
 
+	var (
+		defaultSchemasJSON []byte
+		zero               int
+	)
+
+	BeforeEach(func() {
+		var err error
+		defaultSchemasJSON, err = json.Marshal(defaultSchemas)
+		Expect(err).NotTo(HaveOccurred())
+	})
+
 	Context("without optional fields", func() {
 		BeforeEach(func() {
 			serviceCatalogConfig := defaultServiceCatalogConfig()
@@ -71,7 +81,7 @@ var _ = Describe("Catalog", func() {
 		})
 
 		It("returns catalog", func() {
-			fakeServiceAdapter.GeneratePlanSchemaReturns(defaultSchemas, nil)
+			fakeCommandRunner.RunWithInputParamsReturns(defaultSchemasJSON, []byte{}, &zero, nil)
 
 			response, bodyContent := doCatalogRequest()
 
@@ -141,7 +151,7 @@ var _ = Describe("Catalog", func() {
 		})
 
 		It("can deal with concurrent requests", func() {
-			fakeServiceAdapter.GeneratePlanSchemaReturns(defaultSchemas, nil)
+			fakeCommandRunner.RunWithInputParamsReturns(defaultSchemasJSON, []byte{}, &zero, nil)
 
 			var wg sync.WaitGroup
 			const threads = 2
@@ -209,7 +219,7 @@ var _ = Describe("Catalog", func() {
 		})
 
 		It("returns catalog", func() {
-			fakeServiceAdapter.GeneratePlanSchemaReturns(defaultSchemas, nil)
+			fakeCommandRunner.RunWithInputParamsReturns(defaultSchemasJSON, []byte{}, &zero, nil)
 
 			response, bodyContent := doCatalogRequest()
 
@@ -317,7 +327,7 @@ var _ = Describe("Catalog", func() {
 		})
 
 		It("fails with 500 status code", func() {
-			fakeServiceAdapter.GeneratePlanSchemaReturns(brokerapi.ServiceSchemas{}, errors.New("oops"))
+			fakeCommandRunner.RunWithInputParamsReturns(nil, nil, nil, errors.New("oops"))
 			response, bodyContent := doCatalogRequest()
 
 			Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
@@ -325,7 +335,9 @@ var _ = Describe("Catalog", func() {
 		})
 
 		It("fails with a proper message if not implemented", func() {
-			fakeServiceAdapter.GeneratePlanSchemaReturns(brokerapi.ServiceSchemas{}, serviceadapter.NewNotImplementedError("oops"))
+			errCode := sdk.NotImplementedExitCode
+			fakeCommandRunner.RunWithInputParamsReturns([]byte{}, []byte{}, &errCode, nil)
+
 			response, bodyContent := doCatalogRequest()
 
 			Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))

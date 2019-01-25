@@ -32,7 +32,6 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	brokerConfig "github.com/pivotal-cf/on-demand-service-broker/config"
-	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	taskfakes "github.com/pivotal-cf/on-demand-service-broker/task/fakes"
 	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 	"github.com/pkg/errors"
@@ -126,6 +125,7 @@ var _ = Describe("Provision service instance", func() {
 				},
 			},
 		}
+		setupFakeGenerateManifestOutput()
 	})
 
 	JustBeforeEach(func() {
@@ -247,16 +247,16 @@ password: ((odb_secret:foo))`,
 
 		It("includes the dashboard url when the adapter returns one", func() {
 			fakeTaskBoshClient.DeployReturns(taskID, nil)
-			boshManifest := []byte(`name: service-instance_` + instanceID)
+			boshManifest := "name: service-instance_" + instanceID
 			taskManifest := sdk.MarshalledGenerateManifest{
-				Manifest: string(boshManifest),
+				Manifest: boshManifest,
 			}
-			manifestBytes, err := json.Marshal(taskManifest)
-			Expect(err).NotTo(HaveOccurred())
+			manifestBytes := toJson(taskManifest)
 			zero := 0
-			fakeCommandRunner.RunWithInputParamsReturns(manifestBytes, []byte{}, &zero, nil)
+			fakeCommandRunner.RunWithInputParamsReturnsOnCall(0, manifestBytes, []byte{}, &zero, nil)
 
-			fakeServiceAdapter.GenerateDashboardUrlReturns("http://dashboard.example.com", nil)
+			dashboardJSON := toJson(sdk.DashboardUrl{DashboardUrl: "http://dashboard.example.com"})
+			fakeCommandRunner.RunWithInputParamsReturnsOnCall(1, dashboardJSON, []byte{}, &zero, nil)
 
 			resp, bodyContent := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, brokerapi.MaintenanceInfo{}, true)
 			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
@@ -265,10 +265,9 @@ password: ((odb_secret:foo))`,
 			Expect(json.Unmarshal(bodyContent, &provisionResponseBody)).To(Succeed())
 
 			By("calling the adapter with the correct arguments")
-			id, plan, manifest, _ := fakeServiceAdapter.GenerateDashboardUrlArgsForCall(0)
-			Expect(id).To(Equal(instanceID))
-			Expect(err).NotTo(HaveOccurred())
-			Expect(plan).To(Equal(sdk.Plan{
+			args := getProvisionArgs()
+			Expect(args.InstanceId).To(Equal(instanceID))
+			Expect(args.Plan).To(Equal(string(toJson(sdk.Plan{
 				Properties: sdk.Properties{
 					"type":            "plan-with-quota",
 					"global_property": "global_value",
@@ -294,8 +293,8 @@ password: ((odb_secret:foo))`,
 						AZs:                dedicatedPlanAZs,
 					},
 				},
-			}))
-			Expect(manifest).To(Equal(boshManifest))
+			}))))
+			Expect(args.Manifest).To(Equal(boshManifest))
 
 			By("including the dashboard url in the response")
 			Expect(provisionResponseBody.DashboardURL).To(Equal("http://dashboard.example.com"))
@@ -303,7 +302,7 @@ password: ((odb_secret:foo))`,
 
 		It("responds with 500 when generating the dashboard url fails", func() {
 			fakeTaskBoshClient.DeployReturns(taskID, nil)
-			fakeServiceAdapter.GenerateDashboardUrlReturns("", errors.New("something went wrong"))
+			fakeCommandRunner.RunWithInputParamsReturnsOnCall(1, nil, nil, nil, errors.New("something went wrong"))
 
 			resp, bodyContent := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, brokerapi.MaintenanceInfo{}, true)
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
@@ -325,7 +324,8 @@ password: ((odb_secret:foo))`,
 		})
 
 		It("responds with 500 and with a descriptive message when generating the dashboard url fails", func() {
-			fakeServiceAdapter.GenerateDashboardUrlReturns("", serviceadapter.NewUnknownFailureError("error message for user"))
+			errCode := 37
+			fakeCommandRunner.RunWithInputParamsReturnsOnCall(1, []byte("error message for user"), []byte{}, &errCode, nil)
 			resp, bodyContent := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, brokerapi.MaintenanceInfo{}, true)
 
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
@@ -640,4 +640,26 @@ func doProvisionRequest(instanceID, planID string, arbitraryParams map[string]in
 		),
 		bytes.NewReader(bodyBytes),
 	)
+}
+func setupFakeGenerateManifestOutput() {
+	generateManifestOutput := sdk.MarshalledGenerateManifest{
+		Manifest: `name: service-instance_some-instance-id`,
+		ODBManagedSecrets: map[string]interface{}{
+			"": nil,
+		},
+		Configs: sdk.BOSHConfigs{"cloud": `{"foo":"bar"}`},
+	}
+	generateManifestOutputBytes, err := json.Marshal(generateManifestOutput)
+	Expect(err).NotTo(HaveOccurred())
+	zero := 0
+	fakeCommandRunner.RunWithInputParamsReturns(generateManifestOutputBytes, []byte{}, &zero, nil)
+}
+
+func getProvisionArgs() sdk.DashboardUrlJSONParams {
+	input, varArgs := fakeCommandRunner.RunWithInputParamsArgsForCall(1)
+	inputParams, ok := input.(sdk.InputParams)
+	Expect(ok).To(BeTrue(), "couldn't cast dashboard input to sdk.InputParams")
+	Expect(varArgs).To(HaveLen(2))
+	Expect(varArgs[1]).To(Equal("dashboard-url"))
+	return inputParams.DashboardUrl
 }

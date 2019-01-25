@@ -2,13 +2,13 @@
 package fakes
 
 import (
-	log "log"
-	sync "sync"
+	"log"
+	"sync"
 
-	boshdirector "github.com/pivotal-cf/on-demand-service-broker/boshdirector"
-	broker "github.com/pivotal-cf/on-demand-service-broker/broker"
-	config "github.com/pivotal-cf/on-demand-service-broker/config"
-	bosh "github.com/pivotal-cf/on-demand-services-sdk/bosh"
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
+	"github.com/pivotal-cf/on-demand-service-broker/broker"
+	"github.com/pivotal-cf/on-demand-service-broker/config"
+	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 )
 
 type FakeBoshClient struct {
@@ -205,20 +205,6 @@ type FakeBoshClient struct {
 	runErrandReturnsOnCall map[int]struct {
 		result1 int
 		result2 error
-	}
-	UpdateConfigStub        func(string, string, []byte, *log.Logger) error
-	updateConfigMutex       sync.RWMutex
-	updateConfigArgsForCall []struct {
-		arg1 string
-		arg2 string
-		arg3 []byte
-		arg4 *log.Logger
-	}
-	updateConfigReturns struct {
-		result1 error
-	}
-	updateConfigReturnsOnCall map[int]struct {
-		result1 error
 	}
 	VMsStub        func(string, *log.Logger) (bosh.BoshVMs, error)
 	vMsMutex       sync.RWMutex
@@ -1123,74 +1109,6 @@ func (fake *FakeBoshClient) RunErrandReturnsOnCall(i int, result1 int, result2 e
 	}{result1, result2}
 }
 
-func (fake *FakeBoshClient) UpdateConfig(arg1 string, arg2 string, arg3 []byte, arg4 *log.Logger) error {
-	var arg3Copy []byte
-	if arg3 != nil {
-		arg3Copy = make([]byte, len(arg3))
-		copy(arg3Copy, arg3)
-	}
-	fake.updateConfigMutex.Lock()
-	ret, specificReturn := fake.updateConfigReturnsOnCall[len(fake.updateConfigArgsForCall)]
-	fake.updateConfigArgsForCall = append(fake.updateConfigArgsForCall, struct {
-		arg1 string
-		arg2 string
-		arg3 []byte
-		arg4 *log.Logger
-	}{arg1, arg2, arg3Copy, arg4})
-	fake.recordInvocation("UpdateConfig", []interface{}{arg1, arg2, arg3Copy, arg4})
-	fake.updateConfigMutex.Unlock()
-	if fake.UpdateConfigStub != nil {
-		return fake.UpdateConfigStub(arg1, arg2, arg3, arg4)
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.updateConfigReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakeBoshClient) UpdateConfigCallCount() int {
-	fake.updateConfigMutex.RLock()
-	defer fake.updateConfigMutex.RUnlock()
-	return len(fake.updateConfigArgsForCall)
-}
-
-func (fake *FakeBoshClient) UpdateConfigCalls(stub func(string, string, []byte, *log.Logger) error) {
-	fake.updateConfigMutex.Lock()
-	defer fake.updateConfigMutex.Unlock()
-	fake.UpdateConfigStub = stub
-}
-
-func (fake *FakeBoshClient) UpdateConfigArgsForCall(i int) (string, string, []byte, *log.Logger) {
-	fake.updateConfigMutex.RLock()
-	defer fake.updateConfigMutex.RUnlock()
-	argsForCall := fake.updateConfigArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
-}
-
-func (fake *FakeBoshClient) UpdateConfigReturns(result1 error) {
-	fake.updateConfigMutex.Lock()
-	defer fake.updateConfigMutex.Unlock()
-	fake.UpdateConfigStub = nil
-	fake.updateConfigReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeBoshClient) UpdateConfigReturnsOnCall(i int, result1 error) {
-	fake.updateConfigMutex.Lock()
-	defer fake.updateConfigMutex.Unlock()
-	fake.UpdateConfigStub = nil
-	if fake.updateConfigReturnsOnCall == nil {
-		fake.updateConfigReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.updateConfigReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
-}
-
 func (fake *FakeBoshClient) VMs(arg1 string, arg2 *log.Logger) (bosh.BoshVMs, error) {
 	fake.vMsMutex.Lock()
 	ret, specificReturn := fake.vMsReturnsOnCall[len(fake.vMsArgsForCall)]
@@ -1408,8 +1326,6 @@ func (fake *FakeBoshClient) Invocations() map[string][][]interface{} {
 	defer fake.recreateMutex.RUnlock()
 	fake.runErrandMutex.RLock()
 	defer fake.runErrandMutex.RUnlock()
-	fake.updateConfigMutex.RLock()
-	defer fake.updateConfigMutex.RUnlock()
 	fake.vMsMutex.RLock()
 	defer fake.vMsMutex.RUnlock()
 	fake.variablesMutex.RLock()

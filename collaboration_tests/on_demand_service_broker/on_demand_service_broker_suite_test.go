@@ -24,7 +24,6 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 
 	"github.com/pivotal-cf/on-demand-service-broker/collaboration_tests/helpers"
-	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 
 	"os"
 	"testing"
@@ -63,7 +62,6 @@ var (
 	stopServer          chan os.Signal
 	serverPort          = rand.Intn(math.MaxInt16-1024) + 1024
 	serverURL           = fmt.Sprintf("localhost:%d", serverPort)
-	fakeServiceAdapter  *fakes.FakeServiceAdapterClient
 	fakeCredentialStore *credhubfakes.FakeCredentialStore
 	fakeBoshClient      *fakes.FakeBoshClient
 	fakeMapHasher       *fakes.FakeHasher
@@ -83,24 +81,13 @@ var _ = BeforeEach(func() {
 	fakeBoshClient = new(fakes.FakeBoshClient)
 	fakeMapHasher = new(fakes.FakeHasher)
 	fakeMapHasher.HashStub = ReturnSameValueHasher
-	fakeServiceAdapter = new(fakes.FakeServiceAdapterClient)
 	fakeCredentialStore = new(credhubfakes.FakeCredentialStore)
 	fakeCfClient = new(fakes.FakeCloudFoundryClient)
 
 	fakeTaskBoshClient = new(taskfakes.FakeBoshClient)
 	fakeCommandRunner = new(serviceadapterfakes.FakeCommandRunner)
-
-	generateManifestOutput := serviceadapter.MarshalledGenerateManifest{
-		Manifest: `name: service-instance_some-instance-id`,
-		ODBManagedSecrets: map[string]interface{}{
-			"": nil,
-		},
-		Configs: serviceadapter.BOSHConfigs{"cloud": `{"foo":"bar"}`},
-	}
-	generateManifestOutputBytes, err := json.Marshal(generateManifestOutput)
-	Expect(err).NotTo(HaveOccurred())
 	zero := 0
-	fakeCommandRunner.RunWithInputParamsReturns(generateManifestOutputBytes, []byte{}, &zero, nil)
+	fakeCommandRunner.RunWithInputParamsReturns([]byte{}, []byte{}, &zero, nil)
 
 	fakeTaskBulkSetter = new(taskfakes.FakeBulkSetter)
 	fakeCredhubOperator = new(manifestsecretsfakes.FakeCredhubOperator)
@@ -125,7 +112,6 @@ func StartServer(conf config.Config) {
 		fakeCfClient,
 		fakeBoshClient,
 		fakeMapHasher,
-		fakeServiceAdapter,
 		fakeCredentialStore,
 		fakeCredhubOperator,
 		loggerBuffer,
@@ -143,7 +129,6 @@ func StartServerWithStopHandler(conf config.Config, stopServerChan chan os.Signa
 		fakeCfClient,
 		fakeBoshClient,
 		fakeMapHasher,
-		fakeServiceAdapter,
 		fakeCredentialStore,
 		fakeCredhubOperator,
 		loggerBuffer,

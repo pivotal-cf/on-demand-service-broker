@@ -34,6 +34,7 @@ var _ = Describe("external service adapter", func() {
 		manifest           []byte
 		requestParams      map[string]interface{}
 		secrets            map[string]string
+		dnsAddresses       map[string]string
 
 		deleteBindingError error
 	)
@@ -56,10 +57,12 @@ var _ = Describe("external service adapter", func() {
 			"service_id": "some-service-id",
 		}
 		secrets = map[string]string{"/secret/path": "s3cr3t"}
+
+		dnsAddresses = map[string]string{"name": "a.b.c.d"}
 	})
 
 	JustBeforeEach(func() {
-		deleteBindingError = a.DeleteBinding(bindingID, deploymentTopology, manifest, requestParams, secrets, logger)
+		deleteBindingError = a.DeleteBinding(bindingID, deploymentTopology, manifest, requestParams, secrets, dnsAddresses, logger)
 	})
 
 	When("UsingStdin is set to false", func() {
@@ -164,6 +167,7 @@ var _ = Describe("external service adapter", func() {
 					RequestParameters: string(serialisedRequestParams),
 					Manifest:          string(manifest),
 					Secrets:           toJson(secrets),
+					DNSAddresses:      toJson(dnsAddresses),
 				},
 			}
 

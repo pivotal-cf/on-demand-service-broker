@@ -50,7 +50,6 @@ func StartServer(
 	fakeCfClient *fakes.FakeCloudFoundryClient,
 	fakeBoshClient *fakes.FakeBoshClient,
 	fakeMapHasher *fakes.FakeHasher,
-	fakeServiceAdapter *fakes.FakeServiceAdapterClient,
 	fakeCredentialStore *credhubfakes.FakeCredentialStore,
 	fakeCredhubOperator *manifestsecretsfakes.FakeCredhubOperator,
 	loggerBuffer *gbytes.Buffer,
@@ -61,12 +60,12 @@ func StartServer(
 		conf.Broker.ShutdownTimeoutSecs = 2
 	}
 
-	taskServiceAdapterClient := &odbserviceadapter.Client{
+	serviceAdapterClient := &odbserviceadapter.Client{
 		CommandRunner: fakeCommandRunner,
 		UsingStdin:    true,
 	}
 
-	taskManifestGenerator := task.NewManifestGenerator(taskServiceAdapterClient, conf.ServiceCatalog, serviceadapter.Stemcell{}, serviceadapter.ServiceReleases{})
+	taskManifestGenerator := task.NewManifestGenerator(serviceAdapterClient, conf.ServiceCatalog, serviceadapter.Stemcell{}, serviceadapter.ServiceReleases{})
 	odbSecrets := manifestsecrets.ODBSecrets{ServiceOfferingID: conf.ServiceCatalog.ID}
 	deployer := task.NewDeployer(fakeTaskBoshClient, taskManifestGenerator, odbSecrets, fakeTaskBulkSetter)
 	deployer.DisableBoshConfigs = conf.Broker.DisableBoshConfigs
@@ -86,7 +85,7 @@ func StartServer(
 		conf.ServiceCatalog,
 		conf.Broker,
 		nil,
-		fakeServiceAdapter,
+		serviceAdapterClient,
 		deployer,
 		secretManager,
 		instanceLister,

@@ -18,11 +18,6 @@ import (
 )
 
 func (b *Broker) getDeploymentInfo(instanceID string, ctx context.Context, action string, logger *log.Logger) ([]byte, bosh.BoshVMs, BrokerError) {
-	_, err := b.boshClient.GetInfo(logger)
-	if err != nil {
-		return nil, nil, NewBoshRequestError(action, fmt.Errorf("could not get director info: %s", err))
-	}
-
 	manifest, found, err := b.boshClient.GetDeployment(deploymentName(instanceID), logger)
 	if err != nil {
 		return nil, nil, NewGenericError(ctx, fmt.Errorf("gathering deployment list %s", err))

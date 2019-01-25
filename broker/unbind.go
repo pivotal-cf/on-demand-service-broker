@@ -8,6 +8,7 @@ package broker
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/brokerapi"
@@ -50,8 +51,22 @@ func (b *Broker) Unbind(
 	if err != nil {
 		logger.Printf("failed to resolve manifest secrets: %s", err.Error())
 	}
+
+	plan, found := b.serviceOffering.FindPlanByID(details.PlanID)
+	if !found {
+		return emptyUnbindSpec, b.processError(NewDisplayableError(
+			fmt.Errorf("plan %q not found", details.PlanID),
+			fmt.Errorf("finding plan ID %q", details.PlanID),
+		), logger)
+	}
+
+	dnsAddresses, err := b.boshClient.GetDNSAddresses(deploymentName(instanceID), plan.BindingWithDNS)
+	if err != nil {
+		return emptyUnbindSpec, b.processError(NewGenericError(ctx, fmt.Errorf("failed to get required DNS info: %s", err)), logger)
+	}
+
 	logger.Printf("service adapter will delete binding with ID %s for instance %s\n", bindingID, instanceID)
-	err = b.adapterClient.DeleteBinding(bindingID, vms, manifest, requestParams, secretsMap, logger)
+	err = b.adapterClient.DeleteBinding(bindingID, vms, manifest, requestParams, secretsMap, dnsAddresses, logger)
 
 	if err != nil {
 		logger.Printf("delete binding: %v\n", err)

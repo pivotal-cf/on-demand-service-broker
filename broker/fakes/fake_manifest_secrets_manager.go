@@ -10,12 +10,24 @@ import (
 )
 
 type FakeManifestSecretManager struct {
-	ResolveManifestSecretsStub        func(manifest []byte, deploymentVariables []boshdirector.Variable, logger *log.Logger) (map[string]string, error)
+	DeleteSecretsForInstanceStub        func(string, *log.Logger) error
+	deleteSecretsForInstanceMutex       sync.RWMutex
+	deleteSecretsForInstanceArgsForCall []struct {
+		arg1 string
+		arg2 *log.Logger
+	}
+	deleteSecretsForInstanceReturns struct {
+		result1 error
+	}
+	deleteSecretsForInstanceReturnsOnCall map[int]struct {
+		result1 error
+	}
+	ResolveManifestSecretsStub        func([]byte, []boshdirector.Variable, *log.Logger) (map[string]string, error)
 	resolveManifestSecretsMutex       sync.RWMutex
 	resolveManifestSecretsArgsForCall []struct {
-		manifest            []byte
-		deploymentVariables []boshdirector.Variable
-		logger              *log.Logger
+		arg1 []byte
+		arg2 []boshdirector.Variable
+		arg3 *log.Logger
 	}
 	resolveManifestSecretsReturns struct {
 		result1 map[string]string
@@ -25,49 +37,99 @@ type FakeManifestSecretManager struct {
 		result1 map[string]string
 		result2 error
 	}
-	DeleteSecretsForInstanceStub        func(instanceID string, logger *log.Logger) error
-	deleteSecretsForInstanceMutex       sync.RWMutex
-	deleteSecretsForInstanceArgsForCall []struct {
-		instanceID string
-		logger     *log.Logger
-	}
-	deleteSecretsForInstanceReturns struct {
-		result1 error
-	}
-	deleteSecretsForInstanceReturnsOnCall map[int]struct {
-		result1 error
-	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeManifestSecretManager) ResolveManifestSecrets(manifest []byte, deploymentVariables []boshdirector.Variable, logger *log.Logger) (map[string]string, error) {
-	var manifestCopy []byte
-	if manifest != nil {
-		manifestCopy = make([]byte, len(manifest))
-		copy(manifestCopy, manifest)
+func (fake *FakeManifestSecretManager) DeleteSecretsForInstance(arg1 string, arg2 *log.Logger) error {
+	fake.deleteSecretsForInstanceMutex.Lock()
+	ret, specificReturn := fake.deleteSecretsForInstanceReturnsOnCall[len(fake.deleteSecretsForInstanceArgsForCall)]
+	fake.deleteSecretsForInstanceArgsForCall = append(fake.deleteSecretsForInstanceArgsForCall, struct {
+		arg1 string
+		arg2 *log.Logger
+	}{arg1, arg2})
+	fake.recordInvocation("DeleteSecretsForInstance", []interface{}{arg1, arg2})
+	fake.deleteSecretsForInstanceMutex.Unlock()
+	if fake.DeleteSecretsForInstanceStub != nil {
+		return fake.DeleteSecretsForInstanceStub(arg1, arg2)
 	}
-	var deploymentVariablesCopy []boshdirector.Variable
-	if deploymentVariables != nil {
-		deploymentVariablesCopy = make([]boshdirector.Variable, len(deploymentVariables))
-		copy(deploymentVariablesCopy, deploymentVariables)
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.deleteSecretsForInstanceReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeManifestSecretManager) DeleteSecretsForInstanceCallCount() int {
+	fake.deleteSecretsForInstanceMutex.RLock()
+	defer fake.deleteSecretsForInstanceMutex.RUnlock()
+	return len(fake.deleteSecretsForInstanceArgsForCall)
+}
+
+func (fake *FakeManifestSecretManager) DeleteSecretsForInstanceCalls(stub func(string, *log.Logger) error) {
+	fake.deleteSecretsForInstanceMutex.Lock()
+	defer fake.deleteSecretsForInstanceMutex.Unlock()
+	fake.DeleteSecretsForInstanceStub = stub
+}
+
+func (fake *FakeManifestSecretManager) DeleteSecretsForInstanceArgsForCall(i int) (string, *log.Logger) {
+	fake.deleteSecretsForInstanceMutex.RLock()
+	defer fake.deleteSecretsForInstanceMutex.RUnlock()
+	argsForCall := fake.deleteSecretsForInstanceArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeManifestSecretManager) DeleteSecretsForInstanceReturns(result1 error) {
+	fake.deleteSecretsForInstanceMutex.Lock()
+	defer fake.deleteSecretsForInstanceMutex.Unlock()
+	fake.DeleteSecretsForInstanceStub = nil
+	fake.deleteSecretsForInstanceReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeManifestSecretManager) DeleteSecretsForInstanceReturnsOnCall(i int, result1 error) {
+	fake.deleteSecretsForInstanceMutex.Lock()
+	defer fake.deleteSecretsForInstanceMutex.Unlock()
+	fake.DeleteSecretsForInstanceStub = nil
+	if fake.deleteSecretsForInstanceReturnsOnCall == nil {
+		fake.deleteSecretsForInstanceReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.deleteSecretsForInstanceReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeManifestSecretManager) ResolveManifestSecrets(arg1 []byte, arg2 []boshdirector.Variable, arg3 *log.Logger) (map[string]string, error) {
+	var arg1Copy []byte
+	if arg1 != nil {
+		arg1Copy = make([]byte, len(arg1))
+		copy(arg1Copy, arg1)
+	}
+	var arg2Copy []boshdirector.Variable
+	if arg2 != nil {
+		arg2Copy = make([]boshdirector.Variable, len(arg2))
+		copy(arg2Copy, arg2)
 	}
 	fake.resolveManifestSecretsMutex.Lock()
 	ret, specificReturn := fake.resolveManifestSecretsReturnsOnCall[len(fake.resolveManifestSecretsArgsForCall)]
 	fake.resolveManifestSecretsArgsForCall = append(fake.resolveManifestSecretsArgsForCall, struct {
-		manifest            []byte
-		deploymentVariables []boshdirector.Variable
-		logger              *log.Logger
-	}{manifestCopy, deploymentVariablesCopy, logger})
-	fake.recordInvocation("ResolveManifestSecrets", []interface{}{manifestCopy, deploymentVariablesCopy, logger})
+		arg1 []byte
+		arg2 []boshdirector.Variable
+		arg3 *log.Logger
+	}{arg1Copy, arg2Copy, arg3})
+	fake.recordInvocation("ResolveManifestSecrets", []interface{}{arg1Copy, arg2Copy, arg3})
 	fake.resolveManifestSecretsMutex.Unlock()
 	if fake.ResolveManifestSecretsStub != nil {
-		return fake.ResolveManifestSecretsStub(manifest, deploymentVariables, logger)
+		return fake.ResolveManifestSecretsStub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.resolveManifestSecretsReturns.result1, fake.resolveManifestSecretsReturns.result2
+	fakeReturns := fake.resolveManifestSecretsReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeManifestSecretManager) ResolveManifestSecretsCallCount() int {
@@ -76,13 +138,22 @@ func (fake *FakeManifestSecretManager) ResolveManifestSecretsCallCount() int {
 	return len(fake.resolveManifestSecretsArgsForCall)
 }
 
+func (fake *FakeManifestSecretManager) ResolveManifestSecretsCalls(stub func([]byte, []boshdirector.Variable, *log.Logger) (map[string]string, error)) {
+	fake.resolveManifestSecretsMutex.Lock()
+	defer fake.resolveManifestSecretsMutex.Unlock()
+	fake.ResolveManifestSecretsStub = stub
+}
+
 func (fake *FakeManifestSecretManager) ResolveManifestSecretsArgsForCall(i int) ([]byte, []boshdirector.Variable, *log.Logger) {
 	fake.resolveManifestSecretsMutex.RLock()
 	defer fake.resolveManifestSecretsMutex.RUnlock()
-	return fake.resolveManifestSecretsArgsForCall[i].manifest, fake.resolveManifestSecretsArgsForCall[i].deploymentVariables, fake.resolveManifestSecretsArgsForCall[i].logger
+	argsForCall := fake.resolveManifestSecretsArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *FakeManifestSecretManager) ResolveManifestSecretsReturns(result1 map[string]string, result2 error) {
+	fake.resolveManifestSecretsMutex.Lock()
+	defer fake.resolveManifestSecretsMutex.Unlock()
 	fake.ResolveManifestSecretsStub = nil
 	fake.resolveManifestSecretsReturns = struct {
 		result1 map[string]string
@@ -91,6 +162,8 @@ func (fake *FakeManifestSecretManager) ResolveManifestSecretsReturns(result1 map
 }
 
 func (fake *FakeManifestSecretManager) ResolveManifestSecretsReturnsOnCall(i int, result1 map[string]string, result2 error) {
+	fake.resolveManifestSecretsMutex.Lock()
+	defer fake.resolveManifestSecretsMutex.Unlock()
 	fake.ResolveManifestSecretsStub = nil
 	if fake.resolveManifestSecretsReturnsOnCall == nil {
 		fake.resolveManifestSecretsReturnsOnCall = make(map[int]struct {
@@ -104,62 +177,13 @@ func (fake *FakeManifestSecretManager) ResolveManifestSecretsReturnsOnCall(i int
 	}{result1, result2}
 }
 
-func (fake *FakeManifestSecretManager) DeleteSecretsForInstance(instanceID string, logger *log.Logger) error {
-	fake.deleteSecretsForInstanceMutex.Lock()
-	ret, specificReturn := fake.deleteSecretsForInstanceReturnsOnCall[len(fake.deleteSecretsForInstanceArgsForCall)]
-	fake.deleteSecretsForInstanceArgsForCall = append(fake.deleteSecretsForInstanceArgsForCall, struct {
-		instanceID string
-		logger     *log.Logger
-	}{instanceID, logger})
-	fake.recordInvocation("DeleteSecretsForInstance", []interface{}{instanceID, logger})
-	fake.deleteSecretsForInstanceMutex.Unlock()
-	if fake.DeleteSecretsForInstanceStub != nil {
-		return fake.DeleteSecretsForInstanceStub(instanceID, logger)
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.deleteSecretsForInstanceReturns.result1
-}
-
-func (fake *FakeManifestSecretManager) DeleteSecretsForInstanceCallCount() int {
-	fake.deleteSecretsForInstanceMutex.RLock()
-	defer fake.deleteSecretsForInstanceMutex.RUnlock()
-	return len(fake.deleteSecretsForInstanceArgsForCall)
-}
-
-func (fake *FakeManifestSecretManager) DeleteSecretsForInstanceArgsForCall(i int) (string, *log.Logger) {
-	fake.deleteSecretsForInstanceMutex.RLock()
-	defer fake.deleteSecretsForInstanceMutex.RUnlock()
-	return fake.deleteSecretsForInstanceArgsForCall[i].instanceID, fake.deleteSecretsForInstanceArgsForCall[i].logger
-}
-
-func (fake *FakeManifestSecretManager) DeleteSecretsForInstanceReturns(result1 error) {
-	fake.DeleteSecretsForInstanceStub = nil
-	fake.deleteSecretsForInstanceReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeManifestSecretManager) DeleteSecretsForInstanceReturnsOnCall(i int, result1 error) {
-	fake.DeleteSecretsForInstanceStub = nil
-	if fake.deleteSecretsForInstanceReturnsOnCall == nil {
-		fake.deleteSecretsForInstanceReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.deleteSecretsForInstanceReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
-}
-
 func (fake *FakeManifestSecretManager) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.resolveManifestSecretsMutex.RLock()
-	defer fake.resolveManifestSecretsMutex.RUnlock()
 	fake.deleteSecretsForInstanceMutex.RLock()
 	defer fake.deleteSecretsForInstanceMutex.RUnlock()
+	fake.resolveManifestSecretsMutex.RLock()
+	defer fake.resolveManifestSecretsMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

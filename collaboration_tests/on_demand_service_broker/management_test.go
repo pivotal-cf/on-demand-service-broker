@@ -308,6 +308,7 @@ var _ = Describe("Management API", func() {
 				taskID := 123
 				fakeTaskBoshClient.GetDeploymentReturns(nil, true, nil)
 				fakeTaskBoshClient.DeployReturns(taskID, nil)
+				setupFakeGenerateManifestOutput()
 
 				response, bodyContent := doProcessRequest(instanceID, fmt.Sprintf(`{"plan_id": "%s"}`, dedicatedPlanID), operationType)
 
@@ -350,6 +351,7 @@ var _ = Describe("Management API", func() {
 					taskID := 123
 					fakeTaskBoshClient.GetDeploymentReturns(nil, true, nil)
 					fakeTaskBoshClient.DeployReturns(taskID, nil)
+					setupFakeGenerateManifestOutput()
 
 					response, bodyContent := doProcessRequest(instanceID, fmt.Sprintf(`{"plan_id": "%s"}`, dedicatedPlanID), operationType)
 

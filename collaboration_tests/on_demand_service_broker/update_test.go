@@ -128,6 +128,7 @@ var _ = Describe("Update a service instance", func() {
 		oldManifest = []byte(`name: service-instance_some-instance-id`)
 		fakeTaskBoshClient.GetDeploymentReturns(oldManifest, true, nil)
 		fakeTaskBoshClient.DeployReturns(updateTaskID, nil)
+		setupFakeGenerateManifestOutput()
 	})
 
 	JustBeforeEach(func() {

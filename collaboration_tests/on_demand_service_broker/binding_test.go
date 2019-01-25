@@ -19,9 +19,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/pivotal-cf/brokerapi"
-	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	brokerConfig "github.com/pivotal-cf/on-demand-service-broker/config"
-	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
@@ -104,12 +102,13 @@ var _ = Describe("Binding", func() {
 	Describe("a successful binding", func() {
 		It("generates a meaningful response", func() {
 			fakeBoshClient.GetDNSAddressesReturns(bindingWithDNSDetails, nil)
-			fakeServiceAdapter.CreateBindingReturns(sdk.Binding{
+			bindingJSON := toJson(sdk.Binding{
 				Credentials:     map[string]interface{}{"user": "bill", "password": "redflag"},
 				SyslogDrainURL:  "other.fqdn",
 				RouteServiceURL: "some.fqdn",
-			}, nil)
-
+			})
+			zero := 0
+			fakeCommandRunner.RunWithInputParamsReturns(bindingJSON, []byte{}, &zero, nil)
 			response, bodyContent := doBindRequest(instanceID, bindingID, bindDetails)
 
 			By("fetching the VM info for the deployment")
@@ -126,13 +125,13 @@ var _ = Describe("Binding", func() {
 			Expect(bindingBoshDNSConfig).To(Equal(bindingWithDNSConf))
 
 			By("calling bind on the service adapter")
-			Expect(fakeServiceAdapter.CreateBindingCallCount()).To(Equal(1))
-			id, vms, manifest, params, _, boshDNS, _ := fakeServiceAdapter.CreateBindingArgsForCall(0)
-			Expect(id).To(Equal(bindingID))
-			Expect(vms).To(Equal(boshVMs))
-			Expect(manifest).To(Equal(boshManifest))
-			Expect(params).To(Equal(bindingRequestDetails))
-			Expect(boshDNS).To(Equal(bindingWithDNSDetails))
+			args := getBindInputParams()
+
+			Expect(args.BindingId).To(Equal(bindingID))
+			Expect(args.BoshVms).To(Equal(string(toJson(boshVMs))))
+			Expect(args.Manifest).To(Equal(string(boshManifest)))
+			Expect(args.RequestParameters).To(Equal(string(toJson(bindingRequestDetails))))
+			Expect(args.DNSAddresses).To(Equal(string(toJson(bindingWithDNSDetails))))
 
 			By("returning the correct status code")
 			Expect(response.StatusCode).To(Equal(http.StatusCreated))
@@ -152,11 +151,13 @@ var _ = Describe("Binding", func() {
 		})
 
 		It("generates a body without missing optional fields", func() {
-			fakeServiceAdapter.CreateBindingReturns(sdk.Binding{
+			bindingJSON := toJson(sdk.Binding{
 				Credentials:     map[string]interface{}{"user": "bill", "password": "redflag"},
 				SyslogDrainURL:  "",
 				RouteServiceURL: "",
-			}, nil)
+			})
+			zero := 0
+			fakeCommandRunner.RunWithInputParamsReturns(bindingJSON, []byte{}, &zero, nil)
 
 			response, bodyContent := doBindRequest(instanceID, bindingID, bindDetails)
 
@@ -188,8 +189,8 @@ var _ = Describe("Binding", func() {
 
 					// fake bosh credhub to respond to path /path/to/something with foobar
 					doBindRequest(instanceID, bindingID, bindDetails)
-					_, _, _, _, secretsMap, _, _ := fakeServiceAdapter.CreateBindingArgsForCall(0)
-					Expect(secretsMap).To(Equal(expectedSecrets))
+					args := getBindInputParams()
+					Expect(args.Secrets).To(Equal(string(toJson(expectedSecrets))))
 				})
 			})
 			When("the secret is in the variables block", func() {
@@ -208,8 +209,8 @@ variables:
 					fakeBoshClient.GetDeploymentReturns(boshManifest, true, nil)
 
 					doBindRequest(instanceID, bindingID, bindDetails)
-					_, _, _, _, secretsMap, _, _ := fakeServiceAdapter.CreateBindingArgsForCall(0)
-					Expect(secretsMap).To(Equal(expectedSecrets))
+					args := getBindInputParams()
+					Expect(args.Secrets).To(Equal(string(toJson(expectedSecrets))))
 				})
 			})
 		})
@@ -239,21 +240,6 @@ variables:
 				ContainSubstring(fmt.Sprintf("service-instance-guid: %s", instanceID)),
 				ContainSubstring("operation: bind"),
 			))
-		})
-
-		It("responds with status 500 and a try-again-later message when the bosh director is unavailable", func() {
-			fakeBoshClient.GetInfoReturns(boshdirector.Info{}, errors.New("oops"))
-
-			response, bodyContent := doBindRequest(instanceID, bindingID, bindDetails)
-
-			By("returning the correct status code")
-			Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
-
-			By("returning the correct error message")
-			var errorResponse brokerapi.ErrorResponse
-			Expect(json.Unmarshal(bodyContent, &errorResponse)).To(Succeed())
-
-			Expect(errorResponse.Description).To(ContainSubstring("Currently unable to bind service instance, please try again later"))
 		})
 
 		It("responds with status 404 when the deployment does not exist", func() {
@@ -319,11 +305,8 @@ variables:
 		})
 
 		It("responds with status 409 if the binding already exists", func() {
-			err := serviceadapter.ErrorForExitCode(sdk.BindingAlreadyExistsErrorExitCode, "oops")
-			fakeServiceAdapter.CreateBindingReturns(
-				sdk.Binding{},
-				err,
-			)
+			errCode := sdk.BindingAlreadyExistsErrorExitCode
+			fakeCommandRunner.RunWithInputParamsReturns([]byte("oops"), []byte{}, &errCode, nil)
 
 			response, bodyContent := doBindRequest(instanceID, bindingID, bindDetails)
 
@@ -338,11 +321,8 @@ variables:
 		})
 
 		It("responds with status 422 if the app GUID was not provided", func() {
-			err := serviceadapter.ErrorForExitCode(sdk.AppGuidNotProvidedErrorExitCode, "oops")
-			fakeServiceAdapter.CreateBindingReturns(
-				sdk.Binding{},
-				err,
-			)
+			errCode := sdk.AppGuidNotProvidedErrorExitCode
+			fakeCommandRunner.RunWithInputParamsReturns([]byte("oops"), []byte{}, &errCode, nil)
 
 			response, bodyContent := doBindRequest(instanceID, bindingID, bindDetails)
 
@@ -354,11 +334,8 @@ variables:
 		})
 
 		It("responds with status 500 when the adapter does not implement binder", func() {
-			err := serviceadapter.ErrorForExitCode(sdk.NotImplementedExitCode, "oops")
-			fakeServiceAdapter.CreateBindingReturns(
-				sdk.Binding{},
-				err,
-			)
+			errCode := sdk.NotImplementedExitCode
+			fakeCommandRunner.RunWithInputParamsReturns([]byte("oops"), []byte{}, &errCode, nil)
 
 			response, bodyContent := doBindRequest(instanceID, bindingID, bindDetails)
 
@@ -385,11 +362,8 @@ variables:
 		})
 
 		It("responds with status 500 when the adapter fails with unknown error", func() {
-			err := serviceadapter.NewUnknownFailureError("")
-			fakeServiceAdapter.CreateBindingReturns(
-				sdk.Binding{},
-				err,
-			)
+			errCode := 2
+			fakeCommandRunner.RunWithInputParamsReturns([]byte{}, []byte{}, &errCode, nil)
 
 			response, bodyContent := doBindRequest(instanceID, bindingID, bindDetails)
 
@@ -429,4 +403,14 @@ func doBindRequest(instanceID, bindingID string, bindDetails brokerapi.BindDetai
 		),
 		body,
 	)
+}
+
+func getBindInputParams() sdk.CreateBindingJSONParams {
+	Expect(fakeCommandRunner.RunWithInputParamsCallCount()).To(Equal(1))
+	input, varArgs := fakeCommandRunner.RunWithInputParamsArgsForCall(0)
+	Expect(varArgs).To(HaveLen(2))
+	Expect(varArgs[1]).To(Equal("create-binding"))
+	inputParams, ok := input.(sdk.InputParams)
+	Expect(ok).To(BeTrue(), "couldn't cast input to sdk.InputParams")
+	return inputParams.CreateBinding
 }

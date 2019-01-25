@@ -38,6 +38,12 @@ var _ = Describe("Secure Binding", func() {
 			},
 			ServiceCatalog: brokerConfig.ServiceOffering{
 				Name: serviceName,
+				Plans: brokerConfig.Plans{
+					brokerConfig.Plan{
+						ID:   dedicatedPlanID,
+						Name: "dedicated plan",
+					},
+				},
 			},
 			CredHub: brokerConfig.CredHub{
 				APIURL: "https://fake.example.com",
@@ -68,7 +74,9 @@ var _ = Describe("Secure Binding", func() {
 				SyslogDrainURL:  "other.fqdn",
 				RouteServiceURL: "some.fqdn",
 			}
-			fakeServiceAdapter.CreateBindingReturns(bindings, nil)
+			var zero int
+			bindingsJson := toJson(bindings)
+			fakeCommandRunner.RunWithInputParamsReturns(bindingsJson, nil, &zero, nil)
 
 			fakeCredentialStore.SetReturns(nil)
 
@@ -78,7 +86,10 @@ var _ = Describe("Secure Binding", func() {
 			Expect(response.StatusCode).To(Equal(http.StatusCreated))
 
 			By("calling bind on the adapter")
-			Expect(fakeServiceAdapter.CreateBindingCallCount()).To(Equal(1))
+			Expect(fakeCommandRunner.RunWithInputParamsCallCount()).To(Equal(1))
+			_, varArgs := fakeCommandRunner.RunWithInputParamsArgsForCall(0)
+			Expect(varArgs).To(HaveLen(2))
+			Expect(varArgs[1]).To(Equal("create-binding"))
 
 			By("calling credhub")
 			Expect(fakeCredentialStore.SetCallCount()).To(Equal(1))
@@ -114,12 +125,14 @@ var _ = Describe("Secure Binding", func() {
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 		})
 
-		It("fails when the adapter fails", func() {
-			fakeServiceAdapter.CreateBindingReturns(sdk.Binding{}, errors.New("oops"))
+		It("fails when the commandRunner returns an error", func() {
+			var zero int
+			fakeCommandRunner.RunWithInputParamsReturns([]byte{}, []byte{}, &zero, errors.New("commandRunner returned error"))
 
-			By("retuning the correct status code")
+			By("returning the correct status code")
 			resp, _ := doBindRequest(instanceID, bindingID, bindDetails)
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
+			Eventually(loggerBuffer).Should(gbytes.Say("commandRunner returned error"))
 
 			By("not calling credhub")
 			Expect(fakeCredentialStore.SetCallCount()).To(Equal(0))
@@ -128,13 +141,16 @@ var _ = Describe("Secure Binding", func() {
 
 	Describe("unbinding", func() {
 		It("attempts to remove the credentials from credhub", func() {
-			By("retuning the correct status code")
+			By("returning the correct status code")
 			fakeCredentialStore.DeleteReturns(nil)
 			resp, _ := doUnbindRequest(instanceID, bindingID, serviceID, dedicatedPlanID)
 			Expect(resp.StatusCode).To(Equal(http.StatusOK))
 
-			By("calling unbind on the adapter")
-			Expect(fakeServiceAdapter.DeleteBindingCallCount()).To(Equal(1))
+			By("calling bind on the adapter")
+			Expect(fakeCommandRunner.RunWithInputParamsCallCount()).To(Equal(1))
+			_, varArgs := fakeCommandRunner.RunWithInputParamsArgsForCall(0)
+			Expect(varArgs).To(HaveLen(2))
+			Expect(varArgs[1]).To(Equal("delete-binding"))
 
 			By("calling credhub")
 			Expect(fakeCredentialStore.DeleteCallCount()).To(Equal(1))
@@ -146,7 +162,7 @@ var _ = Describe("Secure Binding", func() {
 		})
 
 		It("logs a warning if cannot remove the credentials in credhub", func() {
-			By("retuning the correct status code")
+			By("returning the correct status code")
 			fakeCredentialStore.DeleteReturns(errors.New("oops"))
 			resp, _ := doUnbindRequest(instanceID, bindingID, serviceID, dedicatedPlanID)
 			Expect(resp.StatusCode).To(Equal(http.StatusOK))
@@ -159,8 +175,10 @@ var _ = Describe("Secure Binding", func() {
 		})
 
 		It("fails when the adapter fails", func() {
-			fakeServiceAdapter.DeleteBindingReturns(errors.New("oops"))
-			By("retuning the correct status code")
+			By("returning the correct status code")
+			var zero int
+			fakeCommandRunner.RunWithInputParamsReturns([]byte{}, []byte{}, &zero, errors.New("commandRunner returned error"))
+
 			resp, _ := doUnbindRequest(instanceID, bindingID, serviceID, dedicatedPlanID)
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 
@@ -170,6 +188,7 @@ var _ = Describe("Secure Binding", func() {
 			By("logging the bind request")
 			Eventually(loggerBuffer).Should(SatisfyAll(
 				gbytes.Say(`removing credentials for instance ID`),
+				gbytes.Say("commandRunner returned error"),
 			))
 		})
 	})

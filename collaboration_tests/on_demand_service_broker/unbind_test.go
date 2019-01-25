@@ -19,7 +19,6 @@ import (
 	"fmt"
 
 	brokerConfig "github.com/pivotal-cf/on-demand-service-broker/config"
-	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	"github.com/pkg/errors"
 
 	"net/http"
@@ -30,7 +29,6 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/pivotal-cf/brokerapi"
-	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
@@ -74,6 +72,11 @@ var _ = Describe("Unbind", func() {
 		secretsMap := map[string]string{"/foo/bar": "some super secret"}
 		fakeCredhubOperator.BulkGetReturns(secretsMap, nil)
 
+		dnsDetails := map[string]string{
+			"config-1": "some.names.bosh",
+		}
+		fakeBoshClient.GetDNSAddressesReturns(dnsDetails, nil)
+
 		By("retuning the correct status code")
 		resp, _ := doUnbindRequest(instanceID, bindingID, serviceID, dedicatedPlanID)
 		Expect(resp.StatusCode).To(Equal(http.StatusOK))
@@ -81,16 +84,17 @@ var _ = Describe("Unbind", func() {
 		Expect(fakeCredhubOperator.BulkGetCallCount()).To(Equal(1))
 
 		By("calling the adapter with the correct arguments")
-		id, deploymentTopology, manifest, requestParams, actualSecretsMap, _ := fakeServiceAdapter.DeleteBindingArgsForCall(0)
+		args := getUnbindInputParams()
+		Expect(args.BindingId).To(Equal(bindingID))
+		Expect(args.BoshVms).To(Equal(string(toJson(boshVMs))))
+		Expect(args.Manifest).To(Equal(string(boshManifest)))
+		Expect(args.DNSAddresses).To(Equal(string(toJson(dnsDetails))))
 
-		Expect(id).To(Equal(bindingID))
-		Expect(deploymentTopology).To(Equal(boshVMs))
-		Expect(manifest).To(Equal(boshManifest))
-		Expect(requestParams).To(Equal(map[string]interface{}{
+		Expect(args.RequestParameters).To(Equal(string(toJson(map[string]interface{}{
 			"plan_id":    dedicatedPlanID,
 			"service_id": serviceID,
-		}))
-		Expect(actualSecretsMap).To(Equal(secretsMap))
+		}))))
+		Expect(args.Secrets).To(Equal(string(toJson(secretsMap))))
 
 		By("logging the unbind request")
 		Expect(loggerBuffer).To(gbytes.Say("service adapter will delete binding with ID"))
@@ -98,7 +102,7 @@ var _ = Describe("Unbind", func() {
 
 	Describe("the failure scenarios", func() {
 		It("responds with 500 and a generic message", func() {
-			fakeServiceAdapter.DeleteBindingReturns(errors.New("oops"))
+			fakeCommandRunner.RunWithInputParamsReturns(nil, nil, nil, errors.New("oops"))
 
 			resp, bodyContent := doUnbindRequest(instanceID, bindingID, serviceID, dedicatedPlanID)
 
@@ -124,7 +128,8 @@ var _ = Describe("Unbind", func() {
 		})
 
 		It("responds with 500 and a descriptive message", func() {
-			fakeServiceAdapter.DeleteBindingReturns(serviceadapter.NewUnknownFailureError("error message for user"))
+			two := 2
+			fakeCommandRunner.RunWithInputParamsReturns([]byte("error message for user"), []byte{}, &two, nil)
 			resp, bodyContent := doUnbindRequest(instanceID, bindingID, serviceID, dedicatedPlanID)
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 
@@ -136,7 +141,8 @@ var _ = Describe("Unbind", func() {
 		})
 
 		It("responds with 410 when cannot find the binding", func() {
-			fakeServiceAdapter.DeleteBindingReturns(serviceadapter.ErrorForExitCode(sdk.BindingNotFoundErrorExitCode, "error message for user"))
+			errCode := sdk.BindingNotFoundErrorExitCode
+			fakeCommandRunner.RunWithInputParamsReturns([]byte("error message for user"), []byte{}, &errCode, nil)
 
 			resp, bodyContent := doUnbindRequest(instanceID, bindingID, serviceID, dedicatedPlanID)
 			Expect(resp.StatusCode).To(Equal(http.StatusGone))
@@ -152,7 +158,8 @@ var _ = Describe("Unbind", func() {
 		})
 
 		It("responds with 500 when adapter does not implement binder", func() {
-			fakeServiceAdapter.DeleteBindingReturns(serviceadapter.ErrorForExitCode(sdk.NotImplementedExitCode, "error message for user"))
+			errCode := sdk.NotImplementedExitCode
+			fakeCommandRunner.RunWithInputParamsReturns([]byte("error message for user"), []byte{}, &errCode, nil)
 			resp, bodyContent := doUnbindRequest(instanceID, bindingID, serviceID, dedicatedPlanID)
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 
@@ -200,23 +207,6 @@ var _ = Describe("Unbind", func() {
 			))
 		})
 
-		It("responds with 500 when bosh is unavailable", func() {
-			fakeBoshClient.GetInfoReturns(boshdirector.Info{}, errors.New("bosh offline"))
-
-			resp, bodyContent := doUnbindRequest(instanceID, bindingID, serviceID, dedicatedPlanID)
-			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
-
-			By("returning the correct error message")
-			var errorResponse brokerapi.ErrorResponse
-			Expect(json.Unmarshal(bodyContent, &errorResponse)).To(Succeed())
-
-			Expect(errorResponse.Description).To(
-				ContainSubstring(
-					"Currently unable to unbind service instance, please try again later",
-				),
-			)
-		})
-
 	})
 })
 
@@ -235,4 +225,14 @@ func doUnbindRequest(instanceID, bindingID, serviceID, planID string) (*http.Res
 			r.Header.Set("X-Broker-API-Version", "2.13")
 		},
 	)
+}
+
+func getUnbindInputParams() sdk.DeleteBindingJSONParams {
+	Expect(fakeCommandRunner.RunWithInputParamsCallCount()).To(Equal(1))
+	input, varArgs := fakeCommandRunner.RunWithInputParamsArgsForCall(0)
+	Expect(varArgs).To(HaveLen(2))
+	Expect(varArgs[1]).To(Equal("delete-binding"))
+	inputParams, ok := input.(sdk.InputParams)
+	Expect(ok).To(BeTrue(), "couldn't cast input to sdk.InputParams")
+	return inputParams.DeleteBinding
 }

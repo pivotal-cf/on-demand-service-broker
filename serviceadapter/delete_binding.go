@@ -14,7 +14,16 @@ import (
 	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
 
-func (c *Client) DeleteBinding(bindingID string, deploymentTopology bosh.BoshVMs, manifest []byte, requestParams map[string]interface{}, secretsMap map[string]string, logger *log.Logger) error {
+func (c *Client) DeleteBinding(
+	bindingID string,
+	deploymentTopology bosh.BoshVMs,
+	manifest []byte,
+	requestParams map[string]interface{},
+	secretsMap map[string]string,
+	dnsAddresses map[string]string,
+	logger *log.Logger,
+) error {
+
 	serialisedBoshVMs, err := json.Marshal(deploymentTopology)
 	if err != nil {
 		return err
@@ -30,6 +39,11 @@ func (c *Client) DeleteBinding(bindingID string, deploymentTopology bosh.BoshVMs
 		return err
 	}
 
+	serialisedDNSAddresses, err := json.Marshal(dnsAddresses)
+	if err != nil {
+		return err
+	}
+
 	var stdout, stderr []byte
 	var exitCode *int
 
@@ -41,6 +55,7 @@ func (c *Client) DeleteBinding(bindingID string, deploymentTopology bosh.BoshVMs
 				RequestParameters: string(serialisedRequestParams),
 				Manifest:          string(manifest),
 				Secrets:           string(serialisedSecrets),
+				DNSAddresses:      string(serialisedDNSAddresses),
 			},
 		}
 		stdout, stderr, exitCode, err = c.CommandRunner.RunWithInputParams(inputParams, c.ExternalBinPath, "delete-binding")

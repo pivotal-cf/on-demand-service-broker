@@ -32,7 +32,6 @@ var (
 	fakeTaskBulkSetter  *taskfakes.FakeBulkSetter
 	fakeCfClient        *fakes.FakeCloudFoundryClient
 	fakeBoshClient      *fakes.FakeBoshClient
-	fakeServiceAdapter  *fakes.FakeServiceAdapterClient
 	fakeCredentialStore *credhubfakes.FakeCredentialStore
 	fakeCredhubOperator *manifestsecretsfakes.FakeCredhubOperator
 	loggerBuffer        *gbytes.Buffer
@@ -54,7 +53,6 @@ func StartServer(conf config.Config) *helpers.Server {
 	fakeTaskBulkSetter = new(taskfakes.FakeBulkSetter)
 	fakeCfClient = new(fakes.FakeCloudFoundryClient)
 	fakeBoshClient = new(fakes.FakeBoshClient)
-	fakeServiceAdapter = new(fakes.FakeServiceAdapterClient)
 	fakeCredentialStore = new(credhubfakes.FakeCredentialStore)
 	fakeCredhubOperator = new(manifestsecretsfakes.FakeCredhubOperator)
 	loggerBuffer = gbytes.NewBuffer()
@@ -69,7 +67,6 @@ func StartServer(conf config.Config) *helpers.Server {
 		fakeCfClient,
 		fakeBoshClient,
 		new(fakes.FakeHasher),
-		fakeServiceAdapter,
 		fakeCredentialStore,
 		fakeCredhubOperator,
 		loggerBuffer,
