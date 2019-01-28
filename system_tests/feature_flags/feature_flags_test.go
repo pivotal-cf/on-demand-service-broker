@@ -159,7 +159,15 @@ func deleteBOSHCertFromBrokerVM(brokerInfo bosh.BrokerInfo) {
 	bosh.RunOnVM(
 		brokerInfo.DeploymentName,
 		"broker",
-		"sudo rm -f /etc/ssl/certs/bosh*.pem && sudo rm /etc/ssl/certs/ca-certificates.crt && sudo touch /etc/ssl/certs/ca-certificates.crt && sudo /var/vcap/bosh/bin/monit restart broker",
-		brokerInfo.URI,
+		"sudo rm -f /etc/ssl/certs/bosh*.pem && sudo rm /etc/ssl/certs/ca-certificates.crt && sudo touch /etc/ssl/certs/ca-certificates.crt",
 	)
+
+	bosh.Run(
+		brokerInfo.DeploymentName,
+		"restart",
+		"-n",
+		"broker",
+	)
+
+	bosh.WaitBrokerToStart(brokerInfo.URI)
 }

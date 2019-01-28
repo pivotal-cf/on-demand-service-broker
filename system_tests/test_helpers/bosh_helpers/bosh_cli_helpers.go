@@ -21,7 +21,7 @@ import (
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/pborman/uuid"
-	yaml "gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v2"
 )
 
 const (
@@ -147,13 +147,19 @@ func DeployAndRegisterBroker(systemTestSuffix string, opsFiles []string, deploym
 	return brokerInfo
 }
 
-func RunOnVM(deploymentName, VMName, command, brokerURI string) {
+func RunOnVM(deploymentName, VMName, command string) {
 	cmd := exec.Command("bosh", "-d", deploymentName, "ssh", VMName, "-c", command)
 	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
 	Expect(err).NotTo(HaveOccurred(), "failed to run ssh")
 	Eventually(session, LongBOSHTimeout).Should(gexec.Exit(0), "Expected to SSH successfully")
+}
 
-	WaitBrokerToStart(brokerURI)
+func Run(deploymentName string, commands ...string) {
+	args := append([]string{"-d", deploymentName}, commands...)
+	cmd := exec.Command("bosh", args...)
+	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
+	Expect(err).NotTo(HaveOccurred(), "failed to run command")
+	Eventually(session, LongBOSHTimeout).Should(gexec.Exit(0), "Expected to run command successfully")
 }
 
 func getEnvVars() EnvVars {
