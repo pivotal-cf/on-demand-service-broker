@@ -352,6 +352,14 @@ func DeregisterAndDeleteBroker(deploymentName string) {
 	DeleteDeployment(deploymentName)
 }
 
+func DeregisterAndDeleteBrokerSilently(deploymentName string) {
+	RunErrand(deploymentName,
+		"delete-all-service-instances-and-deregister-broker",
+		Or(gexec.Exit(0), gexec.Exit(1)),
+	)
+	DeleteDeployment(deploymentName)
+}
+
 func brokerRespondsOnCatalogEndpoint(brokerURI string) bool {
 	transport := &http.Transport{
 		TLSClientConfig: &tls.Config{

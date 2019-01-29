@@ -13,15 +13,12 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/gexec"
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
-	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/cf_helpers"
 )
 
 var (
 	exampleAppPath string
-	boshClient     *bosh_helpers.BoshHelperClient
 	brokerInfo     bosh_helpers.BrokerInfo
 )
 
@@ -29,27 +26,13 @@ var _ = BeforeSuite(func() {
 	uniqueID := uuid.New()[:6]
 	brokerInfo = bosh_helpers.DeployAndRegisterBroker("-delete-all-"+uniqueID, []string{"update_service_catalog.yml"})
 
-	boshURL := envMustHave("BOSH_URL")
-	boshUsername := envMustHave("BOSH_USERNAME")
-	boshPassword := envMustHave("BOSH_PASSWORD")
-	uaaURL := os.Getenv("UAA_URL")
-	boshCACert := os.Getenv("BOSH_CA_CERT_FILE")
-	disableTLSVerification := boshCACert == ""
 	exampleAppPath = envMustHave("EXAMPLE_APP_PATH")
-
-	if uaaURL == "" {
-		boshClient = bosh_helpers.NewBasicAuth(boshURL, boshUsername, boshPassword, boshCACert, disableTLSVerification)
-	} else {
-		boshClient = bosh_helpers.New(boshURL, uaaURL, boshUsername, boshPassword, boshCACert)
-	}
 })
 
 var _ = AfterSuite(func() {
-	bosh_helpers.RunErrand(brokerInfo.DeploymentName, "delete-all-service-instances")
-	session := cf.Cf("delete-service-broker", "-f", brokerInfo.ServiceOffering)
-	Eventually(session, cf.CfTimeout).Should(gexec.Exit())
-	boshClient.DeleteDeployment(brokerInfo.DeploymentName)
-	gexec.CleanupBuildArtifacts()
+	if os.Getenv("KEEP_ALIVE") != "true" {
+		bosh_helpers.DeregisterAndDeleteBrokerSilently(brokerInfo.DeploymentName)
+	}
 })
 
 func TestDeleteAllInstancesTests(t *testing.T) {

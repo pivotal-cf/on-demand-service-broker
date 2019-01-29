@@ -7,6 +7,7 @@
 package delete_all_service_instances_and_deregister_broker_tests
 
 import (
+	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -45,14 +46,18 @@ var _ = Describe("purge instances and deregister broker", func() {
 		Eventually(cf.Cf("bind-service", testAppName, serviceInstance1), cf.CfTimeout).Should(gexec.Exit(0))
 		Eventually(cf.Cf("create-service-key", serviceInstance1, serviceKeyName), cf.CfTimeout).Should(gexec.Exit(0))
 
-		output := boshClient.RunErrand(brokerInfo.DeploymentName, "delete-all-service-instances-and-deregister-broker", []string{}, "")
+		session := bosh_helpers.RunErrand(
+			brokerInfo.DeploymentName,
+			"delete-all-service-instances-and-deregister-broker",
+			gexec.Exit(0),
+		)
 
-		Expect(output.StdOut).To(ContainSubstring("FINISHED PURGE INSTANCES AND DEREGISTER BROKER"))
-		Expect(output.ExitCode).To(Equal(0))
+		Expect(session.Buffer()).To(gbytes.Say("FINISHED PURGE INSTANCES AND DEREGISTER BROKER"))
 
 		cf.AwaitServiceDeletion(serviceInstance1)
 		cf.AwaitServiceDeletion(serviceInstance2)
-		session := cf.Cf("marketplace", "-s", brokerInfo.ServiceOffering)
+
+		session = cf.Cf("marketplace", "-s", brokerInfo.ServiceOffering)
 		Eventually(session, cf.CfTimeout).Should(gexec.Exit(1))
 		Expect(session).Should(gbytes.Say("Service offering %s not found", brokerInfo.ServiceOffering))
 	})
