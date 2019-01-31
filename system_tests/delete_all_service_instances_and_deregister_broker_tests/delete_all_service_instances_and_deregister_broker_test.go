@@ -7,8 +7,9 @@
 package delete_all_service_instances_and_deregister_broker_tests
 
 import (
-	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
 	"time"
+
+	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -59,6 +60,6 @@ var _ = Describe("purge instances and deregister broker", func() {
 
 		session = cf.Cf("marketplace", "-s", brokerInfo.ServiceOffering)
 		Eventually(session, cf.CfTimeout).Should(gexec.Exit(1))
-		Expect(session).Should(gbytes.Say("Service offering %s not found", brokerInfo.ServiceOffering))
+		Expect(session.Err).Should(gbytes.Say(`Service offering '%s' not found`, brokerInfo.ServiceOffering))
 	})
 })
