@@ -277,7 +277,7 @@ func UpdatePlanProperties(brokerManifest *bosh.BoshManifest, config *Config) {
 	testPlan["properties"] = map[interface{}]interface{}{"persistence": false}
 }
 
-func MigrateJobProperty(brokerManifest *bosh.BoshManifest, config *Config) {
+func ChangeInstanceGroupName(brokerManifest *bosh.BoshManifest, config *Config) {
 	testPlan := ExtractPlanProperty(config.CurrentPlan, brokerManifest)
 	brokerJobs := bosh_helpers.FindInstanceGroupJobs(brokerManifest, brokerIGName)
 	serviceAdapterJob := ExtractServiceAdapterJob(brokerJobs)
@@ -293,6 +293,18 @@ func MigrateJobProperty(brokerManifest *bosh.BoshManifest, config *Config) {
 	testPlanInstanceGroup["name"] = newRedisServerName
 	testPlanInstanceGroup["migrated_from"] = []map[interface{}]interface{}{
 		{"name": oldRedisServerName},
+	}
+
+	dnsDetails, found := testPlan["binding_with_dns"]
+	if !found {
+		return
+	}
+
+	for _, detail := range dnsDetails.([]interface{}) {
+		detailMap := detail.(map[interface{}]interface{})
+		if detailMap["instance_group"] == oldRedisServerName {
+			detailMap["instance_group"] = newRedisServerName
+		}
 	}
 }
 

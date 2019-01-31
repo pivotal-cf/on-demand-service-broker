@@ -54,29 +54,11 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 		config.BoshClient.DeployODB(*config.OriginalBrokerManifest)
 	})
 
-	It("exits 1 when the instanceiterator fails", func() {
-		brokerManifest := config.BoshClient.GetManifest(config.BrokerBoshDeploymentName)
-		serviceInstances = CreateServiceInstances(config, dataPersistenceEnabled)
-
-		By("causing an upgrade error")
-		testPlan := ExtractPlanProperty(config.CurrentPlan, brokerManifest)
-
-		redisServer := testPlan["instance_groups"].([]interface{})[0].(map[interface{}]interface{})
-		redisServer["vm_type"] = "doesntexist"
-
-		By("deploying the broken broker manifest")
-		config.BoshClient.DeployODB(*brokerManifest)
-
-		boshOutput := config.BoshClient.RunErrandWithoutCheckingSuccess(config.BrokerBoshDeploymentName, "upgrade-all-service-instances", []string{}, "")
-		Expect(boshOutput.ExitCode).To(Equal(1))
-		Expect(boshOutput.StdOut).To(ContainSubstring("Operation failed"))
-	})
-
 	It("when there are no service instances provisioned, upgrade-all-service-instances runs successfully", func() {
 		brokerManifest := config.BoshClient.GetManifest(config.BrokerBoshDeploymentName)
 
 		UpdatePlanProperties(brokerManifest, config)
-		MigrateJobProperty(brokerManifest, config)
+		ChangeInstanceGroupName(brokerManifest, config)
 
 		By("deploying the modified broker manifest")
 		config.BoshClient.DeployODB(*brokerManifest)
@@ -92,7 +74,7 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 		serviceInstances = CreateServiceInstances(config, dataPersistenceEnabled)
 
 		UpdatePlanProperties(brokerManifest, config)
-		MigrateJobProperty(brokerManifest, config)
+		ChangeInstanceGroupName(brokerManifest, config)
 
 		By("deploying the modified broker manifest")
 		config.BoshClient.DeployODB(*brokerManifest)

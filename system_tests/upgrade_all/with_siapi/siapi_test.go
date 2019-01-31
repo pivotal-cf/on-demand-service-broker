@@ -53,7 +53,7 @@ var _ = Describe("parallel upgrade-all errand and SIAPI", func() {
 
 		UpdateServiceInstancesAPI(siapiConfig, serviceInstances, filterParams, config)
 		UpdatePlanProperties(brokerManifest, config)
-		MigrateJobProperty(brokerManifest, config)
+		ChangeInstanceGroupName(brokerManifest, config)
 
 		By("deploying the modified broker manifest")
 		config.BoshClient.DeployODB(*brokerManifest)

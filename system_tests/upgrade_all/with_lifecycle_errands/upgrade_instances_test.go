@@ -59,7 +59,7 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 		serviceInstances = CreateServiceInstances(config, dataPersistenceEnabled)
 
 		UpdatePlanProperties(brokerManifest, config)
-		MigrateJobProperty(brokerManifest, config)
+		ChangeInstanceGroupName(brokerManifest, config)
 
 		By("deploying the modified broker manifest")
 		config.BoshClient.DeployODB(*brokerManifest)
