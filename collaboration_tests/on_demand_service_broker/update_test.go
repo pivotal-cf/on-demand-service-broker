@@ -444,53 +444,45 @@ properties:
 
 	Context("dynamic bosh config creation", func() {
 		When("bosh configs feature flag is enabled", func() {
-			When("adapter returns configs in GenerateManifest", func() {
-				BeforeEach(func() {
-					generateManifestOutput := sdk.MarshalledGenerateManifest{
-						Manifest: `name: service-instance_some-instance-id`,
-						ODBManagedSecrets: map[string]interface{}{
-							"": nil,
-						},
-						Configs: sdk.BOSHConfigs{"cloud": `{}`},
-					}
-					generateManifestOutputBytes, err := json.Marshal(generateManifestOutput)
-					Expect(err).NotTo(HaveOccurred())
-					zero := 0
-					fakeCommandRunner.RunWithInputParamsReturns(generateManifestOutputBytes, []byte{}, &zero, nil)
-					fakeTaskBoshClient.GetConfigsReturns([]boshdirector.BoshConfig{
-						boshdirector.BoshConfig{Type: "cloud", Content: `{cloud_properties: {}}`},
-					}, nil)
-				})
+			BeforeEach(func() {
+				generateManifestOutput := sdk.MarshalledGenerateManifest{
+					Manifest: `name: service-instance_some-instance-id`,
+					Configs:  sdk.BOSHConfigs{"cloud": `{ bar: baz }`},
+				}
+				generateManifestOutputBytes, err := json.Marshal(generateManifestOutput)
+				Expect(err).NotTo(HaveOccurred())
+				zero := 0
+				fakeCommandRunner.RunWithInputParamsReturns(generateManifestOutputBytes, []byte{}, &zero, nil)
+				fakeTaskBoshClient.GetConfigsReturns([]boshdirector.BoshConfig{
+					{Type: "cloud", Content: `{cloud_properties: { foo: bar }}`},
+				}, nil)
+			})
 
-				It("adapters receives previous BOSH configs", func() {
-					doUpdateRequest(requestBody, instanceID)
+			It("sends the adapter previous BOSH configs", func() {
+				doUpdateRequest(requestBody, instanceID)
 
-					generateManifestInput, _ := fakeCommandRunner.RunWithInputParamsArgsForCall(0)
-					actualInput, ok := generateManifestInput.(sdk.InputParams)
-					Expect(ok).To(BeTrue(), "command runner takes a sdk.inputparams obj")
-					Expect(actualInput.GenerateManifest.PreviousConfigs).To(Equal(`{"cloud":"{cloud_properties: {}}"}`))
-				})
+				generateManifestInput, _ := fakeCommandRunner.RunWithInputParamsArgsForCall(0)
+				actualInput, ok := generateManifestInput.(sdk.InputParams)
+				Expect(ok).To(BeTrue(), "command runner takes a sdk.inputparams obj")
+				Expect(actualInput.GenerateManifest.PreviousConfigs).To(Equal(`{"cloud":"{cloud_properties: { foo: bar }}"}`))
+			})
 
-				It("updates BOSH configs", func() {
-					resp, _ := doUpdateRequest(requestBody, instanceID)
+			It("updates BOSH configs", func() {
+				resp, _ := doUpdateRequest(requestBody, instanceID)
 
-					Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
-					Expect(fakeTaskBoshClient.GetConfigsCallCount()).To(Equal(1), "GetConfigs should have been called")
-					Expect(fakeTaskBoshClient.UpdateConfigCallCount()).To(Equal(1), "UpdateConfig should have been called")
-					configType, configName, configContent, _ := fakeTaskBoshClient.UpdateConfigArgsForCall(0)
-					Expect(configType).To(Equal("cloud"))
-					Expect(configName).To(Equal("service-instance_some-instance-id"))
-					Expect(configContent).To(Equal([]byte("{}")))
-				})
+				Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
+				Expect(fakeTaskBoshClient.GetConfigsCallCount()).To(Equal(1), "GetConfigs should have been called")
+				Expect(fakeTaskBoshClient.UpdateConfigCallCount()).To(Equal(1), "UpdateConfig should have been called")
+				configType, configName, configContent, _ := fakeTaskBoshClient.UpdateConfigArgsForCall(0)
+				Expect(configType).To(Equal("cloud"))
+				Expect(configName).To(Equal("service-instance_some-instance-id"))
+				Expect(configContent).To(Equal([]byte("{ bar: baz }")))
 			})
 
 			When("adapter doesn't returns configs in GenerateManifest", func() {
 				BeforeEach(func() {
 					generateManifestOutput := sdk.MarshalledGenerateManifest{
 						Manifest: `name: service-instance_some-instance-id`,
-						ODBManagedSecrets: map[string]interface{}{
-							"": nil,
-						},
 					}
 					generateManifestOutputBytes, err := json.Marshal(generateManifestOutput)
 					Expect(err).NotTo(HaveOccurred())
@@ -517,10 +509,7 @@ properties:
 				BeforeEach(func() {
 					generateManifestOutput := sdk.MarshalledGenerateManifest{
 						Manifest: `name: service-instance_some-instance-id`,
-						ODBManagedSecrets: map[string]interface{}{
-							"": nil,
-						},
-						Configs: sdk.BOSHConfigs{"cloud": `{}`},
+						Configs:  sdk.BOSHConfigs{"cloud": `{}`},
 					}
 					generateManifestOutputBytes, err := json.Marshal(generateManifestOutput)
 					Expect(err).NotTo(HaveOccurred())
@@ -528,7 +517,7 @@ properties:
 					fakeCommandRunner.RunWithInputParamsReturns(generateManifestOutputBytes, []byte{}, &zero, nil)
 				})
 
-				It("fails when generate manifest output contains configs", func() {
+				It("fails", func() {
 					resp, _ := doUpdateRequest(requestBody, instanceID)
 					Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 				})
@@ -545,9 +534,6 @@ properties:
 				BeforeEach(func() {
 					generateManifestOutput := sdk.MarshalledGenerateManifest{
 						Manifest: `name: service-instance_some-instance-id`,
-						ODBManagedSecrets: map[string]interface{}{
-							"": nil,
-						},
 					}
 					generateManifestOutputBytes, err := json.Marshal(generateManifestOutput)
 					Expect(err).NotTo(HaveOccurred())

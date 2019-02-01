@@ -87,12 +87,11 @@ func (b *Broker) Deprovision(
 
 func (b *Broker) deleteConfigsForNotFoundInstance(ctx context.Context, instanceID string, logger *log.Logger) error {
 	if err := b.boshClient.DeleteConfigs(deploymentName(instanceID), logger); err != nil {
-		userError := errors.New("Unable to delete service. Please try again later or contact your operator.")
 		operatorError := NewGenericError(
 			ctx,
 			fmt.Errorf("error deprovisioning: failed to delete configs for instance %s: %s", deploymentName(instanceID), err),
 		)
-		return NewDisplayableError(userError, operatorError)
+		return NewDisplayableError(errors.New("Unable to delete service. Please try again later or contact your operator."), operatorError)
 	}
 
 	return nil
