@@ -11,10 +11,10 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/pborman/uuid"
 	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/cf_helpers"
+	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/gbytes"
 )
 
 var _ = Describe("quotas", func() {
@@ -52,7 +52,8 @@ var _ = Describe("quotas", func() {
 				By("denying a create-service request")
 				session := cf.Cf("create-service", serviceOffering, planA, instanceB)
 				Eventually(session, cf.CfTimeout).Should(gexec.Exit())
-				Expect(session).To(gbytes.Say(fmt.Sprintf(planQuotaTemplate, serviceOffering, 1)))
+
+				Expect(session).To(gbytes.AnySay(fmt.Sprintf(planQuotaTemplate, serviceOffering, 1)))
 
 				By("deleting an instance")
 				Eventually(cf.Cf("delete-service", instanceA, "-f"), cf.CfTimeout).Should(gexec.Exit(0))
@@ -71,7 +72,7 @@ var _ = Describe("quotas", func() {
 				By("updating to a plan with maxed quota")
 				session := cf.Cf("update-service", instanceB, "-p", planA)
 				Eventually(session, cf.CfTimeout).Should(gexec.Exit())
-				Expect(session).To(gbytes.Say(fmt.Sprintf(planQuotaTemplate, serviceOffering, 1)))
+				Expect(session).To(gbytes.AnySay(fmt.Sprintf(planQuotaTemplate, serviceOffering, 1)))
 
 				By("deleting instance to free up quota")
 				Eventually(cf.Cf("delete-service", instanceA, "-f"), cf.CfTimeout).Should(gexec.Exit(0))
@@ -124,7 +125,7 @@ var _ = Describe("quotas", func() {
 					cf.AwaitServiceCreation(instanceC)
 				}
 
-				Expect(session).To(gbytes.Say(fmt.Sprintf(globalQuotaTemplate, serviceOffering, 2)))
+				Expect(session).To(gbytes.AnySay(fmt.Sprintf(globalQuotaTemplate, serviceOffering, 2)))
 
 				By("deleting instance to free up global quota")
 				Eventually(cf.Cf("delete-service", instanceB, "-f"), cf.CfTimeout).Should(gexec.Exit(0))
@@ -133,7 +134,6 @@ var _ = Describe("quotas", func() {
 				By("creating a service instance with newly freed quota")
 				Eventually(cf.Cf("create-service", serviceOffering, planB, instanceC), cf.CfTimeout).Should(gexec.Exit(0))
 				cf.AwaitServiceCreation(instanceC)
-
 			})
 		})
 	})

@@ -14,6 +14,7 @@ import (
 	"github.com/onsi/gomega/gexec"
 	"github.com/pborman/uuid"
 	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/cf_helpers"
+	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/gbytes"
 )
 
 var instanceA string
@@ -62,7 +63,7 @@ var _ = Describe("quotas", func() {
 					cf.AwaitServiceCreation(instanceB)
 				}
 
-				Expect(contents(session)).To(ContainSubstring(globalQuotaError))
+				Expect(session).To(gbytes.AnySay(globalQuotaError))
 
 				By("deleting instance to free up global quota")
 				Eventually(cf.Cf("delete-service", instanceA, "-f"), cf.CfTimeout).Should(gexec.Exit(0))
@@ -103,7 +104,7 @@ var _ = Describe("quotas", func() {
 					cf.AwaitServiceCreation(instanceB)
 				}
 
-				Expect(contents(session)).To(ContainSubstring(globalQuotaError))
+				Expect(session).To(gbytes.AnySay(globalQuotaError))
 
 				By("deleting instance to free up plan quota")
 				Eventually(cf.Cf("delete-service", instanceB, "-f"), cf.CfTimeout).Should(gexec.Exit(0))
@@ -153,7 +154,7 @@ var _ = Describe("quotas", func() {
 					cf.AwaitServiceCreation(instanceB)
 				}
 
-				Expect(contents(session)).To(ContainSubstring(planQuotaError))
+				Expect(session).To(gbytes.AnySay(planQuotaError))
 
 				By("deleting instance to free up plan quota")
 				Eventually(cf.Cf("delete-service", instanceA, "-f"), cf.CfTimeout).Should(gexec.Exit(0))
@@ -195,7 +196,7 @@ var _ = Describe("quotas", func() {
 					cf.AwaitServiceCreation(instanceB)
 				}
 
-				Expect(contents(session)).To(ContainSubstring(planQuotaError))
+				Expect(session).To(gbytes.AnySay(planQuotaError))
 
 				By("deleting instance to free up plan quota")
 				Eventually(cf.Cf("delete-service", instanceB, "-f"), cf.CfTimeout).Should(gexec.Exit(0))
@@ -208,7 +209,3 @@ var _ = Describe("quotas", func() {
 		})
 	})
 })
-
-func contents(session *gexec.Session) string {
-	return string(session.Buffer().Contents())
-}
