@@ -206,7 +206,7 @@ var _ = Describe("Deprovision", func() {
 			})
 
 			It("returns 500 when configs removal fails", func() {
-				fakeBoshClient.GetConfigsReturns(nil, errors.New("not today, thank you"))
+				fakeBoshClient.DeleteConfigsReturns(errors.New("not today, thank you"))
 
 				response, bodyContent := doDeprovisionRequest(instanceID, dedicatedPlanID, serviceID, true)
 
@@ -222,7 +222,7 @@ var _ = Describe("Deprovision", func() {
 
 				By("logging the delete request")
 				Eventually(loggerBuffer).Should(
-					gbytes.Say(fmt.Sprintf("error deprovisioning: failed to get configs for instance service-instance_%s", instanceID)),
+					gbytes.Say(fmt.Sprintf("error deprovisioning: failed to delete configs for instance service-instance_%s", instanceID)),
 				)
 			})
 
@@ -255,8 +255,7 @@ var _ = Describe("Deprovision", func() {
 				It("should not get or delete configs", func() {
 					doDeprovisionRequest(instanceID, dedicatedPlanID, serviceID, true)
 
-					Expect(fakeBoshClient.GetConfigsCallCount()).To(Equal(0), "GetConfig was called")
-					Expect(fakeBoshClient.DeleteConfigCallCount()).To(Equal(0), "DeleteConfig was called")
+					Expect(fakeBoshClient.DeleteConfigsCallCount()).To(Equal(0), "DeleteConfig was called")
 				})
 			})
 		})

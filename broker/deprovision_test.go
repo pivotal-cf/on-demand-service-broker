@@ -171,22 +171,14 @@ var _ = Describe("deprovisioning instances", func() {
 				brokerConfig.DisableBoshConfigs = true
 			})
 
-			It("doesn't call GetConfigs or DeleteConfigs", func() {
-				Expect(boshClient.GetConfigsCallCount()).To(Equal(0), "GetConfigs was called")
-				Expect(boshClient.DeleteConfigCallCount()).To(Equal(0), "DeleteConfig was called")
+			It("doesn't call DeleteConfigs", func() {
+				Expect(boshClient.DeleteConfigsCallCount()).To(Equal(0), "DeleteConfigs was called")
 			})
 		})
 
 		Context("bosh configs can be deleted", func() {
-			BeforeEach(func() {
-				boshConfigs := []boshdirector.BoshConfig{
-					{Type: "some-type", Name: "some-name"},
-				}
-				boshClient.GetConfigsReturns(boshConfigs, nil)
-			})
-
 			It("deletes the bosh configs and returns expected error about missing deployment", func() {
-				Expect(boshClient.DeleteConfigCallCount()).To(Equal(1))
+				Expect(boshClient.DeleteConfigsCallCount()).To(Equal(1))
 				Expect(deprovisionErr).To(Equal(brokerapi.ErrInstanceDoesNotExist))
 				Expect(logBuffer.String()).To(ContainSubstring(
 					fmt.Sprintf("error deprovisioning: instance %s, not found.", instanceID),
@@ -194,26 +186,9 @@ var _ = Describe("deprovisioning instances", func() {
 			})
 		})
 
-		Context("getting bosh configs fails", func() {
-			BeforeEach(func() {
-				boshClient.GetConfigsReturns(nil, errors.New("oops"))
-			})
-
-			It("returns error about deleting service", func() {
-				Expect(deprovisionErr).To(MatchError("Unable to delete service. Please try again later or contact your operator."))
-				Expect(logBuffer.String()).To(ContainSubstring(
-					fmt.Sprintf("error deprovisioning: failed to get configs for instance service-instance_%s", instanceID),
-				))
-			})
-		})
-
 		Context("deleting bosh configs fails", func() {
 			BeforeEach(func() {
-				boshConfigs := []boshdirector.BoshConfig{
-					{Type: "some-type", Name: "some-name"},
-				}
-				boshClient.GetConfigsReturns(boshConfigs, nil)
-				boshClient.DeleteConfigReturns(false, errors.New("oops"))
+				boshClient.DeleteConfigsReturns(errors.New("oops"))
 			})
 
 			It("returns error about deleting service", func() {
