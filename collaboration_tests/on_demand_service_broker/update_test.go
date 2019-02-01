@@ -443,6 +443,71 @@ properties:
 	})
 
 	Context("dynamic bosh config creation", func() {
+		When("bosh configs feature flag is enabled", func() {
+			When("adapter returns configs in GenerateManifest", func() {
+				BeforeEach(func() {
+					generateManifestOutput := sdk.MarshalledGenerateManifest{
+						Manifest: `name: service-instance_some-instance-id`,
+						ODBManagedSecrets: map[string]interface{}{
+							"": nil,
+						},
+						Configs: sdk.BOSHConfigs{"cloud": `{}`},
+					}
+					generateManifestOutputBytes, err := json.Marshal(generateManifestOutput)
+					Expect(err).NotTo(HaveOccurred())
+					zero := 0
+					fakeCommandRunner.RunWithInputParamsReturns(generateManifestOutputBytes, []byte{}, &zero, nil)
+					fakeTaskBoshClient.GetConfigsReturns([]boshdirector.BoshConfig{
+						boshdirector.BoshConfig{Type: "cloud", Content: `{cloud_properties: {}}`},
+					}, nil)
+				})
+
+				It("adapters receives previous BOSH configs", func() {
+					doUpdateRequest(requestBody, instanceID)
+
+					generateManifestInput, _ := fakeCommandRunner.RunWithInputParamsArgsForCall(0)
+					actualInput, ok := generateManifestInput.(sdk.InputParams)
+					Expect(ok).To(BeTrue(), "command runner takes a sdk.inputparams obj")
+					Expect(actualInput.GenerateManifest.PreviousConfigs).To(Equal(`{"cloud":"{cloud_properties: {}}"}`))
+				})
+
+				It("updates BOSH configs", func() {
+					resp, _ := doUpdateRequest(requestBody, instanceID)
+
+					Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
+					Expect(fakeTaskBoshClient.GetConfigsCallCount()).To(Equal(1), "GetConfigs should have been called")
+					Expect(fakeTaskBoshClient.UpdateConfigCallCount()).To(Equal(1), "UpdateConfig should have been called")
+					configType, configName, configContent, _ := fakeTaskBoshClient.UpdateConfigArgsForCall(0)
+					Expect(configType).To(Equal("cloud"))
+					Expect(configName).To(Equal("service-instance_some-instance-id"))
+					Expect(configContent).To(Equal([]byte("{}")))
+				})
+			})
+
+			When("adapter doesn't returns configs in GenerateManifest", func() {
+				BeforeEach(func() {
+					generateManifestOutput := sdk.MarshalledGenerateManifest{
+						Manifest: `name: service-instance_some-instance-id`,
+						ODBManagedSecrets: map[string]interface{}{
+							"": nil,
+						},
+					}
+					generateManifestOutputBytes, err := json.Marshal(generateManifestOutput)
+					Expect(err).NotTo(HaveOccurred())
+					zero := 0
+					fakeCommandRunner.RunWithInputParamsReturns(generateManifestOutputBytes, []byte{}, &zero, nil)
+				})
+
+				It("updates without updating bosh configs", func() {
+					resp, _ := doUpdateRequest(requestBody, instanceID)
+
+					Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
+					Expect(fakeTaskBoshClient.GetConfigsCallCount()).To(Equal(1), "GetConfigs should have been called")
+					Expect(fakeTaskBoshClient.UpdateConfigCallCount()).To(Equal(0), "UpdateConfig should not have been called")
+				})
+			})
+		})
+
 		When("bosh configs feature flag is disabled", func() {
 			BeforeEach(func() {
 				conf.Broker.DisableBoshConfigs = true
@@ -490,7 +555,7 @@ properties:
 					fakeCommandRunner.RunWithInputParamsReturns(generateManifestOutputBytes, []byte{}, &zero, nil)
 				})
 
-				It("updates without getting or update bosh configs", func() {
+				It("updates without getting or updating bosh configs", func() {
 					resp, _ := doUpdateRequest(requestBody, instanceID)
 
 					Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
@@ -682,6 +747,38 @@ properties:
 			))
 
 			Eventually(loggerBuffer).Should(gbytes.Say("could not get secrets"))
+		})
+
+		It("responds with 500 when BOSH cannot get configs", func() {
+			fakeTaskBoshClient.GetConfigsReturns(nil, errors.New("error getting configs"))
+
+			resp, bodyContent := doUpdateRequest(requestBody, instanceID)
+
+			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
+			var body brokerapi.ErrorResponse
+			Expect(json.Unmarshal(bodyContent, &body)).To(Succeed())
+			Expect(body.Description).To(SatisfyAll(
+				ContainSubstring("There was a problem completing your request. "),
+				ContainSubstring("operation: update"),
+			))
+
+			Eventually(loggerBuffer).Should(gbytes.Say("error getting configs"))
+		})
+
+		It("responds with 500 when BOSH cannot update configs", func() {
+			fakeTaskBoshClient.UpdateConfigReturns(errors.New("error updating config"))
+
+			resp, bodyContent := doUpdateRequest(requestBody, instanceID)
+
+			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
+			var body brokerapi.ErrorResponse
+			Expect(json.Unmarshal(bodyContent, &body)).To(Succeed())
+			Expect(body.Description).To(SatisfyAll(
+				ContainSubstring("There was a problem completing your request. "),
+				ContainSubstring("operation: update"),
+			))
+
+			Eventually(loggerBuffer).Should(gbytes.Say("error updating config"))
 		})
 	})
 
