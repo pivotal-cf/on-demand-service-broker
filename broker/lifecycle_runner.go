@@ -46,6 +46,7 @@ func (l LifeCycleRunner) GetTask(deploymentName string, operationData OperationD
 func validPostDeployOpType(op OperationType) bool {
 	return op == OperationTypeCreate ||
 		op == OperationTypeUpdate ||
+		op == OperationTypeRecreate ||
 		op == OperationTypeUpgrade
 }
 

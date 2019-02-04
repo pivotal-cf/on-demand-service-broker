@@ -240,6 +240,7 @@ var _ = Describe("Lifecycle runner", func() {
 			Entry("create runs errand", broker.OperationTypeCreate, true),
 			Entry("update runs errand", broker.OperationTypeUpdate, true),
 			Entry("upgrade runs errand", broker.OperationTypeUpgrade, true),
+			Entry("recreate runs errand", broker.OperationTypeRecreate, true),
 			Entry("delete does not run errand", broker.OperationTypeDelete, false),
 		)
 

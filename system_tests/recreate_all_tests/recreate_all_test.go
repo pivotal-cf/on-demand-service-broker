@@ -9,7 +9,7 @@ import (
 )
 
 var _ = Describe("The recreate-all errand", func() {
-	It("recreates all instances and DOES NOT run their post-deploy errands", func() {
+	It("recreates all instances and runs their post-deploy errands", func() {
 		boshServiceInstanceName := broker.InstancePrefix + cf.GetServiceInstanceGUID(serviceInstanceName)
 		oldVMID := bosh.VMIDForDeployment(boshServiceInstanceName)
 		Expect(oldVMID).ToNot(BeEmpty(), "unexpected empty vm id")
@@ -17,10 +17,14 @@ var _ = Describe("The recreate-all errand", func() {
 		bosh.RunErrand(brokerInfo.DeploymentName, "recreate-all-service-instances")
 
 		newVMID := bosh.VMIDForDeployment(boshServiceInstanceName)
-		Expect(oldVMID).ToNot(Equal(newVMID), "VM was not recreated")
+		Expect(oldVMID).ToNot(Equal(newVMID), "VM was not recreated, as the VM ID didn't change")
 
 		boshTasks := bosh.TasksForDeployment(boshServiceInstanceName)
-		Expect(boshTasks).To(HaveLen(3), "expected bosh deploy, errand, recreate (reversed)")
-		Expect(boshTasks[0].Description).ToNot(HavePrefix("run errand health-check"))
+		Expect(boshTasks).To(HaveLen(4), "Not the right number of tasks")
+
+		Expect(boshTasks[0].Description).To(HavePrefix("run errand health-check"), "post-deploy errand after recreate")
+		Expect(boshTasks[1].Description).To(HavePrefix("create deployment"), "recreate deployment")
+		Expect(boshTasks[2].Description).To(HavePrefix("run errand health-check"), "first post-deploy errand ran")
+		Expect(boshTasks[3].Description).To(HavePrefix("create deployment"), "first deploy")
 	})
 })
