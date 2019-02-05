@@ -258,7 +258,6 @@ func deploy(systemTestSuffix string, deployCmdArgs ...string) BrokerInfo {
 		"--var", "service_catalog_service_name=" + variables.UniqueID,
 		"--var", "service_release=" + variables.ServiceReleaseName,
 		"--var", "service_release_version=" + variables.ServiceReleaseVersion,
-		"--var", "instance_groups_vm_extensions=[public_ip]",
 		"--var", "disable_ssl_cert_verification=false",
 		"--var", "stemcell_alias=xenial",
 
