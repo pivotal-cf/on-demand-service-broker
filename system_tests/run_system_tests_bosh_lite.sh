@@ -11,12 +11,9 @@ fi
 env_name="${1:-$(cat $ENV_PATH/name)}"
 shift
 
-source "$HOME/workspace/services-enablement-lites-pool/bosh-lites/unclaimed/${env_name}"
+source $HOME/workspace/services-enablement-lites-pool/bosh-lites/**/${env_name}
 
-BOSH_LITE_LOCK_FILE_PATH=~/workspace/services-enablement-lites-pool/bosh-lites/unclaimed/${env_name} \
-  OUTPUT_FILE=/tmp/broker-${env_name}.yml \
-  BOSH_VARS_STORE=~/workspace/services-enablement-lites-pool/bosh-vars/${env_name}.yml \
-  $META/concourse/bosh-lites-pool/tasks/make-broker-deployment-vars.sh
+$META/concourse/bosh-lites-pool/tasks/make-broker-deployment-vars.sh "${env_name}" > /tmp/broker-${env_name}.yml
 
 export BOSH_DEPLOYMENT_VARS="/tmp/broker-${env_name}.yml"
 export ODB_VERSION=latest
