@@ -45,9 +45,9 @@ func main() {
 		logger.Fatalln(err.Error())
 	}
 	builder.SetRecreateTriggerer()
-	upgradeTool := instanceiterator.New(builder)
+	recreateTool := instanceiterator.New(builder)
 
-	err = upgradeTool.Iterate()
+	err = recreateTool.Iterate()
 	if err != nil {
 		logger.Fatalln(err.Error())
 	}
