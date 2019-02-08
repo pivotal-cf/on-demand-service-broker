@@ -8,10 +8,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-const (
-	boshConfigsLimit = 30
-)
-
 type BoshConfig struct {
 	Type    string
 	Name    string
@@ -27,7 +23,7 @@ func (c *Client) GetConfigs(configName string, logger *log.Logger) ([]BoshConfig
 		return configs, errors.Wrap(err, "Failed to build director")
 	}
 
-	boshConfigs, err := d.ListConfigs(boshConfigsLimit, director.ConfigsFilter{Name: configName})
+	boshConfigs, err := d.ListConfigs(1, director.ConfigsFilter{Name: configName})
 	if err != nil {
 		return configs, errors.Wrap(err, fmt.Sprintf(`BOSH error getting configs for "%s"`, configName))
 	}
@@ -72,7 +68,7 @@ func (c *Client) DeleteConfigs(configName string, logger *log.Logger) error {
 		return errors.Wrap(err, "Failed to build director")
 	}
 
-	configs, err := d.ListConfigs(boshConfigsLimit, director.ConfigsFilter{Name: configName})
+	configs, err := d.ListConfigs(1, director.ConfigsFilter{Name: configName})
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf(`BOSH error getting configs for "%s"`, configName))
 	}
