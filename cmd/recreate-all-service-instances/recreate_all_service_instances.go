@@ -7,13 +7,22 @@
 package main
 
 import (
+	"crypto/x509"
+	"encoding/json"
 	"flag"
+	"fmt"
 	"io/ioutil"
+	"log"
+	"net/http"
 	"os"
+	"time"
 
+	"github.com/craigfurman/herottp"
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/instanceiterator"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
+	"github.com/pivotal-cf/on-demand-service-broker/runtimechecker"
 	"gopkg.in/yaml.v2"
 )
 
@@ -40,6 +49,11 @@ func main() {
 		logger.Fatalln(err.Error())
 	}
 
+	err = checkBoshVersion(conf)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	builder, err := instanceiterator.NewBuilder(conf, logger, "recreate-all")
 	if err != nil {
 		logger.Fatalln(err.Error())
@@ -51,4 +65,36 @@ func main() {
 	if err != nil {
 		logger.Fatalln(err.Error())
 	}
+}
+
+func checkBoshVersion(conf config.InstanceIteratorConfig) error {
+	certPool, err := x509.SystemCertPool()
+	if err != nil {
+		return fmt.Errorf("error getting a certificate pool to append our trusted cert to: %s", err)
+	}
+	cert := conf.Bosh.TrustedCert
+	certPool.AppendCertsFromPEM([]byte(cert))
+
+	boshClient := herottp.New(herottp.Config{
+		Timeout: 30 * time.Second,
+		RootCAs: certPool,
+	})
+
+	var infoResp boshdirector.Info
+	resp, err := boshClient.Get(conf.Bosh.URL + "/info")
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("an error occurred while talking to the BOSH director: got HTTP %d", resp.StatusCode)
+	}
+
+	err = json.NewDecoder(resp.Body).Decode(&infoResp)
+	if err != nil {
+		return fmt.Errorf("an error occurred while talking to the BOSH director: %s", err)
+	}
+
+	runtimeChecker := runtimechecker.RecreateRuntimeChecker{BoshInfo: infoResp}
+	return runtimeChecker.Check()
 }

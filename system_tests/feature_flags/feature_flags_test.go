@@ -1,6 +1,8 @@
 package feature_flags_test
 
 import (
+	"os"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -8,7 +10,6 @@ import (
 	"github.com/pborman/uuid"
 	bosh "github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
 	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/cf_helpers"
-	"os"
 )
 
 var _ = Describe("FeatureFlags", func() {

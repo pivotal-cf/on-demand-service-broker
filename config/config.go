@@ -581,6 +581,7 @@ type InstanceIteratorConfig struct {
 	MaxInFlight           int                   `yaml:"max_in_flight"`
 	Canaries              int                   `yaml:"canaries"`
 	CanarySelectionParams CanarySelectionParams `yaml:"canary_selection_params"`
+	Bosh                  Bosh                  `yaml:"bosh"`
 }
 
 type BrokerAPI struct {
