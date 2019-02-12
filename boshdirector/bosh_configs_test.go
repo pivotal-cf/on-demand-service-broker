@@ -37,9 +37,9 @@ var _ = Describe("getting bosh configs", func() {
 			{
 				ID:      "some-other-config-id",
 				Type:    configType + "-2nd",
-				Name:    configName + "-2nd",
+				Name:    configName,
 				Content: configContent + "-2nd",
-				Team:    "some-other-config-team",
+				Team:    "some-other-config",
 			},
 		}
 	})
@@ -57,11 +57,20 @@ var _ = Describe("getting bosh configs", func() {
 				},
 				{
 					Type:    configType + "-2nd",
-					Name:    configName + "-2nd",
+					Name:    configName,
 					Content: configContent + "-2nd",
 				},
 			}))
 			Expect(listConfigsErr).NotTo(HaveOccurred())
+		})
+
+		It("lists the latest configs", func() {
+			fakeDirector.ListConfigsReturns(directorConfigs, nil)
+			c.GetConfigs(configName, logger)
+
+			limit, filter := fakeDirector.ListConfigsArgsForCall(0)
+			Expect(limit).To(Equal(1))
+			Expect(filter).To(Equal(director.ConfigsFilter{Name: configName}))
 		})
 
 		It("returns an error when the director can't be built", func() {
@@ -180,9 +189,9 @@ var _ = Describe("deleting bosh configs", func() {
 			{
 				ID:      "some-other-config-id",
 				Type:    configType + "-2nd",
-				Name:    configName + "-2nd",
+				Name:    configName,
 				Content: configContent + "-2nd",
-				Team:    "some-other-config-team",
+				Team:    "some-other-config",
 			},
 		}
 	})
@@ -194,6 +203,15 @@ var _ = Describe("deleting bosh configs", func() {
 
 			Expect(deleteConfigsErr).NotTo(HaveOccurred())
 			Expect(fakeDirector.DeleteConfigCallCount()).To(Equal(2))
+		})
+
+		It("lists the latest configs", func() {
+			fakeDirector.ListConfigsReturns(directorConfigs, nil)
+			c.DeleteConfigs(configName, logger)
+
+			limit, filter := fakeDirector.ListConfigsArgsForCall(0)
+			Expect(limit).To(Equal(1))
+			Expect(filter).To(Equal(director.ConfigsFilter{Name: configName}))
 		})
 
 		It("does not delete any config when there are not any bosh configs", func() {
