@@ -352,8 +352,10 @@ var _ = Describe("BOSH client", func() {
 
 	Describe("configs operations", func() {
 		var (
-			configType    = "dummy"
-			configContent = []byte("vm_extensions: [{name: dummy}]")
+			configType           = "dummy"
+			anotherConfigType    = "froop"
+			configContent        = []byte("vm_extensions: [{name: dummy}]")
+			anotherConfigContent = []byte("vm_extensions: [{name: froop}]")
 		)
 
 		AfterEach(func() {
@@ -374,12 +376,27 @@ var _ = Describe("BOSH client", func() {
 				Expect(configs).To(ContainElement(boshdirector.BoshConfig{Type: configType, Name: deploymentName, Content: string(configContent)}))
 			})
 
-			By("deleting a config", func() {
+			By("adding another config with the same name but different type", func() {
+				err := boshClient.UpdateConfig(anotherConfigType, deploymentName, anotherConfigContent, logger)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			By("checking list configs now returns both configs", func() {
+				configs, err := boshClient.GetConfigs(deploymentName, logger)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(len(configs)).To(Equal(2))
+			})
+
+			By("deleting configs", func() {
 				found, err := boshClient.DeleteConfig(configType, deploymentName, logger)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(found).To(BeTrue())
 
-				By("verifying the config was deleted")
+				found, err = boshClient.DeleteConfig(anotherConfigType, deploymentName, logger)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(found).To(BeTrue())
+
+				By("verifying the configs were deleted")
 				configs, err := boshClient.GetConfigs(deploymentName, logger)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(len(configs)).To(Equal(0))

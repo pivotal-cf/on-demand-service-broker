@@ -37,9 +37,9 @@ var _ = Describe("getting bosh configs", func() {
 			{
 				ID:      "some-other-config-id",
 				Type:    configType + "-2nd",
-				Name:    configName + "-2nd",
+				Name:    configName,
 				Content: configContent + "-2nd",
-				Team:    "some-other-config-team",
+				Team:    "some-other-config",
 			},
 		}
 	})
@@ -57,7 +57,7 @@ var _ = Describe("getting bosh configs", func() {
 				},
 				{
 					Type:    configType + "-2nd",
-					Name:    configName + "-2nd",
+					Name:    configName,
 					Content: configContent + "-2nd",
 				},
 			}))
@@ -189,9 +189,9 @@ var _ = Describe("deleting bosh configs", func() {
 			{
 				ID:      "some-other-config-id",
 				Type:    configType + "-2nd",
-				Name:    configName + "-2nd",
+				Name:    configName,
 				Content: configContent + "-2nd",
-				Team:    "some-other-config-team",
+				Team:    "some-other-config",
 			},
 		}
 	})
