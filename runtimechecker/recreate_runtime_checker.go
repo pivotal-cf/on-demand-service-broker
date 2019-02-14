@@ -28,11 +28,11 @@ type RecreateRuntimeChecker struct {
 func (rc *RecreateRuntimeChecker) Check() error {
 	directorVersion, _ := rc.BoshInfo.GetDirectorVersion()
 	if directorVersion.Version.Major < 266 ||
-		(directorVersion.Version.Major == 266 && directorVersion.Version.Minor < 10) ||
+		(directorVersion.Version.Major == 266 && directorVersion.Version.Minor < 15) ||
 		(directorVersion.Version.Major == 267 && directorVersion.Version.Minor < 10) ||
 		(directorVersion.Version.Major == 268 &&
 			(directorVersion.Version.Minor < 2 || (directorVersion.Version.Minor == 2 && directorVersion.Version.Patch < 2) || directorVersion.Version.Minor == 3)) {
-		return errors.New("Insufficient BOSH director version. The recreate-all errand requires a BOSH director version that satisfies one of the following: 266.10.0+, 267.10.0+, 268.2.2+ or 268.4.0+.")
+		return errors.New("Insufficient BOSH director version. The recreate-all errand requires a BOSH director version that satisfies one of the following: 266.15.0+, 267.10.0+, 268.2.2+ or 268.4.0+.")
 	}
 
 	return nil
