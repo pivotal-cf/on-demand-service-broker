@@ -17,6 +17,7 @@ package runtimechecker
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 )
@@ -32,7 +33,7 @@ func (rc *RecreateRuntimeChecker) Check() error {
 		(directorVersion.Version.Major == 267 && directorVersion.Version.Minor < 9) ||
 		(directorVersion.Version.Major == 268 &&
 			(directorVersion.Version.Minor < 2 || (directorVersion.Version.Minor == 2 && directorVersion.Version.Patch < 2) || directorVersion.Version.Minor == 3)) {
-		return errors.New("Insufficient BOSH director version. The recreate-all errand requires a BOSH director version that satisfies one of the following: 266.15.0+, 267.9.0+, 268.2.2+ or 268.4.0+.")
+		return errors.New(fmt.Sprintf("Insufficient BOSH director version: %q. The recreate-all errand requires a BOSH director version 268.4.0 or higher, or one of the following patch releases: 266.15.0+, 267.9.0+, 268.2.2+.", directorVersion.Version.String()))
 	}
 
 	return nil
