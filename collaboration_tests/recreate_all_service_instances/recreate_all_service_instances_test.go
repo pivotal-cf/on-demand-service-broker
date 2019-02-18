@@ -265,7 +265,7 @@ var _ = Describe("Recreate all service instances", func() {
 			Eventually(session).Should(gexec.Exit())
 			Expect(session.ExitCode()).NotTo(Equal(0), "recreate-all execution succeeded unexpectedly")
 
-			Expect(stderr).To(gbytes.Say(`Insufficient BOSH director version. The recreate-all errand requires a BOSH director version that satisfies one of the following: 266.15.0\+, 267.9.0\+, 268.2.2\+ or 268.4.0\+.`))
+			Expect(stderr).To(gbytes.Say(`\QInsufficient BOSH director version: "266.0.0". The recreate-all errand requires a BOSH director version 268.4.0 or higher, or one of the following patch releases: 266.15.0+, 267.9.0+, 268.2.2+.\E`))
 		})
 	})
 
