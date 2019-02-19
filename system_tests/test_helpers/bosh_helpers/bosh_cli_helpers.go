@@ -37,6 +37,7 @@ type BrokerInfo struct {
 	URI             string
 	DeploymentName  string
 	ServiceOffering string
+	PlanID          string
 	TestSuffix      string
 	BrokerPassword  string
 	BrokerUsername  string
@@ -289,6 +290,7 @@ func deploy(systemTestSuffix string, deployCmdArgs ...string) BrokerInfo {
 		URI:             variables.BrokerURI,
 		DeploymentName:  variables.DeploymentName,
 		ServiceOffering: variables.UniqueID,
+		PlanID:          variables.UniqueID,
 		TestSuffix:      systemTestSuffix,
 		BrokerPassword:  variables.BrokerPassword,
 		BrokerUsername:  variables.BrokerUsername,

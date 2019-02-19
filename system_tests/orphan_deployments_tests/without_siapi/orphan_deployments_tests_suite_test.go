@@ -7,59 +7,28 @@
 package orphan_deployments_tests
 
 import (
-	"fmt"
-	"os"
+	"github.com/pborman/uuid"
 	"testing"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/gexec"
-	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
-	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/cf_helpers"
+	bosh "github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
 )
 
 var (
-	brokerName               string
-	brokerBoshDeploymentName string
-	serviceOffering          string
-	boshClient               *bosh_helpers.BoshHelperClient
+	brokerInfo bosh.BrokerInfo
 )
 
 var _ = BeforeSuite(func() {
-	brokerName = envMustHave("BROKER_NAME")
-	brokerBoshDeploymentName = envMustHave("BROKER_DEPLOYMENT_NAME")
-	serviceOffering = envMustHave("SERVICE_OFFERING_NAME")
-
-	brokerURL := envMustHave("BROKER_URL")
-	brokerUsername := envMustHave("BROKER_USERNAME")
-	brokerPassword := envMustHave("BROKER_PASSWORD")
-	uaaURL := os.Getenv("UAA_URL")
-	boshURL := envMustHave("BOSH_URL")
-	boshUsername := envMustHave("BOSH_USERNAME")
-	boshPassword := envMustHave("BOSH_PASSWORD")
-	boshCACert := os.Getenv("BOSH_CA_CERT_FILE")
-
-	Eventually(cf.Cf("create-service-broker", brokerName, brokerUsername, brokerPassword, brokerURL), cf.CfTimeout).Should(gexec.Exit(0))
-	Eventually(cf.Cf("enable-service-access", serviceOffering), cf.CfTimeout).Should(gexec.Exit(0))
-
-	if uaaURL == "" {
-		boshClient = bosh_helpers.NewBasicAuth(boshURL, boshUsername, boshPassword, boshCACert, boshCACert == "")
-	} else {
-		boshClient = bosh_helpers.New(boshURL, uaaURL, boshUsername, boshPassword, boshCACert)
-	}
+	uniqueID := uuid.New()[:6]
+	brokerInfo = bosh.DeployAndRegisterBroker("-orphan-deployment-without-siapi-"+uniqueID, []string{"update_service_catalog.yml"})
 })
 
 var _ = AfterSuite(func() {
-	Eventually(cf.Cf("delete-service-broker", brokerName, "-f"), cf.CfTimeout).Should(gexec.Exit(0))
+	bosh.DeregisterAndDeleteBroker(brokerInfo.DeploymentName)
 })
 
 func TestOrphanDeploymentsTests(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "OrphanDeploymentsTests Suite")
-}
-
-func envMustHave(key string) string {
-	value := os.Getenv(key)
-	Expect(value).ToNot(BeEmpty(), fmt.Sprintf("must set %s", key))
-	return value
 }

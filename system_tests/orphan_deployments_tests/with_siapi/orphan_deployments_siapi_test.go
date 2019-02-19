@@ -17,63 +17,69 @@ package orphan_deployments_tests
 
 import (
 	"fmt"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/on-demand-service-broker/service"
-	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/cf_helpers"
+	bosh "github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
+	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/brokerapi_helpers"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/siapi_helpers"
 )
 
 var _ = Describe("orphan deployments errand", func() {
 	Context("when there are two deployments and one is an orphan", func() {
 		var (
-			orphanInstanceName           string
-			anotherInstanceName          string
-			orphanInstanceDeploymentName string
+			orphanInstanceGUID    string
+			nonOrphanInstanceGUID string
+			brokerAPIClient       *brokerapi_helpers.BrokerAPIClient
 		)
 
 		BeforeEach(func() {
-			orphanInstanceName = uuid.New()[:7]
-			anotherInstanceName = uuid.New()[:7]
+			brokerAPIClient = &brokerapi_helpers.BrokerAPIClient{
+				URI:      brokerInfo.URI,
+				Username: brokerInfo.BrokerUsername,
+				Password: brokerInfo.BrokerPassword,
+			}
+			orphanInstanceGUID = uuid.New()
+			nonOrphanInstanceGUID = uuid.New()
 
-			Eventually(cf.Cf("create-service", serviceOffering, "dedicated-vm", orphanInstanceName), cf.CfTimeout).Should(gexec.Exit(0))
-			Eventually(cf.Cf("create-service", serviceOffering, "dedicated-vm", anotherInstanceName), cf.CfTimeout).Should(gexec.Exit(0))
-			cf.AwaitServiceCreation(orphanInstanceName)
-			cf.AwaitServiceCreation(anotherInstanceName)
+			provResp1 := brokerAPIClient.Provision(orphanInstanceGUID, brokerInfo.ServiceOffering, brokerInfo.PlanID)
+			provResp2 := brokerAPIClient.Provision(nonOrphanInstanceGUID, brokerInfo.ServiceOffering, brokerInfo.PlanID)
 
-			By("getting the service instances' GUIDs")
+			brokerAPIClient.PollLastOperation(orphanInstanceGUID, provResp1.OperationData)
+			brokerAPIClient.PollLastOperation(nonOrphanInstanceGUID, provResp2.OperationData)
 		})
 
 		AfterEach(func() {
-			Eventually(cf.Cf("delete-service", orphanInstanceName, "-f"), cf.CfTimeout).Should(gexec.Exit(0))
-			Eventually(cf.Cf("delete-service", anotherInstanceName, "-f"), cf.CfTimeout).Should(gexec.Exit(0))
-			cf.AwaitServiceDeletion(orphanInstanceName)
-			cf.AwaitServiceDeletion(anotherInstanceName)
+			deprovResp1 := brokerAPIClient.Deprovision(orphanInstanceGUID, brokerInfo.ServiceOffering, brokerInfo.PlanID)
+			deprovResp2 := brokerAPIClient.Deprovision(nonOrphanInstanceGUID, brokerInfo.ServiceOffering, brokerInfo.PlanID)
+
+			brokerAPIClient.PollLastOperation(orphanInstanceGUID, deprovResp1.OperationData)
+			brokerAPIClient.PollLastOperation(nonOrphanInstanceGUID, deprovResp2.OperationData)
 		})
 
 		It("lists the orphan deployment", func() {
-			notOrphanInstanceGUID := cf.ServiceInstanceGUID(anotherInstanceName)
-			orphanInstanceGUID := cf.ServiceInstanceGUID(orphanInstanceName)
-			orphanInstanceDeploymentName = fmt.Sprintf("service-instance_%s", orphanInstanceGUID)
-
-			instancesToReturn := []service.Instance{
-				{GUID: notOrphanInstanceGUID},
-			}
+			orphanInstanceName := fmt.Sprintf("service-instance_%s", orphanInstanceGUID)
+			nonOrphanInstanceName := fmt.Sprintf("service-instance_%s", nonOrphanInstanceGUID)
 
 			By("setting up SI api to report only one instance")
+			instancesToReturn := []service.Instance{
+				{GUID: nonOrphanInstanceGUID},
+			}
 			err := siapi_helpers.UpdateServiceInstancesAPI(siapiConfig, instancesToReturn)
 			Expect(err).ToNot(HaveOccurred())
 
 			By("running the orphan-deployments errand")
-			taskOutput := boshClient.RunErrandWithoutCheckingSuccess(brokerBoshDeploymentName, "orphan-deployments", []string{}, "")
+			session := bosh.RunErrand(brokerInfo.DeploymentName, "orphan-deployments", gexec.Exit(1))
 
 			By("checking the errand task output")
-			Expect(taskOutput.ExitCode).To(Equal(10), "expected to have exit code 10: some orphans found")
-			Expect(taskOutput.StdOut).To(MatchJSON(fmt.Sprintf(`[{"deployment_name":"%s"}]`, orphanInstanceDeploymentName)))
-			Expect(taskOutput.StdOut).NotTo(ContainSubstring(notOrphanInstanceGUID))
+			Expect(session.ExitCode()).To(Equal(1))
+			Expect(string(session.Buffer().Contents())).To(SatisfyAll(
+				ContainSubstring("Orphan BOSH deployments detected"),
+				ContainSubstring(`{"deployment_name":"%s"}`, orphanInstanceName),
+				Not(ContainSubstring(nonOrphanInstanceName)),
+			))
 		})
 	})
 })

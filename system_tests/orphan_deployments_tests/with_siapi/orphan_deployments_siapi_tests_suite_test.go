@@ -16,58 +16,58 @@
 package orphan_deployments_tests
 
 import (
+	"github.com/pborman/uuid"
 	"os"
 	"testing"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/gexec"
-	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
+	bosh "github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
 	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/cf_helpers"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/siapi_helpers"
-	"github.com/pivotal-cf/on-demand-service-broker/system_tests/upgrade_all/shared"
 )
 
 var (
-	brokerName               string
-	brokerBoshDeploymentName string
-	serviceOffering          string
-	boshClient               *bosh_helpers.BoshHelperClient
-	siapiConfig              siapi_helpers.SIAPIConfig
+	siapiConfig siapi_helpers.SIAPIConfig
+	appName     string
+	brokerInfo  bosh.BrokerInfo
 )
 
 var _ = BeforeSuite(func() {
-	brokerName = shared.EnvMustHave("BROKER_NAME")
-	brokerBoshDeploymentName = shared.EnvMustHave("BROKER_DEPLOYMENT_NAME")
-	serviceOffering = shared.EnvMustHave("SERVICE_OFFERING_NAME")
 
-	brokerURL := shared.EnvMustHave("BROKER_URL")
-	brokerUsername := shared.EnvMustHave("BROKER_USERNAME")
-	brokerPassword := shared.EnvMustHave("BROKER_PASSWORD")
-	uaaURL := os.Getenv("UAA_URL")
-	boshURL := shared.EnvMustHave("BOSH_URL")
-	boshUsername := shared.EnvMustHave("BOSH_USERNAME")
-	boshPassword := shared.EnvMustHave("BOSH_PASSWORD")
-	boshCACert := os.Getenv("BOSH_CA_CERT_FILE")
+	uniqueID := uuid.New()[:6]
 
-	Eventually(cf.Cf("create-service-broker", brokerName, brokerUsername, brokerPassword, brokerURL), cf.CfTimeout).Should(gexec.Exit(0))
-	Eventually(cf.Cf("enable-service-access", serviceOffering), cf.CfTimeout).Should(gexec.Exit(0))
+	appName = "si-api-" + uniqueID
+	siAPIURL := "https://" + appName + "." + os.Getenv("BROKER_SYSTEM_DOMAIN") + "/service_instances"
+	siAPIUsername := "siapi"
+	siAPIPassword := "siapipass"
 
-	if uaaURL == "" {
-		boshClient = bosh_helpers.NewBasicAuth(boshURL, boshUsername, boshPassword, boshCACert, boshCACert == "")
-	} else {
-		boshClient = bosh_helpers.New(boshURL, uaaURL, boshUsername, boshPassword, boshCACert)
-	}
+	cf.Cf("push",
+		"-p", os.Getenv("SI_API_PATH"),
+		"-f", os.Getenv("SI_API_PATH")+"/manifest.yml",
+		"--var", "app_name="+appName,
+		"--var", "username="+siAPIUsername,
+		"--var", "password="+siAPIPassword,
+	)
+
+	brokerInfo = bosh.DeployBroker(
+		"-orphan-deployment-with-siapi-"+uniqueID,
+		[]string{"update_service_catalog.yml", "add_si_api.yml"},
+		"--var", "service_instances_api_url="+siAPIURL,
+		"--var", "service_instances_api_username="+siAPIUsername,
+		"--var", "service_instances_api_password="+siAPIPassword,
+	)
 
 	siapiConfig = siapi_helpers.SIAPIConfig{
-		URL:      shared.EnvMustHave("SIAPI_URL"),
-		Password: shared.EnvMustHave("SIAPI_PASSWORD"),
-		Username: shared.EnvMustHave("SIAPI_USERNAME"),
+		URL:      siAPIURL,
+		Username: siAPIUsername,
+		Password: siAPIPassword,
 	}
 })
 
 var _ = AfterSuite(func() {
-	Eventually(cf.Cf("delete-service-broker", brokerName, "-f"), cf.CfTimeout).Should(gexec.Exit(0))
+	cf.Cf("delete", "-f", appName)
+	bosh.DeleteDeployment(brokerInfo.DeploymentName)
 })
 
 func TestOrphanDeploymentsTests(t *testing.T) {
