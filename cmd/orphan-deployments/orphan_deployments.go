@@ -23,8 +23,9 @@ import (
 )
 
 const (
-	OrphanBoshDeploymentsDetectedMessage = "Orphan BOSH deployments detected with no corresponding service instance in Cloud Foundry. Before deleting any deployment it is recommended to verify the service instance no longer exists in Cloud Foundry and any data is safe to delete."
-	OrphanDeploymentsDetectedExitCode    = 10
+	OrphanBoshDeploymentsDetectedMessage = "Orphan BOSH deployments detected with no corresponding service instance in the platform. " +
+		"Before deleting any deployment it is recommended to verify the service instance no longer exists in the platform and any data is safe to delete."
+	OrphanDeploymentsDetectedExitCode = 10
 )
 
 func main() {

@@ -65,7 +65,8 @@ var _ = Describe("Orphan Deployments", func() {
 	})
 
 	It("exits with code 10 when orphan deployments are detected", func() {
-		orphanBoshDeploymentsDetectedMessage := "Orphan BOSH deployments detected with no corresponding service instance in Cloud Foundry. Before deleting any deployment it is recommended to verify the service instance no longer exists in Cloud Foundry and any data is safe to delete."
+		orphanBoshDeploymentsDetectedMessage := "Orphan BOSH deployments detected with no corresponding service instance in the platform. " +
+			"Before deleting any deployment it is recommended to verify the service instance no longer exists in the platform and any data is safe to delete."
 		listOfDeployments := `[{"deployment_name":"service-instance_one"},{"deployment_name":"service-instance_two"}]`
 		odb.AppendMocks(mockbroker.OrphanDeployments().RespondsOKWith(listOfDeployments))
 
