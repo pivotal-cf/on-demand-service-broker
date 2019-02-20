@@ -149,6 +149,12 @@ func DeployAndRegisterBroker(systemTestSuffix string, opsFiles []string, deploym
 }
 
 func RunOnVM(deploymentName, VMName, command string) {
+	err := env_helpers.ValidateEnvVars(
+		"BOSH_GW_HOST",
+		"BOSH_GW_USER",
+		"BOSH_GW_PRIVATE_KEY",
+	)
+	Expect(err).ToNot(HaveOccurred())
 	cmd := exec.Command("bosh", "-d", deploymentName, "ssh", VMName, "-c", command)
 	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
 	Expect(err).NotTo(HaveOccurred(), "failed to run ssh")
