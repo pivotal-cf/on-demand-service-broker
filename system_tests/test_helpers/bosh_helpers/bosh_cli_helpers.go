@@ -54,7 +54,6 @@ type deploymentProperties struct {
 	BrokerUsername            string
 	ConsulRequired            string
 	DeploymentName            string
-	DisableBPM                bool
 	OdbReleaseTemplatesPath   string
 	OdbVersion                string
 	ServiceAdapterReleaseName string
@@ -66,7 +65,6 @@ type deploymentProperties struct {
 type EnvVars struct {
 	DevEnv                   string
 	BrokerSystemDomain       string
-	DisableBPM               bool
 	ConsulRequired           string
 	OdbVersion               string
 	ServiceReleaseName       string
@@ -182,7 +180,6 @@ func getEnvVars() EnvVars {
 
 	envVars.DevEnv = os.Getenv("DEV_ENV")
 	envVars.BrokerSystemDomain = os.Getenv("BROKER_SYSTEM_DOMAIN")
-	envVars.DisableBPM = os.Getenv("DISABLE_BPM") == "true"
 	envVars.ConsulRequired = os.Getenv("CONSUL_REQUIRED")
 	envVars.OdbVersion = os.Getenv("ODB_VERSION")
 	envVars.ServiceReleaseName = os.Getenv("SERVICE_RELEASE_NAME")
@@ -225,7 +222,6 @@ func buildDeploymentArguments(systemTestSuffix string) deploymentProperties {
 		BrokerUsername:            "broker",
 		ConsulRequired:            envVars.ConsulRequired,
 		DeploymentName:            "redis-on-demand-broker" + systemTestSuffix,
-		DisableBPM:                envVars.DisableBPM,
 		OdbReleaseTemplatesPath:   envVars.OdbReleaseTemplatesPath,
 		OdbVersion:                odbVersion,
 		ServiceAdapterReleaseName: "redis-example-service-adapter" + devEnv,
@@ -271,10 +267,6 @@ func deploy(systemTestSuffix string, deployCmdArgs ...string) BrokerInfo {
 		"--ops-file", redisAdapterOpsFile,
 	}
 	deployArguments = append(deployArguments, deployCmdArgs...)
-
-	if variables.DisableBPM {
-		deployArguments = append(deployArguments, []string{"--ops-file", filepath.Join(odbReleaseTemplatesPath, "operations", "remove_bpm.yml")}...)
-	}
 
 	consulRequired := variables.ConsulRequired == "true"
 	if consulRequired {
