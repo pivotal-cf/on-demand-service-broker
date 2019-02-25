@@ -74,11 +74,12 @@ var _ = Describe("parallel upgrade-all errand and SIAPI", func() {
 		))
 
 		By("upgrading all the non-canary instances")
-		Expect(b).To(SatisfyAll(
-			gbytes.Say(fmt.Sprintf(`\[%s\] Starting to process service instance`, instanceGUIDs[1])),
-			gbytes.Say(fmt.Sprintf(`\[%s\] Starting to process service instance`, instanceGUIDs[2])),
-			gbytes.Say(fmt.Sprintf(`\[%s\] Result: Service Instance operation success`, instanceGUIDs[1])),
-			gbytes.Say(fmt.Sprintf(`\[%s\] Result: Service Instance operation success`, instanceGUIDs[2])),
+		logs := string(b.Contents())
+		Expect(logs).To(SatisfyAll(
+			ContainSubstring("[%s] Starting to process service instance", instanceGUIDs[1]),
+			ContainSubstring("[%s] Starting to process service instance", instanceGUIDs[2]),
+			ContainSubstring("[%s] Result: Service Instance operation success", instanceGUIDs[1]),
+			ContainSubstring("[%s] Result: Service Instance operation success", instanceGUIDs[2]),
 		))
 
 		for _, service := range serviceInstances {
