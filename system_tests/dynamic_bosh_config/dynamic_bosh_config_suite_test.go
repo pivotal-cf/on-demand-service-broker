@@ -21,7 +21,7 @@ var (
 
 var _ = BeforeSuite(func() {
 	uniqueID := uuid.New()[:6]
-	brokerInfo = bosh.DeployAndRegisterBroker("-bosh-config-"+uniqueID, []string{"update_service_catalog.yml"})
+	brokerInfo = bosh.DeployAndRegisterBroker("-bosh-config-"+uniqueID, bosh.Redis, []string{"update_service_catalog.yml"})
 })
 
 var _ = AfterSuite(func() {

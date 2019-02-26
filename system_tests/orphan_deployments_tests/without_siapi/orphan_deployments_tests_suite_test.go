@@ -7,8 +7,9 @@
 package orphan_deployments_tests
 
 import (
-	"github.com/pborman/uuid"
 	"testing"
+
+	"github.com/pborman/uuid"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -21,7 +22,7 @@ var (
 
 var _ = BeforeSuite(func() {
 	uniqueID := uuid.New()[:6]
-	brokerInfo = bosh.DeployAndRegisterBroker("-orphan-deployment-without-siapi-"+uniqueID, []string{"update_service_catalog.yml"})
+	brokerInfo = bosh.DeployAndRegisterBroker("-orphan-deployment-without-siapi-"+uniqueID, bosh.Redis, []string{"update_service_catalog.yml"})
 })
 
 var _ = AfterSuite(func() {

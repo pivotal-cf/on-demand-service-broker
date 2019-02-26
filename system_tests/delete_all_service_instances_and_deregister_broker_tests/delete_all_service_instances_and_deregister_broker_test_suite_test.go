@@ -24,9 +24,9 @@ var (
 
 var _ = BeforeSuite(func() {
 	uniqueID := uuid.New()[:6]
-	brokerInfo = bosh_helpers.DeployAndRegisterBroker("-delete-all-"+uniqueID, []string{"update_service_catalog.yml"})
+	brokerInfo = bosh_helpers.DeployAndRegisterBroker("-delete-all-"+uniqueID, bosh_helpers.Redis, []string{"update_service_catalog.yml"})
 
-	exampleAppPath = envMustHave("EXAMPLE_APP_PATH")
+	exampleAppPath = envMustHave("REDIS_EXAMPLE_APP_PATH")
 })
 
 var _ = AfterSuite(func() {

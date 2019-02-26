@@ -1,0 +1,26 @@
+- type: replace
+  path: /instance_groups/name=broker/jobs/name=broker/properties/service_catalog/plans?
+  value:
+    - name: small
+      plan_id: ((plan_id))
+      description: A Kafka deployment with a single instance of each job and persistent disk
+      instance_groups:
+        - name: kafka_server
+          vm_type: ((meta.vm_type))
+          instances: 1
+          persistent_disk_type: 1GB
+          networks: [((meta.services_subnet))]
+          azs: [((meta.az))]
+        - name: zookeeper_server
+          vm_type: ((meta.vm_type))
+          instances: 1
+          persistent_disk_type: 1GB
+          networks: [((meta.services_subnet))]
+          azs: [((meta.az))]
+
+- type: replace
+  path: /instance_groups/name=broker/jobs/name=broker/properties/service_catalog/global_properties?
+  value:
+    auto_create_topics: true
+    default_replication_factor: 1
+

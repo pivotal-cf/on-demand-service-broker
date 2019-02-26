@@ -16,15 +16,18 @@ source $HOME/workspace/services-enablement-lites-pool/bosh-lites/**/${env_name}
 $META/concourse/bosh-lites-pool/tasks/make-broker-deployment-vars.sh "${env_name}" > /tmp/broker-${env_name}.yml
 
 export BOSH_DEPLOYMENT_VARS="/tmp/broker-${env_name}.yml"
-export ODB_VERSION=latest
-export ODB_RELEASE_TEMPLATES_PATH=~/workspace/on-demand-service-broker-release/examples/deployment
-export SERVICE_RELEASE_NAME=redis-service
-export CONSUL_REQUIRED=false
-export EXAMPLE_APP_PATH=~/workspace/cf-redis-example-app
-export EXAMPLE_SI_API_PATH=~/workspace/example-service-instances-api
-export SI_API_PATH="$HOME/workspace/example-service-instances-api/"
-
 export BROKER_SYSTEM_DOMAIN="$BOSH_LITE_DOMAIN"
+export CONSUL_REQUIRED=false
+export EXAMPLE_SI_API_PATH=~/workspace/example-service-instances-api
+export KAFKA_EXAMPLE_APP_PATH=~/workspace/kafka-example-app
+export KAFKA_SERVICE_ADAPTER_RELEASE_NAME=kafka-example-service-adapter
+export KAFKA_SERVICE_RELEASE_NAME=kafka-example-service
+export ODB_RELEASE_TEMPLATES_PATH=~/workspace/on-demand-service-broker-release/examples/deployment
+export ODB_VERSION=latest
+export REDIS_EXAMPLE_APP_PATH=~/workspace/cf-redis-example-app
+export REDIS_SERVICE_ADAPTER_RELEASE_NAME=redis-example-service-adapter
+export REDIS_SERVICE_RELEASE_NAME=redis-service
+export SI_API_PATH="$HOME/workspace/example-service-instances-api/"
 
 echo -e "$BOSH_GW_PRIVATE_KEY_CONTENTS" > /tmp/jb-$env_name.pem
 chmod 700 /tmp/jb-$env_name.pem

@@ -83,7 +83,7 @@ var _ = Describe("Service plan schemas", func() {
   }
 }`
 
-		servicesCurlSession := cf.Cf("curl", fmt.Sprintf("/v2/services?q=label:%s", serviceOffering))
+		servicesCurlSession := cf.Cf("curl", fmt.Sprintf("/v2/services?q=label:%s", brokerInfo.ServiceOffering))
 		Eventually(servicesCurlSession).Should(gexec.Exit(0))
 
 		rawJson := servicesCurlSession.Out.Contents()
