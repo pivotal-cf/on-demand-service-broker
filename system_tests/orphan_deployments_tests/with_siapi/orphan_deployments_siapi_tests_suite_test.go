@@ -16,9 +16,10 @@
 package orphan_deployments_tests
 
 import (
-	"github.com/pborman/uuid"
 	"os"
 	"testing"
+
+	"github.com/pborman/uuid"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -52,6 +53,7 @@ var _ = BeforeSuite(func() {
 
 	brokerInfo = bosh.DeployBroker(
 		"-orphan-deployment-with-siapi-"+uniqueID,
+		bosh.Redis,
 		[]string{"update_service_catalog.yml", "add_si_api.yml"},
 		"--var", "service_instances_api_url="+siAPIURL,
 		"--var", "service_instances_api_username="+siAPIUsername,
