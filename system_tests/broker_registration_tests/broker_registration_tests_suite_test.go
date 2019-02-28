@@ -8,63 +8,61 @@ package broker_registration_tests
 
 import (
 	"fmt"
+	"github.com/pborman/uuid"
 	"os"
 	"testing"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
-	"github.com/pborman/uuid"
-	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
+	bosh "github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
 	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/cf_helpers"
 )
 
 var (
-	serviceOffering          string
-	brokerName               string
-	brokerBoshDeploymentName string
+	brokerInfo 	bosh.BrokerInfo
 	cfAdminUsername          string
 	cfAdminPassword          string
 	cfSpaceDeveloperUsername string
 	cfSpaceDeveloperPassword string
+	cfDefaultSpaceDeveloperUsername string
+	cfDefaultSpaceDeveloperPassword string
 	cfOrg                    string
+	defaultOrg                    string
 	cfSpace                  string
-	boshClient               *bosh_helpers.BoshHelperClient
+	defaultSpace                  string
 )
 
 var _ = BeforeSuite(func() {
-	serviceOffering = envMustHave("SERVICE_OFFERING_NAME")
-	brokerName = envMustHave("BROKER_NAME")
-	brokerBoshDeploymentName = envMustHave("BROKER_DEPLOYMENT_NAME")
-
-	boshURL := envMustHave("BOSH_URL")
-	boshUsername := envMustHave("BOSH_USERNAME")
-	boshPassword := envMustHave("BOSH_PASSWORD")
-	boshCACert := os.Getenv("BOSH_CA_CERT_FILE")
-	disableTLSVerification := boshCACert == ""
-	uaaURL := os.Getenv("UAA_URL")
-
+	uniqueID := uuid.New()[:6]
 	cfAdminUsername = envMustHave("CF_USERNAME")
 	cfAdminPassword = envMustHave("CF_PASSWORD")
 	cfSpaceDeveloperUsername = uuid.New()[:8]
 	cfSpaceDeveloperPassword = uuid.New()[:8]
+	cfDefaultSpaceDeveloperUsername = uuid.New()[:8]
+	cfDefaultSpaceDeveloperPassword = uuid.New()[:8]
 	cfOrg = envMustHave("CF_ORG")
 	cfSpace = envMustHave("CF_SPACE")
 
-	if uaaURL == "" {
-		boshClient = bosh_helpers.NewBasicAuth(boshURL, boshUsername, boshPassword, boshCACert, disableTLSVerification)
-	} else {
-		boshClient = bosh_helpers.New(boshURL, uaaURL, boshUsername, boshPassword, boshCACert)
-	}
+	defaultOrg = "org-"+uniqueID
+	defaultSpace = "space-"+uniqueID
+	cfCreateDefaultOrgAndSpace()
+
+	brokerInfo = bosh.DeployAndRegisterBroker(
+		"-broker-registration-"+uniqueID,
+		bosh.Redis,
+		[]string{"update_service_catalog.yml", "update_default_access_org.yml"},
+		"--var", "default_access_org=" + defaultOrg)
+
 	SetDefaultEventuallyTimeout(cf.CfTimeout)
 	cfCreateSpaceDevUser()
+	cfCreateDefaultSpaceDevUser()
 })
 
 var _ = AfterSuite(func() {
-	cfLogInAsAdmin()
 	cfDeleteSpaceDevUser()
-	Eventually(cf.Cf("delete-service-broker", brokerName, "-f")).Should(gexec.Exit(0))
-	gexec.CleanupBuildArtifacts()
+	cfDeleteDefaultOrg()
+	bosh.DeregisterAndDeleteBroker(brokerInfo.DeploymentName)
 })
 
 func TestMarketplaceTests(t *testing.T) {
@@ -79,11 +77,19 @@ func envMustHave(key string) string {
 }
 
 func cfCreateSpaceDevUser() {
+	cfLogInAsAdmin()
 	Eventually(cf.Cf("create-user", cfSpaceDeveloperUsername, cfSpaceDeveloperPassword)).Should(gexec.Exit(0))
 	Eventually(cf.Cf("set-space-role", cfSpaceDeveloperUsername, cfOrg, cfSpace, "SpaceDeveloper")).Should(gexec.Exit(0))
 }
 
+func cfCreateDefaultSpaceDevUser(){
+	cfLogInAsAdmin()
+	Eventually(cf.Cf("create-user", cfDefaultSpaceDeveloperUsername, cfDefaultSpaceDeveloperPassword)).Should(gexec.Exit(0))
+	Eventually(cf.Cf("set-space-role", cfDefaultSpaceDeveloperUsername, defaultOrg, defaultSpace, "SpaceDeveloper")).Should(gexec.Exit(0))
+}
+
 func cfDeleteSpaceDevUser() {
+	cfLogInAsAdmin()
 	Eventually(cf.Cf("delete-user", cfSpaceDeveloperUsername, "-f")).Should(gexec.Exit(0))
 }
 
@@ -92,7 +98,31 @@ func cfLogInAsSpaceDev() {
 	Eventually(cf.Cf("target", "-o", cfOrg, "-s", cfSpace)).Should(gexec.Exit(0))
 }
 
+func cfLogInAsDefaultSpaceDev() {
+	Eventually(cf.Cf("auth", cfDefaultSpaceDeveloperUsername, cfDefaultSpaceDeveloperPassword)).Should(gexec.Exit(0))
+	Eventually(cf.Cf("target", "-o", defaultOrg, "-s", defaultSpace)).Should(gexec.Exit(0))
+}
+
 func cfLogInAsAdmin() {
 	Eventually(cf.Cf("auth", cfAdminUsername, cfAdminPassword)).Should(gexec.Exit(0))
 	Eventually(cf.Cf("target", "-o", cfOrg, "-s", cfSpace)).Should(gexec.Exit(0))
+}
+
+func cfCreateDefaultOrgAndSpace() {
+	cfLogInAsAdmin()
+	Eventually(cf.Cf("create-org", defaultOrg)).Should(gexec.Exit(0))
+	Eventually(cf.Cf("create-space", "-o", defaultOrg, defaultSpace)).Should(gexec.Exit(0))
+}
+
+func cfDeleteDefaultOrg() {
+	cfLogInAsAdmin()
+	Eventually(cf.Cf("delete-org", "-f", defaultOrg)).Should(gexec.Exit(0))
+}
+
+func targetSystemOrgAndSpace() {
+	Eventually(cf.Cf("target", "-o", cfOrg, "-s", cfSpace)).Should(gexec.Exit(0))
+}
+
+func targetDefaultOrgAndSpace() {
+	Eventually(cf.Cf("target", "-o", defaultOrg, "-s", defaultSpace)).Should(gexec.Exit(0))
 }

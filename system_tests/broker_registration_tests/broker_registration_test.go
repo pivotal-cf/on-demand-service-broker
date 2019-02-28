@@ -11,123 +11,139 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
+	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
 	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/cf_helpers"
 )
 
 var _ = Describe("broker registration errands", func() {
-	BeforeEach(func() {
-		cfLogInAsAdmin()
-		Eventually(cf.Cf("delete-service-broker", brokerName, "-f")).Should(gexec.Exit(0))
-	})
 
-	Describe("register-broker", func() {
-		BeforeEach(func() {
-			boshClient.RunErrand(brokerBoshDeploymentName, "register-broker", []string{}, "")
+	 Describe("Register-broker errand", func() {
+	 	When("user is logged in as admin", func() {
+			It("can see the service and all plans in the marketplace regardless of cf_service_access", func() {
+				cfLogInAsAdmin()
+
+				marketplaceSession := cf.Cf("marketplace", "-s", brokerInfo.ServiceOffering)
+
+				By("confirming the registered offerings in the marketplace")
+				Eventually(marketplaceSession).Should(gbytes.Say(brokerInfo.ServiceOffering))
+				Eventually(marketplaceSession).Should(gbytes.Say("default-plan"))
+				Eventually(marketplaceSession).Should(gbytes.Say("enabled-plan"))
+				Eventually(marketplaceSession).Should(gbytes.Say("disabled-plan"))
+				Eventually(marketplaceSession).Should(gbytes.Say("org-restricted-plan"))
+				Eventually(marketplaceSession).Should(gbytes.Say("manual-plan"))
+
+				Eventually(marketplaceSession).Should(gexec.Exit(0))
+			})
+		})
+
+	 	When("user is logged in as space dev", func(){
+	 		BeforeEach(func(){
+	 			cfLogInAsSpaceDev()
+			})
+
+			When("cf_service_access is not set for one of the plans", func() {
+				It("should be visible in the marketplace, as it's enabled by default", func() {
+					marketplaceSession := cf.Cf("marketplace", "-s", brokerInfo.ServiceOffering)
+					Eventually(marketplaceSession).Should(gbytes.Say(brokerInfo.ServiceOffering))
+					Eventually(marketplaceSession).Should(gbytes.Say("default-plan"))
+				})
+			})
+
+			When("cf_service_access is set to enable for one of the plans", func() {
+				It("should be visible in the marketplace", func() {
+					marketplaceSession := cf.Cf("marketplace", "-s", brokerInfo.ServiceOffering)
+					Eventually(marketplaceSession).Should(gbytes.Say(brokerInfo.ServiceOffering))
+					Eventually(marketplaceSession).Should(gbytes.Say("enabled-plan"))
+				})
+			})
+
+			When("cf_service_access is set to disable for one of the plans", func() {
+				It("will disable access when the broker is re-registered", func() {
+					By("should not be visible in the marketplace")
+					marketplaceSession := cf.Cf("marketplace", "-s", brokerInfo.ServiceOffering)
+					Eventually(marketplaceSession).Should(gbytes.Say(brokerInfo.ServiceOffering))
+					Eventually(marketplaceSession).ShouldNot(gbytes.Say("disabled-plan"))
+
+					By("manually enabling service access to the service")
+					cfLogInAsAdmin()
+					Eventually(cf.Cf("enable-service-access", brokerInfo.ServiceOffering, "-p", "disabled-plan")).
+						Should(gexec.Exit(0))
+
+					By("confirming the plan is now visible to space devs in the marketplace")
+					cfLogInAsSpaceDev()
+					allEnabledMarketplaceSession := cf.Cf("marketplace", "-s", brokerInfo.ServiceOffering)
+					Eventually(allEnabledMarketplaceSession).Should(gbytes.Say("disabled-plan"))
+
+					By("re-registering the broker")
+					bosh_helpers.RunErrand(brokerInfo.DeploymentName, "register-broker")
+
+					By("confirming the disabled-plan is now disabled again")
+					allButInactiveMarketplaceSession := cf.Cf("marketplace", "-s", brokerInfo.ServiceOffering)
+					Eventually(allButInactiveMarketplaceSession).ShouldNot(gbytes.Say("disabled-plan"))
+				})
+			})
+
+			When("cf_service_access is set to manual for one of the plans", func() {
+				It("has to be enabled manually", func() {
+					By("should not be visible in the marketplace")
+					marketplaceSession := cf.Cf("marketplace", "-s", brokerInfo.ServiceOffering)
+					Eventually(marketplaceSession).Should(gbytes.Say(brokerInfo.ServiceOffering))
+					Eventually(marketplaceSession).ShouldNot(gbytes.Say("manual-plan"))
+
+					By("manually enabling service access to the service")
+					cfLogInAsAdmin()
+					Eventually(cf.Cf("enable-service-access", brokerInfo.ServiceOffering, "-p", "manual-plan")).Should(gexec.Exit(0))
+
+					By("confirming the manual plan is now visible to space devs in the marketplace")
+					cfLogInAsSpaceDev()
+					allEnabledMarketplaceSession := cf.Cf("marketplace", "-s", brokerInfo.ServiceOffering)
+					Eventually(allEnabledMarketplaceSession).Should(gbytes.Say("manual-plan"))
+
+					By("re-registering the broker")
+					bosh_helpers.RunErrand(brokerInfo.DeploymentName, "register-broker")
+
+					By("confirming the manual plan is still visible to space devs in the marketplace")
+					allButInactiveMarketplaceSession := cf.Cf("marketplace", "-s", brokerInfo.ServiceOffering)
+					Eventually(allButInactiveMarketplaceSession).Should(gbytes.Say("manual-plan"))
+				})
+			})
+
+			When("cf_service_access is set to org-restricted for one of the plans", func() {
+				It("should be visible when logged in user belongs to the correct org", func() {
+					cfLogInAsDefaultSpaceDev()
+
+					marketplaceSession := cf.Cf("marketplace", "-s", brokerInfo.ServiceOffering)
+					Eventually(marketplaceSession).Should(gbytes.Say(brokerInfo.ServiceOffering))
+					Eventually(marketplaceSession).Should(gbytes.Say("org-restricted-plan"))
+				})
+
+				It("should not be visible when logged in user belongs to different org", func() {
+					cfLogInAsSpaceDev()
+
+					marketplaceSession := cf.Cf("marketplace", "-s", brokerInfo.ServiceOffering)
+					Eventually(marketplaceSession).Should(gbytes.Say(brokerInfo.ServiceOffering))
+					Eventually(marketplaceSession).ShouldNot(gbytes.Say("org-restricted-plan"))
+				})
+			})
+	 	})
+	 })
+
+	Describe("deregister-broker", func() {
+		BeforeEach(func(){
+			cfLogInAsAdmin()
+			bosh_helpers.RunErrand(brokerInfo.DeploymentName, "register-broker")
+			serviceBrokersSession := cf.Cf("service-brokers")
+			Eventually(serviceBrokersSession).Should(gbytes.Say(brokerInfo.ServiceOffering))
 		})
 
 		AfterEach(func() {
-			cfLogInAsAdmin()
-			Eventually(cf.Cf("disable-service-access", serviceOffering)).Should(gexec.Exit(0))
-			Eventually(cf.Cf("purge-service-offering", serviceOffering, "-f")).Should(gexec.Exit(0))
+			bosh_helpers.RunErrand(brokerInfo.DeploymentName, "register-broker")
 		})
 
-		Context("when the broker is not registered", func() {
-			Context("and the user is admin", func() {
-				It("registers the broker with CF", func() {
-					marketplaceSession := cf.Cf("marketplace", "-s", serviceOffering)
-
-					By("confirming the registered offerings in the marketplace")
-					Eventually(marketplaceSession).Should(gbytes.Say(serviceOffering))
-					Eventually(marketplaceSession).Should(gbytes.Say("dedicated-vm"))
-					Eventually(marketplaceSession).Should(gbytes.Say("dedicated-high-memory-vm"))
-
-					Eventually(marketplaceSession).Should(gbytes.Say("inactive-plan"))
-					Eventually(marketplaceSession).Should(gbytes.Say("manual-plan"))
-
-					Eventually(marketplaceSession).Should(gexec.Exit(0))
-				})
-			})
-
-			Context("and the user is a space developer", func() {
-				It("registers the broker with CF", func() {
-					cfLogInAsSpaceDev()
-					marketplaceSession := cf.Cf("marketplace", "-s", serviceOffering)
-
-					By("confirming the registered offerings in the marketplace")
-					Eventually(marketplaceSession).Should(gbytes.Say(serviceOffering))
-					Eventually(marketplaceSession).Should(gbytes.Say("dedicated-vm"))
-					Eventually(marketplaceSession).Should(gbytes.Say("dedicated-high-memory-vm"))
-
-					By("confirming disabled and manual plans are not visible in the marketplace")
-					Eventually(marketplaceSession).ShouldNot(gbytes.Say("inactive-plan"))
-					Eventually(marketplaceSession).ShouldNot(gbytes.Say("manual-plan"))
-
-					Eventually(marketplaceSession).Should(gexec.Exit(0))
-				})
-			})
-		})
-
-		Context("when enabling cf access for a plan that is set to manual", func() {
-			It("has to be enabled manually", func() {
-				By("confirming manual plan is not visible to space devs in the marketplace")
-				cfLogInAsSpaceDev()
-				marketplaceSession := cf.Cf("marketplace", "-s", serviceOffering)
-				Eventually(marketplaceSession).ShouldNot(gbytes.Say("manual-plan"))
-
-				By("manually enabling service access to the service")
-				cfLogInAsAdmin()
-				Eventually(cf.Cf("enable-service-access", serviceOffering)).Should(gexec.Exit(0))
-
-				By("confirming the manual plan is now visible to space devs in the marketplace")
-				cfLogInAsSpaceDev()
-				allEnabledMarketplaceSession := cf.Cf("marketplace", "-s", serviceOffering)
-				Eventually(allEnabledMarketplaceSession).Should(gbytes.Say("manual-plan"))
-
-				By("re-registering the broker")
-				boshClient.RunErrand(brokerBoshDeploymentName, "register-broker", []string{}, "")
-
-				By("confirming the manual plan is still visible to space devs in the marketplace")
-				allButInactiveMarketplaceSession := cf.Cf("marketplace", "-s", serviceOffering)
-				Eventually(allButInactiveMarketplaceSession).Should(gbytes.Say("manual-plan"))
-			})
-		})
-
-		Context("when enabling cf access for a plan that is set to disable", func() {
-			It("will revert to disabled when the broker is re-registered", func() {
-				By("confirming inactive plan is not visible to space devs in the marketplace")
-				cfLogInAsSpaceDev()
-				marketplaceSession := cf.Cf("marketplace", "-s", serviceOffering)
-				Eventually(marketplaceSession).ShouldNot(gbytes.Say("inactive-plan"))
-
-				By("manually enabling service access to the service")
-				cfLogInAsAdmin()
-				Eventually(cf.Cf("enable-service-access", serviceOffering)).Should(gexec.Exit(0))
-
-				By("confirming the inactive plan is now visible to space devs in the marketplace")
-				cfLogInAsSpaceDev()
-				allEnabledMarketplaceSession := cf.Cf("marketplace", "-s", serviceOffering)
-				Eventually(allEnabledMarketplaceSession).Should(gbytes.Say("inactive-plan"))
-
-				By("re-registering the broker")
-				boshClient.RunErrand(brokerBoshDeploymentName, "register-broker", []string{}, "")
-
-				By("confirming the inactive plan is no longer visible to space devs in the marketplace, while an active plan is")
-				allButInactiveMarketplaceSession := cf.Cf("marketplace", "-s", serviceOffering)
-				Eventually(allButInactiveMarketplaceSession).ShouldNot(gbytes.Say("inactive-plan"))
-				Eventually(marketplaceSession).Should(gbytes.Say("dedicated-vm"))
-			})
-		})
-	})
-
-	Describe("deregister-broker", func() {
 		It("removes the service from the CF", func() {
-			boshClient.RunErrand(brokerBoshDeploymentName, "register-broker", []string{}, "")
+			bosh_helpers.RunErrand(brokerInfo.DeploymentName, "deregister-broker")
 			serviceBrokersSession := cf.Cf("service-brokers")
-			Eventually(serviceBrokersSession).Should(gbytes.Say(brokerName))
-
-			boshClient.RunErrand(brokerBoshDeploymentName, "deregister-broker", []string{}, "")
-			serviceBrokersSession = cf.Cf("service-brokers")
-			Eventually(serviceBrokersSession).ShouldNot(gbytes.Say(brokerName))
+			Eventually(serviceBrokersSession).ShouldNot(gbytes.Say(brokerInfo.ServiceOffering))
 		})
 	})
 })

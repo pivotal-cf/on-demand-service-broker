@@ -1,0 +1,62 @@
+- type: replace
+  path: /instance_groups/name=broker/jobs/name=broker/properties/service_catalog/plans?
+  value:
+    - name: default-plan
+      plan_id: ((plan_id))-default-plan
+      properties: {persistence: false}
+      metadata: {bullets: [], display_name: Default enabled plan}
+      description: Redis
+      instance_groups:
+        - name: redis-server
+          azs: [((meta.az))]
+          instances: 1
+          networks: [((meta.services_subnet))]
+          vm_type: ((meta.vm_type))
+    - name: enabled-plan
+      plan_id: ((plan_id))-enabled
+      properties: {persistence: false}
+      metadata: {bullets: [], display_name: Enabled plan}
+      cf_service_access: enable
+      description: Redis
+      instance_groups:
+        - name: redis-server
+          azs: [((meta.az))]
+          instances: 1
+          networks: [((meta.services_subnet))]
+          vm_type: ((meta.vm_type))
+    - name: disabled-plan
+      plan_id: ((plan_id))-disabled
+      properties: {persistence: false}
+      metadata: {bullets: [], display_name: Disabled plan}
+      cf_service_access: disable
+      description: Redis
+      instance_groups:
+        - name: redis-server
+          azs: [((meta.az))]
+          instances: 1
+          networks: [((meta.services_subnet))]
+          vm_type: ((meta.vm_type))
+    - name: org-restricted-plan
+      plan_id: ((plan_id))-org-restricted
+      properties: {persistence: false}
+      metadata: {bullets: [], display_name: Org restricted plan}
+      cf_service_access: org-restricted
+      description: Redis
+      instance_groups:
+        - name: redis-server
+          azs: [((meta.az))]
+          instances: 1
+          networks: [((meta.services_subnet))]
+          vm_type: ((meta.vm_type))
+    - name: manual-plan
+      plan_id: ((plan_id))-manual
+      properties: {persistence: false}
+      metadata: {bullets: [], display_name: Manual plan}
+      cf_service_access: manual
+      description: Redis
+      instance_groups:
+        - name: redis-server
+          azs: [((meta.az))]
+          instances: 1
+          networks: [((meta.services_subnet))]
+          vm_type: ((meta.vm_type))
