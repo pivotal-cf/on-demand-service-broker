@@ -36,6 +36,18 @@
           instances: 1
           networks: [((meta.services_subnet))]
           vm_type: ((meta.vm_type))
+    - name: org-restricted-plan-2
+      plan_id: ((plan_id))-org-restricted-2
+      properties: {persistence: false}
+      metadata: {bullets: [], display_name: Org restricted plan}
+      cf_service_access: org-restricted
+      description: Redis
+      instance_groups:
+        - name: redis-server
+          azs: [((meta.az))]
+          instances: 1
+          networks: [((meta.services_subnet))]
+          vm_type: ((meta.vm_type))
     - name: org-restricted-plan
       plan_id: ((plan_id))-org-restricted
       properties: {persistence: false}

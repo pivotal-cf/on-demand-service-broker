@@ -113,8 +113,12 @@ var _ = Describe("broker registration errands", func() {
 					cfLogInAsDefaultSpaceDev()
 
 					marketplaceSession := cf.Cf("marketplace", "-s", brokerInfo.ServiceOffering)
-					Eventually(marketplaceSession).Should(gbytes.Say(brokerInfo.ServiceOffering))
-					Eventually(marketplaceSession).Should(gbytes.Say("org-restricted-plan"))
+					Eventually(marketplaceSession).Should(gexec.Exit(0))
+					Expect(string(marketplaceSession.Buffer().Contents())).To(SatisfyAll(
+						ContainSubstring(brokerInfo.ServiceOffering),
+						ContainSubstring("org-restricted-plan-2 "),
+						ContainSubstring("org-restricted-plan "),
+					))
 				})
 
 				It("should not be visible when logged in user belongs to different org", func() {
@@ -123,6 +127,25 @@ var _ = Describe("broker registration errands", func() {
 					marketplaceSession := cf.Cf("marketplace", "-s", brokerInfo.ServiceOffering)
 					Eventually(marketplaceSession).Should(gbytes.Say(brokerInfo.ServiceOffering))
 					Eventually(marketplaceSession).ShouldNot(gbytes.Say("org-restricted-plan"))
+				})
+
+				It("should be re-enabled after disabled", func() {
+					By("manually disabling service access to the plan")
+					cfLogInAsAdmin()
+					Eventually(cf.Cf("disable-service-access", brokerInfo.ServiceOffering, "-p", "org-restricted-plan")).Should(gexec.Exit(0))
+
+					By("re-registering the broker")
+					bosh_helpers.RunErrand(brokerInfo.DeploymentName, "register-broker")
+
+					cfLogInAsDefaultSpaceDev()
+					marketplaceSession := cf.Cf("marketplace", "-s", brokerInfo.ServiceOffering)
+					Eventually(marketplaceSession).Should(gexec.Exit(0))
+
+					Expect(string(marketplaceSession.Buffer().Contents())).To(SatisfyAll(
+						ContainSubstring(brokerInfo.ServiceOffering),
+						ContainSubstring("org-restricted-plan-2 "),
+						ContainSubstring("org-restricted-plan "),
+					))
 				})
 			})
 	 	})
