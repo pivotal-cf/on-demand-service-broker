@@ -94,18 +94,25 @@ func cfDeleteSpaceDevUser() {
 }
 
 func cfLogInAsSpaceDev() {
+	cfLogout()
 	Eventually(cf.Cf("auth", cfSpaceDeveloperUsername, cfSpaceDeveloperPassword)).Should(gexec.Exit(0))
 	Eventually(cf.Cf("target", "-o", cfOrg, "-s", cfSpace)).Should(gexec.Exit(0))
 }
 
 func cfLogInAsDefaultSpaceDev() {
+	cfLogout()
 	Eventually(cf.Cf("auth", cfDefaultSpaceDeveloperUsername, cfDefaultSpaceDeveloperPassword)).Should(gexec.Exit(0))
 	Eventually(cf.Cf("target", "-o", defaultOrg, "-s", defaultSpace)).Should(gexec.Exit(0))
 }
 
 func cfLogInAsAdmin() {
+	cfLogout()
 	Eventually(cf.Cf("auth", cfAdminUsername, cfAdminPassword)).Should(gexec.Exit(0))
 	Eventually(cf.Cf("target", "-o", cfOrg, "-s", cfSpace)).Should(gexec.Exit(0))
+}
+
+func cfLogout() {
+	Eventually(cf.Cf("logout")).Should(gexec.Exit(0))
 }
 
 func cfCreateDefaultOrgAndSpace() {
