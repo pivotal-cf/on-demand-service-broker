@@ -24,6 +24,7 @@ var _ = BeforeSuite(func() {
 	uniqueID := uuid.New()[:6]
 	brokerInfo = bosh.DeployAndRegisterBroker(
 		"-bosh-config-"+uniqueID,
+		bosh.BrokerDeploymentOptions{},
 		service_helpers.Redis,
 		[]string{"update_service_catalog.yml"})
 })

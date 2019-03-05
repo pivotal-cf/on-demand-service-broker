@@ -25,6 +25,10 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+type BrokerDeploymentOptions struct {
+	ServiceMetrics bool
+	BrokerTLS      bool
+}
 
 type BoshTaskOutput struct {
 	Description string `json:"description"`
@@ -52,6 +56,7 @@ type deploymentProperties struct {
 	BrokerUsername            string
 	ConsulRequired            string
 	DeploymentName            string
+	LegacyServiceMetrics      string
 	OdbReleaseTemplatesPath   string
 	OdbVersion                string
 	ServiceAdapterReleaseName string
@@ -65,6 +70,7 @@ type EnvVars struct {
 	BrokerSystemDomain        string
 	ConsulRequired            string
 	DevEnv                    string
+	LegacyServiceMetrics      string
 	OdbReleaseTemplatesPath   string
 	OdbVersion                string
 	ServiceAdapterReleaseName string
@@ -134,17 +140,17 @@ func VMIDForDeployment(deploymentName string) string {
 	return boshOutput.Tables[0].Rows[0].VMCID
 }
 
-func DeployBroker(systemTestSuffix string, serviceType service_helpers.ServiceType, opsFiles []string, deploymentArguments ...string) BrokerInfo {
+func DeployBroker(systemTestSuffix string, deploymentOptions BrokerDeploymentOptions, serviceType service_helpers.ServiceType, opsFiles []string, deploymentArguments ...string) BrokerInfo {
 	var args []string
 	for _, opsFile := range opsFiles {
 		args = append(args, []string{"--ops-file", "./fixtures/" + opsFile}...)
 	}
 	args = append(args, deploymentArguments...)
-	return deploy(systemTestSuffix, serviceType, args...)
+	return deploy(systemTestSuffix, deploymentOptions, serviceType, args...)
 }
 
-func DeployAndRegisterBroker(systemTestSuffix string, serviceType service_helpers.ServiceType, opsFiles []string, deploymentArguments ...string) BrokerInfo {
-	brokerInfo := DeployBroker(systemTestSuffix, serviceType, opsFiles, deploymentArguments...)
+func DeployAndRegisterBroker(systemTestSuffix string, deploymentOptions BrokerDeploymentOptions, serviceType service_helpers.ServiceType, opsFiles []string, deploymentArguments ...string) BrokerInfo {
+	brokerInfo := DeployBroker(systemTestSuffix, deploymentOptions, serviceType, opsFiles, deploymentArguments...)
 	RunErrand(brokerInfo.DeploymentName, "register-broker")
 	return brokerInfo
 }
@@ -184,6 +190,7 @@ func getEnvVars(serviceType service_helpers.ServiceType) EnvVars {
 	envVars.BrokerSystemDomain = os.Getenv("BROKER_SYSTEM_DOMAIN")
 	envVars.ConsulRequired = os.Getenv("CONSUL_REQUIRED")
 	envVars.DevEnv = os.Getenv("DEV_ENV")
+	envVars.LegacyServiceMetrics = os.Getenv("LEGACY_SERVICE_METRICS")
 	envVars.OdbReleaseTemplatesPath = os.Getenv("ODB_RELEASE_TEMPLATES_PATH")
 	envVars.OdbVersion = os.Getenv("ODB_VERSION")
 
@@ -238,6 +245,7 @@ func buildDeploymentArguments(systemTestSuffix string, serviceType service_helpe
 		BrokerURI:                 "test-service-broker" + systemTestSuffix + "." + envVars.BrokerSystemDomain,
 		BrokerUsername:            "broker",
 		ConsulRequired:            envVars.ConsulRequired,
+		LegacyServiceMetrics:      envVars.LegacyServiceMetrics,
 		DeploymentName:            "on-demand-broker" + systemTestSuffix,
 		OdbReleaseTemplatesPath:   envVars.OdbReleaseTemplatesPath,
 		OdbVersion:                odbVersion,
@@ -248,7 +256,7 @@ func buildDeploymentArguments(systemTestSuffix string, serviceType service_helpe
 	}
 }
 
-func deploy(systemTestSuffix string, serviceType service_helpers.ServiceType, deployCmdArgs ...string) BrokerInfo {
+func deploy(systemTestSuffix string, deploymentOptions BrokerDeploymentOptions, serviceType service_helpers.ServiceType, deployCmdArgs ...string) BrokerInfo {
 	variables := buildDeploymentArguments(systemTestSuffix, serviceType)
 
 	odbReleaseTemplatesPath := variables.OdbReleaseTemplatesPath
@@ -282,7 +290,20 @@ func deploy(systemTestSuffix string, serviceType service_helpers.ServiceType, de
 
 		"--ops-file", adapterOpsFile,
 	}
+	if deploymentOptions.ServiceMetrics {
+		metricsFile := "service_metrics.yml"
+		if variables.LegacyServiceMetrics == "true" {
+			metricsFile = "service_metrics_legacy.yml"
+		}
+		enableMetrics := filepath.Join(odbReleaseTemplatesPath, "operations", metricsFile)
+		deployArguments = append(deployArguments, "--ops-file", enableMetrics)
+	}
 	deployArguments = append(deployArguments, deployCmdArgs...)
+
+	if deploymentOptions.BrokerTLS {
+		tlsOpsFile := filepath.Join(odbReleaseTemplatesPath, "operations", "enable_broker_tls.yml")
+		deployArguments = append(deployArguments, "--ops-file", tlsOpsFile, "--var", "broker_ca_credhub_path=/services/tls_ca")
+	}
 
 	consulRequired := variables.ConsulRequired == "true"
 	if consulRequired {

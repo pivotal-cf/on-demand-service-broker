@@ -212,7 +212,6 @@ func testODBMetrics(brokerDeploymentName, serviceOfferingName, planName string) 
 	for {
 		select {
 		case msg := <-msgChan:
-			// fmt.Fprintf(GinkgoWriter, "firehose: received message %+v\n", msg)
 			if msg != nil && *msg.EventType == events.Envelope_ValueMetric && strings.HasSuffix(*msg.Deployment, brokerDeploymentName) {
 				fmt.Fprintf(GinkgoWriter, "received metric for deployment %s: %+v\n", brokerDeploymentName, msg)
 				if msg.ValueMetric.GetName() == fmt.Sprintf("/on-demand-broker/%s/%s/total_instances", serviceOfferingName, planName) {

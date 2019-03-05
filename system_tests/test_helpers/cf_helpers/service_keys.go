@@ -16,6 +16,8 @@
 package cf_helpers
 
 import (
+	"strings"
+
 	"github.com/onsi/gomega/gexec"
 
 	. "github.com/onsi/gomega"
@@ -32,5 +34,12 @@ func GetServiceKey(serviceName, serviceKeyName string) string {
 	Eventually(serviceKey, CfTimeout).Should(gexec.Exit(0))
 	serviceKeyContent := string(serviceKey.Buffer().Contents())
 
-	return serviceKeyContent
+	firstBracket := strings.Index(serviceKeyContent, "{")
+	return serviceKeyContent[firstBracket:]
+}
+
+func DeleteServiceKey(serviceName, serviceKeyName string) {
+	cfArgs := []string{"delete-service-key", serviceName, serviceKeyName, "-f"}
+
+	Eventually(Cf(cfArgs...), CfTimeout).Should(gexec.Exit(0))
 }

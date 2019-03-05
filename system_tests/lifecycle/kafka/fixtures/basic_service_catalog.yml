@@ -1,0 +1,24 @@
+- type: replace
+  path: /instance_groups/name=broker/jobs/name=broker/properties/service_catalog/plans?
+  value:
+    - name: kafka-small
+      plan_id: ((plan_id))
+      cf_service_access: enable
+      description: Kafka small
+      instance_groups:
+      - azs: [((meta.az))]
+        instances: 1
+        name: kafka_server
+        networks: [((meta.services_subnet))]
+        persistent_disk_type: 10GB
+        vm_type: ((meta.vm_type))
+      - azs: [((meta.az))]
+        instances: 1
+        name: zookeeper_server
+        networks: [((meta.services_subnet))]
+        persistent_disk_type: 10GB
+        vm_type: ((meta.vm_type))
+      properties:
+        auto_create_topics: true
+        default_replication_factor: 1
+

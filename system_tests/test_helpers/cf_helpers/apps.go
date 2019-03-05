@@ -13,14 +13,17 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/craigfurman/herottp"
 	"github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
+	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/service_helpers"
 )
 
 type binding struct {
@@ -46,6 +49,16 @@ func findURL(cliOutput string) string {
 	return ""
 }
 
+func GetAppPath(serviceType service_helpers.ServiceType) string {
+	switch serviceType {
+	case service_helpers.Redis:
+		return os.Getenv("REDIS_EXAMPLE_APP_PATH")
+	case service_helpers.Kafka:
+		return os.Getenv("KAFKA_EXAMPLE_APP_PATH")
+	}
+	return ""
+}
+
 func PushAndBindApp(appName, serviceName, testAppPath string) string {
 	Eventually(Cf("push", "-p", testAppPath, "-f", filepath.Join(testAppPath, "manifest.yml"), "--no-start", appName), CfTimeout).Should(gexec.Exit(0))
 	Eventually(Cf("bind-service", appName, serviceName), CfTimeout).Should(gexec.Exit(0))
@@ -58,6 +71,36 @@ func PushAndBindApp(appName, serviceName, testAppPath string) string {
 	testAppURL := findURL(appDetailsOutput)
 	Expect(testAppURL).NotTo(BeEmpty())
 	return testAppURL
+}
+
+func UnbindAndDeleteApp(appName, serviceName string) {
+	Eventually(Cf("unbind-service", appName, serviceName), CfTimeout).Should(gexec.Exit(0))
+	Eventually(Cf("delete", appName, "-f"), CfTimeout).Should(gexec.Exit(0))
+}
+
+func ExerciseApp(serviceType service_helpers.ServiceType, appURL string) {
+	switch serviceType {
+	case service_helpers.Redis:
+		exerciseRedis(appURL)
+		return
+	case service_helpers.Kafka:
+		exerciseKafka(appURL)
+		return
+	}
+	Fail(fmt.Sprintf("wrong service type: %d", serviceType))
+}
+
+func exerciseRedis(appURL string) {
+	PutToTestApp(appURL, "foo", "bar")
+	Expect(GetFromTestApp(appURL, "foo")).To(Equal("bar"))
+}
+
+func exerciseKafka(appURL string) {
+	queue := "a-test-queue"
+	PushToTestAppQueue(appURL, queue, "foo")
+	PushToTestAppQueue(appURL, queue, "bar")
+	Expect(PopFromTestAppQueue(appURL, queue)).To(Equal("foo"))
+	Expect(PopFromTestAppQueue(appURL, queue)).To(Equal("bar"))
 }
 
 func PutToTestApp(testAppURL, key, value string) {

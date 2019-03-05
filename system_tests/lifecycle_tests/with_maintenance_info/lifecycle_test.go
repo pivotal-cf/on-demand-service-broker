@@ -90,6 +90,7 @@ var _ = Describe("On-demand-broker with maintenance_info", func() {
 			// redeploy the broker, adding a lifecycle errand, and changing the maintenance_info
 			brokerInfo = bosh.DeployAndRegisterBroker(
 				brokerInfo.TestSuffix,
+				bosh.BrokerDeploymentOptions{},
 				service_helpers.Redis,
 				[]string{
 					"update_service_catalog.yml",

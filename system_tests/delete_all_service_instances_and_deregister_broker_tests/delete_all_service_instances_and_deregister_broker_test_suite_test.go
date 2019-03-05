@@ -27,6 +27,7 @@ var _ = BeforeSuite(func() {
 	uniqueID := uuid.New()[:6]
 	brokerInfo = bosh_helpers.DeployAndRegisterBroker(
 		"-delete-all-"+uniqueID,
+		bosh_helpers.BrokerDeploymentOptions{},
 		service_helpers.Redis,
 		[]string{"update_service_catalog.yml"})
 

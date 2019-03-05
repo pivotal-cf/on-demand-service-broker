@@ -54,6 +54,7 @@ var _ = BeforeSuite(func() {
 
 	brokerInfo = bosh.DeployBroker(
 		"-orphan-deployment-with-siapi-"+uniqueID,
+		bosh.BrokerDeploymentOptions{},
 		service_helpers.Redis,
 		[]string{"update_service_catalog.yml", "add_si_api.yml"},
 		"--var", "service_instances_api_url="+siAPIURL,

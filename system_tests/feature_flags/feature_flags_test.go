@@ -25,6 +25,7 @@ var _ = Describe("FeatureFlags", func() {
 			uniqueID := uuid.New()[:6]
 			brokerInfo = bosh.DeployAndRegisterBroker(
 				"-feature-flag-"+uniqueID,
+				bosh.BrokerDeploymentOptions{},
 				service_helpers.Redis,
 				[]string{"update_service_catalog.yml", "disable_cf_ssl_verification.yml"},
 			)
@@ -91,6 +92,7 @@ var _ = Describe("FeatureFlags", func() {
 
 			brokerInfo = bosh.DeployBroker(
 				"-feature-flag-"+uniqueID,
+				bosh.BrokerDeploymentOptions{},
 				service_helpers.Redis,
 				[]string{"update_service_catalog.yml", "add_si_api.yml"},
 				"--var", "service_instances_api_url="+siAPIURL,
@@ -133,6 +135,7 @@ var _ = Describe("FeatureFlags", func() {
 			uniqueID := uuid.New()[:6]
 			brokerInfo = bosh.DeployAndRegisterBroker(
 				"-feature-flag-"+uniqueID,
+				bosh.BrokerDeploymentOptions{},
 				service_helpers.Redis,
 				[]string{"update_service_catalog.yml", "expose_operational_errors.yml"},
 			)

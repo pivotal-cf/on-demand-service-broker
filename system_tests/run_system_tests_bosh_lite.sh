@@ -42,6 +42,7 @@ export CF_USERNAME="$(bosh int --path /cf/user_credentials/username "$BOSH_DEPLO
 export CF_PASSWORD="$(bosh int --path /cf/user_credentials/password "$BOSH_DEPLOYMENT_VARS" 2>/dev/null)"
 export CF_ORG="$(bosh int --path /cf/org "$BOSH_DEPLOYMENT_VARS")"
 export CF_SPACE="$(bosh int --path /cf/space "$BOSH_DEPLOYMENT_VARS")"
+export DOPPLER_ADDRESS=wss://doppler.$BOSH_LITE_DOMAIN
 
 
 # bosh create-release --name on-demand-service-broker-$DEV_ENV --dir $ODB --force

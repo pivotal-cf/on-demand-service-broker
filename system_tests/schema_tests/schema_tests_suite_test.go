@@ -40,6 +40,7 @@ var _ = BeforeSuite(func() {
 	uniqueID := uuid.New()[:6]
 	brokerInfo = bosh.DeployAndRegisterBroker(
 		"-schema-"+uniqueID,
+		bosh.BrokerDeploymentOptions{},
 		service_helpers.Kafka,
 		[]string{"update_service_catalog.yml"})
 })
