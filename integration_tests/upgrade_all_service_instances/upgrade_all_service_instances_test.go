@@ -260,7 +260,7 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 
 			brokerConfig := populateBrokerConfig(odb.URL, brokerUsername, brokerPassword)
 			serviceInstancesAPIConfig := populateServiceInstancesAPIConfig(
-				"http://not-a-url",
+				"some://example.com",
 				serviceInstancesAPIUsername,
 				serviceInstancesAPIPassword,
 			)
@@ -272,7 +272,7 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 
 			Eventually(runningTool).Should(gexec.Exit(1))
 			Expect(runningTool).To(gbytes.Say(
-				`error listing service instances: error communicating with service_instances_api \(http://not-a-url\):`,
+				`error listing service instances: error communicating with service_instances_api \(some://example.com\):`,
 			))
 		})
 
