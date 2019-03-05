@@ -8,6 +8,7 @@ import (
 	"github.com/pborman/uuid"
 	bosh "github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
 	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/cf_helpers"
+	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/service_helpers"
 )
 
 func TestRecreateAll(t *testing.T) {
@@ -22,7 +23,11 @@ var (
 
 var _ = BeforeSuite(func() {
 	uniqueID := uuid.New()[:6]
-	brokerInfo = bosh.DeployAndRegisterBroker("-recreate-"+uniqueID, bosh.Redis, []string{"update_service_catalog.yml"})
+	brokerInfo = bosh.DeployAndRegisterBroker(
+		"-recreate-"+uniqueID,
+		service_helpers.Redis,
+		[]string{"update_service_catalog.yml"})
+
 	serviceInstanceName = "service" + brokerInfo.TestSuffix
 	cf.CreateService(brokerInfo.ServiceOffering, "redis-with-post-deploy", serviceInstanceName, "")
 })

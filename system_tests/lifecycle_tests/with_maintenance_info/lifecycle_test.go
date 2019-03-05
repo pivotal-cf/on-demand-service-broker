@@ -13,6 +13,7 @@ import (
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	bosh "github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
+	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/service_helpers"
 
 	. "github.com/onsi/ginkgo"
 
@@ -89,7 +90,7 @@ var _ = Describe("On-demand-broker with maintenance_info", func() {
 			// redeploy the broker, adding a lifecycle errand, and changing the maintenance_info
 			brokerInfo = bosh.DeployAndRegisterBroker(
 				brokerInfo.TestSuffix,
-				bosh.Redis,
+				service_helpers.Redis,
 				[]string{
 					"update_service_catalog.yml",
 					"add_lifecycle_errand.yml",

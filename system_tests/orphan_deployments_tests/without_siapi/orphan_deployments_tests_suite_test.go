@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/pborman/uuid"
+	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/service_helpers"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -22,7 +23,10 @@ var (
 
 var _ = BeforeSuite(func() {
 	uniqueID := uuid.New()[:6]
-	brokerInfo = bosh.DeployAndRegisterBroker("-orphan-deployment-without-siapi-"+uniqueID, bosh.Redis, []string{"update_service_catalog.yml"})
+	brokerInfo = bosh.DeployAndRegisterBroker(
+		"-orphan-deployment-without-siapi-"+uniqueID,
+		service_helpers.Redis,
+		[]string{"update_service_catalog.yml"})
 })
 
 var _ = AfterSuite(func() {

@@ -15,6 +15,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
+	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/service_helpers"
 )
 
 var (
@@ -24,7 +25,10 @@ var (
 
 var _ = BeforeSuite(func() {
 	uniqueID := uuid.New()[:6]
-	brokerInfo = bosh_helpers.DeployAndRegisterBroker("-delete-all-"+uniqueID, bosh_helpers.Redis, []string{"update_service_catalog.yml"})
+	brokerInfo = bosh_helpers.DeployAndRegisterBroker(
+		"-delete-all-"+uniqueID,
+		service_helpers.Redis,
+		[]string{"update_service_catalog.yml"})
 
 	exampleAppPath = envMustHave("REDIS_EXAMPLE_APP_PATH")
 })

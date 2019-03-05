@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/onsi/gomega/types"
+	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/service_helpers"
 
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/env_helpers"
 
@@ -24,7 +25,6 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-type ServiceName int
 
 type BoshTaskOutput struct {
 	Description string `json:"description"`
@@ -74,11 +74,6 @@ type EnvVars struct {
 
 const (
 	LongBOSHTimeout = time.Minute * 30
-)
-
-const (
-	Redis ServiceName = iota
-	Kafka
 )
 
 func TasksForDeployment(boshServiceInstanceName string) []BoshTaskOutput {
@@ -139,17 +134,17 @@ func VMIDForDeployment(deploymentName string) string {
 	return boshOutput.Tables[0].Rows[0].VMCID
 }
 
-func DeployBroker(systemTestSuffix string, serviceName ServiceName, opsFiles []string, deploymentArguments ...string) BrokerInfo {
+func DeployBroker(systemTestSuffix string, serviceType service_helpers.ServiceType, opsFiles []string, deploymentArguments ...string) BrokerInfo {
 	var args []string
 	for _, opsFile := range opsFiles {
 		args = append(args, []string{"--ops-file", "./fixtures/" + opsFile}...)
 	}
 	args = append(args, deploymentArguments...)
-	return deploy(systemTestSuffix, serviceName, args...)
+	return deploy(systemTestSuffix, serviceType, args...)
 }
 
-func DeployAndRegisterBroker(systemTestSuffix string, serviceName ServiceName, opsFiles []string, deploymentArguments ...string) BrokerInfo {
-	brokerInfo := DeployBroker(systemTestSuffix, serviceName, opsFiles, deploymentArguments...)
+func DeployAndRegisterBroker(systemTestSuffix string, serviceType service_helpers.ServiceType, opsFiles []string, deploymentArguments ...string) BrokerInfo {
+	brokerInfo := DeployBroker(systemTestSuffix, serviceType, opsFiles, deploymentArguments...)
 	RunErrand(brokerInfo.DeploymentName, "register-broker")
 	return brokerInfo
 }
@@ -175,7 +170,7 @@ func Run(deploymentName string, commands ...string) {
 	Eventually(session, LongBOSHTimeout).Should(gexec.Exit(0), "Expected to run command successfully")
 }
 
-func getEnvVars(serviceName ServiceName) EnvVars {
+func getEnvVars(serviceType service_helpers.ServiceType) EnvVars {
 	envVars := EnvVars{}
 
 	err := env_helpers.ValidateEnvVars(
@@ -192,7 +187,7 @@ func getEnvVars(serviceName ServiceName) EnvVars {
 	envVars.OdbReleaseTemplatesPath = os.Getenv("ODB_RELEASE_TEMPLATES_PATH")
 	envVars.OdbVersion = os.Getenv("ODB_VERSION")
 
-	if serviceName == Redis {
+	if serviceType == service_helpers.Redis {
 		err := env_helpers.ValidateEnvVars(
 			"REDIS_SERVICE_ADAPTER_RELEASE_NAME", "REDIS_SERVICE_RELEASE_NAME",
 		)
@@ -211,8 +206,8 @@ func getEnvVars(serviceName ServiceName) EnvVars {
 	return envVars
 }
 
-func buildDeploymentArguments(systemTestSuffix string, serviceName ServiceName) deploymentProperties {
-	envVars := getEnvVars(serviceName)
+func buildDeploymentArguments(systemTestSuffix string, serviceType service_helpers.ServiceType) deploymentProperties {
+	envVars := getEnvVars(serviceType)
 
 	devEnv := envVars.DevEnv
 	if devEnv != "" {
@@ -253,22 +248,12 @@ func buildDeploymentArguments(systemTestSuffix string, serviceName ServiceName) 
 	}
 }
 
-func getServiceOpsFile(serviceName ServiceName) string {
-	switch serviceName {
-	case Redis:
-		return "redis.yml"
-	case Kafka:
-		return "kafka.yml"
-	}
-	return ""
-}
-
-func deploy(systemTestSuffix string, serviceName ServiceName, deployCmdArgs ...string) BrokerInfo {
-	variables := buildDeploymentArguments(systemTestSuffix, serviceName)
+func deploy(systemTestSuffix string, serviceType service_helpers.ServiceType, deployCmdArgs ...string) BrokerInfo {
+	variables := buildDeploymentArguments(systemTestSuffix, serviceType)
 
 	odbReleaseTemplatesPath := variables.OdbReleaseTemplatesPath
 	baseManifest := filepath.Join(odbReleaseTemplatesPath, "base_odb_manifest.yml")
-	adapterOpsFile := filepath.Join(odbReleaseTemplatesPath, "operations", getServiceOpsFile(serviceName))
+	adapterOpsFile := filepath.Join(odbReleaseTemplatesPath, "operations", serviceType.GetServiceOpsFile())
 
 	logDeploymentProperties(variables, deployCmdArgs)
 
@@ -301,11 +286,11 @@ func deploy(systemTestSuffix string, serviceName ServiceName, deployCmdArgs ...s
 
 	consulRequired := variables.ConsulRequired == "true"
 	if consulRequired {
-		deployArguments = append(deployArguments, []string{"--ops-file", filepath.Join(odbReleaseTemplatesPath, "operations", "add_consul.yml")}...)
+		deployArguments = append(deployArguments, "--ops-file", filepath.Join(odbReleaseTemplatesPath, "operations", "add_consul.yml"))
 	}
 
 	if noClientCredentialsInVarsFile(variables.BrokerDeploymentVarsPath) {
-		deployArguments = append(deployArguments, []string{"--ops-file", filepath.Join(odbReleaseTemplatesPath, "operations", "cf_uaa_user.yml")}...)
+		deployArguments = append(deployArguments, "--ops-file", filepath.Join(odbReleaseTemplatesPath, "operations", "cf_uaa_user.yml"))
 	}
 
 	cmd := exec.Command("bosh", deployArguments...)

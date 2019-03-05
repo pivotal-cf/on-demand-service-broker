@@ -10,6 +10,7 @@ import (
 	"github.com/pborman/uuid"
 	bosh "github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
 	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/cf_helpers"
+	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/service_helpers"
 )
 
 var _ = Describe("FeatureFlags", func() {
@@ -24,7 +25,7 @@ var _ = Describe("FeatureFlags", func() {
 			uniqueID := uuid.New()[:6]
 			brokerInfo = bosh.DeployAndRegisterBroker(
 				"-feature-flag-"+uniqueID,
-				bosh.Redis,
+				service_helpers.Redis,
 				[]string{"update_service_catalog.yml", "disable_cf_ssl_verification.yml"},
 			)
 		})
@@ -90,7 +91,7 @@ var _ = Describe("FeatureFlags", func() {
 
 			brokerInfo = bosh.DeployBroker(
 				"-feature-flag-"+uniqueID,
-				bosh.Redis,
+				service_helpers.Redis,
 				[]string{"update_service_catalog.yml", "add_si_api.yml"},
 				"--var", "service_instances_api_url="+siAPIURL,
 				"--var", "service_instances_api_username="+siAPIUsername,
@@ -132,7 +133,7 @@ var _ = Describe("FeatureFlags", func() {
 			uniqueID := uuid.New()[:6]
 			brokerInfo = bosh.DeployAndRegisterBroker(
 				"-feature-flag-"+uniqueID,
-				bosh.Redis,
+				service_helpers.Redis,
 				[]string{"update_service_catalog.yml", "expose_operational_errors.yml"},
 			)
 		})

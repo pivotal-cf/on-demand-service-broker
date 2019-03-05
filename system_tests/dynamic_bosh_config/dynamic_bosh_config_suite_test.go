@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pborman/uuid"
 	bosh "github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
+	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/service_helpers"
 )
 
 func TestDynamicBoshConfig(t *testing.T) {
@@ -21,7 +22,10 @@ var (
 
 var _ = BeforeSuite(func() {
 	uniqueID := uuid.New()[:6]
-	brokerInfo = bosh.DeployAndRegisterBroker("-bosh-config-"+uniqueID, bosh.Redis, []string{"update_service_catalog.yml"})
+	brokerInfo = bosh.DeployAndRegisterBroker(
+		"-bosh-config-"+uniqueID,
+		service_helpers.Redis,
+		[]string{"update_service_catalog.yml"})
 })
 
 var _ = AfterSuite(func() {

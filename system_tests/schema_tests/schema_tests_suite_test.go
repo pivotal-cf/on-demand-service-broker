@@ -23,6 +23,7 @@ import (
 	"github.com/pborman/uuid"
 	bosh "github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
 	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/cf_helpers"
+	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/service_helpers"
 )
 
 var (
@@ -37,7 +38,10 @@ func TestSystemTests(t *testing.T) {
 var _ = BeforeSuite(func() {
 	SetDefaultEventuallyTimeout(cf.CfTimeout)
 	uniqueID := uuid.New()[:6]
-	brokerInfo = bosh.DeployAndRegisterBroker("-schema-"+uniqueID, bosh.Kafka, []string{"update_service_catalog.yml"})
+	brokerInfo = bosh.DeployAndRegisterBroker(
+		"-schema-"+uniqueID,
+		service_helpers.Kafka,
+		[]string{"update_service_catalog.yml"})
 })
 
 var _ = AfterSuite(func() {

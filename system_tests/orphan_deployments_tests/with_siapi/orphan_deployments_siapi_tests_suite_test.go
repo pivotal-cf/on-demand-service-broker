@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"github.com/pborman/uuid"
+	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/service_helpers"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -53,7 +54,7 @@ var _ = BeforeSuite(func() {
 
 	brokerInfo = bosh.DeployBroker(
 		"-orphan-deployment-with-siapi-"+uniqueID,
-		bosh.Redis,
+		service_helpers.Redis,
 		[]string{"update_service_catalog.yml", "add_si_api.yml"},
 		"--var", "service_instances_api_url="+siAPIURL,
 		"--var", "service_instances_api_username="+siAPIUsername,
