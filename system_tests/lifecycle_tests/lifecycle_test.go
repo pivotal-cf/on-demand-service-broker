@@ -241,10 +241,11 @@ func testServiceWithExampleApp(exampleAppType, testAppURL string) {
 }
 
 func testBindingWithDNS(serviceKeyRaw, bindingDNSAttribute string) {
-	serviceKeyWithoutMessageSlice := strings.Split(serviceKeyRaw, "\n")[1:]
-	onlyServiceKey := strings.Join(serviceKeyWithoutMessageSlice, "\n")
+	firstBracket := strings.Index(serviceKeyRaw, "{")
+	onlyServiceKey := serviceKeyRaw[firstBracket:]
 	var serviceKey map[string]interface{}
-	json.Unmarshal([]byte(onlyServiceKey), &serviceKey)
+	err := json.Unmarshal([]byte(onlyServiceKey), &serviceKey)
+	Expect(err).ToNot(HaveOccurred())
 
 	dnsInfo, ok := serviceKey[bindingDNSAttribute]
 	Expect(ok).To(BeTrue(), fmt.Sprintf("%s not returned in binding", bindingDNSAttribute))
