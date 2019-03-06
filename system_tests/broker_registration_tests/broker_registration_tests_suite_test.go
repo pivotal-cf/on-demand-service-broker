@@ -8,7 +8,10 @@ package broker_registration_tests
 
 import (
 	"fmt"
+
 	"github.com/pborman/uuid"
+	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/service_helpers"
+
 	"os"
 	"testing"
 
@@ -20,17 +23,17 @@ import (
 )
 
 var (
-	brokerInfo 	bosh.BrokerInfo
-	cfAdminUsername          string
-	cfAdminPassword          string
-	cfSpaceDeveloperUsername string
-	cfSpaceDeveloperPassword string
+	brokerInfo                      bosh.BrokerInfo
+	cfAdminUsername                 string
+	cfAdminPassword                 string
+	cfSpaceDeveloperUsername        string
+	cfSpaceDeveloperPassword        string
 	cfDefaultSpaceDeveloperUsername string
 	cfDefaultSpaceDeveloperPassword string
-	cfOrg                    string
-	defaultOrg                    string
-	cfSpace                  string
-	defaultSpace                  string
+	cfOrg                           string
+	defaultOrg                      string
+	cfSpace                         string
+	defaultSpace                    string
 )
 
 var _ = BeforeSuite(func() {
@@ -44,15 +47,16 @@ var _ = BeforeSuite(func() {
 	cfOrg = envMustHave("CF_ORG")
 	cfSpace = envMustHave("CF_SPACE")
 
-	defaultOrg = "org-"+uniqueID
-	defaultSpace = "space-"+uniqueID
+	defaultOrg = "org-" + uniqueID
+	defaultSpace = "space-" + uniqueID
 	cfCreateDefaultOrgAndSpace()
 
 	brokerInfo = bosh.DeployAndRegisterBroker(
 		"-broker-registration-"+uniqueID,
-		bosh.Redis,
+		bosh.BrokerDeploymentOptions{},
+		service_helpers.Redis,
 		[]string{"update_service_catalog.yml", "update_default_access_org.yml"},
-		"--var", "default_access_org=" + defaultOrg)
+		"--var", "default_access_org="+defaultOrg)
 
 	SetDefaultEventuallyTimeout(cf.CfTimeout)
 	cfCreateSpaceDevUser()
@@ -82,7 +86,7 @@ func cfCreateSpaceDevUser() {
 	Eventually(cf.Cf("set-space-role", cfSpaceDeveloperUsername, cfOrg, cfSpace, "SpaceDeveloper")).Should(gexec.Exit(0))
 }
 
-func cfCreateDefaultSpaceDevUser(){
+func cfCreateDefaultSpaceDevUser() {
 	cfLogInAsAdmin()
 	Eventually(cf.Cf("create-user", cfDefaultSpaceDeveloperUsername, cfDefaultSpaceDeveloperPassword)).Should(gexec.Exit(0))
 	Eventually(cf.Cf("set-space-role", cfDefaultSpaceDeveloperUsername, defaultOrg, defaultSpace, "SpaceDeveloper")).Should(gexec.Exit(0))
