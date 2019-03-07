@@ -74,6 +74,48 @@ var _ = Describe("Collect Service Metrics", func() {
 		})
 	})
 
+	FContext("when ODB responds with 200 in TLS", func() {
+		body := `[{"key":"/on-demand-broker/liteman/lite/total_instances","value":42,"unit":"count"}]`
+		var params []string
+
+		BeforeEach(func() {
+			server = ghttp.NewTLSServer()
+			params = []string{
+				"-brokerUsername", brokerUsername,
+				"-brokerPassword", brokerPassword,
+				"-brokerUrl", server.URL(),
+				"-skipTlsValidation=false",
+			}
+			server.AppendHandlers(ghttp.CombineHandlers(
+				ghttp.VerifyRequest("GET", "/mgmt/metrics"),
+				ghttp.VerifyBasicAuth(brokerUsername, brokerPassword),
+				ghttp.RespondWith(http.StatusOK, body, http.Header{}),
+			))
+		})
+
+		When("skipTlsValidation is set to true", func() {
+			BeforeEach(func() {
+				params = []string{
+					"-brokerUsername", brokerUsername,
+					"-brokerPassword", brokerPassword,
+					"-brokerUrl", server.URL(),
+					"-skipTlsValidation=true",
+				}
+				cmd = exec.Command(binaryPath, params...)
+			})
+
+			It("collect the metrics successfully ", func() {
+				Expect(session.ExitCode()).To(Equal(0))
+
+				Expect(server.ReceivedRequests()).To(HaveLen(1))
+
+				Expect(string(session.Out.Contents())).To(Equal(body))
+			})
+		})
+
+
+	})
+
 	Context("when the ODB responds with 500", func() {
 		BeforeEach(func() {
 			server.AppendHandlers(ghttp.CombineHandlers(

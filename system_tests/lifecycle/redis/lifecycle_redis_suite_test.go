@@ -34,14 +34,14 @@ var _ = BeforeSuite(func() {
 
 	deploymentOptions := bosh_helpers.BrokerDeploymentOptions{
 		ServiceMetrics: true,
-		BrokerTLS:      false,
+		BrokerTLS:      true,
 	}
 
 	brokerInfo = DeployAndRegisterBroker(
 		"-redis-lifecycle-"+uniqueID,
 		deploymentOptions,
 		service_helpers.Redis,
-		[]string{"basic_service_catalog.yml"},
+		[]string{"basic_service_catalog.yml", "disable_tls_validation.yml"},
 	)
 })
 

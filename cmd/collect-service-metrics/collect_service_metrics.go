@@ -27,11 +27,13 @@ func main() {
 	brokerUsername := flag.String("brokerUsername", "", "username for the broker")
 	brokerPassword := flag.String("brokerPassword", "", "password for the broker")
 	brokerUrl := flag.String("brokerUrl", "", "url of the broker")
+	skipTlsValidation := flag.Bool("skipTlsValidation", false, "set to true to skip tls validation on communication with the broker")
 	flag.Parse()
 
 	brokerMetricsUrl := *brokerUrl + "/mgmt/metrics"
 	client := herottp.New(herottp.Config{
-		Timeout: 30 * time.Second,
+		Timeout:                           30 * time.Second,
+		DisableTLSCertificateVerification: *skipTlsValidation,
 	})
 
 	request, err := http.NewRequest("GET", brokerMetricsUrl, nil)
