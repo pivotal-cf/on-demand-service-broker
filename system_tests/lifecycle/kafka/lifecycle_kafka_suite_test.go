@@ -33,7 +33,7 @@ var _ = BeforeSuite(func() {
 	dopplerAddress = os.Getenv("DOPPLER_ADDRESS")
 
 	deploymentOptions := bosh_helpers.BrokerDeploymentOptions{
-		ServiceMetrics: true,
+		ServiceMetrics: false,
 		BrokerTLS:      false,
 	}
 

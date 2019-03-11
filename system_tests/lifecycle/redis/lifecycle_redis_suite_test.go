@@ -6,11 +6,9 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
 	. "github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/env_helpers"
-	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/service_helpers"
 )
 
 func TestRedisLifecycle(t *testing.T) {
@@ -19,12 +17,12 @@ func TestRedisLifecycle(t *testing.T) {
 }
 
 var (
-	brokerInfo     BrokerInfo
-	dopplerAddress string
+	brokerInfo        BrokerInfo
+	dopplerAddress    string
+	deploymentOptions BrokerDeploymentOptions
 )
 
 var _ = BeforeSuite(func() {
-	uniqueID := uuid.New()[:6]
 	brokerInfo = BrokerInfo{}
 
 	err := env_helpers.ValidateEnvVars("DOPPLER_ADDRESS")
@@ -32,19 +30,9 @@ var _ = BeforeSuite(func() {
 
 	dopplerAddress = os.Getenv("DOPPLER_ADDRESS")
 
-	deploymentOptions := bosh_helpers.BrokerDeploymentOptions{
+	deploymentOptions = bosh_helpers.BrokerDeploymentOptions{
 		ServiceMetrics: true,
 		BrokerTLS:      true,
 	}
 
-	brokerInfo = DeployAndRegisterBroker(
-		"-redis-lifecycle-"+uniqueID,
-		deploymentOptions,
-		service_helpers.Redis,
-		[]string{"basic_service_catalog.yml", "disable_tls_validation.yml"},
-	)
-})
-
-var _ = AfterSuite(func() {
-	DeregisterAndDeleteBroker(brokerInfo.DeploymentName)
 })

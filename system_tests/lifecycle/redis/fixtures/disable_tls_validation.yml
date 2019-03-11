@@ -1,4 +1,4 @@
 - type: replace
   path: /instance_groups/name=broker/jobs/name=service-metrics-adapter/properties?
   value:
-    skip_tls_validation: true
+    disable_ssl_cert_verification: true

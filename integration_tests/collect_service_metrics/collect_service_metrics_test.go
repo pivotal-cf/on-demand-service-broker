@@ -7,6 +7,7 @@
 package collect_service_metrics
 
 import (
+	"encoding/pem"
 	"net/http"
 	"os/exec"
 	"time"
@@ -74,18 +75,12 @@ var _ = Describe("Collect Service Metrics", func() {
 		})
 	})
 
-	FContext("when ODB responds with 200 in TLS", func() {
+	Context("when ODB responds with 200 in TLS", func() {
 		body := `[{"key":"/on-demand-broker/liteman/lite/total_instances","value":42,"unit":"count"}]`
 		var params []string
 
 		BeforeEach(func() {
 			server = ghttp.NewTLSServer()
-			params = []string{
-				"-brokerUsername", brokerUsername,
-				"-brokerPassword", brokerPassword,
-				"-brokerUrl", server.URL(),
-				"-skipTlsValidation=false",
-			}
 			server.AppendHandlers(ghttp.CombineHandlers(
 				ghttp.VerifyRequest("GET", "/mgmt/metrics"),
 				ghttp.VerifyBasicAuth(brokerUsername, brokerPassword),
@@ -93,13 +88,13 @@ var _ = Describe("Collect Service Metrics", func() {
 			))
 		})
 
-		When("skipTlsValidation is set to true", func() {
+		When("disableSSLCertVerification is set to true", func() {
 			BeforeEach(func() {
 				params = []string{
 					"-brokerUsername", brokerUsername,
 					"-brokerPassword", brokerPassword,
 					"-brokerUrl", server.URL(),
-					"-skipTlsValidation=true",
+					"-disableSSLCertVerification=true",
 				}
 				cmd = exec.Command(binaryPath, params...)
 			})
@@ -113,6 +108,29 @@ var _ = Describe("Collect Service Metrics", func() {
 			})
 		})
 
+		When("CA certificate is passed in", func() {
+			BeforeEach(func() {
+				rawPem := server.HTTPTestServer.Certificate().Raw
+				pemCert := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: rawPem})
+
+				params = []string{
+					"-brokerUsername", brokerUsername,
+					"-brokerPassword", brokerPassword,
+					"-brokerUrl", server.URL(),
+					"-disableSSLCertVerification=true",
+					"-tlsCertificate", string(pemCert),
+				}
+				cmd = exec.Command(binaryPath, params...)
+			})
+
+			It("collect the metrics successfully ", func() {
+				Expect(session.ExitCode()).To(Equal(0))
+
+				Expect(server.ReceivedRequests()).To(HaveLen(1))
+
+				Expect(string(session.Out.Contents())).To(Equal(body))
+			})
+		})
 
 	})
 

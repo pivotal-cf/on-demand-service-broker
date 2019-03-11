@@ -7,6 +7,7 @@
 package main
 
 import (
+	"crypto/x509"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -27,13 +28,21 @@ func main() {
 	brokerUsername := flag.String("brokerUsername", "", "username for the broker")
 	brokerPassword := flag.String("brokerPassword", "", "password for the broker")
 	brokerUrl := flag.String("brokerUrl", "", "url of the broker")
-	skipTlsValidation := flag.Bool("skipTlsValidation", false, "set to true to skip tls validation on communication with the broker")
+	tlsCertificate := flag.String("tlsCertificate", "", "broker certificate")
+	disableSSLCertVerification := flag.Bool("disableSSLCertVerification", false, "set to true to disable SSL validation on communication with the broker")
 	flag.Parse()
+
+	rootCAs, err := x509.SystemCertPool()
+	if err != nil {
+		fatalError(err)
+	}
+	rootCAs.AppendCertsFromPEM([]byte(*tlsCertificate))
 
 	brokerMetricsUrl := *brokerUrl + "/mgmt/metrics"
 	client := herottp.New(herottp.Config{
 		Timeout:                           30 * time.Second,
-		DisableTLSCertificateVerification: *skipTlsValidation,
+		RootCAs:                           rootCAs,
+		DisableTLSCertificateVerification: *disableSSLCertVerification,
 	})
 
 	request, err := http.NewRequest("GET", brokerMetricsUrl, nil)

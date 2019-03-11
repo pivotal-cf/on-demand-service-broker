@@ -45,13 +45,13 @@ export CF_SPACE="$(bosh int --path /cf/space "$BOSH_DEPLOYMENT_VARS")"
 export DOPPLER_ADDRESS=wss://doppler.$BOSH_LITE_DOMAIN
 
 
-# bosh create-release --name on-demand-service-broker-$DEV_ENV --dir $ODB --force
-# bosh upload-release --name on-demand-service-broker-$DEV_ENV --dir $ODB --rebase
-#
-# bosh create-release --name redis-example-service-adapter-$DEV_ENV --dir $ODB/examples/redis-example-service-adapter-release --force
-# bosh upload-release --name redis-example-service-adapter-$DEV_ENV --dir $ODB/examples/redis-example-service-adapter-release --rebase
-#
-# bosh create-release --name redis-service-$DEV_ENV --dir $ODB/examples/redis-example-service-release --force
-# bosh upload-release --name redis-service-$DEV_ENV --dir $ODB/examples/redis-example-service-release --rebase
+bosh create-release --name on-demand-service-broker-$DEV_ENV --dir $ODB --force
+bosh upload-release --name on-demand-service-broker-$DEV_ENV --dir $ODB --rebase
+
+bosh create-release --name redis-example-service-adapter-$DEV_ENV --dir $ODB/examples/redis-example-service-adapter-release --force
+bosh upload-release --name redis-example-service-adapter-$DEV_ENV --dir $ODB/examples/redis-example-service-adapter-release --rebase
+
+bosh create-release --name redis-service-$DEV_ENV --dir $ODB/examples/redis-example-service-release --force
+bosh upload-release --name redis-service-$DEV_ENV --dir $ODB/examples/redis-example-service-release --rebase
 
 ./run_system_tests.sh "$@"

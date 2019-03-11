@@ -201,6 +201,7 @@ func getEnvVars(serviceType service_helpers.ServiceType) EnvVars {
 		Expect(err).ToNot(HaveOccurred())
 		envVars.ServiceAdapterReleaseName = os.Getenv("REDIS_SERVICE_ADAPTER_RELEASE_NAME")
 		envVars.ServiceReleaseName = os.Getenv("REDIS_SERVICE_RELEASE_NAME")
+		envVars.ServiceReleaseVersion = os.Getenv("REDIS_SERVICE_RELEASE_VERSION")
 	} else {
 		err := env_helpers.ValidateEnvVars(
 			"KAFKA_SERVICE_ADAPTER_RELEASE_NAME", "KAFKA_SERVICE_RELEASE_NAME",
@@ -208,8 +209,8 @@ func getEnvVars(serviceType service_helpers.ServiceType) EnvVars {
 		Expect(err).ToNot(HaveOccurred())
 		envVars.ServiceAdapterReleaseName = os.Getenv("KAFKA_SERVICE_ADAPTER_RELEASE_NAME")
 		envVars.ServiceReleaseName = os.Getenv("KAFKA_SERVICE_RELEASE_NAME")
+		envVars.ServiceReleaseVersion = os.Getenv("KAFKA_SERVICE_RELEASE_VERSION")
 	}
-	envVars.ServiceReleaseVersion = os.Getenv("SERVICE_RELEASE_VERSION")
 	return envVars
 }
 
@@ -290,14 +291,7 @@ func deploy(systemTestSuffix string, deploymentOptions BrokerDeploymentOptions, 
 
 		"--ops-file", adapterOpsFile,
 	}
-	if deploymentOptions.ServiceMetrics {
-		metricsFile := "service_metrics.yml"
-		if variables.LegacyServiceMetrics == "true" {
-			metricsFile = "service_metrics_legacy.yml"
-		}
-		enableMetrics := filepath.Join(odbReleaseTemplatesPath, "operations", metricsFile)
-		deployArguments = append(deployArguments, "--ops-file", enableMetrics)
-	}
+
 	deployArguments = append(deployArguments, deployCmdArgs...)
 
 	if deploymentOptions.BrokerTLS {
