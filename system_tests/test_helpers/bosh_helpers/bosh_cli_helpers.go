@@ -56,7 +56,6 @@ type deploymentProperties struct {
 	BrokerUsername            string
 	ConsulRequired            string
 	DeploymentName            string
-	LegacyServiceMetrics      string
 	OdbReleaseTemplatesPath   string
 	OdbVersion                string
 	ServiceAdapterReleaseName string
@@ -70,7 +69,6 @@ type EnvVars struct {
 	BrokerSystemDomain        string
 	ConsulRequired            string
 	DevEnv                    string
-	LegacyServiceMetrics      string
 	OdbReleaseTemplatesPath   string
 	OdbVersion                string
 	ServiceAdapterReleaseName string
@@ -190,7 +188,6 @@ func getEnvVars(serviceType service_helpers.ServiceType) EnvVars {
 	envVars.BrokerSystemDomain = os.Getenv("BROKER_SYSTEM_DOMAIN")
 	envVars.ConsulRequired = os.Getenv("CONSUL_REQUIRED")
 	envVars.DevEnv = os.Getenv("DEV_ENV")
-	envVars.LegacyServiceMetrics = os.Getenv("LEGACY_SERVICE_METRICS")
 	envVars.OdbReleaseTemplatesPath = os.Getenv("ODB_RELEASE_TEMPLATES_PATH")
 	envVars.OdbVersion = os.Getenv("ODB_VERSION")
 
@@ -246,7 +243,6 @@ func buildDeploymentArguments(systemTestSuffix string, serviceType service_helpe
 		BrokerURI:                 "test-service-broker" + systemTestSuffix + "." + envVars.BrokerSystemDomain,
 		BrokerUsername:            "broker",
 		ConsulRequired:            envVars.ConsulRequired,
-		LegacyServiceMetrics:      envVars.LegacyServiceMetrics,
 		DeploymentName:            "on-demand-broker" + systemTestSuffix,
 		OdbReleaseTemplatesPath:   envVars.OdbReleaseTemplatesPath,
 		OdbVersion:                odbVersion,

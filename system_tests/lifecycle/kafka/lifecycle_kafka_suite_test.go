@@ -31,6 +31,11 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred(), "Doppler address must be set")
 
 	dopplerAddress = os.Getenv("DOPPLER_ADDRESS")
+	legacyMetrics := os.Getenv("LEGACY_SERVICE_METRICS")
+	metricsOpsFile := "service_metrics.yml"
+	if legacyMetrics == "true" {
+		metricsOpsFile = "service_metrics_with_metron_agent.yml"
+	}
 
 	deploymentOptions := bosh_helpers.BrokerDeploymentOptions{
 		ServiceMetrics: true,
@@ -41,7 +46,7 @@ var _ = BeforeSuite(func() {
 		"-kafka-lifecycle-"+uniqueID,
 		deploymentOptions,
 		service_helpers.Kafka,
-		[]string{"basic_service_catalog.yml", "service_metrics.yml"},
+		[]string{"basic_service_catalog.yml", metricsOpsFile},
 	)
 })
 
