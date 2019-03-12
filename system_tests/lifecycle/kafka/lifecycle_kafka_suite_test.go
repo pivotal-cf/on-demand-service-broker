@@ -33,7 +33,7 @@ var _ = BeforeSuite(func() {
 	dopplerAddress = os.Getenv("DOPPLER_ADDRESS")
 
 	deploymentOptions := bosh_helpers.BrokerDeploymentOptions{
-		ServiceMetrics: false,
+		ServiceMetrics: true,
 		BrokerTLS:      false,
 	}
 
@@ -41,7 +41,7 @@ var _ = BeforeSuite(func() {
 		"-kafka-lifecycle-"+uniqueID,
 		deploymentOptions,
 		service_helpers.Kafka,
-		[]string{"basic_service_catalog.yml"},
+		[]string{"basic_service_catalog.yml", "service_metrics.yml"},
 	)
 })
 

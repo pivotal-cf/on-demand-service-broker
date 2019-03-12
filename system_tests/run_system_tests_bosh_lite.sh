@@ -54,4 +54,10 @@ bosh upload-release --name redis-example-service-adapter-$DEV_ENV --dir $ODB/exa
 bosh create-release --name redis-service-$DEV_ENV --dir $ODB/examples/redis-example-service-release --force
 bosh upload-release --name redis-service-$DEV_ENV --dir $ODB/examples/redis-example-service-release --rebase
 
+bosh create-release --name kafka-example-service-adapter-$DEV_ENV --dir $ODB/examples/kafka-example-service-adapter-release --force
+bosh upload-release --name kafka-example-service-adapter-$DEV_ENV --dir $ODB/examples/kafka-example-service-adapter-release --rebase
+
+bosh create-release --name kafka-example-service-$DEV_ENV --dir $ODB/examples/kafka-example-service-release --force
+bosh upload-release --name kafka-example-service-$DEV_ENV --dir $ODB/examples/kafka-example-service-release --rebase
+
 ./run_system_tests.sh "$@"
