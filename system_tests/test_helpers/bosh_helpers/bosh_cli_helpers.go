@@ -67,6 +67,7 @@ type deploymentProperties struct {
 type EnvVars struct {
 	BrokerDeploymentVarsPath  string
 	BrokerSystemDomain        string
+	BrokerURI                 string
 	ConsulRequired            string
 	DevEnv                    string
 	OdbReleaseTemplatesPath   string
@@ -74,6 +75,7 @@ type EnvVars struct {
 	ServiceAdapterReleaseName string
 	ServiceReleaseName        string
 	ServiceReleaseVersion     string
+	DeploymentName            string
 }
 
 const (
@@ -186,6 +188,8 @@ func getEnvVars(serviceType service_helpers.ServiceType) EnvVars {
 
 	envVars.BrokerDeploymentVarsPath = os.Getenv("BOSH_DEPLOYMENT_VARS")
 	envVars.BrokerSystemDomain = os.Getenv("BROKER_SYSTEM_DOMAIN")
+	envVars.BrokerURI = os.Getenv("BROKER_URI")
+	envVars.DeploymentName = os.Getenv("BROKER_DEPLOYMENT_NAME")
 	envVars.ConsulRequired = os.Getenv("CONSUL_REQUIRED")
 	envVars.DevEnv = os.Getenv("DEV_ENV")
 	envVars.OdbReleaseTemplatesPath = os.Getenv("ODB_RELEASE_TEMPLATES_PATH")
@@ -233,6 +237,16 @@ func buildDeploymentArguments(systemTestSuffix string, serviceType service_helpe
 		serviceReleaseVersion = getLatestServiceReleaseVersion(serviceReleaseName)
 	}
 
+	brokerURI := "test-service-broker" + systemTestSuffix + "." + envVars.BrokerSystemDomain
+	if envVars.BrokerURI != "" {
+		brokerURI = envVars.BrokerURI
+	}
+
+	deploymentName := "on-demand-broker" + systemTestSuffix
+	if envVars.DeploymentName != "" {
+		deploymentName = envVars.DeploymentName
+	}
+
 	return deploymentProperties{
 		BrokerReleaseName:         "on-demand-service-broker" + devEnv,
 		BrokerCN:                  "'*" + envVars.BrokerSystemDomain + "'",
@@ -240,10 +254,10 @@ func buildDeploymentArguments(systemTestSuffix string, serviceType service_helpe
 		BrokerPassword:            uuid.New()[:6],
 		BrokerRoute:               "test-odb" + systemTestSuffix,
 		BrokerSystemDomain:        envVars.BrokerSystemDomain,
-		BrokerURI:                 "test-service-broker" + systemTestSuffix + "." + envVars.BrokerSystemDomain,
+		BrokerURI:                 brokerURI,
 		BrokerUsername:            "broker",
 		ConsulRequired:            envVars.ConsulRequired,
-		DeploymentName:            "on-demand-broker" + systemTestSuffix,
+		DeploymentName:            deploymentName,
 		OdbReleaseTemplatesPath:   envVars.OdbReleaseTemplatesPath,
 		OdbVersion:                odbVersion,
 		ServiceAdapterReleaseName: serviceAdapterReleaseName,
