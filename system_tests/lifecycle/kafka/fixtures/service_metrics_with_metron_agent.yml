@@ -10,7 +10,7 @@
     name: service-metrics-adapter
     release: ((broker_release))
     properties:
-      broker_uri: https://q-s0.broker.((meta.services_subnet)).((broker_deployment_name)).bosh:8080
+      broker_uri: http://q-s0.broker.((meta.services_subnet)).((broker_deployment_name)).bosh:8080
       tls:
         ca_cert: ((broker_cert.ca))
 
