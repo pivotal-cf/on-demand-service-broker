@@ -47,7 +47,7 @@ func BasicLifecycleTest(serviceType service_helpers.ServiceType, brokerInfo bosh
 		cf_helpers.ExerciseApp(serviceType, appURL)
 	})
 
-	By("testing the app emits metrics", func() {
+	By("testing the broker emits metrics", func() {
 		testMetrics(brokerInfo, plan, dopplerAddress)
 	})
 
@@ -78,7 +78,6 @@ func testMetrics(brokerInfo bosh_helpers.BrokerInfo, plan string, dopplerAddress
 	Expect(dopplerAddress).NotTo(BeEmpty())
 
 	firehoseConsumer := consumer.New(dopplerAddress, &tls.Config{InsecureSkipVerify: true}, nil)
-	// firehoseConsumer.SetDebugPrinter(GinkgoFirehosePrinter{})
 	defer firehoseConsumer.Close()
 
 	msgChan, errChan := firehoseConsumer.Firehose("SystemTests-"+uuid.New(), cf_helpers.GetOAuthToken())
