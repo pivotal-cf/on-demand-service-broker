@@ -93,9 +93,9 @@ var _ = Describe("Server Protocol", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			log.SetOutput(GinkgoWriter)
-			_, err = http.DefaultClient.Do(req)
+			resp, err := http.DefaultClient.Do(req)
 			log.SetOutput(os.Stdout)
-			Expect(err).To(MatchError(ContainSubstring("malformed HTTP response")))
+			Expect(resp.StatusCode).To(Equal(http.StatusBadRequest))
 		})
 	})
 
