@@ -88,13 +88,13 @@ var _ = Describe("Collect Service Metrics", func() {
 			))
 		})
 
-		When("disableSSLCertVerification is set to true", func() {
+		When("skipTLSValidation is set to true", func() {
 			BeforeEach(func() {
 				params = []string{
 					"-brokerUsername", brokerUsername,
 					"-brokerPassword", brokerPassword,
 					"-brokerUrl", server.URL(),
-					"-disableSSLCertVerification=true",
+					"-skipTLSValidation=true",
 				}
 				cmd = exec.Command(binaryPath, params...)
 			})
@@ -117,8 +117,29 @@ var _ = Describe("Collect Service Metrics", func() {
 					"-brokerUsername", brokerUsername,
 					"-brokerPassword", brokerPassword,
 					"-brokerUrl", server.URL(),
-					"-disableSSLCertVerification=true",
-					"-tlsCertificate", string(pemCert),
+					"-skipTLSValidation=false",
+					"-brokerCACert", string(pemCert),
+				}
+				cmd = exec.Command(binaryPath, params...)
+			})
+
+			It("collect the metrics successfully ", func() {
+				Expect(session.ExitCode()).To(Equal(0))
+
+				Expect(server.ReceivedRequests()).To(HaveLen(1))
+
+				Expect(string(session.Out.Contents())).To(Equal(body))
+			})
+		})
+
+		When("skipTLSValidation is set to true and ca-cert passed as empty", func() {
+			BeforeEach(func() {
+				params = []string{
+					"-brokerUsername", brokerUsername,
+					"-brokerPassword", brokerPassword,
+					"-brokerUrl", server.URL(),
+					"-brokerCACert", `""`,
+					"-skipTLSValidation=true",
 				}
 				cmd = exec.Command(binaryPath, params...)
 			})
