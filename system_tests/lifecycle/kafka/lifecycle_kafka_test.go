@@ -8,6 +8,6 @@ import (
 
 var _ = Describe("Kafka Lifecycle Tests", func() {
 	It("can perform the basic service lifecycle", func() {
-		BasicLifecycleTest(service_helpers.Kafka, brokerInfo, "kafka-small", dopplerAddress)
+		BasicLifecycleTest(service_helpers.Kafka, brokerInfo, "kafka-small", "kafka-medium", `{"auto_create_topics": true}`, dopplerAddress)
 	})
 })

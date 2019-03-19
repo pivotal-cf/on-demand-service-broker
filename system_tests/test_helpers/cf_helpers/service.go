@@ -44,6 +44,22 @@ func GetServiceInstanceGUID(serviceName string) string {
 	return strings.TrimSpace(string(bytes))
 }
 
+func UpdateServiceToPlan(serviceName, newPlanName string) {
+	Eventually(
+		Cf("update-service", serviceName, "-p", newPlanName),
+		CfTimeout,
+	).Should(gexec.Exit(0))
+	AwaitServiceUpdate(serviceName)
+}
+
+func UpdateServiceWithArbitraryParams(serviceName, arbitraryParams string) {
+	Eventually(
+		Cf("update-service", serviceName, "-c", arbitraryParams),
+		CfTimeout,
+	).Should(gexec.Exit(0))
+	AwaitServiceUpdate(serviceName)
+}
+
 func AwaitInProgressOperations(serviceName string) {
 	awaitServiceOperation(
 		cfService(serviceName),

@@ -9,7 +9,7 @@ import (
 var _ = Describe("Redis Lifecycle Tests", func() {
 	Context("HTTPS Broker", func() {
 		It("can perform the basic service lifecycle", func() {
-			BasicLifecycleTest(service_helpers.Redis, brokerInfo, "redis-small", dopplerAddress)
+			BasicLifecycleTest(service_helpers.Redis, brokerInfo, "redis-small", "redis-medium",   `{ "maxclients": 100 }`, dopplerAddress)
 		})
 	})
 })

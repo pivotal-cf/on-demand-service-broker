@@ -17,7 +17,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/service_helpers"
 )
 
-func BasicLifecycleTest(serviceType service_helpers.ServiceType, brokerInfo bosh_helpers.BrokerInfo, plan string, dopplerAddress string) {
+func BasicLifecycleTest(serviceType service_helpers.ServiceType, brokerInfo bosh_helpers.BrokerInfo, plan string, newPlanName string, arbitraryParams string, dopplerAddress string) {
 	var (
 		serviceInstanceName string
 		serviceKeyName      string
@@ -49,6 +49,16 @@ func BasicLifecycleTest(serviceType service_helpers.ServiceType, brokerInfo bosh
 
 	By("testing the broker emits metrics", func() {
 		testMetrics(brokerInfo, plan, dopplerAddress)
+	})
+
+	By("testing the app works after updating the plan for the service", func(){
+		cf_helpers.UpdateServiceToPlan(serviceInstanceName, newPlanName)
+		cf_helpers.ExerciseApp(serviceType, appURL)
+	})
+
+	By("testing the app works after updating arbitrary parameters for the service", func() {
+		cf_helpers.UpdateServiceWithArbitraryParams(serviceInstanceName, arbitraryParams)
+		cf_helpers.ExerciseApp(serviceType, appURL)
 	})
 
 	By("unbinding the app", func() {
