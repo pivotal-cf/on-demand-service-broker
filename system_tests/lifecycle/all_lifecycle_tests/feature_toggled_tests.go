@@ -1,12 +1,9 @@
-package basic_lifecycle_tests
+package all_lifecycle_tests
 
 import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"strings"
-	"time"
-
 	"github.com/cloudfoundry/noaa/consumer"
 	"github.com/cloudfoundry/sonde-go/events"
 	. "github.com/onsi/ginkgo"
@@ -15,11 +12,21 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/cf_helpers"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/service_helpers"
+	"strings"
+	"time"
 )
 
-func BasicLifecycleTest(serviceType service_helpers.ServiceType, brokerInfo bosh_helpers.BrokerInfo, plan string, newPlanName string, arbitraryParams string, dopplerAddress string) {
+func FeatureToggledLifecycleTest(
+	serviceType service_helpers.ServiceType,
+	brokerInfo bosh_helpers.BrokerInfo,
+	plan string,
+	newPlanName string,
+	arbitraryParams string,
+	dopplerAddress string) {
+
 	var (
 		serviceInstanceName string
+		serviceKeyContents 	string
 		serviceKeyName      string
 		appName             string
 		appURL              string
@@ -33,8 +40,13 @@ func BasicLifecycleTest(serviceType service_helpers.ServiceType, brokerInfo bosh
 	By("creating a service key", func() {
 		serviceKeyName = "serviceKey" + brokerInfo.TestSuffix
 		cf_helpers.CreateServiceKey(serviceInstanceName, serviceKeyName)
-		serviceKeyContents := cf_helpers.GetServiceKey(serviceInstanceName, serviceKeyName)
+		serviceKeyContents = cf_helpers.GetServiceKey(serviceInstanceName, serviceKeyName)
+
 		looksLikeAServiceKey(serviceKeyContents)
+	})
+
+	By("testing binding with DNS", func(){
+		testBindingWithDNS(serviceKeyContents, "dns_addresses")
 	})
 
 	By("binding an app", func() {
@@ -43,23 +55,24 @@ func BasicLifecycleTest(serviceType service_helpers.ServiceType, brokerInfo bosh
 		appURL = cf_helpers.PushAndBindApp(appName, serviceInstanceName, appPath)
 	})
 
-	By("testing the app can communicate with service", func() {
-		cf_helpers.ExerciseApp(serviceType, appURL)
-	})
 
 	By("testing the broker emits metrics", func() {
 		testMetrics(brokerInfo, plan, dopplerAddress)
 	})
 
-	By("testing the app works after updating the plan for the service", func(){
-		cf_helpers.UpdateServiceToPlan(serviceInstanceName, newPlanName)
+	By("testing the app can communicate with service", func() {
 		cf_helpers.ExerciseApp(serviceType, appURL)
 	})
 
-	By("testing the app works after updating arbitrary parameters for the service", func() {
-		cf_helpers.UpdateServiceWithArbitraryParams(serviceInstanceName, arbitraryParams)
-		cf_helpers.ExerciseApp(serviceType, appURL)
-	})
+	//By("testing the app works after updating the plan for the service", func(){
+	//	cf_helpers.UpdateServiceToPlan(serviceInstanceName, newPlanName)
+	//	cf_helpers.ExerciseApp(serviceType, appURL)
+	//})
+	//
+	//By("testing the app works after updating arbitrary parameters for the service", func() {
+	//	cf_helpers.UpdateServiceWithArbitraryParams(serviceInstanceName, arbitraryParams)
+	//	cf_helpers.ExerciseApp(serviceType, appURL)
+	//})
 
 	By("unbinding the app", func() {
 		cf_helpers.UnbindAndDeleteApp(appName, serviceInstanceName)
@@ -74,11 +87,18 @@ func BasicLifecycleTest(serviceType service_helpers.ServiceType, brokerInfo bosh
 	})
 }
 
-func looksLikeAServiceKey(key string) {
-	var jsonmap map[string]interface{}
-	err := json.Unmarshal([]byte(key), &jsonmap)
-	Expect(err).NotTo(HaveOccurred())
-	Expect(len(jsonmap)).To(BeNumerically(">", 0))
+func testBindingWithDNS(serviceKeyRaw, bindingDNSAttribute string) {
+	var serviceKey map[string]interface{}
+	err := json.Unmarshal([]byte(serviceKeyRaw), &serviceKey)
+	Expect(err).ToNot(HaveOccurred())
+
+	dnsInfo, ok := serviceKey[bindingDNSAttribute]
+	Expect(ok).To(BeTrue(), fmt.Sprintf("%s not returned in binding", bindingDNSAttribute))
+
+	dnsInfoMap, ok := dnsInfo.(map[string]interface{})
+	Expect(ok).To(BeTrue(), fmt.Sprintf("Unable to convert dns info to map[string]interface{}, got:%t", dnsInfo))
+
+	Expect(len(dnsInfoMap)).To(BeNumerically(">", 0))
 }
 
 func testMetrics(brokerInfo bosh_helpers.BrokerInfo, plan string, dopplerAddress string) {

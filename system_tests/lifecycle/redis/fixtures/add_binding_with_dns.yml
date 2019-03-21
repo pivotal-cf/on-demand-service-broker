@@ -1,0 +1,6 @@
+- type: replace
+  path: /instance_groups/name=broker/jobs/name=broker/properties/service_catalog/plans/name=redis-small/binding_with_dns?
+  value:
+    - name: "default-redis-server"
+      link_provider: "redis"
+      instance_group: "redis-server"
