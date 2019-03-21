@@ -29,7 +29,7 @@ func main() {
 	brokerPassword := flag.String("brokerPassword", "", "password for the broker")
 	brokerUrl := flag.String("brokerUrl", "", "url of the broker")
 	brokerCACert := flag.String("brokerCACert", "", "broker CA certificate")
-	skipTLSValidation := flag.Bool("skipTLSValidation", false, "set to true to disable TLS validation on communication with the broker")
+	skipTLSValidation := flag.Bool("disableTLSCertificateVerification", false, "set to true to disable TLS verification on communication with the broker")
 	flag.Parse()
 
 	rootCAs, err := x509.SystemCertPool()
