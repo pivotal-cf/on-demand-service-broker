@@ -47,7 +47,7 @@ var _ = Describe("Redis Lifecycle Tests", func() {
 			)
 		})
 
-		FIt("can complete successfully", func() {
+		It("can complete successfully", func() {
 			FeatureToggledLifecycleTest(
 				service_helpers.Redis,
 				brokerInfo,
