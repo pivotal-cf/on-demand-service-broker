@@ -94,7 +94,7 @@ var _ = Describe("Collect Service Metrics", func() {
 					"-brokerUsername", brokerUsername,
 					"-brokerPassword", brokerPassword,
 					"-brokerUrl", server.URL(),
-					"-skipTLSValidation=true",
+					"-disableTLSCertificateVerification=true",
 				}
 				cmd = exec.Command(binaryPath, params...)
 			})
@@ -117,7 +117,7 @@ var _ = Describe("Collect Service Metrics", func() {
 					"-brokerUsername", brokerUsername,
 					"-brokerPassword", brokerPassword,
 					"-brokerUrl", server.URL(),
-					"-skipTLSValidation=false",
+					"-disableTLSCertificateVerification=false",
 					"-brokerCACert", string(pemCert),
 				}
 				cmd = exec.Command(binaryPath, params...)
@@ -139,7 +139,7 @@ var _ = Describe("Collect Service Metrics", func() {
 					"-brokerPassword", brokerPassword,
 					"-brokerUrl", server.URL(),
 					"-brokerCACert", `""`,
-					"-skipTLSValidation=true",
+					"-disableTLSCertificateVerification=true",
 				}
 				cmd = exec.Command(binaryPath, params...)
 			})
