@@ -495,6 +495,8 @@ func versionFromBOSHJson(out []byte) string {
 	Expect(err).NotTo(HaveOccurred(), "Unmarshal failed json output for tasks")
 	version := boshOutput.Tables[0].Rows[0].Version
 
+	fmt.Printf("Version of bosh is '%s'", version)
+
 	return version
 }
 
