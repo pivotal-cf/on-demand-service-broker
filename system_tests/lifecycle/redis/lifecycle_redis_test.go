@@ -41,6 +41,9 @@ var _ = Describe("Redis Lifecycle Tests", func() {
 		var brokerInfo bosh_helpers.BrokerInfo
 
 		BeforeEach(func() {
+			if !bosh_helpers.BOSHSupportsLinksAPIForDNS() {
+				Skip("PCF2.1 and lower versions do not support DNS links")
+			}
 			uniqueID := uuid.New()[:6]
 
 			brokerInfo = bosh_helpers.DeployAndRegisterBroker(
@@ -56,9 +59,6 @@ var _ = Describe("Redis Lifecycle Tests", func() {
 		})
 
 		It("can complete successfully", func() {
-			if !bosh_helpers.BOSHSupportsLinksAPIForDNS() {
-				Skip("PCF2.1 and lower versions do not support DNS links")
-			}
 
 			FeatureToggledLifecycleTest(
 				service_helpers.Redis,
