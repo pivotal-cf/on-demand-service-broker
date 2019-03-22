@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/coreos/go-semver/semver"
 	"github.com/onsi/gomega/types"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/service_helpers"
 
@@ -459,4 +460,50 @@ func noClientCredentialsInVarsFile(varsFile string) bool {
 	err = yaml.Unmarshal(varsFileContents, &test)
 	Expect(err).NotTo(HaveOccurred())
 	return test.CF.ClientCredentials.ClientID == ""
+}
+
+func BOSHSupportsLinksAPIForDNS() bool {
+	return !getBoshVersion().LessThan(semverOf("266.16.0"))
+}
+
+func getBoshVersion() semver.Version {
+	out := boshEnvironmentCommand()
+
+	stringVersion := versionFromBOSHJson(out)
+
+	return semverOf(stringVersion)
+}
+
+func boshEnvironmentCommand() []byte {
+	cmd := exec.Command("bosh", "env", "--json")
+	out, err := cmd.Output()
+	Expect(err).NotTo(HaveOccurred())
+	return out
+}
+
+func versionFromBOSHJson(out []byte) string {
+	var boshOutput struct {
+		Tables []struct {
+			Rows []struct {
+				Version string `json:"version"`
+			}
+		}
+	}
+
+	err := json.Unmarshal(out, &boshOutput)
+
+	Expect(err).NotTo(HaveOccurred(), "Unmarshal failed json output for tasks")
+	version := boshOutput.Tables[0].Rows[0].Version
+
+	return version
+}
+
+func semverOf(version string) semver.Version {
+	splits := strings.Split(version, " ")
+	Expect(len(splits)).To(BeNumerically(">", 0))
+	boshVersion, err := semver.NewVersion(splits[0])
+
+	Expect(err).NotTo(HaveOccurred())
+
+	return *boshVersion
 }

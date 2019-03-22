@@ -57,6 +57,10 @@ var _ = Describe("Redis Lifecycle Tests", func() {
 		})
 
 		It("can complete successfully", func() {
+			if !bosh_helpers.BOSHSupportsLinksAPIForDNS() {
+				Skip("PCF2.1 and lower versions do not support DNS links")
+			}
+
 			FeatureToggledLifecycleTest(
 				service_helpers.Redis,
 				brokerInfo,
