@@ -17,7 +17,6 @@ func TestRedisLifecycle(t *testing.T) {
 }
 
 var (
-	brokerInfo        BrokerInfo
 	dopplerAddress    string
 	deploymentOptions BrokerDeploymentOptions
 	metricsOpsFile string
@@ -38,8 +37,4 @@ var _ = BeforeSuite(func() {
 		ServiceMetrics: true,
 		BrokerTLS:      true,
 	}
-})
-
-var _ = AfterSuite(func() {
-	bosh_helpers.DeregisterAndDeleteBroker(brokerInfo.DeploymentName)
 })
