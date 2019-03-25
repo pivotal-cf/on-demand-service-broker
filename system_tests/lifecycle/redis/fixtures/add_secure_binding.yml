@@ -1,0 +1,46 @@
+---
+- type: replace
+  path: /instance_groups/name=broker/jobs/name=broker/consumes?
+  value:
+    credhub:
+      from: credhub
+      deployment: cf
+
+- type: replace
+  path: /instance_groups/name=broker/jobs/name=broker/properties/secure_binding_credentials?
+  value:
+    enabled: true
+    authentication:
+      uaa:
+        ca_cert: ((cf.uaa.ca_cert))
+        client_id: credhub_admin_client
+        client_secret: ((credhub.client_secret))
+
+
+- type: replace
+  path: /instance_groups/name=broker/jobs/-
+  value:
+    name: bosh-dns-aliases
+    properties:
+      aliases:
+      - domain: credhub.service.cf.internal
+        targets:
+        - deployment: cf
+          domain: bosh
+          instance_group: credhub
+          network: default
+          query: '*'
+      - domain: uaa.service.cf.internal
+        targets:
+        - deployment: cf
+          domain: bosh
+          instance_group: uaa
+          network: default
+          query: '*'
+    release: bosh-dns-aliases
+
+- type: replace
+  path: /releases/-
+  value:
+    name: bosh-dns-aliases
+    version: latest

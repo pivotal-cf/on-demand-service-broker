@@ -4,6 +4,9 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"strings"
+	"time"
+
 	"github.com/cloudfoundry/noaa/consumer"
 	"github.com/cloudfoundry/sonde-go/events"
 	. "github.com/onsi/ginkgo"
@@ -12,8 +15,6 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/cf_helpers"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/service_helpers"
-	"strings"
-	"time"
 )
 
 func FeatureToggledLifecycleTest(
@@ -26,7 +27,7 @@ func FeatureToggledLifecycleTest(
 
 	var (
 		serviceInstanceName string
-		serviceKeyContents 	string
+		serviceKeyContents  string
 		serviceKeyName      string
 		appName             string
 		appURL              string
@@ -45,7 +46,7 @@ func FeatureToggledLifecycleTest(
 		looksLikeAServiceKey(serviceKeyContents)
 	})
 
-	By("testing binding with DNS", func(){
+	By("testing binding with DNS", func() {
 		testBindingWithDNS(serviceKeyContents, "dns_addresses")
 	})
 
@@ -55,6 +56,9 @@ func FeatureToggledLifecycleTest(
 		appURL = cf_helpers.PushAndBindApp(appName, serviceInstanceName, appPath)
 	})
 
+	By("ensuring the binding is a runtime credhub reference", func() {
+		testSecureBindings(brokerInfo, appName)
+	})
 
 	By("testing the broker emits metrics", func() {
 		testMetrics(brokerInfo, plan, dopplerAddress)
@@ -64,15 +68,15 @@ func FeatureToggledLifecycleTest(
 		cf_helpers.ExerciseApp(serviceType, appURL)
 	})
 
-	//By("testing the app works after updating the plan for the service", func(){
-	//	cf_helpers.UpdateServiceToPlan(serviceInstanceName, newPlanName)
-	//	cf_helpers.ExerciseApp(serviceType, appURL)
-	//})
-	//
-	//By("testing the app works after updating arbitrary parameters for the service", func() {
-	//	cf_helpers.UpdateServiceWithArbitraryParams(serviceInstanceName, arbitraryParams)
-	//	cf_helpers.ExerciseApp(serviceType, appURL)
-	//})
+	By("testing the app works after updating the plan for the service", func() {
+		cf_helpers.UpdateServiceToPlan(serviceInstanceName, newPlanName)
+		cf_helpers.ExerciseApp(serviceType, appURL)
+	})
+
+	By("testing the app works after updating arbitrary parameters for the service", func() {
+		cf_helpers.UpdateServiceWithArbitraryParams(serviceInstanceName, arbitraryParams)
+		cf_helpers.ExerciseApp(serviceType, appURL)
+	})
 
 	By("unbinding the app", func() {
 		cf_helpers.UnbindAndDeleteApp(appName, serviceInstanceName)
@@ -99,6 +103,16 @@ func testBindingWithDNS(serviceKeyRaw, bindingDNSAttribute string) {
 	Expect(ok).To(BeTrue(), fmt.Sprintf("Unable to convert dns info to map[string]interface{}, got:%t", dnsInfo))
 
 	Expect(len(dnsInfoMap)).To(BeNumerically(">", 0))
+}
+
+func testSecureBindings(brokerInfo bosh_helpers.BrokerInfo, appName string) {
+	bindingCredentials, err := cf_helpers.AppBindingCreds(appName, brokerInfo.ServiceOffering)
+	Expect(err).NotTo(HaveOccurred())
+	credMap, ok := bindingCredentials.(map[string]interface{})
+	Expect(ok).To(BeTrue())
+	credhubRef, ok := credMap["credhub-ref"].(string)
+	Expect(ok).To(BeTrue(), fmt.Sprintf("unable to find credhub-ref in credentials %+v", credMap))
+	Expect(credhubRef).To(ContainSubstring("/c/%s", brokerInfo.ServiceOffering))
 }
 
 func testMetrics(brokerInfo bosh_helpers.BrokerInfo, plan string, dopplerAddress string) {
