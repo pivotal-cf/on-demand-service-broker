@@ -4,7 +4,7 @@
   value:
     credhub:
       from: credhub
-      deployment: cf
+      deployment: ((cf.deployment_name))
 
 - type: replace
   path: /instance_groups/name=broker/jobs/name=broker/properties/secure_binding_credentials?
@@ -13,7 +13,7 @@
     authentication:
       uaa:
         ca_cert: ((cf.uaa.ca_cert))
-        client_id: credhub_admin_client
+        client_id: ((credhub.client_id))
         client_secret: ((credhub.client_secret))
 
 
@@ -25,16 +25,16 @@
       aliases:
       - domain: credhub.service.cf.internal
         targets:
-        - deployment: cf
+        - deployment: ((cf.deployment_name))
           domain: bosh
-          instance_group: credhub
+          instance_group: ((cf.instance_group_for_credhub))
           network: default
           query: '*'
       - domain: uaa.service.cf.internal
         targets:
-        - deployment: cf
+        - deployment: ((cf.deployment_name))
           domain: bosh
-          instance_group: uaa
+          instance_group: ((cf.instance_group_for_uaa))
           network: default
           query: '*'
     release: bosh-dns-aliases
