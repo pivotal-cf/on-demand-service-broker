@@ -1,20 +1,25 @@
 #!/usr/bin/env bash
 usage() {
-	echo "$0 <env name> <test to run>"
+	echo "$0 <test to run>"
 	exit 1
 }
 
-if [ "$#" != "2" ]; then
+if [ "$#" != "1" ]; then
 	usage
 fi
 
-env_name="${1:-$(cat $ENV_PATH/name)}"
-shift
+if [ -z "$BOSH_LITE_NAME" ]; then
+    echo "BOSH_LITE_NAME not set. Did you run target-lite?"
+    exit 1
+fi
+
+env_name="$BOSH_LITE_NAME"
 
 source $HOME/workspace/services-enablement-lites-pool/bosh-lites/**/${env_name}
 
 $META/concourse/bosh-lites-pool/tasks/make-broker-deployment-vars.sh "${env_name}" > /tmp/broker-${env_name}.yml
 
+export GOPATH="$ODB"
 export BOSH_DEPLOYMENT_VARS="/tmp/broker-${env_name}.yml"
 export BROKER_SYSTEM_DOMAIN="$BOSH_LITE_DOMAIN"
 export CONSUL_REQUIRED=false
@@ -43,7 +48,6 @@ export CF_PASSWORD="$(bosh int --path /cf/user_credentials/password "$BOSH_DEPLO
 export CF_ORG="$(bosh int --path /cf/org "$BOSH_DEPLOYMENT_VARS")"
 export CF_SPACE="$(bosh int --path /cf/space "$BOSH_DEPLOYMENT_VARS")"
 export DOPPLER_ADDRESS=wss://doppler.$BOSH_LITE_DOMAIN
-
 
 bosh create-release --name on-demand-service-broker-$DEV_ENV --dir $ODB --force
 bosh upload-release --name on-demand-service-broker-$DEV_ENV --dir $ODB --rebase
