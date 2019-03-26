@@ -15,32 +15,3 @@
         ca_cert: ((cf.uaa.ca_cert))
         client_id: ((credhub.client_id))
         client_secret: ((credhub.client_secret))
-
-
-- type: replace
-  path: /instance_groups/name=broker/jobs/-
-  value:
-    name: bosh-dns-aliases
-    properties:
-      aliases:
-      - domain: credhub.service.cf.internal
-        targets:
-        - deployment: ((cf.deployment_name))
-          domain: bosh
-          instance_group: ((cf.instance_group_for_credhub))
-          network: default
-          query: '*'
-      - domain: uaa.service.cf.internal
-        targets:
-        - deployment: ((cf.deployment_name))
-          domain: bosh
-          instance_group: ((cf.instance_group_for_uaa))
-          network: default
-          query: '*'
-    release: bosh-dns-aliases
-
-- type: replace
-  path: /releases/-
-  value:
-    name: bosh-dns-aliases
-    version: latest
