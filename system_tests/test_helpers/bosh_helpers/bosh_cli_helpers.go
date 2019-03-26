@@ -349,6 +349,14 @@ func logDeploymentProperties(variables deploymentProperties, deployCmdArgs []str
 	fmt.Println("")
 }
 
+func GetManifest(deploymentName string) string {
+	cmd := exec.Command("bosh", "-d", deploymentName, "manifest")
+	out, err := cmd.Output()
+	Expect(err).NotTo(HaveOccurred())
+
+	return string(out)
+}
+
 func GetBOSHConfig(configType, configName string) (string, error) {
 	args := []string{
 		"config",

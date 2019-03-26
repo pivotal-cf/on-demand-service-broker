@@ -1,0 +1,57 @@
+// Copyright (C) 2015-Present Pivotal Software, Inc. All rights reserved.
+
+// This program and the accompanying materials are made available under
+// the terms of the under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+
+// http://www.apache.org/licenses/LICENSE-2.0
+
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package secure_manifests_test
+
+import (
+	"os"
+	"testing"
+
+	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/credhub_helpers"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	"github.com/pborman/uuid"
+	. "github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
+	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/service_helpers"
+)
+
+func TestSecureManifests(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "SecureManifests Suite")
+}
+
+var (
+	brokerInfo BrokerInfo
+	credhubCLI *credhub_helpers.CredHubCLI
+)
+
+var _ = BeforeSuite(func() {
+	uniqueID := uuid.New()[:6]
+	brokerInfo = BrokerInfo{}
+
+	brokerInfo = DeployAndRegisterBroker(
+		"-secure-manifests-"+uniqueID,
+		BrokerDeploymentOptions{},
+		service_helpers.Redis,
+		[]string{"basic_service_catalog.yml", "enable_secure_manifests.yml"},
+	)
+
+	credhubCLI = credhub_helpers.NewCredHubCLI(os.Getenv("CREDHUB_CLIENT"), os.Getenv("CREDHUB_SECRET"))
+})
+
+var _ = AfterSuite(func() {
+	DeregisterAndDeleteBroker(brokerInfo.DeploymentName)
+})

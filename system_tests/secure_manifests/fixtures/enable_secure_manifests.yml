@@ -1,0 +1,19 @@
+---
+- type: replace
+  path: /instance_groups/name=broker/jobs/name=broker/properties/enable_secure_manifests?
+  value: true
+
+- type: replace
+  path: /instance_groups/name=broker/jobs/name=service-adapter/properties/secure_manifests_enabled?
+  value: true
+
+- type: replace
+  path: /instance_groups/name=broker/jobs/name=broker/properties/bosh_credhub_api?
+  value:
+    url: ((bosh_credhub_api.url))
+    root_ca_cert: ((bosh_credhub_api.root_ca_cert))
+    authentication:
+      uaa:
+        client_credentials:
+          client_id: ((bosh_credhub_api.authentication.uaa.client_credentials.client_id))
+          client_secret: ((bosh_credhub_api.authentication.uaa.client_credentials.client_secret))

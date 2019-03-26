@@ -55,7 +55,7 @@ var _ = Describe("ODB Secrets", func() {
 	})
 
 	Describe("ReplaceODBRefs", func() {
-		It("replaces odb_secret:foo with /odb/<dep-name>/<svc-id>/foo", func() {
+		It("replaces odb_secret:foo", func() {
 			manifest := fmt.Sprintf("name: ((%s:foo))\nsecret: ((%[1]s:bar))", serviceadapter.ODBSecretPrefix)
 			secrets := []broker.ManifestSecret{
 				{Name: "foo", Value: "something", Path: "/odb/jim/bob/foo"},
