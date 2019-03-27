@@ -12,9 +12,9 @@ import (
 	bosh "github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
 )
 
-func TestServiceCatalog(t *testing.T) {
+func TestMaintenanceInfo(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "ServiceCatalog Suite")
+	RunSpecs(t, "MaintenanceInfo Suite")
 }
 
 var (
