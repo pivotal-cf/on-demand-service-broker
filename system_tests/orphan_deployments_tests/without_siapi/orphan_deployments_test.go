@@ -8,6 +8,7 @@ package orphan_deployments_tests
 
 import (
 	"fmt"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
@@ -24,8 +25,8 @@ var _ = Describe("orphan deployments errand", func() {
 		)
 
 		BeforeEach(func() {
-			orphanInstanceName = "orphan-" + uuid.New()[:7]
-			anotherInstanceName = "orphan-" + uuid.New()[:7]
+			orphanInstanceName = "instance-to-purge-" + uuid.New()[:7]
+			anotherInstanceName = "instance-to-keep-" + uuid.New()[:7]
 
 			cf.CreateService(brokerInfo.ServiceOffering, "redis-orphan-without-siapi", orphanInstanceName, "")
 			cf.CreateService(brokerInfo.ServiceOffering, "redis-orphan-without-siapi", anotherInstanceName, "")
@@ -41,6 +42,7 @@ var _ = Describe("orphan deployments errand", func() {
 			orphanInstanceGUID := cf.ServiceInstanceGUID(orphanInstanceName)
 			orphanInstanceDeploymentName := fmt.Sprintf("service-instance_%s", orphanInstanceGUID)
 			anotherInstanceGUID := cf.ServiceInstanceGUID(anotherInstanceName)
+			anotherInstanceDeploymentName := fmt.Sprintf("service-instance_%s", anotherInstanceGUID)
 
 			By("purging one service instance")
 			Eventually(cf.Cf("purge-service-instance", orphanInstanceName, "-f"), cf.CfTimeout).Should(gexec.Exit(0))
@@ -53,8 +55,9 @@ var _ = Describe("orphan deployments errand", func() {
 			Expect(string(session.Buffer().Contents())).To(SatisfyAll(
 				ContainSubstring("Orphan BOSH deployments detected"),
 				ContainSubstring(`{"deployment_name":"%s"}`, orphanInstanceDeploymentName),
-				Not(ContainSubstring(anotherInstanceGUID)),
+				Not(ContainSubstring(anotherInstanceDeploymentName)),
 			))
+
 		})
 	})
 })
