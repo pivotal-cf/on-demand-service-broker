@@ -49,48 +49,6 @@ var _ = Describe("Startup", func() {
 		})
 	})
 
-	Context("when service deployment has invalid versions", func() {
-		var (
-			boshDirector *mockbosh.MockBOSH
-			boshUAA      *mockuaa.ClientCredentialsServer
-			cfAPI        *mockhttp.Server
-			cfUAA        *mockuaa.ClientCredentialsServer
-			conf         config.Config
-		)
-
-		BeforeEach(func() {
-			boshUAA = mockuaa.NewClientCredentialsServerTLS(boshClientID, boshClientSecret, pathToSSLCerts("cert.pem"), pathToSSLCerts("key.pem"), "bosh uaa token")
-			boshDirector = mockbosh.NewWithUAA(boshUAA.URL)
-
-			cfAPI = mockcfapi.New()
-			cfUAA = mockuaa.NewClientCredentialsServer(cfUaaClientID, cfUaaClientSecret, "CF UAA token")
-
-			conf = defaultBrokerConfig(boshDirector.URL, boshUAA.URL, cfAPI.URL, cfUAA.URL)
-		})
-
-		AfterEach(func() {
-			if runningBroker != nil {
-				Eventually(runningBroker.Terminate()).Should(gexec.Exit())
-			}
-			boshDirector.VerifyMocks()
-			boshDirector.Close()
-			boshUAA.Close()
-			cfAPI.VerifyMocks()
-			cfAPI.Close()
-			cfUAA.Close()
-		})
-
-		It("exits with error", func() {
-			conf.ServiceDeployment.Stemcell.Version = "latest"
-			runningBroker = startBrokerWithoutPortCheck(conf)
-			Eventually(runningBroker).Should(gexec.Exit())
-			Expect(runningBroker.ExitCode()).ToNot(Equal(0))
-			Eventually(runningBroker.Out).Should(gbytes.Say(
-				"You must configure the exact release and stemcell versions in broker.service_deployment. ODB requires exact versions to detect pending changes as part of the 'cf update-service' workflow. For example, latest and 3112.latest are not supported.",
-			))
-		})
-	})
-
 	Describe("CF api", func() {
 		var (
 			boshDirector *mockbosh.MockBOSH

@@ -163,11 +163,6 @@ func (s ServiceDeployment) Validate() error {
 			return err
 		}
 	}
-
-	if err := assertVersion(s.Stemcell.Version); err != nil {
-		return err
-	}
-
 	return nil
 }
 

@@ -623,26 +623,6 @@ var _ = Describe("Broker Config", func() {
 					Expect(parseErr).To(MatchError(ContainSubstring(latestFailureMessage)))
 				})
 			})
-
-			Context("when a stemcell version is n.latest", func() {
-				BeforeEach(func() {
-					configFileName = "service_deployment_with_latest_stemcell.yml"
-				})
-
-				It("returns an error", func() {
-					Expect(parseErr).To(MatchError(ContainSubstring(latestFailureMessage)))
-				})
-			})
-
-			Context("when a release version is invalid", func() {
-				BeforeEach(func() {
-					configFileName = "service_deployment_with_n_latest_stemcell.yml"
-				})
-
-				It("returns an error", func() {
-					Expect(parseErr).To(MatchError(ContainSubstring(latestFailureMessage)))
-				})
-			})
 		})
 
 		Context("Service Instance API", func() {
