@@ -1,14 +1,18 @@
 #!/usr/bin/env bash
+
 usage() {
-	echo "$0 <test to run>"
+	echo "$0 <test to run> "
+	echo ""
+	echo "Options"
+	echo "-skip-upload-releases : Will not create and upload broker, service and service adapter releases"
 	exit 1
 }
 
-if [ "$#" != "1" ]; then
+if [[ "$#" < "1" ]]; then
 	usage
 fi
 
-if [ -z "$BOSH_LITE_NAME" ]; then
+if [[ -z "$BOSH_LITE_NAME" ]]; then
     echo "BOSH_LITE_NAME not set. Did you run target-lite?"
     exit 1
 fi
@@ -49,19 +53,27 @@ export CF_ORG="$(bosh int --path /cf/org "$BOSH_DEPLOYMENT_VARS")"
 export CF_SPACE="$(bosh int --path /cf/space "$BOSH_DEPLOYMENT_VARS")"
 export DOPPLER_ADDRESS=wss://doppler.$BOSH_LITE_DOMAIN
 
-bosh create-release --name on-demand-service-broker-$DEV_ENV --dir $ODB --force
-bosh upload-release --name on-demand-service-broker-$DEV_ENV --dir $ODB --rebase
 
-bosh create-release --name redis-example-service-adapter-$DEV_ENV --dir $ODB/examples/redis-example-service-adapter-release --force
-bosh upload-release --name redis-example-service-adapter-$DEV_ENV --dir $ODB/examples/redis-example-service-adapter-release --rebase
+uploadReleases(){
+    bosh create-release --name on-demand-service-broker-$DEV_ENV --dir $ODB --force
+    bosh upload-release --name on-demand-service-broker-$DEV_ENV --dir $ODB --rebase
 
-bosh create-release --name redis-service-$DEV_ENV --dir $ODB/examples/redis-example-service-release --force
-bosh upload-release --name redis-service-$DEV_ENV --dir $ODB/examples/redis-example-service-release --rebase
+    bosh create-release --name redis-example-service-adapter-$DEV_ENV --dir $ODB/examples/redis-example-service-adapter-release --force
+    bosh upload-release --name redis-example-service-adapter-$DEV_ENV --dir $ODB/examples/redis-example-service-adapter-release --rebase
 
-bosh create-release --name kafka-example-service-adapter-$DEV_ENV --dir $ODB/examples/kafka-example-service-adapter-release --force
-bosh upload-release --name kafka-example-service-adapter-$DEV_ENV --dir $ODB/examples/kafka-example-service-adapter-release --rebase
+    bosh create-release --name redis-service-$DEV_ENV --dir $ODB/examples/redis-example-service-release --force
+    bosh upload-release --name redis-service-$DEV_ENV --dir $ODB/examples/redis-example-service-release --rebase
 
-bosh create-release --name kafka-example-service-$DEV_ENV --dir $ODB/examples/kafka-example-service-release --force
-bosh upload-release --name kafka-example-service-$DEV_ENV --dir $ODB/examples/kafka-example-service-release --rebase
+    bosh create-release --name kafka-example-service-adapter-$DEV_ENV --dir $ODB/examples/kafka-example-service-adapter-release --force
+    bosh upload-release --name kafka-example-service-adapter-$DEV_ENV --dir $ODB/examples/kafka-example-service-adapter-release --rebase
+
+    bosh create-release --name kafka-example-service-$DEV_ENV --dir $ODB/examples/kafka-example-service-release --force
+    bosh upload-release --name kafka-example-service-$DEV_ENV --dir $ODB/examples/kafka-example-service-release --rebase
+
+}
+if [ "$2" != "-skip-upload-releases" ]; then
+    uploadReleases
+fi
+
 
 ./run_system_tests.sh "$@"
