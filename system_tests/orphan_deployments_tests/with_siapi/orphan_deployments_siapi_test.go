@@ -17,6 +17,7 @@ package orphan_deployments_tests
 
 import (
 	"fmt"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
@@ -41,8 +42,8 @@ var _ = Describe("orphan deployments errand", func() {
 				Username: brokerInfo.BrokerUsername,
 				Password: brokerInfo.BrokerPassword,
 			}
-			orphanInstanceGUID = uuid.New()
-			nonOrphanInstanceGUID = uuid.New()
+			orphanInstanceGUID = "instance-to-purge-" + uuid.New()
+			nonOrphanInstanceGUID = "instance-to-keep-" + uuid.New()
 
 			provResp1 := brokerAPIClient.Provision(orphanInstanceGUID, brokerInfo.ServiceOffering, brokerInfo.PlanID)
 			provResp2 := brokerAPIClient.Provision(nonOrphanInstanceGUID, brokerInfo.ServiceOffering, brokerInfo.PlanID)
