@@ -73,10 +73,10 @@ var _ = Describe("external service adapter", func() {
 			Releases: sdk.ServiceReleases{
 				{Name: "a-bosh-release"},
 			},
-			Stemcell: sdk.Stemcell{
+			Stemcells: []sdk.Stemcell{{
 				OS:      "BeOS",
 				Version: "2",
-			},
+			}},
 		}
 
 		plan = sdk.Plan{

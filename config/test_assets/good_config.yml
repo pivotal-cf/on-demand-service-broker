@@ -43,9 +43,9 @@ service_deployment:
     - name: some-name
       version: some-version
       jobs: [some-job]
-  stemcell:
-    os: ubuntu-trusty
-    version: 1234
+  stemcells:
+    - os: ubuntu-trusty
+      version: 1234
 service_catalog:
   id: some-id
   service_name: some-marketplace-name

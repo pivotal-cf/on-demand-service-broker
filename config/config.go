@@ -154,7 +154,7 @@ func (b Broker) Validate() error {
 
 type ServiceDeployment struct {
 	Releases serviceadapter.ServiceReleases
-	Stemcell serviceadapter.Stemcell
+	Stemcells []serviceadapter.Stemcell
 }
 
 func (s ServiceDeployment) Validate() error {

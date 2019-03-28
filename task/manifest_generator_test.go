@@ -21,11 +21,11 @@ import (
 
 var _ = Describe("Manifest Generator", func() {
 	var (
-		mg              ManifestGenerator
-		serviceStemcell serviceadapter.Stemcell
-		serviceReleases serviceadapter.ServiceReleases
-		serviceAdapter  *fakes.FakeServiceAdapterClient
-		serviceCatalog  config.ServiceOffering
+		mg               ManifestGenerator
+		serviceStemcells []serviceadapter.Stemcell
+		serviceReleases  serviceadapter.ServiceReleases
+		serviceAdapter   *fakes.FakeServiceAdapterClient
+		serviceCatalog   config.ServiceOffering
 
 		existingPlan  config.Plan
 		secondPlan    config.Plan
@@ -110,10 +110,10 @@ var _ = Describe("Manifest Generator", func() {
 			Jobs:    []string{"a", "b"},
 		}}
 
-		serviceStemcell = serviceadapter.Stemcell{
+		serviceStemcells = []serviceadapter.Stemcell{{
 			OS:      "ubuntu-trusty",
 			Version: "1234",
-		}
+		}}
 
 		serviceAdapter = new(fakes.FakeServiceAdapterClient)
 
@@ -129,7 +129,7 @@ var _ = Describe("Manifest Generator", func() {
 		mg = NewManifestGenerator(
 			serviceAdapter,
 			serviceCatalog,
-			serviceStemcell,
+			serviceStemcells,
 			serviceReleases,
 		)
 
@@ -200,7 +200,7 @@ var _ = Describe("Manifest Generator", func() {
 				expectedServiceDeployment := serviceadapter.ServiceDeployment{
 					DeploymentName: deploymentName,
 					Releases:       serviceReleases,
-					Stemcell:       serviceStemcell,
+					Stemcells:       serviceStemcells,
 				}
 				Expect(passedServiceDeployment).To(Equal(expectedServiceDeployment))
 			})

@@ -44,7 +44,7 @@ func Initiate(conf config.Config,
 	manifestGenerator := task.NewManifestGenerator(
 		serviceAdapter,
 		conf.ServiceCatalog,
-		conf.ServiceDeployment.Stemcell,
+		conf.ServiceDeployment.Stemcells,
 		conf.ServiceDeployment.Releases,
 	)
 	odbSecrets := manifestsecrets.ODBSecrets{ServiceOfferingID: conf.ServiceCatalog.ID}

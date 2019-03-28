@@ -33,20 +33,20 @@ type ServiceAdapterClient interface {
 type manifestGenerator struct {
 	adapterClient   ServiceAdapterClient
 	serviceOffering config.ServiceOffering
-	serviceStemcell serviceadapter.Stemcell
+	serviceStemcells []serviceadapter.Stemcell
 	serviceReleases serviceadapter.ServiceReleases
 }
 
 func NewManifestGenerator(
 	serviceAdapter ServiceAdapterClient,
 	serviceOffering config.ServiceOffering,
-	serviceStemcell serviceadapter.Stemcell,
+	serviceStemcells []serviceadapter.Stemcell,
 	serviceReleases serviceadapter.ServiceReleases,
 ) manifestGenerator {
 	return manifestGenerator{
 		adapterClient:   serviceAdapter,
 		serviceOffering: serviceOffering,
-		serviceStemcell: serviceStemcell,
+		serviceStemcells: serviceStemcells,
 		serviceReleases: serviceReleases,
 	}
 }
@@ -66,7 +66,7 @@ func (m manifestGenerator) GenerateManifest(
 	serviceDeployment := serviceadapter.ServiceDeployment{
 		DeploymentName: deploymentName,
 		Releases:       m.serviceReleases,
-		Stemcell:       m.serviceStemcell,
+		Stemcells:       m.serviceStemcells,
 	}
 
 	plan, previousPlan, err := m.findPlans(planID, previousPlanID)

@@ -65,7 +65,7 @@ func StartServer(
 		UsingStdin:    true,
 	}
 
-	taskManifestGenerator := task.NewManifestGenerator(serviceAdapterClient, conf.ServiceCatalog, serviceadapter.Stemcell{}, serviceadapter.ServiceReleases{})
+	taskManifestGenerator := task.NewManifestGenerator(serviceAdapterClient, conf.ServiceCatalog, []serviceadapter.Stemcell{}, serviceadapter.ServiceReleases{})
 	odbSecrets := manifestsecrets.ODBSecrets{ServiceOfferingID: conf.ServiceCatalog.ID}
 	deployer := task.NewDeployer(fakeTaskBoshClient, taskManifestGenerator, odbSecrets, fakeTaskBulkSetter)
 	deployer.DisableBoshConfigs = conf.Broker.DisableBoshConfigs

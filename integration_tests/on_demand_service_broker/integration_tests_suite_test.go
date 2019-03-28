@@ -306,10 +306,10 @@ func defaultBrokerConfig(boshURL, uaaURL, cfURL, cfUAAURL string) config.Config 
 					Jobs:    []string{"job-name"},
 				},
 			},
-			Stemcell: serviceadapter.Stemcell{
+			Stemcells: []serviceadapter.Stemcell{{
 				OS:      stemcellOS,
 				Version: stemcellVersion,
-			},
+			}},
 		},
 		ServiceCatalog: config.ServiceOffering{
 			ID:            serviceID,

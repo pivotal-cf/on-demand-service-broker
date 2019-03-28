@@ -102,7 +102,7 @@ var _ = Describe("Broker Config", func() {
 							Version: "some-version",
 							Jobs:    []string{"some-job"},
 						}},
-						Stemcell: serviceadapter.Stemcell{OS: "ubuntu-trusty", Version: "1234"},
+						Stemcells: []serviceadapter.Stemcell{{OS: "ubuntu-trusty", Version: "1234"}},
 					},
 					ServiceCatalog: config.ServiceOffering{
 						ID:            "some-id",
