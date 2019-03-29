@@ -580,8 +580,9 @@ type InstanceIteratorConfig struct {
 }
 
 type BrokerAPI struct {
-	URL            string         `yaml:"url"`
-	Authentication Authentication `yaml:"authentication"`
+	URL            string          `yaml:"url"`
+	Authentication Authentication  `yaml:"authentication"`
+	TLS            ErrandTLSConfig `yaml:"tls"`
 }
 
 type ServiceInstancesAPI struct {
@@ -605,4 +606,8 @@ type BindingDNSProperties struct {
 
 type OrphanDeploymentsErrandConfig struct {
 	BrokerAPI BrokerAPI `yaml:"broker_api"`
+}
+
+type ErrandTLSConfig struct {
+	CaCert string `yaml:"ca_cert""`
 }

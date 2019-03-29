@@ -7,6 +7,7 @@
 package main
 
 import (
+	"crypto/x509"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -50,8 +51,15 @@ func main() {
 		logger.Fatalf("failed to unmarshal errand config: %s\n", err.Error())
 	}
 
+	rootCAs, err := x509.SystemCertPool()
+	if err != nil {
+		logger.Fatalf("error retrieving root ca's: %s", err)
+	}
+	rootCAs.AppendCertsFromPEM([]byte(errandConfig.BrokerAPI.TLS.CaCert))
+
 	httpClient := herottp.New(herottp.Config{
 		Timeout: 30 * time.Second,
+		RootCAs: rootCAs,
 	})
 
 	brokerUsername := errandConfig.BrokerAPI.Authentication.Basic.Username

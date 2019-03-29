@@ -23,11 +23,16 @@ var (
 
 var _ = BeforeSuite(func() {
 	uniqueID := uuid.New()[:6]
+
+	deploymentOptions := bosh.BrokerDeploymentOptions{
+		BrokerTLS: true,
+	}
+
 	brokerInfo = bosh.DeployAndRegisterBroker(
 		"-orphan-deployment-without-siapi-"+uniqueID,
-		bosh.BrokerDeploymentOptions{},
+		deploymentOptions,
 		service_helpers.Redis,
-		[]string{"update_service_catalog.yml"})
+		[]string{"update_service_catalog.yml", "update_orphan_deployments_job.yml"})
 })
 
 var _ = AfterSuite(func() {
