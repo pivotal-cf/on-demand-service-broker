@@ -55,11 +55,12 @@ func main() {
 	if err != nil {
 		logger.Fatalf("error retrieving root ca's: %s", err)
 	}
-	rootCAs.AppendCertsFromPEM([]byte(errandConfig.BrokerAPI.TLS.CaCert))
+	rootCAs.AppendCertsFromPEM([]byte(errandConfig.BrokerAPI.TLS.CACert))
 
 	httpClient := herottp.New(herottp.Config{
 		Timeout: 30 * time.Second,
 		RootCAs: rootCAs,
+		DisableTLSCertificateVerification: errandConfig.BrokerAPI.TLS.DisableSSLCertVerification,
 	})
 
 	brokerUsername := errandConfig.BrokerAPI.Authentication.Basic.Username

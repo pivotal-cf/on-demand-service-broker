@@ -153,7 +153,7 @@ func (b Broker) Validate() error {
 }
 
 type ServiceDeployment struct {
-	Releases serviceadapter.ServiceReleases
+	Releases  serviceadapter.ServiceReleases
 	Stemcells []serviceadapter.Stemcell
 }
 
@@ -609,5 +609,6 @@ type OrphanDeploymentsErrandConfig struct {
 }
 
 type ErrandTLSConfig struct {
-	CaCert string `yaml:"ca_cert""`
+	CACert                     string `yaml:"ca_cert"`
+	DisableSSLCertVerification bool   `yaml:"disable_ssl_cert_verification"`
 }

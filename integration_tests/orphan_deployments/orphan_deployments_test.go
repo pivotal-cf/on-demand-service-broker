@@ -7,16 +7,16 @@
 package orphan_deployments_test
 
 import (
+	"encoding/pem"
 	"net/http"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
+	"github.com/onsi/gomega/ghttp"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/integration_tests/helpers"
-	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
-	"github.com/pivotal-cf/on-demand-service-broker/mockhttp/mockbroker"
 )
 
 const (
@@ -27,102 +27,172 @@ const (
 
 var _ = Describe("Orphan Deployments", func() {
 	var (
-		odb    *mockhttp.Server
+		broker *ghttp.Server
 		params []string
 	)
 
-	BeforeEach(func() {
-		odb = mockbroker.New()
-		odb.ExpectedBasicAuth(brokerUsername, brokerPassword)
-		c := config.OrphanDeploymentsErrandConfig{
-			BrokerAPI: config.BrokerAPI{
-				URL: odb.URL,
-				Authentication: config.Authentication{
-					Basic: config.UserCredentials{
-						Username: brokerUsername,
-						Password: brokerPassword,
+	When("the broker is running HTTP", func() {
+		BeforeEach(func() {
+			broker = ghttp.NewServer()
+
+			c := config.OrphanDeploymentsErrandConfig{
+				BrokerAPI: config.BrokerAPI{
+					URL: broker.URL(),
+					Authentication: config.Authentication{
+						Basic: config.UserCredentials{
+							Username: brokerUsername,
+							Password: brokerPassword,
+						},
 					},
 				},
-			},
-		}
-		params = []string{
-			"-configPath", write(c),
-		}
+			}
+			params = []string{
+				"-configPath", write(c),
+			}
+		})
+
+		AfterEach(func() {
+			broker.Close()
+		})
+
+		It("calls the right broker endpoint with the configured credentials", func() {
+			broker.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "/mgmt/orphan_deployments"),
+					ghttp.VerifyBasicAuth(brokerUsername, brokerPassword),
+					ghttp.RespondWith(http.StatusOK, `[]`),
+				),
+			)
+			session := helpers.StartBinaryWithParams(binaryPath, params)
+
+			Eventually(session).Should(gexec.Exit(0))
+		})
+
+		It("exits with 0 when no orphan deployments are detected", func() {
+			broker.AppendHandlers(ghttp.RespondWith(http.StatusOK, `[]`))
+			session := helpers.StartBinaryWithParams(binaryPath, params)
+
+			Eventually(session).Should(gexec.Exit(0))
+			Expect(string(session.Out.Contents())).To(Equal("[]\n"))
+		})
+
+		It("exits with code 10 when orphan deployments are detected", func() {
+			orphanBoshDeploymentsDetectedMessage := "Orphan BOSH deployments detected with no corresponding service instance in the platform. " +
+				"Before deleting any deployment it is recommended to verify the service instance no longer exists in the platform and any data is safe to delete."
+			listOfDeployments := `[{"deployment_name":"service-instance_one"},{"deployment_name":"service-instance_two"}]`
+
+			broker.AppendHandlers(ghttp.RespondWith(http.StatusOK, listOfDeployments))
+			session := helpers.StartBinaryWithParams(binaryPath, params)
+
+			Eventually(session).Should(gexec.Exit(10))
+			Expect(string(session.Out.Contents())).To(ContainSubstring(listOfDeployments))
+			Expect(session.Err).To(gbytes.Say(orphanBoshDeploymentsDetectedMessage))
+		})
+
+		It("fails when the broker credentials are unauthorised", func() {
+			broker.AppendHandlers(ghttp.RespondWith(http.StatusUnauthorized, ""))
+
+			session := helpers.StartBinaryWithParams(binaryPath, params)
+
+			Eventually(session).Should(gexec.Exit(1))
+			Expect(session.Err).To(SatisfyAll(
+				gbytes.Say(errorMessage),
+				gbytes.Say("%d", http.StatusUnauthorized),
+			))
+		})
+
+		It("fails when the broker has an internal server error", func() {
+			broker.AppendHandlers(ghttp.RespondWith(http.StatusInternalServerError, "error message"))
+
+			session := helpers.StartBinaryWithParams(binaryPath, params)
+
+			Eventually(session).Should(gexec.Exit(1))
+			Expect(session.Err).To(SatisfyAll(
+				gbytes.Say(errorMessage),
+				gbytes.Say("%d", http.StatusInternalServerError),
+			))
+		})
+
+		It("fails when the broker is unavailable", func() {
+			broker.Close()
+
+			session := helpers.StartBinaryWithParams(binaryPath, params)
+
+			Eventually(session).Should(gexec.Exit(1))
+			Expect(session.Err).To(SatisfyAll(
+				gbytes.Say(errorMessage),
+				gbytes.Say("connection refused"),
+			))
+		})
+
+		It("fails when the response is invalid JSON", func() {
+			broker.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.RespondWith(http.StatusOK, "invalid json"),
+				),
+			)
+
+			session := helpers.StartBinaryWithParams(binaryPath, params)
+
+			Eventually(session).Should(gexec.Exit(1))
+			Expect(session.Err).To(SatisfyAll(
+				gbytes.Say(errorMessage),
+				gbytes.Say("invalid character 'i'"),
+			))
+		})
+
 	})
 
-	AfterEach(func() {
-		odb.VerifyMocks()
-		odb.Close()
-	})
+	When("the broker is running HTTPS", func() {
+		var c config.OrphanDeploymentsErrandConfig
 
-	It("exits with 0 when no orphan deployments are detected", func() {
-		odb.AppendMocks(mockbroker.OrphanDeployments().RespondsOKWith("[]"))
+		BeforeEach(func() {
+			broker = ghttp.NewTLSServer()
 
-		session := helpers.StartBinaryWithParams(binaryPath, params)
+			c = config.OrphanDeploymentsErrandConfig{
+				BrokerAPI: config.BrokerAPI{
+					URL: broker.URL(),
+					Authentication: config.Authentication{
+						Basic: config.UserCredentials{
+							Username: brokerUsername,
+							Password: brokerPassword,
+						},
+					},
+				},
+			}
 
-		Eventually(session).Should(gexec.Exit(0))
-		Expect(string(session.Out.Contents())).To(Equal("[]\n"))
-	})
+			broker.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "/mgmt/orphan_deployments"),
+					ghttp.VerifyBasicAuth(brokerUsername, brokerPassword),
+					ghttp.RespondWith(http.StatusOK, `[]`),
+				),
+			)
+		})
 
-	It("exits with code 10 when orphan deployments are detected", func() {
-		orphanBoshDeploymentsDetectedMessage := "Orphan BOSH deployments detected with no corresponding service instance in the platform. " +
-			"Before deleting any deployment it is recommended to verify the service instance no longer exists in the platform and any data is safe to delete."
-		listOfDeployments := `[{"deployment_name":"service-instance_one"},{"deployment_name":"service-instance_two"}]`
-		odb.AppendMocks(mockbroker.OrphanDeployments().RespondsOKWith(listOfDeployments))
+		AfterEach(func() {
+			broker.Close()
+		})
 
-		session := helpers.StartBinaryWithParams(binaryPath, params)
+		It("can communicate with the broker", func() {
+			rawPem := broker.HTTPTestServer.Certificate().Raw
+			pemCert := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: rawPem})
+			c.BrokerAPI.TLS = config.ErrandTLSConfig{CACert: string(pemCert)}
 
-		Eventually(session).Should(gexec.Exit(10))
-		Expect(string(session.Out.Contents())).To(ContainSubstring(listOfDeployments))
-		Expect(session.Err).To(gbytes.Say(orphanBoshDeploymentsDetectedMessage))
-	})
+			params = []string{"-configPath", write(c)}
 
-	It("fails when the broker credentials are unauthorised", func() {
-		odb.AppendMocks(mockbroker.OrphanDeployments().RespondsUnauthorizedWith("unauthorized request"))
+			session := helpers.StartBinaryWithParams(binaryPath, params)
+			Eventually(session).Should(gexec.Exit(0))
+		})
 
-		session := helpers.StartBinaryWithParams(binaryPath, params)
+		It("skips ssl cert verification", func() {
+			c.BrokerAPI.TLS = config.ErrandTLSConfig{DisableSSLCertVerification: true}
 
-		Eventually(session).Should(gexec.Exit(1))
-		Expect(session.Err).To(SatisfyAll(
-			gbytes.Say(errorMessage),
-			gbytes.Say("%d", http.StatusUnauthorized),
-		))
-	})
+			params = []string{"-configPath", write(c)}
 
-	It("fails when the broker has an internal server error", func() {
-		odb.AppendMocks(mockbroker.OrphanDeployments().RespondsInternalServerErrorWith("error message"))
-
-		session := helpers.StartBinaryWithParams(binaryPath, params)
-
-		Eventually(session).Should(gexec.Exit(1))
-		Expect(session.Err).To(SatisfyAll(
-			gbytes.Say(errorMessage),
-			gbytes.Say("%d", http.StatusInternalServerError),
-		))
-	})
-
-	It("fails when the broker is unavailable", func() {
-		odb.Close()
-
-		session := helpers.StartBinaryWithParams(binaryPath, params)
-
-		Eventually(session).Should(gexec.Exit(1))
-		Expect(session.Err).To(SatisfyAll(
-			gbytes.Say(errorMessage),
-			gbytes.Say("connection refused"),
-		))
-	})
-
-	It("fails when the response is invalid JSON", func() {
-		odb.AppendMocks(mockbroker.OrphanDeployments().RespondsOKWith("invalid json"))
-
-		session := helpers.StartBinaryWithParams(binaryPath, params)
-
-		Eventually(session).Should(gexec.Exit(1))
-		Expect(session.Err).To(SatisfyAll(
-			gbytes.Say(errorMessage),
-			gbytes.Say("invalid character 'i'"),
-		))
+			session := helpers.StartBinaryWithParams(binaryPath, params)
+			Eventually(session).Should(gexec.Exit(0))
+		})
 	})
 
 	When("invoking the binary with broken arguments", func() {
