@@ -24,7 +24,8 @@ var _ = Describe("The recreate-all errand", func() {
 				BrokerTLS: true,
 			},
 			service_helpers.Redis,
-			[]string{"update_service_catalog.yml"})
+			[]string{"update_service_catalog.yml", "update_recreate_all_job.yml"},
+		)
 
 		serviceInstanceName = "service" + brokerInfo.TestSuffix
 		cf.CreateService(brokerInfo.ServiceOffering, "redis-with-post-deploy", serviceInstanceName, "")

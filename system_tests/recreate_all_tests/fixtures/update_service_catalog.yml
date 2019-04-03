@@ -23,4 +23,3 @@
       lifecycle_errands:
         post_deploy:
           - name: health-check
-

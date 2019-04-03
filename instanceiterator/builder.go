@@ -16,19 +16,17 @@
 package instanceiterator
 
 import (
-	"log"
-	"time"
-
-	"crypto/x509"
 	"errors"
 	"fmt"
-
+	"log"
 	"strings"
+	"time"
 
 	"github.com/craigfurman/herottp"
 	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
+	"github.com/pivotal-cf/on-demand-service-broker/network"
 	"github.com/pivotal-cf/on-demand-service-broker/service"
 	"github.com/pivotal-cf/on-demand-service-broker/tools"
 )
@@ -135,13 +133,11 @@ func brokerServices(conf config.InstanceIteratorConfig, logger *log.Logger) (*se
 		conf.BrokerAPI.Authentication.Basic.Password,
 	)
 
-	certPool, err := x509.SystemCertPool()
+	certPool, err := network.AppendCertsFromPEM(conf.BrokerAPI.TLS.CACert)
 	if err != nil {
 		return &services.BrokerServices{},
 			fmt.Errorf("error getting a certificate pool to append our trusted cert to: %s", err)
 	}
-	cert := conf.BrokerAPI.TLS.CACert
-	certPool.AppendCertsFromPEM([]byte(cert))
 
 	return services.NewBrokerServices(
 		herottp.New(herottp.Config{
@@ -157,13 +153,11 @@ func brokerServices(conf config.InstanceIteratorConfig, logger *log.Logger) (*se
 }
 
 func serviceInstanceLister(conf config.InstanceIteratorConfig, logger *log.Logger) (*service.ServiceInstanceLister, error) {
-	certPool, err := x509.SystemCertPool()
+	certPool, err := network.AppendCertsFromPEM(conf.ServiceInstancesAPI.RootCACert)
 	if err != nil {
 		return &service.ServiceInstanceLister{},
 			fmt.Errorf("error getting a certificate pool to append our trusted cert to: %s", err)
 	}
-	cert := conf.ServiceInstancesAPI.RootCACert
-	certPool.AppendCertsFromPEM([]byte(cert))
 
 	httpClient := herottp.New(herottp.Config{
 		Timeout:                           30 * time.Second,
