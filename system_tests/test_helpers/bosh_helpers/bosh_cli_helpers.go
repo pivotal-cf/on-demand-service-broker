@@ -8,7 +8,9 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -272,6 +274,9 @@ func deploy(systemTestSuffix string, deploymentOptions BrokerDeploymentOptions, 
 	variables := buildDeploymentArguments(systemTestSuffix, serviceType)
 
 	odbReleaseTemplatesPath := variables.OdbReleaseTemplatesPath
+	_, currentPath, _, _ := runtime.Caller(1)
+	globalFixturesPath := path.Join(path.Dir(currentPath), "../../fixtures")
+
 	baseManifest := filepath.Join(odbReleaseTemplatesPath, "base_odb_manifest.yml")
 	adapterOpsFile := filepath.Join(odbReleaseTemplatesPath, "operations", serviceType.GetServiceOpsFile())
 
@@ -306,7 +311,7 @@ func deploy(systemTestSuffix string, deploymentOptions BrokerDeploymentOptions, 
 	deployArguments = append(deployArguments, deployCmdArgs...)
 
 	if deploymentOptions.BrokerTLS {
-		tlsOpsFile := filepath.Join(odbReleaseTemplatesPath, "operations", "enable_broker_tls.yml")
+		tlsOpsFile := filepath.Join(globalFixturesPath, "enable_broker_tls.yml")
 		deployArguments = append(deployArguments, "--ops-file", tlsOpsFile, "--var", "broker_ca_credhub_path=/services/tls_ca")
 	}
 

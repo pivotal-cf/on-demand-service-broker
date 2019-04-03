@@ -3,12 +3,33 @@ package recreate_all_test
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	bosh "github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
 	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/cf_helpers"
+	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/service_helpers"
 )
 
 var _ = Describe("The recreate-all errand", func() {
+	var (
+		serviceInstanceName string
+		brokerInfo          bosh.BrokerInfo
+	)
+
+	BeforeEach(func() {
+		uniqueID := uuid.New()[:6]
+		brokerInfo = bosh.DeployAndRegisterBroker(
+			"-recreate-"+uniqueID,
+			bosh.BrokerDeploymentOptions{
+				BrokerTLS: true,
+			},
+			service_helpers.Redis,
+			[]string{"update_service_catalog.yml"})
+
+		serviceInstanceName = "service" + brokerInfo.TestSuffix
+		cf.CreateService(brokerInfo.ServiceOffering, "redis-with-post-deploy", serviceInstanceName, "")
+	})
+
 	It("recreates all instances and runs their post-deploy errands", func() {
 		boshServiceInstanceName := broker.InstancePrefix + cf.GetServiceInstanceGUID(serviceInstanceName)
 		oldVMID := bosh.VMIDForDeployment(boshServiceInstanceName)
@@ -26,5 +47,9 @@ var _ = Describe("The recreate-all errand", func() {
 		Expect(boshTasks[1].Description).To(HavePrefix("create deployment"), "recreate deployment")
 		Expect(boshTasks[2].Description).To(HavePrefix("run errand health-check"), "first post-deploy errand ran")
 		Expect(boshTasks[3].Description).To(HavePrefix("create deployment"), "first deploy")
+	})
+
+	AfterEach(func() {
+		bosh.DeregisterAndDeleteBroker(brokerInfo.DeploymentName)
 	})
 })

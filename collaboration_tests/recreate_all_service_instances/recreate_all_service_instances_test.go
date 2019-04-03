@@ -11,7 +11,10 @@ import (
 
 	"github.com/onsi/gomega/ghttp"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
+	"github.com/pivotal-cf/on-demand-service-broker/broker/fakes"
 	"github.com/pivotal-cf/on-demand-service-broker/collaboration_tests/helpers"
+	"github.com/pivotal-cf/on-demand-service-broker/service"
+	taskfakes "github.com/pivotal-cf/on-demand-service-broker/task/fakes"
 	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 
 	. "github.com/onsi/ginkgo"
@@ -21,7 +24,6 @@ import (
 	"gopkg.in/yaml.v2"
 
 	brokerConfig "github.com/pivotal-cf/on-demand-service-broker/config"
-	"github.com/pivotal-cf/on-demand-service-broker/service"
 )
 
 var _ = Describe("Recreate all service instances", func() {
@@ -31,6 +33,8 @@ var _ = Describe("Recreate all service instances", func() {
 		serviceName       = "service-name"
 		dedicatedPlanID   = "dedicated-plan-id"
 		dedicatedPlanName = "dedicated-plan-name"
+		serverCertFile    = "../fixtures/mybroker.crt"
+		serverKeyFile     = "../fixtures/mybroker.key"
 	)
 
 	var (
@@ -106,7 +110,9 @@ var _ = Describe("Recreate all service instances", func() {
 			},
 		}
 
-		brokerServer = StartServer(conf)
+		fakeCfClient = new(fakes.FakeCloudFoundryClient)
+		fakeBoshClient = new(fakes.FakeBoshClient)
+		fakeTaskBoshClient = new(taskfakes.FakeBoshClient)
 
 		fakeCfClient.GetInstancesOfServiceOfferingReturns([]service.Instance{
 			{GUID: "service-1", PlanUniqueID: dedicatedPlanID},
@@ -147,7 +153,11 @@ var _ = Describe("Recreate all service instances", func() {
 			))
 		})
 
-		When("it succeeds", func() {
+		Describe("HTTP Broker", func() {
+			BeforeEach(func() {
+				brokerServer = StartServer(conf)
+			})
+
 			It("recreates all service instances", func() {
 				session, err := gexec.Start(cmd, stdout, stderr)
 				Expect(err).NotTo(HaveOccurred(), "unexpected error when starting the command")
@@ -172,10 +182,7 @@ var _ = Describe("Recreate all service instances", func() {
 				Expect(fakeBoshClient.RunErrandCallCount()).To(Equal(2), "expected to run post-deploy errand once for each service instance")
 			})
 
-		})
-
-		When("it fails because the recreate fails", func() {
-			It("returns a non-zero exit code", func() {
+			It("returns a non-zero exit code when the recreate fails", func() {
 				fakeTaskBoshClient.RecreateReturns(0, errors.New("bosh recreate failed"))
 
 				session, err := gexec.Start(cmd, stdout, stderr)
@@ -186,10 +193,8 @@ var _ = Describe("Recreate all service instances", func() {
 
 				Expect(stdout).To(gbytes.Say("Operation type: recreate failed for service instance service-1: unexpected status code: 500. description: bosh recreate failed"))
 			})
-		})
 
-		When("it fails because the post-deploy errand fails", func() {
-			It("returns a non-zero exit code", func() {
+			It("returns a non-zero exit code when the post-deploy errand fails", func() {
 				fakeBoshClient.RunErrandReturns(0, errors.New("run errand failed"))
 
 				session, err := gexec.Start(cmd, stdout, stderr)
@@ -200,10 +205,8 @@ var _ = Describe("Recreate all service instances", func() {
 
 				Expect(loggerBuffer).To(gbytes.Say("error: error retrieving tasks from bosh, for deployment 'service-instance_service-1': run errand failed."))
 			})
-		})
 
-		When("it fails because it can't get tasks from BOSH", func() {
-			It("returns a non-zero exit code", func() {
+			It("returns a non-zero exit code when it can't get tasks from BOSH", func() {
 				fakeBoshClient.GetTaskReturns(boshdirector.BoshTask{}, errors.New("failed to get BOSH tasks"))
 
 				session, err := gexec.Start(cmd, stdout, stderr)
@@ -214,10 +217,8 @@ var _ = Describe("Recreate all service instances", func() {
 
 				Expect(loggerBuffer).To(gbytes.Say("error: error retrieving tasks from bosh, for deployment 'service-instance_service-1': failed to get BOSH tasks."))
 			})
-		})
 
-		When("it fails because the BOSH task returns in an failed state", func() {
-			It("returns a non-zero exit code", func() {
+			It("returns a non-zero exit code when the BOSH task returns in an failed state", func() {
 				fakeBoshClient.GetTaskReturns(boshdirector.BoshTask{
 					ID:          43,
 					State:       boshdirector.TaskError,
@@ -232,10 +233,8 @@ var _ = Describe("Recreate all service instances", func() {
 
 				Expect(loggerBuffer).To(gbytes.Say("BOSH task ID 43 status: error recreate deployment for instance service-1: Description: broken"))
 			})
-		})
 
-		When("it fails because CF fails to get the list of service instances", func() {
-			It("returns a non-zero exit code", func() {
+			It("returns a non-zero exit code when CF fails to get the list of service instances", func() {
 				fakeCfClient.GetInstancesOfServiceOfferingReturns(nil, errors.New("failed to get instances from CF"))
 
 				session, err := gexec.Start(cmd, stdout, stderr)
@@ -248,10 +247,93 @@ var _ = Describe("Recreate all service instances", func() {
 				Expect(loggerBuffer).To(gbytes.Say("failed to get instances from CF"))
 			})
 		})
+
+		Describe("HTTPS Broker", func() {
+			var serverCertContents string
+
+			BeforeEach(func() {
+				content, err := ioutil.ReadFile(serverCertFile)
+				Expect(err).ToNot(HaveOccurred())
+				serverCertContents = string(content)
+
+				conf.Broker.TLS = brokerConfig.TLSConfig{
+					CertFile: serverCertFile,
+					KeyFile:  serverKeyFile,
+				}
+
+				TLSServerURL := fmt.Sprintf("https://localhost:%d", serverPort)
+				errandConfig.BrokerAPI.URL = TLSServerURL
+				errandConfig.ServiceInstancesAPI.URL = TLSServerURL + "/mgmt/service_instances"
+
+				brokerServer = StartServer(conf)
+			})
+
+			It("recreates all service instances when the broker is running over HTTPS", func() {
+				errandConfig.BrokerAPI.TLS = brokerConfig.ErrandTLSConfig{
+					CACert:                     serverCertContents,
+					DisableSSLCertVerification: false,
+				}
+				errandConfig.ServiceInstancesAPI.RootCACert = serverCertContents
+
+				cmd = exec.Command(pathToRecreateAll, "--configPath", toFilePath(errandConfig))
+
+				session, err := gexec.Start(cmd, stdout, stderr)
+				Expect(err).NotTo(HaveOccurred(), "unexpected error when starting the command")
+
+				Eventually(session).Should(gexec.Exit())
+				Expect(session.ExitCode()).To(Equal(0), "recreate-all execution failed")
+			})
+
+			It("skips ssl cert verification when disabled", func() {
+				errandConfig.BrokerAPI.TLS = brokerConfig.ErrandTLSConfig{
+					DisableSSLCertVerification: true,
+				}
+				errandConfig.ServiceInstancesAPI.DisableSSLCertVerification = true
+
+				cmd = exec.Command(pathToRecreateAll, "--configPath", toFilePath(errandConfig))
+
+				session, err := gexec.Start(cmd, stdout, stderr)
+				Expect(err).NotTo(HaveOccurred(), "unexpected error when starting the command")
+
+				Eventually(session).Should(gexec.Exit(0), "recreate-all execution failed")
+			})
+
+			It("fails when the broker cert is not trusted by the service instance api client", func() {
+				cmd = exec.Command(pathToRecreateAll, "--configPath", toFilePath(errandConfig))
+
+				session, err := gexec.Start(cmd, stdout, stderr)
+				Expect(err).NotTo(HaveOccurred(), "unexpected error when starting the command")
+
+				Eventually(session).Should(gexec.Exit())
+				Expect(session.ExitCode()).To(Equal(1), "recreate-all execution unexpectedly succeeded")
+				Expect(stdout).To(SatisfyAll(
+					gbytes.Say("error listing service instances"),
+					gbytes.Say("unknown authority"),
+				))
+			})
+
+			It("fails when the broker cert is not trusted by the broker client", func() {
+				errandConfig.ServiceInstancesAPI.DisableSSLCertVerification = true
+
+				cmd = exec.Command(pathToRecreateAll, "--configPath", toFilePath(errandConfig))
+
+				session, err := gexec.Start(cmd, stdout, stderr)
+				Expect(err).NotTo(HaveOccurred(), "unexpected error when starting the command")
+
+				Eventually(session).Should(gexec.Exit())
+				Expect(session.ExitCode()).To(Equal(1), "recreate-all execution unexpectedly succeeded")
+				Expect(stdout).To(SatisfyAll(
+					gbytes.Say("recreate failed for service instance"),
+					gbytes.Say("unknown authority"),
+				))
+			})
+		})
 	})
 
 	Context("with an unsupported BOSH version", func() {
 		BeforeEach(func() {
+			brokerServer = StartServer(conf)
+
 			boshDirector.AppendHandlers(ghttp.CombineHandlers(
 				ghttp.VerifyRequest("GET", "/info"),
 				ghttp.RespondWithJSONEncodedPtr(&statusCode, &boshdirector.Info{Version: "266.0"}),
@@ -271,6 +353,7 @@ var _ = Describe("Recreate all service instances", func() {
 
 	Context("BOSH responds with a non-200 HTTP status", func() {
 		BeforeEach(func() {
+			brokerServer = StartServer(conf)
 			statusCode = http.StatusInternalServerError
 			boshDirector.AppendHandlers(ghttp.CombineHandlers(
 				ghttp.VerifyRequest("GET", "/info"),
@@ -291,6 +374,8 @@ var _ = Describe("Recreate all service instances", func() {
 
 	Context("BOSH responds with invalid info", func() {
 		BeforeEach(func() {
+			brokerServer = StartServer(conf)
+
 			statusCode = http.StatusInternalServerError
 			boshDirector.AppendHandlers(ghttp.CombineHandlers(
 				ghttp.VerifyRequest("GET", "/info"),

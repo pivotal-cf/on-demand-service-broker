@@ -49,10 +49,7 @@ var _ = AfterSuite(func() {
 
 func StartServer(conf config.Config) *helpers.Server {
 	fakeCommandRunner = new(serviceadapterfakes.FakeCommandRunner)
-	fakeTaskBoshClient = new(taskfakes.FakeBoshClient)
 	fakeTaskBulkSetter = new(taskfakes.FakeBulkSetter)
-	fakeCfClient = new(fakes.FakeCloudFoundryClient)
-	fakeBoshClient = new(fakes.FakeBoshClient)
 	fakeCredentialStore = new(credhubfakes.FakeCredentialStore)
 	fakeCredhubOperator = new(manifestsecretsfakes.FakeCredhubOperator)
 	loggerBuffer = gbytes.NewBuffer()

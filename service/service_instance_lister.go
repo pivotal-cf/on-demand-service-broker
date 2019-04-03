@@ -20,10 +20,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
-
-	"log"
 
 	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
 )
@@ -73,6 +72,7 @@ func (s *ServiceInstanceLister) FilteredInstances(params map[string]string) ([]I
 	}
 
 	response, err := s.client.Do(request)
+
 	if err != nil {
 		return s.instanceListerError(response, err)
 	}

@@ -135,10 +135,20 @@ func brokerServices(conf config.InstanceIteratorConfig, logger *log.Logger) (*se
 		conf.BrokerAPI.Authentication.Basic.Password,
 	)
 
+	certPool, err := x509.SystemCertPool()
+	if err != nil {
+		return &services.BrokerServices{},
+			fmt.Errorf("error getting a certificate pool to append our trusted cert to: %s", err)
+	}
+	cert := conf.BrokerAPI.TLS.CACert
+	certPool.AppendCertsFromPEM([]byte(cert))
+
 	return services.NewBrokerServices(
 		herottp.New(herottp.Config{
-			Timeout:    time.Duration(conf.RequestTimeout) * time.Second,
-			MaxRetries: 5,
+			Timeout:                           time.Duration(conf.RequestTimeout) * time.Second,
+			RootCAs:                           certPool,
+			DisableTLSCertificateVerification: conf.BrokerAPI.TLS.DisableSSLCertVerification,
+			MaxRetries:                        5,
 		}),
 		brokerBasicAuthHeaderBuilder,
 		conf.BrokerAPI.URL,

@@ -107,6 +107,8 @@ func StartServer(
 		logger,
 	)
 
+	server.ErrorLog = logger
+
 	go apiserver.StartAndWait(conf, server, logger, stopServerChan)
 	Eventually(func() bool {
 		return CanServeHTTP(server.Addr, conf)

@@ -16,9 +16,9 @@ import (
 )
 
 const (
-	serverCertFile = "./assets/mybroker.crt"
-	serverKeyFile  = "./assets/mybroker.key"
-	caCertFile     = "./assets/bosh.ca.crt"
+	serverCertFile = "../fixtures/mybroker.crt"
+	serverKeyFile  = "../fixtures/mybroker.key"
+	caCertFile     = "../fixtures/bosh.ca.crt"
 )
 
 var acceptableCipherSuites = []uint16{
