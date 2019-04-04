@@ -23,12 +23,11 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
-	. "github.com/pivotal-cf/on-demand-service-broker/system_tests/upgrade_all/shared"
+	. "github.com/pivotal-cf/on-demand-service-broker/system_tests/upgrade_all/_old/shared"
 )
 
-var _ = Describe("parallel upgrade-all errand and SIAPI", func() {
+var _ = Describe("parallel upgrade-all errand with canaries", func() {
 	var (
-		filterParams           map[string]string
 		serviceInstances       []*TestService
 		dataPersistenceEnabled bool
 	)
@@ -37,7 +36,6 @@ var _ = Describe("parallel upgrade-all errand and SIAPI", func() {
 		config.CurrentPlan = "dedicated-vm"
 		dataPersistenceEnabled = false
 		serviceInstances = []*TestService{}
-		filterParams = map[string]string{}
 		CfTargetSpace(config.CfSpace)
 	})
 
@@ -51,7 +49,6 @@ var _ = Describe("parallel upgrade-all errand and SIAPI", func() {
 		brokerManifest := config.BoshClient.GetManifest(config.BrokerBoshDeploymentName)
 		serviceInstances = CreateServiceInstances(config, dataPersistenceEnabled)
 
-		UpdateServiceInstancesAPI(siapiConfig, serviceInstances, filterParams, config)
 		UpdatePlanProperties(brokerManifest, config)
 		ChangeInstanceGroupName(brokerManifest, config)
 
@@ -74,12 +71,15 @@ var _ = Describe("parallel upgrade-all errand and SIAPI", func() {
 		))
 
 		By("upgrading all the non-canary instances")
-		logs := string(b.Contents())
-		Expect(logs).To(SatisfyAll(
-			ContainSubstring("[%s] Starting to process service instance", instanceGUIDs[1]),
-			ContainSubstring("[%s] Starting to process service instance", instanceGUIDs[2]),
-			ContainSubstring("[%s] Result: Service Instance operation success", instanceGUIDs[1]),
-			ContainSubstring("[%s] Result: Service Instance operation success", instanceGUIDs[2]),
+		Expect(b).To(SatisfyAll(
+			gbytes.Say(fmt.Sprintf(`\[%s\] Starting to process service instance`, instanceGUIDs[1])),
+			gbytes.Say(fmt.Sprintf(`\[%s\] Starting to process service instance`, instanceGUIDs[2])),
+			// gbytes.Say("Result: Service Instance operation success")
+		))
+
+		Expect(boshOutput.StdOut).To(SatisfyAll(
+			ContainSubstring(fmt.Sprintf(`[%s] Result: Service Instance operation success`, instanceGUIDs[1])),
+			ContainSubstring(fmt.Sprintf(`[%s] Result: Service Instance operation success`, instanceGUIDs[2])),
 		))
 
 		for _, service := range serviceInstances {

@@ -17,6 +17,7 @@ import (
 	"github.com/coreos/go-semver/semver"
 	"github.com/onsi/gomega/types"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/service_helpers"
+	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/env_helpers"
 
@@ -354,7 +355,16 @@ func logDeploymentProperties(variables deploymentProperties, deployCmdArgs []str
 	fmt.Println("")
 }
 
-func GetManifest(deploymentName string) string {
+func GetManifest(deploymentName string) bosh.BoshManifest {
+	var manifest bosh.BoshManifest
+	manifestString := GetManifestString(deploymentName)
+
+	err := yaml.Unmarshal([]byte(manifestString), &manifest)
+	Expect(err).NotTo(HaveOccurred())
+	return manifest
+}
+
+func GetManifestString(deploymentName string) string {
 	cmd := exec.Command("bosh", "-d", deploymentName, "manifest")
 	out, err := cmd.Output()
 	Expect(err).NotTo(HaveOccurred())

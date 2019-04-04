@@ -13,37 +13,39 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package parallel_test
+package upgrade_all_test
 
 import (
+	"sync"
 	"testing"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf/on-demand-service-broker/system_tests/upgrade_all/shared"
 )
 
-var (
-	config      *shared.Config
-	siapiConfig shared.SIAPIConfig
-)
-
-var _ = BeforeSuite(func() {
-	config = &shared.Config{}
-	config.InitConfig()
-	config.RegisterBroker()
-	siapiConfig = shared.SIAPIConfig{
-		URL:      shared.EnvMustHave("SIAPI_URL"),
-		Password: shared.EnvMustHave("SIAPI_PASSWORD"),
-		Username: shared.EnvMustHave("SIAPI_USERNAME"),
-	}
-})
-
-var _ = AfterSuite(func() {
-	config.DeregisterBroker()
-})
+type appDetails struct {
+	uuid                  string
+	appURL                string
+	appName               string
+	serviceName           string
+	serviceDeploymentName string
+}
 
 func TestUpgradeInstancesErrandTests(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Upgrade Instances with SI API set")
+	RunSpecs(t, "UpgradeInstancesErrand Suite")
+}
+
+func performInParallel(f func(), count int) {
+	var wg sync.WaitGroup
+	wg.Add(count)
+
+	for i := 0; i < count; i++ {
+		go func() {
+			defer wg.Done()
+			f()
+		}()
+	}
+
+	wg.Wait()
 }

@@ -22,7 +22,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
-	. "github.com/pivotal-cf/on-demand-service-broker/system_tests/upgrade_all/shared"
+	. "github.com/pivotal-cf/on-demand-service-broker/system_tests/upgrade_all/_old/shared"
 )
 
 var serviceInstances []*TestService

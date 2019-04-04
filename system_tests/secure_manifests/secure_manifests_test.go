@@ -52,7 +52,7 @@ var _ = Describe("Secure Manifests", func() {
 		By("downloading the manifest and confirming it has a CredHub path instead of the plain text secret", func() {
 			serviceInstanceGUID = cf_helpers.GetServiceInstanceGUID(serviceInstanceName)
 			serviceDeploymentName := broker.InstancePrefix + serviceInstanceGUID
-			manifest := bosh_helpers.GetManifest(serviceDeploymentName)
+			manifest := bosh_helpers.GetManifestString(serviceDeploymentName)
 			Expect(manifest).To(SatisfyAll(
 				ContainSubstring("/odb/%s/%s/%s", brokerInfo.ServiceOffering, serviceDeploymentName, secretKey),
 				Not(ContainSubstring(adapterSecretValue)),

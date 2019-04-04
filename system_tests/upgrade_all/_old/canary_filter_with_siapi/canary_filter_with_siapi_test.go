@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package canary_filter_test
+package canary_filter_siapi_test
 
 import (
 	"fmt"
@@ -21,54 +21,45 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	. "github.com/pivotal-cf/on-demand-service-broker/system_tests/upgrade_all/shared"
+	. "github.com/pivotal-cf/on-demand-service-broker/system_tests/upgrade_all/_old/shared"
 )
 
-var _ = Describe("parallel upgrade-all errand with canaries", func() {
+var _ = Describe("parallel upgrade-all errand with canaries and SI API", func() {
 	var (
-		filterParams           map[string]string
-		spaceName              string
 		serviceInstances       []*TestService
 		dataPersistenceEnabled bool
 		canaryServiceInstances []*TestService
 	)
 
 	BeforeEach(func() {
-		spaceName = ""
 		config.CurrentPlan = "dedicated-vm"
 		dataPersistenceEnabled = false
 		serviceInstances = []*TestService{}
-		filterParams = map[string]string{}
 		CfTargetSpace(config.CfSpace)
 	})
 
 	AfterEach(func() {
 		CfTargetSpace(config.CfSpace)
 		DeleteServiceInstances(serviceInstances, dataPersistenceEnabled)
-		CfTargetSpace(spaceName)
-		DeleteServiceInstances(canaryServiceInstances, dataPersistenceEnabled)
-		CfDeleteSpace(spaceName)
 		config.BoshClient.DeployODB(*config.OriginalBrokerManifest)
 	})
 
 	It("when canaries from an org and space are required, they upgrade before the rest", func() {
-		brokerManifest := config.BoshClient.GetManifest(config.BrokerBoshDeploymentName)
-		upgradeInstanceProperties := FindUpgradeAllServiceInstancesProperties(brokerManifest)
+		var nonCanaryInstances []*TestService
 
+		brokerManifest := config.BoshClient.GetManifest(config.BrokerBoshDeploymentName)
 		serviceInstances = CreateServiceInstances(config, dataPersistenceEnabled)
 
+		canaryServiceInstances = serviceInstances[len(serviceInstances)-1 : len(serviceInstances)]
+		nonCanaryInstances = serviceInstances[:len(serviceInstances)-1]
+
+		upgradeInstanceProperties := FindUpgradeAllServiceInstancesProperties(brokerManifest)
+		filterParams := map[string]string{}
 		for k, v := range upgradeInstanceProperties["canary_selection_params"].(map[interface{}]interface{}) {
 			filterParams[k.(string)] = v.(string)
 		}
 
-		spaceName = filterParams["cf_space"]
-		CfCreateSpace(spaceName)
-		CfTargetSpace(spaceName)
-
-		canaryServiceInstances = CreateServiceInstances(config, dataPersistenceEnabled)
-
-		var nonCanaryInstances []*TestService
-		nonCanaryInstances = serviceInstances
+		UpdateServiceInstancesAPI(siapiConfig, canaryServiceInstances, filterParams, config)
 
 		By("logging stdout to the errand output")
 		boshOutput := config.BoshClient.RunErrand(config.BrokerBoshDeploymentName, "upgrade-all-service-instances", []string{}, "")
@@ -76,6 +67,7 @@ var _ = Describe("parallel upgrade-all errand with canaries", func() {
 		logMatcher := "(?s)STARTING CANARIES(.*)FINISHED CANARIES(.*)FINISHED PROCESSING"
 		re := regexp.MustCompile(logMatcher)
 		matches := re.FindStringSubmatch(boshOutput.StdOut)
+		Expect(matches).To(HaveLen(3))
 		for _, instance := range canaryServiceInstances {
 			Expect(matches[1]).To(ContainSubstring(instance.GUID), fmt.Sprintf("Canary instances %v not present in canary instances upgraded", canaryServiceInstances))
 			Expect(matches[2]).NotTo(ContainSubstring(instance.GUID), fmt.Sprintf("Canary instances %v present in non-canary instances upgraded", canaryServiceInstances))

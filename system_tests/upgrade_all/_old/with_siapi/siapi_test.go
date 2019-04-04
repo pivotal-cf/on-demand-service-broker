@@ -13,66 +13,45 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package basic_test
+package parallel_test
 
 import (
 	"fmt"
+	"strings"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
-	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/cf_helpers"
-	. "github.com/pivotal-cf/on-demand-service-broker/system_tests/upgrade_all/shared"
+	. "github.com/pivotal-cf/on-demand-service-broker/system_tests/upgrade_all/_old/shared"
 )
 
-var serviceInstances []*TestService
-var canaryServiceInstances []*TestService
-
-var dataPersistenceEnabled bool
-
-var _ = Describe("upgrade-all-service-instances errand", func() {
+var _ = Describe("parallel upgrade-all errand and SIAPI", func() {
 	var (
-		spaceName string
+		filterParams           map[string]string
+		serviceInstances       []*TestService
+		dataPersistenceEnabled bool
 	)
 
 	BeforeEach(func() {
-		spaceName = ""
 		config.CurrentPlan = "dedicated-vm"
-		dataPersistenceEnabled = true
+		dataPersistenceEnabled = false
 		serviceInstances = []*TestService{}
+		filterParams = map[string]string{}
 		CfTargetSpace(config.CfSpace)
 	})
 
 	AfterEach(func() {
 		CfTargetSpace(config.CfSpace)
 		DeleteServiceInstances(serviceInstances, dataPersistenceEnabled)
-		if spaceName != "" {
-			CfTargetSpace(spaceName)
-			DeleteServiceInstances(canaryServiceInstances, dataPersistenceEnabled)
-			CfDeleteSpace(spaceName)
-		}
 		config.BoshClient.DeployODB(*config.OriginalBrokerManifest)
 	})
 
-	It("when there are no service instances provisioned, upgrade-all-service-instances runs successfully", func() {
-		brokerManifest := config.BoshClient.GetManifest(config.BrokerBoshDeploymentName)
-
-		UpdatePlanProperties(brokerManifest, config)
-		ChangeInstanceGroupName(brokerManifest, config)
-
-		By("deploying the modified broker manifest")
-		config.BoshClient.DeployODB(*brokerManifest)
-
-		By("logging stdout to the errand output")
-		boshOutput := config.BoshClient.RunErrand(config.BrokerBoshDeploymentName, "upgrade-all-service-instances", []string{}, "")
-		Expect(boshOutput.ExitCode).To(Equal(0))
-		Expect(boshOutput.StdOut).To(ContainSubstring("STARTING OPERATION"))
-	})
-
-	It("when there are multiple service instances provisioned, upgrade-all-service-instances runs successfully", func() {
+	It("upgrade-all-service-instances runs successfully", func() {
 		brokerManifest := config.BoshClient.GetManifest(config.BrokerBoshDeploymentName)
 		serviceInstances = CreateServiceInstances(config, dataPersistenceEnabled)
 
+		UpdateServiceInstancesAPI(siapiConfig, serviceInstances, filterParams, config)
 		UpdatePlanProperties(brokerManifest, config)
 		ChangeInstanceGroupName(brokerManifest, config)
 
@@ -82,18 +61,53 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 		By("logging stdout to the errand output")
 		boshOutput := config.BoshClient.RunErrand(config.BrokerBoshDeploymentName, "upgrade-all-service-instances", []string{}, "")
 		Expect(boshOutput.StdOut).To(ContainSubstring("STARTING OPERATION"))
+
+		instanceGUIDs := getInstanceGUIDs(boshOutput.StdOut)
+
+		b := gbytes.NewBuffer()
+		b.Write([]byte(boshOutput.StdOut))
+
+		By("upgrading the canary instance first")
+		Expect(b).To(SatisfyAll(
+			gbytes.Say(fmt.Sprintf(`\[%s\] Starting to process service instance`, instanceGUIDs[0])),
+			gbytes.Say(fmt.Sprintf(`\[%s\] Result: Service Instance operation success`, instanceGUIDs[0])),
+		))
+
+		By("upgrading all the non-canary instances")
+		logs := string(b.Contents())
+		Expect(logs).To(SatisfyAll(
+			ContainSubstring("[%s] Starting to process service instance", instanceGUIDs[1]),
+			ContainSubstring("[%s] Starting to process service instance", instanceGUIDs[2]),
+			ContainSubstring("[%s] Result: Service Instance operation success", instanceGUIDs[1]),
+			ContainSubstring("[%s] Result: Service Instance operation success", instanceGUIDs[2]),
+		))
 
 		for _, service := range serviceInstances {
 			deploymentName := GetServiceDeploymentName(service.Name)
 			manifest := config.BoshClient.GetManifest(deploymentName)
 
-			By("ensuring data still exists", func() {
-				Expect(cf.GetFromTestApp(service.AppURL, "foo")).To(Equal("bar"))
-			})
-
 			By(fmt.Sprintf("upgrading instance '%s'", service.Name))
 			instanceGroupProperties := bosh_helpers.FindInstanceGroupProperties(manifest, "redis")
 			Expect(instanceGroupProperties["redis"].(map[interface{}]interface{})["persistence"]).To(Equal("no"))
+
+			By("running the tasks in the correct order")
+			boshTasks := config.BoshClient.GetTasksForDeployment(GetServiceDeploymentName(service.Name))
+			Expect(boshTasks).To(HaveLen(2))
 		}
 	})
 })
+
+func getInstanceGUIDs(logOutput string) []string {
+	var instances []string
+	lines := strings.Split(logOutput, "\n")
+
+	for _, line := range lines {
+		if strings.Contains(line, "Service Instances: ") {
+			instances = strings.Split(line, " ")
+			instances = instances[len(instances)-3 : len(instances)]
+			return instances
+		}
+	}
+
+	return instances
+}

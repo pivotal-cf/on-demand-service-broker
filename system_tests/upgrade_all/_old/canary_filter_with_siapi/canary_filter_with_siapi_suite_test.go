@@ -13,24 +13,30 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package basic_test
+package canary_filter_siapi_test
 
 import (
 	"testing"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf/on-demand-service-broker/system_tests/upgrade_all/shared"
+	"github.com/pivotal-cf/on-demand-service-broker/system_tests/upgrade_all/_old/shared"
 )
 
 var (
-	config *shared.Config
+	config      *shared.Config
+	siapiConfig shared.SIAPIConfig
 )
 
 var _ = BeforeSuite(func() {
 	config = &shared.Config{}
 	config.InitConfig()
 	config.RegisterBroker()
+	siapiConfig = shared.SIAPIConfig{
+		URL:      shared.EnvMustHave("SIAPI_URL"),
+		Password: shared.EnvMustHave("SIAPI_PASSWORD"),
+		Username: shared.EnvMustHave("SIAPI_USERNAME"),
+	}
 })
 
 var _ = AfterSuite(func() {
@@ -39,5 +45,5 @@ var _ = AfterSuite(func() {
 
 func TestUpgradeInstancesErrandTests(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "UpgradeInstancesErrand Suite")
+	RunSpecs(t, "Upgrade Instances with Canary Filters and SI API Errand Suite")
 }
