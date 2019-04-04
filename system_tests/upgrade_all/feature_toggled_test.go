@@ -16,11 +16,7 @@
 package upgrade_all_test
 
 import (
-	"bufio"
-	"bytes"
 	"fmt"
-	"regexp"
-	"strings"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -36,11 +32,13 @@ var _ = Describe("upgrade-all-service-instances errand using all the features av
 
 	const canaryOrg = "canary_org"
 	const canarySpace = "canary_space"
+	const standardOrg = "system"
+	const standardSpace = "system"
 
 	var (
-		brokerInfo     bosh_helpers.BrokerInfo
-		uniqueID       string
-		appDetailsList []appDetails
+		brokerInfo         bosh_helpers.BrokerInfo
+		uniqueID           string
+		nonCanariesDetails []appDetails
 	)
 
 	BeforeEach(func() {
@@ -52,54 +50,48 @@ var _ = Describe("upgrade-all-service-instances errand using all the features av
 			service_helpers.Redis,
 			[]string{
 				"service_catalog_with_lifecycle.yml",
-				// "add_canary_filter.yml",
+				"add_canary_filter.yml",
 			},
 		)
 
-		// cf_helpers.CreateOrg(canaryOrg)
-		// cf_helpers.CreateSpace(canarySpace)
+		cf_helpers.CreateOrg(canaryOrg)
+		cf_helpers.CreateSpace(canaryOrg, canarySpace)
+
+		cf_helpers.TargetOrgAndSpace(standardOrg, standardSpace)
 	})
 
 	AfterEach(func() {
-		for _, appDtls := range appDetailsList {
+		for _, appDtls := range nonCanariesDetails {
 			cf_helpers.UnbindAndDeleteApp(appDtls.appName, appDtls.serviceName)
 		}
 
 		bosh_helpers.DeregisterAndDeleteBroker(brokerInfo.DeploymentName)
 
-		// cf_helpers.DeleteSpace(canarySpace)
-		// cf_helpers.DeleteOrg(canaryOrg)
+		cf_helpers.DeleteSpace(canaryOrg, canarySpace)
+		cf_helpers.DeleteOrg(canaryOrg)
+
+		cf_helpers.TargetOrgAndSpace(standardOrg, standardSpace)
 	})
 
-	FIt("succeeds", func() {
-		serviceNumber := 3
-		appDtlsCh := make(chan appDetails, serviceNumber)
+	It("succeeds", func() {
+		nonCanaryServices := 2
+		appDtlsCh := make(chan appDetails, nonCanaryServices)
 		appPath := cf_helpers.GetAppPath(service_helpers.Redis)
 
-		// cf_helpers.TargetOrgAndSpace(canaryOrg, canarySpace)
 		performInParallel(func() {
 			defer GinkgoRecover()
 
-			uuid := uuid.New()[:8]
-			serviceName := "service-" + uuid
-			appName := "app-" + uuid
-			cf_helpers.CreateService(brokerInfo.ServiceOffering, "redis-with-post-deploy", serviceName, "")
-			serviceGUID := cf_helpers.ServiceInstanceGUID(serviceName)
-			appURL := cf_helpers.PushAndBindApp(appName, serviceName, appPath)
-			cf_helpers.PutToTestApp(appURL, "uuid", uuid)
+			appDtlsCh <- deployService(brokerInfo.ServiceOffering, appPath)
+		}, nonCanaryServices)
 
-			appDtlsCh <- appDetails{
-				uuid:                  uuid,
-				appURL:                appURL,
-				appName:               appName,
-				serviceName:           serviceName,
-				serviceDeploymentName: "service-instance_" + serviceGUID,
-			}
-		}, serviceNumber)
 		close(appDtlsCh)
 
+		cf_helpers.TargetOrgAndSpace(canaryOrg, canarySpace)
+		canaryDetails := deployService(brokerInfo.ServiceOffering, appPath)
+		cf_helpers.TargetOrgAndSpace(standardOrg, standardSpace)
+
 		for dtls := range appDtlsCh {
-			appDetailsList = append(appDetailsList, dtls)
+			nonCanariesDetails = append(nonCanariesDetails, dtls)
 		}
 
 		By("changing the name of instance group and disabling persistence", func() {
@@ -109,7 +101,7 @@ var _ = Describe("upgrade-all-service-instances errand using all the features av
 				service_helpers.Redis,
 				[]string{
 					"service_catalog_with_lifecycle_updated.yml",
-					// "add_canary_filter.yml",
+					"add_canary_filter.yml",
 				})
 		})
 
@@ -117,33 +109,30 @@ var _ = Describe("upgrade-all-service-instances errand using all the features av
 		session := bosh_helpers.RunErrand(brokerInfo.DeploymentName, "upgrade-all-service-instances")
 		Expect(session).To(gbytes.Say("STARTING OPERATION"))
 
-		instanceGUIDs := getInstanceGUIDs(session.Out.Contents())
-		fmt.Printf("instanceGUIDs = %+v\n", instanceGUIDs)
-
 		b := gbytes.NewBuffer()
 		b.Write(session.Out.Contents())
 
 		By("upgrading the canary instance first")
 		Expect(b).To(SatisfyAll(
-			gbytes.Say(fmt.Sprintf(`\[%s\] Starting to process service instance`, instanceGUIDs[0])),
-			gbytes.Say(fmt.Sprintf(`\[%s\] Result: Service Instance operation success`, instanceGUIDs[0])),
+			gbytes.Say(fmt.Sprintf(`\[%s\] Starting to process service instance`, canaryDetails.serviceGUID)),
+			gbytes.Say(fmt.Sprintf(`\[%s\] Result: Service Instance operation success`, canaryDetails.serviceGUID)),
 		))
 
 		By("expecting the remaining (less than maxInFlight) instances to start before any completion")
 		Expect(b).To(SatisfyAll(
-			gbytes.Say(fmt.Sprintf(`\[%s\] Starting to process service instance`, instanceGUIDs[1])),
-			gbytes.Say(fmt.Sprintf(`\[%s\] Starting to process service instance`, instanceGUIDs[2])),
+			gbytes.Say(fmt.Sprintf(`\[%s\] Starting to process service instance`, nonCanariesDetails[0].serviceGUID)),
+			gbytes.Say(fmt.Sprintf(`\[%s\] Starting to process service instance`, nonCanariesDetails[1].serviceGUID)),
 			gbytes.Say("Result: Service Instance operation success"),
 		))
 
 		Expect(string(session.Out.Contents())).To(SatisfyAll(
-			ContainSubstring(fmt.Sprintf(`[%s] Result: Service Instance operation success`, instanceGUIDs[1])),
-			ContainSubstring(fmt.Sprintf(`[%s] Result: Service Instance operation success`, instanceGUIDs[2])),
+			ContainSubstring(fmt.Sprintf(`[%s] Result: Service Instance operation success`, nonCanariesDetails[0].serviceGUID)),
+			ContainSubstring(fmt.Sprintf(`[%s] Result: Service Instance operation success`, nonCanariesDetails[1].serviceGUID)),
 		))
 
 		Expect(b).To(gbytes.Say("FINISHED PROCESSING Status: SUCCESS"))
 
-		for _, appDtls := range appDetailsList {
+		for _, appDtls := range append(nonCanariesDetails, canaryDetails) {
 			By("verifying the update changes were applied to the instance", func() {
 				manifest := bosh_helpers.GetManifest(appDtls.serviceDeploymentName)
 				instanceGroupProperties := bosh_helpers.FindInstanceGroupProperties(&manifest, "redis")
@@ -176,40 +165,21 @@ var _ = Describe("upgrade-all-service-instances errand using all the features av
 	})
 })
 
-var _ = Describe("get instance guids", func() {
-	It("works", func() {
+func deployService(serviceOffering, appPath string) appDetails {
+	uuid := uuid.New()[:8]
+	serviceName := "service-" + uuid
+	appName := "app-" + uuid
+	cf_helpers.CreateService(serviceOffering, "redis-with-post-deploy", serviceName, "")
+	serviceGUID := cf_helpers.ServiceInstanceGUID(serviceName)
+	appURL := cf_helpers.PushAndBindApp(appName, serviceName, appPath)
+	cf_helpers.PutToTestApp(appURL, "uuid", uuid)
 
-		b := []byte(`
-Task 1276 | 15:22:14 | Fetching logs for broker/75cf97ec-e27f-49db-821b-e92f72ef0163 (0): Finding and packing log files (00:00:01)
-broker/75cf97ec-e27f-49db-821b-e92f72ef0163
-0
-[upgrade-all-service-instances] 2019/04/03 15:18:07.271933 [upgrade-all] STARTING OPERATION with 3 concurrent workers
-[upgrade-all-service-instances] 2019/04/03 15:18:07.392318 [upgrade-all] Service Instances: c9d7ecf0-6727-40c7-8d3b-18100cdd2876 cfb6043c-2473-4481-ad0f-d3be07bb6bf3 bc2ba8f9-5aae-4fff-bc50-08f0d7e95ef6    
-[upgrade-all-service-instances] 2019/04/03 15:18:07.392340 [upgrade-all] Total Service Instances found: 3
-`)
-
-		guids := getInstanceGUIDs(b)
-		Expect(guids).To(HaveLen(3))
-		fmt.Printf("guids = %+v\n", guids)
-		Expect(guids[2]).To(Equal("bc2ba8f9-5aae-4fff-bc50-08f0d7e95ef6"))
-
-	})
-
-})
-
-func getInstanceGUIDs(logOutput []byte) []string {
-	scanner := bufio.NewScanner(bytes.NewReader(logOutput))
-
-	for scanner.Scan() {
-		line := scanner.Text()
-		idx := strings.Index(line, "Service Instances: ")
-		if idx < 0 {
-			continue
-		}
-		regex := regexp.MustCompile(`\b[a-f0-9-]+\b`)
-		matches := regex.FindAllString(line[idx:], -1)
-		return matches
+	return appDetails{
+		uuid:                  uuid,
+		appURL:                appURL,
+		appName:               appName,
+		serviceName:           serviceName,
+		serviceGUID:           serviceGUID,
+		serviceDeploymentName: "service-instance_" + serviceGUID,
 	}
-
-	return nil
 }

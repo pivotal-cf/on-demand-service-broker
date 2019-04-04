@@ -28,6 +28,7 @@ type appDetails struct {
 	appURL                string
 	appName               string
 	serviceName           string
+	serviceGUID           string
 	serviceDeploymentName string
 }
 

@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/cloudfoundry-incubator/cf-test-helpers/cf"
+	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
 )
 
@@ -45,4 +46,24 @@ func Cf(args ...string) *gexec.Session {
 		}
 	}
 	return s
+}
+
+func CreateSpace(orgName, spaceName string) {
+	Eventually(Cf("create-space", spaceName, "-o", orgName)).Should(gexec.Exit(0))
+}
+
+func DeleteSpace(orgName, spaceName string) {
+	Eventually(Cf("delete-space", spaceName, "-o", orgName, "-f")).Should(gexec.Exit(0))
+}
+
+func CreateOrg(orgName string) {
+	Eventually(Cf("create-org", orgName)).Should(gexec.Exit(0))
+}
+
+func DeleteOrg(orgName string) {
+	Eventually(Cf("delete-org", orgName, "-f")).Should(gexec.Exit(0))
+}
+
+func TargetOrgAndSpace(orgName, spaceName string) {
+	Eventually(Cf("target", "-o", orgName, "-s", spaceName)).Should(gexec.Exit(0))
 }
