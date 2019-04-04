@@ -21,6 +21,8 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pborman/uuid"
+	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/cf_helpers"
 )
 
 type appDetails struct {
@@ -43,10 +45,30 @@ func performInParallel(f func(), count int) {
 
 	for i := 0; i < count; i++ {
 		go func() {
+			defer GinkgoRecover()
 			defer wg.Done()
 			f()
 		}()
 	}
 
 	wg.Wait()
+}
+
+func deployService(serviceOffering, planName, appPath string) appDetails {
+	uuid := uuid.New()[:8]
+	serviceName := "service-" + uuid
+	appName := "app-" + uuid
+	cf_helpers.CreateService(serviceOffering, planName, serviceName, "")
+	serviceGUID := cf_helpers.ServiceInstanceGUID(serviceName)
+	appURL := cf_helpers.PushAndBindApp(appName, serviceName, appPath)
+	cf_helpers.PutToTestApp(appURL, "uuid", uuid)
+
+	return appDetails{
+		uuid:                  uuid,
+		appURL:                appURL,
+		appName:               appName,
+		serviceName:           serviceName,
+		serviceGUID:           serviceGUID,
+		serviceDeploymentName: "service-instance_" + serviceGUID,
+	}
 }

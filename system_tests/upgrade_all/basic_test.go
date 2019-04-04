@@ -25,7 +25,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/service_helpers"
 )
 
-var _ = Describe("upgrade-all-service-instances errand", func() {
+var _ = Describe("upgrade-all-service-instances errand, basic operation", func() {
 
 	var (
 		brokerInfo bosh_helpers.BrokerInfo
@@ -57,7 +57,6 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 	})
 
 	Context("upgrading some instances in series", func() {
-
 		var appDetailsList []appDetails
 
 		AfterEach(func() {
@@ -67,40 +66,24 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 		})
 
 		It("succeeds", func() {
-			serviceNumber := 2
-			appDtlsCh := make(chan appDetails, serviceNumber)
+			instancesToTest := 2
+			planName := "dedicated-vm"
+
+			appDtlsCh := make(chan appDetails, instancesToTest)
 			appPath := cf_helpers.GetAppPath(service_helpers.Redis)
 
 			performInParallel(func() {
-				defer GinkgoRecover()
-
-				uuid := uuid.New()[:8]
-				serviceName := "service-" + uuid
-				appName := "app-" + uuid
-				cf_helpers.CreateService(brokerInfo.ServiceOffering, "dedicated-vm", serviceName, "")
-
-				serviceGUID := cf_helpers.ServiceInstanceGUID(serviceName)
-				serviceDeploymentName := "service-instance_" + serviceGUID
+				appDtls := deployService(brokerInfo.ServiceOffering, planName, appPath)
+				appDtlsCh <- appDtls
 
 				By("verifying that the persistence property starts as 'yes'", func() {
-					manifest := bosh_helpers.GetManifest(serviceDeploymentName)
+					manifest := bosh_helpers.GetManifest(appDtls.serviceDeploymentName)
 					instanceGroupProperties := bosh_helpers.FindInstanceGroupProperties(&manifest, "redis-server")
 					Expect(instanceGroupProperties["redis"].(map[interface{}]interface{})["persistence"]).To(Equal("yes"))
 				})
+			}, instancesToTest)
 
-				appURL := cf_helpers.PushAndBindApp(appName, serviceName, appPath)
-				cf_helpers.PutToTestApp(appURL, "uuid", uuid)
-
-				appDtlsCh <- appDetails{
-					uuid:                  uuid,
-					appURL:                appURL,
-					appName:               appName,
-					serviceName:           serviceName,
-					serviceDeploymentName: serviceDeploymentName,
-				}
-			}, serviceNumber)
 			close(appDtlsCh)
-
 			for dtls := range appDtlsCh {
 				appDetailsList = append(appDetailsList, dtls)
 			}
@@ -116,9 +99,14 @@ var _ = Describe("upgrade-all-service-instances errand", func() {
 					})
 			})
 
-			session := bosh_helpers.RunErrand(brokerInfo.DeploymentName, "upgrade-all-service-instances")
-			Expect(session).To(gbytes.Say("STARTING OPERATION"))
-			Expect(session).To(gbytes.Say("FINISHED PROCESSING Status: SUCCESS"))
+			By("running the upgrade-all errand", func() {
+				session := bosh_helpers.RunErrand(brokerInfo.DeploymentName, "upgrade-all-service-instances")
+				Expect(session).To(SatisfyAll(
+					gbytes.Say("STARTING OPERATION"),
+					gbytes.Say("FINISHED PROCESSING Status: SUCCESS"),
+					gbytes.Say("Number of successful operations: %d", instancesToTest),
+				))
+			})
 
 			for _, appDtls := range appDetailsList {
 				By("verifying the update changes were applied to the instance", func() {
