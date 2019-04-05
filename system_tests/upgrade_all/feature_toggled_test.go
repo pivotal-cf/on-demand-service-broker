@@ -60,7 +60,11 @@ var _ = Describe("upgrade-all-service-instances errand using all the features av
 	})
 
 	AfterEach(func() {
-		for _, appDtls := range append(nonCanariesDetails, canaryDetails) {
+		cf_helpers.TargetOrgAndSpace(canaryOrg, canarySpace)
+		cf_helpers.UnbindAndDeleteApp(canaryDetails.appName, canaryDetails.serviceName)
+
+		cf_helpers.TargetOrgAndSpace(standardOrg, standardSpace)
+		for _, appDtls := range nonCanariesDetails {
 			cf_helpers.UnbindAndDeleteApp(appDtls.appName, appDtls.serviceName)
 		}
 
@@ -111,15 +115,16 @@ var _ = Describe("upgrade-all-service-instances errand using all the features av
 			gbytes.Say(`\[%s\] Starting to process service instance`, canaryDetails.serviceGUID),
 			gbytes.Say(`\[%s\] Result: Service Instance operation success`, canaryDetails.serviceGUID),
 			gbytes.Say("FINISHED CANARIES"),
-			gbytes.Say(`\[%s\] Starting to process service instance`, nonCanariesDetails[0].serviceGUID),
-			gbytes.Say(`\[%s\] Starting to process service instance`, nonCanariesDetails[1].serviceGUID),
-			gbytes.Say(`\[%s\] Result: Service Instance operation success`, nonCanariesDetails[0].serviceGUID),
-			gbytes.Say("FINISHED PROCESSING Status: SUCCESS"),
+			gbytes.Say(`Processing all instances`),
+			gbytes.Say(`Starting to process service instance`),
+			gbytes.Say(`Starting to process service instance`),
+			gbytes.Say(`Result: Service Instance operation success`),
+			gbytes.Say(`Result: Service Instance operation success`),
 		))
 
 		By("checking the other service instance upgrade completed", func() {
 			Expect(string(session.Out.Contents())).To(
-				ContainSubstring(`[%s] Result: Service Instance operation success`, nonCanariesDetails[1].serviceGUID),
+				ContainSubstring(`FINISHED PROCESSING Status: SUCCESS`),
 			)
 		})
 
