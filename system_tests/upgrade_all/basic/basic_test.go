@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package upgrade_all_test
+package basic_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -23,6 +23,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/cf_helpers"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/service_helpers"
+	"github.com/pivotal-cf/on-demand-service-broker/system_tests/upgrade_all"
 )
 
 var _ = Describe("upgrade-all-service-instances errand, basic operation", func() {
@@ -57,11 +58,11 @@ var _ = Describe("upgrade-all-service-instances errand, basic operation", func()
 	})
 
 	Context("upgrading some instances in series", func() {
-		var appDetailsList []appDetails
+		var appDetailsList []upgrade_all.AppDetails
 
 		AfterEach(func() {
 			for _, appDtls := range appDetailsList {
-				cf_helpers.UnbindAndDeleteApp(appDtls.appName, appDtls.serviceName)
+				cf_helpers.UnbindAndDeleteApp(appDtls.AppName, appDtls.ServiceName)
 			}
 		})
 
@@ -69,15 +70,15 @@ var _ = Describe("upgrade-all-service-instances errand, basic operation", func()
 			instancesToTest := 2
 			planName := "dedicated-vm"
 
-			appDtlsCh := make(chan appDetails, instancesToTest)
+			appDtlsCh := make(chan upgrade_all.AppDetails, instancesToTest)
 			appPath := cf_helpers.GetAppPath(service_helpers.Redis)
 
-			performInParallel(func() {
-				appDtls := deployService(brokerInfo.ServiceOffering, planName, appPath)
+			upgrade_all.PerformInParallel(func() {
+				appDtls := upgrade_all.DeployService(brokerInfo.ServiceOffering, planName, appPath)
 				appDtlsCh <- appDtls
 
 				By("verifying that the persistence property starts as 'yes'", func() {
-					manifest := bosh_helpers.GetManifest(appDtls.serviceDeploymentName)
+					manifest := bosh_helpers.GetManifest(appDtls.ServiceDeploymentName)
 					instanceGroupProperties := bosh_helpers.FindInstanceGroupProperties(&manifest, "redis-server")
 					Expect(instanceGroupProperties["redis"].(map[interface{}]interface{})["persistence"]).To(Equal("yes"))
 				})
@@ -110,13 +111,13 @@ var _ = Describe("upgrade-all-service-instances errand, basic operation", func()
 
 			for _, appDtls := range appDetailsList {
 				By("verifying the update changes were applied to the instance", func() {
-					manifest := bosh_helpers.GetManifest(appDtls.serviceDeploymentName)
+					manifest := bosh_helpers.GetManifest(appDtls.ServiceDeploymentName)
 					instanceGroupProperties := bosh_helpers.FindInstanceGroupProperties(&manifest, "redis")
 					Expect(instanceGroupProperties["redis"].(map[interface{}]interface{})["persistence"]).To(Equal("no"))
 				})
 
 				By("checking apps still have access to the data previously stored in their service", func() {
-					Expect(cf_helpers.GetFromTestApp(appDtls.appURL, "uuid")).To(Equal(appDtls.uuid))
+					Expect(cf_helpers.GetFromTestApp(appDtls.AppURL, "uuid")).To(Equal(appDtls.Uuid))
 				})
 
 			}

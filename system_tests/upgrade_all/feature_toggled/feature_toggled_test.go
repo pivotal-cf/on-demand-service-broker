@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package upgrade_all_test
+package feature_toggled_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -24,6 +24,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/cf_helpers"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/service_helpers"
+	"github.com/pivotal-cf/on-demand-service-broker/system_tests/upgrade_all"
 )
 
 var _ = Describe("upgrade-all-service-instances errand using all the features available", func() {
@@ -36,8 +37,8 @@ var _ = Describe("upgrade-all-service-instances errand using all the features av
 	var (
 		brokerInfo         bosh_helpers.BrokerInfo
 		uniqueID           string
-		nonCanariesDetails []appDetails
-		canaryDetails      appDetails
+		nonCanariesDetails []upgrade_all.AppDetails
+		canaryDetails      upgrade_all.AppDetails
 	)
 
 	BeforeEach(func() {
@@ -61,11 +62,11 @@ var _ = Describe("upgrade-all-service-instances errand using all the features av
 
 	AfterEach(func() {
 		cf_helpers.TargetOrgAndSpace(canaryOrg, canarySpace)
-		cf_helpers.UnbindAndDeleteApp(canaryDetails.appName, canaryDetails.serviceName)
+		cf_helpers.UnbindAndDeleteApp(canaryDetails.AppName, canaryDetails.ServiceName)
 
 		cf_helpers.TargetOrgAndSpace(standardOrg, standardSpace)
 		for _, appDtls := range nonCanariesDetails {
-			cf_helpers.UnbindAndDeleteApp(appDtls.appName, appDtls.serviceName)
+			cf_helpers.UnbindAndDeleteApp(appDtls.AppName, appDtls.ServiceName)
 		}
 
 		bosh_helpers.DeregisterAndDeleteBroker(brokerInfo.DeploymentName)
@@ -80,11 +81,11 @@ var _ = Describe("upgrade-all-service-instances errand using all the features av
 		nonCanaryServices := 2
 		planName := "redis-with-post-deploy"
 
-		appDtlsCh := make(chan appDetails, nonCanaryServices)
+		appDtlsCh := make(chan upgrade_all.AppDetails, nonCanaryServices)
 		appPath := cf_helpers.GetAppPath(service_helpers.Redis)
 
-		performInParallel(func() {
-			appDtlsCh <- deployService(brokerInfo.ServiceOffering, planName, appPath)
+		upgrade_all.PerformInParallel(func() {
+			appDtlsCh <- upgrade_all.DeployService(brokerInfo.ServiceOffering, planName, appPath)
 		}, nonCanaryServices)
 
 		close(appDtlsCh)
@@ -93,7 +94,7 @@ var _ = Describe("upgrade-all-service-instances errand using all the features av
 		}
 
 		cf_helpers.TargetOrgAndSpace(canaryOrg, canarySpace)
-		canaryDetails = deployService(brokerInfo.ServiceOffering, planName, appPath)
+		canaryDetails = upgrade_all.DeployService(brokerInfo.ServiceOffering, planName, appPath)
 		cf_helpers.TargetOrgAndSpace(standardOrg, standardSpace)
 
 		By("changing the name of instance group and disabling persistence", func() {
@@ -112,8 +113,8 @@ var _ = Describe("upgrade-all-service-instances errand using all the features av
 
 		By("upgrading the canary instance first, followed by the rest in parallel")
 		Expect(session).To(SatisfyAll(
-			gbytes.Say(`\[%s\] Starting to process service instance`, canaryDetails.serviceGUID),
-			gbytes.Say(`\[%s\] Result: Service Instance operation success`, canaryDetails.serviceGUID),
+			gbytes.Say(`\[%s\] Starting to process service instance`, canaryDetails.ServiceGUID),
+			gbytes.Say(`\[%s\] Result: Service Instance operation success`, canaryDetails.ServiceGUID),
 			gbytes.Say("FINISHED CANARIES"),
 			gbytes.Say(`Processing all instances`),
 			gbytes.Say(`Starting to process service instance`),
@@ -130,19 +131,19 @@ var _ = Describe("upgrade-all-service-instances errand using all the features av
 
 		for _, appDtls := range append(nonCanariesDetails, canaryDetails) {
 			By("verifying the update changes were applied to the instance", func() {
-				manifest := bosh_helpers.GetManifest(appDtls.serviceDeploymentName)
+				manifest := bosh_helpers.GetManifest(appDtls.ServiceDeploymentName)
 				instanceGroupProperties := bosh_helpers.FindInstanceGroupProperties(&manifest, "redis")
 				Expect(instanceGroupProperties["redis"].(map[interface{}]interface{})["persistence"]).To(Equal("no"))
 			})
 
 			By("checking apps still have access to the data previously stored in their service", func() {
-				Expect(cf_helpers.GetFromTestApp(appDtls.appURL, "uuid")).To(Equal(appDtls.uuid))
+				Expect(cf_helpers.GetFromTestApp(appDtls.AppURL, "uuid")).To(Equal(appDtls.Uuid))
 			})
 
 			By("checking lifecycle errands executed as expected", func() {
 				expectedBoshTasksOrder := []string{"create deployment", "run errand", "create deployment", "run errand", "create deployment", "run errand"}
 
-				boshTasks := bosh_helpers.TasksForDeployment(appDtls.serviceDeploymentName)
+				boshTasks := bosh_helpers.TasksForDeployment(appDtls.ServiceDeploymentName)
 				Expect(boshTasks).To(HaveLen(4))
 
 				for i, task := range boshTasks {
