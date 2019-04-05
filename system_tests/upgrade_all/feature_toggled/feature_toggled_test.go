@@ -63,10 +63,12 @@ var _ = Describe("upgrade-all-service-instances errand using all the features av
 	AfterEach(func() {
 		cf_helpers.TargetOrgAndSpace(canaryOrg, canarySpace)
 		cf_helpers.UnbindAndDeleteApp(canaryDetails.AppName, canaryDetails.ServiceName)
+		cf_helpers.DeleteService(canaryDetails.ServiceName)
 
 		cf_helpers.TargetOrgAndSpace(standardOrg, standardSpace)
 		for _, appDtls := range nonCanariesDetails {
 			cf_helpers.UnbindAndDeleteApp(appDtls.AppName, appDtls.ServiceName)
+			cf_helpers.DeleteService(appDtls.ServiceName)
 		}
 
 		bosh_helpers.DeregisterAndDeleteBroker(brokerInfo.DeploymentName)
