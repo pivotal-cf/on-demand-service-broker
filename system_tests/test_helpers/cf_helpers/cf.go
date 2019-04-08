@@ -16,6 +16,7 @@
 package cf_helpers
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/cloudfoundry-incubator/cf-test-helpers/cf"
@@ -49,21 +50,21 @@ func Cf(args ...string) *gexec.Session {
 }
 
 func CreateSpace(orgName, spaceName string) {
-	Eventually(Cf("create-space", spaceName, "-o", orgName)).Should(gexec.Exit(0))
+	Eventually(Cf("create-space", spaceName, "-o", orgName)).Should(gexec.Exit(0), fmt.Sprintf("creating space %q in org %q", orgName, spaceName))
 }
 
 func DeleteSpace(orgName, spaceName string) {
-	Eventually(Cf("delete-space", spaceName, "-o", orgName, "-f")).Should(gexec.Exit(0))
+	Eventually(Cf("delete-space", spaceName, "-o", orgName, "-f")).Should(gexec.Exit(0), fmt.Sprintf("deleting space %q in org %q", orgName, spaceName))
 }
 
 func CreateOrg(orgName string) {
-	Eventually(Cf("create-org", orgName)).Should(gexec.Exit(0))
+	Eventually(Cf("create-org", orgName)).Should(gexec.Exit(0), fmt.Sprintf("creating org %q", orgName))
 }
 
 func DeleteOrg(orgName string) {
-	Eventually(Cf("delete-org", orgName, "-f")).Should(gexec.Exit(0))
+	Eventually(Cf("delete-org", orgName, "-f")).Should(gexec.Exit(0), fmt.Sprintf("deleting org %q", orgName))
 }
 
 func TargetOrgAndSpace(orgName, spaceName string) {
-	Eventually(Cf("target", "-o", orgName, "-s", spaceName)).Should(gexec.Exit(0))
+	Eventually(Cf("target", "-o", orgName, "-s", spaceName)).Should(gexec.Exit(0), fmt.Sprintf("targeting org %q and space %q", orgName, spaceName))
 }
