@@ -16,6 +16,8 @@
 package feature_toggled_test
 
 import (
+	"os"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -31,14 +33,14 @@ var _ = Describe("upgrade-all-service-instances errand using all the features av
 
 	const canaryOrg = "canary_org"
 	const canarySpace = "canary_space"
-	const standardOrg = "system"
-	const standardSpace = "system"
 
 	var (
 		brokerInfo         bosh_helpers.BrokerInfo
 		uniqueID           string
 		nonCanariesDetails []upgrade_all.AppDetails
 		canaryDetails      upgrade_all.AppDetails
+		standardOrg        string
+		standardSpace      string
 	)
 
 	BeforeEach(func() {
@@ -57,6 +59,8 @@ var _ = Describe("upgrade-all-service-instances errand using all the features av
 		cf_helpers.CreateOrg(canaryOrg)
 		cf_helpers.CreateSpace(canaryOrg, canarySpace)
 
+		standardOrg := os.Getenv("CF_ORG")
+		standardSpace := os.Getenv("CF_SPACE")
 		cf_helpers.TargetOrgAndSpace(standardOrg, standardSpace)
 	})
 
