@@ -83,7 +83,7 @@ type EnvVars struct {
 }
 
 const (
-	LongBOSHTimeout = time.Minute * 30
+	LongBOSHTimeout = time.Minute * 45
 )
 
 func TasksForDeployment(boshServiceInstanceName string) []BoshTaskOutput {
