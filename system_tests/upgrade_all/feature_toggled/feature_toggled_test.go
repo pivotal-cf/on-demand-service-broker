@@ -59,8 +59,8 @@ var _ = Describe("upgrade-all-service-instances errand using all the features av
 		cf_helpers.CreateOrg(canaryOrg)
 		cf_helpers.CreateSpace(canaryOrg, canarySpace)
 
-		standardOrg := os.Getenv("CF_ORG")
-		standardSpace := os.Getenv("CF_SPACE")
+		standardOrg = os.Getenv("CF_ORG")
+		standardSpace = os.Getenv("CF_SPACE")
 		cf_helpers.TargetOrgAndSpace(standardOrg, standardSpace)
 	})
 
