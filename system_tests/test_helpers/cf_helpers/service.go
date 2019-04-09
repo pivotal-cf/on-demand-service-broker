@@ -32,6 +32,20 @@ func CreateService(serviceOffering, servicePlan, serviceName, arbitraryParams st
 	AwaitServiceCreation(serviceName)
 }
 
+func CreateServiceWithoutWaiting(serviceOffering, servicePlan, serviceName, arbitraryParams string) {
+	cfArgs := []string{"create-service", serviceOffering, servicePlan, serviceName}
+	if arbitraryParams != "" {
+		cfArgs = append(cfArgs, "-c", arbitraryParams)
+	}
+
+	Eventually(Cf(cfArgs...), CfTimeout).Should(gexec.Exit(0))
+}
+
+func DeleteServiceWithoutChecking(serviceName string) {
+	Eventually(Cf("delete-service", serviceName, "-f"), CfTimeout).Should(gexec.Exit())
+	AwaitServiceDeletion(serviceName)
+}
+
 func DeleteService(serviceName string) {
 	Eventually(Cf("delete-service", serviceName, "-f"), CfTimeout).Should(gexec.Exit(0))
 	AwaitServiceDeletion(serviceName)

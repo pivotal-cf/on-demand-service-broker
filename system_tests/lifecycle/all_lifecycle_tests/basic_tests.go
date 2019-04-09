@@ -1,9 +1,7 @@
 package all_lifecycle_tests
 
 import (
-	"encoding/json"
 	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/cf_helpers"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/service_helpers"
@@ -32,7 +30,7 @@ func BasicLifecycleTest(
 		serviceKeyName = "serviceKey" + brokerInfo.TestSuffix
 		cf_helpers.CreateServiceKey(serviceInstanceName, serviceKeyName)
 		serviceKeyContents := cf_helpers.GetServiceKey(serviceInstanceName, serviceKeyName)
-		looksLikeAServiceKey(serviceKeyContents)
+		cf_helpers.LooksLikeAServiceKey(serviceKeyContents)
 	})
 
 	By("binding an app", func() {
@@ -45,7 +43,7 @@ func BasicLifecycleTest(
 		cf_helpers.ExerciseApp(serviceType, appURL)
 	})
 
-	By("testing the app works after updating the plan for the service", func(){
+	By("testing the app works after updating the plan for the service", func() {
 		cf_helpers.UpdateServiceToPlan(serviceInstanceName, newPlanName)
 		cf_helpers.ExerciseApp(serviceType, appURL)
 	})
@@ -66,12 +64,4 @@ func BasicLifecycleTest(
 	By("deleting the service", func() {
 		cf_helpers.DeleteService(serviceInstanceName)
 	})
-}
-// TODO this should be in a shared place
-func looksLikeAServiceKey(key string) {
-	var jsonmap map[string]interface{}
-	err := json.Unmarshal([]byte(key), &jsonmap)
-
-	Expect(err).NotTo(HaveOccurred())
-	Expect(len(jsonmap)).To(BeNumerically(">", 0))
 }

@@ -75,6 +75,10 @@ func PushAndBindApp(appName, serviceName, testAppPath string) string {
 
 func UnbindAndDeleteApp(appName, serviceName string) {
 	Eventually(Cf("unbind-service", appName, serviceName), CfTimeout).Should(gexec.Exit(0))
+	DeleteApp(appName)
+}
+
+func DeleteApp(appName string) {
 	Eventually(Cf("delete", appName, "-f"), CfTimeout).Should(gexec.Exit(0))
 }
 

@@ -16,6 +16,7 @@
 package cf_helpers
 
 import (
+	"encoding/json"
 	"strings"
 
 	"github.com/onsi/gomega/gexec"
@@ -40,6 +41,18 @@ func GetServiceKey(serviceName, serviceKeyName string) string {
 
 func DeleteServiceKey(serviceName, serviceKeyName string) {
 	cfArgs := []string{"delete-service-key", serviceName, serviceKeyName, "-f"}
-
 	Eventually(Cf(cfArgs...), CfTimeout).Should(gexec.Exit(0))
+}
+
+func DeleteServiceKeyWithoutChecking(serviceName, serviceKeyName string) {
+	cfArgs := []string{"delete-service-key", serviceName, serviceKeyName, "-f"}
+	Eventually(Cf(cfArgs...), CfTimeout).Should(gexec.Exit())
+}
+
+func LooksLikeAServiceKey(key string) {
+	var jsonmap map[string]interface{}
+	err := json.Unmarshal([]byte(key), &jsonmap)
+
+	Expect(err).NotTo(HaveOccurred())
+	Expect(len(jsonmap)).To(BeNumerically(">", 0))
 }

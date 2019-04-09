@@ -7,55 +7,74 @@
 package delete_all_service_instances_tests
 
 import (
-	"time"
+	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/service_helpers"
 
 	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/gexec"
-	"github.com/pborman/uuid"
-	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/cf_helpers"
+	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
+	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/cf_helpers"
+)
+
+var (
+	serviceInstanceNameOne string
+	serviceInstanceNameTwo string
+	serviceInstanceGuidOne string
+	serviceInstanceGuidTwo string
+	serviceKeyName         string
+	appName                string
+	appURL                 string
 )
 
 var _ = Describe("deleting all service instances", func() {
-	serviceInstance1 := uuid.New()[:7]
-	serviceInstance2 := uuid.New()[:7]
-	serviceKeyName := uuid.New()[:7]
-	testAppName := uuid.New()[:7]
 
 	BeforeEach(func() {
-		Eventually(cf.Cf("create-service", serviceOffering, "dedicated-vm", serviceInstance1), cf.CfTimeout).Should(gexec.Exit(0))
-		Eventually(cf.Cf("create-service", serviceOffering, "dedicated-vm", serviceInstance2), cf.CfTimeout).Should(gexec.Exit(0))
-		cf.AwaitServiceCreation(serviceInstance1)
-		cf.AwaitServiceCreation(serviceInstance2)
+		serviceInstanceNameOne = "service-one-" + brokerInfo.TestSuffix
+		serviceInstanceNameTwo = "service-two-" + brokerInfo.TestSuffix
+
+		cf_helpers.CreateServiceWithoutWaiting(brokerInfo.ServiceOffering, "redis-small", serviceInstanceNameOne, "")
+		cf_helpers.CreateServiceWithoutWaiting(brokerInfo.ServiceOffering, "redis-small", serviceInstanceNameTwo, "")
+
+		cf_helpers.AwaitServiceCreation(serviceInstanceNameOne)
+		cf_helpers.AwaitServiceCreation(serviceInstanceNameTwo)
 	})
 
 	AfterEach(func() {
-		Eventually(cf.Cf("unbind-service", testAppName, serviceInstance1), time.Second*30).Should(gexec.Exit())
-		Eventually(cf.Cf("delete", testAppName, "-f", "-r"), time.Second*30).Should(gexec.Exit(0))
-		Eventually(cf.Cf("delete-service-key", serviceInstance1, serviceKeyName, "-f"), time.Second*30).Should(gexec.Exit())
-		Eventually(cf.Cf("delete-service", serviceInstance1, "-f"), time.Second*30).Should(gexec.Exit())
-		Eventually(cf.Cf("delete-service", serviceInstance2, "-f"), time.Second*30).Should(gexec.Exit())
-		cf.AwaitServiceDeletion(serviceInstance1)
-		cf.AwaitServiceDeletion(serviceInstance2)
+		cf_helpers.DeleteApp(appName)
+		cf_helpers.DeleteServiceKeyWithoutChecking(serviceInstanceNameOne, serviceKeyName)
+		cf_helpers.DeleteServiceWithoutChecking(serviceInstanceNameOne)
+		cf_helpers.DeleteServiceWithoutChecking(serviceInstanceNameTwo)
 	})
 
 	It("deletes and unbinds all service instances", func() {
-		Eventually(cf.Cf("push", "-p", exampleAppPath, "--no-start", testAppName), time.Minute).Should(gexec.Exit(0))
-		Eventually(cf.Cf("bind-service", testAppName, serviceInstance1), cf.CfTimeout).Should(gexec.Exit(0))
-		Eventually(cf.Cf("create-service-key", serviceInstance1, serviceKeyName), cf.CfTimeout).Should(gexec.Exit(0))
+		By("pushing and binding an app to Service Instance One", func() {
+			appName = "example-app" + brokerInfo.TestSuffix
+			appPath := cf_helpers.GetAppPath(service_helpers.Redis)
+			appURL = cf_helpers.PushAndBindApp(appName, serviceInstanceNameOne, appPath)
+		})
 
-		serviceInstanceGuid1 := cf.GetServiceInstanceGUID(serviceInstance1)
-		credhubCLI.VerifyCredhubKeysExist(serviceOffering, serviceInstanceGuid1)
+		By("creating a service key for Service Instance One", func() {
+			serviceKeyName = "serviceKey" + brokerInfo.TestSuffix
+			cf_helpers.CreateServiceKey(serviceInstanceNameOne, serviceKeyName)
+			serviceKeyContents := cf_helpers.GetServiceKey(serviceInstanceNameOne, serviceKeyName)
+			cf_helpers.LooksLikeAServiceKey(serviceKeyContents)
+		})
 
-		serviceInstanceGuid2 := cf.GetServiceInstanceGUID(serviceInstance2)
-		credhubCLI.VerifyCredhubKeysExist(serviceOffering, serviceInstanceGuid2)
+		By("verifying secrets are stored in credhub", func() {
+			serviceInstanceGuidOne = cf_helpers.GetServiceInstanceGUID(serviceInstanceNameOne)
+			credhubCLI.VerifyCredhubKeysExist(brokerInfo.ServiceOffering, serviceInstanceGuidOne)
 
-		boshClient.RunErrand(brokerBoshDeploymentName, "delete-all-service-instances", []string{}, "")
-		cf.AwaitServiceDeletion(serviceInstance1)
-		cf.AwaitServiceDeletion(serviceInstance2)
+			serviceInstanceGuidTwo = cf_helpers.GetServiceInstanceGUID(serviceInstanceNameTwo)
+			credhubCLI.VerifyCredhubKeysExist(brokerInfo.ServiceOffering, serviceInstanceGuidTwo)
+		})
 
-		By("removing all credhub references relating to instances that existed when the errand was invoked")
-		credhubCLI.VerifyCredhubKeysEmpty(serviceOffering, serviceInstanceGuid1)
-		credhubCLI.VerifyCredhubKeysEmpty(serviceOffering, serviceInstanceGuid2)
+		By("running delete-all-service-instances errand", func() {
+			bosh_helpers.RunErrand(brokerInfo.DeploymentName, "delete-all-service-instances")
+			cf_helpers.AwaitServiceDeletion(serviceInstanceNameOne)
+			cf_helpers.AwaitServiceDeletion(serviceInstanceNameTwo)
+		})
+
+		By("removing all credhub references relating to instances that existed when the errand was invoked", func() {
+			credhubCLI.VerifyCredhubKeysEmpty(brokerInfo.ServiceOffering, serviceInstanceGuidOne)
+			credhubCLI.VerifyCredhubKeysEmpty(brokerInfo.ServiceOffering, serviceInstanceGuidTwo)
+		})
 	})
 })

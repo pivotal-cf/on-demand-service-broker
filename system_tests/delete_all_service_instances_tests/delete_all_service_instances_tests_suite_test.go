@@ -7,66 +7,47 @@
 package delete_all_service_instances_tests
 
 import (
-	"fmt"
+	"github.com/pborman/uuid"
+	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/credhub_helpers"
+	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/env_helpers"
+	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/service_helpers"
 	"os"
 	"testing"
 
-	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/credhub_helpers"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/gexec"
-	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
-	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/cf_helpers"
+	. "github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
 )
-
-var (
-	serviceOffering          string
-	brokerName               string
-	brokerURL                string
-	brokerBoshDeploymentName string
-	exampleAppPath           string
-	credhubCLI               *credhub_helpers.CredHubCLI
-	boshClient               *bosh_helpers.BoshHelperClient
-)
-
-var _ = BeforeSuite(func() {
-	serviceOffering = envMustHave("SERVICE_OFFERING_NAME")
-	brokerName = envMustHave("BROKER_NAME")
-	brokerURL = envMustHave("BROKER_URL")
-	brokerUsername := envMustHave("BROKER_USERNAME")
-	brokerPassword := envMustHave("BROKER_PASSWORD")
-	brokerBoshDeploymentName = envMustHave("BROKER_DEPLOYMENT_NAME")
-	boshURL := envMustHave("BOSH_URL")
-	boshUsername := envMustHave("BOSH_USERNAME")
-	boshPassword := envMustHave("BOSH_PASSWORD")
-	uaaURL := os.Getenv("UAA_URL")
-	boshCACert := os.Getenv("BOSH_CA_CERT_FILE")
-	disableTLSVerification := boshCACert == ""
-	exampleAppPath = envMustHave("EXAMPLE_APP_PATH")
-	credhubCLI = credhub_helpers.NewCredHubCLI(envMustHave("CREDHUB_CLIENT"), envMustHave("CREDHUB_SECRET"))
-	Eventually(cf.Cf("create-service-broker", brokerName, brokerUsername, brokerPassword, brokerURL), cf.CfTimeout).Should(gexec.Exit(0))
-	Eventually(cf.Cf("enable-service-access", serviceOffering), cf.CfTimeout).Should(gexec.Exit(0))
-
-	if uaaURL == "" {
-		boshClient = bosh_helpers.NewBasicAuth(boshURL, boshUsername, boshPassword, boshCACert, disableTLSVerification)
-	} else {
-		boshClient = bosh_helpers.New(boshURL, uaaURL, boshUsername, boshPassword, boshCACert)
-	}
-})
-
-var _ = AfterSuite(func() {
-	Eventually(cf.Cf("delete-service-broker", brokerName, "-f"), cf.CfTimeout).Should(gexec.Exit(0))
-	gexec.CleanupBuildArtifacts()
-})
 
 func TestDeleteAllInstancesTests(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "DeleteAllInstancesTests Suite")
 }
 
-func envMustHave(envVar string) string {
-	envVal := os.Getenv(envVar)
-	Expect(envVal).ToNot(BeEmpty(), fmt.Sprintf("must set %s", envVar))
-	return envVal
+var (
+	brokerInfo BrokerInfo
+	credhubCLI *credhub_helpers.CredHubCLI
+)
+
+var _ = BeforeSuite(func() {
+	uniqueID := uuid.New()[:6]
+
+	brokerInfo = DeployAndRegisterBroker(
+		"-delete-all-service-instances-"+uniqueID,
+		BrokerDeploymentOptions{},
+		service_helpers.Redis,
+		[]string{"basic_service_catalog.yml", "enable_secure_manifests.yml"},
+	)
+
+	setupCredhubCLIClient()
+})
+
+var _ = AfterSuite(func() {
+	DeregisterAndDeleteBroker(brokerInfo.DeploymentName)
+})
+
+func setupCredhubCLIClient() {
+	err := env_helpers.ValidateEnvVars("CREDHUB_CLIENT", "CREDHUB_SECRET")
+	Expect(err).NotTo(HaveOccurred())
+	credhubCLI = credhub_helpers.NewCredHubCLI(os.Getenv("CREDHUB_CLIENT"), os.Getenv("CREDHUB_SECRET"))
 }
