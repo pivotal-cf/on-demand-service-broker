@@ -43,7 +43,7 @@ func FeatureToggledLifecycleTest(
 		cf_helpers.CreateServiceKey(serviceInstanceName, serviceKeyName)
 		serviceKeyContents = cf_helpers.GetServiceKey(serviceInstanceName, serviceKeyName)
 
-		looksLikeAServiceKey(serviceKeyContents)
+		cf_helpers.LooksLikeAServiceKey(serviceKeyContents)
 	})
 
 	By("testing binding with DNS", func() {
