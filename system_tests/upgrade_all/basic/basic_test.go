@@ -29,20 +29,24 @@ import (
 var _ = Describe("upgrade-all-service-instances errand, basic operation", func() {
 
 	var (
-		brokerInfo bosh_helpers.BrokerInfo
-		uniqueID   string
+		brokerInfo              bosh_helpers.BrokerInfo
+		brokerDeploymentOptions bosh_helpers.BrokerDeploymentOptions
+		uniqueID                string
 	)
 
 	BeforeEach(func() {
 		uniqueID = uuid.New()[:8]
 
+		brokerDeploymentOptions = bosh_helpers.BrokerDeploymentOptions{BrokerTLS: true}
+
 		brokerInfo = bosh_helpers.DeployAndRegisterBroker(
 			"basic-upgrade-"+uniqueID,
-			bosh_helpers.BrokerDeploymentOptions{},
+			brokerDeploymentOptions,
 			service_helpers.Redis,
 			[]string{
 				"service_catalog.yml",
 				"remove_parallel_upgrade.yml",
+				"update_upgrade_all_job.yml",
 			})
 	})
 
@@ -71,10 +75,9 @@ var _ = Describe("upgrade-all-service-instances errand, basic operation", func()
 			planName := "dedicated-vm"
 
 			appDtlsCh := make(chan upgrade_all.AppDetails, instancesToTest)
-			appPath := cf_helpers.GetAppPath(service_helpers.Redis)
 
 			upgrade_all.PerformInParallel(func() {
-				appDtls := upgrade_all.DeployService(brokerInfo.ServiceOffering, planName, appPath)
+				appDtls := upgrade_all.CreateServiceAndApp(brokerInfo.ServiceOffering, planName)
 				appDtlsCh <- appDtls
 
 				By("verifying that the persistence property starts as 'yes'", func() {
@@ -92,11 +95,12 @@ var _ = Describe("upgrade-all-service-instances errand, basic operation", func()
 			By("changing the name of instance group and disabling persistence", func() {
 				brokerInfo = bosh_helpers.DeployAndRegisterBroker(
 					"basic-upgrade-"+uniqueID,
-					bosh_helpers.BrokerDeploymentOptions{},
+					brokerDeploymentOptions,
 					service_helpers.Redis,
 					[]string{
 						"service_catalog_updated.yml",
 						"remove_parallel_upgrade.yml",
+						"update_upgrade_all_job.yml",
 					})
 			})
 
@@ -117,9 +121,8 @@ var _ = Describe("upgrade-all-service-instances errand, basic operation", func()
 				})
 
 				By("checking apps still have access to the data previously stored in their service", func() {
-					Expect(cf_helpers.GetFromTestApp(appDtls.AppURL, "uuid")).To(Equal(appDtls.Uuid))
+					Expect(cf_helpers.GetFromTestApp(appDtls.AppURL, "uuid")).To(Equal(appDtls.UUID))
 				})
-
 			}
 		})
 	})

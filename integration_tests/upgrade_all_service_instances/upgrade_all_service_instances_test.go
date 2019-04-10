@@ -7,95 +7,23 @@
 package upgrade_all_service_instances_test
 
 import (
-	"crypto/tls"
+	"encoding/pem"
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"net/http/httptest"
-	"os"
-	"strings"
+	"regexp"
 	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
-	"github.com/pivotal-cf/on-demand-service-broker/integration_tests/helpers"
+	"github.com/onsi/gomega/ghttp"
+	"github.com/pivotal-cf/on-demand-service-broker/config"
+	. "github.com/pivotal-cf/on-demand-service-broker/integration_tests/helpers"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
-	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
-	"github.com/pivotal-cf/on-demand-service-broker/mockhttp/mockbroker"
+	"gopkg.in/yaml.v2"
 )
-
-func pathToSSLCerts(filename string) string {
-	return fmt.Sprintf("../fixtures/ssl/%s", filename)
-}
-
-func populateBrokerConfig(odbURL, brokerUsername, brokerPassword string) string {
-	return fmt.Sprintf(`---
-broker_api:
-  url: %s
-  authentication:
-    basic:
-      username: %s
-      password: %s`, odbURL, brokerUsername, brokerPassword)
-}
-
-func populateServiceInstancesAPIConfig(
-	serviceInstancesAPIURLPath,
-	serviceInstancesAPIUsername,
-	serviceInstancesAPIPassword string) string {
-	return fmt.Sprintf(`
-
-service_instances_api:
-  url: %s
-  authentication:
-    basic:
-      username: %s
-      password: %s`, serviceInstancesAPIURLPath, serviceInstancesAPIUsername, serviceInstancesAPIPassword)
-}
-
-func populateServiceInstancesAPISSLConfig(
-	serviceInstancesAPIURLPath,
-	serviceInstancesAPIUsername,
-	serviceInstancesAPIPassword,
-	serviceInstancesAPIRootCA string) string {
-
-	formattedCert := strings.Replace(serviceInstancesAPIRootCA, "\n", "\n    ", -1)
-	return fmt.Sprintf(`
-service_instances_api:
-  url: %s
-  root_ca_cert: |
-    %s
-  authentication:
-    basic:
-      username: %s
-      password: %s`,
-		serviceInstancesAPIURLPath,
-		formattedCert,
-		serviceInstancesAPIUsername,
-		serviceInstancesAPIPassword,
-	)
-}
-
-func populateUpgraderConfig(pollingInterval, attemptInterval, attemptLimit int) string {
-	return fmt.Sprintf(`
-polling_interval: %d
-attempt_interval: %d
-attempt_limit: %d
-max_in_flight: 1`, pollingInterval, attemptInterval, attemptLimit)
-}
-
-func populateUpgraderConfigWithCanaries(canaries int, org, space string) string {
-	return fmt.Sprintf(`
-polling_interval: 1
-attempt_interval: 2
-attempt_limit: 5
-max_in_flight: 1
-canaries: %d
-canary_selection_params:
-  cf_org: %s
-  cf_space: %s`, canaries, org, space)
-}
 
 func writeConfigFile(configContent string) string {
 	file, err := ioutil.TempFile("", "config")
@@ -108,517 +36,356 @@ func writeConfigFile(configContent string) string {
 	return file.Name()
 }
 
-func startNewAPIServer(serviceInstancesAPIURLPath, serviceInstancesAPIUsername, serviceInstancesAPIPassword string) *httptest.Server {
-	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		username, password, _ := r.BasicAuth()
-		if username != serviceInstancesAPIUsername || password != serviceInstancesAPIPassword {
-			http.Error(w, "unauthorized", http.StatusUnauthorized)
-			return
-		}
-		if r.URL.Path != serviceInstancesAPIURLPath {
-			http.Error(w, "not found", http.StatusNotFound)
-			return
-		}
-		fmt.Fprintln(w, `[{"service_instance_id": "service-instance-id", "plan_id": "service-plan-id"}]`)
-	}))
-}
-
-func startNewSSLAPIServer(
-	certPath,
-	keyPath,
-	serviceInstancesAPIURLPath,
-	serviceInstancesAPIUsername,
-	serviceInstancesAPIPassword string) *httptest.Server {
-
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		username, password, _ := r.BasicAuth()
-		if username != serviceInstancesAPIUsername || password != serviceInstancesAPIPassword {
-			http.Error(w, "unauthorized", http.StatusUnauthorized)
-			return
-		}
-		if r.URL.Path != serviceInstancesAPIURLPath {
-			http.Error(w, "not found", http.StatusNotFound)
-			return
-		}
-		fmt.Fprintln(w, `[{"service_instance_id": "service-instance-id", "plan_id": "service-plan-id"}]`)
-	})
-	cer, err := tls.LoadX509KeyPair(certPath, keyPath)
-	Expect(err).NotTo(HaveOccurred())
-	config := &tls.Config{Certificates: []tls.Certificate{cer}}
-	sslServer := httptest.NewUnstartedServer(handler)
-	sslServer.TLS = config
-
-	sslServer.Config.ErrorLog = loggerfactory.New(GinkgoWriter, "server", loggerfactory.Flags).New()
-	sslServer.StartTLS()
-	return sslServer
-}
-
 var _ = Describe("running the tool to upgrade all service instances", func() {
 	const (
-		brokerUsername                = "broker username"
-		brokerPassword                = "broker password"
-		brokerServiceInstancesURLPath = "/mgmt/service_instances"
-		serviceInstancesAPIUsername   = "siapi username"
-		serviceInstancesAPIPassword   = "siapi password"
-		serviceInstancesAPIURLPath    = "/some-service-instances-come-from-here"
+		brokerUsername              = "broker username"
+		brokerPassword              = "broker password"
+		serviceInstancesAPIUsername = "siapi username"
+		serviceInstancesAPIPassword = "siapi password"
+		serviceInstancesAPIURLPath  = "/some-service-instances-come-from-here"
 	)
 
 	var (
-		odb        *mockhttp.Server
-		configPath string
-		certPath   string
-		keyPath    string
+		broker       *ghttp.Server
+		errandConfig config.InstanceIteratorConfig
 	)
 
-	startUpgradeAllInstanceBinary := func() *gexec.Session {
-		return helpers.StartBinaryWithParams(binaryPath, []string{"-configPath", configPath})
+	startUpgradeAllInstanceBinary := func(errandConfig config.InstanceIteratorConfig) *gexec.Session {
+		b, err := yaml.Marshal(errandConfig)
+		Expect(err).ToNot(HaveOccurred())
+		configPath := writeConfigFile(string(b))
+		return StartBinaryWithParams(binaryPath, []string{"-configPath", configPath})
 	}
 
-	BeforeEach(func() {
-		certPath = pathToSSLCerts("cert.pem")
-		keyPath = pathToSSLCerts("key.pem")
+	Describe("HTTP Broker", func() {
+		var (
+			serviceInstances string
+			operationData    string
+			instanceID       string
 
-		odb = mockbroker.New()
-		odb.ExpectedBasicAuth(brokerUsername, brokerPassword)
-	})
+			lastOperationHandler    *FakeHandler
+			serviceInstancesHandler *FakeHandler
+			upgradeHandler          *FakeHandler
+		)
 
-	AfterEach(func() {
-		odb.VerifyMocks()
-		odb.Close()
-		err := os.Remove(configPath)
-		Expect(err).NotTo(HaveOccurred())
-	})
+		BeforeEach(func() {
+			broker = ghttp.NewServer()
 
-	Context("when service-instances-api is specified in the config", func() {
-		var testServiceInstancesAPIServer *httptest.Server
+			lastOperationHandler = new(FakeHandler)
+			serviceInstancesHandler = new(FakeHandler)
+			upgradeHandler = new(FakeHandler)
+
+			errandConfig = config.InstanceIteratorConfig{
+				PollingInterval: 1,
+				AttemptLimit:    2,
+				AttemptInterval: 2,
+				MaxInFlight:     1,
+				ServiceInstancesAPI: config.ServiceInstancesAPI{
+					URL: broker.URL() + "/mgmt/service_instances",
+					Authentication: config.Authentication{
+						Basic: config.UserCredentials{
+							Username: brokerUsername,
+							Password: brokerPassword,
+						},
+					},
+				},
+				BrokerAPI: config.BrokerAPI{
+					URL: broker.URL(),
+					Authentication: config.Authentication{
+						Basic: config.UserCredentials{
+							Username: brokerUsername,
+							Password: brokerPassword,
+						},
+					},
+				},
+			}
+
+			broker.RouteToHandler(http.MethodGet, "/mgmt/service_instances", ghttp.CombineHandlers(
+				ghttp.VerifyBasicAuth(brokerUsername, brokerPassword),
+				serviceInstancesHandler.Handle,
+			))
+
+			broker.RouteToHandler(http.MethodPatch, regexp.MustCompile(`/mgmt/service_instances/.*`), ghttp.CombineHandlers(
+				ghttp.VerifyBasicAuth(brokerUsername, brokerPassword),
+				ghttp.VerifyRequest(http.MethodPatch, ContainSubstring("/mgmt/service_instances/"), "operation_type=upgrade"),
+				upgradeHandler.Handle,
+			))
+
+			broker.RouteToHandler(http.MethodGet, regexp.MustCompile(`/v2/service_instances/.*/last_operation`), ghttp.CombineHandlers(
+				ghttp.VerifyBasicAuth(brokerUsername, brokerPassword),
+				lastOperationHandler.Handle,
+			))
+
+			operationData = `{"BoshTaskID":1,"OperationType":"upgrade","PostDeployErrand":{},"PreDeleteErrand":{}}`
+			instanceID = "service-instance-id"
+			serviceInstances = fmt.Sprintf(`[{"plan_id": "service-plan-id", "service_instance_id": "%s"}]`, instanceID)
+
+			serviceInstancesHandler.RespondsWith(http.StatusOK, serviceInstances)
+			upgradeHandler.RespondsWith(http.StatusAccepted, operationData)
+			lastOperationHandler.RespondsOnCall(0, http.StatusOK, `{"state":"in progress"}`)
+			lastOperationHandler.RespondsOnCall(1, http.StatusOK, `{"state":"succeeded"}`)
+		})
 
 		AfterEach(func() {
-			testServiceInstancesAPIServer.Close()
+			broker.Close()
 		})
 
-		It("exits successfully with one instance upgraded message", func() {
-			testServiceInstancesAPIServer = startNewAPIServer(
-				serviceInstancesAPIURLPath,
-				serviceInstancesAPIUsername,
-				serviceInstancesAPIPassword)
-
-			operationData := `{"BoshTaskID":1,"OperationType":"upgrade","PostDeployErrand":{},"PreDeleteErrand":{}}`
-			instanceID := "service-instance-id"
-			odb.VerifyAndMock(
-				mockbroker.UpgradeInstance(instanceID).RespondsAcceptedWith(operationData),
-				mockbroker.LastOperation(instanceID, operationData).RespondWithOperationInProgress(),
-				mockbroker.LastOperation(instanceID, operationData).RespondWithOperationSucceeded(),
-			)
-
-			brokerConfig := populateBrokerConfig(odb.URL, brokerUsername, brokerPassword)
-			serviceInstancesAPIConfig := populateServiceInstancesAPIConfig(
-				testServiceInstancesAPIServer.URL+serviceInstancesAPIURLPath,
-				serviceInstancesAPIUsername,
-				serviceInstancesAPIPassword,
-			)
-			pollingIntervalConfig := populateUpgraderConfig(1, 2, 5)
-			config := brokerConfig + serviceInstancesAPIConfig + pollingIntervalConfig
-			configPath = writeConfigFile(config)
-
-			runningTool := startUpgradeAllInstanceBinary()
+		It("exits successfully and upgrades the instance", func() {
+			runningTool := startUpgradeAllInstanceBinary(errandConfig)
 
 			Eventually(runningTool, 5*time.Second).Should(gexec.Exit(0))
 			Expect(runningTool).To(gbytes.Say("Sleep interval until next attempt: 2s"))
+			Expect(runningTool).To(gbytes.Say(`\[upgrade\-all\] FINISHED PROCESSING Status: SUCCESS`))
 			Expect(runningTool).To(gbytes.Say("Number of successful operations: 1"))
 		})
 
-		It("returns unauthorised when incorrect service instances API username provided", func() {
-			testServiceInstancesAPIServer = startNewAPIServer(
-				serviceInstancesAPIURLPath,
-				serviceInstancesAPIUsername,
-				serviceInstancesAPIPassword)
+		It("uses the canary_selection_params when querying canary instances", func() {
+			instanceID := "my-instance-id"
+			canaryInstanceID := "canary-instance-id"
+			canariesList := fmt.Sprintf(`[{"plan_id": "service-plan-id", "service_instance_id": "%s"}]`, canaryInstanceID)
+			serviceInstances := fmt.Sprintf(`[{"plan_id": "service-plan-id", "service_instance_id": "%s"}, {"plan_id": "service-plan-id", "service_instance_id": "%s"}]`, canaryInstanceID, instanceID)
 
-			brokerConfig := populateBrokerConfig(odb.URL, brokerUsername, brokerPassword)
-			serviceInstancesAPIConfig := populateServiceInstancesAPIConfig(
-				testServiceInstancesAPIServer.URL+serviceInstancesAPIURLPath,
-				"not-the-user",
-				serviceInstancesAPIPassword,
-			)
-			pollingIntervalConfig := populateUpgraderConfig(1, 2, 5)
-			config := brokerConfig + serviceInstancesAPIConfig + pollingIntervalConfig
-			configPath = writeConfigFile(config)
+			serviceInstancesHandler.RespondsWith(http.StatusOK, serviceInstances)
+			serviceInstancesHandler.WithQueryParams("cf_org=my-org", "cf_space=my-space").RespondsWith(http.StatusOK, canariesList)
+			lastOperationHandler.RespondsWith(http.StatusOK, `{"state":"succeeded"}`)
 
-			runningTool := startUpgradeAllInstanceBinary()
+			errandConfig.CanarySelectionParams = map[string]string{"cf_org": "my-org", "cf_space": "my-space"}
+			errandConfig.Canaries = 1
 
-			Eventually(runningTool).Should(gexec.Exit(1))
-			Expect(runningTool).To(gbytes.Say(fmt.Sprintf(
-				`error listing service instances: error communicating with service_instances_api \(%s\): HTTP response status: 401 Unauthorized`,
-				testServiceInstancesAPIServer.URL+serviceInstancesAPIURLPath,
-			)))
+			runningTool := startUpgradeAllInstanceBinary(errandConfig)
+
+			Eventually(runningTool, 5*time.Second).Should(gexec.Exit(0))
+			Expect(runningTool).To(gbytes.Say(`\[upgrade\-all\] STARTING CANARIES: 1 canaries`))
+			Expect(runningTool).To(gbytes.Say(`\[upgrade\-all\] FINISHED PROCESSING Status: SUCCESS`))
+			Expect(runningTool).To(gbytes.Say("Number of successful operations: 2"))
 		})
 
-		It("returns service instances API error when URL is invalid", func() {
-			testServiceInstancesAPIServer = startNewAPIServer(
-				serviceInstancesAPIURLPath,
-				serviceInstancesAPIUsername,
-				serviceInstancesAPIPassword)
+		It("uses the canary_selection_params but returns an error if no instances found but instances exist", func() {
+			canariesList := `[]`
 
-			brokerConfig := populateBrokerConfig(odb.URL, brokerUsername, brokerPassword)
-			serviceInstancesAPIConfig := populateServiceInstancesAPIConfig(
-				"some://example.com",
-				serviceInstancesAPIUsername,
-				serviceInstancesAPIPassword,
-			)
-			pollingIntervalConfig := populateUpgraderConfig(1, 2, 5)
-			config := brokerConfig + serviceInstancesAPIConfig + pollingIntervalConfig
-			configPath = writeConfigFile(config)
+			serviceInstancesHandler.WithQueryParams("cf_org=my-org", "cf_space=my-space").RespondsWith(http.StatusOK, canariesList)
 
-			runningTool := startUpgradeAllInstanceBinary()
+			errandConfig.CanarySelectionParams = map[string]string{"cf_org": "my-org", "cf_space": "my-space"}
+			errandConfig.Canaries = 1
 
-			Eventually(runningTool).Should(gexec.Exit(1))
-			Expect(runningTool).To(gbytes.Say(
-				`error listing service instances: error communicating with service_instances_api \(some://example.com\):`,
+			runningTool := startUpgradeAllInstanceBinary(errandConfig)
+
+			Eventually(runningTool, 5*time.Second).Should(gexec.Exit(1))
+			Expect(runningTool).To(gbytes.Say("Failed to find a match to the canary selection criteria"))
+		})
+
+		It("returns an error if service-instances api responds with a non-200", func() {
+			serviceInstancesHandler.RespondsWith(http.StatusInternalServerError, `{"description": "a forced error"}`)
+
+			runningTool := startUpgradeAllInstanceBinary(errandConfig)
+
+			Eventually(runningTool, 5*time.Second).Should(gexec.Exit(1))
+			Expect(runningTool).To(gbytes.Say("error listing service instances: HTTP response status: 500 Internal Server Error. a forced error"))
+		})
+
+		It("exits with a failure and shows a summary message when the upgrade fails", func() {
+			lastOperationHandler.RespondsOnCall(1, http.StatusOK, `{"state":"failed"}`)
+
+			runningTool := startUpgradeAllInstanceBinary(errandConfig)
+
+			Eventually(runningTool, 5*time.Second).Should(gexec.Exit(1))
+			Expect(runningTool).To(gbytes.Say("Status: FAILED"))
+			Expect(runningTool).To(gbytes.Say(fmt.Sprintf(`Number of service instances that failed to process: 1 \[%s\]`, instanceID)))
+		})
+
+		Context("when the attempt limit is reached", func() {
+			It("exits with an error reporting the instances that were not upgraded", func() {
+				upgradeHandler.RespondsWith(http.StatusConflict, operationData)
+
+				runningTool := startUpgradeAllInstanceBinary(errandConfig)
+
+				Eventually(runningTool, 5*time.Second).Should(gexec.Exit(1))
+				Expect(runningTool).To(gbytes.Say(`\[upgrade\-all\] Processing all instances. Attempt 1/2`))
+				Expect(runningTool).To(gbytes.Say(`\[upgrade\-all\] Processing all remaining instances. Attempt 2/2`))
+				Expect(runningTool).To(gbytes.Say("Number of busy instances which could not be processed: 1"))
+				Expect(runningTool).To(gbytes.Say(fmt.Sprintf("The following instances could not be processed: %s", instanceID)))
+			})
+		})
+
+		Context("when a service instance plan is updated after upgrade-all starts but before instance upgrade", func() {
+			It("uses the new plan for the upgrade", func() {
+				serviceInstancesInitialResponse := fmt.Sprintf(`[{"plan_id": "service-plan-id", "service_instance_id": "%s"}]`, instanceID)
+				serviceInstancesResponseAfterPlanUpdate := fmt.Sprintf(`[{"plan_id": "service-plan-id-2", "service_instance_id": "%s"}]`, instanceID)
+
+				serviceInstancesHandler.RespondsOnCall(0, http.StatusOK, serviceInstancesInitialResponse)
+				serviceInstancesHandler.RespondsOnCall(1, http.StatusOK, serviceInstancesResponseAfterPlanUpdate)
+
+				runningTool := startUpgradeAllInstanceBinary(errandConfig)
+
+				Eventually(runningTool, 5*time.Second).Should(gexec.Exit(0))
+				Expect(runningTool).To(gbytes.Say("Sleep interval until next attempt: 2s"))
+				Expect(runningTool).To(gbytes.Say(`\[upgrade\-all\] FINISHED PROCESSING Status: SUCCESS`))
+				Expect(runningTool).To(gbytes.Say("Number of successful operations: 1"))
+
+				Expect(upgradeHandler.GetRequestForCall(0).Body).To(Equal(`{"plan_id": "service-plan-id-2"}`))
+			})
+		})
+
+		Context("when a service instance is deleted after upgrade-all starts but before the instance upgrade", func() {
+			It("Fetches the latest service instances info and reports a deleted service", func() {
+				serviceInstancesHandler.RespondsOnCall(0, http.StatusOK, serviceInstances)
+				serviceInstancesHandler.RespondsOnCall(1, http.StatusOK, "[]")
+
+				runningTool := startUpgradeAllInstanceBinary(errandConfig)
+
+				Eventually(runningTool, 5*time.Second).Should(gexec.Exit(0))
+				Expect(runningTool).To(gbytes.Say(`\[upgrade\-all\] FINISHED PROCESSING Status: SUCCESS`))
+				Expect(runningTool).To(gbytes.Say("Number of successful operations: 0"))
+				Expect(runningTool).To(gbytes.Say("Number of deleted instances before operation could happen: 1"))
+			})
+		})
+
+		Context("when a service instance refresh fails prior to instance upgrade", func() {
+			It("we log failure and carry on with previous data", func() {
+				serviceInstancesHandler.RespondsOnCall(0, http.StatusOK, serviceInstances)
+				serviceInstancesHandler.RespondsOnCall(1, http.StatusInternalServerError, "oops")
+
+				runningTool := startUpgradeAllInstanceBinary(errandConfig)
+
+				Eventually(runningTool, 5*time.Second).Should(gexec.Exit(0))
+
+				Expect(runningTool).To(gbytes.Say("Failed to get refreshed list of instances. Continuing with previously fetched info"))
+				Expect(runningTool).To(gbytes.Say(`\[upgrade\-all\] FINISHED PROCESSING Status: SUCCESS`))
+				Expect(runningTool).To(gbytes.Say("Number of successful operations: 1"))
+			})
+		})
+
+		Context("when service-instances-api is specified in the config", func() {
+			var serviceInstancesAPIServer *ghttp.Server
+
+			BeforeEach(func() {
+				serviceInstancesAPIServer = ghttp.NewServer()
+
+				serviceInstancesAPIServer.RouteToHandler(http.MethodGet, serviceInstancesAPIURLPath, ghttp.CombineHandlers(
+					ghttp.VerifyBasicAuth(serviceInstancesAPIUsername, serviceInstancesAPIPassword),
+					serviceInstancesHandler.Handle,
+				))
+
+				serviceInstancesHandler.RespondsWith(http.StatusOK, `[{"service_instance_id": "service-instance-id", "plan_id": "service-plan-id"}]`)
+
+				errandConfig.ServiceInstancesAPI = config.ServiceInstancesAPI{
+					URL: serviceInstancesAPIServer.URL() + serviceInstancesAPIURLPath,
+					Authentication: config.Authentication{
+						Basic: config.UserCredentials{
+							Username: serviceInstancesAPIUsername,
+							Password: serviceInstancesAPIPassword,
+						},
+					},
+				}
+			})
+
+			AfterEach(func() {
+				serviceInstancesAPIServer.Close()
+			})
+
+			It("exits successfully with one instance upgraded message", func() {
+				runningTool := startUpgradeAllInstanceBinary(errandConfig)
+
+				Eventually(runningTool, 5*time.Second).Should(gexec.Exit(0))
+				Expect(runningTool).To(gbytes.Say("Sleep interval until next attempt: 2s"))
+				Expect(runningTool).To(gbytes.Say("Number of successful operations: 1"))
+			})
+		})
+
+	})
+
+	Describe("HTTPS Broker", func() {
+		var pemCert string
+
+		BeforeEach(func() {
+			broker = ghttp.NewTLSServer()
+			rawPem := broker.HTTPTestServer.Certificate().Raw
+			pemCert = string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: rawPem}))
+
+			errandConfig = config.InstanceIteratorConfig{
+				PollingInterval: 1,
+				AttemptLimit:    5,
+				AttemptInterval: 2,
+				MaxInFlight:     1,
+				ServiceInstancesAPI: config.ServiceInstancesAPI{
+					URL: broker.URL() + "/mgmt/service_instances",
+					Authentication: config.Authentication{
+						Basic: config.UserCredentials{
+							Username: brokerUsername,
+							Password: brokerPassword,
+						},
+					},
+				},
+				BrokerAPI: config.BrokerAPI{
+					URL: broker.URL(),
+					Authentication: config.Authentication{
+						Basic: config.UserCredentials{
+							Username: brokerUsername,
+							Password: brokerPassword,
+						},
+					},
+				},
+			}
+
+			broker.RouteToHandler(http.MethodGet, "/mgmt/service_instances", ghttp.CombineHandlers(
+				ghttp.VerifyBasicAuth(brokerUsername, brokerPassword),
+				ghttp.RespondWith(http.StatusOK, `[{"service_instance_id":"foo"}]`),
 			))
+
+			broker.RouteToHandler(http.MethodPatch, regexp.MustCompile(`/mgmt/service_instances/.*`), ghttp.CombineHandlers(
+				ghttp.VerifyBasicAuth(brokerUsername, brokerPassword),
+				ghttp.RespondWith(http.StatusAccepted, `{"operation":{"task_id":7}}`),
+				ghttp.VerifyRequest(http.MethodPatch, ContainSubstring(`/mgmt/service_instances/`), "operation_type=upgrade"),
+			))
+
+			broker.RouteToHandler(http.MethodGet, regexp.MustCompile(`/v2/service_instances/.*/last_operation`), ghttp.CombineHandlers(
+				ghttp.VerifyBasicAuth(brokerUsername, brokerPassword),
+				ghttp.RespondWith(http.StatusOK, `{"state":"succeeded"}`),
+			))
+
+			broker.HTTPTestServer.Config.ErrorLog = loggerfactory.New(GinkgoWriter, "server", loggerfactory.Flags).New()
 		})
 
-		It("exits successfully when configured with a TLS enabled service-instances-api server", func() {
-			testServiceInstancesAPIServer = startNewSSLAPIServer(
-				certPath,
-				keyPath,
-				serviceInstancesAPIURLPath,
-				serviceInstancesAPIUsername,
-				serviceInstancesAPIPassword)
+		AfterEach(func() {
+			broker.Close()
+		})
 
-			operationData := `{"BoshTaskID":1,"OperationType":"upgrade","PostDeployErrand":{},"PreDeleteErrand":{}}`
-			instanceID := "service-instance-id"
-			odb.VerifyAndMock(
-				mockbroker.UpgradeInstance(instanceID).RespondsAcceptedWith(operationData),
-				mockbroker.LastOperation(instanceID, operationData).RespondWithOperationInProgress(),
-				mockbroker.LastOperation(instanceID, operationData).RespondWithOperationSucceeded(),
-			)
+		It("upgrades all instances", func() {
+			errandConfig.ServiceInstancesAPI.RootCACert = pemCert
+			errandConfig.BrokerAPI.TLS.CACert = pemCert
 
-			brokerConfig := populateBrokerConfig(odb.URL, brokerUsername, brokerPassword)
-			serviceInstancesAPIRootCA, err := ioutil.ReadFile(certPath)
-			Expect(err).NotTo(HaveOccurred())
-			serviceInstancesAPIConfig := populateServiceInstancesAPISSLConfig(
-				testServiceInstancesAPIServer.URL+serviceInstancesAPIURLPath,
-				serviceInstancesAPIUsername,
-				serviceInstancesAPIPassword,
-				string(serviceInstancesAPIRootCA),
-			)
-			pollingIntervalConfig := populateUpgraderConfig(1, 2, 5)
-			config := brokerConfig + serviceInstancesAPIConfig + pollingIntervalConfig
-			configPath = writeConfigFile(config)
-
-			runningTool := startUpgradeAllInstanceBinary()
+			runningTool := startUpgradeAllInstanceBinary(errandConfig)
 
 			Eventually(runningTool, 5*time.Second).Should(gexec.Exit(0))
-			Expect(runningTool).To(gbytes.Say("Sleep interval until next attempt: 2s"))
 			Expect(runningTool).To(gbytes.Say("Number of successful operations: 1"))
 		})
 
-		It("exits 1 when SIAPI server has TLS enabled but root CA has not been provided to errand", func() {
-			testServiceInstancesAPIServer = startNewSSLAPIServer(
-				certPath,
-				keyPath,
-				serviceInstancesAPIURLPath,
-				serviceInstancesAPIUsername,
-				serviceInstancesAPIPassword)
+		It("skips ssl cert verification when disabled", func() {
+			errandConfig.ServiceInstancesAPI.DisableSSLCertVerification = true
+			errandConfig.BrokerAPI.TLS.DisableSSLCertVerification = true
 
-			brokerConfig := populateBrokerConfig(odb.URL, brokerUsername, brokerPassword)
+			runningTool := startUpgradeAllInstanceBinary(errandConfig)
 
-			serviceInstancesAPIConfig := populateServiceInstancesAPIConfig(
-				testServiceInstancesAPIServer.URL+serviceInstancesAPIURLPath,
-				serviceInstancesAPIUsername,
-				serviceInstancesAPIPassword)
+			Eventually(runningTool, 5*time.Second).Should(gexec.Exit(0))
+			Expect(runningTool).To(gbytes.Say("Number of successful operations: 1"))
+		})
 
-			pollingIntervalConfig := populateUpgraderConfig(1, 2, 5)
+		It("fails when the broker cert is not trusted by the service instance api client", func() {
+			errandConfig.BrokerAPI.TLS.DisableSSLCertVerification = true
 
-			config := brokerConfig + serviceInstancesAPIConfig + pollingIntervalConfig
-
-			configPath = writeConfigFile(config)
-			runningTool := startUpgradeAllInstanceBinary()
+			runningTool := startUpgradeAllInstanceBinary(errandConfig)
 
 			Eventually(runningTool, 5*time.Second).Should(gexec.Exit(1))
-			Expect(runningTool).To(gbytes.Say(fmt.Sprintf(
-				"SSL validation error for `service_instances_api.url`: %s. Please configure a `service_instances_api.root_ca_cert` and use a valid SSL certificate",
-				testServiceInstancesAPIServer.URL+serviceInstancesAPIURLPath)))
+			Expect(runningTool).To(gbytes.Say("/mgmt/service_instances: x509: certificate signed by unknown authority"))
 		})
-	})
 
-	It("uses the canary_selection_params when querying canary instances", func() {
-		operationData := `{"BoshTaskID":1,"OperationType":"upgrade","PostDeployErrand":{},"PreDeleteErrand":{}}`
-		instanceID := "my-instance-id"
-		canaryInstanceID := "canary-instance-id"
-		canariesList := fmt.Sprintf(`[{"plan_id": "service-plan-id", "service_instance_id": "%s"}]`, canaryInstanceID)
-		instancesList := fmt.Sprintf(`[{"plan_id": "service-plan-id", "service_instance_id": "%s"}, {"plan_id": "service-plan-id", "service_instance_id": "%s"}]`, canaryInstanceID, instanceID)
-		odb.VerifyAndMock(
-			mockbroker.ListInstances().RespondsOKWith(instancesList),
-			mockbroker.ListInstancesWithOrgAndSpace("my-org", "my-space").RespondsOKWith(canariesList),
-			mockbroker.ListInstances().RespondsOKWith(instancesList),
-			mockbroker.UpgradeInstance(canaryInstanceID).RespondsAcceptedWith(operationData),
-			mockbroker.LastOperation(canaryInstanceID, operationData).RespondWithOperationSucceeded(),
+		It("fails when the broker cert is not trusted by the broker client", func() {
+			errandConfig.ServiceInstancesAPI.RootCACert = pemCert
 
-			mockbroker.ListInstances().RespondsOKWith(instancesList),
-			mockbroker.UpgradeInstance(instanceID).RespondsAcceptedWith(operationData),
-			mockbroker.LastOperation(instanceID, operationData).RespondWithOperationSucceeded(),
-		)
-		brokerConfig := populateBrokerConfig(odb.URL, brokerUsername, brokerPassword)
-		serviceInstancesAPIConfig := populateServiceInstancesAPIConfig(
-			odb.URL+brokerServiceInstancesURLPath,
-			brokerUsername,
-			brokerPassword,
-		)
-		pollingIntervalConfig := populateUpgraderConfigWithCanaries(1, "my-org", "my-space")
-		config := brokerConfig + serviceInstancesAPIConfig + pollingIntervalConfig
-		configPath = writeConfigFile(config)
-
-		runningTool := startUpgradeAllInstanceBinary()
-		Eventually(runningTool, 5*time.Second).Should(gexec.Exit(0))
-		Expect(runningTool).To(gbytes.Say(`\[upgrade\-all\] STARTING CANARIES: 1 canaries`))
-		Expect(runningTool).To(gbytes.Say(`\[upgrade\-all\] FINISHED PROCESSING Status: SUCCESS`))
-		Expect(runningTool).To(gbytes.Say("Number of successful operations: 2"))
-	})
-
-	It("uses the canary_selection_params but returns an error if no instances found but instances exist", func() {
-		instanceID := "my-instance-id"
-		canariesList := `[]`
-		instancesList := fmt.Sprintf(`[{"plan_id": "service-plan-id", "service_instance_id": "%s"}]`, instanceID)
-		odb.VerifyAndMock(
-			mockbroker.ListInstances().RespondsOKWith(instancesList),
-			mockbroker.ListInstancesWithOrgAndSpace("my-org", "my-space").RespondsOKWith(canariesList),
-		)
-		brokerConfig := populateBrokerConfig(odb.URL, brokerUsername, brokerPassword)
-		serviceInstancesAPIConfig := populateServiceInstancesAPIConfig(
-			odb.URL+brokerServiceInstancesURLPath,
-			brokerUsername,
-			brokerPassword,
-		)
-		pollingIntervalConfig := populateUpgraderConfigWithCanaries(1, "my-org", "my-space")
-		config := brokerConfig + serviceInstancesAPIConfig + pollingIntervalConfig
-		configPath = writeConfigFile(config)
-
-		runningTool := startUpgradeAllInstanceBinary()
-		Eventually(runningTool, 5*time.Second).Should(gexec.Exit(1))
-		Expect(runningTool).To(gbytes.Say("Failed to find a match to the canary selection criteria"))
-	})
-
-	It("returns an error if service-instances api responds with a non-200", func() {
-		odb.VerifyAndMock(
-			mockbroker.ListInstances().RespondsInternalServerErrorWith(`{"description": "a forced error"}`),
-		)
-		brokerConfig := populateBrokerConfig(odb.URL, brokerUsername, brokerPassword)
-		serviceInstancesAPIConfig := populateServiceInstancesAPIConfig(
-			odb.URL+brokerServiceInstancesURLPath,
-			brokerUsername,
-			brokerPassword,
-		)
-		pollingIntervalConfig := populateUpgraderConfigWithCanaries(1, "my-org", "my-space")
-		config := brokerConfig + serviceInstancesAPIConfig + pollingIntervalConfig
-		configPath = writeConfigFile(config)
-
-		runningTool := startUpgradeAllInstanceBinary()
-		Eventually(runningTool, 5*time.Second).Should(gexec.Exit(1))
-		Expect(runningTool).To(gbytes.Say("error listing service instances: HTTP response status: 500 Internal Server Error. a forced error"))
-	})
-
-	It("when there is one service instance exits successfully with one instance upgraded message", func() {
-		operationData := `{"BoshTaskID":1,"OperationType":"upgrade","PostDeployErrand":{},"PreDeleteErrand":{}}`
-		instanceID := "service-instance-id"
-		odb.VerifyAndMock(
-			mockbroker.ListInstances().RespondsOKWith(fmt.Sprintf(`[{"plan_id": "service-plan-id", "service_instance_id": "%s"}]`, instanceID)),
-			mockbroker.ListInstances().RespondsOKWith(fmt.Sprintf(`[{"plan_id": "service-plan-id", "service_instance_id": "%s"}]`, instanceID)),
-			mockbroker.UpgradeInstance(instanceID).RespondsAcceptedWith(operationData),
-			mockbroker.LastOperation(instanceID, operationData).RespondWithOperationInProgress(),
-			mockbroker.LastOperation(instanceID, operationData).RespondWithOperationSucceeded(),
-		)
-
-		brokerConfig := populateBrokerConfig(odb.URL, brokerUsername, brokerPassword)
-		serviceInstancesAPIConfig := populateServiceInstancesAPIConfig(
-			odb.URL+brokerServiceInstancesURLPath,
-			brokerUsername,
-			brokerPassword,
-		)
-		pollingIntervalConfig := populateUpgraderConfig(1, 2, 5)
-		config := brokerConfig + serviceInstancesAPIConfig + pollingIntervalConfig
-		configPath = writeConfigFile(config)
-
-		runningTool := startUpgradeAllInstanceBinary()
-
-		Eventually(runningTool, 5*time.Second).Should(gexec.Exit(0))
-		Expect(runningTool).To(gbytes.Say("Sleep interval until next attempt: 2s"))
-		Expect(runningTool).To(gbytes.Say(`\[upgrade\-all\] FINISHED PROCESSING Status: SUCCESS`))
-		Expect(runningTool).To(gbytes.Say("Number of successful operations: 1"))
-	})
-
-	It("when there is one service instance which fails to upgrade, exits with failure and shows summary message", func() {
-		operationData := `{"BoshTaskID":1,"OperationType":"upgrade","PostDeployErrand":{},"PreDeleteErrand":{}}`
-		instanceID := "service-instance-id"
-		odb.VerifyAndMock(
-			mockbroker.ListInstances().RespondsOKWith(fmt.Sprintf(`[{"plan_id": "service-plan-id", "service_instance_id": "%s"}]`, instanceID)),
-			mockbroker.ListInstances().RespondsOKWith(fmt.Sprintf(`[{"plan_id": "service-plan-id", "service_instance_id": "%s"}]`, instanceID)),
-			mockbroker.UpgradeInstance(instanceID).RespondsAcceptedWith(operationData),
-			mockbroker.LastOperation(instanceID, operationData).RespondWithOperationInProgress(),
-			mockbroker.LastOperation(instanceID, operationData).RespondWithOperationFailed(),
-		)
-
-		brokerConfig := populateBrokerConfig(odb.URL, brokerUsername, brokerPassword)
-		serviceInstancesAPIConfig := populateServiceInstancesAPIConfig(
-			odb.URL+brokerServiceInstancesURLPath,
-			brokerUsername,
-			brokerPassword,
-		)
-		pollingIntervalConfig := populateUpgraderConfig(1, 2, 5)
-		config := brokerConfig + serviceInstancesAPIConfig + pollingIntervalConfig
-		configPath = writeConfigFile(config)
-
-		runningTool := startUpgradeAllInstanceBinary()
-
-		Eventually(runningTool, 5*time.Second).Should(gexec.Exit(1))
-		Expect(runningTool).To(gbytes.Say("Status: FAILED"))
-		Expect(runningTool).To(gbytes.Say(fmt.Sprintf(`Number of service instances that failed to process: 1 \[%s\]`, instanceID)))
-	})
-
-	Context("when the attempt limit is reached", func() {
-		It("exits with an error reporting the instances that were not upgraded", func() {
-			instanceID := "service-instance-id"
-			odb.VerifyAndMock(
-				mockbroker.ListInstances().RespondsOKWith(fmt.Sprintf(`[{"plan_id": "service-plan-id", "service_instance_id": "%s"}]`, instanceID)),
-				mockbroker.ListInstances().RespondsOKWith(fmt.Sprintf(`[{"plan_id": "service-plan-id", "service_instance_id": "%s"}]`, instanceID)),
-				mockbroker.UpgradeInstance(instanceID).RespondsConflict(),
-				mockbroker.ListInstances().RespondsOKWith(fmt.Sprintf(`[{"plan_id": "service-plan-id", "service_instance_id": "%s"}]`, instanceID)),
-				mockbroker.UpgradeInstance(instanceID).RespondsConflict(),
-			)
-
-			brokerConfig := populateBrokerConfig(odb.URL, brokerUsername, brokerPassword)
-			serviceInstancesAPIConfig := populateServiceInstancesAPIConfig(
-				odb.URL+brokerServiceInstancesURLPath,
-				brokerUsername,
-				brokerPassword,
-			)
-			pollingIntervalConfig := populateUpgraderConfig(1, 2, 2)
-			config := brokerConfig + serviceInstancesAPIConfig + pollingIntervalConfig
-			configPath = writeConfigFile(config)
-
-			runningTool := startUpgradeAllInstanceBinary()
+			runningTool := startUpgradeAllInstanceBinary(errandConfig)
 
 			Eventually(runningTool, 5*time.Second).Should(gexec.Exit(1))
-			Expect(runningTool).To(gbytes.Say(`\[upgrade\-all\] Processing all instances. Attempt 1/2`))
-			Expect(runningTool).To(gbytes.Say(`\[upgrade\-all\] Processing all remaining instances. Attempt 2/2`))
-			Expect(runningTool).To(gbytes.Say("Number of busy instances which could not be processed: 1"))
-			Expect(runningTool).To(gbytes.Say(fmt.Sprintf("The following instances could not be processed: %s", instanceID)))
-		})
-	})
-
-	Context("when the upgrade errors", func() {
-		It("exits non-zero with the error message", func() {
-			odb.VerifyAndMock(
-				mockbroker.ListInstances().RespondsUnauthorizedWith(""),
-			)
-
-			brokerConfig := populateBrokerConfig(odb.URL, brokerUsername, brokerPassword)
-			serviceInstancesAPIConfig := populateServiceInstancesAPIConfig(
-				odb.URL+brokerServiceInstancesURLPath,
-				brokerUsername,
-				brokerPassword,
-			)
-			pollingIntervalConfig := populateUpgraderConfig(1, 2, 5)
-			config := brokerConfig + serviceInstancesAPIConfig + pollingIntervalConfig
-			configPath = writeConfigFile(config)
-
-			runningTool := startUpgradeAllInstanceBinary()
-
-			Eventually(runningTool).Should(gexec.Exit(1))
-			Expect(runningTool).To(gbytes.Say("error listing service instances: HTTP response status: 401 Unauthorized"))
-		})
-	})
-
-	Context("when a service instance plan is updated post upgrade-all start but before instance upgrade", func() {
-		It("uses the new plan for the upgrade", func() {
-			operationData := `{"BoshTaskID":1,"OperationType":"upgrade","PostDeployErrand":{},"PreDeleteErrand":{}}`
-			instanceID := "service-instance-id"
-			odb.VerifyAndMock(
-				mockbroker.ListInstances().RespondsOKWith(fmt.Sprintf(`[{"plan_id": "service-plan-id", "service_instance_id": "%s"}]`, instanceID)),
-				mockbroker.ListInstances().RespondsOKWith(fmt.Sprintf(`[{"plan_id": "service-plan-id-2", "service_instance_id": "%s"}]`, instanceID)),
-				mockbroker.UpgradeInstance(instanceID).
-					WithBody(`{"plan_id": "service-plan-id-2"}`).
-					RespondsAcceptedWith(operationData),
-				mockbroker.LastOperation(instanceID, operationData).RespondWithOperationInProgress(),
-				mockbroker.LastOperation(instanceID, operationData).RespondWithOperationSucceeded(),
-			)
-
-			brokerConfig := populateBrokerConfig(odb.URL, brokerUsername, brokerPassword)
-			serviceInstancesAPIConfig := populateServiceInstancesAPIConfig(
-				odb.URL+brokerServiceInstancesURLPath,
-				brokerUsername,
-				brokerPassword,
-			)
-			pollingIntervalConfig := populateUpgraderConfig(1, 2, 5)
-			config := brokerConfig + serviceInstancesAPIConfig + pollingIntervalConfig
-			configPath = writeConfigFile(config)
-
-			runningTool := startUpgradeAllInstanceBinary()
-
-			Eventually(runningTool, 5*time.Second).Should(gexec.Exit(0))
-			Expect(runningTool).To(gbytes.Say("Sleep interval until next attempt: 2s"))
-			Expect(runningTool).To(gbytes.Say(`\[upgrade\-all\] FINISHED PROCESSING Status: SUCCESS`))
-			Expect(runningTool).To(gbytes.Say("Number of successful operations: 1"))
-		})
-	})
-
-	Context("when a service instance is deleted post the upgrade-all start but before the instance upgrade", func() {
-		It("Fetches the latest service instances info and reports a deleted service", func() {
-			instanceID := "service-instance-id"
-			odb.VerifyAndMock(
-				mockbroker.ListInstances().RespondsOKWith(fmt.Sprintf(`[{"plan_id": "service-plan-id", "service_instance_id": "%s"}]`, instanceID)),
-				mockbroker.ListInstances().RespondsOKWith("[]"),
-			)
-
-			brokerConfig := populateBrokerConfig(odb.URL, brokerUsername, brokerPassword)
-			serviceInstancesAPIConfig := populateServiceInstancesAPIConfig(
-				odb.URL+brokerServiceInstancesURLPath,
-				brokerUsername,
-				brokerPassword,
-			)
-			pollingIntervalConfig := populateUpgraderConfig(1, 2, 5)
-			config := brokerConfig + serviceInstancesAPIConfig + pollingIntervalConfig
-			configPath = writeConfigFile(config)
-
-			runningTool := startUpgradeAllInstanceBinary()
-
-			Eventually(runningTool, 5*time.Second).Should(gexec.Exit(0))
-			Expect(runningTool).To(gbytes.Say(`\[upgrade\-all\] FINISHED PROCESSING Status: SUCCESS`))
-			Expect(runningTool).To(gbytes.Say("Number of successful operations: 0"))
-			Expect(runningTool).To(gbytes.Say("Number of deleted instances before operation could happen: 1"))
-		})
-	})
-
-	Context("when a service instance refresh fails prior to instance upgrade", func() {
-		It("we log failure and carry on with previous data", func() {
-			operationData := `{"BoshTaskID":1,"OperationType":"upgrade","PostDeployErrand":{},"PreDeleteErrand":{}}`
-			instanceID := "service-instance-id"
-			odb.VerifyAndMock(
-				mockbroker.ListInstances().RespondsOKWith(fmt.Sprintf(`[{"plan_id": "service-plan-id", "service_instance_id": "%s"}]`, instanceID)),
-				mockbroker.ListInstances().RespondsInternalServerErrorWith("oops"),
-				mockbroker.UpgradeInstance(instanceID).
-					WithBody(`{"plan_id": "service-plan-id"}`).
-					RespondsAcceptedWith(operationData),
-				mockbroker.LastOperation(instanceID, operationData).RespondWithOperationInProgress(),
-				mockbroker.LastOperation(instanceID, operationData).RespondWithOperationSucceeded(),
-			)
-
-			brokerConfig := populateBrokerConfig(odb.URL, brokerUsername, brokerPassword)
-			serviceInstancesAPIConfig := populateServiceInstancesAPIConfig(
-				odb.URL+brokerServiceInstancesURLPath,
-				brokerUsername,
-				brokerPassword,
-			)
-			pollingIntervalConfig := populateUpgraderConfig(1, 2, 5)
-			config := brokerConfig + serviceInstancesAPIConfig + pollingIntervalConfig
-			configPath = writeConfigFile(config)
-
-			runningTool := startUpgradeAllInstanceBinary()
-
-			Eventually(runningTool, 5*time.Second).Should(gexec.Exit(0))
-
-			Expect(runningTool).To(gbytes.Say("Failed to get refreshed list of instances. Continuing with previously fetched info"))
-			Expect(runningTool).To(gbytes.Say(`\[upgrade\-all\] FINISHED PROCESSING Status: SUCCESS`))
-			Expect(runningTool).To(gbytes.Say("Number of successful operations: 1"))
+			Expect(runningTool).To(gbytes.Say(`/mgmt/service_instances/.*\?operation_type=upgrade: x509: certificate signed by unknown authority`))
 		})
 	})
 })

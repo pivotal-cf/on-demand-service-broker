@@ -6,10 +6,11 @@ import (
 	"github.com/onsi/ginkgo"
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/cf_helpers"
+	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/service_helpers"
 )
 
 type AppDetails struct {
-	Uuid                  string
+	UUID                  string
 	AppURL                string
 	AppName               string
 	ServiceName           string
@@ -32,17 +33,19 @@ func PerformInParallel(f func(), count int) {
 	wg.Wait()
 }
 
-func DeployService(serviceOffering, planName, appPath string) AppDetails {
+func CreateServiceAndApp(serviceOffering, planName string) AppDetails {
 	uuid := uuid.New()[:8]
 	serviceName := "service-" + uuid
 	appName := "app-" + uuid
 	cf_helpers.CreateService(serviceOffering, planName, serviceName, "")
 	serviceGUID := cf_helpers.ServiceInstanceGUID(serviceName)
+
+	appPath := cf_helpers.GetAppPath(service_helpers.Redis)
 	appURL := cf_helpers.PushAndBindApp(appName, serviceName, appPath)
 	cf_helpers.PutToTestApp(appURL, "uuid", uuid)
 
 	return AppDetails{
-		Uuid:                  uuid,
+		UUID:                  uuid,
 		AppURL:                appURL,
 		AppName:               appName,
 		ServiceName:           serviceName,

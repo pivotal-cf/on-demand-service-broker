@@ -47,12 +47,15 @@ var _ = Describe("upgrade-all-service-instances errand using all the features av
 		uniqueID = uuid.New()[:8]
 
 		brokerInfo = bosh_helpers.DeployAndRegisterBroker(
-			"feature-toggled-upgrade-"+uniqueID,
-			bosh_helpers.BrokerDeploymentOptions{},
+			"-feature-toggled-upgrade-"+uniqueID,
+			bosh_helpers.BrokerDeploymentOptions{
+				BrokerTLS: true,
+			},
 			service_helpers.Redis,
 			[]string{
 				"service_catalog_with_lifecycle.yml",
 				"add_canary_filter.yml",
+				"update_upgrade_all_job.yml",
 			},
 		)
 
@@ -62,6 +65,38 @@ var _ = Describe("upgrade-all-service-instances errand using all the features av
 		standardOrg = os.Getenv("CF_ORG")
 		standardSpace = os.Getenv("CF_SPACE")
 		cf_helpers.TargetOrgAndSpace(standardOrg, standardSpace)
+
+		nonCanaryServices := 2
+		planName := "redis-with-post-deploy"
+
+		appDtlsCh := make(chan upgrade_all.AppDetails, nonCanaryServices)
+
+		upgrade_all.PerformInParallel(func() {
+			appDtlsCh <- upgrade_all.CreateServiceAndApp(brokerInfo.ServiceOffering, planName)
+		}, nonCanaryServices)
+		close(appDtlsCh)
+
+		for dtls := range appDtlsCh {
+			nonCanariesDetails = append(nonCanariesDetails, dtls)
+		}
+
+		cf_helpers.TargetOrgAndSpace(canaryOrg, canarySpace)
+		canaryDetails = upgrade_all.CreateServiceAndApp(brokerInfo.ServiceOffering, planName)
+		cf_helpers.TargetOrgAndSpace(standardOrg, standardSpace)
+
+		By("changing the name of instance group and disabling persistence", func() {
+			brokerInfo = bosh_helpers.DeployAndRegisterBroker(
+				"-feature-toggled-upgrade-"+uniqueID,
+				bosh_helpers.BrokerDeploymentOptions{
+					BrokerTLS: true,
+				},
+				service_helpers.Redis,
+				[]string{
+					"service_catalog_with_lifecycle_updated.yml",
+					"add_canary_filter.yml",
+					"update_upgrade_all_job.yml",
+				})
+		})
 	})
 
 	AfterEach(func() {
@@ -79,41 +114,9 @@ var _ = Describe("upgrade-all-service-instances errand using all the features av
 
 		cf_helpers.DeleteSpace(canaryOrg, canarySpace)
 		cf_helpers.DeleteOrg(canaryOrg)
-
-		cf_helpers.TargetOrgAndSpace(standardOrg, standardSpace)
 	})
 
 	It("succeeds", func() {
-		nonCanaryServices := 2
-		planName := "redis-with-post-deploy"
-
-		appDtlsCh := make(chan upgrade_all.AppDetails, nonCanaryServices)
-		appPath := cf_helpers.GetAppPath(service_helpers.Redis)
-
-		upgrade_all.PerformInParallel(func() {
-			appDtlsCh <- upgrade_all.DeployService(brokerInfo.ServiceOffering, planName, appPath)
-		}, nonCanaryServices)
-
-		close(appDtlsCh)
-		for dtls := range appDtlsCh {
-			nonCanariesDetails = append(nonCanariesDetails, dtls)
-		}
-
-		cf_helpers.TargetOrgAndSpace(canaryOrg, canarySpace)
-		canaryDetails = upgrade_all.DeployService(brokerInfo.ServiceOffering, planName, appPath)
-		cf_helpers.TargetOrgAndSpace(standardOrg, standardSpace)
-
-		By("changing the name of instance group and disabling persistence", func() {
-			brokerInfo = bosh_helpers.DeployAndRegisterBroker(
-				"feature-toggled-upgrade-"+uniqueID,
-				bosh_helpers.BrokerDeploymentOptions{},
-				service_helpers.Redis,
-				[]string{
-					"service_catalog_with_lifecycle_updated.yml",
-					"add_canary_filter.yml",
-				})
-		})
-
 		By("running the upgrade-all errand")
 		session := bosh_helpers.RunErrand(brokerInfo.DeploymentName, "upgrade-all-service-instances")
 
@@ -143,7 +146,7 @@ var _ = Describe("upgrade-all-service-instances errand using all the features av
 			})
 
 			By("checking apps still have access to the data previously stored in their service", func() {
-				Expect(cf_helpers.GetFromTestApp(appDtls.AppURL, "uuid")).To(Equal(appDtls.Uuid))
+				Expect(cf_helpers.GetFromTestApp(appDtls.AppURL, "uuid")).To(Equal(appDtls.UUID))
 			})
 
 			By("checking lifecycle errands executed as expected", func() {
