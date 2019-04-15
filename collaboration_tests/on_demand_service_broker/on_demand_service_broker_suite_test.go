@@ -99,11 +99,12 @@ var _ = AfterEach(func() {
 	}
 })
 
-func StartServer(conf config.Config) {
+func StartServer(conf config.Config) error {
 	loggerBuffer = gbytes.NewBuffer()
 	shouldSendSigterm = true
 	stopServer = make(chan os.Signal, 1)
-	brokerServer = helpers.StartServer(
+	var err error
+	brokerServer, err = helpers.StartServer(
 		conf,
 		stopServer,
 		fakeCommandRunner,
@@ -116,11 +117,13 @@ func StartServer(conf config.Config) {
 		fakeCredhubOperator,
 		loggerBuffer,
 	)
+	return err
 }
 
 func StartServerWithStopHandler(conf config.Config, stopServerChan chan os.Signal) {
 	loggerBuffer = gbytes.NewBuffer()
-	brokerServer = helpers.StartServer(
+	var err error
+	brokerServer, err = helpers.StartServer(
 		conf,
 		stopServerChan,
 		fakeCommandRunner,
@@ -133,6 +136,7 @@ func StartServerWithStopHandler(conf config.Config, stopServerChan chan os.Signa
 		fakeCredhubOperator,
 		loggerBuffer,
 	)
+	Expect(err).NotTo(HaveOccurred())
 }
 
 func doRequest(method, url string, body io.Reader, requestModifiers ...func(r *http.Request)) (*http.Response, []byte) {

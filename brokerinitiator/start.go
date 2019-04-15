@@ -90,7 +90,9 @@ func Initiate(conf config.Config,
 	)
 
 	displayBanner(conf)
-	apiserver.StartAndWait(conf, server, logger, stopServer)
+	if err := apiserver.StartAndWait(conf, server, logger, stopServer); err != nil {
+		logger.Fatal(err)
+	}
 }
 
 func wrapWithCredHubBroker(conf config.Config, logger *log.Logger, onDemandBroker apiserver.CombinedBroker, loggerFactory *loggerfactory.LoggerFactory) apiserver.CombinedBroker {

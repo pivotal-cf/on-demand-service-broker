@@ -1,12 +1,21 @@
 package on_demand_service_broker_test
 
 import (
+	"bytes"
+	"crypto/rand"
+	"crypto/rsa"
 	"crypto/tls"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
+	"io/ioutil"
 	"log"
+	"math/big"
 	"net/http"
 	"os"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
@@ -16,9 +25,10 @@ import (
 )
 
 const (
-	serverCertFile = "../fixtures/mybroker.crt"
-	serverKeyFile  = "../fixtures/mybroker.key"
-	caCertFile     = "../fixtures/bosh.ca.crt"
+	serverCertFile   = "../fixtures/mybroker.crt"
+	nonsenseCertFile = "../fixtures/nonsense.crt"
+	serverKeyFile    = "../fixtures/mybroker.key"
+	caCertFile       = "../fixtures/bosh.ca.crt"
 )
 
 var acceptableCipherSuites = []uint16{
@@ -42,7 +52,8 @@ var _ = Describe("Server Protocol", func() {
 				},
 			}
 
-			StartServer(conf)
+			err := StartServer(conf)
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("serves HTTPS", func() {
@@ -99,6 +110,60 @@ var _ = Describe("Server Protocol", func() {
 		})
 	})
 
+	Describe("with HTTPS configured badly", func() {
+		var (
+			conf brokerConfig.Config
+		)
+
+		BeforeEach(func() {
+			conf = brokerConfig.Config{
+				Broker: brokerConfig.Broker{
+					Port: serverPort, Username: brokerUsername, Password: brokerPassword,
+				},
+				ServiceCatalog: brokerConfig.ServiceOffering{
+					Name: serviceName,
+				},
+			}
+
+		})
+
+		It("should error when certificate is invalid", func() {
+			conf.Broker.TLS = brokerConfig.TLSConfig{
+				CertFile: nonsenseCertFile,
+				KeyFile:  serverKeyFile,
+			}
+			err := StartServer(conf)
+
+			Expect(err).To(MatchError(ContainSubstring("failed to find any PEM data in certificate input")))
+		})
+
+		It("should error when certificate is expired", func() {
+			privateKey, expiredCert := generateCertificateExpiringOn(time.Now().Add(-time.Hour * 24))
+
+			privateKeyFile, err := ioutil.TempFile("", "privateKey")
+			Expect(err).NotTo(HaveOccurred())
+			written, err := privateKeyFile.Write(privateKey)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(written).To(Equal(len(privateKey)))
+			defer os.Remove(privateKeyFile.Name())
+
+			expiredCertFile, err := ioutil.TempFile("", "serverCert")
+			Expect(err).NotTo(HaveOccurred())
+			written, err = expiredCertFile.Write(expiredCert)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(written).To(Equal(len(expiredCert)))
+			defer os.Remove(expiredCertFile.Name())
+
+			conf.Broker.TLS = brokerConfig.TLSConfig{
+				CertFile: expiredCertFile.Name(),
+				KeyFile:  privateKeyFile.Name(),
+			}
+			err = StartServer(conf)
+
+			Expect(err).To(MatchError(ContainSubstring("server certificate expired on")))
+		})
+	})
+
 	Describe("with HTTP configured", func() {
 		BeforeEach(func() {
 			conf := brokerConfig.Config{
@@ -122,3 +187,28 @@ var _ = Describe("Server Protocol", func() {
 		})
 	})
 })
+
+func generateCertificateExpiringOn(expiry time.Time) (privKey, serverCert []byte) {
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	Expect(err).NotTo(HaveOccurred())
+	var privateBlock = &pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: x509.MarshalPKCS1PrivateKey(privateKey),
+	}
+	privBytes := pem.EncodeToMemory(privateBlock)
+
+	template := x509.Certificate{
+		SerialNumber: big.NewInt(1),
+		Subject: pkix.Name{
+			Organization: []string{"foo"},
+		},
+		NotAfter: expiry,
+	}
+	derBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, &privateKey.PublicKey, privateKey)
+	Expect(err).ToNot(HaveOccurred())
+
+	cert := &bytes.Buffer{}
+	pem.Encode(cert, &pem.Block{Type: "CERTIFICATE", Bytes: derBytes})
+
+	return privBytes, cert.Bytes()
+}

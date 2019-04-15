@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"syscall"
+	"time"
 
 	"github.com/pivotal-cf/on-demand-service-broker/manifestsecrets"
 
@@ -22,6 +23,7 @@ import (
 	serviceadapterfakes "github.com/pivotal-cf/on-demand-service-broker/serviceadapter/fakes"
 	taskfakes "github.com/pivotal-cf/on-demand-service-broker/task/fakes"
 
+	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/pivotal-cf/on-demand-service-broker/apiserver"
@@ -53,7 +55,7 @@ func StartServer(
 	fakeCredentialStore *credhubfakes.FakeCredentialStore,
 	fakeCredhubOperator *manifestsecretsfakes.FakeCredhubOperator,
 	loggerBuffer *gbytes.Buffer,
-) *Server {
+) (*Server, error) {
 	var err error
 
 	if conf.Broker.ShutdownTimeoutSecs == 0 {
@@ -109,12 +111,33 @@ func StartServer(
 
 	server.ErrorLog = logger
 
-	go apiserver.StartAndWait(conf, server, logger, stopServerChan)
-	Eventually(func() bool {
-		return CanServeHTTP(server.Addr, conf)
-	}).Should(BeTrue())
+	errChan := make(chan error)
+	upChan := make(chan struct{})
 
-	return &Server{stopServerChan: stopServerChan, loggerBuffer: loggerBuffer}
+	go func() {
+		errChan <- apiserver.StartAndWait(conf, server, logger, stopServerChan)
+	}()
+
+	go func() {
+		for {
+			if CanServeHTTP(server.Addr, conf) {
+				close(upChan)
+				break
+			}
+			time.Sleep(time.Millisecond * 50)
+		}
+	}()
+
+	var serverError error
+
+	select {
+	case <-upChan:
+	case serverError = <-errChan:
+	case <-time.After(time.Second * 2):
+		Fail("HTTPS server failed to serve https within timeout")
+	}
+
+	return &Server{stopServerChan: stopServerChan, loggerBuffer: loggerBuffer}, serverError
 }
 
 func CanServeHTTP(serverAddr string, conf config.Config) bool {

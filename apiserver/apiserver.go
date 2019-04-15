@@ -9,7 +9,10 @@ package apiserver
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -24,6 +27,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 	"github.com/pivotal-cf/on-demand-service-broker/mgmtapi"
+	"github.com/pkg/errors"
 	"github.com/urfave/negroni"
 )
 
@@ -68,7 +72,7 @@ func New(
 	}
 }
 
-func StartAndWait(conf config.Config, server *http.Server, logger *log.Logger, stopServer chan os.Signal) {
+func StartAndWait(conf config.Config, server *http.Server, logger *log.Logger, stopServer chan os.Signal) error {
 	stopped := make(chan struct{})
 	signal.Notify(stopServer, os.Interrupt, syscall.SIGTERM)
 	go func() {
@@ -94,6 +98,9 @@ func StartAndWait(conf config.Config, server *http.Server, logger *log.Logger, s
 	logger.Println("Listening on", server.Addr)
 	var err error
 	if conf.HasTLS() {
+		if err = CheckCertExpiry(conf.Broker.TLS.CertFile); err != nil {
+			return err
+		}
 		acceptableCipherSuites := []uint16{
 			tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
 			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
@@ -108,7 +115,31 @@ func StartAndWait(conf config.Config, server *http.Server, logger *log.Logger, s
 		err = server.ListenAndServe()
 	}
 	if err != http.ErrServerClosed {
-		logger.Fatalf("Error listening and serving: %v\n", err)
+
+		return errors.Wrap(err, "error starting broker HTTP(s) server")
 	}
 	<-stopped
+	return nil
+}
+
+func CheckCertExpiry(certFile string) error {
+	certBytes, err := ioutil.ReadFile(certFile)
+	if err != nil {
+		return errors.Wrap(err, "can't read server certificate file "+certFile)
+	}
+
+	pemBlock, _ := pem.Decode(certBytes)
+	if pemBlock == nil {
+		return fmt.Errorf("failed to find any PEM data in certificate input from: %q", certFile)
+	}
+
+	cert, err := x509.ParseCertificate(pemBlock.Bytes)
+	if err != nil {
+		return errors.Wrap(err, "can't parse server certificate file "+certFile)
+	}
+
+	if time.Now().After(cert.NotAfter) {
+		return fmt.Errorf("server certificate expired on %v", cert.NotAfter)
+	}
+	return nil
 }
