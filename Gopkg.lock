@@ -364,7 +364,7 @@
     "serviceadapter",
   ]
   pruneopts = "NUT"
-  revision = "cff3e6f9828b88e713f6f5c5637cc5fa8e4bb352"
+  revision = "147676acc696ee3da0db1e38719f344b130a89ff"
 
 [[projects]]
   branch = "master"
