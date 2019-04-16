@@ -66,6 +66,12 @@ var _ = Describe("On-demand-broker with maintenance_info", func() {
 
 	It("supports the lifecycle of a service instance", func() {
 		maintenanceInfo := serviceCatalog.Services[0].Plans[0].MaintenanceInfo
+		By("having maintenance info set in the catalog", func() {
+			Expect(maintenanceInfo).ToNot(BeNil())
+			Expect(len(maintenanceInfo.Public)).ToNot(BeZero(), "maintenance_info.public should not be nil or empty")
+			Expect(maintenanceInfo.Private).ToNot(BeZero(), "maintenance_info.private should not be nil or empty")
+			Expect(maintenanceInfo.Version).ToNot(BeZero(), "maintenance_info.version should not be nil or empty")
+		})
 
 		By("provisioning a service instance with correct maintenance_info", func() {
 			url := fmt.Sprintf("http://%s/v2/service_instances/%s?accepts_incomplete=true", brokerInfo.URI, serviceInstanceGUID)
@@ -98,7 +104,6 @@ var _ = Describe("On-demand-broker with maintenance_info", func() {
 					"update_maintenance_info.yml"},
 			)
 			newMaintenanceInfo := retrieveCatalog().Services[0].Plans[0].MaintenanceInfo
-
 			updateBody := UpdateBody{
 				ServiceID:       serviceID,
 				MaintenanceInfo: *newMaintenanceInfo,

@@ -8,6 +8,7 @@
     public:
       name: mercedes
       stemcell_version: "1234"
+    version: 7.8.8+test.123
 
 - type: replace
   path: /instance_groups/name=broker/jobs/name=broker/properties/service_catalog/plans?
@@ -31,6 +32,7 @@
         public:
           name: dolores
           vm_type: small
+        version: 8.0.0+git
 
     - name: redis-plan-2
       plan_id: ((plan_id))-2

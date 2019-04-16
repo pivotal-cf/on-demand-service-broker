@@ -197,6 +197,7 @@ var _ = Describe("Catalog", func() {
 				Private: map[string]string{
 					"secret": "global_value",
 				},
+				Version: "1.2.4+global",
 			}
 			serviceCatalogConfig.Plans[0].MaintenanceInfo = &brokerConfig.MaintenanceInfo{
 				Public: map[string]string{
@@ -206,6 +207,7 @@ var _ = Describe("Catalog", func() {
 				Private: map[string]string{
 					"secret": "plan_value",
 				},
+				Version: "1.2.3+plan",
 			}
 			conf := brokerConfig.Config{
 				Broker: brokerConfig.Broker{
@@ -283,6 +285,7 @@ var _ = Describe("Catalog", func() {
 										"stemcell_version": "1234",
 									},
 									Private: "hashed-secret-plan_value;",
+									Version: "1.2.3+plan",
 								},
 							},
 							{
@@ -299,6 +302,7 @@ var _ = Describe("Catalog", func() {
 										"name": "jorge",
 									},
 									Private: "hashed-secret-global_value;",
+									Version: "1.2.4+global",
 								},
 							},
 						},

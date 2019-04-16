@@ -244,6 +244,7 @@ var _ = Describe("Catalog", func() {
 					"secret":      "globalvalue",
 					"otherglobal": "othervalue",
 				},
+				Version: "8.0.0+global",
 			},
 			Plans: []config.Plan{
 				{
@@ -256,6 +257,7 @@ var _ = Describe("Catalog", func() {
 						Private: map[string]string{
 							"secret": "planvalue",
 						},
+						Version: "1.2.3+test",
 					},
 				}, {
 					ID: "2",
@@ -267,29 +269,33 @@ var _ = Describe("Catalog", func() {
 		Expect(brokerCreationErr).NotTo(HaveOccurred())
 
 		contextWithoutRequestID := context.Background()
-		services, err := b.Services(contextWithoutRequestID)
+		catalog, err := b.Services(contextWithoutRequestID)
 		Expect(err).ToNot(HaveOccurred())
 
-		Expect(services[0].Plans[0].MaintenanceInfo.Public).To(SatisfyAll(
+		Expect(catalog[0].Plans[0].MaintenanceInfo.Public).To(SatisfyAll(
 			HaveKeyWithValue("name", "alberto"),
 			HaveKeyWithValue("vm_type", "small"),
 			HaveKeyWithValue("stemcell_version", "1234"),
 		))
 
-		Expect(services[0].Plans[0].MaintenanceInfo.Private).To(SatisfyAll(
+		Expect(catalog[0].Plans[0].MaintenanceInfo.Private).To(SatisfyAll(
 			ContainSubstring("secret:planvalue;"),
 			ContainSubstring("otherglobal:othervalue"),
 		))
 
-		Expect(services[0].Plans[1].MaintenanceInfo.Public).To(SatisfyAll(
+		Expect(catalog[0].Plans[0].MaintenanceInfo.Version).To(Equal("1.2.3+test"))
+
+		Expect(catalog[0].Plans[1].MaintenanceInfo.Public).To(SatisfyAll(
 			HaveKeyWithValue("name", "yuliana"),
 			HaveKeyWithValue("vm_type", "small"),
 		))
 
-		Expect(services[0].Plans[1].MaintenanceInfo.Private).To(SatisfyAll(
+		Expect(catalog[0].Plans[1].MaintenanceInfo.Private).To(SatisfyAll(
 			ContainSubstring("secret:globalvalue;"),
 			ContainSubstring("otherglobal:othervalue"),
 		))
+
+		Expect(catalog[0].Plans[1].MaintenanceInfo.Version).To(Equal("8.0.0+global"))
 	})
 
 	It("for each plan, calls the adapter to generate the plan schemas", func() {

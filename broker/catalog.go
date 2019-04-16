@@ -9,6 +9,7 @@ package broker
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
@@ -25,67 +26,14 @@ func (b *Broker) Services(ctx context.Context) ([]brokerapi.Service, error) {
 	}
 
 	logger := b.loggerFactory.NewWithContext(ctx)
+
 	var servicePlans []brokerapi.ServicePlan
-
 	for _, plan := range b.serviceOffering.Plans {
-		var maintenanceInfo *brokerapi.MaintenanceInfo
-		mergedPublic, mergedPrivate := mergeMaintenanceInfo(b.serviceOffering.MaintenanceInfo, plan.MaintenanceInfo)
-		if mergedPublic != nil || mergedPrivate != nil {
-			maintenanceInfo = &brokerapi.MaintenanceInfo{
-				Public:  mergedPublic,
-				Private: b.hasher.Hash(mergedPrivate),
-			}
+		servicePlan, err := b.generateServicePlan(plan, logger)
+		if err != nil {
+			return []brokerapi.Service{}, err
 		}
-
-		var planCosts []brokerapi.ServicePlanCost
-		for _, cost := range plan.Metadata.Costs {
-			planCosts = append(planCosts, brokerapi.ServicePlanCost{Amount: cost.Amount, Unit: cost.Unit})
-		}
-
-		servicePlan := brokerapi.ServicePlan{
-			ID:          plan.ID,
-			Name:        plan.Name,
-			Description: plan.Description,
-			Free:        plan.Free,
-			Bindable:    plan.Bindable,
-			Metadata: &brokerapi.ServicePlanMetadata{
-				DisplayName:        plan.Metadata.DisplayName,
-				Bullets:            plan.Metadata.Bullets,
-				Costs:              planCosts,
-				AdditionalMetadata: plan.Metadata.AdditionalMetadata,
-			},
-			MaintenanceInfo: maintenanceInfo,
-		}
-
-		if b.EnablePlanSchemas {
-			planSchema, err := b.adapterClient.GeneratePlanSchema(plan.AdapterPlan(b.serviceOffering.GlobalProperties), logger)
-			if err != nil {
-				if _, ok := err.(serviceadapter.NotImplementedError); !ok {
-					return []brokerapi.Service{}, err
-				}
-				logger.Println("enable_plan_schemas is set to true, but the service adapter does not implement generate-plan-schemas")
-				return []brokerapi.Service{}, fmt.Errorf("enable_plan_schemas is set to true, but the service adapter does not implement generate-plan-schemas")
-			}
-
-			err = validatePlanSchemas(planSchema)
-			if err != nil {
-				logger.Println(fmt.Sprintf("Invalid JSON Schema for plan %s: %s\n", plan.Name, err.Error()))
-				return []brokerapi.Service{}, errors.Wrap(err, "Invalid JSON Schema for plan "+plan.Name)
-			}
-
-			servicePlan.Schemas = &planSchema
-		}
-
 		servicePlans = append(servicePlans, servicePlan)
-	}
-
-	var dashboardClient *brokerapi.ServiceDashboardClient
-	if b.serviceOffering.DashboardClient != nil {
-		dashboardClient = &brokerapi.ServiceDashboardClient{
-			ID:          b.serviceOffering.DashboardClient.ID,
-			Secret:      b.serviceOffering.DashboardClient.Secret,
-			RedirectURI: b.serviceOffering.DashboardClient.RedirectUri,
-		}
 	}
 
 	b.cachedCatalog = []brokerapi.Service{
@@ -106,7 +54,7 @@ func (b *Broker) Services(ctx context.Context) ([]brokerapi.Service, error) {
 				Shareable:           &b.serviceOffering.Metadata.Shareable,
 				AdditionalMetadata:  b.serviceOffering.Metadata.AdditionalMetadata,
 			},
-			DashboardClient: dashboardClient,
+			DashboardClient: b.generateDashboardClient(),
 			Requires:        requiredPermissions(b.serviceOffering.Requires),
 			Tags:            b.serviceOffering.Tags,
 		},
@@ -114,10 +62,82 @@ func (b *Broker) Services(ctx context.Context) ([]brokerapi.Service, error) {
 	return b.cachedCatalog, nil
 }
 
-func copyMap(dst, src map[string]string) {
-	for key, value := range src {
-		dst[key] = value
+func (b *Broker) generateDashboardClient() *brokerapi.ServiceDashboardClient {
+	var dashboardClient *brokerapi.ServiceDashboardClient
+	if b.serviceOffering.DashboardClient != nil {
+		dashboardClient = &brokerapi.ServiceDashboardClient{
+			ID:          b.serviceOffering.DashboardClient.ID,
+			Secret:      b.serviceOffering.DashboardClient.Secret,
+			RedirectURI: b.serviceOffering.DashboardClient.RedirectUri,
+		}
 	}
+	return dashboardClient
+}
+
+func (b *Broker) generateServicePlan(plan config.Plan, logger *log.Logger) (brokerapi.ServicePlan, error) {
+	maintenanceInfo := b.generateMaintenanceInfo(plan)
+
+	var planCosts []brokerapi.ServicePlanCost
+	for _, cost := range plan.Metadata.Costs {
+		planCosts = append(planCosts, brokerapi.ServicePlanCost{Amount: cost.Amount, Unit: cost.Unit})
+	}
+
+	planSchema, err := b.generatePlanSchemas(plan, logger)
+	if err != nil {
+		return brokerapi.ServicePlan{}, err
+	}
+
+	return brokerapi.ServicePlan{
+		ID:          plan.ID,
+		Name:        plan.Name,
+		Description: plan.Description,
+		Free:        plan.Free,
+		Bindable:    plan.Bindable,
+		Metadata: &brokerapi.ServicePlanMetadata{
+			DisplayName:        plan.Metadata.DisplayName,
+			Bullets:            plan.Metadata.Bullets,
+			Costs:              planCosts,
+			AdditionalMetadata: plan.Metadata.AdditionalMetadata,
+		},
+		MaintenanceInfo: maintenanceInfo,
+		Schemas:         planSchema,
+	}, nil
+}
+
+func (b *Broker) generateMaintenanceInfo(plan config.Plan) *brokerapi.MaintenanceInfo {
+	var maintenanceInfo *brokerapi.MaintenanceInfo
+	mergedPublic, mergedPrivate := mergeMaintenanceInfo(b.serviceOffering.MaintenanceInfo, plan.MaintenanceInfo)
+	version := getMaintenanceInfoVersion(b.serviceOffering.MaintenanceInfo, plan.MaintenanceInfo)
+
+	if mergedPublic != nil || mergedPrivate != nil || version != "" {
+		maintenanceInfo = &brokerapi.MaintenanceInfo{
+			Public:  mergedPublic,
+			Private: b.hasher.Hash(mergedPrivate),
+			Version: version,
+		}
+	}
+	return maintenanceInfo
+}
+
+func (b *Broker) generatePlanSchemas(plan config.Plan, logger *log.Logger) (*brokerapi.ServiceSchemas, error) {
+	if b.EnablePlanSchemas {
+		planSchema, err := b.adapterClient.GeneratePlanSchema(plan.AdapterPlan(b.serviceOffering.GlobalProperties), logger)
+		if err != nil {
+			if _, ok := err.(serviceadapter.NotImplementedError); !ok {
+				return nil, err
+			}
+			logger.Println("enable_plan_schemas is set to true, but the service adapter does not implement generate-plan-schemas")
+			return nil, fmt.Errorf("enable_plan_schemas is set to true, but the service adapter does not implement generate-plan-schemas")
+		}
+
+		err = validatePlanSchemas(planSchema)
+		if err != nil {
+			logger.Println(fmt.Sprintf("Invalid JSON Schema for plan %s: %s\n", plan.Name, err.Error()))
+			return nil, errors.Wrap(err, "Invalid JSON Schema for plan "+plan.Name)
+		}
+		return &planSchema, nil
+	}
+	return nil, nil
 }
 
 func mergeMaintenanceInfo(globalInfo *config.MaintenanceInfo, planInfo *config.MaintenanceInfo) (map[string]string, map[string]string) {
@@ -139,6 +159,24 @@ func mergeMaintenanceInfo(globalInfo *config.MaintenanceInfo, planInfo *config.M
 	}
 
 	return publicMap, privateMap
+}
+
+func copyMap(dst, src map[string]string) {
+	for key, value := range src {
+		dst[key] = value
+	}
+}
+
+func getMaintenanceInfoVersion(globalInfo *config.MaintenanceInfo, planInfo *config.MaintenanceInfo) string {
+	if planInfo != nil && planInfo.Version != "" {
+		return planInfo.Version
+	}
+
+	if globalInfo != nil {
+		return globalInfo.Version
+	}
+
+	return ""
 }
 
 func requiredPermissions(permissions []string) []brokerapi.RequiredPermission {
