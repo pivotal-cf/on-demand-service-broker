@@ -158,13 +158,20 @@ func mergeMaintenanceInfo(globalInfo *config.MaintenanceInfo, planInfo *config.M
 		copyMap(privateMap, planInfo.Private)
 	}
 
-	return publicMap, privateMap
+	return normalize(publicMap), normalize(privateMap)
 }
 
 func copyMap(dst, src map[string]string) {
 	for key, value := range src {
 		dst[key] = value
 	}
+}
+
+func normalize(keyMap map[string]string) map[string]string {
+	if len(keyMap) == 0 {
+		return nil
+	}
+	return keyMap
 }
 
 func getMaintenanceInfoVersion(globalInfo *config.MaintenanceInfo, planInfo *config.MaintenanceInfo) string {

@@ -498,6 +498,7 @@ password: ((odb_secret:foo))`,
 				Private: map[string]string{
 					"Secret": "superSecret",
 				},
+				Version: "1.2.3",
 			}
 			conf.ServiceCatalog.MaintenanceInfo = &brokerMaintenanceInfo
 			requestMaintenanceInfo = brokerapi.MaintenanceInfo{
@@ -505,6 +506,7 @@ password: ((odb_secret:foo))`,
 					"foo": "bar",
 				},
 				Private: "Secret:superSecret;", // this is what is produced by the stubbed hash function
+				Version: "1.2.3",
 			}
 		})
 

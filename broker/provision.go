@@ -51,19 +51,9 @@ func (b *Broker) Provision(ctx context.Context, instanceID string, details broke
 		return brokerapi.ProvisionedServiceSpec{}, b.processError(err, logger)
 	}
 
-	if details.MaintenanceInfo.Private != "" || details.MaintenanceInfo.Public != nil {
-		planMaintenanceInfo, err := b.getMaintenanceInfoForPlan(details.PlanID)
-		if err != nil {
-			return brokerapi.ProvisionedServiceSpec{}, b.processError(err, logger)
-		}
-
-		if planMaintenanceInfo == nil {
-			return brokerapi.ProvisionedServiceSpec{}, b.processError(brokerapi.ErrMaintenanceInfoNilConflict, logger)
-		}
-
-		if !reflect.DeepEqual(*planMaintenanceInfo, details.MaintenanceInfo) {
-			return brokerapi.ProvisionedServiceSpec{}, b.processError(brokerapi.ErrMaintenanceInfoConflict, logger)
-		}
+	err = b.validateMaintenanceInfoForProvision(details, logger)
+	if err != nil {
+		return brokerapi.ProvisionedServiceSpec{}, b.processError(err, logger)
 	}
 
 	_, err = b.boshClient.GetInfo(logger)
@@ -218,4 +208,28 @@ func (b *Broker) checkPlanSchemas(ctx context.Context, requestParams map[string]
 	}
 
 	return nil
+}
+
+func (b *Broker) validateMaintenanceInfoForProvision(details brokerapi.ProvisionDetails, logger *log.Logger) error {
+	if b.maintenanceInfoNotEmpty(details) {
+		planMaintenanceInfo, err := b.getMaintenanceInfoForPlan(details.PlanID)
+		if err != nil {
+			return b.processError(err, logger)
+		}
+
+		if planMaintenanceInfo == nil {
+			return b.processError(brokerapi.ErrMaintenanceInfoNilConflict, logger)
+		}
+
+		if !reflect.DeepEqual(*planMaintenanceInfo, details.MaintenanceInfo) {
+			return b.processError(brokerapi.ErrMaintenanceInfoConflict, logger)
+		}
+	}
+	return nil
+}
+
+func (b *Broker) maintenanceInfoNotEmpty(provisionDetails brokerapi.ProvisionDetails) bool {
+	return provisionDetails.MaintenanceInfo.Private != "" ||
+		provisionDetails.MaintenanceInfo.Public != nil ||
+		provisionDetails.MaintenanceInfo.Version != ""
 }
