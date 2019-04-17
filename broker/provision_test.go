@@ -51,6 +51,8 @@ var _ = Describe("Provisioning", func() {
 
 		asyncAllowed = true
 		deployTaskID int
+
+		provisionDetails brokerapi.ProvisionDetails
 	)
 
 	BeforeEach(func() {
@@ -68,25 +70,19 @@ var _ = Describe("Provisioning", func() {
 		jsonContext, err = json.Marshal(arbContext)
 		Expect(err).NotTo(HaveOccurred())
 		boshClient.GetDeploymentReturns(nil, false, nil)
-
+		provisionDetails = brokerapi.ProvisionDetails{
+			PlanID:           planID,
+			RawContext:       jsonContext,
+			RawParameters:    jsonParams,
+			OrganizationGUID: organizationGUID,
+			SpaceGUID:        spaceGUID,
+			ServiceID:        serviceOfferingID,
+			MaintenanceInfo:  requestMaintenanceInfo,
+		}
 	})
 
 	JustBeforeEach(func() {
 		b = createDefaultBroker()
-		serviceSpec, provisionErr = b.Provision(
-			context.Background(),
-			instanceID,
-			brokerapi.ProvisionDetails{
-				PlanID:           planID,
-				RawContext:       jsonContext,
-				RawParameters:    jsonParams,
-				OrganizationGUID: organizationGUID,
-				SpaceGUID:        spaceGUID,
-				ServiceID:        serviceOfferingID,
-				MaintenanceInfo:  requestMaintenanceInfo,
-			},
-			asyncAllowed,
-		)
 	})
 
 	Context("when bosh deploys the release successfully", func() {
@@ -99,152 +95,98 @@ var _ = Describe("Provisioning", func() {
 			fakeDeployer.CreateReturns(deployTaskID, newlyGeneratedManifest, nil)
 		})
 
-		It("does not error", func() {
+		It("returns expected operation data", func() {
+			serviceSpec, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
 			Expect(provisionErr).NotTo(HaveOccurred())
-		})
 
-		It("reports that the provisioning was asynchronous", func() {
-			Expect(serviceSpec.IsAsync).To(BeTrue())
-		})
+			By("reporting that the provisioning was asynchronous", func() {
+				Expect(serviceSpec.IsAsync).To(BeTrue())
+			})
 
-		It("invokes the deployer", func() {
-			Expect(fakeDeployer.CreateCallCount()).To(Equal(1))
-			actualDeploymentName, actualPlan, actualRequestParams, actualBoshContextID, _ := fakeDeployer.CreateArgsForCall(0)
-			Expect(actualRequestParams).To(Equal(map[string]interface{}{
-				"plan_id":           planID,
-				"context":           arbContext,
-				"parameters":        arbParams,
-				"organization_guid": organizationGUID,
-				"space_guid":        spaceGUID,
-				"service_id":        serviceOfferingID,
-				"maintenance_info":  map[string]interface{}{},
-			}))
-			Expect(actualPlan).To(Equal(planID))
-			Expect(actualDeploymentName).To(Equal(deploymentName(instanceID)))
-			Expect(actualBoshContextID).To(BeEmpty())
-		})
+			By("invoking the deployer", func() {
+				Expect(fakeDeployer.CreateCallCount()).To(Equal(1))
+				actualDeploymentName, actualPlan, actualRequestParams, actualBoshContextID, _ := fakeDeployer.CreateArgsForCall(0)
+				Expect(actualRequestParams).To(Equal(map[string]interface{}{
+					"plan_id":           planID,
+					"context":           arbContext,
+					"parameters":        arbParams,
+					"organization_guid": organizationGUID,
+					"space_guid":        spaceGUID,
+					"service_id":        serviceOfferingID,
+					"maintenance_info":  map[string]interface{}{},
+				}))
+				Expect(actualPlan).To(Equal(planID))
+				Expect(actualDeploymentName).To(Equal(deploymentName(instanceID)))
+				Expect(actualBoshContextID).To(BeEmpty())
+			})
 
-		It("returns operation data with bosh task ID and operation type", func() {
 			var operationData broker.OperationData
 			Expect(json.Unmarshal([]byte(serviceSpec.OperationData), &operationData)).To(Succeed())
 			Expect(operationData.BoshTaskID).To(Equal(deployTaskID))
 			Expect(operationData.OperationType).To(Equal(broker.OperationTypeCreate))
-		})
-
-		It("return operation data without add bosh context ID or plan ID", func() {
-			var operationData broker.OperationData
-			Expect(json.Unmarshal([]byte(serviceSpec.OperationData), &operationData)).To(Succeed())
 			Expect(operationData.PlanID).To(BeEmpty())
 			Expect(operationData.BoshContextID).To(BeEmpty())
 		})
 
-		It("invokes the adapter for the dashboard url, merging global and plan properties", func() {
-			Expect(serviceAdapter.GenerateDashboardUrlCallCount()).To(Equal(1))
-			instanceID, plan, boshManifest, _ := serviceAdapter.GenerateDashboardUrlArgsForCall(0)
-			Expect(instanceID).To(Equal(instanceID))
-			expectedProperties := sdk.Properties{"super": "no", "a_global_property": "global_value", "some_other_global_property": "other_global_value"}
-			Expect(plan).To(Equal(sdk.Plan{
-				Properties:     expectedProperties,
-				InstanceGroups: existingPlan.InstanceGroups,
-				Update:         existingPlan.Update,
-			}))
-			Expect(boshManifest).To(Equal(newlyGeneratedManifest))
-		})
-
-		Context("adapter returns a dashboard url", func() {
-			BeforeEach(func() {
+		Context("Handling dashboard url generation", func() {
+			It("includes the dashboard url when implemented by the adapter", func() {
 				serviceAdapter.GenerateDashboardUrlReturns("http://google.com", nil)
-			})
 
-			It("returns the dashboard url", func() {
+				serviceSpec, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
+
 				Expect(serviceSpec.DashboardURL).To(Equal("http://google.com"))
-			})
-
-			It("does not error", func() {
 				Expect(provisionErr).NotTo(HaveOccurred())
-			})
-		})
 
-		Context("adapter has not implemented the dashboard url", func() {
-			BeforeEach(func() {
+				By("invoking the adapter with the right arguments", func() {
+					Expect(serviceAdapter.GenerateDashboardUrlCallCount()).To(Equal(1))
+					instanceID, plan, boshManifest, _ := serviceAdapter.GenerateDashboardUrlArgsForCall(0)
+					Expect(instanceID).To(Equal(instanceID))
+					expectedProperties := sdk.Properties{"super": "no", "a_global_property": "global_value", "some_other_global_property": "other_global_value"}
+					Expect(plan).To(Equal(sdk.Plan{
+						Properties:     expectedProperties,
+						InstanceGroups: existingPlan.InstanceGroups,
+						Update:         existingPlan.Update,
+					}))
+					Expect(boshManifest).To(Equal(newlyGeneratedManifest))
+				})
+			})
+
+			It("doesn't use dashboard url when adapter has not implemented the dashboard url", func() {
 				serviceAdapter.GenerateDashboardUrlReturns("", serviceadapter.NewNotImplementedError("no dashboard!"))
-			})
 
-			It("returns the dashboard as blank", func() {
+				serviceSpec, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
+
 				Expect(serviceSpec.DashboardURL).To(BeEmpty())
-			})
-
-			It("does not error", func() {
 				Expect(provisionErr).NotTo(HaveOccurred())
 			})
 
-			It("still returns the bosh task ID and operation type", func() {
-				var operationData broker.OperationData
-				Expect(json.Unmarshal([]byte(serviceSpec.OperationData), &operationData)).To(Succeed())
-				Expect(operationData).To(Equal(
-					broker.OperationData{BoshTaskID: deployTaskID, OperationType: broker.OperationTypeCreate},
+			It("includes a standard message when adapter returns a generic error", func() {
+				serviceAdapter.GenerateDashboardUrlReturns("", errors.New("fooo"))
+
+				serviceSpec, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
+
+				Expect(logBuffer.String()).To(ContainSubstring("foo"))
+
+				Expect(provisionErr).To(MatchError(
+					SatisfyAll(
+						ContainSubstring("There was a problem completing your request. Please contact your operations team providing the following information:"),
+						MatchRegexp(`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`),
+						ContainSubstring("service: a-cool-redis-service"),
+						ContainSubstring("service-instance-guid: %s", instanceID),
+						ContainSubstring("operation: create"),
+						ContainSubstring("task-id: %d", deployTaskID),
+					),
 				))
 			})
-		})
 
-		Context("adapter returns an error", func() {
-			BeforeEach(func() {
-				serviceAdapter.GenerateDashboardUrlReturns("", errors.New("fooo"))
-			})
-
-			It("logs the error", func() {
-				Expect(logBuffer.String()).To(ContainSubstring("foo"))
-			})
-
-			Describe("returned error", func() {
-				It("includes a standard message", func() {
-					Expect(provisionErr).To(MatchError(ContainSubstring(
-						"There was a problem completing your request. Please contact your operations team providing the following information:",
-					)))
-				})
-
-				It("includes the broker request id", func() {
-					Expect(provisionErr).To(MatchError(MatchRegexp(
-						`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`,
-					)))
-				})
-
-				It("includes the service name", func() {
-					Expect(provisionErr).To(MatchError(ContainSubstring(
-						"service: a-cool-redis-service",
-					)))
-				})
-
-				It("includes the service instance guid", func() {
-					Expect(provisionErr).To(MatchError(ContainSubstring(
-						fmt.Sprintf("service-instance-guid: %s", instanceID),
-					)))
-				})
-
-				It("includes the operation type", func() {
-					Expect(provisionErr).To(MatchError(ContainSubstring(
-						"operation: create",
-					)))
-				})
-
-				It("includes the bosh task id", func() {
-					Expect(provisionErr).To(MatchError(ContainSubstring(
-						fmt.Sprintf("task-id: %d", deployTaskID),
-					)))
-				})
-			})
-		})
-
-		Context("adapter returns an AdapterCommandError", func() {
-			BeforeEach(func() {
+			It("includes the error when adapter errors with an AdapterCommandError", func() {
 				serviceAdapter.GenerateDashboardUrlReturns("",
 					serviceadapter.NewUnknownFailureError(
 						"it failed, but all is not lost dear user",
 					),
 				)
-			})
+				serviceSpec, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
 
-			It("returns the user error", func() {
 				Expect(provisionErr).To(MatchError("it failed, but all is not lost dear user"))
 			})
 		})
@@ -283,13 +225,14 @@ var _ = Describe("Provisioning", func() {
 			}
 
 			serviceCatalog.Plans = config.Plans{postDeployErrandPlan}
-		})
-
-		It("does not error", func() {
-			Expect(provisionErr).NotTo(HaveOccurred())
+			provisionDetails.PlanID = planID
 		})
 
 		It("returns the correct operation data", func() {
+			serviceSpec, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
+
+			Expect(provisionErr).NotTo(HaveOccurred())
+
 			var data broker.OperationData
 			err := json.Unmarshal([]byte(serviceSpec.OperationData), &data)
 			Expect(err).NotTo(HaveOccurred())
@@ -298,47 +241,28 @@ var _ = Describe("Provisioning", func() {
 			Expect(data.Errands[0].Instances).To(Equal([]string{errandInstance}))
 			Expect(data.Errands[1].Name).To(Equal(errandName2))
 			Expect(data.Errands[1].Instances).To(Equal([]string{errandInstance2}))
-		})
 
-		It("calls the deployer with a bosh context id", func() {
-			Expect(fakeDeployer.CreateCallCount()).To(Equal(1))
-			_, _, _, actualBoshContextID, _ := fakeDeployer.CreateArgsForCall(0)
-			Expect(actualBoshContextID).NotTo(BeEmpty())
-		})
-
-		Context("when provision is called again", func() {
-			var (
-				secondProvisionErr error
-			)
-
-			JustBeforeEach(func() {
-				_, secondProvisionErr = b.Provision(
-					context.Background(),
-					instanceID,
-					brokerapi.ProvisionDetails{
-						PlanID:           planID,
-						RawParameters:    jsonParams,
-						OrganizationGUID: organizationGUID,
-						SpaceGUID:        spaceGUID,
-						ServiceID:        serviceOfferingID,
-					},
-					asyncAllowed,
-				)
-			})
-
-			It("does not error", func() {
-				Expect(secondProvisionErr).NotTo(HaveOccurred())
-			})
-
-			It("calls the deployer with a different bosh context id", func() {
-				Expect(fakeDeployer.CreateCallCount()).To(Equal(2))
-				_, _, _, firstBoshContextID, _ := fakeDeployer.CreateArgsForCall(0)
-				Expect(firstBoshContextID).NotTo(BeNil())
-
-				_, _, _, secondBoshContextID, _ := fakeDeployer.CreateArgsForCall(1)
-				Expect(secondBoshContextID).NotTo(Equal(firstBoshContextID))
+			By("calling the deployer with a bosh context id", func() {
+				Expect(fakeDeployer.CreateCallCount()).To(Equal(1))
+				_, _, _, actualBoshContextID, _ := fakeDeployer.CreateArgsForCall(0)
+				Expect(actualBoshContextID).NotTo(BeEmpty())
 			})
 		})
+
+		It("calls the deployer with a different bosh context id when provision is called again", func() {
+
+			serviceSpec, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
+			_, secondProvisionErr := b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
+
+			Expect(secondProvisionErr).NotTo(HaveOccurred())
+			Expect(fakeDeployer.CreateCallCount()).To(Equal(2))
+			_, _, _, firstBoshContextID, _ := fakeDeployer.CreateArgsForCall(0)
+			Expect(firstBoshContextID).NotTo(BeNil())
+
+			_, _, _, secondBoshContextID, _ := fakeDeployer.CreateArgsForCall(1)
+			Expect(secondBoshContextID).NotTo(Equal(firstBoshContextID))
+		})
+
 	})
 
 	Context("when the plan has a pre-delete lifecycle errand", func() {
@@ -370,13 +294,13 @@ var _ = Describe("Provisioning", func() {
 			instanceID = "pre-delete-instance-group-name"
 
 			serviceCatalog.Plans = config.Plans{preDeleteErrandPlan}
-		})
-
-		It("does not error", func() {
-			Expect(provisionErr).NotTo(HaveOccurred())
+			provisionDetails.PlanID = planID
 		})
 
 		It("returns the correct operation data", func() {
+			serviceSpec, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
+
+			Expect(provisionErr).NotTo(HaveOccurred())
 			var data broker.OperationData
 			err := json.Unmarshal([]byte(serviceSpec.OperationData), &data)
 			Expect(err).NotTo(HaveOccurred())
@@ -385,148 +309,106 @@ var _ = Describe("Provisioning", func() {
 	})
 
 	Context("when invalid json params are provided by the broker api", func() {
-		BeforeEach(func() {
-			jsonParams = []byte("not valid json")
-		})
-
 		It("wraps the returns a raw params invalid error", func() {
+			jsonParams = []byte("not valid json")
+			provisionDetails.RawParameters = jsonParams
+
+			serviceSpec, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
+
 			Expect(provisionErr).To(Equal(brokerapi.ErrRawParamsInvalid))
 		})
 	})
 
 	Context("when no arbitrary params are passed by user", func() {
-		BeforeEach(func() {
-			jsonParams = []byte{}
-		})
-
-		It("return no error", func() {
-			Expect(provisionErr).NotTo(HaveOccurred())
-		})
-
 		It("no arbitrary params are passed to the adapter", func() {
+			jsonParams = []byte{}
+			provisionDetails.RawParameters = jsonParams
+
+			serviceSpec, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
+
+			Expect(provisionErr).NotTo(HaveOccurred())
 			_, _, actualRequestParams, _, _ := fakeDeployer.CreateArgsForCall(0)
 			Expect(actualRequestParams["parameters"]).To(HaveLen(0))
-		})
-
-		It("invokes the deployer", func() {
 			Expect(fakeDeployer.CreateCallCount()).To(Equal(1))
 		})
 	})
 
 	Context("when a deployment has a generic error", func() {
-		BeforeEach(func() {
+		It("errors with a standard message", func() {
 			fakeDeployer.CreateReturns(0, []byte{}, fmt.Errorf("fooo"))
-		})
 
-		It("logs the error", func() {
+			serviceSpec, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
+
 			Expect(logBuffer.String()).To(ContainSubstring("error: fooo"))
-		})
-
-		Describe("returned error", func() {
-			It("includes a standard message", func() {
-				Expect(provisionErr).To(MatchError(ContainSubstring(
-					"There was a problem completing your request. Please contact your operations team providing the following information:",
-				)))
-			})
-
-			It("includes the broker request id", func() {
-				Expect(provisionErr).To(MatchError(MatchRegexp(
-					`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`,
-				)))
-			})
-
-			It("includes the service name", func() {
-				Expect(provisionErr).To(MatchError(ContainSubstring(
-					"service: a-cool-redis-service",
-				)))
-			})
-
-			It("includes the service instance guid", func() {
-				Expect(provisionErr).To(MatchError(ContainSubstring(
-					fmt.Sprintf("service-instance-guid: %s", instanceID),
-				)))
-			})
-
-			It("includes the operation type", func() {
-				Expect(provisionErr).To(MatchError(ContainSubstring(
-					"operation: create",
-				)))
-			})
-
-			It("does NOT include the bosh task id", func() {
-				Expect(provisionErr).NotTo(MatchError(ContainSubstring(
-					"task-id:",
-				)))
-			})
+			Expect(provisionErr).To(MatchError(
+				SatisfyAll(
+					ContainSubstring("There was a problem completing your request. Please contact your operations team providing the following information:"),
+					MatchRegexp(`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`),
+					ContainSubstring("service: a-cool-redis-service"),
+					ContainSubstring("service-instance-guid: %s", instanceID),
+					ContainSubstring("operation: create"),
+					Not(ContainSubstring("task-id: %d", deployTaskID)),
+				),
+			))
 		})
 	})
 
 	Context("when getting the manifest has a bosh request error", func() {
-		BeforeEach(func() {
+		It("logs the error and returns try again error", func() {
 			boshClient.GetDeploymentReturns([]byte{}, false, boshdirector.NewRequestError(
 				fmt.Errorf("network timeout"),
 			))
-		})
 
-		It("logs the error", func() {
+			serviceSpec, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
+
 			Expect(logBuffer.String()).To(ContainSubstring("error: could not get manifest: network timeout"))
-		})
-
-		It("returns the try again later error for the user", func() {
 			Expect(provisionErr).To(MatchError(ContainSubstring("Currently unable to create service instance, please try again later")))
 		})
+
 	})
 
 	Context("when a deploy has a bosh request error", func() {
-		BeforeEach(func() {
+		It("logs the error and returns try again error", func() {
 			fakeDeployer.CreateReturns(0, []byte{}, boshdirector.NewRequestError(
 				fmt.Errorf("error deploying instance: network timeout"),
 			))
-		})
 
-		It("logs the error", func() {
+			serviceSpec, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
+
 			Expect(logBuffer.String()).To(ContainSubstring("error: error deploying instance: network timeout"))
-		})
-
-		It("returns the try again later error for the user", func() {
 			Expect(provisionErr).To(MatchError(ContainSubstring("Currently unable to create service instance, please try again later")))
 		})
 	})
 
 	Context("when a deployment has a user displayable error", func() {
-		BeforeEach(func() {
+		It("logs the error and returns the error", func() {
 			fakeDeployer.CreateReturns(0, []byte{}, broker.NewDisplayableError(fmt.Errorf("user message"), fmt.Errorf("operator message")))
-		})
 
-		It("logs the error", func() {
+			serviceSpec, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
+
 			Expect(logBuffer.String()).To(ContainSubstring("error: operator message"))
-		})
-
-		It("returns the error", func() {
 			Expect(provisionErr).To(MatchError(ContainSubstring("user message")))
 		})
 	})
 
 	Context("when the deploy returns an adapter error with a user message", func() {
-		var err = serviceadapter.NewUnknownFailureError("it failed, but all is not lost dear user")
-
-		BeforeEach(func() {
-			fakeDeployer.CreateReturns(0, nil, err)
-		})
-
 		It("returns the user error", func() {
+			var err = serviceadapter.NewUnknownFailureError("it failed, but all is not lost dear user")
+			fakeDeployer.CreateReturns(0, nil, err)
+
+			serviceSpec, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
+
 			Expect(provisionErr).To(Equal(err))
 		})
 	})
 
 	Context("when the deploy returns an adapter error with no message", func() {
-		var err = serviceadapter.NewUnknownFailureError("")
-
-		BeforeEach(func() {
-			fakeDeployer.CreateReturns(0, nil, err)
-		})
-
 		It("returns a generic error", func() {
+			var err = serviceadapter.NewUnknownFailureError("")
+			fakeDeployer.CreateReturns(0, nil, err)
+
+			serviceSpec, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
+
 			Expect(provisionErr).To(MatchError(ContainSubstring(
 				"There was a problem completing your request. Please contact your operations team providing the following information:",
 			)))
@@ -534,55 +416,46 @@ var _ = Describe("Provisioning", func() {
 	})
 
 	Context("when a provision of an already provisioned instance is triggered", func() {
-		BeforeEach(func() {
-			boshClient.GetDeploymentReturns([]byte(`manifest: true`), true, nil)
-		})
-
 		It("returns an error", func() {
+			boshClient.GetDeploymentReturns([]byte(`manifest: true`), true, nil)
+
+			serviceSpec, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
+
 			Expect(provisionErr).To(Equal(brokerapi.ErrInstanceAlreadyExists))
 		})
 	})
 
 	Context("when the async allowed flag is false", func() {
-		BeforeEach(func() {
-			asyncAllowed = false
-		})
 		It("returns a  error", func() {
+			asyncAllowed = false
+
+			serviceSpec, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
+
 			Expect(provisionErr).To(Equal(brokerapi.ErrAsyncRequired))
 		})
 	})
 
 	Context("when count instances of plan fails", func() {
-		BeforeEach(func() {
+		It("returns error that includes a standard message, the broker request ID, service name, service instance GUID and operation type", func() {
 			cfClient.CountInstancesOfServiceOfferingReturns(nil, fmt.Errorf("count fail"))
-		})
 
-		Describe("returned error", func() {
-			It("includes a standard message, the broker request ID, service name, service instance GUID and operation type", func() {
-				Expect(provisionErr).To(SatisfyAll(
-					MatchError(ContainSubstring(
-						"There was a problem completing your request. Please contact your operations team providing the following information:")),
-					MatchError(MatchRegexp(
-						`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`)),
-					MatchError(ContainSubstring("service: a-cool-redis-service")),
-					MatchError(ContainSubstring(fmt.Sprintf("service-instance-guid: %s", instanceID))),
-					MatchError(ContainSubstring("operation: create")),
-				))
-			})
+			serviceSpec, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
 
-			It("does NOT include the bosh task id", func() {
-				Expect(provisionErr).NotTo(MatchError(ContainSubstring(
-					"task-id:",
-				)))
-			})
+			Expect(fakeDeployer.CreateCallCount()).To(BeZero())
 
-			It("logs the error", func() {
-				Expect(logBuffer.String()).To(ContainSubstring("count fail"))
-			})
-
-			It("makes no deployments", func() {
-				Expect(fakeDeployer.CreateCallCount()).To(BeZero())
-			})
+			Expect(logBuffer.String()).To(ContainSubstring("count fail"))
+			Expect(provisionErr).To(MatchError(
+				SatisfyAll(
+					ContainSubstring(
+						"There was a problem completing your request. Please contact your operations team providing the following information:"),
+					MatchRegexp(
+						`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`),
+					ContainSubstring("service: a-cool-redis-service"),
+					ContainSubstring(fmt.Sprintf("service-instance-guid: %s", instanceID)),
+					ContainSubstring("operation: create"),
+					Not(ContainSubstring("task-id:")),
+				),
+			))
 		})
 	})
 
@@ -609,32 +482,20 @@ var _ = Describe("Provisioning", func() {
 	})
 
 	Context("when plan id given is not configured", func() {
-		BeforeEach(func() {
-			planID = "non-existant-pland"
-		})
-
 		It("return an error", func() {
-			Expect(provisionErr).To(HaveOccurred())
-		})
-	})
-
-	Context("adapter returns an error while fetching the dashboard url", func() {
-		BeforeEach(func() {
-			serviceAdapter.GenerateDashboardUrlReturns("", fmt.Errorf("no dashboard!"))
-		})
-
-		It("returns an error", func() {
-			Expect(provisionErr).To(HaveOccurred())
+			provisionDetails.PlanID = "wrong-plan"
+			serviceSpec, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
+			Expect(provisionErr).To(MatchError("plan wrong-plan not found"))
 		})
 	})
 
 	Context("when bosh can't be reached", func() {
-		BeforeEach(func() {
-			boshClient.GetInfoReturns(boshdirector.Info{}, errors.New("foo"))
-		})
-
 		It("returns an error", func() {
-			Expect(provisionErr).To(HaveOccurred())
+			boshClient.GetInfoReturns(boshdirector.Info{}, errors.New("foo"))
+
+			serviceSpec, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
+
+			Expect(provisionErr).To(MatchError("Currently unable to create service instance, please try again later"))
 		})
 	})
 
@@ -1005,27 +866,28 @@ var _ = Describe("Provisioning", func() {
 
 	Context("when maintenance info is passed", func() {
 		BeforeEach(func() {
-			requestMaintenanceInfo = brokerapi.MaintenanceInfo{
+			newlyGeneratedManifest := []byte("a newly generated manifest")
+
+			serviceCatalog.MaintenanceInfo = &config.MaintenanceInfo{
 				Public: map[string]string{
 					"edition": "gold millennium",
 				},
-				Private: "",
+				Private: map[string]string{},
 			}
-			newlyGeneratedManifest := []byte("a newly generated manifest")
 			fakeDeployer.CreateReturns(deployTaskID, newlyGeneratedManifest, nil)
 		})
 
 		Context("with a broker configured with maintenance info", func() {
-			BeforeEach(func() {
-				serviceCatalog.MaintenanceInfo = &config.MaintenanceInfo{
+			It("provisions successfully when the maintenance info matches", func() {
+				provisionDetails.MaintenanceInfo = brokerapi.MaintenanceInfo{
 					Public: map[string]string{
 						"edition": "gold millennium",
 					},
-					Private: map[string]string{},
+					Private: "",
 				}
-			})
 
-			It("provisions successfully when the maintenance info matches", func() {
+				serviceSpec, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
+
 				Expect(provisionErr).NotTo(HaveOccurred())
 
 				var operationData broker.OperationData
@@ -1037,14 +899,16 @@ var _ = Describe("Provisioning", func() {
 
 			When("the passed maintenance info does not match", func() {
 				BeforeEach(func() {
-					serviceCatalog.MaintenanceInfo = &config.MaintenanceInfo{
+					provisionDetails.MaintenanceInfo = brokerapi.MaintenanceInfo{
 						Public: map[string]string{
 							"edition": "1st",
 						},
-						Private: map[string]string{},
+						Private: "",
 					}
 				})
 				It("errors", func() {
+					serviceSpec, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
+
 					Expect(provisionErr).To(HaveOccurred())
 					Expect(provisionErr).To(Equal(brokerapi.ErrMaintenanceInfoConflict))
 				})
@@ -1054,9 +918,17 @@ var _ = Describe("Provisioning", func() {
 		Context("with a broker configured without maintenance info", func() {
 			BeforeEach(func() {
 				serviceCatalog.MaintenanceInfo = nil
+				provisionDetails.MaintenanceInfo = brokerapi.MaintenanceInfo{
+					Public: map[string]string{
+						"edition": "gold millennium",
+					},
+					Private: "",
+				}
 			})
 
 			It("fails to provision", func() {
+				serviceSpec, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
+
 				Expect(provisionErr).To(HaveOccurred())
 				Expect(provisionErr).To(Equal(brokerapi.ErrMaintenanceInfoNilConflict))
 			})
