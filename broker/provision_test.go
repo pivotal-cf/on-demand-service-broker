@@ -11,10 +11,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
-
-	"net/http"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -587,7 +586,6 @@ var _ = Describe("Provisioning", func() {
 
 			It("requests the json schemas from the service adapter", func() {
 				Expect(provisionErr).To(HaveOccurred())
-				Expect(fakeAdapter.GeneratePlanSchemaCallCount()).To(Equal(1))
 				Expect(provisionErr.Error()).To(ContainSubstring("Additional property this-is is not allowed"))
 				Expect(provisionErr).To(BeAssignableToTypeOf(&brokerapi.FailureResponse{}))
 
@@ -610,6 +608,7 @@ var _ = Describe("Provisioning", func() {
 
 			It("succeeds", func() {
 				Expect(provisionErr).NotTo(HaveOccurred())
+				Expect(serviceSpec.OperationData).To(ContainSubstring("\"OperationType\":\"create\""))
 			})
 		})
 
@@ -625,12 +624,9 @@ var _ = Describe("Provisioning", func() {
 				Expect(err).NotTo(HaveOccurred())
 			})
 
-			It("requests the json schemas from the service adapter", func() {
-				Expect(fakeAdapter.GeneratePlanSchemaCallCount()).To(Equal(1))
-			})
-
 			It("succeeds", func() {
 				Expect(provisionErr).NotTo(HaveOccurred())
+				Expect(serviceSpec.OperationData).To(ContainSubstring("\"OperationType\":\"create\""))
 			})
 		})
 
@@ -649,6 +645,7 @@ var _ = Describe("Provisioning", func() {
 
 			It("succeeds", func() {
 				Expect(provisionErr).NotTo(HaveOccurred())
+				Expect(serviceSpec.OperationData).To(ContainSubstring("\"OperationType\":\"create\""))
 			})
 		})
 
@@ -895,6 +892,7 @@ var _ = Describe("Provisioning", func() {
 
 				serviceSpec, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
 				Expect(provisionErr).NotTo(HaveOccurred())
+				Expect(logBuffer.String()).To(ContainSubstring("Maintenance info defined in broker service catalog, but not passed in provision request."))
 			})
 
 			When("the broker is configured only with public", func() {
@@ -1129,6 +1127,7 @@ var _ = Describe("Provisioning", func() {
 					serviceSpec, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
 
 					Expect(provisionErr).NotTo(HaveOccurred())
+					Expect(logBuffer.String()).ToNot(ContainSubstring("Maintenance info defined in broker service catalog, but not passed in provision request."))
 				})
 			})
 
@@ -1137,6 +1136,9 @@ var _ = Describe("Provisioning", func() {
 		Context("with a broker configured without maintenance info", func() {
 			BeforeEach(func() {
 				serviceCatalog.MaintenanceInfo = nil
+			})
+
+			It("fails to provision when maintenance_info is passed", func() {
 				provisionDetails.MaintenanceInfo = brokerapi.MaintenanceInfo{
 					Public: map[string]string{
 						"edition": "gold millennium",
@@ -1144,13 +1146,20 @@ var _ = Describe("Provisioning", func() {
 					Private: "secret:password;",
 					Version: "1.2.3",
 				}
-			})
 
-			It("fails to provision when maintenance_info is passed", func() {
 				serviceSpec, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
 
 				Expect(provisionErr).To(HaveOccurred())
 				Expect(provisionErr).To(Equal(brokerapi.ErrMaintenanceInfoNilConflict))
+			})
+
+			It("succeeds provisioning", func() {
+				provisionDetails.MaintenanceInfo = brokerapi.MaintenanceInfo{}
+
+				serviceSpec, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
+
+				Expect(provisionErr).ToNot(HaveOccurred())
+				Expect(logBuffer.String()).ToNot(ContainSubstring("Maintenance info defined in broker service catalog, but not passed in provision request."))
 			})
 		})
 	})

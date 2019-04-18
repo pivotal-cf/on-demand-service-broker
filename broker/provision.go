@@ -211,8 +211,9 @@ func (b *Broker) checkPlanSchemas(ctx context.Context, requestParams map[string]
 }
 
 func (b *Broker) validateMaintenanceInfoForProvision(details brokerapi.ProvisionDetails, logger *log.Logger) error {
+	planMaintenanceInfo, err := b.getMaintenanceInfoForPlan(details.PlanID)
+
 	if b.maintenanceInfoNotEmpty(details) {
-		planMaintenanceInfo, err := b.getMaintenanceInfoForPlan(details.PlanID)
 		if err != nil {
 			return b.processError(err, logger)
 		}
@@ -223,6 +224,10 @@ func (b *Broker) validateMaintenanceInfoForProvision(details brokerapi.Provision
 
 		if !reflect.DeepEqual(*planMaintenanceInfo, details.MaintenanceInfo) {
 			return b.processError(brokerapi.ErrMaintenanceInfoConflict, logger)
+		}
+	} else {
+		if planMaintenanceInfo != nil {
+			logger.Println("Maintenance info defined in broker service catalog, but not passed in provision request.")
 		}
 	}
 	return nil
