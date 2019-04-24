@@ -874,293 +874,35 @@ var _ = Describe("Provisioning", func() {
 			fakeDeployer.CreateReturns(deployTaskID, newlyGeneratedManifest, nil)
 		})
 
-		Context("with a broker configured with maintenance info", func() {
-			It("succeeds when maintenance info is not passed ", func() {
-				serviceCatalog.MaintenanceInfo = &config.MaintenanceInfo{
-					Version: "1.2.3",
-					Public: map[string]string{
-						"edition": "gold millennium",
-					},
-					Private: map[string]string{
-						"secret": "password",
-					},
-				}
+		It("succeeds when maintenanceInfo.Checker succeeds", func() {
 
-				b = createDefaultBroker()
+			provisionDetails.MaintenanceInfo = brokerapi.MaintenanceInfo{
+				Version: "1.2.3",
+				Public: map[string]string{
+					"edition": "gold millennium",
+				},
+				Private: "secret:password;",
+			}
 
-				provisionDetails.MaintenanceInfo = brokerapi.MaintenanceInfo{}
+			_, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
 
-				serviceSpec, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
-				Expect(provisionErr).NotTo(HaveOccurred())
-				Expect(logBuffer.String()).To(ContainSubstring("Maintenance info defined in broker service catalog, but not passed in provision request."))
-			})
+			Expect(provisionErr).ToNot(HaveOccurred())
+			Expect(fakeMaintenanceInfoChecker.CheckCallCount()).To(Equal(1), "Check was not called")
+			actualPlanID, actualMaintenanceInfo, actualServiceCatalog, _ := fakeMaintenanceInfoChecker.CheckArgsForCall(0)
+			Expect(actualMaintenanceInfo).To(Equal(provisionDetails.MaintenanceInfo))
+			Expect(actualPlanID).To(Equal(provisionDetails.PlanID))
 
-			When("the broker is configured only with public", func() {
-				BeforeEach(func() {
-					serviceCatalog.MaintenanceInfo = &config.MaintenanceInfo{
-						Public: map[string]string{
-							"edition": "gold millennium",
-						},
-					}
-				})
-
-				It("provisions successfully when the maintenance info matches", func() {
-					provisionDetails.MaintenanceInfo = brokerapi.MaintenanceInfo{
-						Public: map[string]string{
-							"edition": "gold millennium",
-						},
-					}
-
-					serviceSpec, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
-
-					Expect(provisionErr).NotTo(HaveOccurred())
-				})
-
-				When("the passed maintenance info does not match", func() {
-					It("errors when the field doesn't match", func() {
-						provisionDetails.MaintenanceInfo = brokerapi.MaintenanceInfo{
-							Public: map[string]string{
-								"edition": "wrong",
-							},
-						}
-
-						serviceSpec, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
-						Expect(provisionErr).To(Equal(brokerapi.ErrMaintenanceInfoConflict))
-					})
-
-					When("extra fields are passed", func() {
-						It("errors when private field is passed", func() {
-							provisionDetails.MaintenanceInfo = brokerapi.MaintenanceInfo{Public: map[string]string{
-								"edition": "gold millennium",
-							}, Private: "bobo"}
-							serviceSpec, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
-							Expect(provisionErr).To(Equal(brokerapi.ErrMaintenanceInfoConflict))
-						})
-
-						It("errors when version field is passed", func() {
-							provisionDetails.MaintenanceInfo = brokerapi.MaintenanceInfo{
-								Public: map[string]string{
-									"edition": "gold millennium",
-								},
-								Version: "1.2.2",
-							}
-							serviceSpec, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
-							Expect(provisionErr).To(Equal(brokerapi.ErrMaintenanceInfoConflict))
-						})
-					})
-				})
-			})
-
-			When("the broker is configured only with private", func() {
-				BeforeEach(func() {
-					serviceCatalog.MaintenanceInfo = &config.MaintenanceInfo{
-						Private: map[string]string{
-							"secret": "password",
-						},
-					}
-				})
-
-				It("provisions successfully when the maintenance info matches", func() {
-					provisionDetails.MaintenanceInfo = brokerapi.MaintenanceInfo{Private: "secret:password;"}
-
-					serviceSpec, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
-
-					Expect(provisionErr).NotTo(HaveOccurred())
-				})
-
-				When("the passed maintenance info does not match", func() {
-					It("errors when the field doesn't match", func() {
-						provisionDetails.MaintenanceInfo = brokerapi.MaintenanceInfo{Private: "other:thing;"}
-
-						serviceSpec, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
-						Expect(provisionErr).To(Equal(brokerapi.ErrMaintenanceInfoConflict))
-					})
-
-					When("extra fields are passed", func() {
-						It("errors when public field is passed", func() {
-							provisionDetails.MaintenanceInfo = brokerapi.MaintenanceInfo{Public: map[string]string{"foo": "bar"}, Private: "secret:password;"}
-							serviceSpec, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
-							Expect(provisionErr).To(Equal(brokerapi.ErrMaintenanceInfoConflict))
-						})
-
-						It("errors when version field is passed", func() {
-							provisionDetails.MaintenanceInfo = brokerapi.MaintenanceInfo{Version: "1.2.2", Private: "secret:password;"}
-							serviceSpec, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
-							Expect(provisionErr).To(Equal(brokerapi.ErrMaintenanceInfoConflict))
-						})
-					})
-				})
-			})
-
-			When("the broker is configured only with public and private", func() {
-				BeforeEach(func() {
-					serviceCatalog.MaintenanceInfo = &config.MaintenanceInfo{
-						Public: map[string]string{
-							"foo": "bar",
-						},
-						Private: map[string]string{
-							"secret": "password",
-						},
-					}
-				})
-
-				It("provisions successfully when the maintenance info matches", func() {
-					provisionDetails.MaintenanceInfo = brokerapi.MaintenanceInfo{
-						Public: map[string]string{
-							"foo": "bar",
-						},
-						Private: "secret:password;",
-					}
-
-					serviceSpec, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
-
-					Expect(provisionErr).NotTo(HaveOccurred())
-				})
-
-				When("the passed maintenance info does not match", func() {
-					It("errors when public field doesn't match", func() {
-						provisionDetails.MaintenanceInfo = brokerapi.MaintenanceInfo{
-							Public:  map[string]string{"other": "value"},
-							Private: "secret:password;",
-						}
-
-						_, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
-						Expect(provisionErr).To(Equal(brokerapi.ErrMaintenanceInfoConflict))
-					})
-
-					It("errors when private field doesn't match", func() {
-						provisionDetails.MaintenanceInfo = brokerapi.MaintenanceInfo{
-							Public:  map[string]string{"foo": "bar"},
-							Private: "other:secret;",
-						}
-
-						_, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
-						Expect(provisionErr).To(Equal(brokerapi.ErrMaintenanceInfoConflict))
-					})
-
-					When("extra fields are passed", func() {
-						It("errors when version field is passed", func() {
-							provisionDetails.MaintenanceInfo = brokerapi.MaintenanceInfo{
-								Public:  map[string]string{"foo": "bar"},
-								Private: "secret:password;",
-								Version: "1.2.3",
-							}
-							serviceSpec, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
-							Expect(provisionErr).To(Equal(brokerapi.ErrMaintenanceInfoConflict))
-						})
-					})
-				})
-			})
-
-			When("the broker is configured only with version", func() {
-				BeforeEach(func() {
-					serviceCatalog.MaintenanceInfo = &config.MaintenanceInfo{
-						Version: "1.2.3",
-					}
-				})
-
-				It("provisions successfully when the maintenance info matches", func() {
-					provisionDetails.MaintenanceInfo = brokerapi.MaintenanceInfo{
-						Version: "1.2.3",
-					}
-
-					serviceSpec, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
-
-					Expect(provisionErr).NotTo(HaveOccurred())
-				})
-
-				When("the passed maintenance info does not match", func() {
-					It("errors when the field doesn't match", func() {
-						provisionDetails.MaintenanceInfo = brokerapi.MaintenanceInfo{
-							Version: "1.2.3-beta",
-						}
-
-						_, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
-
-						Expect(provisionErr).To(Equal(brokerapi.ErrMaintenanceInfoConflict))
-					})
-
-					When("extra fields are passed", func() {
-						It("errors when public field is passed", func() {
-							provisionDetails.MaintenanceInfo = brokerapi.MaintenanceInfo{
-								Public:  map[string]string{"foo": "bar"},
-								Version: "1.2.3",
-							}
-							serviceSpec, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
-							Expect(provisionErr).To(Equal(brokerapi.ErrMaintenanceInfoConflict))
-						})
-
-						It("errors when private field is passed", func() {
-							provisionDetails.MaintenanceInfo = brokerapi.MaintenanceInfo{
-								Private: "secret:password;",
-								Version: "1.2.3",
-							}
-							serviceSpec, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
-							Expect(provisionErr).To(Equal(brokerapi.ErrMaintenanceInfoConflict))
-						})
-					})
-				})
-			})
-
-			When("the broker is configured with public, private and version", func() {
-				BeforeEach(func() {
-					serviceCatalog.MaintenanceInfo = &config.MaintenanceInfo{
-						Version: "1.2.3",
-						Public: map[string]string{
-							"edition": "gold millennium",
-						},
-						Private: map[string]string{
-							"secret": "password",
-						},
-					}
-				})
-
-				It("provisions successfully when the maintenance info matches", func() {
-					provisionDetails.MaintenanceInfo = brokerapi.MaintenanceInfo{
-						Version: "1.2.3",
-						Public: map[string]string{
-							"edition": "gold millennium",
-						},
-						Private: "secret:password;",
-					}
-
-					serviceSpec, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
-
-					Expect(provisionErr).NotTo(HaveOccurred())
-					Expect(logBuffer.String()).ToNot(ContainSubstring("Maintenance info defined in broker service catalog, but not passed in provision request."))
-				})
-			})
-
+			serviceCatalog, _ := b.Services(nil)
+			Expect(actualServiceCatalog).To(Equal(serviceCatalog))
 		})
 
-		Context("with a broker configured without maintenance info", func() {
-			BeforeEach(func() {
-				serviceCatalog.MaintenanceInfo = nil
-			})
+		It("fails when the maintenanceInfo.Checker fails", func() {
+			fakeMaintenanceInfoChecker.CheckReturns(fmt.Errorf("nope"))
 
-			It("fails to provision when maintenance_info is passed", func() {
-				provisionDetails.MaintenanceInfo = brokerapi.MaintenanceInfo{
-					Public: map[string]string{
-						"edition": "gold millennium",
-					},
-					Private: "secret:password;",
-					Version: "1.2.3",
-				}
+			_, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
 
-				serviceSpec, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
-
-				Expect(provisionErr).To(HaveOccurred())
-				Expect(provisionErr).To(Equal(brokerapi.ErrMaintenanceInfoNilConflict))
-			})
-
-			It("succeeds provisioning", func() {
-				provisionDetails.MaintenanceInfo = brokerapi.MaintenanceInfo{}
-
-				serviceSpec, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
-
-				Expect(provisionErr).ToNot(HaveOccurred())
-				Expect(logBuffer.String()).ToNot(ContainSubstring("Maintenance info defined in broker service catalog, but not passed in provision request."))
-			})
+			Expect(fakeMaintenanceInfoChecker.CheckCallCount()).To(Equal(1), "Check was not called")
+			Expect(provisionErr).To(MatchError(ContainSubstring("nope")))
 		})
 	})
 })

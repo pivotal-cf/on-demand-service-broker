@@ -46,19 +46,20 @@ const (
 )
 
 var (
-	b                  *broker.Broker
-	brokerCreationErr  error
-	boshClient         *fakes.FakeBoshClient
-	cfClient           *fakes.FakeCloudFoundryClient
-	serviceAdapter     *fakes.FakeServiceAdapterClient
-	fakeDeployer       *fakes.FakeDeployer
-	fakeInstanceLister *servicefakes.FakeInstanceLister
-	serviceCatalog     config.ServiceOffering
-	logBuffer          *bytes.Buffer
-	loggerFactory      *loggerfactory.LoggerFactory
-	brokerConfig       config.Broker
-	fakeSecretManager  *fakes.FakeManifestSecretManager
-	fakeMapHasher      *fakes.FakeHasher
+	b                          *broker.Broker
+	brokerCreationErr          error
+	boshClient                 *fakes.FakeBoshClient
+	cfClient                   *fakes.FakeCloudFoundryClient
+	serviceAdapter             *fakes.FakeServiceAdapterClient
+	fakeDeployer               *fakes.FakeDeployer
+	fakeInstanceLister         *servicefakes.FakeInstanceLister
+	serviceCatalog             config.ServiceOffering
+	logBuffer                  *bytes.Buffer
+	loggerFactory              *loggerfactory.LoggerFactory
+	brokerConfig               config.Broker
+	fakeSecretManager          *fakes.FakeManifestSecretManager
+	fakeMapHasher              *fakes.FakeHasher
+	fakeMaintenanceInfoChecker *fakes.FakeMaintenanceInfoChecker
 
 	existingPlanServiceInstanceLimit    = 3
 	serviceOfferingServiceInstanceLimit = 5
@@ -194,6 +195,25 @@ var (
 				},
 			},
 		},
+		Binding: brokerapi.ServiceBindingSchema{
+			Create: brokerapi.Schema{
+				Parameters: map[string]interface{}{
+					"$schema":              "http://json-schema.org/draft-04/schema#",
+					"type":                 "object",
+					"additionalProperties": false,
+					"properties": map[string]interface{}{
+						"bind_auto_create_topics": map[string]interface{}{
+							"description": "Auto create topics",
+							"type":        "boolean",
+						},
+						"bind_default_replication_factor": map[string]interface{}{
+							"description": "Replication factor",
+							"type":        "integer",
+						},
+					},
+				},
+			},
+		},
 	}
 
 	schemaWithRequiredPropertiesFixture = brokerapi.ServiceSchemas{
@@ -232,6 +252,25 @@ var (
 						},
 					},
 					"required": []string{"update_auto_create_topics"},
+				},
+			},
+		},
+		Binding: brokerapi.ServiceBindingSchema{
+			Create: brokerapi.Schema{
+				Parameters: map[string]interface{}{
+					"$schema":              "http://json-schema.org/draft-04/schema#",
+					"type":                 "object",
+					"additionalProperties": false,
+					"properties": map[string]interface{}{
+						"bind_auto_create_topics": map[string]interface{}{
+							"description": "Auto create topics",
+							"type":        "boolean",
+						},
+						"bind_default_replication_factor": map[string]interface{}{
+							"description": "Replication factor",
+							"type":        "integer",
+						},
+					},
 				},
 			},
 		},
@@ -295,6 +334,7 @@ var _ = BeforeEach(func() {
 	fakeMapHasher = new(fakes.FakeHasher)
 	fakeMapHasher.HashStub = ReturnSameValueHasher
 	cfClient.GetAPIVersionReturns("2.57.0", nil)
+	fakeMaintenanceInfoChecker = new(fakes.FakeMaintenanceInfoChecker)
 
 	serviceCatalog = config.ServiceOffering{
 		ID:               serviceOfferingID,
@@ -364,6 +404,7 @@ func createBrokerWithAdapter(serviceAdapter *fakes.FakeServiceAdapterClient) *br
 		fakeInstanceLister,
 		fakeMapHasher,
 		loggerFactory,
+		fakeMaintenanceInfoChecker,
 	)
 
 	Expect(err).NotTo(HaveOccurred())
@@ -385,6 +426,7 @@ func createBrokerWithServiceCatalog(catalog config.ServiceOffering) *broker.Brok
 		fakeInstanceLister,
 		fakeMapHasher,
 		loggerFactory,
+		fakeMaintenanceInfoChecker,
 	)
 
 	Expect(err).NotTo(HaveOccurred())
@@ -408,6 +450,7 @@ func createBroker(startupCheckers []broker.StartupChecker, overrideClient ...bro
 		fakeInstanceLister,
 		fakeMapHasher,
 		loggerFactory,
+		fakeMaintenanceInfoChecker,
 	)
 }
 

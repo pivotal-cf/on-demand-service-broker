@@ -16,12 +16,10 @@
 package on_demand_service_broker_test
 
 import (
-	"fmt"
-	"net/http"
-
 	"bytes"
 	"encoding/json"
-
+	"fmt"
+	"net/http"
 	"strings"
 
 	. "github.com/onsi/ginkgo"
@@ -512,17 +510,18 @@ password: ((odb_secret:foo))`,
 
 		When("maintenance_info in the request matches that stored on the broker", func() {
 			It("accepts the provision request", func() {
+				fakeMaintenanceInfoChecker.CheckReturns(nil)
+
 				resp, _ := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, requestMaintenanceInfo, true)
 				Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
 			})
 		})
 
 		When("maintenance_info in the request does not match that stored on the broker", func() {
-			// set dodgy maintenance_info on the conf (before each)
-			BeforeEach(func() {
-				requestMaintenanceInfo.Public["extra"] = "testing"
-			})
+
 			It("returns UnprocessableEntity with maintenanceInfoConflict error", func() {
+				fakeMaintenanceInfoChecker.CheckReturns(brokerapi.ErrMaintenanceInfoConflict)
+
 				resp, bodyContent := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, requestMaintenanceInfo, true)
 				Expect(resp.StatusCode).To(Equal(http.StatusUnprocessableEntity))
 
@@ -534,15 +533,21 @@ password: ((odb_secret:foo))`,
 		})
 	})
 	When("the broker does not have maintenance_info", func() {
-		// leave no maintenance_info on the conf (before each)
+
 		It("returns UnprocessableEntity with maintenanceInfoConflict error", func() {
-			requestMaintenanceInfo := brokerapi.MaintenanceInfo{
-				Public: map[string]string{
-					"foo": "bar",
+			fakeMaintenanceInfoChecker.CheckReturns(brokerapi.ErrMaintenanceInfoNilConflict)
+
+			resp, bodyContent := doProvisionRequest(
+				instanceID,
+				planWithQuotaID,
+				arbitraryParams,
+				brokerapi.MaintenanceInfo{
+					Public: map[string]string{
+						"foo": "bar",
+					},
+					Private: "Secret:superSecret;",
 				},
-				Private: "Secret:superSecret;", // this is what is produced by the stubbed hash function
-			}
-			resp, bodyContent := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, requestMaintenanceInfo, true)
+				true)
 			Expect(resp.StatusCode).To(Equal(http.StatusUnprocessableEntity))
 
 			Expect(bodyContent).To(MatchJSON(`{

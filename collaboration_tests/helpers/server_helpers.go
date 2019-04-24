@@ -52,6 +52,7 @@ func StartServer(
 	fakeCfClient *fakes.FakeCloudFoundryClient,
 	fakeBoshClient *fakes.FakeBoshClient,
 	fakeMapHasher *fakes.FakeHasher,
+	maintenanceInfoChecker *fakes.FakeMaintenanceInfoChecker,
 	fakeCredentialStore *credhubfakes.FakeCredentialStore,
 	fakeCredhubOperator *manifestsecretsfakes.FakeCredhubOperator,
 	loggerBuffer *gbytes.Buffer,
@@ -93,6 +94,7 @@ func StartServer(
 		instanceLister,
 		fakeMapHasher,
 		loggerFactory,
+		maintenanceInfoChecker,
 	)
 	Expect(err).NotTo(HaveOccurred())
 	var fakeBroker apiserver.CombinedBroker

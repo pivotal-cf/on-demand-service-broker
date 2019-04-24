@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"reflect"
 
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/brokerapi"
@@ -31,7 +30,10 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 )
 
-func (b *Broker) Provision(ctx context.Context, instanceID string, details brokerapi.ProvisionDetails,
+func (b *Broker) Provision(
+	ctx context.Context,
+	instanceID string,
+	details brokerapi.ProvisionDetails,
 	asyncAllowed bool) (brokerapi.ProvisionedServiceSpec, error) {
 
 	b.deploymentLock.Lock()
@@ -51,7 +53,12 @@ func (b *Broker) Provision(ctx context.Context, instanceID string, details broke
 		return brokerapi.ProvisionedServiceSpec{}, b.processError(err, logger)
 	}
 
-	err = b.validateMaintenanceInfoForProvision(details, logger)
+	serviceCatalog, err := b.Services(ctx)
+	if err != nil {
+		return brokerapi.ProvisionedServiceSpec{}, b.processError(err, logger)
+	}
+
+	err = b.maintenanceInfoChecker.Check(details.PlanID, details.MaintenanceInfo, serviceCatalog, logger)
 	if err != nil {
 		return brokerapi.ProvisionedServiceSpec{}, b.processError(err, logger)
 	}
@@ -208,33 +215,4 @@ func (b *Broker) checkPlanSchemas(ctx context.Context, requestParams map[string]
 	}
 
 	return nil
-}
-
-func (b *Broker) validateMaintenanceInfoForProvision(details brokerapi.ProvisionDetails, logger *log.Logger) error {
-	planMaintenanceInfo, err := b.getMaintenanceInfoForPlan(details.PlanID)
-
-	if b.maintenanceInfoNotEmpty(details) {
-		if err != nil {
-			return b.processError(err, logger)
-		}
-
-		if planMaintenanceInfo == nil {
-			return b.processError(brokerapi.ErrMaintenanceInfoNilConflict, logger)
-		}
-
-		if !reflect.DeepEqual(*planMaintenanceInfo, details.MaintenanceInfo) {
-			return b.processError(brokerapi.ErrMaintenanceInfoConflict, logger)
-		}
-	} else {
-		if planMaintenanceInfo != nil {
-			logger.Println("Maintenance info defined in broker service catalog, but not passed in provision request.")
-		}
-	}
-	return nil
-}
-
-func (b *Broker) maintenanceInfoNotEmpty(provisionDetails brokerapi.ProvisionDetails) bool {
-	return provisionDetails.MaintenanceInfo.Private != "" ||
-		provisionDetails.MaintenanceInfo.Public != nil ||
-		provisionDetails.MaintenanceInfo.Version != ""
 }

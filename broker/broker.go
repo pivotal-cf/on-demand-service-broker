@@ -7,11 +7,10 @@
 package broker
 
 import (
+	"fmt"
 	"log"
 	"strings"
 	"sync"
-
-	"fmt"
 
 	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
@@ -42,6 +41,8 @@ type Broker struct {
 	loggerFactory *loggerfactory.LoggerFactory
 	catalogLock   sync.Mutex
 	cachedCatalog []brokerapi.Service
+
+	maintenanceInfoChecker MaintenanceInfoChecker
 }
 
 func New(
@@ -56,7 +57,9 @@ func New(
 	instanceLister service.InstanceLister,
 	hasher Hasher,
 	loggerFactory *loggerfactory.LoggerFactory,
+	maintenanceInfoChecker MaintenanceInfoChecker,
 ) (*Broker, error) {
+
 	b := &Broker{
 		boshClient:              boshClient,
 		cfClient:                cfClient,
@@ -72,6 +75,7 @@ func New(
 		instanceLister:          instanceLister,
 		hasher:                  hasher,
 		loggerFactory:           loggerFactory,
+		maintenanceInfoChecker:  maintenanceInfoChecker,
 	}
 
 	var startupCheckErrMessages []string
@@ -216,4 +220,10 @@ type CloudFoundryClient interface {
 //go:generate counterfeiter -o fakes/fake_map_hasher.go . Hasher
 type Hasher interface {
 	Hash(m map[string]string) string
+}
+
+//go:generate counterfeiter -o fakes/fake_maintenance_info_checker.go . MaintenanceInfoChecker
+
+type MaintenanceInfoChecker interface {
+	Check(planID string, maintenanceInfo brokerapi.MaintenanceInfo, serviceCatalog []brokerapi.Service, logger *log.Logger) error
 }

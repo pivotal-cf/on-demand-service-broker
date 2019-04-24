@@ -59,18 +59,19 @@ const (
 )
 
 var (
-	stopServer          chan os.Signal
-	serverPort          = rand.Intn(math.MaxInt16-1024) + 1024
-	serverURL           = fmt.Sprintf("localhost:%d", serverPort)
-	fakeCredentialStore *credhubfakes.FakeCredentialStore
-	fakeBoshClient      *fakes.FakeBoshClient
-	fakeMapHasher       *fakes.FakeHasher
-	fakeCfClient        *fakes.FakeCloudFoundryClient
-	fakeTaskBoshClient  *taskfakes.FakeBoshClient
-	fakeCommandRunner   *serviceadapterfakes.FakeCommandRunner
-	fakeTaskBulkSetter  *taskfakes.FakeBulkSetter
-	loggerBuffer        *gbytes.Buffer
-	shouldSendSigterm   bool
+	stopServer                 chan os.Signal
+	serverPort                 = rand.Intn(math.MaxInt16-1024) + 1024
+	serverURL                  = fmt.Sprintf("localhost:%d", serverPort)
+	fakeCredentialStore        *credhubfakes.FakeCredentialStore
+	fakeBoshClient             *fakes.FakeBoshClient
+	fakeMapHasher              *fakes.FakeHasher
+	fakeMaintenanceInfoChecker *fakes.FakeMaintenanceInfoChecker
+	fakeCfClient               *fakes.FakeCloudFoundryClient
+	fakeTaskBoshClient         *taskfakes.FakeBoshClient
+	fakeCommandRunner          *serviceadapterfakes.FakeCommandRunner
+	fakeTaskBulkSetter         *taskfakes.FakeBulkSetter
+	loggerBuffer               *gbytes.Buffer
+	shouldSendSigterm          bool
 
 	fakeCredhubOperator *manifestsecretsfakes.FakeCredhubOperator
 
@@ -80,6 +81,7 @@ var (
 var _ = BeforeEach(func() {
 	fakeBoshClient = new(fakes.FakeBoshClient)
 	fakeMapHasher = new(fakes.FakeHasher)
+	fakeMaintenanceInfoChecker = new(fakes.FakeMaintenanceInfoChecker)
 	fakeMapHasher.HashStub = ReturnSameValueHasher
 	fakeCredentialStore = new(credhubfakes.FakeCredentialStore)
 	fakeCfClient = new(fakes.FakeCloudFoundryClient)
@@ -113,6 +115,7 @@ func StartServer(conf config.Config) error {
 		fakeCfClient,
 		fakeBoshClient,
 		fakeMapHasher,
+		fakeMaintenanceInfoChecker,
 		fakeCredentialStore,
 		fakeCredhubOperator,
 		loggerBuffer,
@@ -132,6 +135,7 @@ func StartServerWithStopHandler(conf config.Config, stopServerChan chan os.Signa
 		fakeCfClient,
 		fakeBoshClient,
 		fakeMapHasher,
+		fakeMaintenanceInfoChecker,
 		fakeCredentialStore,
 		fakeCredhubOperator,
 		loggerBuffer,

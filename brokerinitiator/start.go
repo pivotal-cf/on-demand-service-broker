@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/pivotal-cf/on-demand-service-broker/broker/maintenanceinfo"
 	"github.com/pivotal-cf/on-demand-service-broker/hasher"
 	"github.com/pivotal-cf/on-demand-service-broker/service"
 
@@ -73,10 +74,12 @@ func Initiate(conf config.Config,
 		instanceLister,
 		&hasher.MapHasher{},
 		loggerFactory,
+		maintenanceinfo.Checker{},
 	)
 	if err != nil {
 		logger.Fatalf("error starting broker: %s", err)
 	}
+
 	if conf.HasRuntimeCredHub() {
 		onDemandBroker = wrapWithCredHubBroker(conf, logger, onDemandBroker, loggerFactory)
 	}
