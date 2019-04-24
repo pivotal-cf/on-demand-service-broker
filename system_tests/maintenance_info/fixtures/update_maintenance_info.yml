@@ -2,3 +2,7 @@
 - type: replace
   path: /instance_groups/name=broker/jobs/name=broker/properties/service_catalog/plans/name=redis-small/maintenance_info/public/has_errand?
   value: true
+
+- type: replace
+  path: /instance_groups/name=broker/jobs/name=broker/properties/service_catalog/plans/name=redis-small/maintenance_info/version?
+  value: 7.8.8-beta

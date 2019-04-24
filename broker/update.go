@@ -13,7 +13,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"reflect"
 
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 
@@ -53,7 +52,7 @@ func (b *Broker) Update(
 	var boshTaskID int
 	var operationType OperationType
 
-	err = b.validateMaintenanceInfo(details, ctx)
+	err = b.validateMaintenanceInfo(details, ctx, logger)
 	if err != nil {
 		return brokerapi.UpdateServiceSpec{}, b.processError(err, logger)
 	}
@@ -155,44 +154,20 @@ func (b *Broker) checkPlanExists(details brokerapi.UpdateDetails, logger *log.Lo
 }
 
 func (b *Broker) isUpgrade(details brokerapi.UpdateDetails, detailsMap map[string]interface{}) bool {
-	if details.MaintenanceInfo.Private != "" || details.MaintenanceInfo.Public != nil {
+	if !details.MaintenanceInfo.NilOrEmpty() {
 		params := detailsMap["parameters"]
 		return details.PlanID == details.PreviousValues.PlanID && len(params.(map[string]interface{})) == 0
 	}
 	return false
 }
 
-func (b *Broker) getMaintenanceInfoForPlan(id string) (*brokerapi.MaintenanceInfo, error) {
-	services, err := b.Services(context.Background())
+func (b *Broker) validateMaintenanceInfo(details brokerapi.UpdateDetails, ctx context.Context, logger *log.Logger) error {
+	servicesCatalog, err := b.Services(context.Background())
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	for _, plan := range services[0].Plans {
-		if plan.ID == id {
-			return plan.MaintenanceInfo, nil
-		}
-	}
-
-	return nil, fmt.Errorf("plan %s not found", id)
-}
-
-func (b *Broker) validateMaintenanceInfo(details brokerapi.UpdateDetails, ctx context.Context) error {
-	if details.MaintenanceInfo.Private != "" || details.MaintenanceInfo.Public != nil {
-		brokerMaintenanceInfo, err := b.getMaintenanceInfoForPlan(details.PlanID)
-		if err != nil {
-			return NewGenericError(ctx, err)
-		}
-
-		if brokerMaintenanceInfo != nil && !reflect.DeepEqual(*brokerMaintenanceInfo, details.MaintenanceInfo) {
-			return brokerapi.ErrMaintenanceInfoConflict
-		}
-
-		if brokerMaintenanceInfo == nil {
-			return brokerapi.ErrMaintenanceInfoNilConflict
-		}
-	}
-	return nil
+	return b.maintenanceInfoChecker.Check(details.PlanID, details.MaintenanceInfo, servicesCatalog, logger)
 }
 
 func (b *Broker) validateQuotasForUpdate(plan config.Plan, details brokerapi.UpdateDetails, logger *log.Logger, ctx context.Context) error {

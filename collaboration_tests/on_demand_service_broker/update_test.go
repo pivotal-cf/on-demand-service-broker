@@ -259,6 +259,7 @@ var _ = Describe("Update a service instance", func() {
 				},
 			}
 			requestBody.PlanID = newPlanID
+			fakeMaintenanceInfoChecker.CheckReturns(brokerapi.ErrMaintenanceInfoConflict)
 
 			resp, _ := doUpdateRequest(requestBody, instanceID)
 
@@ -356,6 +357,8 @@ var _ = Describe("Update a service instance", func() {
 					"foo":     "bar",
 				},
 			}
+			fakeMaintenanceInfoChecker.CheckReturns(brokerapi.ErrMaintenanceInfoConflict)
+
 			resp, _ := doUpdateRequest(requestBody, instanceID)
 
 			Expect(resp.StatusCode).To(Equal(http.StatusUnprocessableEntity))
@@ -399,6 +402,7 @@ properties:
 					"version": "3",
 				},
 			}
+			fakeMaintenanceInfoChecker.CheckReturns(brokerapi.ErrMaintenanceInfoConflict)
 
 			resp, body := doUpdateRequest(requestBody, instanceID)
 
@@ -428,6 +432,8 @@ properties:
 					}
 					requestBody.PlanID = oldPlanID
 					requestBody.RawParameters = []byte("{}")
+
+					fakeMaintenanceInfoChecker.CheckReturns(brokerapi.ErrMaintenanceInfoConflict)
 
 					resp, body := doUpdateRequest(requestBody, instanceID)
 
