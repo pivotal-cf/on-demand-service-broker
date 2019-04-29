@@ -15,7 +15,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/brokerapi/domain"
 	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/mgmtapi"
@@ -57,10 +57,10 @@ func (b *BrokerServices) ProcessInstance(instance service.Instance, operationTyp
 	return b.converter.ExtractOperationFrom(response)
 }
 
-func (b *BrokerServices) LastOperation(instanceGUID string, operationData broker.OperationData) (brokerapi.LastOperation, error) {
+func (b *BrokerServices) LastOperation(instanceGUID string, operationData broker.OperationData) (domain.LastOperation, error) {
 	asJSON, err := json.Marshal(operationData)
 	if err != nil {
-		return brokerapi.LastOperation{}, err
+		return domain.LastOperation{}, err
 	}
 
 	query := map[string]string{"operation": string(asJSON)}
@@ -69,7 +69,7 @@ func (b *BrokerServices) LastOperation(instanceGUID string, operationData broker
 
 	response, err := b.doRequest(http.MethodGet, pathWithQuery, nil)
 	if err != nil {
-		return brokerapi.LastOperation{}, err
+		return domain.LastOperation{}, err
 	}
 
 	return b.converter.LastOperationFrom(response)

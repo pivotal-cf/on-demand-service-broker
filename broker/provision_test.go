@@ -13,11 +13,12 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/pivotal-cf/brokerapi/domain"
+	"github.com/pivotal-cf/brokerapi/domain/apiresponses"
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	brokerfakes "github.com/pivotal-cf/on-demand-service-broker/broker/fakes"
@@ -36,7 +37,7 @@ var _ = Describe("Provisioning", func() {
 		errandName2     string
 		errandInstance2 string
 
-		serviceSpec  brokerapi.ProvisionedServiceSpec
+		serviceSpec  domain.ProvisionedServiceSpec
 		provisionErr error
 
 		organizationGUID       = "a-cf-org"
@@ -46,19 +47,19 @@ var _ = Describe("Provisioning", func() {
 		jsonContext            []byte
 		arbParams              map[string]interface{}
 		arbContext             map[string]interface{}
-		requestMaintenanceInfo brokerapi.MaintenanceInfo
+		requestMaintenanceInfo domain.MaintenanceInfo
 
 		asyncAllowed = true
 		deployTaskID int
 
-		provisionDetails brokerapi.ProvisionDetails
+		provisionDetails domain.ProvisionDetails
 	)
 
 	BeforeEach(func() {
 		planID = existingPlanID
 		asyncAllowed = true
 		deployTaskID = 123
-		requestMaintenanceInfo = brokerapi.MaintenanceInfo{}
+		requestMaintenanceInfo = domain.MaintenanceInfo{}
 
 		arbParams = map[string]interface{}{"foo": "bar"}
 		arbContext = map[string]interface{}{"platform": "cloudfoundry", "space_guid": "final"}
@@ -69,7 +70,7 @@ var _ = Describe("Provisioning", func() {
 		jsonContext, err = json.Marshal(arbContext)
 		Expect(err).NotTo(HaveOccurred())
 		boshClient.GetDeploymentReturns(nil, false, nil)
-		provisionDetails = brokerapi.ProvisionDetails{
+		provisionDetails = domain.ProvisionDetails{
 			PlanID:           planID,
 			RawContext:       jsonContext,
 			RawParameters:    jsonParams,
@@ -314,7 +315,7 @@ var _ = Describe("Provisioning", func() {
 
 			serviceSpec, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
 
-			Expect(provisionErr).To(Equal(brokerapi.ErrRawParamsInvalid))
+			Expect(provisionErr).To(Equal(apiresponses.ErrRawParamsInvalid))
 		})
 	})
 
@@ -420,7 +421,7 @@ var _ = Describe("Provisioning", func() {
 
 			serviceSpec, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
 
-			Expect(provisionErr).To(Equal(brokerapi.ErrInstanceAlreadyExists))
+			Expect(provisionErr).To(Equal(apiresponses.ErrInstanceAlreadyExists))
 		})
 	})
 
@@ -430,7 +431,7 @@ var _ = Describe("Provisioning", func() {
 
 			serviceSpec, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
 
-			Expect(provisionErr).To(Equal(brokerapi.ErrAsyncRequired))
+			Expect(provisionErr).To(Equal(apiresponses.ErrAsyncRequired))
 		})
 	})
 
@@ -466,7 +467,7 @@ var _ = Describe("Provisioning", func() {
 			serviceSpec, provisionErr = broker.Provision(
 				context.Background(),
 				instanceID,
-				brokerapi.ProvisionDetails{
+				domain.ProvisionDetails{
 					PlanID:           planID,
 					RawParameters:    jsonParams,
 					OrganizationGUID: organizationGUID,
@@ -506,7 +507,7 @@ var _ = Describe("Provisioning", func() {
 			serviceSpec, provisionErr = broker.Provision(
 				context.Background(),
 				instanceID,
-				brokerapi.ProvisionDetails{
+				domain.ProvisionDetails{
 					PlanID:           planID,
 					RawContext:       jsonContext,
 					RawParameters:    jsonParams,
@@ -538,7 +539,7 @@ var _ = Describe("Provisioning", func() {
 			serviceSpec, provisionErr = broker.Provision(
 				context.Background(),
 				instanceID,
-				brokerapi.ProvisionDetails{
+				domain.ProvisionDetails{
 					PlanID:           planID,
 					RawContext:       jsonContext,
 					RawParameters:    jsonParams,
@@ -587,9 +588,9 @@ var _ = Describe("Provisioning", func() {
 			It("requests the json schemas from the service adapter", func() {
 				Expect(provisionErr).To(HaveOccurred())
 				Expect(provisionErr.Error()).To(ContainSubstring("Additional property this-is is not allowed"))
-				Expect(provisionErr).To(BeAssignableToTypeOf(&brokerapi.FailureResponse{}))
+				Expect(provisionErr).To(BeAssignableToTypeOf(&apiresponses.FailureResponse{}))
 
-				actualErr := provisionErr.(*brokerapi.FailureResponse)
+				actualErr := provisionErr.(*apiresponses.FailureResponse)
 				Expect(actualErr.ValidatedStatusCode(nil)).To(Equal(http.StatusBadRequest))
 			})
 
@@ -722,7 +723,7 @@ var _ = Describe("Provisioning", func() {
 			_, provisionErr = b.Provision(
 				context.Background(),
 				instanceID,
-				brokerapi.ProvisionDetails{
+				domain.ProvisionDetails{
 					PlanID:           planToDeploy,
 					RawContext:       jsonContext,
 					RawParameters:    jsonParams,
@@ -876,7 +877,7 @@ var _ = Describe("Provisioning", func() {
 
 		It("succeeds when maintenanceInfo.Checker succeeds", func() {
 
-			provisionDetails.MaintenanceInfo = brokerapi.MaintenanceInfo{
+			provisionDetails.MaintenanceInfo = domain.MaintenanceInfo{
 				Version: "1.2.3",
 				Public: map[string]string{
 					"edition": "gold millennium",

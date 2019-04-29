@@ -14,7 +14,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/brokerapi/domain"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 )
@@ -23,16 +23,16 @@ var _ = Describe("LastOperation", func() {
 	Context("failures", func() {
 		var (
 			instanceID    = "a-useful-instance"
-			pollDetails   brokerapi.PollDetails
+			pollDetails   domain.PollDetails
 			operationData string
 
 			lastOpErr error
-			opResult  brokerapi.LastOperation
+			opResult  domain.LastOperation
 		)
 
 		JustBeforeEach(func() {
 			b = createDefaultBroker()
-			pollDetails = brokerapi.PollDetails{
+			pollDetails = domain.PollDetails{
 				OperationData: operationData,
 			}
 			opResult, lastOpErr = b.LastOperation(context.Background(), instanceID, pollDetails)
@@ -256,8 +256,8 @@ var _ = Describe("LastOperation", func() {
 			ActualOperationType broker.OperationType
 			LogContains         string
 
-			ExpectedLastOperation                 brokerapi.LastOperation
-			ExpectedLastOperationState            brokerapi.LastOperationState
+			ExpectedLastOperation                 domain.LastOperation
+			ExpectedLastOperationState            domain.LastOperationState
 			ExpectedLastOperationDescription      string
 			ExpectedLastOperationDescriptionParts []string
 		}
@@ -280,7 +280,7 @@ var _ = Describe("LastOperation", func() {
 		testLastOperation := func(testCase testCase) func() {
 			return func() {
 				var (
-					actualLastOperation      brokerapi.LastOperation
+					actualLastOperation      domain.LastOperation
 					actualLastOperationError error
 				)
 
@@ -291,7 +291,7 @@ var _ = Describe("LastOperation", func() {
 
 					boshClient.GetTaskReturns(testCase.ActualBoshTask, nil)
 					b = createDefaultBroker()
-					pollDetails := brokerapi.PollDetails{
+					pollDetails := domain.PollDetails{
 						OperationData: string(operationData),
 					}
 					actualLastOperation, actualLastOperationError = b.LastOperation(context.Background(), instanceID, pollDetails)
@@ -345,7 +345,7 @@ var _ = Describe("LastOperation", func() {
 					ActualBoshTask:      boshdirector.BoshTask{State: boshdirector.TaskProcessing, Description: "it's a task", ID: taskID},
 					ActualOperationType: broker.OperationTypeCreate,
 
-					ExpectedLastOperationState:       brokerapi.InProgress,
+					ExpectedLastOperationState:       domain.InProgress,
 					ExpectedLastOperationDescription: "Instance provisioning in progress",
 				}),
 			)
@@ -355,7 +355,7 @@ var _ = Describe("LastOperation", func() {
 					ActualBoshTask:      boshdirector.BoshTask{State: boshdirector.TaskQueued, Description: "it's a task", ID: taskID},
 					ActualOperationType: broker.OperationTypeCreate,
 
-					ExpectedLastOperationState:       brokerapi.InProgress,
+					ExpectedLastOperationState:       domain.InProgress,
 					ExpectedLastOperationDescription: "Instance provisioning in progress",
 				}),
 			)
@@ -371,7 +371,7 @@ var _ = Describe("LastOperation", func() {
 					ActualOperationType: broker.OperationTypeCreate,
 					LogContains:         "result from error",
 
-					ExpectedLastOperationState: brokerapi.Failed,
+					ExpectedLastOperationState: domain.Failed,
 					ExpectedLastOperationDescriptionParts: []string{
 						"Instance provisioning failed: There was a problem completing your request. Please contact your operations team providing the following information:",
 						`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`,
@@ -394,7 +394,7 @@ var _ = Describe("LastOperation", func() {
 					ActualOperationType: broker.OperationTypeCreate,
 					LogContains:         "who knows",
 
-					ExpectedLastOperationState: brokerapi.Failed,
+					ExpectedLastOperationState: domain.Failed,
 					ExpectedLastOperationDescriptionParts: []string{
 						"Instance provisioning failed: There was a problem completing your request. Please contact your operations team providing the following information:",
 						`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`,
@@ -417,7 +417,7 @@ var _ = Describe("LastOperation", func() {
 					ActualOperationType: broker.OperationTypeCreate,
 					LogContains:         "result from error",
 
-					ExpectedLastOperationState: brokerapi.Failed,
+					ExpectedLastOperationState: domain.Failed,
 					ExpectedLastOperationDescriptionParts: []string{
 						"Instance provisioning failed: There was a problem completing your request. Please contact your operations team providing the following information:",
 						`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`,
@@ -440,7 +440,7 @@ var _ = Describe("LastOperation", func() {
 					ActualOperationType: broker.OperationTypeCreate,
 					LogContains:         "result from error",
 
-					ExpectedLastOperationState:       brokerapi.InProgress,
+					ExpectedLastOperationState:       domain.InProgress,
 					ExpectedLastOperationDescription: "Instance provisioning in progress",
 				}),
 			)
@@ -456,7 +456,7 @@ var _ = Describe("LastOperation", func() {
 					ActualOperationType: broker.OperationTypeCreate,
 					LogContains:         "result from error",
 
-					ExpectedLastOperationState: brokerapi.Failed,
+					ExpectedLastOperationState: domain.Failed,
 					ExpectedLastOperationDescriptionParts: []string{
 						"Instance provisioning failed: There was a problem completing your request. Please contact your operations team providing the following information:",
 						`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`,
@@ -472,7 +472,7 @@ var _ = Describe("LastOperation", func() {
 					ActualBoshTask:      boshdirector.BoshTask{State: boshdirector.TaskDone, Description: "it's a task", ID: taskID},
 					ActualOperationType: broker.OperationTypeCreate,
 
-					ExpectedLastOperationState:       brokerapi.Succeeded,
+					ExpectedLastOperationState:       domain.Succeeded,
 					ExpectedLastOperationDescription: "Instance provisioning completed",
 				}),
 			)
@@ -496,7 +496,7 @@ var _ = Describe("LastOperation", func() {
 					ActualBoshTask:      boshdirector.BoshTask{State: boshdirector.TaskProcessing, Description: "it's a task" + "-" + instanceID, ID: taskID},
 					ActualOperationType: broker.OperationTypeDelete,
 
-					ExpectedLastOperationState:       brokerapi.InProgress,
+					ExpectedLastOperationState:       domain.InProgress,
 					ExpectedLastOperationDescription: "Instance deletion in progress",
 				}),
 			)
@@ -506,7 +506,7 @@ var _ = Describe("LastOperation", func() {
 					ActualBoshTask:      boshdirector.BoshTask{State: boshdirector.TaskQueued, Description: "it's a task" + "-" + instanceID, ID: taskID},
 					ActualOperationType: broker.OperationTypeDelete,
 
-					ExpectedLastOperationState:       brokerapi.InProgress,
+					ExpectedLastOperationState:       domain.InProgress,
 					ExpectedLastOperationDescription: "Instance deletion in progress",
 				}),
 			)
@@ -522,7 +522,7 @@ var _ = Describe("LastOperation", func() {
 					ActualOperationType: broker.OperationTypeDelete,
 					LogContains:         "result from error",
 
-					ExpectedLastOperationState: brokerapi.Failed,
+					ExpectedLastOperationState: domain.Failed,
 					ExpectedLastOperationDescriptionParts: []string{
 						"Instance deletion failed: There was a problem completing your request. Please contact your operations team providing the following information:",
 						`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`,
@@ -545,7 +545,7 @@ var _ = Describe("LastOperation", func() {
 					ActualOperationType: broker.OperationTypeDelete,
 					LogContains:         "result from error",
 
-					ExpectedLastOperationState: brokerapi.Failed,
+					ExpectedLastOperationState: domain.Failed,
 					ExpectedLastOperationDescriptionParts: []string{
 						"Instance deletion failed: There was a problem completing your request. Please contact your operations team providing the following information:",
 						`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`,
@@ -568,7 +568,7 @@ var _ = Describe("LastOperation", func() {
 					ActualOperationType: broker.OperationTypeDelete,
 					LogContains:         "result from error",
 
-					ExpectedLastOperationState:       brokerapi.InProgress,
+					ExpectedLastOperationState:       domain.InProgress,
 					ExpectedLastOperationDescription: "Instance deletion in progress",
 				}),
 			)
@@ -584,7 +584,7 @@ var _ = Describe("LastOperation", func() {
 					ActualOperationType: broker.OperationTypeDelete,
 					LogContains:         "result from error",
 
-					ExpectedLastOperationState: brokerapi.Failed,
+					ExpectedLastOperationState: domain.Failed,
 					ExpectedLastOperationDescriptionParts: []string{
 						"Instance deletion failed: There was a problem completing your request. Please contact your operations team providing the following information:",
 						`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`,
@@ -607,7 +607,7 @@ var _ = Describe("LastOperation", func() {
 					ActualOperationType: broker.OperationTypeDelete,
 					LogContains:         "who knows",
 
-					ExpectedLastOperationState: brokerapi.Failed,
+					ExpectedLastOperationState: domain.Failed,
 					ExpectedLastOperationDescriptionParts: []string{
 						"Instance deletion failed: There was a problem completing your request. Please contact your operations team providing the following information:",
 						`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`,
@@ -638,13 +638,13 @@ var _ = Describe("LastOperation", func() {
 				It("cleans up configs and returns success", func() {
 					b = createDefaultBroker()
 
-					pollDetails := brokerapi.PollDetails{
+					pollDetails := domain.PollDetails{
 						OperationData: string(operationData),
 					}
 					actualLastOperation, actualLastOperationError := b.LastOperation(context.Background(), instanceID, pollDetails)
 
 					Expect(actualLastOperationError).NotTo(HaveOccurred())
-					Expect(actualLastOperation.State).To(Equal(brokerapi.Succeeded))
+					Expect(actualLastOperation.State).To(Equal(domain.Succeeded))
 					Expect(actualLastOperation.Description).To(Equal("Instance deletion completed"))
 
 					Expect(boshClient.GetTaskCallCount()).To(Equal(1))
@@ -677,13 +677,13 @@ var _ = Describe("LastOperation", func() {
 
 					b = createDefaultBroker()
 
-					pollDetails := brokerapi.PollDetails{
+					pollDetails := domain.PollDetails{
 						OperationData: string(operationData),
 					}
 					actualLastOperationData, actualError := b.LastOperation(context.Background(), instanceID, pollDetails)
 					Expect(actualError).NotTo(HaveOccurred())
 
-					Expect(actualLastOperationData.State).To(Equal(brokerapi.Failed))
+					Expect(actualLastOperationData.State).To(Equal(domain.Failed))
 					Expect(actualLastOperationData.Description).To(SatisfyAll(
 						ContainSubstring("There was a problem completing your request. Please contact your operations team providing the following information:"),
 						MatchRegexp(`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`),
@@ -705,13 +705,13 @@ var _ = Describe("LastOperation", func() {
 
 					b = createDefaultBroker()
 
-					pollDetails := brokerapi.PollDetails{
+					pollDetails := domain.PollDetails{
 						OperationData: string(operationData),
 					}
 					actualLastOperation, actualLastOperationError := b.LastOperation(context.Background(), instanceID, pollDetails)
 
 					Expect(actualLastOperationError).NotTo(HaveOccurred())
-					Expect(actualLastOperation.State).To(Equal(brokerapi.Succeeded))
+					Expect(actualLastOperation.State).To(Equal(domain.Succeeded))
 					Expect(actualLastOperation.Description).To(Equal("Instance deletion completed"))
 
 					Expect(boshClient.GetTaskCallCount()).To(Equal(1))
@@ -748,13 +748,13 @@ var _ = Describe("LastOperation", func() {
 
 					b = createDefaultBroker()
 
-					pollDetails := brokerapi.PollDetails{
+					pollDetails := domain.PollDetails{
 						OperationData: string(operationData),
 					}
 					actualLastOperationData, actualError := b.LastOperation(context.Background(), instanceID, pollDetails)
 					Expect(actualError).NotTo(HaveOccurred())
 
-					Expect(actualLastOperationData.State).To(Equal(brokerapi.Failed))
+					Expect(actualLastOperationData.State).To(Equal(domain.Failed))
 					Expect(actualLastOperationData.Description).To(SatisfyAll(
 						ContainSubstring("There was a problem completing your request. Please contact your operations team providing the following information:"),
 						MatchRegexp(`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`),
@@ -772,7 +772,7 @@ var _ = Describe("LastOperation", func() {
 						brokerConfig.DisableBoshConfigs = true
 						b = createDefaultBroker()
 
-						_, err := b.LastOperation(context.Background(), instanceID, brokerapi.PollDetails{
+						_, err := b.LastOperation(context.Background(), instanceID, domain.PollDetails{
 							OperationData: string(operationData),
 						})
 						Expect(err).NotTo(HaveOccurred())
@@ -790,7 +790,7 @@ var _ = Describe("LastOperation", func() {
 					ActualBoshTask:      boshdirector.BoshTask{State: boshdirector.TaskProcessing, Description: "it's a task", ID: taskID},
 					ActualOperationType: broker.OperationTypeRecreate,
 
-					ExpectedLastOperationState:       brokerapi.InProgress,
+					ExpectedLastOperationState:       domain.InProgress,
 					ExpectedLastOperationDescription: "Instance recreate in progress",
 				}),
 			)
@@ -800,7 +800,7 @@ var _ = Describe("LastOperation", func() {
 					ActualBoshTask:      boshdirector.BoshTask{State: boshdirector.TaskQueued, Description: "it's a task", ID: taskID},
 					ActualOperationType: broker.OperationTypeRecreate,
 
-					ExpectedLastOperationState:       brokerapi.InProgress,
+					ExpectedLastOperationState:       domain.InProgress,
 					ExpectedLastOperationDescription: "Instance recreate in progress",
 				}),
 			)
@@ -816,7 +816,7 @@ var _ = Describe("LastOperation", func() {
 					ActualOperationType: broker.OperationTypeRecreate,
 					LogContains:         "result from error",
 
-					ExpectedLastOperationState: brokerapi.Failed,
+					ExpectedLastOperationState: domain.Failed,
 					ExpectedLastOperationDescriptionParts: []string{
 						"Instance recreate failed: There was a problem completing your request. Please contact your operations team providing the following information:",
 						`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`,
@@ -839,7 +839,7 @@ var _ = Describe("LastOperation", func() {
 					ActualOperationType: broker.OperationTypeRecreate,
 					LogContains:         "result from error",
 
-					ExpectedLastOperationState: brokerapi.Failed,
+					ExpectedLastOperationState: domain.Failed,
 					ExpectedLastOperationDescriptionParts: []string{
 						"Instance recreate failed: There was a problem completing your request. Please contact your operations team providing the following information:",
 						`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`,
@@ -862,7 +862,7 @@ var _ = Describe("LastOperation", func() {
 					ActualOperationType: broker.OperationTypeRecreate,
 					LogContains:         "result from error",
 
-					ExpectedLastOperationState:       brokerapi.InProgress,
+					ExpectedLastOperationState:       domain.InProgress,
 					ExpectedLastOperationDescription: "Instance recreate in progress",
 				}),
 			)
@@ -878,7 +878,7 @@ var _ = Describe("LastOperation", func() {
 					ActualOperationType: broker.OperationTypeRecreate,
 					LogContains:         "result from error",
 
-					ExpectedLastOperationState: brokerapi.Failed,
+					ExpectedLastOperationState: domain.Failed,
 					ExpectedLastOperationDescriptionParts: []string{
 						"Instance recreate failed: There was a problem completing your request. Please contact your operations team providing the following information:",
 						`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`,
@@ -901,7 +901,7 @@ var _ = Describe("LastOperation", func() {
 					ActualOperationType: broker.OperationTypeRecreate,
 					LogContains:         "who knows",
 
-					ExpectedLastOperationState: brokerapi.Failed,
+					ExpectedLastOperationState: domain.Failed,
 					ExpectedLastOperationDescriptionParts: []string{
 						"Instance recreate failed: There was a problem completing your request. Please contact your operations team providing the following information:",
 						`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`,
@@ -918,7 +918,7 @@ var _ = Describe("LastOperation", func() {
 					ActualBoshTask:      boshdirector.BoshTask{State: boshdirector.TaskDone, Description: "it's a task", ID: taskID},
 					ActualOperationType: broker.OperationTypeRecreate,
 
-					ExpectedLastOperationState:       brokerapi.Succeeded,
+					ExpectedLastOperationState:       domain.Succeeded,
 					ExpectedLastOperationDescription: "Instance recreate completed",
 				}),
 			)
@@ -930,7 +930,7 @@ var _ = Describe("LastOperation", func() {
 					ActualBoshTask:      boshdirector.BoshTask{State: boshdirector.TaskProcessing, Description: "it's a task", ID: taskID},
 					ActualOperationType: broker.OperationTypeUpdate,
 
-					ExpectedLastOperationState:       brokerapi.InProgress,
+					ExpectedLastOperationState:       domain.InProgress,
 					ExpectedLastOperationDescription: "Instance update in progress",
 				}),
 			)
@@ -940,7 +940,7 @@ var _ = Describe("LastOperation", func() {
 					ActualBoshTask:      boshdirector.BoshTask{State: boshdirector.TaskQueued, Description: "it's a task", ID: taskID},
 					ActualOperationType: broker.OperationTypeUpdate,
 
-					ExpectedLastOperationState:       brokerapi.InProgress,
+					ExpectedLastOperationState:       domain.InProgress,
 					ExpectedLastOperationDescription: "Instance update in progress",
 				}),
 			)
@@ -956,7 +956,7 @@ var _ = Describe("LastOperation", func() {
 					ActualOperationType: broker.OperationTypeUpdate,
 					LogContains:         "result from error",
 
-					ExpectedLastOperationState: brokerapi.Failed,
+					ExpectedLastOperationState: domain.Failed,
 					ExpectedLastOperationDescriptionParts: []string{
 						"Instance update failed: There was a problem completing your request. Please contact your operations team providing the following information:",
 						`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`,
@@ -979,7 +979,7 @@ var _ = Describe("LastOperation", func() {
 					ActualOperationType: broker.OperationTypeUpdate,
 					LogContains:         "result from error",
 
-					ExpectedLastOperationState: brokerapi.Failed,
+					ExpectedLastOperationState: domain.Failed,
 					ExpectedLastOperationDescriptionParts: []string{
 						"Instance update failed: There was a problem completing your request. Please contact your operations team providing the following information:",
 						`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`,
@@ -1002,7 +1002,7 @@ var _ = Describe("LastOperation", func() {
 					ActualOperationType: broker.OperationTypeUpdate,
 					LogContains:         "result from error",
 
-					ExpectedLastOperationState:       brokerapi.InProgress,
+					ExpectedLastOperationState:       domain.InProgress,
 					ExpectedLastOperationDescription: "Instance update in progress",
 				}),
 			)
@@ -1018,7 +1018,7 @@ var _ = Describe("LastOperation", func() {
 					ActualOperationType: broker.OperationTypeUpdate,
 					LogContains:         "result from error",
 
-					ExpectedLastOperationState: brokerapi.Failed,
+					ExpectedLastOperationState: domain.Failed,
 					ExpectedLastOperationDescriptionParts: []string{
 						"Instance update failed: There was a problem completing your request. Please contact your operations team providing the following information:",
 						`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`,
@@ -1041,7 +1041,7 @@ var _ = Describe("LastOperation", func() {
 					ActualOperationType: broker.OperationTypeUpdate,
 					LogContains:         "who knows",
 
-					ExpectedLastOperationState: brokerapi.Failed,
+					ExpectedLastOperationState: domain.Failed,
 					ExpectedLastOperationDescriptionParts: []string{
 						"Instance update failed: There was a problem completing your request. Please contact your operations team providing the following information:",
 						`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`,
@@ -1058,7 +1058,7 @@ var _ = Describe("LastOperation", func() {
 					ActualBoshTask:      boshdirector.BoshTask{State: boshdirector.TaskDone, Description: "it's a task", ID: taskID},
 					ActualOperationType: broker.OperationTypeUpdate,
 
-					ExpectedLastOperationState:       brokerapi.Succeeded,
+					ExpectedLastOperationState:       domain.Succeeded,
 					ExpectedLastOperationDescription: "Instance update completed",
 				}),
 			)
@@ -1070,7 +1070,7 @@ var _ = Describe("LastOperation", func() {
 					ActualBoshTask:      boshdirector.BoshTask{State: boshdirector.TaskProcessing, Description: "it's a task", ID: taskID},
 					ActualOperationType: broker.OperationTypeUpgrade,
 
-					ExpectedLastOperationState:       brokerapi.InProgress,
+					ExpectedLastOperationState:       domain.InProgress,
 					ExpectedLastOperationDescription: "Instance upgrade in progress",
 				}),
 			)
@@ -1080,7 +1080,7 @@ var _ = Describe("LastOperation", func() {
 					ActualBoshTask:      boshdirector.BoshTask{State: boshdirector.TaskQueued, Description: "it's a task", ID: taskID},
 					ActualOperationType: broker.OperationTypeUpgrade,
 
-					ExpectedLastOperationState:       brokerapi.InProgress,
+					ExpectedLastOperationState:       domain.InProgress,
 					ExpectedLastOperationDescription: "Instance upgrade in progress",
 				}),
 			)
@@ -1090,7 +1090,7 @@ var _ = Describe("LastOperation", func() {
 					ActualBoshTask:      boshdirector.BoshTask{State: boshdirector.TaskError, Result: "result from error", Description: "it's a task", ID: taskID},
 					ActualOperationType: broker.OperationTypeUpgrade,
 
-					ExpectedLastOperationState:       brokerapi.Failed,
+					ExpectedLastOperationState:       domain.Failed,
 					ExpectedLastOperationDescription: "Failed for bosh task: 199",
 				}),
 			)
@@ -1100,7 +1100,7 @@ var _ = Describe("LastOperation", func() {
 					ActualBoshTask:      boshdirector.BoshTask{State: boshdirector.TaskCancelled, Result: "result from error", Description: "it's a task", ID: taskID},
 					ActualOperationType: broker.OperationTypeUpgrade,
 
-					ExpectedLastOperationState:       brokerapi.Failed,
+					ExpectedLastOperationState:       domain.Failed,
 					ExpectedLastOperationDescription: "Failed for bosh task: 199",
 				}),
 			)
@@ -1110,7 +1110,7 @@ var _ = Describe("LastOperation", func() {
 					ActualBoshTask:      boshdirector.BoshTask{State: boshdirector.TaskCancelling, Result: "result from error", Description: "it's a task", ID: taskID},
 					ActualOperationType: broker.OperationTypeUpgrade,
 
-					ExpectedLastOperationState:       brokerapi.InProgress,
+					ExpectedLastOperationState:       domain.InProgress,
 					ExpectedLastOperationDescription: "Instance upgrade in progress",
 				}),
 			)
@@ -1120,7 +1120,7 @@ var _ = Describe("LastOperation", func() {
 					ActualBoshTask:      boshdirector.BoshTask{State: boshdirector.TaskTimeout, Result: "result from error", Description: "it's a task", ID: taskID},
 					ActualOperationType: broker.OperationTypeUpgrade,
 
-					ExpectedLastOperationState:       brokerapi.Failed,
+					ExpectedLastOperationState:       domain.Failed,
 					ExpectedLastOperationDescription: "Failed for bosh task: 199",
 				}),
 			)
@@ -1131,7 +1131,7 @@ var _ = Describe("LastOperation", func() {
 					ActualOperationType: broker.OperationTypeUpgrade,
 					LogContains:         "who knows",
 
-					ExpectedLastOperationState:       brokerapi.Failed,
+					ExpectedLastOperationState:       domain.Failed,
 					ExpectedLastOperationDescription: "Failed for bosh task: 199",
 				}),
 			)
@@ -1141,7 +1141,7 @@ var _ = Describe("LastOperation", func() {
 					ActualBoshTask:      boshdirector.BoshTask{State: boshdirector.TaskDone, Description: "it's a task", ID: taskID},
 					ActualOperationType: broker.OperationTypeUpgrade,
 
-					ExpectedLastOperationState:       brokerapi.Succeeded,
+					ExpectedLastOperationState:       domain.Succeeded,
 					ExpectedLastOperationDescription: "Instance upgrade completed",
 				}),
 			)

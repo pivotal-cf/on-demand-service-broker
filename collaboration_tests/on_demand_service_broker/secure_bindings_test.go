@@ -15,7 +15,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
-	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/brokerapi/domain"
 	brokerConfig "github.com/pivotal-cf/on-demand-service-broker/config"
 	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
@@ -27,7 +27,7 @@ var _ = Describe("Secure Binding", func() {
 	)
 
 	var (
-		bindDetails brokerapi.BindDetails
+		bindDetails domain.BindDetails
 		expectedRef string
 	)
 
@@ -52,11 +52,11 @@ var _ = Describe("Secure Binding", func() {
 
 		fakeBoshClient.GetDeploymentReturns([]byte(`name: 123`), true, nil)
 
-		bindDetails = brokerapi.BindDetails{
+		bindDetails = domain.BindDetails{
 			PlanID:    "plan-id",
 			ServiceID: "service-id",
 			AppGUID:   "app-guid",
-			BindResource: &brokerapi.BindResource{
+			BindResource: &domain.BindResource{
 				AppGuid: "app-guid",
 			},
 			RawParameters: []byte(`{"baz": "bar"}`),
@@ -104,9 +104,9 @@ var _ = Describe("Secure Binding", func() {
 			Expect(ops).To(Equal([]string{"read"}))
 
 			By("returning the correct binding metadata")
-			var responseBody brokerapi.Binding
+			var responseBody domain.Binding
 			Expect(json.Unmarshal(bodyContent, &responseBody)).To(Succeed())
-			Expect(responseBody).To(Equal(brokerapi.Binding{
+			Expect(responseBody).To(Equal(domain.Binding{
 				Credentials:     map[string]interface{}{"credhub-ref": expectedRef},
 				SyslogDrainURL:  "other.fqdn",
 				RouteServiceURL: "some.fqdn",

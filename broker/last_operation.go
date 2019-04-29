@@ -14,27 +14,27 @@ import (
 	"log"
 
 	"github.com/pborman/uuid"
-	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/brokerapi/domain"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/brokercontext"
 )
 
-var descriptions = map[brokerapi.LastOperationState]map[OperationType]string{
-	brokerapi.InProgress: {
+var descriptions = map[domain.LastOperationState]map[OperationType]string{
+	domain.InProgress: {
 		OperationTypeCreate:   "Instance provisioning in progress",
 		OperationTypeUpdate:   "Instance update in progress",
 		OperationTypeUpgrade:  "Instance upgrade in progress",
 		OperationTypeDelete:   "Instance deletion in progress",
 		OperationTypeRecreate: "Instance recreate in progress",
 	},
-	brokerapi.Succeeded: {
+	domain.Succeeded: {
 		OperationTypeCreate:   "Instance provisioning completed",
 		OperationTypeUpdate:   "Instance update completed",
 		OperationTypeUpgrade:  "Instance upgrade completed",
 		OperationTypeDelete:   "Instance deletion completed",
 		OperationTypeRecreate: "Instance recreate completed",
 	},
-	brokerapi.Failed: {
+	domain.Failed: {
 		OperationTypeCreate:   "Instance provisioning failed",
 		OperationTypeUpdate:   "Instance update failed",
 		OperationTypeUpgrade:  "Failed for bosh task",
@@ -43,8 +43,8 @@ var descriptions = map[brokerapi.LastOperationState]map[OperationType]string{
 	},
 }
 
-func (b *Broker) LastOperation(ctx context.Context, instanceID string, pollDetails brokerapi.PollDetails,
-) (brokerapi.LastOperation, error) {
+func (b *Broker) LastOperation(ctx context.Context, instanceID string, pollDetails domain.PollDetails,
+) (domain.LastOperation, error) {
 
 	operationDataRaw := pollDetails.OperationData
 	requestID := uuid.New()
@@ -53,18 +53,18 @@ func (b *Broker) LastOperation(ctx context.Context, instanceID string, pollDetai
 
 	if operationDataRaw == "" {
 		err := errors.New("Request missing operation data, please check your Cloud Foundry version is v238+")
-		return brokerapi.LastOperation{}, b.processError(NewGenericError(ctx, err), logger)
+		return domain.LastOperation{}, b.processError(NewGenericError(ctx, err), logger)
 	}
 
 	var operationData OperationData
 	if err := json.Unmarshal([]byte(operationDataRaw), &operationData); err != nil {
-		return brokerapi.LastOperation{}, b.processError(NewGenericError(ctx, fmt.Errorf("operation data cannot be parsed: %s", err)), logger)
+		return domain.LastOperation{}, b.processError(NewGenericError(ctx, fmt.Errorf("operation data cannot be parsed: %s", err)), logger)
 	}
 
 	ctx = brokercontext.WithOperation(ctx, string(operationData.OperationType))
 
 	if operationData.BoshTaskID == 0 {
-		return brokerapi.LastOperation{}, b.processError(NewGenericError(ctx, errors.New("no task ID found in operation data")), logger)
+		return domain.LastOperation{}, b.processError(NewGenericError(ctx, errors.New("no task ID found in operation data")), logger)
 	}
 
 	ctx = brokercontext.WithBoshTaskID(ctx, operationData.BoshTaskID)
@@ -74,7 +74,7 @@ func (b *Broker) LastOperation(ctx context.Context, instanceID string, pollDetai
 	// if the errand isn't already running, or delete deployment wasn't triggered, GetTask will start it!
 	lastBoshTask, err := lifeCycleRunner.GetTask(deploymentName(instanceID), operationData, logger)
 	if err != nil {
-		return brokerapi.LastOperation{}, b.processError(
+		return domain.LastOperation{}, b.processError(
 			NewGenericError(ctx, fmt.Errorf("error retrieving tasks from bosh, for deployment '%s': %s", deploymentName(instanceID), err)),
 			logger,
 		)
@@ -84,7 +84,7 @@ func (b *Broker) LastOperation(ctx context.Context, instanceID string, pollDetai
 		if !b.DisableBoshConfigs {
 			if err = b.boshClient.DeleteConfigs(deploymentName(instanceID), logger); err != nil {
 				ctx = brokercontext.WithBoshTaskID(ctx, 0)
-				lastOperation := constructLastOperation(ctx, brokerapi.Failed, lastBoshTask, operationData, b.ExposeOperationalErrors)
+				lastOperation := constructLastOperation(ctx, domain.Failed, lastBoshTask, operationData, b.ExposeOperationalErrors)
 				logger.Printf("Failed to delete configs for service instance %s: %s\n", instanceID, err.Error())
 				return lastOperation, nil
 			}
@@ -92,7 +92,7 @@ func (b *Broker) LastOperation(ctx context.Context, instanceID string, pollDetai
 
 		if err = b.secretManager.DeleteSecretsForInstance(instanceID, logger); err != nil {
 			ctx = brokercontext.WithBoshTaskID(ctx, 0)
-			lastOperation := constructLastOperation(ctx, brokerapi.Failed, lastBoshTask, operationData, b.ExposeOperationalErrors)
+			lastOperation := constructLastOperation(ctx, domain.Failed, lastBoshTask, operationData, b.ExposeOperationalErrors)
 			logger.Printf("Failed to delete credhub secrets for service instance %s. Credhub error: %s\n", instanceID, err.Error())
 			return lastOperation, nil
 		}
@@ -107,9 +107,9 @@ func (b *Broker) LastOperation(ctx context.Context, instanceID string, pollDetai
 	return lastOperation, nil
 }
 
-func constructLastOperation(ctx context.Context, taskState brokerapi.LastOperationState, lastBoshTask boshdirector.BoshTask, operationData OperationData, exposeError bool) brokerapi.LastOperation {
+func constructLastOperation(ctx context.Context, taskState domain.LastOperationState, lastBoshTask boshdirector.BoshTask, operationData OperationData, exposeError bool) domain.LastOperation {
 	description := descriptions[taskState][operationData.OperationType]
-	if taskState == brokerapi.Failed {
+	if taskState == domain.Failed {
 		if operationData.OperationType == OperationTypeUpgrade {
 			description = fmt.Sprintf(description+": %d", lastBoshTask.ID) // Allows instanceiterator to log BOSH task ID when an upgrade fails
 		} else {
@@ -121,21 +121,21 @@ func constructLastOperation(ctx context.Context, taskState brokerapi.LastOperati
 		}
 
 	}
-	return brokerapi.LastOperation{State: taskState, Description: description}
+	return domain.LastOperation{State: taskState, Description: description}
 
 }
 
-func lastOperationState(task boshdirector.BoshTask, logger *log.Logger) brokerapi.LastOperationState {
+func lastOperationState(task boshdirector.BoshTask, logger *log.Logger) domain.LastOperationState {
 	switch task.StateType() {
 	case boshdirector.TaskIncomplete:
-		return brokerapi.InProgress
+		return domain.InProgress
 	case boshdirector.TaskComplete:
-		return brokerapi.Succeeded
+		return domain.Succeeded
 	case boshdirector.TaskFailed:
-		return brokerapi.Failed
+		return domain.Failed
 	default:
 		logger.Printf("Unrecognised BOSH task state: %s", task.State)
-		return brokerapi.Failed
+		return domain.Failed
 	}
 }
 

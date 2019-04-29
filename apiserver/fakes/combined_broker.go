@@ -6,7 +6,7 @@ import (
 	"log"
 	"sync"
 
-	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/brokerapi/domain"
 	"github.com/pivotal-cf/on-demand-service-broker/apiserver"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
@@ -55,12 +55,12 @@ type FakeCombinedBroker struct {
 		result1 []string
 		result2 error
 	}
-	UpgradeStub        func(ctx context.Context, instanceID string, updateDetails brokerapi.UpdateDetails, logger *log.Logger) (broker.OperationData, error)
+	UpgradeStub        func(ctx context.Context, instanceID string, updateDetails domain.UpdateDetails, logger *log.Logger) (broker.OperationData, error)
 	upgradeMutex       sync.RWMutex
 	upgradeArgsForCall []struct {
 		ctx           context.Context
 		instanceID    string
-		updateDetails brokerapi.UpdateDetails
+		updateDetails domain.UpdateDetails
 		logger        *log.Logger
 	}
 	upgradeReturns struct {
@@ -71,12 +71,12 @@ type FakeCombinedBroker struct {
 		result1 broker.OperationData
 		result2 error
 	}
-	RecreateStub        func(ctx context.Context, instanceID string, updateDetails brokerapi.UpdateDetails, logger *log.Logger) (broker.OperationData, error)
+	RecreateStub        func(ctx context.Context, instanceID string, updateDetails domain.UpdateDetails, logger *log.Logger) (broker.OperationData, error)
 	recreateMutex       sync.RWMutex
 	recreateArgsForCall []struct {
 		ctx           context.Context
 		instanceID    string
-		updateDetails brokerapi.UpdateDetails
+		updateDetails domain.UpdateDetails
 		logger        *log.Logger
 	}
 	recreateReturns struct {
@@ -100,100 +100,100 @@ type FakeCombinedBroker struct {
 		result1 map[cf.ServicePlan]int
 		result2 error
 	}
-	ServicesStub        func(ctx context.Context) ([]brokerapi.Service, error)
+	ServicesStub        func(ctx context.Context) ([]domain.Service, error)
 	servicesMutex       sync.RWMutex
 	servicesArgsForCall []struct {
 		ctx context.Context
 	}
 	servicesReturns struct {
-		result1 []brokerapi.Service
+		result1 []domain.Service
 		result2 error
 	}
 	servicesReturnsOnCall map[int]struct {
-		result1 []brokerapi.Service
+		result1 []domain.Service
 		result2 error
 	}
-	ProvisionStub        func(ctx context.Context, instanceID string, details brokerapi.ProvisionDetails, asyncAllowed bool) (brokerapi.ProvisionedServiceSpec, error)
+	ProvisionStub        func(ctx context.Context, instanceID string, details domain.ProvisionDetails, asyncAllowed bool) (domain.ProvisionedServiceSpec, error)
 	provisionMutex       sync.RWMutex
 	provisionArgsForCall []struct {
 		ctx          context.Context
 		instanceID   string
-		details      brokerapi.ProvisionDetails
+		details      domain.ProvisionDetails
 		asyncAllowed bool
 	}
 	provisionReturns struct {
-		result1 brokerapi.ProvisionedServiceSpec
+		result1 domain.ProvisionedServiceSpec
 		result2 error
 	}
 	provisionReturnsOnCall map[int]struct {
-		result1 brokerapi.ProvisionedServiceSpec
+		result1 domain.ProvisionedServiceSpec
 		result2 error
 	}
-	DeprovisionStub        func(ctx context.Context, instanceID string, details brokerapi.DeprovisionDetails, asyncAllowed bool) (brokerapi.DeprovisionServiceSpec, error)
+	DeprovisionStub        func(ctx context.Context, instanceID string, details domain.DeprovisionDetails, asyncAllowed bool) (domain.DeprovisionServiceSpec, error)
 	deprovisionMutex       sync.RWMutex
 	deprovisionArgsForCall []struct {
 		ctx          context.Context
 		instanceID   string
-		details      brokerapi.DeprovisionDetails
+		details      domain.DeprovisionDetails
 		asyncAllowed bool
 	}
 	deprovisionReturns struct {
-		result1 brokerapi.DeprovisionServiceSpec
+		result1 domain.DeprovisionServiceSpec
 		result2 error
 	}
 	deprovisionReturnsOnCall map[int]struct {
-		result1 brokerapi.DeprovisionServiceSpec
+		result1 domain.DeprovisionServiceSpec
 		result2 error
 	}
-	GetInstanceStub        func(ctx context.Context, instanceID string) (brokerapi.GetInstanceDetailsSpec, error)
+	GetInstanceStub        func(ctx context.Context, instanceID string) (domain.GetInstanceDetailsSpec, error)
 	getInstanceMutex       sync.RWMutex
 	getInstanceArgsForCall []struct {
 		ctx        context.Context
 		instanceID string
 	}
 	getInstanceReturns struct {
-		result1 brokerapi.GetInstanceDetailsSpec
+		result1 domain.GetInstanceDetailsSpec
 		result2 error
 	}
 	getInstanceReturnsOnCall map[int]struct {
-		result1 brokerapi.GetInstanceDetailsSpec
+		result1 domain.GetInstanceDetailsSpec
 		result2 error
 	}
-	BindStub        func(ctx context.Context, instanceID, bindingID string, details brokerapi.BindDetails, asyncAllowed bool) (brokerapi.Binding, error)
+	BindStub        func(ctx context.Context, instanceID, bindingID string, details domain.BindDetails, asyncAllowed bool) (domain.Binding, error)
 	bindMutex       sync.RWMutex
 	bindArgsForCall []struct {
 		ctx          context.Context
 		instanceID   string
 		bindingID    string
-		details      brokerapi.BindDetails
+		details      domain.BindDetails
 		asyncAllowed bool
 	}
 	bindReturns struct {
-		result1 brokerapi.Binding
+		result1 domain.Binding
 		result2 error
 	}
 	bindReturnsOnCall map[int]struct {
-		result1 brokerapi.Binding
+		result1 domain.Binding
 		result2 error
 	}
-	UnbindStub        func(ctx context.Context, instanceID, bindingID string, details brokerapi.UnbindDetails, asyncAllowed bool) (brokerapi.UnbindSpec, error)
+	UnbindStub        func(ctx context.Context, instanceID, bindingID string, details domain.UnbindDetails, asyncAllowed bool) (domain.UnbindSpec, error)
 	unbindMutex       sync.RWMutex
 	unbindArgsForCall []struct {
 		ctx          context.Context
 		instanceID   string
 		bindingID    string
-		details      brokerapi.UnbindDetails
+		details      domain.UnbindDetails
 		asyncAllowed bool
 	}
 	unbindReturns struct {
-		result1 brokerapi.UnbindSpec
+		result1 domain.UnbindSpec
 		result2 error
 	}
 	unbindReturnsOnCall map[int]struct {
-		result1 brokerapi.UnbindSpec
+		result1 domain.UnbindSpec
 		result2 error
 	}
-	GetBindingStub        func(ctx context.Context, instanceID, bindingID string) (brokerapi.GetBindingSpec, error)
+	GetBindingStub        func(ctx context.Context, instanceID, bindingID string) (domain.GetBindingSpec, error)
 	getBindingMutex       sync.RWMutex
 	getBindingArgsForCall []struct {
 		ctx        context.Context
@@ -201,58 +201,58 @@ type FakeCombinedBroker struct {
 		bindingID  string
 	}
 	getBindingReturns struct {
-		result1 brokerapi.GetBindingSpec
+		result1 domain.GetBindingSpec
 		result2 error
 	}
 	getBindingReturnsOnCall map[int]struct {
-		result1 brokerapi.GetBindingSpec
+		result1 domain.GetBindingSpec
 		result2 error
 	}
-	UpdateStub        func(ctx context.Context, instanceID string, details brokerapi.UpdateDetails, asyncAllowed bool) (brokerapi.UpdateServiceSpec, error)
+	UpdateStub        func(ctx context.Context, instanceID string, details domain.UpdateDetails, asyncAllowed bool) (domain.UpdateServiceSpec, error)
 	updateMutex       sync.RWMutex
 	updateArgsForCall []struct {
 		ctx          context.Context
 		instanceID   string
-		details      brokerapi.UpdateDetails
+		details      domain.UpdateDetails
 		asyncAllowed bool
 	}
 	updateReturns struct {
-		result1 brokerapi.UpdateServiceSpec
+		result1 domain.UpdateServiceSpec
 		result2 error
 	}
 	updateReturnsOnCall map[int]struct {
-		result1 brokerapi.UpdateServiceSpec
+		result1 domain.UpdateServiceSpec
 		result2 error
 	}
-	LastOperationStub        func(ctx context.Context, instanceID string, details brokerapi.PollDetails) (brokerapi.LastOperation, error)
+	LastOperationStub        func(ctx context.Context, instanceID string, details domain.PollDetails) (domain.LastOperation, error)
 	lastOperationMutex       sync.RWMutex
 	lastOperationArgsForCall []struct {
 		ctx        context.Context
 		instanceID string
-		details    brokerapi.PollDetails
+		details    domain.PollDetails
 	}
 	lastOperationReturns struct {
-		result1 brokerapi.LastOperation
+		result1 domain.LastOperation
 		result2 error
 	}
 	lastOperationReturnsOnCall map[int]struct {
-		result1 brokerapi.LastOperation
+		result1 domain.LastOperation
 		result2 error
 	}
-	LastBindingOperationStub        func(ctx context.Context, instanceID, bindingID string, details brokerapi.PollDetails) (brokerapi.LastOperation, error)
+	LastBindingOperationStub        func(ctx context.Context, instanceID, bindingID string, details domain.PollDetails) (domain.LastOperation, error)
 	lastBindingOperationMutex       sync.RWMutex
 	lastBindingOperationArgsForCall []struct {
 		ctx        context.Context
 		instanceID string
 		bindingID  string
-		details    brokerapi.PollDetails
+		details    domain.PollDetails
 	}
 	lastBindingOperationReturns struct {
-		result1 brokerapi.LastOperation
+		result1 domain.LastOperation
 		result2 error
 	}
 	lastBindingOperationReturnsOnCall map[int]struct {
-		result1 brokerapi.LastOperation
+		result1 domain.LastOperation
 		result2 error
 	}
 	invocations      map[string][][]interface{}
@@ -414,13 +414,13 @@ func (fake *FakeCombinedBroker) OrphanDeploymentsReturnsOnCall(i int, result1 []
 	}{result1, result2}
 }
 
-func (fake *FakeCombinedBroker) Upgrade(ctx context.Context, instanceID string, updateDetails brokerapi.UpdateDetails, logger *log.Logger) (broker.OperationData, error) {
+func (fake *FakeCombinedBroker) Upgrade(ctx context.Context, instanceID string, updateDetails domain.UpdateDetails, logger *log.Logger) (broker.OperationData, error) {
 	fake.upgradeMutex.Lock()
 	ret, specificReturn := fake.upgradeReturnsOnCall[len(fake.upgradeArgsForCall)]
 	fake.upgradeArgsForCall = append(fake.upgradeArgsForCall, struct {
 		ctx           context.Context
 		instanceID    string
-		updateDetails brokerapi.UpdateDetails
+		updateDetails domain.UpdateDetails
 		logger        *log.Logger
 	}{ctx, instanceID, updateDetails, logger})
 	fake.recordInvocation("Upgrade", []interface{}{ctx, instanceID, updateDetails, logger})
@@ -440,7 +440,7 @@ func (fake *FakeCombinedBroker) UpgradeCallCount() int {
 	return len(fake.upgradeArgsForCall)
 }
 
-func (fake *FakeCombinedBroker) UpgradeArgsForCall(i int) (context.Context, string, brokerapi.UpdateDetails, *log.Logger) {
+func (fake *FakeCombinedBroker) UpgradeArgsForCall(i int) (context.Context, string, domain.UpdateDetails, *log.Logger) {
 	fake.upgradeMutex.RLock()
 	defer fake.upgradeMutex.RUnlock()
 	return fake.upgradeArgsForCall[i].ctx, fake.upgradeArgsForCall[i].instanceID, fake.upgradeArgsForCall[i].updateDetails, fake.upgradeArgsForCall[i].logger
@@ -468,13 +468,13 @@ func (fake *FakeCombinedBroker) UpgradeReturnsOnCall(i int, result1 broker.Opera
 	}{result1, result2}
 }
 
-func (fake *FakeCombinedBroker) Recreate(ctx context.Context, instanceID string, updateDetails brokerapi.UpdateDetails, logger *log.Logger) (broker.OperationData, error) {
+func (fake *FakeCombinedBroker) Recreate(ctx context.Context, instanceID string, updateDetails domain.UpdateDetails, logger *log.Logger) (broker.OperationData, error) {
 	fake.recreateMutex.Lock()
 	ret, specificReturn := fake.recreateReturnsOnCall[len(fake.recreateArgsForCall)]
 	fake.recreateArgsForCall = append(fake.recreateArgsForCall, struct {
 		ctx           context.Context
 		instanceID    string
-		updateDetails brokerapi.UpdateDetails
+		updateDetails domain.UpdateDetails
 		logger        *log.Logger
 	}{ctx, instanceID, updateDetails, logger})
 	fake.recordInvocation("Recreate", []interface{}{ctx, instanceID, updateDetails, logger})
@@ -494,7 +494,7 @@ func (fake *FakeCombinedBroker) RecreateCallCount() int {
 	return len(fake.recreateArgsForCall)
 }
 
-func (fake *FakeCombinedBroker) RecreateArgsForCall(i int) (context.Context, string, brokerapi.UpdateDetails, *log.Logger) {
+func (fake *FakeCombinedBroker) RecreateArgsForCall(i int) (context.Context, string, domain.UpdateDetails, *log.Logger) {
 	fake.recreateMutex.RLock()
 	defer fake.recreateMutex.RUnlock()
 	return fake.recreateArgsForCall[i].ctx, fake.recreateArgsForCall[i].instanceID, fake.recreateArgsForCall[i].updateDetails, fake.recreateArgsForCall[i].logger
@@ -573,7 +573,7 @@ func (fake *FakeCombinedBroker) CountInstancesOfPlansReturnsOnCall(i int, result
 	}{result1, result2}
 }
 
-func (fake *FakeCombinedBroker) Services(ctx context.Context) ([]brokerapi.Service, error) {
+func (fake *FakeCombinedBroker) Services(ctx context.Context) ([]domain.Service, error) {
 	fake.servicesMutex.Lock()
 	ret, specificReturn := fake.servicesReturnsOnCall[len(fake.servicesArgsForCall)]
 	fake.servicesArgsForCall = append(fake.servicesArgsForCall, struct {
@@ -602,35 +602,35 @@ func (fake *FakeCombinedBroker) ServicesArgsForCall(i int) context.Context {
 	return fake.servicesArgsForCall[i].ctx
 }
 
-func (fake *FakeCombinedBroker) ServicesReturns(result1 []brokerapi.Service, result2 error) {
+func (fake *FakeCombinedBroker) ServicesReturns(result1 []domain.Service, result2 error) {
 	fake.ServicesStub = nil
 	fake.servicesReturns = struct {
-		result1 []brokerapi.Service
+		result1 []domain.Service
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeCombinedBroker) ServicesReturnsOnCall(i int, result1 []brokerapi.Service, result2 error) {
+func (fake *FakeCombinedBroker) ServicesReturnsOnCall(i int, result1 []domain.Service, result2 error) {
 	fake.ServicesStub = nil
 	if fake.servicesReturnsOnCall == nil {
 		fake.servicesReturnsOnCall = make(map[int]struct {
-			result1 []brokerapi.Service
+			result1 []domain.Service
 			result2 error
 		})
 	}
 	fake.servicesReturnsOnCall[i] = struct {
-		result1 []brokerapi.Service
+		result1 []domain.Service
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeCombinedBroker) Provision(ctx context.Context, instanceID string, details brokerapi.ProvisionDetails, asyncAllowed bool) (brokerapi.ProvisionedServiceSpec, error) {
+func (fake *FakeCombinedBroker) Provision(ctx context.Context, instanceID string, details domain.ProvisionDetails, asyncAllowed bool) (domain.ProvisionedServiceSpec, error) {
 	fake.provisionMutex.Lock()
 	ret, specificReturn := fake.provisionReturnsOnCall[len(fake.provisionArgsForCall)]
 	fake.provisionArgsForCall = append(fake.provisionArgsForCall, struct {
 		ctx          context.Context
 		instanceID   string
-		details      brokerapi.ProvisionDetails
+		details      domain.ProvisionDetails
 		asyncAllowed bool
 	}{ctx, instanceID, details, asyncAllowed})
 	fake.recordInvocation("Provision", []interface{}{ctx, instanceID, details, asyncAllowed})
@@ -650,41 +650,41 @@ func (fake *FakeCombinedBroker) ProvisionCallCount() int {
 	return len(fake.provisionArgsForCall)
 }
 
-func (fake *FakeCombinedBroker) ProvisionArgsForCall(i int) (context.Context, string, brokerapi.ProvisionDetails, bool) {
+func (fake *FakeCombinedBroker) ProvisionArgsForCall(i int) (context.Context, string, domain.ProvisionDetails, bool) {
 	fake.provisionMutex.RLock()
 	defer fake.provisionMutex.RUnlock()
 	return fake.provisionArgsForCall[i].ctx, fake.provisionArgsForCall[i].instanceID, fake.provisionArgsForCall[i].details, fake.provisionArgsForCall[i].asyncAllowed
 }
 
-func (fake *FakeCombinedBroker) ProvisionReturns(result1 brokerapi.ProvisionedServiceSpec, result2 error) {
+func (fake *FakeCombinedBroker) ProvisionReturns(result1 domain.ProvisionedServiceSpec, result2 error) {
 	fake.ProvisionStub = nil
 	fake.provisionReturns = struct {
-		result1 brokerapi.ProvisionedServiceSpec
+		result1 domain.ProvisionedServiceSpec
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeCombinedBroker) ProvisionReturnsOnCall(i int, result1 brokerapi.ProvisionedServiceSpec, result2 error) {
+func (fake *FakeCombinedBroker) ProvisionReturnsOnCall(i int, result1 domain.ProvisionedServiceSpec, result2 error) {
 	fake.ProvisionStub = nil
 	if fake.provisionReturnsOnCall == nil {
 		fake.provisionReturnsOnCall = make(map[int]struct {
-			result1 brokerapi.ProvisionedServiceSpec
+			result1 domain.ProvisionedServiceSpec
 			result2 error
 		})
 	}
 	fake.provisionReturnsOnCall[i] = struct {
-		result1 brokerapi.ProvisionedServiceSpec
+		result1 domain.ProvisionedServiceSpec
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeCombinedBroker) Deprovision(ctx context.Context, instanceID string, details brokerapi.DeprovisionDetails, asyncAllowed bool) (brokerapi.DeprovisionServiceSpec, error) {
+func (fake *FakeCombinedBroker) Deprovision(ctx context.Context, instanceID string, details domain.DeprovisionDetails, asyncAllowed bool) (domain.DeprovisionServiceSpec, error) {
 	fake.deprovisionMutex.Lock()
 	ret, specificReturn := fake.deprovisionReturnsOnCall[len(fake.deprovisionArgsForCall)]
 	fake.deprovisionArgsForCall = append(fake.deprovisionArgsForCall, struct {
 		ctx          context.Context
 		instanceID   string
-		details      brokerapi.DeprovisionDetails
+		details      domain.DeprovisionDetails
 		asyncAllowed bool
 	}{ctx, instanceID, details, asyncAllowed})
 	fake.recordInvocation("Deprovision", []interface{}{ctx, instanceID, details, asyncAllowed})
@@ -704,35 +704,35 @@ func (fake *FakeCombinedBroker) DeprovisionCallCount() int {
 	return len(fake.deprovisionArgsForCall)
 }
 
-func (fake *FakeCombinedBroker) DeprovisionArgsForCall(i int) (context.Context, string, brokerapi.DeprovisionDetails, bool) {
+func (fake *FakeCombinedBroker) DeprovisionArgsForCall(i int) (context.Context, string, domain.DeprovisionDetails, bool) {
 	fake.deprovisionMutex.RLock()
 	defer fake.deprovisionMutex.RUnlock()
 	return fake.deprovisionArgsForCall[i].ctx, fake.deprovisionArgsForCall[i].instanceID, fake.deprovisionArgsForCall[i].details, fake.deprovisionArgsForCall[i].asyncAllowed
 }
 
-func (fake *FakeCombinedBroker) DeprovisionReturns(result1 brokerapi.DeprovisionServiceSpec, result2 error) {
+func (fake *FakeCombinedBroker) DeprovisionReturns(result1 domain.DeprovisionServiceSpec, result2 error) {
 	fake.DeprovisionStub = nil
 	fake.deprovisionReturns = struct {
-		result1 brokerapi.DeprovisionServiceSpec
+		result1 domain.DeprovisionServiceSpec
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeCombinedBroker) DeprovisionReturnsOnCall(i int, result1 brokerapi.DeprovisionServiceSpec, result2 error) {
+func (fake *FakeCombinedBroker) DeprovisionReturnsOnCall(i int, result1 domain.DeprovisionServiceSpec, result2 error) {
 	fake.DeprovisionStub = nil
 	if fake.deprovisionReturnsOnCall == nil {
 		fake.deprovisionReturnsOnCall = make(map[int]struct {
-			result1 brokerapi.DeprovisionServiceSpec
+			result1 domain.DeprovisionServiceSpec
 			result2 error
 		})
 	}
 	fake.deprovisionReturnsOnCall[i] = struct {
-		result1 brokerapi.DeprovisionServiceSpec
+		result1 domain.DeprovisionServiceSpec
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeCombinedBroker) GetInstance(ctx context.Context, instanceID string) (brokerapi.GetInstanceDetailsSpec, error) {
+func (fake *FakeCombinedBroker) GetInstance(ctx context.Context, instanceID string) (domain.GetInstanceDetailsSpec, error) {
 	fake.getInstanceMutex.Lock()
 	ret, specificReturn := fake.getInstanceReturnsOnCall[len(fake.getInstanceArgsForCall)]
 	fake.getInstanceArgsForCall = append(fake.getInstanceArgsForCall, struct {
@@ -762,36 +762,36 @@ func (fake *FakeCombinedBroker) GetInstanceArgsForCall(i int) (context.Context, 
 	return fake.getInstanceArgsForCall[i].ctx, fake.getInstanceArgsForCall[i].instanceID
 }
 
-func (fake *FakeCombinedBroker) GetInstanceReturns(result1 brokerapi.GetInstanceDetailsSpec, result2 error) {
+func (fake *FakeCombinedBroker) GetInstanceReturns(result1 domain.GetInstanceDetailsSpec, result2 error) {
 	fake.GetInstanceStub = nil
 	fake.getInstanceReturns = struct {
-		result1 brokerapi.GetInstanceDetailsSpec
+		result1 domain.GetInstanceDetailsSpec
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeCombinedBroker) GetInstanceReturnsOnCall(i int, result1 brokerapi.GetInstanceDetailsSpec, result2 error) {
+func (fake *FakeCombinedBroker) GetInstanceReturnsOnCall(i int, result1 domain.GetInstanceDetailsSpec, result2 error) {
 	fake.GetInstanceStub = nil
 	if fake.getInstanceReturnsOnCall == nil {
 		fake.getInstanceReturnsOnCall = make(map[int]struct {
-			result1 brokerapi.GetInstanceDetailsSpec
+			result1 domain.GetInstanceDetailsSpec
 			result2 error
 		})
 	}
 	fake.getInstanceReturnsOnCall[i] = struct {
-		result1 brokerapi.GetInstanceDetailsSpec
+		result1 domain.GetInstanceDetailsSpec
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeCombinedBroker) Bind(ctx context.Context, instanceID string, bindingID string, details brokerapi.BindDetails, asyncAllowed bool) (brokerapi.Binding, error) {
+func (fake *FakeCombinedBroker) Bind(ctx context.Context, instanceID string, bindingID string, details domain.BindDetails, asyncAllowed bool) (domain.Binding, error) {
 	fake.bindMutex.Lock()
 	ret, specificReturn := fake.bindReturnsOnCall[len(fake.bindArgsForCall)]
 	fake.bindArgsForCall = append(fake.bindArgsForCall, struct {
 		ctx          context.Context
 		instanceID   string
 		bindingID    string
-		details      brokerapi.BindDetails
+		details      domain.BindDetails
 		asyncAllowed bool
 	}{ctx, instanceID, bindingID, details, asyncAllowed})
 	fake.recordInvocation("Bind", []interface{}{ctx, instanceID, bindingID, details, asyncAllowed})
@@ -811,42 +811,42 @@ func (fake *FakeCombinedBroker) BindCallCount() int {
 	return len(fake.bindArgsForCall)
 }
 
-func (fake *FakeCombinedBroker) BindArgsForCall(i int) (context.Context, string, string, brokerapi.BindDetails, bool) {
+func (fake *FakeCombinedBroker) BindArgsForCall(i int) (context.Context, string, string, domain.BindDetails, bool) {
 	fake.bindMutex.RLock()
 	defer fake.bindMutex.RUnlock()
 	return fake.bindArgsForCall[i].ctx, fake.bindArgsForCall[i].instanceID, fake.bindArgsForCall[i].bindingID, fake.bindArgsForCall[i].details, fake.bindArgsForCall[i].asyncAllowed
 }
 
-func (fake *FakeCombinedBroker) BindReturns(result1 brokerapi.Binding, result2 error) {
+func (fake *FakeCombinedBroker) BindReturns(result1 domain.Binding, result2 error) {
 	fake.BindStub = nil
 	fake.bindReturns = struct {
-		result1 brokerapi.Binding
+		result1 domain.Binding
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeCombinedBroker) BindReturnsOnCall(i int, result1 brokerapi.Binding, result2 error) {
+func (fake *FakeCombinedBroker) BindReturnsOnCall(i int, result1 domain.Binding, result2 error) {
 	fake.BindStub = nil
 	if fake.bindReturnsOnCall == nil {
 		fake.bindReturnsOnCall = make(map[int]struct {
-			result1 brokerapi.Binding
+			result1 domain.Binding
 			result2 error
 		})
 	}
 	fake.bindReturnsOnCall[i] = struct {
-		result1 brokerapi.Binding
+		result1 domain.Binding
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeCombinedBroker) Unbind(ctx context.Context, instanceID string, bindingID string, details brokerapi.UnbindDetails, asyncAllowed bool) (brokerapi.UnbindSpec, error) {
+func (fake *FakeCombinedBroker) Unbind(ctx context.Context, instanceID string, bindingID string, details domain.UnbindDetails, asyncAllowed bool) (domain.UnbindSpec, error) {
 	fake.unbindMutex.Lock()
 	ret, specificReturn := fake.unbindReturnsOnCall[len(fake.unbindArgsForCall)]
 	fake.unbindArgsForCall = append(fake.unbindArgsForCall, struct {
 		ctx          context.Context
 		instanceID   string
 		bindingID    string
-		details      brokerapi.UnbindDetails
+		details      domain.UnbindDetails
 		asyncAllowed bool
 	}{ctx, instanceID, bindingID, details, asyncAllowed})
 	fake.recordInvocation("Unbind", []interface{}{ctx, instanceID, bindingID, details, asyncAllowed})
@@ -866,35 +866,35 @@ func (fake *FakeCombinedBroker) UnbindCallCount() int {
 	return len(fake.unbindArgsForCall)
 }
 
-func (fake *FakeCombinedBroker) UnbindArgsForCall(i int) (context.Context, string, string, brokerapi.UnbindDetails, bool) {
+func (fake *FakeCombinedBroker) UnbindArgsForCall(i int) (context.Context, string, string, domain.UnbindDetails, bool) {
 	fake.unbindMutex.RLock()
 	defer fake.unbindMutex.RUnlock()
 	return fake.unbindArgsForCall[i].ctx, fake.unbindArgsForCall[i].instanceID, fake.unbindArgsForCall[i].bindingID, fake.unbindArgsForCall[i].details, fake.unbindArgsForCall[i].asyncAllowed
 }
 
-func (fake *FakeCombinedBroker) UnbindReturns(result1 brokerapi.UnbindSpec, result2 error) {
+func (fake *FakeCombinedBroker) UnbindReturns(result1 domain.UnbindSpec, result2 error) {
 	fake.UnbindStub = nil
 	fake.unbindReturns = struct {
-		result1 brokerapi.UnbindSpec
+		result1 domain.UnbindSpec
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeCombinedBroker) UnbindReturnsOnCall(i int, result1 brokerapi.UnbindSpec, result2 error) {
+func (fake *FakeCombinedBroker) UnbindReturnsOnCall(i int, result1 domain.UnbindSpec, result2 error) {
 	fake.UnbindStub = nil
 	if fake.unbindReturnsOnCall == nil {
 		fake.unbindReturnsOnCall = make(map[int]struct {
-			result1 brokerapi.UnbindSpec
+			result1 domain.UnbindSpec
 			result2 error
 		})
 	}
 	fake.unbindReturnsOnCall[i] = struct {
-		result1 brokerapi.UnbindSpec
+		result1 domain.UnbindSpec
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeCombinedBroker) GetBinding(ctx context.Context, instanceID string, bindingID string) (brokerapi.GetBindingSpec, error) {
+func (fake *FakeCombinedBroker) GetBinding(ctx context.Context, instanceID string, bindingID string) (domain.GetBindingSpec, error) {
 	fake.getBindingMutex.Lock()
 	ret, specificReturn := fake.getBindingReturnsOnCall[len(fake.getBindingArgsForCall)]
 	fake.getBindingArgsForCall = append(fake.getBindingArgsForCall, struct {
@@ -925,35 +925,35 @@ func (fake *FakeCombinedBroker) GetBindingArgsForCall(i int) (context.Context, s
 	return fake.getBindingArgsForCall[i].ctx, fake.getBindingArgsForCall[i].instanceID, fake.getBindingArgsForCall[i].bindingID
 }
 
-func (fake *FakeCombinedBroker) GetBindingReturns(result1 brokerapi.GetBindingSpec, result2 error) {
+func (fake *FakeCombinedBroker) GetBindingReturns(result1 domain.GetBindingSpec, result2 error) {
 	fake.GetBindingStub = nil
 	fake.getBindingReturns = struct {
-		result1 brokerapi.GetBindingSpec
+		result1 domain.GetBindingSpec
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeCombinedBroker) GetBindingReturnsOnCall(i int, result1 brokerapi.GetBindingSpec, result2 error) {
+func (fake *FakeCombinedBroker) GetBindingReturnsOnCall(i int, result1 domain.GetBindingSpec, result2 error) {
 	fake.GetBindingStub = nil
 	if fake.getBindingReturnsOnCall == nil {
 		fake.getBindingReturnsOnCall = make(map[int]struct {
-			result1 brokerapi.GetBindingSpec
+			result1 domain.GetBindingSpec
 			result2 error
 		})
 	}
 	fake.getBindingReturnsOnCall[i] = struct {
-		result1 brokerapi.GetBindingSpec
+		result1 domain.GetBindingSpec
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeCombinedBroker) Update(ctx context.Context, instanceID string, details brokerapi.UpdateDetails, asyncAllowed bool) (brokerapi.UpdateServiceSpec, error) {
+func (fake *FakeCombinedBroker) Update(ctx context.Context, instanceID string, details domain.UpdateDetails, asyncAllowed bool) (domain.UpdateServiceSpec, error) {
 	fake.updateMutex.Lock()
 	ret, specificReturn := fake.updateReturnsOnCall[len(fake.updateArgsForCall)]
 	fake.updateArgsForCall = append(fake.updateArgsForCall, struct {
 		ctx          context.Context
 		instanceID   string
-		details      brokerapi.UpdateDetails
+		details      domain.UpdateDetails
 		asyncAllowed bool
 	}{ctx, instanceID, details, asyncAllowed})
 	fake.recordInvocation("Update", []interface{}{ctx, instanceID, details, asyncAllowed})
@@ -973,41 +973,41 @@ func (fake *FakeCombinedBroker) UpdateCallCount() int {
 	return len(fake.updateArgsForCall)
 }
 
-func (fake *FakeCombinedBroker) UpdateArgsForCall(i int) (context.Context, string, brokerapi.UpdateDetails, bool) {
+func (fake *FakeCombinedBroker) UpdateArgsForCall(i int) (context.Context, string, domain.UpdateDetails, bool) {
 	fake.updateMutex.RLock()
 	defer fake.updateMutex.RUnlock()
 	return fake.updateArgsForCall[i].ctx, fake.updateArgsForCall[i].instanceID, fake.updateArgsForCall[i].details, fake.updateArgsForCall[i].asyncAllowed
 }
 
-func (fake *FakeCombinedBroker) UpdateReturns(result1 brokerapi.UpdateServiceSpec, result2 error) {
+func (fake *FakeCombinedBroker) UpdateReturns(result1 domain.UpdateServiceSpec, result2 error) {
 	fake.UpdateStub = nil
 	fake.updateReturns = struct {
-		result1 brokerapi.UpdateServiceSpec
+		result1 domain.UpdateServiceSpec
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeCombinedBroker) UpdateReturnsOnCall(i int, result1 brokerapi.UpdateServiceSpec, result2 error) {
+func (fake *FakeCombinedBroker) UpdateReturnsOnCall(i int, result1 domain.UpdateServiceSpec, result2 error) {
 	fake.UpdateStub = nil
 	if fake.updateReturnsOnCall == nil {
 		fake.updateReturnsOnCall = make(map[int]struct {
-			result1 brokerapi.UpdateServiceSpec
+			result1 domain.UpdateServiceSpec
 			result2 error
 		})
 	}
 	fake.updateReturnsOnCall[i] = struct {
-		result1 brokerapi.UpdateServiceSpec
+		result1 domain.UpdateServiceSpec
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeCombinedBroker) LastOperation(ctx context.Context, instanceID string, details brokerapi.PollDetails) (brokerapi.LastOperation, error) {
+func (fake *FakeCombinedBroker) LastOperation(ctx context.Context, instanceID string, details domain.PollDetails) (domain.LastOperation, error) {
 	fake.lastOperationMutex.Lock()
 	ret, specificReturn := fake.lastOperationReturnsOnCall[len(fake.lastOperationArgsForCall)]
 	fake.lastOperationArgsForCall = append(fake.lastOperationArgsForCall, struct {
 		ctx        context.Context
 		instanceID string
-		details    brokerapi.PollDetails
+		details    domain.PollDetails
 	}{ctx, instanceID, details})
 	fake.recordInvocation("LastOperation", []interface{}{ctx, instanceID, details})
 	fake.lastOperationMutex.Unlock()
@@ -1026,42 +1026,42 @@ func (fake *FakeCombinedBroker) LastOperationCallCount() int {
 	return len(fake.lastOperationArgsForCall)
 }
 
-func (fake *FakeCombinedBroker) LastOperationArgsForCall(i int) (context.Context, string, brokerapi.PollDetails) {
+func (fake *FakeCombinedBroker) LastOperationArgsForCall(i int) (context.Context, string, domain.PollDetails) {
 	fake.lastOperationMutex.RLock()
 	defer fake.lastOperationMutex.RUnlock()
 	return fake.lastOperationArgsForCall[i].ctx, fake.lastOperationArgsForCall[i].instanceID, fake.lastOperationArgsForCall[i].details
 }
 
-func (fake *FakeCombinedBroker) LastOperationReturns(result1 brokerapi.LastOperation, result2 error) {
+func (fake *FakeCombinedBroker) LastOperationReturns(result1 domain.LastOperation, result2 error) {
 	fake.LastOperationStub = nil
 	fake.lastOperationReturns = struct {
-		result1 brokerapi.LastOperation
+		result1 domain.LastOperation
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeCombinedBroker) LastOperationReturnsOnCall(i int, result1 brokerapi.LastOperation, result2 error) {
+func (fake *FakeCombinedBroker) LastOperationReturnsOnCall(i int, result1 domain.LastOperation, result2 error) {
 	fake.LastOperationStub = nil
 	if fake.lastOperationReturnsOnCall == nil {
 		fake.lastOperationReturnsOnCall = make(map[int]struct {
-			result1 brokerapi.LastOperation
+			result1 domain.LastOperation
 			result2 error
 		})
 	}
 	fake.lastOperationReturnsOnCall[i] = struct {
-		result1 brokerapi.LastOperation
+		result1 domain.LastOperation
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeCombinedBroker) LastBindingOperation(ctx context.Context, instanceID string, bindingID string, details brokerapi.PollDetails) (brokerapi.LastOperation, error) {
+func (fake *FakeCombinedBroker) LastBindingOperation(ctx context.Context, instanceID string, bindingID string, details domain.PollDetails) (domain.LastOperation, error) {
 	fake.lastBindingOperationMutex.Lock()
 	ret, specificReturn := fake.lastBindingOperationReturnsOnCall[len(fake.lastBindingOperationArgsForCall)]
 	fake.lastBindingOperationArgsForCall = append(fake.lastBindingOperationArgsForCall, struct {
 		ctx        context.Context
 		instanceID string
 		bindingID  string
-		details    brokerapi.PollDetails
+		details    domain.PollDetails
 	}{ctx, instanceID, bindingID, details})
 	fake.recordInvocation("LastBindingOperation", []interface{}{ctx, instanceID, bindingID, details})
 	fake.lastBindingOperationMutex.Unlock()
@@ -1080,30 +1080,30 @@ func (fake *FakeCombinedBroker) LastBindingOperationCallCount() int {
 	return len(fake.lastBindingOperationArgsForCall)
 }
 
-func (fake *FakeCombinedBroker) LastBindingOperationArgsForCall(i int) (context.Context, string, string, brokerapi.PollDetails) {
+func (fake *FakeCombinedBroker) LastBindingOperationArgsForCall(i int) (context.Context, string, string, domain.PollDetails) {
 	fake.lastBindingOperationMutex.RLock()
 	defer fake.lastBindingOperationMutex.RUnlock()
 	return fake.lastBindingOperationArgsForCall[i].ctx, fake.lastBindingOperationArgsForCall[i].instanceID, fake.lastBindingOperationArgsForCall[i].bindingID, fake.lastBindingOperationArgsForCall[i].details
 }
 
-func (fake *FakeCombinedBroker) LastBindingOperationReturns(result1 brokerapi.LastOperation, result2 error) {
+func (fake *FakeCombinedBroker) LastBindingOperationReturns(result1 domain.LastOperation, result2 error) {
 	fake.LastBindingOperationStub = nil
 	fake.lastBindingOperationReturns = struct {
-		result1 brokerapi.LastOperation
+		result1 domain.LastOperation
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeCombinedBroker) LastBindingOperationReturnsOnCall(i int, result1 brokerapi.LastOperation, result2 error) {
+func (fake *FakeCombinedBroker) LastBindingOperationReturnsOnCall(i int, result1 domain.LastOperation, result2 error) {
 	fake.LastBindingOperationStub = nil
 	if fake.lastBindingOperationReturnsOnCall == nil {
 		fake.lastBindingOperationReturnsOnCall = make(map[int]struct {
-			result1 brokerapi.LastOperation
+			result1 domain.LastOperation
 			result2 error
 		})
 	}
 	fake.lastBindingOperationReturnsOnCall[i] = struct {
-		result1 brokerapi.LastOperation
+		result1 domain.LastOperation
 		result2 error
 	}{result1, result2}
 }

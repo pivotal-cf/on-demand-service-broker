@@ -27,7 +27,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
-	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/brokerapi/domain/apiresponses"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	brokerConfig "github.com/pivotal-cf/on-demand-service-broker/config"
@@ -70,7 +70,7 @@ var _ = Describe("Deprovision", func() {
 			Expect(response.StatusCode).To(Equal(http.StatusAccepted))
 
 			By("including the operation data in the response")
-			var deprovisionResponse brokerapi.DeprovisionResponse
+			var deprovisionResponse apiresponses.DeprovisionResponse
 			Expect(json.Unmarshal(bodyContent, &deprovisionResponse)).To(Succeed())
 
 			var operationData broker.OperationData
@@ -148,7 +148,7 @@ var _ = Describe("Deprovision", func() {
 			Expect(response.StatusCode).To(Equal(http.StatusAccepted))
 
 			By("including the operation data in the response")
-			var deprovisionResponse brokerapi.DeprovisionResponse
+			var deprovisionResponse apiresponses.DeprovisionResponse
 			Expect(json.Unmarshal(bodyContent, &deprovisionResponse)).To(Succeed())
 
 			var operationData broker.OperationData
@@ -214,7 +214,7 @@ var _ = Describe("Deprovision", func() {
 				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 
 				By("returning the correct error data")
-				var errorResponse brokerapi.ErrorResponse
+				var errorResponse apiresponses.ErrorResponse
 				Expect(json.Unmarshal(bodyContent, &errorResponse)).To(Succeed())
 				Expect(errorResponse.Description).To(ContainSubstring(
 					"Unable to delete service. Please try again later",
@@ -235,7 +235,7 @@ var _ = Describe("Deprovision", func() {
 				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 
 				By("returning the correct error data")
-				var errorResponse brokerapi.ErrorResponse
+				var errorResponse apiresponses.ErrorResponse
 				Expect(json.Unmarshal(bodyContent, &errorResponse)).To(Succeed())
 				Expect(errorResponse.Description).To(ContainSubstring(
 					"Unable to delete service. Please try again later",
@@ -274,7 +274,7 @@ var _ = Describe("Deprovision", func() {
 			Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 
 			By("returning the correct error data")
-			var errorResponse brokerapi.ErrorResponse
+			var errorResponse apiresponses.ErrorResponse
 			Expect(json.Unmarshal(bodyContent, &errorResponse)).To(Succeed())
 			Expect(errorResponse.Description).To(ContainSubstring(
 				"An operation is in progress for your service instance. Please try again later.",
@@ -295,7 +295,7 @@ var _ = Describe("Deprovision", func() {
 			Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 
 			By("returning the correct error data")
-			var errorResponse brokerapi.ErrorResponse
+			var errorResponse apiresponses.ErrorResponse
 			Expect(json.Unmarshal(bodyContent, &errorResponse)).To(Succeed())
 			Expect(errorResponse.Description).To(ContainSubstring("Currently unable to delete service instance, please try again later"))
 		})

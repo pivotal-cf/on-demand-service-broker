@@ -5,28 +5,28 @@ import (
 	"context"
 	"sync"
 
-	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/brokerapi/domain"
 )
 
 type FakeServiceCatalogGenerator struct {
-	ServicesStub        func(context.Context) ([]brokerapi.Service, error)
+	ServicesStub        func(context.Context) ([]domain.Service, error)
 	servicesMutex       sync.RWMutex
 	servicesArgsForCall []struct {
 		arg1 context.Context
 	}
 	servicesReturns struct {
-		result1 []brokerapi.Service
+		result1 []domain.Service
 		result2 error
 	}
 	servicesReturnsOnCall map[int]struct {
-		result1 []brokerapi.Service
+		result1 []domain.Service
 		result2 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeServiceCatalogGenerator) Services(arg1 context.Context) ([]brokerapi.Service, error) {
+func (fake *FakeServiceCatalogGenerator) Services(arg1 context.Context) ([]domain.Service, error) {
 	fake.servicesMutex.Lock()
 	ret, specificReturn := fake.servicesReturnsOnCall[len(fake.servicesArgsForCall)]
 	fake.servicesArgsForCall = append(fake.servicesArgsForCall, struct {
@@ -50,7 +50,7 @@ func (fake *FakeServiceCatalogGenerator) ServicesCallCount() int {
 	return len(fake.servicesArgsForCall)
 }
 
-func (fake *FakeServiceCatalogGenerator) ServicesCalls(stub func(context.Context) ([]brokerapi.Service, error)) {
+func (fake *FakeServiceCatalogGenerator) ServicesCalls(stub func(context.Context) ([]domain.Service, error)) {
 	fake.servicesMutex.Lock()
 	defer fake.servicesMutex.Unlock()
 	fake.ServicesStub = stub
@@ -63,28 +63,28 @@ func (fake *FakeServiceCatalogGenerator) ServicesArgsForCall(i int) context.Cont
 	return argsForCall.arg1
 }
 
-func (fake *FakeServiceCatalogGenerator) ServicesReturns(result1 []brokerapi.Service, result2 error) {
+func (fake *FakeServiceCatalogGenerator) ServicesReturns(result1 []domain.Service, result2 error) {
 	fake.servicesMutex.Lock()
 	defer fake.servicesMutex.Unlock()
 	fake.ServicesStub = nil
 	fake.servicesReturns = struct {
-		result1 []brokerapi.Service
+		result1 []domain.Service
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeServiceCatalogGenerator) ServicesReturnsOnCall(i int, result1 []brokerapi.Service, result2 error) {
+func (fake *FakeServiceCatalogGenerator) ServicesReturnsOnCall(i int, result1 []domain.Service, result2 error) {
 	fake.servicesMutex.Lock()
 	defer fake.servicesMutex.Unlock()
 	fake.ServicesStub = nil
 	if fake.servicesReturnsOnCall == nil {
 		fake.servicesReturnsOnCall = make(map[int]struct {
-			result1 []brokerapi.Service
+			result1 []domain.Service
 			result2 error
 		})
 	}
 	fake.servicesReturnsOnCall[i] = struct {
-		result1 []brokerapi.Service
+		result1 []domain.Service
 		result2 error
 	}{result1, result2}
 }

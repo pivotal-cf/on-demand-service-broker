@@ -23,7 +23,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
-	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/brokerapi/domain"
 	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/cf_helpers"
 )
 
@@ -37,7 +37,7 @@ type CFServices struct {
 
 type CFServicePlans struct {
 	Resources []struct {
-		Entity brokerapi.ServicePlan
+		Entity domain.ServicePlan
 	}
 }
 
@@ -65,7 +65,7 @@ var _ = Describe("Service plan schemas", func() {
 
 		schemas := servicePlans.Resources[0].Entity.Schemas
 
-		for _, schema := range []brokerapi.Schema{schemas.Instance.Create, schemas.Instance.Update, schemas.Binding.Create} {
+		for _, schema := range []domain.Schema{schemas.Instance.Create, schemas.Instance.Update, schemas.Binding.Create} {
 			createProps, ok := schema.Parameters["properties"]
 			Expect(ok).To(BeTrue(), "schema did not contain properties")
 			createPropsMap, ok := createProps.(map[string]interface{})

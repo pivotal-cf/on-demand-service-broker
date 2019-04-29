@@ -9,7 +9,7 @@ package task
 import (
 	"log"
 
-	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/brokerapi/domain"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
@@ -27,14 +27,14 @@ type ServiceAdapterClient interface {
 		previousConfigs map[string]string,
 		logger *log.Logger,
 	) (serviceadapter.MarshalledGenerateManifest, error)
-	GeneratePlanSchema(plan serviceadapter.Plan, logger *log.Logger) (brokerapi.ServiceSchemas, error)
+	GeneratePlanSchema(plan serviceadapter.Plan, logger *log.Logger) (domain.ServiceSchemas, error)
 }
 
 type manifestGenerator struct {
-	adapterClient   ServiceAdapterClient
-	serviceOffering config.ServiceOffering
+	adapterClient    ServiceAdapterClient
+	serviceOffering  config.ServiceOffering
 	serviceStemcells []serviceadapter.Stemcell
-	serviceReleases serviceadapter.ServiceReleases
+	serviceReleases  serviceadapter.ServiceReleases
 }
 
 func NewManifestGenerator(
@@ -44,10 +44,10 @@ func NewManifestGenerator(
 	serviceReleases serviceadapter.ServiceReleases,
 ) manifestGenerator {
 	return manifestGenerator{
-		adapterClient:   serviceAdapter,
-		serviceOffering: serviceOffering,
+		adapterClient:    serviceAdapter,
+		serviceOffering:  serviceOffering,
 		serviceStemcells: serviceStemcells,
-		serviceReleases: serviceReleases,
+		serviceReleases:  serviceReleases,
 	}
 }
 
@@ -66,7 +66,7 @@ func (m manifestGenerator) GenerateManifest(
 	serviceDeployment := serviceadapter.ServiceDeployment{
 		DeploymentName: deploymentName,
 		Releases:       m.serviceReleases,
-		Stemcells:       m.serviceStemcells,
+		Stemcells:      m.serviceStemcells,
 	}
 
 	plan, previousPlan, err := m.findPlans(planID, previousPlanID)

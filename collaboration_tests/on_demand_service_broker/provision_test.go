@@ -25,7 +25,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
-	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/brokerapi/domain"
+	"github.com/pivotal-cf/brokerapi/domain/apiresponses"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
@@ -152,7 +153,7 @@ password: ((odb_secret:foo))`,
 			})
 
 			It("does not substitute odb_secret references", func() {
-				resp, _ := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, brokerapi.MaintenanceInfo{}, true)
+				resp, _ := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, domain.MaintenanceInfo{}, true)
 				Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
 
 				manifest, _, _, _ := fakeTaskBoshClient.DeployArgsForCall(0)
@@ -162,7 +163,7 @@ password: ((odb_secret:foo))`,
 
 		When("secure manifests are enabled", func() {
 			It("stores odb_secret secrets in credhub and replaces manifest placeholders", func() {
-				resp, _ := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, brokerapi.MaintenanceInfo{}, true)
+				resp, _ := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, domain.MaintenanceInfo{}, true)
 				Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
 
 				manifest, _, _, _ := fakeTaskBoshClient.DeployArgsForCall(0)
@@ -178,12 +179,12 @@ password: ((odb_secret:foo))`,
 		fakeCfClient.CountInstancesOfServiceOfferingReturns(make(map[cf.ServicePlan]int), nil)
 
 		By("fulfilling the request when the plan has no quota")
-		resp, _ := doProvisionRequest(instanceID, planWithoutQuotaID, arbitraryParams, brokerapi.MaintenanceInfo{}, true)
+		resp, _ := doProvisionRequest(instanceID, planWithoutQuotaID, arbitraryParams, domain.MaintenanceInfo{}, true)
 		Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
 	})
 
 	It("responds with 202 when the plan has no quota", func() {
-		resp, _ := doProvisionRequest(instanceID, planWithoutQuotaID, arbitraryParams, brokerapi.MaintenanceInfo{}, true)
+		resp, _ := doProvisionRequest(instanceID, planWithoutQuotaID, arbitraryParams, domain.MaintenanceInfo{}, true)
 		Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
 	})
 
@@ -191,13 +192,13 @@ password: ((odb_secret:foo))`,
 		It("successfully provision the service instance", func() {
 			fakeTaskBoshClient.DeployReturns(taskID, nil)
 
-			resp, bodyContent := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, brokerapi.MaintenanceInfo{}, true)
+			resp, bodyContent := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, domain.MaintenanceInfo{}, true)
 
 			By("returning http status code 202")
 			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
 
 			By("including the operation data in the response")
-			var provisioningResponse brokerapi.ProvisioningResponse
+			var provisioningResponse apiresponses.ProvisioningResponse
 			Expect(json.Unmarshal(bodyContent, &provisioningResponse)).To(Succeed())
 			Expect(provisioningResponse.DashboardURL).To(BeEmpty())
 
@@ -256,10 +257,10 @@ password: ((odb_secret:foo))`,
 			dashboardJSON := toJson(sdk.DashboardUrl{DashboardUrl: "http://dashboard.example.com"})
 			fakeCommandRunner.RunWithInputParamsReturnsOnCall(1, dashboardJSON, []byte{}, &zero, nil)
 
-			resp, bodyContent := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, brokerapi.MaintenanceInfo{}, true)
+			resp, bodyContent := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, domain.MaintenanceInfo{}, true)
 			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
 
-			var provisionResponseBody brokerapi.ProvisioningResponse
+			var provisionResponseBody apiresponses.ProvisioningResponse
 			Expect(json.Unmarshal(bodyContent, &provisionResponseBody)).To(Succeed())
 
 			By("calling the adapter with the correct arguments")
@@ -302,10 +303,10 @@ password: ((odb_secret:foo))`,
 			fakeTaskBoshClient.DeployReturns(taskID, nil)
 			fakeCommandRunner.RunWithInputParamsReturnsOnCall(1, nil, nil, nil, errors.New("something went wrong"))
 
-			resp, bodyContent := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, brokerapi.MaintenanceInfo{}, true)
+			resp, bodyContent := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, domain.MaintenanceInfo{}, true)
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 
-			var errorResponse brokerapi.ErrorResponse
+			var errorResponse apiresponses.ErrorResponse
 			Expect(json.Unmarshal(bodyContent, &errorResponse)).To(Succeed())
 			Expect(errorResponse.Description).To(SatisfyAll(
 				ContainSubstring(
@@ -324,12 +325,12 @@ password: ((odb_secret:foo))`,
 		It("responds with 500 and with a descriptive message when generating the dashboard url fails", func() {
 			errCode := 37
 			fakeCommandRunner.RunWithInputParamsReturnsOnCall(1, []byte("error message for user"), []byte{}, &errCode, nil)
-			resp, bodyContent := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, brokerapi.MaintenanceInfo{}, true)
+			resp, bodyContent := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, domain.MaintenanceInfo{}, true)
 
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 
 			By("returning the error for the CF user")
-			var errorResponse brokerapi.ErrorResponse
+			var errorResponse apiresponses.ErrorResponse
 			Expect(json.Unmarshal(bodyContent, &errorResponse)).To(Succeed())
 			Expect(errorResponse.Description).To(ContainSubstring("error message for user"))
 		})
@@ -338,14 +339,14 @@ password: ((odb_secret:foo))`,
 	It("succeeds when the plan has post-deploy errands configured", func() {
 		fakeTaskBoshClient.DeployReturns(taskID, nil)
 
-		resp, bodyContent := doProvisionRequest(instanceID, planWithErrandID, arbitraryParams, brokerapi.MaintenanceInfo{}, true)
+		resp, bodyContent := doProvisionRequest(instanceID, planWithErrandID, arbitraryParams, domain.MaintenanceInfo{}, true)
 
 		By("returning http status code 202")
 		Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
 
 		By("including the operation data in the response")
 
-		var provisioningResponse brokerapi.ProvisioningResponse
+		var provisioningResponse apiresponses.ProvisioningResponse
 		Expect(json.Unmarshal(bodyContent, &provisioningResponse)).To(Succeed())
 		Expect(provisioningResponse.DashboardURL).To(BeEmpty())
 
@@ -363,7 +364,7 @@ password: ((odb_secret:foo))`,
 	It("responds with 409 when another instance with the same id is provisioned", func() {
 		fakeBoshClient.GetDeploymentReturns(nil, true, nil)
 
-		resp, _ := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, brokerapi.MaintenanceInfo{}, true)
+		resp, _ := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, domain.MaintenanceInfo{}, true)
 		Expect(resp.StatusCode).To(Equal(http.StatusConflict))
 
 		Expect(loggerBuffer).To(gbytes.Say("already exists"))
@@ -372,10 +373,10 @@ password: ((odb_secret:foo))`,
 	It("responds with 500 when deployer fails to create", func() {
 		fakeTaskBoshClient.DeployReturns(0, errors.New("cant create"))
 
-		resp, bodyContent := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, brokerapi.MaintenanceInfo{}, true)
+		resp, bodyContent := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, domain.MaintenanceInfo{}, true)
 		Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 
-		var errorResponse brokerapi.ErrorResponse
+		var errorResponse apiresponses.ErrorResponse
 		Expect(json.Unmarshal(bodyContent, &errorResponse)).To(Succeed())
 		Expect(errorResponse.Description).To(SatisfyAll(
 			ContainSubstring(
@@ -403,10 +404,10 @@ password: ((odb_secret:foo))`,
 
 		It("returns the operator error if the deployer fails", func() {
 			fakeBoshClient.GetDeploymentReturns([]byte{}, false, errors.New("bosh_server_error!"))
-			resp, bodyContent := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, brokerapi.MaintenanceInfo{}, true)
+			resp, bodyContent := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, domain.MaintenanceInfo{}, true)
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 
-			var errorResponse brokerapi.ErrorResponse
+			var errorResponse apiresponses.ErrorResponse
 			Expect(json.Unmarshal(bodyContent, &errorResponse)).To(Succeed())
 			Expect(errorResponse.Description).To(SatisfyAll(
 				ContainSubstring(
@@ -437,7 +438,7 @@ password: ((odb_secret:foo))`,
 			}: instanceLimit,
 		}
 		fakeCfClient.CountInstancesOfServiceOfferingReturns(planCounts, nil)
-		resp, bodyContent := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, brokerapi.MaintenanceInfo{}, true)
+		resp, bodyContent := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, domain.MaintenanceInfo{}, true)
 		Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 
 		var errorResponse map[string]string
@@ -455,7 +456,7 @@ password: ((odb_secret:foo))`,
 		}
 		instanceLimit := 12
 		fakeCfClient.CountInstancesOfServiceOfferingReturns(map[cf.ServicePlan]int{servicePlan: globalQuota}, nil)
-		resp, bodyContent := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, brokerapi.MaintenanceInfo{}, true)
+		resp, bodyContent := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, domain.MaintenanceInfo{}, true)
 		Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 
 		var errorResponse map[string]string
@@ -466,7 +467,7 @@ password: ((odb_secret:foo))`,
 	})
 
 	It("responds with 422 when async is set to false", func() {
-		resp, bodyContent := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, brokerapi.MaintenanceInfo{}, false)
+		resp, bodyContent := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, domain.MaintenanceInfo{}, false)
 		Expect(resp.StatusCode).To(Equal(http.StatusUnprocessableEntity))
 
 		Expect(bodyContent).To(MatchJSON(`{
@@ -477,16 +478,16 @@ password: ((odb_secret:foo))`,
 
 	It("responds with 500 when bosh is unavailable", func() {
 		fakeBoshClient.GetInfoReturns(boshdirector.Info{}, errors.New("boom"))
-		resp, bodyContent := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, brokerapi.MaintenanceInfo{}, true)
+		resp, bodyContent := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, domain.MaintenanceInfo{}, true)
 		Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 
-		var errorResponse brokerapi.ErrorResponse
+		var errorResponse apiresponses.ErrorResponse
 		Expect(json.Unmarshal(bodyContent, &errorResponse)).To(Succeed())
 		Expect(errorResponse.Description).To(ContainSubstring("Currently unable to create service instance, please try again later"))
 	})
 
 	When("the broker is configured with maintenance_info", func() {
-		var requestMaintenanceInfo brokerapi.MaintenanceInfo
+		var requestMaintenanceInfo domain.MaintenanceInfo
 
 		BeforeEach(func() {
 			brokerMaintenanceInfo := brokerConfig.MaintenanceInfo{
@@ -499,7 +500,7 @@ password: ((odb_secret:foo))`,
 				Version: "1.2.3",
 			}
 			conf.ServiceCatalog.MaintenanceInfo = &brokerMaintenanceInfo
-			requestMaintenanceInfo = brokerapi.MaintenanceInfo{
+			requestMaintenanceInfo = domain.MaintenanceInfo{
 				Public: map[string]string{
 					"foo": "bar",
 				},
@@ -520,7 +521,7 @@ password: ((odb_secret:foo))`,
 		When("maintenance_info in the request does not match that stored on the broker", func() {
 
 			It("returns UnprocessableEntity with maintenanceInfoConflict error", func() {
-				fakeMaintenanceInfoChecker.CheckReturns(brokerapi.ErrMaintenanceInfoConflict)
+				fakeMaintenanceInfoChecker.CheckReturns(apiresponses.ErrMaintenanceInfoConflict)
 
 				resp, bodyContent := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, requestMaintenanceInfo, true)
 				Expect(resp.StatusCode).To(Equal(http.StatusUnprocessableEntity))
@@ -535,13 +536,13 @@ password: ((odb_secret:foo))`,
 	When("the broker does not have maintenance_info", func() {
 
 		It("returns UnprocessableEntity with maintenanceInfoConflict error", func() {
-			fakeMaintenanceInfoChecker.CheckReturns(brokerapi.ErrMaintenanceInfoNilConflict)
+			fakeMaintenanceInfoChecker.CheckReturns(apiresponses.ErrMaintenanceInfoNilConflict)
 
 			resp, bodyContent := doProvisionRequest(
 				instanceID,
 				planWithQuotaID,
 				arbitraryParams,
-				brokerapi.MaintenanceInfo{
+				domain.MaintenanceInfo{
 					Public: map[string]string{
 						"foo": "bar",
 					},
@@ -574,7 +575,7 @@ password: ((odb_secret:foo))`,
 			})
 
 			It("calls bosh to create the new bosh config", func() {
-				resp, _ := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, brokerapi.MaintenanceInfo{}, true)
+				resp, _ := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, domain.MaintenanceInfo{}, true)
 				Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
 
 				Expect(fakeTaskBoshClient.UpdateConfigCallCount()).To(Equal(1))
@@ -603,7 +604,7 @@ password: ((odb_secret:foo))`,
 				zero := 0
 				fakeCommandRunner.RunWithInputParamsReturns(generateManifestOutputBytes, []byte{}, &zero, nil)
 
-				resp, _ := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, brokerapi.MaintenanceInfo{}, true)
+				resp, _ := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, domain.MaintenanceInfo{}, true)
 				Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 				Expect(fakeTaskBoshClient.UpdateConfigCallCount()).To(Equal(0), "UpdateConfig should not have been called")
 			})
@@ -620,7 +621,7 @@ password: ((odb_secret:foo))`,
 				zero := 0
 				fakeCommandRunner.RunWithInputParamsReturns(generateManifestOutputBytes, []byte{}, &zero, nil)
 
-				resp, _ := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, brokerapi.MaintenanceInfo{}, true)
+				resp, _ := doProvisionRequest(instanceID, planWithQuotaID, arbitraryParams, domain.MaintenanceInfo{}, true)
 				Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
 				Expect(fakeTaskBoshClient.UpdateConfigCallCount()).To(Equal(0), "UpdateConfig should not have been called")
 			})
@@ -628,7 +629,7 @@ password: ((odb_secret:foo))`,
 	})
 })
 
-func doProvisionRequest(instanceID, planID string, arbitraryParams map[string]interface{}, maintenanceInfo brokerapi.MaintenanceInfo, asyncAllowed bool) (*http.Response, []byte) {
+func doProvisionRequest(instanceID, planID string, arbitraryParams map[string]interface{}, maintenanceInfo domain.MaintenanceInfo, asyncAllowed bool) (*http.Response, []byte) {
 	reqBody := map[string]interface{}{
 		"plan_id":           planID,
 		"space_guid":        spaceGUID,

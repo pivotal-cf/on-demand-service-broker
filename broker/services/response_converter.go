@@ -12,7 +12,8 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/brokerapi/domain"
+	"github.com/pivotal-cf/brokerapi/domain/apiresponses"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/mgmtapi"
 )
@@ -54,7 +55,7 @@ func (r ResponseConverter) ExtractOperationFrom(response *http.Response) (BOSHOp
 	case http.StatusConflict:
 		return BOSHOperation{Type: OperationInProgress}, nil
 	case http.StatusInternalServerError:
-		var errorResponse brokerapi.ErrorResponse
+		var errorResponse apiresponses.ErrorResponse
 		body, _ := ioutil.ReadAll(response.Body)
 		if err := json.Unmarshal(body, &errorResponse); err != nil {
 			return BOSHOperation{}, fmt.Errorf(
@@ -73,11 +74,11 @@ func (r ResponseConverter) ExtractOperationFrom(response *http.Response) (BOSHOp
 	}
 }
 
-func (r ResponseConverter) LastOperationFrom(response *http.Response) (brokerapi.LastOperation, error) {
-	var lastOperation brokerapi.LastOperation
+func (r ResponseConverter) LastOperationFrom(response *http.Response) (domain.LastOperation, error) {
+	var lastOperation domain.LastOperation
 	err := decodeBodyInto(response, &lastOperation)
 	if err != nil {
-		return brokerapi.LastOperation{}, err
+		return domain.LastOperation{}, err
 	}
 
 	return lastOperation, nil

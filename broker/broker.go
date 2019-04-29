@@ -12,7 +12,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/brokerapi/domain"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
@@ -40,7 +40,7 @@ type Broker struct {
 
 	loggerFactory *loggerfactory.LoggerFactory
 	catalogLock   sync.Mutex
-	cachedCatalog []brokerapi.Service
+	cachedCatalog []domain.Service
 
 	maintenanceInfoChecker MaintenanceInfoChecker
 }
@@ -183,7 +183,7 @@ type ServiceAdapterClient interface {
 	CreateBinding(bindingID string, deploymentTopology bosh.BoshVMs, manifest []byte, requestParams map[string]interface{}, secretsMap, dnsAddresses map[string]string, logger *log.Logger) (serviceadapter.Binding, error)
 	DeleteBinding(bindingID string, deploymentTopology bosh.BoshVMs, manifest []byte, requestParams map[string]interface{}, secretsMap map[string]string, dnsAddresses map[string]string, logger *log.Logger) error
 	GenerateDashboardUrl(instanceID string, plan serviceadapter.Plan, manifest []byte, logger *log.Logger) (string, error)
-	GeneratePlanSchema(plan serviceadapter.Plan, logger *log.Logger) (brokerapi.ServiceSchemas, error)
+	GeneratePlanSchema(plan serviceadapter.Plan, logger *log.Logger) (domain.ServiceSchemas, error)
 }
 
 //go:generate counterfeiter -o fakes/fake_bosh_client.go . BoshClient
@@ -225,5 +225,5 @@ type Hasher interface {
 //go:generate counterfeiter -o fakes/fake_maintenance_info_checker.go . MaintenanceInfoChecker
 
 type MaintenanceInfoChecker interface {
-	Check(planID string, maintenanceInfo brokerapi.MaintenanceInfo, serviceCatalog []brokerapi.Service, logger *log.Logger) error
+	Check(planID string, maintenanceInfo domain.MaintenanceInfo, serviceCatalog []domain.Service, logger *log.Logger) error
 }

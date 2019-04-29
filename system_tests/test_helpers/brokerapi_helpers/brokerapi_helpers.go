@@ -4,13 +4,15 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf/brokerapi"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"time"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	"github.com/pivotal-cf/brokerapi/domain"
+	"github.com/pivotal-cf/brokerapi/domain/apiresponses"
 )
 
 type BrokerAPIClient struct {
@@ -19,16 +21,16 @@ type BrokerAPIClient struct {
 	Password string
 }
 
-func (b *BrokerAPIClient) Provision(serviceInstanceGUID, serviceID, planID string) brokerapi.ProvisioningResponse {
+func (b *BrokerAPIClient) Provision(serviceInstanceGUID, serviceID, planID string) apiresponses.ProvisioningResponse {
 	url := fmt.Sprintf("http://%s/v2/service_instances/%s?accepts_incomplete=true", b.URI, serviceInstanceGUID)
-	provisionDetails := brokerapi.ProvisionDetails{
+	provisionDetails := domain.ProvisionDetails{
 		ServiceID: serviceID,
 		PlanID:    planID,
 	}
 	resp, bodyContent := b.doRequest(http.MethodPut, url, provisionDetails)
 	Expect(resp.StatusCode).To(Equal(http.StatusAccepted), "provision request status unexpected. Response content: "+string(bodyContent))
 
-	provisioningResponse := brokerapi.ProvisioningResponse{}
+	provisioningResponse := apiresponses.ProvisioningResponse{}
 	Expect(json.Unmarshal(bodyContent, &provisioningResponse)).To(Succeed())
 	return provisioningResponse
 }
@@ -45,11 +47,11 @@ func (b *BrokerAPIClient) PollLastOperation(serviceInstanceGUID, operationData s
 		resp, bodyContent := b.doRequest(http.MethodGet, lastOperationURL, nil)
 		Expect(resp.StatusCode).To(Equal(http.StatusOK))
 
-		lastOperationResponse := brokerapi.LastOperationResponse{}
+		lastOperationResponse := apiresponses.LastOperationResponse{}
 		err := json.Unmarshal(bodyContent, &lastOperationResponse)
 		Expect(err).NotTo(HaveOccurred())
 
-		if lastOperationResponse.State == brokerapi.InProgress {
+		if lastOperationResponse.State == domain.InProgress {
 			time.Sleep(time.Second * 10)
 			sleeps += 1
 			if sleeps >= 32 {
@@ -57,22 +59,22 @@ func (b *BrokerAPIClient) PollLastOperation(serviceInstanceGUID, operationData s
 			}
 			continue
 		}
-		if lastOperationResponse.State == brokerapi.Succeeded {
+		if lastOperationResponse.State == domain.Succeeded {
 			return
 		}
-		if lastOperationResponse.State == brokerapi.Failed {
+		if lastOperationResponse.State == domain.Failed {
 			Fail("lastOperation returned Failed response")
 		}
 	}
 }
 
-func (b *BrokerAPIClient) Deprovision(serviceInstanceGUID, serviceID, planID string) brokerapi.DeprovisionResponse {
+func (b *BrokerAPIClient) Deprovision(serviceInstanceGUID, serviceID, planID string) apiresponses.DeprovisionResponse {
 	url := fmt.Sprintf("http://%s/v2/service_instances/%s?accepts_incomplete=true&service_id=%s&plan_id=%s",
 		b.URI, serviceInstanceGUID, serviceID, planID)
 	resp, bodyContent := b.doRequest(http.MethodDelete, url, nil)
 	Expect(resp.StatusCode).To(Equal(http.StatusAccepted), "delete request status unexpected. Response content: "+string(bodyContent))
 
-	var deprovisionResponse brokerapi.DeprovisionResponse
+	var deprovisionResponse apiresponses.DeprovisionResponse
 	Expect(json.Unmarshal(bodyContent, &deprovisionResponse)).To(Succeed())
 	return deprovisionResponse
 }

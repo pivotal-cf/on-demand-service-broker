@@ -13,7 +13,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/brokerapi/domain"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	brokerfakes "github.com/pivotal-cf/on-demand-service-broker/broker/fakes"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
@@ -23,7 +23,7 @@ import (
 var _ = Describe("Upgrade", func() {
 	var (
 		upgradeOperationData broker.OperationData
-		details              brokerapi.UpdateDetails
+		details              domain.UpdateDetails
 		instanceID           string
 		logger               *log.Logger
 		boshTaskID           int
@@ -33,7 +33,7 @@ var _ = Describe("Upgrade", func() {
 	BeforeEach(func() {
 		instanceID = "some-instance"
 		boshTaskID = 876
-		details = brokerapi.UpdateDetails{
+		details = domain.UpdateDetails{
 			PlanID: existingPlanID,
 		}
 		logger = loggerFactory.NewWithRequestID()
@@ -71,7 +71,7 @@ var _ = Describe("Upgrade", func() {
 		})
 
 		It("and post-deploy errand is configured deploys with a context id", func() {
-			details = brokerapi.UpdateDetails{
+			details = domain.UpdateDetails{
 				PlanID: postDeployErrandPlanID,
 			}
 
@@ -110,7 +110,7 @@ var _ = Describe("Upgrade", func() {
 	})
 
 	It("when no update details are provided returns an error", func() {
-		details = brokerapi.UpdateDetails{}
+		details = domain.UpdateDetails{}
 		_, redeployErr = b.Upgrade(context.Background(), instanceID, details, logger)
 
 		Expect(redeployErr).To(MatchError(ContainSubstring("no plan ID provided in upgrade request body")))
@@ -119,7 +119,7 @@ var _ = Describe("Upgrade", func() {
 	It("when the plan cannot be found upgrade fails and does not redeploy", func() {
 		planID := "plan-id-doesnt-exist"
 
-		details = brokerapi.UpdateDetails{
+		details = domain.UpdateDetails{
 			PlanID: planID,
 		}
 		_, redeployErr = b.Upgrade(context.Background(), instanceID, details, logger)
@@ -138,7 +138,7 @@ var _ = Describe("Upgrade", func() {
 
 	It("should not request the json schemas from the service adapter", func() {
 		fakeAdapter := new(brokerfakes.FakeServiceAdapterClient)
-		fakeAdapter.GeneratePlanSchemaReturns(brokerapi.ServiceSchemas{}, fmt.Errorf("derp!"))
+		fakeAdapter.GeneratePlanSchemaReturns(domain.ServiceSchemas{}, fmt.Errorf("derp!"))
 		broker := createBrokerWithAdapter(fakeAdapter)
 
 		_, upgradeErr := broker.Upgrade(context.Background(), instanceID, details, logger)

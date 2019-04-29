@@ -15,11 +15,11 @@ import (
 	"encoding/json"
 
 	"github.com/pborman/uuid"
-	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/brokerapi/domain"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 )
 
-func (b *Broker) Upgrade(ctx context.Context, instanceID string, details brokerapi.UpdateDetails, logger *log.Logger) (OperationData, error) {
+func (b *Broker) Upgrade(ctx context.Context, instanceID string, details domain.UpdateDetails, logger *log.Logger) (OperationData, error) {
 	b.deploymentLock.Lock()
 	defer b.deploymentLock.Unlock()
 

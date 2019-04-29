@@ -15,7 +15,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pborman/uuid"
-	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/brokerapi/domain"
+	"github.com/pivotal-cf/brokerapi/domain/apiresponses"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	brokerfakes "github.com/pivotal-cf/on-demand-service-broker/broker/fakes"
@@ -42,10 +43,10 @@ var _ = Describe("Bind", func() {
 		arbitraryContext    = map[string]interface{}{"platform": "cloudfoundry"}
 		actualDNSAddresses  map[string]string
 
-		bindResult brokerapi.Binding
+		bindResult domain.Binding
 		bindErr    error
 
-		bindRequest   brokerapi.BindDetails
+		bindRequest   domain.BindDetails
 		boshVariables []boshdirector.Variable
 	)
 
@@ -59,11 +60,11 @@ var _ = Describe("Bind", func() {
 		Expect(err).NotTo(HaveOccurred())
 		serialisedContext, err := json.Marshal(arbitraryContext)
 		Expect(err).NotTo(HaveOccurred())
-		bindRequest = brokerapi.BindDetails{
+		bindRequest = domain.BindDetails{
 			AppGUID:   "app_guid",
 			PlanID:    "plan_id",
 			ServiceID: "service_id",
-			BindResource: &brokerapi.BindResource{
+			BindResource: &domain.BindResource{
 				AppGuid: "app_guid",
 			},
 			RawParameters: serialisedArbitraryParameters,
@@ -169,7 +170,7 @@ var _ = Describe("Bind", func() {
 		})
 
 		It("returns the credentials, syslog drain url, and route service url produced by the service adapter", func() {
-			Expect(bindResult).To(Equal(brokerapi.Binding{
+			Expect(bindResult).To(Equal(domain.Binding{
 				Credentials:     adapterBindingResponse.Credentials,
 				SyslogDrainURL:  adapterBindingResponse.SyslogDrainURL,
 				RouteServiceURL: adapterBindingResponse.RouteServiceURL,
@@ -200,11 +201,11 @@ var _ = Describe("Bind", func() {
 
 		Context("when the request cannot be converted to json", func() {
 			BeforeEach(func() {
-				bindRequest = brokerapi.BindDetails{
+				bindRequest = domain.BindDetails{
 					AppGUID:   "app_guid",
 					PlanID:    "plan_id",
 					ServiceID: "service_id",
-					BindResource: &brokerapi.BindResource{
+					BindResource: &domain.BindResource{
 						AppGuid: "app_guid",
 					},
 					RawParameters: []byte(`not valid json`),
@@ -222,7 +223,7 @@ var _ = Describe("Bind", func() {
 			})
 
 			It("returns a standard error message", func() {
-				Expect(bindErr).To(Equal(brokerapi.ErrInstanceDoesNotExist))
+				Expect(bindErr).To(Equal(apiresponses.ErrInstanceDoesNotExist))
 			})
 
 			It("logs the error", func() {
@@ -381,7 +382,7 @@ var _ = Describe("Bind", func() {
 				})
 
 				It("returns a binding already exists error", func() {
-					Expect(bindErr).To(Equal(brokerapi.ErrBindingAlreadyExists))
+					Expect(bindErr).To(Equal(apiresponses.ErrBindingAlreadyExists))
 				})
 			})
 
@@ -391,7 +392,7 @@ var _ = Describe("Bind", func() {
 				})
 
 				It("returns an 'app guid not provided' error", func() {
-					Expect(bindErr).To(Equal(brokerapi.ErrAppGuidNotProvided))
+					Expect(bindErr).To(Equal(apiresponses.ErrAppGuidNotProvided))
 				})
 			})
 		})
@@ -451,9 +452,9 @@ var _ = Describe("Bind", func() {
 
 		It("returns an error if the generated schema is not valid", func() {
 			fakeAdapter := new(brokerfakes.FakeServiceAdapterClient)
-			badSchemaFixture := brokerapi.ServiceSchemas{
-				Binding: brokerapi.ServiceBindingSchema{
-					Create: brokerapi.Schema{Parameters: invalidSchema},
+			badSchemaFixture := domain.ServiceSchemas{
+				Binding: domain.ServiceBindingSchema{
+					Create: domain.Schema{Parameters: invalidSchema},
 				},
 			}
 			fakeAdapter.GeneratePlanSchemaReturns(badSchemaFixture, nil)
@@ -569,14 +570,14 @@ var _ = Describe("Bind", func() {
 	})
 })
 
-func generateBindRequestWithParams(params map[string]interface{}) brokerapi.BindDetails {
+func generateBindRequestWithParams(params map[string]interface{}) domain.BindDetails {
 	serialisedArbitraryParameters, err := json.Marshal(params)
 	Expect(err).NotTo(HaveOccurred())
-	return brokerapi.BindDetails{
+	return domain.BindDetails{
 		AppGUID:   "app_guid",
 		PlanID:    existingPlanID,
 		ServiceID: "service_id",
-		BindResource: &brokerapi.BindResource{
+		BindResource: &domain.BindResource{
 			AppGuid: "app_guid",
 		},
 		RawParameters: serialisedArbitraryParameters,

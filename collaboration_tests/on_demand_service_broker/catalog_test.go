@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/pivotal-cf/brokerapi/domain"
 	brokerConfig "github.com/pivotal-cf/on-demand-service-broker/config"
 	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 
@@ -29,7 +30,6 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf/brokerapi"
 )
 
 var _ = Describe("Catalog", func() {
@@ -44,13 +44,13 @@ var _ = Describe("Catalog", func() {
 		"type":     "object",
 		"required": []interface{}{"flibbles"},
 	}
-	var defaultSchemas = brokerapi.ServiceSchemas{
-		Instance: brokerapi.ServiceInstanceSchema{
-			Create: brokerapi.Schema{Parameters: schemaParameters},
-			Update: brokerapi.Schema{Parameters: schemaParameters},
+	var defaultSchemas = domain.ServiceSchemas{
+		Instance: domain.ServiceInstanceSchema{
+			Create: domain.Schema{Parameters: schemaParameters},
+			Update: domain.Schema{Parameters: schemaParameters},
 		},
-		Binding: brokerapi.ServiceBindingSchema{
-			Create: brokerapi.Schema{Parameters: schemaParameters},
+		Binding: domain.ServiceBindingSchema{
+			Create: domain.Schema{Parameters: schemaParameters},
 		},
 	}
 
@@ -89,9 +89,9 @@ var _ = Describe("Catalog", func() {
 			Expect(response.StatusCode).To(Equal(http.StatusOK))
 
 			By("returning the correct catalog response")
-			catalog := make(map[string][]brokerapi.Service)
+			catalog := make(map[string][]domain.Service)
 			Expect(json.Unmarshal(bodyContent, &catalog)).To(Succeed())
-			Expect(catalog).To(Equal(map[string][]brokerapi.Service{
+			Expect(catalog).To(Equal(map[string][]domain.Service{
 				"services": {
 					{
 						ID:            serviceID,
@@ -99,7 +99,7 @@ var _ = Describe("Catalog", func() {
 						Description:   serviceDescription,
 						Bindable:      serviceBindable,
 						PlanUpdatable: servicePlanUpdatable,
-						Metadata: &brokerapi.ServiceMetadata{
+						Metadata: &domain.ServiceMetadata{
 							DisplayName:         serviceMetadataDisplayName,
 							ImageUrl:            serviceMetadataImageURL,
 							LongDescription:     serviceMetaDataLongDescription,
@@ -110,7 +110,7 @@ var _ = Describe("Catalog", func() {
 						},
 						DashboardClient: nil,
 						Tags:            serviceTags,
-						Plans: []brokerapi.ServicePlan{
+						Plans: []domain.ServicePlan{
 							{
 								ID:          dedicatedPlanID,
 								Name:        dedicatedPlanName,
@@ -118,10 +118,10 @@ var _ = Describe("Catalog", func() {
 								Free:        &trueVar,
 								Bindable:    &trueVar,
 								Schemas:     &defaultSchemas,
-								Metadata: &brokerapi.ServicePlanMetadata{
+								Metadata: &domain.ServicePlanMetadata{
 									Bullets:     dedicatedPlanBullets,
 									DisplayName: dedicatedPlanDisplayName,
-									Costs: []brokerapi.ServicePlanCost{
+									Costs: []domain.ServicePlanCost{
 										{
 											Unit:   dedicatedPlanCostUnit,
 											Amount: dedicatedPlanCostAmount,
@@ -137,7 +137,7 @@ var _ = Describe("Catalog", func() {
 								ID:          highMemoryPlanID,
 								Name:        highMemoryPlanName,
 								Description: highMemoryPlanDescription,
-								Metadata: &brokerapi.ServicePlanMetadata{
+								Metadata: &domain.ServicePlanMetadata{
 									Bullets:     highMemoryPlanBullets,
 									DisplayName: highMemoryPlanDisplayName,
 								},
@@ -229,9 +229,9 @@ var _ = Describe("Catalog", func() {
 			Expect(response.StatusCode).To(Equal(http.StatusOK))
 
 			By("returning the correct catalog response")
-			catalog := make(map[string][]brokerapi.Service)
+			catalog := make(map[string][]domain.Service)
 			Expect(json.Unmarshal(bodyContent, &catalog)).To(Succeed())
-			Expect(catalog).To(Equal(map[string][]brokerapi.Service{
+			Expect(catalog).To(Equal(map[string][]domain.Service{
 				"services": {
 					{
 						ID:            serviceID,
@@ -239,7 +239,7 @@ var _ = Describe("Catalog", func() {
 						Description:   serviceDescription,
 						Bindable:      serviceBindable,
 						PlanUpdatable: servicePlanUpdatable,
-						Metadata: &brokerapi.ServiceMetadata{
+						Metadata: &domain.ServiceMetadata{
 							DisplayName:         serviceMetadataDisplayName,
 							ImageUrl:            serviceMetadataImageURL,
 							LongDescription:     serviceMetaDataLongDescription,
@@ -251,24 +251,24 @@ var _ = Describe("Catalog", func() {
 								"random": "george",
 							},
 						},
-						DashboardClient: &brokerapi.ServiceDashboardClient{
+						DashboardClient: &domain.ServiceDashboardClient{
 							ID:          "client-id-1",
 							Secret:      "secret-1",
 							RedirectURI: "https://dashboard.url",
 						},
-						Requires: []brokerapi.RequiredPermission{"syslog_drain", "route_forwarding"},
+						Requires: []domain.RequiredPermission{"syslog_drain", "route_forwarding"},
 						Tags:     serviceTags,
-						Plans: []brokerapi.ServicePlan{
+						Plans: []domain.ServicePlan{
 							{
 								ID:          dedicatedPlanID,
 								Name:        dedicatedPlanName,
 								Description: dedicatedPlanDescription,
 								Free:        &trueVar,
 								Bindable:    &trueVar,
-								Metadata: &brokerapi.ServicePlanMetadata{
+								Metadata: &domain.ServicePlanMetadata{
 									Bullets:     dedicatedPlanBullets,
 									DisplayName: dedicatedPlanDisplayName,
-									Costs: []brokerapi.ServicePlanCost{
+									Costs: []domain.ServicePlanCost{
 										{
 											Unit:   dedicatedPlanCostUnit,
 											Amount: dedicatedPlanCostAmount,
@@ -279,7 +279,7 @@ var _ = Describe("Catalog", func() {
 									},
 								},
 								Schemas: &defaultSchemas,
-								MaintenanceInfo: &brokerapi.MaintenanceInfo{
+								MaintenanceInfo: &domain.MaintenanceInfo{
 									Public: map[string]string{
 										"name":             "gloria",
 										"stemcell_version": "1234",
@@ -292,12 +292,12 @@ var _ = Describe("Catalog", func() {
 								ID:          highMemoryPlanID,
 								Name:        highMemoryPlanName,
 								Description: highMemoryPlanDescription,
-								Metadata: &brokerapi.ServicePlanMetadata{
+								Metadata: &domain.ServicePlanMetadata{
 									Bullets:     highMemoryPlanBullets,
 									DisplayName: highMemoryPlanDisplayName,
 								},
 								Schemas: &defaultSchemas,
-								MaintenanceInfo: &brokerapi.MaintenanceInfo{
+								MaintenanceInfo: &domain.MaintenanceInfo{
 									Public: map[string]string{
 										"name": "jorge",
 									},

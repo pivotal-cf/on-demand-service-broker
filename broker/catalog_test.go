@@ -21,7 +21,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/brokerapi/domain"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/noopservicescontroller"
@@ -30,11 +30,11 @@ import (
 
 var _ = Describe("Catalog", func() {
 	var (
-		createSchema, updateSchema, bindingSchema                brokerapi.Schema
-		invalidTypeSchema, invalidVersionSchema, noVersionSchema brokerapi.Schema
+		createSchema, updateSchema, bindingSchema                domain.Schema
+		invalidTypeSchema, invalidVersionSchema, noVersionSchema domain.Schema
 	)
 
-	createSchema = brokerapi.Schema{
+	createSchema = domain.Schema{
 		Parameters: map[string]interface{}{
 			"$schema": "http://json-schema.org/draft-04/schema#",
 			"type":    "object",
@@ -46,7 +46,7 @@ var _ = Describe("Catalog", func() {
 			},
 		},
 	}
-	updateSchema = brokerapi.Schema{
+	updateSchema = domain.Schema{
 		Parameters: map[string]interface{}{
 			"$schema": "http://json-schema.org/draft-04/schema#",
 			"type":    "object",
@@ -58,7 +58,7 @@ var _ = Describe("Catalog", func() {
 			},
 		},
 	}
-	bindingSchema = brokerapi.Schema{
+	bindingSchema = domain.Schema{
 		Parameters: map[string]interface{}{
 			"$schema": "http://json-schema.org/draft-04/schema#",
 			"type":    "object",
@@ -70,7 +70,7 @@ var _ = Describe("Catalog", func() {
 			},
 		},
 	}
-	noVersionSchema = brokerapi.Schema{
+	noVersionSchema = domain.Schema{
 		Parameters: map[string]interface{}{
 			"type": "object",
 			"properties": map[string]interface{}{
@@ -81,7 +81,7 @@ var _ = Describe("Catalog", func() {
 			},
 		},
 	}
-	invalidVersionSchema = brokerapi.Schema{
+	invalidVersionSchema = domain.Schema{
 		Parameters: map[string]interface{}{
 			"$schema": "http://json-schema.org/draft-03/schema#",
 			"type":    "object",
@@ -93,7 +93,7 @@ var _ = Describe("Catalog", func() {
 			},
 		},
 	}
-	invalidTypeSchema = brokerapi.Schema{
+	invalidTypeSchema = domain.Schema{
 		Parameters: map[string]interface{}{
 			"$schema": "http://json-schema.org/draft-04/schema#",
 			"type":    "object",
@@ -122,7 +122,7 @@ var _ = Describe("Catalog", func() {
 	})
 
 	It("generates the catalog response", func() {
-		serviceAdapter.GeneratePlanSchemaReturns(brokerapi.ServiceSchemas{}, serviceadapter.NewNotImplementedError("not implemented"))
+		serviceAdapter.GeneratePlanSchemaReturns(domain.ServiceSchemas{}, serviceadapter.NewNotImplementedError("not implemented"))
 		b, brokerCreationErr = createBroker([]broker.StartupChecker{}, noopservicescontroller.New())
 		Expect(brokerCreationErr).NotTo(HaveOccurred())
 
@@ -132,14 +132,14 @@ var _ = Describe("Catalog", func() {
 
 		plans := getPlansFromCatalog(serviceCatalog)
 
-		Expect(services).To(Equal([]brokerapi.Service{
+		Expect(services).To(Equal([]domain.Service{
 			{
 				ID:            serviceCatalog.ID,
 				Name:          serviceCatalog.Name,
 				Description:   serviceCatalog.Description,
 				Bindable:      serviceCatalog.Bindable,
 				PlanUpdatable: serviceCatalog.PlanUpdatable,
-				Metadata: &brokerapi.ServiceMetadata{
+				Metadata: &domain.ServiceMetadata{
 					DisplayName:         serviceCatalog.Metadata.DisplayName,
 					ImageUrl:            serviceCatalog.Metadata.DisplayName,
 					LongDescription:     serviceCatalog.Metadata.LongDescription,
@@ -169,7 +169,7 @@ var _ = Describe("Catalog", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		Expect(services[0].Plans[0].Metadata.Costs).To(Equal(
-			[]brokerapi.ServicePlanCost{
+			[]domain.ServicePlanCost{
 				{Amount: map[string]float64{"value": 1.65}, Unit: "dogecoins"},
 			},
 		))
@@ -190,7 +190,7 @@ var _ = Describe("Catalog", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		Expect(*services[0].DashboardClient).To(Equal(
-			brokerapi.ServiceDashboardClient{
+			domain.ServiceDashboardClient{
 				ID:          "super-id",
 				Secret:      "super-secret",
 				RedirectURI: "super-uri",
@@ -299,12 +299,12 @@ var _ = Describe("Catalog", func() {
 	})
 
 	It("for each plan, calls the adapter to generate the plan schemas", func() {
-		planSchema := brokerapi.ServiceSchemas{
-			Instance: brokerapi.ServiceInstanceSchema{
+		planSchema := domain.ServiceSchemas{
+			Instance: domain.ServiceInstanceSchema{
 				Create: createSchema,
 				Update: updateSchema,
 			},
-			Binding: brokerapi.ServiceBindingSchema{
+			Binding: domain.ServiceBindingSchema{
 				Create: bindingSchema,
 			},
 		}
@@ -322,13 +322,13 @@ var _ = Describe("Catalog", func() {
 		Expect(serviceAdapter.GeneratePlanSchemaCallCount()).To(Equal(len(services[0].Plans)))
 		for _, service := range services {
 			for _, plan := range service.Plans {
-				Expect(*plan.Schemas).To(Equal(brokerapi.ServiceSchemas{
-					Instance: brokerapi.ServiceInstanceSchema{
-						Create: brokerapi.Schema{Parameters: createSchema.Parameters},
-						Update: brokerapi.Schema{Parameters: updateSchema.Parameters},
+				Expect(*plan.Schemas).To(Equal(domain.ServiceSchemas{
+					Instance: domain.ServiceInstanceSchema{
+						Create: domain.Schema{Parameters: createSchema.Parameters},
+						Update: domain.Schema{Parameters: updateSchema.Parameters},
 					},
-					Binding: brokerapi.ServiceBindingSchema{
-						Create: brokerapi.Schema{Parameters: bindingSchema.Parameters},
+					Binding: domain.ServiceBindingSchema{
+						Create: domain.Schema{Parameters: bindingSchema.Parameters},
 					},
 				}))
 			}
@@ -336,12 +336,12 @@ var _ = Describe("Catalog", func() {
 	})
 
 	It("caches the catalog", func() {
-		planSchema := brokerapi.ServiceSchemas{
-			Instance: brokerapi.ServiceInstanceSchema{
+		planSchema := domain.ServiceSchemas{
+			Instance: domain.ServiceInstanceSchema{
 				Create: createSchema,
 				Update: updateSchema,
 			},
-			Binding: brokerapi.ServiceBindingSchema{
+			Binding: domain.ServiceBindingSchema{
 				Create: bindingSchema,
 			},
 		}
@@ -368,13 +368,13 @@ var _ = Describe("Catalog", func() {
 	})
 
 	DescribeTable("when the generated schema is invalid",
-		func(create, update, binding brokerapi.Schema, errorLabel string) {
-			planSchema := brokerapi.ServiceSchemas{
-				Instance: brokerapi.ServiceInstanceSchema{
+		func(create, update, binding domain.Schema, errorLabel string) {
+			planSchema := domain.ServiceSchemas{
+				Instance: domain.ServiceInstanceSchema{
 					Create: create,
 					Update: update,
 				},
-				Binding: brokerapi.ServiceBindingSchema{
+				Binding: domain.ServiceBindingSchema{
 					Create: binding,
 				},
 			}
@@ -410,7 +410,7 @@ var _ = Describe("Catalog", func() {
 	)
 
 	It("fails if the adapter returns an error when generating plan schemas", func() {
-		serviceAdapter.GeneratePlanSchemaReturns(brokerapi.ServiceSchemas{}, serviceadapter.NewNotImplementedError("not implemented"))
+		serviceAdapter.GeneratePlanSchemaReturns(domain.ServiceSchemas{}, serviceadapter.NewNotImplementedError("not implemented"))
 		b, brokerCreationErr = createBroker([]broker.StartupChecker{}, noopservicescontroller.New())
 		b.EnablePlanSchemas = true
 		Expect(brokerCreationErr).NotTo(HaveOccurred())
@@ -422,16 +422,16 @@ var _ = Describe("Catalog", func() {
 	})
 })
 
-func getPlansFromCatalog(serviceCatalog config.ServiceOffering) []brokerapi.ServicePlan {
-	var servicePlans []brokerapi.ServicePlan
+func getPlansFromCatalog(serviceCatalog config.ServiceOffering) []domain.ServicePlan {
+	var servicePlans []domain.ServicePlan
 	for _, plan := range serviceCatalog.Plans {
-		servicePlans = append(servicePlans, brokerapi.ServicePlan{
+		servicePlans = append(servicePlans, domain.ServicePlan{
 			ID:          plan.ID,
 			Name:        plan.Name,
 			Description: plan.Description,
 			Free:        plan.Free,
 			Bindable:    plan.Bindable,
-			Metadata: &brokerapi.ServicePlanMetadata{
+			Metadata: &domain.ServicePlanMetadata{
 				Bullets:     plan.Metadata.Bullets,
 				DisplayName: plan.Metadata.DisplayName,
 			},

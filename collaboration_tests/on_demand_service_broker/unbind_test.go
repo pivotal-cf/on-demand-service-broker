@@ -18,6 +18,7 @@ package on_demand_service_broker_test
 import (
 	"fmt"
 
+	"github.com/pivotal-cf/brokerapi/domain/apiresponses"
 	brokerConfig "github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pkg/errors"
 
@@ -28,7 +29,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
-	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
@@ -110,7 +110,7 @@ var _ = Describe("Unbind", func() {
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 
 			By("returning the correct error message")
-			var errorResponse brokerapi.ErrorResponse
+			var errorResponse apiresponses.ErrorResponse
 			Expect(json.Unmarshal(bodyContent, &errorResponse)).To(Succeed())
 
 			Expect(errorResponse.Description).To(SatisfyAll(
@@ -134,7 +134,7 @@ var _ = Describe("Unbind", func() {
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 
 			By("returning the correct error message")
-			var errorResponse brokerapi.ErrorResponse
+			var errorResponse apiresponses.ErrorResponse
 			Expect(json.Unmarshal(bodyContent, &errorResponse)).To(Succeed())
 
 			Expect(errorResponse.Description).To(ContainSubstring("error message for user"))
@@ -164,7 +164,7 @@ var _ = Describe("Unbind", func() {
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 
 			By("returning the correct error message")
-			var errorResponse brokerapi.ErrorResponse
+			var errorResponse apiresponses.ErrorResponse
 			Expect(json.Unmarshal(bodyContent, &errorResponse)).To(Succeed())
 
 			Expect(errorResponse.Description).To(SatisfyAll(
@@ -191,7 +191,7 @@ var _ = Describe("Unbind", func() {
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 
 			By("returning the correct error message")
-			var errorResponse brokerapi.ErrorResponse
+			var errorResponse apiresponses.ErrorResponse
 			Expect(json.Unmarshal(bodyContent, &errorResponse)).To(Succeed())
 
 			Expect(errorResponse.Description).To(SatisfyAll(

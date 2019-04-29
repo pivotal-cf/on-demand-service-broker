@@ -22,6 +22,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/pivotal-cf/brokerapi/domain"
+	"github.com/pivotal-cf/brokerapi/domain/apiresponses"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
@@ -31,7 +33,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
-	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	brokerConfig "github.com/pivotal-cf/on-demand-service-broker/config"
 	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
@@ -49,7 +50,7 @@ var _ = Describe("Update a service instance", func() {
 	)
 
 	var (
-		requestBody        brokerapi.UpdateDetails
+		requestBody        domain.UpdateDetails
 		updateArbParams    map[string]interface{}
 		expectedSecretsMap map[string]string
 		conf               brokerConfig.Config
@@ -111,11 +112,11 @@ var _ = Describe("Update a service instance", func() {
 		}
 
 		updateArbParams = map[string]interface{}{"some": "params"}
-		requestBody = brokerapi.UpdateDetails{
+		requestBody = domain.UpdateDetails{
 			PlanID:        newPlanID,
 			RawParameters: toJson(updateArbParams),
 			ServiceID:     serviceID,
-			PreviousValues: brokerapi.PreviousValues{
+			PreviousValues: domain.PreviousValues{
 				OrgID:     organizationGUID,
 				ServiceID: serviceID,
 				PlanID:    oldPlanID,
@@ -137,11 +138,11 @@ var _ = Describe("Update a service instance", func() {
 
 	Describe("and nothing has changed", func() {
 		It("accepts the request", func() {
-			requestBody = brokerapi.UpdateDetails{
+			requestBody = domain.UpdateDetails{
 				PlanID:        oldPlanID,
 				RawParameters: toJson(nil),
 				ServiceID:     serviceID,
-				PreviousValues: brokerapi.PreviousValues{
+				PreviousValues: domain.PreviousValues{
 					PlanID: oldPlanID,
 				},
 			}
@@ -161,7 +162,7 @@ var _ = Describe("Update a service instance", func() {
 			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
 
 			By("including the operation data in the response")
-			var updateResponse brokerapi.UpdateResponse
+			var updateResponse apiresponses.UpdateResponse
 			Expect(json.Unmarshal(bodyContent, &updateResponse)).To(Succeed())
 
 			var operationData broker.OperationData
@@ -181,7 +182,7 @@ var _ = Describe("Update a service instance", func() {
 			_, boshContextId, _, _ := fakeTaskBoshClient.DeployArgsForCall(0)
 
 			By("including errands in the operation data")
-			var updateResponse brokerapi.UpdateResponse
+			var updateResponse apiresponses.UpdateResponse
 			Expect(json.Unmarshal(bodyContent, &updateResponse)).To(Succeed())
 
 			var operationData broker.OperationData
@@ -198,7 +199,7 @@ var _ = Describe("Update a service instance", func() {
 		})
 
 		It("succeeds when the old plan has a post-deploy errand but the new one doesn't", func() {
-			requestBody.PreviousValues = brokerapi.PreviousValues{
+			requestBody.PreviousValues = domain.PreviousValues{
 				OrgID:     organizationGUID,
 				ServiceID: serviceID,
 				PlanID:    postDeployErrandPlanID,
@@ -208,7 +209,7 @@ var _ = Describe("Update a service instance", func() {
 			_, bodyContent := doUpdateRequest(requestBody, instanceID)
 
 			By("not including errands in the operation data")
-			var updateResponse brokerapi.UpdateResponse
+			var updateResponse apiresponses.UpdateResponse
 			Expect(json.Unmarshal(bodyContent, &updateResponse)).To(Succeed())
 
 			var operationData broker.OperationData
@@ -223,7 +224,7 @@ var _ = Describe("Update a service instance", func() {
 		})
 
 		It("succeeds when the maintenance_info for the new plan matches the broker maintenance_info", func() {
-			requestBody.MaintenanceInfo = brokerapi.MaintenanceInfo{
+			requestBody.MaintenanceInfo = domain.MaintenanceInfo{
 				Public: map[string]string{
 					"version":   "2",
 					"plan_size": "big",
@@ -244,7 +245,7 @@ var _ = Describe("Update a service instance", func() {
 			resp, bodyContent := doUpdateRequest(requestBody, instanceID)
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 
-			var body brokerapi.ErrorResponse
+			var body apiresponses.ErrorResponse
 			Expect(json.Unmarshal(bodyContent, &body)).To(Succeed())
 			Expect(body.Description).To(ContainSubstring(
 				"plan instance limit exceeded for service ID: service-id. Total instances: 1",
@@ -252,14 +253,14 @@ var _ = Describe("Update a service instance", func() {
 		})
 
 		It("fails with 422 when the incoming maintenance_info doesn't match the broker maintenance_info for the new plan", func() {
-			requestBody.MaintenanceInfo = brokerapi.MaintenanceInfo{
+			requestBody.MaintenanceInfo = domain.MaintenanceInfo{
 				Public: map[string]string{
 					"version":   "2",
 					"plan_size": "small",
 				},
 			}
 			requestBody.PlanID = newPlanID
-			fakeMaintenanceInfoChecker.CheckReturns(brokerapi.ErrMaintenanceInfoConflict)
+			fakeMaintenanceInfoChecker.CheckReturns(apiresponses.ErrMaintenanceInfoConflict)
 
 			resp, _ := doUpdateRequest(requestBody, instanceID)
 
@@ -277,7 +278,7 @@ var _ = Describe("Update a service instance", func() {
 			fakeCredhubOperator.BulkGetReturns(expectedSecretsMap, nil)
 
 			requestBody.PlanID = quotaReachedPlanID
-			requestBody.PreviousValues = brokerapi.PreviousValues{
+			requestBody.PreviousValues = domain.PreviousValues{
 				OrgID:     organizationGUID,
 				ServiceID: serviceID,
 				PlanID:    quotaReachedPlanID,
@@ -308,7 +309,7 @@ var _ = Describe("Update a service instance", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(plan).To(Equal(previousPlan))
 
-				var reqParams brokerapi.UpdateDetails
+				var reqParams domain.UpdateDetails
 				err = json.Unmarshal([]byte(actualInput.GenerateManifest.RequestParameters), &reqParams)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -319,7 +320,7 @@ var _ = Describe("Update a service instance", func() {
 			})
 
 			By("including the operation data in the response")
-			var updateResponse brokerapi.UpdateResponse
+			var updateResponse apiresponses.UpdateResponse
 			Expect(json.Unmarshal(bodyContent, &updateResponse)).To(Succeed())
 
 			var operationData broker.OperationData
@@ -340,7 +341,7 @@ var _ = Describe("Update a service instance", func() {
 		})
 
 		It("succeeds when called with maintenance info", func() {
-			requestBody.MaintenanceInfo = brokerapi.MaintenanceInfo{
+			requestBody.MaintenanceInfo = domain.MaintenanceInfo{
 				Public: map[string]string{
 					"version": "2",
 				},
@@ -351,13 +352,13 @@ var _ = Describe("Update a service instance", func() {
 		})
 
 		It("fails when maintenance info doesnt match the catalog maintenance_info", func() {
-			requestBody.MaintenanceInfo = brokerapi.MaintenanceInfo{
+			requestBody.MaintenanceInfo = domain.MaintenanceInfo{
 				Public: map[string]string{
 					"version": "2",
 					"foo":     "bar",
 				},
 			}
-			fakeMaintenanceInfoChecker.CheckReturns(brokerapi.ErrMaintenanceInfoConflict)
+			fakeMaintenanceInfoChecker.CheckReturns(apiresponses.ErrMaintenanceInfoConflict)
 
 			resp, _ := doUpdateRequest(requestBody, instanceID)
 
@@ -379,7 +380,7 @@ properties:
 			Expect(err).NotTo(HaveOccurred())
 			zero := 0
 			fakeCommandRunner.RunWithInputParamsReturns(manifestBytes, []byte{}, &zero, nil)
-			requestBody.MaintenanceInfo = brokerapi.MaintenanceInfo{
+			requestBody.MaintenanceInfo = domain.MaintenanceInfo{
 				Public: map[string]string{
 					"version": "2",
 				},
@@ -397,12 +398,12 @@ properties:
 		})
 
 		It("fails when maintenance_info doesn't match the catalog maintenance_info", func() {
-			requestBody.MaintenanceInfo = brokerapi.MaintenanceInfo{
+			requestBody.MaintenanceInfo = domain.MaintenanceInfo{
 				Public: map[string]string{
 					"version": "3",
 				},
 			}
-			fakeMaintenanceInfoChecker.CheckReturns(brokerapi.ErrMaintenanceInfoConflict)
+			fakeMaintenanceInfoChecker.CheckReturns(apiresponses.ErrMaintenanceInfoConflict)
 
 			resp, body := doUpdateRequest(requestBody, instanceID)
 
@@ -425,7 +426,7 @@ properties:
 					oldManifest := "name: service-instance_some-instance-id"
 					fakeTaskBoshClient.GetDeploymentReturns([]byte(oldManifest), true, nil)
 
-					requestBody.MaintenanceInfo = brokerapi.MaintenanceInfo{
+					requestBody.MaintenanceInfo = domain.MaintenanceInfo{
 						Public: map[string]string{
 							"version": "2",
 						},
@@ -433,7 +434,7 @@ properties:
 					requestBody.PlanID = oldPlanID
 					requestBody.RawParameters = []byte("{}")
 
-					fakeMaintenanceInfoChecker.CheckReturns(brokerapi.ErrMaintenanceInfoConflict)
+					fakeMaintenanceInfoChecker.CheckReturns(apiresponses.ErrMaintenanceInfoConflict)
 
 					resp, body := doUpdateRequest(requestBody, instanceID)
 
@@ -560,17 +561,17 @@ properties:
 
 	Describe("but updating fails", func() {
 		BeforeEach(func() {
-			requestBody = brokerapi.UpdateDetails{
+			requestBody = domain.UpdateDetails{
 				PlanID:        newPlanID,
 				RawParameters: toJson(updateArbParams),
 				ServiceID:     serviceID,
-				PreviousValues: brokerapi.PreviousValues{
+				PreviousValues: domain.PreviousValues{
 					OrgID:     organizationGUID,
 					ServiceID: serviceID,
 					PlanID:    oldPlanID,
 					SpaceID:   "space-guid",
 				},
-				MaintenanceInfo: brokerapi.MaintenanceInfo{
+				MaintenanceInfo: domain.MaintenanceInfo{
 					Public: map[string]string{
 						"version":   "2",
 						"plan_size": "big",
@@ -604,7 +605,7 @@ properties:
 			resp, bodyContent := doUpdateRequest(requestBody, instanceID)
 
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
-			var body brokerapi.ErrorResponse
+			var body apiresponses.ErrorResponse
 			Expect(json.Unmarshal(bodyContent, &body)).To(Succeed())
 			Expect(body.Description).To(SatisfyAll(
 				Not(ContainSubstring("task-id:")),
@@ -626,7 +627,7 @@ properties:
 			resp, bodyContent := doUpdateRequest(requestBody, instanceID)
 
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
-			var body brokerapi.ErrorResponse
+			var body apiresponses.ErrorResponse
 			Expect(json.Unmarshal(bodyContent, &body)).To(Succeed())
 			Expect(body.Description).To(ContainSubstring("An operation is in progress for your service instance. Please try again later."))
 		})
@@ -637,7 +638,7 @@ properties:
 			resp, bodyContent := doUpdateRequest(requestBody, instanceID)
 
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
-			var body brokerapi.ErrorResponse
+			var body apiresponses.ErrorResponse
 			Expect(json.Unmarshal(bodyContent, &body)).To(Succeed())
 			Expect(body.Description).To(ContainSubstring("Currently unable to update service instance, please try again later"))
 		})
@@ -648,7 +649,7 @@ properties:
 			resp, bodyContent := doUpdateRequest(requestBody, instanceID)
 
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
-			var body brokerapi.ErrorResponse
+			var body apiresponses.ErrorResponse
 			Expect(json.Unmarshal(bodyContent, &body)).To(Succeed())
 			Expect(body.Description).To(SatisfyAll(
 				Not(ContainSubstring("task-id:")),
@@ -665,7 +666,7 @@ properties:
 			resp, bodyContent := doUpdateRequest(requestBody, instanceID)
 
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
-			var body brokerapi.ErrorResponse
+			var body apiresponses.ErrorResponse
 			Expect(json.Unmarshal(bodyContent, &body)).To(Succeed())
 			Expect(body.Description).To(ContainSubstring("plan macarena does not exist"))
 		})
@@ -679,7 +680,7 @@ properties:
 			resp, bodyContent := doUpdateRequest(requestBody, instanceID)
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 
-			var body brokerapi.ErrorResponse
+			var body apiresponses.ErrorResponse
 			Expect(json.Unmarshal(bodyContent, &body)).To(Succeed())
 			Expect(body.Description).To(SatisfyAll(
 				Not(ContainSubstring("task-id:")),
@@ -699,7 +700,7 @@ properties:
 			resp, bodyContent := doUpdateRequest(requestBody, instanceID)
 
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
-			var body brokerapi.ErrorResponse
+			var body apiresponses.ErrorResponse
 			Expect(json.Unmarshal(bodyContent, &body)).To(Succeed())
 			Expect(body.Description).To(SatisfyAll(
 				ContainSubstring("There was a problem completing your request. "),
@@ -715,7 +716,7 @@ properties:
 			resp, bodyContent := doUpdateRequest(requestBody, instanceID)
 
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
-			var body brokerapi.ErrorResponse
+			var body apiresponses.ErrorResponse
 			Expect(json.Unmarshal(bodyContent, &body)).To(Succeed())
 			Expect(body.Description).To(SatisfyAll(
 				ContainSubstring("There was a problem completing your request. "),
@@ -731,7 +732,7 @@ properties:
 			resp, bodyContent := doUpdateRequest(requestBody, instanceID)
 
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
-			var body brokerapi.ErrorResponse
+			var body apiresponses.ErrorResponse
 			Expect(json.Unmarshal(bodyContent, &body)).To(Succeed())
 			Expect(body.Description).To(SatisfyAll(
 				ContainSubstring("There was a problem completing your request. "),
@@ -747,7 +748,7 @@ properties:
 			resp, bodyContent := doUpdateRequest(requestBody, instanceID)
 
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
-			var body brokerapi.ErrorResponse
+			var body apiresponses.ErrorResponse
 			Expect(json.Unmarshal(bodyContent, &body)).To(Succeed())
 			Expect(body.Description).To(SatisfyAll(
 				ContainSubstring("There was a problem completing your request. "),
@@ -763,7 +764,7 @@ properties:
 			resp, bodyContent := doUpdateRequest(requestBody, instanceID)
 
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
-			var body brokerapi.ErrorResponse
+			var body apiresponses.ErrorResponse
 			Expect(json.Unmarshal(bodyContent, &body)).To(Succeed())
 			Expect(body.Description).To(SatisfyAll(
 				ContainSubstring("There was a problem completing your request. "),

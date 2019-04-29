@@ -10,10 +10,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-
 	"log"
 
-	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/brokerapi/domain"
+	"github.com/pivotal-cf/brokerapi/domain/apiresponses"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 )
 
@@ -23,7 +23,7 @@ func (b *Broker) getDeploymentInfo(instanceID string, ctx context.Context, actio
 		return nil, nil, NewGenericError(ctx, fmt.Errorf("gathering deployment list %s", err))
 	}
 	if !found {
-		return nil, nil, NewDisplayableError(brokerapi.ErrInstanceDoesNotExist, fmt.Errorf("error %sing: instance %s, not found", action, instanceID))
+		return nil, nil, NewDisplayableError(apiresponses.ErrInstanceDoesNotExist, fmt.Errorf("error %sing: instance %s, not found", action, instanceID))
 	}
 
 	vms, err := b.boshClient.VMs(deploymentName(instanceID), logger)
@@ -34,12 +34,12 @@ func (b *Broker) getDeploymentInfo(instanceID string, ctx context.Context, actio
 	return manifest, vms, nil
 }
 
-func convertDetailsToMap(details brokerapi.DetailsWithRawParameters) (map[string]interface{}, error) {
+func convertDetailsToMap(details domain.DetailsWithRawParameters) (map[string]interface{}, error) {
 	arbitraryParams := map[string]interface{}{}
 
 	if len(details.GetRawParameters()) > 0 {
 		if err := json.Unmarshal(details.GetRawParameters(), &arbitraryParams); err != nil {
-			return nil, brokerapi.ErrRawParamsInvalid
+			return nil, apiresponses.ErrRawParamsInvalid
 		}
 	}
 

@@ -24,7 +24,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/brokerapi/domain"
 	apifakes "github.com/pivotal-cf/on-demand-service-broker/apiserver/fakes"
 	"github.com/pivotal-cf/on-demand-service-broker/brokercontext"
 	"github.com/pivotal-cf/on-demand-service-broker/credhubbroker"
@@ -38,7 +38,7 @@ var _ = Describe("CredHub broker", func() {
 		ctx            context.Context
 		instanceID     string
 		bindingID      string
-		bindDetails    brokerapi.BindDetails
+		bindDetails    domain.BindDetails
 		logBuffer      *bytes.Buffer
 		loggerFactory  *loggerfactory.LoggerFactory
 		requestIDRegex string
@@ -50,7 +50,7 @@ var _ = Describe("CredHub broker", func() {
 		ctx = context.Background()
 		instanceID = "ohai"
 		bindingID = "rofl"
-		bindDetails = brokerapi.BindDetails{
+		bindDetails = domain.BindDetails{
 			ServiceID: "big-hybrid-cloud-of-things",
 		}
 		logBuffer = new(bytes.Buffer)
@@ -62,7 +62,7 @@ var _ = Describe("CredHub broker", func() {
 
 		It("returns the credhub reference on Bind", func() {
 			creds := "justAString"
-			bindingResponse := brokerapi.Binding{
+			bindingResponse := domain.Binding{
 				Credentials: creds,
 			}
 			fakeBroker.BindReturns(bindingResponse, nil)
@@ -102,7 +102,7 @@ var _ = Describe("CredHub broker", func() {
 		It("adds permissions to the credentials in the credential store when an app guid exists on bind details", func() {
 			fakeCredStore := new(credfakes.FakeCredentialStore)
 			creds := "justAString"
-			bindingResponse := brokerapi.Binding{
+			bindingResponse := domain.Binding{
 				Credentials: creds,
 			}
 			fakeBroker.BindReturns(bindingResponse, nil)
@@ -128,13 +128,13 @@ var _ = Describe("CredHub broker", func() {
 		It("adds permissions to the credentials in the credential store when an app guid exists on bind resource", func() {
 			fakeCredStore := new(credfakes.FakeCredentialStore)
 			creds := "justAString"
-			bindingResponse := brokerapi.Binding{
+			bindingResponse := domain.Binding{
 				Credentials: creds,
 			}
 			fakeBroker.BindReturns(bindingResponse, nil)
 
 			appGUID := "app-guid"
-			bindDetails.BindResource = &brokerapi.BindResource{}
+			bindDetails.BindResource = &domain.BindResource{}
 			bindDetails.BindResource.AppGuid = appGUID
 
 			credhubBroker := credhubbroker.New(fakeBroker, fakeCredStore, serviceName, loggerFactory)
@@ -145,13 +145,13 @@ var _ = Describe("CredHub broker", func() {
 		It("adds permissions to the credentials in the credentials store when a credential_client_id exists in the bind resource", func() {
 			fakeCredStore := new(credfakes.FakeCredentialStore)
 			creds := "justAString"
-			bindingResponse := brokerapi.Binding{
+			bindingResponse := domain.Binding{
 				Credentials: creds,
 			}
 			fakeBroker.BindReturns(bindingResponse, nil)
 
 			credentialClientID := "client_id"
-			bindDetails.BindResource = &brokerapi.BindResource{
+			bindDetails.BindResource = &domain.BindResource{
 				CredentialClientID: credentialClientID,
 			}
 
@@ -173,7 +173,7 @@ var _ = Describe("CredHub broker", func() {
 		It("returns an error when neither app guid or credential_client_id exist in bind request", func() {
 			fakeCredStore := new(credfakes.FakeCredentialStore)
 			creds := "justAString"
-			bindingResponse := brokerapi.Binding{
+			bindingResponse := domain.Binding{
 				Credentials: creds,
 			}
 			fakeBroker.BindReturns(bindingResponse, nil)
@@ -186,7 +186,7 @@ var _ = Describe("CredHub broker", func() {
 
 		It("produces an error if it cannot retrieve the binding from the wrapped broker", func() {
 			fakeCredStore := new(credfakes.FakeCredentialStore)
-			emptyCreds := brokerapi.Binding{}
+			emptyCreds := domain.Binding{}
 			fakeBroker.BindReturns(emptyCreds, errors.New("error message from base broker"))
 
 			credhubBroker := credhubbroker.New(fakeBroker, fakeCredStore, serviceName, loggerFactory)
@@ -199,7 +199,7 @@ var _ = Describe("CredHub broker", func() {
 
 		It("produces an error if it cannot store the credential", func() {
 			fakeCredStore := new(credfakes.FakeCredentialStore)
-			bindingResponse := brokerapi.Binding{
+			bindingResponse := domain.Binding{
 				Credentials: "justAString",
 			}
 			fakeBroker.BindReturns(bindingResponse, nil)
@@ -222,7 +222,7 @@ var _ = Describe("CredHub broker", func() {
 	})
 
 	Describe("Unbind", func() {
-		var unbindDetails = brokerapi.UnbindDetails{
+		var unbindDetails = domain.UnbindDetails{
 			PlanID:    "asdf",
 			ServiceID: "fdsa",
 		}
@@ -260,7 +260,7 @@ var _ = Describe("CredHub broker", func() {
 
 		It("returns an error if the wrapped broker unbind call fails", func() {
 			baseError := errors.New("foo")
-			fakeBroker.UnbindReturns(brokerapi.UnbindSpec{}, baseError)
+			fakeBroker.UnbindReturns(domain.UnbindSpec{}, baseError)
 			fakeCredStore := new(credfakes.FakeCredentialStore)
 			credhubBroker := credhubbroker.New(fakeBroker, fakeCredStore, serviceName, loggerFactory)
 

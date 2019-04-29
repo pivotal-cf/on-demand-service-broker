@@ -11,7 +11,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/brokerapi/domain/apiresponses"
 	"github.com/pivotal-cf/on-demand-service-broker/brokercontext"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 )
@@ -48,7 +48,7 @@ func (e DisplayableError) ErrorForCFUser() error {
 
 func (e DisplayableError) ExtendedCFError() error {
 	switch err := e.errorForCFUser.(type) {
-	case *brokerapi.FailureResponse:
+	case *apiresponses.FailureResponse:
 		return err.AppendErrorMessage(fmt.Sprintf("- error-message: %s", e.errorForOperator))
 	default:
 		return fmt.Errorf("%s - error-message: %s", e.errorForCFUser, e.errorForOperator)
@@ -109,11 +109,11 @@ func adapterToAPIError(ctx context.Context, err error) error {
 
 	switch err.(type) {
 	case serviceadapter.BindingAlreadyExistsError:
-		return brokerapi.ErrBindingAlreadyExists
+		return apiresponses.ErrBindingAlreadyExists
 	case serviceadapter.BindingNotFoundError:
-		return brokerapi.ErrBindingDoesNotExist
+		return apiresponses.ErrBindingDoesNotExist
 	case serviceadapter.AppGuidNotProvidedError:
-		return brokerapi.ErrAppGuidNotProvided
+		return apiresponses.ErrAppGuidNotProvided
 	case serviceadapter.UnknownFailureError:
 		if err.Error() == "" {
 			//Adapter returns an unknown error with no message

@@ -10,11 +10,11 @@ import (
 	"encoding/json"
 	"log"
 
-	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/brokerapi/domain"
 	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
 
-func (c *Client) GeneratePlanSchema(plan sdk.Plan, logger *log.Logger) (brokerapi.ServiceSchemas, error) {
+func (c *Client) GeneratePlanSchema(plan sdk.Plan, logger *log.Logger) (domain.ServiceSchemas, error) {
 	var stdout, stderr []byte
 	var exitCode *int
 	var err error
@@ -22,7 +22,7 @@ func (c *Client) GeneratePlanSchema(plan sdk.Plan, logger *log.Logger) (brokerap
 	plan.Properties = SanitiseForJSON(plan.Properties)
 	serialisedPlan, err := json.Marshal(plan)
 	if err != nil {
-		return brokerapi.ServiceSchemas{}, err
+		return domain.ServiceSchemas{}, err
 	}
 
 	if c.UsingStdin {
@@ -39,17 +39,17 @@ func (c *Client) GeneratePlanSchema(plan sdk.Plan, logger *log.Logger) (brokerap
 	}
 
 	if err != nil {
-		return brokerapi.ServiceSchemas{}, adapterError(c.ExternalBinPath, stdout, stderr, err)
+		return domain.ServiceSchemas{}, adapterError(c.ExternalBinPath, stdout, stderr, err)
 	}
 
 	if err := ErrorForExitCode(*exitCode, string(stdout)); err != nil {
 		logger.Printf(adapterFailedMessage(*exitCode, c.ExternalBinPath, stdout, stderr))
-		return brokerapi.ServiceSchemas{}, err
+		return domain.ServiceSchemas{}, err
 	}
 
 	logger.Printf("service adapter ran generate-plan-schema successfully, stderr logs: %s", string(stderr))
 
-	var schemas brokerapi.ServiceSchemas
+	var schemas domain.ServiceSchemas
 	err = json.Unmarshal(stdout, &schemas)
 	return schemas, err
 }

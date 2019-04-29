@@ -23,7 +23,8 @@ import (
 	"net/http"
 
 	"github.com/pborman/uuid"
-	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/brokerapi/domain"
+	"github.com/pivotal-cf/brokerapi/domain/apiresponses"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/brokercontext"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
@@ -33,8 +34,8 @@ import (
 func (b *Broker) Provision(
 	ctx context.Context,
 	instanceID string,
-	details brokerapi.ProvisionDetails,
-	asyncAllowed bool) (brokerapi.ProvisionedServiceSpec, error) {
+	details domain.ProvisionDetails,
+	asyncAllowed bool) (domain.ProvisionedServiceSpec, error) {
 
 	b.deploymentLock.Lock()
 	defer b.deploymentLock.Unlock()
@@ -44,28 +45,28 @@ func (b *Broker) Provision(
 	logger := b.loggerFactory.NewWithContext(ctx)
 
 	if !asyncAllowed {
-		return brokerapi.ProvisionedServiceSpec{}, b.processError(brokerapi.ErrAsyncRequired, logger)
+		return domain.ProvisionedServiceSpec{}, b.processError(apiresponses.ErrAsyncRequired, logger)
 	}
 
-	detailsWithRawParameters := brokerapi.DetailsWithRawParameters(details)
+	detailsWithRawParameters := domain.DetailsWithRawParameters(details)
 	requestParams, err := convertDetailsToMap(detailsWithRawParameters)
 	if err != nil {
-		return brokerapi.ProvisionedServiceSpec{}, b.processError(err, logger)
+		return domain.ProvisionedServiceSpec{}, b.processError(err, logger)
 	}
 
 	serviceCatalog, err := b.Services(ctx)
 	if err != nil {
-		return brokerapi.ProvisionedServiceSpec{}, b.processError(err, logger)
+		return domain.ProvisionedServiceSpec{}, b.processError(err, logger)
 	}
 
 	err = b.maintenanceInfoChecker.Check(details.PlanID, details.MaintenanceInfo, serviceCatalog, logger)
 	if err != nil {
-		return brokerapi.ProvisionedServiceSpec{}, b.processError(err, logger)
+		return domain.ProvisionedServiceSpec{}, b.processError(err, logger)
 	}
 
 	_, err = b.boshClient.GetInfo(logger)
 	if err != nil {
-		return brokerapi.ProvisionedServiceSpec{}, b.processError(NewBoshRequestError("create", err), logger)
+		return domain.ProvisionedServiceSpec{}, b.processError(NewBoshRequestError("create", err), logger)
 	}
 
 	operationData, dashboardURL, err := b.provisionInstance(
@@ -77,15 +78,15 @@ func (b *Broker) Provision(
 	)
 
 	if err != nil {
-		return brokerapi.ProvisionedServiceSpec{}, b.processError(err, logger)
+		return domain.ProvisionedServiceSpec{}, b.processError(err, logger)
 	}
 
 	operationDataJSON, err := json.Marshal(operationData)
 	if err != nil {
-		return brokerapi.ProvisionedServiceSpec{}, b.processError(err, logger)
+		return domain.ProvisionedServiceSpec{}, b.processError(err, logger)
 	}
 
-	return brokerapi.ProvisionedServiceSpec{
+	return domain.ProvisionedServiceSpec{
 		IsAsync:       true,
 		DashboardURL:  dashboardURL,
 		OperationData: string(operationDataJSON),
@@ -117,7 +118,7 @@ func (b *Broker) provisionInstance(ctx context.Context, instanceID string, planI
 
 	if found {
 		return errs(NewDisplayableError(
-			brokerapi.ErrInstanceAlreadyExists,
+			apiresponses.ErrInstanceAlreadyExists,
 			fmt.Errorf("deploying instance %s", instanceID),
 		))
 	}
@@ -184,7 +185,7 @@ func (b *Broker) provisionInstance(ctx context.Context, instanceID string, planI
 
 func (b *Broker) checkPlanSchemas(ctx context.Context, requestParams map[string]interface{}, plan config.Plan, logger *log.Logger) error {
 	if b.EnablePlanSchemas {
-		var schemas brokerapi.ServiceSchemas
+		var schemas domain.ServiceSchemas
 		schemas, err := b.adapterClient.GeneratePlanSchema(plan.AdapterPlan(b.serviceOffering.GlobalProperties), logger)
 		if err != nil {
 			if _, ok := err.(serviceadapter.NotImplementedError); !ok {
@@ -209,7 +210,7 @@ func (b *Broker) checkPlanSchemas(ctx context.Context, requestParams map[string]
 
 		err = validator.ValidateParams(paramsToValidate)
 		if err != nil {
-			failureResp := brokerapi.NewFailureResponseBuilder(err, http.StatusBadRequest, "params-validation-failed").WithEmptyResponse().Build()
+			failureResp := apiresponses.NewFailureResponseBuilder(err, http.StatusBadRequest, "params-validation-failed").WithEmptyResponse().Build()
 			return failureResp
 		}
 	}

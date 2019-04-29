@@ -12,7 +12,7 @@ import (
 	"fmt"
 
 	"github.com/pborman/uuid"
-	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/brokerapi/domain"
 	"github.com/pivotal-cf/on-demand-service-broker/brokercontext"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 )
@@ -21,9 +21,9 @@ func (b *Broker) Bind(
 	ctx context.Context,
 	instanceID,
 	bindingID string,
-	details brokerapi.BindDetails,
+	details domain.BindDetails,
 	asyncAllowed bool,
-) (brokerapi.Binding, error) {
+) (domain.Binding, error) {
 
 	requestID := uuid.New()
 	if len(brokercontext.GetReqID(ctx)) > 0 {
@@ -35,7 +35,7 @@ func (b *Broker) Bind(
 
 	manifest, vms, deploymentErr := b.getDeploymentInfo(instanceID, ctx, "bind", logger)
 	if deploymentErr != nil {
-		return brokerapi.Binding{}, b.processError(deploymentErr, logger)
+		return domain.Binding{}, b.processError(deploymentErr, logger)
 	}
 
 	deploymentVariables, err := b.boshClient.Variables(deploymentName(instanceID), logger)
@@ -49,16 +49,16 @@ func (b *Broker) Bind(
 	}
 
 	logger.Printf("service adapter will create binding with ID %s for instance %s\n", bindingID, instanceID)
-	detailsWithRawParameters := brokerapi.DetailsWithRawParameters(details)
+	detailsWithRawParameters := domain.DetailsWithRawParameters(details)
 	mappedParams, err := convertDetailsToMap(detailsWithRawParameters)
 	if err != nil {
-		return brokerapi.Binding{}, b.processError(NewGenericError(ctx, fmt.Errorf("converting to map %s", err)), logger)
+		return domain.Binding{}, b.processError(NewGenericError(ctx, fmt.Errorf("converting to map %s", err)), logger)
 	}
 
 	plan, found := b.serviceOffering.FindPlanByID(details.PlanID)
 	if b.EnablePlanSchemas {
 		if !found {
-			return brokerapi.Binding{}, b.processError(NewDisplayableError(
+			return domain.Binding{}, b.processError(NewDisplayableError(
 				fmt.Errorf("plan %s not found", details.PlanID),
 				fmt.Errorf("finding plan ID %s", details.PlanID),
 			), logger)
@@ -66,10 +66,10 @@ func (b *Broker) Bind(
 		schemas, err := b.adapterClient.GeneratePlanSchema(plan.AdapterPlan(b.serviceOffering.GlobalProperties), logger)
 		if err != nil {
 			if _, ok := err.(serviceadapter.NotImplementedError); !ok {
-				return brokerapi.Binding{}, b.processError(err, logger)
+				return domain.Binding{}, b.processError(err, logger)
 			}
 			logger.Println("enable_plan_schemas is set to true, but the service adapter does not implement generate-plan-schemas")
-			return brokerapi.Binding{}, b.processError(fmt.Errorf("enable_plan_schemas is set to true, but the service adapter does not implement generate-plan-schemas"), logger)
+			return domain.Binding{}, b.processError(fmt.Errorf("enable_plan_schemas is set to true, but the service adapter does not implement generate-plan-schemas"), logger)
 		}
 		bindingCreateSchema := schemas.Binding.Create
 
@@ -77,18 +77,18 @@ func (b *Broker) Bind(
 
 		params, ok := mappedParams["parameters"].(map[string]interface{})
 		if !ok {
-			return brokerapi.Binding{}, b.processError(NewGenericError(ctx, errors.New("converting parameters to map failed")), logger)
+			return domain.Binding{}, b.processError(NewGenericError(ctx, errors.New("converting parameters to map failed")), logger)
 		}
 
 		err = validator.ValidateParams(params)
 		if err != nil {
-			return brokerapi.Binding{}, b.processError(err, logger)
+			return domain.Binding{}, b.processError(err, logger)
 		}
 	}
 
 	dnsAddresses, err := b.boshClient.GetDNSAddresses(deploymentName(instanceID), plan.BindingWithDNS)
 	if err != nil {
-		return brokerapi.Binding{}, b.processError(NewGenericError(ctx, fmt.Errorf("failed to get required DNS info: %s", err)), logger)
+		return domain.Binding{}, b.processError(NewGenericError(ctx, fmt.Errorf("failed to get required DNS info: %s", err)), logger)
 	}
 
 	binding, createBindingErr := b.adapterClient.CreateBinding(bindingID, vms, manifest, mappedParams, secretsMap, dnsAddresses, logger)
@@ -100,10 +100,10 @@ func (b *Broker) Bind(
 	}
 
 	if err := adapterToAPIError(ctx, createBindingErr); err != nil {
-		return brokerapi.Binding{}, b.processError(err, logger)
+		return domain.Binding{}, b.processError(err, logger)
 	}
 
-	return brokerapi.Binding{
+	return domain.Binding{
 		Credentials:     binding.Credentials,
 		SyslogDrainURL:  binding.SyslogDrainURL,
 		RouteServiceURL: binding.RouteServiceURL,

@@ -7,7 +7,8 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/brokerapi/domain"
+	"github.com/pivotal-cf/brokerapi/domain/apiresponses"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 
 	"github.com/pivotal-cf/on-demand-service-broker/broker/maintenanceinfo"
@@ -18,8 +19,8 @@ var _ = Describe("Checker", func() {
 		logger                          *log.Logger
 		logBuffer                       *bytes.Buffer
 		planID                          string
-		serviceCatalog                  []brokerapi.Service
-		expectedPlanMaintenanceInfo     *brokerapi.MaintenanceInfo
+		serviceCatalog                  []domain.Service
+		expectedPlanMaintenanceInfo     *domain.MaintenanceInfo
 		maintenanceInfoNotPassedWarning = "warning: maintenance info defined in broker service catalog, but not passed in request"
 	)
 
@@ -30,13 +31,13 @@ var _ = Describe("Checker", func() {
 
 		planID = "plan-id"
 
-		expectedPlanMaintenanceInfo = &brokerapi.MaintenanceInfo{}
+		expectedPlanMaintenanceInfo = &domain.MaintenanceInfo{}
 
-		serviceCatalog = []brokerapi.Service{
+		serviceCatalog = []domain.Service{
 			{
 				ID:   "some-service",
 				Name: "some-service",
-				Plans: []brokerapi.ServicePlan{
+				Plans: []domain.ServicePlan{
 					{
 						ID:              planID,
 						Name:            "lol",
@@ -50,7 +51,7 @@ var _ = Describe("Checker", func() {
 	It("fails when plan not found", func() {
 		checker := maintenanceinfo.Checker{}
 
-		err := checker.Check("invalid-plan", brokerapi.MaintenanceInfo{}, serviceCatalog, logger)
+		err := checker.Check("invalid-plan", domain.MaintenanceInfo{}, serviceCatalog, logger)
 
 		Expect(err).To(HaveOccurred())
 		Expect(err).To(MatchError(`plan invalid-plan not found`))
@@ -60,7 +61,7 @@ var _ = Describe("Checker", func() {
 		It("succeeds and don't warn when maintenance_info is not passed", func() {
 			checker := maintenanceinfo.Checker{}
 
-			err := checker.Check(planID, brokerapi.MaintenanceInfo{}, serviceCatalog, logger)
+			err := checker.Check(planID, domain.MaintenanceInfo{}, serviceCatalog, logger)
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(logBuffer.String()).ToNot(ContainSubstring(maintenanceInfoNotPassedWarning))
@@ -69,10 +70,10 @@ var _ = Describe("Checker", func() {
 		It("fails when maintenance info is passed", func() {
 			checker := maintenanceinfo.Checker{}
 
-			err := checker.Check(planID, brokerapi.MaintenanceInfo{Version: "1.5.0"}, serviceCatalog, logger)
+			err := checker.Check(planID, domain.MaintenanceInfo{Version: "1.5.0"}, serviceCatalog, logger)
 
 			Expect(err).To(HaveOccurred())
-			Expect(err).To(MatchError(brokerapi.ErrMaintenanceInfoNilConflict))
+			Expect(err).To(MatchError(apiresponses.ErrMaintenanceInfoNilConflict))
 		})
 	})
 
@@ -81,7 +82,7 @@ var _ = Describe("Checker", func() {
 			expectedPlanMaintenanceInfo.Version = "1.5.0"
 			checker := maintenanceinfo.Checker{}
 
-			err := checker.Check(planID, brokerapi.MaintenanceInfo{}, serviceCatalog, logger)
+			err := checker.Check(planID, domain.MaintenanceInfo{}, serviceCatalog, logger)
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(logBuffer.String()).To(ContainSubstring(maintenanceInfoNotPassedWarning))
@@ -94,7 +95,7 @@ var _ = Describe("Checker", func() {
 			expectedPlanMaintenanceInfo.Private = "test"
 			expectedPlanMaintenanceInfo.Version = "1.2.3"
 
-			maintenanceInfo := brokerapi.MaintenanceInfo{
+			maintenanceInfo := domain.MaintenanceInfo{
 				Public: map[string]string{
 					"edition": "gold millennium",
 				},
@@ -116,7 +117,7 @@ var _ = Describe("Checker", func() {
 			expectedPlanMaintenanceInfo.Private = "test"
 			expectedPlanMaintenanceInfo.Version = "1.2.3"
 
-			maintenanceInfo := brokerapi.MaintenanceInfo{
+			maintenanceInfo := domain.MaintenanceInfo{
 				Public: map[string]string{
 					"edition": "NEXT millennium",
 				},
@@ -129,7 +130,7 @@ var _ = Describe("Checker", func() {
 			err := checker.Check(planID, maintenanceInfo, serviceCatalog, logger)
 
 			Expect(err).To(HaveOccurred())
-			Expect(err).To(MatchError(brokerapi.ErrMaintenanceInfoConflict))
+			Expect(err).To(MatchError(apiresponses.ErrMaintenanceInfoConflict))
 		})
 	})
 })

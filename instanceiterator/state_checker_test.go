@@ -20,7 +20,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/brokerapi/domain"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
 	"github.com/pivotal-cf/on-demand-service-broker/instanceiterator"
@@ -43,7 +43,7 @@ var _ = Describe("State checker", func() {
 	})
 
 	It("returns OperationSucceeded when last operation reports success", func() {
-		fakeBrokerService.LastOperationReturns(brokerapi.LastOperation{State: brokerapi.Succeeded}, nil)
+		fakeBrokerService.LastOperationReturns(domain.LastOperation{State: domain.Succeeded}, nil)
 
 		state, err := stateChecker.Check(guid, expectedOperationData)
 		Expect(err).NotTo(HaveOccurred())
@@ -58,14 +58,14 @@ var _ = Describe("State checker", func() {
 	})
 
 	It("returns an error if it fails to pull last operation", func() {
-		fakeBrokerService.LastOperationReturns(brokerapi.LastOperation{}, errors.New("oops"))
+		fakeBrokerService.LastOperationReturns(domain.LastOperation{}, errors.New("oops"))
 
 		_, err := stateChecker.Check(guid, expectedOperationData)
 		Expect(err).To(MatchError("error getting last operation: oops"))
 	})
 
 	It("returns OperationFailed when last operation reports failure", func() {
-		fakeBrokerService.LastOperationReturns(brokerapi.LastOperation{State: brokerapi.Failed}, nil)
+		fakeBrokerService.LastOperationReturns(domain.LastOperation{State: domain.Failed}, nil)
 
 		state, err := stateChecker.Check(guid, expectedOperationData)
 		Expect(err).NotTo(HaveOccurred())
@@ -74,7 +74,7 @@ var _ = Describe("State checker", func() {
 	})
 
 	It("returns OperationAccepted when last operation reports the operation is in progress", func() {
-		fakeBrokerService.LastOperationReturns(brokerapi.LastOperation{State: brokerapi.InProgress}, nil)
+		fakeBrokerService.LastOperationReturns(domain.LastOperation{State: domain.InProgress}, nil)
 
 		state, err := stateChecker.Check(guid, expectedOperationData)
 		Expect(err).NotTo(HaveOccurred())
@@ -83,7 +83,7 @@ var _ = Describe("State checker", func() {
 	})
 
 	It("returns an error if last operation returns an unknown state", func() {
-		fakeBrokerService.LastOperationReturns(brokerapi.LastOperation{State: "not-a-state"}, nil)
+		fakeBrokerService.LastOperationReturns(domain.LastOperation{State: "not-a-state"}, nil)
 
 		_, err := stateChecker.Check(guid, expectedOperationData)
 		Expect(err).To(MatchError("unknown state from last operation: not-a-state"))

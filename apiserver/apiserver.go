@@ -24,6 +24,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/pivotal-cf/brokerapi"
 	apiauth "github.com/pivotal-cf/brokerapi/auth"
+	"github.com/pivotal-cf/brokerapi/domain"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 	"github.com/pivotal-cf/on-demand-service-broker/mgmtapi"
@@ -34,7 +35,7 @@ import (
 //go:generate counterfeiter -o fakes/combined_broker.go . CombinedBroker
 type CombinedBroker interface {
 	mgmtapi.ManageableBroker
-	brokerapi.ServiceBroker
+	domain.ServiceBroker
 }
 
 func New(

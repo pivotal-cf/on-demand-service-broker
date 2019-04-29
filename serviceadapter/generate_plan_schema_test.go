@@ -21,6 +21,7 @@ import (
 	"io"
 	"log"
 
+	"github.com/pivotal-cf/brokerapi/domain"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter/fakes"
 
@@ -29,7 +30,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
-	"github.com/pivotal-cf/brokerapi"
 	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
 
@@ -43,8 +43,8 @@ var _ = Describe("GeneratePlanSchema", func() {
 		logger    *log.Logger
 		plan      sdk.Plan
 
-		expectedPlanSchemas brokerapi.ServiceSchemas
-		actualPlanSchemas   brokerapi.ServiceSchemas
+		expectedPlanSchemas domain.ServiceSchemas
+		actualPlanSchemas   domain.ServiceSchemas
 
 		actualError error
 	)
@@ -311,8 +311,8 @@ var _ = Describe("GeneratePlanSchema", func() {
 	})
 })
 
-func getPlanSchema() brokerapi.ServiceSchemas {
-	schemas := brokerapi.Schema{
+func getPlanSchema() domain.ServiceSchemas {
+	schemas := domain.Schema{
 		Parameters: map[string]interface{}{
 			"$schema": "http://json-schema.org/draft-04/schema#",
 			"type":    "object",
@@ -330,7 +330,7 @@ func getPlanSchema() brokerapi.ServiceSchemas {
 			},
 		},
 	}
-	bindSchema := brokerapi.Schema{
+	bindSchema := domain.Schema{
 		Parameters: map[string]interface{}{
 			"$schema": "http://json-schema.org/draft-04/schema#",
 			"type":    "object",
@@ -343,12 +343,12 @@ func getPlanSchema() brokerapi.ServiceSchemas {
 			},
 		},
 	}
-	return brokerapi.ServiceSchemas{
-		Instance: brokerapi.ServiceInstanceSchema{
+	return domain.ServiceSchemas{
+		Instance: domain.ServiceInstanceSchema{
 			Create: schemas,
 			Update: schemas,
 		},
-		Binding: brokerapi.ServiceBindingSchema{
+		Binding: domain.ServiceBindingSchema{
 			Create: bindSchema,
 		},
 	}

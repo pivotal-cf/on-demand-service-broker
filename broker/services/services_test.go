@@ -18,7 +18,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/brokerapi/domain"
 	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader/fakes"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
@@ -150,7 +150,7 @@ var _ = Describe("Broker Services", func() {
 			}))
 
 			Expect(lastOperation).To(Equal(
-				brokerapi.LastOperation{State: brokerapi.InProgress, Description: "upgrade in progress"}),
+				domain.LastOperation{State: domain.InProgress, Description: "upgrade in progress"}),
 			)
 		})
 

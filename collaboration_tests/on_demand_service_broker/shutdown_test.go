@@ -19,8 +19,6 @@ import (
 	"log"
 	"os"
 
-	"github.com/pivotal-cf/brokerapi"
-
 	"syscall"
 
 	"net/http"
@@ -30,6 +28,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
+	"github.com/pivotal-cf/brokerapi/domain"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	brokerConfig "github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pkg/errors"
@@ -84,7 +83,7 @@ var _ = Describe("Shutdown of the broker process", func() {
 
 		go func() {
 			defer GinkgoRecover()
-			resp, _ := doProvisionRequest("some-instance-id", dedicatedPlanID, nil, brokerapi.MaintenanceInfo{}, true)
+			resp, _ := doProvisionRequest("some-instance-id", dedicatedPlanID, nil, domain.MaintenanceInfo{}, true)
 			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
 		}()
 
@@ -122,7 +121,7 @@ var _ = Describe("Shutdown of the broker process", func() {
 		}
 
 		go func() {
-			resp, _ := doProvisionRequest("some-instance-id", dedicatedPlanID, nil, brokerapi.MaintenanceInfo{}, true)
+			resp, _ := doProvisionRequest("some-instance-id", dedicatedPlanID, nil, domain.MaintenanceInfo{}, true)
 			defer GinkgoRecover()
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 		}()

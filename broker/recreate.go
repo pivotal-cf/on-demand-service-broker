@@ -6,14 +6,13 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/pivotal-cf/brokerapi/domain"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
-
-	"github.com/pivotal-cf/brokerapi"
 
 	"github.com/pborman/uuid"
 )
 
-func (b *Broker) Recreate(ctx context.Context, instanceID string, details brokerapi.UpdateDetails, logger *log.Logger) (OperationData, error) {
+func (b *Broker) Recreate(ctx context.Context, instanceID string, details domain.UpdateDetails, logger *log.Logger) (OperationData, error) {
 	b.deploymentLock.Lock()
 	defer b.deploymentLock.Unlock()
 

@@ -21,7 +21,7 @@ import (
 	"fmt"
 
 	"github.com/pborman/uuid"
-	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/brokerapi/domain"
 	"github.com/pivotal-cf/on-demand-service-broker/apiserver"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/brokercontext"
@@ -49,7 +49,7 @@ func New(broker apiserver.CombinedBroker,
 	}
 }
 
-func (b *CredHubBroker) Bind(ctx context.Context, instanceID, bindingID string, details brokerapi.BindDetails, asyncAllowed bool) (brokerapi.Binding, error) {
+func (b *CredHubBroker) Bind(ctx context.Context, instanceID, bindingID string, details domain.BindDetails, asyncAllowed bool) (domain.Binding, error) {
 	var actor string
 	switch {
 	case details.AppGUID != "":
@@ -59,7 +59,7 @@ func (b *CredHubBroker) Bind(ctx context.Context, instanceID, bindingID string, 
 	case details.BindResource != nil && details.BindResource.CredentialClientID != "":
 		actor = fmt.Sprintf("uaa-client:%s", details.BindResource.CredentialClientID)
 	default:
-		return brokerapi.Binding{}, errors.New("No app-guid or credential client ID were provided in the binding request, you must configure one of these")
+		return domain.Binding{}, errors.New("No app-guid or credential client ID were provided in the binding request, you must configure one of these")
 	}
 
 	requestID := uuid.New()
@@ -68,7 +68,7 @@ func (b *CredHubBroker) Bind(ctx context.Context, instanceID, bindingID string, 
 
 	binding, err := b.CombinedBroker.Bind(ctx, instanceID, bindingID, details, asyncAllowed)
 	if err != nil {
-		return brokerapi.Binding{}, err
+		return domain.Binding{}, err
 	}
 
 	key := constructKey(details.ServiceID, instanceID, bindingID)
@@ -78,7 +78,7 @@ func (b *CredHubBroker) Bind(ctx context.Context, instanceID, bindingID string, 
 		ctx = brokercontext.New(ctx, string(broker.OperationTypeBind), requestID, b.serviceName, instanceID)
 		setErr := broker.NewGenericError(ctx, fmt.Errorf("failed to set credentials in credential store: %v", err))
 		logger.Print(setErr)
-		return brokerapi.Binding{}, setErr.ErrorForCFUser()
+		return domain.Binding{}, setErr.ErrorForCFUser()
 	}
 
 	b.credStore.AddPermission(key, actor, []string{"read"})
@@ -87,7 +87,7 @@ func (b *CredHubBroker) Bind(ctx context.Context, instanceID, bindingID string, 
 	return binding, nil
 }
 
-func (b *CredHubBroker) Unbind(ctx context.Context, instanceID, bindingID string, details brokerapi.UnbindDetails, asyncAllowed bool) (brokerapi.UnbindSpec, error) {
+func (b *CredHubBroker) Unbind(ctx context.Context, instanceID, bindingID string, details domain.UnbindDetails, asyncAllowed bool) (domain.UnbindSpec, error) {
 	requestID := uuid.New()
 	ctx = brokercontext.WithReqID(ctx, requestID)
 	logger := b.loggerFactory.NewWithContext(ctx)
@@ -95,7 +95,7 @@ func (b *CredHubBroker) Unbind(ctx context.Context, instanceID, bindingID string
 	logger.Printf("removing credentials for instance ID: %s, with binding ID: %s\n", instanceID, bindingID)
 	unbind, err := b.CombinedBroker.Unbind(ctx, instanceID, bindingID, details, asyncAllowed)
 	if err != nil {
-		return brokerapi.UnbindSpec{}, err
+		return domain.UnbindSpec{}, err
 	}
 
 	key := constructKey(details.ServiceID, instanceID, bindingID)

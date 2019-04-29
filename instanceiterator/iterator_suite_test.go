@@ -14,7 +14,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/brokerapi/domain"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
@@ -31,7 +31,7 @@ type testState struct {
 	instance               service.Instance
 	iteratorOutput         []services.BOSHOperationType
 	iteratorCallCount      int
-	lastOperationOutput    []brokerapi.LastOperationState
+	lastOperationOutput    []domain.LastOperationState
 	lastOperationCallCount int
 	taskID                 int
 	controller             *processController
@@ -62,17 +62,17 @@ func setupTest(states []*testState, instanceLister *fakes.FakeInstanceLister, br
 		return services.BOSHOperation{}, errors.New("unexpected instance GUID")
 	}
 
-	brokerServices.LastOperationStub = func(guid string, operationData broker.OperationData) (brokerapi.LastOperation, error) {
+	brokerServices.LastOperationStub = func(guid string, operationData broker.OperationData) (domain.LastOperation, error) {
 		for _, s := range states {
 			if guid == s.instance.GUID {
 				s.controller.WaitForSignalToProceed()
 				s.lastOperationCallCount++
-				return brokerapi.LastOperation{
+				return domain.LastOperation{
 					State: s.lastOperationOutput[s.lastOperationCallCount-1],
 				}, nil
 			}
 		}
-		return brokerapi.LastOperation{}, errors.New("unexpected instance GUID")
+		return domain.LastOperation{}, errors.New("unexpected instance GUID")
 	}
 }
 

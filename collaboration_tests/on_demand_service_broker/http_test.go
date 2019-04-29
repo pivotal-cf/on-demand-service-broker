@@ -20,7 +20,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/brokerapi/domain"
 	brokerConfig "github.com/pivotal-cf/on-demand-service-broker/config"
 )
 
@@ -61,7 +61,7 @@ var _ = Describe("Server Protocol", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(response.StatusCode).To(Equal(http.StatusOK))
-			catalog := make(map[string][]brokerapi.Service)
+			catalog := make(map[string][]domain.Service)
 			Expect(json.Unmarshal(bodyContent, &catalog)).To(Succeed())
 			Expect(catalog["services"][0].Name).To(Equal(serviceName))
 		})
@@ -181,7 +181,7 @@ var _ = Describe("Server Protocol", func() {
 			response, bodyContent := doRequest(http.MethodGet, fmt.Sprintf("http://%s/v2/catalog", serverURL), nil)
 
 			Expect(response.StatusCode).To(Equal(http.StatusOK))
-			catalog := make(map[string][]brokerapi.Service)
+			catalog := make(map[string][]domain.Service)
 			Expect(json.Unmarshal(bodyContent, &catalog)).To(Succeed())
 			Expect(catalog["services"][0].Name).To(Equal(serviceName))
 		})

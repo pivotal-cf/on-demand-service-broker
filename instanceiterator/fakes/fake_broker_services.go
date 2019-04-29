@@ -4,7 +4,7 @@ package fakes
 import (
 	"sync"
 
-	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/brokerapi/domain"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
 	"github.com/pivotal-cf/on-demand-service-broker/instanceiterator"
@@ -26,18 +26,18 @@ type FakeBrokerServices struct {
 		result1 services.BOSHOperation
 		result2 error
 	}
-	LastOperationStub        func(instance string, operationData broker.OperationData) (brokerapi.LastOperation, error)
+	LastOperationStub        func(instance string, operationData broker.OperationData) (domain.LastOperation, error)
 	lastOperationMutex       sync.RWMutex
 	lastOperationArgsForCall []struct {
 		instance      string
 		operationData broker.OperationData
 	}
 	lastOperationReturns struct {
-		result1 brokerapi.LastOperation
+		result1 domain.LastOperation
 		result2 error
 	}
 	lastOperationReturnsOnCall map[int]struct {
-		result1 brokerapi.LastOperation
+		result1 domain.LastOperation
 		result2 error
 	}
 	invocations      map[string][][]interface{}
@@ -96,7 +96,7 @@ func (fake *FakeBrokerServices) ProcessInstanceReturnsOnCall(i int, result1 serv
 	}{result1, result2}
 }
 
-func (fake *FakeBrokerServices) LastOperation(instance string, operationData broker.OperationData) (brokerapi.LastOperation, error) {
+func (fake *FakeBrokerServices) LastOperation(instance string, operationData broker.OperationData) (domain.LastOperation, error) {
 	fake.lastOperationMutex.Lock()
 	ret, specificReturn := fake.lastOperationReturnsOnCall[len(fake.lastOperationArgsForCall)]
 	fake.lastOperationArgsForCall = append(fake.lastOperationArgsForCall, struct {
@@ -126,24 +126,24 @@ func (fake *FakeBrokerServices) LastOperationArgsForCall(i int) (string, broker.
 	return fake.lastOperationArgsForCall[i].instance, fake.lastOperationArgsForCall[i].operationData
 }
 
-func (fake *FakeBrokerServices) LastOperationReturns(result1 brokerapi.LastOperation, result2 error) {
+func (fake *FakeBrokerServices) LastOperationReturns(result1 domain.LastOperation, result2 error) {
 	fake.LastOperationStub = nil
 	fake.lastOperationReturns = struct {
-		result1 brokerapi.LastOperation
+		result1 domain.LastOperation
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeBrokerServices) LastOperationReturnsOnCall(i int, result1 brokerapi.LastOperation, result2 error) {
+func (fake *FakeBrokerServices) LastOperationReturnsOnCall(i int, result1 domain.LastOperation, result2 error) {
 	fake.LastOperationStub = nil
 	if fake.lastOperationReturnsOnCall == nil {
 		fake.lastOperationReturnsOnCall = make(map[int]struct {
-			result1 brokerapi.LastOperation
+			result1 domain.LastOperation
 			result2 error
 		})
 	}
 	fake.lastOperationReturnsOnCall[i] = struct {
-		result1 brokerapi.LastOperation
+		result1 domain.LastOperation
 		result2 error
 	}{result1, result2}
 }

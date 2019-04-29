@@ -5,17 +5,17 @@ import (
 	"log"
 	"sync"
 
-	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/brokerapi/domain"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 )
 
 type FakeMaintenanceInfoChecker struct {
-	CheckStub        func(string, brokerapi.MaintenanceInfo, []brokerapi.Service, *log.Logger) error
+	CheckStub        func(string, domain.MaintenanceInfo, []domain.Service, *log.Logger) error
 	checkMutex       sync.RWMutex
 	checkArgsForCall []struct {
 		arg1 string
-		arg2 brokerapi.MaintenanceInfo
-		arg3 []brokerapi.Service
+		arg2 domain.MaintenanceInfo
+		arg3 []domain.Service
 		arg4 *log.Logger
 	}
 	checkReturns struct {
@@ -28,18 +28,18 @@ type FakeMaintenanceInfoChecker struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeMaintenanceInfoChecker) Check(arg1 string, arg2 brokerapi.MaintenanceInfo, arg3 []brokerapi.Service, arg4 *log.Logger) error {
-	var arg3Copy []brokerapi.Service
+func (fake *FakeMaintenanceInfoChecker) Check(arg1 string, arg2 domain.MaintenanceInfo, arg3 []domain.Service, arg4 *log.Logger) error {
+	var arg3Copy []domain.Service
 	if arg3 != nil {
-		arg3Copy = make([]brokerapi.Service, len(arg3))
+		arg3Copy = make([]domain.Service, len(arg3))
 		copy(arg3Copy, arg3)
 	}
 	fake.checkMutex.Lock()
 	ret, specificReturn := fake.checkReturnsOnCall[len(fake.checkArgsForCall)]
 	fake.checkArgsForCall = append(fake.checkArgsForCall, struct {
 		arg1 string
-		arg2 brokerapi.MaintenanceInfo
-		arg3 []brokerapi.Service
+		arg2 domain.MaintenanceInfo
+		arg3 []domain.Service
 		arg4 *log.Logger
 	}{arg1, arg2, arg3Copy, arg4})
 	fake.recordInvocation("Check", []interface{}{arg1, arg2, arg3Copy, arg4})
@@ -60,13 +60,13 @@ func (fake *FakeMaintenanceInfoChecker) CheckCallCount() int {
 	return len(fake.checkArgsForCall)
 }
 
-func (fake *FakeMaintenanceInfoChecker) CheckCalls(stub func(string, brokerapi.MaintenanceInfo, []brokerapi.Service, *log.Logger) error) {
+func (fake *FakeMaintenanceInfoChecker) CheckCalls(stub func(string, domain.MaintenanceInfo, []domain.Service, *log.Logger) error) {
 	fake.checkMutex.Lock()
 	defer fake.checkMutex.Unlock()
 	fake.CheckStub = stub
 }
 
-func (fake *FakeMaintenanceInfoChecker) CheckArgsForCall(i int) (string, brokerapi.MaintenanceInfo, []brokerapi.Service, *log.Logger) {
+func (fake *FakeMaintenanceInfoChecker) CheckArgsForCall(i int) (string, domain.MaintenanceInfo, []domain.Service, *log.Logger) {
 	fake.checkMutex.RLock()
 	defer fake.checkMutex.RUnlock()
 	argsForCall := fake.checkArgsForCall[i]

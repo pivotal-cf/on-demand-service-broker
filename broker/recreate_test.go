@@ -12,10 +12,9 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/pivotal-cf/brokerapi/domain"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
-
-	"github.com/pivotal-cf/brokerapi"
 
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 
@@ -28,13 +27,13 @@ var _ = Describe("Recreate", func() {
 		instanceID    = "an-instance"
 		logger        *log.Logger
 		boshTaskID    = 63967
-		details       brokerapi.UpdateDetails
+		details       domain.UpdateDetails
 		operationData broker.OperationData
 	)
 
 	BeforeEach(func() {
 		logger = loggerFactory.NewWithRequestID()
-		details = brokerapi.UpdateDetails{
+		details = domain.UpdateDetails{
 			PlanID: existingPlanID,
 		}
 
@@ -62,7 +61,7 @@ var _ = Describe("Recreate", func() {
 	})
 
 	It("when a post-deploy errand is configured, it recreates with a context id", func() {
-		details = brokerapi.UpdateDetails{
+		details = domain.UpdateDetails{
 			PlanID: postDeployErrandPlanID,
 		}
 
@@ -89,7 +88,7 @@ var _ = Describe("Recreate", func() {
 	})
 
 	It("when no update details are provided returns an error", func() {
-		details = brokerapi.UpdateDetails{}
+		details = domain.UpdateDetails{}
 		_, err := b.Recreate(context.Background(), instanceID, details, logger)
 
 		Expect(err).To(MatchError(ContainSubstring("no plan ID provided in recreate request body")))
@@ -98,7 +97,7 @@ var _ = Describe("Recreate", func() {
 	It("when the plan cannot be found, recreate fails and does not redeploy", func() {
 		planID := "plan-id-doesnt-exist"
 
-		details = brokerapi.UpdateDetails{
+		details = domain.UpdateDetails{
 			PlanID: planID,
 		}
 		_, err := b.Recreate(context.Background(), instanceID, details, logger)

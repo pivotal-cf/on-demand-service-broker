@@ -4,10 +4,11 @@ import (
 	"context"
 	"errors"
 
-	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/brokerapi/domain"
+	"github.com/pivotal-cf/brokerapi/domain/apiresponses"
 )
 
-func (b *Broker) LastBindingOperation(ctx context.Context, instanceID, bindingID string, details brokerapi.PollDetails) (brokerapi.LastOperation, error) {
-	err := brokerapi.NewFailureResponse(errors.New("LastBindingOperation Not Implemented"), 404, "")
-	return brokerapi.LastOperation{}, err
+func (b *Broker) LastBindingOperation(ctx context.Context, instanceID, bindingID string, details domain.PollDetails) (domain.LastOperation, error) {
+	err := apiresponses.NewFailureResponse(errors.New("LastBindingOperation Not Implemented"), 404, "")
+	return domain.LastOperation{}, err
 }

@@ -14,10 +14,11 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/pivotal-cf/brokerapi/domain"
+	"github.com/pivotal-cf/brokerapi/domain/apiresponses"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 
 	"github.com/pborman/uuid"
-	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/brokercontext"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 )
@@ -25,9 +26,9 @@ import (
 func (b *Broker) Update(
 	ctx context.Context,
 	instanceID string,
-	details brokerapi.UpdateDetails,
+	details domain.UpdateDetails,
 	asyncAllowed bool,
-) (brokerapi.UpdateServiceSpec, error) {
+) (domain.UpdateServiceSpec, error) {
 	b.deploymentLock.Lock()
 	defer b.deploymentLock.Unlock()
 
@@ -36,12 +37,12 @@ func (b *Broker) Update(
 	logger := b.loggerFactory.NewWithContext(ctx)
 
 	if !asyncAllowed {
-		return brokerapi.UpdateServiceSpec{}, b.processError(brokerapi.ErrAsyncRequired, logger)
+		return domain.UpdateServiceSpec{}, b.processError(apiresponses.ErrAsyncRequired, logger)
 	}
 
 	plan, err := b.checkPlanExists(details, logger, ctx)
 	if err != nil {
-		return brokerapi.UpdateServiceSpec{}, b.processError(err, logger)
+		return domain.UpdateServiceSpec{}, b.processError(err, logger)
 	}
 
 	var boshContextID string
@@ -54,13 +55,13 @@ func (b *Broker) Update(
 
 	err = b.validateMaintenanceInfo(details, ctx, logger)
 	if err != nil {
-		return brokerapi.UpdateServiceSpec{}, b.processError(err, logger)
+		return domain.UpdateServiceSpec{}, b.processError(err, logger)
 	}
 
-	detailsWithRawParameters := brokerapi.DetailsWithRawParameters(details)
+	detailsWithRawParameters := domain.DetailsWithRawParameters(details)
 	detailsMap, err := convertDetailsToMap(detailsWithRawParameters)
 	if err != nil {
-		return brokerapi.UpdateServiceSpec{}, b.processError(NewGenericError(ctx, err), logger)
+		return domain.UpdateServiceSpec{}, b.processError(NewGenericError(ctx, err), logger)
 	}
 
 	if b.isUpgrade(details, detailsMap) {
@@ -77,18 +78,18 @@ func (b *Broker) Update(
 	} else {
 		err = b.validateQuotasForUpdate(plan, details, logger, ctx)
 		if err != nil {
-			return brokerapi.UpdateServiceSpec{}, b.processError(err, logger)
+			return domain.UpdateServiceSpec{}, b.processError(err, logger)
 		}
 
 		err = b.validatePlanSchemas(plan, details, logger)
 		if err != nil {
-			return brokerapi.UpdateServiceSpec{}, b.processError(err, logger)
+			return domain.UpdateServiceSpec{}, b.processError(err, logger)
 		}
 
 		var secretMap map[string]string
 		secretMap, err = b.getSecretMap(instanceID, logger)
 		if err != nil {
-			return brokerapi.UpdateServiceSpec{}, b.processError(NewGenericError(ctx, err), logger)
+			return domain.UpdateServiceSpec{}, b.processError(NewGenericError(ctx, err), logger)
 		}
 
 		logger.Printf("updating instance %s", instanceID)
@@ -116,35 +117,35 @@ func (b *Broker) Update(
 		Errands:       plan.PostDeployErrands(),
 	})
 	if err != nil {
-		return brokerapi.UpdateServiceSpec{}, b.processError(NewGenericError(brokercontext.WithBoshTaskID(ctx, boshTaskID), err), logger)
+		return domain.UpdateServiceSpec{}, b.processError(NewGenericError(brokercontext.WithBoshTaskID(ctx, boshTaskID), err), logger)
 	}
 
-	return brokerapi.UpdateServiceSpec{IsAsync: true, OperationData: string(operationData)}, nil
+	return domain.UpdateServiceSpec{IsAsync: true, OperationData: string(operationData)}, nil
 }
 
-func (b *Broker) handleUpdateError(err error, logger *log.Logger, ctx context.Context) (brokerapi.UpdateServiceSpec, error) {
+func (b *Broker) handleUpdateError(err error, logger *log.Logger, ctx context.Context) (domain.UpdateServiceSpec, error) {
 	switch err := err.(type) {
 	case ServiceError:
-		return brokerapi.UpdateServiceSpec{}, b.processError(NewBoshRequestError("update", fmt.Errorf("error deploying instance: %s", err)), logger)
+		return domain.UpdateServiceSpec{}, b.processError(NewBoshRequestError("update", fmt.Errorf("error deploying instance: %s", err)), logger)
 	case PendingChangesNotAppliedError:
-		return brokerapi.UpdateServiceSpec{}, b.processError(brokerapi.NewFailureResponse(
+		return domain.UpdateServiceSpec{}, b.processError(apiresponses.NewFailureResponse(
 			errors.New(PendingChangesErrorMessage),
 			http.StatusUnprocessableEntity,
 			UpdateLoggerAction,
 		), logger)
 	case TaskInProgressError:
-		return brokerapi.UpdateServiceSpec{}, b.processError(errors.New(OperationInProgressMessage), logger)
+		return domain.UpdateServiceSpec{}, b.processError(errors.New(OperationInProgressMessage), logger)
 	case PlanNotFoundError:
-		return brokerapi.UpdateServiceSpec{}, b.processError(err, logger)
+		return domain.UpdateServiceSpec{}, b.processError(err, logger)
 	case serviceadapter.UnknownFailureError:
-		return brokerapi.UpdateServiceSpec{}, b.processError(adapterToAPIError(ctx, err), logger)
+		return domain.UpdateServiceSpec{}, b.processError(adapterToAPIError(ctx, err), logger)
 	case error:
-		return brokerapi.UpdateServiceSpec{}, b.processError(NewGenericError(ctx, fmt.Errorf("error deploying instance: %s", err)), logger)
+		return domain.UpdateServiceSpec{}, b.processError(NewGenericError(ctx, fmt.Errorf("error deploying instance: %s", err)), logger)
 	}
-	return brokerapi.UpdateServiceSpec{}, nil
+	return domain.UpdateServiceSpec{}, nil
 }
 
-func (b *Broker) checkPlanExists(details brokerapi.UpdateDetails, logger *log.Logger, ctx context.Context) (config.Plan, error) {
+func (b *Broker) checkPlanExists(details domain.UpdateDetails, logger *log.Logger, ctx context.Context) (config.Plan, error) {
 	plan, found := b.serviceOffering.FindPlanByID(details.PlanID)
 	if !found {
 		return config.Plan{}, PlanNotFoundError{PlanGUID: details.PlanID}
@@ -153,7 +154,7 @@ func (b *Broker) checkPlanExists(details brokerapi.UpdateDetails, logger *log.Lo
 	return plan, nil
 }
 
-func (b *Broker) isUpgrade(details brokerapi.UpdateDetails, detailsMap map[string]interface{}) bool {
+func (b *Broker) isUpgrade(details domain.UpdateDetails, detailsMap map[string]interface{}) bool {
 	if !details.MaintenanceInfo.NilOrEmpty() {
 		params := detailsMap["parameters"]
 		return details.PlanID == details.PreviousValues.PlanID && len(params.(map[string]interface{})) == 0
@@ -161,7 +162,7 @@ func (b *Broker) isUpgrade(details brokerapi.UpdateDetails, detailsMap map[strin
 	return false
 }
 
-func (b *Broker) validateMaintenanceInfo(details brokerapi.UpdateDetails, ctx context.Context, logger *log.Logger) error {
+func (b *Broker) validateMaintenanceInfo(details domain.UpdateDetails, ctx context.Context, logger *log.Logger) error {
 	servicesCatalog, err := b.Services(context.Background())
 	if err != nil {
 		return err
@@ -170,7 +171,7 @@ func (b *Broker) validateMaintenanceInfo(details brokerapi.UpdateDetails, ctx co
 	return b.maintenanceInfoChecker.Check(details.PlanID, details.MaintenanceInfo, servicesCatalog, logger)
 }
 
-func (b *Broker) validateQuotasForUpdate(plan config.Plan, details brokerapi.UpdateDetails, logger *log.Logger, ctx context.Context) error {
+func (b *Broker) validateQuotasForUpdate(plan config.Plan, details domain.UpdateDetails, logger *log.Logger, ctx context.Context) error {
 	if details.PreviousValues.PlanID != plan.ID {
 		cfPlanCounts, err := b.cfClient.CountInstancesOfServiceOffering(b.serviceOffering.ID, logger)
 		if err != nil {
@@ -186,10 +187,10 @@ func (b *Broker) validateQuotasForUpdate(plan config.Plan, details brokerapi.Upd
 	return nil
 }
 
-func (b *Broker) validatePlanSchemas(plan config.Plan, details brokerapi.UpdateDetails, logger *log.Logger) error {
+func (b *Broker) validatePlanSchemas(plan config.Plan, details domain.UpdateDetails, logger *log.Logger) error {
 
 	if b.EnablePlanSchemas {
-		var schemas brokerapi.ServiceSchemas
+		var schemas domain.ServiceSchemas
 		schemas, err := b.adapterClient.GeneratePlanSchema(plan.AdapterPlan(b.serviceOffering.GlobalProperties), logger)
 		if err != nil {
 			if _, ok := err.(serviceadapter.NotImplementedError); !ok {

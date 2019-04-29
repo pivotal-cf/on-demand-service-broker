@@ -14,7 +14,8 @@ import (
 	"log"
 
 	"github.com/pborman/uuid"
-	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/brokerapi/domain"
+	"github.com/pivotal-cf/brokerapi/domain/apiresponses"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/brokercontext"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
@@ -23,9 +24,9 @@ import (
 func (b *Broker) Deprovision(
 	ctx context.Context,
 	instanceID string,
-	deprovisionDetails brokerapi.DeprovisionDetails,
+	deprovisionDetails domain.DeprovisionDetails,
 	asyncAllowed bool,
-) (brokerapi.DeprovisionServiceSpec, error) {
+) (domain.DeprovisionServiceSpec, error) {
 
 	b.deploymentLock.Lock()
 	defer b.deploymentLock.Unlock()
@@ -34,30 +35,30 @@ func (b *Broker) Deprovision(
 	logger := b.loggerFactory.NewWithContext(ctx)
 
 	if !asyncAllowed {
-		return brokerapi.DeprovisionServiceSpec{}, b.processError(brokerapi.ErrAsyncRequired, logger)
+		return domain.DeprovisionServiceSpec{}, b.processError(apiresponses.ErrAsyncRequired, logger)
 	}
 
 	_, err := b.boshClient.GetInfo(logger)
 	if err != nil {
-		return brokerapi.DeprovisionServiceSpec{IsAsync: true}, b.processError(NewBoshRequestError("delete", err), logger)
+		return domain.DeprovisionServiceSpec{IsAsync: true}, b.processError(NewBoshRequestError("delete", err), logger)
 	}
 
 	deploymentExists, err := b.assertDeploymentExists(ctx, instanceID, logger)
 	if err != nil {
-		return brokerapi.DeprovisionServiceSpec{IsAsync: true}, b.processError(err, logger)
+		return domain.DeprovisionServiceSpec{IsAsync: true}, b.processError(err, logger)
 	}
 
 	if !deploymentExists {
 		var err error
 		err = NewDisplayableError(
-			brokerapi.ErrInstanceDoesNotExist,
+			apiresponses.ErrInstanceDoesNotExist,
 			fmt.Errorf("error deprovisioning: instance %s, not found", instanceID),
 		)
 
 		if !b.DisableBoshConfigs {
 			deleteConfigsErr := b.deleteConfigsForNotFoundInstance(ctx, instanceID, logger)
 			if deleteConfigsErr != nil {
-				return brokerapi.DeprovisionServiceSpec{IsAsync: true}, b.processError(deleteConfigsErr, logger)
+				return domain.DeprovisionServiceSpec{IsAsync: true}, b.processError(deleteConfigsErr, logger)
 			}
 		}
 
@@ -66,11 +67,11 @@ func (b *Broker) Deprovision(
 			err = secretsErr
 		}
 
-		return brokerapi.DeprovisionServiceSpec{IsAsync: true}, b.processError(err, logger)
+		return domain.DeprovisionServiceSpec{IsAsync: true}, b.processError(err, logger)
 	}
 
 	if err := b.assertNoOperationsInProgress(ctx, instanceID, logger); err != nil {
-		return brokerapi.DeprovisionServiceSpec{IsAsync: true}, b.processError(err, logger)
+		return domain.DeprovisionServiceSpec{IsAsync: true}, b.processError(err, logger)
 	}
 
 	plan, found := b.serviceOffering.FindPlanByID(deprovisionDetails.PlanID)
@@ -157,7 +158,7 @@ func (b *Broker) runPreDeleteErrands(
 	instanceID string,
 	preDeleteErrands []config.Errand,
 	logger *log.Logger,
-) (brokerapi.DeprovisionServiceSpec, error) {
+) (domain.DeprovisionServiceSpec, error) {
 	logger.Printf("running pre-delete errand for instance %s\n", instanceID)
 
 	boshContextID := uuid.New()
@@ -171,7 +172,7 @@ func (b *Broker) runPreDeleteErrands(
 		boshdirector.NewAsyncTaskReporter(),
 	)
 	if err != nil {
-		return brokerapi.DeprovisionServiceSpec{IsAsync: true}, NewGenericError(ctx, err)
+		return domain.DeprovisionServiceSpec{IsAsync: true}, NewGenericError(ctx, err)
 	}
 
 	operationData, err := json.Marshal(OperationData{
@@ -182,10 +183,10 @@ func (b *Broker) runPreDeleteErrands(
 	})
 
 	if err != nil {
-		return brokerapi.DeprovisionServiceSpec{IsAsync: true}, NewGenericError(ctx, err)
+		return domain.DeprovisionServiceSpec{IsAsync: true}, NewGenericError(ctx, err)
 	}
 
-	return brokerapi.DeprovisionServiceSpec{IsAsync: true, OperationData: string(operationData)}, nil
+	return domain.DeprovisionServiceSpec{IsAsync: true, OperationData: string(operationData)}, nil
 }
 
 func (b *Broker) deleteInstance(
@@ -193,14 +194,14 @@ func (b *Broker) deleteInstance(
 	instanceID string,
 	planConfig config.Plan,
 	logger *log.Logger,
-) (brokerapi.DeprovisionServiceSpec, error) {
+) (domain.DeprovisionServiceSpec, error) {
 	logger.Printf("deleting deployment for instance %s\n", instanceID)
 	taskID, err := b.boshClient.DeleteDeployment(deploymentName(instanceID), fmt.Sprintf("delete-%s", instanceID), logger, boshdirector.NewAsyncTaskReporter())
 	switch err.(type) {
 	case boshdirector.RequestError:
-		return brokerapi.DeprovisionServiceSpec{IsAsync: true}, NewBoshRequestError("delete", err)
+		return domain.DeprovisionServiceSpec{IsAsync: true}, NewBoshRequestError("delete", err)
 	case error:
-		return brokerapi.DeprovisionServiceSpec{IsAsync: true}, NewGenericError(
+		return domain.DeprovisionServiceSpec{IsAsync: true}, NewGenericError(
 			ctx,
 			fmt.Errorf("error deprovisioning: deleting bosh deployment: %s", err),
 		)
@@ -215,10 +216,10 @@ func (b *Broker) deleteInstance(
 	})
 
 	if err != nil {
-		return brokerapi.DeprovisionServiceSpec{IsAsync: true}, NewGenericError(ctx, err)
+		return domain.DeprovisionServiceSpec{IsAsync: true}, NewGenericError(ctx, err)
 	}
 
-	return brokerapi.DeprovisionServiceSpec{
+	return domain.DeprovisionServiceSpec{
 		IsAsync:       true,
 		OperationData: string(operationData),
 	}, nil

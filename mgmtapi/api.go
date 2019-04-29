@@ -16,7 +16,8 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/pborman/uuid"
-	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/brokerapi/domain"
+	"github.com/pivotal-cf/brokerapi/domain/apiresponses"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/brokercontext"
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
@@ -36,8 +37,8 @@ type ManageableBroker interface {
 	Instances(logger *log.Logger) ([]service.Instance, error)
 	FilteredInstances(orgName, spaceName string, logger *log.Logger) ([]service.Instance, error)
 	OrphanDeployments(logger *log.Logger) ([]string, error)
-	Upgrade(ctx context.Context, instanceID string, updateDetails brokerapi.UpdateDetails, logger *log.Logger) (broker.OperationData, error)
-	Recreate(ctx context.Context, instanceID string, updateDetails brokerapi.UpdateDetails, logger *log.Logger) (broker.OperationData, error)
+	Upgrade(ctx context.Context, instanceID string, updateDetails domain.UpdateDetails, logger *log.Logger) (broker.OperationData, error)
+	Recreate(ctx context.Context, instanceID string, updateDetails domain.UpdateDetails, logger *log.Logger) (broker.OperationData, error)
 	CountInstancesOfPlans(logger *log.Logger) (map[cf.ServicePlan]int, error)
 }
 
@@ -125,11 +126,11 @@ func (a *api) recreateInstance(w http.ResponseWriter, r *http.Request) {
 
 	logger := a.loggerFactory.NewWithContext(ctx)
 
-	var details brokerapi.UpdateDetails
+	var details domain.UpdateDetails
 	if err := json.NewDecoder(r.Body).Decode(&details); err != nil {
 		logger.Printf("error occurred parsing requests body: %s", err)
 		w.WriteHeader(http.StatusUnprocessableEntity)
-		a.writeJson(w, brokerapi.ErrorResponse{Description: "Error in request body. Invalid JSON"}, logger)
+		a.writeJson(w, apiresponses.ErrorResponse{Description: "Error in request body. Invalid JSON"}, logger)
 		return
 	}
 
@@ -148,7 +149,7 @@ func (a *api) recreateInstance(w http.ResponseWriter, r *http.Request) {
 	case error:
 		logger.Printf("error occurred recreating instance %s: %s", instanceID, err)
 		w.WriteHeader(http.StatusInternalServerError)
-		a.writeJson(w, brokerapi.ErrorResponse{Description: err.Error()}, logger)
+		a.writeJson(w, apiresponses.ErrorResponse{Description: err.Error()}, logger)
 	}
 }
 
@@ -161,11 +162,11 @@ func (a *api) upgradeInstance(w http.ResponseWriter, r *http.Request) {
 
 	logger := a.loggerFactory.NewWithContext(ctx)
 
-	var details brokerapi.UpdateDetails
+	var details domain.UpdateDetails
 	if err := json.NewDecoder(r.Body).Decode(&details); err != nil {
 		logger.Printf("error occurred parsing requests body: %s", err)
 		w.WriteHeader(http.StatusUnprocessableEntity)
-		a.writeJson(w, brokerapi.ErrorResponse{Description: "Error in request body. Invalid JSON"}, logger)
+		a.writeJson(w, apiresponses.ErrorResponse{Description: "Error in request body. Invalid JSON"}, logger)
 		return
 	}
 
@@ -184,7 +185,7 @@ func (a *api) upgradeInstance(w http.ResponseWriter, r *http.Request) {
 	case error:
 		logger.Printf("error occurred upgrading instance %s: %s", instanceID, err)
 		w.WriteHeader(http.StatusInternalServerError)
-		a.writeJson(w, brokerapi.ErrorResponse{Description: err.Error()}, logger)
+		a.writeJson(w, apiresponses.ErrorResponse{Description: err.Error()}, logger)
 	}
 }
 

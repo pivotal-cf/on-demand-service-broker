@@ -11,7 +11,7 @@ import (
 
 	"net/url"
 
-	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/brokerapi/domain"
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
 )
 
@@ -28,8 +28,8 @@ func LastOperation(serviceInstanceGUID, operationData string) *lastOperationMock
 }
 
 func (l *lastOperationMock) RespondWithOperationSucceeded() *mockhttp.Handler {
-	operationSucceed := brokerapi.LastOperation{
-		State:       brokerapi.Succeeded,
+	operationSucceed := domain.LastOperation{
+		State:       domain.Succeeded,
 		Description: "it succeeded",
 	}
 
@@ -37,8 +37,8 @@ func (l *lastOperationMock) RespondWithOperationSucceeded() *mockhttp.Handler {
 }
 
 func (l *lastOperationMock) RespondWithOperationInProgress() *mockhttp.Handler {
-	operationInProgress := brokerapi.LastOperation{
-		State:       brokerapi.InProgress,
+	operationInProgress := domain.LastOperation{
+		State:       domain.InProgress,
 		Description: "it's in progress",
 	}
 
@@ -46,8 +46,8 @@ func (l *lastOperationMock) RespondWithOperationInProgress() *mockhttp.Handler {
 }
 
 func (l *lastOperationMock) RespondWithOperationFailed() *mockhttp.Handler {
-	operationFailed := brokerapi.LastOperation{
-		State:       brokerapi.Failed,
+	operationFailed := domain.LastOperation{
+		State:       domain.Failed,
 		Description: "it failed",
 	}
 

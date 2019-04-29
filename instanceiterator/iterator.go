@@ -14,7 +14,7 @@ import (
 
 	"strings"
 
-	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/brokerapi/domain"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
@@ -41,7 +41,7 @@ type Listener interface {
 //go:generate counterfeiter -o fakes/fake_broker_services.go . BrokerServices
 type BrokerServices interface {
 	ProcessInstance(instance service.Instance, operationType string) (services.BOSHOperation, error)
-	LastOperation(instance string, operationData broker.OperationData) (brokerapi.LastOperation, error)
+	LastOperation(instance string, operationData broker.OperationData) (domain.LastOperation, error)
 }
 
 //go:generate counterfeiter -o fakes/fake_instance_lister.go . InstanceLister

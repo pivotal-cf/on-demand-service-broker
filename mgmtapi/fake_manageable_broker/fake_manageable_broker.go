@@ -6,7 +6,7 @@ import (
 	"log"
 	"sync"
 
-	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/brokerapi/domain"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/mgmtapi"
@@ -55,12 +55,12 @@ type FakeManageableBroker struct {
 		result1 []string
 		result2 error
 	}
-	UpgradeStub        func(ctx context.Context, instanceID string, updateDetails brokerapi.UpdateDetails, logger *log.Logger) (broker.OperationData, error)
+	UpgradeStub        func(ctx context.Context, instanceID string, updateDetails domain.UpdateDetails, logger *log.Logger) (broker.OperationData, error)
 	upgradeMutex       sync.RWMutex
 	upgradeArgsForCall []struct {
 		ctx           context.Context
 		instanceID    string
-		updateDetails brokerapi.UpdateDetails
+		updateDetails domain.UpdateDetails
 		logger        *log.Logger
 	}
 	upgradeReturns struct {
@@ -71,12 +71,12 @@ type FakeManageableBroker struct {
 		result1 broker.OperationData
 		result2 error
 	}
-	RecreateStub        func(ctx context.Context, instanceID string, updateDetails brokerapi.UpdateDetails, logger *log.Logger) (broker.OperationData, error)
+	RecreateStub        func(ctx context.Context, instanceID string, updateDetails domain.UpdateDetails, logger *log.Logger) (broker.OperationData, error)
 	recreateMutex       sync.RWMutex
 	recreateArgsForCall []struct {
 		ctx           context.Context
 		instanceID    string
-		updateDetails brokerapi.UpdateDetails
+		updateDetails domain.UpdateDetails
 		logger        *log.Logger
 	}
 	recreateReturns struct {
@@ -259,13 +259,13 @@ func (fake *FakeManageableBroker) OrphanDeploymentsReturnsOnCall(i int, result1 
 	}{result1, result2}
 }
 
-func (fake *FakeManageableBroker) Upgrade(ctx context.Context, instanceID string, updateDetails brokerapi.UpdateDetails, logger *log.Logger) (broker.OperationData, error) {
+func (fake *FakeManageableBroker) Upgrade(ctx context.Context, instanceID string, updateDetails domain.UpdateDetails, logger *log.Logger) (broker.OperationData, error) {
 	fake.upgradeMutex.Lock()
 	ret, specificReturn := fake.upgradeReturnsOnCall[len(fake.upgradeArgsForCall)]
 	fake.upgradeArgsForCall = append(fake.upgradeArgsForCall, struct {
 		ctx           context.Context
 		instanceID    string
-		updateDetails brokerapi.UpdateDetails
+		updateDetails domain.UpdateDetails
 		logger        *log.Logger
 	}{ctx, instanceID, updateDetails, logger})
 	fake.recordInvocation("Upgrade", []interface{}{ctx, instanceID, updateDetails, logger})
@@ -285,7 +285,7 @@ func (fake *FakeManageableBroker) UpgradeCallCount() int {
 	return len(fake.upgradeArgsForCall)
 }
 
-func (fake *FakeManageableBroker) UpgradeArgsForCall(i int) (context.Context, string, brokerapi.UpdateDetails, *log.Logger) {
+func (fake *FakeManageableBroker) UpgradeArgsForCall(i int) (context.Context, string, domain.UpdateDetails, *log.Logger) {
 	fake.upgradeMutex.RLock()
 	defer fake.upgradeMutex.RUnlock()
 	return fake.upgradeArgsForCall[i].ctx, fake.upgradeArgsForCall[i].instanceID, fake.upgradeArgsForCall[i].updateDetails, fake.upgradeArgsForCall[i].logger
@@ -313,13 +313,13 @@ func (fake *FakeManageableBroker) UpgradeReturnsOnCall(i int, result1 broker.Ope
 	}{result1, result2}
 }
 
-func (fake *FakeManageableBroker) Recreate(ctx context.Context, instanceID string, updateDetails brokerapi.UpdateDetails, logger *log.Logger) (broker.OperationData, error) {
+func (fake *FakeManageableBroker) Recreate(ctx context.Context, instanceID string, updateDetails domain.UpdateDetails, logger *log.Logger) (broker.OperationData, error) {
 	fake.recreateMutex.Lock()
 	ret, specificReturn := fake.recreateReturnsOnCall[len(fake.recreateArgsForCall)]
 	fake.recreateArgsForCall = append(fake.recreateArgsForCall, struct {
 		ctx           context.Context
 		instanceID    string
-		updateDetails brokerapi.UpdateDetails
+		updateDetails domain.UpdateDetails
 		logger        *log.Logger
 	}{ctx, instanceID, updateDetails, logger})
 	fake.recordInvocation("Recreate", []interface{}{ctx, instanceID, updateDetails, logger})
@@ -339,7 +339,7 @@ func (fake *FakeManageableBroker) RecreateCallCount() int {
 	return len(fake.recreateArgsForCall)
 }
 
-func (fake *FakeManageableBroker) RecreateArgsForCall(i int) (context.Context, string, brokerapi.UpdateDetails, *log.Logger) {
+func (fake *FakeManageableBroker) RecreateArgsForCall(i int) (context.Context, string, domain.UpdateDetails, *log.Logger) {
 	fake.recreateMutex.RLock()
 	defer fake.recreateMutex.RUnlock()
 	return fake.recreateArgsForCall[i].ctx, fake.recreateArgsForCall[i].instanceID, fake.recreateArgsForCall[i].updateDetails, fake.recreateArgsForCall[i].logger

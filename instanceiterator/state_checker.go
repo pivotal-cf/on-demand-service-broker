@@ -18,7 +18,7 @@ package instanceiterator
 import (
 	"fmt"
 
-	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/brokerapi/domain"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
 )
@@ -42,11 +42,11 @@ func (l *LastOperationChecker) Check(guid string, operationData broker.Operation
 	boshOperation := services.BOSHOperation{Data: operationData, Description: lastOperation.Description}
 
 	switch lastOperation.State {
-	case brokerapi.Failed:
+	case domain.Failed:
 		boshOperation.Type = services.OperationFailed
-	case brokerapi.Succeeded:
+	case domain.Succeeded:
 		boshOperation.Type = services.OperationSucceeded
-	case brokerapi.InProgress:
+	case domain.InProgress:
 		boshOperation.Type = services.OperationAccepted
 	default:
 		return services.BOSHOperation{}, fmt.Errorf("unknown state from last operation: %s", lastOperation.State)

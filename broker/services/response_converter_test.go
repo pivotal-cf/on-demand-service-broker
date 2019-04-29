@@ -15,7 +15,8 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/brokerapi/domain"
+	"github.com/pivotal-cf/brokerapi/domain/apiresponses"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
 	"github.com/pivotal-cf/on-demand-service-broker/mgmtapi"
@@ -30,8 +31,8 @@ var _ = Describe("Response Converter", func() {
 
 	Context("last operation", func() {
 		It("returns the last operation data", func() {
-			expectedOperation := brokerapi.LastOperation{
-				State:       brokerapi.InProgress,
+			expectedOperation := domain.LastOperation{
+				State:       domain.InProgress,
 				Description: "some-description",
 			}
 			response := http.Response{
@@ -242,7 +243,7 @@ func upgradeOperationJSON() string {
 }
 
 func upgradeErrorJSON(description string) string {
-	errorResponse := brokerapi.ErrorResponse{
+	errorResponse := apiresponses.ErrorResponse{
 		Description: description,
 	}
 	content, err := json.Marshal(errorResponse)
@@ -250,7 +251,7 @@ func upgradeErrorJSON(description string) string {
 	return string(content)
 }
 
-func lastOperationJSON(operation brokerapi.LastOperation) string {
+func lastOperationJSON(operation domain.LastOperation) string {
 	content, err := json.Marshal(operation)
 	Expect(err).NotTo(HaveOccurred())
 	return string(content)

@@ -18,7 +18,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
-	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/brokerapi/domain"
+	"github.com/pivotal-cf/brokerapi/domain/apiresponses"
 	brokerConfig "github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
@@ -34,7 +35,7 @@ var _ = Describe("Binding", func() {
 		expectedDeploymentName = fmt.Sprintf("service-instance_%s", instanceID)
 		boshManifest           []byte
 		boshVMs                bosh.BoshVMs
-		bindDetails            brokerapi.BindDetails
+		bindDetails            domain.BindDetails
 		bindingRequestDetails  map[string]interface{}
 		bindingWithDNSConf     []brokerConfig.BindingDNS
 		bindingWithDNSDetails  map[string]string
@@ -76,11 +77,11 @@ var _ = Describe("Binding", func() {
 		fakeBoshClient.VMsReturns(boshVMs, nil)
 		fakeBoshClient.GetDeploymentReturns(boshManifest, true, nil)
 
-		bindDetails = brokerapi.BindDetails{
+		bindDetails = domain.BindDetails{
 			PlanID:    "plan-id",
 			ServiceID: "service-id",
 			AppGUID:   "app-guid",
-			BindResource: &brokerapi.BindResource{
+			BindResource: &domain.BindResource{
 				AppGuid: "app-guid",
 			},
 			RawParameters: []byte(`{"baz": "bar"}`),
@@ -137,9 +138,9 @@ var _ = Describe("Binding", func() {
 			Expect(response.StatusCode).To(Equal(http.StatusCreated))
 
 			By("returning the correct binding metadata")
-			var responseBody brokerapi.Binding
+			var responseBody domain.Binding
 			Expect(json.Unmarshal(bodyContent, &responseBody)).To(Succeed())
-			Expect(responseBody).To(Equal(brokerapi.Binding{
+			Expect(responseBody).To(Equal(domain.Binding{
 				Credentials:     map[string]interface{}{"user": "bill", "password": "redflag"},
 				SyslogDrainURL:  "other.fqdn",
 				RouteServiceURL: "some.fqdn",
@@ -226,7 +227,7 @@ variables:
 			Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 
 			By("returning the correct error message")
-			var errorResponse brokerapi.ErrorResponse
+			var errorResponse apiresponses.ErrorResponse
 			Expect(json.Unmarshal(bodyContent, &errorResponse)).To(Succeed())
 
 			Expect(errorResponse.Description).To(SatisfyAll(
@@ -250,7 +251,7 @@ variables:
 			Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 
 			By("returning the correct error message")
-			var errorResponse brokerapi.ErrorResponse
+			var errorResponse apiresponses.ErrorResponse
 			Expect(json.Unmarshal(bodyContent, &errorResponse)).To(Succeed())
 
 			Expect(errorResponse.Description).To(ContainSubstring("instance does not exist"))
@@ -264,7 +265,7 @@ variables:
 			Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 
 			By("returning the correct error message")
-			var errorResponse brokerapi.ErrorResponse
+			var errorResponse apiresponses.ErrorResponse
 			Expect(json.Unmarshal(bodyContent, &errorResponse)).To(Succeed())
 
 			Expect(errorResponse.Description).To(SatisfyAll(
@@ -288,7 +289,7 @@ variables:
 			Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 
 			By("returning the correct error message")
-			var errorResponse brokerapi.ErrorResponse
+			var errorResponse apiresponses.ErrorResponse
 			Expect(json.Unmarshal(bodyContent, &errorResponse)).To(Succeed())
 
 			Expect(errorResponse.Description).To(SatisfyAll(
@@ -342,7 +343,7 @@ variables:
 			By("returning the correct status code")
 			Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 
-			var errorResponse brokerapi.ErrorResponse
+			var errorResponse apiresponses.ErrorResponse
 			Expect(json.Unmarshal(bodyContent, &errorResponse)).To(Succeed())
 
 			Expect(errorResponse.Description).To(SatisfyAll(
@@ -370,7 +371,7 @@ variables:
 			By("returning the correct status code")
 			Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 
-			var errorResponse brokerapi.ErrorResponse
+			var errorResponse apiresponses.ErrorResponse
 			Expect(json.Unmarshal(bodyContent, &errorResponse)).To(Succeed())
 
 			Expect(errorResponse.Description).To(SatisfyAll(
@@ -388,7 +389,7 @@ variables:
 	})
 })
 
-func doBindRequest(instanceID, bindingID string, bindDetails brokerapi.BindDetails) (*http.Response, []byte) {
+func doBindRequest(instanceID, bindingID string, bindDetails domain.BindDetails) (*http.Response, []byte) {
 	body := bytes.NewBuffer([]byte{})
 	err := json.NewEncoder(body).Encode(bindDetails)
 	Expect(err).NotTo(HaveOccurred())

@@ -13,11 +13,12 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/pivotal-cf/brokerapi/domain"
+	"github.com/pivotal-cf/brokerapi/domain/apiresponses"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	brokerfakes "github.com/pivotal-cf/on-demand-service-broker/broker/fakes"
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
@@ -27,7 +28,7 @@ import (
 var _ = Describe("Update", func() {
 	var (
 		instanceID                              = "some-instance-id"
-		updateSpec                              brokerapi.UpdateServiceSpec
+		updateSpec                              domain.UpdateServiceSpec
 		arbitraryParams                         map[string]interface{}
 		arbContext                              map[string]interface{}
 		expectedSecretsMap                      map[string]string
@@ -40,7 +41,7 @@ var _ = Describe("Update", func() {
 		oldPlanID                               string
 		serialisedArbitraryContext              []byte
 		async                                   = true
-		maintenanceInfo, oldPlanMaintenanceInfo brokerapi.MaintenanceInfo
+		maintenanceInfo, oldPlanMaintenanceInfo domain.MaintenanceInfo
 		err                                     error
 		testBroker                              *broker.Broker
 	)
@@ -64,7 +65,7 @@ var _ = Describe("Update", func() {
 			"foo": "b4r",
 		}
 		fakeSecretManager.ResolveManifestSecretsReturns(expectedSecretsMap, nil)
-		maintenanceInfo = brokerapi.MaintenanceInfo{}
+		maintenanceInfo = domain.MaintenanceInfo{}
 		testBroker = createDefaultBroker()
 		catalog, err := testBroker.Services(context.Background())
 		Expect(err).NotTo(HaveOccurred())
@@ -73,7 +74,7 @@ var _ = Describe("Update", func() {
 	})
 
 	When("it is an update", func() {
-		var updateDetails brokerapi.UpdateDetails
+		var updateDetails domain.UpdateDetails
 		JustBeforeEach(func() {
 			serialisedArbitraryContext, err := json.Marshal(arbContext)
 			Expect(err).NotTo(HaveOccurred())
@@ -81,11 +82,11 @@ var _ = Describe("Update", func() {
 			serialisedArbitraryParameters, err := json.Marshal(arbitraryParams)
 			Expect(err).NotTo(HaveOccurred())
 
-			updateDetails = brokerapi.UpdateDetails{
+			updateDetails = domain.UpdateDetails{
 				PlanID:     newPlanID,
 				ServiceID:  serviceID,
 				RawContext: serialisedArbitraryContext,
-				PreviousValues: brokerapi.PreviousValues{
+				PreviousValues: domain.PreviousValues{
 					PlanID: oldPlanID,
 				},
 				MaintenanceInfo: maintenanceInfo,
@@ -205,7 +206,7 @@ var _ = Describe("Update", func() {
 				})
 
 				It("reports a pending changes are present error", func() {
-					expectedFailureResponse := brokerapi.NewFailureResponse(
+					expectedFailureResponse := apiresponses.NewFailureResponse(
 						errors.New(broker.PendingChangesErrorMessage),
 						http.StatusUnprocessableEntity,
 						broker.UpdateLoggerAction,
@@ -382,12 +383,12 @@ var _ = Describe("Update", func() {
 				})
 
 				JustBeforeEach(func() {
-					updateDetails = brokerapi.UpdateDetails{
+					updateDetails = domain.UpdateDetails{
 						PlanID:        newPlanID,
 						RawContext:    serialisedArbitraryContext,
 						RawParameters: schemaParams,
 						ServiceID:     serviceOfferingID,
-						PreviousValues: brokerapi.PreviousValues{
+						PreviousValues: domain.PreviousValues{
 							PlanID:    oldPlanID,
 							OrgID:     orgGUID,
 							ServiceID: serviceID,
@@ -580,12 +581,12 @@ var _ = Describe("Update", func() {
 				serialisedArbitraryContext, err := json.Marshal(arbContext)
 				Expect(err).NotTo(HaveOccurred())
 
-				updateDetails := brokerapi.UpdateDetails{
+				updateDetails := domain.UpdateDetails{
 					PlanID:        newPlan.ID,
 					RawParameters: serialisedArbitraryParameters,
 					RawContext:    serialisedArbitraryContext,
 					ServiceID:     "serviceID",
-					PreviousValues: brokerapi.PreviousValues{
+					PreviousValues: domain.PreviousValues{
 						PlanID:    oldPlan.ID,
 						OrgID:     "organizsationGUID",
 						ServiceID: "serviceID",
@@ -652,21 +653,21 @@ var _ = Describe("Update", func() {
 	})
 
 	When("it is an upgrade", func() {
-		var testCases []brokerapi.UpdateDetails
+		var testCases []domain.UpdateDetails
 
 		BeforeEach(func() {
 			fakeDeployer.UpgradeReturns(50, nil, nil)
 			fakeDeployer.UpdateReturns(-1, nil, errors.New("fail"))
 
-			testCases = []brokerapi.UpdateDetails{
+			testCases = []domain.UpdateDetails{
 				{
 					PlanID:     oldPlanID,
 					ServiceID:  serviceID,
 					RawContext: serialisedArbitraryContext,
-					PreviousValues: brokerapi.PreviousValues{
+					PreviousValues: domain.PreviousValues{
 						PlanID: oldPlanID,
 					},
-					MaintenanceInfo: brokerapi.MaintenanceInfo{
+					MaintenanceInfo: domain.MaintenanceInfo{
 						Private: "secret:secret;",
 					},
 				},
@@ -674,10 +675,10 @@ var _ = Describe("Update", func() {
 					PlanID:     oldPlanID,
 					ServiceID:  serviceID,
 					RawContext: serialisedArbitraryContext,
-					PreviousValues: brokerapi.PreviousValues{
+					PreviousValues: domain.PreviousValues{
 						PlanID: oldPlanID,
 					},
-					MaintenanceInfo: brokerapi.MaintenanceInfo{
+					MaintenanceInfo: domain.MaintenanceInfo{
 						Public: map[string]string{
 							"something": "fancy",
 						},
@@ -687,10 +688,10 @@ var _ = Describe("Update", func() {
 					PlanID:     oldPlanID,
 					ServiceID:  serviceID,
 					RawContext: serialisedArbitraryContext,
-					PreviousValues: brokerapi.PreviousValues{
+					PreviousValues: domain.PreviousValues{
 						PlanID: oldPlanID,
 					},
-					MaintenanceInfo: brokerapi.MaintenanceInfo{
+					MaintenanceInfo: domain.MaintenanceInfo{
 						Version: "1.2.3",
 					},
 				},
@@ -713,7 +714,7 @@ var _ = Describe("Update", func() {
 				})
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(updateSpec).To(Equal(brokerapi.UpdateServiceSpec{
+				Expect(updateSpec).To(Equal(domain.UpdateServiceSpec{
 					IsAsync:       true,
 					OperationData: string(opData),
 				}))
@@ -724,21 +725,21 @@ var _ = Describe("Update", func() {
 	})
 
 	Describe("regardless of the type of update", func() {
-		var testCases []brokerapi.UpdateDetails
+		var testCases []domain.UpdateDetails
 
 		BeforeEach(func() {
-			testCases = []brokerapi.UpdateDetails{
+			testCases = []domain.UpdateDetails{
 				{
 					PlanID:    newPlanID,
 					ServiceID: serviceID,
-					PreviousValues: brokerapi.PreviousValues{
+					PreviousValues: domain.PreviousValues{
 						PlanID: oldPlanID,
 					},
 				},
 				{
 					PlanID:    oldPlanID,
 					ServiceID: serviceID,
-					PreviousValues: brokerapi.PreviousValues{
+					PreviousValues: domain.PreviousValues{
 						PlanID: oldPlanID,
 					},
 					RawParameters: []byte(`{"foo":"bar"}`),
@@ -746,7 +747,7 @@ var _ = Describe("Update", func() {
 				{
 					PlanID:    oldPlanID,
 					ServiceID: serviceID,
-					PreviousValues: brokerapi.PreviousValues{
+					PreviousValues: domain.PreviousValues{
 						PlanID: oldPlanID,
 					},
 					MaintenanceInfo: oldPlanMaintenanceInfo,
@@ -832,7 +833,7 @@ var _ = Describe("Update", func() {
 	})
 })
 
-func unmarshalOperationData(updateSpec brokerapi.UpdateServiceSpec) broker.OperationData {
+func unmarshalOperationData(updateSpec domain.UpdateServiceSpec) broker.OperationData {
 	var data broker.OperationData
 	err := json.Unmarshal([]byte(updateSpec.OperationData), &data)
 	Expect(err).NotTo(HaveOccurred())

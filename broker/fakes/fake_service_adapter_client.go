@@ -5,7 +5,7 @@ import (
 	"log"
 	"sync"
 
-	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/brokerapi/domain"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
@@ -64,18 +64,18 @@ type FakeServiceAdapterClient struct {
 		result1 string
 		result2 error
 	}
-	GeneratePlanSchemaStub        func(serviceadapter.Plan, *log.Logger) (brokerapi.ServiceSchemas, error)
+	GeneratePlanSchemaStub        func(serviceadapter.Plan, *log.Logger) (domain.ServiceSchemas, error)
 	generatePlanSchemaMutex       sync.RWMutex
 	generatePlanSchemaArgsForCall []struct {
 		arg1 serviceadapter.Plan
 		arg2 *log.Logger
 	}
 	generatePlanSchemaReturns struct {
-		result1 brokerapi.ServiceSchemas
+		result1 domain.ServiceSchemas
 		result2 error
 	}
 	generatePlanSchemaReturnsOnCall map[int]struct {
-		result1 brokerapi.ServiceSchemas
+		result1 domain.ServiceSchemas
 		result2 error
 	}
 	invocations      map[string][][]interface{}
@@ -298,7 +298,7 @@ func (fake *FakeServiceAdapterClient) GenerateDashboardUrlReturnsOnCall(i int, r
 	}{result1, result2}
 }
 
-func (fake *FakeServiceAdapterClient) GeneratePlanSchema(arg1 serviceadapter.Plan, arg2 *log.Logger) (brokerapi.ServiceSchemas, error) {
+func (fake *FakeServiceAdapterClient) GeneratePlanSchema(arg1 serviceadapter.Plan, arg2 *log.Logger) (domain.ServiceSchemas, error) {
 	fake.generatePlanSchemaMutex.Lock()
 	ret, specificReturn := fake.generatePlanSchemaReturnsOnCall[len(fake.generatePlanSchemaArgsForCall)]
 	fake.generatePlanSchemaArgsForCall = append(fake.generatePlanSchemaArgsForCall, struct {
@@ -323,7 +323,7 @@ func (fake *FakeServiceAdapterClient) GeneratePlanSchemaCallCount() int {
 	return len(fake.generatePlanSchemaArgsForCall)
 }
 
-func (fake *FakeServiceAdapterClient) GeneratePlanSchemaCalls(stub func(serviceadapter.Plan, *log.Logger) (brokerapi.ServiceSchemas, error)) {
+func (fake *FakeServiceAdapterClient) GeneratePlanSchemaCalls(stub func(serviceadapter.Plan, *log.Logger) (domain.ServiceSchemas, error)) {
 	fake.generatePlanSchemaMutex.Lock()
 	defer fake.generatePlanSchemaMutex.Unlock()
 	fake.GeneratePlanSchemaStub = stub
@@ -336,28 +336,28 @@ func (fake *FakeServiceAdapterClient) GeneratePlanSchemaArgsForCall(i int) (serv
 	return argsForCall.arg1, argsForCall.arg2
 }
 
-func (fake *FakeServiceAdapterClient) GeneratePlanSchemaReturns(result1 brokerapi.ServiceSchemas, result2 error) {
+func (fake *FakeServiceAdapterClient) GeneratePlanSchemaReturns(result1 domain.ServiceSchemas, result2 error) {
 	fake.generatePlanSchemaMutex.Lock()
 	defer fake.generatePlanSchemaMutex.Unlock()
 	fake.GeneratePlanSchemaStub = nil
 	fake.generatePlanSchemaReturns = struct {
-		result1 brokerapi.ServiceSchemas
+		result1 domain.ServiceSchemas
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeServiceAdapterClient) GeneratePlanSchemaReturnsOnCall(i int, result1 brokerapi.ServiceSchemas, result2 error) {
+func (fake *FakeServiceAdapterClient) GeneratePlanSchemaReturnsOnCall(i int, result1 domain.ServiceSchemas, result2 error) {
 	fake.generatePlanSchemaMutex.Lock()
 	defer fake.generatePlanSchemaMutex.Unlock()
 	fake.GeneratePlanSchemaStub = nil
 	if fake.generatePlanSchemaReturnsOnCall == nil {
 		fake.generatePlanSchemaReturnsOnCall = make(map[int]struct {
-			result1 brokerapi.ServiceSchemas
+			result1 domain.ServiceSchemas
 			result2 error
 		})
 	}
 	fake.generatePlanSchemaReturnsOnCall[i] = struct {
-		result1 brokerapi.ServiceSchemas
+		result1 domain.ServiceSchemas
 		result2 error
 	}{result1, result2}
 }

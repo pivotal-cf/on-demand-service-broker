@@ -11,7 +11,7 @@ import (
 	"fmt"
 
 	"github.com/pborman/uuid"
-	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/brokerapi/domain"
 	"github.com/pivotal-cf/on-demand-service-broker/brokercontext"
 )
 
@@ -19,11 +19,11 @@ func (b *Broker) Unbind(
 	ctx context.Context,
 	instanceID,
 	bindingID string,
-	details brokerapi.UnbindDetails,
+	details domain.UnbindDetails,
 	asyncAllowed bool,
-) (brokerapi.UnbindSpec, error) {
+) (domain.UnbindSpec, error) {
 
-	emptyUnbindSpec := brokerapi.UnbindSpec{}
+	emptyUnbindSpec := domain.UnbindSpec{}
 	requestID := uuid.New()
 	if len(brokercontext.GetReqID(ctx)) > 0 {
 		requestID = brokercontext.GetReqID(ctx)

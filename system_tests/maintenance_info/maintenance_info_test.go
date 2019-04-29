@@ -10,7 +10,8 @@ import (
 	"time"
 
 	"github.com/pborman/uuid"
-	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/brokerapi/domain"
+	"github.com/pivotal-cf/brokerapi/domain/apiresponses"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	bosh "github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/service_helpers"
@@ -21,23 +22,23 @@ import (
 )
 
 type ProvisionDetailsWithMaintenanceInfo struct {
-	ServiceID        string                    `json:"service_id"`
-	PlanID           string                    `json:"plan_id"`
-	OrganizationGUID string                    `json:"organization_guid"`
-	SpaceGUID        string                    `json:"space_guid"`
-	MaintenanceInfo  brokerapi.MaintenanceInfo `json:"maintenance_info"`
+	ServiceID        string                 `json:"service_id"`
+	PlanID           string                 `json:"plan_id"`
+	OrganizationGUID string                 `json:"organization_guid"`
+	SpaceGUID        string                 `json:"space_guid"`
+	MaintenanceInfo  domain.MaintenanceInfo `json:"maintenance_info"`
 }
 
 type UpdateBody struct {
-	ServiceID       string                    `json:"service_id"`
-	MaintenanceInfo brokerapi.MaintenanceInfo `json:"maintenance_info"`
-	PlanID          string                    `json:"plan_id"`
-	PreviousValues  brokerapi.PreviousValues  `json:"previous_values"`
+	ServiceID       string                 `json:"service_id"`
+	MaintenanceInfo domain.MaintenanceInfo `json:"maintenance_info"`
+	PlanID          string                 `json:"plan_id"`
+	PreviousValues  domain.PreviousValues  `json:"previous_values"`
 }
 
 var _ = Describe("On-demand-broker with maintenance_info", func() {
 	var (
-		serviceCatalog         brokerapi.CatalogResponse
+		serviceCatalog         apiresponses.CatalogResponse
 		serviceInstanceGUID    string
 		actuallyCreatedService bool
 		provisionBody          []byte
@@ -55,7 +56,7 @@ var _ = Describe("On-demand-broker with maintenance_info", func() {
 
 	AfterEach(func() {
 		if actuallyCreatedService {
-			provisioningResponse := brokerapi.ProvisioningResponse{}
+			provisioningResponse := apiresponses.ProvisioningResponse{}
 			err := json.Unmarshal(provisionBody, &provisioningResponse)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -86,7 +87,7 @@ var _ = Describe("On-demand-broker with maintenance_info", func() {
 
 			Expect(resp.StatusCode).To(Equal(http.StatusAccepted), "provision request status")
 
-			provisioningResponse := brokerapi.ProvisioningResponse{}
+			provisioningResponse := apiresponses.ProvisioningResponse{}
 			Expect(json.Unmarshal(bodyContent, &provisioningResponse)).To(Succeed())
 
 			pollLastOperation(serviceInstanceGUID, provisioningResponse.OperationData)
@@ -107,7 +108,7 @@ var _ = Describe("On-demand-broker with maintenance_info", func() {
 			updateBody := UpdateBody{
 				ServiceID:       serviceID,
 				MaintenanceInfo: *newMaintenanceInfo,
-				PreviousValues:  brokerapi.PreviousValues{PlanID: planID},
+				PreviousValues:  domain.PreviousValues{PlanID: planID},
 				PlanID:          planID,
 			}
 
@@ -116,7 +117,7 @@ var _ = Describe("On-demand-broker with maintenance_info", func() {
 				response, bodyContent := doRequest(http.MethodPatch, url, updateBody)
 				Expect(response.StatusCode).To(Equal(http.StatusAccepted))
 
-				updateResponse := brokerapi.UpdateResponse{}
+				updateResponse := apiresponses.UpdateResponse{}
 				Expect(json.Unmarshal(bodyContent, &updateResponse)).To(Succeed())
 
 				pollLastOperation(serviceInstanceGUID, updateResponse.OperationData)
@@ -154,10 +155,10 @@ func doRequest(method, url string, reqBody interface{}) (*http.Response, []byte)
 	return resp, bodyContent
 }
 
-func retrieveCatalog() brokerapi.CatalogResponse {
+func retrieveCatalog() apiresponses.CatalogResponse {
 	resp, bodyContent := doRequest(http.MethodGet, "http://"+brokerInfo.URI+"/v2/catalog", nil)
 	Expect(resp.StatusCode).To(Equal(http.StatusOK))
-	var catalogResp = brokerapi.CatalogResponse{}
+	var catalogResp = apiresponses.CatalogResponse{}
 	err := json.Unmarshal(bodyContent, &catalogResp)
 	Expect(err).NotTo(HaveOccurred(), "Error unmarshalling "+string(bodyContent))
 	return catalogResp
@@ -167,7 +168,7 @@ func deleteService(serviceId, planId, serviceInstanceGUID string) {
 	resp, bodyContent := doRequest(http.MethodDelete,
 		"http://"+brokerInfo.URI+"/v2/service_instances/"+serviceInstanceGUID+"?service_id="+serviceId+"&plan_id="+planId+"&accepts_incomplete=true", nil)
 	Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
-	deprovisionResponse := brokerapi.DeprovisionResponse{}
+	deprovisionResponse := apiresponses.DeprovisionResponse{}
 	err := json.Unmarshal(bodyContent, &deprovisionResponse)
 	Expect(err).NotTo(HaveOccurred())
 	pollLastOperation(serviceInstanceGUID, deprovisionResponse.OperationData)
@@ -179,11 +180,11 @@ func pollLastOperation(instanceID, operationData string) {
 		resp, bodyContent := doLastOperationRequest(instanceID, operationData)
 		Expect(resp.StatusCode).To(Equal(http.StatusOK))
 
-		lastOperationResponse := brokerapi.LastOperationResponse{}
+		lastOperationResponse := apiresponses.LastOperationResponse{}
 		err := json.Unmarshal(bodyContent, &lastOperationResponse)
 		Expect(err).NotTo(HaveOccurred())
 
-		if lastOperationResponse.State == brokerapi.InProgress {
+		if lastOperationResponse.State == domain.InProgress {
 			time.Sleep(time.Second * 10)
 			sleeps += 1
 			if sleeps >= 32 {
@@ -191,10 +192,10 @@ func pollLastOperation(instanceID, operationData string) {
 			}
 			continue
 		}
-		if lastOperationResponse.State == brokerapi.Succeeded {
+		if lastOperationResponse.State == domain.Succeeded {
 			return
 		}
-		if lastOperationResponse.State == brokerapi.Failed {
+		if lastOperationResponse.State == domain.Failed {
 			Fail("lastOperation returned Failed response")
 		}
 	}

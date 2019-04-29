@@ -14,7 +14,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pborman/uuid"
-	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/brokerapi/domain"
+	"github.com/pivotal-cf/brokerapi/domain/apiresponses"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/brokercontext"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
@@ -57,7 +58,7 @@ var _ = Describe("Unbind", func() {
 	})
 
 	It("succeeds with a synchronous request", func() {
-		unbindResponse, unbindErr := b.Unbind(context.Background(), instanceID, bindingID, brokerapi.UnbindDetails{ServiceID: serviceID, PlanID: planID}, asyncAllowed)
+		unbindResponse, unbindErr := b.Unbind(context.Background(), instanceID, bindingID, domain.UnbindDetails{ServiceID: serviceID, PlanID: planID}, asyncAllowed)
 		Expect(unbindErr).NotTo(HaveOccurred())
 
 		Expect(boshClient.VMsCallCount()).To(Equal(1))
@@ -81,7 +82,7 @@ var _ = Describe("Unbind", func() {
 
 	It("acts synchronously even when async responses are allowed", func() {
 		asyncAllowed = true
-		unbindResponse, unbindErr := b.Unbind(context.Background(), instanceID, bindingID, brokerapi.UnbindDetails{ServiceID: serviceID, PlanID: planID}, asyncAllowed)
+		unbindResponse, unbindErr := b.Unbind(context.Background(), instanceID, bindingID, domain.UnbindDetails{ServiceID: serviceID, PlanID: planID}, asyncAllowed)
 		Expect(unbindErr).NotTo(HaveOccurred())
 		Expect(unbindResponse.IsAsync).To(BeFalse())
 	})
@@ -89,7 +90,7 @@ var _ = Describe("Unbind", func() {
 	It("preserves the uuid when one is provided through the ctx", func() {
 		requestID := uuid.New()
 		contextWithReqID := brokercontext.WithReqID(context.Background(), requestID)
-		unbindDetails := brokerapi.UnbindDetails{
+		unbindDetails := domain.UnbindDetails{
 			ServiceID: serviceID,
 			PlanID:    planID,
 		}
@@ -100,7 +101,7 @@ var _ = Describe("Unbind", func() {
 
 	It("fails when bosh fails to get VMs", func() {
 		boshClient.VMsReturns(nil, errors.New("oops"))
-		_, unbindErr := b.Unbind(context.Background(), instanceID, bindingID, brokerapi.UnbindDetails{ServiceID: serviceID, PlanID: planID}, asyncAllowed)
+		_, unbindErr := b.Unbind(context.Background(), instanceID, bindingID, domain.UnbindDetails{ServiceID: serviceID, PlanID: planID}, asyncAllowed)
 
 		Expect(unbindErr).To(MatchError(SatisfyAll(
 			ContainSubstring("There was a problem completing your request. Please contact your operations team providing the following information:"),
@@ -116,7 +117,7 @@ var _ = Describe("Unbind", func() {
 
 	It("fails when bosh client cannot find a deployment", func() {
 		boshClient.GetDeploymentReturns(nil, false, nil)
-		_, unbindErr := b.Unbind(context.Background(), instanceID, bindingID, brokerapi.UnbindDetails{ServiceID: serviceID, PlanID: planID}, asyncAllowed)
+		_, unbindErr := b.Unbind(context.Background(), instanceID, bindingID, domain.UnbindDetails{ServiceID: serviceID, PlanID: planID}, asyncAllowed)
 
 		Expect(unbindErr).To(HaveOccurred())
 		Expect(logBuffer.String()).To(ContainSubstring(fmt.Sprintf("instance %s, not found", instanceID)))
@@ -124,7 +125,7 @@ var _ = Describe("Unbind", func() {
 
 	It("fails when there is an error while fetching a manifest from the bosh client", func() {
 		boshClient.GetDeploymentReturns(nil, false, fmt.Errorf("problem fetching manifest"))
-		_, unbindErr := b.Unbind(context.Background(), instanceID, bindingID, brokerapi.UnbindDetails{ServiceID: serviceID, PlanID: planID}, asyncAllowed)
+		_, unbindErr := b.Unbind(context.Background(), instanceID, bindingID, domain.UnbindDetails{ServiceID: serviceID, PlanID: planID}, asyncAllowed)
 
 		Expect(unbindErr).To(HaveOccurred())
 		Expect(logBuffer.String()).To(ContainSubstring("problem fetching manifest"))
@@ -132,14 +133,14 @@ var _ = Describe("Unbind", func() {
 
 	It("fails when it cannot find the instance", func() {
 		boshClient.GetDeploymentReturns(nil, false, nil)
-		_, unbindErr := b.Unbind(context.Background(), instanceID, bindingID, brokerapi.UnbindDetails{ServiceID: serviceID, PlanID: planID}, asyncAllowed)
+		_, unbindErr := b.Unbind(context.Background(), instanceID, bindingID, domain.UnbindDetails{ServiceID: serviceID, PlanID: planID}, asyncAllowed)
 
-		Expect(unbindErr).To(Equal(brokerapi.ErrInstanceDoesNotExist))
+		Expect(unbindErr).To(Equal(apiresponses.ErrInstanceDoesNotExist))
 	})
 
 	It("logs a message but still calls unbind when bosh client cannot return variables for deployment", func() {
 		boshClient.VariablesReturns(nil, errors.New("oops"))
-		_, unbindErr := b.Unbind(context.Background(), instanceID, bindingID, brokerapi.UnbindDetails{ServiceID: serviceID, PlanID: planID}, asyncAllowed)
+		_, unbindErr := b.Unbind(context.Background(), instanceID, bindingID, domain.UnbindDetails{ServiceID: serviceID, PlanID: planID}, asyncAllowed)
 		Expect(unbindErr).NotTo(HaveOccurred())
 
 		Expect(logBuffer.String()).To(ContainSubstring("failed to retrieve deployment variables"))
@@ -148,14 +149,14 @@ var _ = Describe("Unbind", func() {
 
 	It("fails when the plan cannot be found", func() {
 		planID = "not-so-awesome-plan"
-		_, unbindErr := b.Unbind(context.Background(), instanceID, bindingID, brokerapi.UnbindDetails{ServiceID: serviceID, PlanID: planID}, asyncAllowed)
+		_, unbindErr := b.Unbind(context.Background(), instanceID, bindingID, domain.UnbindDetails{ServiceID: serviceID, PlanID: planID}, asyncAllowed)
 
 		Expect(unbindErr).To(MatchError(`plan "not-so-awesome-plan" not found`))
 	})
 
 	It("fails when the bosh client fails to GetDNSAddresses", func() {
 		boshClient.GetDNSAddressesReturns(nil, errors.New("'fraid not"))
-		_, unbindErr := b.Unbind(context.Background(), instanceID, bindingID, brokerapi.UnbindDetails{ServiceID: serviceID, PlanID: planID}, asyncAllowed)
+		_, unbindErr := b.Unbind(context.Background(), instanceID, bindingID, domain.UnbindDetails{ServiceID: serviceID, PlanID: planID}, asyncAllowed)
 
 		Expect(unbindErr).To(MatchError(ContainSubstring("There was a problem completing your request.")))
 		Expect(logBuffer.String()).To(ContainSubstring("failed to get required DNS info"))
@@ -163,7 +164,7 @@ var _ = Describe("Unbind", func() {
 
 	It("logs a message but unbinds anyway when the secretManager cannot resolve manifest secrets", func() {
 		fakeSecretManager.ResolveManifestSecretsReturns(nil, errors.New("oops"))
-		_, unbindErr := b.Unbind(context.Background(), instanceID, bindingID, brokerapi.UnbindDetails{ServiceID: serviceID, PlanID: planID}, asyncAllowed)
+		_, unbindErr := b.Unbind(context.Background(), instanceID, bindingID, domain.UnbindDetails{ServiceID: serviceID, PlanID: planID}, asyncAllowed)
 
 		Expect(unbindErr).NotTo(HaveOccurred())
 		Expect(logBuffer.String()).To(ContainSubstring("failed to resolve manifest secrets"))
@@ -172,7 +173,7 @@ var _ = Describe("Unbind", func() {
 
 	It("returns an generic error when the service adapter fails to destroy the binding returning a go standard error", func() {
 		serviceAdapter.DeleteBindingReturns(errors.New("executing unbinding failed"))
-		_, unbindErr := b.Unbind(context.Background(), instanceID, bindingID, brokerapi.UnbindDetails{ServiceID: serviceID, PlanID: planID}, asyncAllowed)
+		_, unbindErr := b.Unbind(context.Background(), instanceID, bindingID, domain.UnbindDetails{ServiceID: serviceID, PlanID: planID}, asyncAllowed)
 
 		Expect(unbindErr).To(MatchError(SatisfyAll(
 			ContainSubstring("There was a problem completing your request. Please contact your operations team providing the following information:"),
@@ -189,15 +190,15 @@ var _ = Describe("Unbind", func() {
 	It("returns an specific error when the service adapter fails to destroy the binding returning a serviceadapter error", func() {
 		var err = serviceadapter.NewUnknownFailureError("it failed, but all is not lost dear user")
 		serviceAdapter.DeleteBindingReturns(err)
-		_, unbindErr := b.Unbind(context.Background(), instanceID, bindingID, brokerapi.UnbindDetails{ServiceID: serviceID, PlanID: planID}, asyncAllowed)
+		_, unbindErr := b.Unbind(context.Background(), instanceID, bindingID, domain.UnbindDetails{ServiceID: serviceID, PlanID: planID}, asyncAllowed)
 
 		Expect(unbindErr).To(Equal(err))
 	})
 
 	It("returns an error when the service adapter cannot find the binding", func() {
 		serviceAdapter.DeleteBindingReturns(serviceadapter.BindingNotFoundError{})
-		_, unbindErr := b.Unbind(context.Background(), instanceID, bindingID, brokerapi.UnbindDetails{ServiceID: serviceID, PlanID: planID}, asyncAllowed)
+		_, unbindErr := b.Unbind(context.Background(), instanceID, bindingID, domain.UnbindDetails{ServiceID: serviceID, PlanID: planID}, asyncAllowed)
 
-		Expect(unbindErr).To(Equal(brokerapi.ErrBindingDoesNotExist))
+		Expect(unbindErr).To(Equal(apiresponses.ErrBindingDoesNotExist))
 	})
 })

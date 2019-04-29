@@ -14,7 +14,8 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/brokerapi/domain"
+	"github.com/pivotal-cf/brokerapi/domain/apiresponses"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
@@ -27,18 +28,18 @@ var _ = Describe("deprovisioning instances", func() {
 		instanceID = "an-instance-to-be-deprovisioned"
 
 		asyncAllowed    bool
-		deprovisionSpec brokerapi.DeprovisionServiceSpec
+		deprovisionSpec domain.DeprovisionServiceSpec
 		deprovisionErr  error
 
 		deleteTaskID       = 88
-		deprovisionDetails brokerapi.DeprovisionDetails
+		deprovisionDetails domain.DeprovisionDetails
 	)
 
 	BeforeEach(func() {
 		asyncAllowed = true
 		boshClient.GetDeploymentReturns([]byte(`manifest: true`), true, nil)
 		boshClient.DeleteDeploymentReturns(deleteTaskID, nil)
-		deprovisionDetails = brokerapi.DeprovisionDetails{PlanID: existingPlanID}
+		deprovisionDetails = domain.DeprovisionDetails{PlanID: existingPlanID}
 	})
 
 	JustBeforeEach(func() {
@@ -123,7 +124,7 @@ var _ = Describe("deprovisioning instances", func() {
 		})
 
 		It("returns an error", func() {
-			Expect(deprovisionErr).To(Equal(brokerapi.ErrAsyncRequired))
+			Expect(deprovisionErr).To(Equal(apiresponses.ErrAsyncRequired))
 		})
 	})
 
@@ -179,7 +180,7 @@ var _ = Describe("deprovisioning instances", func() {
 		Context("bosh configs can be deleted", func() {
 			It("deletes the bosh configs and returns expected error about missing deployment", func() {
 				Expect(boshClient.DeleteConfigsCallCount()).To(Equal(1))
-				Expect(deprovisionErr).To(Equal(brokerapi.ErrInstanceDoesNotExist))
+				Expect(deprovisionErr).To(Equal(apiresponses.ErrInstanceDoesNotExist))
 				Expect(logBuffer.String()).To(ContainSubstring(
 					fmt.Sprintf("error deprovisioning: instance %s, not found.", instanceID),
 				))
@@ -205,7 +206,7 @@ var _ = Describe("deprovisioning instances", func() {
 			})
 
 			It("returns an error", func() {
-				Expect(deprovisionErr).To(Equal(brokerapi.ErrInstanceDoesNotExist))
+				Expect(deprovisionErr).To(Equal(apiresponses.ErrInstanceDoesNotExist))
 			})
 
 			It("logs the error", func() {

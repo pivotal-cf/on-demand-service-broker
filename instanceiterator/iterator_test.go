@@ -15,7 +15,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/brokerapi/domain"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/instanceiterator"
@@ -87,7 +87,7 @@ var _ = Describe("Iterator", func() {
 		It("fails when cannot poll last operation", func() {
 			instanceLister.InstancesReturns([]service.Instance{{GUID: "1"}}, nil)
 			brokerServicesClient.ProcessInstanceReturns(services.BOSHOperation{Type: services.OperationAccepted}, nil)
-			brokerServicesClient.LastOperationReturns(brokerapi.LastOperation{}, errors.New("oops"))
+			brokerServicesClient.LastOperationReturns(domain.LastOperation{}, errors.New("oops"))
 
 			u := instanceiterator.New(&builder)
 			err := u.Iterate()
@@ -100,7 +100,7 @@ var _ = Describe("Iterator", func() {
 			instanceLister.InstancesReturnsOnCall(0, []service.Instance{{GUID: "1", PlanUniqueID: "plan-id-1"}}, nil)
 			instanceLister.LatestInstanceInfoReturnsOnCall(0, service.Instance{GUID: "1", PlanUniqueID: "plan-id-2"}, nil)
 			brokerServicesClient.ProcessInstanceReturns(services.BOSHOperation{Type: services.OperationAccepted}, nil)
-			brokerServicesClient.LastOperationReturns(brokerapi.LastOperation{State: brokerapi.Succeeded}, nil)
+			brokerServicesClient.LastOperationReturns(domain.LastOperation{State: domain.Succeeded}, nil)
 
 			iterator := instanceiterator.New(&builder)
 			err := iterator.Iterate()
@@ -114,7 +114,7 @@ var _ = Describe("Iterator", func() {
 			instanceLister.InstancesReturnsOnCall(0, []service.Instance{{GUID: "1", PlanUniqueID: "plan-id-1"}}, nil)
 			instanceLister.LatestInstanceInfoReturnsOnCall(0, service.Instance{}, errors.New("unexpected error"))
 			brokerServicesClient.ProcessInstanceReturns(services.BOSHOperation{Type: services.OperationAccepted}, nil)
-			brokerServicesClient.LastOperationReturns(brokerapi.LastOperation{State: brokerapi.Succeeded}, nil)
+			brokerServicesClient.LastOperationReturns(domain.LastOperation{State: domain.Succeeded}, nil)
 
 			iterator := instanceiterator.New(&builder)
 			err := iterator.Iterate()
@@ -160,9 +160,9 @@ var _ = Describe("Iterator", func() {
 
 		It("succeeds", func() {
 			states := []*testState{
-				{instance: service.Instance{GUID: "1"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 1},
-				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 2},
-				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 3},
+				{instance: service.Instance{GUID: "1"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 1},
+				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 2},
+				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 3},
 			}
 			setupTest(states, instanceLister, brokerServicesClient)
 
@@ -198,9 +198,9 @@ var _ = Describe("Iterator", func() {
 
 		It("does not fail and reports a deleted instance", func() {
 			states := []*testState{
-				{instance: service.Instance{GUID: "1"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 1},
-				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 2},
-				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.InstanceNotFound}, lastOperationOutput: []brokerapi.LastOperationState{}, taskID: 3},
+				{instance: service.Instance{GUID: "1"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 1},
+				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 2},
+				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.InstanceNotFound}, lastOperationOutput: []domain.LastOperationState{}, taskID: 3},
 			}
 			setupTest(states, instanceLister, brokerServicesClient)
 
@@ -236,9 +236,9 @@ var _ = Describe("Iterator", func() {
 
 		It("does not fail and reports an orphaned instance", func() {
 			states := []*testState{
-				{instance: service.Instance{GUID: "1"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 1},
-				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 2},
-				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OrphanDeployment}, lastOperationOutput: []brokerapi.LastOperationState{}, taskID: 3},
+				{instance: service.Instance{GUID: "1"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 1},
+				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 2},
+				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OrphanDeployment}, lastOperationOutput: []domain.LastOperationState{}, taskID: 3},
 			}
 			setupTest(states, instanceLister, brokerServicesClient)
 
@@ -274,9 +274,9 @@ var _ = Describe("Iterator", func() {
 
 		It("polls last_operation endpoint when process is not synchronous", func() {
 			states := []*testState{
-				{instance: service.Instance{GUID: "1"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 1},
-				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.InProgress, brokerapi.InProgress, brokerapi.Succeeded}, taskID: 2},
-				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 3},
+				{instance: service.Instance{GUID: "1"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 1},
+				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.InProgress, domain.InProgress, domain.Succeeded}, taskID: 2},
+				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 3},
 			}
 			setupTest(states, instanceLister, brokerServicesClient)
 
@@ -320,9 +320,9 @@ var _ = Describe("Iterator", func() {
 
 		It("retries busy instances until the upgrade request is accepted", func() {
 			states := []*testState{
-				{instance: service.Instance{GUID: "1"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 1},
-				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationInProgress, services.OperationInProgress, services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 2},
-				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 3},
+				{instance: service.Instance{GUID: "1"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 1},
+				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationInProgress, services.OperationInProgress, services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 2},
+				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 3},
 			}
 			setupTest(states, instanceLister, brokerServicesClient)
 
@@ -359,9 +359,9 @@ var _ = Describe("Iterator", func() {
 
 		It("fails when retrying busy instances reach the attempt limit", func() {
 			states := []*testState{
-				{instance: service.Instance{GUID: "1"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 1},
-				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationInProgress, services.OperationInProgress, services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 2},
-				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 3},
+				{instance: service.Instance{GUID: "1"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 1},
+				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationInProgress, services.OperationInProgress, services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 2},
+				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 3},
 			}
 			setupTest(states, instanceLister, brokerServicesClient)
 
@@ -396,9 +396,9 @@ var _ = Describe("Iterator", func() {
 
 		It("returns an error when an last operation returns a failure", func() {
 			states := []*testState{
-				{instance: service.Instance{GUID: "1"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 1},
-				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Failed}, taskID: 2},
-				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 3},
+				{instance: service.Instance{GUID: "1"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 1},
+				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Failed}, taskID: 2},
+				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 3},
 			}
 			setupTest(states, instanceLister, brokerServicesClient)
 
@@ -430,9 +430,9 @@ var _ = Describe("Iterator", func() {
 
 		It("retries until a deleted instance is detected", func() {
 			states := []*testState{
-				{instance: service.Instance{GUID: "1"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 1},
-				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationInProgress, services.OperationInProgress, services.InstanceNotFound}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 2},
-				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 3},
+				{instance: service.Instance{GUID: "1"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 1},
+				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationInProgress, services.OperationInProgress, services.InstanceNotFound}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 2},
+				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 3},
 			}
 			setupTest(states, instanceLister, brokerServicesClient)
 
@@ -469,9 +469,9 @@ var _ = Describe("Iterator", func() {
 
 		It("retries until an orphaned instance is detected", func() {
 			states := []*testState{
-				{instance: service.Instance{GUID: "1"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 1},
-				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationInProgress, services.OperationInProgress, services.OrphanDeployment}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 2},
-				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 3},
+				{instance: service.Instance{GUID: "1"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 1},
+				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationInProgress, services.OperationInProgress, services.OrphanDeployment}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 2},
+				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 3},
 			}
 			setupTest(states, instanceLister, brokerServicesClient)
 
@@ -507,12 +507,12 @@ var _ = Describe("Iterator", func() {
 
 		It("processes in batches when max_in_flight is greater than 1", func() {
 			states := []*testState{
-				{instance: service.Instance{GUID: "1"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 1},
-				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 2},
-				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 3},
-				{instance: service.Instance{GUID: "4"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 4},
-				{instance: service.Instance{GUID: "5"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 5},
-				{instance: service.Instance{GUID: "6"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 6},
+				{instance: service.Instance{GUID: "1"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 1},
+				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 2},
+				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 3},
+				{instance: service.Instance{GUID: "4"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 4},
+				{instance: service.Instance{GUID: "5"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 5},
+				{instance: service.Instance{GUID: "6"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 6},
 			}
 			setupTest(states, instanceLister, brokerServicesClient)
 
@@ -544,9 +544,9 @@ var _ = Describe("Iterator", func() {
 
 		It("returns multiple errors if multiple instances fail to upgrade", func() {
 			states := []*testState{
-				{instance: service.Instance{GUID: "1"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Failed}, taskID: 1},
-				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Failed}, taskID: 2},
-				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 3},
+				{instance: service.Instance{GUID: "1"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Failed}, taskID: 1},
+				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Failed}, taskID: 2},
+				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 3},
 			}
 			setupTest(states, instanceLister, brokerServicesClient)
 
@@ -586,10 +586,10 @@ var _ = Describe("Iterator", func() {
 
 		It("succeeds upgrading first a canary instance", func() {
 			states := []*testState{
-				{instance: service.Instance{GUID: "1"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 1},
-				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 2},
-				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 3},
-				{instance: service.Instance{GUID: "4"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 4},
+				{instance: service.Instance{GUID: "1"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 1},
+				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 2},
+				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 3},
+				{instance: service.Instance{GUID: "4"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 4},
 			}
 			setupTest(states, instanceLister, brokerServicesClient)
 
@@ -625,10 +625,10 @@ var _ = Describe("Iterator", func() {
 
 		It("succeeds upgrading using max_in_flight as batch size if it is smaller than the number of required canaries", func() {
 			states := []*testState{
-				{instance: service.Instance{GUID: "1"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 1},
-				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 2},
-				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 3},
-				{instance: service.Instance{GUID: "4"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 4},
+				{instance: service.Instance{GUID: "1"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 1},
+				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 2},
+				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 3},
+				{instance: service.Instance{GUID: "4"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 4},
 			}
 			setupTest(states, instanceLister, brokerServicesClient)
 
@@ -682,9 +682,9 @@ var _ = Describe("Iterator", func() {
 
 		It("stops upgrading if a canary instance fails to upgrade", func() {
 			states := []*testState{
-				{instance: service.Instance{GUID: "1"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Failed}, taskID: 1},
-				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 2},
-				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 3},
+				{instance: service.Instance{GUID: "1"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Failed}, taskID: 1},
+				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 2},
+				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 3},
 			}
 			setupTest(states, instanceLister, brokerServicesClient)
 
@@ -716,9 +716,9 @@ var _ = Describe("Iterator", func() {
 
 		It("picks another canary instance if one is busy", func() {
 			states := []*testState{
-				{instance: service.Instance{GUID: "1"}, iteratorOutput: []services.BOSHOperationType{services.OperationInProgress, services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 1},
-				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationInProgress, services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 2},
-				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 3},
+				{instance: service.Instance{GUID: "1"}, iteratorOutput: []services.BOSHOperationType{services.OperationInProgress, services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 1},
+				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationInProgress, services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 2},
+				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 3},
 			}
 			setupTest(states, instanceLister, brokerServicesClient)
 
@@ -750,9 +750,9 @@ var _ = Describe("Iterator", func() {
 
 		It("picks another canary instance if one is deleted", func() {
 			states := []*testState{
-				{instance: service.Instance{GUID: "1"}, iteratorOutput: []services.BOSHOperationType{services.InstanceNotFound}, lastOperationOutput: []brokerapi.LastOperationState{}, taskID: 1},
-				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 2},
-				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 3},
+				{instance: service.Instance{GUID: "1"}, iteratorOutput: []services.BOSHOperationType{services.InstanceNotFound}, lastOperationOutput: []domain.LastOperationState{}, taskID: 1},
+				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 2},
+				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 3},
 			}
 			setupTest(states, instanceLister, brokerServicesClient)
 
@@ -785,9 +785,9 @@ var _ = Describe("Iterator", func() {
 
 		It("picks another canary instance if one is orphaned", func() {
 			states := []*testState{
-				{instance: service.Instance{GUID: "1"}, iteratorOutput: []services.BOSHOperationType{services.OrphanDeployment}, lastOperationOutput: []brokerapi.LastOperationState{}, taskID: 1},
-				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 2},
-				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 3},
+				{instance: service.Instance{GUID: "1"}, iteratorOutput: []services.BOSHOperationType{services.OrphanDeployment}, lastOperationOutput: []domain.LastOperationState{}, taskID: 1},
+				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 2},
+				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 3},
 			}
 			setupTest(states, instanceLister, brokerServicesClient)
 
@@ -820,9 +820,9 @@ var _ = Describe("Iterator", func() {
 
 		It("retries busy canaries if needed", func() {
 			states := []*testState{
-				{instance: service.Instance{GUID: "1"}, iteratorOutput: []services.BOSHOperationType{services.OperationInProgress, services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 1},
-				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationInProgress, services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 2},
-				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationInProgress, services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 3},
+				{instance: service.Instance{GUID: "1"}, iteratorOutput: []services.BOSHOperationType{services.OperationInProgress, services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 1},
+				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationInProgress, services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 2},
+				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationInProgress, services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 3},
 			}
 			setupTest(states, instanceLister, brokerServicesClient)
 
@@ -852,9 +852,9 @@ var _ = Describe("Iterator", func() {
 
 		It("fails when reaching the attempt limit retrying canaries", func() {
 			states := []*testState{
-				{instance: service.Instance{GUID: "1"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 1},
-				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationInProgress}, lastOperationOutput: []brokerapi.LastOperationState{}, taskID: 2},
-				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationInProgress}, lastOperationOutput: []brokerapi.LastOperationState{}, taskID: 3},
+				{instance: service.Instance{GUID: "1"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 1},
+				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationInProgress}, lastOperationOutput: []domain.LastOperationState{}, taskID: 2},
+				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationInProgress}, lastOperationOutput: []domain.LastOperationState{}, taskID: 3},
 			}
 			setupTest(states, instanceLister, brokerServicesClient)
 
@@ -885,9 +885,9 @@ var _ = Describe("Iterator", func() {
 
 		It("retries busy instances after all canaries have passed", func() {
 			states := []*testState{
-				{instance: service.Instance{GUID: "1"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 1},
-				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationInProgress, services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 2},
-				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationInProgress, services.OperationInProgress, services.OperationInProgress, services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 3},
+				{instance: service.Instance{GUID: "1"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 1},
+				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationInProgress, services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 2},
+				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationInProgress, services.OperationInProgress, services.OperationInProgress, services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 3},
 			}
 			setupTest(states, instanceLister, brokerServicesClient)
 
@@ -930,10 +930,10 @@ var _ = Describe("Iterator", func() {
 
 		It("reports count status accurately when retrying in canaries and rest", func() {
 			states := []*testState{
-				{instance: service.Instance{GUID: "1"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 1},
-				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationInProgress, services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 2},
-				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationInProgress, services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 3},
-				{instance: service.Instance{GUID: "4"}, iteratorOutput: []services.BOSHOperationType{services.OperationInProgress, services.OperationInProgress, services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 4},
+				{instance: service.Instance{GUID: "1"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 1},
+				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationInProgress, services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 2},
+				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationInProgress, services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 3},
+				{instance: service.Instance{GUID: "4"}, iteratorOutput: []services.BOSHOperationType{services.OperationInProgress, services.OperationInProgress, services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 4},
 			}
 			setupTest(states, instanceLister, brokerServicesClient)
 
@@ -1017,10 +1017,10 @@ var _ = Describe("Iterator", func() {
 
 		It("reports the progress of an upgrade", func() {
 			states := []*testState{
-				{instance: service.Instance{GUID: "1"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 1},
-				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.InstanceNotFound}, lastOperationOutput: []brokerapi.LastOperationState{}, taskID: 2},
-				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OrphanDeployment}, lastOperationOutput: []brokerapi.LastOperationState{}, taskID: 3},
-				{instance: service.Instance{GUID: "4"}, iteratorOutput: []services.BOSHOperationType{services.OperationInProgress, services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 4},
+				{instance: service.Instance{GUID: "1"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 1},
+				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.InstanceNotFound}, lastOperationOutput: []domain.LastOperationState{}, taskID: 2},
+				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OrphanDeployment}, lastOperationOutput: []domain.LastOperationState{}, taskID: 3},
+				{instance: service.Instance{GUID: "4"}, iteratorOutput: []services.BOSHOperationType{services.OperationInProgress, services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 4},
 			}
 			setupTest(states, instanceLister, brokerServicesClient)
 
@@ -1111,12 +1111,12 @@ var _ = Describe("Iterator", func() {
 				iterator := instanceiterator.New(&builder)
 
 				states := []*testState{
-					{instance: service.Instance{GUID: "1"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 1},
-					{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 2},
-					{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 3},
-					{instance: service.Instance{GUID: "4"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 4},
-					{instance: service.Instance{GUID: "5"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 5},
-					{instance: service.Instance{GUID: "6"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 6},
+					{instance: service.Instance{GUID: "1"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 1},
+					{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 2},
+					{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 3},
+					{instance: service.Instance{GUID: "4"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 4},
+					{instance: service.Instance{GUID: "5"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 5},
+					{instance: service.Instance{GUID: "6"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 6},
 				}
 				setupTest(states, instanceLister, brokerServicesClient)
 
@@ -1160,10 +1160,10 @@ var _ = Describe("Iterator", func() {
 				iterator := instanceiterator.New(&builder)
 
 				states := []*testState{
-					{instance: service.Instance{GUID: "1"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 1},
-					{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OrphanDeployment}, lastOperationOutput: []brokerapi.LastOperationState{}, taskID: 2},
-					{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 3},
-					{instance: service.Instance{GUID: "4"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 4},
+					{instance: service.Instance{GUID: "1"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 1},
+					{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OrphanDeployment}, lastOperationOutput: []domain.LastOperationState{}, taskID: 2},
+					{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 3},
+					{instance: service.Instance{GUID: "4"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 4},
 				}
 				setupTest(states, instanceLister, brokerServicesClient)
 
@@ -1201,10 +1201,10 @@ var _ = Describe("Iterator", func() {
 				iterator := instanceiterator.New(&builder)
 
 				states := []*testState{
-					{instance: service.Instance{GUID: "1"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 1},
-					{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OrphanDeployment}, lastOperationOutput: []brokerapi.LastOperationState{}, taskID: 2},
-					{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.InstanceNotFound}, lastOperationOutput: []brokerapi.LastOperationState{}, taskID: 3},
-					{instance: service.Instance{GUID: "4"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 4},
+					{instance: service.Instance{GUID: "1"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 1},
+					{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OrphanDeployment}, lastOperationOutput: []domain.LastOperationState{}, taskID: 2},
+					{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.InstanceNotFound}, lastOperationOutput: []domain.LastOperationState{}, taskID: 3},
+					{instance: service.Instance{GUID: "4"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 4},
 				}
 				setupTest(states, instanceLister, brokerServicesClient)
 
@@ -1237,10 +1237,10 @@ var _ = Describe("Iterator", func() {
 				iterator := instanceiterator.New(&builder)
 
 				states := []*testState{
-					{instance: service.Instance{GUID: "1"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 1},
-					{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 2},
-					{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 3},
-					{instance: service.Instance{GUID: "4"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 4},
+					{instance: service.Instance{GUID: "1"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 1},
+					{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 2},
+					{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 3},
+					{instance: service.Instance{GUID: "4"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 4},
 				}
 				setupTest(states, instanceLister, brokerServicesClient)
 
@@ -1278,10 +1278,10 @@ var _ = Describe("Iterator", func() {
 				iterator := instanceiterator.New(&builder)
 
 				states := []*testState{
-					{instance: service.Instance{GUID: "1"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 1},
-					{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OrphanDeployment}, lastOperationOutput: []brokerapi.LastOperationState{}, taskID: 2},
-					{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.InstanceNotFound}, lastOperationOutput: []brokerapi.LastOperationState{}, taskID: 3},
-					{instance: service.Instance{GUID: "4"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 4},
+					{instance: service.Instance{GUID: "1"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 1},
+					{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OrphanDeployment}, lastOperationOutput: []domain.LastOperationState{}, taskID: 2},
+					{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.InstanceNotFound}, lastOperationOutput: []domain.LastOperationState{}, taskID: 3},
+					{instance: service.Instance{GUID: "4"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 4},
 				}
 				setupTest(states, instanceLister, brokerServicesClient)
 
@@ -1311,12 +1311,12 @@ var _ = Describe("Iterator", func() {
 
 			It("processes all the instances matching the criteria when canaries number is not specified", func() {
 				states := []*testState{
-					{instance: service.Instance{GUID: "1"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 1},
-					{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 2},
-					{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 3},
-					{instance: service.Instance{GUID: "4"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 4},
-					{instance: service.Instance{GUID: "5"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 5},
-					{instance: service.Instance{GUID: "6"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []brokerapi.LastOperationState{brokerapi.Succeeded}, taskID: 6},
+					{instance: service.Instance{GUID: "1"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 1},
+					{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 2},
+					{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 3},
+					{instance: service.Instance{GUID: "4"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 4},
+					{instance: service.Instance{GUID: "5"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 5},
+					{instance: service.Instance{GUID: "6"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 6},
 				}
 				setupTest(states, instanceLister, brokerServicesClient)
 

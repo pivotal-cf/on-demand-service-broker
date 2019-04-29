@@ -22,7 +22,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
-	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/brokerapi/domain"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
@@ -204,7 +204,7 @@ var _ = Describe("Management API", func() {
 				Expect(response.StatusCode).To(Equal(http.StatusAccepted))
 				Expect(actualInstanceID).To(Equal(instanceID))
 				Expect(actualUpdateDetails).To(Equal(
-					brokerapi.UpdateDetails{
+					domain.UpdateDetails{
 						PlanID: planID,
 					},
 				))
@@ -305,7 +305,7 @@ var _ = Describe("Management API", func() {
 					_, actualInstanceID, actualUpdateDetails, _ := manageableBroker.UpgradeArgsForCall(0)
 					Expect(actualInstanceID).To(Equal(instanceID))
 					Expect(actualUpdateDetails).To(Equal(
-						brokerapi.UpdateDetails{
+						domain.UpdateDetails{
 							PlanID: planID,
 						},
 					))

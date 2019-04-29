@@ -14,7 +14,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/brokerapi/domain"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/fakes"
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
@@ -100,9 +100,9 @@ var (
 
 	secondPlan config.Plan
 
-	schemaFixture = brokerapi.ServiceSchemas{
-		Instance: brokerapi.ServiceInstanceSchema{
-			Create: brokerapi.Schema{
+	schemaFixture = domain.ServiceSchemas{
+		Instance: domain.ServiceInstanceSchema{
+			Create: domain.Schema{
 				Parameters: map[string]interface{}{
 					"$schema":              "http://json-schema.org/draft-04/schema#",
 					"type":                 "object",
@@ -119,7 +119,7 @@ var (
 					},
 				},
 			},
-			Update: brokerapi.Schema{
+			Update: domain.Schema{
 				Parameters: map[string]interface{}{
 					"$schema":              "http://json-schema.org/draft-04/schema#",
 					"type":                 "object",
@@ -137,8 +137,8 @@ var (
 				},
 			},
 		},
-		Binding: brokerapi.ServiceBindingSchema{
-			Create: brokerapi.Schema{
+		Binding: domain.ServiceBindingSchema{
+			Create: domain.Schema{
 				Parameters: map[string]interface{}{
 					"$schema":              "http://json-schema.org/draft-04/schema#",
 					"type":                 "object",
@@ -158,9 +158,9 @@ var (
 		},
 	}
 
-	schemaWithAdditionalPropertiesAllowedFixture = brokerapi.ServiceSchemas{
-		Instance: brokerapi.ServiceInstanceSchema{
-			Create: brokerapi.Schema{
+	schemaWithAdditionalPropertiesAllowedFixture = domain.ServiceSchemas{
+		Instance: domain.ServiceInstanceSchema{
+			Create: domain.Schema{
 				Parameters: map[string]interface{}{
 					"$schema":              "http://json-schema.org/draft-04/schema#",
 					"type":                 "object",
@@ -177,7 +177,7 @@ var (
 					},
 				},
 			},
-			Update: brokerapi.Schema{
+			Update: domain.Schema{
 				Parameters: map[string]interface{}{
 					"$schema":              "http://json-schema.org/draft-04/schema#",
 					"type":                 "object",
@@ -195,8 +195,8 @@ var (
 				},
 			},
 		},
-		Binding: brokerapi.ServiceBindingSchema{
-			Create: brokerapi.Schema{
+		Binding: domain.ServiceBindingSchema{
+			Create: domain.Schema{
 				Parameters: map[string]interface{}{
 					"$schema":              "http://json-schema.org/draft-04/schema#",
 					"type":                 "object",
@@ -216,9 +216,9 @@ var (
 		},
 	}
 
-	schemaWithRequiredPropertiesFixture = brokerapi.ServiceSchemas{
-		Instance: brokerapi.ServiceInstanceSchema{
-			Create: brokerapi.Schema{
+	schemaWithRequiredPropertiesFixture = domain.ServiceSchemas{
+		Instance: domain.ServiceInstanceSchema{
+			Create: domain.Schema{
 				Parameters: map[string]interface{}{
 					"$schema":              "http://json-schema.org/draft-04/schema#",
 					"type":                 "object",
@@ -236,7 +236,7 @@ var (
 					"required": []string{"auto_create_topics"},
 				},
 			},
-			Update: brokerapi.Schema{
+			Update: domain.Schema{
 				Parameters: map[string]interface{}{
 					"$schema":              "http://json-schema.org/draft-04/schema#",
 					"type":                 "object",
@@ -255,8 +255,8 @@ var (
 				},
 			},
 		},
-		Binding: brokerapi.ServiceBindingSchema{
-			Create: brokerapi.Schema{
+		Binding: domain.ServiceBindingSchema{
+			Create: domain.Schema{
 				Parameters: map[string]interface{}{
 					"$schema":              "http://json-schema.org/draft-04/schema#",
 					"type":                 "object",

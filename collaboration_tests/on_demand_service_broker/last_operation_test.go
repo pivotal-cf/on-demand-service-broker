@@ -26,7 +26,7 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
-	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/brokerapi/domain"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	brokerConfig "github.com/pivotal-cf/on-demand-service-broker/config"
@@ -137,7 +137,7 @@ var _ = Describe("Last Operation", func() {
 
 			Expect(unmarshalled["state"]).To(Equal(responseState))
 
-			if responseState != string(brokerapi.Failed) {
+			if responseState != string(domain.Failed) {
 				Expect(unmarshalled["description"]).To(Equal(description))
 			} else {
 				Expect(unmarshalled["description"]).To(SatisfyAll(
@@ -165,14 +165,14 @@ var _ = Describe("Last Operation", func() {
 				Expect(fakeCredhubOperator.BulkDeleteCallCount()).To(Equal(1), "expected BulkDelete to have been called")
 			}
 		},
-			Entry("a task is processing", boshdirector.TaskProcessing, string(brokerapi.InProgress), "Instance provisioning in progress"),
-			Entry("a task is done", boshdirector.TaskDone, string(brokerapi.Succeeded), "Instance provisioning completed"),
-			Entry("a task is cancelling", boshdirector.TaskCancelling, string(brokerapi.InProgress), "Instance provisioning in progress"),
-			Entry("a task has timed out", boshdirector.TaskTimeout, string(brokerapi.Failed), ""),
-			Entry("a task is cancelled", boshdirector.TaskCancelled, string(brokerapi.Failed), ""),
-			Entry("a task has errored", boshdirector.TaskError, string(brokerapi.Failed), ""),
-			Entry("a task has an unrecognised state", "other-state", string(brokerapi.Failed), ""),
-			Entry("a delete task completed successfully", boshdirector.TaskDone, string(brokerapi.Succeeded), "Instance deletion completed", broker.OperationTypeDelete),
+			Entry("a task is processing", boshdirector.TaskProcessing, string(domain.InProgress), "Instance provisioning in progress"),
+			Entry("a task is done", boshdirector.TaskDone, string(domain.Succeeded), "Instance provisioning completed"),
+			Entry("a task is cancelling", boshdirector.TaskCancelling, string(domain.InProgress), "Instance provisioning in progress"),
+			Entry("a task has timed out", boshdirector.TaskTimeout, string(domain.Failed), ""),
+			Entry("a task is cancelled", boshdirector.TaskCancelled, string(domain.Failed), ""),
+			Entry("a task has errored", boshdirector.TaskError, string(domain.Failed), ""),
+			Entry("a task has an unrecognised state", "other-state", string(domain.Failed), ""),
+			Entry("a delete task completed successfully", boshdirector.TaskDone, string(domain.Succeeded), "Instance deletion completed", broker.OperationTypeDelete),
 		)
 
 		It("responds with 500 if BOSH fails to get the task", func() {
@@ -382,7 +382,7 @@ var _ = Describe("Last Operation", func() {
 			By("returning the correct response description")
 			var parsedResponse map[string]interface{}
 			Expect(json.Unmarshal(bodyContent, &parsedResponse)).To(Succeed())
-			Expect(parsedResponse["state"]).To(Equal(string(brokerapi.Failed)))
+			Expect(parsedResponse["state"]).To(Equal(string(domain.Failed)))
 
 			Expect(parsedResponse["description"]).To(SatisfyAll(
 				ContainSubstring("Instance provisioning failed: There was a problem completing your request. Please contact your operations team providing the following information:"),
@@ -531,7 +531,7 @@ var _ = Describe("Last Operation", func() {
 			By("returning the correct response description")
 			var parsedResponse map[string]interface{}
 			Expect(json.Unmarshal(bodyContent, &parsedResponse)).To(Succeed())
-			Expect(parsedResponse["state"]).To(Equal(string(brokerapi.Failed)))
+			Expect(parsedResponse["state"]).To(Equal(string(domain.Failed)))
 
 			Expect(parsedResponse["description"]).To(SatisfyAll(
 				ContainSubstring("Instance deletion failed: There was a problem completing your request. Please contact your operations team providing the following information:"),

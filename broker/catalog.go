@@ -11,13 +11,13 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/pivotal-cf/brokerapi"
+	"github.com/pivotal-cf/brokerapi/domain"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	"github.com/pkg/errors"
 )
 
-func (b *Broker) Services(ctx context.Context) ([]brokerapi.Service, error) {
+func (b *Broker) Services(ctx context.Context) ([]domain.Service, error) {
 	b.catalogLock.Lock()
 	defer b.catalogLock.Unlock()
 
@@ -27,16 +27,16 @@ func (b *Broker) Services(ctx context.Context) ([]brokerapi.Service, error) {
 
 	logger := b.loggerFactory.NewWithContext(ctx)
 
-	var servicePlans []brokerapi.ServicePlan
+	var servicePlans []domain.ServicePlan
 	for _, plan := range b.serviceOffering.Plans {
 		servicePlan, err := b.generateServicePlan(plan, logger)
 		if err != nil {
-			return []brokerapi.Service{}, err
+			return []domain.Service{}, err
 		}
 		servicePlans = append(servicePlans, servicePlan)
 	}
 
-	b.cachedCatalog = []brokerapi.Service{
+	b.cachedCatalog = []domain.Service{
 		{
 			ID:            b.serviceOffering.ID,
 			Name:          b.serviceOffering.Name,
@@ -44,7 +44,7 @@ func (b *Broker) Services(ctx context.Context) ([]brokerapi.Service, error) {
 			Bindable:      b.serviceOffering.Bindable,
 			PlanUpdatable: b.serviceOffering.PlanUpdatable,
 			Plans:         servicePlans,
-			Metadata: &brokerapi.ServiceMetadata{
+			Metadata: &domain.ServiceMetadata{
 				DisplayName:         b.serviceOffering.Metadata.DisplayName,
 				ImageUrl:            b.serviceOffering.Metadata.ImageURL,
 				LongDescription:     b.serviceOffering.Metadata.LongDescription,
@@ -62,10 +62,10 @@ func (b *Broker) Services(ctx context.Context) ([]brokerapi.Service, error) {
 	return b.cachedCatalog, nil
 }
 
-func (b *Broker) generateDashboardClient() *brokerapi.ServiceDashboardClient {
-	var dashboardClient *brokerapi.ServiceDashboardClient
+func (b *Broker) generateDashboardClient() *domain.ServiceDashboardClient {
+	var dashboardClient *domain.ServiceDashboardClient
 	if b.serviceOffering.DashboardClient != nil {
-		dashboardClient = &brokerapi.ServiceDashboardClient{
+		dashboardClient = &domain.ServiceDashboardClient{
 			ID:          b.serviceOffering.DashboardClient.ID,
 			Secret:      b.serviceOffering.DashboardClient.Secret,
 			RedirectURI: b.serviceOffering.DashboardClient.RedirectUri,
@@ -74,26 +74,26 @@ func (b *Broker) generateDashboardClient() *brokerapi.ServiceDashboardClient {
 	return dashboardClient
 }
 
-func (b *Broker) generateServicePlan(plan config.Plan, logger *log.Logger) (brokerapi.ServicePlan, error) {
+func (b *Broker) generateServicePlan(plan config.Plan, logger *log.Logger) (domain.ServicePlan, error) {
 	maintenanceInfo := b.generateMaintenanceInfo(plan)
 
-	var planCosts []brokerapi.ServicePlanCost
+	var planCosts []domain.ServicePlanCost
 	for _, cost := range plan.Metadata.Costs {
-		planCosts = append(planCosts, brokerapi.ServicePlanCost{Amount: cost.Amount, Unit: cost.Unit})
+		planCosts = append(planCosts, domain.ServicePlanCost{Amount: cost.Amount, Unit: cost.Unit})
 	}
 
 	planSchema, err := b.generatePlanSchemas(plan, logger)
 	if err != nil {
-		return brokerapi.ServicePlan{}, err
+		return domain.ServicePlan{}, err
 	}
 
-	return brokerapi.ServicePlan{
+	return domain.ServicePlan{
 		ID:          plan.ID,
 		Name:        plan.Name,
 		Description: plan.Description,
 		Free:        plan.Free,
 		Bindable:    plan.Bindable,
-		Metadata: &brokerapi.ServicePlanMetadata{
+		Metadata: &domain.ServicePlanMetadata{
 			DisplayName:        plan.Metadata.DisplayName,
 			Bullets:            plan.Metadata.Bullets,
 			Costs:              planCosts,
@@ -104,13 +104,13 @@ func (b *Broker) generateServicePlan(plan config.Plan, logger *log.Logger) (brok
 	}, nil
 }
 
-func (b *Broker) generateMaintenanceInfo(plan config.Plan) *brokerapi.MaintenanceInfo {
-	var maintenanceInfo *brokerapi.MaintenanceInfo
+func (b *Broker) generateMaintenanceInfo(plan config.Plan) *domain.MaintenanceInfo {
+	var maintenanceInfo *domain.MaintenanceInfo
 	mergedPublic, mergedPrivate := mergeMaintenanceInfo(b.serviceOffering.MaintenanceInfo, plan.MaintenanceInfo)
 	version := getMaintenanceInfoVersion(b.serviceOffering.MaintenanceInfo, plan.MaintenanceInfo)
 
 	if mergedPublic != nil || mergedPrivate != nil || version != "" {
-		maintenanceInfo = &brokerapi.MaintenanceInfo{
+		maintenanceInfo = &domain.MaintenanceInfo{
 			Public:  mergedPublic,
 			Private: b.hasher.Hash(mergedPrivate),
 			Version: version,
@@ -119,7 +119,7 @@ func (b *Broker) generateMaintenanceInfo(plan config.Plan) *brokerapi.Maintenanc
 	return maintenanceInfo
 }
 
-func (b *Broker) generatePlanSchemas(plan config.Plan, logger *log.Logger) (*brokerapi.ServiceSchemas, error) {
+func (b *Broker) generatePlanSchemas(plan config.Plan, logger *log.Logger) (*domain.ServiceSchemas, error) {
 	if b.EnablePlanSchemas {
 		planSchema, err := b.adapterClient.GeneratePlanSchema(plan.AdapterPlan(b.serviceOffering.GlobalProperties), logger)
 		if err != nil {
@@ -186,15 +186,15 @@ func getMaintenanceInfoVersion(globalInfo *config.MaintenanceInfo, planInfo *con
 	return ""
 }
 
-func requiredPermissions(permissions []string) []brokerapi.RequiredPermission {
-	var brokerPermissions []brokerapi.RequiredPermission
+func requiredPermissions(permissions []string) []domain.RequiredPermission {
+	var brokerPermissions []domain.RequiredPermission
 	for _, permission := range permissions {
-		brokerPermissions = append(brokerPermissions, brokerapi.RequiredPermission(permission))
+		brokerPermissions = append(brokerPermissions, domain.RequiredPermission(permission))
 	}
 	return brokerPermissions
 }
 
-func validatePlanSchemas(planSchema brokerapi.ServiceSchemas) error {
+func validatePlanSchemas(planSchema domain.ServiceSchemas) error {
 	labels := []string{"instance create", "instance update", "binding create"}
 	for i, schema := range []map[string]interface{}{
 		planSchema.Instance.Create.Parameters,
