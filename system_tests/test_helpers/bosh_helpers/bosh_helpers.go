@@ -186,7 +186,7 @@ func (b *BoshHelperClient) DeploymentExists(deploymentName string) bool {
 func (b *BoshHelperClient) DeleteDeployment(deploymentName string) {
 	logger := systemTestLogger()
 	taskReporter := boshdirector.NewAsyncTaskReporter()
-	_, err := b.Client.DeleteDeployment(deploymentName, "", logger, taskReporter)
+	_, err := b.Client.DeleteDeployment(deploymentName, "", false, taskReporter, logger)
 	Expect(err).NotTo(HaveOccurred())
 	<-taskReporter.Finished
 }

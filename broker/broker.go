@@ -109,13 +109,14 @@ func (b *Broker) processError(err error, logger *log.Logger) error {
 const (
 	ComponentName = "on-demand-service-broker"
 
-	OperationTypeCreate   = OperationType("create")
-	OperationTypeUpdate   = OperationType("update")
-	OperationTypeUpgrade  = OperationType("upgrade")
-	OperationTypeRecreate = OperationType("recreate")
-	OperationTypeDelete   = OperationType("delete")
-	OperationTypeBind     = OperationType("bind")
-	OperationTypeUnbind   = OperationType("unbind")
+	OperationTypeCreate      = OperationType("create")
+	OperationTypeUpdate      = OperationType("update")
+	OperationTypeUpgrade     = OperationType("upgrade")
+	OperationTypeRecreate    = OperationType("recreate")
+	OperationTypeDelete      = OperationType("delete")
+	OperationTypeForceDelete = OperationType("force-delete")
+	OperationTypeBind        = OperationType("bind")
+	OperationTypeUnbind      = OperationType("unbind")
 
 	MinimumCFVersion                                     = "2.57.0"
 	MinimumMajorStemcellDirectorVersionForODB            = 3262
@@ -194,7 +195,7 @@ type BoshClient interface {
 	VMs(deploymentName string, logger *log.Logger) (bosh.BoshVMs, error)
 	GetDeployment(name string, logger *log.Logger) ([]byte, bool, error)
 	GetDeployments(logger *log.Logger) ([]boshdirector.Deployment, error)
-	DeleteDeployment(name, contextID string, logger *log.Logger, taskReporter *boshdirector.AsyncTaskReporter) (int, error)
+	DeleteDeployment(name, contextID string, force bool, taskReporter *boshdirector.AsyncTaskReporter, logger *log.Logger) (int, error)
 	GetInfo(logger *log.Logger) (boshdirector.Info, error)
 	RunErrand(deploymentName, errandName string, errandInstances []string, contextID string, logger *log.Logger, taskReporter *boshdirector.AsyncTaskReporter) (int, error)
 	Variables(deploymentName string, logger *log.Logger) ([]boshdirector.Variable, error)

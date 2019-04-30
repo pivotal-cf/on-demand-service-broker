@@ -51,7 +51,7 @@ func validPostDeployOpType(op OperationType) bool {
 }
 
 func validPreDeleteOpType(op OperationType) bool {
-	return op == OperationTypeDelete
+	return op == OperationTypeDelete || op == OperationTypeForceDelete
 }
 
 func (l LifeCycleRunner) processPostDeployment(
@@ -76,14 +76,12 @@ func (l LifeCycleRunner) processPostDeployment(
 	}
 
 	if isOldStylePostDeployOperationData(boshTasks, operationData) {
-		return l.runErrand(deploymentName, operationData.PostDeployErrand.Name, operationData.PostDeployErrand.Instances, operationData.BoshContextID, logger)
+		return l.runErrand(deploymentName, config.Errand{operationData.PostDeployErrand.Name, operationData.PostDeployErrand.Instances}, operationData.BoshContextID, logger)
 	}
 
 	nextErrandIndex := len(boshTasks) - 1
 	if nextErrandIndex < len(operationData.Errands) {
-		errand := operationData.Errands[nextErrandIndex].Name
-		instances := operationData.Errands[nextErrandIndex].Instances
-		return l.runErrand(deploymentName, errand, instances, operationData.BoshContextID, logger)
+		return l.runErrand(deploymentName, operationData.Errands[nextErrandIndex], operationData.BoshContextID, logger)
 	}
 
 	if len(operationData.Errands) == 0 && operationData.PostDeployErrand.Name == "" {
@@ -97,35 +95,82 @@ func (l LifeCycleRunner) processPreDelete(
 	operationData OperationData,
 	logger *log.Logger,
 ) (boshdirector.BoshTask, error) {
-	boshTasks, err := l.boshClient.GetNormalisedTasksByContext(deploymentName, operationData.BoshContextID, logger)
 
+	boshTasks, err := l.getTasks(deploymentName, operationData, logger)
 	if err != nil {
 		return boshdirector.BoshTask{}, err
 	}
 
-	if len(boshTasks) == 0 {
-		return boshdirector.BoshTask{}, fmt.Errorf("no tasks found for context id: %s", operationData.BoshContextID)
+	currentTask := boshTasks[0]
+	if taskIsNotDone(currentTask, operationData.OperationType) {
+		return currentTask, nil
 	}
 
-	task := boshTasks[0]
-	if task.StateType() != boshdirector.TaskComplete {
-		return task, nil
+	if shouldRunDeprovision(boshTasks, operationData) {
+		return l.deprovisionAfterAllErrand(deploymentName, boshTasks, logger, operationData)
 	}
 
-	if len(boshTasks) == len(operationData.Errands) || isOldStylePreDeleteOperationData(boshTasks, operationData) {
-		taskID, err := l.boshClient.DeleteDeployment(deploymentName, operationData.BoshContextID, logger, boshdirector.NewAsyncTaskReporter())
-		if err != nil {
-			return boshdirector.BoshTask{}, err
-		}
-		return l.boshClient.GetTask(taskID, logger)
-	}
-
-	if len(boshTasks) > len(operationData.Errands) {
-		return task, nil
+	if hasRunAllErrands(boshTasks, operationData) {
+		return currentTask, nil
 	}
 
 	errand := operationData.Errands[len(boshTasks)]
-	return l.runErrand(deploymentName, errand.Name, errand.Instances, operationData.BoshContextID, logger)
+	return l.runErrand(deploymentName, errand, operationData.BoshContextID, logger)
+}
+
+func shouldRunDeprovision(boshTasks []boshdirector.BoshTask, operationData OperationData) bool {
+	return len(boshTasks) == len(operationData.Errands) || isOldStylePreDeleteOperationData(boshTasks, operationData)
+}
+
+func (l LifeCycleRunner) deprovisionAfterAllErrand(deploymentName string, boshTasks []boshdirector.BoshTask, logger *log.Logger, operationData OperationData) (boshdirector.BoshTask, error) {
+	taskID, err := l.boshClient.DeleteDeployment(
+		deploymentName,
+		operationData.BoshContextID,
+		shouldForceDelete(operationData),
+		boshdirector.NewAsyncTaskReporter(),
+		logger)
+	if err != nil {
+		return boshdirector.BoshTask{}, err
+	}
+	return l.boshClient.GetTask(taskID, logger)
+}
+
+func (l LifeCycleRunner) getTasks(deploymentName string, operationData OperationData, logger *log.Logger) ([]boshdirector.BoshTask, error) {
+	boshTasks, err := l.boshClient.GetNormalisedTasksByContext(deploymentName, operationData.BoshContextID, logger)
+	if err != nil {
+		return []boshdirector.BoshTask{}, err
+	}
+
+	if len(boshTasks) == 0 {
+		return []boshdirector.BoshTask{}, fmt.Errorf("no tasks found for context id: %s", operationData.BoshContextID)
+	}
+
+	return boshTasks, nil
+}
+
+func taskIsNotDone(task boshdirector.BoshTask, operationType OperationType) bool {
+	currentTaskState := task.StateType()
+	return !shouldSkipError(currentTaskState, operationType) && isNotCompleted(currentTaskState)
+}
+
+func isNotCompleted(taskState boshdirector.TaskStateType) bool {
+	return taskState != boshdirector.TaskComplete
+}
+
+func shouldSkipError(taskState boshdirector.TaskStateType, operationType OperationType) bool {
+	return taskState == boshdirector.TaskFailed && operationType == OperationTypeForceDelete
+}
+
+func hasRunAllErrands(boshTasks boshdirector.BoshTasks, operationData OperationData) bool {
+	return len(boshTasks) > len(operationData.Errands)
+}
+
+func shouldForceDelete(operationData OperationData) bool {
+	forceDelete := false
+	if operationData.OperationType == OperationTypeForceDelete {
+		forceDelete = true
+	}
+	return forceDelete
 }
 
 func isOldStylePreDeleteOperationData(boshTasks boshdirector.BoshTasks, operationData OperationData) bool {
@@ -136,8 +181,8 @@ func isOldStylePostDeployOperationData(boshTasks boshdirector.BoshTasks, operati
 	return len(boshTasks) == 1 && operationData.PostDeployErrand.Name != ""
 }
 
-func (l LifeCycleRunner) runErrand(deploymentName, errand string, errandInstances []string, contextID string, log *log.Logger) (boshdirector.BoshTask, error) {
-	taskID, err := l.boshClient.RunErrand(deploymentName, errand, errandInstances, contextID, log, boshdirector.NewAsyncTaskReporter())
+func (l LifeCycleRunner) runErrand(deploymentName string, errand config.Errand, contextID string, log *log.Logger) (boshdirector.BoshTask, error) {
+	taskID, err := l.boshClient.RunErrand(deploymentName, errand.Name, errand.Instances, contextID, log, boshdirector.NewAsyncTaskReporter())
 	if err != nil {
 		return boshdirector.BoshTask{}, err
 	}

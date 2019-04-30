@@ -16,12 +16,10 @@
 package on_demand_service_broker_test
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
-
-	"encoding/json"
-
 	"strings"
 
 	. "github.com/onsi/ginkgo"
@@ -46,7 +44,7 @@ var _ = Describe("Deprovision", func() {
 		boshVMs := bosh.BoshVMs{"some-property": []string{"some-value"}}
 		fakeBoshClient.VMsReturns(boshVMs, nil)
 		fakeBoshClient.GetDeploymentReturns(boshManifest, true, nil)
-		fakeBoshClient.DeleteDeploymentReturns(taskID, nil)
+		fakeBoshClient.DeleteDeploymentReturnsOnCall(0, taskID, nil)
 	})
 
 	Context("without pre-delete errand", func() {
@@ -63,8 +61,8 @@ var _ = Describe("Deprovision", func() {
 			StartServer(conf)
 		})
 
-		It("succeeds with async flag", func() {
-			response, bodyContent := doDeprovisionRequest(instanceID, dedicatedPlanID, serviceID, true)
+		It("succeeds with async set to true", func() {
+			response, bodyContent := doDeprovisionRequest(instanceID, dedicatedPlanID, serviceID, true, false)
 
 			By("returning the correct HTTP status")
 			Expect(response.StatusCode).To(Equal(http.StatusAccepted))
@@ -84,8 +82,34 @@ var _ = Describe("Deprovision", func() {
 			Eventually(loggerBuffer).Should(gbytes.Say(`deleting deployment for instance`))
 		})
 
+		It("succeeds with async and force delete set to true", func() {
+			expectedForceDelete := true
+			response, bodyContent := doDeprovisionRequest(instanceID, dedicatedPlanID, serviceID, true, expectedForceDelete)
+
+			By("returning the correct HTTP status")
+			Expect(response.StatusCode).To(Equal(http.StatusAccepted))
+
+			By("including the operation data in the response")
+			var deprovisionResponse apiresponses.DeprovisionResponse
+			Expect(json.Unmarshal(bodyContent, &deprovisionResponse)).To(Succeed())
+
+			var operationData broker.OperationData
+			Expect(json.NewDecoder(strings.NewReader(deprovisionResponse.OperationData)).Decode(&operationData)).To(Succeed())
+
+			Expect(operationData.OperationType).To(Equal(broker.OperationTypeForceDelete))
+			Expect(operationData.BoshTaskID).To(Equal(taskID))
+			Expect(operationData.BoshContextID).To(BeEmpty())
+
+			By("logging the delete request")
+			Eventually(loggerBuffer).Should(gbytes.Say(`deleting deployment for instance`))
+
+			By("Passing force flag to DeleteDeployment")
+			_, _, force, _, _ := fakeBoshClient.DeleteDeploymentArgsForCall(0)
+			Expect(force).To(Equal(expectedForceDelete))
+		})
+
 		It("fails when async flag is not set", func() {
-			response, bodyContent := doDeprovisionRequest(instanceID, dedicatedPlanID, serviceID, false)
+			response, bodyContent := doDeprovisionRequest(instanceID, dedicatedPlanID, serviceID, false, false)
 
 			By("returning the correct HTTP status")
 			Expect(response.StatusCode).To(Equal(http.StatusUnprocessableEntity))
@@ -99,6 +123,7 @@ var _ = Describe("Deprovision", func() {
 				"description": "This service plan requires client support for asynchronous service operations.",
 			}))
 		})
+
 	})
 
 	Context("with pre-delete errand", func() {
@@ -142,7 +167,7 @@ var _ = Describe("Deprovision", func() {
 		})
 
 		It("succeeds with async flag", func() {
-			response, bodyContent := doDeprovisionRequest(instanceID, preDeleteErrandPlanID, serviceID, true)
+			response, bodyContent := doDeprovisionRequest(instanceID, preDeleteErrandPlanID, serviceID, true, false)
 
 			By("returning the correct HTTP status")
 			Expect(response.StatusCode).To(Equal(http.StatusAccepted))
@@ -164,6 +189,29 @@ var _ = Describe("Deprovision", func() {
 			Eventually(loggerBuffer).Should(gbytes.Say(
 				fmt.Sprintf("running pre-delete errand for instance %s", instanceID),
 			))
+
+			By("Not calling DeleteDeployment")
+			Expect(fakeBoshClient.DeleteConfigCallCount()).To(Equal(0))
+		})
+
+		It("succeeds when force deleting", func() {
+			expectedForceDelete := true
+			response, bodyContent := doDeprovisionRequest(instanceID, preDeleteErrandPlanID, serviceID, true, expectedForceDelete)
+
+			By("returning the correct HTTP status")
+			Expect(response.StatusCode).To(Equal(http.StatusAccepted))
+
+			By("including the operation data in the response")
+			var deprovisionResponse apiresponses.DeprovisionResponse
+			Expect(json.Unmarshal(bodyContent, &deprovisionResponse)).To(Succeed())
+
+			var operationData broker.OperationData
+			Expect(json.NewDecoder(strings.NewReader(deprovisionResponse.OperationData)).Decode(&operationData)).To(Succeed())
+
+			Expect(operationData.OperationType).To(Equal(broker.OperationTypeForceDelete))
+
+			By("Not calling DeleteDeployment")
+			Expect(fakeBoshClient.DeleteConfigCallCount()).To(Equal(0))
 		})
 	})
 
@@ -191,7 +239,7 @@ var _ = Describe("Deprovision", func() {
 			})
 
 			It("returns 410 when bosh configs and secrets can be removed", func() {
-				response, bodyContent := doDeprovisionRequest(instanceID, dedicatedPlanID, serviceID, true)
+				response, bodyContent := doDeprovisionRequest(instanceID, dedicatedPlanID, serviceID, true, false)
 
 				By("returning the correct HTTP status")
 				Expect(response.StatusCode).To(Equal(http.StatusGone))
@@ -208,7 +256,7 @@ var _ = Describe("Deprovision", func() {
 			It("returns 500 when configs removal fails", func() {
 				fakeBoshClient.DeleteConfigsReturns(errors.New("not today, thank you"))
 
-				response, bodyContent := doDeprovisionRequest(instanceID, dedicatedPlanID, serviceID, true)
+				response, bodyContent := doDeprovisionRequest(instanceID, dedicatedPlanID, serviceID, true, false)
 
 				By("returning the correct HTTP status")
 				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
@@ -229,7 +277,7 @@ var _ = Describe("Deprovision", func() {
 			It("returns 500 when config removal succeeds but secret removal fails", func() {
 				fakeCredhubOperator.FindNameLikeReturns(nil, errors.New("not today, thank you"))
 
-				response, bodyContent := doDeprovisionRequest(instanceID, dedicatedPlanID, serviceID, true)
+				response, bodyContent := doDeprovisionRequest(instanceID, dedicatedPlanID, serviceID, true, false)
 
 				By("returning the correct HTTP status")
 				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
@@ -253,7 +301,7 @@ var _ = Describe("Deprovision", func() {
 				})
 
 				It("should not get or delete configs", func() {
-					doDeprovisionRequest(instanceID, dedicatedPlanID, serviceID, true)
+					doDeprovisionRequest(instanceID, dedicatedPlanID, serviceID, true, false)
 
 					Expect(fakeBoshClient.DeleteConfigsCallCount()).To(Equal(0), "DeleteConfig was called")
 				})
@@ -268,7 +316,7 @@ var _ = Describe("Deprovision", func() {
 			tasks := boshdirector.BoshTasks{task}
 			fakeBoshClient.GetTasksReturns(tasks, nil)
 
-			response, bodyContent := doDeprovisionRequest(instanceID, dedicatedPlanID, serviceID, true)
+			response, bodyContent := doDeprovisionRequest(instanceID, dedicatedPlanID, serviceID, true, false)
 
 			By("returning the correct HTTP status")
 			Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
@@ -289,7 +337,7 @@ var _ = Describe("Deprovision", func() {
 		It("returns 500 when the BOSH director is unavailable", func() {
 			fakeBoshClient.GetInfoReturns(boshdirector.Info{}, errors.New("oops"))
 
-			response, bodyContent := doDeprovisionRequest(instanceID, dedicatedPlanID, serviceID, true)
+			response, bodyContent := doDeprovisionRequest(instanceID, dedicatedPlanID, serviceID, true, false)
 
 			By("returning the correct HTTP status")
 			Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
@@ -302,10 +350,10 @@ var _ = Describe("Deprovision", func() {
 	})
 })
 
-func doDeprovisionRequest(instanceID, planID, serviceID string, asyncAllowed bool) (*http.Response, []byte) {
+func doDeprovisionRequest(instanceID, planID, serviceID string, asyncAllowed bool, force bool) (*http.Response, []byte) {
 	return doRequest(
 		http.MethodDelete,
-		fmt.Sprintf("http://%s/v2/service_instances/%s?accepts_incomplete=%t&plan_id=%s&service_id=%s", serverURL, instanceID, asyncAllowed, planID, serviceID),
+		fmt.Sprintf("http://%s/v2/service_instances/%s?accepts_incomplete=%t&plan_id=%s&service_id=%s&force=%v", serverURL, instanceID, asyncAllowed, planID, serviceID, force),
 		nil,
 		func(r *http.Request) {
 			r.Header.Set("X-Broker-API-Version", "2.0")

@@ -21,29 +21,35 @@ import (
 
 var descriptions = map[domain.LastOperationState]map[OperationType]string{
 	domain.InProgress: {
-		OperationTypeCreate:   "Instance provisioning in progress",
-		OperationTypeUpdate:   "Instance update in progress",
-		OperationTypeUpgrade:  "Instance upgrade in progress",
-		OperationTypeDelete:   "Instance deletion in progress",
-		OperationTypeRecreate: "Instance recreate in progress",
+		OperationTypeCreate:      "Instance provisioning in progress",
+		OperationTypeUpdate:      "Instance update in progress",
+		OperationTypeUpgrade:     "Instance upgrade in progress",
+		OperationTypeDelete:      "Instance deletion in progress",
+		OperationTypeForceDelete: "Instance forced deletion in progress",
+		OperationTypeRecreate:    "Instance recreate in progress",
 	},
 	domain.Succeeded: {
-		OperationTypeCreate:   "Instance provisioning completed",
-		OperationTypeUpdate:   "Instance update completed",
-		OperationTypeUpgrade:  "Instance upgrade completed",
-		OperationTypeDelete:   "Instance deletion completed",
-		OperationTypeRecreate: "Instance recreate completed",
+		OperationTypeCreate:      "Instance provisioning completed",
+		OperationTypeUpdate:      "Instance update completed",
+		OperationTypeUpgrade:     "Instance upgrade completed",
+		OperationTypeDelete:      "Instance deletion completed",
+		OperationTypeForceDelete: "Instance forced deletion completed",
+		OperationTypeRecreate:    "Instance recreate completed",
 	},
 	domain.Failed: {
-		OperationTypeCreate:   "Instance provisioning failed",
-		OperationTypeUpdate:   "Instance update failed",
-		OperationTypeUpgrade:  "Failed for bosh task",
-		OperationTypeDelete:   "Instance deletion failed",
-		OperationTypeRecreate: "Instance recreate failed",
+		OperationTypeCreate:      "Instance provisioning failed",
+		OperationTypeUpdate:      "Instance update failed",
+		OperationTypeUpgrade:     "Failed for bosh task",
+		OperationTypeDelete:      "Instance deletion failed",
+		OperationTypeForceDelete: "Instance forced deletion failed",
+		OperationTypeRecreate:    "Instance recreate failed",
 	},
 }
 
-func (b *Broker) LastOperation(ctx context.Context, instanceID string, pollDetails domain.PollDetails,
+func (b *Broker) LastOperation(
+	ctx context.Context,
+	instanceID string,
+	pollDetails domain.PollDetails,
 ) (domain.LastOperation, error) {
 
 	operationDataRaw := pollDetails.OperationData
@@ -80,22 +86,10 @@ func (b *Broker) LastOperation(ctx context.Context, instanceID string, pollDetai
 		)
 	}
 
-	if operationData.OperationType == OperationTypeDelete && lastBoshTask.StateType() == boshdirector.TaskComplete {
-		if !b.DisableBoshConfigs {
-			if err = b.boshClient.DeleteConfigs(deploymentName(instanceID), logger); err != nil {
-				ctx = brokercontext.WithBoshTaskID(ctx, 0)
-				lastOperation := constructLastOperation(ctx, domain.Failed, lastBoshTask, operationData, b.ExposeOperationalErrors)
-				logger.Printf("Failed to delete configs for service instance %s: %s\n", instanceID, err.Error())
-				return lastOperation, nil
-			}
-		}
-
-		if err = b.secretManager.DeleteSecretsForInstance(instanceID, logger); err != nil {
-			ctx = brokercontext.WithBoshTaskID(ctx, 0)
-			lastOperation := constructLastOperation(ctx, domain.Failed, lastBoshTask, operationData, b.ExposeOperationalErrors)
-			logger.Printf("Failed to delete credhub secrets for service instance %s. Credhub error: %s\n", instanceID, err.Error())
-			return lastOperation, nil
-		}
+	err = b.deleteConfigsAndSecretsAfterDelete(instanceID, operationData.OperationType, lastBoshTask, logger)
+	if err != nil {
+		ctx = brokercontext.WithBoshTaskID(ctx, 0)
+		return constructLastOperation(ctx, domain.Failed, lastBoshTask, operationData, b.ExposeOperationalErrors), nil
 	}
 
 	ctx = brokercontext.WithBoshTaskID(ctx, lastBoshTask.ID)
@@ -149,4 +143,26 @@ func logLastOperation(instanceID string, boshTask boshdirector.BoshTask, operati
 		boshTask.Description,
 		boshTask.Result,
 	)
+}
+
+func (b *Broker) deleteConfigsAndSecretsAfterDelete(
+	instanceID string,
+	operationType OperationType,
+	lastBoshTask boshdirector.BoshTask,
+	logger *log.Logger) error {
+	if (operationType == OperationTypeDelete || operationType == OperationTypeForceDelete) &&
+		lastBoshTask.StateType() == boshdirector.TaskComplete {
+		if !b.DisableBoshConfigs {
+			if err := b.boshClient.DeleteConfigs(deploymentName(instanceID), logger); err != nil {
+				logger.Printf("Failed to delete configs for service instance %s: %s\n", instanceID, err.Error())
+				return err
+			}
+		}
+
+		if err := b.secretManager.DeleteSecretsForInstance(instanceID, logger); err != nil {
+			logger.Printf("Failed to delete credhub secrets for service instance %s. Credhub error: %s\n", instanceID, err.Error())
+			return err
+		}
+	}
+	return nil
 }

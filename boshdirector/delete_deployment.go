@@ -13,7 +13,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (c *Client) DeleteDeployment(name, contextID string, logger *log.Logger, taskReporter *AsyncTaskReporter) (int, error) {
+func (c *Client) DeleteDeployment(name, contextID string, force bool, taskReporter *AsyncTaskReporter, logger *log.Logger) (int, error) {
 	logger.Printf("deleting deployment %s\n", name)
 	d, err := c.Director(taskReporter)
 	if err != nil {
@@ -35,7 +35,7 @@ func (c *Client) DeleteDeployment(name, contextID string, logger *log.Logger, ta
 		return 0, errors.Wrap(err, fmt.Sprintf(`BOSH error when deleting deployment "%s"`, name))
 	}
 	go func() {
-		err = deployment.Delete(false)
+		err = deployment.Delete(force)
 		if err != nil {
 			taskReporter.Err <- errors.Wrap(err, fmt.Sprintf("Could not delete deployment %s", name))
 		}

@@ -38,7 +38,7 @@ var _ = Describe("deleting bosh deployments", func() {
 	})
 
 	It("returns the bosh task ID when bosh accepts the delete request", func() {
-		taskID, deleteErr := c.DeleteDeployment(deploymentName, "delete-some-deployment", logger, taskReporter)
+		taskID, deleteErr := c.DeleteDeployment(deploymentName, "delete-some-deployment", false, taskReporter, logger)
 
 		Expect(deleteErr).NotTo(HaveOccurred())
 		Expect(taskID).To(Equal(taskId))
@@ -46,21 +46,21 @@ var _ = Describe("deleting bosh deployments", func() {
 
 	It("returns an error when the FindDeployment errors", func() {
 		fakeDirector.FindDeploymentReturns(new(fakes.FakeBOSHDeployment), errors.New("oops"))
-		_, deleteErr := c.DeleteDeployment(deploymentName, "delete-some-deployment", logger, taskReporter)
+		_, deleteErr := c.DeleteDeployment(deploymentName, "delete-some-deployment", false, taskReporter, logger)
 
 		Expect(deleteErr).To(MatchError(ContainSubstring(`BOSH error when deleting deployment "some-deployment"`)))
 	})
 
 	It("returns an error when the GetDeployment errors", func() {
 		fakeDirector.DeploymentsReturns(nil, errors.New("oops"))
-		_, deleteErr := c.DeleteDeployment(deploymentName, "delete-some-deployment", logger, taskReporter)
+		_, deleteErr := c.DeleteDeployment(deploymentName, "delete-some-deployment", false, taskReporter, logger)
 
 		Expect(deleteErr).To(MatchError(ContainSubstring(`BOSH error when deleting deployment "some-deployment"`)))
 	})
 
 	It("reports task started and task finished when the deployment doesn't exist", func() {
 		fakeDirector.DeploymentsReturns([]director.Deployment{}, nil)
-		taskID, deleteErr := c.DeleteDeployment(deploymentName, "delete-some-deployment", logger, taskReporter)
+		taskID, deleteErr := c.DeleteDeployment(deploymentName, "delete-some-deployment", false, taskReporter, logger)
 
 		Expect(taskID).To(Equal(0))
 		Expect(deleteErr).NotTo(HaveOccurred())
@@ -71,8 +71,28 @@ var _ = Describe("deleting bosh deployments", func() {
 
 	It("returns an error when cannot delete the deployment", func() {
 		fakeDeployment.DeleteReturns(errors.New("oops"))
-		_, deleteErr := c.DeleteDeployment(deploymentName, "delete-some-deployment", logger, taskReporter)
+		_, deleteErr := c.DeleteDeployment(deploymentName, "delete-some-deployment", false, taskReporter, logger)
 
 		Expect(deleteErr).To(MatchError("Could not delete deployment some-deployment: oops"))
+	})
+
+	When("force flag is passed to Delete deployment", func() {
+		It("passes true when true is passed", func() {
+			expectedForceDelete := true
+			_, deleteErr := c.DeleteDeployment(deploymentName, "delete-some-deployment", expectedForceDelete, taskReporter, logger)
+
+			Expect(deleteErr).NotTo(HaveOccurred())
+			actualForceDelete := fakeDeployment.DeleteArgsForCall(0)
+			Expect(actualForceDelete).To(Equal(expectedForceDelete))
+		})
+
+		It("passes false when false is passed", func() {
+			expectedForceDelete := false
+			_, deleteErr := c.DeleteDeployment(deploymentName, "delete-some-deployment", expectedForceDelete, taskReporter, logger)
+
+			Expect(deleteErr).NotTo(HaveOccurred())
+			actualForceDelete := fakeDeployment.DeleteArgsForCall(0)
+			Expect(actualForceDelete).To(Equal(expectedForceDelete))
+		})
 	})
 })

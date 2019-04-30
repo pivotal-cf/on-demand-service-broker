@@ -50,7 +50,7 @@ var _ = Describe("BOSH client", func() {
 
 	AfterEach(func() {
 		reporter := boshdirector.NewAsyncTaskReporter()
-		_, err := boshClient.DeleteDeployment(deploymentName, "", logger, reporter)
+		_, err := boshClient.DeleteDeployment(deploymentName, "", false, reporter, logger)
 		Expect(err).NotTo(HaveOccurred())
 		Eventually(reporter.Finished).Should(Receive(), fmt.Sprintf("Timed out waiting for deployment %s to be deleted", deploymentName))
 	})
@@ -165,7 +165,7 @@ var _ = Describe("BOSH client", func() {
 
 			By("deleting the deployment", func() {
 				deleteDeploymentReporter := boshdirector.NewAsyncTaskReporter()
-				deleteTaskID, err := boshClient.DeleteDeployment(deploymentName, "some-context-id", logger, deleteDeploymentReporter)
+				deleteTaskID, err := boshClient.DeleteDeployment(deploymentName, "some-context-id", false, deleteDeploymentReporter, logger)
 				Expect(deleteTaskID).To(BeNumerically(">=", 1))
 				Expect(err).NotTo(HaveOccurred())
 				verifyContextID("some-context-id", deleteTaskID)
@@ -179,11 +179,41 @@ var _ = Describe("BOSH client", func() {
 		})
 	})
 
+	Describe("when force deleting a deployment", func() {
+		It("succeeds", func() {
+			reporter := boshdirector.NewAsyncTaskReporter()
+			manifest := getManifest("single_vm_deployment.yml", deploymentName)
+
+			By("deploying the manifest", func() {
+				var err error
+				_, err = boshClient.Deploy(manifest, "some-context-id", logger, reporter)
+				Expect(err).NotTo(HaveOccurred())
+				Eventually(reporter.Finished).Should(Receive(), fmt.Sprintf("Timed out waiting for %s to deploy", deploymentName))
+				Expect(reporter.State).ToNot(Equal("error"), fmt.Sprintf("Deployment of %s failed", deploymentName))
+			})
+
+			By("force deleting the deployment", func() {
+				deleteDeploymentReporter := boshdirector.NewAsyncTaskReporter()
+				deleteTaskID, err := boshClient.DeleteDeployment(deploymentName, "some-context-id", true, deleteDeploymentReporter, logger)
+				Expect(deleteTaskID).To(BeNumerically(">=", 1))
+				Expect(err).NotTo(HaveOccurred())
+				verifyContextID("some-context-id", deleteTaskID)
+				Eventually(deleteDeploymentReporter.Finished).Should(Receive(), fmt.Sprintf("Timed out waiting for deployment %s to be deleted", deploymentName))
+
+				By("verifying the deployment was deleted")
+				deployments, getDeploymentErr := boshClient.GetDeployments(logger)
+				Expect(getDeploymentErr).NotTo(HaveOccurred())
+				Expect(deployments).NotTo(ContainElement(boshdirector.Deployment{Name: deploymentName}))
+			})
+
+		})
+	})
+
 	Describe("when a deployment doesn't exist", func() {
 		When("DeleteDeployment is called", func() {
 			It("returns 0 for task ID and no error", func() {
 				reporter := boshdirector.NewAsyncTaskReporter()
-				taskID, err := boshClient.DeleteDeployment("something-that-does-not-exist", "", logger, reporter)
+				taskID, err := boshClient.DeleteDeployment("something-that-does-not-exist", "", false, reporter, logger)
 				Expect(taskID).To(Equal(0))
 				Expect(err).NotTo(HaveOccurred())
 
@@ -317,7 +347,7 @@ var _ = Describe("BOSH client", func() {
 
 		AfterEach(func() {
 			reporter := boshdirector.NewAsyncTaskReporter()
-			_, err := boshClient.DeleteDeployment(deploymentName, "", logger, reporter)
+			_, err := boshClient.DeleteDeployment(deploymentName, "", false, reporter, logger)
 			Expect(err).NotTo(HaveOccurred())
 		})
 

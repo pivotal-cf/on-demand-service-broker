@@ -77,12 +77,12 @@ func (b *Broker) Deprovision(
 	plan, found := b.serviceOffering.FindPlanByID(deprovisionDetails.PlanID)
 	if found {
 		if errands := plan.PreDeleteErrands(); len(errands) != 0 {
-			serviceSpec, err := b.runPreDeleteErrands(ctx, instanceID, errands, logger)
+			serviceSpec, err := b.runPreDeleteErrands(ctx, instanceID, errands, deprovisionDetails.Force, logger)
 			return serviceSpec, b.processError(err, logger)
 		}
 	}
 
-	serviceSpec, err := b.deleteInstance(ctx, instanceID, plan, logger)
+	serviceSpec, err := b.deleteInstance(ctx, instanceID, plan, logger, deprovisionDetails.Force)
 	return serviceSpec, b.processError(err, logger)
 }
 
@@ -153,12 +153,7 @@ func (b *Broker) assertNoOperationsInProgress(ctx context.Context, instanceID st
 	return nil
 }
 
-func (b *Broker) runPreDeleteErrands(
-	ctx context.Context,
-	instanceID string,
-	preDeleteErrands []config.Errand,
-	logger *log.Logger,
-) (domain.DeprovisionServiceSpec, error) {
+func (b *Broker) runPreDeleteErrands(ctx context.Context, instanceID string, preDeleteErrands []config.Errand, forceDelete bool, logger *log.Logger) (domain.DeprovisionServiceSpec, error) {
 	logger.Printf("running pre-delete errand for instance %s\n", instanceID)
 
 	boshContextID := uuid.New()
@@ -175,8 +170,9 @@ func (b *Broker) runPreDeleteErrands(
 		return domain.DeprovisionServiceSpec{IsAsync: true}, NewGenericError(ctx, err)
 	}
 
+	operationType := b.getOperationType(forceDelete)
 	operationData, err := json.Marshal(OperationData{
-		OperationType: OperationTypeDelete,
+		OperationType: operationType,
 		BoshTaskID:    taskID,
 		BoshContextID: boshContextID,
 		Errands:       preDeleteErrands,
@@ -194,9 +190,17 @@ func (b *Broker) deleteInstance(
 	instanceID string,
 	planConfig config.Plan,
 	logger *log.Logger,
+	forceDelete bool,
 ) (domain.DeprovisionServiceSpec, error) {
 	logger.Printf("deleting deployment for instance %s\n", instanceID)
-	taskID, err := b.boshClient.DeleteDeployment(deploymentName(instanceID), fmt.Sprintf("delete-%s", instanceID), logger, boshdirector.NewAsyncTaskReporter())
+
+	taskID, err := b.boshClient.DeleteDeployment(
+		deploymentName(instanceID),
+		fmt.Sprintf("delete-%s", instanceID),
+		forceDelete,
+		boshdirector.NewAsyncTaskReporter(),
+		logger,
+	)
 	switch err.(type) {
 	case boshdirector.RequestError:
 		return domain.DeprovisionServiceSpec{IsAsync: true}, NewBoshRequestError("delete", err)
@@ -210,17 +214,34 @@ func (b *Broker) deleteInstance(
 	logger.Printf("Bosh task id for Delete instance %s was %d\n", instanceID, taskID)
 	ctx = brokercontext.WithBoshTaskID(ctx, taskID)
 
-	operationData, err := json.Marshal(OperationData{
-		OperationType: OperationTypeDelete,
-		BoshTaskID:    taskID,
-	})
-
+	operationData, err := b.generateOperationData(forceDelete, err, taskID)
 	if err != nil {
 		return domain.DeprovisionServiceSpec{IsAsync: true}, NewGenericError(ctx, err)
 	}
 
 	return domain.DeprovisionServiceSpec{
 		IsAsync:       true,
-		OperationData: string(operationData),
+		OperationData: operationData,
 	}, nil
+}
+
+func (b *Broker) generateOperationData(forceDelete bool, err error, taskID int) (string, error) {
+	operationType := b.getOperationType(forceDelete)
+	operationData, err := json.Marshal(OperationData{
+		OperationType: operationType,
+		BoshTaskID:    taskID,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	return string(operationData), nil
+}
+
+func (b *Broker) getOperationType(forceDelete bool) OperationType {
+	operationType := OperationTypeDelete
+	if forceDelete {
+		operationType = OperationTypeForceDelete
+	}
+	return operationType
 }

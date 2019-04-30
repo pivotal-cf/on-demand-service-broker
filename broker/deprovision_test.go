@@ -44,17 +44,11 @@ var _ = Describe("deprovisioning instances", func() {
 
 	JustBeforeEach(func() {
 		b = createDefaultBroker()
-		deprovisionSpec, deprovisionErr = b.Deprovision(
-			context.Background(),
-			instanceID,
-			deprovisionDetails,
-			asyncAllowed,
-		)
 	})
 
 	Context("when CF integration is disabled", func() {
 
-		JustBeforeEach(func() {
+		BeforeEach(func() {
 			var err error
 			b, err = createBroker([]broker.StartupChecker{}, noopservicescontroller.New())
 			Expect(err).NotTo(HaveOccurred())
@@ -68,6 +62,7 @@ var _ = Describe("deprovisioning instances", func() {
 				deprovisionDetails,
 				asyncAllowed,
 			)
+
 			Expect(deprovisionSpec.IsAsync).To(BeTrue())
 		})
 
@@ -79,6 +74,7 @@ var _ = Describe("deprovisioning instances", func() {
 				deprovisionDetails,
 				asyncAllowed,
 			)
+
 			Expect(logBuffer.String()).To(ContainSubstring(
 				fmt.Sprintf("running pre-delete errand for instance %s", instanceID),
 			))
@@ -87,35 +83,65 @@ var _ = Describe("deprovisioning instances", func() {
 
 	})
 
-	It("returns that is deprovisioning asynchronously", func() {
-		Expect(deprovisionSpec.IsAsync).To(BeTrue())
-	})
+	When("the async allowed flag is true", func() {
+		It("succeeds deleting bosh deployment", func() {
+			deprovisionSpec, deprovisionErr = b.Deprovision(
+				context.Background(),
+				instanceID,
+				deprovisionDetails,
+				asyncAllowed,
+			)
 
-	It("returns the bosh task ID and operation type in the operation data", func() {
-		var operationData broker.OperationData
-		Expect(json.Unmarshal([]byte(deprovisionSpec.OperationData), &operationData)).To(Succeed())
-		Expect(operationData).To(Equal(broker.OperationData{
-			BoshTaskID:    deleteTaskID,
-			OperationType: broker.OperationTypeDelete,
-		}))
-	})
+			Expect(deprovisionSpec.IsAsync).To(BeTrue())
 
-	It("deletes a bosh deployment whose name is based on the instance ID", func() {
-		Expect(boshClient.DeleteDeploymentCallCount()).To(Equal(1))
-		actualInstanceID, _, _, _ := boshClient.DeleteDeploymentArgsForCall(0)
-		Expect(actualInstanceID).To(Equal(deploymentName(instanceID)))
-	})
+			By("validating OperationData")
+			var operationData broker.OperationData
+			Expect(json.Unmarshal([]byte(deprovisionSpec.OperationData), &operationData)).To(Succeed())
+			Expect(operationData).To(Equal(broker.OperationData{
+				BoshTaskID:    deleteTaskID,
+				OperationType: broker.OperationTypeDelete,
+			}))
 
-	It("logs that it will delete the deployment with a request ID", func() {
-		Expect(logBuffer.String()).To(MatchRegexp(`\[[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\] \d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2} deleting deployment for instance`))
-	})
+			By("validating DeleteDeployment args")
+			Expect(boshClient.DeleteDeploymentCallCount()).To(Equal(1))
+			actualInstanceID, _, force, _, _ := boshClient.DeleteDeploymentArgsForCall(0)
+			Expect(actualInstanceID).To(Equal(deploymentName(instanceID)))
+			Expect(force).To(BeFalse())
 
-	It("logs the task id to delete the deployment", func() {
-		Expect(logBuffer.String()).To(ContainSubstring(fmt.Sprintf("Bosh task id for Delete instance %s was %d", instanceID, deleteTaskID)))
-	})
+			By("validating logs")
+			Expect(logBuffer.String()).To(SatisfyAll(
+				MatchRegexp(`\[[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\] \d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2} deleting deployment for instance`),
+				ContainSubstring(fmt.Sprintf("Bosh task id for Delete instance %s was %d", instanceID, deleteTaskID)),
+				Not(ContainSubstring("pre-delete errand")),
+			))
+		})
 
-	It("does not log anything about pre-delete errands", func() {
-		Expect(logBuffer.String()).NotTo(ContainSubstring("pre-delete errand"))
+		It("succeeds force deleting bosh deployment", func() {
+			forceDeprovision := true
+			deprovisionDetails.Force = forceDeprovision
+			deprovisionSpec, deprovisionErr = b.Deprovision(
+				context.Background(),
+				instanceID,
+				deprovisionDetails,
+				asyncAllowed,
+			)
+
+			Expect(deprovisionSpec.IsAsync).To(BeTrue())
+
+			By("validating OperationData")
+			var operationData broker.OperationData
+			Expect(json.Unmarshal([]byte(deprovisionSpec.OperationData), &operationData)).To(Succeed())
+			Expect(operationData).To(Equal(broker.OperationData{
+				BoshTaskID:    deleteTaskID,
+				OperationType: broker.OperationTypeForceDelete,
+			}))
+
+			By("validating DeleteDeployment args")
+			Expect(boshClient.DeleteDeploymentCallCount()).To(Equal(1))
+			actualInstanceID, _, force, _, _ := boshClient.DeleteDeploymentArgsForCall(0)
+			Expect(actualInstanceID).To(Equal(deploymentName(instanceID)))
+			Expect(force).To(Equal(forceDeprovision))
+		})
 	})
 
 	Context("when the async allowed flag is false", func() {
@@ -124,6 +150,13 @@ var _ = Describe("deprovisioning instances", func() {
 		})
 
 		It("returns an error", func() {
+			deprovisionSpec, deprovisionErr = b.Deprovision(
+				context.Background(),
+				instanceID,
+				deprovisionDetails,
+				asyncAllowed,
+			)
+
 			Expect(deprovisionErr).To(Equal(apiresponses.ErrAsyncRequired))
 		})
 	})
@@ -133,11 +166,15 @@ var _ = Describe("deprovisioning instances", func() {
 			boshClient.GetDeploymentReturns(nil, false, boshdirector.NewRequestError(errors.New("problem fetching manifest")))
 		})
 
-		It("returns an error", func() {
-			Expect(deprovisionErr).To(HaveOccurred())
-		})
+		It("returns an error and logs it", func() {
+			deprovisionSpec, deprovisionErr = b.Deprovision(
+				context.Background(),
+				instanceID,
+				deprovisionDetails,
+				asyncAllowed,
+			)
 
-		It("logs an error", func() {
+			Expect(deprovisionErr).To(HaveOccurred())
 			Expect(logBuffer.String()).To(
 				ContainSubstring("error: problem fetching manifest. error for user: Currently unable to delete service instance, please try again later."),
 			)
@@ -151,11 +188,15 @@ var _ = Describe("deprovisioning instances", func() {
 			boshClient.GetDeploymentReturns(nil, false, err)
 		})
 
-		It("returns an error", func() {
-			Expect(deprovisionErr).To(HaveOccurred())
-		})
+		It("returns an error and logs it", func() {
+			deprovisionSpec, deprovisionErr = b.Deprovision(
+				context.Background(),
+				instanceID,
+				deprovisionDetails,
+				asyncAllowed,
+			)
 
-		It("logs an error", func() {
+			Expect(deprovisionErr).To(HaveOccurred())
 			Expect(logBuffer.String()).To(
 				ContainSubstring(fmt.Sprintf("error deprovisioning: cannot get deployment %s: %s", deploymentName(instanceID), err)),
 			)
@@ -173,12 +214,26 @@ var _ = Describe("deprovisioning instances", func() {
 			})
 
 			It("doesn't call DeleteConfigs", func() {
+				deprovisionSpec, deprovisionErr = b.Deprovision(
+					context.Background(),
+					instanceID,
+					deprovisionDetails,
+					asyncAllowed,
+				)
+
 				Expect(boshClient.DeleteConfigsCallCount()).To(Equal(0), "DeleteConfigs was called")
 			})
 		})
 
 		Context("bosh configs can be deleted", func() {
 			It("deletes the bosh configs and returns expected error about missing deployment", func() {
+				deprovisionSpec, deprovisionErr = b.Deprovision(
+					context.Background(),
+					instanceID,
+					deprovisionDetails,
+					asyncAllowed,
+				)
+
 				Expect(boshClient.DeleteConfigsCallCount()).To(Equal(1))
 				Expect(deprovisionErr).To(Equal(apiresponses.ErrInstanceDoesNotExist))
 				Expect(logBuffer.String()).To(ContainSubstring(
@@ -193,6 +248,13 @@ var _ = Describe("deprovisioning instances", func() {
 			})
 
 			It("returns error about deleting service", func() {
+				deprovisionSpec, deprovisionErr = b.Deprovision(
+					context.Background(),
+					instanceID,
+					deprovisionDetails,
+					asyncAllowed,
+				)
+
 				Expect(deprovisionErr).To(MatchError("Unable to delete service. Please try again later or contact your operator."))
 				Expect(logBuffer.String()).To(ContainSubstring(
 					fmt.Sprintf("error deprovisioning: failed to delete configs for instance service-instance_%s", instanceID),
@@ -205,11 +267,15 @@ var _ = Describe("deprovisioning instances", func() {
 				fakeSecretManager.DeleteSecretsForInstanceReturns(nil)
 			})
 
-			It("returns an error", func() {
-				Expect(deprovisionErr).To(Equal(apiresponses.ErrInstanceDoesNotExist))
-			})
+			It("returns an error and logs it", func() {
+				deprovisionSpec, deprovisionErr = b.Deprovision(
+					context.Background(),
+					instanceID,
+					deprovisionDetails,
+					asyncAllowed,
+				)
 
-			It("logs the error", func() {
+				Expect(deprovisionErr).To(Equal(apiresponses.ErrInstanceDoesNotExist))
 				Expect(logBuffer.String()).To(ContainSubstring(
 					fmt.Sprintf("error deprovisioning: instance %s, not found.", instanceID),
 				))
@@ -221,11 +287,15 @@ var _ = Describe("deprovisioning instances", func() {
 				fakeSecretManager.DeleteSecretsForInstanceReturns(errors.New("oops"))
 			})
 
-			It("returns an error", func() {
-				Expect(deprovisionErr).To(MatchError("Unable to delete service. Please try again later or contact your operator."))
-			})
+			It("returns an error and logs it", func() {
+				deprovisionSpec, deprovisionErr = b.Deprovision(
+					context.Background(),
+					instanceID,
+					deprovisionDetails,
+					asyncAllowed,
+				)
 
-			It("logs the error", func() {
+				Expect(deprovisionErr).To(MatchError("Unable to delete service. Please try again later or contact your operator."))
 				Expect(logBuffer.String()).To(ContainSubstring(
 					fmt.Sprintf("error deprovisioning: failed to delete secrets for instance service-instance_%s", instanceID),
 				))
@@ -243,16 +313,20 @@ var _ = Describe("deprovisioning instances", func() {
 		})
 
 		It("returns that is deprovisioning asynchronously", func() {
-			Expect(deprovisionSpec.IsAsync).To(BeTrue())
-		})
+			deprovisionSpec, deprovisionErr = b.Deprovision(
+				context.Background(),
+				instanceID,
+				deprovisionDetails,
+				asyncAllowed,
+			)
 
-		It("logs that it run the pre-delete errand", func() {
+			Expect(deprovisionSpec.IsAsync).To(BeTrue())
+
 			Expect(logBuffer.String()).To(ContainSubstring(
 				fmt.Sprintf("running pre-delete errand for instance %s", instanceID),
 			))
-		})
 
-		It("executes the specified errand", func() {
+			By("executing errand")
 			Expect(boshClient.RunErrandCallCount()).To(Equal(1))
 			argDeploymentName, argErrandName, _, contextID, _, _ := boshClient.RunErrandArgsForCall(0)
 			Expect(argDeploymentName).To(Equal(broker.InstancePrefix + instanceID))
@@ -260,16 +334,11 @@ var _ = Describe("deprovisioning instances", func() {
 			Expect(contextID).To(MatchRegexp(
 				`[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`,
 			))
-		})
 
-		It("does not call delete deployment", func() {
 			Expect(boshClient.DeleteDeploymentCallCount()).To(Equal(0))
-		})
 
-		It("includes the operation type, task id, and context id in the operation data", func() {
 			var operationData broker.OperationData
-
-			_, _, _, contextID, _, _ := boshClient.RunErrandArgsForCall(0)
+			_, _, _, contextID, _, _ = boshClient.RunErrandArgsForCall(0)
 
 			Expect(json.Unmarshal([]byte(deprovisionSpec.OperationData), &operationData)).To(Succeed())
 			Expect(operationData).To(Equal(broker.OperationData{
@@ -314,6 +383,13 @@ var _ = Describe("deprovisioning instances", func() {
 			})
 
 			It("returns the correct operation data", func() {
+				deprovisionSpec, deprovisionErr = b.Deprovision(
+					context.Background(),
+					instanceID,
+					deprovisionDetails,
+					asyncAllowed,
+				)
+
 				var data broker.OperationData
 				_, errandName, _, contextID, _, _ := boshClient.RunErrandArgsForCall(0)
 				Expect(json.Unmarshal([]byte(deprovisionSpec.OperationData), &data)).To(Succeed())
@@ -331,7 +407,43 @@ var _ = Describe("deprovisioning instances", func() {
 			})
 
 			It("returns the error", func() {
+				deprovisionSpec, deprovisionErr = b.Deprovision(
+					context.Background(),
+					instanceID,
+					deprovisionDetails,
+					asyncAllowed,
+				)
+
 				Expect(deprovisionErr).To(HaveOccurred())
+			})
+		})
+
+		Context("when force-delete is passed", func() {
+			It("returns force-delete operation data", func() {
+				deprovisionDetails.Force = true
+				deprovisionSpec, deprovisionErr = b.Deprovision(
+					context.Background(),
+					instanceID,
+					deprovisionDetails,
+					asyncAllowed,
+				)
+
+				Expect(logBuffer.String()).To(ContainSubstring(
+					fmt.Sprintf("running pre-delete errand for instance %s", instanceID),
+				))
+
+				Expect(boshClient.DeleteDeploymentCallCount()).To(Equal(0))
+
+				var operationData broker.OperationData
+				_, _, _, contextID, _, _ := boshClient.RunErrandArgsForCall(0)
+
+				Expect(json.Unmarshal([]byte(deprovisionSpec.OperationData), &operationData)).To(Succeed())
+				Expect(operationData).To(Equal(broker.OperationData{
+					BoshTaskID:    errandTaskID,
+					BoshContextID: contextID,
+					OperationType: broker.OperationTypeForceDelete,
+					Errands:       []config.Errand{{Name: "cleanup-resources", Instances: []string{}}},
+				}))
 			})
 		})
 	})
@@ -344,44 +456,22 @@ var _ = Describe("deprovisioning instances", func() {
 
 			Describe("returned error", func() {
 				It("includes a standard message", func() {
-					Expect(deprovisionErr).To(MatchError(ContainSubstring(
-						"There was a problem completing your request. Please contact your operations team providing the following information:",
-					)))
-				})
+					deprovisionSpec, deprovisionErr = b.Deprovision(
+						context.Background(),
+						instanceID,
+						deprovisionDetails,
+						asyncAllowed,
+					)
 
-				It("includes the broker request id", func() {
-					Expect(deprovisionErr).To(MatchError(MatchRegexp(
-						`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`,
-					)))
-				})
+					Expect(deprovisionErr).To(MatchError(ContainSubstring("There was a problem completing your request. Please contact your operations team providing the following information:")))
+					Expect(deprovisionErr).To(MatchError(MatchRegexp(`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`)))
+					Expect(deprovisionErr).To(MatchError(ContainSubstring("service: a-cool-redis-service")))
+					Expect(deprovisionErr).To(MatchError(ContainSubstring(fmt.Sprintf("service-instance-guid: %s", instanceID))))
+					Expect(deprovisionErr).To(MatchError(ContainSubstring("operation: delete")))
+					Expect(deprovisionErr).NotTo(MatchError(ContainSubstring("task-id:")))
 
-				It("includes the service name", func() {
-					Expect(deprovisionErr).To(MatchError(ContainSubstring(
-						"service: a-cool-redis-service",
-					)))
+					Expect(logBuffer.String()).To(ContainSubstring("er ma gerd!"))
 				})
-
-				It("includes the service instance guid", func() {
-					Expect(deprovisionErr).To(MatchError(ContainSubstring(
-						fmt.Sprintf("service-instance-guid: %s", instanceID),
-					)))
-				})
-
-				It("includes the operation type", func() {
-					Expect(deprovisionErr).To(MatchError(ContainSubstring(
-						"operation: delete",
-					)))
-				})
-
-				It("does NOT include the bosh task id", func() {
-					Expect(deprovisionErr).NotTo(MatchError(ContainSubstring(
-						"task-id:",
-					)))
-				})
-			})
-
-			It("logs the error", func() {
-				Expect(logBuffer.String()).To(ContainSubstring("er ma gerd!"))
 			})
 		})
 
@@ -392,11 +482,15 @@ var _ = Describe("deprovisioning instances", func() {
 				))
 			})
 
-			It("logs the error", func() {
-				Expect(logBuffer.String()).To(ContainSubstring("error deleting instance: network timeout"))
-			})
+			It("logs and returns the error", func() {
+				deprovisionSpec, deprovisionErr = b.Deprovision(
+					context.Background(),
+					instanceID,
+					deprovisionDetails,
+					asyncAllowed,
+				)
 
-			It("returns the try again later error for the user", func() {
+				Expect(logBuffer.String()).To(ContainSubstring("error deleting instance: network timeout"))
 				Expect(deprovisionErr).To(MatchError(ContainSubstring("Currently unable to delete service instance, please try again later")))
 			})
 		})
@@ -408,11 +502,15 @@ var _ = Describe("deprovisioning instances", func() {
 			boshClient.GetTasksReturns(incompleteTasks, nil)
 		})
 
-		It("returns an error", func() {
-			Expect(deprovisionErr).To(MatchError("An operation is in progress for your service instance. Please try again later."))
-		})
+		It("logs and returns an error", func() {
+			deprovisionSpec, deprovisionErr = b.Deprovision(
+				context.Background(),
+				instanceID,
+				deprovisionDetails,
+				asyncAllowed,
+			)
 
-		It("logs an error", func() {
+			Expect(deprovisionErr).To(MatchError("An operation is in progress for your service instance. Please try again later."))
 			Expect(logBuffer.String()).To(ContainSubstring(fmt.Sprintf("error deprovisioning: deployment %s is still in progress: tasks %s\n", deploymentName(instanceID), incompleteTasks.ToLog())))
 		})
 	})
@@ -425,11 +523,15 @@ var _ = Describe("deprovisioning instances", func() {
 			)
 		})
 
-		It("returns an error", func() {
-			Expect(deprovisionErr).To(HaveOccurred())
-		})
+		It("logs and returns an error", func() {
+			deprovisionSpec, deprovisionErr = b.Deprovision(
+				context.Background(),
+				instanceID,
+				deprovisionDetails,
+				asyncAllowed,
+			)
 
-		It("logs an error", func() {
+			Expect(deprovisionErr).To(HaveOccurred())
 			Expect(logBuffer.String()).To(
 				ContainSubstring("error: problem fetching tasks. error for user: Currently unable to delete service instance, please try again later."),
 			)
@@ -442,10 +544,14 @@ var _ = Describe("deprovisioning instances", func() {
 		})
 
 		It("returns an error", func() {
-			Expect(deprovisionErr).To(HaveOccurred())
-		})
+			deprovisionSpec, deprovisionErr = b.Deprovision(
+				context.Background(),
+				instanceID,
+				deprovisionDetails,
+				asyncAllowed,
+			)
 
-		It("logs an error", func() {
+			Expect(deprovisionErr).To(HaveOccurred())
 			Expect(logBuffer.String()).To(ContainSubstring(fmt.Sprintf("error deprovisioning: cannot get tasks for deployment %s", deploymentName(instanceID))))
 		})
 	})

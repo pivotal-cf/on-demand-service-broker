@@ -104,6 +104,7 @@ var _ = Describe("Last Operation", func() {
 		},
 			Entry("create is in progress", broker.OperationTypeCreate, "create", "Instance provisioning in progress"),
 			Entry("delete is in progress", broker.OperationTypeDelete, "delete", "Instance deletion in progress"),
+			Entry("force delete is in progress", broker.OperationTypeForceDelete, "force-delete", "Instance forced deletion in progress"),
 			Entry("update is in progress", broker.OperationTypeUpdate, "update", "Instance update in progress"),
 			Entry("upgrade is in progress", broker.OperationTypeUpgrade, "upgrade", "Instance upgrade in progress"),
 			Entry("recreate is in progress", broker.OperationTypeRecreate, "recreate", "Instance recreate in progress"),
@@ -173,6 +174,7 @@ var _ = Describe("Last Operation", func() {
 			Entry("a task has errored", boshdirector.TaskError, string(domain.Failed), ""),
 			Entry("a task has an unrecognised state", "other-state", string(domain.Failed), ""),
 			Entry("a delete task completed successfully", boshdirector.TaskDone, string(domain.Succeeded), "Instance deletion completed", broker.OperationTypeDelete),
+			Entry("a forced delete task completed successfully", boshdirector.TaskDone, string(domain.Succeeded), "Instance forced deletion completed", broker.OperationTypeForceDelete),
 		)
 
 		It("responds with 500 if BOSH fails to get the task", func() {
@@ -432,311 +434,423 @@ var _ = Describe("Last Operation", func() {
 
 	Context("when pre-delete errand is configured", func() {
 		const (
-			operationType = broker.OperationTypeDelete
-			contextID     = "some-context-id"
+			contextID = "some-context-id"
 		)
 
 		var conf brokerConfig.Config
-
-		BeforeEach(func() {
-			conf = brokerConfig.Config{
-				Broker: brokerConfig.Broker{
-					Port: serverPort, Username: brokerUsername, Password: brokerPassword,
-				},
-				ServiceCatalog: brokerConfig.ServiceOffering{
-					Name: serviceName,
-				},
-			}
-
-			operationData = broker.OperationData{
-				BoshTaskID:    doneTask.ID,
-				OperationType: operationType,
-				BoshContextID: contextID,
-				Errands:       []brokerConfig.Errand{{Name: "foo"}},
-			}
-		})
 
 		JustBeforeEach(func() {
 			StartServer(conf)
 		})
 
-		It("returns 200 when there is a single incomplete task", func() {
-			fakeBoshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{processingErrandTask}, nil)
+		Describe("Operation delete", func() {
+			BeforeEach(func() {
+				conf = brokerConfig.Config{
+					Broker: brokerConfig.Broker{
+						Port: serverPort, Username: brokerUsername, Password: brokerPassword,
+					},
+					ServiceCatalog: brokerConfig.ServiceOffering{
+						Name: serviceName,
+					},
+				}
 
-			operationData.BoshTaskID = processingErrandTask.ID
+				operationData = broker.OperationData{
+					BoshTaskID:    doneTask.ID,
+					OperationType: broker.OperationTypeDelete,
+					BoshContextID: contextID,
+					Errands:       []brokerConfig.Errand{{Name: "foo"}},
+				}
+			})
 
-			response, bodyContent := doLastOperationRequest(instanceID, operationData)
+			It("returns 200 when there is a single incomplete task", func() {
+				fakeBoshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{processingErrandTask}, nil)
 
-			By("returning the correct HTTP status code")
-			Expect(response.StatusCode).To(Equal(http.StatusOK))
+				operationData.BoshTaskID = processingErrandTask.ID
 
-			By("returning the correct response description")
-			Expect(bodyContent).To(MatchJSON(`
+				response, bodyContent := doLastOperationRequest(instanceID, operationData)
+
+				By("returning the correct HTTP status code")
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
+
+				By("returning the correct response description")
+				Expect(bodyContent).To(MatchJSON(`
 				{
 					"state":       "in progress",
 					"description": "Instance deletion in progress"
 				}`,
-			))
+				))
 
-			By("not running the delete deployment")
-			Expect(fakeBoshClient.DeleteDeploymentCallCount()).To(Equal(0))
+				By("not running the delete deployment")
+				Expect(fakeBoshClient.DeleteDeploymentCallCount()).To(Equal(0))
 
-			By("logging the appropriate message")
-			Eventually(loggerBuffer).Should(gbytes.Say(
-				fmt.Sprintf(`BOSH task ID %d status: processing delete deployment for instance %s`,
-					processingErrandTask.ID,
-					instanceID,
-				),
-			))
-		})
+				By("logging the appropriate message")
+				Eventually(loggerBuffer).Should(gbytes.Say(
+					fmt.Sprintf(`BOSH task ID %d status: processing delete deployment for instance %s`,
+						processingErrandTask.ID,
+						instanceID,
+					),
+				))
+			})
 
-		It("returns 200 when there are two tasks and the delete task is still running", func() {
-			fakeBoshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{processingTask, doneErrandTask}, nil)
+			It("returns 200 when there are two tasks and the delete task is still running", func() {
+				fakeBoshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{processingTask, doneErrandTask}, nil)
 
-			operationData.BoshTaskID = doneErrandTask.ID
+				operationData.BoshTaskID = doneErrandTask.ID
 
-			response, bodyContent := doLastOperationRequest(instanceID, operationData)
+				response, bodyContent := doLastOperationRequest(instanceID, operationData)
 
-			By("returning the correct HTTP status code")
-			Expect(response.StatusCode).To(Equal(http.StatusOK))
+				By("returning the correct HTTP status code")
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
 
-			By("returning the correct response description")
-			Expect(bodyContent).To(MatchJSON(`
+				By("returning the correct response description")
+				Expect(bodyContent).To(MatchJSON(`
 				{
 					"state":       "in progress",
 					"description": "Instance deletion in progress"
 				}`,
-			))
+				))
 
-			By("logging the appropriate message")
-			Eventually(loggerBuffer).Should(gbytes.Say(
-				fmt.Sprintf(`BOSH task ID %d status: processing delete deployment for instance %s: Description: %s`,
-					processingTask.ID,
-					instanceID,
-					processingTask.Description,
-				),
-			))
-		})
+				By("logging the appropriate message")
+				Eventually(loggerBuffer).Should(gbytes.Say(
+					fmt.Sprintf(`BOSH task ID %d status: processing delete deployment for instance %s: Description: %s`,
+						processingTask.ID,
+						instanceID,
+						processingTask.Description,
+					),
+				))
+			})
 
-		It("returns 200 when there are two tasks and the delete task has failed", func() {
-			fakeBoshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{failedTask, doneErrandTask}, nil)
+			It("returns 200 when there are two tasks and the delete task has failed", func() {
+				fakeBoshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{failedTask, doneErrandTask}, nil)
 
-			operationData.BoshTaskID = doneErrandTask.ID
+				operationData.BoshTaskID = doneErrandTask.ID
 
-			response, bodyContent := doLastOperationRequest(instanceID, operationData)
+				response, bodyContent := doLastOperationRequest(instanceID, operationData)
 
-			By("returning the correct HTTP status code")
-			Expect(response.StatusCode).To(Equal(http.StatusOK))
+				By("returning the correct HTTP status code")
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
 
-			By("returning the correct response description")
-			var parsedResponse map[string]interface{}
-			Expect(json.Unmarshal(bodyContent, &parsedResponse)).To(Succeed())
-			Expect(parsedResponse["state"]).To(Equal(string(domain.Failed)))
+				By("returning the correct response description")
+				var parsedResponse map[string]interface{}
+				Expect(json.Unmarshal(bodyContent, &parsedResponse)).To(Succeed())
+				Expect(parsedResponse["state"]).To(Equal(string(domain.Failed)))
 
-			Expect(parsedResponse["description"]).To(SatisfyAll(
-				ContainSubstring("Instance deletion failed: There was a problem completing your request. Please contact your operations team providing the following information:"),
-				MatchRegexp(`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`),
-				ContainSubstring(fmt.Sprintf("service: %s", serviceName)),
-				ContainSubstring(fmt.Sprintf("service-instance-guid: %s", instanceID)),
-				ContainSubstring("operation: delete"),
-				ContainSubstring(fmt.Sprintf("task-id: %d", failedTask.ID)),
-			))
+				Expect(parsedResponse["description"]).To(SatisfyAll(
+					ContainSubstring("Instance deletion failed: There was a problem completing your request. Please contact your operations team providing the following information:"),
+					MatchRegexp(`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`),
+					ContainSubstring(fmt.Sprintf("service: %s", serviceName)),
+					ContainSubstring(fmt.Sprintf("service-instance-guid: %s", instanceID)),
+					ContainSubstring("operation: delete"),
+					ContainSubstring(fmt.Sprintf("task-id: %d", failedTask.ID)),
+				))
 
-			By("logging the appropriate message")
-			Eventually(loggerBuffer).Should(gbytes.Say(
-				fmt.Sprintf(`BOSH task ID %d status: error delete deployment for instance %s: Description: %s`,
-					failedTask.ID,
-					instanceID,
-					failedTask.Description),
-			))
-		})
+				By("logging the appropriate message")
+				Eventually(loggerBuffer).Should(gbytes.Say(
+					fmt.Sprintf(`BOSH task ID %d status: error delete deployment for instance %s: Description: %s`,
+						failedTask.ID,
+						instanceID,
+						failedTask.Description),
+				))
+			})
 
-		It("returns 200 with failed status when the errands and delete task finish successfully but deleting BOSH configs fails", func() {
-			fakeBoshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{doneTask, doneErrandTask}, nil)
+			It("returns 200 with failed status when the errands and delete task finish successfully but deleting BOSH configs fails", func() {
+				fakeBoshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{doneTask, doneErrandTask}, nil)
 
-			operationData.BoshTaskID = doneErrandTask.ID
+				operationData.BoshTaskID = doneErrandTask.ID
 
-			fakeBoshClient.DeleteConfigsReturns(errors.New("hear me out: nope"))
+				fakeBoshClient.DeleteConfigsReturns(errors.New("hear me out: nope"))
 
-			response, bodyContent := doLastOperationRequest(instanceID, operationData)
+				response, bodyContent := doLastOperationRequest(instanceID, operationData)
 
-			By("returning the correct HTTP status code")
-			Expect(response.StatusCode).To(Equal(http.StatusOK), "request status")
+				By("returning the correct HTTP status code")
+				Expect(response.StatusCode).To(Equal(http.StatusOK), "request status")
 
-			By("returning the correct response description")
-			var parsedResponse map[string]interface{}
-			Expect(json.Unmarshal(bodyContent, &parsedResponse)).To(Succeed())
+				By("returning the correct response description")
+				var parsedResponse map[string]interface{}
+				Expect(json.Unmarshal(bodyContent, &parsedResponse)).To(Succeed())
 
-			Expect(parsedResponse["description"]).To(SatisfyAll(
-				ContainSubstring("There was a problem completing your request. Please contact your operations team providing the following information:"),
-				MatchRegexp(`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`),
-				ContainSubstring(fmt.Sprintf("service: %s", serviceName)),
-				ContainSubstring(fmt.Sprintf("service-instance-guid: %s", instanceID)),
-				Not(ContainSubstring(fmt.Sprintf("task-id: %d", boshTaskID))),
-				ContainSubstring("operation: delete"),
-			))
+				Expect(parsedResponse["description"]).To(SatisfyAll(
+					ContainSubstring("There was a problem completing your request. Please contact your operations team providing the following information:"),
+					MatchRegexp(`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`),
+					ContainSubstring(fmt.Sprintf("service: %s", serviceName)),
+					ContainSubstring(fmt.Sprintf("service-instance-guid: %s", instanceID)),
+					Not(ContainSubstring(fmt.Sprintf("task-id: %d", boshTaskID))),
+					ContainSubstring("operation: delete"),
+				))
 
-			By("logging the appropriate message")
-			Eventually(loggerBuffer).Should(gbytes.Say("hear me out: nope"))
-		})
+				By("logging the appropriate message")
+				Eventually(loggerBuffer).Should(gbytes.Say("hear me out: nope"))
+			})
 
-		It("returns 200 with failed status when the errands and delete task finish successfully but deleting Credhub secrets fails", func() {
-			fakeBoshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{doneTask, doneErrandTask}, nil)
+			It("returns 200 with failed status when the errands and delete task finish successfully but deleting Credhub secrets fails", func() {
+				fakeBoshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{doneTask, doneErrandTask}, nil)
 
-			operationData.BoshTaskID = doneErrandTask.ID
+				operationData.BoshTaskID = doneErrandTask.ID
 
-			fakeCredhubOperator.FindNameLikeReturns(nil, errors.New("hear me out: nope"))
+				fakeCredhubOperator.FindNameLikeReturns(nil, errors.New("hear me out: nope"))
 
-			response, bodyContent := doLastOperationRequest(instanceID, operationData)
+				response, bodyContent := doLastOperationRequest(instanceID, operationData)
 
-			By("returning the correct HTTP status code")
-			Expect(response.StatusCode).To(Equal(http.StatusOK), "request status")
+				By("returning the correct HTTP status code")
+				Expect(response.StatusCode).To(Equal(http.StatusOK), "request status")
 
-			By("returning the correct response description")
-			var parsedResponse map[string]interface{}
-			Expect(json.Unmarshal(bodyContent, &parsedResponse)).To(Succeed())
+				By("returning the correct response description")
+				var parsedResponse map[string]interface{}
+				Expect(json.Unmarshal(bodyContent, &parsedResponse)).To(Succeed())
 
-			Expect(parsedResponse["description"]).To(SatisfyAll(
-				ContainSubstring("There was a problem completing your request. Please contact your operations team providing the following information:"),
-				MatchRegexp(`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`),
-				ContainSubstring(fmt.Sprintf("service: %s", serviceName)),
-				ContainSubstring(fmt.Sprintf("service-instance-guid: %s", instanceID)),
-				Not(ContainSubstring(fmt.Sprintf("task-id: %d", boshTaskID))),
-				ContainSubstring("operation: delete"),
-			))
+				Expect(parsedResponse["description"]).To(SatisfyAll(
+					ContainSubstring("There was a problem completing your request. Please contact your operations team providing the following information:"),
+					MatchRegexp(`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`),
+					ContainSubstring(fmt.Sprintf("service: %s", serviceName)),
+					ContainSubstring(fmt.Sprintf("service-instance-guid: %s", instanceID)),
+					Not(ContainSubstring(fmt.Sprintf("task-id: %d", boshTaskID))),
+					ContainSubstring("operation: delete"),
+				))
 
-			By("logging the appropriate message")
-			Eventually(loggerBuffer).Should(gbytes.Say("hear me out: nope"))
-		})
+				By("logging the appropriate message")
+				Eventually(loggerBuffer).Should(gbytes.Say("hear me out: nope"))
+			})
 
-		It("runs all errands, deletes the deployment and BOSH configs and deletes the secrets in Credhub", func() {
-			operationData.Errands = []brokerConfig.Errand{{Name: "foo"}, {Name: "bar"}}
-			By("running the first errand")
-			inProgressJSON := `
+			It("runs all errands, deletes the deployment and BOSH configs and deletes the secrets in Credhub", func() {
+				operationData.Errands = []brokerConfig.Errand{{Name: "foo"}, {Name: "bar"}}
+				By("running the first errand")
+				inProgressJSON := `
 				{
 					"state":       "in progress",
 					"description": "Instance deletion in progress"
 				}`
 
-			firstErrand := boshdirector.BoshTask{ID: 1, State: boshdirector.TaskProcessing, Description: "errand 1", Result: "result-1", ContextID: contextID}
-			secondErrand := boshdirector.BoshTask{ID: 2, State: boshdirector.TaskProcessing, Description: "errand 2", Result: "result-1", ContextID: contextID}
+				firstErrand := boshdirector.BoshTask{ID: 1, State: boshdirector.TaskProcessing, Description: "errand 1", Result: "result-1", ContextID: contextID}
+				secondErrand := boshdirector.BoshTask{ID: 2, State: boshdirector.TaskProcessing, Description: "errand 2", Result: "result-1", ContextID: contextID}
 
-			fakeBoshClient.GetNormalisedTasksByContextReturnsOnCall(0, boshdirector.BoshTasks{firstErrand}, nil)
-			operationData.BoshTaskID = firstErrand.ID
-			response, bodyContent := doLastOperationRequest(instanceID, operationData)
+				fakeBoshClient.GetNormalisedTasksByContextReturnsOnCall(0, boshdirector.BoshTasks{firstErrand}, nil)
+				operationData.BoshTaskID = firstErrand.ID
+				response, bodyContent := doLastOperationRequest(instanceID, operationData)
 
-			By("returning the correct HTTP status code")
-			Expect(response.StatusCode).To(Equal(http.StatusOK))
+				By("returning the correct HTTP status code")
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
 
-			By("returning the correct response description")
-			Expect(bodyContent).To(MatchJSON(inProgressJSON))
+				By("returning the correct response description")
+				Expect(bodyContent).To(MatchJSON(inProgressJSON))
 
-			By("logging the appropriate message")
-			Eventually(loggerBuffer).Should(gbytes.Say(
-				fmt.Sprintf(`BOSH task ID %d status: processing delete deployment for instance %s: Description: %s`,
-					firstErrand.ID,
-					instanceID,
-					firstErrand.Description,
-				),
-			))
+				By("logging the appropriate message")
+				Eventually(loggerBuffer).Should(gbytes.Say(
+					fmt.Sprintf(`BOSH task ID %d status: processing delete deployment for instance %s: Description: %s`,
+						firstErrand.ID,
+						instanceID,
+						firstErrand.Description,
+					),
+				))
 
-			By("running the second errand")
-			firstErrand.State = boshdirector.TaskDone
-			fakeBoshClient.GetNormalisedTasksByContextReturnsOnCall(1, boshdirector.BoshTasks{firstErrand}, nil)
-			fakeBoshClient.RunErrandStub = func(deploymentName string, errand string, instances []string, contextID string, log *log.Logger, reporter *boshdirector.AsyncTaskReporter) (int, error) {
-				defer GinkgoRecover()
-				Expect(errand).To(Equal("bar"))
-				return secondErrand.ID, nil
-			}
-			fakeBoshClient.GetTaskReturns(secondErrand, nil)
-			response, bodyContent = doLastOperationRequest(instanceID, operationData)
+				By("running the second errand")
+				firstErrand.State = boshdirector.TaskDone
+				fakeBoshClient.GetNormalisedTasksByContextReturnsOnCall(1, boshdirector.BoshTasks{firstErrand}, nil)
+				fakeBoshClient.RunErrandStub = func(deploymentName string, errand string, instances []string, contextID string, log *log.Logger, reporter *boshdirector.AsyncTaskReporter) (int, error) {
+					defer GinkgoRecover()
+					Expect(errand).To(Equal("bar"))
+					return secondErrand.ID, nil
+				}
+				fakeBoshClient.GetTaskReturns(secondErrand, nil)
+				response, bodyContent = doLastOperationRequest(instanceID, operationData)
 
-			By("returning the correct HTTP status code")
-			Expect(response.StatusCode).To(Equal(http.StatusOK))
+				By("returning the correct HTTP status code")
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
 
-			By("returning the correct response description")
-			Expect(bodyContent).To(MatchJSON(inProgressJSON))
+				By("returning the correct response description")
+				Expect(bodyContent).To(MatchJSON(inProgressJSON))
 
-			By("logging the appropriate message")
-			Eventually(loggerBuffer).Should(gbytes.Say(
-				fmt.Sprintf(`BOSH task ID %d status: processing delete deployment for instance %s: Description: %s`,
-					secondErrand.ID,
-					instanceID,
-					secondErrand.Description,
-				),
-			))
+				By("logging the appropriate message")
+				Eventually(loggerBuffer).Should(gbytes.Say(
+					fmt.Sprintf(`BOSH task ID %d status: processing delete deployment for instance %s: Description: %s`,
+						secondErrand.ID,
+						instanceID,
+						secondErrand.Description,
+					),
+				))
 
-			By("deleting the deployment")
-			secondErrand.State = boshdirector.TaskDone
-			fakeBoshClient.GetNormalisedTasksByContextReturnsOnCall(2, boshdirector.BoshTasks{secondErrand, firstErrand}, nil)
-			fakeBoshClient.DeleteDeploymentReturns(processingTask.ID, nil)
-			fakeBoshClient.GetTaskStub = func(taskID int, logger *log.Logger) (boshdirector.BoshTask, error) {
-				defer GinkgoRecover()
-				Expect(taskID).To(Equal(processingTask.ID))
-				return processingTask, nil
-			}
+				By("deleting the deployment")
+				secondErrand.State = boshdirector.TaskDone
+				fakeBoshClient.GetNormalisedTasksByContextReturnsOnCall(2, boshdirector.BoshTasks{secondErrand, firstErrand}, nil)
+				fakeBoshClient.DeleteDeploymentReturns(processingTask.ID, nil)
+				fakeBoshClient.GetTaskStub = func(taskID int, logger *log.Logger) (boshdirector.BoshTask, error) {
+					defer GinkgoRecover()
+					Expect(taskID).To(Equal(processingTask.ID))
+					return processingTask, nil
+				}
 
-			response, bodyContent = doLastOperationRequest(instanceID, operationData)
+				response, bodyContent = doLastOperationRequest(instanceID, operationData)
 
-			By("returning the correct HTTP status code")
-			Expect(response.StatusCode).To(Equal(http.StatusOK))
+				By("returning the correct HTTP status code")
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
 
-			By("returning the correct response description")
-			Expect(bodyContent).To(MatchJSON(inProgressJSON))
+				By("returning the correct response description")
+				Expect(bodyContent).To(MatchJSON(inProgressJSON))
 
-			By("logging the appropriate message")
-			Eventually(loggerBuffer).Should(gbytes.Say(
-				fmt.Sprintf(`BOSH task ID %d status: processing delete deployment for instance %s: Description: %s`,
-					processingTask.ID,
-					instanceID,
-					processingTask.Description,
-				),
-			))
+				By("logging the appropriate message")
+				Eventually(loggerBuffer).Should(gbytes.Say(
+					fmt.Sprintf(`BOSH task ID %d status: processing delete deployment for instance %s: Description: %s`,
+						processingTask.ID,
+						instanceID,
+						processingTask.Description,
+					),
+				))
 
-			Expect(fakeCredhubOperator.FindNameLikeCallCount()).To(Equal(0), "unexpected call to FindNameLike in credhub operator")
-			Expect(fakeCredhubOperator.BulkDeleteCallCount()).To(Equal(0), "unexpected call to BulkDelete in credhub operator")
+				Expect(fakeCredhubOperator.FindNameLikeCallCount()).To(Equal(0), "unexpected call to FindNameLike in credhub operator")
+				Expect(fakeCredhubOperator.BulkDeleteCallCount()).To(Equal(0), "unexpected call to BulkDelete in credhub operator")
 
-			By("checking the deletion is complete")
-			fakeBoshClient.GetNormalisedTasksByContextReturnsOnCall(3, boshdirector.BoshTasks{doneTask, secondErrand, firstErrand}, nil)
-			fakeBoshClient.GetConfigsReturns([]boshdirector.BoshConfig{boshdirector.BoshConfig{Type: "some-config-type", Name: "some-config-name"}}, nil)
+				By("checking the deletion is complete")
+				fakeBoshClient.GetNormalisedTasksByContextReturnsOnCall(3, boshdirector.BoshTasks{doneTask, secondErrand, firstErrand}, nil)
+				fakeBoshClient.GetConfigsReturns([]boshdirector.BoshConfig{boshdirector.BoshConfig{Type: "some-config-type", Name: "some-config-name"}}, nil)
 
-			response, bodyContent = doLastOperationRequest(instanceID, operationData)
+				response, bodyContent = doLastOperationRequest(instanceID, operationData)
 
-			By("deleting the configs from BOSH")
-			Expect(fakeBoshClient.DeleteConfigsCallCount()).To(Equal(1), "expected to call DeleteConfig in bosh")
+				By("deleting the configs from BOSH")
+				Expect(fakeBoshClient.DeleteConfigsCallCount()).To(Equal(1), "expected to call DeleteConfig in bosh")
 
-			By("deleting the secrets from Credhub")
-			Expect(fakeCredhubOperator.FindNameLikeCallCount()).To(Equal(1), "expected to call FindNameLike in credhub operator")
-			Expect(fakeCredhubOperator.BulkDeleteCallCount()).To(Equal(1), "expected to call BulkDelete in credhub operator")
+				By("deleting the secrets from Credhub")
+				Expect(fakeCredhubOperator.FindNameLikeCallCount()).To(Equal(1), "expected to call FindNameLike in credhub operator")
+				Expect(fakeCredhubOperator.BulkDeleteCallCount()).To(Equal(1), "expected to call BulkDelete in credhub operator")
 
-			By("returning the correct HTTP status code")
-			Expect(response.StatusCode).To(Equal(http.StatusOK))
+				By("returning the correct HTTP status code")
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
 
-			By("returning the correct response description")
-			Expect(bodyContent).To(MatchJSON(`
+				By("returning the correct response description")
+				Expect(bodyContent).To(MatchJSON(`
 				{
 					"state":       "succeeded",
 					"description": "Instance deletion completed"
 				}`,
-			))
-		})
-
-		Context("bosh configs are disabled", func() {
-			BeforeEach(func() {
-				conf.Broker.DisableBoshConfigs = true
+				))
 			})
 
-			It("will not call GetGonfigs or DeleteConfig", func() {
+			Context("bosh configs are disabled", func() {
+				BeforeEach(func() {
+					conf.Broker.DisableBoshConfigs = true
+				})
+
+				It("will not call GetGonfigs or DeleteConfig", func() {
+					fakeBoshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{doneTask}, nil)
+					fakeBoshClient.GetTaskReturns(doneTask, nil)
+
+					resp, _ := doLastOperationRequest(instanceID, operationData)
+					Expect(resp.StatusCode).To(Equal(http.StatusOK))
+
+					Expect(fakeBoshClient.GetConfigsCallCount()).To(Equal(0), "GetConfigs was called")
+					Expect(fakeBoshClient.DeleteConfigCallCount()).To(Equal(0), "DeleteConfig was called")
+				})
+			})
+		})
+
+		Describe("Operation force-delete", func() {
+			BeforeEach(func() {
+				conf = brokerConfig.Config{
+					Broker: brokerConfig.Broker{
+						Port: serverPort, Username: brokerUsername, Password: brokerPassword,
+					},
+					ServiceCatalog: brokerConfig.ServiceOffering{
+						Name: serviceName,
+					},
+				}
+
+				operationData = broker.OperationData{
+					BoshTaskID:    doneTask.ID,
+					OperationType: broker.OperationTypeForceDelete,
+					BoshContextID: contextID,
+					Errands:       []brokerConfig.Errand{{Name: "foo"}},
+				}
+			})
+
+			It("returns 200 when there is a single incomplete task", func() {
+				fakeBoshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{processingErrandTask}, nil)
+				fakeBoshClient.GetTaskReturns(processingErrandTask, nil)
+
+				operationData.BoshTaskID = processingErrandTask.ID
+
+				response, bodyContent := doLastOperationRequest(instanceID, operationData)
+
+				By("returning the correct HTTP status code")
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
+
+				By("returning the correct response description")
+				Expect(bodyContent).To(MatchJSON(`
+				{
+					"state":       "in progress",
+					"description": "Instance forced deletion in progress"
+				}`,
+				))
+
+				By("not running the delete deployment")
+				Expect(fakeBoshClient.DeleteDeploymentCallCount()).To(Equal(0))
+
+				By("logging the appropriate message")
+				Eventually(loggerBuffer).Should(gbytes.Say(
+					fmt.Sprintf(`BOSH task ID %d status: processing force-delete deployment for instance %s`,
+						processingErrandTask.ID,
+						instanceID,
+					),
+				))
+			})
+
+			It("returns 200 when there deletion is completed", func() {
+				By("checking the deletion is complete")
 				fakeBoshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{doneTask}, nil)
 				fakeBoshClient.GetTaskReturns(doneTask, nil)
+				fakeBoshClient.GetConfigsReturns([]boshdirector.BoshConfig{boshdirector.BoshConfig{Type: "some-config-type", Name: "some-config-name"}}, nil)
 
-				resp, _ := doLastOperationRequest(instanceID, operationData)
-				Expect(resp.StatusCode).To(Equal(http.StatusOK))
+				operationData.BoshTaskID = doneTask.ID
+				response, bodyContent := doLastOperationRequest(instanceID, operationData)
 
-				Expect(fakeBoshClient.GetConfigsCallCount()).To(Equal(0), "GetConfigs was called")
-				Expect(fakeBoshClient.DeleteConfigCallCount()).To(Equal(0), "DeleteConfig was called")
+				By("deleting deployment from BOSH")
+				Expect(fakeBoshClient.DeleteDeploymentCallCount()).To(Equal(1), "expected to call DeleteDeployment in bosh")
+				_, _, force, _, _ := fakeBoshClient.DeleteDeploymentArgsForCall(0)
+				Expect(force).To(BeTrue())
+
+				By("deleting the configs from BOSH")
+				Expect(fakeBoshClient.DeleteConfigsCallCount()).To(Equal(1), "expected to call DeleteConfig in bosh")
+
+				By("deleting the secrets from Credhub")
+				Expect(fakeCredhubOperator.FindNameLikeCallCount()).To(Equal(1), "expected to call FindNameLike in credhub operator")
+				Expect(fakeCredhubOperator.BulkDeleteCallCount()).To(Equal(1), "expected to call BulkDelete in credhub operator")
+
+				By("returning the correct HTTP status code")
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
+
+				By("returning the correct response description")
+				Expect(bodyContent).To(MatchJSON(`
+				{
+					"state":       "succeeded",
+					"description": "Instance forced deletion completed"
+				}`,
+				))
+			})
+
+			It("returns 200 and deprovisions when errands fails", func() {
+				By("failing errand")
+				fakeBoshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{failedErrandTask}, nil)
+				fakeBoshClient.GetTaskReturns(processingTask, nil)
+				fakeBoshClient.GetConfigsReturns([]boshdirector.BoshConfig{boshdirector.BoshConfig{Type: "some-config-type", Name: "some-config-name"}}, nil)
+
+				operationData.BoshTaskID = failedErrandTask.ID
+				response, bodyContent := doLastOperationRequest(instanceID, operationData)
+
+				By("deleting deployment from BOSH")
+				Expect(fakeBoshClient.DeleteDeploymentCallCount()).To(Equal(1), "expected to call DeleteDeployment in bosh")
+				_, _, force, _, _ := fakeBoshClient.DeleteDeploymentArgsForCall(0)
+				Expect(force).To(BeTrue())
+
+				By("returning the correct HTTP status code")
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
+
+				By("returning the correct response description")
+				Expect(bodyContent).To(MatchJSON(`
+				{
+					"state":       "in progress",
+					"description": "Instance forced deletion in progress"
+				}`,
+				))
 			})
 		})
+
 	})
 
 	Context("depending on the setting of the context id on the request body", func() {

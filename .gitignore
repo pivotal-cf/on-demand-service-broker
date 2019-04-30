@@ -12,3 +12,4 @@ ci/*-local.yml
 .envrc-kafka
 .envrc-redis
 .idea
+.DS_Store

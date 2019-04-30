@@ -39,13 +39,14 @@ type FakeBoshClient struct {
 	deleteConfigsReturnsOnCall map[int]struct {
 		result1 error
 	}
-	DeleteDeploymentStub        func(string, string, *log.Logger, *boshdirector.AsyncTaskReporter) (int, error)
+	DeleteDeploymentStub        func(string, string, bool, *boshdirector.AsyncTaskReporter, *log.Logger) (int, error)
 	deleteDeploymentMutex       sync.RWMutex
 	deleteDeploymentArgsForCall []struct {
 		arg1 string
 		arg2 string
-		arg3 *log.Logger
+		arg3 bool
 		arg4 *boshdirector.AsyncTaskReporter
+		arg5 *log.Logger
 	}
 	deleteDeploymentReturns struct {
 		result1 int
@@ -387,19 +388,20 @@ func (fake *FakeBoshClient) DeleteConfigsReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeBoshClient) DeleteDeployment(arg1 string, arg2 string, arg3 *log.Logger, arg4 *boshdirector.AsyncTaskReporter) (int, error) {
+func (fake *FakeBoshClient) DeleteDeployment(arg1 string, arg2 string, arg3 bool, arg4 *boshdirector.AsyncTaskReporter, arg5 *log.Logger) (int, error) {
 	fake.deleteDeploymentMutex.Lock()
 	ret, specificReturn := fake.deleteDeploymentReturnsOnCall[len(fake.deleteDeploymentArgsForCall)]
 	fake.deleteDeploymentArgsForCall = append(fake.deleteDeploymentArgsForCall, struct {
 		arg1 string
 		arg2 string
-		arg3 *log.Logger
+		arg3 bool
 		arg4 *boshdirector.AsyncTaskReporter
-	}{arg1, arg2, arg3, arg4})
-	fake.recordInvocation("DeleteDeployment", []interface{}{arg1, arg2, arg3, arg4})
+		arg5 *log.Logger
+	}{arg1, arg2, arg3, arg4, arg5})
+	fake.recordInvocation("DeleteDeployment", []interface{}{arg1, arg2, arg3, arg4, arg5})
 	fake.deleteDeploymentMutex.Unlock()
 	if fake.DeleteDeploymentStub != nil {
-		return fake.DeleteDeploymentStub(arg1, arg2, arg3, arg4)
+		return fake.DeleteDeploymentStub(arg1, arg2, arg3, arg4, arg5)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -414,17 +416,17 @@ func (fake *FakeBoshClient) DeleteDeploymentCallCount() int {
 	return len(fake.deleteDeploymentArgsForCall)
 }
 
-func (fake *FakeBoshClient) DeleteDeploymentCalls(stub func(string, string, *log.Logger, *boshdirector.AsyncTaskReporter) (int, error)) {
+func (fake *FakeBoshClient) DeleteDeploymentCalls(stub func(string, string, bool, *boshdirector.AsyncTaskReporter, *log.Logger) (int, error)) {
 	fake.deleteDeploymentMutex.Lock()
 	defer fake.deleteDeploymentMutex.Unlock()
 	fake.DeleteDeploymentStub = stub
 }
 
-func (fake *FakeBoshClient) DeleteDeploymentArgsForCall(i int) (string, string, *log.Logger, *boshdirector.AsyncTaskReporter) {
+func (fake *FakeBoshClient) DeleteDeploymentArgsForCall(i int) (string, string, bool, *boshdirector.AsyncTaskReporter, *log.Logger) {
 	fake.deleteDeploymentMutex.RLock()
 	defer fake.deleteDeploymentMutex.RUnlock()
 	argsForCall := fake.deleteDeploymentArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5
 }
 
 func (fake *FakeBoshClient) DeleteDeploymentReturns(result1 int, result2 error) {
