@@ -66,6 +66,12 @@ func DeregisterBroker(serviceBrokerGUID string) *serviceBrokersMock {
 	}
 }
 
+func CreateServiceBroker() *serviceBrokersMock {
+	return &serviceBrokersMock{
+		mockhttp.NewMockedHttpRequest("POST", "/v2/service_brokers"),
+	}
+}
+
 func (m *serviceBrokersMock) RespondsWithBrokers(brokerName, brokerID string) *mockhttp.Handler {
 	return m.RespondsOKWith(fmt.Sprintf(ServiceBrokersResponseTemplate, brokerID, brokerName))
 }

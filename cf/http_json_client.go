@@ -10,6 +10,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -48,6 +49,28 @@ func (w httpJsonClient) get(path string, body interface{}, logger *log.Logger) e
 		return err
 	}
 	return w.readResponse(response, body)
+}
+
+func (c httpJsonClient) post(path string, reqBody io.Reader, logger *log.Logger) (*http.Response, error) {
+	req, err := http.NewRequest(http.MethodPost, path, reqBody)
+	if err != nil {
+		return nil, err
+	}
+
+	err = c.AuthHeaderBuilder.AddAuthHeader(req, logger)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Add("Content-Type", "application/json")
+
+	logger.Printf(fmt.Sprintf("POST %s", path))
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, err
 }
 
 func (c httpJsonClient) put(path, reqBody string, logger *log.Logger) error {

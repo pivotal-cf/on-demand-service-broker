@@ -45,12 +45,7 @@ func main() {
 		logger.Fatalf("error creating CF authorization header builder: %s", err)
 	}
 
-	cfClient, err := cf.New(
-		config.CF.URL,
-		cfAuthenticator,
-		[]byte(config.CF.TrustedCert),
-		config.DisableSSLCertVerification,
-	)
+	cfClient, err := cf.New(config.CF.URL, cfAuthenticator, []byte(config.CF.TrustedCert), config.DisableSSLCertVerification, logger)
 	if err != nil {
 		logger.Fatalf("error creating Cloud Foundry client: %s", err)
 	}

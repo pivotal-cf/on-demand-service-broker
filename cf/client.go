@@ -7,8 +7,11 @@
 package cf
 
 import (
+	"bytes"
 	"fmt"
+	"io/ioutil"
 	"log"
+	"net/http"
 
 	s "github.com/pivotal-cf/on-demand-service-broker/service"
 )
@@ -22,20 +25,16 @@ type CFResponse struct {
 
 type Client struct {
 	httpJsonClient
-	url string
+	url    string
+	logger *log.Logger
 }
 
-func New(
-	url string,
-	authHeaderBuilder AuthHeaderBuilder,
-	trustedCertPEM []byte,
-	disableTLSCertVerification bool,
-) (Client, error) {
+func New(url string, authHeaderBuilder AuthHeaderBuilder, trustedCertPEM []byte, disableTLSCertVerification bool, logger *log.Logger) (Client, error) {
 	httpClient, err := newWrappedHttpClient(authHeaderBuilder, trustedCertPEM, disableTLSCertVerification)
 	if err != nil {
 		return Client{}, err
 	}
-	return Client{httpJsonClient: httpClient, url: url}, nil
+	return Client{httpJsonClient: httpClient, url: url, logger: logger}, nil
 }
 
 func (c Client) CountInstancesOfServiceOffering(serviceID string, logger *log.Logger) (map[ServicePlan]int, error) {
@@ -284,27 +283,11 @@ func (c Client) GetServiceOfferingGUID(brokerName string, logger *log.Logger) (s
 	var (
 		brokers    []ServiceBroker
 		brokerGUID string
-		err        error
 	)
 
-	path := "/v2/service_brokers"
-	for path != "" {
-		var response serviceBrokerResponse
-		fullPath := fmt.Sprintf("%s%s", c.url, path)
-
-		err = c.get(fullPath, &response, logger)
-		if err != nil {
-			return "", err
-		}
-
-		for _, r := range response.Resources {
-			brokers = append(brokers, ServiceBroker{
-				GUID: r.Metadata.GUID,
-				Name: r.Entity.Name,
-			})
-		}
-
-		path = response.NextPath
+	brokers, err := c.listServiceBrokers(logger)
+	if err != nil {
+		return "", err
 	}
 
 	for _, broker := range brokers {
@@ -338,6 +321,61 @@ func (c Client) DisableServiceAccess(serviceOfferingID string, logger *log.Logge
 
 func (c Client) DeregisterBroker(brokerGUID string, logger *log.Logger) error {
 	return c.delete(fmt.Sprintf("%s/v2/service_brokers/%s", c.url, brokerGUID), logger)
+}
+
+func (c Client) CreateServiceBroker(name, username, password, url string) error {
+	reqBody := bytes.NewBuffer([]byte(fmt.Sprintf(`{
+		"name": "%s",
+		"broker_url": "%s",
+		"auth_username": "%s",
+		"auth_password": "%s"
+	}`, name, url, username, password)))
+
+	path := fmt.Sprintf("%s/v2/service_brokers", c.url)
+
+	resp, err := c.post(path, reqBody, c.logger)
+	if err != nil {
+		return err
+	}
+
+	switch resp.StatusCode {
+	case http.StatusCreated:
+		return nil
+	}
+
+	body, _ := ioutil.ReadAll(resp.Body)
+	return fmt.Errorf("Unexpected reponse status %d, %q", resp.StatusCode, string(body))
+}
+
+func (c Client) ServiceBrokers() ([]ServiceBroker, error) {
+	return c.listServiceBrokers(c.logger)
+}
+
+func (c Client) listServiceBrokers(logger *log.Logger) ([]ServiceBroker, error) {
+	var err error
+	var brokers []ServiceBroker
+
+	path := "/v2/service_brokers"
+	for path != "" {
+		var response serviceBrokerResponse
+		fullPath := fmt.Sprintf("%s%s", c.url, path)
+
+		err = c.get(fullPath, &response, logger)
+		if err != nil {
+			break
+		}
+
+		for _, r := range response.Resources {
+			brokers = append(brokers, ServiceBroker{
+				GUID: r.Metadata.GUID,
+				Name: r.Entity.Name,
+			})
+		}
+
+		path = response.NextPath
+	}
+
+	return brokers, err
 }
 
 func (c Client) getPlansForServiceID(serviceID string, logger *log.Logger) ([]ServicePlan, error) {

@@ -22,9 +22,9 @@ import (
 
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/deleter"
-	"github.com/pivotal-cf/on-demand-service-broker/deregistrar"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 	"github.com/pivotal-cf/on-demand-service-broker/purger"
+	"github.com/pivotal-cf/on-demand-service-broker/registrar"
 	"github.com/pivotal-cf/on-demand-service-broker/tools"
 	"gopkg.in/yaml.v2"
 )
@@ -61,12 +61,7 @@ func main() {
 		logger.Fatalf("Error creating CF authorization header builder: %s", err)
 	}
 
-	cfClient, err := cf.New(
-		config.CF.URL,
-		cfAuthenticator,
-		[]byte(config.CF.TrustedCert),
-		config.DisableSSLCertVerification,
-	)
+	cfClient, err := cf.New(config.CF.URL, cfAuthenticator, []byte(config.CF.TrustedCert), config.DisableSSLCertVerification, logger)
 	if err != nil {
 		logger.Fatalf("Error creating Cloud Foundry client: %s", err)
 	}
@@ -75,7 +70,7 @@ func main() {
 
 	deleteTool := deleter.New(cfClient, clock, config.PollingInitialOffset, config.PollingInterval, logger)
 
-	registrarTool := deregistrar.New(cfClient, logger)
+	registrarTool := registrar.New(cfClient, logger)
 
 	purgerTool := purger.New(deleteTool, registrarTool, cfClient, logger)
 

@@ -63,7 +63,7 @@ var _ = Describe("Client", func() {
 					RespondsOKWith(fixture("list_brokers_page_2_response.json")),
 			)
 
-			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 
 			var brokerGUID string
@@ -81,7 +81,7 @@ var _ = Describe("Client", func() {
 					RespondsInternalServerErrorWith("failed"),
 			)
 
-			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 
 			_, err = client.GetServiceOfferingGUID("service-broker-name-2", testLogger)
@@ -98,7 +98,7 @@ var _ = Describe("Client", func() {
 					RespondsOKWith(fixture("list_brokers_page_2_response.json")),
 			)
 
-			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 
 			_, err = client.GetServiceOfferingGUID("not-a-real-broker", testLogger)
@@ -119,7 +119,7 @@ var _ = Describe("Client", func() {
 				mockcfapi.DisablePlanAccess("2777ad05-8114-4169-8188-2ef5f39e0c6b").RespondsCreated(),
 			)
 
-			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 
 			err = client.DisableServiceAccess(offeringID, testLogger)
@@ -131,7 +131,7 @@ var _ = Describe("Client", func() {
 				mockcfapi.ListServiceOfferings().WithAuthorizationHeader(cfAuthorizationHeader).RespondsInternalServerErrorWith("failed"),
 			)
 
-			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 
 			err = client.DisableServiceAccess(offeringID, testLogger)
@@ -146,7 +146,7 @@ var _ = Describe("Client", func() {
 				mockcfapi.DisablePlanAccess("ff717e7c-afd5-4d0a-bafe-16c7eff546ec").RespondsInternalServerErrorWith("failed"),
 			)
 
-			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 
 			err = client.DisableServiceAccess(offeringID, testLogger)
@@ -162,7 +162,7 @@ var _ = Describe("Client", func() {
 				mockcfapi.DeregisterBroker(brokerGUID).WithAuthorizationHeader(cfAuthorizationHeader).RespondsNoContent(),
 			)
 
-			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 
 			err = client.DeregisterBroker(brokerGUID, testLogger)
@@ -174,7 +174,7 @@ var _ = Describe("Client", func() {
 				mockcfapi.DeregisterBroker(brokerGUID).WithAuthorizationHeader(cfAuthorizationHeader).RespondsInternalServerErrorWith("failed"),
 			)
 
-			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 
 			err = client.DeregisterBroker(brokerGUID, testLogger)
@@ -192,7 +192,7 @@ var _ = Describe("Client", func() {
 				mockcfapi.ListServiceInstances("2777ad05-8114-4169-8188-2ef5f39e0c6b").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_instances_for_plan_2_response.json")),
 			)
 
-			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(client.CountInstancesOfServiceOffering("D94A086D-203D-4966-A6F1-60A9E2300F72", testLogger)).To(Equal(map[cf.ServicePlan]int{
@@ -216,7 +216,7 @@ var _ = Describe("Client", func() {
 				mockcfapi.ListServiceOfferings().WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_services_empty_response.json")),
 			)
 
-			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(client.CountInstancesOfServiceOffering("D94A086D-203D-4966-A6F1-60A9E2300F72", testLogger)).To(Equal(map[cf.ServicePlan]int{}))
@@ -229,7 +229,7 @@ var _ = Describe("Client", func() {
 				mockcfapi.ListServiceInstances("ff717e7c-afd5-4d0a-bafe-16c7eff546ec").WithAuthorizationHeader(cfAuthorizationHeader).RespondsUnauthorizedWith(`{"code": 1000,"description": "Invalid Auth Token","error_code": "CF-InvalidAuthToken"}`),
 			)
 
-			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 
 			_, err = client.CountInstancesOfServiceOffering("D94A086D-203D-4966-A6F1-60A9E2300F72", testLogger)
@@ -245,7 +245,7 @@ var _ = Describe("Client", func() {
 				mockcfapi.ListServiceInstances("2777ad05-8114-4169-8188-2ef5f39e0c6b").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_instances_for_plan_2_response.json")),
 			)
 
-			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(client.CountInstancesOfServiceOffering("D94A086D-203D-4966-A6F1-60A9E2300F72", testLogger)).To(Equal(map[cf.ServicePlan]int{
@@ -295,7 +295,7 @@ var _ = Describe("Client", func() {
 				mockcfapi.ListServiceInstances("2777ad05-8114-4169-8188-2ef5f39e0c6b").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_instances_for_plan_2_response.json")),
 			)
 
-			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(client.CountInstancesOfServiceOffering("D94A086D-203D-4966-A6F1-60A9E2300F72", testLogger)).To(Equal(map[cf.ServicePlan]int{
@@ -323,7 +323,7 @@ var _ = Describe("Client", func() {
 				mockcfapi.ListServiceInstances("2777ad05-8114-4169-8188-2ef5f39e0c6b").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_instances_for_plan_2_response.json")),
 			)
 
-			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(client.CountInstancesOfServiceOffering("D94A086D-203D-4966-A6F1-60A9E2300F72", testLogger)).To(Equal(map[cf.ServicePlan]int{
@@ -345,7 +345,7 @@ var _ = Describe("Client", func() {
 		It("fails, if fetching auth token fails", func() {
 			authHeaderBuilder.AddAuthHeaderReturns(errors.New("niet goed"))
 
-			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 
 			_, err = client.GetInstancesOfServiceOffering("some-offering", testLogger)
@@ -357,7 +357,7 @@ var _ = Describe("Client", func() {
 				mockcfapi.ListServiceOfferings().RespondsInternalServerErrorWith("niet goed"),
 			)
 
-			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 
 			_, err = client.CountInstancesOfServiceOffering("D94A086D-203D-4966-A6F1-60A9E2300F72", testLogger)
@@ -369,7 +369,7 @@ var _ = Describe("Client", func() {
 				mockcfapi.ListServiceOfferings().RespondsInternalServerErrorWith("niet goed"),
 			)
 
-			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 
 			_, err = client.CountInstancesOfServiceOffering("D94A086D-203D-4966-A6F1-60A9E2300F72", testLogger)
@@ -382,7 +382,7 @@ var _ = Describe("Client", func() {
 				mockcfapi.ListServicePlans(serviceGUID).RespondsInternalServerErrorWith("niet goed"),
 			)
 
-			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 
 			_, err = client.CountInstancesOfServiceOffering("D94A086D-203D-4966-A6F1-60A9E2300F72", testLogger)
@@ -396,7 +396,7 @@ var _ = Describe("Client", func() {
 				mockcfapi.ListServiceInstances("ff717e7c-afd5-4d0a-bafe-16c7eff546ec").RespondsInternalServerErrorWith("niet goed"),
 			)
 
-			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 
 			_, err = client.CountInstancesOfServiceOffering("D94A086D-203D-4966-A6F1-60A9E2300F72", testLogger)
@@ -412,7 +412,7 @@ var _ = Describe("Client", func() {
 				mockcfapi.ListServiceInstances("2777ad05-8114-4169-8188-2ef5f39e0c6b").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_instances_for_plan_2_response.json")),
 			)
 
-			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(client.CountInstancesOfPlan("D94A086D-203D-4966-A6F1-60A9E2300F72", "22789210-D743-4C65-9D38-C80B29F4D9C8", testLogger)).To(Equal(2))
@@ -424,7 +424,7 @@ var _ = Describe("Client", func() {
 				mockcfapi.ListServicePlans(serviceGUID).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_plans_response.json")),
 			)
 
-			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 
 			count, err := client.CountInstancesOfPlan("D94A086D-203D-4966-A6F1-60A9E2300F72", "does-not-exist", testLogger)
@@ -437,7 +437,7 @@ var _ = Describe("Client", func() {
 				mockcfapi.ListServiceOfferings().WithAuthorizationHeader(cfAuthorizationHeader).RespondsInternalServerErrorWith("no services for you"),
 			)
 
-			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 
 			count, err := client.CountInstancesOfPlan("D94A086D-203D-4966-A6F1-60A9E2300F72", "22789210-D743-4C65-9D38-C80B29F4D9C8", testLogger)
@@ -451,7 +451,7 @@ var _ = Describe("Client", func() {
 				mockcfapi.ListServicePlans(serviceGUID).RespondsInternalServerErrorWith("no service plans for you"),
 			)
 
-			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 
 			count, err := client.CountInstancesOfPlan("D94A086D-203D-4966-A6F1-60A9E2300F72", "22789210-D743-4C65-9D38-C80B29F4D9C8", testLogger)
@@ -466,7 +466,7 @@ var _ = Describe("Client", func() {
 				mockcfapi.ListServiceInstances("2777ad05-8114-4169-8188-2ef5f39e0c6b").RespondsInternalServerErrorWith("no instances for you"),
 			)
 
-			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 
 			count, err := client.CountInstancesOfPlan("D94A086D-203D-4966-A6F1-60A9E2300F72", "22789210-D743-4C65-9D38-C80B29F4D9C8", testLogger)
@@ -482,7 +482,7 @@ var _ = Describe("Client", func() {
 					RespondsOKWith("{}"),
 			)
 
-			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 
 			count, err := client.CountInstancesOfPlan("D94A086D-203D-4966-A6F1-60A9E2300F72", "22789210-D743-4C65-9D38-C80B29F4D9C8", testLogger)
@@ -498,7 +498,7 @@ var _ = Describe("Client", func() {
 					RespondsOKWith(fixture("get_service_instance_response.json")),
 			)
 
-			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 
 			instance, err := client.GetInstance("783f8645-1ded-4161-b457-73f59423f9eb", testLogger)
@@ -518,7 +518,7 @@ var _ = Describe("Client", func() {
    				}`),
 				)
 
-				client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+				client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 				Expect(err).NotTo(HaveOccurred())
 
 				_, err = client.GetInstance("783f8645-1ded-4161-b457-73f59423f9eb", testLogger)
@@ -533,7 +533,7 @@ var _ = Describe("Client", func() {
 					mockcfapi.GetServiceInstance("783f8645-1ded-4161-b457-73f59423f9eb").RespondsInternalServerErrorWith("er ma gerd"),
 				)
 
-				client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+				client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 				Expect(err).NotTo(HaveOccurred())
 
 				_, err = client.GetInstance("783f8645-1ded-4161-b457-73f59423f9eb", testLogger)
@@ -554,7 +554,7 @@ var _ = Describe("Client", func() {
 							}`),
 					)
 
-					client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+					client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 					Expect(err).NotTo(HaveOccurred())
 
 					_, err = client.GetInstance("783f8645-1ded-4161-b457-73f59423f9eb", testLogger)
@@ -570,7 +570,7 @@ var _ = Describe("Client", func() {
 							RespondsUnauthorizedWith("not valid json"),
 					)
 
-					client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+					client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 					Expect(err).NotTo(HaveOccurred())
 
 					_, err = client.GetInstance("783f8645-1ded-4161-b457-73f59423f9eb", testLogger)
@@ -592,7 +592,7 @@ var _ = Describe("Client", func() {
 							}`),
 					)
 
-					client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+					client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 					Expect(err).NotTo(HaveOccurred())
 
 					_, err = client.GetInstance("783f8645-1ded-4161-b457-73f59423f9eb", testLogger)
@@ -608,7 +608,7 @@ var _ = Describe("Client", func() {
 							RespondsForbiddenWith("not valid json"),
 					)
 
-					client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+					client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 					Expect(err).NotTo(HaveOccurred())
 
 					_, err = client.GetInstance("783f8645-1ded-4161-b457-73f59423f9eb", testLogger)
@@ -625,7 +625,7 @@ var _ = Describe("Client", func() {
 						RespondsOKWith("not valid json"),
 				)
 
-				client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+				client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 				Expect(err).NotTo(HaveOccurred())
 
 				_, err = client.GetInstance("783f8645-1ded-4161-b457-73f59423f9eb", testLogger)
@@ -643,7 +643,7 @@ var _ = Describe("Client", func() {
 				mockcfapi.GetServicePlan("ff717e7c-afd5-4d0a-bafe-16c7eff546ec").RespondsOKWith(fixture("get_service_plan_response.json")),
 			)
 
-			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 
 			state, err := client.GetInstanceState("783f8645-1ded-4161-b457-73f59423f9eb", testLogger)
@@ -658,7 +658,7 @@ var _ = Describe("Client", func() {
 				mockcfapi.GetServicePlan("ff717e7c-afd5-4d0a-bafe-16c7eff546ec").RespondsOKWith(fixture("get_service_plan_response.json")),
 			)
 
-			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 
 			state, err := client.GetInstanceState("783f8645-1ded-4161-b457-73f59423f9eb", testLogger)
@@ -673,7 +673,7 @@ var _ = Describe("Client", func() {
 					mockcfapi.GetServiceInstance("783f8645-1ded-4161-b457-73f59423f9eb").RespondsInternalServerErrorWith("er ma gerd"),
 				)
 
-				client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+				client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 				Expect(err).NotTo(HaveOccurred())
 
 				_, err = client.GetInstanceState("783f8645-1ded-4161-b457-73f59423f9eb", testLogger)
@@ -693,7 +693,7 @@ var _ = Describe("Client", func() {
             }`),
 					)
 
-					client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+					client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 					Expect(err).NotTo(HaveOccurred())
 
 					_, err = client.GetInstanceState("783f8645-1ded-4161-b457-73f59423f9eb", testLogger)
@@ -709,7 +709,7 @@ var _ = Describe("Client", func() {
 							RespondsNotFoundWith("not valid json"),
 					)
 
-					client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+					client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 					Expect(err).NotTo(HaveOccurred())
 
 					_, err = client.GetInstanceState("783f8645-1ded-4161-b457-73f59423f9eb", testLogger)
@@ -726,7 +726,7 @@ var _ = Describe("Client", func() {
 					mockcfapi.GetServicePlan("ff717e7c-afd5-4d0a-bafe-16c7eff546ec").RespondsInternalServerErrorWith("er ma gerd"),
 				)
 
-				client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+				client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 				Expect(err).NotTo(HaveOccurred())
 
 				_, err = client.GetInstanceState("783f8645-1ded-4161-b457-73f59423f9eb", testLogger)
@@ -746,7 +746,7 @@ var _ = Describe("Client", func() {
    				}`),
 				)
 
-				client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+				client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 				Expect(err).NotTo(HaveOccurred())
 
 				_, err = client.GetInstanceState("783f8645-1ded-4161-b457-73f59423f9eb", testLogger)
@@ -767,7 +767,7 @@ var _ = Describe("Client", func() {
 				mockcfapi.ListServiceInstances("2777ad05-8114-4169-8188-2ef5f39e0c6b").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_instances_for_plan_2_response.json")),
 			)
 
-			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 
 			instances, err := client.GetInstancesOfServiceOffering(offeringID, testLogger)
@@ -791,7 +791,7 @@ var _ = Describe("Client", func() {
 					mockcfapi.ListServiceInstances("2777ad05-8114-4169-8188-2ef5f39e0c6b").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_instances_for_plan_2_response.json")),
 				)
 
-				client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+				client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 				Expect(err).NotTo(HaveOccurred())
 
 				instances, err := client.GetInstancesOfServiceOffering(offeringID, testLogger)
@@ -816,7 +816,7 @@ var _ = Describe("Client", func() {
 					mockcfapi.ListServiceInstances("2777ad05-8114-4169-8188-2ef5f39e0c6b").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_instances_for_plan_2_response.json")),
 				)
 
-				client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+				client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 				Expect(err).NotTo(HaveOccurred())
 
 				instances, err := client.GetInstancesOfServiceOffering(offeringID, testLogger)
@@ -841,7 +841,7 @@ var _ = Describe("Client", func() {
 					mockcfapi.ListServiceInstancesForPage("2777ad05-8114-4169-8188-2ef5f39e0c6b", 2).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_instances_for_plan_2_page_2.json")),
 				)
 
-				client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+				client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 				Expect(err).NotTo(HaveOccurred())
 
 				instances, err := client.GetInstancesOfServiceOffering(offeringID, testLogger)
@@ -864,7 +864,7 @@ var _ = Describe("Client", func() {
 				mockcfapi.ListServiceInstances("2777ad05-8114-4169-8188-2ef5f39e0c6b").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_instances_empty_response.json")),
 			)
 
-			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 
 			instances, err := client.GetInstancesOfServiceOffering(offeringID, testLogger)
@@ -881,7 +881,7 @@ var _ = Describe("Client", func() {
 					mockcfapi.ListServiceOfferings().WithAuthorizationHeader(cfAuthorizationHeader).RespondsInternalServerErrorWith("oops"),
 				)
 
-				client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+				client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 				Expect(err).NotTo(HaveOccurred())
 
 				_, err = client.GetInstancesOfServiceOffering(offeringID, testLogger)
@@ -899,7 +899,7 @@ var _ = Describe("Client", func() {
 					mockcfapi.ListServicePlans("34c08156-5b5d-4cc1-9af1-29cda9ec056f").WithAuthorizationHeader(cfAuthorizationHeader).RespondsInternalServerErrorWith("oops"),
 				)
 
-				client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+				client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 				Expect(err).NotTo(HaveOccurred())
 
 				_, err = client.GetInstancesOfServiceOffering(offeringID, testLogger)
@@ -918,7 +918,7 @@ var _ = Describe("Client", func() {
 					mockcfapi.ListServiceInstances("ff717e7c-afd5-4d0a-bafe-16c7eff546ec").WithAuthorizationHeader(cfAuthorizationHeader).RespondsInternalServerErrorWith("oops"),
 				)
 
-				client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+				client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 				Expect(err).NotTo(HaveOccurred())
 
 				_, err = client.GetInstancesOfServiceOffering(offeringID, testLogger)
@@ -954,7 +954,7 @@ var _ = Describe("Client", func() {
 				),
 			)
 
-			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 
 			instances, err := client.GetInstancesOfServiceOfferingByOrgSpace(offeringID, orgName, spaceName, testLogger)
@@ -983,7 +983,7 @@ var _ = Describe("Client", func() {
 				),
 			)
 
-			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 
 			instances, err := client.GetInstancesOfServiceOfferingByOrgSpace(offeringID, orgName, spaceName, testLogger)
@@ -1011,7 +1011,7 @@ var _ = Describe("Client", func() {
 				),
 			)
 
-			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 
 			instances, err := client.GetInstancesOfServiceOfferingByOrgSpace(offeringID, orgName, spaceName, testLogger)
@@ -1041,7 +1041,7 @@ var _ = Describe("Client", func() {
 				),
 			)
 
-			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 
 			instances, err := client.GetInstancesOfServiceOfferingByOrgSpace(offeringID, orgName, spaceName, testLogger)
@@ -1069,7 +1069,7 @@ var _ = Describe("Client", func() {
 				),
 			)
 
-			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 
 			instances, err := client.GetInstancesOfServiceOfferingByOrgSpace(offeringID, orgName, spaceName, testLogger)
@@ -1086,7 +1086,7 @@ var _ = Describe("Client", func() {
 				mockcfapi.ListOrg(orgName).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(`{"resources":[]}`),
 			)
 
-			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 
 			instances, err := client.GetInstancesOfServiceOfferingByOrgSpace(offeringID, orgName, spaceName, testLogger)
@@ -1104,7 +1104,7 @@ var _ = Describe("Client", func() {
 				mockcfapi.ListOrgSpace(orgGuid, spaceName).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(`{"resources":[]}`),
 			)
 
-			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 
 			instances, err := client.GetInstancesOfServiceOfferingByOrgSpace(offeringID, orgName, spaceName, testLogger)
@@ -1119,7 +1119,7 @@ var _ = Describe("Client", func() {
 					mockcfapi.ListServiceOfferings().WithAuthorizationHeader(cfAuthorizationHeader).RespondsInternalServerErrorWith("oops"),
 				)
 
-				client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+				client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 				Expect(err).NotTo(HaveOccurred())
 
 				_, err = client.GetInstancesOfServiceOfferingByOrgSpace(offeringID, orgName, spaceName, testLogger)
@@ -1134,7 +1134,7 @@ var _ = Describe("Client", func() {
 					mockcfapi.ListServicePlans("34c08156-5b5d-4cc1-9af1-29cda9ec056f").WithAuthorizationHeader(cfAuthorizationHeader).RespondsInternalServerErrorWith("oops"),
 				)
 
-				client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+				client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 				Expect(err).NotTo(HaveOccurred())
 
 				_, err = client.GetInstancesOfServiceOfferingByOrgSpace(offeringID, orgName, spaceName, testLogger)
@@ -1150,7 +1150,7 @@ var _ = Describe("Client", func() {
 					mockcfapi.ListOrg(orgName).WithAuthorizationHeader(cfAuthorizationHeader).RespondsInternalServerErrorWith("oops"),
 				)
 
-				client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+				client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 				Expect(err).NotTo(HaveOccurred())
 
 				_, err = client.GetInstancesOfServiceOfferingByOrgSpace(offeringID, orgName, spaceName, testLogger)
@@ -1167,7 +1167,7 @@ var _ = Describe("Client", func() {
 					mockcfapi.ListOrgSpace(orgGuid, spaceName).WithAuthorizationHeader(cfAuthorizationHeader).RespondsInternalServerErrorWith("oops"),
 				)
 
-				client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+				client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 				Expect(err).NotTo(HaveOccurred())
 
 				_, err = client.GetInstancesOfServiceOfferingByOrgSpace(offeringID, orgName, spaceName, testLogger)
@@ -1185,7 +1185,7 @@ var _ = Describe("Client", func() {
 					mockcfapi.ListServiceInstancesBySpace("ff717e7c-afd5-4d0a-bafe-16c7eff546ec", spaceGuid).WithAuthorizationHeader(cfAuthorizationHeader).RespondsInternalServerErrorWith("oops"),
 				)
 
-				client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+				client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 				Expect(err).NotTo(HaveOccurred())
 
 				_, err = client.GetInstancesOfServiceOfferingByOrgSpace(offeringID, orgName, spaceName, testLogger)
@@ -1207,7 +1207,7 @@ var _ = Describe("Client", func() {
 					RespondsOKWith(fixture("list_bindings_response_page_2.json")),
 			)
 
-			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 
 			bindings, err := client.GetBindingsForInstance(serviceInstanceGUID, testLogger)
@@ -1227,7 +1227,7 @@ var _ = Describe("Client", func() {
 					mockcfapi.ListServiceBindings(serviceInstanceGUID).RespondsInternalServerErrorWith("no bindings for you"),
 				)
 
-				client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+				client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 				Expect(err).NotTo(HaveOccurred())
 
 				_, err = client.GetBindingsForInstance(serviceInstanceGUID, testLogger)
@@ -1250,7 +1250,7 @@ var _ = Describe("Client", func() {
 					RespondsOKWith(fixture("list_service_keys_response_page_2.json")),
 			)
 
-			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 
 			serviceKeys, err := client.GetServiceKeysForInstance(serviceInstanceGUID, testLogger)
@@ -1267,7 +1267,7 @@ var _ = Describe("Client", func() {
 					mockcfapi.ListServiceKeys(serviceInstanceGUID).RespondsInternalServerErrorWith("no service keys for you"),
 				)
 
-				client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+				client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 				Expect(err).NotTo(HaveOccurred())
 
 				_, err = client.GetServiceKeysForInstance(serviceInstanceGUID, testLogger)
@@ -1299,7 +1299,7 @@ var _ = Describe("Client", func() {
 				)
 
 				var client cf.Client
-				client, err = cf.New(server.URL, authHeaderBuilder, nil, true)
+				client, err = cf.New(server.URL, authHeaderBuilder, nil, true, nil)
 				Expect(err).NotTo(HaveOccurred())
 				err = client.DeleteBinding(binding, testLogger)
 			})
@@ -1322,7 +1322,7 @@ var _ = Describe("Client", func() {
 						RespondsNotFoundWith(`{"foo":"bar"}`),
 				)
 
-				client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+				client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 				Expect(err).NotTo(HaveOccurred())
 
 				err = client.DeleteBinding(binding, testLogger)
@@ -1332,7 +1332,7 @@ var _ = Describe("Client", func() {
 
 		Context("when the auth header builder returns an error", func() {
 			It("returns the error", func() {
-				client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+				client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 				Expect(err).NotTo(HaveOccurred())
 
 				authHeaderBuilder.AddAuthHeaderReturns(errors.New("no header for you"))
@@ -1351,7 +1351,7 @@ var _ = Describe("Client", func() {
 						RespondsForbiddenWith(`{"foo":"bar"}`),
 				)
 
-				client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+				client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 				Expect(err).NotTo(HaveOccurred())
 
 				err = client.DeleteBinding(binding, testLogger)
@@ -1383,7 +1383,7 @@ var _ = Describe("Client", func() {
 				)
 
 				var client cf.Client
-				client, err = cf.New(server.URL, authHeaderBuilder, nil, true)
+				client, err = cf.New(server.URL, authHeaderBuilder, nil, true, nil)
 				Expect(err).NotTo(HaveOccurred())
 
 				err = client.DeleteServiceKey(serviceKey, testLogger)
@@ -1407,7 +1407,7 @@ var _ = Describe("Client", func() {
 						RespondsNotFoundWith(`{"foo":"bar"}`),
 				)
 
-				client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+				client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 				Expect(err).NotTo(HaveOccurred())
 
 				err = client.DeleteServiceKey(serviceKey, testLogger)
@@ -1417,7 +1417,7 @@ var _ = Describe("Client", func() {
 
 		Context("when the auth header builder returns an error", func() {
 			It("returns the error", func() {
-				client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+				client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 				Expect(err).NotTo(HaveOccurred())
 
 				authHeaderBuilder.AddAuthHeaderReturns(errors.New("no header for you"))
@@ -1436,7 +1436,7 @@ var _ = Describe("Client", func() {
 						RespondsForbiddenWith(`{"foo":"bar"}`),
 				)
 
-				client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+				client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 				Expect(err).NotTo(HaveOccurred())
 
 				err = client.DeleteServiceKey(serviceKey, testLogger)
@@ -1462,7 +1462,7 @@ var _ = Describe("Client", func() {
 				)
 
 				var client cf.Client
-				client, err = cf.New(server.URL, authHeaderBuilder, nil, true)
+				client, err = cf.New(server.URL, authHeaderBuilder, nil, true, nil)
 				Expect(err).NotTo(HaveOccurred())
 
 				err = client.DeleteServiceInstance(serviceInstanceGUID, testLogger)
@@ -1486,7 +1486,7 @@ var _ = Describe("Client", func() {
 						RespondsNotFoundWith(`{"foo":"bar"}`),
 				)
 
-				client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+				client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 				Expect(err).NotTo(HaveOccurred())
 
 				err = client.DeleteServiceInstance(serviceInstanceGUID, testLogger)
@@ -1503,7 +1503,7 @@ var _ = Describe("Client", func() {
 						RespondsForbiddenWith(`{"foo":"bar"}`),
 				)
 
-				client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+				client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 				Expect(err).NotTo(HaveOccurred())
 
 				err = client.DeleteServiceInstance(serviceInstanceGUID, testLogger)
@@ -1515,7 +1515,7 @@ var _ = Describe("Client", func() {
 
 		Context("when the auth header builder returns an error", func() {
 			It("returns the error", func() {
-				client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+				client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 				Expect(err).NotTo(HaveOccurred())
 
 				authHeaderBuilder.AddAuthHeaderReturns(errors.New("no header for you"))
@@ -1549,7 +1549,7 @@ var _ = Describe("Client", func() {
 					}`,
 				),
 			)
-			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(client.GetAPIVersion(testLogger)).To(Equal("2.57.0"))
@@ -1560,12 +1560,97 @@ var _ = Describe("Client", func() {
 				mockcfapi.GetInfo().RespondsInternalServerErrorWith("nothing today, thank you"),
 			)
 
-			client, err := cf.New(server.URL, authHeaderBuilder, nil, true)
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 
 			_, getVersionErr := client.GetAPIVersion(testLogger)
 			Expect(getVersionErr.Error()).To(ContainSubstring("nothing today, thank you"))
 		})
+	})
+
+	Describe("ServiceBrokers", func() {
+		It("returns the a list of brokers", func() {
+			server.VerifyAndMock(
+				mockcfapi.ListServiceBrokers().
+					WithAuthorizationHeader(cfAuthorizationHeader).
+					RespondsOKWith(fixture("list_brokers_page_1_response.json")),
+				mockcfapi.ListServiceBrokersForPage(2).
+					WithAuthorizationHeader(cfAuthorizationHeader).
+					RespondsOKWith(fixture("list_brokers_page_2_response.json")),
+			)
+
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
+			Expect(err).NotTo(HaveOccurred())
+
+			serviceBrokers, err := client.ServiceBrokers()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(serviceBrokers).To(HaveLen(2))
+			Expect(serviceBrokers).To(ConsistOf(
+				cf.ServiceBroker{GUID: "service-broker-guid-1", Name: "service-broker-name-1"},
+				cf.ServiceBroker{GUID: "service-broker-guid-2-guid", Name: "service-broker-name-2"},
+			))
+		})
+
+		It("returns an error if it fails to get service brokers", func() {
+			server.VerifyAndMock(
+				mockcfapi.ListServiceBrokers().
+					WithAuthorizationHeader(cfAuthorizationHeader).
+					RespondsInternalServerErrorWith("failed"),
+			)
+
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
+			Expect(err).NotTo(HaveOccurred())
+
+			_, err = client.ServiceBrokers()
+			Expect(err).To(MatchError(ContainSubstring("failed")))
+		})
+	})
+
+	Describe("CreateServiceBroker", func() {
+		It("Creates a service broker", func() {
+			server.VerifyAndMock(
+				mockcfapi.CreateServiceBroker().
+					WithAuthorizationHeader(cfAuthorizationHeader).
+					WithJSONBody(`{
+					  "name": "service-broker-name",
+					  "broker_url": "https://broker.example.com",
+					  "auth_username": "exampleUser",
+					  "auth_password": "examplePassword"
+					}`).
+					RespondsCreated(),
+			)
+
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = client.CreateServiceBroker("service-broker-name", "exampleUser", "examplePassword", "https://broker.example.com")
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("returns an error if it fails to create", func() {
+			server.VerifyAndMock(
+				mockcfapi.CreateServiceBroker().
+					WithAuthorizationHeader(cfAuthorizationHeader).
+					RespondsInternalServerErrorWith("failed"),
+			)
+
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = client.CreateServiceBroker("service-broker-name", "exampleUser", "examplePassword", "https://broker.example.com")
+			Expect(err).To(MatchError(ContainSubstring("failed")))
+		})
+
+		It("returns an error if creating the auth header fails", func() {
+			authHeaderBuilder.AddAuthHeaderReturns(errors.New("failed building header"))
+
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = client.CreateServiceBroker("service-broker-name", "exampleUser", "examplePassword", "https://broker.example.com")
+			Expect(err).To(MatchError(ContainSubstring("failed building header")))
+		})
+
 	})
 })
 

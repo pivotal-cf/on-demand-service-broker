@@ -87,12 +87,7 @@ func getClient(uaaURL, apiURL, user, password string) cf.Client {
 	)
 
 	Expect(err).NotTo(HaveOccurred())
-	client, err := cf.New(
-		apiURL,
-		auth,
-		[]byte{},
-		true,
-	)
+	client, err := cf.New(apiURL, auth, []byte{}, true, testLogger())
 	Expect(err).ToNot(HaveOccurred())
 
 	return client
