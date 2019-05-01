@@ -12,47 +12,8 @@ if [[ "$#" < "1" ]]; then
 	usage
 fi
 
-if [[ -z "$BOSH_LITE_NAME" ]]; then
-    echo "BOSH_LITE_NAME not set. Did you run target-lite?"
-    exit 1
-fi
-
-env_name="$BOSH_LITE_NAME"
-
-source $HOME/workspace/services-enablement-lites-pool/bosh-lites/**/${env_name}
-
-$META/concourse/bosh-lites-pool/tasks/make-broker-deployment-vars.sh "${env_name}" > /tmp/broker-${env_name}.yml
-
-export GOPATH="$ODB"
-export BOSH_DEPLOYMENT_VARS="/tmp/broker-${env_name}.yml"
-export BROKER_SYSTEM_DOMAIN="$BOSH_LITE_DOMAIN"
-export CONSUL_REQUIRED=false
-export EXAMPLE_SI_API_PATH=~/workspace/example-service-instances-api
-export KAFKA_EXAMPLE_APP_PATH=~/workspace/kafka-example-app
-export KAFKA_SERVICE_ADAPTER_RELEASE_NAME=kafka-example-service-adapter
-export KAFKA_SERVICE_RELEASE_NAME=kafka-example-service
-export ODB_RELEASE_TEMPLATES_PATH=~/workspace/on-demand-service-broker-release/examples/deployment
-export ODB_VERSION=latest
-export REDIS_EXAMPLE_APP_PATH=~/workspace/cf-redis-example-app
-export REDIS_SERVICE_ADAPTER_RELEASE_NAME=redis-example-service-adapter
-export REDIS_SERVICE_RELEASE_NAME=redis-service
-export SI_API_PATH="$HOME/workspace/example-service-instances-api/"
-
-echo -e "$BOSH_GW_PRIVATE_KEY_CONTENTS" > /tmp/jb-$env_name.pem
-chmod 700 /tmp/jb-$env_name.pem
-export BOSH_GW_PRIVATE_KEY=/tmp/jb-$env_name.pem
-
-export BOSH_NON_INTERACTIVE=true
-
-export CF_URL="$(bosh int --path /cf/api_url "$BOSH_DEPLOYMENT_VARS")"
-export CF_CLIENT_ID="$(bosh int --path /cf/client_credentials/client_id "$BOSH_DEPLOYMENT_VARS" 2>/dev/null)"
-export CF_CLIENT_SECRET="$(bosh int --path /cf/client_credentials/client_secret "$BOSH_DEPLOYMENT_VARS" 2>/dev/null)"
-export CF_USERNAME="$(bosh int --path /cf/user_credentials/username "$BOSH_DEPLOYMENT_VARS" 2>/dev/null)"
-export CF_PASSWORD="$(bosh int --path /cf/user_credentials/password "$BOSH_DEPLOYMENT_VARS" 2>/dev/null)"
-export CF_ORG="$(bosh int --path /cf/org "$BOSH_DEPLOYMENT_VARS")"
-export CF_SPACE="$(bosh int --path /cf/space "$BOSH_DEPLOYMENT_VARS")"
-export DOPPLER_ADDRESS=wss://doppler.$BOSH_LITE_DOMAIN
-
+pwd="$(cd $(dirname "$0"); pwd)"
+source "$pwd/../scripts/prepare-env"
 
 uploadReleases(){
     bosh create-release --name on-demand-service-broker-$DEV_ENV --dir $ODB --force
@@ -75,5 +36,4 @@ if [ "$2" != "-skip-upload-releases" ]; then
     uploadReleases
 fi
 
-
-./run_system_tests.sh "$@"
+"$pwd/run_system_tests.sh" "$@"
