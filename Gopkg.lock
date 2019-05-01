@@ -547,6 +547,8 @@
     "github.com/pborman/uuid",
     "github.com/pivotal-cf/brokerapi",
     "github.com/pivotal-cf/brokerapi/auth",
+    "github.com/pivotal-cf/brokerapi/domain",
+    "github.com/pivotal-cf/brokerapi/domain/apiresponses",
     "github.com/pivotal-cf/on-demand-services-sdk/bosh",
     "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter",
     "github.com/pkg/errors",
