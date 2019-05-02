@@ -102,6 +102,13 @@ var _ = Describe("RegisterBroker", func() {
 			Eventually(session).Should(gexec.Exit(1), "succeeded unexpectedly")
 			Expect(session).To(gbytes.Say("error reading file -configPath"))
 		})
+
+		It("fails when running the errand fails", func() {
+			serviceBrokersHandler.RespondsWith(http.StatusInternalServerError, "")
+
+			session := executeBinary(errandConfig, GinkgoWriter, GinkgoWriter)
+			Expect(session).To(gexec.Exit(1))
+		})
 	})
 
 })

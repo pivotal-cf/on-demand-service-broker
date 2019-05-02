@@ -40,9 +40,8 @@ func main() {
 	}
 	err = registerBroker.Run()
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatal(err)
 	}
-
 }
 
 func unmarshalConfig(configContents []byte, logger *log.Logger) config.RegisterBrokerErrandConfig {
