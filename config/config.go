@@ -613,3 +613,12 @@ type ErrandTLSConfig struct {
 	CACert                     string `yaml:"ca_cert"`
 	DisableSSLCertVerification bool   `yaml:"disable_ssl_cert_verification"`
 }
+
+type RegisterBrokerErrandConfig struct {
+	BrokerName                 string `yaml:"broker_name"`
+	BrokerUsername             string `yaml:"broker_username"`
+	BrokerPassword             string `yaml:"broker_password"`
+	BrokerURL                  string `yaml:"broker_url"`
+	CF                         CF     `yaml:"cf"`
+	DisableSSLCertVerification bool   `yaml:"disable_ssl_cert_verification"` //TODO: move this to CF
+}

@@ -48,6 +48,10 @@ func (h *FakeHandler) RespondsWith(statusCode int, body string) {
 	h.defaultResponse = FakeResponse{Body: body, StatusCode: statusCode}
 }
 
+func (h *FakeHandler) RequestsReceived() int {
+	return len(h.requestsReceived)
+}
+
 func (h *FakeHandler) GetRequestForCall(call int) Request {
 	return h.requestsReceived[call]
 }

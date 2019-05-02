@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package deregistrar_test
+package registrar_test
 
 import (
 	"fmt"
@@ -22,8 +22,8 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/pivotal-cf/on-demand-service-broker/config"
-	"github.com/pivotal-cf/on-demand-service-broker/deregistrar"
-	"github.com/pivotal-cf/on-demand-service-broker/deregistrar/fakes"
+	"github.com/pivotal-cf/on-demand-service-broker/registrar"
+	"github.com/pivotal-cf/on-demand-service-broker/registrar/fakes"
 
 	"errors"
 
@@ -45,11 +45,11 @@ var _ = Describe("Deregistrar Config", func() {
 		configFileBytes, err := ioutil.ReadFile(configFilePath)
 		Expect(err).NotTo(HaveOccurred())
 
-		var deregistrarConfig deregistrar.Config
+		var deregistrarConfig registrar.Config
 		err = yaml.Unmarshal(configFileBytes, &deregistrarConfig)
 		Expect(err).NotTo(HaveOccurred())
 
-		expected := deregistrar.Config{
+		expected := registrar.Config{
 			DisableSSLCertVerification: true,
 			CF: config.CF{
 				URL:         "some-cf-url",
@@ -85,7 +85,7 @@ var _ = Describe("Deregistrar", func() {
 	It("does not return an error when deregistering", func() {
 		fakeCFClient.GetServiceOfferingGUIDReturns(brokerGUID, nil)
 
-		registrar := deregistrar.New(fakeCFClient, nil)
+		registrar := registrar.New(fakeCFClient, nil)
 
 		Expect(registrar.Deregister(brokerName)).NotTo(HaveOccurred())
 		Expect(fakeCFClient.GetServiceOfferingGUIDCallCount()).To(Equal(1))
@@ -96,7 +96,7 @@ var _ = Describe("Deregistrar", func() {
 	It("returns an error when cf client fails to ge the service offering guid", func() {
 		fakeCFClient.GetServiceOfferingGUIDReturns("", errors.New("list service broker failed"))
 
-		registrar := deregistrar.New(fakeCFClient, nil)
+		registrar := registrar.New(fakeCFClient, nil)
 
 		Expect(registrar.Deregister(brokerName)).To(MatchError("list service broker failed"))
 	})
@@ -105,7 +105,7 @@ var _ = Describe("Deregistrar", func() {
 		fakeCFClient.GetServiceOfferingGUIDReturns(brokerGUID, nil)
 		fakeCFClient.DeregisterBrokerReturns(errors.New("failed"))
 
-		registrar := deregistrar.New(fakeCFClient, nil)
+		registrar := registrar.New(fakeCFClient, nil)
 
 		errMsg := fmt.Sprintf("Failed to deregister broker with %s with guid %s, err: failed", brokerName, brokerGUID)
 		Expect(registrar.Deregister(brokerName)).To(MatchError(errMsg))

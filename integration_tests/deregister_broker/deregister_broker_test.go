@@ -23,11 +23,11 @@ import (
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
-	"github.com/pivotal-cf/on-demand-service-broker/deregistrar"
 	"github.com/pivotal-cf/on-demand-service-broker/integration_tests/helpers"
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp/mockcfapi"
 	"github.com/pivotal-cf/on-demand-service-broker/mockuaa"
+	"github.com/pivotal-cf/on-demand-service-broker/registrar"
 	"gopkg.in/yaml.v2"
 )
 
@@ -46,7 +46,7 @@ var _ = Describe("DeregisterBroker", func() {
 	var (
 		cfAPI              *mockhttp.Server
 		cfUAA              *mockuaa.ClientCredentialsServer
-		configuration      deregistrar.Config
+		configuration      registrar.Config
 		configFilePath     string
 		deregistrarSession *gexec.Session
 	)
@@ -55,7 +55,7 @@ var _ = Describe("DeregisterBroker", func() {
 		cfAPI = mockcfapi.New()
 		cfUAA = mockuaa.NewClientCredentialsServer(cfUaaClientID, cfUaaClientSecret, cfAccessToken)
 
-		configuration = deregistrar.Config{
+		configuration = registrar.Config{
 			DisableSSLCertVerification: true,
 			CF: config.CF{
 				URL: cfAPI.URL,
