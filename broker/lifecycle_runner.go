@@ -102,7 +102,7 @@ func (l LifeCycleRunner) processPreDelete(
 	}
 
 	currentTask := boshTasks[0]
-	if taskIsNotDone(currentTask, operationData.OperationType) {
+	if taskIsNotDone(currentTask, operationData.OperationType, logger) {
 		return currentTask, nil
 	}
 
@@ -148,17 +148,23 @@ func (l LifeCycleRunner) getTasks(deploymentName string, operationData Operation
 	return boshTasks, nil
 }
 
-func taskIsNotDone(task boshdirector.BoshTask, operationType OperationType) bool {
+func taskIsNotDone(task boshdirector.BoshTask, operationType OperationType, logger *log.Logger) bool {
 	currentTaskState := task.StateType()
-	return !shouldSkipError(currentTaskState, operationType) && isNotCompleted(currentTaskState)
+	return !shouldSkipError(currentTaskState, operationType, logger) && isNotCompleted(currentTaskState)
 }
 
 func isNotCompleted(taskState boshdirector.TaskStateType) bool {
 	return taskState != boshdirector.TaskComplete
 }
 
-func shouldSkipError(taskState boshdirector.TaskStateType, operationType OperationType) bool {
-	return taskState == boshdirector.TaskFailed && operationType == OperationTypeForceDelete
+func shouldSkipError(taskState boshdirector.TaskStateType, operationType OperationType, logger *log.Logger) bool {
+	shouldSkipError := taskState == boshdirector.TaskFailed && operationType == OperationTypeForceDelete
+
+	if shouldSkipError {
+		logger.Printf("pre-delete errand failed during %q, continuing to next operation", operationType)
+	}
+
+	return shouldSkipError
 }
 
 func hasRunAllErrands(boshTasks boshdirector.BoshTasks, operationData OperationData) bool {

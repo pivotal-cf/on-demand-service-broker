@@ -527,7 +527,7 @@ var _ = Describe("Lifecycle runner", func() {
 				operationData = broker.OperationData{
 					BoshContextID: contextID,
 					OperationType: broker.OperationTypeForceDelete,
-					Errands:       []config.Errand{{Name: "some-errand"}},
+					Errands:       []config.Errand{{Name: "an-errand"}},
 				}
 				firstErrand := boshdirector.BoshTask{ID: 1, State: boshdirector.TaskError, Description: "errand 1", Result: "result-1", ContextID: contextID}
 				boshClient.GetTaskStub = func(id int, l *log.Logger) (boshdirector.BoshTask, error) { return taskProcessing, nil }
@@ -540,6 +540,7 @@ var _ = Describe("Lifecycle runner", func() {
 				Expect(boshClient.DeleteDeploymentCallCount()).To(Equal(1), "delete deployment expected to be called once")
 
 				Expect(task).To(Equal(taskProcessing))
+				Expect(logBuffer.String()).To(ContainSubstring("pre-delete errand failed during \"force-delete\", continuing to next operation"))
 			})
 
 			It("returns failure when the delete deployment fails", func() {

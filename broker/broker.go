@@ -94,7 +94,9 @@ func New(
 }
 
 func (b *Broker) processError(err error, logger *log.Logger) error {
-	logger.Println(err)
+	if err != nil {
+		logger.Println(err)
+	}
 	switch processedError := err.(type) {
 	case DisplayableError:
 		if b.ExposeOperationalErrors {

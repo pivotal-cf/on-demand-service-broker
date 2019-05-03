@@ -110,8 +110,9 @@ var _ = Describe("deprovisioning instances", func() {
 
 			By("validating logs")
 			Expect(logBuffer.String()).To(SatisfyAll(
-				MatchRegexp(`\[[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\] \d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2} deleting deployment for instance`),
-				ContainSubstring(fmt.Sprintf("Bosh task id for Delete instance %s was %d", instanceID, deleteTaskID)),
+				MatchRegexp(`\[[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\] \d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2} removing deployment for instance`),
+				ContainSubstring(fmt.Sprintf("removing deployment for instance %s as part of operation \"delete\"", instanceID)),
+				ContainSubstring(fmt.Sprintf("Bosh task id is %d for operation \"delete\" of instance %s", deleteTaskID, instanceID)),
 				Not(ContainSubstring("pre-delete errand")),
 			))
 		})
@@ -141,6 +142,10 @@ var _ = Describe("deprovisioning instances", func() {
 			actualInstanceID, _, force, _, _ := boshClient.DeleteDeploymentArgsForCall(0)
 			Expect(actualInstanceID).To(Equal(deploymentName(instanceID)))
 			Expect(force).To(Equal(forceDeprovision))
+			Expect(logBuffer.String()).To(SatisfyAll(
+				ContainSubstring(fmt.Sprintf("removing deployment for instance %s as part of operation \"force-delete\"", instanceID)),
+				ContainSubstring(fmt.Sprintf("Bosh task id is %d for operation \"force-delete\" of instance %s", deleteTaskID, instanceID)),
+			))
 		})
 	})
 

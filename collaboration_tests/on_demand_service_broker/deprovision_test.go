@@ -79,7 +79,7 @@ var _ = Describe("Deprovision", func() {
 			Expect(operationData.BoshContextID).To(BeEmpty())
 
 			By("logging the delete request")
-			Eventually(loggerBuffer).Should(gbytes.Say(`deleting deployment for instance`))
+			Eventually(loggerBuffer).Should(gbytes.Say(`removing deployment for instance`))
 		})
 
 		It("succeeds with async and force delete set to true", func() {
@@ -101,7 +101,7 @@ var _ = Describe("Deprovision", func() {
 			Expect(operationData.BoshContextID).To(BeEmpty())
 
 			By("logging the delete request")
-			Eventually(loggerBuffer).Should(gbytes.Say(`deleting deployment for instance`))
+			Eventually(loggerBuffer).Should(gbytes.Say(`removing deployment for instance`))
 
 			By("Passing force flag to DeleteDeployment")
 			_, _, force, _, _ := fakeBoshClient.DeleteDeploymentArgsForCall(0)
