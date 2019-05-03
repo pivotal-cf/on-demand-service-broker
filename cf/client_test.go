@@ -1652,6 +1652,55 @@ var _ = Describe("Client", func() {
 		})
 
 	})
+
+	Describe("UpdateServiceBroker", func() {
+		It("Updates a service broker", func() {
+			guid := "a-guid"
+			server.VerifyAndMock(
+				mockcfapi.UpdateServiceBroker(guid).
+					WithAuthorizationHeader(cfAuthorizationHeader).
+					WithJSONBody(`{
+					  "name": "service-broker-name",
+					  "broker_url": "https://broker.example.com",
+					  "auth_username": "exampleUser",
+					  "auth_password": "examplePassword"
+					}`).
+					RespondsOKWith(""),
+			)
+
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = client.UpdateServiceBroker(guid, "service-broker-name", "exampleUser", "examplePassword", "https://broker.example.com")
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("returns an error if it fails to create", func() {
+			guid := "a-guid"
+			server.VerifyAndMock(
+				mockcfapi.UpdateServiceBroker(guid).
+					WithAuthorizationHeader(cfAuthorizationHeader).
+					RespondsInternalServerErrorWith("boo"),
+			)
+
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = client.UpdateServiceBroker(guid, "service-broker-name", "exampleUser", "examplePassword", "https://broker.example.com")
+			Expect(err).To(MatchError(ContainSubstring("boo")))
+		})
+
+		It("returns an error if creating the auth header fails", func() {
+			authHeaderBuilder.AddAuthHeaderReturns(errors.New("failed building header"))
+
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = client.UpdateServiceBroker("a-guid", "service-broker-name", "exampleUser", "examplePassword", "https://broker.example.com")
+			Expect(err).To(MatchError(ContainSubstring("failed building header")))
+		})
+
+	})
 })
 
 func servicePlan(guid, uniqueID, servicePlanUrl, name string) cf.ServicePlan {

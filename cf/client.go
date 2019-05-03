@@ -13,6 +13,8 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/pkg/errors"
+
 	s "github.com/pivotal-cf/on-demand-service-broker/service"
 )
 
@@ -311,9 +313,13 @@ func (c Client) DisableServiceAccess(serviceOfferingID string, logger *log.Logge
 
 	publicFalse := `{"public":false}`
 	for _, p := range plans {
-		err := c.put(fmt.Sprintf("%s/v2/service_plans/%s", c.url, p.Metadata.GUID), publicFalse, logger)
+		resp, err := c.put(fmt.Sprintf("%s/v2/service_plans/%s", c.url, p.Metadata.GUID), publicFalse, logger)
 		if err != nil {
 			return err
+		}
+		if resp.StatusCode != http.StatusCreated {
+			body, _ := ioutil.ReadAll(resp.Body)
+			return fmt.Errorf("Unexpected reponse status %d, %q", resp.StatusCode, string(body))
 		}
 	}
 	return nil
@@ -338,13 +344,40 @@ func (c Client) CreateServiceBroker(name, username, password, url string) error 
 		return err
 	}
 
-	switch resp.StatusCode {
-	case http.StatusCreated:
+	if resp.StatusCode == http.StatusCreated {
 		return nil
 	}
 
 	body, _ := ioutil.ReadAll(resp.Body)
-	return fmt.Errorf("Unexpected reponse status %d, %q", resp.StatusCode, string(body))
+	return errors.Wrap(
+		fmt.Errorf("unexpected response status %d; response body %q", resp.StatusCode, string(body)),
+		fmt.Sprintf("failed to create service broker %s", name),
+	)
+}
+
+func (c Client) UpdateServiceBroker(brokerGUID, name, username, password, url string) error {
+	reqBody := fmt.Sprintf(`{
+		"name": "%s",
+		"broker_url": "%s",
+		"auth_username": "%s",
+		"auth_password": "%s"
+	}`, name, url, username, password)
+
+	path := fmt.Sprintf("%s/v2/service_brokers/%s", c.url, brokerGUID)
+
+	resp, err := c.put(path, reqBody, c.logger)
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := ioutil.ReadAll(resp.Body)
+		return errors.Wrap(
+			fmt.Errorf("unexpected response status %d; response body %q", resp.StatusCode, string(body)),
+			fmt.Sprintf("failed to update service broker %s", name),
+		)
+	}
+	return nil
 }
 
 func (c Client) ServiceBrokers() ([]ServiceBroker, error) {
@@ -362,7 +395,7 @@ func (c Client) listServiceBrokers(logger *log.Logger) ([]ServiceBroker, error) 
 
 		err = c.get(fullPath, &response, logger)
 		if err != nil {
-			break
+			return nil, errors.Wrap(err, "failed to retrieve list of brokers")
 		}
 
 		for _, r := range response.Resources {
@@ -375,7 +408,7 @@ func (c Client) listServiceBrokers(logger *log.Logger) ([]ServiceBroker, error) 
 		path = response.NextPath
 	}
 
-	return brokers, err
+	return brokers, nil
 }
 
 func (c Client) getPlansForServiceID(serviceID string, logger *log.Logger) ([]ServicePlan, error) {

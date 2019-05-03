@@ -1,12 +1,9 @@
 package cf_test
 
 import (
-	"io"
 	"log"
 	"os"
 	"testing"
-
-	"github.com/onsi/gomega/gbytes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -19,7 +16,7 @@ func TestCF(t *testing.T) {
 	RunSpecs(t, "CF Suite")
 }
 
-func NewCFClient(disableSSL bool) *cf.Client {
+func NewCFClient(logger *log.Logger) *cf.Client {
 	cfConfig := config.CF{
 		URL:         os.Getenv("CF_URL"),
 		TrustedCert: os.Getenv("CF_CA_CERT"),
@@ -41,11 +38,11 @@ func NewCFClient(disableSSL bool) *cf.Client {
 			},
 		},
 	}
+	disableSSL := true
 	cfAuthenticator, err := cfConfig.NewAuthHeaderBuilder(disableSSL)
 	Expect(err).ToNot(HaveOccurred())
 
-	logBuffer := gbytes.NewBuffer()
-	cfClient, err := cf.New(cfConfig.URL, cfAuthenticator, []byte(cfConfig.TrustedCert), disableSSL, log.New(io.MultiWriter(logBuffer, GinkgoWriter), "my-app", log.LstdFlags))
+	cfClient, err := cf.New(cfConfig.URL, cfAuthenticator, []byte(cfConfig.TrustedCert), disableSSL, logger)
 	Expect(err).ToNot(HaveOccurred())
 
 	return &cfClient

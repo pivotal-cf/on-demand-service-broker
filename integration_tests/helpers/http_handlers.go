@@ -15,6 +15,7 @@ type FakeResponse struct {
 
 type Request struct {
 	Body string
+	URL  string
 }
 
 type FakeHandler struct {
@@ -65,7 +66,10 @@ func (h *FakeHandler) Handle(w http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
 	Expect(err).NotTo(HaveOccurred())
 
-	h.requestsReceived = append(h.requestsReceived, Request{Body: string(rawBody)})
+	h.requestsReceived = append(h.requestsReceived, Request{
+		Body: string(rawBody),
+		URL:  req.URL.String(),
+	})
 
 	if handler, found := h.handlers[req.URL.RawQuery]; found {
 		handler.Handle(w, req)

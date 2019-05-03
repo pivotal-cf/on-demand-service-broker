@@ -18,29 +18,36 @@ type RegisterBrokerRunner struct {
 type RegisterBrokerCFClient interface {
 	ServiceBrokers() ([]cf.ServiceBroker, error)
 	CreateServiceBroker(name, username, password, url string) error
+	UpdateServiceBroker(guid, name, username, password, url string) error
 }
+
+const executionError = "failed to execute register-broker"
 
 func (r *RegisterBrokerRunner) Run() error {
 	existingBrokers, err := r.CFClient.ServiceBrokers()
 	if err != nil {
-		return errors.Wrap(err, "failed to retrieve list of service brokers")
+		return errors.Wrap(err, executionError)
 	}
 
-	if !r.brokerExistsIn(existingBrokers) {
-		err := r.CFClient.CreateServiceBroker(r.Config.BrokerName, r.Config.BrokerUsername, r.Config.BrokerPassword, r.Config.BrokerURL)
-		if err != nil {
-			return errors.Wrap(err, "failed to create service broker")
-		}
+	if err := r.createOrUpdateBroker(existingBrokers); err != nil {
+		return errors.Wrap(err, executionError)
 	}
 
 	return nil
 }
 
-func (r *RegisterBrokerRunner) brokerExistsIn(brokers []cf.ServiceBroker) bool {
+func (r *RegisterBrokerRunner) createOrUpdateBroker(existingBrokers []cf.ServiceBroker) error {
+	if brokerGUID, found := r.findBroker(existingBrokers); found {
+		return r.CFClient.UpdateServiceBroker(brokerGUID, r.Config.BrokerName, r.Config.BrokerUsername, r.Config.BrokerPassword, r.Config.BrokerURL)
+	}
+	return r.CFClient.CreateServiceBroker(r.Config.BrokerName, r.Config.BrokerUsername, r.Config.BrokerPassword, r.Config.BrokerURL)
+}
+
+func (r *RegisterBrokerRunner) findBroker(brokers []cf.ServiceBroker) (string, bool) {
 	for _, broker := range brokers {
 		if broker.Name == r.Config.BrokerName {
-			return true
+			return broker.GUID, true
 		}
 	}
-	return false
+	return "", false
 }

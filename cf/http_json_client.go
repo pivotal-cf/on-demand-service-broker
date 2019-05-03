@@ -73,32 +73,21 @@ func (c httpJsonClient) post(path string, reqBody io.Reader, logger *log.Logger)
 	return resp, err
 }
 
-func (c httpJsonClient) put(path, reqBody string, logger *log.Logger) error {
+func (c httpJsonClient) put(path, reqBody string, logger *log.Logger) (*http.Response, error) {
 	req, err := http.NewRequest(http.MethodPut, path, bytes.NewBufferString(reqBody))
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	err = c.AuthHeaderBuilder.AddAuthHeader(req, logger)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
 	logger.Printf(fmt.Sprintf("PUT %s", path))
 
-	resp, err := c.client.Do(req)
-	if err != nil {
-		return err
-	}
-
-	switch resp.StatusCode {
-	case http.StatusCreated:
-		return nil
-	}
-
-	body, _ := ioutil.ReadAll(resp.Body)
-	return fmt.Errorf("Unexpected reponse status %d, %q", resp.StatusCode, string(body))
+	return c.client.Do(req)
 }
 
 func (c httpJsonClient) delete(path string, logger *log.Logger) error {

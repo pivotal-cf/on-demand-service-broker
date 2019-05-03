@@ -39,11 +39,11 @@ var _ = Describe("RegisterBrokerRunner", func() {
 			},
 			CFClient: fakeCFClient,
 		}
-
-		fakeCFClient.ServiceBrokersReturns([]cf.ServiceBroker{}, nil)
 	})
 
 	It("creates a broker in CF when the broker does not already exist in CF", func() {
+		fakeCFClient.ServiceBrokersReturns([]cf.ServiceBroker{}, nil)
+
 		err := runner.Run()
 		Expect(err).NotTo(HaveOccurred())
 
@@ -56,19 +56,52 @@ var _ = Describe("RegisterBrokerRunner", func() {
 		Expect(actualURL).To(Equal(expectedURL))
 	})
 
-	It("errors when it cannot retrieve list of service brokers", func() {
-		fakeCFClient.ServiceBrokersReturns(nil, errors.New("failed"))
+	It("updates a broker in CF when the broker already exists", func() {
+		expectedGUID := "broker-guid"
+		fakeCFClient.ServiceBrokersReturns([]cf.ServiceBroker{{
+			GUID: expectedGUID,
+			Name: expectedName,
+		}}, nil)
 
 		err := runner.Run()
-		Expect(err).To(HaveOccurred())
-		Expect(err).To(MatchError("failed to retrieve list of service brokers: failed"))
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(fakeCFClient.UpdateServiceBrokerCallCount()).To(Equal(1), "update service broker wasn't called")
+		Expect(fakeCFClient.CreateServiceBrokerCallCount()).To(Equal(0), "create service broker was called")
+
+		actualGUID, actualName, actualUsername, actualPassword, actualURL := fakeCFClient.UpdateServiceBrokerArgsForCall(0)
+
+		Expect(actualGUID).To(Equal(expectedGUID))
+		Expect(actualName).To(Equal(expectedName))
+		Expect(actualUsername).To(Equal(expectedUsername))
+		Expect(actualPassword).To(Equal(expectedPassword))
+		Expect(actualURL).To(Equal(expectedURL))
 	})
 
-	It("errors when it cannot create a service broker", func() {
-		fakeCFClient.CreateServiceBrokerReturns(errors.New("failed to create"))
+	Describe("error handling", func() {
+		It("errors when it cannot retrieve list of service brokers", func() {
+			fakeCFClient.ServiceBrokersReturns(nil, errors.New("failed to retrieve list of brokers"))
 
-		err := runner.Run()
-		Expect(err).To(HaveOccurred())
-		Expect(err).To(MatchError("failed to create service broker: failed to create"))
+			err := runner.Run()
+			Expect(err).To(HaveOccurred())
+			Expect(err).To(MatchError("failed to execute register-broker: failed to retrieve list of brokers"))
+		})
+
+		It("errors when it cannot create a service broker", func() {
+			fakeCFClient.CreateServiceBrokerReturns(errors.New("failed to create broker"))
+
+			err := runner.Run()
+			Expect(err).To(HaveOccurred())
+			Expect(err).To(MatchError("failed to execute register-broker: failed to create broker"))
+		})
+
+		It("errors when it cannot update a service broker", func() {
+			fakeCFClient.ServiceBrokersReturns([]cf.ServiceBroker{{GUID: "a-guid", Name: expectedName}}, nil)
+			fakeCFClient.UpdateServiceBrokerReturns(errors.New("failed to update broker"))
+
+			err := runner.Run()
+			Expect(err).To(HaveOccurred())
+			Expect(err).To(MatchError("failed to execute register-broker: failed to update broker"))
+		})
 	})
 })

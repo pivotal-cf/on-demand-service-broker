@@ -72,6 +72,12 @@ func CreateServiceBroker() *serviceBrokersMock {
 	}
 }
 
+func UpdateServiceBroker(serviceBrokerGUID string) *serviceBrokersMock {
+	return &serviceBrokersMock{
+		mockhttp.NewMockedHttpRequest("PUT", fmt.Sprintf("/v2/service_brokers/%s", serviceBrokerGUID)),
+	}
+}
+
 func (m *serviceBrokersMock) RespondsWithBrokers(brokerName, brokerID string) *mockhttp.Handler {
 	return m.RespondsOKWith(fmt.Sprintf(ServiceBrokersResponseTemplate, brokerID, brokerName))
 }

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"regexp"
 	"time"
 
 	"github.com/pivotal-cf/on-demand-service-broker/config"
@@ -26,6 +27,7 @@ var _ = Describe("RegisterBroker", func() {
 		cfServer                                              *ghttp.Server
 		serviceBrokersHandler                                 *helpers.FakeHandler
 		createBrokerHandler                                   *helpers.FakeHandler
+		updateBrokerHandler                                   *helpers.FakeHandler
 		brokerName, brokerUsername, brokerPassword, brokerURL string
 		errandConfig                                          config.RegisterBrokerErrandConfig
 	)
@@ -40,12 +42,14 @@ var _ = Describe("RegisterBroker", func() {
 
 		serviceBrokersHandler = new(helpers.FakeHandler)
 		createBrokerHandler = new(helpers.FakeHandler)
+		updateBrokerHandler = new(helpers.FakeHandler)
 
 		cfServer.RouteToHandler(http.MethodPost, "/oauth/token", func(writer http.ResponseWriter, request *http.Request) {
 			writer.Write([]byte(`{"access_token":"authtoken"}`))
 		})
 		cfServer.RouteToHandler(http.MethodGet, "/v2/service_brokers", serviceBrokersHandler.Handle)
 		cfServer.RouteToHandler(http.MethodPost, "/v2/service_brokers", createBrokerHandler.Handle)
+		cfServer.RouteToHandler(http.MethodPut, regexp.MustCompile(`/v2/service_brokers/.*`), updateBrokerHandler.Handle)
 
 		errandConfig = config.RegisterBrokerErrandConfig{
 			BrokerName:     brokerName,
@@ -72,6 +76,7 @@ var _ = Describe("RegisterBroker", func() {
 		session := executeBinary(errandConfig, GinkgoWriter, GinkgoWriter)
 		Expect(session).To(gexec.Exit(0))
 
+		Expect(updateBrokerHandler.RequestsReceived()).To(BeZero(), "update broker was called")
 		Expect(createBrokerHandler.RequestsReceived()).To(BeNumerically(">", 0), "no request was made to create broker")
 		createRequest := createBrokerHandler.GetRequestForCall(0)
 		Expect(createRequest.Body).To(MatchJSON(fmt.Sprintf(`{
@@ -82,7 +87,31 @@ var _ = Describe("RegisterBroker", func() {
 			}`, brokerName, brokerURL, brokerUsername, brokerPassword)))
 	})
 
-	It("updates the existing broker when the broker is already registered", func() {})
+	It("updates the existing broker when the broker is already registered", func() {
+		brokerGUID := "broker-guid"
+		cfBrokerResponse := fmt.Sprintf(`{
+			"resources": [{
+				"entity": {"name": "%s"},
+				"metadata": {"guid": "%s"}
+			}]
+		}`, brokerName, brokerGUID)
+		serviceBrokersHandler.RespondsWith(http.StatusOK, cfBrokerResponse)
+
+		session := executeBinary(errandConfig, GinkgoWriter, GinkgoWriter)
+		Expect(session).To(gexec.Exit(0))
+
+		Expect(createBrokerHandler.RequestsReceived()).To(BeZero(), "create broker was called")
+		Expect(updateBrokerHandler.RequestsReceived()).To(BeNumerically(">", 0), "no request was made to update broker")
+
+		updateRequest := updateBrokerHandler.GetRequestForCall(0)
+		Expect(updateRequest.Body).To(MatchJSON(fmt.Sprintf(`{
+				"name": "%s", 
+				"broker_url": "%s",
+				"auth_username": "%s",
+				"auth_password": "%s"
+			}`, brokerName, brokerURL, brokerUsername, brokerPassword)))
+		Expect(updateRequest.URL).To(Equal(cfServer.URL() + "/v2/service_brokers/" + brokerGUID))
+	})
 
 	Describe("error handling", func() {
 		It("fails when config path is not specified", func() {

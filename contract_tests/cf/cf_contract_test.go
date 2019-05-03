@@ -1,6 +1,9 @@
 package cf_test
 
 import (
+	"io"
+	"log"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -16,6 +19,7 @@ var _ = Describe("CF client", func() {
 	var (
 		brokerDeployment bosh_helpers.BrokerInfo
 		subject          *cf.Client
+		logger           *log.Logger
 	)
 
 	BeforeEach(func() {
@@ -29,7 +33,9 @@ var _ = Describe("CF client", func() {
 			[]string{"basic_service_catalog.yml"},
 		)
 
-		subject = NewCFClient(true)
+		logBuffer := gbytes.NewBuffer()
+		logger = log.New(io.MultiWriter(logBuffer, GinkgoWriter), "my-app", log.LstdFlags)
+		subject = NewCFClient(logger)
 	})
 
 	AfterEach(func() {
@@ -95,6 +101,43 @@ var _ = Describe("CF client", func() {
 				}
 			}
 			Expect(found).To(BeTrue(), "List of brokers did not include the created broker")
+		})
+	})
+
+	Describe("UpdateServiceBroker", func() {
+		var (
+			brokerName string
+			brokerGUID string
+		)
+
+		BeforeEach(func() {
+			brokerName = "contract-" + brokerDeployment.TestSuffix
+			session := cf_helpers.Cf("create-service-broker",
+				brokerName,
+				brokerDeployment.BrokerUsername,
+				brokerDeployment.BrokerPassword,
+				"http://"+brokerDeployment.URI,
+			)
+			Eventually(session).Should(gexec.Exit(0))
+
+			var err error
+			brokerGUID, err = subject.GetServiceOfferingGUID(brokerName, logger)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		AfterEach(func() {
+			session := cf_helpers.Cf("delete-service-broker", "-f", brokerName)
+			Eventually(session).Should(gexec.Exit())
+		})
+
+		It("returns a list of service brokers", func() {
+			brokerName = "new-" + brokerName
+			err := subject.UpdateServiceBroker(brokerGUID, brokerName, brokerDeployment.BrokerUsername, brokerDeployment.BrokerPassword, "http://"+brokerDeployment.URI)
+			Expect(err).NotTo(HaveOccurred())
+
+			session := cf_helpers.Cf("service-brokers")
+			Eventually(session).Should(gexec.Exit(0))
+			Expect(session).To(gbytes.Say(brokerName))
 		})
 	})
 })
