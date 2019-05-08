@@ -96,6 +96,7 @@ var _ = Describe("RegisterBroker", func() {
 			}]
 		}`, brokerName, brokerGUID)
 		serviceBrokersHandler.RespondsWith(http.StatusOK, cfBrokerResponse)
+		updateBrokerHandler.RespondsWith(http.StatusOK, "")
 
 		session := executeBinary(errandConfig, GinkgoWriter, GinkgoWriter)
 		Expect(session).To(gexec.Exit(0))
@@ -110,7 +111,7 @@ var _ = Describe("RegisterBroker", func() {
 				"auth_username": "%s",
 				"auth_password": "%s"
 			}`, brokerName, brokerURL, brokerUsername, brokerPassword)))
-		Expect(updateRequest.URL).To(Equal(cfServer.URL() + "/v2/service_brokers/" + brokerGUID))
+		Expect(updateRequest.URL).To(Equal("/v2/service_brokers/" + brokerGUID))
 	})
 
 	Describe("error handling", func() {
