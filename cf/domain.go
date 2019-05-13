@@ -173,3 +173,16 @@ type serviceKeyResource struct {
 type errorResponse struct {
 	Description string `json:"description"`
 }
+
+type ServicePlanVisibilityMetadata struct {
+	GUID string `json:"guid"`
+}
+
+type ServicePlanVisibility struct {
+	Metadata ServicePlanVisibilityMetadata `json:"metadata"`
+}
+
+type visibilityResponse struct {
+	pagination
+	Resources []ServicePlanVisibility `json:"resources"`
+}

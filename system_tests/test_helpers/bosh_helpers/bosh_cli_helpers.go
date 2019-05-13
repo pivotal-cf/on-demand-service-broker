@@ -16,6 +16,7 @@ import (
 
 	"github.com/coreos/go-semver/semver"
 	"github.com/onsi/gomega/types"
+	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/service_helpers"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 
@@ -25,7 +26,6 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
-	"github.com/pborman/uuid"
 	"gopkg.in/yaml.v2"
 )
 

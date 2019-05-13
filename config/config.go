@@ -615,10 +615,23 @@ type ErrandTLSConfig struct {
 }
 
 type RegisterBrokerErrandConfig struct {
-	BrokerName                 string `yaml:"broker_name"`
-	BrokerUsername             string `yaml:"broker_username"`
-	BrokerPassword             string `yaml:"broker_password"`
-	BrokerURL                  string `yaml:"broker_url"`
-	CF                         CF     `yaml:"cf"`
-	DisableSSLCertVerification bool   `yaml:"disable_ssl_cert_verification"` //TODO: move this to CF
+	BrokerName                 string       `yaml:"broker_name"`
+	BrokerUsername             string       `yaml:"broker_username"`
+	BrokerPassword             string       `yaml:"broker_password"`
+	BrokerURL                  string       `yaml:"broker_url"`
+	CF                         CF           `yaml:"cf"`
+	DisableSSLCertVerification bool         `yaml:"disable_ssl_cert_verification"` //TODO: move this to CF
+	ServiceName                string       `yaml:"service_name"`
+	Plans                      []PlanAccess `yaml:"plans"`
+}
+
+type CFServiceAccess string
+
+const (
+	PlanEnabled = CFServiceAccess("enable")
+)
+
+type PlanAccess struct {
+	Name            string          `yaml:"name"`
+	CFServiceAccess CFServiceAccess `yaml:"cf_service_access"`
 }

@@ -28,7 +28,13 @@ var _ = Describe("RegisterBroker", func() {
 		serviceBrokersHandler                                 *helpers.FakeHandler
 		createBrokerHandler                                   *helpers.FakeHandler
 		updateBrokerHandler                                   *helpers.FakeHandler
+		servicesHandler                                       *helpers.FakeHandler
+		servicePlansHandler                                   *helpers.FakeHandler
+		servicePlansOfferingHandler                           *helpers.FakeHandler
+		servicePlansVisibilityHandler                         *helpers.FakeHandler
+		servicePlansVisibilityDeleteHandler                   *helpers.FakeHandler
 		brokerName, brokerUsername, brokerPassword, brokerURL string
+		serviceID, serviceGUID, planName                      string
 		errandConfig                                          config.RegisterBrokerErrandConfig
 	)
 
@@ -37,12 +43,21 @@ var _ = Describe("RegisterBroker", func() {
 		brokerURL = "http://example.broker.com"
 		brokerUsername = "username"
 		brokerPassword = "password"
+		serviceGUID = "service-guid"
+
+		serviceID = "a-service"
+		planName = "a-plan"
 
 		cfServer = ghttp.NewServer()
 
 		serviceBrokersHandler = new(helpers.FakeHandler)
 		createBrokerHandler = new(helpers.FakeHandler)
 		updateBrokerHandler = new(helpers.FakeHandler)
+		servicesHandler = new(helpers.FakeHandler)
+		servicePlansHandler = new(helpers.FakeHandler)
+		servicePlansOfferingHandler = new(helpers.FakeHandler)
+		servicePlansVisibilityHandler = new(helpers.FakeHandler)
+		servicePlansVisibilityDeleteHandler = new(helpers.FakeHandler)
 
 		cfServer.RouteToHandler(http.MethodPost, "/oauth/token", func(writer http.ResponseWriter, request *http.Request) {
 			writer.Write([]byte(`{"access_token":"authtoken"}`))
@@ -50,6 +65,11 @@ var _ = Describe("RegisterBroker", func() {
 		cfServer.RouteToHandler(http.MethodGet, "/v2/service_brokers", serviceBrokersHandler.Handle)
 		cfServer.RouteToHandler(http.MethodPost, "/v2/service_brokers", createBrokerHandler.Handle)
 		cfServer.RouteToHandler(http.MethodPut, regexp.MustCompile(`/v2/service_brokers/.*`), updateBrokerHandler.Handle)
+		cfServer.RouteToHandler(http.MethodGet, "/v2/services", servicesHandler.Handle)
+		cfServer.RouteToHandler(http.MethodGet, regexp.MustCompile(`/v2/services/.*/service_plans`), servicePlansOfferingHandler.Handle)
+		cfServer.RouteToHandler(http.MethodGet, "/v2/service_plan_visibilities", servicePlansVisibilityHandler.Handle)
+		cfServer.RouteToHandler(http.MethodDelete, regexp.MustCompile("/v2/service_plan_visibilities/.*"), servicePlansVisibilityDeleteHandler.Handle)
+		cfServer.RouteToHandler(http.MethodPut, regexp.MustCompile(`/v2/service_plans/.*`), servicePlansHandler.Handle)
 
 		errandConfig = config.RegisterBrokerErrandConfig{
 			BrokerName:     brokerName,
@@ -66,6 +86,7 @@ var _ = Describe("RegisterBroker", func() {
 				},
 			},
 			DisableSSLCertVerification: true,
+			ServiceName:                serviceID,
 		}
 	})
 
@@ -73,8 +94,7 @@ var _ = Describe("RegisterBroker", func() {
 		serviceBrokersHandler.RespondsWith(http.StatusOK, `{"resources":[]}`)
 		createBrokerHandler.RespondsWith(http.StatusCreated, "")
 
-		session := executeBinary(errandConfig, GinkgoWriter, GinkgoWriter)
-		Expect(session).To(gexec.Exit(0))
+		registersBrokerSuccessfully(errandConfig, GinkgoWriter, GinkgoWriter)
 
 		Expect(updateBrokerHandler.RequestsReceived()).To(BeZero(), "update broker was called")
 		Expect(createBrokerHandler.RequestsReceived()).To(BeNumerically(">", 0), "no request was made to create broker")
@@ -88,18 +108,16 @@ var _ = Describe("RegisterBroker", func() {
 	})
 
 	It("updates the existing broker when the broker is already registered", func() {
-		brokerGUID := "broker-guid"
 		cfBrokerResponse := fmt.Sprintf(`{
 			"resources": [{
 				"entity": {"name": "%s"},
 				"metadata": {"guid": "%s"}
 			}]
-		}`, brokerName, brokerGUID)
+		}`, brokerName, serviceGUID)
 		serviceBrokersHandler.RespondsWith(http.StatusOK, cfBrokerResponse)
 		updateBrokerHandler.RespondsWith(http.StatusOK, "")
 
-		session := executeBinary(errandConfig, GinkgoWriter, GinkgoWriter)
-		Expect(session).To(gexec.Exit(0))
+		registersBrokerSuccessfully(errandConfig, GinkgoWriter, GinkgoWriter)
 
 		Expect(createBrokerHandler.RequestsReceived()).To(BeZero(), "create broker was called")
 		Expect(updateBrokerHandler.RequestsReceived()).To(BeNumerically(">", 0), "no request was made to update broker")
@@ -111,7 +129,90 @@ var _ = Describe("RegisterBroker", func() {
 				"auth_username": "%s",
 				"auth_password": "%s"
 			}`, brokerName, brokerURL, brokerUsername, brokerPassword)))
-		Expect(updateRequest.URL).To(Equal("/v2/service_brokers/" + brokerGUID))
+		Expect(updateRequest.URL).To(Equal("/v2/service_brokers/" + serviceGUID))
+	})
+
+	When("there are service plans configured", func() {
+		BeforeEach(func() {
+			errandConfig.Plans = []config.PlanAccess{
+				{
+					Name:            planName,
+					CFServiceAccess: config.PlanEnabled,
+				},
+			}
+			serviceBrokersHandler.RespondsWith(http.StatusOK, `{"resources":[]}`)
+			createBrokerHandler.RespondsWith(http.StatusCreated, "")
+		})
+
+		It("enables plans that are configured to be enabled", func() {
+			servicesHandler.RespondsWith(http.StatusOK, fmt.Sprintf(`{
+			  "resources": [
+				{
+				  "entity": {
+					"unique_id": %q,
+					"service_plans_url": "/v2/services/%s/service_plans"
+				  }
+				}
+			  ]
+			}`, serviceID, serviceGUID))
+
+			planGUID := "unique-uid"
+			servicePlansOfferingHandler.RespondsWith(http.StatusOK, fmt.Sprintf(`{
+				"resources" : [{
+					"entity": {"name": %q},
+					"metadata": {"guid": %q}
+				}]}`, planName, planGUID))
+
+			servicePlansVisibilityHandler.RespondsWith(http.StatusOK, `{"resources": null}`) //TODO test not null in this test
+			servicePlansHandler.RespondsWith(http.StatusCreated, ``)
+
+			registersBrokerSuccessfully(errandConfig, GinkgoWriter, GinkgoWriter)
+
+			Expect(servicePlansHandler.RequestsReceived()).To(BeNumerically(">=", 1), "no request was made to service plans")
+			servicePlansRequest := servicePlansHandler.GetRequestForCall(0)
+			Expect(servicePlansRequest.URL).To(Equal("/v2/service_plans/" + planGUID))
+			Expect(servicePlansRequest.Body).To(MatchJSON(`{
+				"public": true
+			}`))
+		})
+
+		It("deletes any previous visibilities when making a plan public", func() {
+			servicesHandler.RespondsWith(http.StatusOK, fmt.Sprintf(`{
+			  "resources": [
+				{
+				  "entity": {
+					"unique_id": %q,
+					"service_plans_url": "/v2/services/%s/service_plans"
+				  }
+				}
+			  ]
+			}`, serviceID, serviceGUID))
+
+			planGUID := "unique-uid"
+			servicePlansOfferingHandler.RespondsWith(http.StatusOK, fmt.Sprintf(`{
+				"resources" : [{
+					"entity": {"name": %q},
+					"metadata": {"guid": %q}
+				}]}`, planName, planGUID))
+
+			servicePlansVisibilityHandler.RespondsWith(http.StatusOK, `{"resources": [
+				{ "metadata": { "url": "/v2/service_plan_visibilities/d1b5ea55-f354-4f43-b52e-53045747adb9" } },
+				{ "metadata": { "url": "/v2/service_plan_visibilities/some-plan-visibility-guid" } }
+			]}`)
+			servicePlansVisibilityDeleteHandler.RespondsWith(http.StatusNoContent, "")
+			servicePlansHandler.RespondsWith(http.StatusCreated, ``)
+
+			registersBrokerSuccessfully(errandConfig, GinkgoWriter, GinkgoWriter)
+
+			Expect(servicePlansHandler.RequestsReceived()).To(BeNumerically(">=", 1), "no request was made to service plans")
+			servicePlansRequest := servicePlansHandler.GetRequestForCall(0)
+			Expect(servicePlansRequest.URL).To(Equal("/v2/service_plans/" + planGUID))
+			Expect(servicePlansRequest.Body).To(MatchJSON(`{
+				"public": true
+			}`))
+
+			Expect(servicePlansVisibilityDeleteHandler.RequestsReceived()).To(BeNumerically(">=", 2), "no request was made to service plan visibility")
+		})
 	})
 
 	Describe("error handling", func() {
@@ -143,6 +244,13 @@ var _ = Describe("RegisterBroker", func() {
 
 })
 
+func registersBrokerSuccessfully(errandConfig config.RegisterBrokerErrandConfig, stdout, stderr io.Writer) *gexec.Session {
+	session := executeBinary(errandConfig, stdout, stderr)
+	Expect(session).To(gexec.Exit(0))
+
+	return session
+}
+
 func executeBinary(errandConfig config.RegisterBrokerErrandConfig, stdout, stderr io.Writer) *gexec.Session {
 	errandConfigPath, err := ioutil.TempFile("/tmp", "")
 	Expect(err).ToNot(HaveOccurred())
@@ -162,39 +270,3 @@ func executeBinary(errandConfig config.RegisterBrokerErrandConfig, stdout, stder
 
 	return session
 }
-
-/*
-* system tests:  test the release
-* integration:   mock the http endpoints, compile and execute the binary
-* collaboration: create client with fake structs
-* contract:      tests the real clients (CF, Bosh...)
-* unit tests:    test functions
-* */
-
-/*
-* verifies:
-*		- when no argument is passed, it fails
-*		- when configPath is passed
-*			- but it's not a file, it fails
-*			- but it's not a yaml, it fails
-*			- but it doesn't contain required fields, it fails (MAYBE release level only?)
-*			- mocked client would receive method call with the correct config
-*
-* System level:
-*		- all the pieces work together on the happy case (existing test)
-*			- guarantee? that we call the right cmd
-*
-* Integration:
-*		- when no argument is passed, it fails
-*		- when configPath is not passed
-*		- happy case for register broker
-*			- when {
-				Broker doesn't exist
-					Calls the Create Broker endpoint
-				Broker exists
-					Calls the update broker endpoint
-*
-* Unit for registrar:
-*   - Test the runner. Not compiling the binary
-*			- but it's not a file, it fails
-* */

@@ -16,7 +16,6 @@ import (
 )
 
 var _ = Describe("broker registration errands", func() {
-
 	Describe("Register-broker errand", func() {
 		When("user is logged in as admin", func() {
 			It("can see the service and all plans in the marketplace regardless of cf_service_access", func() {
@@ -84,6 +83,11 @@ var _ = Describe("broker registration errands", func() {
 			})
 
 			When("cf_service_access is set to manual for one of the plans", func() {
+				AfterEach(func() {
+					cfLogInAsAdmin()
+					Eventually(cf.Cf("disable-service-access", brokerInfo.ServiceOffering, "-p", "manual-plan")).Should(gexec.Exit(0))
+				})
+
 				It("has to be enabled manually", func() {
 					By("should not be visible in the marketplace")
 					marketplaceSession := cf.Cf("marketplace", "-s", brokerInfo.ServiceOffering)
@@ -104,7 +108,7 @@ var _ = Describe("broker registration errands", func() {
 
 					By("confirming the manual plan is still visible to space devs in the marketplace")
 					allButInactiveMarketplaceSession := cf.Cf("marketplace", "-s", brokerInfo.ServiceOffering)
-					Eventually(allButInactiveMarketplaceSession).Should(gbytes.Say("manual-plan"))
+					Eventually(allButInactiveMarketplaceSession).Should(gbytes.Say("manual-plan")) // TODO FIX
 				})
 			})
 

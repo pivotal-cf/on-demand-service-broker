@@ -305,21 +305,89 @@ func (c Client) GetServiceOfferingGUID(brokerName string, logger *log.Logger) (s
 	return brokerGUID, nil
 }
 
+func (c Client) getServicePlanVisibilities(planGUID string) ([]ServicePlanVisibility, error) {
+	path := fmt.Sprintf(
+		"/v2/service_plan_visibilities?q=service_plan_guid:%s&results-per-page=%d",
+		planGUID,
+		defaultPerPage,
+	)
+
+	visibilities := []ServicePlanVisibility{}
+
+	for path != "" {
+		var visibilityResponse visibilityResponse
+		visibilityURL := fmt.Sprintf("%s%s", c.url, path)
+
+		err := c.get(visibilityURL, &visibilityResponse, c.logger)
+		if err != nil {
+			return nil, err
+		}
+
+		visibilities = append(visibilities, visibilityResponse.Resources...)
+
+		path = visibilityResponse.NextPath
+	}
+
+	return visibilities, nil
+}
+
+func (c Client) deleteServicePlanVisibilities(planGUID string) error {
+	vs, err := c.getServicePlanVisibilities(planGUID)
+	if err != nil {
+		return errors.Wrap(
+			err,
+			fmt.Sprintf("failed to get plan visibilities for plan %s", planGUID),
+		)
+	}
+
+	for _, v := range vs {
+		err := c.delete(fmt.Sprintf("%s/v2/service_plan_visibilities/%s", c.url, v.Metadata.GUID), c.logger)
+		if err != nil {
+			return errors.Wrap(
+				err,
+				fmt.Sprintf("failed to delete plan visibility for plan %s", planGUID),
+			)
+		}
+	}
+
+	return nil
+}
+
+func (c Client) EnableServiceAccess(serviceOfferingID, planName string, logger *log.Logger) error {
+	plans, err := c.getPlansForServiceID(serviceOfferingID, logger)
+	if err != nil {
+		return err
+	}
+
+	planGUID := findPlanGUID(plans, planName)
+	if planGUID == "" {
+		return fmt.Errorf(`planID %q not found while enabling access`, planName)
+	}
+
+	err = c.setAccessForPlan(planGUID, true, logger)
+	if err != nil {
+		return err
+	}
+
+	if err := c.deleteServicePlanVisibilities(planGUID); err != nil {
+		return errors.Wrap(
+			err,
+			fmt.Sprintf("failed to delete plan visibilities for plan %s", planGUID),
+		)
+	}
+	return nil
+}
+
 func (c Client) DisableServiceAccess(serviceOfferingID string, logger *log.Logger) error {
 	plans, err := c.getPlansForServiceID(serviceOfferingID, logger)
 	if err != nil {
 		return err
 	}
 
-	publicFalse := `{"public":false}`
 	for _, p := range plans {
-		resp, err := c.put(fmt.Sprintf("%s/v2/service_plans/%s", c.url, p.Metadata.GUID), publicFalse, logger)
+		err = c.setAccessForPlan(p.Metadata.GUID, false, logger)
 		if err != nil {
 			return err
-		}
-		if resp.StatusCode != http.StatusCreated {
-			body, _ := ioutil.ReadAll(resp.Body)
-			return fmt.Errorf("Unexpected reponse status %d, %q", resp.StatusCode, string(body))
 		}
 	}
 	return nil
@@ -382,6 +450,33 @@ func (c Client) UpdateServiceBroker(brokerGUID, name, username, password, url st
 
 func (c Client) ServiceBrokers() ([]ServiceBroker, error) {
 	return c.listServiceBrokers(c.logger)
+}
+
+func (c Client) setAccessForPlan(planGUID string, public bool, logger *log.Logger) error {
+	body := fmt.Sprintf(`{"public":%v}`, public)
+	resp, err := c.put(fmt.Sprintf("%s/v2/service_plans/%s", c.url, planGUID), body, logger)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != http.StatusCreated {
+		body, _ := ioutil.ReadAll(resp.Body)
+		return errors.Wrap(
+			fmt.Errorf("unexpected response status %d; response body %q", resp.StatusCode, string(body)),
+			fmt.Sprintf("failed to update service access for plan %s", planGUID),
+		)
+	}
+
+	return nil
+}
+
+func findPlanGUID(plans []ServicePlan, planName string) string {
+	planGUID := ""
+	for _, p := range plans {
+		if p.ServicePlanEntity.Name == planName {
+			planGUID = p.Metadata.GUID
+		}
+	}
+	return planGUID
 }
 
 func (c Client) listServiceBrokers(logger *log.Logger) ([]ServiceBroker, error) {

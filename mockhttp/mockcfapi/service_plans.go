@@ -35,13 +35,33 @@ func ListServicePlansForPage(serviceID string, page int) *servicePlansMock {
 	}
 }
 
+func ListServicePlanVisibilities(planGUID string) *servicePlansMock {
+	return &servicePlansMock{
+		mockhttp.NewMockedHttpRequest("GET", "/v2/service_plan_visibilities?q=service_plan_guid:"+planGUID+"&results-per-page=100"),
+	}
+}
+
+func DeleteServicePlanVisibility(visibilityGUID string) *servicePlansMock {
+	return &servicePlansMock{
+		mockhttp.NewMockedHttpRequest("DELETE", "/v2/service_plan_visibilities/"+visibilityGUID),
+	}
+}
+
 func DisablePlanAccess(planID string) *servicePlansMock {
+	return PutPlanAccess(planID, `{"public":false}`)
+}
+
+func EnablePlanAccess(planID string) *servicePlansMock {
+	return PutPlanAccess(planID, `{"public":true}`)
+}
+
+func PutPlanAccess(planID, body string) *servicePlansMock {
 	mock := &servicePlansMock{
 		mockhttp.NewMockedHttpRequest("PUT", fmt.Sprintf("/v2/service_plans/%s", planID)),
 	}
 
 	mock.WithContentType("application/x-www-form-urlencoded")
-	mock.WithBody(`{"public":false}`)
+	mock.WithBody(body)
 
 	return mock
 }

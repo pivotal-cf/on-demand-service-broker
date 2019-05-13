@@ -122,7 +122,6 @@ func (c httpJsonClient) delete(path string, logger *log.Logger) error {
 func (w httpJsonClient) readResponse(response *http.Response, obj interface{}) error {
 	defer response.Body.Close()
 	rawBody, _ := ioutil.ReadAll(response.Body)
-
 	switch response.StatusCode {
 	case http.StatusOK:
 		if string(rawBody) == "{}" {

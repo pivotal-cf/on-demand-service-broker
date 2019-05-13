@@ -16,6 +16,9 @@ skippackages=system_tests,load_tests
 if [[ -z "${TEST_CREDHUB_CLIENT_SECRET:-""}" ]]; then
   skippackages="contract_tests,${skippackages}"
 fi
+
+export GOPATH="$ODB"
+
 ginkgo \
   -randomizeSuites=true \
   -randomizeAllSpecs=true \

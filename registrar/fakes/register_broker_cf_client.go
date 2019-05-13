@@ -2,6 +2,7 @@
 package fakes
 
 import (
+	"log"
 	"sync"
 
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
@@ -21,6 +22,19 @@ type FakeRegisterBrokerCFClient struct {
 		result1 error
 	}
 	createServiceBrokerReturnsOnCall map[int]struct {
+		result1 error
+	}
+	EnableServiceAccessStub        func(string, string, *log.Logger) error
+	enableServiceAccessMutex       sync.RWMutex
+	enableServiceAccessArgsForCall []struct {
+		arg1 string
+		arg2 string
+		arg3 *log.Logger
+	}
+	enableServiceAccessReturns struct {
+		result1 error
+	}
+	enableServiceAccessReturnsOnCall map[int]struct {
 		result1 error
 	}
 	ServiceBrokersStub        func() ([]cf.ServiceBroker, error)
@@ -113,6 +127,68 @@ func (fake *FakeRegisterBrokerCFClient) CreateServiceBrokerReturnsOnCall(i int, 
 		})
 	}
 	fake.createServiceBrokerReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeRegisterBrokerCFClient) EnableServiceAccess(arg1 string, arg2 string, arg3 *log.Logger) error {
+	fake.enableServiceAccessMutex.Lock()
+	ret, specificReturn := fake.enableServiceAccessReturnsOnCall[len(fake.enableServiceAccessArgsForCall)]
+	fake.enableServiceAccessArgsForCall = append(fake.enableServiceAccessArgsForCall, struct {
+		arg1 string
+		arg2 string
+		arg3 *log.Logger
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("EnableServiceAccess", []interface{}{arg1, arg2, arg3})
+	fake.enableServiceAccessMutex.Unlock()
+	if fake.EnableServiceAccessStub != nil {
+		return fake.EnableServiceAccessStub(arg1, arg2, arg3)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.enableServiceAccessReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeRegisterBrokerCFClient) EnableServiceAccessCallCount() int {
+	fake.enableServiceAccessMutex.RLock()
+	defer fake.enableServiceAccessMutex.RUnlock()
+	return len(fake.enableServiceAccessArgsForCall)
+}
+
+func (fake *FakeRegisterBrokerCFClient) EnableServiceAccessCalls(stub func(string, string, *log.Logger) error) {
+	fake.enableServiceAccessMutex.Lock()
+	defer fake.enableServiceAccessMutex.Unlock()
+	fake.EnableServiceAccessStub = stub
+}
+
+func (fake *FakeRegisterBrokerCFClient) EnableServiceAccessArgsForCall(i int) (string, string, *log.Logger) {
+	fake.enableServiceAccessMutex.RLock()
+	defer fake.enableServiceAccessMutex.RUnlock()
+	argsForCall := fake.enableServiceAccessArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+}
+
+func (fake *FakeRegisterBrokerCFClient) EnableServiceAccessReturns(result1 error) {
+	fake.enableServiceAccessMutex.Lock()
+	defer fake.enableServiceAccessMutex.Unlock()
+	fake.EnableServiceAccessStub = nil
+	fake.enableServiceAccessReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeRegisterBrokerCFClient) EnableServiceAccessReturnsOnCall(i int, result1 error) {
+	fake.enableServiceAccessMutex.Lock()
+	defer fake.enableServiceAccessMutex.Unlock()
+	fake.EnableServiceAccessStub = nil
+	if fake.enableServiceAccessReturnsOnCall == nil {
+		fake.enableServiceAccessReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.enableServiceAccessReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }
@@ -241,6 +317,8 @@ func (fake *FakeRegisterBrokerCFClient) Invocations() map[string][][]interface{}
 	defer fake.invocationsMutex.RUnlock()
 	fake.createServiceBrokerMutex.RLock()
 	defer fake.createServiceBrokerMutex.RUnlock()
+	fake.enableServiceAccessMutex.RLock()
+	defer fake.enableServiceAccessMutex.RUnlock()
 	fake.serviceBrokersMutex.RLock()
 	defer fake.serviceBrokersMutex.RUnlock()
 	fake.updateServiceBrokerMutex.RLock()

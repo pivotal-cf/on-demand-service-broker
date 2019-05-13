@@ -1,8 +1,10 @@
 package cf_test
 
 import (
+	"encoding/json"
 	"io"
 	"log"
+	"os"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -140,4 +142,133 @@ var _ = Describe("CF client", func() {
 			Expect(session).To(gbytes.Say(brokerName))
 		})
 	})
+
+	FDescribe("EnableServiceAccess", func() {
+		// when I enable service access, i can see the plan
+		// Given a plan enabled for an org, when I enable service access, I can see the plan and there's no "visibility" for the plan
+		var (
+			brokerName string
+			brokerGUID string
+			planName   string
+		)
+
+		BeforeEach(func() {
+			planName = "redis-small"
+
+			brokerName = "contract-" + brokerDeployment.TestSuffix
+			session := cf_helpers.Cf("create-service-broker",
+				brokerName,
+				brokerDeployment.BrokerUsername,
+				brokerDeployment.BrokerPassword,
+				"http://"+brokerDeployment.URI,
+			)
+			Eventually(session).Should(gexec.Exit(0))
+
+			Eventually(
+				cf_helpers.Cf("disable-service-access", brokerDeployment.ServiceOffering, "-p", planName),
+			).Should(gexec.Exit(0))
+
+			Eventually(
+				cf_helpers.Cf("enable-service-access", brokerDeployment.ServiceOffering, "-p", planName, "-o", os.Getenv("CF_ORG")),
+			).Should(gexec.Exit(0))
+
+			var err error
+			brokerGUID, err = subject.GetServiceOfferingGUID(brokerName, logger)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		AfterEach(func() {
+			session := cf_helpers.Cf("delete-service-broker", "-f", brokerName)
+			Eventually(session).Should(gexec.Exit(0))
+		})
+
+		FIt("enables service access", func() {
+			// cf curl plan, I should see public false
+			plan := servicePlan(brokerGUID, planName)
+			Expect(plan.Public).To(BeFalse())
+
+			// cf curl plan visibilities, I should see something
+			planVisibilities := servicePlanVisibilities(plan.GUID)
+			Expect(len(planVisibilities)).To(BeNumerically(">=", 1))
+
+			err := subject.EnableServiceAccess(brokerDeployment.ServiceOffering, planName, logger)
+			Expect(err).ToNot(HaveOccurred())
+
+			// cf curl plan, I should see public true
+			updatedPlan := servicePlan(brokerGUID, planName)
+			Expect(updatedPlan.Public).To(BeTrue(), "plan was not made public")
+
+			// cf curl plan visibilities, I should see nothing
+			updatedPlanVisibilities := servicePlanVisibilities(plan.GUID)
+			Expect(len(updatedPlanVisibilities)).To(Equal(0), "plan visibilities were not cleaned")
+		})
+	})
 })
+
+type ServicePlan struct {
+	GUID   string `json:"guid"`
+	Public bool   `json:"public"`
+}
+
+type PlanVisibility struct {
+	GUID             string `json:"guid"`
+	ServicePlanGUID  string `json:"service_plan_guid"`
+	OrganizationGUID string `json:"organization_guid"`
+}
+
+func servicePlanVisibilities(planGUID string) []PlanVisibility {
+	session := cf_helpers.Cf("curl", "/v2/service_plan_visibilities?q=service_plan_guid:"+planGUID)
+	Eventually(session).Should(gexec.Exit(0))
+	rawVisibilities := session.Out.Contents()
+
+	var parsedVisibilities struct {
+		Resources []struct {
+			Metadata struct {
+				GUID string `json:"guid"`
+			} `json:"metadata"`
+			Entity struct {
+				ServicePlanGUID  string `json:"service_plan_guid"`
+				OrganizationGUID string `json:"organization_guid"`
+			} `json:"entity"`
+		} `json:"resources"`
+	}
+
+	Expect(json.Unmarshal(rawVisibilities, &parsedVisibilities)).To(Succeed())
+
+	visibilities := []PlanVisibility{}
+	for _, visibility := range parsedVisibilities.Resources {
+		visibilities = append(visibilities, PlanVisibility{
+			GUID:             visibility.Metadata.GUID,
+			ServicePlanGUID:  visibility.Entity.ServicePlanGUID,
+			OrganizationGUID: visibility.Entity.OrganizationGUID,
+		})
+	}
+	return visibilities
+}
+
+func servicePlan(brokerGUID, planName string) ServicePlan {
+	session := cf_helpers.Cf("curl", "/v2/service_plans?q=service_broker_guid:"+brokerGUID)
+	Eventually(session).Should(gexec.Exit(0))
+	rawPlans := session.Out.Contents()
+
+	var parsedPlans struct {
+		Resources []struct {
+			Metadata struct {
+				GUID string `json:"guid"`
+			} `json:"metadata"`
+			Entity struct {
+				Name   string `json:"name"`
+				Public bool   `json:"public"`
+			} `json:"entity"`
+		} `json:"resources"`
+	}
+
+	Expect(json.Unmarshal(rawPlans, &parsedPlans)).To(Succeed())
+	for _, plan := range parsedPlans.Resources {
+		if plan.Entity.Name == planName {
+			return ServicePlan{GUID: plan.Metadata.GUID, Public: plan.Entity.Public}
+		}
+	}
+	Fail("Plan not found")
+	return ServicePlan{}
+}
