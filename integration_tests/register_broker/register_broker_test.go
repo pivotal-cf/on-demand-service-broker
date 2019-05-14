@@ -134,17 +134,20 @@ var _ = Describe("RegisterBroker", func() {
 
 	When("there are service plans configured", func() {
 		BeforeEach(func() {
+			serviceBrokersHandler.RespondsWith(http.StatusOK, `{"resources":[]}`)
+			createBrokerHandler.RespondsWith(http.StatusCreated, "")
+		})
+
+		It("enables plans that are configured to be enabled", func() {
+			enabledPlanGUID := "enabled-unique-uid"
+
 			errandConfig.Plans = []config.PlanAccess{
 				{
 					Name:            planName,
 					CFServiceAccess: config.PlanEnabled,
 				},
 			}
-			serviceBrokersHandler.RespondsWith(http.StatusOK, `{"resources":[]}`)
-			createBrokerHandler.RespondsWith(http.StatusCreated, "")
-		})
 
-		It("enables plans that are configured to be enabled", func() {
 			servicesHandler.RespondsWith(http.StatusOK, fmt.Sprintf(`{
 			  "resources": [
 				{
@@ -156,44 +159,11 @@ var _ = Describe("RegisterBroker", func() {
 			  ]
 			}`, serviceID, serviceGUID))
 
-			planGUID := "unique-uid"
 			servicePlansOfferingHandler.RespondsWith(http.StatusOK, fmt.Sprintf(`{
 				"resources" : [{
 					"entity": {"name": %q},
 					"metadata": {"guid": %q}
-				}]}`, planName, planGUID))
-
-			servicePlansVisibilityHandler.RespondsWith(http.StatusOK, `{"resources": null}`) //TODO test not null in this test
-			servicePlansHandler.RespondsWith(http.StatusCreated, ``)
-
-			registersBrokerSuccessfully(errandConfig, GinkgoWriter, GinkgoWriter)
-
-			Expect(servicePlansHandler.RequestsReceived()).To(BeNumerically(">=", 1), "no request was made to service plans")
-			servicePlansRequest := servicePlansHandler.GetRequestForCall(0)
-			Expect(servicePlansRequest.URL).To(Equal("/v2/service_plans/" + planGUID))
-			Expect(servicePlansRequest.Body).To(MatchJSON(`{
-				"public": true
-			}`))
-		})
-
-		It("deletes any previous visibilities when making a plan public", func() {
-			servicesHandler.RespondsWith(http.StatusOK, fmt.Sprintf(`{
-			  "resources": [
-				{
-				  "entity": {
-					"unique_id": %q,
-					"service_plans_url": "/v2/services/%s/service_plans"
-				  }
-				}
-			  ]
-			}`, serviceID, serviceGUID))
-
-			planGUID := "unique-uid"
-			servicePlansOfferingHandler.RespondsWith(http.StatusOK, fmt.Sprintf(`{
-				"resources" : [{
-					"entity": {"name": %q},
-					"metadata": {"guid": %q}
-				}]}`, planName, planGUID))
+				}]}`, planName, enabledPlanGUID))
 
 			servicePlansVisibilityHandler.RespondsWith(http.StatusOK, `{"resources": [
 				{ "metadata": { "url": "/v2/service_plan_visibilities/d1b5ea55-f354-4f43-b52e-53045747adb9" } },
@@ -204,15 +174,57 @@ var _ = Describe("RegisterBroker", func() {
 
 			registersBrokerSuccessfully(errandConfig, GinkgoWriter, GinkgoWriter)
 
-			Expect(servicePlansHandler.RequestsReceived()).To(BeNumerically(">=", 1), "no request was made to service plans")
 			servicePlansRequest := servicePlansHandler.GetRequestForCall(0)
-			Expect(servicePlansRequest.URL).To(Equal("/v2/service_plans/" + planGUID))
+			Expect(servicePlansRequest.URL).To(Equal("/v2/service_plans/" + enabledPlanGUID))
 			Expect(servicePlansRequest.Body).To(MatchJSON(`{
 				"public": true
 			}`))
-
 			Expect(servicePlansVisibilityDeleteHandler.RequestsReceived()).To(BeNumerically(">=", 2), "no request was made to service plan visibility")
 		})
+
+		It("disables plans that are configured to be disabled", func() {
+			disabledPlanGUID := "disabled-unique-uid"
+			disabledPlanName := "disabled-plan-name"
+			errandConfig.Plans = []config.PlanAccess{
+				{
+					Name:            disabledPlanName,
+					CFServiceAccess: config.PlanDisabled,
+				},
+			}
+			servicesHandler.RespondsWith(http.StatusOK, fmt.Sprintf(`{
+			  "resources": [
+				{
+				  "entity": {
+					"unique_id": %q,
+					"service_plans_url": "/v2/services/%s/service_plans"
+				  }
+				}
+			  ]
+			}`, serviceID, serviceGUID))
+
+			servicePlansOfferingHandler.RespondsWith(http.StatusOK, fmt.Sprintf(`{
+				"resources" : [{
+					"entity": {"name": %q},
+					"metadata": {"guid": %q}
+				}]}`, disabledPlanName, disabledPlanGUID))
+
+			servicePlansVisibilityHandler.RespondsWith(http.StatusOK, `{"resources": [
+				{ "metadata": { "url": "/v2/service_plan_visibilities/d1b5ea55-f354-4f43-b52e-53045747adb9" } },
+				{ "metadata": { "url": "/v2/service_plan_visibilities/some-plan-visibility-guid" } }
+			]}`)
+			servicePlansVisibilityDeleteHandler.RespondsWith(http.StatusNoContent, "")
+			servicePlansHandler.RespondsWith(http.StatusCreated, ``)
+
+			registersBrokerSuccessfully(errandConfig, GinkgoWriter, GinkgoWriter)
+
+			servicePlansRequest := servicePlansHandler.GetRequestForCall(0)
+			Expect(servicePlansRequest.URL).To(Equal("/v2/service_plans/" + disabledPlanGUID))
+			Expect(servicePlansRequest.Body).To(MatchJSON(`{
+				"public": false
+			}`))
+			Expect(servicePlansVisibilityDeleteHandler.RequestsReceived()).To(BeNumerically(">=", 2), "no request was made to service plan visibility")
+		})
+
 	})
 
 	Describe("error handling", func() {

@@ -37,7 +37,8 @@ func (fake *FakeDeleter) DeleteAllServiceInstances(arg1 string) error {
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.deleteAllServiceInstancesReturns.result1
+	fakeReturns := fake.deleteAllServiceInstancesReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeDeleter) DeleteAllServiceInstancesCallCount() int {
@@ -46,13 +47,22 @@ func (fake *FakeDeleter) DeleteAllServiceInstancesCallCount() int {
 	return len(fake.deleteAllServiceInstancesArgsForCall)
 }
 
+func (fake *FakeDeleter) DeleteAllServiceInstancesCalls(stub func(string) error) {
+	fake.deleteAllServiceInstancesMutex.Lock()
+	defer fake.deleteAllServiceInstancesMutex.Unlock()
+	fake.DeleteAllServiceInstancesStub = stub
+}
+
 func (fake *FakeDeleter) DeleteAllServiceInstancesArgsForCall(i int) string {
 	fake.deleteAllServiceInstancesMutex.RLock()
 	defer fake.deleteAllServiceInstancesMutex.RUnlock()
-	return fake.deleteAllServiceInstancesArgsForCall[i].arg1
+	argsForCall := fake.deleteAllServiceInstancesArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeDeleter) DeleteAllServiceInstancesReturns(result1 error) {
+	fake.deleteAllServiceInstancesMutex.Lock()
+	defer fake.deleteAllServiceInstancesMutex.Unlock()
 	fake.DeleteAllServiceInstancesStub = nil
 	fake.deleteAllServiceInstancesReturns = struct {
 		result1 error
@@ -60,6 +70,8 @@ func (fake *FakeDeleter) DeleteAllServiceInstancesReturns(result1 error) {
 }
 
 func (fake *FakeDeleter) DeleteAllServiceInstancesReturnsOnCall(i int, result1 error) {
+	fake.deleteAllServiceInstancesMutex.Lock()
+	defer fake.deleteAllServiceInstancesMutex.Unlock()
 	fake.DeleteAllServiceInstancesStub = nil
 	if fake.deleteAllServiceInstancesReturnsOnCall == nil {
 		fake.deleteAllServiceInstancesReturnsOnCall = make(map[int]struct {

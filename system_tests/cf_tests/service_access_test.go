@@ -31,7 +31,7 @@ import (
 	cf_system_tests_helper "github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/cf_helpers"
 )
 
-var _ = Describe("cf.Client.DisableServiceAccess", func() {
+var _ = Describe("cf.Client.DisableServiceAccessForAllPlans", func() {
 	var conf testConfig
 
 	BeforeEach(func() {
@@ -47,7 +47,7 @@ var _ = Describe("cf.Client.DisableServiceAccess", func() {
 		Eventually(cf_system_tests_helper.Cf("enable-service-access", conf.serviceOffering), cf_system_tests_helper.CfTimeout).Should(gexec.Exit(0))
 
 		client := getClient(conf.cFUAAURL, conf.cfAPIURL, conf.cfUser, conf.cfPassword)
-		err := client.DisableServiceAccess(conf.serviceGUID, testLogger())
+		err := client.DisableServiceAccessForAllPlans(conf.serviceGUID, testLogger())
 
 		Expect(err).NotTo(HaveOccurred())
 

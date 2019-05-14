@@ -128,7 +128,7 @@ var _ = Describe("RegisterBrokerRunner", func() {
 			err := runner.Run()
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(fakeCFClient.EnableServiceAccessCallCount()).To(Equal(2), "PlanEnabled service access wasn't called")
+			Expect(fakeCFClient.EnableServiceAccessCallCount()).To(Equal(2), "EnableServiceAccess wasn't called")
 
 			serviceName, planName, _ := fakeCFClient.EnableServiceAccessArgsForCall(0)
 			Expect(serviceName).To(Equal(expectedServiceName))
@@ -139,8 +139,15 @@ var _ = Describe("RegisterBrokerRunner", func() {
 			Expect(planName2).To(Equal(expectedPlanName2))
 		})
 
-		It("not enable service access for a plan that is not set to enable access", func() {
-			servicePlans[0].CFServiceAccess = "not-enable"
+		It("disables service access for a plan that is set to disable access", func() {
+			disabledPlanName := "disabled-plan"
+
+			servicePlans = []config.PlanAccess{
+				{
+					Name:            disabledPlanName,
+					CFServiceAccess: config.PlanDisabled,
+				},
+			}
 
 			fakeCFClient.ServiceBrokersReturns([]cf.ServiceBroker{}, nil)
 			runner = registrar.RegisterBrokerRunner{
@@ -154,11 +161,11 @@ var _ = Describe("RegisterBrokerRunner", func() {
 			err := runner.Run()
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(fakeCFClient.EnableServiceAccessCallCount()).To(Equal(1), "PlanEnabled service access wasn't called")
+			Expect(fakeCFClient.DisableServiceAccessCallCount()).To(Equal(1), "DisableServiceAccess wasn't called")
 
-			serviceName, planName, _ := fakeCFClient.EnableServiceAccessArgsForCall(0)
+			serviceName, planName, _ := fakeCFClient.DisableServiceAccessArgsForCall(0)
 			Expect(serviceName).To(Equal(expectedServiceName))
-			Expect(planName).To(Equal(expectedPlanName2))
+			Expect(planName).To(Equal(disabledPlanName))
 		})
 	})
 
@@ -180,6 +187,9 @@ var _ = Describe("RegisterBrokerRunner", func() {
 						{
 							Name:            "not-relevant",
 							CFServiceAccess: config.PlanEnabled,
+						}, {
+							Name:            "not-relevant-but-different",
+							CFServiceAccess: config.PlanDisabled,
 						},
 					},
 				},
@@ -206,6 +216,15 @@ var _ = Describe("RegisterBrokerRunner", func() {
 		It("errors when it cannot enable access for a plan", func() {
 			fakeCFClient.ServiceBrokersReturns([]cf.ServiceBroker{}, nil)
 			fakeCFClient.EnableServiceAccessReturns(errors.New("I messed up"))
+
+			err := runner.Run()
+			Expect(err).To(HaveOccurred())
+			Expect(err).To(MatchError("failed to execute register-broker: I messed up"))
+		})
+
+		It("errors when it cannot disable access for a plan", func() {
+			fakeCFClient.ServiceBrokersReturns([]cf.ServiceBroker{}, nil)
+			fakeCFClient.DisableServiceAccessReturns(errors.New("I messed up"))
 
 			err := runner.Run()
 			Expect(err).To(HaveOccurred())

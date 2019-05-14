@@ -354,6 +354,14 @@ func (c Client) deleteServicePlanVisibilities(planGUID string) error {
 }
 
 func (c Client) EnableServiceAccess(serviceOfferingID, planName string, logger *log.Logger) error {
+	return c.manageServiceAccess(serviceOfferingID, planName, true, logger)
+}
+
+func (c Client) DisableServiceAccess(serviceOfferingID, planName string, logger *log.Logger) error {
+	return c.manageServiceAccess(serviceOfferingID, planName, false, logger)
+}
+
+func (c Client) manageServiceAccess(serviceOfferingID string, planName string, isPublic bool, logger *log.Logger) error {
 	plans, err := c.getPlansForServiceID(serviceOfferingID, logger)
 	if err != nil {
 		return err
@@ -361,10 +369,10 @@ func (c Client) EnableServiceAccess(serviceOfferingID, planName string, logger *
 
 	planGUID := findPlanGUID(plans, planName)
 	if planGUID == "" {
-		return fmt.Errorf(`planID %q not found while enabling access`, planName)
+		return fmt.Errorf(`planID %q not found while updating plan access`, planName)
 	}
 
-	err = c.setAccessForPlan(planGUID, true, logger)
+	err = c.setAccessForPlan(planGUID, isPublic, logger)
 	if err != nil {
 		return err
 	}
@@ -376,9 +384,10 @@ func (c Client) EnableServiceAccess(serviceOfferingID, planName string, logger *
 		)
 	}
 	return nil
+
 }
 
-func (c Client) DisableServiceAccess(serviceOfferingID string, logger *log.Logger) error {
+func (c Client) DisableServiceAccessForAllPlans(serviceOfferingID string, logger *log.Logger) error {
 	plans, err := c.getPlansForServiceID(serviceOfferingID, logger)
 	if err != nil {
 		return err

@@ -37,7 +37,8 @@ func (fake *FakeDeregistrar) Deregister(arg1 string) error {
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.deregisterReturns.result1
+	fakeReturns := fake.deregisterReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeDeregistrar) DeregisterCallCount() int {
@@ -46,13 +47,22 @@ func (fake *FakeDeregistrar) DeregisterCallCount() int {
 	return len(fake.deregisterArgsForCall)
 }
 
+func (fake *FakeDeregistrar) DeregisterCalls(stub func(string) error) {
+	fake.deregisterMutex.Lock()
+	defer fake.deregisterMutex.Unlock()
+	fake.DeregisterStub = stub
+}
+
 func (fake *FakeDeregistrar) DeregisterArgsForCall(i int) string {
 	fake.deregisterMutex.RLock()
 	defer fake.deregisterMutex.RUnlock()
-	return fake.deregisterArgsForCall[i].arg1
+	argsForCall := fake.deregisterArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeDeregistrar) DeregisterReturns(result1 error) {
+	fake.deregisterMutex.Lock()
+	defer fake.deregisterMutex.Unlock()
 	fake.DeregisterStub = nil
 	fake.deregisterReturns = struct {
 		result1 error
@@ -60,6 +70,8 @@ func (fake *FakeDeregistrar) DeregisterReturns(result1 error) {
 }
 
 func (fake *FakeDeregistrar) DeregisterReturnsOnCall(i int, result1 error) {
+	fake.deregisterMutex.Lock()
+	defer fake.deregisterMutex.Unlock()
 	fake.DeregisterStub = nil
 	if fake.deregisterReturnsOnCall == nil {
 		fake.deregisterReturnsOnCall = make(map[int]struct {

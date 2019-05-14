@@ -628,7 +628,8 @@ type RegisterBrokerErrandConfig struct {
 type CFServiceAccess string
 
 const (
-	PlanEnabled = CFServiceAccess("enable")
+	PlanEnabled  = CFServiceAccess("enable")
+	PlanDisabled = CFServiceAccess("disable")
 )
 
 type PlanAccess struct {

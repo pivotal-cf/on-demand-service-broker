@@ -107,7 +107,7 @@ var _ = Describe("Client", func() {
 		})
 	})
 
-	Describe("DisableServiceAccess", func() {
+	Describe("DisableServiceAccessForAllPlans", func() {
 		const offeringID = "D94A086D-203D-4966-A6F1-60A9E2300F72"
 
 		It("disables all the plans across pages", func() {
@@ -123,7 +123,7 @@ var _ = Describe("Client", func() {
 			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 
-			err = client.DisableServiceAccess(offeringID, testLogger)
+			err = client.DisableServiceAccessForAllPlans(offeringID, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -135,7 +135,7 @@ var _ = Describe("Client", func() {
 			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 
-			err = client.DisableServiceAccess(offeringID, testLogger)
+			err = client.DisableServiceAccessForAllPlans(offeringID, testLogger)
 			Expect(err).To(MatchError(ContainSubstring("failed")))
 		})
 
@@ -150,7 +150,7 @@ var _ = Describe("Client", func() {
 			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 
-			err = client.DisableServiceAccess(offeringID, testLogger)
+			err = client.DisableServiceAccessForAllPlans(offeringID, testLogger)
 			Expect(err).To(MatchError(ContainSubstring("failed")))
 		})
 	})
@@ -272,7 +272,7 @@ var _ = Describe("Client", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			err = client.EnableServiceAccess(serviceID, planID, testLogger)
-			Expect(err).To(MatchError(ContainSubstring(`planID "the-plan-i-am-looking-for" not found while enabling access`)))
+			Expect(err).To(MatchError(ContainSubstring(`planID "the-plan-i-am-looking-for" not found while updating plan access`)))
 		})
 
 		When("the plan has visibilities", func() {
@@ -399,6 +399,252 @@ var _ = Describe("Client", func() {
 				))
 			})
 
+		})
+	})
+
+	Describe("DisableServiceAccess", func() {
+		It("disables access for plan", func() {
+			serviceID := "service-id"
+			serviceGUID := "service-guid"
+			planID := "disabled-plan-id"
+			planGUID := "disabled-plan-guid"
+
+			server.VerifyAndMock(
+				mockcfapi.ListServiceOfferings().WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fmt.Sprintf(`{
+						"resources": [{
+							"entity": {
+								"unique_id": %q,
+								"service_plans_url": "/v2/services/%s/service_plans"
+							}
+						}]
+					}`, serviceID, serviceGUID)),
+				mockcfapi.ListServicePlans(serviceGUID).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fmt.Sprintf(`{
+						"resources": [{
+							"entity": { "name": %q },
+							"metadata": { "guid": %q }
+						}, {
+							"entity": { "name": "other-plan" },
+							"metadata": { "guid": "some-guid" }
+						}]
+					}
+					`, planID, planGUID)),
+				mockcfapi.DisablePlanAccess(planGUID).RespondsCreated(),
+				mockcfapi.ListServicePlanVisibilities(planGUID).RespondsOKWith(`{"resources": null}`),
+			)
+
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = client.DisableServiceAccess(serviceID, planID, testLogger)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("returns an error if it fails to get plans for service offering", func() {
+			server.VerifyAndMock(
+				mockcfapi.ListServiceOfferings().WithAuthorizationHeader(cfAuthorizationHeader).RespondsInternalServerErrorWith("failed"),
+			)
+
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = client.DisableServiceAccess("a-plan", "plan-id", testLogger)
+			Expect(err).To(MatchError(ContainSubstring("failed")))
+		})
+
+		It("returns an error if it fails to find the plan for service", func() {
+			serviceID := "service-id"
+			serviceGUID := "service-guid"
+			planID := "inexistent-plan-id"
+
+			server.VerifyAndMock(
+				mockcfapi.ListServiceOfferings().WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fmt.Sprintf(`
+					{
+						"resources": [{
+							"entity": {
+								"unique_id": %q,
+								"service_plans_url": "/v2/services/%s/service_plans"
+							}
+						}]
+					}`, serviceID, serviceGUID)),
+				mockcfapi.ListServicePlans(serviceGUID).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(`{
+						"resources": [{
+							"entity": { "name": "not-the-plan-you-are-looking-for" },
+							"metadata": { "guid": "some-guid" }
+						}]
+					}
+					`),
+			)
+
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = client.DisableServiceAccess(serviceID, planID, testLogger)
+			Expect(err).To(MatchError(ContainSubstring("planID %q not found while updating plan access", planID)))
+		})
+
+		It("returns an error if it fails to set service access", func() {
+			serviceID := "service-id"
+			serviceGUID := "service-guid"
+			planID := "disabled-plan-id"
+			planGUID := "disabled-plan-guid"
+
+			server.VerifyAndMock(
+				mockcfapi.ListServiceOfferings().WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fmt.Sprintf(`
+					{
+						"resources": [{
+							"entity": {
+								"unique_id": %q,
+								"service_plans_url": "/v2/services/%s/service_plans"
+							}
+						}]
+					}`, serviceID, serviceGUID)),
+				mockcfapi.ListServicePlans(serviceGUID).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fmt.Sprintf(`{
+						"resources": [{
+							"entity": { "name": %q },
+							"metadata": { "guid": %q }
+						}, {
+							"entity": { "name": "other-plan" },
+							"metadata": { "guid": "some-guid" }
+						}]
+					}
+					`, planID, planGUID)),
+				mockcfapi.DisablePlanAccess(planGUID).RespondsInternalServerErrorWith("failed"),
+			)
+
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = client.DisableServiceAccess(serviceID, planID, testLogger)
+			Expect(err).To(MatchError(SatisfyAll(
+				ContainSubstring("failed"),
+				ContainSubstring("500"),
+				ContainSubstring(planGUID),
+			)))
+		})
+
+		When("the plan has visibilities", func() {
+			It("deletes the visibilities", func() {
+				serviceID := "service-id"
+				serviceGUID := "service-guid"
+				planID := "disabled-plan-id"
+				planGUID := "disabled-plan-guid"
+
+				server.VerifyAndMock(
+					mockcfapi.ListServiceOfferings().WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fmt.Sprintf(`{
+						"resources": [{
+							"entity": {
+								"unique_id": %q,
+								"service_plans_url": "/v2/services/%s/service_plans"
+							}
+						}]
+					}`, serviceID, serviceGUID)),
+					mockcfapi.ListServicePlans(serviceGUID).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fmt.Sprintf(`{
+						"resources": [{
+							"entity": { "name": %q },
+							"metadata": { "guid": %q }
+						}, {
+							"entity": { "name": "other-plan" },
+							"metadata": { "guid": "some-guid" }
+						}]
+					}
+					`, planID, planGUID)),
+					mockcfapi.DisablePlanAccess(planGUID).RespondsCreated(),
+					mockcfapi.ListServicePlanVisibilities(planGUID).RespondsOKWith(`{"resources": [
+						{ "metadata": { "guid": "d1b5ea55-f354-4f43-b52e-53045747adb9" } },
+						{ "metadata": { "guid": "some-plan-visibility-guid" } }
+					]}`),
+					mockcfapi.DeleteServicePlanVisibility("d1b5ea55-f354-4f43-b52e-53045747adb9").RespondsNoContent(),
+					mockcfapi.DeleteServicePlanVisibility("some-plan-visibility-guid").RespondsNoContent(),
+				)
+
+				client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
+				Expect(err).NotTo(HaveOccurred())
+
+				err = client.DisableServiceAccess(serviceID, planID, testLogger)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("returns an error if it fails to get the service plan visibilities", func() {
+				serviceID := "service-id"
+				serviceGUID := "service-guid"
+				planID := "disabled-plan-id"
+				planGUID := "disabled-plan-guid"
+
+				server.VerifyAndMock(
+					mockcfapi.ListServiceOfferings().WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fmt.Sprintf(`{
+						"resources": [{
+							"entity": {
+								"unique_id": %q,
+								"service_plans_url": "/v2/services/%s/service_plans"
+							}
+						}]
+					}`, serviceID, serviceGUID)),
+					mockcfapi.ListServicePlans(serviceGUID).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fmt.Sprintf(`{
+						"resources": [{
+							"entity": { "name": %q },
+							"metadata": { "guid": %q }
+						}, {
+							"entity": { "name": "other-plan" },
+							"metadata": { "guid": "some-guid" }
+						}]
+					}
+					`, planID, planGUID)),
+					mockcfapi.DisablePlanAccess(planGUID).RespondsCreated(),
+					mockcfapi.ListServicePlanVisibilities(planGUID).RespondsInternalServerErrorWith("nope"),
+				)
+
+				client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
+				Expect(err).NotTo(HaveOccurred())
+
+				err = client.DisableServiceAccess(serviceID, planID, testLogger)
+				Expect(err.Error()).To(SatisfyAll(
+					ContainSubstring("nope"),
+					ContainSubstring("failed to get plan visibilities for plan %s", planGUID),
+				))
+			})
+
+			It("returns an error if it fails to delete the service plan visibilities", func() {
+				serviceID := "service-id"
+				serviceGUID := "service-guid"
+				planID := "disabled-plan-id"
+				planGUID := "disabled-plan-guid"
+
+				server.VerifyAndMock(
+					mockcfapi.ListServiceOfferings().WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fmt.Sprintf(`{
+						"resources": [{
+							"entity": {
+								"unique_id": %q,
+								"service_plans_url": "/v2/services/%s/service_plans"
+							}
+						}]
+					}`, serviceID, serviceGUID)),
+					mockcfapi.ListServicePlans(serviceGUID).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fmt.Sprintf(`{
+						"resources": [{
+							"entity": { "name": %q },
+							"metadata": { "guid": %q }
+						}, {
+							"entity": { "name": "other-plan" },
+							"metadata": { "guid": "some-guid" }
+						}]
+					}
+					`, planID, planGUID)),
+					mockcfapi.DisablePlanAccess(planGUID).RespondsCreated(),
+					mockcfapi.ListServicePlanVisibilities(planGUID).RespondsOKWith(`{"resources": [
+						{ "metadata": { "guid": "d1b5ea55-f354-4f43-b52e-53045747adb9" } },
+						{ "metadata": { "guid": "some-plan-visibility-guid" } }
+					]}`),
+					mockcfapi.DeleteServicePlanVisibility("d1b5ea55-f354-4f43-b52e-53045747adb9").RespondsInternalServerErrorWith("nope"),
+				)
+
+				client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
+				Expect(err).NotTo(HaveOccurred())
+
+				err = client.DisableServiceAccess(serviceID, planID, testLogger)
+				Expect(err.Error()).To(SatisfyAll(
+					ContainSubstring("nope"),
+					ContainSubstring("failed to delete plan visibility for plan %s", planGUID),
+				))
+			})
 		})
 	})
 

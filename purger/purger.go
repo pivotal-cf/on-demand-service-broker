@@ -41,7 +41,7 @@ type Deregistrar interface {
 
 //go:generate counterfeiter -o fakes/fake_cloud_foundry_client.go . CloudFoundryClient
 type CloudFoundryClient interface {
-	DisableServiceAccess(serviceOfferingID string, logger *log.Logger) error
+	DisableServiceAccessForAllPlans(serviceOfferingID string, logger *log.Logger) error
 }
 
 func New(d Deleter, r Deregistrar, cfClient CloudFoundryClient, logger *log.Logger) *Purger {
@@ -55,7 +55,7 @@ func New(d Deleter, r Deregistrar, cfClient CloudFoundryClient, logger *log.Logg
 
 func (p Purger) DeleteInstancesAndDeregister(serviceCatalogID, brokerName string) error {
 	p.logger.Println("Disabling service access for all plans")
-	err := p.cfClient.DisableServiceAccess(serviceCatalogID, p.logger)
+	err := p.cfClient.DisableServiceAccessForAllPlans(serviceCatalogID, p.logger)
 	if err != nil {
 		return fmt.Errorf(errorMessageTemplate, err.Error())
 	}
