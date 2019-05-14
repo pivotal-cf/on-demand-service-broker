@@ -109,10 +109,8 @@ func (c Client) GetInstancesOfServiceOfferingByOrgSpace(serviceOfferingID, orgNa
 		return nil, err
 	}
 
-	var orgResponse CFResponse
-
-	orgURL := fmt.Sprintf("%s/v2/organizations?q=name:%s", c.url, orgName)
-	if err = c.get(orgURL, &orgResponse, logger); err != nil {
+	orgResponse, err := c.getOrganization(orgName, logger)
+	if err != nil {
 		return nil, err
 	}
 
@@ -305,6 +303,41 @@ func (c Client) GetServiceOfferingGUID(brokerName string, logger *log.Logger) (s
 	return brokerGUID, nil
 }
 
+func (c Client) CreateServicePlanVisibility(orgName string, serviceName string, planName string, logger *log.Logger) error {
+	orgResponse, err := c.getOrganization(orgName, logger)
+	if err != nil {
+		return errors.Wrap(err, "failed to create service plan visibility")
+	}
+	if len(orgResponse.Resources) == 0 {
+		return fmt.Errorf("failed to find org with name %q", orgName)
+	}
+	orgGUID := orgResponse.Resources[0].Metadata["guid"]
+
+	plans, err := c.getPlansForServiceID(serviceName, logger)
+	if err != nil {
+		return errors.Wrap(err, "failed to create service plan visibility")
+	}
+
+	planGUID := findPlanGUID(plans, planName)
+	if planGUID == "" {
+		return fmt.Errorf(`planID %q not found while updating plan access`, planName)
+	}
+
+	path := fmt.Sprintf("%s/v2/service_plan_visibilities", c.url)
+	body := bytes.NewBuffer([]byte(
+		fmt.Sprintf(`{"service_plan_guid":"%s","organization_guid":"%s"}`, planGUID, orgGUID),
+	))
+	response, err := c.post(path, body, logger)
+	if err != nil {
+		return errors.Wrap(err, "failed to create service plan visibility")
+	}
+	if response.StatusCode != http.StatusCreated {
+		return fmt.Errorf("unexpected status code %d when creating service plan visibility", response.StatusCode)
+	}
+
+	return nil
+}
+
 func (c Client) getServicePlanVisibilities(planGUID string) ([]ServicePlanVisibility, error) {
 	path := fmt.Sprintf(
 		"/v2/service_plan_visibilities?q=service_plan_guid:%s&results-per-page=%d",
@@ -486,6 +519,17 @@ func findPlanGUID(plans []ServicePlan, planName string) string {
 		}
 	}
 	return planGUID
+}
+
+func (c Client) getOrganization(orgName string, logger *log.Logger) (CFResponse, error) {
+	var orgResponse CFResponse
+
+	orgURL := fmt.Sprintf("%s/v2/organizations?q=name:%s", c.url, orgName)
+	if err := c.get(orgURL, &orgResponse, logger); err != nil {
+		return CFResponse{}, err
+	}
+
+	return orgResponse, nil
 }
 
 func (c Client) listServiceBrokers(logger *log.Logger) ([]ServiceBroker, error) {

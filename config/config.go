@@ -628,11 +628,13 @@ type RegisterBrokerErrandConfig struct {
 type CFServiceAccess string
 
 const (
-	PlanEnabled  = CFServiceAccess("enable")
-	PlanDisabled = CFServiceAccess("disable")
+	PlanEnabled       = CFServiceAccess("enable")
+	PlanDisabled      = CFServiceAccess("disable")
+	PlanOrgRestricted = CFServiceAccess("org-restricted")
 )
 
 type PlanAccess struct {
-	Name            string          `yaml:"name"`
-	CFServiceAccess CFServiceAccess `yaml:"cf_service_access"`
+	Name             string          `yaml:"name"`
+	ServiceAccessOrg string          `yaml:"service_access_org"`
+	CFServiceAccess  CFServiceAccess `yaml:"cf_service_access"`
 }

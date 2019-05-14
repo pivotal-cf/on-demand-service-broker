@@ -21,6 +21,7 @@ type RegisterBrokerCFClient interface {
 	UpdateServiceBroker(guid, name, username, password, url string) error
 	EnableServiceAccess(serviceName, planName string, logger *log.Logger) error
 	DisableServiceAccess(serviceName, planName string, logger *log.Logger) error
+	CreateServicePlanVisibility(orgName, serviceName, planName string, logger *log.Logger) error
 }
 
 const executionError = "failed to execute register-broker"
@@ -43,6 +44,13 @@ func (r *RegisterBrokerRunner) Run() error {
 		}
 		if err != nil {
 			return errors.Wrap(err, executionError)
+		}
+
+		if plan.CFServiceAccess == config.PlanOrgRestricted {
+			err = r.CFClient.CreateServicePlanVisibility(plan.ServiceAccessOrg, r.Config.ServiceName, plan.Name, r.Logger)
+			if err != nil {
+				return errors.Wrap(err, executionError)
+			}
 		}
 	}
 

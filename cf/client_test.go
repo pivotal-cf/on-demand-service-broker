@@ -1571,7 +1571,7 @@ var _ = Describe("Client", func() {
 			Expect(instances).To(Equal([]service.Instance{}))
 		})
 
-		It("retuns an empty list when the org doesnt exist", func() {
+		It("returns an empty list when the org doesnt exist", func() {
 			offeringID := "8F3E8998-5FD0-4F32-924A-5478DC390A5F"
 
 			server.VerifyAndMock(
@@ -1588,7 +1588,7 @@ var _ = Describe("Client", func() {
 			Expect(instances).To(Equal([]service.Instance{}))
 		})
 
-		It("retuns an empty list when the space doesnt exist", func() {
+		It("returns an empty list when the space doesnt exist", func() {
 			offeringID := "8F3E8998-5FD0-4F32-924A-5478DC390A5F"
 
 			server.VerifyAndMock(
@@ -2194,6 +2194,182 @@ var _ = Describe("Client", func() {
 			Expect(err).To(MatchError(ContainSubstring("failed building header")))
 		})
 
+	})
+
+	Describe("CreateServicePlanVisibility", func() {
+		It("creates a service plan visibility", func() {
+			serviceID := "service-name"
+			serviceGUID := "service-guid"
+
+			planID := "plan-name"
+			planGUID := "plan-guid"
+
+			orgID := "org-name"
+			orgGUID := "org-guid"
+
+			server.VerifyAndMock(
+				mockcfapi.ListOrg(orgID).RespondsOKWith(fmt.Sprintf(`{
+					"resources": [{
+						"metadata": { "guid": "%s" }
+					}]
+				}`, orgGUID)),
+				mockcfapi.ListServiceOfferings().WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fmt.Sprintf(`{
+						"resources": [{
+							"entity": {
+								"unique_id": %q,
+								"service_plans_url": "/v2/services/%s/service_plans"
+							}
+						}]
+					}`, serviceID, serviceGUID)),
+				mockcfapi.ListServicePlans(serviceGUID).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fmt.Sprintf(`{
+						"resources": [{
+							"entity": { "name": %q },
+							"metadata": { "guid": %q }
+						}, {
+							"entity": { "name": "other-plan" },
+							"metadata": { "guid": "some-guid" }
+						}]
+					}
+					`, planID, planGUID)),
+				mockcfapi.CreateServicePlanVisibility(orgGUID, planGUID).RespondsCreated(),
+			)
+
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = client.CreateServicePlanVisibility(orgID, serviceID, planID, testLogger)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("returns an error if it fails to get list of orgs", func() {
+			serviceID := "service-name"
+			planID := "plan-name"
+			orgID := "org-name"
+
+			server.VerifyAndMock(
+				mockcfapi.ListOrg(orgID).RespondsInternalServerErrorWith("failed to list orgs"),
+			)
+
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = client.CreateServicePlanVisibility(orgID, serviceID, planID, testLogger)
+			Expect(err).To(HaveOccurred())
+			Expect(err).To(MatchError(ContainSubstring("failed to list orgs")))
+		})
+
+		It("returns an error if it fails to find the org", func() {
+			serviceID := "service-name"
+			planID := "plan-name"
+			orgID := "org-name"
+
+			server.VerifyAndMock(
+				mockcfapi.ListOrg(orgID).RespondsOKWith(`{"resources": []}`),
+			)
+
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = client.CreateServicePlanVisibility(orgID, serviceID, planID, testLogger)
+			Expect(err).To(HaveOccurred())
+			Expect(err).To(MatchError(ContainSubstring("failed to find org with name %q", orgID)))
+		})
+
+		It("returns an error when cannot get list of plans", func() {
+			serviceID := "service-name"
+			planID := "plan-name"
+			orgID := "org-name"
+			orgGUID := "org-guid"
+
+			server.VerifyAndMock(
+				mockcfapi.ListOrg(orgID).RespondsOKWith(fmt.Sprintf(`{ "resources": [{ "metadata": { "guid": "%s" } }] }`, orgGUID)),
+				mockcfapi.ListServiceOfferings().RespondsInternalServerErrorWith("failed to get plans"),
+			)
+
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = client.CreateServicePlanVisibility(orgID, serviceID, planID, testLogger)
+			Expect(err).To(HaveOccurred())
+			Expect(err).To(MatchError(ContainSubstring("failed to get plans")))
+		})
+
+		It("returns an error when cannot list of plans does not include the target plan", func() {
+			serviceID := "service-name"
+			planID := "plan-name"
+			orgID := "org-name"
+			orgGUID := "org-guid"
+
+			server.VerifyAndMock(
+				mockcfapi.ListOrg(orgID).RespondsOKWith(fmt.Sprintf(`{ "resources": [{ "metadata": { "guid": "%s" } }] }`, orgGUID)),
+				mockcfapi.ListServiceOfferings().WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fmt.Sprintf(`{
+						"resources": [{
+							"entity": {
+								"unique_id": %q,
+								"service_plans_url": "/v2/services/%s/service_plans"
+							}
+						}]
+					}`, serviceID, serviceGUID)),
+				mockcfapi.ListServicePlans(serviceGUID).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(`{
+						"resources": [{
+							"entity": { "name": "other-plan" },
+							"metadata": { "guid": "some-guid" }
+						}]
+					}`),
+			)
+
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = client.CreateServicePlanVisibility(orgID, serviceID, planID, testLogger)
+			Expect(err).To(HaveOccurred())
+			Expect(err).To(MatchError(ContainSubstring("planID %q not found while updating plan access", planID)))
+		})
+
+		It("returns an error when creation returns a non-201 status code", func() {
+			serviceID := "service-name"
+			serviceGUID := "service-guid"
+
+			planID := "plan-name"
+			planGUID := "plan-guid"
+
+			orgID := "org-name"
+			orgGUID := "org-guid"
+
+			server.VerifyAndMock(
+				mockcfapi.ListOrg(orgID).RespondsOKWith(fmt.Sprintf(`{
+					"resources": [{
+						"metadata": { "guid": "%s" }
+					}]
+				}`, orgGUID)),
+				mockcfapi.ListServiceOfferings().WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fmt.Sprintf(`{
+						"resources": [{
+							"entity": {
+								"unique_id": %q,
+								"service_plans_url": "/v2/services/%s/service_plans"
+							}
+						}]
+					}`, serviceID, serviceGUID)),
+				mockcfapi.ListServicePlans(serviceGUID).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fmt.Sprintf(`{
+						"resources": [{
+							"entity": { "name": %q },
+							"metadata": { "guid": %q }
+						}, {
+							"entity": { "name": "other-plan" },
+							"metadata": { "guid": "some-guid" }
+						}]
+					}
+					`, planID, planGUID)),
+				mockcfapi.CreateServicePlanVisibility(orgGUID, planGUID).RespondsNoContent(),
+			)
+
+			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = client.CreateServicePlanVisibility(orgID, serviceID, planID, testLogger)
+			Expect(err).To(HaveOccurred())
+			Expect(err).To(MatchError(ContainSubstring("unexpected status code 204 when creating service plan visibility")))
+		})
 	})
 })
 

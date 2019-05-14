@@ -41,6 +41,7 @@
       properties: {persistence: false}
       metadata: {bullets: [], display_name: Org restricted plan}
       cf_service_access: org-restricted
+      service_access_org: ((org))
       description: Redis
       instance_groups:
         - name: redis-server
@@ -53,6 +54,7 @@
       properties: {persistence: false}
       metadata: {bullets: [], display_name: Org restricted plan}
       cf_service_access: org-restricted
+      service_access_org: ((org))
       description: Redis
       instance_groups:
         - name: redis-server

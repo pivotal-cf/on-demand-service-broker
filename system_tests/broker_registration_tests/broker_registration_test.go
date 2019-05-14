@@ -108,7 +108,7 @@ var _ = Describe("broker registration errands", func() {
 
 					By("confirming the manual plan is still visible to space devs in the marketplace")
 					allButInactiveMarketplaceSession := cf.Cf("marketplace", "-s", brokerInfo.ServiceOffering)
-					Eventually(allButInactiveMarketplaceSession).Should(gbytes.Say("manual-plan")) // TODO FIX
+					Eventually(allButInactiveMarketplaceSession).Should(gbytes.Say("manual-plan"))
 				})
 			})
 

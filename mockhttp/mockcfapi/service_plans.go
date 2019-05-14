@@ -35,6 +35,15 @@ func ListServicePlansForPage(serviceID string, page int) *servicePlansMock {
 	}
 }
 
+func CreateServicePlanVisibility(orgGUID, planGUID string) *servicePlansMock {
+	mock := &servicePlansMock{
+		mockhttp.NewMockedHttpRequest("POST", "/v2/service_plan_visibilities"),
+	}
+	mock.WithBody(fmt.Sprintf(`{"service_plan_guid":"%s","organization_guid":"%s"}`, planGUID, orgGUID))
+
+	return mock
+}
+
 func ListServicePlanVisibilities(planGUID string) *servicePlansMock {
 	return &servicePlansMock{
 		mockhttp.NewMockedHttpRequest("GET", "/v2/service_plan_visibilities?q=service_plan_guid:"+planGUID+"&results-per-page=100"),

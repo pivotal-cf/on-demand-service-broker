@@ -29,10 +29,12 @@ var _ = Describe("RegisterBroker", func() {
 		createBrokerHandler                                   *helpers.FakeHandler
 		updateBrokerHandler                                   *helpers.FakeHandler
 		servicesHandler                                       *helpers.FakeHandler
-		servicePlansHandler                                   *helpers.FakeHandler
+		updatePlanHandler                                     *helpers.FakeHandler
 		servicePlansOfferingHandler                           *helpers.FakeHandler
 		servicePlansVisibilityHandler                         *helpers.FakeHandler
 		servicePlansVisibilityDeleteHandler                   *helpers.FakeHandler
+		servicePlansVisibilityCreateHandler                   *helpers.FakeHandler
+		organizationHandler                                   *helpers.FakeHandler
 		brokerName, brokerUsername, brokerPassword, brokerURL string
 		serviceID, serviceGUID, planName                      string
 		errandConfig                                          config.RegisterBrokerErrandConfig
@@ -54,10 +56,12 @@ var _ = Describe("RegisterBroker", func() {
 		createBrokerHandler = new(helpers.FakeHandler)
 		updateBrokerHandler = new(helpers.FakeHandler)
 		servicesHandler = new(helpers.FakeHandler)
-		servicePlansHandler = new(helpers.FakeHandler)
+		updatePlanHandler = new(helpers.FakeHandler)
 		servicePlansOfferingHandler = new(helpers.FakeHandler)
 		servicePlansVisibilityHandler = new(helpers.FakeHandler)
 		servicePlansVisibilityDeleteHandler = new(helpers.FakeHandler)
+		servicePlansVisibilityCreateHandler = new(helpers.FakeHandler)
+		organizationHandler = new(helpers.FakeHandler)
 
 		cfServer.RouteToHandler(http.MethodPost, "/oauth/token", func(writer http.ResponseWriter, request *http.Request) {
 			writer.Write([]byte(`{"access_token":"authtoken"}`))
@@ -68,8 +72,10 @@ var _ = Describe("RegisterBroker", func() {
 		cfServer.RouteToHandler(http.MethodGet, "/v2/services", servicesHandler.Handle)
 		cfServer.RouteToHandler(http.MethodGet, regexp.MustCompile(`/v2/services/.*/service_plans`), servicePlansOfferingHandler.Handle)
 		cfServer.RouteToHandler(http.MethodGet, "/v2/service_plan_visibilities", servicePlansVisibilityHandler.Handle)
+		cfServer.RouteToHandler(http.MethodPost, "/v2/service_plan_visibilities", servicePlansVisibilityCreateHandler.Handle)
 		cfServer.RouteToHandler(http.MethodDelete, regexp.MustCompile("/v2/service_plan_visibilities/.*"), servicePlansVisibilityDeleteHandler.Handle)
-		cfServer.RouteToHandler(http.MethodPut, regexp.MustCompile(`/v2/service_plans/.*`), servicePlansHandler.Handle)
+		cfServer.RouteToHandler(http.MethodPut, regexp.MustCompile(`/v2/service_plans/.*`), updatePlanHandler.Handle)
+		cfServer.RouteToHandler(http.MethodGet, "/v2/organizations", organizationHandler.Handle)
 
 		errandConfig = config.RegisterBrokerErrandConfig{
 			BrokerName:     brokerName,
@@ -170,11 +176,11 @@ var _ = Describe("RegisterBroker", func() {
 				{ "metadata": { "url": "/v2/service_plan_visibilities/some-plan-visibility-guid" } }
 			]}`)
 			servicePlansVisibilityDeleteHandler.RespondsWith(http.StatusNoContent, "")
-			servicePlansHandler.RespondsWith(http.StatusCreated, ``)
+			updatePlanHandler.RespondsWith(http.StatusCreated, ``)
 
 			registersBrokerSuccessfully(errandConfig, GinkgoWriter, GinkgoWriter)
 
-			servicePlansRequest := servicePlansHandler.GetRequestForCall(0)
+			servicePlansRequest := updatePlanHandler.GetRequestForCall(0)
 			Expect(servicePlansRequest.URL).To(Equal("/v2/service_plans/" + enabledPlanGUID))
 			Expect(servicePlansRequest.Body).To(MatchJSON(`{
 				"public": true
@@ -213,16 +219,78 @@ var _ = Describe("RegisterBroker", func() {
 				{ "metadata": { "url": "/v2/service_plan_visibilities/some-plan-visibility-guid" } }
 			]}`)
 			servicePlansVisibilityDeleteHandler.RespondsWith(http.StatusNoContent, "")
-			servicePlansHandler.RespondsWith(http.StatusCreated, ``)
+			updatePlanHandler.RespondsWith(http.StatusCreated, ``)
 
 			registersBrokerSuccessfully(errandConfig, GinkgoWriter, GinkgoWriter)
 
-			servicePlansRequest := servicePlansHandler.GetRequestForCall(0)
+			servicePlansRequest := updatePlanHandler.GetRequestForCall(0)
 			Expect(servicePlansRequest.URL).To(Equal("/v2/service_plans/" + disabledPlanGUID))
 			Expect(servicePlansRequest.Body).To(MatchJSON(`{
 				"public": false
 			}`))
 			Expect(servicePlansVisibilityDeleteHandler.RequestsReceived()).To(BeNumerically(">=", 2), "no request was made to service plan visibility")
+		})
+
+		It("restricts plans to specified orgs for plans that are configured to be org-restricted", func() {
+			orgRestrictedPlanGUID := "disabled-unique-uid"
+			orgRestrictedPlanName := "disabled-plan-name"
+			orgGUID := "some-org-guid"
+
+			errandConfig.Plans = []config.PlanAccess{
+				{
+					Name:            orgRestrictedPlanName,
+					CFServiceAccess: config.PlanOrgRestricted,
+				},
+			}
+			organizationHandler.RespondsWith(http.StatusOK, fmt.Sprintf(`{
+			  "resources": [
+				{
+				  "metadata": {
+					"guid": "%s"
+				  }
+				}
+			  ]
+			}`, orgGUID))
+
+			servicesHandler.RespondsWith(http.StatusOK, fmt.Sprintf(`{
+			  "resources": [
+				{
+				  "entity": {
+					"unique_id": %q,
+					"service_plans_url": "/v2/services/%s/service_plans"
+				  }
+				}
+			  ]
+			}`, serviceID, serviceGUID))
+
+			servicePlansOfferingHandler.RespondsWith(http.StatusOK, fmt.Sprintf(`{
+				"resources" : [{
+					"entity": {"name": %q},
+					"metadata": {"guid": %q}
+				}]}`, orgRestrictedPlanName, orgRestrictedPlanGUID))
+
+			servicePlansVisibilityHandler.RespondsWith(http.StatusOK, `{"resources": [
+				{ "metadata": { "url": "/v2/service_plan_visibilities/d1b5ea55-f354-4f43-b52e-53045747adb9" } },
+				{ "metadata": { "url": "/v2/service_plan_visibilities/some-plan-visibility-guid" } }
+			]}`)
+			servicePlansVisibilityDeleteHandler.RespondsWith(http.StatusNoContent, "")
+			updatePlanHandler.RespondsWith(http.StatusCreated, ``)
+			servicePlansVisibilityCreateHandler.RespondsWith(http.StatusCreated, ``)
+
+			registersBrokerSuccessfully(errandConfig, GinkgoWriter, GinkgoWriter)
+
+			servicePlansRequest := updatePlanHandler.GetRequestForCall(0)
+			Expect(servicePlansRequest.URL).To(Equal("/v2/service_plans/" + orgRestrictedPlanGUID))
+			Expect(servicePlansRequest.Body).To(MatchJSON(`{
+				"public": false
+			}`))
+			Expect(servicePlansVisibilityDeleteHandler.RequestsReceived()).To(BeNumerically(">=", 2), "no request was made to service plan visibility")
+
+			createVisibilityRequest := servicePlansVisibilityCreateHandler.GetRequestForCall(0)
+			Expect(createVisibilityRequest.Body).To(MatchJSON(fmt.Sprintf(`{
+ 				"service_plan_guid": "%s",
+				"organization_guid": "%s"
+			}`, orgRestrictedPlanGUID, orgGUID)))
 		})
 
 	})

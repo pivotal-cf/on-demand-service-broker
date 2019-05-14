@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"strings"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -260,7 +261,65 @@ var _ = Describe("CF client", func() {
 			})
 		})
 	})
+
+	Describe("CreateServicePlanVisibility", func() {
+		var (
+			brokerName string
+			brokerGUID string
+			planName   string
+			orgName    string
+		)
+
+		BeforeEach(func() {
+			planName = "redis-small"
+			orgName = os.Getenv("CF_ORG")
+
+			brokerName = "contract-" + brokerDeployment.TestSuffix
+			session := cf_helpers.Cf("create-service-broker",
+				brokerName,
+				brokerDeployment.BrokerUsername,
+				brokerDeployment.BrokerPassword,
+				"http://"+brokerDeployment.URI,
+			)
+			Eventually(session).Should(gexec.Exit(0))
+
+			Eventually(
+				cf_helpers.Cf("disable-service-access", brokerDeployment.ServiceOffering, "-p", planName),
+			).Should(gexec.Exit(0))
+
+			var err error
+			brokerGUID, err = subject.GetServiceOfferingGUID(brokerName, logger)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		AfterEach(func() {
+			session := cf_helpers.Cf("delete-service-broker", "-f", brokerName)
+			Eventually(session).Should(gexec.Exit(0))
+		})
+
+		It("creates a service plan visibility", func() {
+			plan := servicePlan(brokerGUID, planName)
+
+			planVisibilities := servicePlanVisibilities(plan.GUID)
+			Expect(len(planVisibilities)).To(BeZero())
+
+			err := subject.CreateServicePlanVisibility(orgName, brokerDeployment.ServiceOffering, planName, logger)
+			Expect(err).ToNot(HaveOccurred())
+
+			createdPlanVisibilities := servicePlanVisibilities(plan.GUID)
+			Expect(len(createdPlanVisibilities)).To(Equal(1), "expected to created 1 service plan visibility")
+
+			Expect(createdPlanVisibilities[0].ServicePlanGUID).To(Equal(plan.GUID))
+			Expect(createdPlanVisibilities[0].OrganizationGUID).To(Equal(orgGuid(orgName)))
+		})
+	})
 })
+
+func orgGuid(orgName string) string {
+	session := cf_helpers.Cf("org", "--guid", orgName)
+	Eventually(session).Should(gexec.Exit(0))
+	return strings.TrimSpace(string(session.Out.Contents()))
+}
 
 type ServicePlan struct {
 	GUID   string `json:"guid"`

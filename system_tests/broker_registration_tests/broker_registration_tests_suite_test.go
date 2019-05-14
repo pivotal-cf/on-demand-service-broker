@@ -55,8 +55,8 @@ var _ = BeforeSuite(func() {
 		"-broker-registration-"+uniqueID,
 		bosh.BrokerDeploymentOptions{},
 		service_helpers.Redis,
-		[]string{"update_service_catalog.yml", "update_default_access_org.yml"},
-		"--var", "default_access_org="+defaultOrg)
+		[]string{"update_service_catalog.yml"},
+		"--var", "org="+defaultOrg)
 
 	SetDefaultEventuallyTimeout(cf.CfTimeout)
 	cfCreateSpaceDevUser()

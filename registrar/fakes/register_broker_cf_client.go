@@ -24,6 +24,20 @@ type FakeRegisterBrokerCFClient struct {
 	createServiceBrokerReturnsOnCall map[int]struct {
 		result1 error
 	}
+	CreateServicePlanVisibilityStub        func(string, string, string, *log.Logger) error
+	createServicePlanVisibilityMutex       sync.RWMutex
+	createServicePlanVisibilityArgsForCall []struct {
+		arg1 string
+		arg2 string
+		arg3 string
+		arg4 *log.Logger
+	}
+	createServicePlanVisibilityReturns struct {
+		result1 error
+	}
+	createServicePlanVisibilityReturnsOnCall map[int]struct {
+		result1 error
+	}
 	DisableServiceAccessStub        func(string, string, *log.Logger) error
 	disableServiceAccessMutex       sync.RWMutex
 	disableServiceAccessArgsForCall []struct {
@@ -140,6 +154,69 @@ func (fake *FakeRegisterBrokerCFClient) CreateServiceBrokerReturnsOnCall(i int, 
 		})
 	}
 	fake.createServiceBrokerReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeRegisterBrokerCFClient) CreateServicePlanVisibility(arg1 string, arg2 string, arg3 string, arg4 *log.Logger) error {
+	fake.createServicePlanVisibilityMutex.Lock()
+	ret, specificReturn := fake.createServicePlanVisibilityReturnsOnCall[len(fake.createServicePlanVisibilityArgsForCall)]
+	fake.createServicePlanVisibilityArgsForCall = append(fake.createServicePlanVisibilityArgsForCall, struct {
+		arg1 string
+		arg2 string
+		arg3 string
+		arg4 *log.Logger
+	}{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("CreateServicePlanVisibility", []interface{}{arg1, arg2, arg3, arg4})
+	fake.createServicePlanVisibilityMutex.Unlock()
+	if fake.CreateServicePlanVisibilityStub != nil {
+		return fake.CreateServicePlanVisibilityStub(arg1, arg2, arg3, arg4)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.createServicePlanVisibilityReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeRegisterBrokerCFClient) CreateServicePlanVisibilityCallCount() int {
+	fake.createServicePlanVisibilityMutex.RLock()
+	defer fake.createServicePlanVisibilityMutex.RUnlock()
+	return len(fake.createServicePlanVisibilityArgsForCall)
+}
+
+func (fake *FakeRegisterBrokerCFClient) CreateServicePlanVisibilityCalls(stub func(string, string, string, *log.Logger) error) {
+	fake.createServicePlanVisibilityMutex.Lock()
+	defer fake.createServicePlanVisibilityMutex.Unlock()
+	fake.CreateServicePlanVisibilityStub = stub
+}
+
+func (fake *FakeRegisterBrokerCFClient) CreateServicePlanVisibilityArgsForCall(i int) (string, string, string, *log.Logger) {
+	fake.createServicePlanVisibilityMutex.RLock()
+	defer fake.createServicePlanVisibilityMutex.RUnlock()
+	argsForCall := fake.createServicePlanVisibilityArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
+}
+
+func (fake *FakeRegisterBrokerCFClient) CreateServicePlanVisibilityReturns(result1 error) {
+	fake.createServicePlanVisibilityMutex.Lock()
+	defer fake.createServicePlanVisibilityMutex.Unlock()
+	fake.CreateServicePlanVisibilityStub = nil
+	fake.createServicePlanVisibilityReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeRegisterBrokerCFClient) CreateServicePlanVisibilityReturnsOnCall(i int, result1 error) {
+	fake.createServicePlanVisibilityMutex.Lock()
+	defer fake.createServicePlanVisibilityMutex.Unlock()
+	fake.CreateServicePlanVisibilityStub = nil
+	if fake.createServicePlanVisibilityReturnsOnCall == nil {
+		fake.createServicePlanVisibilityReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.createServicePlanVisibilityReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
 }
@@ -392,6 +469,8 @@ func (fake *FakeRegisterBrokerCFClient) Invocations() map[string][][]interface{}
 	defer fake.invocationsMutex.RUnlock()
 	fake.createServiceBrokerMutex.RLock()
 	defer fake.createServiceBrokerMutex.RUnlock()
+	fake.createServicePlanVisibilityMutex.RLock()
+	defer fake.createServicePlanVisibilityMutex.RUnlock()
 	fake.disableServiceAccessMutex.RLock()
 	defer fake.disableServiceAccessMutex.RUnlock()
 	fake.enableServiceAccessMutex.RLock()

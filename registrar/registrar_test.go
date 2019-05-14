@@ -137,6 +137,8 @@ var _ = Describe("RegisterBrokerRunner", func() {
 			serviceName, planName2, _ := fakeCFClient.EnableServiceAccessArgsForCall(1)
 			Expect(serviceName).To(Equal(expectedServiceName))
 			Expect(planName2).To(Equal(expectedPlanName2))
+
+			Expect(fakeCFClient.CreateServicePlanVisibilityCallCount()).To(BeZero(), "should not create plan visibility for public plans")
 		})
 
 		It("disables service access for a plan that is set to disable access", func() {
@@ -167,6 +169,44 @@ var _ = Describe("RegisterBrokerRunner", func() {
 			Expect(serviceName).To(Equal(expectedServiceName))
 			Expect(planName).To(Equal(disabledPlanName))
 		})
+
+		It("restricts plans to specified orgs for plans that are configured to be org-restricted", func() {
+			orgRestrictedPlanName := "org-restricted-plan"
+
+			expectedOrgName := "some-org"
+			servicePlans = []config.PlanAccess{
+				{
+					Name:             orgRestrictedPlanName,
+					CFServiceAccess:  config.PlanOrgRestricted,
+					ServiceAccessOrg: expectedOrgName,
+				},
+			}
+
+			fakeCFClient.ServiceBrokersReturns([]cf.ServiceBroker{}, nil)
+			runner = registrar.RegisterBrokerRunner{
+				Config: config.RegisterBrokerErrandConfig{
+					ServiceName: expectedServiceName,
+					Plans:       servicePlans,
+				},
+				CFClient: fakeCFClient,
+			}
+
+			err := runner.Run()
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(fakeCFClient.DisableServiceAccessCallCount()).To(Equal(1), "DisableServiceAccess wasn't called")
+
+			serviceName, planName, _ := fakeCFClient.DisableServiceAccessArgsForCall(0)
+			Expect(serviceName).To(Equal(expectedServiceName))
+			Expect(planName).To(Equal(orgRestrictedPlanName))
+
+			Expect(fakeCFClient.CreateServicePlanVisibilityCallCount()).To(Equal(1), "CreateServicePlanVisibility wasn't called")
+
+			orgName, serviceName, planName, _ := fakeCFClient.CreateServicePlanVisibilityArgsForCall(0)
+			Expect(orgName).To(Equal(expectedOrgName))
+			Expect(serviceName).To(Equal(expectedServiceName))
+			Expect(planName).To(Equal(orgRestrictedPlanName))
+		})
 	})
 
 	Describe("error handling", func() {
@@ -190,6 +230,9 @@ var _ = Describe("RegisterBrokerRunner", func() {
 						}, {
 							Name:            "not-relevant-but-different",
 							CFServiceAccess: config.PlanDisabled,
+						}, {
+							Name:            "not-relevant-but-still-different",
+							CFServiceAccess: config.PlanOrgRestricted,
 						},
 					},
 				},
@@ -213,6 +256,15 @@ var _ = Describe("RegisterBrokerRunner", func() {
 			Expect(err).To(MatchError("failed to execute register-broker: failed to create broker"))
 		})
 
+		It("errors when it cannot update a service broker", func() {
+			fakeCFClient.ServiceBrokersReturns([]cf.ServiceBroker{{GUID: "a-guid", Name: expectedBrokerName}}, nil)
+			fakeCFClient.UpdateServiceBrokerReturns(errors.New("failed to update broker"))
+
+			err := runner.Run()
+			Expect(err).To(HaveOccurred())
+			Expect(err).To(MatchError("failed to execute register-broker: failed to update broker"))
+		})
+
 		It("errors when it cannot enable access for a plan", func() {
 			fakeCFClient.ServiceBrokersReturns([]cf.ServiceBroker{}, nil)
 			fakeCFClient.EnableServiceAccessReturns(errors.New("I messed up"))
@@ -231,13 +283,13 @@ var _ = Describe("RegisterBrokerRunner", func() {
 			Expect(err).To(MatchError("failed to execute register-broker: I messed up"))
 		})
 
-		It("errors when it cannot update a service broker", func() {
-			fakeCFClient.ServiceBrokersReturns([]cf.ServiceBroker{{GUID: "a-guid", Name: expectedBrokerName}}, nil)
-			fakeCFClient.UpdateServiceBrokerReturns(errors.New("failed to update broker"))
+		It("errors when it cannot create a service plan visibility", func() {
+			fakeCFClient.ServiceBrokersReturns([]cf.ServiceBroker{}, nil)
+			fakeCFClient.CreateServicePlanVisibilityReturns(errors.New("boom!"))
 
 			err := runner.Run()
 			Expect(err).To(HaveOccurred())
-			Expect(err).To(MatchError("failed to execute register-broker: failed to update broker"))
+			Expect(err).To(MatchError("failed to execute register-broker: boom!"))
 		})
 	})
 })
