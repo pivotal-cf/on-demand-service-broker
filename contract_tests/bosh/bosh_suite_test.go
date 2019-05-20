@@ -72,10 +72,9 @@ func NewBOSHClient() *boshdirector.Client {
 
 	boshAuthConfig = config.Authentication{
 		UAA: config.UAAAuthentication{
-			URL: envMustHave("UAA_URL"),
 			ClientCredentials: config.ClientCredentials{
-				ID:     envMustHave("BOSH_USERNAME"),
-				Secret: envMustHave("BOSH_PASSWORD"),
+				ID:     envMustHave("BOSH_CLIENT"),
+				Secret: envMustHave("BOSH_CLIENT_SECRET"),
 			},
 		},
 	}
@@ -84,7 +83,7 @@ func NewBOSHClient() *boshdirector.Client {
 	logger = loggerFactory.New()
 
 	c, err = boshdirector.New(
-		envMustHave("BOSH_URL"),
+		envMustHave("BOSH_ENVIRONMENT"),
 		certPEM,
 		certPool,
 		factory,
@@ -113,7 +112,6 @@ func NewBOSHClientWithBadCredentials() *boshdirector.Client {
 
 	boshAuthConfig = config.Authentication{
 		UAA: config.UAAAuthentication{
-			URL: envMustHave("UAA_URL"),
 			ClientCredentials: config.ClientCredentials{
 				ID:     "foo",
 				Secret: "bar",
@@ -125,7 +123,7 @@ func NewBOSHClientWithBadCredentials() *boshdirector.Client {
 	logger = loggerFactory.New()
 
 	c, err = boshdirector.New(
-		envMustHave("BOSH_URL"),
+		envMustHave("BOSH_ENVIRONMENT"),
 		certPEM,
 		certPool,
 		factory,

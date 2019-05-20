@@ -4,15 +4,15 @@ releases:
   version: latest
 
 stemcells:
-- alias: trusty
-  os: ubuntu-trusty
+- alias: xenial
+  os: ubuntu-xenial
   version: latest
 
 instance_groups:
 - name: dummy
   instances: 1
-  vm_type: t2.nano
-  stemcell: trusty
+  vm_type: small
+  stemcell: xenial
   azs: [z1]
   networks:
   - name: default
@@ -22,8 +22,8 @@ instance_groups:
 - name: dummy-errand
   lifecycle: errand
   instances: 1
-  vm_type: t2.nano
-  stemcell: trusty
+  vm_type: small
+  stemcell: xenial
   azs: [z1]
   networks:
   - name: default

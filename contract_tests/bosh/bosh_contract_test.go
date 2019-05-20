@@ -157,8 +157,7 @@ var _ = Describe("BOSH client", func() {
 				recreateTaskID, err := boshClient.Recreate(deploymentName, recreateCtx, logger, recreateReporter)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(recreateTaskID).To(BeNumerically(">", 0))
-				// verifyContextID() should be uncommented when BOSH has merged and released https://github.com/cloudfoundry/bosh/pull/2084
-				// verifyContextID(recreateCtx, recreateTaskID)
+				verifyContextID(recreateCtx, recreateTaskID)
 				Eventually(recreateReporter.Finished).Should(Receive(), fmt.Sprintf("Timed out waiting for deployment %s to be recreated", deploymentName))
 				Expect(reporter.State).ToNot(Equal("error"), fmt.Sprintf("Recreation of %s failed", deploymentName))
 			})
@@ -242,7 +241,11 @@ var _ = Describe("BOSH client", func() {
 
 			Expect(err).NotTo(HaveOccurred())
 			uaaURL := info.UserAuthentication.Options.URL
-			Expect(uaaURL).To(Equal(boshAuthConfig.UAA.URL))
+			Expect(uaaURL).To(SatisfyAll(
+				Not(BeEmpty()),
+				HavePrefix("https"),
+				HaveSuffix("8443"),
+			))
 		})
 
 		It("is an authenticated director", func() {

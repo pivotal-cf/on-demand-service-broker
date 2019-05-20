@@ -26,15 +26,12 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	odbcredhub "github.com/pivotal-cf/on-demand-service-broker/credhub"
-
-	"github.com/totherme/unstructured"
 )
 
-const credhubURL = "https://credhub.service.cf.internal:8844"
-
 var (
-	dev_env string
-	caCerts []string
+	devEnv     string
+	caCerts    []string
+	credhubURL string
 )
 
 func TestContractTests(t *testing.T) {
@@ -43,12 +40,13 @@ func TestContractTests(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
-	dev_env = os.Getenv("DEV_ENV")
-	cfUAACACert := os.Getenv("CF_UAA_CA_CERT")
-	Expect(cfUAACACert).ToNot(BeEmpty())
-	cfCredhubCACert := os.Getenv("CF_CREDHUB_CA_CERT")
-	Expect(cfCredhubCACert).ToNot(BeEmpty())
-	caCerts = []string{cfUAACACert, cfCredhubCACert}
+	devEnv = os.Getenv("DEV_ENV")
+	credhubURL = "https://" + os.Getenv("CREDHUB_SERVER")
+	uaaCACert := os.Getenv("BOSH_CA_CERT")
+	Expect(uaaCACert).ToNot(BeEmpty())
+	credhubCACert := os.Getenv("CREDHUB_CA_CERT")
+	Expect(credhubCACert).ToNot(BeEmpty())
+	caCerts = []string{uaaCACert, credhubCACert}
 	ensureCredhubIsClean()
 })
 
@@ -56,20 +54,8 @@ var _ = AfterSuite(func() {
 	ensureCredhubIsClean()
 })
 
-func nameIsCredhubMatcher(data unstructured.Data) bool {
-	val, err := data.GetByPointer("/name")
-	if err != nil {
-		return false
-	}
-	stringVal, err := val.StringValue()
-	if err != nil {
-		return false
-	}
-	return stringVal == "credhub"
-}
-
 func testKeyPrefix() string {
-	return fmt.Sprintf("/test-%s", dev_env)
+	return fmt.Sprintf("/test-%s", devEnv)
 }
 
 func makeKeyPath(name string) string {
@@ -87,12 +73,12 @@ func ensureCredhubIsClean() {
 }
 
 func getCredhubStore() *odbcredhub.Store {
-	clientSecret := os.Getenv("TEST_CREDHUB_CLIENT_SECRET")
-	Expect(clientSecret).NotTo(BeEmpty(), "Expected TEST_CREDHUB_CLIENT_SECRET to be set")
+	clientSecret := os.Getenv("CREDHUB_SECRET")
+	Expect(clientSecret).NotTo(BeEmpty(), "Expected CREDHUB_SECRET to be set")
 
 	credentialStore, err := odbcredhub.Build(
 		credhubURL,
-		credhub.Auth(auth.UaaClientCredentials("credhub_cli", clientSecret)),
+		credhub.Auth(auth.UaaClientCredentials(os.Getenv("CREDHUB_CLIENT"), clientSecret)),
 		credhub.CaCerts(caCerts...),
 	)
 	Expect(err).NotTo(HaveOccurred())
@@ -100,13 +86,13 @@ func getCredhubStore() *odbcredhub.Store {
 }
 
 func underlyingCredhubClient() *credhub.CredHub {
-	clientSecret := os.Getenv("TEST_CREDHUB_CLIENT_SECRET")
-	Expect(clientSecret).NotTo(BeEmpty(), "Expected TEST_CREDHUB_CLIENT_SECRET to be set")
+	clientSecret := os.Getenv("CREDHUB_SECRET")
+	Expect(clientSecret).NotTo(BeEmpty(), "Expected CREDHUB_SECRET to be set")
 	Expect(caCerts).ToNot(BeEmpty())
 
 	credhubClient, err := credhub.New(
 		credhubURL,
-		credhub.Auth(auth.UaaClientCredentials("credhub_cli", clientSecret)),
+		credhub.Auth(auth.UaaClientCredentials(os.Getenv("CREDHUB_CLIENT"), clientSecret)),
 		credhub.CaCerts(caCerts...),
 	)
 	Expect(err).NotTo(HaveOccurred())

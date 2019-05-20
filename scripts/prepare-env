@@ -20,7 +20,7 @@ export ODB_RELEASE_TEMPLATES_PATH=~/workspace/on-demand-service-broker-release/e
 export ODB_VERSION=latest
 export REDIS_EXAMPLE_APP_PATH=~/workspace/cf-redis-example-app
 export REDIS_SERVICE_ADAPTER_RELEASE_NAME=redis-example-service-adapter
-export REDIS_SERVICE_RELEASE_NAME=redis-service
+export REDIS_SERVICE_RELEASE_NAME=redis-example-service
 export SI_API_PATH="$HOME/workspace/example-service-instances-api/"
 
 export BOSH_CA_CERT="$BOSH_CA_CERT"

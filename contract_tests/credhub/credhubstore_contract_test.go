@@ -120,12 +120,14 @@ var _ = Describe("Credential store", func() {
 
 	Describe("Add permission", func() {
 		It("can add permissions", func() {
-			keyPath := makeKeyPath("new-name")
+			keyPath := makeKeyPath("new-name-" + uuid.New()[:8])
 			err := subject.Set(keyPath, map[string]interface{}{"hi": "there"})
 			Expect(err).NotTo(HaveOccurred())
 
 			_, err = subject.AddPermission(keyPath, "alice", []string{"read"})
 			Expect(err).NotTo(HaveOccurred())
+
+			Expect(subject.Delete(keyPath)).To(Succeed())
 		})
 	})
 
