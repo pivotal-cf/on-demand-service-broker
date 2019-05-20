@@ -179,14 +179,6 @@
   version = "v1.5.0"
 
 [[projects]]
-  digest = "1:81466b4218bf6adddac2572a30ac733a9255919bc2f470b4827a317bd4ee1756"
-  name = "github.com/ghodss/yaml"
-  packages = ["."]
-  pruneopts = "NUT"
-  revision = "0ca9ea5df5451ffdf184b4428c902747c2c11cd7"
-  version = "v1.0.0"
-
-[[projects]]
   digest = "1:e47425a8674d5359620520f74d1376ae70fb3a7debdad83708c94c79816149ba"
   name = "github.com/gogo/protobuf"
   packages = [
@@ -387,14 +379,6 @@
   version = "v0.8.0"
 
 [[projects]]
-  branch = "master"
-  digest = "1:97b5bfcc1eba9cb2804c449b45726b1700afa707cbf8e8892731f473cee8fdd5"
-  name = "github.com/totherme/unstructured"
-  packages = ["."]
-  pruneopts = "NUT"
-  revision = "3faf2d56d8b8f309ec97af03c6250dba70db94ff"
-
-[[projects]]
   digest = "1:bafdddf0e04f4d66c948468a03ecaf30e9cc894c2eed59a89cade22bc4364de8"
   name = "github.com/urfave/negroni"
   packages = ["."]
@@ -552,7 +536,6 @@
     "github.com/pivotal-cf/on-demand-services-sdk/bosh",
     "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter",
     "github.com/pkg/errors",
-    "github.com/totherme/unstructured",
     "github.com/urfave/negroni",
     "github.com/xeipuuv/gojsonschema",
     "gopkg.in/yaml.v2",
