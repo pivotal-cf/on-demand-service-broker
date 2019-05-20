@@ -48,7 +48,10 @@ func New(
 
 	brokerRouter := mux.NewRouter()
 	mgmtapi.AttachRoutes(brokerRouter, broker, conf.ServiceCatalog, mgmtapiLoggerFactory)
-	brokerapi.AttachRoutes(brokerRouter, broker, lager.NewLogger(componentName))
+
+	brokerAPILogger := lager.NewLogger(componentName)
+	brokerAPILogger.RegisterSink(lager.NewWriterSink(serverLogger.Writer(), lager.INFO))
+	brokerapi.AttachRoutes(brokerRouter, broker, brokerAPILogger)
 	authProtectedBrokerAPI := apiauth.
 		NewWrapper(conf.Broker.Username, conf.Broker.Password).
 		Wrap(brokerRouter)
