@@ -144,15 +144,8 @@ func StartServerWithStopHandler(conf config.Config, stopServerChan chan os.Signa
 }
 
 func doRequest(method, url string, body io.Reader, requestModifiers ...func(r *http.Request)) (*http.Response, []byte) {
-	req, err := http.NewRequest(method, url, body)
-	Expect(err).ToNot(HaveOccurred())
-
-	req.SetBasicAuth(brokerUsername, brokerPassword)
+	req, err := createRequest(method, url, body, requestModifiers)
 	req.Header.Set("X-Broker-API-Version", "2.14")
-
-	for _, f := range requestModifiers {
-		f(req)
-	}
 
 	req.Close = true
 	resp, err := http.DefaultClient.Do(req)
@@ -163,6 +156,30 @@ func doRequest(method, url string, body io.Reader, requestModifiers ...func(r *h
 
 	Expect(resp.Body.Close()).To(Succeed())
 	return resp, bodyContent
+}
+
+func doRequestWithoutHeader(method, url string, body io.Reader, requestModifiers ...func(r *http.Request)) (*http.Response, []byte) {
+	req, err := createRequest(method, url, body, requestModifiers)
+
+	req.Close = true
+	resp, err := http.DefaultClient.Do(req)
+	Expect(err).ToNot(HaveOccurred())
+
+	bodyContent, err := ioutil.ReadAll(resp.Body)
+	Expect(err).NotTo(HaveOccurred())
+
+	Expect(resp.Body.Close()).To(Succeed())
+	return resp, bodyContent
+}
+
+func createRequest(method string, url string, body io.Reader, requestModifiers []func(r *http.Request)) (*http.Request, error) {
+	req, err := http.NewRequest(method, url, body)
+	Expect(err).ToNot(HaveOccurred())
+	req.SetBasicAuth(brokerUsername, brokerPassword)
+	for _, f := range requestModifiers {
+		f(req)
+	}
+	return req, err
 }
 
 func doHTTPSRequest(method, url string, caCertFile string, cipherSuites []uint16, maxTLSVersion uint16) (*http.Response, []byte, error) {

@@ -49,27 +49,26 @@ func New(
 	brokerRouter := mux.NewRouter()
 	mgmtapi.AttachRoutes(brokerRouter, broker, conf.ServiceCatalog, mgmtapiLoggerFactory)
 
-	brokerAPILogger := lager.NewLogger(componentName)
-	brokerAPILogger.RegisterSink(lager.NewWriterSink(serverLogger.Writer(), lager.INFO))
-	brokerapi.AttachRoutes(brokerRouter, broker, brokerAPILogger)
-	authProtectedBrokerAPI := apiauth.
-		NewWrapper(conf.Broker.Username, conf.Broker.Password).
-		Wrap(brokerRouter)
-
-	dateFormat := "2006/01/02 15:04:05.000000"
-	logFormat := "Request {{.Method}} {{.Path}} Completed {{.Status}} in {{.Duration}} | Start Time: {{.StartTime}}"
-	negroniLogger := negroni.NewLogger()
-	negroniLogger.ALogger = serverLogger
-	negroniLogger.SetFormat(logFormat)
-	negroniLogger.SetDateFormat(dateFormat)
+	apiBrokerHandler := brokerapi.New(
+		broker,
+		createBrokerAPILogger(componentName, serverLogger),
+		brokerapi.BrokerCredentials{
+			Username: conf.Broker.Username,
+			Password: conf.Broker.Password,
+		})
+	brokerRouter.PathPrefix("/v2").Handler(apiBrokerHandler)
 
 	server := negroni.New(
 		negroni.NewRecovery(),
-		negroniLogger,
+		createNegroniLogger(serverLogger),
 		negroni.NewStatic(http.Dir("public")),
 	)
 
+	authProtectedBrokerAPI := apiauth.
+		NewWrapper(conf.Broker.Username, conf.Broker.Password).
+		Wrap(brokerRouter)
 	server.UseHandler(authProtectedBrokerAPI)
+
 	return &http.Server{
 		Addr:    fmt.Sprintf(":%d", conf.Broker.Port),
 		Handler: server,
@@ -146,4 +145,20 @@ func CheckCertExpiry(certFile string) error {
 		return fmt.Errorf("server certificate expired on %v", cert.NotAfter)
 	}
 	return nil
+}
+
+func createNegroniLogger(serverLogger *log.Logger) *negroni.Logger {
+	dateFormat := "2006/01/02 15:04:05.000000"
+	logFormat := "Request {{.Method}} {{.Path}} Completed {{.Status}} in {{.Duration}} | Start Time: {{.StartTime}}"
+	negroniLogger := negroni.NewLogger()
+	negroniLogger.ALogger = serverLogger
+	negroniLogger.SetFormat(logFormat)
+	negroniLogger.SetDateFormat(dateFormat)
+	return negroniLogger
+}
+
+func createBrokerAPILogger(componentName string, serverLogger *log.Logger) lager.Logger {
+	brokerAPILogger := lager.NewLogger(componentName)
+	brokerAPILogger.RegisterSink(lager.NewWriterSink(serverLogger.Writer(), lager.INFO))
+	return brokerAPILogger
 }

@@ -16,17 +16,15 @@
 package on_demand_service_broker_test
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"sync"
 
 	"github.com/pivotal-cf/brokerapi/domain"
 	brokerConfig "github.com/pivotal-cf/on-demand-service-broker/config"
 	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
-
-	"net/http"
-
-	"encoding/json"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -346,6 +344,26 @@ var _ = Describe("Catalog", func() {
 
 			Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 			Expect(string(bodyContent)).To(ContainSubstring("enable_plan_schemas is set to true, but the service adapter does not implement generate-plan-schemas"))
+		})
+	})
+
+	Context("without version header", func() {
+		BeforeEach(func() {
+			conf := brokerConfig.Config{
+				Broker: brokerConfig.Broker{
+					Port: serverPort, Username: brokerUsername, Password: brokerPassword,
+					EnablePlanSchemas: true,
+				},
+			}
+
+			StartServer(conf)
+		})
+
+		It("fails with 412 status code", func() {
+			response, bodyContent := doRequestWithoutHeader(http.MethodGet, fmt.Sprintf("http://%s/v2/catalog", serverURL), nil)
+
+			Expect(response.StatusCode).To(Equal(http.StatusPreconditionFailed))
+			Expect(string(bodyContent)).To(ContainSubstring(`{"Description":"X-Broker-API-Version Header not set"}`))
 		})
 	})
 })
