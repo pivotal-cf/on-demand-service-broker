@@ -115,6 +115,14 @@ var _ = Describe("Management API", func() {
 			By("logging the failure")
 			Expect(loggerBuffer).To(gbytes.Say(`error occurred querying instances: something failed`))
 		})
+
+		It("return 401 when not authorised", func() {
+
+			response, _ := doGetRequestWithoutAuth(serviceInstancesPath)
+
+			By("returning the correct status code")
+			Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+		})
 	})
 
 	Describe("GET /mgmt/orphan_deployments", func() {
@@ -503,9 +511,22 @@ var _ = Describe("Management API", func() {
 })
 
 func doProcessRequest(serviceInstanceID, body, operationType string) (*http.Response, []byte) {
-	return doRequest(http.MethodPatch, fmt.Sprintf("http://%s/mgmt/service_instances/%s?operation_type=%s", serverURL, serviceInstanceID, operationType), strings.NewReader(body))
+	return doRequestWithAuth(
+		http.MethodPatch,
+		fmt.Sprintf("http://%s/mgmt/service_instances/%s?operation_type=%s", serverURL, serviceInstanceID, operationType),
+		strings.NewReader(body))
 }
 
 func doGetRequest(path string) (*http.Response, []byte) {
-	return doRequest(http.MethodGet, fmt.Sprintf("http://%s/mgmt/%s", serverURL, path), nil)
+	return doRequestWithAuth(
+		http.MethodGet,
+		fmt.Sprintf("http://%s/mgmt/%s", serverURL, path),
+		nil)
+}
+
+func doGetRequestWithoutAuth(path string) (*http.Response, []byte) {
+	return doRequestWithoutAuth(
+		http.MethodGet,
+		fmt.Sprintf("http://%s/mgmt/%s", serverURL, path),
+		nil)
 }

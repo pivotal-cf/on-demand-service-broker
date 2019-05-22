@@ -211,7 +211,7 @@ var _ = Describe("Unbind", func() {
 })
 
 func doUnbindRequest(instanceID, bindingID, serviceID, planID string) (*http.Response, []byte) {
-	return doRequest(http.MethodDelete,
+	return doRequestWithAuthAndHeaderSet(http.MethodDelete,
 		fmt.Sprintf(
 			"http://%s/v2/service_instances/%s/service_bindings/%s?service_id=%s&plan_id=%s",
 			serverURL,

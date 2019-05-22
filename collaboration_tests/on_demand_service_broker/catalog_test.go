@@ -360,16 +360,47 @@ var _ = Describe("Catalog", func() {
 		})
 
 		It("fails with 412 status code", func() {
-			response, bodyContent := doRequestWithoutHeader(http.MethodGet, fmt.Sprintf("http://%s/v2/catalog", serverURL), nil)
+			response, bodyContent := doRequestWithAuthAndHeaderSet(
+				http.MethodGet,
+				fmt.Sprintf("http://%s/v2/catalog", serverURL),
+				nil,
+				func(r *http.Request) {
+					r.Header.Del("X-Broker-API-Version")
+				})
 
 			Expect(response.StatusCode).To(Equal(http.StatusPreconditionFailed))
 			Expect(string(bodyContent)).To(ContainSubstring(`{"Description":"X-Broker-API-Version Header not set"}`))
 		})
 	})
+
+	Context("without authentication", func() {
+		BeforeEach(func() {
+			conf := brokerConfig.Config{
+				Broker: brokerConfig.Broker{
+					Port: serverPort, Username: brokerUsername, Password: brokerPassword,
+					EnablePlanSchemas: true,
+				},
+			}
+
+			StartServer(conf)
+		})
+
+		It("fails with 401 status code", func() {
+			response, _ := doRequestWithoutAuth(
+				http.MethodGet,
+				fmt.Sprintf("http://%s/v2/catalog", serverURL),
+				nil,
+				func(r *http.Request) {
+					r.Header.Set("X-Broker-API-Version", "2.14")
+				})
+
+			Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+		})
+	})
 })
 
 func doCatalogRequest() (*http.Response, []byte) {
-	return doRequest(http.MethodGet, fmt.Sprintf("http://%s/v2/catalog", serverURL), nil)
+	return doRequestWithAuthAndHeaderSet(http.MethodGet, fmt.Sprintf("http://%s/v2/catalog", serverURL), nil)
 }
 
 func defaultServiceCatalogConfig() brokerConfig.ServiceOffering {

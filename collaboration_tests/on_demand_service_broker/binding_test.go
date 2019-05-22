@@ -394,7 +394,7 @@ func doBindRequest(instanceID, bindingID string, bindDetails domain.BindDetails)
 	err := json.NewEncoder(body).Encode(bindDetails)
 	Expect(err).NotTo(HaveOccurred())
 
-	return doRequest(
+	return doRequestWithAuthAndHeaderSet(
 		http.MethodPut,
 		fmt.Sprintf(
 			"http://%s/v2/service_instances/%s/service_bindings/%s",

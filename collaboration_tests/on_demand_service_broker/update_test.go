@@ -780,7 +780,7 @@ properties:
 func doUpdateRequest(body interface{}, instanceID string) (*http.Response, []byte) {
 	bodyBytes, err := json.Marshal(body)
 	Expect(err).NotTo(HaveOccurred())
-	return doRequest(
+	return doRequestWithAuthAndHeaderSet(
 		http.MethodPatch,
 		fmt.Sprintf("http://%s/v2/service_instances/%s?accepts_incomplete=true", serverURL, instanceID),
 		bytes.NewReader(bodyBytes),

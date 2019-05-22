@@ -641,7 +641,7 @@ func doProvisionRequest(instanceID, planID string, arbitraryParams map[string]in
 	bodyBytes, err := json.Marshal(reqBody)
 	Expect(err).NotTo(HaveOccurred())
 
-	return doRequest(
+	return doRequestWithAuthAndHeaderSet(
 		http.MethodPut,
 		fmt.Sprintf("http://%s/v2/service_instances/%s?accepts_incomplete=%t&plan_id=%s&service_id=%s",
 			serverURL, instanceID, asyncAllowed, planID, serviceID,

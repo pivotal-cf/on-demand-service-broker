@@ -953,10 +953,10 @@ func doLastOperationRequest(instanceID string, operationData broker.OperationDat
 	Expect(err).NotTo(HaveOccurred())
 	lastOperationURL = fmt.Sprintf("%s?operation=%s", lastOperationURL, url.QueryEscape(string(operationDataBytes)))
 
-	return doRequest(http.MethodGet, lastOperationURL, nil)
+	return doRequestWithAuthAndHeaderSet(http.MethodGet, lastOperationURL, nil)
 }
 
 func doEmptyLastOperationRequest(instanceID string) (*http.Response, []byte) {
 	lastOperationURL := fmt.Sprintf("http://%s/v2/service_instances/%s/last_operation", serverURL, instanceID)
-	return doRequest(http.MethodGet, lastOperationURL, nil)
+	return doRequestWithAuthAndHeaderSet(http.MethodGet, lastOperationURL, nil)
 }

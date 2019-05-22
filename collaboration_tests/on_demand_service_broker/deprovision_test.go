@@ -351,7 +351,7 @@ var _ = Describe("Deprovision", func() {
 })
 
 func doDeprovisionRequest(instanceID, planID, serviceID string, asyncAllowed bool, force bool) (*http.Response, []byte) {
-	return doRequest(
+	return doRequestWithAuthAndHeaderSet(
 		http.MethodDelete,
 		fmt.Sprintf("http://%s/v2/service_instances/%s?accepts_incomplete=%t&plan_id=%s&service_id=%s&force=%v", serverURL, instanceID, asyncAllowed, planID, serviceID, force),
 		nil,

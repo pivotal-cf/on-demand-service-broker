@@ -178,7 +178,7 @@ var _ = Describe("Server Protocol", func() {
 			StartServer(conf)
 		})
 		It("serves HTTP", func() {
-			response, bodyContent := doRequest(http.MethodGet, fmt.Sprintf("http://%s/v2/catalog", serverURL), nil)
+			response, bodyContent := doRequestWithAuthAndHeaderSet(http.MethodGet, fmt.Sprintf("http://%s/v2/catalog", serverURL), nil)
 
 			Expect(response.StatusCode).To(Equal(http.StatusOK))
 			catalog := make(map[string][]domain.Service)

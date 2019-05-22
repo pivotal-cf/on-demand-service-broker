@@ -46,9 +46,30 @@ func New(
 	serverLogger *log.Logger,
 ) *http.Server {
 
-	brokerRouter := mux.NewRouter()
-	mgmtapi.AttachRoutes(brokerRouter, broker, conf.ServiceCatalog, mgmtapiLoggerFactory)
+	router := mux.NewRouter()
+	registerManagementAPI(broker, conf, mgmtapiLoggerFactory, router)
+	registerOSBAPI(broker, componentName, serverLogger, conf, router)
 
+	server := negroni.New(
+		negroni.NewRecovery(),
+		createNegroniLogger(serverLogger),
+		negroni.NewStatic(http.Dir("public")),
+		negroni.Wrap(router),
+	)
+
+	return &http.Server{
+		Addr:    fmt.Sprintf(":%d", conf.Broker.Port),
+		Handler: server,
+	}
+}
+
+func registerOSBAPI(
+	broker CombinedBroker,
+	componentName string,
+	serverLogger *log.Logger,
+	conf config.Config,
+	router *mux.Router,
+) {
 	apiBrokerHandler := brokerapi.New(
 		broker,
 		createBrokerAPILogger(componentName, serverLogger),
@@ -56,23 +77,22 @@ func New(
 			Username: conf.Broker.Username,
 			Password: conf.Broker.Password,
 		})
-	brokerRouter.PathPrefix("/v2").Handler(apiBrokerHandler)
 
-	server := negroni.New(
-		negroni.NewRecovery(),
-		createNegroniLogger(serverLogger),
-		negroni.NewStatic(http.Dir("public")),
-	)
+	router.PathPrefix("/v2").Handler(apiBrokerHandler)
+}
 
-	authProtectedBrokerAPI := apiauth.
-		NewWrapper(conf.Broker.Username, conf.Broker.Password).
-		Wrap(brokerRouter)
-	server.UseHandler(authProtectedBrokerAPI)
+func registerManagementAPI(
+	broker CombinedBroker,
+	conf config.Config,
+	mgmtapiLoggerFactory *loggerfactory.LoggerFactory,
+	router *mux.Router,
+) {
+	mgmtAPIRouter := mux.NewRouter()
+	mgmtapi.AttachRoutes(mgmtAPIRouter, broker, conf.ServiceCatalog, mgmtapiLoggerFactory)
+	authMiddleware := apiauth.NewWrapper(conf.Broker.Username, conf.Broker.Password).Wrap
+	mgmtAPIRouter.Use(authMiddleware)
 
-	return &http.Server{
-		Addr:    fmt.Sprintf(":%d", conf.Broker.Port),
-		Handler: server,
-	}
+	router.PathPrefix("/mgmt").Handler(mgmtAPIRouter)
 }
 
 func StartAndWait(conf config.Config, server *http.Server, logger *log.Logger, stopServer chan os.Signal) error {
