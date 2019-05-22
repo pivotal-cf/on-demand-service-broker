@@ -86,9 +86,16 @@ func (d *Deleter) DeleteAllServiceInstances(serviceUniqueID string) error {
 			return err
 		}
 
-		err = d.deleteServiceInstance(instance.GUID)
+		deleteInProgress, err := d.deleteInProgress(instance.GUID)
 		if err != nil {
-			return err
+			d.logger.Printf("could not retrieve information about service instance %s, will try to delete", instance.GUID)
+		}
+		if deleteInProgress {
+			d.logger.Printf("service instance %s is being deleted, will skip sending the delete request", instance.GUID)
+		} else {
+			if err = d.deleteServiceInstance(instance.GUID); err != nil {
+				return err
+			}
 		}
 
 		d.logger.Printf("Waiting for service instance %s to be deleted", instance.GUID)
@@ -187,4 +194,14 @@ func (d Deleter) pollInstanceDeleteStatus(instanceGUID string) error {
 			return fmt.Errorf("Result: failed to delete service instance %s. Delete operation failed.", instanceGUID)
 		}
 	}
+}
+
+func (d Deleter) deleteInProgress(instanceGUID string) (bool, error) {
+	instance, err := d.cfClient.GetInstance(instanceGUID, d.logger)
+
+	if err != nil {
+		return false, err
+	}
+
+	return instance.LastOperation.IsDelete(), nil
 }

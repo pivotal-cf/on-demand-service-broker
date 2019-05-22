@@ -144,7 +144,7 @@ var _ = Describe("Deleter", func() {
 
 				// Get instance 1
 				Expect(logBuffer.String()).To(ContainSubstring("Waiting for service instance %s to be deleted", serviceInstance1GUID))
-				actualInstanceGUID, _ = cfClient.GetInstanceArgsForCall(0)
+				actualInstanceGUID, _ = cfClient.GetInstanceArgsForCall(1)
 				Expect(actualInstanceGUID).To(Equal(serviceInstance1GUID))
 
 				By("Deleting service instance 2")
@@ -170,7 +170,7 @@ var _ = Describe("Deleter", func() {
 
 				// Get instance 2
 				Expect(logBuffer.String()).To(ContainSubstring("Waiting for service instance %s to be deleted", serviceInstance2GUID))
-				actualInstanceGUID, _ = cfClient.GetInstanceArgsForCall(1)
+				actualInstanceGUID, _ = cfClient.GetInstanceArgsForCall(2)
 				Expect(actualInstanceGUID).To(Equal(serviceInstance2GUID))
 
 				By("Verifying that all service instances have been deleted")
@@ -186,23 +186,29 @@ var _ = Describe("Deleter", func() {
 				cfClient.GetInstancesOfServiceOfferingReturns([]service.Instance{{GUID: serviceInstance1GUID}}, nil)
 				cfClient.GetInstancesOfServiceOfferingReturnsOnCall(1, []service.Instance{}, nil)
 
+				cfClient.GetInstanceReturnsOnCall(0, cf.Instance{
+					LastOperation: cf.LastOperation{
+						Type:  "any-non-delete-status",
+						State: cf.OperationState("success"),
+					},
+				}, nil)
+
 				instance := cf.Instance{
 					LastOperation: cf.LastOperation{
 						Type:  cf.OperationTypeDelete,
 						State: cf.OperationState("in progress"),
 					},
 				}
-				cfClient.GetInstanceReturnsOnCall(0, instance, nil)
+				cfClient.GetInstanceReturnsOnCall(1, instance, nil)
 				notFoundError := cf.NewResourceNotFoundError("service instance not found")
-				cfClient.GetInstanceReturnsOnCall(1, cf.Instance{}, notFoundError)
+				cfClient.GetInstanceReturnsOnCall(2, cf.Instance{}, notFoundError)
 
 				err := deleteTool.DeleteAllServiceInstances(serviceUniqueID)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
 			It("deletes the instance", func() {
-				Expect(cfClient.GetInstanceCallCount()).To(Equal(2), "Expected to get instance two times")
-
+				Expect(cfClient.GetInstanceCallCount()).To(Equal(3), "Expected to get instance three times")
 				Expect(logBuffer.String()).To(ContainSubstring("Result: deleted service instance %s", serviceInstance1GUID))
 			})
 
@@ -241,6 +247,62 @@ var _ = Describe("Deleter", func() {
 				Expect(cfClient.GetInstanceCallCount()).To(Equal(2), "Expected to get instance two times")
 
 				Expect(logBuffer.String()).To(ContainSubstring("Result: deleted service instance %s", serviceInstance1GUID))
+			})
+		})
+
+		When("the service instance is already been deleted", func() {
+			BeforeEach(func() {
+				cfClient.DeleteServiceInstanceReturns(errors.New("Operation in progress"))
+
+				cfClient.GetInstancesOfServiceOfferingReturns([]service.Instance{{GUID: serviceInstance1GUID}}, nil)
+				cfClient.GetInstancesOfServiceOfferingReturnsOnCall(1, []service.Instance{}, nil)
+
+				instanceBeingDeleted := cf.Instance{
+					LastOperation: cf.LastOperation{
+						Type:  cf.OperationTypeDelete,
+						State: cf.OperationState("in progress"),
+					},
+				}
+				cfClient.GetInstanceReturnsOnCall(0, instanceBeingDeleted, nil)
+				cfClient.GetInstanceReturnsOnCall(1, instanceBeingDeleted, nil)
+				notFoundError := cf.NewResourceNotFoundError("service instanceBeingDeleted not found")
+				cfClient.GetInstanceReturnsOnCall(2, cf.Instance{}, notFoundError)
+
+				err := deleteTool.DeleteAllServiceInstances(serviceUniqueID)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("doesn't try to delete the instance", func() {
+				Expect(cfClient.DeleteServiceInstanceCallCount()).To(BeZero())
+				Expect(logBuffer.String()).To(ContainSubstring("service instance %s is being deleted", serviceInstance1GUID))
+			})
+
+			It("waits while the instance is being deleted", func() {
+				Expect(logBuffer.String()).To(ContainSubstring("Waiting for service instance %s to be deleted", serviceInstance1GUID))
+
+				Expect(sleeper.SleepCallCount()).To(Equal(3))
+				Expect(sleeper.SleepArgsForCall(1)).To(Equal(pollingInterval * time.Second))
+				Expect(sleeper.SleepArgsForCall(2)).To(Equal(pollingInterval * time.Second))
+
+				Expect(cfClient.GetInstanceCallCount()).To(Equal(3))
+			})
+		})
+
+		When("It cannot retrieve instance latest operation information", func() {
+			BeforeEach(func() {
+				cfClient.GetInstancesOfServiceOfferingReturns([]service.Instance{{GUID: serviceInstance1GUID}}, nil)
+				cfClient.GetInstancesOfServiceOfferingReturnsOnCall(1, []service.Instance{}, nil)
+
+				cfClient.GetInstanceReturnsOnCall(0, cf.Instance{}, errors.New("failed to get instance"))
+				cfClient.GetInstanceReturnsOnCall(1, cf.Instance{}, cf.NewResourceNotFoundError("service instanceBeingDeleted not found"))
+
+				err := deleteTool.DeleteAllServiceInstances(serviceUniqueID)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("logs a warning and deletes the instance", func() {
+				Expect(logBuffer.String()).To(ContainSubstring("could not retrieve information about service instance %s", serviceInstance1GUID))
+				Expect(cfClient.DeleteServiceInstanceCallCount()).To(Equal(1))
 			})
 		})
 

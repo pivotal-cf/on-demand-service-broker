@@ -146,6 +146,7 @@ var _ = Describe("delete all service instances tool", func() {
 				mockcfapi.DeleteServiceBinding(boundAppGUID, serviceBindingGUID).RespondsNoContent(),
 				mockcfapi.ListServiceKeys(instanceGUID).RespondsWithServiceKey(serviceKeyGUID, instanceGUID),
 				mockcfapi.DeleteServiceKey(serviceKeyGUID).RespondsNoContent(),
+				mockcfapi.GetServiceInstance(instanceGUID).RespondsWithSucceeded(),
 				mockcfapi.DeleteServiceInstance(instanceGUID).RespondsAcceptedWith(""),
 				mockcfapi.GetServiceInstance(instanceGUID).RespondsWithInProgress(mockcfapi.Delete),
 				mockcfapi.GetServiceInstance(instanceGUID).RespondsNotFoundWith(""),
@@ -248,6 +249,7 @@ var _ = Describe("delete all service instances tool", func() {
 						"next_url": null,
 						"resources": []
 					}`),
+				mockcfapi.GetServiceInstance(instanceGUID).RespondsWithSucceeded(),
 				mockcfapi.DeleteServiceInstance(instanceGUID).RespondsAcceptedWith(""),
 				mockcfapi.GetServiceInstance(instanceGUID).RespondsNotFoundWith(""),
 				mockcfapi.ListServiceOfferings().RespondsWithServiceOffering(serviceID, "some-cc-service-offering-guid"),
@@ -283,6 +285,7 @@ var _ = Describe("delete all service instances tool", func() {
 						"next_url": null,
 						"resources": []
 					}`),
+				mockcfapi.GetServiceInstance(instanceGUID).RespondsWithSucceeded(),
 				mockcfapi.DeleteServiceInstance(instanceGUID).RespondsAcceptedWith(""),
 				mockcfapi.GetServiceInstance(instanceGUID).RespondsNotFoundWith(""),
 				mockcfapi.ListServiceOfferings().RespondsWithServiceOffering(serviceID, "some-cc-service-offering-guid"),
@@ -313,6 +316,7 @@ var _ = Describe("delete all service instances tool", func() {
 							"description": "The app could not be found: some-bound-app-guid",
 							"error_code": "CF-AppNotFound"
 						}`),
+				mockcfapi.GetServiceInstance(instanceGUID).RespondsWithSucceeded(),
 				mockcfapi.DeleteServiceInstance(instanceGUID).RespondsAcceptedWith(""),
 				mockcfapi.GetServiceInstance(instanceGUID).RespondsNotFoundWith(""),
 				mockcfapi.ListServiceOfferings().RespondsWithServiceOffering(serviceID, "some-cc-service-offering-guid"),
@@ -367,6 +371,7 @@ var _ = Describe("delete all service instances tool", func() {
 				mockcfapi.DeleteServiceBinding(boundAppGUID, serviceBindingGUID).RespondsNoContent(),
 				mockcfapi.ListServiceKeys(instanceGUID).RespondsWithServiceKey(serviceKeyGUID, instanceGUID),
 				mockcfapi.DeleteServiceKey(serviceKeyGUID).RespondsNoContent(),
+				mockcfapi.GetServiceInstance(instanceGUID).RespondsWithSucceeded(),
 				mockcfapi.DeleteServiceInstance(instanceGUID).RespondsAcceptedWith(""),
 				mockcfapi.GetServiceInstance(instanceGUID).RespondsWithFailed(mockcfapi.Delete),
 			)
@@ -392,6 +397,7 @@ var _ = Describe("delete all service instances tool", func() {
 				mockcfapi.DeleteServiceBinding(boundAppGUID, serviceBindingGUID).RespondsNoContent(),
 				mockcfapi.ListServiceKeys(instanceGUID).RespondsWithServiceKey(serviceKeyGUID, instanceGUID),
 				mockcfapi.DeleteServiceKey(serviceKeyGUID).RespondsNoContent(),
+				mockcfapi.GetServiceInstance(instanceGUID).RespondsWithSucceeded(),
 				mockcfapi.DeleteServiceInstance(instanceGUID).RespondsAcceptedWith(""),
 				mockcfapi.GetServiceInstance(instanceGUID).RespondsOKWith("not valid json"),
 			)

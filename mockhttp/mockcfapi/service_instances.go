@@ -24,6 +24,7 @@ type OperationState string
 
 const (
 	InProgress = "in progress"
+	Succeeded  = "succeeded"
 	Failed     = "failed"
 )
 
@@ -38,6 +39,11 @@ func GetServiceInstance(instanceGUID string) *getServiceInstanceMock {
 		Handler:      mockhttp.NewMockedHttpRequest("GET", "/v2/service_instances/"+instanceGUID),
 		instanceGUID: instanceGUID,
 	}
+}
+
+func (m *getServiceInstanceMock) RespondsWithSucceeded() *mockhttp.Handler {
+	body := fmt.Sprintf(instanceResponseBody, m.instanceGUID, "create", Succeeded)
+	return m.RespondsOKWith(body)
 }
 
 func (m *getServiceInstanceMock) RespondsWithInProgress(operation Operation) *mockhttp.Handler {

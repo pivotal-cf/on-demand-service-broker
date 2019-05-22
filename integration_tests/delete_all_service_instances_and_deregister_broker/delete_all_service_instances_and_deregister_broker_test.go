@@ -113,6 +113,7 @@ var _ = Describe("purge instances and deregister tool", func() {
 			mockcfapi.DeleteServiceBinding(boundAppGUID, serviceBindingGUID).RespondsNoContent(),
 			mockcfapi.ListServiceKeys(instanceGUID).RespondsWithServiceKey(serviceKeyGUID, instanceGUID),
 			mockcfapi.DeleteServiceKey(serviceKeyGUID).RespondsNoContent(),
+			mockcfapi.GetServiceInstance(instanceGUID).RespondsWithSucceeded(),
 			mockcfapi.DeleteServiceInstance(instanceGUID).RespondsAcceptedWith(""),
 			mockcfapi.GetServiceInstance(instanceGUID).RespondsWithInProgress(mockcfapi.Delete),
 			mockcfapi.GetServiceInstance(instanceGUID).RespondsNotFoundWith(""),
