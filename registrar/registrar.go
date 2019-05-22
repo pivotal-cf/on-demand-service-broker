@@ -19,9 +19,9 @@ type RegisterBrokerCFClient interface {
 	ServiceBrokers() ([]cf.ServiceBroker, error)
 	CreateServiceBroker(name, username, password, url string) error
 	UpdateServiceBroker(guid, name, username, password, url string) error
-	EnableServiceAccess(serviceName, planName string, logger *log.Logger) error
-	DisableServiceAccess(serviceName, planName string, logger *log.Logger) error
-	CreateServicePlanVisibility(orgName, serviceName, planName string, logger *log.Logger) error
+	EnableServiceAccess(serviceOfferingID, planName string, logger *log.Logger) error
+	DisableServiceAccess(serviceOfferingID, planName string, logger *log.Logger) error
+	CreateServicePlanVisibility(orgName, serviceOfferingID, planName string, logger *log.Logger) error
 }
 
 const executionError = "failed to execute register-broker"
@@ -38,16 +38,16 @@ func (r *RegisterBrokerRunner) Run() error {
 
 	for _, plan := range r.Config.Plans {
 		if plan.CFServiceAccess == config.PlanEnabled {
-			err = r.CFClient.EnableServiceAccess(r.Config.ServiceName, plan.Name, r.Logger)
+			err = r.CFClient.EnableServiceAccess(r.Config.ServiceOfferingID, plan.Name, r.Logger)
 		} else {
-			err = r.CFClient.DisableServiceAccess(r.Config.ServiceName, plan.Name, r.Logger)
+			err = r.CFClient.DisableServiceAccess(r.Config.ServiceOfferingID, plan.Name, r.Logger)
 		}
 		if err != nil {
 			return errors.Wrap(err, executionError)
 		}
 
 		if plan.CFServiceAccess == config.PlanOrgRestricted {
-			err = r.CFClient.CreateServicePlanVisibility(plan.ServiceAccessOrg, r.Config.ServiceName, plan.Name, r.Logger)
+			err = r.CFClient.CreateServicePlanVisibility(plan.ServiceAccessOrg, r.Config.ServiceOfferingID, plan.Name, r.Logger)
 			if err != nil {
 				return errors.Wrap(err, executionError)
 			}

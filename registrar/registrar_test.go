@@ -38,12 +38,12 @@ var _ = Describe("RegisterBrokerRunner", func() {
 
 			runner = registrar.RegisterBrokerRunner{
 				Config: config.RegisterBrokerErrandConfig{
-					BrokerName:     expectedName,
-					BrokerUsername: expectedUsername,
-					BrokerPassword: expectedPassword,
-					BrokerURL:      expectedURL,
-					ServiceName:    "not-relevant",
-					Plans:          plans,
+					BrokerName:        expectedName,
+					BrokerUsername:    expectedUsername,
+					BrokerPassword:    expectedPassword,
+					BrokerURL:         expectedURL,
+					ServiceOfferingID: "not-relevant",
+					Plans:             plans,
 				},
 				CFClient: fakeCFClient,
 			}
@@ -89,16 +89,16 @@ var _ = Describe("RegisterBrokerRunner", func() {
 
 	Describe("Cf service access", func() {
 		var (
-			runner              registrar.RegisterBrokerRunner
-			fakeCFClient        *fakes.FakeRegisterBrokerCFClient
-			expectedServiceName string
-			expectedPlanName1   string
-			expectedPlanName2   string
-			servicePlans        []config.PlanAccess
+			runner                  registrar.RegisterBrokerRunner
+			fakeCFClient            *fakes.FakeRegisterBrokerCFClient
+			expectedServiceOffering string
+			expectedPlanName1       string
+			expectedPlanName2       string
+			servicePlans            []config.PlanAccess
 		)
 
 		BeforeEach(func() {
-			expectedServiceName = "serviceName"
+			expectedServiceOffering = "serviceName"
 			expectedPlanName1 = "planName-1"
 			expectedPlanName2 = "planName-2"
 			servicePlans = []config.PlanAccess{
@@ -118,8 +118,8 @@ var _ = Describe("RegisterBrokerRunner", func() {
 		It("enable service access for a plan", func() {
 			runner = registrar.RegisterBrokerRunner{
 				Config: config.RegisterBrokerErrandConfig{
-					ServiceName: expectedServiceName,
-					Plans:       servicePlans,
+					ServiceOfferingID: expectedServiceOffering,
+					Plans:             servicePlans,
 				},
 				CFClient: fakeCFClient,
 			}
@@ -131,11 +131,11 @@ var _ = Describe("RegisterBrokerRunner", func() {
 			Expect(fakeCFClient.EnableServiceAccessCallCount()).To(Equal(2), "EnableServiceAccess wasn't called")
 
 			serviceName, planName, _ := fakeCFClient.EnableServiceAccessArgsForCall(0)
-			Expect(serviceName).To(Equal(expectedServiceName))
+			Expect(serviceName).To(Equal(expectedServiceOffering))
 			Expect(planName).To(Equal(expectedPlanName1))
 
 			serviceName, planName2, _ := fakeCFClient.EnableServiceAccessArgsForCall(1)
-			Expect(serviceName).To(Equal(expectedServiceName))
+			Expect(serviceName).To(Equal(expectedServiceOffering))
 			Expect(planName2).To(Equal(expectedPlanName2))
 
 			Expect(fakeCFClient.CreateServicePlanVisibilityCallCount()).To(BeZero(), "should not create plan visibility for public plans")
@@ -154,8 +154,8 @@ var _ = Describe("RegisterBrokerRunner", func() {
 			fakeCFClient.ServiceBrokersReturns([]cf.ServiceBroker{}, nil)
 			runner = registrar.RegisterBrokerRunner{
 				Config: config.RegisterBrokerErrandConfig{
-					ServiceName: expectedServiceName,
-					Plans:       servicePlans,
+					ServiceOfferingID: expectedServiceOffering,
+					Plans:             servicePlans,
 				},
 				CFClient: fakeCFClient,
 			}
@@ -166,7 +166,7 @@ var _ = Describe("RegisterBrokerRunner", func() {
 			Expect(fakeCFClient.DisableServiceAccessCallCount()).To(Equal(1), "DisableServiceAccess wasn't called")
 
 			serviceName, planName, _ := fakeCFClient.DisableServiceAccessArgsForCall(0)
-			Expect(serviceName).To(Equal(expectedServiceName))
+			Expect(serviceName).To(Equal(expectedServiceOffering))
 			Expect(planName).To(Equal(disabledPlanName))
 		})
 
@@ -185,8 +185,8 @@ var _ = Describe("RegisterBrokerRunner", func() {
 			fakeCFClient.ServiceBrokersReturns([]cf.ServiceBroker{}, nil)
 			runner = registrar.RegisterBrokerRunner{
 				Config: config.RegisterBrokerErrandConfig{
-					ServiceName: expectedServiceName,
-					Plans:       servicePlans,
+					ServiceOfferingID: expectedServiceOffering,
+					Plans:             servicePlans,
 				},
 				CFClient: fakeCFClient,
 			}
@@ -197,14 +197,14 @@ var _ = Describe("RegisterBrokerRunner", func() {
 			Expect(fakeCFClient.DisableServiceAccessCallCount()).To(Equal(1), "DisableServiceAccess wasn't called")
 
 			serviceName, planName, _ := fakeCFClient.DisableServiceAccessArgsForCall(0)
-			Expect(serviceName).To(Equal(expectedServiceName))
+			Expect(serviceName).To(Equal(expectedServiceOffering))
 			Expect(planName).To(Equal(orgRestrictedPlanName))
 
 			Expect(fakeCFClient.CreateServicePlanVisibilityCallCount()).To(Equal(1), "CreateServicePlanVisibility wasn't called")
 
 			orgName, serviceName, planName, _ := fakeCFClient.CreateServicePlanVisibilityArgsForCall(0)
 			Expect(orgName).To(Equal(expectedOrgName))
-			Expect(serviceName).To(Equal(expectedServiceName))
+			Expect(serviceName).To(Equal(expectedServiceOffering))
 			Expect(planName).To(Equal(orgRestrictedPlanName))
 		})
 	})
@@ -221,8 +221,8 @@ var _ = Describe("RegisterBrokerRunner", func() {
 
 			runner = registrar.RegisterBrokerRunner{
 				Config: config.RegisterBrokerErrandConfig{
-					BrokerName:  expectedBrokerName,
-					ServiceName: "not-relevant",
+					BrokerName:        expectedBrokerName,
+					ServiceOfferingID: "not-relevant",
 					Plans: []config.PlanAccess{
 						{
 							Name:            "not-relevant",

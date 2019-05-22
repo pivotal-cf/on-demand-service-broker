@@ -47,6 +47,7 @@ type BrokerInfo struct {
 	TestSuffix      string
 	BrokerPassword  string
 	BrokerUsername  string
+	BrokerName      string
 }
 
 type deploymentProperties struct {
@@ -283,6 +284,9 @@ func deploy(systemTestSuffix string, deploymentOptions BrokerDeploymentOptions, 
 
 	logDeploymentProperties(variables, deployCmdArgs)
 
+	serviceName := "service-name-" + variables.UniqueID
+	planID := "plan-" + variables.UniqueID
+	brokerName := "broker-" + variables.UniqueID
 	deployArguments := []string{
 		"-d", variables.DeploymentName,
 		"-n",
@@ -290,17 +294,17 @@ func deploy(systemTestSuffix string, deploymentOptions BrokerDeploymentOptions, 
 		"--vars-file", variables.BrokerDeploymentVarsPath,
 		"--var", "broker_cn=" + variables.BrokerCN,
 		"--var", "broker_deployment_name=" + variables.DeploymentName,
-		"--var", "broker_name=" + variables.UniqueID,
+		"--var", "broker_name=" + brokerName,
 		"--var", "broker_password=" + variables.BrokerPassword,
 		"--var", "broker_release=" + variables.BrokerReleaseName,
 		"--var", "broker_route_name=" + variables.BrokerRoute,
 		"--var", "broker_uri=" + variables.BrokerURI,
 		"--var", "broker_version=" + variables.OdbVersion,
-		"--var", "plan_id=" + variables.UniqueID,
+		"--var", "plan_id=" + planID,
 		"--var", "service_adapter_release=" + variables.ServiceAdapterReleaseName,
 		"--var", "service_adapter_version=latest",
-		"--var", "service_catalog_id=" + variables.UniqueID,
-		"--var", "service_catalog_service_name=" + variables.UniqueID,
+		"--var", "service_catalog_id=service-id-" + variables.UniqueID,
+		"--var", "service_catalog_service_name=" + serviceName,
 		"--var", "service_release=" + variables.ServiceReleaseName,
 		"--var", "service_release_version=" + variables.ServiceReleaseVersion,
 		"--var", "disable_ssl_cert_verification=false",
@@ -335,11 +339,12 @@ func deploy(systemTestSuffix string, deploymentOptions BrokerDeploymentOptions, 
 	return BrokerInfo{
 		URI:             variables.BrokerURI,
 		DeploymentName:  variables.DeploymentName,
-		ServiceOffering: variables.UniqueID,
-		PlanID:          variables.UniqueID,
+		ServiceOffering: serviceName,
+		PlanID:          planID,
 		TestSuffix:      systemTestSuffix,
 		BrokerPassword:  variables.BrokerPassword,
 		BrokerUsername:  variables.BrokerUsername,
+		BrokerName:      brokerName,
 	}
 }
 

@@ -621,7 +621,7 @@ type RegisterBrokerErrandConfig struct {
 	BrokerURL                  string       `yaml:"broker_url"`
 	CF                         CF           `yaml:"cf"`
 	DisableSSLCertVerification bool         `yaml:"disable_ssl_cert_verification"` //TODO: move this to CF
-	ServiceName                string       `yaml:"service_name"`
+	ServiceOfferingID          string       `yaml:"service_offering_id"`
 	Plans                      []PlanAccess `yaml:"plans"`
 }
 

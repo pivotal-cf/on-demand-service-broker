@@ -192,7 +192,7 @@ var _ = Describe("broker registration errands", func() {
 			cfLogInAsAdmin()
 			bosh_helpers.RunErrand(brokerInfo.DeploymentName, "register-broker")
 			serviceBrokersSession := cf.Cf("service-brokers")
-			Eventually(serviceBrokersSession).Should(gbytes.Say(brokerInfo.ServiceOffering))
+			Eventually(serviceBrokersSession).Should(gbytes.Say(brokerInfo.BrokerName))
 		})
 
 		AfterEach(func() {
@@ -202,7 +202,7 @@ var _ = Describe("broker registration errands", func() {
 		It("removes the service from the CF", func() {
 			bosh_helpers.RunErrand(brokerInfo.DeploymentName, "deregister-broker")
 			serviceBrokersSession := cf.Cf("service-brokers")
-			Eventually(serviceBrokersSession).ShouldNot(gbytes.Say(brokerInfo.ServiceOffering))
+			Eventually(serviceBrokersSession).ShouldNot(gbytes.Say(brokerInfo.BrokerName))
 		})
 	})
 })

@@ -303,7 +303,7 @@ func (c Client) GetServiceOfferingGUID(brokerName string, logger *log.Logger) (s
 	return brokerGUID, nil
 }
 
-func (c Client) CreateServicePlanVisibility(orgName string, serviceName string, planName string, logger *log.Logger) error {
+func (c Client) CreateServicePlanVisibility(orgName string, serviceOfferingID string, planName string, logger *log.Logger) error {
 	orgResponse, err := c.getOrganization(orgName, logger)
 	if err != nil {
 		return errors.Wrap(err, "failed to create service plan visibility")
@@ -313,7 +313,7 @@ func (c Client) CreateServicePlanVisibility(orgName string, serviceName string, 
 	}
 	orgGUID := orgResponse.Resources[0].Metadata["guid"]
 
-	plans, err := c.getPlansForServiceID(serviceName, logger)
+	plans, err := c.getPlansForServiceID(serviceOfferingID, logger)
 	if err != nil {
 		return errors.Wrap(err, "failed to create service plan visibility")
 	}

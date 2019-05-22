@@ -92,7 +92,7 @@ var _ = Describe("RegisterBroker", func() {
 				},
 			},
 			DisableSSLCertVerification: true,
-			ServiceName:                serviceID,
+			ServiceOfferingID:          serviceID,
 		}
 	})
 
