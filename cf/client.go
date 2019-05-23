@@ -297,7 +297,8 @@ func (c Client) GetServiceOfferingGUID(brokerName string, logger *log.Logger) (s
 	}
 
 	if brokerGUID == "" {
-		return "", fmt.Errorf("Failed to find broker with name: %s", brokerName)
+		logger.Printf("No service broker found with name: %s", brokerName)
+		return "", nil
 	}
 
 	return brokerGUID, nil

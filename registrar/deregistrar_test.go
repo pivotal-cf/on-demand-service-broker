@@ -82,32 +82,46 @@ var _ = Describe("Deregistrar", func() {
 		fakeCFClient = new(fakes.FakeCloudFoundryClient)
 	})
 
-	It("does not return an error when deregistering", func() {
+	It("succeeds when deregistering succeeds", func() {
 		fakeCFClient.GetServiceOfferingGUIDReturns(brokerGUID, nil)
-
 		registrar := registrar.New(fakeCFClient, nil)
 
-		Expect(registrar.Deregister(brokerName)).NotTo(HaveOccurred())
+		err := registrar.Deregister(brokerName)
+
+		Expect(err).NotTo(HaveOccurred())
 		Expect(fakeCFClient.GetServiceOfferingGUIDCallCount()).To(Equal(1))
 		Expect(fakeCFClient.DeregisterBrokerCallCount()).To(Equal(1))
 		Expect(fakeCFClient.DeregisterBrokerArgsForCall(0)).To(Equal(brokerGUID))
 	})
 
-	It("returns an error when cf client fails to ge the service offering guid", func() {
+	It("succeeds when the broker does not exist", func() {
+		fakeCFClient.GetServiceOfferingGUIDReturns("", nil)
+		registrar := registrar.New(fakeCFClient, nil)
+
+		err := registrar.Deregister(brokerName)
+
+		Expect(err).NotTo(HaveOccurred())
+		Expect(fakeCFClient.GetServiceOfferingGUIDCallCount()).To(Equal(1))
+		Expect(fakeCFClient.DeregisterBrokerCallCount()).To(BeZero())
+	})
+
+	It("returns an error when cf client fails to get the service offering guid", func() {
 		fakeCFClient.GetServiceOfferingGUIDReturns("", errors.New("list service broker failed"))
 
 		registrar := registrar.New(fakeCFClient, nil)
+		err := registrar.Deregister(brokerName)
 
-		Expect(registrar.Deregister(brokerName)).To(MatchError("list service broker failed"))
+		Expect(err).To(MatchError("list service broker failed"))
 	})
 
 	It("returns an error when cf client fails to deregister", func() {
+		errMsg := fmt.Sprintf("Failed to deregister broker with %s with guid %s, err: failed", brokerName, brokerGUID)
 		fakeCFClient.GetServiceOfferingGUIDReturns(brokerGUID, nil)
 		fakeCFClient.DeregisterBrokerReturns(errors.New("failed"))
 
 		registrar := registrar.New(fakeCFClient, nil)
+		err := registrar.Deregister(brokerName)
 
-		errMsg := fmt.Sprintf("Failed to deregister broker with %s with guid %s, err: failed", brokerName, brokerGUID)
-		Expect(registrar.Deregister(brokerName)).To(MatchError(errMsg))
+		Expect(err).To(MatchError(errMsg))
 	})
 })

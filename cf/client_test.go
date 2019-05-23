@@ -89,7 +89,7 @@ var _ = Describe("Client", func() {
 			Expect(err).To(MatchError(ContainSubstring("failed")))
 		})
 
-		It("returns an error if it fails to find a broker with the corect name", func() {
+		It("logs if it fails to find a broker with the correct name", func() {
 			server.VerifyAndMock(
 				mockcfapi.ListServiceBrokers().
 					WithAuthorizationHeader(cfAuthorizationHeader).
@@ -103,7 +103,8 @@ var _ = Describe("Client", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			_, err = client.GetServiceOfferingGUID("not-a-real-broker", testLogger)
-			Expect(err).To(MatchError("Failed to find broker with name: not-a-real-broker"))
+			Expect(err).ToNot(HaveOccurred())
+			Expect(logBuffer).To(gbytes.Say("No service broker found with name: not-a-real-broker"))
 		})
 	})
 

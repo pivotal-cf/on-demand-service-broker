@@ -138,6 +138,16 @@ var _ = Describe("DeregisterBroker", func() {
 		deregistrarSession = helpers.StartBinaryWithParams(binaryPath, params)
 		Eventually(deregistrarSession, timeout).Should(gexec.Exit(1))
 		Eventually(deregistrarSession).Should(gbytes.Say("Failed to deregister broker"))
+	})
 
+	It("succeeds when the broker doesn't exist", func() {
+		cfAPI.VerifyAndMock(
+			mockcfapi.ListServiceBrokers().RespondsWithBrokers("not-this-broker", "other-id"),
+		)
+
+		params := []string{"-configFilePath", configFilePath, "-brokerName", serviceBrokerName}
+		deregistrarSession = helpers.StartBinaryWithParams(binaryPath, params)
+		Eventually(deregistrarSession, timeout).Should(gexec.Exit(0))
+		Eventually(deregistrarSession).Should(gbytes.Say("No service broker found with name: " + serviceBrokerName))
 	})
 })

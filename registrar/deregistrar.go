@@ -53,9 +53,11 @@ func (r *Deregistrar) Deregister(brokerName string) error {
 		return err
 	}
 
-	err = r.cfClient.DeregisterBroker(brokerGUID, r.logger)
-	if err != nil {
-		return fmt.Errorf("Failed to deregister broker with %s with guid %s, err: %s", brokerName, brokerGUID, err.Error())
+	if brokerGUID != "" {
+		err = r.cfClient.DeregisterBroker(brokerGUID, r.logger)
+		if err != nil {
+			return fmt.Errorf("Failed to deregister broker with %s with guid %s, err: %s", brokerName, brokerGUID, err.Error())
+		}
 	}
 	return nil
 }
