@@ -423,7 +423,7 @@ var _ = Describe("Update", func() {
 					})
 				})
 
-				Context("when the provision request params are not valid", func() {
+				Context("when the provision request params has extra params", func() {
 					BeforeEach(func() {
 						arbitraryParams = map[string]interface{}{
 							"this-is": "clearly-wrong",
@@ -434,11 +434,38 @@ var _ = Describe("Update", func() {
 
 					It("requests the json schemas from the service adapter", func() {
 						Expect(updateError).To(HaveOccurred())
-						Expect(updateError.Error()).To(ContainSubstring("Additional property this-is is not allowed"))
+						Expect(updateError.Error()).To(ContainSubstring("this-is: Additional property this-is is not allowed"))
+
+						actualErr := updateError.(*apiresponses.FailureResponse)
+						Expect(actualErr.ValidatedStatusCode(nil)).To(Equal(http.StatusBadRequest))
+
+						response := actualErr.ErrorResponse()
+						Expect(response).To(BeAssignableToTypeOf(apiresponses.ErrorResponse{}))
+						errorResponse := response.(apiresponses.ErrorResponse)
+						Expect(errorResponse.Description).To(ContainSubstring("this-is: Additional property this-is is not allowed"))
+					})
+				})
+
+				Context("when the provision has invalid parameters", func() {
+					BeforeEach(func() {
+						arbitraryParams = map[string]interface{}{
+							"auto_create_topic": "maybe",
+						}
+						schemaParams, err = json.Marshal(arbitraryParams)
+						Expect(err).NotTo(HaveOccurred())
 					})
 
-					It("fails", func() {
+					It("requests the json schemas from the service adapter", func() {
 						Expect(updateError).To(HaveOccurred())
+						Expect(updateError.Error()).To(ContainSubstring("auto_create_topic: Additional property auto_create_topic is not allowed"))
+
+						actualErr := updateError.(*apiresponses.FailureResponse)
+						Expect(actualErr.ValidatedStatusCode(nil)).To(Equal(http.StatusBadRequest))
+
+						response := actualErr.ErrorResponse()
+						Expect(response).To(BeAssignableToTypeOf(apiresponses.ErrorResponse{}))
+						errorResponse := response.(apiresponses.ErrorResponse)
+						Expect(errorResponse.Description).To(ContainSubstring("auto_create_topic: Additional property auto_create_topic is not allowed"))
 					})
 				})
 

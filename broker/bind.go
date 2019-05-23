@@ -10,6 +10,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
+
+	"github.com/pivotal-cf/brokerapi/domain/apiresponses"
 
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/brokerapi/domain"
@@ -82,7 +85,8 @@ func (b *Broker) Bind(
 
 		err = validator.ValidateParams(params)
 		if err != nil {
-			return domain.Binding{}, b.processError(err, logger)
+			failureResp := apiresponses.NewFailureResponseBuilder(err, http.StatusBadRequest, "params-validation-failed").Build()
+			return domain.Binding{}, b.processError(failureResp, logger)
 		}
 	}
 

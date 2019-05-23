@@ -210,7 +210,7 @@ func (b *Broker) checkPlanSchemas(ctx context.Context, requestParams map[string]
 
 		err = validator.ValidateParams(paramsToValidate)
 		if err != nil {
-			failureResp := apiresponses.NewFailureResponseBuilder(err, http.StatusBadRequest, "params-validation-failed").WithEmptyResponse().Build()
+			failureResp := apiresponses.NewFailureResponseBuilder(err, http.StatusBadRequest, "params-validation-failed").Build()
 			return failureResp
 		}
 	}

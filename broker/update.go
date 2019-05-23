@@ -216,7 +216,7 @@ func (b *Broker) validatePlanSchemas(plan config.Plan, details domain.UpdateDeta
 
 		err = validator.ValidateParams(params)
 		if err != nil {
-			return err
+			return apiresponses.NewFailureResponseBuilder(err, http.StatusBadRequest, "params-validation-failed").Build()
 		}
 	}
 

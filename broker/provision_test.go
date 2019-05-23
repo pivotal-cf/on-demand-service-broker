@@ -535,28 +535,26 @@ var _ = Describe("Provisioning", func() {
 			broker = createBrokerWithAdapter(fakeAdapter)
 		})
 
-		JustBeforeEach(func() {
-			serviceSpec, provisionErr = broker.Provision(
-				context.Background(),
-				instanceID,
-				domain.ProvisionDetails{
-					PlanID:           planID,
-					RawContext:       jsonContext,
-					RawParameters:    jsonParams,
-					OrganizationGUID: organizationGUID,
-					SpaceGUID:        spaceGUID,
-					ServiceID:        serviceOfferingID,
-				},
-				asyncAllowed,
-			)
-		})
-
 		Context("if the service adapter fails", func() {
 			BeforeEach(func() {
 				fakeAdapter.GeneratePlanSchemaReturns(schemaFixture, errors.New("oops"))
 			})
 
 			It("returns an error", func() {
+				serviceSpec, provisionErr = broker.Provision(
+					context.Background(),
+					instanceID,
+					domain.ProvisionDetails{
+						PlanID:           planID,
+						RawContext:       jsonContext,
+						RawParameters:    jsonParams,
+						OrganizationGUID: organizationGUID,
+						SpaceGUID:        spaceGUID,
+						ServiceID:        serviceOfferingID,
+					},
+					asyncAllowed,
+				)
+
 				Expect(provisionErr).To(HaveOccurred())
 				Expect(provisionErr.Error()).To(ContainSubstring("oops"))
 			})
@@ -570,13 +568,27 @@ var _ = Describe("Provisioning", func() {
 			})
 
 			It("returns an error", func() {
+				serviceSpec, provisionErr = broker.Provision(
+					context.Background(),
+					instanceID,
+					domain.ProvisionDetails{
+						PlanID:           planID,
+						RawContext:       jsonContext,
+						RawParameters:    jsonParams,
+						OrganizationGUID: organizationGUID,
+						SpaceGUID:        spaceGUID,
+						ServiceID:        serviceOfferingID,
+					},
+					asyncAllowed,
+				)
+
 				Expect(provisionErr).To(HaveOccurred())
 				Expect(provisionErr.Error()).To(ContainSubstring("enable_plan_schemas is set to true, but the service adapter does not implement generate-plan-schemas"))
 				Expect(logBuffer.String()).To(ContainSubstring("enable_plan_schemas is set to true, but the service adapter does not implement generate-plan-schemas"))
 			})
 		})
 
-		Context("when the provision request params are not valid", func() {
+		Context("when the provision request params has additional properties", func() {
 			BeforeEach(func() {
 				arbParams = map[string]interface{}{
 					"this-is": "clearly-wrong",
@@ -586,16 +598,69 @@ var _ = Describe("Provisioning", func() {
 			})
 
 			It("requests the json schemas from the service adapter", func() {
+				serviceSpec, provisionErr = broker.Provision(
+					context.Background(),
+					instanceID,
+					domain.ProvisionDetails{
+						PlanID:           planID,
+						RawContext:       jsonContext,
+						RawParameters:    jsonParams,
+						OrganizationGUID: organizationGUID,
+						SpaceGUID:        spaceGUID,
+						ServiceID:        serviceOfferingID,
+					},
+					asyncAllowed,
+				)
+
 				Expect(provisionErr).To(HaveOccurred())
 				Expect(provisionErr.Error()).To(ContainSubstring("Additional property this-is is not allowed"))
 				Expect(provisionErr).To(BeAssignableToTypeOf(&apiresponses.FailureResponse{}))
 
 				actualErr := provisionErr.(*apiresponses.FailureResponse)
 				Expect(actualErr.ValidatedStatusCode(nil)).To(Equal(http.StatusBadRequest))
+
+				response := actualErr.ErrorResponse()
+				Expect(response).To(BeAssignableToTypeOf(apiresponses.ErrorResponse{}))
+				errorResponse := response.(apiresponses.ErrorResponse)
+				Expect(errorResponse.Description).To(ContainSubstring("Additional property this-is is not allowed"))
+			})
+		})
+
+		Context("when the provision request params are not valid according to the schema", func() {
+			BeforeEach(func() {
+				arbParams = map[string]interface{}{
+					"auto_create_topics": "maybe",
+				}
+				jsonParams, err = json.Marshal(arbParams)
+				Expect(err).NotTo(HaveOccurred())
 			})
 
-			It("fails", func() {
+			It("requests the json schemas from the service adapter", func() {
+				serviceSpec, provisionErr = broker.Provision(
+					context.Background(),
+					instanceID,
+					domain.ProvisionDetails{
+						PlanID:           planID,
+						RawContext:       jsonContext,
+						RawParameters:    jsonParams,
+						OrganizationGUID: organizationGUID,
+						SpaceGUID:        spaceGUID,
+						ServiceID:        serviceOfferingID,
+					},
+					asyncAllowed,
+				)
+
 				Expect(provisionErr).To(HaveOccurred())
+				Expect(provisionErr.Error()).To(ContainSubstring("auto_create_topics: Invalid type. Expected: boolean, given: string"))
+				Expect(provisionErr).To(BeAssignableToTypeOf(&apiresponses.FailureResponse{}))
+
+				actualErr := provisionErr.(*apiresponses.FailureResponse)
+				Expect(actualErr.ValidatedStatusCode(nil)).To(Equal(http.StatusBadRequest))
+
+				response := actualErr.ErrorResponse()
+				Expect(response).To(BeAssignableToTypeOf(apiresponses.ErrorResponse{}))
+				errorResponse := response.(apiresponses.ErrorResponse)
+				Expect(errorResponse.Description).To(ContainSubstring("auto_create_topics: Invalid type. Expected: boolean, given: string"))
 			})
 		})
 
@@ -608,6 +673,20 @@ var _ = Describe("Provisioning", func() {
 			})
 
 			It("succeeds", func() {
+				serviceSpec, provisionErr = broker.Provision(
+					context.Background(),
+					instanceID,
+					domain.ProvisionDetails{
+						PlanID:           planID,
+						RawContext:       jsonContext,
+						RawParameters:    jsonParams,
+						OrganizationGUID: organizationGUID,
+						SpaceGUID:        spaceGUID,
+						ServiceID:        serviceOfferingID,
+					},
+					asyncAllowed,
+				)
+
 				Expect(provisionErr).NotTo(HaveOccurred())
 				Expect(serviceSpec.OperationData).To(ContainSubstring("\"OperationType\":\"create\""))
 			})
@@ -626,6 +705,20 @@ var _ = Describe("Provisioning", func() {
 			})
 
 			It("succeeds", func() {
+				serviceSpec, provisionErr = broker.Provision(
+					context.Background(),
+					instanceID,
+					domain.ProvisionDetails{
+						PlanID:           planID,
+						RawContext:       jsonContext,
+						RawParameters:    jsonParams,
+						OrganizationGUID: organizationGUID,
+						SpaceGUID:        spaceGUID,
+						ServiceID:        serviceOfferingID,
+					},
+					asyncAllowed,
+				)
+
 				Expect(provisionErr).NotTo(HaveOccurred())
 				Expect(serviceSpec.OperationData).To(ContainSubstring("\"OperationType\":\"create\""))
 			})
@@ -645,6 +738,20 @@ var _ = Describe("Provisioning", func() {
 			})
 
 			It("succeeds", func() {
+				serviceSpec, provisionErr = broker.Provision(
+					context.Background(),
+					instanceID,
+					domain.ProvisionDetails{
+						PlanID:           planID,
+						RawContext:       jsonContext,
+						RawParameters:    jsonParams,
+						OrganizationGUID: organizationGUID,
+						SpaceGUID:        spaceGUID,
+						ServiceID:        serviceOfferingID,
+					},
+					asyncAllowed,
+				)
+
 				Expect(provisionErr).NotTo(HaveOccurred())
 				Expect(serviceSpec.OperationData).To(ContainSubstring("\"OperationType\":\"create\""))
 			})
@@ -664,6 +771,20 @@ var _ = Describe("Provisioning", func() {
 			})
 
 			It("reports the required error", func() {
+				serviceSpec, provisionErr = broker.Provision(
+					context.Background(),
+					instanceID,
+					domain.ProvisionDetails{
+						PlanID:           planID,
+						RawContext:       jsonContext,
+						RawParameters:    jsonParams,
+						OrganizationGUID: organizationGUID,
+						SpaceGUID:        spaceGUID,
+						ServiceID:        serviceOfferingID,
+					},
+					asyncAllowed,
+				)
+
 				Expect(provisionErr).To(MatchError(ContainSubstring("auto_create_topics is required")))
 			})
 		})

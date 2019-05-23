@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -448,6 +449,38 @@ var _ = Describe("Bind", func() {
 			Expect(bindErr.Error()).To(ContainSubstring(
 				"bind_auto_create_topics: Invalid type. Expected: boolean, given: integer",
 			))
+
+			actualErr := bindErr.(*apiresponses.FailureResponse)
+			Expect(actualErr.ValidatedStatusCode(nil)).To(Equal(http.StatusBadRequest))
+
+			response := actualErr.ErrorResponse()
+			Expect(response).To(BeAssignableToTypeOf(apiresponses.ErrorResponse{}))
+			errorResponse := response.(apiresponses.ErrorResponse)
+			Expect(errorResponse.Description).To(ContainSubstring("bind_auto_create_topics: Invalid type. Expected: boolean, given: integer"))
+		})
+
+		It("returns an error if extra parameters are passed", func() {
+			fakeAdapter := new(brokerfakes.FakeServiceAdapterClient)
+			fakeAdapter.GeneratePlanSchemaReturns(schemaFixture, nil)
+			b = createBrokerWithAdapter(fakeAdapter)
+
+			bindRequest := generateBindRequestWithParams(map[string]interface{}{
+				"not-a-param": "test",
+			})
+
+			_, bindErr = b.Bind(context.Background(), instanceID, bindingID, bindRequest, false)
+			Expect(bindErr).To(HaveOccurred())
+			Expect(bindErr.Error()).To(ContainSubstring(
+				"not-a-param: Additional property not-a-param is not allowed",
+			))
+
+			actualErr := bindErr.(*apiresponses.FailureResponse)
+			Expect(actualErr.ValidatedStatusCode(nil)).To(Equal(http.StatusBadRequest))
+
+			response := actualErr.ErrorResponse()
+			Expect(response).To(BeAssignableToTypeOf(apiresponses.ErrorResponse{}))
+			errorResponse := response.(apiresponses.ErrorResponse)
+			Expect(errorResponse.Description).To(ContainSubstring("not-a-param: Additional property not-a-param is not allowed"))
 		})
 
 		It("returns an error if the generated schema is not valid", func() {
