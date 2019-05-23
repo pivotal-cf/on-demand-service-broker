@@ -45,16 +45,16 @@ var _ = Describe("orphan deployments errand", func() {
 			orphanInstanceGUID = "instance-to-purge-" + uuid.New()
 			nonOrphanInstanceGUID = "instance-to-keep-" + uuid.New()
 
-			provResp1 := brokerAPIClient.Provision(orphanInstanceGUID, brokerInfo.ServiceOffering, brokerInfo.PlanID)
-			provResp2 := brokerAPIClient.Provision(nonOrphanInstanceGUID, brokerInfo.ServiceOffering, brokerInfo.PlanID)
+			provResp1 := brokerAPIClient.Provision(orphanInstanceGUID, brokerInfo.ServiceID, brokerInfo.PlanID)
+			provResp2 := brokerAPIClient.Provision(nonOrphanInstanceGUID, brokerInfo.ServiceID, brokerInfo.PlanID)
 
 			brokerAPIClient.PollLastOperation(orphanInstanceGUID, provResp1.OperationData)
 			brokerAPIClient.PollLastOperation(nonOrphanInstanceGUID, provResp2.OperationData)
 		})
 
 		AfterEach(func() {
-			deprovResp1 := brokerAPIClient.Deprovision(orphanInstanceGUID, brokerInfo.ServiceOffering, brokerInfo.PlanID)
-			deprovResp2 := brokerAPIClient.Deprovision(nonOrphanInstanceGUID, brokerInfo.ServiceOffering, brokerInfo.PlanID)
+			deprovResp1 := brokerAPIClient.Deprovision(orphanInstanceGUID, brokerInfo.ServiceID, brokerInfo.PlanID)
+			deprovResp2 := brokerAPIClient.Deprovision(nonOrphanInstanceGUID, brokerInfo.ServiceID, brokerInfo.PlanID)
 
 			brokerAPIClient.PollLastOperation(orphanInstanceGUID, deprovResp1.OperationData)
 			brokerAPIClient.PollLastOperation(nonOrphanInstanceGUID, deprovResp2.OperationData)

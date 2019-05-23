@@ -77,7 +77,7 @@ var _ = Describe("upgrade-all-service-instances errand, basic operation", func()
 			appDtlsCh := make(chan upgrade_all.AppDetails, instancesToTest)
 
 			upgrade_all.PerformInParallel(func() {
-				appDtls := upgrade_all.CreateServiceAndApp(brokerInfo.ServiceOffering, planName)
+				appDtls := upgrade_all.CreateServiceAndApp(brokerInfo.ServiceName, planName)
 				appDtlsCh <- appDtls
 
 				By("verifying that the persistence property starts as 'yes'", func() {

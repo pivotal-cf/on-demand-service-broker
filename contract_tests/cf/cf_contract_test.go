@@ -164,11 +164,11 @@ var _ = Describe("CF client", func() {
 			Eventually(session).Should(gexec.Exit(0))
 
 			Eventually(
-				cf_helpers.Cf("disable-service-access", brokerDeployment.ServiceOffering, "-p", planName),
+				cf_helpers.Cf("disable-service-access", brokerDeployment.ServiceName, "-p", planName),
 			).Should(gexec.Exit(0))
 
 			Eventually(
-				cf_helpers.Cf("enable-service-access", brokerDeployment.ServiceOffering, "-p", planName, "-o", os.Getenv("CF_ORG")),
+				cf_helpers.Cf("enable-service-access", brokerDeployment.ServiceName, "-p", planName, "-o", os.Getenv("CF_ORG")),
 			).Should(gexec.Exit(0))
 
 			var err error
@@ -188,7 +188,7 @@ var _ = Describe("CF client", func() {
 			planVisibilities := servicePlanVisibilities(plan.GUID)
 			Expect(len(planVisibilities)).To(BeNumerically(">=", 1))
 
-			err := subject.EnableServiceAccess(brokerDeployment.ServiceOffering, planName, logger)
+			err := subject.EnableServiceAccess(brokerDeployment.ServiceName, planName, logger)
 			Expect(err).ToNot(HaveOccurred())
 
 			updatedPlan := servicePlan(brokerGUID, planName)
@@ -219,7 +219,7 @@ var _ = Describe("CF client", func() {
 			Eventually(session).Should(gexec.Exit(0))
 
 			Eventually(
-				cf_helpers.Cf("enable-service-access", brokerDeployment.ServiceOffering, "-p", planName),
+				cf_helpers.Cf("enable-service-access", brokerDeployment.ServiceName, "-p", planName),
 			).Should(gexec.Exit(0))
 
 			var err error
@@ -238,7 +238,7 @@ var _ = Describe("CF client", func() {
 			By("setting plan.public to false", func() {
 				Expect(plan.Public).To(BeTrue())
 
-				err := subject.DisableServiceAccess(brokerDeployment.ServiceOffering, planName, logger)
+				err := subject.DisableServiceAccess(brokerDeployment.ServiceName, planName, logger)
 				Expect(err).ToNot(HaveOccurred())
 
 				updatedPlan := servicePlan(brokerGUID, planName)
@@ -247,13 +247,13 @@ var _ = Describe("CF client", func() {
 
 			By("removing any plan visibilities", func() {
 				Eventually(
-					cf_helpers.Cf("enable-service-access", brokerDeployment.ServiceOffering, "-p", planName, "-o", os.Getenv("CF_ORG")),
+					cf_helpers.Cf("enable-service-access", brokerDeployment.ServiceName, "-p", planName, "-o", os.Getenv("CF_ORG")),
 				).Should(gexec.Exit(0))
 
 				planVisibilities := servicePlanVisibilities(plan.GUID)
 				Expect(len(planVisibilities)).To(BeNumerically(">=", 1))
 
-				err := subject.DisableServiceAccess(brokerDeployment.ServiceOffering, planName, logger)
+				err := subject.DisableServiceAccess(brokerDeployment.ServiceName, planName, logger)
 				Expect(err).ToNot(HaveOccurred())
 
 				updatedPlanVisibilities := servicePlanVisibilities(plan.GUID)
@@ -284,7 +284,7 @@ var _ = Describe("CF client", func() {
 			Eventually(session).Should(gexec.Exit(0))
 
 			Eventually(
-				cf_helpers.Cf("disable-service-access", brokerDeployment.ServiceOffering, "-p", planName),
+				cf_helpers.Cf("disable-service-access", brokerDeployment.ServiceName, "-p", planName),
 			).Should(gexec.Exit(0))
 
 			var err error
@@ -303,7 +303,7 @@ var _ = Describe("CF client", func() {
 			planVisibilities := servicePlanVisibilities(plan.GUID)
 			Expect(len(planVisibilities)).To(BeZero())
 
-			err := subject.CreateServicePlanVisibility(orgName, brokerDeployment.ServiceOffering, planName, logger)
+			err := subject.CreateServicePlanVisibility(orgName, brokerDeployment.ServiceName, planName, logger)
 			Expect(err).ToNot(HaveOccurred())
 
 			createdPlanVisibilities := servicePlanVisibilities(plan.GUID)

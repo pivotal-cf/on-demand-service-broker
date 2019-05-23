@@ -28,7 +28,7 @@ var _ = Describe("The recreate-all errand", func() {
 		)
 
 		serviceInstanceName = "service" + brokerInfo.TestSuffix
-		cf.CreateService(brokerInfo.ServiceOffering, "redis-with-post-deploy", serviceInstanceName, "")
+		cf.CreateService(brokerInfo.ServiceName, "redis-with-post-deploy", serviceInstanceName, "")
 	})
 
 	It("recreates all instances and runs their post-deploy errands", func() {

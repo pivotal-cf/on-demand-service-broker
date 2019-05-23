@@ -35,7 +35,7 @@ func FeatureToggledLifecycleTest(
 
 	By("creating a service", func() {
 		serviceInstanceName = "service" + brokerInfo.TestSuffix
-		cf_helpers.CreateService(brokerInfo.ServiceOffering, plan, serviceInstanceName, "")
+		cf_helpers.CreateService(brokerInfo.ServiceName, plan, serviceInstanceName, "")
 	})
 
 	By("creating a service key", func() {
@@ -106,19 +106,19 @@ func testBindingWithDNS(serviceKeyRaw, bindingDNSAttribute string) {
 }
 
 func testSecureBindings(brokerInfo bosh_helpers.BrokerInfo, appName string) {
-	bindingCredentials, err := cf_helpers.AppBindingCreds(appName, brokerInfo.ServiceOffering)
+	bindingCredentials, err := cf_helpers.AppBindingCreds(appName, brokerInfo.ServiceName)
 	Expect(err).NotTo(HaveOccurred())
 	credMap, ok := bindingCredentials.(map[string]interface{})
 	Expect(ok).To(BeTrue())
 	credhubRef, ok := credMap["credhub-ref"].(string)
 	Expect(ok).To(BeTrue(), fmt.Sprintf("unable to find credhub-ref in credentials %+v", credMap))
-	Expect(credhubRef).To(ContainSubstring("/c/%s", brokerInfo.ServiceOffering))
+	Expect(credhubRef).To(ContainSubstring("/c/%s", brokerInfo.ServiceID))
 }
 
 func testMetrics(brokerInfo bosh_helpers.BrokerInfo, plan string, dopplerAddress string) {
 	planName := plan
 	brokerDeploymentName := brokerInfo.DeploymentName
-	serviceOfferingName := brokerInfo.ServiceOffering
+	serviceOfferingName := brokerInfo.ServiceName
 	Expect(dopplerAddress).NotTo(BeEmpty())
 
 	firehoseConsumer := consumer.New(dopplerAddress, &tls.Config{InsecureSkipVerify: true}, nil)

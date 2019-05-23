@@ -44,7 +44,7 @@ type CFServicePlans struct {
 var _ = Describe("Service plan schemas", func() {
 
 	It("fetches the plan schema from cloud foundry", func() {
-		servicesCurlSession := cf.Cf("curl", fmt.Sprintf("/v2/services?q=label:%s", brokerInfo.ServiceOffering))
+		servicesCurlSession := cf.Cf("curl", fmt.Sprintf("/v2/services?q=label:%s", brokerInfo.ServiceName))
 		Eventually(servicesCurlSession).Should(gexec.Exit(0))
 		rawJson := servicesCurlSession.Out.Contents()
 

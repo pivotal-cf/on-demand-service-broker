@@ -28,8 +28,8 @@ var _ = Describe("orphan deployments errand", func() {
 			orphanInstanceName = "instance-to-purge-" + uuid.New()[:7]
 			anotherInstanceName = "instance-to-keep-" + uuid.New()[:7]
 
-			cf.CreateService(brokerInfo.ServiceOffering, "redis-orphan-without-siapi", orphanInstanceName, "")
-			cf.CreateService(brokerInfo.ServiceOffering, "redis-orphan-without-siapi", anotherInstanceName, "")
+			cf.CreateService(brokerInfo.ServiceName, "redis-orphan-without-siapi", orphanInstanceName, "")
+			cf.CreateService(brokerInfo.ServiceName, "redis-orphan-without-siapi", anotherInstanceName, "")
 		})
 
 		AfterEach(func() {

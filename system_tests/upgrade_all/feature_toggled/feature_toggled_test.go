@@ -72,7 +72,7 @@ var _ = Describe("upgrade-all-service-instances errand using all the features av
 		appDtlsCh := make(chan upgrade_all.AppDetails, nonCanaryServices)
 
 		upgrade_all.PerformInParallel(func() {
-			appDtlsCh <- upgrade_all.CreateServiceAndApp(brokerInfo.ServiceOffering, planName)
+			appDtlsCh <- upgrade_all.CreateServiceAndApp(brokerInfo.ServiceName, planName)
 		}, nonCanaryServices)
 		close(appDtlsCh)
 
@@ -81,7 +81,7 @@ var _ = Describe("upgrade-all-service-instances errand using all the features av
 		}
 
 		cf_helpers.TargetOrgAndSpace(canaryOrg, canarySpace)
-		canaryDetails = upgrade_all.CreateServiceAndApp(brokerInfo.ServiceOffering, planName)
+		canaryDetails = upgrade_all.CreateServiceAndApp(brokerInfo.ServiceName, planName)
 		cf_helpers.TargetOrgAndSpace(standardOrg, standardSpace)
 
 		By("changing the name of instance group and disabling persistence", func() {

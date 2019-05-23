@@ -23,7 +23,7 @@ func BasicLifecycleTest(
 
 	By("creating a service", func() {
 		serviceInstanceName = "service" + brokerInfo.TestSuffix
-		cf_helpers.CreateService(brokerInfo.ServiceOffering, plan, serviceInstanceName, "")
+		cf_helpers.CreateService(brokerInfo.ServiceName, plan, serviceInstanceName, "")
 	})
 
 	By("creating a service key", func() {

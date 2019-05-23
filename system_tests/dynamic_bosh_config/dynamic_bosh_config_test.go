@@ -29,7 +29,7 @@ var _ = Describe("DynamicBoshConfig", func() {
 		boshConfig := fmt.Sprintf(`{"vm_extensions_config": "vm_extensions: [{name: vm-ext%s}]"}`, brokerInfo.TestSuffix)
 
 		By("creating a service with the right bosh config")
-		cf.CreateService(brokerInfo.ServiceOffering, "redis-with-post-deploy", serviceInstanceName, boshConfig)
+		cf.CreateService(brokerInfo.ServiceName, "redis-with-post-deploy", serviceInstanceName, boshConfig)
 		serviceId = "service-instance_" + cf.GetServiceInstanceGUID(serviceInstanceName)
 
 		configDetails, err := bosh_helpers.GetBOSHConfig("cloud", serviceId)

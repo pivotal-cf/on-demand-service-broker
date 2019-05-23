@@ -26,8 +26,8 @@ var _ = Describe("purge instances and deregister broker", func() {
 	testAppName := uuid.New()[:7]
 
 	BeforeEach(func() {
-		Eventually(cf.Cf("create-service", brokerInfo.ServiceOffering, "dedicated-vm", serviceInstance1), cf.CfTimeout).Should(gexec.Exit(0))
-		Eventually(cf.Cf("create-service", brokerInfo.ServiceOffering, "dedicated-high-memory-vm", serviceInstance2), cf.CfTimeout).Should(gexec.Exit(0))
+		Eventually(cf.Cf("create-service", brokerInfo.ServiceName, "dedicated-vm", serviceInstance1), cf.CfTimeout).Should(gexec.Exit(0))
+		Eventually(cf.Cf("create-service", brokerInfo.ServiceName, "dedicated-high-memory-vm", serviceInstance2), cf.CfTimeout).Should(gexec.Exit(0))
 		cf.AwaitServiceCreation(serviceInstance1)
 		cf.AwaitServiceCreation(serviceInstance2)
 	})
@@ -58,8 +58,8 @@ var _ = Describe("purge instances and deregister broker", func() {
 		cf.AwaitServiceDeletion(serviceInstance1)
 		cf.AwaitServiceDeletion(serviceInstance2)
 
-		session = cf.Cf("marketplace", "-s", brokerInfo.ServiceOffering)
+		session = cf.Cf("marketplace", "-s", brokerInfo.ServiceName)
 		Eventually(session, cf.CfTimeout).Should(gexec.Exit(1))
-		Expect(session.Err).Should(gbytes.Say(`Service offering '%s' not found`, brokerInfo.ServiceOffering))
+		Expect(session.Err).Should(gbytes.Say(`Service offering '%s' not found`, brokerInfo.ServiceName))
 	})
 })

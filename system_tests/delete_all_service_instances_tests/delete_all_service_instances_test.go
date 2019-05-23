@@ -30,8 +30,8 @@ var _ = Describe("deleting all service instances", func() {
 		serviceInstanceNameOne = "service-one-" + brokerInfo.TestSuffix
 		serviceInstanceNameTwo = "service-two-" + brokerInfo.TestSuffix
 
-		cf_helpers.CreateServiceWithoutWaiting(brokerInfo.ServiceOffering, "redis-small", serviceInstanceNameOne, "")
-		cf_helpers.CreateServiceWithoutWaiting(brokerInfo.ServiceOffering, "redis-small", serviceInstanceNameTwo, "")
+		cf_helpers.CreateServiceWithoutWaiting(brokerInfo.ServiceName, "redis-small", serviceInstanceNameOne, "")
+		cf_helpers.CreateServiceWithoutWaiting(brokerInfo.ServiceName, "redis-small", serviceInstanceNameTwo, "")
 
 		cf_helpers.AwaitServiceCreation(serviceInstanceNameOne)
 		cf_helpers.AwaitServiceCreation(serviceInstanceNameTwo)
@@ -60,10 +60,10 @@ var _ = Describe("deleting all service instances", func() {
 
 		By("verifying secrets are stored in credhub", func() {
 			serviceInstanceGuidOne = cf_helpers.GetServiceInstanceGUID(serviceInstanceNameOne)
-			credhubCLI.VerifyCredhubKeysExist(brokerInfo.ServiceOffering, serviceInstanceGuidOne)
+			credhubCLI.VerifyCredhubKeysExist(brokerInfo.ServiceID, serviceInstanceGuidOne)
 
 			serviceInstanceGuidTwo = cf_helpers.GetServiceInstanceGUID(serviceInstanceNameTwo)
-			credhubCLI.VerifyCredhubKeysExist(brokerInfo.ServiceOffering, serviceInstanceGuidTwo)
+			credhubCLI.VerifyCredhubKeysExist(brokerInfo.ServiceID, serviceInstanceGuidTwo)
 		})
 
 		By("running delete-all-service-instances errand", func() {
@@ -73,8 +73,8 @@ var _ = Describe("deleting all service instances", func() {
 		})
 
 		By("removing all credhub references relating to instances that existed when the errand was invoked", func() {
-			credhubCLI.VerifyCredhubKeysEmpty(brokerInfo.ServiceOffering, serviceInstanceGuidOne)
-			credhubCLI.VerifyCredhubKeysEmpty(brokerInfo.ServiceOffering, serviceInstanceGuidTwo)
+			credhubCLI.VerifyCredhubKeysEmpty(brokerInfo.ServiceID, serviceInstanceGuidOne)
+			credhubCLI.VerifyCredhubKeysEmpty(brokerInfo.ServiceID, serviceInstanceGuidTwo)
 		})
 	})
 })

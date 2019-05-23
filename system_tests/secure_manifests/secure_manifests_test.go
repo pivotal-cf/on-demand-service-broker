@@ -46,7 +46,7 @@ var _ = Describe("Secure Manifests", func() {
 
 	It("replaces plain text secrets with CredHub references in the manifest", func() {
 		By("creating a service with ODB managed secrets", func() {
-			cf_helpers.CreateService(brokerInfo.ServiceOffering, plan, serviceInstanceName, "")
+			cf_helpers.CreateService(brokerInfo.ServiceName, plan, serviceInstanceName, "")
 		})
 
 		By("downloading the manifest and confirming it has a CredHub path instead of the plain text secret", func() {
@@ -54,7 +54,7 @@ var _ = Describe("Secure Manifests", func() {
 			serviceDeploymentName := broker.InstancePrefix + serviceInstanceGUID
 			manifest := bosh_helpers.GetManifestString(serviceDeploymentName)
 			Expect(manifest).To(SatisfyAll(
-				ContainSubstring("/odb/%s/%s/%s", brokerInfo.ServiceOffering, serviceDeploymentName, secretKey),
+				ContainSubstring("/odb/%s/%s/%s", brokerInfo.ServiceID, serviceDeploymentName, secretKey),
 				Not(ContainSubstring(adapterSecretValue)),
 			))
 		})
@@ -91,7 +91,7 @@ var _ = Describe("Secure Manifests", func() {
 })
 
 func expectTheSecretValueToBeInCredhub(serviceInstanceGUID, secretKey, adapterSecretValue string) {
-	odbSecret := credhubCLI.GetCredhubValueFor(brokerInfo.ServiceOffering, serviceInstanceGUID, secretKey)
+	odbSecret := credhubCLI.GetCredhubValueFor(brokerInfo.ServiceName, serviceInstanceGUID, secretKey)
 	Expect(odbSecret["value"]).To(Equal(adapterSecretValue))
 }
 

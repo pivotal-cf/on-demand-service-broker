@@ -40,14 +40,15 @@ type BoshTaskOutput struct {
 }
 
 type BrokerInfo struct {
-	URI             string
-	DeploymentName  string
-	ServiceOffering string
-	PlanID          string
-	TestSuffix      string
-	BrokerPassword  string
-	BrokerUsername  string
-	BrokerName      string
+	URI            string
+	DeploymentName string
+	ServiceName    string
+	PlanID         string
+	TestSuffix     string
+	BrokerPassword string
+	BrokerUsername string
+	BrokerName     string
+	ServiceID      string
 }
 
 type deploymentProperties struct {
@@ -287,6 +288,7 @@ func deploy(systemTestSuffix string, deploymentOptions BrokerDeploymentOptions, 
 	serviceName := "service-name-" + variables.UniqueID
 	planID := "plan-" + variables.UniqueID
 	brokerName := "broker-" + variables.UniqueID
+	serviceCatalogID := "service-id-" + variables.UniqueID
 	deployArguments := []string{
 		"-d", variables.DeploymentName,
 		"-n",
@@ -303,13 +305,12 @@ func deploy(systemTestSuffix string, deploymentOptions BrokerDeploymentOptions, 
 		"--var", "plan_id=" + planID,
 		"--var", "service_adapter_release=" + variables.ServiceAdapterReleaseName,
 		"--var", "service_adapter_version=latest",
-		"--var", "service_catalog_id=service-id-" + variables.UniqueID,
+		"--var", "service_catalog_id=" + serviceCatalogID,
 		"--var", "service_catalog_service_name=" + serviceName,
 		"--var", "service_release=" + variables.ServiceReleaseName,
 		"--var", "service_release_version=" + variables.ServiceReleaseVersion,
 		"--var", "disable_ssl_cert_verification=false",
 		"--var", "stemcell_alias=xenial",
-
 		"--ops-file", adapterOpsFile,
 	}
 
@@ -337,14 +338,15 @@ func deploy(systemTestSuffix string, deploymentOptions BrokerDeploymentOptions, 
 	WaitBrokerToStart(variables.BrokerURI)
 
 	return BrokerInfo{
-		URI:             variables.BrokerURI,
-		DeploymentName:  variables.DeploymentName,
-		ServiceOffering: serviceName,
-		PlanID:          planID,
-		TestSuffix:      systemTestSuffix,
-		BrokerPassword:  variables.BrokerPassword,
-		BrokerUsername:  variables.BrokerUsername,
-		BrokerName:      brokerName,
+		URI:            variables.BrokerURI,
+		DeploymentName: variables.DeploymentName,
+		ServiceName:    serviceName,
+		ServiceID:      serviceCatalogID,
+		PlanID:         planID,
+		TestSuffix:     systemTestSuffix,
+		BrokerPassword: variables.BrokerPassword,
+		BrokerUsername: variables.BrokerUsername,
+		BrokerName:     brokerName,
 	}
 }
 

@@ -29,12 +29,12 @@ func (c *CredHubCLI) ensureLoggedIn() {
 	Eventually(session, time.Second*6).Should(gexec.Exit(0))
 }
 
-func (c *CredHubCLI) VerifyCredhubKeysExist(serviceOffering, guid string) {
+func (c *CredHubCLI) VerifyCredhubKeysExist(serviceID, guid string) {
 	c.ensureLoggedIn()
-	creds := c.VerifyCredhubKeysForInstance(serviceOffering, guid)
+	creds := c.VerifyCredhubKeysForInstance(serviceID, guid)
 
 	var found bool
-	path := fmt.Sprintf("/odb/%s/service-instance_%s/odb_managed_secret", serviceOffering, guid)
+	path := fmt.Sprintf("/odb/%s/service-instance_%s/odb_managed_secret", serviceID, guid)
 	for _, cred := range creds {
 		if cred["name"] == path {
 			found = true
