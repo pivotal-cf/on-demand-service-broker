@@ -91,7 +91,7 @@ var _ = Describe("Secure Manifests", func() {
 })
 
 func expectTheSecretValueToBeInCredhub(serviceInstanceGUID, secretKey, adapterSecretValue string) {
-	odbSecret := credhubCLI.GetCredhubValueFor(brokerInfo.ServiceName, serviceInstanceGUID, secretKey)
+	odbSecret := credhubCLI.GetCredhubValueFor(brokerInfo.ServiceID, serviceInstanceGUID, secretKey)
 	Expect(odbSecret["value"]).To(Equal(adapterSecretValue))
 }
 
