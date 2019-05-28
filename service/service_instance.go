@@ -35,11 +35,13 @@ type Instance struct {
 // InstanceLister provides a interface to query service instances present in the platform
 type InstanceLister interface {
 	Instances() ([]Instance, error)
+	FilteredInstances(map[string]string) ([]Instance, error)
 }
 
 //go:generate counterfeiter -o fakes/fake_lister_client.go . ListerClient
 type ListerClient interface {
 	GetInstancesOfServiceOffering(string, *log.Logger) ([]Instance, error)
+	GetInstancesOfServiceOfferingByOrgSpace(string, string, string, *log.Logger) ([]Instance, error)
 }
 
 func BuildInstanceLister(

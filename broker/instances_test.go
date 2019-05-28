@@ -50,11 +50,11 @@ var _ = Describe("Instances", func() {
 		})
 	})
 
-	Describe("listing all instances by org and space", func() {
+	Describe("listing all instances by filtering", func() {
 		var logger *log.Logger
 
 		BeforeEach(func() {
-			cfClient.GetInstancesOfServiceOfferingByOrgSpaceReturns([]service.Instance{
+			fakeInstanceLister.FilteredInstancesReturns([]service.Instance{
 				{GUID: "red", PlanUniqueID: "colour-plan"},
 				{GUID: "green", PlanUniqueID: "colour-plan"},
 				{GUID: "blue", PlanUniqueID: "colour-plan"},
@@ -64,7 +64,11 @@ var _ = Describe("Instances", func() {
 
 		It("returns a list of instance IDs", func() {
 			b = createDefaultBroker()
-			Expect(b.FilteredInstances("cf-org", "cf-space", logger)).To(ConsistOf(
+
+			filteredInstances, err := b.FilteredInstances(map[string]string{"foo": "bar"}, logger)
+
+			Expect(err).ToNot(HaveOccurred())
+			Expect(filteredInstances).To(ConsistOf(
 				service.Instance{GUID: "red", PlanUniqueID: "colour-plan"},
 				service.Instance{GUID: "green", PlanUniqueID: "colour-plan"},
 				service.Instance{GUID: "blue", PlanUniqueID: "colour-plan"},
@@ -73,12 +77,12 @@ var _ = Describe("Instances", func() {
 
 		Context("when the list of instances cannot be retrieved", func() {
 			BeforeEach(func() {
-				cfClient.GetInstancesOfServiceOfferingByOrgSpaceReturns(nil, errors.New("an error occurred"))
+				fakeInstanceLister.FilteredInstancesReturns(nil, errors.New("an error occurred"))
 			})
 
 			It("returns an error", func() {
 				b = createDefaultBroker()
-				_, err := b.FilteredInstances("cf-org", "cf-space", logger)
+				_, err := b.FilteredInstances(map[string]string{"foo": "bar"}, logger)
 				Expect(err).To(MatchError(ContainSubstring("an error occurred")))
 			})
 		})

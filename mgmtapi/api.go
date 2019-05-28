@@ -35,7 +35,7 @@ type api struct {
 //go:generate counterfeiter -o fake_manageable_broker/fake_manageable_broker.go . ManageableBroker
 type ManageableBroker interface {
 	Instances(logger *log.Logger) ([]service.Instance, error)
-	FilteredInstances(orgName, spaceName string, logger *log.Logger) ([]service.Instance, error)
+	FilteredInstances(filter map[string]string, logger *log.Logger) ([]service.Instance, error)
 	OrphanDeployments(logger *log.Logger) ([]string, error)
 	Upgrade(ctx context.Context, instanceID string, updateDetails domain.UpdateDetails, logger *log.Logger) (broker.OperationData, error)
 	Recreate(ctx context.Context, instanceID string, updateDetails domain.UpdateDetails, logger *log.Logger) (broker.OperationData, error)
@@ -100,11 +100,9 @@ func (a *api) listAllInstances(w http.ResponseWriter, r *http.Request) {
 	var instances []service.Instance
 	var err error
 
-	values := r.URL.Query()
-	orgName := values["cf_org"]
-	spaceName := values["cf_space"]
-	if orgName != nil && spaceName != nil {
-		instances, err = a.manageableBroker.FilteredInstances(orgName[0], spaceName[0], logger)
+	filter := getFilterValues(r)
+	if len(filter) > 0 {
+		instances, err = a.manageableBroker.FilteredInstances(filter, logger)
 	} else {
 		instances, err = a.manageableBroker.Instances(logger)
 	}
@@ -115,6 +113,15 @@ func (a *api) listAllInstances(w http.ResponseWriter, r *http.Request) {
 	}
 
 	a.writeJson(w, instances, logger)
+}
+
+func getFilterValues(r *http.Request) map[string]string {
+	values := r.URL.Query()
+	filter := map[string]string{}
+	for k, v := range values {
+		filter[k] = v[0]
+	}
+	return filter
 }
 
 func (a *api) recreateInstance(w http.ResponseWriter, r *http.Request) {

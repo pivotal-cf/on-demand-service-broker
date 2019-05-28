@@ -29,7 +29,6 @@ import (
 	"github.com/onsi/gomega/gbytes"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
-	"github.com/pivotal-cf/on-demand-service-broker/service"
 )
 
 var _ = Describe("Builder", func() {
@@ -67,16 +66,6 @@ var _ = Describe("Builder", func() {
 			Entry("broker url", "user", "password", ""),
 			Entry("all broker values", "", "", ""),
 		)
-	})
-
-	Describe("Service Instance Lister", func() {
-		It("when provided with valid conf returns an expected ServiceInstanceLister", func() {
-			conf := makeErrandConfig("user", "password", "http://example.org")
-			builder, err := instanceiterator.NewBuilder(conf, logger, logPrefix)
-			Expect(err).NotTo(HaveOccurred())
-
-			Expect(builder.ServiceInstanceLister).To(BeAssignableToTypeOf(&service.ServiceInstanceLister{}))
-		})
 	})
 
 	Describe("Polling Interval", func() {
@@ -271,15 +260,6 @@ func makeErrandConfig(brokerUser, brokerPassword, brokerURL string) config.Insta
 				},
 			},
 			URL: brokerURL,
-		},
-		ServiceInstancesAPI: config.ServiceInstancesAPI{
-			Authentication: config.Authentication{
-				Basic: config.UserCredentials{
-					Username: brokerUser,
-					Password: brokerPassword,
-				},
-			},
-			URL: brokerURL + "/mgmt/service_instances",
 		},
 		PollingInterval: 10,
 		AttemptInterval: 60,

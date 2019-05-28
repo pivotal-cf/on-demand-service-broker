@@ -80,15 +80,6 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 				AttemptLimit:    2,
 				AttemptInterval: 2,
 				MaxInFlight:     1,
-				ServiceInstancesAPI: config.ServiceInstancesAPI{
-					URL: broker.URL() + "/mgmt/service_instances",
-					Authentication: config.Authentication{
-						Basic: config.UserCredentials{
-							Username: brokerUsername,
-							Password: brokerPassword,
-						},
-					},
-				},
 				BrokerAPI: config.BrokerAPI{
 					URL: broker.URL(),
 					Authentication: config.Authentication{
@@ -143,19 +134,21 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 			instanceID := "my-instance-id"
 			canaryInstanceID := "canary-instance-id"
 			canariesList := fmt.Sprintf(`[{"plan_id": "service-plan-id", "service_instance_id": "%s"}]`, canaryInstanceID)
-			serviceInstances := fmt.Sprintf(`[{"plan_id": "service-plan-id", "service_instance_id": "%s"}, {"plan_id": "service-plan-id", "service_instance_id": "%s"}]`, canaryInstanceID, instanceID)
+			serviceInstances := fmt.Sprintf(`[{"plan_id": "service-plan-id", "service_instance_id": "%s"}, {"plan_id": "service-plan-id", "service_instance_id": "%s"}]`, instanceID, canaryInstanceID)
 
-			serviceInstancesHandler.RespondsWith(http.StatusOK, serviceInstances)
-			serviceInstancesHandler.WithQueryParams("cf_org=my-org", "cf_space=my-space").RespondsWith(http.StatusOK, canariesList)
+			serviceInstancesHandler.WithQueryParams().RespondsWith(http.StatusOK, serviceInstances)
+			serviceInstancesHandler.WithQueryParams("foo=bar").RespondsWith(http.StatusOK, canariesList)
 			lastOperationHandler.RespondsWith(http.StatusOK, `{"state":"succeeded"}`)
 
-			errandConfig.CanarySelectionParams = map[string]string{"cf_org": "my-org", "cf_space": "my-space"}
+			errandConfig.CanarySelectionParams = map[string]string{"foo": "bar"}
 			errandConfig.Canaries = 1
 
 			runningTool := startUpgradeAllInstanceBinary(errandConfig)
 
 			Eventually(runningTool, 5*time.Second).Should(gexec.Exit(0))
 			Expect(runningTool).To(gbytes.Say(`\[upgrade\-all\] STARTING CANARIES: 1 canaries`))
+			Expect(runningTool).To(gbytes.Say(`\[canary-instance-id] Starting to process service instance`))
+			Expect(runningTool).To(gbytes.Say(`\[upgrade\-all\] FINISHED CANARIES`))
 			Expect(runningTool).To(gbytes.Say(`\[upgrade\-all\] FINISHED PROCESSING Status: SUCCESS`))
 			Expect(runningTool).To(gbytes.Say("Number of successful operations: 2"))
 		})
@@ -180,7 +173,8 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 			runningTool := startUpgradeAllInstanceBinary(errandConfig)
 
 			Eventually(runningTool, 5*time.Second).Should(gexec.Exit(1))
-			Expect(runningTool).To(gbytes.Say("error listing service instances: HTTP response status: 500 Internal Server Error. a forced error"))
+			Expect(runningTool).To(gbytes.Say("error listing service instances"))
+			Expect(runningTool).To(gbytes.Say("500"))
 		})
 
 		It("exits with a failure and shows a summary message when the upgrade fails", func() {
@@ -254,44 +248,6 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 				Expect(runningTool).To(gbytes.Say("Number of successful operations: 1"))
 			})
 		})
-
-		Context("when service-instances-api is specified in the config", func() {
-			var serviceInstancesAPIServer *ghttp.Server
-
-			BeforeEach(func() {
-				serviceInstancesAPIServer = ghttp.NewServer()
-
-				serviceInstancesAPIServer.RouteToHandler(http.MethodGet, serviceInstancesAPIURLPath, ghttp.CombineHandlers(
-					ghttp.VerifyBasicAuth(serviceInstancesAPIUsername, serviceInstancesAPIPassword),
-					serviceInstancesHandler.Handle,
-				))
-
-				serviceInstancesHandler.RespondsWith(http.StatusOK, `[{"service_instance_id": "service-instance-id", "plan_id": "service-plan-id"}]`)
-
-				errandConfig.ServiceInstancesAPI = config.ServiceInstancesAPI{
-					URL: serviceInstancesAPIServer.URL() + serviceInstancesAPIURLPath,
-					Authentication: config.Authentication{
-						Basic: config.UserCredentials{
-							Username: serviceInstancesAPIUsername,
-							Password: serviceInstancesAPIPassword,
-						},
-					},
-				}
-			})
-
-			AfterEach(func() {
-				serviceInstancesAPIServer.Close()
-			})
-
-			It("exits successfully with one instance upgraded message", func() {
-				runningTool := startUpgradeAllInstanceBinary(errandConfig)
-
-				Eventually(runningTool, 5*time.Second).Should(gexec.Exit(0))
-				Expect(runningTool).To(gbytes.Say("Sleep interval until next attempt: 2s"))
-				Expect(runningTool).To(gbytes.Say("Number of successful operations: 1"))
-			})
-		})
-
 	})
 
 	Describe("HTTPS Broker", func() {
@@ -307,15 +263,6 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 				AttemptLimit:    5,
 				AttemptInterval: 2,
 				MaxInFlight:     1,
-				ServiceInstancesAPI: config.ServiceInstancesAPI{
-					URL: broker.URL() + "/mgmt/service_instances",
-					Authentication: config.Authentication{
-						Basic: config.UserCredentials{
-							Username: brokerUsername,
-							Password: brokerPassword,
-						},
-					},
-				},
 				BrokerAPI: config.BrokerAPI{
 					URL: broker.URL(),
 					Authentication: config.Authentication{
@@ -351,7 +298,6 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 		})
 
 		It("upgrades all instances", func() {
-			errandConfig.ServiceInstancesAPI.RootCACert = pemCert
 			errandConfig.BrokerAPI.TLS.CACert = pemCert
 
 			runningTool := startUpgradeAllInstanceBinary(errandConfig)
@@ -361,31 +307,12 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 		})
 
 		It("skips ssl cert verification when disabled", func() {
-			errandConfig.ServiceInstancesAPI.DisableSSLCertVerification = true
 			errandConfig.BrokerAPI.TLS.DisableSSLCertVerification = true
 
 			runningTool := startUpgradeAllInstanceBinary(errandConfig)
 
 			Eventually(runningTool, 5*time.Second).Should(gexec.Exit(0))
 			Expect(runningTool).To(gbytes.Say("Number of successful operations: 1"))
-		})
-
-		It("fails when the broker cert is not trusted by the service instance api client", func() {
-			errandConfig.BrokerAPI.TLS.DisableSSLCertVerification = true
-
-			runningTool := startUpgradeAllInstanceBinary(errandConfig)
-
-			Eventually(runningTool, 5*time.Second).Should(gexec.Exit(1))
-			Expect(runningTool).To(gbytes.Say("/mgmt/service_instances: x509: certificate signed by unknown authority"))
-		})
-
-		It("fails when the broker cert is not trusted by the broker client", func() {
-			errandConfig.ServiceInstancesAPI.RootCACert = pemCert
-
-			runningTool := startUpgradeAllInstanceBinary(errandConfig)
-
-			Eventually(runningTool, 5*time.Second).Should(gexec.Exit(1))
-			Expect(runningTool).To(gbytes.Say(`/mgmt/service_instances/.*\?operation_type=upgrade: x509: certificate signed by unknown authority`))
 		})
 	})
 })

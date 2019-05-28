@@ -21,8 +21,8 @@ func (b *Broker) Instances(logger *log.Logger) ([]service.Instance, error) {
 	return instances, nil
 }
 
-func (b *Broker) FilteredInstances(orgName, spaceName string, logger *log.Logger) ([]service.Instance, error) {
-	instances, err := b.cfClient.GetInstancesOfServiceOfferingByOrgSpace(b.serviceOffering.ID, orgName, spaceName, logger)
+func (b *Broker) FilteredInstances(filter map[string]string, logger *log.Logger) ([]service.Instance, error) {
+	instances, err := b.instanceLister.FilteredInstances(filter)
 	if err != nil {
 		return nil, b.processError(err, logger)
 	}

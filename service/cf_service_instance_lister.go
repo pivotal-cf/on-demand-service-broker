@@ -16,7 +16,11 @@
 package service
 
 import (
+	"fmt"
 	"log"
+	"strings"
+
+	"github.com/pkg/errors"
 )
 
 type CFServiceInstanceLister struct {
@@ -25,10 +29,51 @@ type CFServiceInstanceLister struct {
 	logger            *log.Logger
 }
 
+const (
+	cfOrgFilterKey   = "cf_org"
+	cfSpaceFilterKey = "cf_space"
+)
+
 func NewCFServiceInstanceLister(cfClient ListerClient, serviceOfferingID string, logger *log.Logger) *CFServiceInstanceLister {
 	return &CFServiceInstanceLister{serviceOfferingID: serviceOfferingID, client: cfClient, logger: logger}
 }
 
 func (l *CFServiceInstanceLister) Instances() ([]Instance, error) {
 	return l.client.GetInstancesOfServiceOffering(l.serviceOfferingID, l.logger)
+}
+
+func (l *CFServiceInstanceLister) FilteredInstances(filter map[string]string) ([]Instance, error) {
+	orgName, spaceName, err := l.filtersFromMap(filter)
+	if err != nil {
+		return nil, err
+	}
+
+	instances, err := l.client.GetInstancesOfServiceOfferingByOrgSpace(l.serviceOfferingID, orgName, spaceName, l.logger)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not retrieve list of instances")
+	}
+	return instances, nil
+}
+
+func (l *CFServiceInstanceLister) filtersFromMap(filter map[string]string) (orgName string, spaceName string, err error) {
+	orgName = filter[cfOrgFilterKey]
+	spaceName = filter[cfSpaceFilterKey]
+
+	if orgName == "" {
+		return "", "", fmt.Errorf("missing required filter cf_org")
+	}
+	if spaceName == "" {
+		return "", "", fmt.Errorf("missing required filter cf_space")
+	}
+
+	if len(filter) > 2 {
+		var unknownFilters []string
+		for key := range filter {
+			if key != cfOrgFilterKey && key != cfSpaceFilterKey {
+				unknownFilters = append(unknownFilters, key)
+			}
+		}
+		return "", "", fmt.Errorf("unsupported filters: %s; supported filters are: cf_org, cf_space", strings.Join(unknownFilters, ", "))
+	}
+	return orgName, spaceName, nil
 }

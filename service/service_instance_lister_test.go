@@ -57,7 +57,9 @@ var _ = Describe("ServiceInstanceLister", func() {
 	It("lists service instances", func() {
 		client.DoReturns(response(http.StatusOK, `[{"service_instance_id": "foo", "plan_id": "plan"}, {"service_instance_id": "bar", "plan_id": "another-plan"}]`), nil)
 		serviceInstanceLister := service.NewInstanceLister(client, authHeaderBuilder, "", false, logger)
+
 		instances, err := serviceInstanceLister.Instances()
+
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(instances)).To(Equal(2))
 		Expect(instances[0]).To(Equal(service.Instance{GUID: "foo", PlanUniqueID: "plan"}))

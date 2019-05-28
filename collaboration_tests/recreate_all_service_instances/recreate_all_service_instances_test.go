@@ -96,15 +96,6 @@ var _ = Describe("Recreate all service instances", func() {
 					},
 				},
 			},
-			ServiceInstancesAPI: brokerConfig.ServiceInstancesAPI{
-				URL: serverURL + "/mgmt/service_instances",
-				Authentication: brokerConfig.Authentication{
-					Basic: brokerConfig.UserCredentials{
-						Username: brokerUsername,
-						Password: brokerPassword,
-					},
-				},
-			},
 			Bosh: brokerConfig.Bosh{
 				URL: boshDirector.URL(),
 			},
@@ -234,7 +225,7 @@ var _ = Describe("Recreate all service instances", func() {
 				Expect(loggerBuffer).To(gbytes.Say("BOSH task ID 43 status: error recreate deployment for instance service-1: Description: broken"))
 			})
 
-			It("returns a non-zero exit code when CF fails to get the list of service instances", func() {
+			It("returns a non-zero exit code when it fails to get the list of service instances", func() {
 				fakeCfClient.GetInstancesOfServiceOfferingReturns(nil, errors.New("failed to get instances from CF"))
 
 				session, err := gexec.Start(cmd, stdout, stderr)
@@ -243,7 +234,8 @@ var _ = Describe("Recreate all service instances", func() {
 				Eventually(session).Should(gexec.Exit())
 				Expect(session.ExitCode()).NotTo(Equal(0), "recreate-all execution succeeded unexpectedly")
 
-				Expect(stdout).To(gbytes.Say("error listing service instances: HTTP response status: 500 Internal Server Error"))
+				Expect(stdout).To(gbytes.Say("error listing service instances"))
+				Expect(stdout).To(gbytes.Say("500"))
 				Expect(loggerBuffer).To(gbytes.Say("failed to get instances from CF"))
 			})
 		})
@@ -263,7 +255,6 @@ var _ = Describe("Recreate all service instances", func() {
 
 				TLSServerURL := fmt.Sprintf("https://localhost:%d", serverPort)
 				errandConfig.BrokerAPI.URL = TLSServerURL
-				errandConfig.ServiceInstancesAPI.URL = TLSServerURL + "/mgmt/service_instances"
 
 				brokerServer = StartServer(conf)
 			})
@@ -273,7 +264,6 @@ var _ = Describe("Recreate all service instances", func() {
 					CACert:                     serverCertContents,
 					DisableSSLCertVerification: false,
 				}
-				errandConfig.ServiceInstancesAPI.RootCACert = serverCertContents
 
 				cmd = exec.Command(pathToRecreateAll, "--configPath", toFilePath(errandConfig))
 
@@ -288,7 +278,6 @@ var _ = Describe("Recreate all service instances", func() {
 				errandConfig.BrokerAPI.TLS = brokerConfig.ErrandTLSConfig{
 					DisableSSLCertVerification: true,
 				}
-				errandConfig.ServiceInstancesAPI.DisableSSLCertVerification = true
 
 				cmd = exec.Command(pathToRecreateAll, "--configPath", toFilePath(errandConfig))
 
@@ -298,7 +287,7 @@ var _ = Describe("Recreate all service instances", func() {
 				Eventually(session).Should(gexec.Exit(0), "recreate-all execution failed")
 			})
 
-			It("fails when the broker cert is not trusted by the service instance api client", func() {
+			It("fails when the broker cert is not trusted by the errand", func() {
 				cmd = exec.Command(pathToRecreateAll, "--configPath", toFilePath(errandConfig))
 
 				session, err := gexec.Start(cmd, stdout, stderr)
@@ -308,22 +297,6 @@ var _ = Describe("Recreate all service instances", func() {
 				Expect(session.ExitCode()).To(Equal(1), "recreate-all execution unexpectedly succeeded")
 				Expect(stdout).To(SatisfyAll(
 					gbytes.Say("error listing service instances"),
-					gbytes.Say("unknown authority"),
-				))
-			})
-
-			It("fails when the broker cert is not trusted by the broker client", func() {
-				errandConfig.ServiceInstancesAPI.DisableSSLCertVerification = true
-
-				cmd = exec.Command(pathToRecreateAll, "--configPath", toFilePath(errandConfig))
-
-				session, err := gexec.Start(cmd, stdout, stderr)
-				Expect(err).NotTo(HaveOccurred(), "unexpected error when starting the command")
-
-				Eventually(session).Should(gexec.Exit())
-				Expect(session.ExitCode()).To(Equal(1), "recreate-all execution unexpectedly succeeded")
-				Expect(stdout).To(SatisfyAll(
-					gbytes.Say("recreate failed for service instance"),
 					gbytes.Say("unknown authority"),
 				))
 			})

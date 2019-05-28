@@ -8,6 +8,7 @@ package services
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -34,6 +35,10 @@ type BrokerServices struct {
 	baseURL           string
 	logger            *log.Logger
 }
+
+var (
+	InstanceNotFoundError = errors.New("Service instance not found")
+)
 
 func NewBrokerServices(client HTTPClient, authHeaderBuilder authorizationheader.AuthHeaderBuilder, baseURL string, logger *log.Logger) *BrokerServices {
 	return &BrokerServices{
@@ -75,6 +80,42 @@ func (b *BrokerServices) LastOperation(instanceGUID string, operationData broker
 	return b.converter.LastOperationFrom(response)
 }
 
+func (b *BrokerServices) FilteredInstances(filter map[string]string) ([]service.Instance, error) {
+	pathWithQuery := createRequestPath("/mgmt/service_instances", filter)
+
+	response, err := b.doRequest(http.MethodGet, pathWithQuery, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if response.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to get service instances with status code: %d", response.StatusCode)
+	}
+
+	instances, err := decodeServiceInstanceResponse(response)
+	if err != nil {
+		return instances, fmt.Errorf("failed to decode service instance response body with error: %s", err)
+	}
+	return instances, nil
+}
+
+func (b *BrokerServices) Instances() ([]service.Instance, error) {
+	return b.FilteredInstances(map[string]string{})
+}
+
+func (b *BrokerServices) LatestInstanceInfo(instance service.Instance) (service.Instance, error) {
+	instances, err := b.Instances()
+	if err != nil {
+		return service.Instance{}, err
+	}
+	for _, inst := range instances {
+		if inst.GUID == instance.GUID {
+			return inst, nil
+		}
+	}
+	return service.Instance{}, InstanceNotFoundError
+}
+
 func (b *BrokerServices) OrphanDeployments() ([]mgmtapi.Deployment, error) {
 	response, err := b.doRequest(http.MethodGet, "/mgmt/orphan_deployments", nil)
 	if err != nil {
@@ -110,6 +151,22 @@ func (b *BrokerServices) buildURL(path string) string {
 	}
 
 	return baseURL + path
+}
+
+func decodeServiceInstanceResponse(response *http.Response) ([]service.Instance, error) {
+	var instances []service.Instance
+	decoder := json.NewDecoder(response.Body)
+	err := decoder.Decode(&instances)
+	return instances, err
+}
+
+func createRequestPath(path string, filter map[string]string) string {
+	values := map[string]string{}
+	for k, v := range filter {
+		values[k] = v
+	}
+	pathWithQuery := appendQuery(path, values)
+	return pathWithQuery
 }
 
 func appendQuery(u string, query map[string]string) string {

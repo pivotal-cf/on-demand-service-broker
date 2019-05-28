@@ -248,6 +248,166 @@ var _ = Describe("Broker Services", func() {
 			})
 		})
 	})
+
+	Describe("FilterInstances", func() {
+		It("returns the list of instances when called", func() {
+			host := "test.test"
+			brokerServices = services.NewBrokerServices(client, authHeaderBuilder, "http://"+host, logger)
+			client.DoReturns(response(http.StatusOK, `[{"service_instance_id": "foo", "plan_id": "plan"}, {"service_instance_id": "bar", "plan_id": "another-plan"}]`), nil)
+
+			params := map[string]string{
+				"org":   "my-org",
+				"space": "my-space",
+			}
+			filteredInstances, err := brokerServices.FilteredInstances(params)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(client.DoCallCount()).To(Equal(1))
+			req := client.DoArgsForCall(0)
+			Expect(req.URL.RawQuery).To(Equal("org=my-org&space=my-space"))
+			Expect(req.URL.Host).To(Equal(host))
+			Expect(req.URL.Path).To(Equal("/mgmt/service_instances"))
+
+			Expect(authHeaderBuilder.AddAuthHeaderCallCount()).To(Equal(1))
+			authReq, authLogger := authHeaderBuilder.AddAuthHeaderArgsForCall(0)
+			Expect(authReq).To(Equal(req))
+			Expect(authLogger).To(Equal(logger))
+
+			Expect(filteredInstances).To(Equal([]service.Instance{
+				service.Instance{
+					GUID:         "foo",
+					PlanUniqueID: "plan",
+				},
+				service.Instance{
+					GUID:         "bar",
+					PlanUniqueID: "another-plan",
+				},
+			}))
+		})
+
+		It("returns error when request to mgmt endpoint fails to complete", func() {
+			brokerServices = services.NewBrokerServices(client, authHeaderBuilder, "http://test.test", logger)
+			expectedError := errors.New("connection error")
+			client.DoReturns(nil, expectedError)
+
+			_, err := brokerServices.FilteredInstances(map[string]string{})
+
+			Expect(err).To(HaveOccurred())
+			Expect(err).To(MatchError(expectedError))
+		})
+
+		It("returns error when mgmt endpoint returns invalid response", func() {
+			brokerServices = services.NewBrokerServices(client, authHeaderBuilder, "http://test.test", logger)
+			client.DoReturns(response(http.StatusBadRequest, ""), nil)
+
+			_, err := brokerServices.FilteredInstances(map[string]string{})
+
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("failed to get service instances"))
+			Expect(err.Error()).To(ContainSubstring("status code: 400"))
+		})
+
+		It("returns error when mgmt endpoint returns invalid response", func() {
+			brokerServices = services.NewBrokerServices(client, authHeaderBuilder, "http://test.test", logger)
+			client.DoReturns(response(http.StatusOK, `[{"not-a-valid-instance-json": "foo"]`), nil)
+
+			_, err := brokerServices.FilteredInstances(map[string]string{})
+
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("failed to decode service instance response body with error"))
+		})
+	})
+
+	Describe("Instances", func() {
+		It("returns the list of instances when called", func() {
+			host := "test.test"
+			brokerServices = services.NewBrokerServices(client, authHeaderBuilder, "http://"+host, logger)
+			client.DoReturns(response(http.StatusOK, `[{"service_instance_id": "foo", "plan_id": "plan"}, {"service_instance_id": "bar", "plan_id": "another-plan"}]`), nil)
+
+			instances, err := brokerServices.Instances()
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(client.DoCallCount()).To(Equal(1))
+			req := client.DoArgsForCall(0)
+			Expect(req.URL.RawQuery).To(Equal(""))
+			Expect(req.URL.Host).To(Equal(host))
+			Expect(req.URL.Path).To(Equal("/mgmt/service_instances"))
+
+			Expect(authHeaderBuilder.AddAuthHeaderCallCount()).To(Equal(1))
+			authReq, authLogger := authHeaderBuilder.AddAuthHeaderArgsForCall(0)
+			Expect(authReq).To(Equal(req))
+			Expect(authLogger).To(Equal(logger))
+
+			Expect(instances).To(Equal([]service.Instance{
+				service.Instance{
+					GUID:         "foo",
+					PlanUniqueID: "plan",
+				},
+				service.Instance{
+					GUID:         "bar",
+					PlanUniqueID: "another-plan",
+				},
+			}))
+		})
+
+		It("returns error when request to mgmt endpoint fails", func() {
+			brokerServices = services.NewBrokerServices(client, authHeaderBuilder, "http://test.test", logger)
+			expectedError := errors.New("connection error")
+			client.DoReturns(nil, expectedError)
+
+			_, err := brokerServices.Instances()
+
+			Expect(err).To(HaveOccurred())
+			Expect(err).To(MatchError(expectedError))
+		})
+
+		It("returns error when mgmt endpoint returns invalid response", func() {
+			brokerServices = services.NewBrokerServices(client, authHeaderBuilder, "http://test.test", logger)
+			client.DoReturns(response(http.StatusOK, `[{"not-a-valid-instance-json": "foo"]`), nil)
+
+			_, err := brokerServices.Instances()
+
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("failed to decode service instance response body with error"))
+		})
+	})
+
+	Describe("LatestInstanceInfo", func() {
+		It("refreshes an instance", func() {
+			client.DoReturnsOnCall(0, response(http.StatusOK, `[{"service_instance_id": "foo", "plan_id": "plan"}, {"service_instance_id": "bar", "plan_id": "another-plan"}]`), nil)
+			client.DoReturnsOnCall(1, response(http.StatusOK, `[{"service_instance_id": "foo", "plan_id": "plan2"}, {"service_instance_id": "bar", "plan_id": "another-plan"}]`), nil)
+			brokerServices = services.NewBrokerServices(client, authHeaderBuilder, "http://test.test", logger)
+
+			instance, err := brokerServices.LatestInstanceInfo(service.Instance{GUID: "foo"})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(instance).To(Equal(service.Instance{GUID: "foo", PlanUniqueID: "plan"}))
+
+			instance, err = brokerServices.LatestInstanceInfo(service.Instance{GUID: "foo"})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(instance).To(Equal(service.Instance{GUID: "foo", PlanUniqueID: "plan2"}))
+		})
+
+		It("returns a instance not found error when instance is not found", func() {
+			client.DoReturns(response(http.StatusOK, `[{"service_instance_id": "foo", "plan_id": "plan"}, {"service_instance_id": "bar", "plan_id": "another-plan"}]`), nil)
+			brokerServices = services.NewBrokerServices(client, authHeaderBuilder, "http://test.test", logger)
+
+			_, err := brokerServices.LatestInstanceInfo(service.Instance{GUID: "qux"})
+
+			Expect(err).To(Equal(service.InstanceNotFound))
+		})
+
+		It("returns an error when pulling the list of instances fail", func() {
+			client.DoReturns(response(http.StatusServiceUnavailable, ""), nil)
+			brokerServices = services.NewBrokerServices(client, authHeaderBuilder, "http://test.test", logger)
+
+			instance, err := brokerServices.LatestInstanceInfo(service.Instance{GUID: "foo"})
+
+			Expect(instance).To(Equal(service.Instance{}))
+			Expect(err).To(HaveOccurred())
+			Expect(err).To(MatchError(ContainSubstring("failed to get service instances")))
+			Expect(err).To(MatchError(ContainSubstring("status code: 503")))
+		})
+	})
 })
 
 func response(statusCode int, body string) *http.Response {

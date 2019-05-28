@@ -37,14 +37,14 @@ type testState struct {
 	controller             *processController
 }
 
-func setupTest(states []*testState, instanceLister *fakes.FakeInstanceLister, brokerServices *fakes.FakeBrokerServices) {
+func setupTest(states []*testState, brokerServices *fakes.FakeBrokerServices) {
 	var instances []service.Instance
 	for i, s := range states {
 		instances = append(instances, s.instance)
 		s.controller = newProcessController(fmt.Sprintf("si_%d", i))
 	}
-	instanceLister.InstancesReturns(instances, nil)
-	instanceLister.LatestInstanceInfoStub = func(i service.Instance) (service.Instance, error) {
+	brokerServices.InstancesReturns(instances, nil)
+	brokerServices.LatestInstanceInfoStub = func(i service.Instance) (service.Instance, error) {
 		return i, nil
 	}
 

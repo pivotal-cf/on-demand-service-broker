@@ -23,6 +23,22 @@ type FakeListerClient struct {
 		result1 []service.Instance
 		result2 error
 	}
+	GetInstancesOfServiceOfferingByOrgSpaceStub        func(string, string, string, *log.Logger) ([]service.Instance, error)
+	getInstancesOfServiceOfferingByOrgSpaceMutex       sync.RWMutex
+	getInstancesOfServiceOfferingByOrgSpaceArgsForCall []struct {
+		arg1 string
+		arg2 string
+		arg3 string
+		arg4 *log.Logger
+	}
+	getInstancesOfServiceOfferingByOrgSpaceReturns struct {
+		result1 []service.Instance
+		result2 error
+	}
+	getInstancesOfServiceOfferingByOrgSpaceReturnsOnCall map[int]struct {
+		result1 []service.Instance
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -42,7 +58,8 @@ func (fake *FakeListerClient) GetInstancesOfServiceOffering(arg1 string, arg2 *l
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.getInstancesOfServiceOfferingReturns.result1, fake.getInstancesOfServiceOfferingReturns.result2
+	fakeReturns := fake.getInstancesOfServiceOfferingReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeListerClient) GetInstancesOfServiceOfferingCallCount() int {
@@ -51,13 +68,22 @@ func (fake *FakeListerClient) GetInstancesOfServiceOfferingCallCount() int {
 	return len(fake.getInstancesOfServiceOfferingArgsForCall)
 }
 
+func (fake *FakeListerClient) GetInstancesOfServiceOfferingCalls(stub func(string, *log.Logger) ([]service.Instance, error)) {
+	fake.getInstancesOfServiceOfferingMutex.Lock()
+	defer fake.getInstancesOfServiceOfferingMutex.Unlock()
+	fake.GetInstancesOfServiceOfferingStub = stub
+}
+
 func (fake *FakeListerClient) GetInstancesOfServiceOfferingArgsForCall(i int) (string, *log.Logger) {
 	fake.getInstancesOfServiceOfferingMutex.RLock()
 	defer fake.getInstancesOfServiceOfferingMutex.RUnlock()
-	return fake.getInstancesOfServiceOfferingArgsForCall[i].arg1, fake.getInstancesOfServiceOfferingArgsForCall[i].arg2
+	argsForCall := fake.getInstancesOfServiceOfferingArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeListerClient) GetInstancesOfServiceOfferingReturns(result1 []service.Instance, result2 error) {
+	fake.getInstancesOfServiceOfferingMutex.Lock()
+	defer fake.getInstancesOfServiceOfferingMutex.Unlock()
 	fake.GetInstancesOfServiceOfferingStub = nil
 	fake.getInstancesOfServiceOfferingReturns = struct {
 		result1 []service.Instance
@@ -66,6 +92,8 @@ func (fake *FakeListerClient) GetInstancesOfServiceOfferingReturns(result1 []ser
 }
 
 func (fake *FakeListerClient) GetInstancesOfServiceOfferingReturnsOnCall(i int, result1 []service.Instance, result2 error) {
+	fake.getInstancesOfServiceOfferingMutex.Lock()
+	defer fake.getInstancesOfServiceOfferingMutex.Unlock()
 	fake.GetInstancesOfServiceOfferingStub = nil
 	if fake.getInstancesOfServiceOfferingReturnsOnCall == nil {
 		fake.getInstancesOfServiceOfferingReturnsOnCall = make(map[int]struct {
@@ -79,11 +107,79 @@ func (fake *FakeListerClient) GetInstancesOfServiceOfferingReturnsOnCall(i int, 
 	}{result1, result2}
 }
 
+func (fake *FakeListerClient) GetInstancesOfServiceOfferingByOrgSpace(arg1 string, arg2 string, arg3 string, arg4 *log.Logger) ([]service.Instance, error) {
+	fake.getInstancesOfServiceOfferingByOrgSpaceMutex.Lock()
+	ret, specificReturn := fake.getInstancesOfServiceOfferingByOrgSpaceReturnsOnCall[len(fake.getInstancesOfServiceOfferingByOrgSpaceArgsForCall)]
+	fake.getInstancesOfServiceOfferingByOrgSpaceArgsForCall = append(fake.getInstancesOfServiceOfferingByOrgSpaceArgsForCall, struct {
+		arg1 string
+		arg2 string
+		arg3 string
+		arg4 *log.Logger
+	}{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("GetInstancesOfServiceOfferingByOrgSpace", []interface{}{arg1, arg2, arg3, arg4})
+	fake.getInstancesOfServiceOfferingByOrgSpaceMutex.Unlock()
+	if fake.GetInstancesOfServiceOfferingByOrgSpaceStub != nil {
+		return fake.GetInstancesOfServiceOfferingByOrgSpaceStub(arg1, arg2, arg3, arg4)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.getInstancesOfServiceOfferingByOrgSpaceReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeListerClient) GetInstancesOfServiceOfferingByOrgSpaceCallCount() int {
+	fake.getInstancesOfServiceOfferingByOrgSpaceMutex.RLock()
+	defer fake.getInstancesOfServiceOfferingByOrgSpaceMutex.RUnlock()
+	return len(fake.getInstancesOfServiceOfferingByOrgSpaceArgsForCall)
+}
+
+func (fake *FakeListerClient) GetInstancesOfServiceOfferingByOrgSpaceCalls(stub func(string, string, string, *log.Logger) ([]service.Instance, error)) {
+	fake.getInstancesOfServiceOfferingByOrgSpaceMutex.Lock()
+	defer fake.getInstancesOfServiceOfferingByOrgSpaceMutex.Unlock()
+	fake.GetInstancesOfServiceOfferingByOrgSpaceStub = stub
+}
+
+func (fake *FakeListerClient) GetInstancesOfServiceOfferingByOrgSpaceArgsForCall(i int) (string, string, string, *log.Logger) {
+	fake.getInstancesOfServiceOfferingByOrgSpaceMutex.RLock()
+	defer fake.getInstancesOfServiceOfferingByOrgSpaceMutex.RUnlock()
+	argsForCall := fake.getInstancesOfServiceOfferingByOrgSpaceArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
+}
+
+func (fake *FakeListerClient) GetInstancesOfServiceOfferingByOrgSpaceReturns(result1 []service.Instance, result2 error) {
+	fake.getInstancesOfServiceOfferingByOrgSpaceMutex.Lock()
+	defer fake.getInstancesOfServiceOfferingByOrgSpaceMutex.Unlock()
+	fake.GetInstancesOfServiceOfferingByOrgSpaceStub = nil
+	fake.getInstancesOfServiceOfferingByOrgSpaceReturns = struct {
+		result1 []service.Instance
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeListerClient) GetInstancesOfServiceOfferingByOrgSpaceReturnsOnCall(i int, result1 []service.Instance, result2 error) {
+	fake.getInstancesOfServiceOfferingByOrgSpaceMutex.Lock()
+	defer fake.getInstancesOfServiceOfferingByOrgSpaceMutex.Unlock()
+	fake.GetInstancesOfServiceOfferingByOrgSpaceStub = nil
+	if fake.getInstancesOfServiceOfferingByOrgSpaceReturnsOnCall == nil {
+		fake.getInstancesOfServiceOfferingByOrgSpaceReturnsOnCall = make(map[int]struct {
+			result1 []service.Instance
+			result2 error
+		})
+	}
+	fake.getInstancesOfServiceOfferingByOrgSpaceReturnsOnCall[i] = struct {
+		result1 []service.Instance
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeListerClient) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.getInstancesOfServiceOfferingMutex.RLock()
 	defer fake.getInstancesOfServiceOfferingMutex.RUnlock()
+	fake.getInstancesOfServiceOfferingByOrgSpaceMutex.RLock()
+	defer fake.getInstancesOfServiceOfferingByOrgSpaceMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

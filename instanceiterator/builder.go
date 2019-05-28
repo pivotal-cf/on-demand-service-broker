@@ -19,7 +19,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"strings"
 	"time"
 
 	"github.com/craigfurman/herottp"
@@ -27,13 +26,11 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/network"
-	"github.com/pivotal-cf/on-demand-service-broker/service"
 	"github.com/pivotal-cf/on-demand-service-broker/tools"
 )
 
 type Builder struct {
 	BrokerServices        BrokerServices
-	ServiceInstanceLister InstanceLister
 	PollingInterval       time.Duration
 	AttemptInterval       time.Duration
 	AttemptLimit          int
@@ -48,11 +45,6 @@ type Builder struct {
 func NewBuilder(conf config.InstanceIteratorConfig, logger *log.Logger, logPrefix string) (*Builder, error) {
 
 	brokerServices, err := brokerServices(conf, logger)
-	if err != nil {
-		return nil, err
-	}
-
-	instanceLister, err := serviceInstanceLister(conf, logger)
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +83,6 @@ func NewBuilder(conf config.InstanceIteratorConfig, logger *log.Logger, logPrefi
 
 	b := &Builder{
 		BrokerServices:        brokerServices,
-		ServiceInstanceLister: instanceLister,
 		PollingInterval:       pollingInterval,
 		AttemptInterval:       attemptInterval,
 		AttemptLimit:          attemptLimit,
@@ -148,33 +139,6 @@ func brokerServices(conf config.InstanceIteratorConfig, logger *log.Logger) (*se
 		}),
 		brokerBasicAuthHeaderBuilder,
 		conf.BrokerAPI.URL,
-		logger,
-	), nil
-}
-
-func serviceInstanceLister(conf config.InstanceIteratorConfig, logger *log.Logger) (*service.ServiceInstanceLister, error) {
-	certPool, err := network.AppendCertsFromPEM(conf.ServiceInstancesAPI.RootCACert)
-	if err != nil {
-		return &service.ServiceInstanceLister{},
-			fmt.Errorf("error getting a certificate pool to append our trusted cert to: %s", err)
-	}
-
-	httpClient := herottp.New(herottp.Config{
-		Timeout:                           30 * time.Second,
-		RootCAs:                           certPool,
-		DisableTLSCertificateVerification: conf.ServiceInstancesAPI.DisableSSLCertVerification,
-	})
-
-	manuallyConfigured := !strings.Contains(conf.ServiceInstancesAPI.URL, conf.BrokerAPI.URL)
-	authHeaderBuilder := authorizationheader.NewBasicAuthHeaderBuilder(
-		conf.ServiceInstancesAPI.Authentication.Basic.Username,
-		conf.ServiceInstancesAPI.Authentication.Basic.Password,
-	)
-	return service.NewInstanceLister(
-		httpClient,
-		authHeaderBuilder,
-		conf.ServiceInstancesAPI.URL,
-		manuallyConfigured,
 		logger,
 	), nil
 }

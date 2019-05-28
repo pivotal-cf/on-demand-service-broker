@@ -42,12 +42,8 @@ type Listener interface {
 type BrokerServices interface {
 	ProcessInstance(instance service.Instance, operationType string) (services.BOSHOperation, error)
 	LastOperation(instance string, operationData broker.OperationData) (domain.LastOperation, error)
-}
-
-//go:generate counterfeiter -o fakes/fake_instance_lister.go . InstanceLister
-type InstanceLister interface {
-	Instances() ([]service.Instance, error)
 	FilteredInstances(filter map[string]string) ([]service.Instance, error)
+	Instances() ([]service.Instance, error)
 	LatestInstanceInfo(inst service.Instance) (service.Instance, error)
 }
 
@@ -72,7 +68,6 @@ type StateChecker interface {
 
 type Iterator struct {
 	brokerServices  BrokerServices
-	instanceLister  InstanceLister
 	pollingInterval time.Duration
 	attemptInterval time.Duration
 	attemptLimit    int
@@ -91,7 +86,6 @@ type Iterator struct {
 func New(builder *Builder) *Iterator {
 	return &Iterator{
 		brokerServices:        builder.BrokerServices,
-		instanceLister:        builder.ServiceInstanceLister,
 		pollingInterval:       builder.PollingInterval,
 		attemptInterval:       builder.AttemptInterval,
 		attemptLimit:          builder.AttemptLimit,
@@ -171,13 +165,13 @@ func (it *Iterator) IterateInstancesWithAttempts() error {
 func (it *Iterator) registerInstancesAndCanaries() error {
 	var canaryInstances []service.Instance
 
-	allInstances, err := it.instanceLister.Instances()
+	allInstances, err := it.brokerServices.Instances()
 	if err != nil {
 		return fmt.Errorf("error listing service instances: %s", err)
 	}
 
 	if len(it.canarySelectionParams) > 0 {
-		canaryInstances, err = it.instanceLister.FilteredInstances(it.canarySelectionParams)
+		canaryInstances, err = it.brokerServices.FilteredInstances(it.canarySelectionParams)
 		if err != nil {
 			return fmt.Errorf("error listing service instances: %s", err)
 		}
@@ -240,16 +234,16 @@ func (it *Iterator) triggerOperation() {
 		it.listener.InstanceOperationStarting(instance.GUID, it.iteratorState.GetIteratorIndex(), totalInstances, it.iteratorState.IsProcessingCanaries())
 
 		var operation services.BOSHOperation
-		lastestInstance, err := it.instanceLister.LatestInstanceInfo(instance)
+		latestInstance, err := it.brokerServices.LatestInstanceInfo(instance)
 
-		if err == service.InstanceNotFound {
+		if err == services.InstanceNotFoundError {
 			operation, err = services.BOSHOperation{Type: services.InstanceNotFound}, nil
 		} else {
 			if err != nil {
 				it.listener.FailedToRefreshInstanceInfo(instance.GUID)
-				lastestInstance = instance
+				latestInstance = instance
 			}
-			operation, err = it.triggerer.TriggerOperation(lastestInstance)
+			operation, err = it.triggerer.TriggerOperation(latestInstance)
 		}
 
 		if err != nil {

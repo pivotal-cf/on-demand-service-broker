@@ -14,7 +14,7 @@ import (
 	"github.com/onsi/gomega/gexec"
 )
 
-func TestOrphanDeployments(t *testing.T) {
+func TestUpgradeAllServiceInstances(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Upgrade All Service Instances Suite")
 }

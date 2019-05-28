@@ -30,7 +30,6 @@ var _ = Describe("Iterator", func() {
 		emptyFailedList      = []string{}
 		fakeListener         *fakes.FakeListener
 		brokerServicesClient *fakes.FakeBrokerServices
-		instanceLister       *fakes.FakeInstanceLister
 		fakeSleeper          *fakes.FakeSleeper
 		fakeTriggerer        *fakes.FakeTriggerer
 
@@ -42,7 +41,6 @@ var _ = Describe("Iterator", func() {
 	BeforeEach(func() {
 		fakeListener = new(fakes.FakeListener)
 		brokerServicesClient = new(fakes.FakeBrokerServices)
-		instanceLister = new(fakes.FakeInstanceLister)
 		fakeSleeper = new(fakes.FakeSleeper)
 
 		fakeTriggerer = new(fakes.FakeTriggerer)
@@ -51,30 +49,29 @@ var _ = Describe("Iterator", func() {
 		}
 
 		builder = instanceiterator.Builder{
-			BrokerServices:        brokerServicesClient,
-			ServiceInstanceLister: instanceLister,
-			Listener:              fakeListener,
-			PollingInterval:       10 * time.Second,
-			AttemptLimit:          5,
-			AttemptInterval:       60 * time.Second,
-			MaxInFlight:           1,
-			Canaries:              0,
-			Sleeper:               fakeSleeper,
-			Triggerer:             fakeTriggerer,
+			BrokerServices:  brokerServicesClient,
+			Listener:        fakeListener,
+			PollingInterval: 10 * time.Second,
+			AttemptLimit:    5,
+			AttemptInterval: 60 * time.Second,
+			MaxInFlight:     1,
+			Canaries:        0,
+			Sleeper:         fakeSleeper,
+			Triggerer:       fakeTriggerer,
 		}
 	})
 
 	Context("requests error", func() {
 		It("fails when cannot get the list of all the instances", func() {
-			instanceLister.InstancesReturns([]service.Instance{}, errors.New("oops"))
+			brokerServicesClient.InstancesReturns([]service.Instance{}, errors.New("oops"))
 			u := instanceiterator.New(&builder)
 			err := u.Iterate()
 			Expect(err).To(MatchError(ContainSubstring("oops")))
 		})
 
 		It("fails when cannot start upgrading an instance", func() {
-			instanceLister.InstancesReturns([]service.Instance{{GUID: "1"}}, nil)
-			instanceLister.LatestInstanceInfoStub = func(inst service.Instance) (service.Instance, error) {
+			brokerServicesClient.InstancesReturns([]service.Instance{{GUID: "1"}}, nil)
+			brokerServicesClient.LatestInstanceInfoStub = func(inst service.Instance) (service.Instance, error) {
 				return inst, nil
 			}
 			brokerServicesClient.ProcessInstanceReturns(services.BOSHOperation{}, errors.New("oops"))
@@ -85,7 +82,7 @@ var _ = Describe("Iterator", func() {
 		})
 
 		It("fails when cannot poll last operation", func() {
-			instanceLister.InstancesReturns([]service.Instance{{GUID: "1"}}, nil)
+			brokerServicesClient.InstancesReturns([]service.Instance{{GUID: "1"}}, nil)
 			brokerServicesClient.ProcessInstanceReturns(services.BOSHOperation{Type: services.OperationAccepted}, nil)
 			brokerServicesClient.LastOperationReturns(domain.LastOperation{}, errors.New("oops"))
 
@@ -97,8 +94,8 @@ var _ = Describe("Iterator", func() {
 
 	Context("plan change in-flight", func() {
 		It("uses the new plan for an upgrade", func() {
-			instanceLister.InstancesReturnsOnCall(0, []service.Instance{{GUID: "1", PlanUniqueID: "plan-id-1"}}, nil)
-			instanceLister.LatestInstanceInfoReturnsOnCall(0, service.Instance{GUID: "1", PlanUniqueID: "plan-id-2"}, nil)
+			brokerServicesClient.InstancesReturnsOnCall(0, []service.Instance{{GUID: "1", PlanUniqueID: "plan-id-1"}}, nil)
+			brokerServicesClient.LatestInstanceInfoReturnsOnCall(0, service.Instance{GUID: "1", PlanUniqueID: "plan-id-2"}, nil)
 			brokerServicesClient.ProcessInstanceReturns(services.BOSHOperation{Type: services.OperationAccepted}, nil)
 			brokerServicesClient.LastOperationReturns(domain.LastOperation{State: domain.Succeeded}, nil)
 
@@ -111,8 +108,8 @@ var _ = Describe("Iterator", func() {
 		})
 
 		It("continues the operation using the previously fetched info if latest instance info call errors", func() {
-			instanceLister.InstancesReturnsOnCall(0, []service.Instance{{GUID: "1", PlanUniqueID: "plan-id-1"}}, nil)
-			instanceLister.LatestInstanceInfoReturnsOnCall(0, service.Instance{}, errors.New("unexpected error"))
+			brokerServicesClient.InstancesReturnsOnCall(0, []service.Instance{{GUID: "1", PlanUniqueID: "plan-id-1"}}, nil)
+			brokerServicesClient.LatestInstanceInfoReturnsOnCall(0, service.Instance{}, errors.New("unexpected error"))
 			brokerServicesClient.ProcessInstanceReturns(services.BOSHOperation{Type: services.OperationAccepted}, nil)
 			brokerServicesClient.LastOperationReturns(domain.LastOperation{State: domain.Succeeded}, nil)
 
@@ -124,8 +121,8 @@ var _ = Describe("Iterator", func() {
 		})
 
 		It("marks an instance-not-found on refresh as deleted", func() {
-			instanceLister.InstancesReturnsOnCall(0, []service.Instance{{GUID: "1", PlanUniqueID: "plan-id-1"}}, nil)
-			instanceLister.LatestInstanceInfoReturnsOnCall(0, service.Instance{}, service.InstanceNotFound)
+			brokerServicesClient.InstancesReturnsOnCall(0, []service.Instance{{GUID: "1", PlanUniqueID: "plan-id-1"}}, nil)
+			brokerServicesClient.LatestInstanceInfoReturnsOnCall(0, service.Instance{}, services.InstanceNotFoundError)
 
 			iterator := instanceiterator.New(&builder)
 			err := iterator.Iterate()
@@ -136,9 +133,9 @@ var _ = Describe("Iterator", func() {
 		})
 
 		It("does not return an error if cannot check the latest instance info", func() {
-			instanceLister.LatestInstanceInfoReturns(service.Instance{}, errors.New("oops"))
+			brokerServicesClient.LatestInstanceInfoReturns(service.Instance{}, errors.New("oops"))
 			instances := []service.Instance{{GUID: "1", PlanUniqueID: "plan-id-1"}}
-			instanceLister.InstancesReturnsOnCall(0, instances, nil)
+			brokerServicesClient.InstancesReturnsOnCall(0, instances, nil)
 			iterator := instanceiterator.New(&builder)
 
 			err := iterator.Iterate()
@@ -164,7 +161,7 @@ var _ = Describe("Iterator", func() {
 				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 2},
 				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 3},
 			}
-			setupTest(states, instanceLister, brokerServicesClient)
+			setupTest(states, brokerServicesClient)
 
 			iterator := instanceiterator.New(&builder)
 
@@ -202,7 +199,7 @@ var _ = Describe("Iterator", func() {
 				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 2},
 				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.InstanceNotFound}, lastOperationOutput: []domain.LastOperationState{}, taskID: 3},
 			}
-			setupTest(states, instanceLister, brokerServicesClient)
+			setupTest(states, brokerServicesClient)
 
 			iterator := instanceiterator.New(&builder)
 
@@ -240,7 +237,7 @@ var _ = Describe("Iterator", func() {
 				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 2},
 				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OrphanDeployment}, lastOperationOutput: []domain.LastOperationState{}, taskID: 3},
 			}
-			setupTest(states, instanceLister, brokerServicesClient)
+			setupTest(states, brokerServicesClient)
 
 			iterator := instanceiterator.New(&builder)
 
@@ -278,7 +275,7 @@ var _ = Describe("Iterator", func() {
 				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.InProgress, domain.InProgress, domain.Succeeded}, taskID: 2},
 				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 3},
 			}
-			setupTest(states, instanceLister, brokerServicesClient)
+			setupTest(states, brokerServicesClient)
 
 			iterator := instanceiterator.New(&builder)
 
@@ -324,7 +321,7 @@ var _ = Describe("Iterator", func() {
 				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationInProgress, services.OperationInProgress, services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 2},
 				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 3},
 			}
-			setupTest(states, instanceLister, brokerServicesClient)
+			setupTest(states, brokerServicesClient)
 
 			iterator := instanceiterator.New(&builder)
 
@@ -363,7 +360,7 @@ var _ = Describe("Iterator", func() {
 				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationInProgress, services.OperationInProgress, services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 2},
 				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 3},
 			}
-			setupTest(states, instanceLister, brokerServicesClient)
+			setupTest(states, brokerServicesClient)
 
 			builder.AttemptLimit = 1
 			iterator := instanceiterator.New(&builder)
@@ -400,7 +397,7 @@ var _ = Describe("Iterator", func() {
 				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Failed}, taskID: 2},
 				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 3},
 			}
-			setupTest(states, instanceLister, brokerServicesClient)
+			setupTest(states, brokerServicesClient)
 
 			builder.AttemptLimit = 1
 			iterator := instanceiterator.New(&builder)
@@ -434,7 +431,7 @@ var _ = Describe("Iterator", func() {
 				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationInProgress, services.OperationInProgress, services.InstanceNotFound}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 2},
 				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 3},
 			}
-			setupTest(states, instanceLister, brokerServicesClient)
+			setupTest(states, brokerServicesClient)
 
 			iterator := instanceiterator.New(&builder)
 
@@ -473,7 +470,7 @@ var _ = Describe("Iterator", func() {
 				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationInProgress, services.OperationInProgress, services.OrphanDeployment}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 2},
 				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 3},
 			}
-			setupTest(states, instanceLister, brokerServicesClient)
+			setupTest(states, brokerServicesClient)
 
 			iterator := instanceiterator.New(&builder)
 
@@ -514,7 +511,7 @@ var _ = Describe("Iterator", func() {
 				{instance: service.Instance{GUID: "5"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 5},
 				{instance: service.Instance{GUID: "6"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 6},
 			}
-			setupTest(states, instanceLister, brokerServicesClient)
+			setupTest(states, brokerServicesClient)
 
 			builder.MaxInFlight = 4
 			iterator := instanceiterator.New(&builder)
@@ -548,7 +545,7 @@ var _ = Describe("Iterator", func() {
 				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Failed}, taskID: 2},
 				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 3},
 			}
-			setupTest(states, instanceLister, brokerServicesClient)
+			setupTest(states, brokerServicesClient)
 
 			builder.MaxInFlight = 2
 			iterator := instanceiterator.New(&builder)
@@ -591,7 +588,7 @@ var _ = Describe("Iterator", func() {
 				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 3},
 				{instance: service.Instance{GUID: "4"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 4},
 			}
-			setupTest(states, instanceLister, brokerServicesClient)
+			setupTest(states, brokerServicesClient)
 
 			builder.Canaries = 2
 			builder.MaxInFlight = 3
@@ -630,7 +627,7 @@ var _ = Describe("Iterator", func() {
 				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 3},
 				{instance: service.Instance{GUID: "4"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 4},
 			}
-			setupTest(states, instanceLister, brokerServicesClient)
+			setupTest(states, brokerServicesClient)
 
 			builder.Canaries = 4
 			builder.MaxInFlight = 3
@@ -661,7 +658,7 @@ var _ = Describe("Iterator", func() {
 		})
 
 		It("does not fail if there are no instances", func() {
-			setupTest([]*testState{}, instanceLister, brokerServicesClient)
+			setupTest([]*testState{}, brokerServicesClient)
 
 			builder.Canaries = 2
 			iterator := instanceiterator.New(&builder)
@@ -686,7 +683,7 @@ var _ = Describe("Iterator", func() {
 				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 2},
 				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 3},
 			}
-			setupTest(states, instanceLister, brokerServicesClient)
+			setupTest(states, brokerServicesClient)
 
 			builder.Canaries = 1
 			builder.MaxInFlight = 3
@@ -720,7 +717,7 @@ var _ = Describe("Iterator", func() {
 				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationInProgress, services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 2},
 				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 3},
 			}
-			setupTest(states, instanceLister, brokerServicesClient)
+			setupTest(states, brokerServicesClient)
 
 			builder.Canaries = 1
 			builder.MaxInFlight = 3
@@ -754,7 +751,7 @@ var _ = Describe("Iterator", func() {
 				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 2},
 				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 3},
 			}
-			setupTest(states, instanceLister, brokerServicesClient)
+			setupTest(states, brokerServicesClient)
 
 			builder.Canaries = 1
 			builder.MaxInFlight = 3
@@ -789,7 +786,7 @@ var _ = Describe("Iterator", func() {
 				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 2},
 				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 3},
 			}
-			setupTest(states, instanceLister, brokerServicesClient)
+			setupTest(states, brokerServicesClient)
 
 			builder.Canaries = 1
 			builder.MaxInFlight = 3
@@ -824,7 +821,7 @@ var _ = Describe("Iterator", func() {
 				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationInProgress, services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 2},
 				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationInProgress, services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 3},
 			}
-			setupTest(states, instanceLister, brokerServicesClient)
+			setupTest(states, brokerServicesClient)
 
 			builder.Canaries = 3
 			builder.MaxInFlight = 3
@@ -856,7 +853,7 @@ var _ = Describe("Iterator", func() {
 				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationInProgress}, lastOperationOutput: []domain.LastOperationState{}, taskID: 2},
 				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationInProgress}, lastOperationOutput: []domain.LastOperationState{}, taskID: 3},
 			}
-			setupTest(states, instanceLister, brokerServicesClient)
+			setupTest(states, brokerServicesClient)
 
 			builder.Canaries = 3
 			builder.MaxInFlight = 3
@@ -889,7 +886,7 @@ var _ = Describe("Iterator", func() {
 				{instance: service.Instance{GUID: "2"}, iteratorOutput: []services.BOSHOperationType{services.OperationInProgress, services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 2},
 				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationInProgress, services.OperationInProgress, services.OperationInProgress, services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 3},
 			}
-			setupTest(states, instanceLister, brokerServicesClient)
+			setupTest(states, brokerServicesClient)
 
 			builder.Canaries = 1
 			builder.MaxInFlight = 3
@@ -935,7 +932,7 @@ var _ = Describe("Iterator", func() {
 				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationInProgress, services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 3},
 				{instance: service.Instance{GUID: "4"}, iteratorOutput: []services.BOSHOperationType{services.OperationInProgress, services.OperationInProgress, services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 4},
 			}
-			setupTest(states, instanceLister, brokerServicesClient)
+			setupTest(states, brokerServicesClient)
 
 			builder.Canaries = 2
 			builder.MaxInFlight = 3
@@ -1022,7 +1019,7 @@ var _ = Describe("Iterator", func() {
 				{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OrphanDeployment}, lastOperationOutput: []domain.LastOperationState{}, taskID: 3},
 				{instance: service.Instance{GUID: "4"}, iteratorOutput: []services.BOSHOperationType{services.OperationInProgress, services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 4},
 			}
-			setupTest(states, instanceLister, brokerServicesClient)
+			setupTest(states, brokerServicesClient)
 
 			builder.Canaries = 1
 			builder.MaxInFlight = 3
@@ -1099,8 +1096,8 @@ var _ = Describe("Iterator", func() {
 			})
 
 			AfterEach(func() {
-				Expect(instanceLister.FilteredInstancesCallCount()).To(Equal(1))
-				params := instanceLister.FilteredInstancesArgsForCall(0)
+				Expect(brokerServicesClient.FilteredInstancesCallCount()).To(Equal(1))
+				params := brokerServicesClient.FilteredInstancesArgsForCall(0)
 				Expect(params["org"]).To(Equal("the-org"))
 				Expect(params["space"]).To(Equal("the-space"))
 			})
@@ -1118,10 +1115,10 @@ var _ = Describe("Iterator", func() {
 					{instance: service.Instance{GUID: "5"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 5},
 					{instance: service.Instance{GUID: "6"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 6},
 				}
-				setupTest(states, instanceLister, brokerServicesClient)
+				setupTest(states, brokerServicesClient)
 
 				filtered := []service.Instance{states[1].instance, states[2].instance, states[4].instance, states[5].instance}
-				instanceLister.FilteredInstancesReturns(filtered, nil)
+				brokerServicesClient.FilteredInstancesReturns(filtered, nil)
 
 				var wg sync.WaitGroup
 				wg.Add(1)
@@ -1165,10 +1162,10 @@ var _ = Describe("Iterator", func() {
 					{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 3},
 					{instance: service.Instance{GUID: "4"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 4},
 				}
-				setupTest(states, instanceLister, brokerServicesClient)
+				setupTest(states, brokerServicesClient)
 
 				filtered := []service.Instance{states[1].instance, states[2].instance}
-				instanceLister.FilteredInstancesReturns(filtered, nil)
+				brokerServicesClient.FilteredInstancesReturns(filtered, nil)
 
 				var wg sync.WaitGroup
 				wg.Add(1)
@@ -1206,10 +1203,10 @@ var _ = Describe("Iterator", func() {
 					{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.InstanceNotFound}, lastOperationOutput: []domain.LastOperationState{}, taskID: 3},
 					{instance: service.Instance{GUID: "4"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 4},
 				}
-				setupTest(states, instanceLister, brokerServicesClient)
+				setupTest(states, brokerServicesClient)
 
 				filtered := []service.Instance{states[1].instance, states[2].instance}
-				instanceLister.FilteredInstancesReturns(filtered, nil)
+				brokerServicesClient.FilteredInstancesReturns(filtered, nil)
 
 				var wg sync.WaitGroup
 				wg.Add(1)
@@ -1242,10 +1239,10 @@ var _ = Describe("Iterator", func() {
 					{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 3},
 					{instance: service.Instance{GUID: "4"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 4},
 				}
-				setupTest(states, instanceLister, brokerServicesClient)
+				setupTest(states, brokerServicesClient)
 
 				filtered := []service.Instance{states[1].instance}
-				instanceLister.FilteredInstancesReturns(filtered, nil)
+				brokerServicesClient.FilteredInstancesReturns(filtered, nil)
 
 				var wg sync.WaitGroup
 				wg.Add(1)
@@ -1283,9 +1280,9 @@ var _ = Describe("Iterator", func() {
 					{instance: service.Instance{GUID: "3"}, iteratorOutput: []services.BOSHOperationType{services.InstanceNotFound}, lastOperationOutput: []domain.LastOperationState{}, taskID: 3},
 					{instance: service.Instance{GUID: "4"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 4},
 				}
-				setupTest(states, instanceLister, brokerServicesClient)
+				setupTest(states, brokerServicesClient)
 
-				instanceLister.FilteredInstancesReturns([]service.Instance{}, nil)
+				brokerServicesClient.FilteredInstancesReturns([]service.Instance{}, nil)
 
 				iteratorError = iterator.Iterate()
 				Expect(iteratorError).To(HaveOccurred())
@@ -1301,8 +1298,8 @@ var _ = Describe("Iterator", func() {
 				builder.Canaries = 1
 				iterator := instanceiterator.New(&builder)
 
-				setupTest([]*testState{}, instanceLister, brokerServicesClient)
-				instanceLister.FilteredInstancesReturns([]service.Instance{}, nil)
+				setupTest([]*testState{}, brokerServicesClient)
+				brokerServicesClient.FilteredInstancesReturns([]service.Instance{}, nil)
 
 				iteratorError = iterator.Iterate()
 				Expect(iteratorError).ToNot(HaveOccurred())
@@ -1318,10 +1315,10 @@ var _ = Describe("Iterator", func() {
 					{instance: service.Instance{GUID: "5"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 5},
 					{instance: service.Instance{GUID: "6"}, iteratorOutput: []services.BOSHOperationType{services.OperationAccepted}, lastOperationOutput: []domain.LastOperationState{domain.Succeeded}, taskID: 6},
 				}
-				setupTest(states, instanceLister, brokerServicesClient)
+				setupTest(states, brokerServicesClient)
 
 				filtered := []service.Instance{states[1].instance, states[2].instance, states[4].instance, states[5].instance}
-				instanceLister.FilteredInstancesReturns(filtered, nil)
+				brokerServicesClient.FilteredInstancesReturns(filtered, nil)
 				builder.MaxInFlight = 3
 				builder.Canaries = 0
 

@@ -19,6 +19,10 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/pivotal-cf/on-demand-service-broker/integration_tests/helpers"
+
+	"github.com/onsi/gomega/ghttp"
+
 	"encoding/json"
 
 	"strings"
@@ -78,50 +82,139 @@ var _ = Describe("Management API", func() {
 			serviceInstancesPath = "service_instances"
 		)
 
-		It("returns some service instances results", func() {
-			fakeCfClient.GetInstancesOfServiceOfferingReturns([]service.Instance{
-				{
-					GUID:         "service-instance-id",
-					PlanUniqueID: "plan-id",
-				},
-				{
-					GUID:         "another-service-instance-id",
-					PlanUniqueID: "another-plan-id",
-				},
-			}, nil)
+		When("CF is set", func() {
+			It("returns all service instances results", func() {
+				fakeCfClient.GetInstancesOfServiceOfferingReturns([]service.Instance{
+					{
+						GUID:         "service-instance-id",
+						PlanUniqueID: "plan-id",
+					},
+					{
+						GUID:         "another-service-instance-id",
+						PlanUniqueID: "another-plan-id",
+					},
+				}, nil)
 
-			response, bodyContent := doGetRequest(serviceInstancesPath)
+				response, bodyContent := doGetRequest(serviceInstancesPath)
 
-			By("returning the correct status code")
-			Expect(response.StatusCode).To(Equal(http.StatusOK))
+				By("returning the correct status code")
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
 
-			By("returning the service instances")
-			Expect(bodyContent).To(MatchJSON(
-				`[
+				By("returning the service instances")
+				Expect(bodyContent).To(MatchJSON(
+					`[
 					{"service_instance_id": "service-instance-id", "plan_id":"plan-id"},
 					{"service_instance_id": "another-service-instance-id", "plan_id":"another-plan-id"}
 				]`,
-			))
+				))
+			})
+
+			It("returns filtered service instances results", func() {
+				fakeCfClient.GetInstancesOfServiceOfferingByOrgSpaceReturns([]service.Instance{
+					{
+						GUID:         "service-instance-id",
+						PlanUniqueID: "plan-id",
+					},
+				}, nil)
+
+				response, bodyContent := doGetRequest(serviceInstancesPath + "?cf_org=banana&cf_space=banane")
+
+				By("returning the correct status code")
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
+
+				By("returning the service instances")
+				Expect(bodyContent).To(MatchJSON(
+					`[{"service_instance_id": "service-instance-id", "plan_id":"plan-id"}]`,
+				))
+				_, orgName, spaceName, _ := fakeCfClient.GetInstancesOfServiceOfferingByOrgSpaceArgsForCall(0)
+				Expect(orgName).To(Equal("banana"))
+				Expect(spaceName).To(Equal("banane"))
+			})
+
+			It("returns 500 when getting instances fails", func() {
+				fakeCfClient.GetInstancesOfServiceOfferingReturns([]service.Instance{}, errors.New("something failed"))
+
+				response, _ := doGetRequest(serviceInstancesPath)
+
+				By("returning the correct status code")
+				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+
+				By("logging the failure")
+				Expect(loggerBuffer).To(gbytes.Say(`error occurred querying instances: something failed`))
+			})
+
+			It("return 401 when not authorised", func() {
+
+				response, _ := doGetRequestWithoutAuth(serviceInstancesPath)
+
+				By("returning the correct status code")
+				Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+			})
 		})
 
-		It("returns 500 when getting instances fails", func() {
-			fakeCfClient.GetInstancesOfServiceOfferingReturns([]service.Instance{}, errors.New("something failed"))
+		Context("when SIAPI is set", func() {
 
-			response, _ := doGetRequest(serviceInstancesPath)
+			var (
+				siApiServer             *ghttp.Server
+				expectedResponse        string
+				serviceInstancesHandler *helpers.FakeHandler
+			)
 
-			By("returning the correct status code")
-			Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+			BeforeEach(func() {
+				siApiServer = ghttp.NewServer()
+				serviceInstancesHandler = new(helpers.FakeHandler)
 
-			By("logging the failure")
-			Expect(loggerBuffer).To(gbytes.Say(`error occurred querying instances: something failed`))
-		})
+				siApiServer.RouteToHandler(http.MethodGet, "/", ghttp.CombineHandlers(
+					ghttp.VerifyBasicAuth("test-user", "test-password"),
+					serviceInstancesHandler.Handle,
+				))
 
-		It("return 401 when not authorised", func() {
+				expectedResponse = `[{"plan_id": "service-plan-id", "service_instance_id": "my-instance-id-from-siApi"}]`
 
-			response, _ := doGetRequestWithoutAuth(serviceInstancesPath)
+				serviceInstancesHandler.WithQueryParams().RespondsWith(http.StatusOK, expectedResponse)
 
-			By("returning the correct status code")
-			Expect(response.StatusCode).To(Equal(http.StatusUnauthorized))
+				conf.ServiceInstancesAPI = brokerConfig.ServiceInstancesAPI{
+					URL:        siApiServer.URL(),
+					RootCACert: "",
+					Authentication: brokerConfig.Authentication{
+						Basic: brokerConfig.UserCredentials{
+							Username: "test-user",
+							Password: "test-password",
+						},
+					},
+					DisableSSLCertVerification: true,
+				}
+			})
+
+			It("returns all service instances results", func() {
+				response, bodyContent := doGetRequest(serviceInstancesPath)
+
+				By("returning the correct status code")
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
+
+				By("returning the service instances")
+				Expect(bodyContent).To(MatchJSON(expectedResponse))
+				Expect(fakeCfClient.GetInstancesOfServiceOfferingCallCount()).To(Equal(0))
+			})
+
+			It("returns filtered service instances results", func() {
+				expectedResponse := `[{"plan_id": "other-plan", "service_instance_id": "other-id"}]`
+
+				serviceInstancesHandler.WithQueryParams("foo=bar").RespondsWith(http.StatusOK, expectedResponse)
+
+				response, bodyContent := doGetRequest(serviceInstancesPath + "?foo=bar")
+
+				By("returning the correct status code")
+				Expect(response.StatusCode).To(Equal(http.StatusOK))
+
+				By("returning the service instances")
+				Expect(bodyContent).To(MatchJSON(expectedResponse))
+				Expect(fakeCfClient.GetInstancesOfServiceOfferingCallCount()).To(Equal(0))
+			})
+
+			AfterEach(func() {
+				siApiServer.Close()
+			})
 		})
 	})
 

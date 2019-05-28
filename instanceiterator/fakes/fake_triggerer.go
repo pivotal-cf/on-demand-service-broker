@@ -41,7 +41,8 @@ func (fake *FakeTriggerer) TriggerOperation(arg1 service.Instance) (services.BOS
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.triggerOperationReturns.result1, fake.triggerOperationReturns.result2
+	fakeReturns := fake.triggerOperationReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeTriggerer) TriggerOperationCallCount() int {
@@ -50,13 +51,22 @@ func (fake *FakeTriggerer) TriggerOperationCallCount() int {
 	return len(fake.triggerOperationArgsForCall)
 }
 
+func (fake *FakeTriggerer) TriggerOperationCalls(stub func(service.Instance) (services.BOSHOperation, error)) {
+	fake.triggerOperationMutex.Lock()
+	defer fake.triggerOperationMutex.Unlock()
+	fake.TriggerOperationStub = stub
+}
+
 func (fake *FakeTriggerer) TriggerOperationArgsForCall(i int) service.Instance {
 	fake.triggerOperationMutex.RLock()
 	defer fake.triggerOperationMutex.RUnlock()
-	return fake.triggerOperationArgsForCall[i].arg1
+	argsForCall := fake.triggerOperationArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeTriggerer) TriggerOperationReturns(result1 services.BOSHOperation, result2 error) {
+	fake.triggerOperationMutex.Lock()
+	defer fake.triggerOperationMutex.Unlock()
 	fake.TriggerOperationStub = nil
 	fake.triggerOperationReturns = struct {
 		result1 services.BOSHOperation
@@ -65,6 +75,8 @@ func (fake *FakeTriggerer) TriggerOperationReturns(result1 services.BOSHOperatio
 }
 
 func (fake *FakeTriggerer) TriggerOperationReturnsOnCall(i int, result1 services.BOSHOperation, result2 error) {
+	fake.triggerOperationMutex.Lock()
+	defer fake.triggerOperationMutex.Unlock()
 	fake.TriggerOperationStub = nil
 	if fake.triggerOperationReturnsOnCall == nil {
 		fake.triggerOperationReturnsOnCall = make(map[int]struct {

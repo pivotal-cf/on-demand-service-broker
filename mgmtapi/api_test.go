@@ -123,7 +123,7 @@ var _ = Describe("Management API", func() {
 				instances := []service.Instance{instance1, instance2, instance3}
 				manageableBroker.FilteredInstancesReturns(instances, nil)
 
-				listResp, err := http.Get(fmt.Sprintf("%s/mgmt/service_instances?cf_org=banana&cf_space=latundan", server.URL))
+				listResp, err := http.Get(fmt.Sprintf("%s/mgmt/service_instances?foo=bar", server.URL))
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(listResp.StatusCode).To(Equal(http.StatusOK))
