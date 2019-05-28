@@ -199,7 +199,7 @@ var _ = Describe("CF client", func() {
 		})
 	})
 
-	Describe("DisableServiceAccess", func() {
+	Describe("Disabling service access", func() {
 		var (
 			brokerName string
 			brokerGUID string
@@ -232,32 +232,47 @@ var _ = Describe("CF client", func() {
 			Eventually(session).Should(gexec.Exit(0))
 		})
 
-		It("disables service access", func() {
-			plan := servicePlan(brokerGUID, planName)
+		Context("DisableServiceAccess", func() {
+			It("disables service access for a plan", func() {
+				plan := servicePlan(brokerGUID, planName)
 
-			By("setting plan.public to false", func() {
-				Expect(plan.Public).To(BeTrue())
+				By("setting plan.public to false", func() {
+					Expect(plan.Public).To(BeTrue())
 
-				err := subject.DisableServiceAccess(brokerDeployment.ServiceName, planName, logger)
-				Expect(err).ToNot(HaveOccurred())
+					err := subject.DisableServiceAccess(brokerDeployment.ServiceID, planName, logger)
+					Expect(err).ToNot(HaveOccurred())
 
-				updatedPlan := servicePlan(brokerGUID, planName)
-				Expect(updatedPlan.Public).To(BeFalse(), "plan was not made private")
+					updatedPlan := servicePlan(brokerGUID, planName)
+					Expect(updatedPlan.Public).To(BeFalse(), "plan was not made private")
+				})
+
+				By("removing any plan visibilities", func() {
+					Eventually(
+						cf_helpers.Cf("enable-service-access", brokerDeployment.ServiceName, "-p", planName, "-o", os.Getenv("CF_ORG")),
+					).Should(gexec.Exit(0))
+
+					planVisibilities := servicePlanVisibilities(plan.GUID)
+					Expect(len(planVisibilities)).To(BeNumerically(">=", 1))
+
+					err := subject.DisableServiceAccess(brokerDeployment.ServiceID, planName, logger)
+					Expect(err).ToNot(HaveOccurred())
+
+					updatedPlanVisibilities := servicePlanVisibilities(plan.GUID)
+					Expect(len(updatedPlanVisibilities)).To(Equal(0), "plan visibilities were not cleaned")
+				})
 			})
 
-			By("removing any plan visibilities", func() {
-				Eventually(
-					cf_helpers.Cf("enable-service-access", brokerDeployment.ServiceName, "-p", planName, "-o", os.Getenv("CF_ORG")),
-				).Should(gexec.Exit(0))
+		})
 
-				planVisibilities := servicePlanVisibilities(plan.GUID)
-				Expect(len(planVisibilities)).To(BeNumerically(">=", 1))
+		Context("DisableServiceAccessForAllPlans", func() {
+			It("disables service access for all plans", func() {
+				err := subject.DisableServiceAccessForAllPlans(brokerDeployment.ServiceID, logger)
 
-				err := subject.DisableServiceAccess(brokerDeployment.ServiceName, planName, logger)
-				Expect(err).ToNot(HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
-				updatedPlanVisibilities := servicePlanVisibilities(plan.GUID)
-				Expect(len(updatedPlanVisibilities)).To(Equal(0), "plan visibilities were not cleaned")
+				session := cf_helpers.Cf("m")
+				Eventually(session, cf_helpers.CfTimeout).Should(gexec.Exit(0))
+				Expect(session.Out).NotTo(gbytes.Say(planName))
 			})
 		})
 	})
