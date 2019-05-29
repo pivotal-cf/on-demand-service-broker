@@ -58,7 +58,7 @@ var _ = Describe("ServiceInstanceLister", func() {
 		client.DoReturns(response(http.StatusOK, `[{"service_instance_id": "foo", "plan_id": "plan"}, {"service_instance_id": "bar", "plan_id": "another-plan"}]`), nil)
 		serviceInstanceLister := service.NewInstanceLister(client, authHeaderBuilder, "", false, logger)
 
-		instances, err := serviceInstanceLister.Instances()
+		instances, err := serviceInstanceLister.FilteredInstances(nil)
 
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(instances)).To(Equal(2))
@@ -68,21 +68,21 @@ var _ = Describe("ServiceInstanceLister", func() {
 	It("returns an error when the request fails", func() {
 		client.DoReturns(nil, errors.New("connection error"))
 		serviceInstanceLister := service.NewInstanceLister(client, authHeaderBuilder, "", false, logger)
-		_, err := serviceInstanceLister.Instances()
+		_, err := serviceInstanceLister.FilteredInstances(nil)
 		Expect(err).To(MatchError("connection error"))
 	})
 
 	It("returns an error when the broker response is unrecognised", func() {
 		client.DoReturns(response(http.StatusOK, `{"not": "a list"}`), nil)
 		serviceInstanceLister := service.NewInstanceLister(client, authHeaderBuilder, "", false, logger)
-		_, err := serviceInstanceLister.Instances()
+		_, err := serviceInstanceLister.FilteredInstances(nil)
 		Expect(err).To(HaveOccurred())
 	})
 
 	It("returns an error when the HTTP status is not OK", func() {
 		client.DoReturns(response(http.StatusInternalServerError, `{"description": "oops", "another-field": "ignored"}`), nil)
 		serviceInstanceLister := service.NewInstanceLister(client, authHeaderBuilder, "", false, logger)
-		_, err := serviceInstanceLister.Instances()
+		_, err := serviceInstanceLister.FilteredInstances(nil)
 		Expect(err).To(MatchError(fmt.Sprintf(
 			"HTTP response status: %d %s. %s",
 			http.StatusInternalServerError,
@@ -94,7 +94,7 @@ var _ = Describe("ServiceInstanceLister", func() {
 	It("returns a service instance API error when the HTTP status is not OK and service API is configured", func() {
 		client.DoReturns(response(http.StatusInternalServerError, `not json description, so not shown in error`), nil)
 		serviceInstanceLister := service.NewInstanceLister(client, authHeaderBuilder, "", true, logger)
-		_, err := serviceInstanceLister.Instances()
+		_, err := serviceInstanceLister.FilteredInstances(nil)
 		Expect(err).To(MatchError(fmt.Sprintf(
 			"error communicating with service_instances_api (%s): HTTP response status: %d %s. %s",
 			"http://example.org/some-path",
@@ -112,7 +112,7 @@ var _ = Describe("ServiceInstanceLister", func() {
 		}
 		client.DoReturns(nil, expectedError)
 		serviceInstanceLister := service.NewInstanceLister(client, authHeaderBuilder, expectedURL, true, logger)
-		_, err := serviceInstanceLister.Instances()
+		_, err := serviceInstanceLister.FilteredInstances(nil)
 		Expect(err).To(MatchError(fmt.Sprintf(
 			"SSL validation error for `service_instances_api.url`: %s. Please configure a `service_instances_api.root_ca_cert` and use a valid SSL certificate",
 			expectedURL,
@@ -127,7 +127,7 @@ var _ = Describe("ServiceInstanceLister", func() {
 		}
 		client.DoReturns(nil, expectedError)
 		serviceInstanceLister := service.NewInstanceLister(client, authHeaderBuilder, expectedURL, true, logger)
-		_, err := serviceInstanceLister.Instances()
+		_, err := serviceInstanceLister.FilteredInstances(nil)
 		Expect(err).To(MatchError(Equal(fmt.Sprintf(
 			"error communicating with service_instances_api (%s): %s",
 			expectedURL,
@@ -142,7 +142,7 @@ var _ = Describe("ServiceInstanceLister", func() {
 		}
 		client.DoReturns(nil, expectedError)
 		serviceInstanceLister := service.NewInstanceLister(client, authHeaderBuilder, expectedURL, true, logger)
-		_, err := serviceInstanceLister.Instances()
+		_, err := serviceInstanceLister.FilteredInstances(nil)
 		Expect(err).To(Equal(expectedError))
 	})
 
@@ -150,7 +150,7 @@ var _ = Describe("ServiceInstanceLister", func() {
 		expectedURL := "https://example.org/service-instances"
 		client.DoReturns(response(http.StatusOK, `[]`), nil)
 		serviceInstanceLister := service.NewInstanceLister(client, authHeaderBuilder, expectedURL, false, logger)
-		serviceInstanceLister.Instances()
+		serviceInstanceLister.FilteredInstances(nil)
 		requestForAuth, _ := authHeaderBuilder.AddAuthHeaderArgsForCall(0)
 		expectedRequest, err := http.NewRequest(
 			http.MethodGet,
@@ -165,7 +165,7 @@ var _ = Describe("ServiceInstanceLister", func() {
 		expectedURL := "https://example.org/service-instances"
 		client.DoReturns(response(http.StatusOK, `[]`), nil)
 		serviceInstanceLister := service.NewInstanceLister(client, authHeaderBuilder, expectedURL, false, logger)
-		serviceInstanceLister.Instances()
+		serviceInstanceLister.FilteredInstances(nil)
 		requestForClient := client.DoArgsForCall(0)
 		expectedRequest, err := http.NewRequest(
 			http.MethodGet,
@@ -180,7 +180,7 @@ var _ = Describe("ServiceInstanceLister", func() {
 		expectedURL := "https://example.org/service-instances"
 		client.DoReturns(response(http.StatusOK, `[]`), nil)
 		serviceInstanceLister := service.NewInstanceLister(client, authHeaderBuilder, expectedURL, false, logger)
-		serviceInstanceLister.Instances()
+		serviceInstanceLister.FilteredInstances(nil)
 		_, actualLogger := authHeaderBuilder.AddAuthHeaderArgsForCall(0)
 		Expect(actualLogger).To(BeIdenticalTo(logger))
 	})
@@ -265,7 +265,7 @@ var _ = Describe("ServiceInstanceLister", func() {
 		It("does not filter params", func() {
 			client.DoReturns(response(http.StatusOK, `[{"service_instance_id": "foo", "plan_id": "plan"}, {"service_instance_id": "bar", "plan_id": "another-plan"}]`), nil)
 			serviceInstanceLister := service.NewInstanceLister(client, authHeaderBuilder, "https://odb.example.com", false, logger)
-			_, err := serviceInstanceLister.Instances()
+			_, err := serviceInstanceLister.FilteredInstances(nil)
 			Expect(err).NotTo(HaveOccurred())
 			req := client.DoArgsForCall(0)
 			Expect(req.URL.RawQuery).To(Equal(""))

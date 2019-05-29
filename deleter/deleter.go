@@ -14,13 +14,12 @@ import (
 
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
-	"github.com/pivotal-cf/on-demand-service-broker/service"
 )
 
 //go:generate counterfeiter -o fakes/fake_cloud_foundry_client.go . CloudFoundryClient
 type CloudFoundryClient interface {
-	GetInstancesOfServiceOffering(serviceOfferingID string, logger *log.Logger) ([]service.Instance, error)
-	GetInstance(instanceGUID string, logger *log.Logger) (cf.Instance, error)
+	GetInstances(filter cf.GetInstancesFilter, logger *log.Logger) ([]cf.Instance, error)
+	GetLastOperationForInstance(instanceGUID string, logger *log.Logger) (cf.LastOperation, error)
 	GetBindingsForInstance(instanceGUID string, logger *log.Logger) ([]cf.Binding, error)
 	DeleteBinding(binding cf.Binding, logger *log.Logger) error
 	GetServiceKeysForInstance(instanceGUID string, logger *log.Logger) ([]cf.ServiceKey, error)
@@ -65,7 +64,8 @@ func New(cfClient CloudFoundryClient, sleeper Sleeper, pollingInitialOffset int,
 
 func (d *Deleter) DeleteAllServiceInstances(serviceUniqueID string) error {
 	d.logger.Printf("Deleter Configuration: polling_intial_offset: %v, polling_interval: %v.", d.pollingInitialOffset.Seconds(), d.pollingInterval.Seconds())
-	serviceInstances, err := d.cfClient.GetInstancesOfServiceOffering(serviceUniqueID, d.logger)
+	instancesFilter := cf.GetInstancesFilter{ServiceOfferingID: serviceUniqueID}
+	serviceInstances, err := d.cfClient.GetInstances(instancesFilter, d.logger)
 	if err != nil {
 		return err
 	}
@@ -106,7 +106,7 @@ func (d *Deleter) DeleteAllServiceInstances(serviceUniqueID string) error {
 		}
 	}
 
-	serviceInstances, err = d.cfClient.GetInstancesOfServiceOffering(serviceUniqueID, d.logger)
+	serviceInstances, err = d.cfClient.GetInstances(instancesFilter, d.logger)
 	if err != nil {
 		return err
 	}
@@ -169,7 +169,7 @@ func (d Deleter) pollInstanceDeleteStatus(instanceGUID string) error {
 	for {
 		d.sleeper.Sleep(d.pollingInterval)
 
-		instance, err := d.cfClient.GetInstance(instanceGUID, d.logger)
+		lastOperation, err := d.cfClient.GetLastOperationForInstance(instanceGUID, d.logger)
 		switch err.(type) {
 		case cf.ResourceNotFoundError:
 			d.logger.Printf("Result: deleted service instance %s", instanceGUID)
@@ -182,26 +182,26 @@ func (d Deleter) pollInstanceDeleteStatus(instanceGUID string) error {
 			continue
 		}
 
-		if !instance.LastOperation.IsDelete() {
+		if !lastOperation.IsDelete() {
 			return fmt.Errorf(
 				"Result: failed to delete service instance %s. Unexpected operation type: '%s'.",
 				instanceGUID,
-				instance.LastOperation.Type,
+				lastOperation.Type,
 			)
 		}
 
-		if instance.OperationFailed() {
+		if lastOperation.OperationFailed() {
 			return fmt.Errorf("Result: failed to delete service instance %s. Delete operation failed.", instanceGUID)
 		}
 	}
 }
 
 func (d Deleter) deleteInProgress(instanceGUID string) (bool, error) {
-	instance, err := d.cfClient.GetInstance(instanceGUID, d.logger)
+	lastOperation, err := d.cfClient.GetLastOperationForInstance(instanceGUID, d.logger)
 
 	if err != nil {
 		return false, err
 	}
 
-	return instance.LastOperation.IsDelete(), nil
+	return lastOperation.IsDelete(), nil
 }

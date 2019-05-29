@@ -24,7 +24,6 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/cf/fakes"
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp/mockcfapi"
-	"github.com/pivotal-cf/on-demand-service-broker/service"
 )
 
 var _ = Describe("Client", func() {
@@ -843,7 +842,7 @@ var _ = Describe("Client", func() {
 			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 
-			_, err = client.GetInstancesOfServiceOffering("some-offering", testLogger)
+			_, err = client.GetInstances(cf.GetInstancesFilter{ServiceOfferingID: "some-offering"}, testLogger)
 			Expect(err).To(MatchError(ContainSubstring("niet goed")))
 		})
 
@@ -986,7 +985,7 @@ var _ = Describe("Client", func() {
 		})
 	})
 
-	Describe("GetInstance", func() {
+	Describe("GetLastOperationForInstance", func() {
 		It("fetches the instance", func() {
 			server.VerifyAndMock(
 				mockcfapi.GetServiceInstance("783f8645-1ded-4161-b457-73f59423f9eb").
@@ -996,11 +995,11 @@ var _ = Describe("Client", func() {
 			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 
-			instance, err := client.GetInstance("783f8645-1ded-4161-b457-73f59423f9eb", testLogger)
+			lastOperation, err := client.GetLastOperationForInstance("783f8645-1ded-4161-b457-73f59423f9eb", testLogger)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(instance.LastOperation.Type).To(Equal(cf.OperationType("create")))
-			Expect(instance.LastOperation.State).To(Equal(cf.OperationState("succeeded")))
+			Expect(lastOperation.Type).To(Equal(cf.OperationType("create")))
+			Expect(lastOperation.State).To(Equal(cf.OperationState("succeeded")))
 		})
 
 		Context("when the service instance does not exist", func() {
@@ -1016,7 +1015,7 @@ var _ = Describe("Client", func() {
 				client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 				Expect(err).NotTo(HaveOccurred())
 
-				_, err = client.GetInstance("783f8645-1ded-4161-b457-73f59423f9eb", testLogger)
+				_, err = client.GetLastOperationForInstance("783f8645-1ded-4161-b457-73f59423f9eb", testLogger)
 				Expect(err).To(BeAssignableToTypeOf(cf.ResourceNotFoundError{}))
 				Expect(err).To(MatchError("The service instance could not be found: 783f8645-1ded-4161-b457-73f59423f9eb"))
 			})
@@ -1031,7 +1030,7 @@ var _ = Describe("Client", func() {
 				client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 				Expect(err).NotTo(HaveOccurred())
 
-				_, err = client.GetInstance("783f8645-1ded-4161-b457-73f59423f9eb", testLogger)
+				_, err = client.GetLastOperationForInstance("783f8645-1ded-4161-b457-73f59423f9eb", testLogger)
 				Expect(err).To(MatchError(ContainSubstring("er ma gerd")))
 				Expect(err).NotTo(BeAssignableToTypeOf(cf.ResourceNotFoundError{}))
 			})
@@ -1052,7 +1051,7 @@ var _ = Describe("Client", func() {
 					client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 					Expect(err).NotTo(HaveOccurred())
 
-					_, err = client.GetInstance("783f8645-1ded-4161-b457-73f59423f9eb", testLogger)
+					_, err = client.GetLastOperationForInstance("783f8645-1ded-4161-b457-73f59423f9eb", testLogger)
 					Expect(err).To(MatchError(ContainSubstring("Authentication error")))
 					Expect(err).To(BeAssignableToTypeOf(cf.UnauthorizedError{}))
 				})
@@ -1068,7 +1067,7 @@ var _ = Describe("Client", func() {
 					client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 					Expect(err).NotTo(HaveOccurred())
 
-					_, err = client.GetInstance("783f8645-1ded-4161-b457-73f59423f9eb", testLogger)
+					_, err = client.GetLastOperationForInstance("783f8645-1ded-4161-b457-73f59423f9eb", testLogger)
 					Expect(err).To(MatchError(ContainSubstring("not valid json")))
 					Expect(err).To(BeAssignableToTypeOf(cf.UnauthorizedError{}))
 				})
@@ -1090,7 +1089,7 @@ var _ = Describe("Client", func() {
 					client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 					Expect(err).NotTo(HaveOccurred())
 
-					_, err = client.GetInstance("783f8645-1ded-4161-b457-73f59423f9eb", testLogger)
+					_, err = client.GetLastOperationForInstance("783f8645-1ded-4161-b457-73f59423f9eb", testLogger)
 					Expect(err).To(MatchError(ContainSubstring("You are not authorized to perform the requested action")))
 					Expect(err).To(BeAssignableToTypeOf(cf.ForbiddenError{}))
 				})
@@ -1106,7 +1105,7 @@ var _ = Describe("Client", func() {
 					client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 					Expect(err).NotTo(HaveOccurred())
 
-					_, err = client.GetInstance("783f8645-1ded-4161-b457-73f59423f9eb", testLogger)
+					_, err = client.GetLastOperationForInstance("783f8645-1ded-4161-b457-73f59423f9eb", testLogger)
 					Expect(err).To(MatchError(ContainSubstring("not valid json")))
 					Expect(err).To(BeAssignableToTypeOf(cf.ForbiddenError{}))
 				})
@@ -1123,7 +1122,7 @@ var _ = Describe("Client", func() {
 				client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 				Expect(err).NotTo(HaveOccurred())
 
-				_, err = client.GetInstance("783f8645-1ded-4161-b457-73f59423f9eb", testLogger)
+				_, err = client.GetLastOperationForInstance("783f8645-1ded-4161-b457-73f59423f9eb", testLogger)
 				Expect(err).To(MatchError(ContainSubstring("Invalid response body")))
 				Expect(err).To(MatchError(ContainSubstring("invalid character 'o'")))
 				Expect(err).To(BeAssignableToTypeOf(cf.InvalidResponseError{}))
@@ -1142,9 +1141,9 @@ var _ = Describe("Client", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			state, err := client.GetInstanceState("783f8645-1ded-4161-b457-73f59423f9eb", testLogger)
+			Expect(err).NotTo(HaveOccurred())
 			Expect(state.PlanID).To(Equal("11789210-D743-4C65-9D38-C80B29F4D9C8"))
 			Expect(state.OperationInProgress).To(BeFalse())
-			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("returns that an operation is in progress when an operation is in progress", func() {
@@ -1157,9 +1156,9 @@ var _ = Describe("Client", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			state, err := client.GetInstanceState("783f8645-1ded-4161-b457-73f59423f9eb", testLogger)
+			Expect(err).NotTo(HaveOccurred())
 			Expect(state.PlanID).To(Equal("11789210-D743-4C65-9D38-C80B29F4D9C8"))
 			Expect(state.OperationInProgress).To(BeTrue())
-			Expect(err).NotTo(HaveOccurred())
 		})
 
 		Context("when the service instance request fails", func() {
@@ -1251,8 +1250,8 @@ var _ = Describe("Client", func() {
 		})
 	})
 
-	Describe("GetInstancesOfServiceOffering", func() {
-		It("returns a list of instances", func() {
+	Describe("GetInstances", func() {
+		It("returns a list of instances filtered by the service offering", func() {
 			offeringID := "8F3E8998-5FD0-4F32-924A-5478DC390A5F"
 
 			server.VerifyAndMock(
@@ -1265,12 +1264,12 @@ var _ = Describe("Client", func() {
 			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 
-			instances, err := client.GetInstancesOfServiceOffering(offeringID, testLogger)
+			instances, err := client.GetInstances(cf.GetInstancesFilter{ServiceOfferingID: offeringID}, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(instances).To(ConsistOf(
-				service.Instance{GUID: "520f8566-b727-4c67-8be8-d9285645e936", PlanUniqueID: "11789210-D743-4C65-9D38-C80B29F4D9C8"},
-				service.Instance{GUID: "f897f40d-0b2d-474a-a5c9-98426a2cb4b8", PlanUniqueID: "22789210-D743-4C65-9D38-C80B29F4D9C8"},
-				service.Instance{GUID: "2f759033-04a4-426b-bccd-01722036c152", PlanUniqueID: "22789210-D743-4C65-9D38-C80B29F4D9C8"},
+				cf.Instance{GUID: "520f8566-b727-4c67-8be8-d9285645e936", PlanUniqueID: "11789210-D743-4C65-9D38-C80B29F4D9C8"},
+				cf.Instance{GUID: "f897f40d-0b2d-474a-a5c9-98426a2cb4b8", PlanUniqueID: "22789210-D743-4C65-9D38-C80B29F4D9C8"},
+				cf.Instance{GUID: "2f759033-04a4-426b-bccd-01722036c152", PlanUniqueID: "22789210-D743-4C65-9D38-C80B29F4D9C8"},
 			))
 		})
 
@@ -1289,12 +1288,12 @@ var _ = Describe("Client", func() {
 				client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 				Expect(err).NotTo(HaveOccurred())
 
-				instances, err := client.GetInstancesOfServiceOffering(offeringID, testLogger)
+				instances, err := client.GetInstances(cf.GetInstancesFilter{ServiceOfferingID: offeringID}, testLogger)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(instances).To(ConsistOf(
-					service.Instance{GUID: "520f8566-b727-4c67-8be8-d9285645e936", PlanUniqueID: "11789210-D743-4C65-9D38-C80B29F4D9C8"},
-					service.Instance{GUID: "f897f40d-0b2d-474a-a5c9-98426a2cb4b8", PlanUniqueID: "22789210-D743-4C65-9D38-C80B29F4D9C8"},
-					service.Instance{GUID: "2f759033-04a4-426b-bccd-01722036c152", PlanUniqueID: "22789210-D743-4C65-9D38-C80B29F4D9C8"},
+					cf.Instance{GUID: "520f8566-b727-4c67-8be8-d9285645e936", PlanUniqueID: "11789210-D743-4C65-9D38-C80B29F4D9C8"},
+					cf.Instance{GUID: "f897f40d-0b2d-474a-a5c9-98426a2cb4b8", PlanUniqueID: "22789210-D743-4C65-9D38-C80B29F4D9C8"},
+					cf.Instance{GUID: "2f759033-04a4-426b-bccd-01722036c152", PlanUniqueID: "22789210-D743-4C65-9D38-C80B29F4D9C8"},
 				))
 			})
 		})
@@ -1314,12 +1313,12 @@ var _ = Describe("Client", func() {
 				client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 				Expect(err).NotTo(HaveOccurred())
 
-				instances, err := client.GetInstancesOfServiceOffering(offeringID, testLogger)
+				instances, err := client.GetInstances(cf.GetInstancesFilter{ServiceOfferingID: offeringID}, testLogger)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(instances).To(ConsistOf(
-					service.Instance{GUID: "520f8566-b727-4c67-8be8-d9285645e936", PlanUniqueID: "11789210-D743-4C65-9D38-C80B29F4D9C8"},
-					service.Instance{GUID: "f897f40d-0b2d-474a-a5c9-98426a2cb4b8", PlanUniqueID: "22789210-D743-4C65-9D38-C80B29F4D9C8"},
-					service.Instance{GUID: "2f759033-04a4-426b-bccd-01722036c152", PlanUniqueID: "22789210-D743-4C65-9D38-C80B29F4D9C8"},
+					cf.Instance{GUID: "520f8566-b727-4c67-8be8-d9285645e936", PlanUniqueID: "11789210-D743-4C65-9D38-C80B29F4D9C8"},
+					cf.Instance{GUID: "f897f40d-0b2d-474a-a5c9-98426a2cb4b8", PlanUniqueID: "22789210-D743-4C65-9D38-C80B29F4D9C8"},
+					cf.Instance{GUID: "2f759033-04a4-426b-bccd-01722036c152", PlanUniqueID: "22789210-D743-4C65-9D38-C80B29F4D9C8"},
 				))
 			})
 		})
@@ -1339,12 +1338,12 @@ var _ = Describe("Client", func() {
 				client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 				Expect(err).NotTo(HaveOccurred())
 
-				instances, err := client.GetInstancesOfServiceOffering(offeringID, testLogger)
+				instances, err := client.GetInstances(cf.GetInstancesFilter{ServiceOfferingID: offeringID}, testLogger)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(instances).To(ConsistOf(
-					service.Instance{GUID: "520f8566-b727-4c67-8be8-d9285645e936", PlanUniqueID: "11789210-D743-4C65-9D38-C80B29F4D9C8"},
-					service.Instance{GUID: "f897f40d-0b2d-474a-a5c9-98426a2cb4b8", PlanUniqueID: "22789210-D743-4C65-9D38-C80B29F4D9C8"},
-					service.Instance{GUID: "2f759033-04a4-426b-bccd-01722036c152", PlanUniqueID: "22789210-D743-4C65-9D38-C80B29F4D9C8"},
+					cf.Instance{GUID: "520f8566-b727-4c67-8be8-d9285645e936", PlanUniqueID: "11789210-D743-4C65-9D38-C80B29F4D9C8"},
+					cf.Instance{GUID: "f897f40d-0b2d-474a-a5c9-98426a2cb4b8", PlanUniqueID: "22789210-D743-4C65-9D38-C80B29F4D9C8"},
+					cf.Instance{GUID: "2f759033-04a4-426b-bccd-01722036c152", PlanUniqueID: "22789210-D743-4C65-9D38-C80B29F4D9C8"},
 				))
 			})
 		})
@@ -1362,9 +1361,9 @@ var _ = Describe("Client", func() {
 			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 
-			instances, err := client.GetInstancesOfServiceOffering(offeringID, testLogger)
+			instances, err := client.GetInstances(cf.GetInstancesFilter{ServiceOfferingID: offeringID}, testLogger)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(instances).To(Equal([]service.Instance{}))
+			Expect(instances).To(Equal([]cf.Instance{}))
 		})
 
 		Context("when the list of services cannot be retrieved", func() {
@@ -1379,7 +1378,7 @@ var _ = Describe("Client", func() {
 				client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 				Expect(err).NotTo(HaveOccurred())
 
-				_, err = client.GetInstancesOfServiceOffering(offeringID, testLogger)
+				_, err = client.GetInstances(cf.GetInstancesFilter{ServiceOfferingID: offeringID}, testLogger)
 				Expect(err).To(MatchError(ContainSubstring("oops")))
 			})
 		})
@@ -1397,7 +1396,7 @@ var _ = Describe("Client", func() {
 				client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 				Expect(err).NotTo(HaveOccurred())
 
-				_, err = client.GetInstancesOfServiceOffering(offeringID, testLogger)
+				_, err = client.GetInstances(cf.GetInstancesFilter{ServiceOfferingID: offeringID}, testLogger)
 				Expect(err).To(MatchError(ContainSubstring("oops")))
 			})
 		})
@@ -1416,275 +1415,118 @@ var _ = Describe("Client", func() {
 				client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 				Expect(err).NotTo(HaveOccurred())
 
-				_, err = client.GetInstancesOfServiceOffering(offeringID, testLogger)
+				_, err = client.GetInstances(cf.GetInstancesFilter{ServiceOfferingID: offeringID}, testLogger)
 				Expect(err).To(MatchError(ContainSubstring("oops")))
 			})
 		})
-	})
 
-	Describe("GetInstancesOfServiceOfferingByOrgSpace", func() {
-		var (
-			orgName, spaceName, orgGuid, spaceGuid string
-		)
-
-		BeforeEach(func() {
-			orgName = "cf-org"
-			spaceName = "cf-space"
-			orgGuid = "an-org-guid"
-			spaceGuid = "a-space-guid"
-		})
-
-		It("returns a list of instances, filtered by org and spaces", func() {
-			offeringID := "8F3E8998-5FD0-4F32-924A-5478DC390A5F"
-			server.VerifyAndMock(
-				mockcfapi.ListServiceOfferings().WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_services_response.json")),
-				mockcfapi.ListServicePlans("34c08156-5b5d-4cc1-9af1-29cda9ec056f").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_plans_response.json")),
-				mockcfapi.ListOrg(orgName).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("org_response.json")),
-				mockcfapi.ListOrgSpace(orgGuid, spaceName).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("space_response.json")),
-				mockcfapi.ListServiceInstancesBySpace("ff717e7c-afd5-4d0a-bafe-16c7eff546ec", spaceGuid).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(
-					fixture("list_service_instances_for_plan_1_response.json"),
-				),
-				mockcfapi.ListServiceInstancesBySpace("2777ad05-8114-4169-8188-2ef5f39e0c6b", spaceGuid).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(
-					fixture("list_service_instances_for_plan_2_response.json"),
-				),
+		Context("filtering by service offering, org and space", func() {
+			var (
+				orgName, spaceName, orgGuid, spaceGuid string
 			)
 
-			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
-			Expect(err).NotTo(HaveOccurred())
-
-			instances, err := client.GetInstancesOfServiceOfferingByOrgSpace(offeringID, orgName, spaceName, testLogger)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(instances).To(ConsistOf(
-				service.Instance{GUID: "520f8566-b727-4c67-8be8-d9285645e936", PlanUniqueID: "11789210-D743-4C65-9D38-C80B29F4D9C8"},
-				service.Instance{GUID: "f897f40d-0b2d-474a-a5c9-98426a2cb4b8", PlanUniqueID: "22789210-D743-4C65-9D38-C80B29F4D9C8"},
-				service.Instance{GUID: "2f759033-04a4-426b-bccd-01722036c152", PlanUniqueID: "22789210-D743-4C65-9D38-C80B29F4D9C8"},
-			))
-		})
-
-		It("returns a list of instance IDs when the list of services spans multiple pages", func() {
-			offeringID := "D94A086D-203D-4966-A6F1-60A9E2300F72"
-
-			server.VerifyAndMock(
-				mockcfapi.ListServiceOfferings().WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_services_response.json")),
-				mockcfapi.ListServicePlans(serviceGUID).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_plans_response_page_1.json")),
-				mockcfapi.ListServicePlansForPage(serviceGUID, 2).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_plans_response_page_2.json")),
-				mockcfapi.ListOrg(orgName).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("org_response.json")),
-				mockcfapi.ListOrgSpace(orgGuid, spaceName).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("space_response.json")),
-				mockcfapi.ListServiceInstancesBySpace("ff717e7c-afd5-4d0a-bafe-16c7eff546ec", spaceGuid).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(
-					fixture("list_service_instances_for_plan_1_response.json"),
-				),
-				mockcfapi.ListServiceInstancesBySpace("2777ad05-8114-4169-8188-2ef5f39e0c6b", spaceGuid).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(
-					fixture("list_service_instances_for_plan_2_response.json"),
-				),
-			)
-
-			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
-			Expect(err).NotTo(HaveOccurred())
-
-			instances, err := client.GetInstancesOfServiceOfferingByOrgSpace(offeringID, orgName, spaceName, testLogger)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(instances).To(ConsistOf(
-				service.Instance{GUID: "520f8566-b727-4c67-8be8-d9285645e936", PlanUniqueID: "11789210-D743-4C65-9D38-C80B29F4D9C8"},
-				service.Instance{GUID: "f897f40d-0b2d-474a-a5c9-98426a2cb4b8", PlanUniqueID: "22789210-D743-4C65-9D38-C80B29F4D9C8"},
-				service.Instance{GUID: "2f759033-04a4-426b-bccd-01722036c152", PlanUniqueID: "22789210-D743-4C65-9D38-C80B29F4D9C8"},
-			))
-		})
-
-		It("returns the full list of instance IDs when the plan list spans multiple pages", func() {
-			offeringID := "D94A086D-203D-4966-A6F1-60A9E2300F72"
-			server.VerifyAndMock(
-				mockcfapi.ListServiceOfferings().WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_services_response.json")),
-				mockcfapi.ListServicePlans(serviceGUID).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_plans_response_page_1.json")),
-				mockcfapi.ListServicePlansForPage(serviceGUID, 2).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_plans_response_page_2.json")),
-				mockcfapi.ListOrg(orgName).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("org_response.json")),
-				mockcfapi.ListOrgSpace(orgGuid, spaceName).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("space_response.json")),
-				mockcfapi.ListServiceInstancesBySpace("ff717e7c-afd5-4d0a-bafe-16c7eff546ec", spaceGuid).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(
-					fixture("list_service_instances_for_plan_1_response.json"),
-				),
-				mockcfapi.ListServiceInstancesBySpace("2777ad05-8114-4169-8188-2ef5f39e0c6b", spaceGuid).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(
-					fixture("list_service_instances_for_plan_2_response.json"),
-				),
-			)
-
-			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
-			Expect(err).NotTo(HaveOccurred())
-
-			instances, err := client.GetInstancesOfServiceOfferingByOrgSpace(offeringID, orgName, spaceName, testLogger)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(instances).To(ConsistOf(
-				service.Instance{GUID: "520f8566-b727-4c67-8be8-d9285645e936", PlanUniqueID: "11789210-D743-4C65-9D38-C80B29F4D9C8"},
-				service.Instance{GUID: "f897f40d-0b2d-474a-a5c9-98426a2cb4b8", PlanUniqueID: "22789210-D743-4C65-9D38-C80B29F4D9C8"},
-				service.Instance{GUID: "2f759033-04a4-426b-bccd-01722036c152", PlanUniqueID: "22789210-D743-4C65-9D38-C80B29F4D9C8"},
-			))
-		})
-
-		It("returns the full list of instance IDs when the instances spans multiple pages", func() {
-			offeringID := "D94A086D-203D-4966-A6F1-60A9E2300F72"
-			server.VerifyAndMock(
-				mockcfapi.ListServiceOfferings().WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_services_response.json")),
-				mockcfapi.ListServicePlans(serviceGUID).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_plans_response.json")),
-				mockcfapi.ListOrg(orgName).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("org_response.json")),
-				mockcfapi.ListOrgSpace(orgGuid, spaceName).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("space_response.json")),
-				mockcfapi.ListServiceInstancesBySpace("ff717e7c-afd5-4d0a-bafe-16c7eff546ec", spaceGuid).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(
-					fixture("list_service_instances_for_plan_1_response.json"),
-				),
-				mockcfapi.ListServiceInstancesBySpace("2777ad05-8114-4169-8188-2ef5f39e0c6b", spaceGuid).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(
-					fixture("list_service_instances_for_plan_2_by_space_page_1.json"),
-				),
-				mockcfapi.ListServiceInstancesBySpaceForPage("2777ad05-8114-4169-8188-2ef5f39e0c6b", spaceGuid, 2).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(
-					fixture("list_service_instances_for_plan_2_by_space_page_2.json"),
-				),
-			)
-
-			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
-			Expect(err).NotTo(HaveOccurred())
-
-			instances, err := client.GetInstancesOfServiceOfferingByOrgSpace(offeringID, orgName, spaceName, testLogger)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(instances).To(ConsistOf(
-				service.Instance{GUID: "520f8566-b727-4c67-8be8-d9285645e936", PlanUniqueID: "11789210-D743-4C65-9D38-C80B29F4D9C8"},
-				service.Instance{GUID: "f897f40d-0b2d-474a-a5c9-98426a2cb4b8", PlanUniqueID: "22789210-D743-4C65-9D38-C80B29F4D9C8"},
-				service.Instance{GUID: "2f759033-04a4-426b-bccd-01722036c152", PlanUniqueID: "22789210-D743-4C65-9D38-C80B29F4D9C8"},
-			))
-		})
-
-		It("when there are no instances, returns an empty list of instances", func() {
-			offeringID := "D94A086D-203D-4966-A6F1-60A9E2300F72"
-
-			server.VerifyAndMock(
-				mockcfapi.ListServiceOfferings().WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_services_response.json")),
-				mockcfapi.ListServicePlans(serviceGUID).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_plans_response.json")),
-				mockcfapi.ListOrg(orgName).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("org_response.json")),
-				mockcfapi.ListOrgSpace(orgGuid, spaceName).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("space_response.json")),
-				mockcfapi.ListServiceInstancesBySpace("ff717e7c-afd5-4d0a-bafe-16c7eff546ec", spaceGuid).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(
-					fixture("list_service_instances_empty_response.json"),
-				),
-				mockcfapi.ListServiceInstancesBySpace("2777ad05-8114-4169-8188-2ef5f39e0c6b", spaceGuid).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(
-					fixture("list_service_instances_empty_response.json"),
-				),
-			)
-
-			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
-			Expect(err).NotTo(HaveOccurred())
-
-			instances, err := client.GetInstancesOfServiceOfferingByOrgSpace(offeringID, orgName, spaceName, testLogger)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(instances).To(Equal([]service.Instance{}))
-		})
-
-		It("returns an empty list when the org doesnt exist", func() {
-			offeringID := "8F3E8998-5FD0-4F32-924A-5478DC390A5F"
-
-			server.VerifyAndMock(
-				mockcfapi.ListServiceOfferings().WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_services_response.json")),
-				mockcfapi.ListServicePlans("34c08156-5b5d-4cc1-9af1-29cda9ec056f").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_plans_response.json")),
-				mockcfapi.ListOrg(orgName).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(`{"resources":[]}`),
-			)
-
-			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
-			Expect(err).NotTo(HaveOccurred())
-
-			instances, err := client.GetInstancesOfServiceOfferingByOrgSpace(offeringID, orgName, spaceName, testLogger)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(instances).To(Equal([]service.Instance{}))
-		})
-
-		It("returns an empty list when the space doesnt exist", func() {
-			offeringID := "8F3E8998-5FD0-4F32-924A-5478DC390A5F"
-
-			server.VerifyAndMock(
-				mockcfapi.ListServiceOfferings().WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_services_response.json")),
-				mockcfapi.ListServicePlans("34c08156-5b5d-4cc1-9af1-29cda9ec056f").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_plans_response.json")),
-				mockcfapi.ListOrg(orgName).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("org_response.json")),
-				mockcfapi.ListOrgSpace(orgGuid, spaceName).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(`{"resources":[]}`),
-			)
-
-			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
-			Expect(err).NotTo(HaveOccurred())
-
-			instances, err := client.GetInstancesOfServiceOfferingByOrgSpace(offeringID, orgName, spaceName, testLogger)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(instances).To(Equal([]service.Instance{}))
-		})
-
-		Context("error cases", func() {
-			It("errors when the list of services cannot be retrieved", func() {
-				offeringID := "8F3E8998-5FD0-4F32-924A-5478DC390A5F"
-				server.VerifyAndMock(
-					mockcfapi.ListServiceOfferings().WithAuthorizationHeader(cfAuthorizationHeader).RespondsInternalServerErrorWith("oops"),
-				)
-
-				client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
-				Expect(err).NotTo(HaveOccurred())
-
-				_, err = client.GetInstancesOfServiceOfferingByOrgSpace(offeringID, orgName, spaceName, testLogger)
-				Expect(err).To(MatchError(ContainSubstring("oops")))
+			BeforeEach(func() {
+				orgName = "cf-org"
+				spaceName = "cf-space"
+				orgGuid = "an-org-guid"
+				spaceGuid = "a-space-guid"
 			})
 
-			It("errors when the list of plans for the service cannot be retrieved", func() {
+			It("returns a list of instances, filtered by org and spaces", func() {
 				offeringID := "8F3E8998-5FD0-4F32-924A-5478DC390A5F"
-
-				server.VerifyAndMock(
-					mockcfapi.ListServiceOfferings().WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_services_response.json")),
-					mockcfapi.ListServicePlans("34c08156-5b5d-4cc1-9af1-29cda9ec056f").WithAuthorizationHeader(cfAuthorizationHeader).RespondsInternalServerErrorWith("oops"),
-				)
-
-				client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
-				Expect(err).NotTo(HaveOccurred())
-
-				_, err = client.GetInstancesOfServiceOfferingByOrgSpace(offeringID, orgName, spaceName, testLogger)
-				Expect(err).To(MatchError(ContainSubstring("oops")))
-			})
-
-			It("errors when the space url cannot be retrieved", func() {
-				offeringID := "8F3E8998-5FD0-4F32-924A-5478DC390A5F"
-
-				server.VerifyAndMock(
-					mockcfapi.ListServiceOfferings().WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_services_response.json")),
-					mockcfapi.ListServicePlans("34c08156-5b5d-4cc1-9af1-29cda9ec056f").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_plans_response.json")),
-					mockcfapi.ListOrg(orgName).WithAuthorizationHeader(cfAuthorizationHeader).RespondsInternalServerErrorWith("oops"),
-				)
-
-				client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
-				Expect(err).NotTo(HaveOccurred())
-
-				_, err = client.GetInstancesOfServiceOfferingByOrgSpace(offeringID, orgName, spaceName, testLogger)
-				Expect(err).To(MatchError(ContainSubstring("oops")))
-			})
-
-			It("errors when the space guid cannot be retrieved", func() {
-				offeringID := "8F3E8998-5FD0-4F32-924A-5478DC390A5F"
-
-				server.VerifyAndMock(
-					mockcfapi.ListServiceOfferings().WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_services_response.json")),
-					mockcfapi.ListServicePlans("34c08156-5b5d-4cc1-9af1-29cda9ec056f").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_plans_response.json")),
-					mockcfapi.ListOrg(orgName).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("org_response.json")),
-					mockcfapi.ListOrgSpace(orgGuid, spaceName).WithAuthorizationHeader(cfAuthorizationHeader).RespondsInternalServerErrorWith("oops"),
-				)
-
-				client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
-				Expect(err).NotTo(HaveOccurred())
-
-				_, err = client.GetInstancesOfServiceOfferingByOrgSpace(offeringID, orgName, spaceName, testLogger)
-				Expect(err).To(MatchError(ContainSubstring("oops")))
-			})
-
-			It("errors when the list of instances for a plan cannot be retrieved", func() {
-				offeringID := "8F3E8998-5FD0-4F32-924A-5478DC390A5F"
-
 				server.VerifyAndMock(
 					mockcfapi.ListServiceOfferings().WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_services_response.json")),
 					mockcfapi.ListServicePlans("34c08156-5b5d-4cc1-9af1-29cda9ec056f").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_plans_response.json")),
 					mockcfapi.ListOrg(orgName).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("org_response.json")),
 					mockcfapi.ListOrgSpace(orgGuid, spaceName).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("space_response.json")),
-					mockcfapi.ListServiceInstancesBySpace("ff717e7c-afd5-4d0a-bafe-16c7eff546ec", spaceGuid).WithAuthorizationHeader(cfAuthorizationHeader).RespondsInternalServerErrorWith("oops"),
+					mockcfapi.ListServiceInstancesBySpace("ff717e7c-afd5-4d0a-bafe-16c7eff546ec", spaceGuid).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(
+						fixture("list_service_instances_for_plan_1_response.json"),
+					),
+					mockcfapi.ListServiceInstancesBySpace("2777ad05-8114-4169-8188-2ef5f39e0c6b", spaceGuid).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(
+						fixture("list_service_instances_for_plan_2_response.json"),
+					),
 				)
 
 				client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
 				Expect(err).NotTo(HaveOccurred())
 
-				_, err = client.GetInstancesOfServiceOfferingByOrgSpace(offeringID, orgName, spaceName, testLogger)
-				Expect(err).To(MatchError(ContainSubstring("oops")))
+				instances, err := client.GetInstances(cf.GetInstancesFilter{ServiceOfferingID: offeringID, OrgName: orgName, SpaceName: spaceName}, testLogger)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(instances).To(ConsistOf(
+					cf.Instance{GUID: "520f8566-b727-4c67-8be8-d9285645e936", PlanUniqueID: "11789210-D743-4C65-9D38-C80B29F4D9C8"},
+					cf.Instance{GUID: "f897f40d-0b2d-474a-a5c9-98426a2cb4b8", PlanUniqueID: "22789210-D743-4C65-9D38-C80B29F4D9C8"},
+					cf.Instance{GUID: "2f759033-04a4-426b-bccd-01722036c152", PlanUniqueID: "22789210-D743-4C65-9D38-C80B29F4D9C8"},
+				))
+			})
+
+			It("returns an empty list when the org doesn't exist", func() {
+				offeringID := "8F3E8998-5FD0-4F32-924A-5478DC390A5F"
+
+				server.VerifyAndMock(
+					mockcfapi.ListServiceOfferings().WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_services_response.json")),
+					mockcfapi.ListServicePlans("34c08156-5b5d-4cc1-9af1-29cda9ec056f").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_plans_response.json")),
+					mockcfapi.ListOrg(orgName).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(`{"resources":[]}`),
+				)
+
+				client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
+				Expect(err).NotTo(HaveOccurred())
+
+				instances, err := client.GetInstances(cf.GetInstancesFilter{ServiceOfferingID: offeringID, OrgName: orgName, SpaceName: spaceName}, testLogger)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(instances).To(Equal([]cf.Instance{}))
+			})
+
+			It("returns an empty list when the space doesn't exist", func() {
+				offeringID := "8F3E8998-5FD0-4F32-924A-5478DC390A5F"
+
+				server.VerifyAndMock(
+					mockcfapi.ListServiceOfferings().WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_services_response.json")),
+					mockcfapi.ListServicePlans("34c08156-5b5d-4cc1-9af1-29cda9ec056f").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_plans_response.json")),
+					mockcfapi.ListOrg(orgName).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("org_response.json")),
+					mockcfapi.ListOrgSpace(orgGuid, spaceName).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(`{"resources":[]}`),
+				)
+
+				client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
+				Expect(err).NotTo(HaveOccurred())
+
+				instances, err := client.GetInstances(cf.GetInstancesFilter{ServiceOfferingID: offeringID, OrgName: orgName, SpaceName: spaceName}, testLogger)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(instances).To(Equal([]cf.Instance{}))
+			})
+
+			Context("error cases", func() {
+				It("errors when the space url cannot be retrieved", func() {
+					offeringID := "8F3E8998-5FD0-4F32-924A-5478DC390A5F"
+
+					server.VerifyAndMock(
+						mockcfapi.ListServiceOfferings().WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_services_response.json")),
+						mockcfapi.ListServicePlans("34c08156-5b5d-4cc1-9af1-29cda9ec056f").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_plans_response.json")),
+						mockcfapi.ListOrg(orgName).WithAuthorizationHeader(cfAuthorizationHeader).RespondsInternalServerErrorWith("oops"),
+					)
+
+					client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
+					Expect(err).NotTo(HaveOccurred())
+
+					_, err = client.GetInstances(cf.GetInstancesFilter{ServiceOfferingID: offeringID, OrgName: orgName, SpaceName: spaceName}, testLogger)
+					Expect(err).To(MatchError(ContainSubstring("oops")))
+				})
+
+				It("errors when the space guid cannot be retrieved", func() {
+					offeringID := "8F3E8998-5FD0-4F32-924A-5478DC390A5F"
+
+					server.VerifyAndMock(
+						mockcfapi.ListServiceOfferings().WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_services_response.json")),
+						mockcfapi.ListServicePlans("34c08156-5b5d-4cc1-9af1-29cda9ec056f").WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_plans_response.json")),
+						mockcfapi.ListOrg(orgName).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("org_response.json")),
+						mockcfapi.ListOrgSpace(orgGuid, spaceName).WithAuthorizationHeader(cfAuthorizationHeader).RespondsInternalServerErrorWith("oops"),
+					)
+
+					client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
+					Expect(err).NotTo(HaveOccurred())
+
+					_, err = client.GetInstances(cf.GetInstancesFilter{ServiceOfferingID: offeringID, OrgName: orgName, SpaceName: spaceName}, testLogger)
+					Expect(err).To(MatchError(ContainSubstring("oops")))
+				})
 			})
 		})
 	})

@@ -12,15 +12,6 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/service"
 )
 
-func (b *Broker) Instances(logger *log.Logger) ([]service.Instance, error) {
-	instances, err := b.instanceLister.Instances()
-	if err != nil {
-		return nil, b.processError(err, logger)
-	}
-
-	return instances, nil
-}
-
 func (b *Broker) FilteredInstances(filter map[string]string, logger *log.Logger) ([]service.Instance, error) {
 	instances, err := b.instanceLister.FilteredInstances(filter)
 	if err != nil {

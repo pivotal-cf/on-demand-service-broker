@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/pivotal-cf/on-demand-service-broker/cf"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
@@ -14,18 +16,18 @@ import (
 
 var _ = Describe("CFServiceInstanceLister", func() {
 	var (
-		fakeCfClient *fakes.FakeListerClient
+		fakeCfClient *fakes.FakeCFListerClient
 		fakeLogger   *log.Logger
 	)
 
 	BeforeEach(func() {
 		fakeLogger = new(log.Logger)
-		fakeCfClient = new(fakes.FakeListerClient)
+		fakeCfClient = new(fakes.FakeCFListerClient)
 	})
 
 	Describe("Instances", func() {
 		It("queries CF for a list of service instances", func() {
-			fakeCfClient.GetInstancesOfServiceOfferingReturns([]service.Instance{
+			fakeCfClient.GetInstancesReturns([]cf.Instance{
 				{GUID: "some-guid", PlanUniqueID: "some-plan"},
 				{GUID: "some-other-guid", PlanUniqueID: "some-plan"},
 				{GUID: "yet-another-guid", PlanUniqueID: "some-other-plan"},
@@ -34,7 +36,7 @@ var _ = Describe("CFServiceInstanceLister", func() {
 			l, err := service.BuildInstanceLister(fakeCfClient, "some-offering-id", config.ServiceInstancesAPI{}, fakeLogger)
 			Expect(err).ToNot(HaveOccurred(), "unexpected error while building the lister")
 
-			instances, err := l.Instances()
+			instances, err := l.FilteredInstances(nil)
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(instances).To(ConsistOf(
@@ -43,22 +45,22 @@ var _ = Describe("CFServiceInstanceLister", func() {
 				service.Instance{GUID: "yet-another-guid", PlanUniqueID: "some-other-plan"},
 			))
 
-			Expect(fakeCfClient.GetInstancesOfServiceOfferingCallCount()).To(Equal(1), "cf client wasn't called")
-			serviceOffering, logger := fakeCfClient.GetInstancesOfServiceOfferingArgsForCall(0)
-			Expect(serviceOffering).To(Equal("some-offering-id"))
+			Expect(fakeCfClient.GetInstancesCallCount()).To(Equal(1), "cf client wasn't called")
+			filters, logger := fakeCfClient.GetInstancesArgsForCall(0)
+			Expect(filters.ServiceOfferingID).To(Equal("some-offering-id"))
 			Expect(logger).To(Equal(fakeLogger))
 		})
 
 		It("errors when pulling the list of instances fails", func() {
 			fakeLogger := new(log.Logger)
-			fakeCfClient := new(fakes.FakeListerClient)
-			fakeCfClient.GetInstancesOfServiceOfferingReturns(nil, fmt.Errorf("boom"))
+			fakeCfClient := new(fakes.FakeCFListerClient)
+			fakeCfClient.GetInstancesReturns(nil, fmt.Errorf("boom"))
 
 			l, err := service.BuildInstanceLister(fakeCfClient, "some-offering-id", config.ServiceInstancesAPI{}, fakeLogger)
 			Expect(err).ToNot(HaveOccurred(), "unexpected error while building the lister")
 
-			_, err = l.Instances()
-			Expect(err).To(MatchError("boom"))
+			_, err = l.FilteredInstances(nil)
+			Expect(err).To(MatchError(ContainSubstring("boom")))
 		})
 	})
 
@@ -73,7 +75,7 @@ var _ = Describe("CFServiceInstanceLister", func() {
 		})
 
 		It("can filter instances by org and space", func() {
-			fakeCfClient.GetInstancesOfServiceOfferingByOrgSpaceReturns([]service.Instance{
+			fakeCfClient.GetInstancesReturns([]cf.Instance{
 				{GUID: "some-guid", PlanUniqueID: "some-plan"},
 				{GUID: "some-other-guid", PlanUniqueID: "some-plan"},
 			}, nil)
@@ -86,11 +88,11 @@ var _ = Describe("CFServiceInstanceLister", func() {
 				service.Instance{GUID: "some-other-guid", PlanUniqueID: "some-plan"},
 			))
 
-			Expect(fakeCfClient.GetInstancesOfServiceOfferingByOrgSpaceCallCount()).To(Equal(1), "cf client wasn't called")
-			serviceOffering, orgName, spaceName, logger := fakeCfClient.GetInstancesOfServiceOfferingByOrgSpaceArgsForCall(0)
-			Expect(serviceOffering).To(Equal("some-offering-id"))
-			Expect(orgName).To(Equal("some-org"))
-			Expect(spaceName).To(Equal("some-space"))
+			Expect(fakeCfClient.GetInstancesCallCount()).To(Equal(1), "cf client wasn't called")
+			instancesFilter, logger := fakeCfClient.GetInstancesArgsForCall(0)
+			Expect(instancesFilter.ServiceOfferingID).To(Equal("some-offering-id"))
+			Expect(instancesFilter.OrgName).To(Equal("some-org"))
+			Expect(instancesFilter.SpaceName).To(Equal("some-space"))
 			Expect(logger).To(Equal(fakeLogger))
 		})
 
@@ -119,7 +121,7 @@ var _ = Describe("CFServiceInstanceLister", func() {
 		})
 
 		It("fails when it cannot talk to CF", func() {
-			fakeCfClient.GetInstancesOfServiceOfferingByOrgSpaceReturns(nil, errors.New("some error"))
+			fakeCfClient.GetInstancesReturns(nil, errors.New("some error"))
 
 			_, err := subject.FilteredInstances(map[string]string{"cf_org": "some-org", "cf_space": "some-space"})
 

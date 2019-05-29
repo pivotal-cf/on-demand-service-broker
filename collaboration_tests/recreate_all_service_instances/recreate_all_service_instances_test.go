@@ -9,11 +9,12 @@ import (
 	"net/http"
 	"os/exec"
 
+	"github.com/pivotal-cf/on-demand-service-broker/cf"
+
 	"github.com/onsi/gomega/ghttp"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/fakes"
 	"github.com/pivotal-cf/on-demand-service-broker/collaboration_tests/helpers"
-	"github.com/pivotal-cf/on-demand-service-broker/service"
 	taskfakes "github.com/pivotal-cf/on-demand-service-broker/task/fakes"
 	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 
@@ -105,7 +106,7 @@ var _ = Describe("Recreate all service instances", func() {
 		fakeBoshClient = new(fakes.FakeBoshClient)
 		fakeTaskBoshClient = new(taskfakes.FakeBoshClient)
 
-		fakeCfClient.GetInstancesOfServiceOfferingReturns([]service.Instance{
+		fakeCfClient.GetInstancesReturns([]cf.Instance{
 			{GUID: "service-1", PlanUniqueID: dedicatedPlanID},
 			{GUID: "service-2", PlanUniqueID: dedicatedPlanID},
 		}, nil)
@@ -226,7 +227,7 @@ var _ = Describe("Recreate all service instances", func() {
 			})
 
 			It("returns a non-zero exit code when it fails to get the list of service instances", func() {
-				fakeCfClient.GetInstancesOfServiceOfferingReturns(nil, errors.New("failed to get instances from CF"))
+				fakeCfClient.GetInstancesReturns(nil, errors.New("failed to get instances from CF"))
 
 				session, err := gexec.Start(cmd, stdout, stderr)
 				Expect(err).NotTo(HaveOccurred(), "unexpected error when starting the command")

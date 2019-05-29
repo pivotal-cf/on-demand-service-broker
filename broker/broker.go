@@ -216,8 +216,7 @@ type CloudFoundryClient interface {
 	CountInstancesOfPlan(serviceOfferingID, planID string, logger *log.Logger) (int, error)
 	CountInstancesOfServiceOffering(serviceOfferingID string, logger *log.Logger) (instanceCountByPlanID map[cf.ServicePlan]int, err error)
 	GetInstanceState(serviceInstanceGUID string, logger *log.Logger) (cf.InstanceState, error)
-	GetInstancesOfServiceOffering(serviceOfferingID string, logger *log.Logger) ([]service.Instance, error)
-	GetInstancesOfServiceOfferingByOrgSpace(serviceOfferingID, orgName, spaceName string, logger *log.Logger) ([]service.Instance, error)
+	GetInstances(filter cf.GetInstancesFilter, logger *log.Logger) ([]cf.Instance, error)
 }
 
 //go:generate counterfeiter -o fakes/fake_map_hasher.go . Hasher

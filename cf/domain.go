@@ -105,12 +105,8 @@ type serviceInstancesResponse struct {
 	ServiceInstances []serviceInstanceResource `json:"resources"`
 }
 
-type Instance struct {
-	LastOperation LastOperation `json:"last_operation"`
-}
-
-func (i Instance) OperationFailed() bool {
-	return i.LastOperation.State == OperationStateFailed
+func (o LastOperation) OperationFailed() bool {
+	return o.State == OperationStateFailed
 }
 
 type InstanceState struct {
@@ -185,4 +181,10 @@ type ServicePlanVisibility struct {
 type visibilityResponse struct {
 	pagination
 	Resources []ServicePlanVisibility `json:"resources"`
+}
+
+type GetInstancesFilter struct {
+	ServiceOfferingID string `json:"service_offering_id"`
+	OrgName           string `json:"org_name"`
+	SpaceName         string `json:"space_name"`
 }

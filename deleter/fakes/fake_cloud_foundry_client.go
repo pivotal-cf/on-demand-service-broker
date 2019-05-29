@@ -7,7 +7,6 @@ import (
 
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/deleter"
-	"github.com/pivotal-cf/on-demand-service-broker/service"
 )
 
 type FakeCloudFoundryClient struct {
@@ -61,32 +60,32 @@ type FakeCloudFoundryClient struct {
 		result1 []cf.Binding
 		result2 error
 	}
-	GetInstanceStub        func(string, *log.Logger) (cf.Instance, error)
-	getInstanceMutex       sync.RWMutex
-	getInstanceArgsForCall []struct {
+	GetInstancesStub        func(cf.GetInstancesFilter, *log.Logger) ([]cf.Instance, error)
+	getInstancesMutex       sync.RWMutex
+	getInstancesArgsForCall []struct {
+		arg1 cf.GetInstancesFilter
+		arg2 *log.Logger
+	}
+	getInstancesReturns struct {
+		result1 []cf.Instance
+		result2 error
+	}
+	getInstancesReturnsOnCall map[int]struct {
+		result1 []cf.Instance
+		result2 error
+	}
+	GetLastOperationForInstanceStub        func(string, *log.Logger) (cf.LastOperation, error)
+	getLastOperationForInstanceMutex       sync.RWMutex
+	getLastOperationForInstanceArgsForCall []struct {
 		arg1 string
 		arg2 *log.Logger
 	}
-	getInstanceReturns struct {
-		result1 cf.Instance
+	getLastOperationForInstanceReturns struct {
+		result1 cf.LastOperation
 		result2 error
 	}
-	getInstanceReturnsOnCall map[int]struct {
-		result1 cf.Instance
-		result2 error
-	}
-	GetInstancesOfServiceOfferingStub        func(string, *log.Logger) ([]service.Instance, error)
-	getInstancesOfServiceOfferingMutex       sync.RWMutex
-	getInstancesOfServiceOfferingArgsForCall []struct {
-		arg1 string
-		arg2 *log.Logger
-	}
-	getInstancesOfServiceOfferingReturns struct {
-		result1 []service.Instance
-		result2 error
-	}
-	getInstancesOfServiceOfferingReturnsOnCall map[int]struct {
-		result1 []service.Instance
+	getLastOperationForInstanceReturnsOnCall map[int]struct {
+		result1 cf.LastOperation
 		result2 error
 	}
 	GetServiceKeysForInstanceStub        func(string, *log.Logger) ([]cf.ServiceKey, error)
@@ -354,130 +353,130 @@ func (fake *FakeCloudFoundryClient) GetBindingsForInstanceReturnsOnCall(i int, r
 	}{result1, result2}
 }
 
-func (fake *FakeCloudFoundryClient) GetInstance(arg1 string, arg2 *log.Logger) (cf.Instance, error) {
-	fake.getInstanceMutex.Lock()
-	ret, specificReturn := fake.getInstanceReturnsOnCall[len(fake.getInstanceArgsForCall)]
-	fake.getInstanceArgsForCall = append(fake.getInstanceArgsForCall, struct {
-		arg1 string
+func (fake *FakeCloudFoundryClient) GetInstances(arg1 cf.GetInstancesFilter, arg2 *log.Logger) ([]cf.Instance, error) {
+	fake.getInstancesMutex.Lock()
+	ret, specificReturn := fake.getInstancesReturnsOnCall[len(fake.getInstancesArgsForCall)]
+	fake.getInstancesArgsForCall = append(fake.getInstancesArgsForCall, struct {
+		arg1 cf.GetInstancesFilter
 		arg2 *log.Logger
 	}{arg1, arg2})
-	fake.recordInvocation("GetInstance", []interface{}{arg1, arg2})
-	fake.getInstanceMutex.Unlock()
-	if fake.GetInstanceStub != nil {
-		return fake.GetInstanceStub(arg1, arg2)
+	fake.recordInvocation("GetInstances", []interface{}{arg1, arg2})
+	fake.getInstancesMutex.Unlock()
+	if fake.GetInstancesStub != nil {
+		return fake.GetInstancesStub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.getInstanceReturns
+	fakeReturns := fake.getInstancesReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
-func (fake *FakeCloudFoundryClient) GetInstanceCallCount() int {
-	fake.getInstanceMutex.RLock()
-	defer fake.getInstanceMutex.RUnlock()
-	return len(fake.getInstanceArgsForCall)
+func (fake *FakeCloudFoundryClient) GetInstancesCallCount() int {
+	fake.getInstancesMutex.RLock()
+	defer fake.getInstancesMutex.RUnlock()
+	return len(fake.getInstancesArgsForCall)
 }
 
-func (fake *FakeCloudFoundryClient) GetInstanceCalls(stub func(string, *log.Logger) (cf.Instance, error)) {
-	fake.getInstanceMutex.Lock()
-	defer fake.getInstanceMutex.Unlock()
-	fake.GetInstanceStub = stub
+func (fake *FakeCloudFoundryClient) GetInstancesCalls(stub func(cf.GetInstancesFilter, *log.Logger) ([]cf.Instance, error)) {
+	fake.getInstancesMutex.Lock()
+	defer fake.getInstancesMutex.Unlock()
+	fake.GetInstancesStub = stub
 }
 
-func (fake *FakeCloudFoundryClient) GetInstanceArgsForCall(i int) (string, *log.Logger) {
-	fake.getInstanceMutex.RLock()
-	defer fake.getInstanceMutex.RUnlock()
-	argsForCall := fake.getInstanceArgsForCall[i]
+func (fake *FakeCloudFoundryClient) GetInstancesArgsForCall(i int) (cf.GetInstancesFilter, *log.Logger) {
+	fake.getInstancesMutex.RLock()
+	defer fake.getInstancesMutex.RUnlock()
+	argsForCall := fake.getInstancesArgsForCall[i]
 	return argsForCall.arg1, argsForCall.arg2
 }
 
-func (fake *FakeCloudFoundryClient) GetInstanceReturns(result1 cf.Instance, result2 error) {
-	fake.getInstanceMutex.Lock()
-	defer fake.getInstanceMutex.Unlock()
-	fake.GetInstanceStub = nil
-	fake.getInstanceReturns = struct {
-		result1 cf.Instance
+func (fake *FakeCloudFoundryClient) GetInstancesReturns(result1 []cf.Instance, result2 error) {
+	fake.getInstancesMutex.Lock()
+	defer fake.getInstancesMutex.Unlock()
+	fake.GetInstancesStub = nil
+	fake.getInstancesReturns = struct {
+		result1 []cf.Instance
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeCloudFoundryClient) GetInstanceReturnsOnCall(i int, result1 cf.Instance, result2 error) {
-	fake.getInstanceMutex.Lock()
-	defer fake.getInstanceMutex.Unlock()
-	fake.GetInstanceStub = nil
-	if fake.getInstanceReturnsOnCall == nil {
-		fake.getInstanceReturnsOnCall = make(map[int]struct {
-			result1 cf.Instance
+func (fake *FakeCloudFoundryClient) GetInstancesReturnsOnCall(i int, result1 []cf.Instance, result2 error) {
+	fake.getInstancesMutex.Lock()
+	defer fake.getInstancesMutex.Unlock()
+	fake.GetInstancesStub = nil
+	if fake.getInstancesReturnsOnCall == nil {
+		fake.getInstancesReturnsOnCall = make(map[int]struct {
+			result1 []cf.Instance
 			result2 error
 		})
 	}
-	fake.getInstanceReturnsOnCall[i] = struct {
-		result1 cf.Instance
+	fake.getInstancesReturnsOnCall[i] = struct {
+		result1 []cf.Instance
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeCloudFoundryClient) GetInstancesOfServiceOffering(arg1 string, arg2 *log.Logger) ([]service.Instance, error) {
-	fake.getInstancesOfServiceOfferingMutex.Lock()
-	ret, specificReturn := fake.getInstancesOfServiceOfferingReturnsOnCall[len(fake.getInstancesOfServiceOfferingArgsForCall)]
-	fake.getInstancesOfServiceOfferingArgsForCall = append(fake.getInstancesOfServiceOfferingArgsForCall, struct {
+func (fake *FakeCloudFoundryClient) GetLastOperationForInstance(arg1 string, arg2 *log.Logger) (cf.LastOperation, error) {
+	fake.getLastOperationForInstanceMutex.Lock()
+	ret, specificReturn := fake.getLastOperationForInstanceReturnsOnCall[len(fake.getLastOperationForInstanceArgsForCall)]
+	fake.getLastOperationForInstanceArgsForCall = append(fake.getLastOperationForInstanceArgsForCall, struct {
 		arg1 string
 		arg2 *log.Logger
 	}{arg1, arg2})
-	fake.recordInvocation("GetInstancesOfServiceOffering", []interface{}{arg1, arg2})
-	fake.getInstancesOfServiceOfferingMutex.Unlock()
-	if fake.GetInstancesOfServiceOfferingStub != nil {
-		return fake.GetInstancesOfServiceOfferingStub(arg1, arg2)
+	fake.recordInvocation("GetLastOperationForInstance", []interface{}{arg1, arg2})
+	fake.getLastOperationForInstanceMutex.Unlock()
+	if fake.GetLastOperationForInstanceStub != nil {
+		return fake.GetLastOperationForInstanceStub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.getInstancesOfServiceOfferingReturns
+	fakeReturns := fake.getLastOperationForInstanceReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
-func (fake *FakeCloudFoundryClient) GetInstancesOfServiceOfferingCallCount() int {
-	fake.getInstancesOfServiceOfferingMutex.RLock()
-	defer fake.getInstancesOfServiceOfferingMutex.RUnlock()
-	return len(fake.getInstancesOfServiceOfferingArgsForCall)
+func (fake *FakeCloudFoundryClient) GetLastOperationForInstanceCallCount() int {
+	fake.getLastOperationForInstanceMutex.RLock()
+	defer fake.getLastOperationForInstanceMutex.RUnlock()
+	return len(fake.getLastOperationForInstanceArgsForCall)
 }
 
-func (fake *FakeCloudFoundryClient) GetInstancesOfServiceOfferingCalls(stub func(string, *log.Logger) ([]service.Instance, error)) {
-	fake.getInstancesOfServiceOfferingMutex.Lock()
-	defer fake.getInstancesOfServiceOfferingMutex.Unlock()
-	fake.GetInstancesOfServiceOfferingStub = stub
+func (fake *FakeCloudFoundryClient) GetLastOperationForInstanceCalls(stub func(string, *log.Logger) (cf.LastOperation, error)) {
+	fake.getLastOperationForInstanceMutex.Lock()
+	defer fake.getLastOperationForInstanceMutex.Unlock()
+	fake.GetLastOperationForInstanceStub = stub
 }
 
-func (fake *FakeCloudFoundryClient) GetInstancesOfServiceOfferingArgsForCall(i int) (string, *log.Logger) {
-	fake.getInstancesOfServiceOfferingMutex.RLock()
-	defer fake.getInstancesOfServiceOfferingMutex.RUnlock()
-	argsForCall := fake.getInstancesOfServiceOfferingArgsForCall[i]
+func (fake *FakeCloudFoundryClient) GetLastOperationForInstanceArgsForCall(i int) (string, *log.Logger) {
+	fake.getLastOperationForInstanceMutex.RLock()
+	defer fake.getLastOperationForInstanceMutex.RUnlock()
+	argsForCall := fake.getLastOperationForInstanceArgsForCall[i]
 	return argsForCall.arg1, argsForCall.arg2
 }
 
-func (fake *FakeCloudFoundryClient) GetInstancesOfServiceOfferingReturns(result1 []service.Instance, result2 error) {
-	fake.getInstancesOfServiceOfferingMutex.Lock()
-	defer fake.getInstancesOfServiceOfferingMutex.Unlock()
-	fake.GetInstancesOfServiceOfferingStub = nil
-	fake.getInstancesOfServiceOfferingReturns = struct {
-		result1 []service.Instance
+func (fake *FakeCloudFoundryClient) GetLastOperationForInstanceReturns(result1 cf.LastOperation, result2 error) {
+	fake.getLastOperationForInstanceMutex.Lock()
+	defer fake.getLastOperationForInstanceMutex.Unlock()
+	fake.GetLastOperationForInstanceStub = nil
+	fake.getLastOperationForInstanceReturns = struct {
+		result1 cf.LastOperation
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeCloudFoundryClient) GetInstancesOfServiceOfferingReturnsOnCall(i int, result1 []service.Instance, result2 error) {
-	fake.getInstancesOfServiceOfferingMutex.Lock()
-	defer fake.getInstancesOfServiceOfferingMutex.Unlock()
-	fake.GetInstancesOfServiceOfferingStub = nil
-	if fake.getInstancesOfServiceOfferingReturnsOnCall == nil {
-		fake.getInstancesOfServiceOfferingReturnsOnCall = make(map[int]struct {
-			result1 []service.Instance
+func (fake *FakeCloudFoundryClient) GetLastOperationForInstanceReturnsOnCall(i int, result1 cf.LastOperation, result2 error) {
+	fake.getLastOperationForInstanceMutex.Lock()
+	defer fake.getLastOperationForInstanceMutex.Unlock()
+	fake.GetLastOperationForInstanceStub = nil
+	if fake.getLastOperationForInstanceReturnsOnCall == nil {
+		fake.getLastOperationForInstanceReturnsOnCall = make(map[int]struct {
+			result1 cf.LastOperation
 			result2 error
 		})
 	}
-	fake.getInstancesOfServiceOfferingReturnsOnCall[i] = struct {
-		result1 []service.Instance
+	fake.getLastOperationForInstanceReturnsOnCall[i] = struct {
+		result1 cf.LastOperation
 		result2 error
 	}{result1, result2}
 }
@@ -557,10 +556,10 @@ func (fake *FakeCloudFoundryClient) Invocations() map[string][][]interface{} {
 	defer fake.deleteServiceKeyMutex.RUnlock()
 	fake.getBindingsForInstanceMutex.RLock()
 	defer fake.getBindingsForInstanceMutex.RUnlock()
-	fake.getInstanceMutex.RLock()
-	defer fake.getInstanceMutex.RUnlock()
-	fake.getInstancesOfServiceOfferingMutex.RLock()
-	defer fake.getInstancesOfServiceOfferingMutex.RUnlock()
+	fake.getInstancesMutex.RLock()
+	defer fake.getInstancesMutex.RUnlock()
+	fake.getLastOperationForInstanceMutex.RLock()
+	defer fake.getLastOperationForInstanceMutex.RUnlock()
 	fake.getServiceKeysForInstanceMutex.RLock()
 	defer fake.getServiceKeysForInstanceMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

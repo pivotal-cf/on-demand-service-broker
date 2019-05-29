@@ -14,8 +14,6 @@ import (
 	"net/http"
 
 	"github.com/pkg/errors"
-
-	s "github.com/pivotal-cf/on-demand-service-broker/service"
 )
 
 type CFResponse struct {
@@ -29,6 +27,11 @@ type Client struct {
 	httpJsonClient
 	url    string
 	logger *log.Logger
+}
+
+type Instance struct {
+	GUID         string `json:"service_instance_id"`
+	PlanUniqueID string `json:"plan_id"`
 }
 
 func New(url string, authHeaderBuilder AuthHeaderBuilder, trustedCertPEM []byte, disableTLSCertVerification bool, logger *log.Logger) (Client, error) {
@@ -74,14 +77,15 @@ func (c Client) GetInstanceState(serviceInstanceGUID string, logger *log.Logger)
 	}, nil
 }
 
-func (c Client) GetInstance(serviceInstanceGUID string, logger *log.Logger) (Instance, error) {
+func (c Client) GetLastOperationForInstance(serviceInstanceGUID string, logger *log.Logger) (LastOperation, error) {
 	instance, err := c.getServiceInstance(serviceInstanceGUID, logger)
-	return Instance{
-		LastOperation: LastOperation{
-			State: instance.Entity.LastOperation.State,
-			Type:  instance.Entity.LastOperation.Type,
-		},
-	}, err
+	if err != nil {
+		return LastOperation{}, err
+	}
+	return LastOperation{
+		State: instance.Entity.LastOperation.State,
+		Type:  instance.Entity.LastOperation.Type,
+	}, nil
 }
 
 func (c Client) CountInstancesOfPlan(serviceID, servicePlanID string, logger *log.Logger) (int, error) {
@@ -103,51 +107,44 @@ func (c Client) CountInstancesOfPlan(serviceID, servicePlanID string, logger *lo
 	return 0, fmt.Errorf("service plan %s not found for service %s", servicePlanID, serviceID)
 }
 
-func (c Client) GetInstancesOfServiceOfferingByOrgSpace(serviceOfferingID, orgName, spaceName string, logger *log.Logger) ([]s.Instance, error) {
-	plans, err := c.getPlansForServiceID(serviceOfferingID, logger)
+func (c Client) GetInstances(filters GetInstancesFilter, logger *log.Logger) ([]Instance, error) {
+	plans, err := c.getPlansForServiceID(filters.ServiceOfferingID, logger)
 	if err != nil {
 		return nil, err
 	}
 
-	orgResponse, err := c.getOrganization(orgName, logger)
-	if err != nil {
+	query, err := c.createQuery(filters, logger)
+	switch err.(type) {
+	case ResourceNotFoundError:
+		return []Instance{}, nil
+	case error:
 		return nil, err
 	}
 
-	if len(orgResponse.Resources) == 0 {
-		return []s.Instance{}, nil
-	}
-
-	spaceURL := fmt.Sprintf("%s%s?q=name:%s",
-		c.url,
-		orgResponse.Resources[0].Entity["spaces_url"],
-		spaceName,
-	)
-
-	var spaceResponse CFResponse
-
-	if err = c.get(spaceURL, &spaceResponse, logger); err != nil {
-		return nil, err
-	}
-	if len(spaceResponse.Resources) == 0 {
-		return []s.Instance{}, nil
-	}
-
-	query := fmt.Sprintf("&q=space_guid:%s", spaceResponse.Resources[0].Metadata["guid"])
 	return c.getInstances(plans, query, logger)
 }
+func (c Client) createQuery(filters GetInstancesFilter, logger *log.Logger) (string, error) {
+	var query string
+	if filters.OrgName != "" && filters.SpaceName != "" {
+		orgResponse, err := c.getOrganization(filters.OrgName, logger)
+		if err != nil {
+			return "", err
+		}
 
-func (c Client) GetInstancesOfServiceOffering(serviceOfferingID string, logger *log.Logger) ([]s.Instance, error) {
-	plans, err := c.getPlansForServiceID(serviceOfferingID, logger)
-	if err != nil {
-		return nil, err
+		orgSpacesURL := orgResponse.Resources[0].Entity["spaces_url"].(string)
+
+		spaceResponse, err := c.getSpace(orgSpacesURL, filters.SpaceName, logger)
+		if err != nil {
+			return "", err
+		}
+
+		query = fmt.Sprintf("&q=space_guid:%s", spaceResponse.Resources[0].Metadata["guid"])
 	}
-
-	return c.getInstances(plans, "", logger)
+	return query, nil
 }
 
-func (c Client) getInstances(plans []ServicePlan, query string, logger *log.Logger) ([]s.Instance, error) {
-	instances := []s.Instance{}
+func (c Client) getInstances(plans []ServicePlan, query string, logger *log.Logger) ([]Instance, error) {
+	instances := []Instance{}
 	for _, plan := range plans {
 		path := fmt.Sprintf(
 			"/v2/service_plans/%s/service_instances?results-per-page=%d%s",
@@ -168,7 +165,7 @@ func (c Client) getInstances(plans []ServicePlan, query string, logger *log.Logg
 			for _, instance := range serviceInstancesResp.ServiceInstances {
 				instances = append(
 					instances,
-					s.Instance{
+					Instance{
 						GUID:         instance.Metadata.GUID,
 						PlanUniqueID: plan.ServicePlanEntity.UniqueID,
 					},
@@ -306,11 +303,11 @@ func (c Client) GetServiceOfferingGUID(brokerName string, logger *log.Logger) (s
 
 func (c Client) CreateServicePlanVisibility(orgName string, serviceOfferingID string, planName string, logger *log.Logger) error {
 	orgResponse, err := c.getOrganization(orgName, logger)
-	if err != nil {
-		return errors.Wrap(err, "failed to create service plan visibility")
-	}
-	if len(orgResponse.Resources) == 0 {
+	switch err.(type) {
+	case ResourceNotFoundError:
 		return fmt.Errorf("failed to find org with name %q", orgName)
+	case error:
+		return errors.Wrap(err, "failed to create service plan visibility")
 	}
 	orgGUID := orgResponse.Resources[0].Metadata["guid"]
 
@@ -530,7 +527,24 @@ func (c Client) getOrganization(orgName string, logger *log.Logger) (CFResponse,
 		return CFResponse{}, err
 	}
 
+	if len(orgResponse.Resources) == 0 {
+		return CFResponse{}, ResourceNotFoundError{}
+	}
+
 	return orgResponse, nil
+}
+
+func (c Client) getSpace(orgSpacesURL, spaceName string, logger *log.Logger) (CFResponse, error) {
+	spaceURL := fmt.Sprintf("%s%s?q=name:%s", c.url, orgSpacesURL, spaceName)
+	var spaceResponse CFResponse
+	err := c.get(spaceURL, &spaceResponse, logger)
+	if err != nil {
+		return CFResponse{}, err
+	}
+	if len(spaceResponse.Resources) == 0 {
+		return CFResponse{}, ResourceNotFoundError{}
+	}
+	return spaceResponse, nil
 }
 
 func (c Client) listServiceBrokers(logger *log.Logger) ([]ServiceBroker, error) {

@@ -21,6 +21,8 @@ import (
 	"log"
 	"time"
 
+	"github.com/pivotal-cf/on-demand-service-broker/cf"
+
 	"github.com/craigfurman/herottp"
 	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
@@ -34,18 +36,16 @@ type Instance struct {
 //go:generate counterfeiter -o fakes/fake_instance_lister.go . InstanceLister
 // InstanceLister provides a interface to query service instances present in the platform
 type InstanceLister interface {
-	Instances() ([]Instance, error)
 	FilteredInstances(map[string]string) ([]Instance, error)
 }
 
-//go:generate counterfeiter -o fakes/fake_lister_client.go . ListerClient
-type ListerClient interface {
-	GetInstancesOfServiceOffering(string, *log.Logger) ([]Instance, error)
-	GetInstancesOfServiceOfferingByOrgSpace(string, string, string, *log.Logger) ([]Instance, error)
+//go:generate counterfeiter -o fakes/fake_lister_client.go . CFListerClient
+type CFListerClient interface {
+	GetInstances(cf.GetInstancesFilter, *log.Logger) ([]cf.Instance, error)
 }
 
 func BuildInstanceLister(
-	client ListerClient, serviceOfferingID string, siapiConfig config.ServiceInstancesAPI, logger *log.Logger,
+	client CFListerClient, serviceOfferingID string, siapiConfig config.ServiceInstancesAPI, logger *log.Logger,
 ) (InstanceLister, error) {
 	if siapiConfig.URL == "" {
 		return NewCFServiceInstanceLister(client, serviceOfferingID, logger), nil

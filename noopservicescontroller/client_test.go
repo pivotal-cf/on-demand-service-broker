@@ -16,6 +16,7 @@
 package noopservicescontroller_test
 
 import (
+	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/noopservicescontroller"
 
 	"io"
@@ -89,7 +90,7 @@ var _ = Describe("Client", func() {
 	Describe("GetInstancesOfServiceOffering", func() {
 		It("gets empty instances of service offerings", func() {
 			client := noopservicescontroller.New()
-			instances, err := client.GetInstancesOfServiceOffering("serviceInstanceGUID", testLogger)
+			instances, err := client.GetInstances(cf.GetInstancesFilter{ServiceOfferingID: "serviceInstanceGUID"}, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(instances).ToNot(BeNil())
 		})

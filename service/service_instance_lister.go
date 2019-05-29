@@ -44,7 +44,12 @@ var (
 	InstanceNotFound = errors.New("Service instance not found")
 )
 
-func NewInstanceLister(client Doer, authHeaderBuilder authorizationheader.AuthHeaderBuilder, baseURL string, configured bool, logger *log.Logger) *ServiceInstanceLister {
+func NewInstanceLister(
+	client Doer,
+	authHeaderBuilder authorizationheader.AuthHeaderBuilder,
+	baseURL string,
+	configured bool,
+	logger *log.Logger) *ServiceInstanceLister {
 	return &ServiceInstanceLister{
 		authHeaderBuilder: authHeaderBuilder,
 		baseURL:           baseURL,
@@ -96,12 +101,8 @@ func (s *ServiceInstanceLister) FilteredInstances(params map[string]string) ([]I
 	return instances, nil
 }
 
-func (s *ServiceInstanceLister) Instances() ([]Instance, error) {
-	return s.FilteredInstances(map[string]string{})
-}
-
 func (s *ServiceInstanceLister) LatestInstanceInfo(instance Instance) (Instance, error) {
-	instances, err := s.Instances()
+	instances, err := s.FilteredInstances(nil)
 	if err != nil {
 		return Instance{}, err
 	}

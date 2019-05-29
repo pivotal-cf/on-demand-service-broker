@@ -29,13 +29,13 @@ var _ = Describe("Instances", func() {
 		})
 
 		It("returns a list of instance IDs", func() {
-			fakeInstanceLister.InstancesReturns([]service.Instance{
+			fakeInstanceLister.FilteredInstancesReturns([]service.Instance{
 				{GUID: "red", PlanUniqueID: "colour-plan"},
 				{GUID: "green", PlanUniqueID: "colour-plan"},
 				{GUID: "blue", PlanUniqueID: "colour-plan"},
 			}, nil)
 
-			Expect(b.Instances(logger)).To(ConsistOf(
+			Expect(b.FilteredInstances(nil, logger)).To(ConsistOf(
 				service.Instance{GUID: "red", PlanUniqueID: "colour-plan"},
 				service.Instance{GUID: "green", PlanUniqueID: "colour-plan"},
 				service.Instance{GUID: "blue", PlanUniqueID: "colour-plan"},
@@ -43,9 +43,9 @@ var _ = Describe("Instances", func() {
 		})
 
 		It("returns an error when the list of instances cannot be retrieved", func() {
-			fakeInstanceLister.InstancesReturns(nil, errors.New("an error occurred"))
+			fakeInstanceLister.FilteredInstancesReturns(nil, errors.New("an error occurred"))
 
-			_, err := b.Instances(logger)
+			_, err := b.FilteredInstances(nil, logger)
 			Expect(err).To(MatchError(ContainSubstring("an error occurred")))
 		})
 	})

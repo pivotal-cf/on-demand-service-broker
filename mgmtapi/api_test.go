@@ -81,7 +81,7 @@ var _ = Describe("Management API", func() {
 
 			It("returns a list of all instances", func() {
 				instances := []service.Instance{instance1, instance2, instance3}
-				manageableBroker.InstancesReturns(instances, nil)
+				manageableBroker.FilteredInstancesReturns(instances, nil)
 
 				listResp, err := http.Get(fmt.Sprintf("%s/mgmt/service_instances", server.URL))
 				Expect(err).NotTo(HaveOccurred())
@@ -90,10 +90,13 @@ var _ = Describe("Management API", func() {
 				var instancesResp []service.Instance
 				Expect(json.NewDecoder(listResp.Body).Decode(&instancesResp)).To(Succeed())
 				Expect(instancesResp).To(ConsistOf(instance1, instance2, instance3))
+
+				filters, _ := manageableBroker.FilteredInstancesArgsForCall(0)
+				Expect(filters).To(BeEmpty())
 			})
 
 			It("returns HTTP 500 and logs the error", func() {
-				manageableBroker.InstancesReturns(nil, errors.New("error getting instances"))
+				manageableBroker.FilteredInstancesReturns(nil, errors.New("error getting instances"))
 
 				listResp, err := http.Get(fmt.Sprintf("%s/mgmt/service_instances", server.URL))
 				Expect(err).NotTo(HaveOccurred())
@@ -104,42 +107,14 @@ var _ = Describe("Management API", func() {
 		})
 
 		When("there are query params", func() {
-			var (
-				instance1 = service.Instance{
-					GUID:         "instance-guid-1",
-					PlanUniqueID: "this-is-plan-1",
-				}
-				instance2 = service.Instance{
-					GUID:         "instance-guid-2",
-					PlanUniqueID: "this-is-plan-1",
-				}
-				instance3 = service.Instance{
-					GUID:         "instance-guid-3",
-					PlanUniqueID: "this-is-plan-2",
-				}
-			)
+			It("sends the parameters through", func() {
+				manageableBroker.FilteredInstancesReturns(nil, nil)
 
-			It("returns a list of all instances", func() {
-				instances := []service.Instance{instance1, instance2, instance3}
-				manageableBroker.FilteredInstancesReturns(instances, nil)
-
-				listResp, err := http.Get(fmt.Sprintf("%s/mgmt/service_instances?foo=bar", server.URL))
+				_, err := http.Get(fmt.Sprintf("%s/mgmt/service_instances?foo=bar", server.URL))
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(listResp.StatusCode).To(Equal(http.StatusOK))
-				var instancesResp []service.Instance
-				Expect(json.NewDecoder(listResp.Body).Decode(&instancesResp)).To(Succeed())
-				Expect(instancesResp).To(ConsistOf(instance1, instance2, instance3))
-			})
-
-			It("returns HTTP 500 and logs the error", func() {
-				manageableBroker.FilteredInstancesReturns(nil, errors.New("error getting instances"))
-
-				listResp, err := http.Get(fmt.Sprintf("%s/mgmt/service_instances?cf_org=banana&cf_space=latundan", server.URL))
-				Expect(err).NotTo(HaveOccurred())
-
-				Expect(listResp.StatusCode).To(Equal(http.StatusInternalServerError))
-				Eventually(logs).Should(gbytes.Say("error occurred querying instances: error getting instances"))
+				filters, _ := manageableBroker.FilteredInstancesArgsForCall(0)
+				Expect(filters).To(Equal(map[string]string{"foo": "bar"}))
 			})
 		})
 	})

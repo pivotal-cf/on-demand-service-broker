@@ -35,7 +35,6 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	brokerConfig "github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/mgmtapi"
-	"github.com/pivotal-cf/on-demand-service-broker/service"
 	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 	"github.com/pkg/errors"
 )
@@ -84,7 +83,7 @@ var _ = Describe("Management API", func() {
 
 		When("CF is set", func() {
 			It("returns all service instances results", func() {
-				fakeCfClient.GetInstancesOfServiceOfferingReturns([]service.Instance{
+				fakeCfClient.GetInstancesReturns([]cf.Instance{
 					{
 						GUID:         "service-instance-id",
 						PlanUniqueID: "plan-id",
@@ -110,7 +109,7 @@ var _ = Describe("Management API", func() {
 			})
 
 			It("returns filtered service instances results", func() {
-				fakeCfClient.GetInstancesOfServiceOfferingByOrgSpaceReturns([]service.Instance{
+				fakeCfClient.GetInstancesReturns([]cf.Instance{
 					{
 						GUID:         "service-instance-id",
 						PlanUniqueID: "plan-id",
@@ -126,13 +125,13 @@ var _ = Describe("Management API", func() {
 				Expect(bodyContent).To(MatchJSON(
 					`[{"service_instance_id": "service-instance-id", "plan_id":"plan-id"}]`,
 				))
-				_, orgName, spaceName, _ := fakeCfClient.GetInstancesOfServiceOfferingByOrgSpaceArgsForCall(0)
-				Expect(orgName).To(Equal("banana"))
-				Expect(spaceName).To(Equal("banane"))
+				filter, _ := fakeCfClient.GetInstancesArgsForCall(0)
+				Expect(filter.OrgName).To(Equal("banana"))
+				Expect(filter.SpaceName).To(Equal("banane"))
 			})
 
 			It("returns 500 when getting instances fails", func() {
-				fakeCfClient.GetInstancesOfServiceOfferingReturns([]service.Instance{}, errors.New("something failed"))
+				fakeCfClient.GetInstancesReturns([]cf.Instance{}, errors.New("something failed"))
 
 				response, _ := doGetRequest(serviceInstancesPath)
 
@@ -140,7 +139,7 @@ var _ = Describe("Management API", func() {
 				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 
 				By("logging the failure")
-				Expect(loggerBuffer).To(gbytes.Say(`error occurred querying instances: something failed`))
+				Expect(loggerBuffer).To(gbytes.Say(`something failed`))
 			})
 
 			It("return 401 when not authorised", func() {
@@ -194,7 +193,7 @@ var _ = Describe("Management API", func() {
 
 				By("returning the service instances")
 				Expect(bodyContent).To(MatchJSON(expectedResponse))
-				Expect(fakeCfClient.GetInstancesOfServiceOfferingCallCount()).To(Equal(0))
+				Expect(fakeCfClient.GetInstancesCallCount()).To(Equal(0))
 			})
 
 			It("returns filtered service instances results", func() {
@@ -209,7 +208,7 @@ var _ = Describe("Management API", func() {
 
 				By("returning the service instances")
 				Expect(bodyContent).To(MatchJSON(expectedResponse))
-				Expect(fakeCfClient.GetInstancesOfServiceOfferingCallCount()).To(Equal(0))
+				Expect(fakeCfClient.GetInstancesCallCount()).To(Equal(0))
 			})
 
 			AfterEach(func() {
@@ -224,7 +223,7 @@ var _ = Describe("Management API", func() {
 		)
 
 		It("responds with the orphan deployments", func() {
-			fakeCfClient.GetInstancesOfServiceOfferingReturns([]service.Instance{
+			fakeCfClient.GetInstancesReturns([]cf.Instance{
 				{
 					GUID:         "not-orphan",
 					PlanUniqueID: "plan-id",
@@ -247,7 +246,7 @@ var _ = Describe("Management API", func() {
 		})
 
 		It("responds with 500 when CF API call fails", func() {
-			fakeCfClient.GetInstancesOfServiceOfferingReturns([]service.Instance{}, errors.New("something failed on cf"))
+			fakeCfClient.GetInstancesReturns([]cf.Instance{}, errors.New("something failed on cf"))
 
 			response, _ := doGetRequest(orphanDeploymentsPath)
 
@@ -255,12 +254,11 @@ var _ = Describe("Management API", func() {
 			Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 
 			By("logging the failure")
-			Expect(loggerBuffer).To(gbytes.Say(`error occurred querying orphan deployments: something failed on cf`))
-
+			Expect(loggerBuffer).To(gbytes.Say(`something failed on cf`))
 		})
 
 		It("responds with 500 when BOSH API call fails", func() {
-			fakeCfClient.GetInstancesOfServiceOfferingReturns([]service.Instance{
+			fakeCfClient.GetInstancesReturns([]cf.Instance{
 				{
 					GUID:         "not-orphan",
 					PlanUniqueID: "plan-id",

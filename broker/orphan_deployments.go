@@ -12,7 +12,7 @@ import (
 )
 
 func (b *Broker) OrphanDeployments(logger *log.Logger) ([]string, error) {
-	rawInstances, err := b.Instances(logger)
+	rawInstances, err := b.FilteredInstances(nil, logger)
 	if err != nil {
 		logger.Printf("error listing instances: %s", err)
 		return nil, b.processError(err, logger)

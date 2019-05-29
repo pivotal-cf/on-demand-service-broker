@@ -590,7 +590,7 @@ func (fake *FakeCombinedBroker) GetInstance(arg1 context.Context, arg2 string) (
 		arg1 context.Context
 		arg2 string
 	}{arg1, arg2})
-	fake.recordInvocation("GetInstance", []interface{}{arg1, arg2})
+	fake.recordInvocation("GetLastOperationForInstance", []interface{}{arg1, arg2})
 	fake.getInstanceMutex.Unlock()
 	if fake.GetInstanceStub != nil {
 		return fake.GetInstanceStub(arg1, arg2)

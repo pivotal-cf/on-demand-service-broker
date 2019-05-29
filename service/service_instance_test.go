@@ -25,7 +25,7 @@ import (
 
 var _ = Describe("Service Instance Builder", func() {
 	It("creates a CFServiceInstanceLister when SI API is not configured", func() {
-		l, _ := service.BuildInstanceLister(new(fakes.FakeListerClient), "some-offering-id", config.ServiceInstancesAPI{}, nil)
+		l, _ := service.BuildInstanceLister(new(fakes.FakeCFListerClient), "some-offering-id", config.ServiceInstancesAPI{}, nil)
 		Expect(l).To(BeAssignableToTypeOf(&service.CFServiceInstanceLister{}))
 	})
 
