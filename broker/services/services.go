@@ -80,7 +80,7 @@ func (b *BrokerServices) LastOperation(instanceGUID string, operationData broker
 	return b.converter.LastOperationFrom(response)
 }
 
-func (b *BrokerServices) FilteredInstances(filter map[string]string) ([]service.Instance, error) {
+func (b *BrokerServices) Instances(filter map[string]string) ([]service.Instance, error) {
 	pathWithQuery := createRequestPath("/mgmt/service_instances", filter)
 
 	response, err := b.doRequest(http.MethodGet, pathWithQuery, nil)
@@ -99,12 +99,8 @@ func (b *BrokerServices) FilteredInstances(filter map[string]string) ([]service.
 	return instances, nil
 }
 
-func (b *BrokerServices) Instances() ([]service.Instance, error) {
-	return b.FilteredInstances(map[string]string{})
-}
-
 func (b *BrokerServices) LatestInstanceInfo(instance service.Instance) (service.Instance, error) {
-	instances, err := b.Instances()
+	instances, err := b.Instances(nil)
 	if err != nil {
 		return service.Instance{}, err
 	}

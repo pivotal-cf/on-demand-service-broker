@@ -42,8 +42,7 @@ type Listener interface {
 type BrokerServices interface {
 	ProcessInstance(instance service.Instance, operationType string) (services.BOSHOperation, error)
 	LastOperation(instance string, operationData broker.OperationData) (domain.LastOperation, error)
-	FilteredInstances(filter map[string]string) ([]service.Instance, error)
-	Instances() ([]service.Instance, error)
+	Instances(filter map[string]string) ([]service.Instance, error)
 	LatestInstanceInfo(inst service.Instance) (service.Instance, error)
 }
 
@@ -165,13 +164,13 @@ func (it *Iterator) IterateInstancesWithAttempts() error {
 func (it *Iterator) registerInstancesAndCanaries() error {
 	var canaryInstances []service.Instance
 
-	allInstances, err := it.brokerServices.Instances()
+	allInstances, err := it.brokerServices.Instances(nil)
 	if err != nil {
 		return fmt.Errorf("error listing service instances: %s", err)
 	}
 
 	if len(it.canarySelectionParams) > 0 {
-		canaryInstances, err = it.brokerServices.FilteredInstances(it.canarySelectionParams)
+		canaryInstances, err = it.brokerServices.Instances(it.canarySelectionParams)
 		if err != nil {
 			return fmt.Errorf("error listing service instances: %s", err)
 		}

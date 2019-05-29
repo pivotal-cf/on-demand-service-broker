@@ -36,7 +36,7 @@ var _ = Describe("CFServiceInstanceLister", func() {
 			l, err := service.BuildInstanceLister(fakeCfClient, "some-offering-id", config.ServiceInstancesAPI{}, fakeLogger)
 			Expect(err).ToNot(HaveOccurred(), "unexpected error while building the lister")
 
-			instances, err := l.FilteredInstances(nil)
+			instances, err := l.Instances(nil)
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(instances).To(ConsistOf(
@@ -59,12 +59,12 @@ var _ = Describe("CFServiceInstanceLister", func() {
 			l, err := service.BuildInstanceLister(fakeCfClient, "some-offering-id", config.ServiceInstancesAPI{}, fakeLogger)
 			Expect(err).ToNot(HaveOccurred(), "unexpected error while building the lister")
 
-			_, err = l.FilteredInstances(nil)
+			_, err = l.Instances(nil)
 			Expect(err).To(MatchError(ContainSubstring("boom")))
 		})
 	})
 
-	Describe("FilteredInstances", func() {
+	Describe("Instances", func() {
 		var subject service.InstanceLister
 
 		BeforeEach(func() {
@@ -80,7 +80,7 @@ var _ = Describe("CFServiceInstanceLister", func() {
 				{GUID: "some-other-guid", PlanUniqueID: "some-plan"},
 			}, nil)
 
-			instances, err := subject.FilteredInstances(map[string]string{"cf_org": "some-org", "cf_space": "some-space"})
+			instances, err := subject.Instances(map[string]string{"cf_org": "some-org", "cf_space": "some-space"})
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(instances).To(ConsistOf(
@@ -97,7 +97,7 @@ var _ = Describe("CFServiceInstanceLister", func() {
 		})
 
 		It("fails when unsupported filters are passed", func() {
-			_, err := subject.FilteredInstances(map[string]string{"cf_org": "org", "some-org": "some-org", "cf_space": "some-space", "unknown-key": "what"})
+			_, err := subject.Instances(map[string]string{"cf_org": "org", "some-org": "some-org", "cf_space": "some-space", "unknown-key": "what"})
 
 			Expect(err).To(HaveOccurred())
 			Expect(err).To(MatchError(SatisfyAll(
@@ -107,14 +107,14 @@ var _ = Describe("CFServiceInstanceLister", func() {
 		})
 
 		It("fails when org is passed, but not space", func() {
-			_, err := subject.FilteredInstances(map[string]string{"cf_org": "some-org"})
+			_, err := subject.Instances(map[string]string{"cf_org": "some-org"})
 
 			Expect(err).To(HaveOccurred())
 			Expect(err).To(MatchError(ContainSubstring(`missing required filter cf_space`)))
 		})
 
 		It("fails when space is passed, but not org", func() {
-			_, err := subject.FilteredInstances(map[string]string{"cf_space": "some-space"})
+			_, err := subject.Instances(map[string]string{"cf_space": "some-space"})
 
 			Expect(err).To(HaveOccurred())
 			Expect(err).To(MatchError(ContainSubstring(`missing required filter cf_org`)))
@@ -123,7 +123,7 @@ var _ = Describe("CFServiceInstanceLister", func() {
 		It("fails when it cannot talk to CF", func() {
 			fakeCfClient.GetInstancesReturns(nil, errors.New("some error"))
 
-			_, err := subject.FilteredInstances(map[string]string{"cf_org": "some-org", "cf_space": "some-space"})
+			_, err := subject.Instances(map[string]string{"cf_org": "some-org", "cf_space": "some-space"})
 
 			Expect(err).To(HaveOccurred())
 			Expect(err).To(MatchError(ContainSubstring("could not retrieve list of instances: some error")))

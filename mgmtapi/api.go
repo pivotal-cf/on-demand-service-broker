@@ -34,7 +34,7 @@ type api struct {
 
 //go:generate counterfeiter -o fake_manageable_broker/fake_manageable_broker.go . ManageableBroker
 type ManageableBroker interface {
-	FilteredInstances(filter map[string]string, logger *log.Logger) ([]service.Instance, error)
+	Instances(filter map[string]string, logger *log.Logger) ([]service.Instance, error)
 	OrphanDeployments(logger *log.Logger) ([]string, error)
 	Upgrade(ctx context.Context, instanceID string, updateDetails domain.UpdateDetails, logger *log.Logger) (broker.OperationData, error)
 	Recreate(ctx context.Context, instanceID string, updateDetails domain.UpdateDetails, logger *log.Logger) (broker.OperationData, error)
@@ -100,7 +100,7 @@ func (a *api) listAllInstances(w http.ResponseWriter, r *http.Request) {
 	var err error
 
 	filter := getFilterValues(r)
-	instances, err = a.manageableBroker.FilteredInstances(filter, logger)
+	instances, err = a.manageableBroker.Instances(filter, logger)
 	if err != nil {
 		logger.Printf("error occurred querying instances: %s", err)
 		w.WriteHeader(http.StatusInternalServerError)

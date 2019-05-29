@@ -29,13 +29,13 @@ var _ = Describe("Instances", func() {
 		})
 
 		It("returns a list of instance IDs", func() {
-			fakeInstanceLister.FilteredInstancesReturns([]service.Instance{
+			fakeInstanceLister.InstancesReturns([]service.Instance{
 				{GUID: "red", PlanUniqueID: "colour-plan"},
 				{GUID: "green", PlanUniqueID: "colour-plan"},
 				{GUID: "blue", PlanUniqueID: "colour-plan"},
 			}, nil)
 
-			Expect(b.FilteredInstances(nil, logger)).To(ConsistOf(
+			Expect(b.Instances(nil, logger)).To(ConsistOf(
 				service.Instance{GUID: "red", PlanUniqueID: "colour-plan"},
 				service.Instance{GUID: "green", PlanUniqueID: "colour-plan"},
 				service.Instance{GUID: "blue", PlanUniqueID: "colour-plan"},
@@ -43,9 +43,9 @@ var _ = Describe("Instances", func() {
 		})
 
 		It("returns an error when the list of instances cannot be retrieved", func() {
-			fakeInstanceLister.FilteredInstancesReturns(nil, errors.New("an error occurred"))
+			fakeInstanceLister.InstancesReturns(nil, errors.New("an error occurred"))
 
-			_, err := b.FilteredInstances(nil, logger)
+			_, err := b.Instances(nil, logger)
 			Expect(err).To(MatchError(ContainSubstring("an error occurred")))
 		})
 	})
@@ -54,7 +54,7 @@ var _ = Describe("Instances", func() {
 		var logger *log.Logger
 
 		BeforeEach(func() {
-			fakeInstanceLister.FilteredInstancesReturns([]service.Instance{
+			fakeInstanceLister.InstancesReturns([]service.Instance{
 				{GUID: "red", PlanUniqueID: "colour-plan"},
 				{GUID: "green", PlanUniqueID: "colour-plan"},
 				{GUID: "blue", PlanUniqueID: "colour-plan"},
@@ -65,7 +65,7 @@ var _ = Describe("Instances", func() {
 		It("returns a list of instance IDs", func() {
 			b = createDefaultBroker()
 
-			filteredInstances, err := b.FilteredInstances(map[string]string{"foo": "bar"}, logger)
+			filteredInstances, err := b.Instances(map[string]string{"foo": "bar"}, logger)
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(filteredInstances).To(ConsistOf(
@@ -77,12 +77,12 @@ var _ = Describe("Instances", func() {
 
 		Context("when the list of instances cannot be retrieved", func() {
 			BeforeEach(func() {
-				fakeInstanceLister.FilteredInstancesReturns(nil, errors.New("an error occurred"))
+				fakeInstanceLister.InstancesReturns(nil, errors.New("an error occurred"))
 			})
 
 			It("returns an error", func() {
 				b = createDefaultBroker()
-				_, err := b.FilteredInstances(map[string]string{"foo": "bar"}, logger)
+				_, err := b.Instances(map[string]string{"foo": "bar"}, logger)
 				Expect(err).To(MatchError(ContainSubstring("an error occurred")))
 			})
 		})

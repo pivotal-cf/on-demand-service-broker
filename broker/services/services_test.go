@@ -259,7 +259,7 @@ var _ = Describe("Broker Services", func() {
 				"org":   "my-org",
 				"space": "my-space",
 			}
-			filteredInstances, err := brokerServices.FilteredInstances(params)
+			filteredInstances, err := brokerServices.Instances(params)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(client.DoCallCount()).To(Equal(1))
@@ -274,14 +274,8 @@ var _ = Describe("Broker Services", func() {
 			Expect(authLogger).To(Equal(logger))
 
 			Expect(filteredInstances).To(Equal([]service.Instance{
-				service.Instance{
-					GUID:         "foo",
-					PlanUniqueID: "plan",
-				},
-				service.Instance{
-					GUID:         "bar",
-					PlanUniqueID: "another-plan",
-				},
+				{GUID: "foo", PlanUniqueID: "plan"},
+				{GUID: "bar", PlanUniqueID: "another-plan"},
 			}))
 		})
 
@@ -290,7 +284,7 @@ var _ = Describe("Broker Services", func() {
 			expectedError := errors.New("connection error")
 			client.DoReturns(nil, expectedError)
 
-			_, err := brokerServices.FilteredInstances(map[string]string{})
+			_, err := brokerServices.Instances(map[string]string{})
 
 			Expect(err).To(HaveOccurred())
 			Expect(err).To(MatchError(expectedError))
@@ -300,7 +294,7 @@ var _ = Describe("Broker Services", func() {
 			brokerServices = services.NewBrokerServices(client, authHeaderBuilder, "http://test.test", logger)
 			client.DoReturns(response(http.StatusBadRequest, ""), nil)
 
-			_, err := brokerServices.FilteredInstances(map[string]string{})
+			_, err := brokerServices.Instances(map[string]string{})
 
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("failed to get service instances"))
@@ -311,7 +305,7 @@ var _ = Describe("Broker Services", func() {
 			brokerServices = services.NewBrokerServices(client, authHeaderBuilder, "http://test.test", logger)
 			client.DoReturns(response(http.StatusOK, `[{"not-a-valid-instance-json": "foo"]`), nil)
 
-			_, err := brokerServices.FilteredInstances(map[string]string{})
+			_, err := brokerServices.Instances(map[string]string{})
 
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("failed to decode service instance response body with error"))
@@ -324,7 +318,7 @@ var _ = Describe("Broker Services", func() {
 			brokerServices = services.NewBrokerServices(client, authHeaderBuilder, "http://"+host, logger)
 			client.DoReturns(response(http.StatusOK, `[{"service_instance_id": "foo", "plan_id": "plan"}, {"service_instance_id": "bar", "plan_id": "another-plan"}]`), nil)
 
-			instances, err := brokerServices.Instances()
+			instances, err := brokerServices.Instances(nil)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(client.DoCallCount()).To(Equal(1))
@@ -355,7 +349,7 @@ var _ = Describe("Broker Services", func() {
 			expectedError := errors.New("connection error")
 			client.DoReturns(nil, expectedError)
 
-			_, err := brokerServices.Instances()
+			_, err := brokerServices.Instances(nil)
 
 			Expect(err).To(HaveOccurred())
 			Expect(err).To(MatchError(expectedError))
@@ -365,7 +359,7 @@ var _ = Describe("Broker Services", func() {
 			brokerServices = services.NewBrokerServices(client, authHeaderBuilder, "http://test.test", logger)
 			client.DoReturns(response(http.StatusOK, `[{"not-a-valid-instance-json": "foo"]`), nil)
 
-			_, err := brokerServices.Instances()
+			_, err := brokerServices.Instances(nil)
 
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("failed to decode service instance response body with error"))

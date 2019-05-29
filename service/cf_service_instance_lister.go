@@ -40,7 +40,7 @@ func NewCFServiceInstanceLister(cfClient CFListerClient, serviceOfferingID strin
 	return &CFServiceInstanceLister{serviceOfferingID: serviceOfferingID, client: cfClient, logger: logger}
 }
 
-func (l *CFServiceInstanceLister) FilteredInstances(filter map[string]string) ([]Instance, error) {
+func (l *CFServiceInstanceLister) Instances(filter map[string]string) ([]Instance, error) {
 	orgName, spaceName, err := l.filtersFromMap(filter)
 	if err != nil {
 		return nil, err

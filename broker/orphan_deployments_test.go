@@ -36,7 +36,7 @@ var _ = Describe("Orphan Deployments", func() {
 	})
 
 	It("returns an empty list when there is no orphan instances", func() {
-		fakeInstanceLister.FilteredInstancesReturns([]service.Instance{{GUID: "one"}}, nil)
+		fakeInstanceLister.InstancesReturns([]service.Instance{{GUID: "one"}}, nil)
 		boshClient.GetDeploymentsReturns([]boshdirector.Deployment{{Name: "service-instance_one"}}, nil)
 
 		orphans, orphanDeploymentsErr = b.OrphanDeployments(logger)
@@ -65,7 +65,7 @@ var _ = Describe("Orphan Deployments", func() {
 	})
 
 	It("logs an error when getting the list of instances fails", func() {
-		fakeInstanceLister.FilteredInstancesReturns([]service.Instance{}, errors.New("error listing instances: listing error"))
+		fakeInstanceLister.InstancesReturns([]service.Instance{}, errors.New("error listing instances: listing error"))
 
 		orphans, orphanDeploymentsErr = b.OrphanDeployments(logger)
 

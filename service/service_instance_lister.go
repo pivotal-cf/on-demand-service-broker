@@ -59,7 +59,7 @@ func NewInstanceLister(
 	}
 }
 
-func (s *ServiceInstanceLister) FilteredInstances(params map[string]string) ([]Instance, error) {
+func (s *ServiceInstanceLister) Instances(params map[string]string) ([]Instance, error) {
 	request, err := http.NewRequest(http.MethodGet, s.baseURL, nil)
 	if err != nil {
 		return nil, err
@@ -102,7 +102,7 @@ func (s *ServiceInstanceLister) FilteredInstances(params map[string]string) ([]I
 }
 
 func (s *ServiceInstanceLister) LatestInstanceInfo(instance Instance) (Instance, error) {
-	instances, err := s.FilteredInstances(nil)
+	instances, err := s.Instances(nil)
 	if err != nil {
 		return Instance{}, err
 	}

@@ -27,24 +27,11 @@ type FakeManageableBroker struct {
 		result1 map[cf.ServicePlan]int
 		result2 error
 	}
-	FilteredInstancesStub        func(map[string]string, *log.Logger) ([]service.Instance, error)
-	filteredInstancesMutex       sync.RWMutex
-	filteredInstancesArgsForCall []struct {
-		arg1 map[string]string
-		arg2 *log.Logger
-	}
-	filteredInstancesReturns struct {
-		result1 []service.Instance
-		result2 error
-	}
-	filteredInstancesReturnsOnCall map[int]struct {
-		result1 []service.Instance
-		result2 error
-	}
-	InstancesStub        func(*log.Logger) ([]service.Instance, error)
+	InstancesStub        func(map[string]string, *log.Logger) ([]service.Instance, error)
 	instancesMutex       sync.RWMutex
 	instancesArgsForCall []struct {
-		arg1 *log.Logger
+		arg1 map[string]string
+		arg2 *log.Logger
 	}
 	instancesReturns struct {
 		result1 []service.Instance
@@ -166,80 +153,17 @@ func (fake *FakeManageableBroker) CountInstancesOfPlansReturnsOnCall(i int, resu
 	}{result1, result2}
 }
 
-func (fake *FakeManageableBroker) FilteredInstances(arg1 map[string]string, arg2 *log.Logger) ([]service.Instance, error) {
-	fake.filteredInstancesMutex.Lock()
-	ret, specificReturn := fake.filteredInstancesReturnsOnCall[len(fake.filteredInstancesArgsForCall)]
-	fake.filteredInstancesArgsForCall = append(fake.filteredInstancesArgsForCall, struct {
-		arg1 map[string]string
-		arg2 *log.Logger
-	}{arg1, arg2})
-	fake.recordInvocation("FilteredInstances", []interface{}{arg1, arg2})
-	fake.filteredInstancesMutex.Unlock()
-	if fake.FilteredInstancesStub != nil {
-		return fake.FilteredInstancesStub(arg1, arg2)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	fakeReturns := fake.filteredInstancesReturns
-	return fakeReturns.result1, fakeReturns.result2
-}
-
-func (fake *FakeManageableBroker) FilteredInstancesCallCount() int {
-	fake.filteredInstancesMutex.RLock()
-	defer fake.filteredInstancesMutex.RUnlock()
-	return len(fake.filteredInstancesArgsForCall)
-}
-
-func (fake *FakeManageableBroker) FilteredInstancesCalls(stub func(map[string]string, *log.Logger) ([]service.Instance, error)) {
-	fake.filteredInstancesMutex.Lock()
-	defer fake.filteredInstancesMutex.Unlock()
-	fake.FilteredInstancesStub = stub
-}
-
-func (fake *FakeManageableBroker) FilteredInstancesArgsForCall(i int) (map[string]string, *log.Logger) {
-	fake.filteredInstancesMutex.RLock()
-	defer fake.filteredInstancesMutex.RUnlock()
-	argsForCall := fake.filteredInstancesArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
-}
-
-func (fake *FakeManageableBroker) FilteredInstancesReturns(result1 []service.Instance, result2 error) {
-	fake.filteredInstancesMutex.Lock()
-	defer fake.filteredInstancesMutex.Unlock()
-	fake.FilteredInstancesStub = nil
-	fake.filteredInstancesReturns = struct {
-		result1 []service.Instance
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeManageableBroker) FilteredInstancesReturnsOnCall(i int, result1 []service.Instance, result2 error) {
-	fake.filteredInstancesMutex.Lock()
-	defer fake.filteredInstancesMutex.Unlock()
-	fake.FilteredInstancesStub = nil
-	if fake.filteredInstancesReturnsOnCall == nil {
-		fake.filteredInstancesReturnsOnCall = make(map[int]struct {
-			result1 []service.Instance
-			result2 error
-		})
-	}
-	fake.filteredInstancesReturnsOnCall[i] = struct {
-		result1 []service.Instance
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeManageableBroker) Instances(arg1 *log.Logger) ([]service.Instance, error) {
+func (fake *FakeManageableBroker) Instances(arg1 map[string]string, arg2 *log.Logger) ([]service.Instance, error) {
 	fake.instancesMutex.Lock()
 	ret, specificReturn := fake.instancesReturnsOnCall[len(fake.instancesArgsForCall)]
 	fake.instancesArgsForCall = append(fake.instancesArgsForCall, struct {
-		arg1 *log.Logger
-	}{arg1})
-	fake.recordInvocation("Instances", []interface{}{arg1})
+		arg1 map[string]string
+		arg2 *log.Logger
+	}{arg1, arg2})
+	fake.recordInvocation("Instances", []interface{}{arg1, arg2})
 	fake.instancesMutex.Unlock()
 	if fake.InstancesStub != nil {
-		return fake.InstancesStub(arg1)
+		return fake.InstancesStub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -254,17 +178,17 @@ func (fake *FakeManageableBroker) InstancesCallCount() int {
 	return len(fake.instancesArgsForCall)
 }
 
-func (fake *FakeManageableBroker) InstancesCalls(stub func(*log.Logger) ([]service.Instance, error)) {
+func (fake *FakeManageableBroker) InstancesCalls(stub func(map[string]string, *log.Logger) ([]service.Instance, error)) {
 	fake.instancesMutex.Lock()
 	defer fake.instancesMutex.Unlock()
 	fake.InstancesStub = stub
 }
 
-func (fake *FakeManageableBroker) InstancesArgsForCall(i int) *log.Logger {
+func (fake *FakeManageableBroker) InstancesArgsForCall(i int) (map[string]string, *log.Logger) {
 	fake.instancesMutex.RLock()
 	defer fake.instancesMutex.RUnlock()
 	argsForCall := fake.instancesArgsForCall[i]
-	return argsForCall.arg1
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeManageableBroker) InstancesReturns(result1 []service.Instance, result2 error) {
@@ -493,8 +417,6 @@ func (fake *FakeManageableBroker) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.countInstancesOfPlansMutex.RLock()
 	defer fake.countInstancesOfPlansMutex.RUnlock()
-	fake.filteredInstancesMutex.RLock()
-	defer fake.filteredInstancesMutex.RUnlock()
 	fake.instancesMutex.RLock()
 	defer fake.instancesMutex.RUnlock()
 	fake.orphanDeploymentsMutex.RLock()

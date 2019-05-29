@@ -1096,10 +1096,13 @@ var _ = Describe("Iterator", func() {
 			})
 
 			AfterEach(func() {
-				Expect(brokerServicesClient.FilteredInstancesCallCount()).To(Equal(1))
-				params := brokerServicesClient.FilteredInstancesArgsForCall(0)
+				Expect(brokerServicesClient.InstancesCallCount()).To(Equal(2))
+				params := brokerServicesClient.InstancesArgsForCall(1)
 				Expect(params["org"]).To(Equal("the-org"))
 				Expect(params["space"]).To(Equal("the-space"))
+
+				params = brokerServicesClient.InstancesArgsForCall(0)
+				Expect(params).To(BeEmpty())
 			})
 
 			It("uses canaries matching the selection criteria", func() {
@@ -1118,7 +1121,7 @@ var _ = Describe("Iterator", func() {
 				setupTest(states, brokerServicesClient)
 
 				filtered := []service.Instance{states[1].instance, states[2].instance, states[4].instance, states[5].instance}
-				brokerServicesClient.FilteredInstancesReturns(filtered, nil)
+				brokerServicesClient.InstancesStub = InstanceStub(states, filtered)
 
 				var wg sync.WaitGroup
 				wg.Add(1)
@@ -1165,7 +1168,7 @@ var _ = Describe("Iterator", func() {
 				setupTest(states, brokerServicesClient)
 
 				filtered := []service.Instance{states[1].instance, states[2].instance}
-				brokerServicesClient.FilteredInstancesReturns(filtered, nil)
+				brokerServicesClient.InstancesStub = InstanceStub(states, filtered)
 
 				var wg sync.WaitGroup
 				wg.Add(1)
@@ -1206,7 +1209,7 @@ var _ = Describe("Iterator", func() {
 				setupTest(states, brokerServicesClient)
 
 				filtered := []service.Instance{states[1].instance, states[2].instance}
-				brokerServicesClient.FilteredInstancesReturns(filtered, nil)
+				brokerServicesClient.InstancesStub = InstanceStub(states, filtered)
 
 				var wg sync.WaitGroup
 				wg.Add(1)
@@ -1242,7 +1245,7 @@ var _ = Describe("Iterator", func() {
 				setupTest(states, brokerServicesClient)
 
 				filtered := []service.Instance{states[1].instance}
-				brokerServicesClient.FilteredInstancesReturns(filtered, nil)
+				brokerServicesClient.InstancesStub = InstanceStub(states, filtered)
 
 				var wg sync.WaitGroup
 				wg.Add(1)
@@ -1282,7 +1285,7 @@ var _ = Describe("Iterator", func() {
 				}
 				setupTest(states, brokerServicesClient)
 
-				brokerServicesClient.FilteredInstancesReturns([]service.Instance{}, nil)
+				brokerServicesClient.InstancesStub = InstanceStub(states, []service.Instance{})
 
 				iteratorError = iterator.Iterate()
 				Expect(iteratorError).To(HaveOccurred())
@@ -1299,7 +1302,7 @@ var _ = Describe("Iterator", func() {
 				iterator := instanceiterator.New(&builder)
 
 				setupTest([]*testState{}, brokerServicesClient)
-				brokerServicesClient.FilteredInstancesReturns([]service.Instance{}, nil)
+				brokerServicesClient.InstancesReturns([]service.Instance{}, nil)
 
 				iteratorError = iterator.Iterate()
 				Expect(iteratorError).ToNot(HaveOccurred())
@@ -1318,7 +1321,7 @@ var _ = Describe("Iterator", func() {
 				setupTest(states, brokerServicesClient)
 
 				filtered := []service.Instance{states[1].instance, states[2].instance, states[4].instance, states[5].instance}
-				brokerServicesClient.FilteredInstancesReturns(filtered, nil)
+				brokerServicesClient.InstancesStub = InstanceStub(states, filtered)
 				builder.MaxInFlight = 3
 				builder.Canaries = 0
 
@@ -1355,3 +1358,16 @@ var _ = Describe("Iterator", func() {
 		})
 	})
 })
+
+func InstanceStub(states []*testState, filtered []service.Instance) func(filter map[string]string) ([]service.Instance, error) {
+	return func(filter map[string]string) ([]service.Instance, error) {
+		if filter == nil {
+			var instances []service.Instance
+			for _, s := range states {
+				instances = append(instances, s.instance)
+			}
+			return instances, nil
+		}
+		return filtered, nil
+	}
+}
