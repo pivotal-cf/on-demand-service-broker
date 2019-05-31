@@ -13,66 +13,25 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/gexec"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
-	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/cf_helpers"
 )
 
-var (
-	boshClient                  *bosh_helpers.BoshHelperClient
-	latestODBVersion            string
-	latestServiceAdapterVersion string
-	brokerBoshDeploymentName    string
-	serviceOffering             string
-	ciRootPath                  string
-	brokerName                  string
-	manifestForUpgradePath      string
-	exampleAppDirName           string
-)
+/*
+	This suite expect release urls for previous versions of odb and the adapter.
+	Make sure that the tarballs are uploaded on gcloud or elsewhere, and specified in the prepare-env script.
 
-const plan = "dedicated-vm"
-
-var _ = BeforeSuite(func() {
-	latestODBVersion = envMustHave("ODB_VERSION")
-	latestServiceAdapterVersion = envMustHave("SERVICE_ADAPTER_VERSION")
-
-	boshURL := envMustHave("BOSH_URL")
-	boshUsername := envMustHave("BOSH_USERNAME")
-	boshPassword := envMustHave("BOSH_PASSWORD")
-	uaaURL := os.Getenv("UAA_URL")
-	boshCACert := os.Getenv("BOSH_CA_CERT_FILE")
-	brokerBoshDeploymentName = envMustHave("BROKER_DEPLOYMENT_NAME")
-
-	brokerName = envMustHave("BROKER_NAME")
-	brokerUsername := envMustHave("BROKER_USERNAME")
-	brokerPassword := envMustHave("BROKER_PASSWORD")
-	brokerURL := envMustHave("BROKER_URL")
-
-	serviceOffering = envMustHave("SERVICE_OFFERING_NAME")
-
-	ciRootPath = envMustHave("CI_ROOT_PATH")
-	exampleAppDirName = envMustHave("EXAMPLE_APP_DIR_NAME")
-	manifestForUpgradePath = envMustHave("MANIFEST_FOR_UPGRADE")
-
-	if uaaURL == "" {
-		boshClient = bosh_helpers.NewBasicAuth(boshURL, boshUsername, boshPassword, boshCACert, boshCACert == "")
-	} else {
-		boshClient = bosh_helpers.New(boshURL, uaaURL, boshUsername, boshPassword, boshCACert)
-	}
-
-	Eventually(cf.Cf("create-service-broker", brokerName, brokerUsername, brokerPassword, brokerURL), cf.CfTimeout).Should(gexec.Exit(0))
-	Eventually(cf.Cf("enable-service-access", serviceOffering), cf.CfTimeout).Should(gexec.Exit(0))
-})
-
-var _ = AfterSuite(func() {
-	Eventually(cf.Cf("delete-service-broker", brokerName, "-f"), cf.CfTimeout).Should(gexec.Exit(0))
-})
+	You can use ../../scripts/build-releases-for-upgrade-test.sh
+*/
 
 func TestUpgradeDeploymentTests(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "UpgradeDeploymentTests Suite")
-
 }
+
+var _ = BeforeSuite(func() {
+	bosh_helpers.UploadRelease(envMustHave("PREVIOUS_ODB_RELEASE_URL"))
+	bosh_helpers.UploadRelease(envMustHave("PREVIOUS_ADAPTER_RELEASE_URL"))
+})
 
 func envMustHave(key string) string {
 	value := os.Getenv(key)

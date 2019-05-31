@@ -30,8 +30,8 @@ uploadReleases(){
 
     bosh create-release --name kafka-example-service-$DEV_ENV --dir $ODB/examples/kafka-example-service-release --force
     bosh upload-release --name kafka-example-service-$DEV_ENV --dir $ODB/examples/kafka-example-service-release --rebase
-
 }
+
 if [ "$2" != "-skip-upload-releases" ]; then
     uploadReleases
 fi

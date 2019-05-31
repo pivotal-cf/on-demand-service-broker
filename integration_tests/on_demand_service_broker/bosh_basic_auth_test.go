@@ -114,7 +114,6 @@ var _ = Describe("Basic authentication for BOSH", func() {
 			)
 
 			runningBroker = startBrokerWithoutPortCheck(conf)
-
 			Eventually(runningBroker).Should(gexec.Exit())
 			Expect(runningBroker.ExitCode()).ToNot(Equal(0))
 		})

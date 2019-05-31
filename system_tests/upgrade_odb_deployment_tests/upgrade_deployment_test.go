@@ -7,84 +7,121 @@
 package upgrade_deployment_tests
 
 import (
-	"fmt"
-	"io/ioutil"
-	"path"
+	"os"
 	"strings"
 
+	"github.com/cloudfoundry-incubator/cf-test-helpers/cf"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/pborman/uuid"
-	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/cf_helpers"
+	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
+	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/cf_helpers"
+	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/service_helpers"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 	"gopkg.in/yaml.v2"
 )
 
 var _ = Describe("Upgrading deployment", func() {
 	var (
-		serviceInstanceName string
-		testAppName         string
-		testAppURL          string
+		brokerInfo bosh_helpers.BrokerInfo
+		appDtls    AppDetails
+
+		prevODBReleaseName     string
+		prevAdapterReleaseName string
 	)
 
 	BeforeEach(func() {
-		By("creating a service instance")
-		serviceInstanceName = fmt.Sprintf("my-service-%s", uuid.New()[:7])
-		cf.CreateService(serviceOffering, plan, serviceInstanceName, "")
+		uniqueID := uuid.New()[:6]
 
-		By("pushing an app and binding to it")
-		testAppName = uuid.New()[:7]
-		testAppURL = cf.PushAndBindApp(testAppName, serviceInstanceName, path.Join(ciRootPath, exampleAppDirName))
+		prevODBReleaseName = envMustHave("PREVIOUS_ODB_RELEASE_NAME")
+		prevAdapterReleaseName = envMustHave("PREVIOUS_ADAPTER_RELEASE_NAME")
 
-		By("exercising the service instance")
-		cf.PutToTestApp(testAppURL, "foo", "bar")
+		brokerInfo = bosh_helpers.DeployAndRegisterBroker(
+			"-upgrade-odb-"+uniqueID,
+			bosh_helpers.BrokerDeploymentOptions{
+				BrokerTLS:          true,
+				ODBReleaseName:     prevODBReleaseName,
+				ODBVersion:         envMustHave("PREVIOUS_ODB_VERSION"),
+				AdapterVersion:     envMustHave("PREVIOUS_ADAPTER_VERSION"),
+				AdapterReleaseName: prevAdapterReleaseName,
+			},
+			service_helpers.Redis,
+			[]string{
+				"service_catalog.yml",
+				"add_update_all_certificate.yml",
+			},
+		)
+
 	})
 
 	AfterEach(func() {
 		By("deleting the app")
-		Eventually(cf.Cf("delete", testAppName, "-f", "-r"), cf.CfTimeout).Should(gexec.Exit(0))
+		Eventually(cf.Cf("delete", appDtls.AppName, "-f", "-r"), cf_helpers.CfTimeout).Should(gexec.Exit(0))
 
 		By("ensuring the service instance is deleted")
-		Eventually(cf.Cf("delete-service", serviceInstanceName, "-f"), cf.CfTimeout).Should(gexec.Exit())
-		cf.AwaitServiceDeletion(serviceInstanceName)
+		Eventually(cf.Cf("delete-service", appDtls.ServiceName, "-f"), cf_helpers.CfTimeout).Should(gexec.Exit())
+		cf_helpers.AwaitServiceDeletion(appDtls.ServiceName)
+
+		bosh_helpers.DeregisterAndDeleteBroker(brokerInfo.DeploymentName)
 	})
 
 	It("Upgrades from an older release", func() {
-		By("redeploying ODB with latest version")
-		manifest := manifestForUpgrade()
-		changeReleaseVersion("on-demand-service-broker", manifest, latestODBVersion)
-		changeReleaseVersion("redis-example-service-adapter", manifest, latestServiceAdapterVersion)
-		boshClient.DeployODB(*manifest)
+		appDtls = CreateServiceAndApp(brokerInfo.ServiceName, "dedicated-vm")
 
-		By("exercising the service instance")
-		cf.PutToTestApp(testAppURL, "foo", "bar")
+		odbReleaseName := "on-demand-service-broker-" + os.Getenv("DEV_ENV")
+		adapterReleaseName := "redis-example-service-adapter-" + os.Getenv("DEV_ENV")
+		latestODBVersion := bosh_helpers.GetLatestReleaseVersion(odbReleaseName)
+		latestAdapterVersion := bosh_helpers.GetLatestReleaseVersion(adapterReleaseName)
 
-		By("running the upgrade errand")
-		taskOutput := boshClient.RunErrand(brokerBoshDeploymentName, "upgrade-all-service-instances", []string{}, "")
-		Expect(taskOutput.ExitCode).To(Equal(0))
-		Expect(taskOutput.StdOut).To(ContainSubstring("Number of successful operations: 1"))
+		By("redeploying ODB with latest version", func() {
+			manifestStr := bosh_helpers.GetManifestString(brokerInfo.DeploymentName)
+			manifestStr = strings.ReplaceAll(manifestStr, prevODBReleaseName, odbReleaseName)
+			manifestStr = strings.ReplaceAll(manifestStr, prevAdapterReleaseName, adapterReleaseName)
 
-		By("updating the service instance")
-		session := cf.Cf("update-service", serviceInstanceName, "-c", `{"maxclients": 60}`)
-		Eventually(session, cf.CfTimeout).Should(gexec.Exit(0))
-		cf.AwaitServiceUpdate(serviceInstanceName)
+			var manifest bosh.BoshManifest
+			Expect(yaml.Unmarshal([]byte(manifestStr), &manifest)).To(Succeed())
 
-		By("running the delete all errand")
-		taskOutput = boshClient.RunErrand(brokerBoshDeploymentName, "delete-all-service-instances", []string{}, "")
-		Expect(taskOutput.ExitCode).To(Equal(0))
-		cf.AwaitServiceDeletion(serviceInstanceName)
+			changeReleaseVersion("on-demand-service-broker", &manifest, latestODBVersion)
+			changeReleaseVersion("redis-example-service-adapter", &manifest, latestAdapterVersion)
+
+			bosh_helpers.RedeployBroker(brokerInfo.DeploymentName, brokerInfo.URI, manifest)
+		})
+
+		By("ensuring the version in the manifest was updated", func() {
+			deployedManifest := bosh_helpers.GetManifest(brokerInfo.DeploymentName)
+
+			odbRelease := versionOfRelease(odbReleaseName, deployedManifest)
+			Expect(odbRelease).To(Equal(latestODBVersion))
+
+			adapterRelease := versionOfRelease(adapterReleaseName, deployedManifest)
+			Expect(adapterRelease).To(Equal(latestAdapterVersion))
+		})
+
+		By("exercising the service instance", func() {
+			cf_helpers.PutToTestApp(appDtls.AppURL, "foo", "bar")
+		})
+
+		By("running the upgrade errand", func() {
+			session := bosh_helpers.RunErrand(brokerInfo.DeploymentName, "upgrade-all-service-instances")
+			Expect(session.ExitCode()).To(Equal(0))
+			Expect(session).To(gbytes.Say("Number of successful operations: 1"))
+		})
+
+		By("updating the service instance", func() {
+			session := cf.Cf("update-service", appDtls.ServiceName, "-c", `{"maxclients": 60}`)
+			Eventually(session, cf_helpers.CfTimeout).Should(gexec.Exit(0))
+			cf_helpers.AwaitServiceUpdate(appDtls.ServiceName)
+		})
+
+		By("running the delete all errand", func() {
+			taskOutput := bosh_helpers.RunErrand(brokerInfo.DeploymentName, "delete-all-service-instances")
+			Expect(taskOutput.ExitCode()).To(Equal(0))
+			cf_helpers.AwaitServiceDeletion(appDtls.ServiceName)
+		})
 	})
 })
-
-func manifestForUpgrade() *bosh.BoshManifest {
-	manifestContent, err := ioutil.ReadFile(path.Join(ciRootPath, manifestForUpgradePath))
-	Expect(err).NotTo(HaveOccurred())
-	manifest := new(bosh.BoshManifest)
-	err = yaml.Unmarshal(manifestContent, manifest)
-	Expect(err).NotTo(HaveOccurred())
-	return manifest
-}
 
 func changeReleaseVersion(releaseName string, manifest *bosh.BoshManifest, releaseVersion string) {
 	for index, release := range manifest.Releases {
@@ -94,4 +131,47 @@ func changeReleaseVersion(releaseName string, manifest *bosh.BoshManifest, relea
 		}
 	}
 	Fail("No release found for " + releaseName)
+}
+
+func versionOfRelease(releaseName string, manifest bosh.BoshManifest) string {
+	for index, release := range manifest.Releases {
+		if strings.Contains(release.Name, releaseName) {
+			return manifest.Releases[index].Version
+		}
+	}
+
+	Fail("No release found for " + releaseName)
+	return "not-found"
+}
+
+type AppDetails struct {
+	UUID                  string
+	AppURL                string
+	AppName               string
+	ServiceName           string
+	ServiceGUID           string
+	ServiceDeploymentName string
+}
+
+// TODO move this somewhere universal and use in upgrade_all as well
+// TODO rename ServiceName to ServiceInstanceName
+func CreateServiceAndApp(serviceOffering, planName string) AppDetails {
+	uniqueID := uuid.New()[:8]
+	serviceName := "service-" + uniqueID
+	appName := "app-" + uniqueID
+	cf_helpers.CreateService(serviceOffering, planName, serviceName, "")
+	serviceGUID := cf_helpers.ServiceInstanceGUID(serviceName)
+
+	appPath := cf_helpers.GetAppPath(service_helpers.Redis)
+	appURL := cf_helpers.PushAndBindApp(appName, serviceName, appPath)
+	cf_helpers.PutToTestApp(appURL, "uuid", uniqueID)
+
+	return AppDetails{
+		UUID:                  uniqueID,
+		AppURL:                appURL,
+		AppName:               appName,
+		ServiceName:           serviceName,
+		ServiceGUID:           serviceGUID,
+		ServiceDeploymentName: "service-instance_" + serviceGUID,
+	}
 }

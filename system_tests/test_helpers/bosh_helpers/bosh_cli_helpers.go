@@ -30,8 +30,12 @@ import (
 )
 
 type BrokerDeploymentOptions struct {
-	ServiceMetrics bool
-	BrokerTLS      bool
+	ServiceMetrics     bool
+	BrokerTLS          bool
+	ODBVersion         string
+	AdapterVersion     string
+	ODBReleaseName     string
+	AdapterReleaseName string
 }
 
 type BoshTaskOutput struct {
@@ -68,6 +72,7 @@ type deploymentProperties struct {
 	ServiceReleaseName        string
 	ServiceReleaseVersion     string
 	UniqueID                  string
+	ServiceAdapterVersion     string
 }
 
 type EnvVars struct {
@@ -161,6 +166,17 @@ func DeployAndRegisterBroker(systemTestSuffix string, deploymentOptions BrokerDe
 	return brokerInfo
 }
 
+func RedeployBroker(brokerDeploymentName, brokerURI string, brokerManifest bosh.BoshManifest) {
+	manifestFile := manifestToFile(brokerManifest, brokerDeploymentName)
+
+	deployODBWithManifest(brokerDeploymentName, manifestFile)
+
+	WaitBrokerToStart(brokerURI)
+
+	err := os.Remove(manifestFile.Name())
+	Expect(err).NotTo(HaveOccurred())
+}
+
 func RunOnVM(deploymentName, VMName, command string) {
 	err := env_helpers.ValidateEnvVars(
 		"BOSH_GW_HOST",
@@ -221,7 +237,7 @@ func getEnvVars(serviceType service_helpers.ServiceType) EnvVars {
 	return envVars
 }
 
-func buildDeploymentArguments(systemTestSuffix string, serviceType service_helpers.ServiceType) deploymentProperties {
+func buildDeploymentArguments(systemTestSuffix string, deploymentOptions BrokerDeploymentOptions, serviceType service_helpers.ServiceType) deploymentProperties {
 	envVars := getEnvVars(serviceType)
 
 	devEnv := envVars.DevEnv
@@ -229,19 +245,29 @@ func buildDeploymentArguments(systemTestSuffix string, serviceType service_helpe
 		devEnv = "-" + devEnv
 	}
 
-	odbVersion := envVars.OdbVersion
+	odbVersion := deploymentOptions.ODBVersion
 	if odbVersion == "" {
-		fmt.Println("⚠ ODB version not set. Falling back to latest ⚠")
-		odbVersion = "latest"
+		odbVersion = envVars.OdbVersion
+		fmt.Printf("broker version: %s", odbVersion)
+		if odbVersion == "" {
+			fmt.Println("⚠ ODB version not set. Falling back to latest ⚠")
+			odbVersion = "latest"
+		}
 	}
 
 	serviceAdapterReleaseName := envVars.ServiceAdapterReleaseName + devEnv
+	if deploymentOptions.AdapterReleaseName != "" {
+		serviceAdapterReleaseName = deploymentOptions.AdapterReleaseName
+	}
+
 	serviceReleaseName := envVars.ServiceReleaseName + devEnv
 	serviceReleaseVersion := envVars.ServiceReleaseVersion
+
 	if serviceReleaseVersion == "" {
 		fmt.Println("⚠ Service Release version not set. Falling back to latest available ⚠")
-		serviceReleaseVersion = getLatestServiceReleaseVersion(serviceReleaseName)
+		serviceReleaseVersion = GetLatestReleaseVersion(serviceReleaseName)
 	}
+	fmt.Printf("adapter version: %s", serviceReleaseVersion)
 
 	brokerURI := "test-service-broker" + systemTestSuffix + "." + envVars.BrokerSystemDomain
 	if envVars.BrokerURI != "" {
@@ -253,8 +279,17 @@ func buildDeploymentArguments(systemTestSuffix string, serviceType service_helpe
 		deploymentName = envVars.DeploymentName
 	}
 
+	serviceAdapterVersion := "latest"
+	if deploymentOptions.AdapterVersion != "" {
+		serviceAdapterVersion = deploymentOptions.AdapterVersion
+	}
+
+	brokerReleaseName := "on-demand-service-broker" + devEnv
+	if deploymentOptions.ODBReleaseName != "" {
+		brokerReleaseName = deploymentOptions.ODBReleaseName
+	}
 	return deploymentProperties{
-		BrokerReleaseName:         "on-demand-service-broker" + devEnv,
+		BrokerReleaseName:         brokerReleaseName,
 		BrokerCN:                  "'*" + envVars.BrokerSystemDomain + "'",
 		BrokerDeploymentVarsPath:  envVars.BrokerDeploymentVarsPath,
 		BrokerPassword:            uuid.New()[:6],
@@ -270,11 +305,12 @@ func buildDeploymentArguments(systemTestSuffix string, serviceType service_helpe
 		ServiceReleaseVersion:     serviceReleaseVersion,
 		UniqueID:                  "odb-test" + systemTestSuffix,
 		ServiceReleaseName:        serviceReleaseName,
+		ServiceAdapterVersion:     serviceAdapterVersion,
 	}
 }
 
 func deploy(systemTestSuffix string, deploymentOptions BrokerDeploymentOptions, serviceType service_helpers.ServiceType, deployCmdArgs ...string) BrokerInfo {
-	variables := buildDeploymentArguments(systemTestSuffix, serviceType)
+	variables := buildDeploymentArguments(systemTestSuffix, deploymentOptions, serviceType)
 
 	odbReleaseTemplatesPath := variables.OdbReleaseTemplatesPath
 	_, currentPath, _, _ := runtime.Caller(1)
@@ -304,7 +340,7 @@ func deploy(systemTestSuffix string, deploymentOptions BrokerDeploymentOptions, 
 		"--var", "broker_version=" + variables.OdbVersion,
 		"--var", "plan_id=" + planID,
 		"--var", "service_adapter_release=" + variables.ServiceAdapterReleaseName,
-		"--var", "service_adapter_version=latest",
+		"--var", "service_adapter_version=" + variables.ServiceAdapterVersion,
 		"--var", "service_catalog_id=" + serviceCatalogID,
 		"--var", "service_catalog_service_name=" + serviceName,
 		"--var", "service_release=" + variables.ServiceReleaseName,
@@ -360,6 +396,13 @@ func logDeploymentProperties(variables deploymentProperties, deployCmdArgs []str
 	fmt.Printf("brokerSystemDomain    = %+v\n", variables.BrokerSystemDomain)
 	fmt.Printf("deployCmdArgs              = %+v\n", deployCmdArgs)
 	fmt.Println("")
+}
+
+func UploadRelease(releasePath string) {
+	cmd := exec.Command("bosh", "upload-release", releasePath)
+	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
+	Expect(err).NotTo(HaveOccurred(), "failed to run upload-release command")
+	Eventually(session, LongBOSHTimeout).Should(gexec.Exit(0), "Failed to upload release "+releasePath)
 }
 
 func GetManifest(deploymentName string) bosh.BoshManifest {
@@ -448,7 +491,7 @@ func brokerRespondsOnCatalogEndpoint(brokerURI string) bool {
 	return res.StatusCode == http.StatusUnauthorized
 }
 
-func getLatestServiceReleaseVersion(releaseName string) string {
+func GetLatestReleaseVersion(releaseName string) string {
 	releasesOutput := gbytes.NewBuffer()
 	cmd := exec.Command("bosh", "releases", "--json")
 	session, err := gexec.Start(cmd, releasesOutput, GinkgoWriter)
@@ -473,6 +516,13 @@ func getLatestServiceReleaseVersion(releaseName string) string {
 
 	Fail("Could not find version for " + releaseName + " release")
 	return ""
+}
+
+func deployODBWithManifest(brokerDeploymentName string, manifestFile *os.File) {
+	cmd := exec.Command("bosh", "-d", brokerDeploymentName, "deploy", manifestFile.Name())
+	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
+	Expect(err).NotTo(HaveOccurred(), "failed to run bosh deploy command")
+	Eventually(session, LongBOSHTimeout).Should(gexec.Exit(0), "deployment failed")
 }
 
 func noClientCredentialsInVarsFile(varsFile string) bool {
@@ -538,4 +588,17 @@ func semverOf(version string) semver.Version {
 	Expect(err).NotTo(HaveOccurred())
 
 	return *boshVersion
+}
+
+func manifestToFile(brokerManifest bosh.BoshManifest, fileName string) *os.File {
+	manifestBytes, err := yaml.Marshal(brokerManifest)
+	Expect(err).NotTo(HaveOccurred())
+
+	manifestFile, err := ioutil.TempFile("", fileName+".yml")
+	Expect(err).NotTo(HaveOccurred(), "failed to create temp manifest file")
+
+	_, err = fmt.Fprint(manifestFile, string(manifestBytes))
+	Expect(err).NotTo(HaveOccurred(), "failed to write to temp manifest file")
+
+	return manifestFile
 }
