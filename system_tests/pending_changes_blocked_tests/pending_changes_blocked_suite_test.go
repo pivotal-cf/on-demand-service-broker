@@ -7,85 +7,46 @@
 package pending_changes_blocked_tests
 
 import (
-	"fmt"
-	"os"
 	"testing"
+
+	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
+
+	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/service_helpers"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/gexec"
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
 	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/cf_helpers"
-	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 )
 
 var (
-	brokerName               string
-	brokerUsername           string
-	brokerPassword           string
-	brokerURL                string
-	brokerBoshDeploymentName string
-	serviceOffering          string
-	originalBrokerManifest   *bosh.BoshManifest
-	boshClient               *bosh_helpers.BoshHelperClient
-	serviceInstanceName      = uuid.New()[:7]
+	serviceInstanceName string
+	brokerInfo          bosh_helpers.BrokerInfo
 )
 
 var _ = BeforeSuite(func() {
-	brokerName = envMustHave("BROKER_NAME")
-	brokerUsername = envMustHave("BROKER_USERNAME")
-	brokerPassword = envMustHave("BROKER_PASSWORD")
-	brokerURL = envMustHave("BROKER_URL")
-	brokerBoshDeploymentName = envMustHave("BROKER_DEPLOYMENT_NAME")
-	serviceOffering = envMustHave("SERVICE_OFFERING_NAME")
+	uniqueID := uuid.New()[:6]
+	brokerInfo = bosh_helpers.DeployAndRegisterBroker(
+		"-pending-changes-"+uniqueID,
+		bosh_helpers.BrokerDeploymentOptions{},
+		service_helpers.Redis,
+		[]string{"update_service_catalog.yml"})
 
-	boshURL := envMustHave("BOSH_URL")
-	boshUsername := envMustHave("BOSH_USERNAME")
-	boshPassword := envMustHave("BOSH_PASSWORD")
-	uaaURL := os.Getenv("UAA_URL")
-	boshCACert := os.Getenv("BOSH_CA_CERT_FILE")
-
-	if uaaURL == "" {
-		boshClient = bosh_helpers.NewBasicAuth(boshURL, boshUsername, boshPassword, boshCACert, boshCACert == "")
-	} else {
-		boshClient = bosh_helpers.New(boshURL, uaaURL, boshUsername, boshPassword, boshCACert)
-	}
-
-	originalBrokerManifest = boshClient.GetManifest(brokerBoshDeploymentName)
-
-	By("registering the broker")
-	Eventually(cf.Cf("create-service-broker", brokerName, brokerUsername, brokerPassword, brokerURL), cf.CfTimeout).Should(gexec.Exit(0))
-	Eventually(cf.Cf("enable-service-access", serviceOffering), cf.CfTimeout).Should(gexec.Exit(0))
-
-	By("creating a service instance")
-	Eventually(cf.Cf("create-service", serviceOffering, "dedicated-vm", serviceInstanceName), cf.CfTimeout).Should(gexec.Exit(0))
-	cf.AwaitServiceCreation(serviceInstanceName)
+	serviceInstanceName = "service" + brokerInfo.TestSuffix
+	cf.CreateService(brokerInfo.ServiceName, "redis-small", serviceInstanceName, "")
 
 	By("causing pending changes for the service instance")
-	newBrokerManifest := boshClient.GetManifest(brokerBoshDeploymentName)
-	persistenceProperty := map[interface{}]interface{}{"persistence": false}
-
-	brokerJob := bosh_helpers.FindJob(newBrokerManifest, "broker", "broker")
-	serviceCatalog := brokerJob.Properties["service_catalog"].(map[interface{}]interface{})
-	dedicatedVMPlan := serviceCatalog["plans"].([]interface{})[0].(map[interface{}]interface{})
-	dedicatedVMPlan["properties"] = persistenceProperty
+	deployedManifest := bosh_helpers.GetManifest(brokerInfo.DeploymentName)
+	updatedManifest := disablePersistenceInFirstPlan(deployedManifest)
 
 	By("deploying the modified broker manifest")
-	boshClient.DeployODB(*newBrokerManifest)
+	bosh_helpers.RedeployBroker(brokerInfo.DeploymentName, brokerInfo.URI, updatedManifest)
 })
 
 var _ = AfterSuite(func() {
-	By("deleting the service instance")
-	Eventually(cf.Cf("delete-service", serviceInstanceName, "-f"), cf.CfTimeout).Should(gexec.Exit(0))
-	cf.AwaitServiceDeletion(serviceInstanceName)
-
-	By("deregistering the broker")
-	Eventually(cf.Cf("delete-service-broker", brokerName, "-f"), cf.CfTimeout).Should(gexec.Exit(0))
-
-	//cleanup for when running locally
-	By("deploying the original broker manifest")
-	boshClient.DeployODB(*originalBrokerManifest)
+	cf.DeleteService(serviceInstanceName)
+	bosh_helpers.DeregisterAndDeleteBroker(brokerInfo.DeploymentName)
 })
 
 func TestPendingChangesBlockedTests(t *testing.T) {
@@ -93,8 +54,12 @@ func TestPendingChangesBlockedTests(t *testing.T) {
 	RunSpecs(t, "PendingChangesBlocked Suite")
 }
 
-func envMustHave(key string) string {
-	value := os.Getenv(key)
-	Expect(value).NotTo(BeEmpty(), fmt.Sprintf("must set %s", key))
-	return value
+func disablePersistenceInFirstPlan(brokerManifest bosh.BoshManifest) bosh.BoshManifest {
+	persistenceProperty := map[interface{}]interface{}{"persistence": false}
+	brokerJob := bosh_helpers.FindJob(&brokerManifest, "broker", "broker")
+	serviceCatalog := brokerJob.Properties["service_catalog"].(map[interface{}]interface{})
+	dedicatedVMPlan := serviceCatalog["plans"].([]interface{})[0].(map[interface{}]interface{})
+	dedicatedVMPlan["properties"] = persistenceProperty
+
+	return brokerManifest
 }

@@ -1,0 +1,28 @@
+---
+- type: replace
+  path: /instance_groups/name=broker/jobs/name=broker/properties/service_catalog/plans?
+  value:
+    - name: redis-small
+      plan_id: ((plan_id))
+      cf_service_access: enable
+      description: Redis small
+      metadata: {bullets: [], display_name: Redis small}
+      properties: {persistence: true}
+      instance_groups:
+        - name: redis-server
+          azs: [((meta.az))]
+          networks: [((meta.services_subnet))]
+          vm_type: ((meta.vm_type))
+          instances: 1
+    - name: redis-plan-2
+      plan_id: ((plan_id))-2
+      cf_service_access: enable
+      description: Redis small
+      metadata: {bullets: [], display_name: Redis small}
+      properties: {persistence: true}
+      instance_groups:
+        - name: redis-server
+          azs: [((meta.az))]
+          networks: [((meta.services_subnet))]
+          vm_type: ((meta.vm_type))
+          instances: 1

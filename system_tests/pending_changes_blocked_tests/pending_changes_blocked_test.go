@@ -18,13 +18,15 @@ var _ = Describe("service instance with pending changes", func() {
 	var expectedErrMsg = "The service broker has been updated, and this service instance is out of date. Please contact your operator."
 
 	It("prevents a plan change", func() {
-		session := cf.Cf("update-service", serviceInstanceName, "-p", "dedicated-high-memory-vm")
+		session := cf.Cf("update-service", serviceInstanceName, "-p", "redis-plan-2")
+
 		Eventually(session, cf.CfTimeout).Should(gexec.Exit())
 		Expect(session).To(gbytes.Say(expectedErrMsg))
 	})
 
 	It("prevents setting arbitrary params", func() {
 		session := cf.Cf("update-service", serviceInstanceName, "-c", `{"foo": "bar"}`)
+
 		Eventually(session, cf.CfTimeout).Should(gexec.Exit())
 		Expect(session).To(gbytes.Say(expectedErrMsg))
 	})
