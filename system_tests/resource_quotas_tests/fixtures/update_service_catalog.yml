@@ -1,0 +1,55 @@
+---
+- type: replace
+  path: /instance_groups/name=broker/jobs/name=broker/properties/service_catalog/global_quotas?
+  value:
+    resource_limits:
+      limited_resource: 1
+
+- type: replace
+  path: /instance_groups/name=broker/jobs/name=broker/properties/service_catalog/plans?
+  value:
+    - name: plan-with-global-quota
+      plan_id: ((plan_id))
+      properties: {persistence: false}
+      metadata: {bullets: [], display_name: Plan with Resource Costs limited by the global quota}
+      cf_service_access: enable
+      description: Plan with Resource Costs limited by the global quota
+      resource_costs:
+        limited_resource: 1
+      instance_groups:
+        - name: redis-server
+          azs: [((meta.az))]
+          instances: 1
+          networks: [((meta.services_subnet))]
+          vm_type: ((meta.vm_type))
+    - name: plan-with-no-cost
+      plan_id: ((plan_id))-1
+      properties: {persistence: false}
+      metadata: {bullets: [], display_name: Plan with no cost}
+      cf_service_access: enable
+      description: Plan with no cost
+      quotas: {}
+      resource_costs: {}
+      instance_groups:
+        - name: redis-server
+          azs: [((meta.az))]
+          instances: 1
+          networks: [((meta.services_subnet))]
+          vm_type: ((meta.vm_type))
+    - name: plan-with-quota
+      plan_id: ((plan_id))-2
+      properties: {persistence: false}
+      metadata: {bullets: [], display_name: Plan with SI limit to 5}
+      cf_service_access: enable
+      description: Plan with SI limit to 5
+      quotas:
+        resource_limits:
+          plan_specific_limited_resource: 5
+      resource_costs:
+        plan_specific_limited_resource: 3
+      instance_groups:
+        - name: redis-server
+          azs: [((meta.az))]
+          instances: 1
+          networks: [((meta.services_subnet))]
+          vm_type: ((meta.vm_type))
