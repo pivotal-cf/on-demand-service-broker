@@ -13,10 +13,8 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
 	"github.com/pborman/uuid"
-	bosh "github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
 	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/cf_helpers"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/gbytes"
-	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/service_helpers"
 )
 
 var _ = Describe("quotas", func() {
@@ -26,20 +24,9 @@ var _ = Describe("quotas", func() {
 	)
 
 	var (
-		instanceA  = fmt.Sprintf("instanceA-%s", uuid.New()[:7])
-		instanceB  = fmt.Sprintf("instanceB-%s", uuid.New()[:7])
-		brokerInfo bosh.BrokerInfo
+		instanceA = fmt.Sprintf("instanceA-%s", uuid.New()[:7])
+		instanceB = fmt.Sprintf("instanceB-%s", uuid.New()[:7])
 	)
-
-	BeforeEach(func() {
-		uniqueID := uuid.New()[:6]
-		brokerInfo = bosh.DeployAndRegisterBroker(
-			"-instance-quotas-"+uniqueID,
-			bosh.BrokerDeploymentOptions{BrokerTLS: true},
-			service_helpers.Redis,
-			[]string{"update_service_catalog.yml"},
-		)
-	})
 
 	Describe("Service Instance Limits", func() {
 		const planQuotaTemplate = "plan instance limit exceeded for service ID: %s. Total instances: %d"
