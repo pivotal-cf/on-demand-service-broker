@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
+
 	"regexp"
 
 	. "github.com/onsi/ginkgo"
@@ -17,6 +19,7 @@ import (
 	"github.com/onsi/gomega/gexec"
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
+
 	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/cf_helpers"
 )
 
@@ -24,13 +27,9 @@ var _ = Describe("lifecycle errand tests", func() {
 	var serviceInstanceName, planName string
 
 	const (
-		postDeployPlan          = "lifecycle-post-deploy-plan"
-		postDeployFailsPlan     = "lifecycle-failing-health-check-plan"
-		cleanupPlan             = "lifecycle-cleanup-data-plan"
-		cleanupFailsPlan        = "lifecycle-failing-cleanup-data-plan"
 		colocatedPostDeployPlan = "lifecycle-colocated-post-deploy-plan"
 		colocatedPreDeletePlan  = "lifecycle-colocated-pre-delete-plan"
-		dedicatedVMPlan         = "dedicated-vm"
+		redisSmall              = "redis-small"
 	)
 
 	BeforeEach(func() {
@@ -38,172 +37,86 @@ var _ = Describe("lifecycle errand tests", func() {
 	})
 
 	Describe("post-deploy", func() {
+		BeforeEach(func() {
+			planName = colocatedPostDeployPlan
+
+			By("creating an instance")
+			serviceInstanceName = "with-post-deploy-" + uuid.New()[:7]
+			cf.CreateService(brokerInfo.ServiceName, planName, serviceInstanceName, "")
+		})
+
 		AfterEach(func() {
 			By("deleting the service instance")
-			deleteServiceSession := cf.Cf("delete-service", serviceInstanceName, "-f")
-			Eventually(deleteServiceSession, cf.CfTimeout).Should(gexec.Exit(0))
-			cf.AwaitServiceDeletion(serviceInstanceName)
+			cf.DeleteService(serviceInstanceName)
 		})
 
 		Context("for a plan with a colocated post-deploy errand", func() {
 			It("runs the post-deploy errand after create", func() {
-				planName = colocatedPostDeployPlan
-
-				By("creating an instance")
-				createServiceSession := cf.Cf("create-service", serviceOffering, planName, serviceInstanceName)
-				Eventually(createServiceSession, cf.CfTimeout).Should(gexec.Exit(0))
-				cf.AwaitServiceCreation(serviceInstanceName)
-
-				boshTasks := boshClient.GetTasksForDeployment(getServiceDeploymentName(serviceInstanceName))
-				Expect(boshTasks).To(HaveLen(3))
+				boshTasks := bosh_helpers.TasksForDeployment(getServiceDeploymentName(serviceInstanceName))
+				Expect(boshTasks).To(HaveLen(2))
 
 				Expect(boshTasks[0].State).To(Equal(boshdirector.TaskDone))
 				Expect(boshTasks[0].Description).To(ContainSubstring("run errand"))
 
 				Expect(boshTasks[1].State).To(Equal(boshdirector.TaskDone))
-				Expect(boshTasks[1].Description).To(ContainSubstring("run errand"))
+				Expect(boshTasks[1].Description).To(ContainSubstring("create deployment"))
+			})
+
+			It("runs post-deploy errand after update", func() {
+				By("updating the instance")
+				cf.UpdateServiceWithArbitraryParams(serviceInstanceName, `{"maxclients": 101}`)
+
+				boshTasks := bosh_helpers.TasksForDeployment(getServiceDeploymentName(serviceInstanceName))
+				Expect(boshTasks).To(HaveLen(4))
+
+				Expect(boshTasks[0].State).To(Equal(boshdirector.TaskDone))
+				Expect(boshTasks[0].Description).To(ContainSubstring("run errand"))
+
+				Expect(boshTasks[1].State).To(Equal(boshdirector.TaskDone))
+				Expect(boshTasks[1].Description).To(ContainSubstring("create deployment"))
 
 				Expect(boshTasks[2].State).To(Equal(boshdirector.TaskDone))
-				Expect(boshTasks[2].Description).To(ContainSubstring("create deployment"))
+				Expect(boshTasks[2].Description).To(ContainSubstring("run errand"))
 
-				Expect(boshTasks[0].ContextID).NotTo(BeEmpty())
-				Expect(contextIDsMatch(boshTasks[0], boshTasks[1], boshTasks[2])).To(BeTrue())
+				Expect(boshTasks[3].State).To(Equal(boshdirector.TaskDone))
+				Expect(boshTasks[3].Description).To(ContainSubstring("create deployment"))
 			})
 
-		})
-
-		Context("for a plan with a post-deploy errand", func() {
-			Context("when post-deploy errand succeeds", func() {
-				BeforeEach(func() {
-					planName = postDeployPlan
-
-					By("creating an instance")
-					createServiceSession := cf.Cf("create-service", serviceOffering, planName, serviceInstanceName)
-					Eventually(createServiceSession, cf.CfTimeout).Should(gexec.Exit(0))
-					cf.AwaitServiceCreation(serviceInstanceName)
-				})
-
-				It("runs post-deploy errand after create", func() {
-					boshTasks := boshClient.GetTasksForDeployment(getServiceDeploymentName(serviceInstanceName))
-					Expect(boshTasks).To(HaveLen(2))
-
-					Expect(boshTasks[0].State).To(Equal(boshdirector.TaskDone))
-					Expect(boshTasks[0].Description).To(ContainSubstring("run errand"))
-
-					Expect(boshTasks[1].State).To(Equal(boshdirector.TaskDone))
-					Expect(boshTasks[1].Description).To(ContainSubstring("create deployment"))
-
-					Expect(boshTasks[0].ContextID).NotTo(BeEmpty())
-					Expect(contextIDsMatch(boshTasks[0], boshTasks[1])).To(BeTrue())
-				})
-
-				It("runs post-deploy errand after update", func() {
+			Context("when changing to a plan without a post-deploy errand", func() {
+				It("does not run post-deploy errand", func() {
 					By("updating the instance")
-					updateServiceSession := cf.Cf("update-service", serviceInstanceName, "-c", `{"maxclients": 101}`)
-					Eventually(updateServiceSession, cf.CfTimeout).Should(gexec.Exit(0))
-					cf.AwaitServiceUpdate(serviceInstanceName)
+					cf.UpdateServiceToPlan(serviceInstanceName, redisSmall)
 
-					boshTasks := boshClient.GetTasksForDeployment(getServiceDeploymentName(serviceInstanceName))
-					Expect(boshTasks).To(HaveLen(4))
+					boshTasks := bosh_helpers.TasksForDeployment(getServiceDeploymentName(serviceInstanceName))
+					Expect(boshTasks).To(HaveLen(3))
 
 					Expect(boshTasks[0].State).To(Equal(boshdirector.TaskDone))
-					Expect(boshTasks[0].Description).To(ContainSubstring("run errand"))
+					Expect(boshTasks[0].Description).To(ContainSubstring("create deployment"))
 
 					Expect(boshTasks[1].State).To(Equal(boshdirector.TaskDone))
-					Expect(boshTasks[1].Description).To(ContainSubstring("create deployment"))
+					Expect(boshTasks[1].Description).To(ContainSubstring("run errand"))
 
 					Expect(boshTasks[2].State).To(Equal(boshdirector.TaskDone))
-					Expect(boshTasks[2].Description).To(ContainSubstring("run errand"))
-
-					Expect(boshTasks[3].State).To(Equal(boshdirector.TaskDone))
-					Expect(boshTasks[3].Description).To(ContainSubstring("create deployment"))
-				})
-
-				Context("when changing to a plan without a post-deploy errand", func() {
-					It("does not run post-deploy errand", func() {
-						By("updating the instance")
-						updateServiceSession := cf.Cf("update-service", serviceInstanceName, "-p", dedicatedVMPlan)
-						Eventually(updateServiceSession, cf.CfTimeout).Should(gexec.Exit(0))
-						cf.AwaitServiceUpdate(serviceInstanceName)
-
-						boshTasks := boshClient.GetTasksForDeployment(getServiceDeploymentName(serviceInstanceName))
-						Expect(boshTasks).To(HaveLen(3))
-
-						Expect(boshTasks[0].State).To(Equal(boshdirector.TaskDone))
-						Expect(boshTasks[0].Description).To(ContainSubstring("create deployment"))
-
-						Expect(boshTasks[1].State).To(Equal(boshdirector.TaskDone))
-						Expect(boshTasks[1].Description).To(ContainSubstring("run errand"))
-
-						Expect(boshTasks[2].State).To(Equal(boshdirector.TaskDone))
-						Expect(boshTasks[2].Description).To(ContainSubstring("create deployment"))
-					})
-				})
-			})
-
-			Context("when post-deploy errand fails", func() {
-				It("fails to create service", func() {
-					planName = postDeployFailsPlan
-
-					By("creating the instance")
-					createServiceSession := cf.Cf("create-service", serviceOffering, planName, serviceInstanceName)
-					Eventually(createServiceSession, cf.CfTimeout).Should(gexec.Exit(0))
-					cf.AwaitServiceCreationFailure(serviceInstanceName)
-
-					boshTasks := boshClient.GetTasksForDeployment(getServiceDeploymentName(serviceInstanceName))
-					Expect(boshTasks).To(HaveLen(2))
-
-					Expect(boshTasks[0].State).To(Equal(boshdirector.TaskError))
-					Expect(boshTasks[0].Description).To(ContainSubstring("run errand"))
-
-					Expect(boshTasks[1].State).To(Equal(boshdirector.TaskDone))
-					Expect(boshTasks[1].Description).To(ContainSubstring("create deployment"))
+					Expect(boshTasks[2].Description).To(ContainSubstring("create deployment"))
 				})
 			})
 		})
 
 		Context("for a plan without a post-deploy errand", func() {
 			BeforeEach(func() {
-				planName = dedicatedVMPlan
+				planName = redisSmall
 
 				By("creating an instance")
-				createServiceSession := cf.Cf("create-service", serviceOffering, planName, serviceInstanceName)
-				Eventually(createServiceSession, cf.CfTimeout).Should(gexec.Exit(0))
-				cf.AwaitServiceCreation(serviceInstanceName)
-			})
-
-			It("does not run post-deploy errand after create", func() {
-				boshTasks := boshClient.GetTasksForDeployment(getServiceDeploymentName(serviceInstanceName))
-				Expect(boshTasks).To(HaveLen(1))
-
-				Expect(boshTasks[0].State).To(Equal(boshdirector.TaskDone))
-				Expect(boshTasks[0].Description).To(ContainSubstring("create deployment"))
-			})
-
-			It("does not run post-deploy errand after update", func() {
-				By("updating the instance")
-				updateServiceSession := cf.Cf("update-service", serviceInstanceName, "-c", `{"maxclients": 101}`)
-				Eventually(updateServiceSession, cf.CfTimeout).Should(gexec.Exit(0))
-				cf.AwaitServiceUpdate(serviceInstanceName)
-
-				boshTasks := boshClient.GetTasksForDeployment(getServiceDeploymentName(serviceInstanceName))
-				Expect(boshTasks).To(HaveLen(2))
-
-				Expect(boshTasks[0].State).To(Equal(boshdirector.TaskDone))
-				Expect(boshTasks[0].Description).To(ContainSubstring("create deployment"))
-
-				Expect(boshTasks[1].State).To(Equal(boshdirector.TaskDone))
-				Expect(boshTasks[1].Description).To(ContainSubstring("create deployment"))
+				serviceInstanceName = "without-post-deploy-" + uuid.New()[:7]
+				cf.CreateService(brokerInfo.ServiceName, planName, serviceInstanceName, "")
 			})
 
 			Context("when changing to a plan with a post-deploy errand", func() {
 				It("runs the post-deploy errand", func() {
 					By("updating the instance")
-					updateServiceSession := cf.Cf("update-service", serviceInstanceName, "-p", postDeployPlan)
-					Eventually(updateServiceSession, cf.CfTimeout).Should(gexec.Exit(0))
-					cf.AwaitServiceUpdate(serviceInstanceName)
+					cf.UpdateServiceToPlan(serviceInstanceName, colocatedPostDeployPlan)
 
-					boshTasks := boshClient.GetTasksForDeployment(getServiceDeploymentName(serviceInstanceName))
+					boshTasks := bosh_helpers.TasksForDeployment(getServiceDeploymentName(serviceInstanceName))
 					Expect(boshTasks).To(HaveLen(3))
 
 					Expect(boshTasks[0].State).To(Equal(boshdirector.TaskDone))
@@ -224,15 +137,12 @@ var _ = Describe("lifecycle errand tests", func() {
 
 		JustBeforeEach(func() {
 			By("creating an instance")
-			createServiceSession := cf.Cf("create-service", serviceOffering, planName, serviceInstanceName)
-			Eventually(createServiceSession, cf.CfTimeout).Should(gexec.Exit(0))
-			cf.AwaitServiceCreation(serviceInstanceName)
+			cf.CreateService(brokerInfo.ServiceName, planName, serviceInstanceName, "")
 
 			deploymentName = getServiceDeploymentName(serviceInstanceName)
 
 			By("deleting the service instance")
-			deleteServiceSession := cf.Cf("delete-service", "-f", serviceInstanceName)
-			Eventually(deleteServiceSession, cf.CfTimeout).Should(gexec.Exit(0))
+			cf.DeleteService(serviceInstanceName)
 		})
 
 		Context("for a plan with colocated pre-delete errands", func() {
@@ -244,110 +154,17 @@ var _ = Describe("lifecycle errand tests", func() {
 			})
 
 			It("runs the pre-delete errand before the delete", func() {
-				boshTasks := boshClient.GetTasksForDeployment(deploymentName)
+				boshTasks := bosh_helpers.TasksForDeployment(deploymentName)
 
 				Expect(boshTasks[0].State).To(Equal(boshdirector.TaskDone))
 				Expect(boshTasks[0].Description).To(ContainSubstring("delete deployment"))
 
 				Expect(boshTasks[1].State).To(Equal(boshdirector.TaskDone))
 				Expect(boshTasks[1].Description).To(ContainSubstring("run errand"))
-
-				Expect(boshTasks[2].State).To(Equal(boshdirector.TaskDone))
-				Expect(boshTasks[2].Description).To(ContainSubstring("run errand"))
-
-				Expect(boshTasks[0].ContextID).NotTo(BeEmpty())
-				Expect(contextIDsMatch(
-					boshTasks[0], boshTasks[1], boshTasks[2],
-				)).To(BeTrue())
-			})
-		})
-
-		Context("when pre-delete errand succeeds", func() {
-			BeforeEach(func() {
-				planName = cleanupPlan
-			})
-
-			JustBeforeEach(func() {
-				cf.AwaitServiceDeletion(serviceInstanceName)
-			})
-
-			It("runs pre-delete errand before delete", func() {
-				boshTasks := boshClient.GetTasksForDeployment(deploymentName)
-
-				Expect(boshTasks[0].State).To(Equal(boshdirector.TaskDone))
-				Expect(boshTasks[0].Description).To(ContainSubstring("delete deployment"))
-
-				Expect(boshTasks[1].State).To(Equal(boshdirector.TaskDone))
-				Expect(boshTasks[1].Description).To(ContainSubstring("run errand"))
-
-				Expect(boshTasks[0].ContextID).NotTo(BeEmpty())
-				Expect(contextIDsMatch(boshTasks[0], boshTasks[1])).To(BeTrue())
-			})
-		})
-
-		Context("when pre-delete errand fails", func() {
-			BeforeEach(func() {
-				planName = cleanupFailsPlan
-			})
-
-			JustBeforeEach(func() {
-				cf.AwaitServiceDeletionFailure(serviceInstanceName)
-			})
-
-			AfterEach(func() {
-				updateServiceSession := cf.Cf("update-service", serviceInstanceName, "-p", dedicatedVMPlan)
-				Eventually(updateServiceSession, cf.CfTimeout).Should(gexec.Exit(0))
-				cf.AwaitServiceUpdate(serviceInstanceName)
-
-				deleteServiceSession := cf.Cf("delete-service", serviceInstanceName, "-f")
-				Eventually(deleteServiceSession, cf.CfTimeout).
-					Should(gexec.Exit(0))
-				cf.AwaitServiceDeletion(serviceInstanceName)
-			})
-
-			It("does not delete the service", func() {
-				By("ensuring the service instance exists")
-				serviceSession := cf.Cf("service", serviceInstanceName)
-				Eventually(serviceSession, cf.CfTimeout).Should(gexec.Exit(0))
-
-				By("ensuring only the errand bosh task ran")
-				boshTasks := boshClient.GetTasksForDeployment(deploymentName)
-
-				Expect(boshTasks[0].State).To(Equal(boshdirector.TaskError))
-				Expect(boshTasks[0].Description).To(ContainSubstring("run errand"))
-			})
-		})
-
-		Context("when pre-delete errand not configured", func() {
-			BeforeEach(func() {
-				planName = dedicatedVMPlan
-			})
-
-			JustBeforeEach(func() {
-				cf.AwaitServiceDeletion(serviceInstanceName)
-			})
-
-			It("only runs delete deployment (after create)", func() {
-				boshTasks := boshClient.GetTasksForDeployment(deploymentName)
-
-				Expect(boshTasks[0].State).To(Equal(boshdirector.TaskDone))
-				Expect(boshTasks[0].Description).To(ContainSubstring("delete deployment"))
-
-				Expect(boshTasks[1].State).To(Equal(boshdirector.TaskDone))
-				Expect(boshTasks[1].Description).To(ContainSubstring("create deployment"))
 			})
 		})
 	})
 })
-
-func contextIDsMatch(tasks ...boshdirector.BoshTask) bool {
-	ctx := tasks[0].ContextID
-	eq := true
-	for _, task := range tasks {
-		eq = eq && task.ContextID == ctx
-	}
-	return eq
-}
 
 func getServiceDeploymentName(serviceInstanceName string) string {
 	getInstanceDetailsCmd := cf.Cf("service", serviceInstanceName, "--guid")

@@ -1,0 +1,58 @@
+---
+- type: replace
+  path: /instance_groups/name=broker/jobs/name=broker/properties/service_catalog/plans?
+  value:
+    - name: redis-small
+      plan_id: ((plan_id))
+      cf_service_access: enable
+      description: Redis small
+      metadata: {bullets: [], display_name: Redis small}
+      properties: {persistence: false}
+      instance_groups:
+        - name: redis-server
+          azs: [((meta.az))]
+          networks: [((meta.services_subnet))]
+          vm_type: ((meta.vm_type))
+          instances: 1
+
+    - name: lifecycle-colocated-post-deploy-plan
+      plan_id: ((plan_id))-2
+      description: With lifecycle post deploy errand
+      cf_service_access: enable
+      lifecycle_errands:
+        post_deploy:
+          - name: health-check
+            instances: ["redis-server/0"]
+      metadata:
+        display_name: Redis Lifecycle errand plan
+        bullets: []
+      properties:
+        persistence: false
+        colocated_errand: true
+      instance_groups:
+        - name: redis-server
+          vm_type: ((meta.vm_type))
+          instances: 1
+          networks: [((meta.services_subnet))]
+          azs: [((meta.az))]
+
+    - name: lifecycle-colocated-pre-delete-plan
+      plan_id: ((plan_id))-3
+      description: With lifecycle pre-delete errand
+      lifecycle_errands:
+        pre_delete:
+          - name: health-check
+            instances: ["redis-server/0"]
+      cf_service_access: enable
+      metadata:
+        display_name: Redis with pre-delete errand plan
+        bullets: []
+      properties:
+        persistence: false
+        colocated_errand: true
+      instance_groups:
+        - name: redis-server
+          vm_type: ((meta.vm_type))
+          instances: 1
+          networks: [((meta.services_subnet))]
+          azs: [((meta.az))]

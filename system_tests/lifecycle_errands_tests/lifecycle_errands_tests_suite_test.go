@@ -7,74 +7,35 @@
 package lifecycle_tests
 
 import (
-	"fmt"
-	"os"
 	"testing"
+
+	"github.com/pborman/uuid"
+	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/service_helpers"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/gexec"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
-	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/cf_helpers"
 )
 
 var (
-	brokerName      string
-	brokerURL       string
-	brokerUsername  string
-	brokerPassword  string
-	serviceOffering string
-	boshClient      *bosh_helpers.BoshHelperClient
+	brokerInfo bosh_helpers.BrokerInfo
 )
 
-var _ = SynchronizedBeforeSuite(func() []byte {
-	parseEnv()
-	By("delete the broker")
-	deleteBrokerSession := cf.Cf("delete-service-broker", brokerName, "-f")
-	Eventually(deleteBrokerSession, cf.CfTimeout).Should(gexec.Exit())
+var _ = BeforeSuite(func() {
+	uniqueID := uuid.New()[:6]
+	brokerInfo = bosh_helpers.DeployAndRegisterBroker(
+		"-catalog-"+uniqueID,
+		bosh_helpers.BrokerDeploymentOptions{},
+		service_helpers.Redis,
+		[]string{"update_service_catalog.yml"})
 
-	By("registering the broker")
-	createBrokerSession := cf.Cf("create-service-broker", brokerName, brokerUsername, brokerPassword, brokerURL)
-	Eventually(createBrokerSession, cf.CfTimeout).Should(gexec.Exit(0))
-
-	enableServiceAccessSession := cf.Cf("enable-service-access", serviceOffering)
-	Eventually(enableServiceAccessSession, cf.CfTimeout).Should(gexec.Exit(0))
-	return []byte{}
-}, func(data []byte) {
-	parseEnv()
 })
 
-func parseEnv() {
-	brokerName = envMustHave("BROKER_NAME")
-	brokerUsername = envMustHave("BROKER_USERNAME")
-	brokerPassword = envMustHave("BROKER_PASSWORD")
-	brokerURL = envMustHave("BROKER_URL")
-	serviceOffering = envMustHave("SERVICE_OFFERING_NAME")
-	boshURL := envMustHave("BOSH_URL")
-	boshUsername := envMustHave("BOSH_USERNAME")
-	boshPassword := envMustHave("BOSH_PASSWORD")
-	uaaURL := os.Getenv("UAA_URL")
-	boshCACert := os.Getenv("BOSH_CA_CERT_FILE")
-	if uaaURL == "" {
-		boshClient = bosh_helpers.NewBasicAuth(boshURL, boshUsername, boshPassword, boshCACert, boshCACert == "")
-	} else {
-		boshClient = bosh_helpers.New(boshURL, uaaURL, boshUsername, boshPassword, boshCACert)
-	}
-}
-
-var _ = SynchronizedAfterSuite(func() {}, func() {
-	By("delete the broker")
-	deleteBrokerSession := cf.Cf("delete-service-broker", brokerName, "-f")
-	Eventually(deleteBrokerSession, cf.CfTimeout).Should(gexec.Exit(0))
+var _ = AfterSuite(func() {
+	bosh_helpers.DeregisterAndDeleteBroker(brokerInfo.DeploymentName)
 })
 
 func TestLifecycleErrandTests(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "LifecycleErrandTests Suite")
-}
-
-func envMustHave(key string) string {
-	value := os.Getenv(key)
-	Expect(value).ToNot(BeEmpty(), fmt.Sprintf("must set %s", key))
-	return value
 }
