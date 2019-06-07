@@ -45,12 +45,6 @@ type Deployment struct {
 	Name string `json:"deployment_name"`
 }
 
-type Metric struct {
-	Key   string  `json:"key"`
-	Value float64 `json:"value"`
-	Unit  string  `json:"unit"`
-}
-
 func AttachRoutes(r *mux.Router, manageableBroker ManageableBroker, serviceOffering config.ServiceOffering, loggerFactory *loggerfactory.LoggerFactory) {
 	a := &api{manageableBroker: manageableBroker, serviceOffering: serviceOffering, loggerFactory: loggerFactory}
 	r.HandleFunc("/mgmt/service_instances", a.listAllInstances).Methods("GET")
@@ -193,9 +187,8 @@ func (a *api) upgradeInstance(w http.ResponseWriter, r *http.Request) {
 
 func (a *api) metrics(w http.ResponseWriter, r *http.Request) {
 	logger := a.loggerFactory.NewWithRequestID()
-
-	brokerMetrics := []Metric{}
 	instanceCountsByPlan, err := a.manageableBroker.CountInstancesOfPlans(logger)
+
 	if err != nil {
 		logger.Printf("error getting instance count for service offering %s: %s", a.serviceOffering.Name, err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -208,6 +201,10 @@ func (a *api) metrics(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	brokerMetrics := BrokerMetrics{
+		serviceOfferingName: a.serviceOffering.Name,
+	}
+
 	totalInstances := 0
 	for plan, instanceCount := range instanceCountsByPlan {
 		serviceOfferingPlan, err := a.getPlan(plan.ServicePlanEntity.UniqueID)
@@ -217,72 +214,44 @@ func (a *api) metrics(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		countMetric := Metric{
-			Key:   fmt.Sprintf("/on-demand-broker/%s/%s/total_instances", a.serviceOffering.Name, serviceOfferingPlan.Name),
-			Unit:  "count",
-			Value: float64(instanceCount),
-		}
-		brokerMetrics = append(brokerMetrics, countMetric)
+		brokerMetrics = brokerMetrics.AddPlanMetric(serviceOfferingPlan.Name, "total_instances", instanceCount)
 
 		if serviceOfferingPlan.Quotas.ServiceInstanceLimit != nil {
 			limit := *serviceOfferingPlan.Quotas.ServiceInstanceLimit
-			quotaMetric := Metric{
-				Key:   fmt.Sprintf("/on-demand-broker/%s/%s/quota_remaining", a.serviceOffering.Name, serviceOfferingPlan.Name),
-				Unit:  "count",
-				Value: float64(limit - instanceCount),
+
+			brokerMetrics = brokerMetrics.AddPlanMetric(serviceOfferingPlan.Name, "quota_remaining", limit-instanceCount)
+		}
+
+		for resourceType, instanceCost := range serviceOfferingPlan.ResourceCosts {
+			resourceLimit := serviceOfferingPlan.Quotas.ResourceLimits[resourceType]
+
+			usedResources := instanceCost * instanceCount
+			brokerMetrics = brokerMetrics.AddPlanMetric(
+				serviceOfferingPlan.Name,
+				fmt.Sprintf("%s/used", resourceType),
+				usedResources)
+
+			if resourceLimit != 0 {
+
+				brokerMetrics = brokerMetrics.AddPlanMetric(
+					serviceOfferingPlan.Name,
+					fmt.Sprintf("%s/remaining", resourceType),
+					resourceLimit-usedResources)
 			}
-			brokerMetrics = append(brokerMetrics, quotaMetric)
 		}
 
 		totalInstances = totalInstances + instanceCount
 	}
 
-	totalCountMetric := Metric{
-		Key:   fmt.Sprintf("/on-demand-broker/%s/total_instances", a.serviceOffering.Name),
-		Unit:  "count",
-		Value: float64(totalInstances),
-	}
-	brokerMetrics = append(brokerMetrics, totalCountMetric)
+	brokerMetrics = brokerMetrics.AddGlobalMetric("total_instances", totalInstances)
 
 	if a.serviceOffering.GlobalQuotas.ServiceInstanceLimit != nil {
 		limit := *a.serviceOffering.GlobalQuotas.ServiceInstanceLimit
-		quotaMetric := Metric{
-			Key:   fmt.Sprintf("/on-demand-broker/%s/quota_remaining", a.serviceOffering.Name),
-			Unit:  "count",
-			Value: float64(limit - totalInstances),
-		}
-		brokerMetrics = append(brokerMetrics, quotaMetric)
+
+		brokerMetrics = brokerMetrics.AddGlobalMetric("quota_remaining", limit-totalInstances)
 	}
 
-	for plan, instanceCount := range instanceCountsByPlan {
-		serviceOfferingPlan, err := a.getPlan(plan.ServicePlanEntity.UniqueID)
-		if err != nil {
-			logger.Println(err)
-			a.writeJson(w, []interface{}{}, logger)
-			return
-		}
-		for resourceType, instanceCost := range serviceOfferingPlan.ResourceCosts {
-			resourceLimit := serviceOfferingPlan.Quotas.ResourceLimits[resourceType]
-			usedResource := instanceCost * instanceCount
-			resourceQuotaMetricUsed := Metric{
-				Key:   fmt.Sprintf("/on-demand-broker/%s/%s/%s/used", a.serviceOffering.Name, serviceOfferingPlan.Name, resourceType),
-				Unit:  "count",
-				Value: float64(usedResource),
-			}
-			brokerMetrics = append(brokerMetrics, resourceQuotaMetricUsed)
-
-			if resourceLimit != 0 {
-				resourceQuotaMetricRemaining := Metric{
-					Key:   fmt.Sprintf("/on-demand-broker/%s/%s/%s/remaining", a.serviceOffering.Name, serviceOfferingPlan.Name, resourceType),
-					Unit:  "count",
-					Value: float64(resourceLimit - usedResource),
-				}
-				brokerMetrics = append(brokerMetrics, resourceQuotaMetricRemaining)
-			}
-		}
-	}
-
-	a.writeJson(w, brokerMetrics, logger)
+	a.writeJson(w, brokerMetrics.metrics, logger)
 }
 
 func (a *api) writeJson(w io.Writer, obj interface{}, logger *log.Logger) {
