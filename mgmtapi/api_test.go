@@ -611,8 +611,8 @@ var _ = Describe("Management API", func() {
 			BeforeEach(func() {
 				serviceOffering.Plans = []config.Plan{
 					{
-						ID:   "plan-a",
-						Name: "limit-and-cost-plan-1",
+						ID:   "limit-and-cost-plan-id-1",
+						Name: "limit-and-cost-plan-name-1",
 						Quotas: config.Quotas{
 							ResourceLimits: map[string]int{
 								"memory":       60,
@@ -624,8 +624,8 @@ var _ = Describe("Management API", func() {
 						},
 					},
 					{
-						ID:   "plan-b",
-						Name: "limit-and-cost-plan-2",
+						ID:   "limit-and-cost-plan-id-2",
+						Name: "limit-and-cost-plan-name-2",
 						Quotas: config.Quotas{
 							ResourceLimits: map[string]int{
 								"memory": 10,
@@ -635,16 +635,16 @@ var _ = Describe("Management API", func() {
 						},
 					},
 					{
-						ID:   "plan-c",
-						Name: "limit-only-plan",
+						ID:   "limit-only-plan-id",
+						Name: "limit-only-plan-name",
 						Quotas: config.Quotas{
 							ResourceLimits: map[string]int{
 								"memory": 60,
 							}},
 					},
 					{
-						ID:   "plan-d",
-						Name: "cost-only-plan",
+						ID:   "cost-only-plan-id",
+						Name: "cost-only-plan-name",
 						ResourceCosts: map[string]int{
 							"memory": 2,
 						},
@@ -655,8 +655,8 @@ var _ = Describe("Management API", func() {
 			Context("when a resource quota and cost is set in a plan", func() {
 				BeforeEach(func() {
 					manageableBroker.CountInstancesOfPlansReturns(map[cf.ServicePlan]int{
-						cfServicePlan("1234", "plan-a", "url", "not-relevant"): 2,
-						cfServicePlan("1234", "plan-b", "url", "not-relevant"): 1,
+						cfServicePlan("1234", "limit-and-cost-plan-id-1", "url", "not-relevant"): 2,
+						cfServicePlan("1234", "limit-and-cost-plan-id-2", "url", "not-relevant"): 1,
 					}, nil)
 
 				})
@@ -671,32 +671,32 @@ var _ = Describe("Management API", func() {
 					Expect(json.NewDecoder(instancesForPlanResponse.Body).Decode(&brokerMetrics)).To(Succeed())
 					Expect(brokerMetrics).To(SatisfyAll(
 						ContainElement(mgmtapi.Metric{
-							Key:   "/on-demand-broker/some_service_offering/limit-and-cost-plan-1/memory/used",
+							Key:   "/on-demand-broker/some_service_offering/limit-and-cost-plan-name-1/memory/used",
 							Value: 40,
 							Unit:  "count",
 						}),
 						ContainElement(mgmtapi.Metric{
-							Key:   "/on-demand-broker/some_service_offering/limit-and-cost-plan-1/memory/remaining",
+							Key:   "/on-demand-broker/some_service_offering/limit-and-cost-plan-name-1/memory/remaining",
 							Value: 20,
 							Unit:  "count",
 						}),
 						ContainElement(mgmtapi.Metric{
-							Key:   "/on-demand-broker/some_service_offering/limit-and-cost-plan-1/nutella_jars/used",
+							Key:   "/on-demand-broker/some_service_offering/limit-and-cost-plan-name-1/nutella_jars/used",
 							Value: 10,
 							Unit:  "count",
 						}),
 						ContainElement(mgmtapi.Metric{
-							Key:   "/on-demand-broker/some_service_offering/limit-and-cost-plan-1/nutella_jars/remaining",
+							Key:   "/on-demand-broker/some_service_offering/limit-and-cost-plan-name-1/nutella_jars/remaining",
 							Value: 0,
 							Unit:  "count",
 						}),
 						ContainElement(mgmtapi.Metric{
-							Key:   "/on-demand-broker/some_service_offering/limit-and-cost-plan-2/memory/used",
+							Key:   "/on-demand-broker/some_service_offering/limit-and-cost-plan-name-2/memory/used",
 							Value: 4,
 							Unit:  "count",
 						}),
 						ContainElement(mgmtapi.Metric{
-							Key:   "/on-demand-broker/some_service_offering/limit-and-cost-plan-2/memory/remaining",
+							Key:   "/on-demand-broker/some_service_offering/limit-and-cost-plan-name-2/memory/remaining",
 							Value: 6,
 							Unit:  "count",
 						}),
@@ -707,7 +707,7 @@ var _ = Describe("Management API", func() {
 			Context("when there are no service instances", func() {
 				BeforeEach(func() {
 					manageableBroker.CountInstancesOfPlansReturns(map[cf.ServicePlan]int{
-						cfServicePlan("1234", "plan-a", "url", "foo_plan"): 0,
+						cfServicePlan("1234", "limit-and-cost-plan-id-1", "url", "foo_plan"): 0,
 					}, nil)
 				})
 
@@ -722,23 +722,23 @@ var _ = Describe("Management API", func() {
 					Expect(brokerMetrics).To(SatisfyAll(
 						ContainElement(
 							mgmtapi.Metric{
-								Key:   "/on-demand-broker/some_service_offering/limit-and-cost-plan-1/memory/used",
+								Key:   "/on-demand-broker/some_service_offering/limit-and-cost-plan-name-1/memory/used",
 								Value: 0,
 								Unit:  "count",
 							}),
 						ContainElement(
 							mgmtapi.Metric{
-								Key:   "/on-demand-broker/some_service_offering/limit-and-cost-plan-1/memory/remaining",
+								Key:   "/on-demand-broker/some_service_offering/limit-and-cost-plan-name-1/memory/remaining",
 								Value: 60,
 								Unit:  "count",
 							})))
 				})
 			})
 
-			FContext("when the resource only has a cost but no limit", func() {
+			Context("when the resource only has a cost but no limit", func() {
 				BeforeEach(func() {
 					manageableBroker.CountInstancesOfPlansReturns(map[cf.ServicePlan]int{
-						cfServicePlan("1234", "plan-d", "url", "foo_plan"): 1,
+						cfServicePlan("1234", "cost-only-plan-id", "url", "foo_plan"): 1,
 					}, nil)
 				})
 
@@ -750,13 +750,13 @@ var _ = Describe("Management API", func() {
 					var brokerMetrics []mgmtapi.Metric
 
 					bodyBytes, _ := ioutil.ReadAll(instancesForPlanResponse.Body)
-					Expect(string(bodyBytes)).To(Not(ContainSubstring("cost-only-plan/memory/remaining")))
+					Expect(string(bodyBytes)).To(Not(ContainSubstring("cost-only-plan-name/memory/remaining")))
 
 					Expect(json.Unmarshal(bodyBytes, &brokerMetrics)).To(Succeed())
 					Expect(brokerMetrics).To(SatisfyAll(
 						ContainElement(
 							mgmtapi.Metric{
-								Key:   "/on-demand-broker/some_service_offering/cost-only-plan/memory/used",
+								Key:   "/on-demand-broker/some_service_offering/cost-only-plan-name/memory/used",
 								Value: 2,
 								Unit:  "count",
 							}),
@@ -768,7 +768,7 @@ var _ = Describe("Management API", func() {
 			Context("when plan has no resource cost", func() {
 				BeforeEach(func() {
 					manageableBroker.CountInstancesOfPlansReturns(map[cf.ServicePlan]int{
-						cfServicePlan("1234", "bar_id", "url", "bar_plan"): 3,
+						cfServicePlan("1234", "limit-only-plan-id", "url", "bar_plan"): 3,
 					}, nil)
 
 				})
@@ -779,11 +779,10 @@ var _ = Describe("Management API", func() {
 					By("returns the correct number of instances")
 					defer instancesForPlanResponse.Body.Close()
 
-					Fail("need to actually write assertions that works ffs")
 					bodyBytes, _ := ioutil.ReadAll(instancesForPlanResponse.Body)
 					Expect(string(bodyBytes)).To(SatisfyAll(
-						Not(ContainSubstring("limit-only-plan/memory/used")),
-						Not(ContainSubstring("limit-only-plan/memory/remaining")),
+						Not(ContainSubstring("limit-only-plan-name/memory/used")),
+						Not(ContainSubstring("limit-only-plan-name/memory/remaining")),
 					))
 				})
 			})

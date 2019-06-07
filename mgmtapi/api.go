@@ -263,23 +263,21 @@ func (a *api) metrics(w http.ResponseWriter, r *http.Request) {
 		}
 		for resourceType, instanceCost := range serviceOfferingPlan.ResourceCosts {
 			resourceLimit := serviceOfferingPlan.Quotas.ResourceLimits[resourceType]
-			if instanceCost != 0 {
-				usedResource := instanceCost * instanceCount
-				resourceQuotaMetricUsed := Metric{
-					Key:   fmt.Sprintf("/on-demand-broker/%s/%s/%s/used", a.serviceOffering.Name, serviceOfferingPlan.Name, resourceType),
-					Unit:  "count",
-					Value: float64(usedResource),
-				}
-				brokerMetrics = append(brokerMetrics, resourceQuotaMetricUsed)
+			usedResource := instanceCost * instanceCount
+			resourceQuotaMetricUsed := Metric{
+				Key:   fmt.Sprintf("/on-demand-broker/%s/%s/%s/used", a.serviceOffering.Name, serviceOfferingPlan.Name, resourceType),
+				Unit:  "count",
+				Value: float64(usedResource),
+			}
+			brokerMetrics = append(brokerMetrics, resourceQuotaMetricUsed)
 
-				if resourceLimit != 0 {
-					resourceQuotaMetricRemaining := Metric{
-						Key:   fmt.Sprintf("/on-demand-broker/%s/%s/%s/remaining", a.serviceOffering.Name, serviceOfferingPlan.Name, resourceType),
-						Unit:  "count",
-						Value: float64(resourceLimit - usedResource),
-					}
-					brokerMetrics = append(brokerMetrics, resourceQuotaMetricRemaining)
+			if resourceLimit != 0 {
+				resourceQuotaMetricRemaining := Metric{
+					Key:   fmt.Sprintf("/on-demand-broker/%s/%s/%s/remaining", a.serviceOffering.Name, serviceOfferingPlan.Name, resourceType),
+					Unit:  "count",
+					Value: float64(resourceLimit - usedResource),
 				}
+				brokerMetrics = append(brokerMetrics, resourceQuotaMetricRemaining)
 			}
 		}
 	}
