@@ -196,7 +196,6 @@ func (a *api) metrics(w http.ResponseWriter, r *http.Request) {
 
 	brokerMetrics := []Metric{}
 	instanceCountsByPlan, err := a.manageableBroker.CountInstancesOfPlans(logger)
-
 	if err != nil {
 		logger.Printf("error getting instance count for service offering %s: %s", a.serviceOffering.Name, err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -210,7 +209,6 @@ func (a *api) metrics(w http.ResponseWriter, r *http.Request) {
 	}
 
 	totalInstances := 0
-
 	for plan, instanceCount := range instanceCountsByPlan {
 		serviceOfferingPlan, err := a.getPlan(plan.ServicePlanEntity.UniqueID)
 		if err != nil {
@@ -254,6 +252,36 @@ func (a *api) metrics(w http.ResponseWriter, r *http.Request) {
 			Value: float64(limit - totalInstances),
 		}
 		brokerMetrics = append(brokerMetrics, quotaMetric)
+	}
+
+	for plan, instanceCount := range instanceCountsByPlan {
+		serviceOfferingPlan, err := a.getPlan(plan.ServicePlanEntity.UniqueID)
+		if err != nil {
+			logger.Println(err)
+			a.writeJson(w, []interface{}{}, logger)
+			return
+		}
+		for resourceType, instanceCost := range serviceOfferingPlan.ResourceCosts {
+			resourceLimit := serviceOfferingPlan.Quotas.ResourceLimits[resourceType]
+			if instanceCost != 0 {
+				usedResource := instanceCost * instanceCount
+				resourceQuotaMetricUsed := Metric{
+					Key:   fmt.Sprintf("/on-demand-broker/%s/%s/%s/used", a.serviceOffering.Name, serviceOfferingPlan.Name, resourceType),
+					Unit:  "count",
+					Value: float64(usedResource),
+				}
+				brokerMetrics = append(brokerMetrics, resourceQuotaMetricUsed)
+
+				if resourceLimit != 0 {
+					resourceQuotaMetricRemaining := Metric{
+						Key:   fmt.Sprintf("/on-demand-broker/%s/%s/%s/remaining", a.serviceOffering.Name, serviceOfferingPlan.Name, resourceType),
+						Unit:  "count",
+						Value: float64(resourceLimit - usedResource),
+					}
+					brokerMetrics = append(brokerMetrics, resourceQuotaMetricRemaining)
+				}
+			}
+		}
 	}
 
 	a.writeJson(w, brokerMetrics, logger)

@@ -43,9 +43,18 @@ var _ = Describe("Management API", func() {
 
 	BeforeEach(func() {
 		serviceOffering = config.ServiceOffering{
-			ID:    "some_service_offering-id",
-			Name:  "some_service_offering",
-			Plans: []config.Plan{{ID: "foo_id", Name: "foo_plan"}, {ID: "bar_id", Name: "bar_plan"}},
+			ID:   "some_service_offering-id",
+			Name: "some_service_offering",
+			Plans: []config.Plan{
+				{
+					ID:   "foo_id",
+					Name: "foo_plan",
+				},
+				{
+					ID:   "bar_id",
+					Name: "bar_plan",
+				},
+			},
 		}
 		logs = gbytes.NewBuffer()
 		loggerFactory = loggerfactory.New(io.MultiWriter(GinkgoWriter, logs), "mgmtapi-unit-tests", log.LstdFlags)
@@ -377,47 +386,189 @@ var _ = Describe("Management API", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		Context("when no quota is set", func() {
-			Context("when there is one plan with instance count", func() {
+		Context("instance quotas", func() {
+			Context("when no quota is set", func() {
+				Context("when there is one plan with instance count", func() {
+					BeforeEach(func() {
+						manageableBroker.CountInstancesOfPlansReturns(map[cf.ServicePlan]int{
+							cfServicePlan("1234", "foo_id", "url", "foo_plan"): 2,
+						}, nil)
+					})
+
+					It("returns HTTP 200", func() {
+						Expect(instancesForPlanResponse.StatusCode).To(Equal(http.StatusOK))
+
+						By("counts instances for the plan")
+						Expect(manageableBroker.CountInstancesOfPlansCallCount()).To(Equal(1))
+
+						By("returns the correct number of instances")
+						defer instancesForPlanResponse.Body.Close()
+						var brokerMetrics []mgmtapi.Metric
+
+						Expect(json.NewDecoder(instancesForPlanResponse.Body).Decode(&brokerMetrics)).To(Succeed())
+						Expect(brokerMetrics).To(SatisfyAll(
+							ContainElement(mgmtapi.Metric{
+								Key:   "/on-demand-broker/some_service_offering/foo_plan/total_instances",
+								Value: 2,
+								Unit:  "count",
+							}),
+							ContainElement(mgmtapi.Metric{
+								Key:   "/on-demand-broker/some_service_offering/total_instances",
+								Value: 2,
+								Unit:  "count",
+							}),
+						))
+					})
+				})
+
+				Context("when there are multiple plans with instance counts", func() {
+					BeforeEach(func() {
+						manageableBroker.CountInstancesOfPlansReturns(map[cf.ServicePlan]int{
+							cfServicePlan("1234", "foo_id", "url", "name"): 2,
+							cfServicePlan("1234", "bar_id", "url", "name"): 3,
+						}, nil)
+					})
+
+					It("returns HTTP 200", func() {
+						Expect(instancesForPlanResponse.StatusCode).To(Equal(http.StatusOK))
+					})
+
+					It("counts instances for the plan", func() {
+						Expect(manageableBroker.CountInstancesOfPlansCallCount()).To(Equal(1))
+					})
+
+					It("returns the correct number of instances", func() {
+						defer instancesForPlanResponse.Body.Close()
+						var brokerMetrics []mgmtapi.Metric
+
+						Expect(json.NewDecoder(instancesForPlanResponse.Body).Decode(&brokerMetrics)).To(Succeed())
+						Expect(brokerMetrics).To(SatisfyAll(
+							ContainElement(mgmtapi.Metric{
+								Key:   "/on-demand-broker/some_service_offering/foo_plan/total_instances",
+								Value: 2,
+								Unit:  "count",
+							}),
+							ContainElement(mgmtapi.Metric{
+								Key:   "/on-demand-broker/some_service_offering/bar_plan/total_instances",
+								Value: 3,
+								Unit:  "count",
+							}),
+							ContainElement(mgmtapi.Metric{
+								Key:   "/on-demand-broker/some_service_offering/total_instances",
+								Value: 5,
+								Unit:  "count",
+							}),
+						))
+					})
+				})
+
+			})
+
+			Context("when a plan quota is set", func() {
 				BeforeEach(func() {
-					manageableBroker.CountInstancesOfPlansReturns(map[cf.ServicePlan]int{
-						cfServicePlan("1234", "foo_id", "url", "name"): 2,
-					}, nil)
+					limit := 7
+					serviceOffering.Plans[0].Quotas = config.Quotas{ServiceInstanceLimit: &limit}
 				})
 
-				It("returns HTTP 200", func() {
-					Expect(instancesForPlanResponse.StatusCode).To(Equal(http.StatusOK))
-				})
+				Context("when the instance count can be retrieved", func() {
+					BeforeEach(func() {
+						manageableBroker.CountInstancesOfPlansReturns(map[cf.ServicePlan]int{
+							cfServicePlan("1234", "foo_id", "url", "name"): 2,
+						}, nil)
+					})
 
-				It("counts instances for the plan", func() {
-					Expect(manageableBroker.CountInstancesOfPlansCallCount()).To(Equal(1))
-				})
+					It("returns HTTP 200", func() {
+						Expect(instancesForPlanResponse.StatusCode).To(Equal(http.StatusOK))
+					})
 
-				It("returns the correct number of instances", func() {
-					defer instancesForPlanResponse.Body.Close()
-					var brokerMetrics []mgmtapi.Metric
+					It("returns the correct number of instances and quota", func() {
+						defer instancesForPlanResponse.Body.Close()
+						var brokerMetrics []mgmtapi.Metric
 
-					Expect(json.NewDecoder(instancesForPlanResponse.Body).Decode(&brokerMetrics)).To(Succeed())
-					Expect(brokerMetrics).To(ConsistOf(
-						mgmtapi.Metric{
-							Key:   "/on-demand-broker/some_service_offering/foo_plan/total_instances",
-							Value: 2,
-							Unit:  "count",
-						},
-						mgmtapi.Metric{
-							Key:   "/on-demand-broker/some_service_offering/total_instances",
-							Value: 2,
-							Unit:  "count",
-						},
-					))
+						Expect(json.NewDecoder(instancesForPlanResponse.Body).Decode(&brokerMetrics)).To(Succeed())
+						Expect(brokerMetrics).To(ConsistOf(
+							mgmtapi.Metric{
+								Key:   "/on-demand-broker/some_service_offering/foo_plan/total_instances",
+								Value: 2,
+								Unit:  "count",
+							},
+							mgmtapi.Metric{
+								Key:   "/on-demand-broker/some_service_offering/foo_plan/quota_remaining",
+								Value: 5,
+								Unit:  "count",
+							},
+							mgmtapi.Metric{
+								Key:   "/on-demand-broker/some_service_offering/total_instances",
+								Value: 2,
+								Unit:  "count",
+							},
+						))
+					})
+
+					It("counts instances for the plan", func() {
+						Expect(manageableBroker.CountInstancesOfPlansCallCount()).To(Equal(1))
+					})
 				})
 			})
 
-			Context("when there are multiple plans with instance counts", func() {
+			Context("when a global quota is set", func() {
+				BeforeEach(func() {
+					limit := 12
+					serviceOffering.GlobalQuotas = config.Quotas{ServiceInstanceLimit: &limit}
+				})
+
+				Context("when the instance count can be retrieved", func() {
+					BeforeEach(func() {
+						manageableBroker.CountInstancesOfPlansReturns(map[cf.ServicePlan]int{
+							cfServicePlan("1234", "foo_id", "url", "name"): 2,
+							cfServicePlan("1234", "bar_id", "url", "name"): 3,
+						}, nil)
+					})
+
+					It("returns HTTP 200", func() {
+						Expect(instancesForPlanResponse.StatusCode).To(Equal(http.StatusOK))
+					})
+
+					It("returns the correct number of instances", func() {
+						defer instancesForPlanResponse.Body.Close()
+						var brokerMetrics []mgmtapi.Metric
+
+						Expect(json.NewDecoder(instancesForPlanResponse.Body).Decode(&brokerMetrics)).To(Succeed())
+						Expect(brokerMetrics).To(SatisfyAll(
+							ContainElement(mgmtapi.Metric{
+								Key:   "/on-demand-broker/some_service_offering/foo_plan/total_instances",
+								Value: 2,
+								Unit:  "count",
+							}),
+							ContainElement(mgmtapi.Metric{
+								Key:   "/on-demand-broker/some_service_offering/bar_plan/total_instances",
+								Value: 3,
+								Unit:  "count",
+							}),
+							ContainElement(mgmtapi.Metric{
+								Key:   "/on-demand-broker/some_service_offering/total_instances",
+								Value: 5,
+								Unit:  "count",
+							}),
+							ContainElement(mgmtapi.Metric{
+								Key:   "/on-demand-broker/some_service_offering/quota_remaining",
+								Value: 7,
+								Unit:  "count",
+							}),
+						))
+					})
+
+					It("counts instances for the plan", func() {
+						Expect(manageableBroker.CountInstancesOfPlansCallCount()).To(Equal(1))
+					})
+				})
+			})
+
+			Context("when there are no service instances", func() {
 				BeforeEach(func() {
 					manageableBroker.CountInstancesOfPlansReturns(map[cf.ServicePlan]int{
-						cfServicePlan("1234", "foo_id", "url", "name"): 2,
-						cfServicePlan("1234", "bar_id", "url", "name"): 3,
+						cfServicePlan("1234", "foo_id", "url", "name"): 0,
+						cfServicePlan("1234", "bar_id", "url", "name"): 0,
 					}, nil)
 				})
 
@@ -425,95 +576,27 @@ var _ = Describe("Management API", func() {
 					Expect(instancesForPlanResponse.StatusCode).To(Equal(http.StatusOK))
 				})
 
-				It("counts instances for the plan", func() {
-					Expect(manageableBroker.CountInstancesOfPlansCallCount()).To(Equal(1))
-				})
-
 				It("returns the correct number of instances", func() {
 					defer instancesForPlanResponse.Body.Close()
 					var brokerMetrics []mgmtapi.Metric
 
 					Expect(json.NewDecoder(instancesForPlanResponse.Body).Decode(&brokerMetrics)).To(Succeed())
-					Expect(brokerMetrics).To(ConsistOf(
-						mgmtapi.Metric{
+					Expect(brokerMetrics).To(SatisfyAll(
+						ContainElement(mgmtapi.Metric{
 							Key:   "/on-demand-broker/some_service_offering/foo_plan/total_instances",
-							Value: 2,
+							Value: 0,
 							Unit:  "count",
-						},
-						mgmtapi.Metric{
+						}),
+						ContainElement(mgmtapi.Metric{
 							Key:   "/on-demand-broker/some_service_offering/bar_plan/total_instances",
-							Value: 3,
+							Value: 0,
 							Unit:  "count",
-						},
-						mgmtapi.Metric{
+						}),
+						ContainElement(mgmtapi.Metric{
 							Key:   "/on-demand-broker/some_service_offering/total_instances",
-							Value: 5,
+							Value: 0,
 							Unit:  "count",
-						},
-					))
-				})
-			})
-
-			Context("when the instance count cannot be retrieved", func() {
-				BeforeEach(func() {
-					manageableBroker.CountInstancesOfPlansReturns(nil, errors.New("error counting instances"))
-				})
-
-				It("returns HTTP 500", func() {
-					Expect(instancesForPlanResponse.StatusCode).To(Equal(http.StatusInternalServerError))
-				})
-			})
-
-			Context("when the broker is not registered with CF", func() {
-				BeforeEach(func() {
-					manageableBroker.CountInstancesOfPlansReturns(map[cf.ServicePlan]int{}, nil)
-				})
-
-				It("returns HTTP 503 and logs why", func() {
-					Expect(instancesForPlanResponse.StatusCode).To(Equal(http.StatusServiceUnavailable))
-					Expect(logs).To(gbytes.Say("The some_service_offering service broker must be registered with Cloud Foundry before metrics can be collected"))
-				})
-			})
-		})
-
-		Context("when a plan quota is set", func() {
-			BeforeEach(func() {
-				limit := 7
-				serviceOffering.Plans[0].Quotas = config.Quotas{ServiceInstanceLimit: &limit}
-			})
-
-			Context("when the instance count can be retrieved", func() {
-				BeforeEach(func() {
-					manageableBroker.CountInstancesOfPlansReturns(map[cf.ServicePlan]int{
-						cfServicePlan("1234", "foo_id", "url", "name"): 2,
-					}, nil)
-				})
-
-				It("returns HTTP 200", func() {
-					Expect(instancesForPlanResponse.StatusCode).To(Equal(http.StatusOK))
-				})
-
-				It("returns the correct number of instances and quota", func() {
-					defer instancesForPlanResponse.Body.Close()
-					var brokerMetrics []mgmtapi.Metric
-
-					Expect(json.NewDecoder(instancesForPlanResponse.Body).Decode(&brokerMetrics)).To(Succeed())
-					Expect(brokerMetrics).To(ConsistOf(
-						mgmtapi.Metric{
-							Key:   "/on-demand-broker/some_service_offering/foo_plan/total_instances",
-							Value: 2,
-							Unit:  "count",
-						},
-						mgmtapi.Metric{
-							Key:   "/on-demand-broker/some_service_offering/foo_plan/quota_remaining",
-							Value: 5,
-							Unit:  "count",
-						},
-						mgmtapi.Metric{
-							Key:   "/on-demand-broker/some_service_offering/total_instances",
-							Value: 2,
-							Unit:  "count",
-						},
+						}),
 					))
 				})
 
@@ -523,97 +606,208 @@ var _ = Describe("Management API", func() {
 			})
 		})
 
-		Context("when a global quota is set", func() {
-			BeforeEach(func() {
-				limit := 12
-				serviceOffering.GlobalQuotas = config.Quotas{ServiceInstanceLimit: &limit}
-			})
+		Context("resource quotas", func() {
 
-			Context("when the instance count can be retrieved", func() {
+			BeforeEach(func() {
+				serviceOffering.Plans = []config.Plan{
+					{
+						ID:   "plan-a",
+						Name: "limit-and-cost-plan-1",
+						Quotas: config.Quotas{
+							ResourceLimits: map[string]int{
+								"memory":       60,
+								"nutella_jars": 10,
+							}},
+						ResourceCosts: map[string]int{
+							"memory":       20,
+							"nutella_jars": 5,
+						},
+					},
+					{
+						ID:   "plan-b",
+						Name: "limit-and-cost-plan-2",
+						Quotas: config.Quotas{
+							ResourceLimits: map[string]int{
+								"memory": 10,
+							}},
+						ResourceCosts: map[string]int{
+							"memory": 4,
+						},
+					},
+					{
+						ID:   "plan-c",
+						Name: "limit-only-plan",
+						Quotas: config.Quotas{
+							ResourceLimits: map[string]int{
+								"memory": 60,
+							}},
+					},
+					{
+						ID:   "plan-d",
+						Name: "cost-only-plan",
+						ResourceCosts: map[string]int{
+							"memory": 2,
+						},
+					},
+				}
+
+			})
+			Context("when a resource quota and cost is set in a plan", func() {
 				BeforeEach(func() {
 					manageableBroker.CountInstancesOfPlansReturns(map[cf.ServicePlan]int{
-						cfServicePlan("1234", "foo_id", "url", "name"): 2,
-						cfServicePlan("1234", "bar_id", "url", "name"): 3,
+						cfServicePlan("1234", "plan-a", "url", "not-relevant"): 2,
+						cfServicePlan("1234", "plan-b", "url", "not-relevant"): 1,
+					}, nil)
+
+				})
+
+				It("exposes the quota metric", func() {
+					Expect(instancesForPlanResponse.StatusCode).To(Equal(http.StatusOK))
+
+					By("returns the correct number of instances")
+					defer instancesForPlanResponse.Body.Close()
+					var brokerMetrics []mgmtapi.Metric
+
+					Expect(json.NewDecoder(instancesForPlanResponse.Body).Decode(&brokerMetrics)).To(Succeed())
+					Expect(brokerMetrics).To(SatisfyAll(
+						ContainElement(mgmtapi.Metric{
+							Key:   "/on-demand-broker/some_service_offering/limit-and-cost-plan-1/memory/used",
+							Value: 40,
+							Unit:  "count",
+						}),
+						ContainElement(mgmtapi.Metric{
+							Key:   "/on-demand-broker/some_service_offering/limit-and-cost-plan-1/memory/remaining",
+							Value: 20,
+							Unit:  "count",
+						}),
+						ContainElement(mgmtapi.Metric{
+							Key:   "/on-demand-broker/some_service_offering/limit-and-cost-plan-1/nutella_jars/used",
+							Value: 10,
+							Unit:  "count",
+						}),
+						ContainElement(mgmtapi.Metric{
+							Key:   "/on-demand-broker/some_service_offering/limit-and-cost-plan-1/nutella_jars/remaining",
+							Value: 0,
+							Unit:  "count",
+						}),
+						ContainElement(mgmtapi.Metric{
+							Key:   "/on-demand-broker/some_service_offering/limit-and-cost-plan-2/memory/used",
+							Value: 4,
+							Unit:  "count",
+						}),
+						ContainElement(mgmtapi.Metric{
+							Key:   "/on-demand-broker/some_service_offering/limit-and-cost-plan-2/memory/remaining",
+							Value: 6,
+							Unit:  "count",
+						}),
+					))
+				})
+			})
+
+			Context("when there are no service instances", func() {
+				BeforeEach(func() {
+					manageableBroker.CountInstancesOfPlansReturns(map[cf.ServicePlan]int{
+						cfServicePlan("1234", "plan-a", "url", "foo_plan"): 0,
 					}, nil)
 				})
 
 				It("returns HTTP 200", func() {
 					Expect(instancesForPlanResponse.StatusCode).To(Equal(http.StatusOK))
-				})
 
-				It("returns the correct number of instances", func() {
+					By("returning the correct number of instances")
 					defer instancesForPlanResponse.Body.Close()
 					var brokerMetrics []mgmtapi.Metric
 
 					Expect(json.NewDecoder(instancesForPlanResponse.Body).Decode(&brokerMetrics)).To(Succeed())
-					Expect(brokerMetrics).To(ConsistOf(
-						mgmtapi.Metric{
-							Key:   "/on-demand-broker/some_service_offering/foo_plan/total_instances",
-							Value: 2,
-							Unit:  "count",
-						},
-						mgmtapi.Metric{
-							Key:   "/on-demand-broker/some_service_offering/bar_plan/total_instances",
-							Value: 3,
-							Unit:  "count",
-						},
-						mgmtapi.Metric{
-							Key:   "/on-demand-broker/some_service_offering/total_instances",
-							Value: 5,
-							Unit:  "count",
-						},
-						mgmtapi.Metric{
-							Key:   "/on-demand-broker/some_service_offering/quota_remaining",
-							Value: 7,
-							Unit:  "count",
-						},
-					))
+					Expect(brokerMetrics).To(SatisfyAll(
+						ContainElement(
+							mgmtapi.Metric{
+								Key:   "/on-demand-broker/some_service_offering/limit-and-cost-plan-1/memory/used",
+								Value: 0,
+								Unit:  "count",
+							}),
+						ContainElement(
+							mgmtapi.Metric{
+								Key:   "/on-demand-broker/some_service_offering/limit-and-cost-plan-1/memory/remaining",
+								Value: 60,
+								Unit:  "count",
+							})))
+				})
+			})
+
+			FContext("when the resource only has a cost but no limit", func() {
+				BeforeEach(func() {
+					manageableBroker.CountInstancesOfPlansReturns(map[cf.ServicePlan]int{
+						cfServicePlan("1234", "plan-d", "url", "foo_plan"): 1,
+					}, nil)
 				})
 
-				It("counts instances for the plan", func() {
-					Expect(manageableBroker.CountInstancesOfPlansCallCount()).To(Equal(1))
+				It("returns HTTP 200", func() {
+					Expect(instancesForPlanResponse.StatusCode).To(Equal(http.StatusOK))
+
+					By("returning the correct number of instances")
+					defer instancesForPlanResponse.Body.Close()
+					var brokerMetrics []mgmtapi.Metric
+
+					bodyBytes, _ := ioutil.ReadAll(instancesForPlanResponse.Body)
+					Expect(string(bodyBytes)).To(Not(ContainSubstring("cost-only-plan/memory/remaining")))
+
+					Expect(json.Unmarshal(bodyBytes, &brokerMetrics)).To(Succeed())
+					Expect(brokerMetrics).To(SatisfyAll(
+						ContainElement(
+							mgmtapi.Metric{
+								Key:   "/on-demand-broker/some_service_offering/cost-only-plan/memory/used",
+								Value: 2,
+								Unit:  "count",
+							}),
+					))
+
 				})
+			})
+
+			Context("when plan has no resource cost", func() {
+				BeforeEach(func() {
+					manageableBroker.CountInstancesOfPlansReturns(map[cf.ServicePlan]int{
+						cfServicePlan("1234", "bar_id", "url", "bar_plan"): 3,
+					}, nil)
+
+				})
+
+				It("doesnt return quota metrics", func() {
+					Expect(instancesForPlanResponse.StatusCode).To(Equal(http.StatusOK))
+
+					By("returns the correct number of instances")
+					defer instancesForPlanResponse.Body.Close()
+
+					Fail("need to actually write assertions that works ffs")
+					bodyBytes, _ := ioutil.ReadAll(instancesForPlanResponse.Body)
+					Expect(string(bodyBytes)).To(SatisfyAll(
+						Not(ContainSubstring("limit-only-plan/memory/used")),
+						Not(ContainSubstring("limit-only-plan/memory/remaining")),
+					))
+				})
+			})
+
+		})
+
+		Context("when the instance count cannot be retrieved", func() {
+			BeforeEach(func() {
+				manageableBroker.CountInstancesOfPlansReturns(nil, errors.New("error counting instances"))
+			})
+
+			It("returns HTTP 500", func() {
+				Expect(instancesForPlanResponse.StatusCode).To(Equal(http.StatusInternalServerError))
 			})
 		})
 
-		Context("when there are no service instances", func() {
+		Context("when the broker is not registered with CF", func() {
 			BeforeEach(func() {
-				manageableBroker.CountInstancesOfPlansReturns(map[cf.ServicePlan]int{
-					cfServicePlan("1234", "foo_id", "url", "name"): 0,
-					cfServicePlan("1234", "bar_id", "url", "name"): 0,
-				}, nil)
+				manageableBroker.CountInstancesOfPlansReturns(map[cf.ServicePlan]int{}, nil)
 			})
 
-			It("returns HTTP 200", func() {
-				Expect(instancesForPlanResponse.StatusCode).To(Equal(http.StatusOK))
-			})
-
-			It("returns the correct number of instances", func() {
-				defer instancesForPlanResponse.Body.Close()
-				var brokerMetrics []mgmtapi.Metric
-
-				Expect(json.NewDecoder(instancesForPlanResponse.Body).Decode(&brokerMetrics)).To(Succeed())
-				Expect(brokerMetrics).To(ConsistOf(
-					mgmtapi.Metric{
-						Key:   "/on-demand-broker/some_service_offering/foo_plan/total_instances",
-						Value: 0,
-						Unit:  "count",
-					},
-					mgmtapi.Metric{
-						Key:   "/on-demand-broker/some_service_offering/bar_plan/total_instances",
-						Value: 0,
-						Unit:  "count",
-					},
-					mgmtapi.Metric{
-						Key:   "/on-demand-broker/some_service_offering/total_instances",
-						Value: 0,
-						Unit:  "count",
-					},
-				))
-			})
-
-			It("counts instances for the plan", func() {
-				Expect(manageableBroker.CountInstancesOfPlansCallCount()).To(Equal(1))
+			It("returns HTTP 503 and logs why", func() {
+				Expect(instancesForPlanResponse.StatusCode).To(Equal(http.StatusServiceUnavailable))
+				Expect(logs).To(gbytes.Say("The some_service_offering service broker must be registered with Cloud Foundry before metrics can be collected"))
 			})
 		})
 	})
