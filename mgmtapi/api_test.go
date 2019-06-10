@@ -794,7 +794,9 @@ var _ = Describe("Management API", func() {
 				BeforeEach(func() {
 					serviceOffering.GlobalQuotas = config.Quotas{
 						ResourceLimits: map[string]int{
-							"memory": 60,
+							"memory":             60,
+							"nutella_jars":       10,
+							"peanut_butter_jars": 15,
 						}}
 					manageableBroker.CountInstancesOfPlansReturns(map[cf.ServicePlan]int{
 						cfServicePlan("1234", "limit-and-cost-plan-id-1", "url", "not-relevant"): 2,
@@ -802,7 +804,7 @@ var _ = Describe("Management API", func() {
 					}, nil)
 				})
 
-				FIt("exposes the quota metric when cost per plan is set", func() {
+				It("exposes the quota metric when cost per plan is set", func() {
 					Expect(instancesForPlanResponse.StatusCode).To(Equal(http.StatusOK))
 
 					By("returns the correct number of instances")
@@ -813,12 +815,12 @@ var _ = Describe("Management API", func() {
 					Expect(brokerMetrics).To(SatisfyAll(
 						ContainElement(mgmtapi.Metric{
 							Key:   "/on-demand-broker/some_service_offering/memory/used",
-							Value: 2,
+							Value: 42,
 							Unit:  "count",
 						}),
 						ContainElement(mgmtapi.Metric{
 							Key:   "/on-demand-broker/some_service_offering/memory/remaining",
-							Value: 58,
+							Value: 18,
 							Unit:  "count",
 						}),
 						ContainElement(mgmtapi.Metric{
@@ -850,7 +852,7 @@ var _ = Describe("Management API", func() {
 						}),
 						ContainElement(mgmtapi.Metric{
 							Key:   "/on-demand-broker/some_service_offering/peanut_butter_jars/remaining",
-							Value: 10,
+							Value: 15,
 							Unit:  "count",
 						}),
 					))
