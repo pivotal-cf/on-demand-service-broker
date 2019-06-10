@@ -206,6 +206,7 @@ func (a *api) metrics(w http.ResponseWriter, r *http.Request) {
 	}
 
 	totalInstances := 0
+	globalCostsPerResource := map[string]int{}
 	for plan, instanceCount := range instanceCountsByPlan {
 		serviceOfferingPlan, err := a.getPlan(plan.ServicePlanEntity.UniqueID)
 		if err != nil {
@@ -231,6 +232,8 @@ func (a *api) metrics(w http.ResponseWriter, r *http.Request) {
 				fmt.Sprintf("%s/used", resourceType),
 				usedResources)
 
+			globalCostsPerResource[resourceType] = usedResources + globalCostsPerResource[resourceType]
+
 			if resourceLimit != 0 {
 
 				brokerMetrics = brokerMetrics.AddPlanMetric(
@@ -249,6 +252,13 @@ func (a *api) metrics(w http.ResponseWriter, r *http.Request) {
 		limit := *a.serviceOffering.GlobalQuotas.ServiceInstanceLimit
 
 		brokerMetrics = brokerMetrics.AddGlobalMetric("quota_remaining", limit-totalInstances)
+	}
+
+	for resourceType, resourceLimit := range a.serviceOffering.GlobalQuotas.ResourceLimits {
+		usedResource := globalCostsPerResource[resourceType]
+
+		brokerMetrics = brokerMetrics.AddGlobalMetric(fmt.Sprintf("%s/used", resourceType), usedResource)
+		brokerMetrics = brokerMetrics.AddGlobalMetric(fmt.Sprintf("%s/remaining", resourceType), resourceLimit-usedResource)
 	}
 
 	a.writeJson(w, brokerMetrics.metrics, logger)

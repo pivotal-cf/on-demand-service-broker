@@ -20,7 +20,7 @@ import (
 func FeatureToggledLifecycleTest(
 	serviceType service_helpers.ServiceType,
 	brokerInfo bosh_helpers.BrokerInfo,
-	plan string,
+	planName string,
 	newPlanName string,
 	arbitraryParams string,
 	dopplerAddress string) {
@@ -35,7 +35,7 @@ func FeatureToggledLifecycleTest(
 
 	By("creating a service", func() {
 		serviceInstanceName = "service" + brokerInfo.TestSuffix
-		cf_helpers.CreateService(brokerInfo.ServiceName, plan, serviceInstanceName, "")
+		cf_helpers.CreateService(brokerInfo.ServiceName, planName, serviceInstanceName, "")
 	})
 
 	By("creating a service key", func() {
@@ -61,14 +61,14 @@ func FeatureToggledLifecycleTest(
 	})
 
 	By("testing the broker emits metrics", func() {
-		testMetrics(brokerInfo, plan, dopplerAddress)
+		testMetrics(brokerInfo, planName, dopplerAddress)
 	})
 
 	By("testing the app can communicate with service", func() {
 		cf_helpers.ExerciseApp(serviceType, appURL)
 	})
 
-	By("testing the app works after updating the plan for the service", func() {
+	By("testing the app works after updating the planName for the service", func() {
 		cf_helpers.UpdateServiceToPlan(serviceInstanceName, newPlanName)
 		cf_helpers.ExerciseApp(serviceType, appURL)
 	})
@@ -115,8 +115,7 @@ func testSecureBindings(brokerInfo bosh_helpers.BrokerInfo, appName string) {
 	Expect(credhubRef).To(ContainSubstring("/c/%s", brokerInfo.ServiceID))
 }
 
-func testMetrics(brokerInfo bosh_helpers.BrokerInfo, plan string, dopplerAddress string) {
-	planName := plan
+func testMetrics(brokerInfo bosh_helpers.BrokerInfo, planName string, dopplerAddress string) {
 	brokerDeploymentName := brokerInfo.DeploymentName
 	serviceOfferingName := brokerInfo.ServiceName
 	Expect(dopplerAddress).NotTo(BeEmpty())

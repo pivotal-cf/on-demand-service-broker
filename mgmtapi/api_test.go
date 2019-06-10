@@ -649,16 +649,20 @@ var _ = Describe("Management API", func() {
 							"memory": 2,
 						},
 					},
+					{
+						ID:   "no-quota-plan-id",
+						Name: "no-quota-plan-name",
+					},
 				}
 
 			})
+
 			Context("when a resource quota and cost is set in a plan", func() {
 				BeforeEach(func() {
 					manageableBroker.CountInstancesOfPlansReturns(map[cf.ServicePlan]int{
 						cfServicePlan("1234", "limit-and-cost-plan-id-1", "url", "not-relevant"): 2,
 						cfServicePlan("1234", "limit-and-cost-plan-id-2", "url", "not-relevant"): 1,
 					}, nil)
-
 				})
 
 				It("exposes the quota metric", func() {
@@ -770,7 +774,6 @@ var _ = Describe("Management API", func() {
 					manageableBroker.CountInstancesOfPlansReturns(map[cf.ServicePlan]int{
 						cfServicePlan("1234", "limit-only-plan-id", "url", "bar_plan"): 3,
 					}, nil)
-
 				})
 
 				It("doesnt return quota metrics", func() {
@@ -787,6 +790,72 @@ var _ = Describe("Management API", func() {
 				})
 			})
 
+			Context("when a global quota is set", func() {
+				BeforeEach(func() {
+					serviceOffering.GlobalQuotas = config.Quotas{
+						ResourceLimits: map[string]int{
+							"memory": 60,
+						}}
+					manageableBroker.CountInstancesOfPlansReturns(map[cf.ServicePlan]int{
+						cfServicePlan("1234", "limit-and-cost-plan-id-1", "url", "not-relevant"): 2,
+						cfServicePlan("1234", "cost-only-plan-id", "url", "not-relevant"):        1,
+					}, nil)
+				})
+
+				FIt("exposes the quota metric when cost per plan is set", func() {
+					Expect(instancesForPlanResponse.StatusCode).To(Equal(http.StatusOK))
+
+					By("returns the correct number of instances")
+					defer instancesForPlanResponse.Body.Close()
+					var brokerMetrics []mgmtapi.Metric
+
+					Expect(json.NewDecoder(instancesForPlanResponse.Body).Decode(&brokerMetrics)).To(Succeed())
+					Expect(brokerMetrics).To(SatisfyAll(
+						ContainElement(mgmtapi.Metric{
+							Key:   "/on-demand-broker/some_service_offering/memory/used",
+							Value: 2,
+							Unit:  "count",
+						}),
+						ContainElement(mgmtapi.Metric{
+							Key:   "/on-demand-broker/some_service_offering/memory/remaining",
+							Value: 58,
+							Unit:  "count",
+						}),
+						ContainElement(mgmtapi.Metric{
+							Key:   "/on-demand-broker/some_service_offering/nutella_jars/used",
+							Value: 10,
+							Unit:  "count",
+						}),
+						ContainElement(mgmtapi.Metric{
+							Key:   "/on-demand-broker/some_service_offering/nutella_jars/remaining",
+							Value: 0,
+							Unit:  "count",
+						}),
+					))
+				})
+
+				It("exposes the quota metric even if no plan has a cost defined for that resource type", func() {
+					Expect(instancesForPlanResponse.StatusCode).To(Equal(http.StatusOK))
+
+					By("returns the correct number of instances")
+					defer instancesForPlanResponse.Body.Close()
+					var brokerMetrics []mgmtapi.Metric
+
+					Expect(json.NewDecoder(instancesForPlanResponse.Body).Decode(&brokerMetrics)).To(Succeed())
+					Expect(brokerMetrics).To(SatisfyAll(
+						ContainElement(mgmtapi.Metric{
+							Key:   "/on-demand-broker/some_service_offering/peanut_butter_jars/used",
+							Value: 0,
+							Unit:  "count",
+						}),
+						ContainElement(mgmtapi.Metric{
+							Key:   "/on-demand-broker/some_service_offering/peanut_butter_jars/remaining",
+							Value: 10,
+							Unit:  "count",
+						}),
+					))
+				})
+			})
 		})
 
 		Context("when the instance count cannot be retrieved", func() {
