@@ -359,7 +359,7 @@ func deploy(systemTestSuffix string, deploymentOptions BrokerDeploymentOptions, 
 
 	consulRequired := variables.ConsulRequired == "true"
 	if consulRequired {
-		deployArguments = append(deployArguments, "--ops-file", filepath.Join(odbReleaseTemplatesPath, "operations", "add_consul.yml"))
+		deployArguments = append(deployArguments, "--ops-file", filepath.Join(globalFixturesPath, "operations", "add_consul.yml"))
 	}
 
 	if noClientCredentialsInVarsFile(variables.BrokerDeploymentVarsPath) {
