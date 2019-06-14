@@ -362,8 +362,8 @@ func deploy(systemTestSuffix string, deploymentOptions BrokerDeploymentOptions, 
 		deployArguments = append(deployArguments, "--ops-file", filepath.Join(globalFixturesPath, "operations", "add_consul.yml"))
 	}
 
-	if noClientCredentialsInVarsFile(variables.BrokerDeploymentVarsPath) {
-		deployArguments = append(deployArguments, "--ops-file", filepath.Join(odbReleaseTemplatesPath, "operations", "cf_uaa_user.yml"))
+	if noUserCredentialsInVarsFile(variables.BrokerDeploymentVarsPath) {
+		deployArguments = append(deployArguments, "--ops-file", filepath.Join(globalFixturesPath, "operations", "add_cf_uaa_client_credentials.yml"))
 	}
 
 	cmd := exec.Command("bosh", deployArguments...)
@@ -525,12 +525,12 @@ func deployODBWithManifest(brokerDeploymentName string, manifestFile *os.File) {
 	Eventually(session, LongBOSHTimeout).Should(gexec.Exit(0), "deployment failed")
 }
 
-func noClientCredentialsInVarsFile(varsFile string) bool {
+func noUserCredentialsInVarsFile(varsFile string) bool {
 	var test struct {
 		CF struct {
-			ClientCredentials struct {
-				ClientID string `yaml:"client_id"`
-			} `yaml:"client_credentials"`
+			UserCredentials struct {
+				ClientID string `yaml:"username"`
+			} `yaml:"user_credentials"`
 		} `yaml:"cf"`
 	}
 	f, err := os.Open(varsFile)
@@ -539,7 +539,7 @@ func noClientCredentialsInVarsFile(varsFile string) bool {
 	Expect(err).NotTo(HaveOccurred())
 	err = yaml.Unmarshal(varsFileContents, &test)
 	Expect(err).NotTo(HaveOccurred())
-	return test.CF.ClientCredentials.ClientID == ""
+	return test.CF.UserCredentials.ClientID == ""
 }
 
 func BOSHSupportsLinksAPIForDNS() bool {
