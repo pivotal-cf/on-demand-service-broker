@@ -1,8 +1,0 @@
-export BOSH_DEPLOYMENT_VARS=
-export BROKER_CA_NAME=
-export BROKER_SYSTEM_DOMAIN=islington.services-enablement.cf-app.com
-export ODB_VERSION=
-export SERVICE_RELEASE_NAME=
-export SERVICE_RELEASE_VERSION=
-
-source_up
