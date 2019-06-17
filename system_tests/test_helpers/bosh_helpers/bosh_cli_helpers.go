@@ -359,11 +359,11 @@ func deploy(systemTestSuffix string, deploymentOptions BrokerDeploymentOptions, 
 
 	consulRequired := variables.ConsulRequired == "true"
 	if consulRequired {
-		deployArguments = append(deployArguments, "--ops-file", filepath.Join(globalFixturesPath, "operations", "add_consul.yml"))
+		deployArguments = append(deployArguments, "--ops-file", filepath.Join(globalFixturesPath, "add_consul.yml"))
 	}
 
 	if noUserCredentialsInVarsFile(variables.BrokerDeploymentVarsPath) {
-		deployArguments = append(deployArguments, "--ops-file", filepath.Join(globalFixturesPath, "operations", "add_cf_uaa_client_credentials.yml"))
+		deployArguments = append(deployArguments, "--ops-file", filepath.Join(globalFixturesPath, "add_cf_uaa_client_credentials.yml"))
 	}
 
 	cmd := exec.Command("bosh", deployArguments...)
