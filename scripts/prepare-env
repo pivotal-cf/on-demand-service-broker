@@ -11,7 +11,6 @@ $META/concourse/bosh-lites-pool/tasks/make-broker-deployment-vars.sh "${env_name
 export GOPATH="$ODB"
 export BOSH_DEPLOYMENT_VARS="/tmp/broker-${env_name}.yml"
 export BROKER_SYSTEM_DOMAIN="$BOSH_LITE_DOMAIN"
-export CONSUL_REQUIRED=false
 export EXAMPLE_SI_API_PATH=~/workspace/example-service-instances-api
 export KAFKA_EXAMPLE_APP_PATH=~/workspace/kafka-example-app
 export KAFKA_SERVICE_ADAPTER_RELEASE_NAME=kafka-example-service-adapter

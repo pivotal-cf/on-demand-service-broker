@@ -64,7 +64,6 @@ type deploymentProperties struct {
 	BrokerSystemDomain        string
 	BrokerURI                 string
 	BrokerUsername            string
-	ConsulRequired            string
 	DeploymentName            string
 	OdbReleaseTemplatesPath   string
 	OdbVersion                string
@@ -79,7 +78,6 @@ type EnvVars struct {
 	BrokerDeploymentVarsPath  string
 	BrokerSystemDomain        string
 	BrokerURI                 string
-	ConsulRequired            string
 	DevEnv                    string
 	OdbReleaseTemplatesPath   string
 	OdbVersion                string
@@ -212,7 +210,6 @@ func getEnvVars(serviceType service_helpers.ServiceType) EnvVars {
 	envVars.BrokerSystemDomain = os.Getenv("BROKER_SYSTEM_DOMAIN")
 	envVars.BrokerURI = os.Getenv("BROKER_URI")
 	envVars.DeploymentName = os.Getenv("BROKER_DEPLOYMENT_NAME")
-	envVars.ConsulRequired = os.Getenv("CONSUL_REQUIRED")
 	envVars.DevEnv = os.Getenv("DEV_ENV")
 	envVars.OdbReleaseTemplatesPath = os.Getenv("ODB_RELEASE_TEMPLATES_PATH")
 	envVars.OdbVersion = os.Getenv("ODB_VERSION")
@@ -297,7 +294,6 @@ func buildDeploymentArguments(systemTestSuffix string, deploymentOptions BrokerD
 		BrokerSystemDomain:        envVars.BrokerSystemDomain,
 		BrokerURI:                 brokerURI,
 		BrokerUsername:            "broker",
-		ConsulRequired:            envVars.ConsulRequired,
 		DeploymentName:            deploymentName,
 		OdbReleaseTemplatesPath:   envVars.OdbReleaseTemplatesPath,
 		OdbVersion:                odbVersion,
@@ -355,11 +351,6 @@ func deploy(systemTestSuffix string, deploymentOptions BrokerDeploymentOptions, 
 	if deploymentOptions.BrokerTLS {
 		tlsOpsFile := filepath.Join(globalFixturesPath, "enable_broker_tls.yml")
 		deployArguments = append(deployArguments, "--ops-file", tlsOpsFile, "--var", "broker_ca_credhub_path=/services/tls_ca")
-	}
-
-	consulRequired := variables.ConsulRequired == "true"
-	if consulRequired {
-		deployArguments = append(deployArguments, "--ops-file", filepath.Join(globalFixturesPath, "add_consul.yml"))
 	}
 
 	if noUserCredentialsInVarsFile(variables.BrokerDeploymentVarsPath) {
