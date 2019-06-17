@@ -25,10 +25,10 @@ import (
 )
 
 type quotaCase struct {
-	GlobalResourceLimits map[string]int
-	PlanResourceLimits   map[string]int
-	GlobalInstanceLimit  *int
-	PlanInstanceLimit    *int
+	GlobalResourceQuota map[string]config.ResourceQuota
+	PlanResourceQuota   map[string]config.ResourceQuota
+	GlobalInstanceLimit *int
+	PlanInstanceLimit   *int
 }
 
 const (
@@ -73,7 +73,6 @@ var (
 			UpdateWatchTime: "100-200",
 			MaxInFlight:     5,
 		},
-		ResourceCosts: map[string]int{},
 		Quotas: config.Quotas{
 			ServiceInstanceLimit: &existingPlanServiceInstanceLimit,
 		},
@@ -285,7 +284,6 @@ var _ = BeforeEach(func() {
 			"super":             "yes",
 			"a_global_property": "overrides_global_value",
 		},
-		ResourceCosts: map[string]int{},
 		InstanceGroups: []serviceadapter.InstanceGroup{
 			{
 				Name:               existingPlanInstanceGroupName,

@@ -817,18 +817,18 @@ var _ = Describe("Provisioning", func() {
 
 			plan := existingPlan
 			plan.Quotas = config.Quotas{}
-			plan.ResourceCosts = map[string]int{"ips": 1, "memory": 1}
+			plan.Quotas.Resources = map[string]config.ResourceQuota{"ips": {Cost: 1}, "memory": {Cost: 1}}
 			catalogWithResourceQuotas := serviceCatalog
 
 			// set up quotas
 			if q.PlanInstanceLimit != nil {
 				plan.Quotas.ServiceInstanceLimit = q.PlanInstanceLimit
 			}
-			if len(q.PlanResourceLimits) > 0 {
-				plan.Quotas.ResourceLimits = q.PlanResourceLimits
+			if len(q.PlanResourceQuota) > 0 {
+				plan.Quotas.Resources = q.PlanResourceQuota
 			}
-			if len(q.GlobalResourceLimits) > 0 {
-				catalogWithResourceQuotas.GlobalQuotas.ResourceLimits = q.GlobalResourceLimits
+			if len(q.GlobalResourceQuota) > 0 {
+				catalogWithResourceQuotas.GlobalQuotas.Resources = q.GlobalResourceQuota
 			}
 			if q.GlobalInstanceLimit != nil {
 				catalogWithResourceQuotas.GlobalQuotas.ServiceInstanceLimit = q.GlobalInstanceLimit
@@ -909,7 +909,7 @@ var _ = Describe("Provisioning", func() {
 
 		Context("resource limits", func() {
 			It("deploy fails when plan resource limit is reached", func() {
-				planResourceLimits := map[string]int{"ips": 1} // plan costs 1 IP per instance
+				planResourceLimits := map[string]config.ResourceQuota{"ips": {Limit: 1, Cost: 1}}
 				provisionErr = deployWithQuotas(
 					quotaCase{nil, planResourceLimits, nil, nil},
 					existingPlanID,
@@ -920,7 +920,7 @@ var _ = Describe("Provisioning", func() {
 			})
 
 			It("deploy fails when global resource limit is reached", func() {
-				globalResourceLimits := map[string]int{"ips": 5} // plan costs 1 IP per instance
+				globalResourceLimits := map[string]config.ResourceQuota{"ips": {Limit: 5, Cost: 1}}
 				provisionErr = deployWithQuotas(
 					quotaCase{globalResourceLimits, nil, nil, nil},
 					existingPlanID,
@@ -931,7 +931,7 @@ var _ = Describe("Provisioning", func() {
 			})
 
 			It("succeeds when plan resource quota is set and has been reached but there is no instance count limit", func() {
-				planResourceLimits := map[string]int{"ips": 5} // plan costs 1 IP per instance
+				planResourceLimits := map[string]config.ResourceQuota{"ips": {Limit: 5, Cost: 1}}
 				provisionErr = deployWithQuotas(
 					quotaCase{nil, planResourceLimits, nil, nil},
 					secondPlanID,
@@ -944,8 +944,8 @@ var _ = Describe("Provisioning", func() {
 		Describe("when all quotas are reached simultaneously", func() {
 			var deployErr error
 			BeforeEach(func() {
-				planResourceLimits := map[string]int{"ips": 1, "memory": 1} // plan uses 1 IP and 1 memory
-				globalResourceLimits := map[string]int{"ips": 1}
+				planResourceLimits := map[string]config.ResourceQuota{"ips": {Limit: 1, Cost: 1}, "memory": {Limit: 1, Cost: 1}}
+				globalResourceLimits := map[string]config.ResourceQuota{"ips": {Limit: 1}}
 				globalInstanceLimit := 1
 				planInstanceLimit := 1
 
@@ -971,8 +971,8 @@ var _ = Describe("Provisioning", func() {
 
 		Describe("when global resource quotas and plan resource quotas are set, and both have been reached", func() {
 			It("provisions successfully when the plan doesn't count against the global quota", func() {
-				planResourceLimits := map[string]int{"ips": 1, "memory": 1} // plan uses 1 IP and 1 memory
-				globalResourceLimits := map[string]int{"ips": 1}
+				planResourceLimits := map[string]config.ResourceQuota{"ips": {Limit: 1}, "memory": {Limit: 1}}
+				globalResourceLimits := map[string]config.ResourceQuota{"ips": {Limit: 1}}
 				provisionErr = deployWithQuotas(
 					quotaCase{globalResourceLimits, planResourceLimits, nil, nil},
 					secondPlanID,

@@ -28,14 +28,14 @@ func (b *Broker) checkQuotas(ctx context.Context, plan config.Plan, cfPlanCounts
 		}
 	}
 
-	if globalResourceLimits := b.serviceOffering.GlobalQuotas.ResourceLimits; globalResourceLimits != nil {
-		if err := checkGlobalResourceQuotaNotExceeded(plan, b.serviceOffering.Plans, planCounts, globalResourceLimits); err != nil {
+	if globalResourceQuota := b.serviceOffering.GlobalQuotas.Resources; globalResourceQuota != nil {
+		if err := checkGlobalResourceQuotaNotExceeded(plan, b.serviceOffering.Plans, planCounts, globalResourceQuota); err != nil {
 			quotasErrors = append(quotasErrors, err)
 		}
 	}
 
-	if planResourceLimits := plan.Quotas.ResourceLimits; planResourceLimits != nil {
-		if err := checkPlanResourceQuotaNotExceeded(plan, planCounts, plan.Quotas.ResourceLimits); err != nil {
+	if planResourceQuota := plan.Quotas.Resources; planResourceQuota != nil {
+		if err := checkPlanResourceQuotaNotExceeded(plan, planCounts, planResourceQuota); err != nil {
 			quotasErrors = append(quotasErrors, err)
 		}
 	}
@@ -90,22 +90,22 @@ type exceededQuota struct {
 	required int
 }
 
-func checkGlobalResourceQuotaNotExceeded(plan config.Plan, plans []config.Plan, planCounts map[string]int, globalResourceLimits map[string]int) error {
+func checkGlobalResourceQuotaNotExceeded(plan config.Plan, plans []config.Plan, planCounts map[string]int, globalResourceQuota map[string]config.ResourceQuota) error {
 	var exceededQuotas []exceededQuota
 
-	for kind, limit := range globalResourceLimits {
+	for kind, quota := range globalResourceQuota {
 		var currentUsage int
 
 		for _, p := range plans {
 			instanceCount := planCounts[plan.ID]
-			cost, ok := p.ResourceCosts[kind]
-			if ok {
+			cost := p.Quotas.Resources[kind].Cost
+			if cost != 0 {
 				currentUsage += cost * instanceCount
 			}
 		}
-		required := plan.ResourceCosts[kind]
-		if (currentUsage + required) > limit {
-			exceededQuotas = append(exceededQuotas, exceededQuota{kind, limit, currentUsage, required})
+		required := plan.Quotas.Resources[kind].Cost
+		if (currentUsage + required) > quota.Limit {
+			exceededQuotas = append(exceededQuotas, exceededQuota{kind, quota.Limit, currentUsage, required})
 		}
 	}
 
@@ -121,20 +121,22 @@ func checkGlobalResourceQuotaNotExceeded(plan config.Plan, plans []config.Plan, 
 	return fmt.Errorf("global quotas [%s] would be exceeded by this deployment", strings.Join(errorDetails, ", "))
 }
 
-func checkPlanResourceQuotaNotExceeded(plan config.Plan, planCounts map[string]int, planResourceLimits map[string]int) error {
+func checkPlanResourceQuotaNotExceeded(plan config.Plan, planCounts map[string]int, planResourceQuota map[string]config.ResourceQuota) error {
 	var exceededQuotas []exceededQuota
 
-	for kind, limit := range planResourceLimits {
+	for kind, quota := range planResourceQuota {
 		var currentUsage int
 
 		instanceCount := planCounts[plan.ID]
-		cost, ok := plan.ResourceCosts[kind]
-		if ok {
+		cost := plan.Quotas.Resources[kind].Cost
+		if cost != 0 {
 			currentUsage += cost * instanceCount
 		}
 
-		if (currentUsage + cost) > limit {
-			exceededQuotas = append(exceededQuotas, exceededQuota{kind, limit, currentUsage, cost})
+		if quota.Limit != 0 {
+			if (currentUsage + cost) > quota.Limit {
+				exceededQuotas = append(exceededQuotas, exceededQuota{kind, quota.Limit, currentUsage, cost})
+			}
 		}
 	}
 

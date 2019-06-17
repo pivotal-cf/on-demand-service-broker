@@ -2,8 +2,9 @@
 - type: replace
   path: /instance_groups/name=broker/jobs/name=broker/properties/service_catalog/global_quotas?
   value:
-    resource_limits:
-      limited_resource: 1
+    resources:
+      limited_resource:
+        limit: 1
 
 - type: replace
   path: /instance_groups/name=broker/jobs/name=broker/properties/service_catalog/plans?
@@ -14,8 +15,10 @@
       metadata: {bullets: [], display_name: Plan with Resource Costs limited by the global quota}
       cf_service_access: enable
       description: Plan with Resource Costs limited by the global quota
-      resource_costs:
-        limited_resource: 1
+      quotas:
+        resources:
+          limited_resource:
+            cost: 1
       instance_groups:
         - name: redis-server
           azs: [((meta.az))]
@@ -28,8 +31,8 @@
       metadata: {bullets: [], display_name: Plan with no cost}
       cf_service_access: enable
       description: Plan with no cost
-      quotas: {}
-      resource_costs: {}
+      quotas:
+        resources: {}
       instance_groups:
         - name: redis-server
           azs: [((meta.az))]
@@ -43,10 +46,10 @@
       cf_service_access: enable
       description: Plan with SI limit to 5
       quotas:
-        resource_limits:
-          plan_specific_limited_resource: 5
-      resource_costs:
-        plan_specific_limited_resource: 3
+        resources:
+          plan_specific_limited_resource:
+            limit: 5
+            cost: 3
       instance_groups:
         - name: redis-server
           azs: [((meta.az))]

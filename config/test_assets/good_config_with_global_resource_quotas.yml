@@ -60,16 +60,19 @@ service_catalog:
     - some-tag
     - some-other-tag
   global_quotas:
-    resource_limits:
-      ips: 1
+    resources:
+      ips:
+        limit: 1
   global_properties:
     global_foo: global_bar
   plans:
     - name: some-dedicated-name
       plan_id: some-dedicated-plan-id
       description: I'm a dedicated plan
-      resource_costs:
-        ips: 1
+      quotas:
+        resources:
+          ips:
+            cost: 1
       free: true
       update:
         canaries: 1

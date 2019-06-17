@@ -614,40 +614,48 @@ var _ = Describe("Management API", func() {
 						ID:   "limit-and-cost-plan-id-1",
 						Name: "limit-and-cost-plan-name-1",
 						Quotas: config.Quotas{
-							ResourceLimits: map[string]int{
-								"memory":       60,
-								"nutella_jars": 10,
+							Resources: map[string]config.ResourceQuota{
+								"memory": {
+									Limit: 60,
+									Cost:  20,
+								},
+								"nutella_jars": {
+									Limit: 10,
+									Cost:  5,
+								},
 							}},
-						ResourceCosts: map[string]int{
-							"memory":       20,
-							"nutella_jars": 5,
-						},
 					},
 					{
 						ID:   "limit-and-cost-plan-id-2",
 						Name: "limit-and-cost-plan-name-2",
 						Quotas: config.Quotas{
-							ResourceLimits: map[string]int{
-								"memory": 10,
-							}},
-						ResourceCosts: map[string]int{
-							"memory": 4,
+							Resources: map[string]config.ResourceQuota{
+								"memory": {
+									Limit: 10,
+									Cost:  4,
+								},
+							},
 						},
 					},
 					{
 						ID:   "limit-only-plan-id",
 						Name: "limit-only-plan-name",
 						Quotas: config.Quotas{
-							ResourceLimits: map[string]int{
-								"memory": 60,
+							Resources: map[string]config.ResourceQuota{
+								"memory": {
+									Limit: 60,
+								},
 							}},
 					},
 					{
 						ID:   "cost-only-plan-id",
 						Name: "cost-only-plan-name",
-						ResourceCosts: map[string]int{
-							"memory": 2,
-						},
+						Quotas: config.Quotas{
+							Resources: map[string]config.ResourceQuota{
+								"memory": {
+									Cost: 2,
+								},
+							}},
 					},
 					{
 						ID:   "no-quota-plan-id",
@@ -793,10 +801,10 @@ var _ = Describe("Management API", func() {
 			Context("when a global quota is set", func() {
 				BeforeEach(func() {
 					serviceOffering.GlobalQuotas = config.Quotas{
-						ResourceLimits: map[string]int{
-							"memory":             60,
-							"nutella_jars":       10,
-							"peanut_butter_jars": 15,
+						Resources: map[string]config.ResourceQuota{
+							"memory":             {Limit: 60},
+							"nutella_jars":       {Limit: 10},
+							"peanut_butter_jars": {Limit: 15},
 						}}
 					manageableBroker.CountInstancesOfPlansReturns(map[cf.ServicePlan]int{
 						cfServicePlan("1234", "limit-and-cost-plan-id-1", "url", "not-relevant"): 2,

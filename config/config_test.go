@@ -211,8 +211,8 @@ var _ = Describe("Broker Config", func() {
 
 			It("returns config object", func() {
 				Expect(parseErr).NotTo(HaveOccurred())
-				Expect(conf.ServiceCatalog.GlobalQuotas.ResourceLimits["ips"]).To(Equal(1))
-				Expect(conf.ServiceCatalog.Plans[0].ResourceCosts["ips"]).To(Equal(1))
+				Expect(conf.ServiceCatalog.GlobalQuotas.Resources["ips"].Limit).To(Equal(1))
+				Expect(conf.ServiceCatalog.Plans[0].Quotas.Resources["ips"].Cost).To(Equal(1))
 			})
 		})
 

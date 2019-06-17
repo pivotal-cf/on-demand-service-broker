@@ -572,7 +572,6 @@ var _ = Describe("Update", func() {
 				newPlan := existingPlan
 				oldPlan := secondPlan
 				newPlan.Quotas = config.Quotas{}
-				newPlan.ResourceCosts = map[string]int{"ips": 1, "memory": 1}
 				catalogWithResourceQuotas := serviceCatalog
 
 				planCounts := map[cf.ServicePlan]int{
@@ -585,11 +584,11 @@ var _ = Describe("Update", func() {
 				if q.PlanInstanceLimit != nil {
 					newPlan.Quotas.ServiceInstanceLimit = q.PlanInstanceLimit
 				}
-				if len(q.PlanResourceLimits) > 0 {
-					newPlan.Quotas.ResourceLimits = q.PlanResourceLimits
+				if len(q.PlanResourceQuota) > 0 {
+					newPlan.Quotas.Resources = q.PlanResourceQuota
 				}
-				if len(q.GlobalResourceLimits) > 0 {
-					catalogWithResourceQuotas.GlobalQuotas.ResourceLimits = q.GlobalResourceLimits
+				if len(q.GlobalResourceQuota) > 0 {
+					catalogWithResourceQuotas.GlobalQuotas.Resources = q.GlobalResourceQuota
 				}
 				if q.GlobalInstanceLimit != nil {
 					catalogWithResourceQuotas.GlobalQuotas.ServiceInstanceLimit = q.GlobalInstanceLimit
@@ -632,7 +631,7 @@ var _ = Describe("Update", func() {
 
 			It("fails if the instance would exceed the global resource limit", func() {
 				updateErr := updateWithQuotas(
-					quotaCase{map[string]int{"ips": 4}, nil, nil, nil},
+					quotaCase{map[string]config.ResourceQuota{"ips": {Limit: 4}}, map[string]config.ResourceQuota{"ips": {Cost: 1}}, nil, nil},
 					1,
 					4,
 					map[string]interface{}{}, map[string]interface{}{},
@@ -642,7 +641,7 @@ var _ = Describe("Update", func() {
 
 			It("fails if the instance would exceed the plan resource limit", func() {
 				updateErr := updateWithQuotas(
-					quotaCase{nil, map[string]int{"ips": 4}, nil, nil},
+					quotaCase{nil, map[string]config.ResourceQuota{"ips": {Limit: 4, Cost: 1}}, nil, nil},
 					1,
 					4,
 					map[string]interface{}{}, map[string]interface{}{},
@@ -664,7 +663,7 @@ var _ = Describe("Update", func() {
 			It("fails and output multiple errors when more than one quotas is exceeded", func() {
 				count := 4
 				updateErr := updateWithQuotas(
-					quotaCase{map[string]int{"ips": 4}, map[string]int{"ips": 4}, nil, &count},
+					quotaCase{map[string]config.ResourceQuota{"ips": {Limit: 4}}, map[string]config.ResourceQuota{"ips": {Limit: 4, Cost: 1}}, nil, &count},
 					1,
 					4,
 					map[string]interface{}{}, map[string]interface{}{},

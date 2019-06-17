@@ -223,23 +223,25 @@ func (a *api) metrics(w http.ResponseWriter, r *http.Request) {
 			brokerMetrics = brokerMetrics.AddPlanMetric(serviceOfferingPlan.Name, "quota_remaining", limit-instanceCount)
 		}
 
-		for resourceType, instanceCost := range serviceOfferingPlan.ResourceCosts {
-			resourceLimit := serviceOfferingPlan.Quotas.ResourceLimits[resourceType]
+		for resourceType, quota := range serviceOfferingPlan.Quotas.Resources {
+			resourceLimit := quota.Limit
 
-			usedResources := instanceCost * instanceCount
-			brokerMetrics = brokerMetrics.AddPlanMetric(
-				serviceOfferingPlan.Name,
-				fmt.Sprintf("%s/used", resourceType),
-				usedResources)
-
-			globalCostsPerResource[resourceType] = usedResources + globalCostsPerResource[resourceType]
-
-			if resourceLimit != 0 {
-
+			resourceCost := quota.Cost
+			usedResources := resourceCost * instanceCount
+			if resourceCost != 0 {
 				brokerMetrics = brokerMetrics.AddPlanMetric(
 					serviceOfferingPlan.Name,
-					fmt.Sprintf("%s/remaining", resourceType),
-					resourceLimit-usedResources)
+					fmt.Sprintf("%s/used", resourceType),
+					usedResources)
+
+				globalCostsPerResource[resourceType] = usedResources + globalCostsPerResource[resourceType]
+
+				if resourceLimit != 0 {
+					brokerMetrics = brokerMetrics.AddPlanMetric(
+						serviceOfferingPlan.Name,
+						fmt.Sprintf("%s/remaining", resourceType),
+						resourceLimit-usedResources)
+				}
 			}
 		}
 
@@ -254,11 +256,11 @@ func (a *api) metrics(w http.ResponseWriter, r *http.Request) {
 		brokerMetrics = brokerMetrics.AddGlobalMetric("quota_remaining", limit-totalInstances)
 	}
 
-	for resourceType, resourceLimit := range a.serviceOffering.GlobalQuotas.ResourceLimits {
+	for resourceType, quota := range a.serviceOffering.GlobalQuotas.Resources {
 		usedResource := globalCostsPerResource[resourceType]
 
 		brokerMetrics = brokerMetrics.AddGlobalMetric(fmt.Sprintf("%s/used", resourceType), usedResource)
-		brokerMetrics = brokerMetrics.AddGlobalMetric(fmt.Sprintf("%s/remaining", resourceType), resourceLimit-usedResource)
+		brokerMetrics = brokerMetrics.AddGlobalMetric(fmt.Sprintf("%s/remaining", resourceType), quota.Limit-usedResource)
 	}
 
 	a.writeJson(w, brokerMetrics.metrics, logger)

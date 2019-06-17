@@ -11,9 +11,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"strings"
-
 	"net/http"
+	"strings"
 
 	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
 	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
@@ -464,7 +463,6 @@ type Plan struct {
 	InstanceGroups   []serviceadapter.InstanceGroup   `yaml:"instance_groups,omitempty"`
 	Update           *serviceadapter.Update           `yaml:"update,omitempty"`
 	LifecycleErrands *serviceadapter.LifecycleErrands `yaml:"lifecycle_errands,omitempty"`
-	ResourceCosts    map[string]int                   `yaml:"resource_costs,omitempty"`
 	BindingWithDNS   []BindingDNS                     `yaml:"binding_with_dns"`
 	MaintenanceInfo  *MaintenanceInfo                 `yaml:"maintenance_info,omitempty"`
 }
@@ -552,9 +550,14 @@ type DashboardClient struct {
 	RedirectUri string `yaml:"redirect_uri"`
 }
 
+type ResourceQuota struct {
+	Limit int `yaml:"limit,omitempty"`
+	Cost  int `yaml:"cost,omitempty"`
+}
+
 type Quotas struct {
-	ServiceInstanceLimit *int           `yaml:"service_instance_limit,omitempty"`
-	ResourceLimits       map[string]int `yaml:"resource_limits,omitempty"`
+	ServiceInstanceLimit *int                     `yaml:"service_instance_limit,omitempty"`
+	Resources            map[string]ResourceQuota `yaml:"resources,omitempty"`
 }
 
 type CanarySelectionParams map[string]string
