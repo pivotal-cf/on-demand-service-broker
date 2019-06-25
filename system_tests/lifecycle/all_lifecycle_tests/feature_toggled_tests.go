@@ -71,7 +71,7 @@ func FeatureToggledLifecycleTest(
 	By("validating the broker indicator protocol", func() {
 		downloadedIndicator := downloadIndicatorFromVM(brokerInfo)
 
-		cmd := exec.Command("verification",
+		cmd := exec.Command("indicator-verification",
 			"-indicators", downloadedIndicator.Name(),
 			"-authorization", cf_helpers.GetOAuthToken(),
 			"-query-endpoint", "https://log-cache."+brokerInfo.BrokerSystemDomain, "-k")
