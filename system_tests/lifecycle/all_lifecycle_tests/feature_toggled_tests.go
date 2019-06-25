@@ -4,6 +4,9 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"os/exec"
 	"strings"
 	"time"
 
@@ -11,6 +14,7 @@ import (
 	"github.com/cloudfoundry/sonde-go/events"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gexec"
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/cf_helpers"
@@ -64,6 +68,19 @@ func FeatureToggledLifecycleTest(
 		testMetrics(brokerInfo, planName, dopplerAddress)
 	})
 
+	By("validating the broker indicator protocol", func() {
+		downloadedIndicator := downloadIndicatorFromVM(brokerInfo)
+
+		cmd := exec.Command("verification",
+			"-indicators", downloadedIndicator.Name(),
+			"-authorization", cf_helpers.GetOAuthToken(),
+			"-query-endpoint", "https://log-cache."+brokerInfo.BrokerSystemDomain, "-k")
+
+		session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
+		Expect(err).NotTo(HaveOccurred(), "failed to run verification tool")
+		Eventually(session, time.Minute).Should(gexec.Exit(0), "Indicators could not be verified")
+	})
+
 	By("testing the app can communicate with service", func() {
 		cf_helpers.ExerciseApp(serviceType, appURL)
 	})
@@ -89,6 +106,14 @@ func FeatureToggledLifecycleTest(
 	By("deleting the service", func() {
 		cf_helpers.DeleteService(serviceInstanceName)
 	})
+}
+
+func downloadIndicatorFromVM(brokerInfo bosh_helpers.BrokerInfo) *os.File {
+	downloadedIndicator, err := ioutil.TempFile("/tmp", "")
+	Expect(err).NotTo(HaveOccurred())
+	bosh_helpers.CopyFromVM(brokerInfo.DeploymentName, "broker", "/var/vcap/jobs/broker/config/indicators.yml", downloadedIndicator.Name())
+
+	return downloadedIndicator
 }
 
 func testBindingWithDNS(serviceKeyRaw, bindingDNSAttribute string) {

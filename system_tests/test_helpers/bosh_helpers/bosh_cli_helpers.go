@@ -44,15 +44,16 @@ type BoshTaskOutput struct {
 }
 
 type BrokerInfo struct {
-	URI            string
-	DeploymentName string
-	ServiceName    string
-	PlanID         string
-	TestSuffix     string
-	BrokerPassword string
-	BrokerUsername string
-	BrokerName     string
-	ServiceID      string
+	URI                string
+	DeploymentName     string
+	ServiceName        string
+	PlanID             string
+	TestSuffix         string
+	BrokerPassword     string
+	BrokerUsername     string
+	BrokerName         string
+	ServiceID          string
+	BrokerSystemDomain string
 }
 
 type deploymentProperties struct {
@@ -186,6 +187,19 @@ func RunOnVM(deploymentName, VMName, command string) {
 	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
 	Expect(err).NotTo(HaveOccurred(), "failed to run ssh")
 	Eventually(session, LongBOSHTimeout).Should(gexec.Exit(0), "Expected to SSH successfully")
+}
+
+func CopyFromVM(deploymentName, VMName, fromPath, toPath string) {
+	err := env_helpers.ValidateEnvVars(
+		"BOSH_GW_HOST",
+		"BOSH_GW_USER",
+		"BOSH_GW_PRIVATE_KEY",
+	)
+	Expect(err).ToNot(HaveOccurred())
+	cmd := exec.Command("bosh", "-d", deploymentName, "scp", fmt.Sprintf("%s:%s", VMName, fromPath), toPath)
+	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
+	Expect(err).NotTo(HaveOccurred(), "failed to run scp")
+	Eventually(session, LongBOSHTimeout).Should(gexec.Exit(0), "Expected to SCP successfully")
 }
 
 func Run(deploymentName string, commands ...string) {
@@ -365,15 +379,16 @@ func deploy(systemTestSuffix string, deploymentOptions BrokerDeploymentOptions, 
 	WaitBrokerToStart(variables.BrokerURI)
 
 	return BrokerInfo{
-		URI:            variables.BrokerURI,
-		DeploymentName: variables.DeploymentName,
-		ServiceName:    serviceName,
-		ServiceID:      serviceCatalogID,
-		PlanID:         planID,
-		TestSuffix:     systemTestSuffix,
-		BrokerPassword: variables.BrokerPassword,
-		BrokerUsername: variables.BrokerUsername,
-		BrokerName:     brokerName,
+		URI:                variables.BrokerURI,
+		DeploymentName:     variables.DeploymentName,
+		ServiceName:        serviceName,
+		ServiceID:          serviceCatalogID,
+		PlanID:             planID,
+		TestSuffix:         systemTestSuffix,
+		BrokerPassword:     variables.BrokerPassword,
+		BrokerUsername:     variables.BrokerUsername,
+		BrokerName:         brokerName,
+		BrokerSystemDomain: variables.BrokerSystemDomain,
 	}
 }
 
