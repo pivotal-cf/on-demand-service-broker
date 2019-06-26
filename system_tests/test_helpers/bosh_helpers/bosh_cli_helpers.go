@@ -190,12 +190,6 @@ func RunOnVM(deploymentName, VMName, command string) {
 }
 
 func CopyFromVM(deploymentName, VMName, fromPath, toPath string) {
-	err := env_helpers.ValidateEnvVars(
-		"BOSH_GW_HOST",
-		"BOSH_GW_USER",
-		"BOSH_GW_PRIVATE_KEY",
-	)
-	Expect(err).ToNot(HaveOccurred())
 	cmd := exec.Command("bosh", "-d", deploymentName, "scp", fmt.Sprintf("%s:%s", VMName, fromPath), toPath)
 	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
 	Expect(err).NotTo(HaveOccurred(), "failed to run scp")
