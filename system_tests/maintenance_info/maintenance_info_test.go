@@ -95,7 +95,7 @@ var _ = Describe("On-demand-broker with maintenance_info", func() {
 
 		By("successfully upgrading a single service instance to the latest version", func() {
 			// redeploy the broker, adding a lifecycle errand, and changing the maintenance_info
-			brokerInfo = bosh.DeployAndRegisterBroker(
+			brokerInfo = bosh.DeployBroker(
 				brokerInfo.TestSuffix,
 				bosh.BrokerDeploymentOptions{},
 				service_helpers.Redis,

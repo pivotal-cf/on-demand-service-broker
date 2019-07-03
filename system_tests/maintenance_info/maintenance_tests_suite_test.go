@@ -23,7 +23,7 @@ var (
 
 var _ = BeforeSuite(func() {
 	uniqueID := uuid.New()[:6]
-	brokerInfo = bosh.DeployAndRegisterBroker(
+	brokerInfo = bosh.DeployBroker(
 		"-catalog-"+uniqueID,
 		bosh.BrokerDeploymentOptions{},
 		service_helpers.Redis,
