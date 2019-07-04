@@ -77,7 +77,7 @@ var _ = Describe("Provisioning", func() {
 			OrganizationGUID: organizationGUID,
 			SpaceGUID:        spaceGUID,
 			ServiceID:        serviceOfferingID,
-			MaintenanceInfo:  requestMaintenanceInfo,
+			MaintenanceInfo:  &requestMaintenanceInfo,
 		}
 	})
 
@@ -998,7 +998,7 @@ var _ = Describe("Provisioning", func() {
 
 		It("succeeds when maintenanceInfo.Checker succeeds", func() {
 
-			provisionDetails.MaintenanceInfo = domain.MaintenanceInfo{
+			provisionDetails.MaintenanceInfo = &domain.MaintenanceInfo{
 				Version: "1.2.3",
 				Public: map[string]string{
 					"edition": "gold millennium",

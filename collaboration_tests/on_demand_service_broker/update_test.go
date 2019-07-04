@@ -224,7 +224,7 @@ var _ = Describe("Update a service instance", func() {
 		})
 
 		It("succeeds when the maintenance_info for the new plan matches the broker maintenance_info", func() {
-			requestBody.MaintenanceInfo = domain.MaintenanceInfo{
+			requestBody.MaintenanceInfo = &domain.MaintenanceInfo{
 				Public: map[string]string{
 					"version":   "2",
 					"plan_size": "big",
@@ -253,7 +253,7 @@ var _ = Describe("Update a service instance", func() {
 		})
 
 		It("fails with 422 when the incoming maintenance_info doesn't match the broker maintenance_info for the new plan", func() {
-			requestBody.MaintenanceInfo = domain.MaintenanceInfo{
+			requestBody.MaintenanceInfo = &domain.MaintenanceInfo{
 				Public: map[string]string{
 					"version":   "2",
 					"plan_size": "small",
@@ -341,7 +341,7 @@ var _ = Describe("Update a service instance", func() {
 		})
 
 		It("succeeds when called with maintenance info", func() {
-			requestBody.MaintenanceInfo = domain.MaintenanceInfo{
+			requestBody.MaintenanceInfo = &domain.MaintenanceInfo{
 				Public: map[string]string{
 					"version": "2",
 				},
@@ -352,7 +352,7 @@ var _ = Describe("Update a service instance", func() {
 		})
 
 		It("fails when maintenance info doesnt match the catalog maintenance_info", func() {
-			requestBody.MaintenanceInfo = domain.MaintenanceInfo{
+			requestBody.MaintenanceInfo = &domain.MaintenanceInfo{
 				Public: map[string]string{
 					"version": "2",
 					"foo":     "bar",
@@ -380,7 +380,7 @@ properties:
 			Expect(err).NotTo(HaveOccurred())
 			zero := 0
 			fakeCommandRunner.RunWithInputParamsReturns(manifestBytes, []byte{}, &zero, nil)
-			requestBody.MaintenanceInfo = domain.MaintenanceInfo{
+			requestBody.MaintenanceInfo = &domain.MaintenanceInfo{
 				Public: map[string]string{
 					"version": "2",
 				},
@@ -398,7 +398,7 @@ properties:
 		})
 
 		It("fails when maintenance_info doesn't match the catalog maintenance_info", func() {
-			requestBody.MaintenanceInfo = domain.MaintenanceInfo{
+			requestBody.MaintenanceInfo = &domain.MaintenanceInfo{
 				Public: map[string]string{
 					"version": "3",
 				},
@@ -426,7 +426,7 @@ properties:
 					oldManifest := "name: service-instance_some-instance-id"
 					fakeTaskBoshClient.GetDeploymentReturns([]byte(oldManifest), true, nil)
 
-					requestBody.MaintenanceInfo = domain.MaintenanceInfo{
+					requestBody.MaintenanceInfo = &domain.MaintenanceInfo{
 						Public: map[string]string{
 							"version": "2",
 						},
@@ -571,7 +571,7 @@ properties:
 					PlanID:    oldPlanID,
 					SpaceID:   "space-guid",
 				},
-				MaintenanceInfo: domain.MaintenanceInfo{
+				MaintenanceInfo: &domain.MaintenanceInfo{
 					Public: map[string]string{
 						"version":   "2",
 						"plan_size": "big",

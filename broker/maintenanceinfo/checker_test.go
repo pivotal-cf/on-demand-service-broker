@@ -31,37 +31,44 @@ var _ = Describe("Checker", func() {
 
 		planID = "plan-id"
 
-		expectedPlanMaintenanceInfo = &domain.MaintenanceInfo{}
+	})
 
+	It("fails when plan not found", func() {
 		serviceCatalog = []domain.Service{
 			{
 				ID:   "some-service",
 				Name: "some-service",
-				Plans: []domain.ServicePlan{
-					{
-						ID:              planID,
-						Name:            "lol",
-						MaintenanceInfo: expectedPlanMaintenanceInfo,
-					},
-				},
 			},
 		}
-	})
-
-	It("fails when plan not found", func() {
 		checker := maintenanceinfo.Checker{}
 
-		err := checker.Check("invalid-plan", domain.MaintenanceInfo{}, serviceCatalog, logger)
+		err := checker.Check("invalid-plan", &domain.MaintenanceInfo{}, serviceCatalog, logger)
 
 		Expect(err).To(HaveOccurred())
 		Expect(err).To(MatchError(`plan invalid-plan not found`))
 	})
 
 	Context("configured without maintenance info", func() {
+		BeforeEach(func() {
+			serviceCatalog = []domain.Service{
+				{
+					ID:   "some-service",
+					Name: "some-service",
+					Plans: []domain.ServicePlan{
+						{
+							ID:              planID,
+							Name:            "lol",
+							MaintenanceInfo: nil,
+						},
+					},
+				},
+			}
+		})
+
 		It("succeeds and don't warn when maintenance_info is not passed", func() {
 			checker := maintenanceinfo.Checker{}
 
-			err := checker.Check(planID, domain.MaintenanceInfo{}, serviceCatalog, logger)
+			err := checker.Check(planID, nil, serviceCatalog, logger)
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(logBuffer.String()).ToNot(ContainSubstring(maintenanceInfoNotPassedWarning))
@@ -70,7 +77,7 @@ var _ = Describe("Checker", func() {
 		It("fails when maintenance info is passed", func() {
 			checker := maintenanceinfo.Checker{}
 
-			err := checker.Check(planID, domain.MaintenanceInfo{Version: "1.5.0"}, serviceCatalog, logger)
+			err := checker.Check(planID, &domain.MaintenanceInfo{Version: "1.5.0"}, serviceCatalog, logger)
 
 			Expect(err).To(HaveOccurred())
 			Expect(err).To(MatchError(apiresponses.ErrMaintenanceInfoNilConflict))
@@ -78,24 +85,46 @@ var _ = Describe("Checker", func() {
 	})
 
 	Context("configured with maintenance info", func() {
+		BeforeEach(func() {
+			expectedPlanMaintenanceInfo = new(domain.MaintenanceInfo)
+
+			serviceCatalog = []domain.Service{
+				{
+					ID:   "some-service",
+					Name: "some-service",
+					Plans: []domain.ServicePlan{
+						{
+							ID:              planID,
+							Name:            "lol",
+							MaintenanceInfo: expectedPlanMaintenanceInfo,
+						},
+					},
+				},
+			}
+		})
+
 		It("succeeds with a warning when maintenance info is not passed", func() {
-			expectedPlanMaintenanceInfo.Version = "1.5.0"
+			*expectedPlanMaintenanceInfo = domain.MaintenanceInfo{
+				Version: "1.5.0",
+			}
 			checker := maintenanceinfo.Checker{}
 
-			err := checker.Check(planID, domain.MaintenanceInfo{}, serviceCatalog, logger)
+			err := checker.Check(planID, nil, serviceCatalog, logger)
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(logBuffer.String()).To(ContainSubstring(maintenanceInfoNotPassedWarning))
 		})
 
 		It("succeeds when the maintenance info matches", func() {
-			expectedPlanMaintenanceInfo.Public = map[string]string{
-				"edition": "gold millennium",
+			*expectedPlanMaintenanceInfo = domain.MaintenanceInfo{
+				Public: map[string]string{
+					"edition": "gold millennium",
+				},
+				Private: "test",
+				Version: "1.2.3",
 			}
-			expectedPlanMaintenanceInfo.Private = "test"
-			expectedPlanMaintenanceInfo.Version = "1.2.3"
 
-			maintenanceInfo := domain.MaintenanceInfo{
+			maintenanceInfo := &domain.MaintenanceInfo{
 				Public: map[string]string{
 					"edition": "gold millennium",
 				},
@@ -111,11 +140,13 @@ var _ = Describe("Checker", func() {
 		})
 
 		It("errors when the maintenance info doesn't match", func() {
-			expectedPlanMaintenanceInfo.Public = map[string]string{
-				"edition": "gold millennium",
+			*expectedPlanMaintenanceInfo = domain.MaintenanceInfo{
+				Public: map[string]string{
+					"edition": "gold millennium",
+				},
+				Private: "test",
+				Version: "1.2.3",
 			}
-			expectedPlanMaintenanceInfo.Private = "test"
-			expectedPlanMaintenanceInfo.Version = "1.2.3"
 
 			maintenanceInfo := domain.MaintenanceInfo{
 				Public: map[string]string{
@@ -127,7 +158,7 @@ var _ = Describe("Checker", func() {
 
 			checker := maintenanceinfo.Checker{}
 
-			err := checker.Check(planID, maintenanceInfo, serviceCatalog, logger)
+			err := checker.Check(planID, &maintenanceInfo, serviceCatalog, logger)
 
 			Expect(err).To(HaveOccurred())
 			Expect(err).To(MatchError(apiresponses.ErrMaintenanceInfoConflict))

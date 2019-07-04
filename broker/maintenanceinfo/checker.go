@@ -12,7 +12,7 @@ type Checker struct{}
 
 func (c Checker) Check(
 	planID string,
-	maintenanceInfo domain.MaintenanceInfo,
+	maintenanceInfo *domain.MaintenanceInfo,
 	serviceCatalog []domain.Service,
 	logger *log.Logger) error {
 
@@ -21,18 +21,18 @@ func (c Checker) Check(
 		return err
 	}
 
-	if !maintenanceInfo.NilOrEmpty() {
-		if planMaintenanceInfo.NilOrEmpty() {
+	if maintenanceInfo != nil {
+		if planMaintenanceInfo == nil {
 			return apiresponses.ErrMaintenanceInfoNilConflict
 		}
 
-		if !planMaintenanceInfo.Equals(maintenanceInfo) {
+		if !planMaintenanceInfo.Equals(*maintenanceInfo) {
 			return apiresponses.ErrMaintenanceInfoConflict
 		}
 		return nil
 	}
 
-	if !planMaintenanceInfo.NilOrEmpty() {
+	if planMaintenanceInfo != nil {
 		logger.Println("warning: maintenance info defined in broker service catalog, but not passed in request")
 	}
 

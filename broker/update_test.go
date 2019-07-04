@@ -89,7 +89,7 @@ var _ = Describe("Update", func() {
 				PreviousValues: domain.PreviousValues{
 					PlanID: oldPlanID,
 				},
-				MaintenanceInfo: maintenanceInfo,
+				MaintenanceInfo: &maintenanceInfo,
 				RawParameters:   serialisedArbitraryParameters,
 			}
 			updateSpec, updateError = b.Update(context.Background(), instanceID, updateDetails, async)
@@ -693,7 +693,7 @@ var _ = Describe("Update", func() {
 					PreviousValues: domain.PreviousValues{
 						PlanID: oldPlanID,
 					},
-					MaintenanceInfo: domain.MaintenanceInfo{
+					MaintenanceInfo: &domain.MaintenanceInfo{
 						Private: "secret:secret;",
 					},
 				},
@@ -704,7 +704,7 @@ var _ = Describe("Update", func() {
 					PreviousValues: domain.PreviousValues{
 						PlanID: oldPlanID,
 					},
-					MaintenanceInfo: domain.MaintenanceInfo{
+					MaintenanceInfo: &domain.MaintenanceInfo{
 						Public: map[string]string{
 							"something": "fancy",
 						},
@@ -717,7 +717,7 @@ var _ = Describe("Update", func() {
 					PreviousValues: domain.PreviousValues{
 						PlanID: oldPlanID,
 					},
-					MaintenanceInfo: domain.MaintenanceInfo{
+					MaintenanceInfo: &domain.MaintenanceInfo{
 						Version: "1.2.3",
 					},
 				},
@@ -776,7 +776,7 @@ var _ = Describe("Update", func() {
 					PreviousValues: domain.PreviousValues{
 						PlanID: oldPlanID,
 					},
-					MaintenanceInfo: oldPlanMaintenanceInfo,
+					MaintenanceInfo: &oldPlanMaintenanceInfo,
 				},
 			}
 		})

@@ -227,5 +227,5 @@ type Hasher interface {
 //go:generate counterfeiter -o fakes/fake_maintenance_info_checker.go . MaintenanceInfoChecker
 
 type MaintenanceInfoChecker interface {
-	Check(planID string, maintenanceInfo domain.MaintenanceInfo, serviceCatalog []domain.Service, logger *log.Logger) error
+	Check(planID string, maintenanceInfo *domain.MaintenanceInfo, serviceCatalog []domain.Service, logger *log.Logger) error
 }

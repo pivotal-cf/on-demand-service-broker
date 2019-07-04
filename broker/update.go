@@ -155,7 +155,7 @@ func (b *Broker) checkPlanExists(details domain.UpdateDetails, logger *log.Logge
 }
 
 func (b *Broker) isUpgrade(details domain.UpdateDetails, detailsMap map[string]interface{}) bool {
-	if !details.MaintenanceInfo.NilOrEmpty() {
+	if details.MaintenanceInfo != nil {
 		params := detailsMap["parameters"]
 		return details.PlanID == details.PreviousValues.PlanID && len(params.(map[string]interface{})) == 0
 	}
