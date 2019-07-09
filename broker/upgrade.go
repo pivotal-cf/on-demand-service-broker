@@ -47,16 +47,8 @@ func (b *Broker) Upgrade(ctx context.Context, instanceID string, details domain.
 	)
 
 	if err != nil {
-		logger.Printf("error upgrading instance %s: %s", instanceID, err)
-
-		switch err := err.(type) {
-		case serviceadapter.UnknownFailureError:
-			return OperationData{}, b.processError(adapterToAPIError(ctx, err), logger)
-		case TaskInProgressError:
-			return OperationData{}, b.processError(NewOperationInProgressError(err), logger)
-		default:
-			return OperationData{}, b.processError(err, logger)
-		}
+		_, err := b.handleUpdateError(err, logger, ctx)
+		return OperationData{}, err
 	}
 
 	return OperationData{

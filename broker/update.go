@@ -29,9 +29,6 @@ func (b *Broker) Update(
 	details domain.UpdateDetails,
 	asyncAllowed bool,
 ) (domain.UpdateServiceSpec, error) {
-	b.deploymentLock.Lock()
-	defer b.deploymentLock.Unlock()
-
 	requestID := uuid.New()
 	ctx = brokercontext.New(ctx, string(OperationTypeUpdate), requestID, b.serviceOffering.Name, instanceID)
 	logger := b.loggerFactory.NewWithContext(ctx)
@@ -39,6 +36,33 @@ func (b *Broker) Update(
 	if !asyncAllowed {
 		return domain.UpdateServiceSpec{}, b.processError(apiresponses.ErrAsyncRequired, logger)
 	}
+
+	detailsWithRawParameters := domain.DetailsWithRawParameters(details)
+	detailsMap, err := convertDetailsToMap(detailsWithRawParameters)
+	if err != nil {
+		return domain.UpdateServiceSpec{}, b.processError(NewGenericError(ctx, err), logger)
+	}
+
+	err = b.validateMaintenanceInfo(details, ctx, logger)
+	if err != nil {
+		return domain.UpdateServiceSpec{}, b.processError(err, logger)
+	}
+
+	if b.isUpgrade(details, detailsMap) {
+		operationData, err := b.Upgrade(ctx, instanceID, details, logger)
+		if err != nil {
+			return domain.UpdateServiceSpec{}, err
+		}
+		operationDataJson, err := json.Marshal(operationData)
+		if err != nil {
+			return domain.UpdateServiceSpec{}, b.processError(NewGenericError(ctx, err), logger)
+		}
+		return domain.UpdateServiceSpec{IsAsync: true, OperationData: string(operationDataJson)}, nil
+	}
+
+	b.deploymentLock.Lock()
+	defer b.deploymentLock.Unlock()
+
 
 	plan, err := b.checkPlanExists(details, logger, ctx)
 	if err != nil {
@@ -53,58 +77,35 @@ func (b *Broker) Update(
 	var boshTaskID int
 	var operationType OperationType
 
-	err = b.validateMaintenanceInfo(details, ctx, logger)
+
+	err = b.validateQuotasForUpdate(plan, details, logger, ctx)
 	if err != nil {
 		return domain.UpdateServiceSpec{}, b.processError(err, logger)
 	}
 
-	detailsWithRawParameters := domain.DetailsWithRawParameters(details)
-	detailsMap, err := convertDetailsToMap(detailsWithRawParameters)
+	err = b.validatePlanSchemas(plan, details, logger)
+	if err != nil {
+		return domain.UpdateServiceSpec{}, b.processError(err, logger)
+	}
+
+	var secretMap map[string]string
+	secretMap, err = b.getSecretMap(instanceID, logger)
 	if err != nil {
 		return domain.UpdateServiceSpec{}, b.processError(NewGenericError(ctx, err), logger)
 	}
 
-	if b.isUpgrade(details, detailsMap) {
-		logger.Printf("upgrading instance %s", instanceID)
+	logger.Printf("updating instance %s", instanceID)
 
-		operationType = OperationTypeUpgrade
-		boshTaskID, _, err = b.deployer.Upgrade(
-			deploymentName(instanceID),
-			details.PlanID,
-			&details.PreviousValues.PlanID,
-			boshContextID,
-			logger,
-		)
-	} else {
-		err = b.validateQuotasForUpdate(plan, details, logger, ctx)
-		if err != nil {
-			return domain.UpdateServiceSpec{}, b.processError(err, logger)
-		}
-
-		err = b.validatePlanSchemas(plan, details, logger)
-		if err != nil {
-			return domain.UpdateServiceSpec{}, b.processError(err, logger)
-		}
-
-		var secretMap map[string]string
-		secretMap, err = b.getSecretMap(instanceID, logger)
-		if err != nil {
-			return domain.UpdateServiceSpec{}, b.processError(NewGenericError(ctx, err), logger)
-		}
-
-		logger.Printf("updating instance %s", instanceID)
-
-		operationType = OperationTypeUpdate
-		boshTaskID, _, err = b.deployer.Update(
-			deploymentName(instanceID),
-			details.PlanID,
-			detailsMap,
-			&details.PreviousValues.PlanID,
-			boshContextID,
-			secretMap,
-			logger,
-		)
-	}
+	operationType = OperationTypeUpdate
+	boshTaskID, _, err = b.deployer.Update(
+		deploymentName(instanceID),
+		details.PlanID,
+		detailsMap,
+		&details.PreviousValues.PlanID,
+		boshContextID,
+		secretMap,
+		logger,
+	)
 
 	if err != nil {
 		return b.handleUpdateError(err, logger, ctx)
@@ -134,8 +135,10 @@ func (b *Broker) handleUpdateError(err error, logger *log.Logger, ctx context.Co
 			UpdateLoggerAction,
 		), logger)
 	case TaskInProgressError:
-		return domain.UpdateServiceSpec{}, b.processError(errors.New(OperationInProgressMessage), logger)
+		return domain.UpdateServiceSpec{}, b.processError(NewOperationInProgressError(errors.New(OperationInProgressMessage)), logger)
 	case PlanNotFoundError:
+		return domain.UpdateServiceSpec{}, b.processError(err, logger)
+	case DeploymentNotFoundError:
 		return domain.UpdateServiceSpec{}, b.processError(err, logger)
 	case serviceadapter.UnknownFailureError:
 		return domain.UpdateServiceSpec{}, b.processError(adapterToAPIError(ctx, err), logger)

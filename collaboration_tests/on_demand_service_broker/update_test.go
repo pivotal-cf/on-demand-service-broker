@@ -607,16 +607,8 @@ properties:
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 			var body apiresponses.ErrorResponse
 			Expect(json.Unmarshal(bodyContent, &body)).To(Succeed())
-			Expect(body.Description).To(SatisfyAll(
-				Not(ContainSubstring("task-id:")),
-				ContainSubstring("There was a problem completing your request. Please contact your operations team providing the following information: "),
-				MatchRegexp(`broker-request-id: [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`),
-				ContainSubstring(fmt.Sprintf("service: %s", serviceName)),
-				ContainSubstring(fmt.Sprintf("service-instance-guid: %s", instanceID)),
-				ContainSubstring("operation: update"),
-			))
-
-			Eventually(loggerBuffer).Should(gbytes.Say("error deploying instance: bosh deployment 'service-instance_some-instance-id' not found"))
+			Expect(body.Description).To(ContainSubstring("bosh deployment 'service-instance_some-instance-id' not found"))
+			Eventually(loggerBuffer).Should(gbytes.Say("bosh deployment 'service-instance_some-instance-id' not found"))
 		})
 
 		It("responds with 500 if BOSH is an operation is in progress", func() {
