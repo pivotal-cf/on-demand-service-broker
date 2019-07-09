@@ -12,11 +12,8 @@ import (
 	"fmt"
 	"log"
 
-	"encoding/json"
-
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/brokerapi/domain"
-	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 )
 
 func (b *Broker) Upgrade(ctx context.Context, instanceID string, details domain.UpdateDetails, logger *log.Logger) (OperationData, error) {
@@ -39,28 +36,6 @@ func (b *Broker) Upgrade(ctx context.Context, instanceID string, details domain.
 
 	if plan.LifecycleErrands != nil {
 		boshContextID = uuid.New()
-	}
-
-	if b.EnablePlanSchemas {
-		schemas, _ := b.adapterClient.GeneratePlanSchema(plan.AdapterPlan(b.serviceOffering.GlobalProperties), logger)
-		instanceUpgradeSchema := schemas.Instance.Update
-
-		validator := NewValidator(instanceUpgradeSchema.Parameters)
-		err := validator.ValidateSchema()
-		if err != nil {
-			return OperationData{}, err
-		}
-
-		params := make(map[string]interface{})
-		err = json.Unmarshal(details.RawParameters, &params)
-		if err != nil && len(details.RawParameters) > 0 {
-			return OperationData{}, fmt.Errorf("provision request params are malformed: %s", details.RawParameters)
-		}
-
-		err = validator.ValidateParams(params)
-		if err != nil {
-			return OperationData{}, err
-		}
 	}
 
 	taskID, _, err := b.deployer.Upgrade(
