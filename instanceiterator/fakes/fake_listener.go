@@ -27,14 +27,15 @@ type FakeListener struct {
 	failedToRefreshInstanceInfoArgsForCall []struct {
 		arg1 string
 	}
-	FinishedStub        func(int, int, int, []string, []string)
+	FinishedStub        func(int, int, int, int, []string, []string)
 	finishedMutex       sync.RWMutex
 	finishedArgsForCall []struct {
 		arg1 int
 		arg2 int
 		arg3 int
-		arg4 []string
+		arg4 int
 		arg5 []string
+		arg6 []string
 	}
 	InstanceOperationFinishedStub        func(string, string)
 	instanceOperationFinishedMutex       sync.RWMutex
@@ -61,7 +62,7 @@ type FakeListener struct {
 	instancesToProcessArgsForCall []struct {
 		arg1 []service.Instance
 	}
-	ProgressStub        func(time.Duration, int, int, int, int)
+	ProgressStub        func(time.Duration, int, int, int, int, int)
 	progressMutex       sync.RWMutex
 	progressArgsForCall []struct {
 		arg1 time.Duration
@@ -69,6 +70,7 @@ type FakeListener struct {
 		arg3 int
 		arg4 int
 		arg5 int
+		arg6 int
 	}
 	RetryAttemptStub        func(int, int)
 	retryAttemptMutex       sync.RWMutex
@@ -184,29 +186,30 @@ func (fake *FakeListener) FailedToRefreshInstanceInfoArgsForCall(i int) string {
 	return argsForCall.arg1
 }
 
-func (fake *FakeListener) Finished(arg1 int, arg2 int, arg3 int, arg4 []string, arg5 []string) {
-	var arg4Copy []string
-	if arg4 != nil {
-		arg4Copy = make([]string, len(arg4))
-		copy(arg4Copy, arg4)
-	}
+func (fake *FakeListener) Finished(arg1 int, arg2 int, arg3 int, arg4 int, arg5 []string, arg6 []string) {
 	var arg5Copy []string
 	if arg5 != nil {
 		arg5Copy = make([]string, len(arg5))
 		copy(arg5Copy, arg5)
+	}
+	var arg6Copy []string
+	if arg6 != nil {
+		arg6Copy = make([]string, len(arg6))
+		copy(arg6Copy, arg6)
 	}
 	fake.finishedMutex.Lock()
 	fake.finishedArgsForCall = append(fake.finishedArgsForCall, struct {
 		arg1 int
 		arg2 int
 		arg3 int
-		arg4 []string
+		arg4 int
 		arg5 []string
-	}{arg1, arg2, arg3, arg4Copy, arg5Copy})
-	fake.recordInvocation("Finished", []interface{}{arg1, arg2, arg3, arg4Copy, arg5Copy})
+		arg6 []string
+	}{arg1, arg2, arg3, arg4, arg5Copy, arg6Copy})
+	fake.recordInvocation("Finished", []interface{}{arg1, arg2, arg3, arg4, arg5Copy, arg6Copy})
 	fake.finishedMutex.Unlock()
 	if fake.FinishedStub != nil {
-		fake.FinishedStub(arg1, arg2, arg3, arg4, arg5)
+		fake.FinishedStub(arg1, arg2, arg3, arg4, arg5, arg6)
 	}
 }
 
@@ -216,17 +219,17 @@ func (fake *FakeListener) FinishedCallCount() int {
 	return len(fake.finishedArgsForCall)
 }
 
-func (fake *FakeListener) FinishedCalls(stub func(int, int, int, []string, []string)) {
+func (fake *FakeListener) FinishedCalls(stub func(int, int, int, int, []string, []string)) {
 	fake.finishedMutex.Lock()
 	defer fake.finishedMutex.Unlock()
 	fake.FinishedStub = stub
 }
 
-func (fake *FakeListener) FinishedArgsForCall(i int) (int, int, int, []string, []string) {
+func (fake *FakeListener) FinishedArgsForCall(i int) (int, int, int, int, []string, []string) {
 	fake.finishedMutex.RLock()
 	defer fake.finishedMutex.RUnlock()
 	argsForCall := fake.finishedArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5, argsForCall.arg6
 }
 
 func (fake *FakeListener) InstanceOperationFinished(arg1 string, arg2 string) {
@@ -363,7 +366,7 @@ func (fake *FakeListener) InstancesToProcessArgsForCall(i int) []service.Instanc
 	return argsForCall.arg1
 }
 
-func (fake *FakeListener) Progress(arg1 time.Duration, arg2 int, arg3 int, arg4 int, arg5 int) {
+func (fake *FakeListener) Progress(arg1 time.Duration, arg2 int, arg3 int, arg4 int, arg5 int, arg6 int) {
 	fake.progressMutex.Lock()
 	fake.progressArgsForCall = append(fake.progressArgsForCall, struct {
 		arg1 time.Duration
@@ -371,11 +374,12 @@ func (fake *FakeListener) Progress(arg1 time.Duration, arg2 int, arg3 int, arg4 
 		arg3 int
 		arg4 int
 		arg5 int
-	}{arg1, arg2, arg3, arg4, arg5})
-	fake.recordInvocation("Progress", []interface{}{arg1, arg2, arg3, arg4, arg5})
+		arg6 int
+	}{arg1, arg2, arg3, arg4, arg5, arg6})
+	fake.recordInvocation("Progress", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6})
 	fake.progressMutex.Unlock()
 	if fake.ProgressStub != nil {
-		fake.ProgressStub(arg1, arg2, arg3, arg4, arg5)
+		fake.ProgressStub(arg1, arg2, arg3, arg4, arg5, arg6)
 	}
 }
 
@@ -385,17 +389,17 @@ func (fake *FakeListener) ProgressCallCount() int {
 	return len(fake.progressArgsForCall)
 }
 
-func (fake *FakeListener) ProgressCalls(stub func(time.Duration, int, int, int, int)) {
+func (fake *FakeListener) ProgressCalls(stub func(time.Duration, int, int, int, int, int)) {
 	fake.progressMutex.Lock()
 	defer fake.progressMutex.Unlock()
 	fake.ProgressStub = stub
 }
 
-func (fake *FakeListener) ProgressArgsForCall(i int) (time.Duration, int, int, int, int) {
+func (fake *FakeListener) ProgressArgsForCall(i int) (time.Duration, int, int, int, int, int) {
 	fake.progressMutex.RLock()
 	defer fake.progressMutex.RUnlock()
 	argsForCall := fake.progressArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5, argsForCall.arg6
 }
 
 func (fake *FakeListener) RetryAttempt(arg1 int, arg2 int) {

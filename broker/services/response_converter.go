@@ -34,6 +34,7 @@ const (
 	OperationInProgress BOSHOperationType = "busy"
 	OperationPending    BOSHOperationType = "not-started"
 	OperationSucceeded  BOSHOperationType = "succeeded"
+	OperationSkipped    BOSHOperationType = "skipped"
 )
 
 type ResponseConverter struct{}
@@ -54,6 +55,8 @@ func (r ResponseConverter) ExtractOperationFrom(response *http.Response) (BOSHOp
 		return BOSHOperation{Type: OrphanDeployment}, nil
 	case http.StatusConflict:
 		return BOSHOperation{Type: OperationInProgress}, nil
+	case http.StatusNoContent:
+		return BOSHOperation{Type: OperationSkipped}, nil
 	case http.StatusInternalServerError:
 		var errorResponse apiresponses.ErrorResponse
 		body, _ := ioutil.ReadAll(response.Body)

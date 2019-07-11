@@ -2,25 +2,19 @@
 package fakes
 
 import (
-	log "log"
-	sync "sync"
+	"log"
+	"sync"
 
-	task "github.com/pivotal-cf/on-demand-service-broker/task"
-	serviceadapter "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
+	"github.com/pivotal-cf/on-demand-service-broker/task"
+	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
 
 type FakeManifestGenerator struct {
-	GenerateManifestStub        func(string, string, map[string]interface{}, []byte, *string, map[string]string, map[string]string, *log.Logger) (serviceadapter.MarshalledGenerateManifest, error)
+	GenerateManifestStub        func(task.GenerateManifestProperties, *log.Logger) (serviceadapter.MarshalledGenerateManifest, error)
 	generateManifestMutex       sync.RWMutex
 	generateManifestArgsForCall []struct {
-		arg1 string
-		arg2 string
-		arg3 map[string]interface{}
-		arg4 []byte
-		arg5 *string
-		arg6 map[string]string
-		arg7 map[string]string
-		arg8 *log.Logger
+		arg1 task.GenerateManifestProperties
+		arg2 *log.Logger
 	}
 	generateManifestReturns struct {
 		result1 serviceadapter.MarshalledGenerateManifest
@@ -34,28 +28,17 @@ type FakeManifestGenerator struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeManifestGenerator) GenerateManifest(arg1 string, arg2 string, arg3 map[string]interface{}, arg4 []byte, arg5 *string, arg6 map[string]string, arg7 map[string]string, arg8 *log.Logger) (serviceadapter.MarshalledGenerateManifest, error) {
-	var arg4Copy []byte
-	if arg4 != nil {
-		arg4Copy = make([]byte, len(arg4))
-		copy(arg4Copy, arg4)
-	}
+func (fake *FakeManifestGenerator) GenerateManifest(arg1 task.GenerateManifestProperties, arg2 *log.Logger) (serviceadapter.MarshalledGenerateManifest, error) {
 	fake.generateManifestMutex.Lock()
 	ret, specificReturn := fake.generateManifestReturnsOnCall[len(fake.generateManifestArgsForCall)]
 	fake.generateManifestArgsForCall = append(fake.generateManifestArgsForCall, struct {
-		arg1 string
-		arg2 string
-		arg3 map[string]interface{}
-		arg4 []byte
-		arg5 *string
-		arg6 map[string]string
-		arg7 map[string]string
-		arg8 *log.Logger
-	}{arg1, arg2, arg3, arg4Copy, arg5, arg6, arg7, arg8})
-	fake.recordInvocation("GenerateManifest", []interface{}{arg1, arg2, arg3, arg4Copy, arg5, arg6, arg7, arg8})
+		arg1 task.GenerateManifestProperties
+		arg2 *log.Logger
+	}{arg1, arg2})
+	fake.recordInvocation("GenerateManifest", []interface{}{arg1, arg2})
 	fake.generateManifestMutex.Unlock()
 	if fake.GenerateManifestStub != nil {
-		return fake.GenerateManifestStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8)
+		return fake.GenerateManifestStub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -70,17 +53,17 @@ func (fake *FakeManifestGenerator) GenerateManifestCallCount() int {
 	return len(fake.generateManifestArgsForCall)
 }
 
-func (fake *FakeManifestGenerator) GenerateManifestCalls(stub func(string, string, map[string]interface{}, []byte, *string, map[string]string, map[string]string, *log.Logger) (serviceadapter.MarshalledGenerateManifest, error)) {
+func (fake *FakeManifestGenerator) GenerateManifestCalls(stub func(task.GenerateManifestProperties, *log.Logger) (serviceadapter.MarshalledGenerateManifest, error)) {
 	fake.generateManifestMutex.Lock()
 	defer fake.generateManifestMutex.Unlock()
 	fake.GenerateManifestStub = stub
 }
 
-func (fake *FakeManifestGenerator) GenerateManifestArgsForCall(i int) (string, string, map[string]interface{}, []byte, *string, map[string]string, map[string]string, *log.Logger) {
+func (fake *FakeManifestGenerator) GenerateManifestArgsForCall(i int) (task.GenerateManifestProperties, *log.Logger) {
 	fake.generateManifestMutex.RLock()
 	defer fake.generateManifestMutex.RUnlock()
 	argsForCall := fake.generateManifestArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5, argsForCall.arg6, argsForCall.arg7, argsForCall.arg8
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeManifestGenerator) GenerateManifestReturns(result1 serviceadapter.MarshalledGenerateManifest, result2 error) {

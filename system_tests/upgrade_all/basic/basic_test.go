@@ -51,7 +51,7 @@ var _ = Describe("upgrade-all-service-instances errand, basic operation", func()
 	})
 
 	AfterEach(func() {
-		bosh_helpers.DeregisterAndDeleteBroker(brokerInfo.DeploymentName)
+		//bosh_helpers.DeregisterAndDeleteBroker(brokerInfo.DeploymentName)
 	})
 
 	It("when there are no service instances provisioned, upgrade-all-service-instances runs successfully", func() {
@@ -72,11 +72,10 @@ var _ = Describe("upgrade-all-service-instances errand, basic operation", func()
 
 		It("succeeds", func() {
 			instancesToTest := 2
-			planName := "dedicated-vm"
 
 			appDtlsCh := make(chan upgrade_all.AppDetails, instancesToTest)
 
-			upgrade_all.PerformInParallel(func() {
+			upgrade_all.PerformInParallel(func(planName string) {
 				appDtls := upgrade_all.CreateServiceAndApp(brokerInfo.ServiceName, planName)
 				appDtlsCh <- appDtls
 
@@ -85,7 +84,11 @@ var _ = Describe("upgrade-all-service-instances errand, basic operation", func()
 					instanceGroupProperties := bosh_helpers.FindInstanceGroupProperties(&manifest, "redis-server")
 					Expect(instanceGroupProperties["redis"].(map[interface{}]interface{})["persistence"]).To(Equal("yes"))
 				})
-			}, instancesToTest)
+			}, instancesToTest, upgrade_all.PlanNamesForParallelCreate{
+				Items: []upgrade_all.PlanName{
+					{Index: 0, Value: "dedicated-vm"},
+					{Index: 1, Value: "dedicated-vm-with-post-deploy"},
+				}})
 
 			close(appDtlsCh)
 			for dtls := range appDtlsCh {
@@ -110,6 +113,7 @@ var _ = Describe("upgrade-all-service-instances errand, basic operation", func()
 					gbytes.Say("STARTING OPERATION"),
 					gbytes.Say("FINISHED PROCESSING Status: SUCCESS"),
 					gbytes.Say("Number of successful operations: %d", instancesToTest),
+					gbytes.Say("Number of skipped operations: 0"),
 				))
 			})
 
@@ -124,6 +128,16 @@ var _ = Describe("upgrade-all-service-instances errand, basic operation", func()
 					Expect(cf_helpers.GetFromTestApp(appDtls.AppURL, "uuid")).To(Equal(appDtls.UUID))
 				})
 			}
+
+			By("running the upgrade-all errand AGAIN", func() {
+				session := bosh_helpers.RunErrand(brokerInfo.DeploymentName, "upgrade-all-service-instances")
+				Expect(session).To(SatisfyAll(
+					gbytes.Say("STARTING OPERATION"),
+					gbytes.Say("FINISHED PROCESSING Status: SUCCESS"),
+					gbytes.Say("Number of successful operations: 0"),
+					gbytes.Say("Number of skipped operations: %d", instancesToTest),
+				))
+			})
 		})
 	})
 })

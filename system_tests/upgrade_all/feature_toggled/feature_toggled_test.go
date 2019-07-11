@@ -71,9 +71,13 @@ var _ = Describe("upgrade-all-service-instances errand using all the features av
 
 		appDtlsCh := make(chan upgrade_all.AppDetails, nonCanaryServices)
 
-		upgrade_all.PerformInParallel(func() {
+		upgrade_all.PerformInParallel(func(planName string) {
 			appDtlsCh <- upgrade_all.CreateServiceAndApp(brokerInfo.ServiceName, planName)
-		}, nonCanaryServices)
+		}, nonCanaryServices, upgrade_all.PlanNamesForParallelCreate{
+			Items: []upgrade_all.PlanName{
+				{Index: 0, Value: planName},
+				{Index: 1, Value: planName},
+			}})
 		close(appDtlsCh)
 
 		for dtls := range appDtlsCh {

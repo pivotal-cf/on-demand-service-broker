@@ -165,3 +165,11 @@ type PendingChangesNotAppliedError struct {
 func NewPendingChangesNotAppliedError(e error) error {
 	return PendingChangesNotAppliedError{error: e}
 }
+
+type OperationAlreadyCompletedError struct {
+	error
+}
+
+func NewOperationAlreadyCompletedError(e error) error {
+	return OperationAlreadyCompletedError{error: e}
+}

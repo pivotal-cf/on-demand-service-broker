@@ -10,12 +10,12 @@ import (
 )
 
 type FakeODBSecrets struct {
-	GenerateSecretPathsStub        func(deploymentName, manifest string, secretsMap serviceadapter.ODBManagedSecrets) []broker.ManifestSecret
+	GenerateSecretPathsStub        func(string, string, serviceadapter.ODBManagedSecrets) []broker.ManifestSecret
 	generateSecretPathsMutex       sync.RWMutex
 	generateSecretPathsArgsForCall []struct {
-		deploymentName string
-		manifest       string
-		secretsMap     serviceadapter.ODBManagedSecrets
+		arg1 string
+		arg2 string
+		arg3 serviceadapter.ODBManagedSecrets
 	}
 	generateSecretPathsReturns struct {
 		result1 []broker.ManifestSecret
@@ -23,11 +23,11 @@ type FakeODBSecrets struct {
 	generateSecretPathsReturnsOnCall map[int]struct {
 		result1 []broker.ManifestSecret
 	}
-	ReplaceODBRefsStub        func(manifest string, secrets []broker.ManifestSecret) string
+	ReplaceODBRefsStub        func(string, []broker.ManifestSecret) string
 	replaceODBRefsMutex       sync.RWMutex
 	replaceODBRefsArgsForCall []struct {
-		manifest string
-		secrets  []broker.ManifestSecret
+		arg1 string
+		arg2 []broker.ManifestSecret
 	}
 	replaceODBRefsReturns struct {
 		result1 string
@@ -39,23 +39,24 @@ type FakeODBSecrets struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeODBSecrets) GenerateSecretPaths(deploymentName string, manifest string, secretsMap serviceadapter.ODBManagedSecrets) []broker.ManifestSecret {
+func (fake *FakeODBSecrets) GenerateSecretPaths(arg1 string, arg2 string, arg3 serviceadapter.ODBManagedSecrets) []broker.ManifestSecret {
 	fake.generateSecretPathsMutex.Lock()
 	ret, specificReturn := fake.generateSecretPathsReturnsOnCall[len(fake.generateSecretPathsArgsForCall)]
 	fake.generateSecretPathsArgsForCall = append(fake.generateSecretPathsArgsForCall, struct {
-		deploymentName string
-		manifest       string
-		secretsMap     serviceadapter.ODBManagedSecrets
-	}{deploymentName, manifest, secretsMap})
-	fake.recordInvocation("GenerateSecretPaths", []interface{}{deploymentName, manifest, secretsMap})
+		arg1 string
+		arg2 string
+		arg3 serviceadapter.ODBManagedSecrets
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("GenerateSecretPaths", []interface{}{arg1, arg2, arg3})
 	fake.generateSecretPathsMutex.Unlock()
 	if fake.GenerateSecretPathsStub != nil {
-		return fake.GenerateSecretPathsStub(deploymentName, manifest, secretsMap)
+		return fake.GenerateSecretPathsStub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.generateSecretPathsReturns.result1
+	fakeReturns := fake.generateSecretPathsReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeODBSecrets) GenerateSecretPathsCallCount() int {
@@ -64,13 +65,22 @@ func (fake *FakeODBSecrets) GenerateSecretPathsCallCount() int {
 	return len(fake.generateSecretPathsArgsForCall)
 }
 
+func (fake *FakeODBSecrets) GenerateSecretPathsCalls(stub func(string, string, serviceadapter.ODBManagedSecrets) []broker.ManifestSecret) {
+	fake.generateSecretPathsMutex.Lock()
+	defer fake.generateSecretPathsMutex.Unlock()
+	fake.GenerateSecretPathsStub = stub
+}
+
 func (fake *FakeODBSecrets) GenerateSecretPathsArgsForCall(i int) (string, string, serviceadapter.ODBManagedSecrets) {
 	fake.generateSecretPathsMutex.RLock()
 	defer fake.generateSecretPathsMutex.RUnlock()
-	return fake.generateSecretPathsArgsForCall[i].deploymentName, fake.generateSecretPathsArgsForCall[i].manifest, fake.generateSecretPathsArgsForCall[i].secretsMap
+	argsForCall := fake.generateSecretPathsArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *FakeODBSecrets) GenerateSecretPathsReturns(result1 []broker.ManifestSecret) {
+	fake.generateSecretPathsMutex.Lock()
+	defer fake.generateSecretPathsMutex.Unlock()
 	fake.GenerateSecretPathsStub = nil
 	fake.generateSecretPathsReturns = struct {
 		result1 []broker.ManifestSecret
@@ -78,6 +88,8 @@ func (fake *FakeODBSecrets) GenerateSecretPathsReturns(result1 []broker.Manifest
 }
 
 func (fake *FakeODBSecrets) GenerateSecretPathsReturnsOnCall(i int, result1 []broker.ManifestSecret) {
+	fake.generateSecretPathsMutex.Lock()
+	defer fake.generateSecretPathsMutex.Unlock()
 	fake.GenerateSecretPathsStub = nil
 	if fake.generateSecretPathsReturnsOnCall == nil {
 		fake.generateSecretPathsReturnsOnCall = make(map[int]struct {
@@ -89,27 +101,28 @@ func (fake *FakeODBSecrets) GenerateSecretPathsReturnsOnCall(i int, result1 []br
 	}{result1}
 }
 
-func (fake *FakeODBSecrets) ReplaceODBRefs(manifest string, secrets []broker.ManifestSecret) string {
-	var secretsCopy []broker.ManifestSecret
-	if secrets != nil {
-		secretsCopy = make([]broker.ManifestSecret, len(secrets))
-		copy(secretsCopy, secrets)
+func (fake *FakeODBSecrets) ReplaceODBRefs(arg1 string, arg2 []broker.ManifestSecret) string {
+	var arg2Copy []broker.ManifestSecret
+	if arg2 != nil {
+		arg2Copy = make([]broker.ManifestSecret, len(arg2))
+		copy(arg2Copy, arg2)
 	}
 	fake.replaceODBRefsMutex.Lock()
 	ret, specificReturn := fake.replaceODBRefsReturnsOnCall[len(fake.replaceODBRefsArgsForCall)]
 	fake.replaceODBRefsArgsForCall = append(fake.replaceODBRefsArgsForCall, struct {
-		manifest string
-		secrets  []broker.ManifestSecret
-	}{manifest, secretsCopy})
-	fake.recordInvocation("ReplaceODBRefs", []interface{}{manifest, secretsCopy})
+		arg1 string
+		arg2 []broker.ManifestSecret
+	}{arg1, arg2Copy})
+	fake.recordInvocation("ReplaceODBRefs", []interface{}{arg1, arg2Copy})
 	fake.replaceODBRefsMutex.Unlock()
 	if fake.ReplaceODBRefsStub != nil {
-		return fake.ReplaceODBRefsStub(manifest, secrets)
+		return fake.ReplaceODBRefsStub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.replaceODBRefsReturns.result1
+	fakeReturns := fake.replaceODBRefsReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeODBSecrets) ReplaceODBRefsCallCount() int {
@@ -118,13 +131,22 @@ func (fake *FakeODBSecrets) ReplaceODBRefsCallCount() int {
 	return len(fake.replaceODBRefsArgsForCall)
 }
 
+func (fake *FakeODBSecrets) ReplaceODBRefsCalls(stub func(string, []broker.ManifestSecret) string) {
+	fake.replaceODBRefsMutex.Lock()
+	defer fake.replaceODBRefsMutex.Unlock()
+	fake.ReplaceODBRefsStub = stub
+}
+
 func (fake *FakeODBSecrets) ReplaceODBRefsArgsForCall(i int) (string, []broker.ManifestSecret) {
 	fake.replaceODBRefsMutex.RLock()
 	defer fake.replaceODBRefsMutex.RUnlock()
-	return fake.replaceODBRefsArgsForCall[i].manifest, fake.replaceODBRefsArgsForCall[i].secrets
+	argsForCall := fake.replaceODBRefsArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeODBSecrets) ReplaceODBRefsReturns(result1 string) {
+	fake.replaceODBRefsMutex.Lock()
+	defer fake.replaceODBRefsMutex.Unlock()
 	fake.ReplaceODBRefsStub = nil
 	fake.replaceODBRefsReturns = struct {
 		result1 string
@@ -132,6 +154,8 @@ func (fake *FakeODBSecrets) ReplaceODBRefsReturns(result1 string) {
 }
 
 func (fake *FakeODBSecrets) ReplaceODBRefsReturnsOnCall(i int, result1 string) {
+	fake.replaceODBRefsMutex.Lock()
+	defer fake.replaceODBRefsMutex.Unlock()
 	fake.ReplaceODBRefsStub = nil
 	if fake.replaceODBRefsReturnsOnCall == nil {
 		fake.replaceODBRefsReturnsOnCall = make(map[int]struct {

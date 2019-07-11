@@ -161,6 +161,16 @@ var _ = Describe("Logging Listener", func() {
 			})
 		})
 
+		Context("when skipped", func() {
+			BeforeEach(func() {
+				result = services.OperationSkipped
+			})
+
+			It("shows already skipped from platform", func() {
+				Expect(loggedString).To(ContainSubstring("[%s] [service-instance] Result: instance already up to date - operation skipped", logPrefix))
+			})
+		})
+
 		Context("when error", func() {
 			BeforeEach(func() {
 				result = services.BOSHOperationType(-1)
@@ -184,7 +194,7 @@ var _ = Describe("Logging Listener", func() {
 
 	It("Shows a summary of the progress so far", func() {
 		result := logResultsFromAsString(processType, func(listener instanceiterator.Listener) {
-			listener.Progress(time.Duration(10)*time.Second, 234, 345, 456, 567)
+			listener.Progress(time.Duration(10)*time.Second, 234, 345, 152, 456, 567)
 		})
 
 		Expect(result).To(SatisfyAll(
@@ -192,6 +202,7 @@ var _ = Describe("Logging Listener", func() {
 			ContainSubstring("Sleep interval until next attempt: 10s"),
 			ContainSubstring("Sleep interval until next attempt: 10s"),
 			ContainSubstring("Number of successful operations so far: 345"),
+			ContainSubstring("Number of skipped operations so far: 152"),
 			ContainSubstring("Number of service instance orphans detected so far: 234"),
 			ContainSubstring("Number of deleted instances before operation could happen: 567"),
 			ContainSubstring("Number of operations in progress (to retry) so far: 456"),
@@ -200,12 +211,13 @@ var _ = Describe("Logging Listener", func() {
 
 	It("Shows a final summary where we completed successfully", func() {
 		result := logResultsFromAsString(processType, func(listener instanceiterator.Listener) {
-			listener.Finished(23, 34, 45, nil, nil)
+			listener.Finished(23, 34, 15, 45, nil, nil)
 		})
 
 		Expect(result).To(SatisfyAll(
 			ContainSubstring("[%s] FINISHED PROCESSING Status: SUCCESS; Summary", logPrefix),
 			ContainSubstring("Number of successful operations: 34"),
+			ContainSubstring("Number of skipped operations: 15"),
 			ContainSubstring("Number of service instance orphans detected: 23"),
 			ContainSubstring("Number of deleted instances before operation could happen: 45"),
 			ContainSubstring("Number of busy instances which could not be processed: 0"),
@@ -217,7 +229,7 @@ var _ = Describe("Logging Listener", func() {
 	It("Shows a final summary where instances could not start", func() {
 		result := logResultsFromAsString(processType, func(listener instanceiterator.Listener) {
 			busyList := make([]string, 56)
-			listener.Finished(23, 34, 45, busyList, nil)
+			listener.Finished(23, 34, 0, 45, busyList, nil)
 		})
 
 		Expect(result).To(SatisfyAll(
@@ -233,7 +245,7 @@ var _ = Describe("Logging Listener", func() {
 
 	It("Shows a final summary where a single service instance failed to process", func() {
 		result := logResultsFromAsString(processType, func(listener instanceiterator.Listener) {
-			listener.Finished(23, 34, 45, []string{"foo"}, []string{"2f9752c3-887b-4ccb-8693-7c15811ffbdd"})
+			listener.Finished(23, 34, 0, 45, []string{"foo"}, []string{"2f9752c3-887b-4ccb-8693-7c15811ffbdd"})
 		})
 
 		Expect(result).To(SatisfyAll(
@@ -248,12 +260,13 @@ var _ = Describe("Logging Listener", func() {
 
 	It("Shows a final summary where multiple services instances failed the operation", func() {
 		result := logResultsFromAsString(processType, func(listener instanceiterator.Listener) {
-			listener.Finished(23, 34, 45, make([]string, 56), []string{"2f9752c3-887b-4ccb-8693-7c15811ffbdd", "7a2c7adb-1d47-4355-af39-41c5a2892b92"})
+			listener.Finished(23, 34, 12, 45, make([]string, 56), []string{"2f9752c3-887b-4ccb-8693-7c15811ffbdd", "7a2c7adb-1d47-4355-af39-41c5a2892b92"})
 		})
 
 		Expect(result).To(SatisfyAll(
 			ContainSubstring("[%s] FINISHED PROCESSING Status: FAILED; Summary", logPrefix),
 			ContainSubstring("Number of successful operations: 34"),
+			ContainSubstring("Number of skipped operations: 12"),
 			ContainSubstring("Number of service instance orphans detected: 23"),
 			ContainSubstring("Number of deleted instances before operation could happen: 45"),
 			ContainSubstring("Number of busy instances which could not be processed: 56"),

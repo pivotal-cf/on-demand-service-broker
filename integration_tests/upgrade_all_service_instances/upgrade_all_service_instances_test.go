@@ -38,11 +38,8 @@ func writeConfigFile(configContent string) string {
 
 var _ = Describe("running the tool to upgrade all service instances", func() {
 	const (
-		brokerUsername              = "broker username"
-		brokerPassword              = "broker password"
-		serviceInstancesAPIUsername = "siapi username"
-		serviceInstancesAPIPassword = "siapi password"
-		serviceInstancesAPIURLPath  = "/some-service-instances-come-from-here"
+		brokerUsername = "broker username"
+		brokerPassword = "broker password"
 	)
 
 	var (
@@ -128,6 +125,22 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 			Expect(runningTool).To(gbytes.Say("Sleep interval until next attempt: 2s"))
 			Expect(runningTool).To(gbytes.Say(`\[upgrade\-all\] FINISHED PROCESSING Status: SUCCESS`))
 			Expect(runningTool).To(gbytes.Say("Number of successful operations: 1"))
+		})
+
+		It("exits successfully when all instances are already up-to-date", func() {
+			runningTool := startUpgradeAllInstanceBinary(errandConfig)
+			Eventually(runningTool, 5*time.Second).Should(gexec.Exit(0))
+			Expect(runningTool).To(gbytes.Say("Number of successful operations: 1"))
+
+			By("running upgrade all again")
+			upgradeHandler.RespondsWith(http.StatusNoContent, "")
+			runningTool = startUpgradeAllInstanceBinary(errandConfig)
+			Eventually(runningTool, 5*time.Second).Should(gexec.Exit(0))
+
+			Expect(runningTool).To(gbytes.Say(`Result: instance already up to date - operation skipped`))
+			Expect(runningTool).To(gbytes.Say("Sleep interval until next attempt: 2s"))
+			Expect(runningTool).To(gbytes.Say(`\[upgrade\-all\] FINISHED PROCESSING Status: SUCCESS`))
+			Expect(runningTool).To(gbytes.Say("Number of skipped operations: 1"))
 		})
 
 		It("uses the canary_selection_params when querying canary instances", func() {

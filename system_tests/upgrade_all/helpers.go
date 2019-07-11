@@ -18,16 +18,16 @@ type AppDetails struct {
 	ServiceDeploymentName string
 }
 
-func PerformInParallel(f func(), count int) {
+func PerformInParallel(createFunction func(planName string), count int, planNames PlanNamesForParallelCreate) {
 	var wg sync.WaitGroup
 	wg.Add(count)
 
 	for i := 0; i < count; i++ {
-		go func() {
+		go func(i int) {
 			defer ginkgo.GinkgoRecover()
 			defer wg.Done()
-			f()
-		}()
+			createFunction(planNames.Get(i))
+		}(i)
 	}
 
 	wg.Wait()
@@ -52,4 +52,23 @@ func CreateServiceAndApp(serviceOffering, planName string) AppDetails {
 		ServiceGUID:           serviceGUID,
 		ServiceDeploymentName: "service-instance_" + serviceGUID,
 	}
+}
+
+type PlanNamesForParallelCreate struct {
+	sync.RWMutex
+	Items []PlanName
+}
+
+type PlanName struct {
+	Index int
+	Value string
+}
+
+func (cs *PlanNamesForParallelCreate) Get(i int) string {
+	cs.Lock()
+	defer cs.Unlock()
+
+	item := cs.Items[i]
+
+	return item.Value
 }

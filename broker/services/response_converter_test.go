@@ -174,6 +174,20 @@ var _ = Describe("Response Converter", func() {
 			})
 		})
 
+		When("upgrade is not needed", func() {
+			It("returns operation type as skipped", func() {
+				response := http.Response{
+					StatusCode: http.StatusNoContent,
+					Body:       asBody(""),
+				}
+
+				result, err := converter.ExtractOperationFrom(&response)
+
+				Expect(err).ToNot(HaveOccurred())
+				Expect(result.Type).To(Equal(services.OperationSkipped))
+			})
+		})
+
 		Context("when the upgrade response status code is unexpected", func() {
 			It("returns an error", func() {
 				response := http.Response{

@@ -22,6 +22,15 @@ func (t BoshTasks) DoneTasks() BoshTasks {
 	return t.findTasksInStates(TaskComplete)
 }
 
+func (t BoshTasks) ToLog() string {
+	output, _ := json.Marshal(t)
+	return string(output)
+}
+
+func (t BoshTasks) AreAllTaskDone() bool {
+	return len(t.DoneTasks()) == len(t)
+}
+
 func (t BoshTasks) findTasksInStates(stateType TaskStateType) BoshTasks {
 	found := BoshTasks{}
 	for _, task := range t {
@@ -30,9 +39,4 @@ func (t BoshTasks) findTasksInStates(stateType TaskStateType) BoshTasks {
 		}
 	}
 	return found
-}
-
-func (t BoshTasks) ToLog() string {
-	output, _ := json.Marshal(t)
-	return string(output)
 }

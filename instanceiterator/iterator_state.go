@@ -45,6 +45,7 @@ type summary struct {
 	succeeded int
 	busy      int
 	deleted   int
+	skipped   int
 }
 
 func NewIteratorState(canaryInstances, allInstances []service.Instance, canaryLimit int) (*iteratorState, error) {
@@ -156,6 +157,7 @@ func (is *iteratorState) Summary() summary {
 		succeeded: len(is.GetInstancesInStates(services.OperationSucceeded)),
 		busy:      len(is.GetInstancesInStates(services.OperationInProgress)),
 		deleted:   len(is.GetInstancesInStates(services.InstanceNotFound)),
+		skipped:   len(is.GetInstancesInStates(services.OperationSkipped)),
 	}
 }
 

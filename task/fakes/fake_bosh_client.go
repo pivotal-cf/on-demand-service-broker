@@ -2,11 +2,12 @@
 package fakes
 
 import (
-	log "log"
-	sync "sync"
+	"log"
+	"sync"
 
-	boshdirector "github.com/pivotal-cf/on-demand-service-broker/boshdirector"
-	task "github.com/pivotal-cf/on-demand-service-broker/task"
+	"github.com/cloudfoundry/bosh-cli/director"
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
+	"github.com/pivotal-cf/on-demand-service-broker/task"
 )
 
 type FakeBoshClient struct {
@@ -55,6 +56,49 @@ type FakeBoshClient struct {
 		result1 []byte
 		result2 bool
 		result3 error
+	}
+	GetEventsStub        func(director.EventsFilter, *log.Logger) ([]boshdirector.BoshEvent, error)
+	getEventsMutex       sync.RWMutex
+	getEventsArgsForCall []struct {
+		arg1 director.EventsFilter
+		arg2 *log.Logger
+	}
+	getEventsReturns struct {
+		result1 []boshdirector.BoshEvent
+		result2 error
+	}
+	getEventsReturnsOnCall map[int]struct {
+		result1 []boshdirector.BoshEvent
+		result2 error
+	}
+	GetNormalisedTasksByContextStub        func(string, string, *log.Logger) (boshdirector.BoshTasks, error)
+	getNormalisedTasksByContextMutex       sync.RWMutex
+	getNormalisedTasksByContextArgsForCall []struct {
+		arg1 string
+		arg2 string
+		arg3 *log.Logger
+	}
+	getNormalisedTasksByContextReturns struct {
+		result1 boshdirector.BoshTasks
+		result2 error
+	}
+	getNormalisedTasksByContextReturnsOnCall map[int]struct {
+		result1 boshdirector.BoshTasks
+		result2 error
+	}
+	GetTaskStub        func(int, *log.Logger) (boshdirector.BoshTask, error)
+	getTaskMutex       sync.RWMutex
+	getTaskArgsForCall []struct {
+		arg1 int
+		arg2 *log.Logger
+	}
+	getTaskReturns struct {
+		result1 boshdirector.BoshTask
+		result2 error
+	}
+	getTaskReturnsOnCall map[int]struct {
+		result1 boshdirector.BoshTask
+		result2 error
 	}
 	GetTasksStub        func(string, *log.Logger) (boshdirector.BoshTasks, error)
 	getTasksMutex       sync.RWMutex
@@ -306,6 +350,199 @@ func (fake *FakeBoshClient) GetDeploymentReturnsOnCall(i int, result1 []byte, re
 	}{result1, result2, result3}
 }
 
+func (fake *FakeBoshClient) GetEvents(arg1 director.EventsFilter, arg2 *log.Logger) ([]boshdirector.BoshEvent, error) {
+	fake.getEventsMutex.Lock()
+	ret, specificReturn := fake.getEventsReturnsOnCall[len(fake.getEventsArgsForCall)]
+	fake.getEventsArgsForCall = append(fake.getEventsArgsForCall, struct {
+		arg1 director.EventsFilter
+		arg2 *log.Logger
+	}{arg1, arg2})
+	fake.recordInvocation("GetEvents", []interface{}{arg1, arg2})
+	fake.getEventsMutex.Unlock()
+	if fake.GetEventsStub != nil {
+		return fake.GetEventsStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.getEventsReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeBoshClient) GetEventsCallCount() int {
+	fake.getEventsMutex.RLock()
+	defer fake.getEventsMutex.RUnlock()
+	return len(fake.getEventsArgsForCall)
+}
+
+func (fake *FakeBoshClient) GetEventsCalls(stub func(director.EventsFilter, *log.Logger) ([]boshdirector.BoshEvent, error)) {
+	fake.getEventsMutex.Lock()
+	defer fake.getEventsMutex.Unlock()
+	fake.GetEventsStub = stub
+}
+
+func (fake *FakeBoshClient) GetEventsArgsForCall(i int) (director.EventsFilter, *log.Logger) {
+	fake.getEventsMutex.RLock()
+	defer fake.getEventsMutex.RUnlock()
+	argsForCall := fake.getEventsArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeBoshClient) GetEventsReturns(result1 []boshdirector.BoshEvent, result2 error) {
+	fake.getEventsMutex.Lock()
+	defer fake.getEventsMutex.Unlock()
+	fake.GetEventsStub = nil
+	fake.getEventsReturns = struct {
+		result1 []boshdirector.BoshEvent
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeBoshClient) GetEventsReturnsOnCall(i int, result1 []boshdirector.BoshEvent, result2 error) {
+	fake.getEventsMutex.Lock()
+	defer fake.getEventsMutex.Unlock()
+	fake.GetEventsStub = nil
+	if fake.getEventsReturnsOnCall == nil {
+		fake.getEventsReturnsOnCall = make(map[int]struct {
+			result1 []boshdirector.BoshEvent
+			result2 error
+		})
+	}
+	fake.getEventsReturnsOnCall[i] = struct {
+		result1 []boshdirector.BoshEvent
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeBoshClient) GetNormalisedTasksByContext(arg1 string, arg2 string, arg3 *log.Logger) (boshdirector.BoshTasks, error) {
+	fake.getNormalisedTasksByContextMutex.Lock()
+	ret, specificReturn := fake.getNormalisedTasksByContextReturnsOnCall[len(fake.getNormalisedTasksByContextArgsForCall)]
+	fake.getNormalisedTasksByContextArgsForCall = append(fake.getNormalisedTasksByContextArgsForCall, struct {
+		arg1 string
+		arg2 string
+		arg3 *log.Logger
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("GetNormalisedTasksByContext", []interface{}{arg1, arg2, arg3})
+	fake.getNormalisedTasksByContextMutex.Unlock()
+	if fake.GetNormalisedTasksByContextStub != nil {
+		return fake.GetNormalisedTasksByContextStub(arg1, arg2, arg3)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.getNormalisedTasksByContextReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeBoshClient) GetNormalisedTasksByContextCallCount() int {
+	fake.getNormalisedTasksByContextMutex.RLock()
+	defer fake.getNormalisedTasksByContextMutex.RUnlock()
+	return len(fake.getNormalisedTasksByContextArgsForCall)
+}
+
+func (fake *FakeBoshClient) GetNormalisedTasksByContextCalls(stub func(string, string, *log.Logger) (boshdirector.BoshTasks, error)) {
+	fake.getNormalisedTasksByContextMutex.Lock()
+	defer fake.getNormalisedTasksByContextMutex.Unlock()
+	fake.GetNormalisedTasksByContextStub = stub
+}
+
+func (fake *FakeBoshClient) GetNormalisedTasksByContextArgsForCall(i int) (string, string, *log.Logger) {
+	fake.getNormalisedTasksByContextMutex.RLock()
+	defer fake.getNormalisedTasksByContextMutex.RUnlock()
+	argsForCall := fake.getNormalisedTasksByContextArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+}
+
+func (fake *FakeBoshClient) GetNormalisedTasksByContextReturns(result1 boshdirector.BoshTasks, result2 error) {
+	fake.getNormalisedTasksByContextMutex.Lock()
+	defer fake.getNormalisedTasksByContextMutex.Unlock()
+	fake.GetNormalisedTasksByContextStub = nil
+	fake.getNormalisedTasksByContextReturns = struct {
+		result1 boshdirector.BoshTasks
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeBoshClient) GetNormalisedTasksByContextReturnsOnCall(i int, result1 boshdirector.BoshTasks, result2 error) {
+	fake.getNormalisedTasksByContextMutex.Lock()
+	defer fake.getNormalisedTasksByContextMutex.Unlock()
+	fake.GetNormalisedTasksByContextStub = nil
+	if fake.getNormalisedTasksByContextReturnsOnCall == nil {
+		fake.getNormalisedTasksByContextReturnsOnCall = make(map[int]struct {
+			result1 boshdirector.BoshTasks
+			result2 error
+		})
+	}
+	fake.getNormalisedTasksByContextReturnsOnCall[i] = struct {
+		result1 boshdirector.BoshTasks
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeBoshClient) GetTask(arg1 int, arg2 *log.Logger) (boshdirector.BoshTask, error) {
+	fake.getTaskMutex.Lock()
+	ret, specificReturn := fake.getTaskReturnsOnCall[len(fake.getTaskArgsForCall)]
+	fake.getTaskArgsForCall = append(fake.getTaskArgsForCall, struct {
+		arg1 int
+		arg2 *log.Logger
+	}{arg1, arg2})
+	fake.recordInvocation("GetTask", []interface{}{arg1, arg2})
+	fake.getTaskMutex.Unlock()
+	if fake.GetTaskStub != nil {
+		return fake.GetTaskStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.getTaskReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeBoshClient) GetTaskCallCount() int {
+	fake.getTaskMutex.RLock()
+	defer fake.getTaskMutex.RUnlock()
+	return len(fake.getTaskArgsForCall)
+}
+
+func (fake *FakeBoshClient) GetTaskCalls(stub func(int, *log.Logger) (boshdirector.BoshTask, error)) {
+	fake.getTaskMutex.Lock()
+	defer fake.getTaskMutex.Unlock()
+	fake.GetTaskStub = stub
+}
+
+func (fake *FakeBoshClient) GetTaskArgsForCall(i int) (int, *log.Logger) {
+	fake.getTaskMutex.RLock()
+	defer fake.getTaskMutex.RUnlock()
+	argsForCall := fake.getTaskArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeBoshClient) GetTaskReturns(result1 boshdirector.BoshTask, result2 error) {
+	fake.getTaskMutex.Lock()
+	defer fake.getTaskMutex.Unlock()
+	fake.GetTaskStub = nil
+	fake.getTaskReturns = struct {
+		result1 boshdirector.BoshTask
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeBoshClient) GetTaskReturnsOnCall(i int, result1 boshdirector.BoshTask, result2 error) {
+	fake.getTaskMutex.Lock()
+	defer fake.getTaskMutex.Unlock()
+	fake.GetTaskStub = nil
+	if fake.getTaskReturnsOnCall == nil {
+		fake.getTaskReturnsOnCall = make(map[int]struct {
+			result1 boshdirector.BoshTask
+			result2 error
+		})
+	}
+	fake.getTaskReturnsOnCall[i] = struct {
+		result1 boshdirector.BoshTask
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeBoshClient) GetTasks(arg1 string, arg2 *log.Logger) (boshdirector.BoshTasks, error) {
 	fake.getTasksMutex.Lock()
 	ret, specificReturn := fake.getTasksReturnsOnCall[len(fake.getTasksArgsForCall)]
@@ -513,6 +750,12 @@ func (fake *FakeBoshClient) Invocations() map[string][][]interface{} {
 	defer fake.getConfigsMutex.RUnlock()
 	fake.getDeploymentMutex.RLock()
 	defer fake.getDeploymentMutex.RUnlock()
+	fake.getEventsMutex.RLock()
+	defer fake.getEventsMutex.RUnlock()
+	fake.getNormalisedTasksByContextMutex.RLock()
+	defer fake.getNormalisedTasksByContextMutex.RUnlock()
+	fake.getTaskMutex.RLock()
+	defer fake.getTaskMutex.RUnlock()
 	fake.getTasksMutex.RLock()
 	defer fake.getTasksMutex.RUnlock()
 	fake.recreateMutex.RLock()

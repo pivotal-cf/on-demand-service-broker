@@ -7,6 +7,8 @@
 package boshdirector_test
 
 import (
+	"bytes"
+	"io"
 	"log"
 	"testing"
 
@@ -16,6 +18,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector/fakes"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
+	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 )
 
 var (
@@ -29,6 +32,8 @@ var (
 	fakeBoshHTTPFactory     *fakes.FakeHTTPFactory
 	fakeDNSRetrieverFactory *fakes.FakeDNSRetrieverFactory
 	logger                  *log.Logger
+	logBuffer               *bytes.Buffer
+	loggerFactory           *loggerfactory.LoggerFactory
 	boshAuthConfig          config.Authentication
 )
 
@@ -48,7 +53,10 @@ var _ = BeforeEach(func() {
 			},
 		},
 	}
-	logger = log.New(GinkgoWriter, "[boshdirector unit test]", log.LstdFlags)
+
+	logBuffer = new(bytes.Buffer)
+	loggerFactory = loggerfactory.New(io.MultiWriter(GinkgoWriter, logBuffer), "task-unit-tests", log.LstdFlags)
+	logger = loggerFactory.NewWithRequestID()
 
 	fakeDirectorFactory.NewReturns(fakeDirector, nil)
 	fakeUAAFactory.NewReturns(fakeUAA, nil)

@@ -8,6 +8,7 @@ package broker_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 
@@ -54,6 +55,17 @@ var _ = Describe("Upgrade", func() {
 		oldPlanIDCopy := existingPlanID
 		Expect(actualPreviousPlanID).To(Equal(&oldPlanIDCopy))
 		Expect(actualBoshContextID).To(BeEmpty())
+	})
+
+	Context("when instance is already up to date", func() {
+		It("should return error", func() {
+			expectedError := broker.NewOperationAlreadyCompletedError(errors.New("instance is already up to date"))
+			fakeDeployer.UpgradeReturns(0, nil, expectedError)
+
+			_, redeployErr = b.Upgrade(context.Background(), instanceID, details, logger)
+
+			Expect(redeployErr).To(Equal(expectedError))
+		})
 	})
 
 	Context("when there is a previous deployment for the service instance", func() {

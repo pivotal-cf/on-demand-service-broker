@@ -32,8 +32,8 @@ type Listener interface {
 	InstanceOperationStartResult(instance string, status services.BOSHOperationType)
 	InstanceOperationFinished(instance string, result string)
 	WaitingFor(instance string, boshTaskId int)
-	Progress(pollingInterval time.Duration, orphanCount, processedCount, toRetryCount, deletedCount int)
-	Finished(orphanCount, finishedCount, deletedCount int, busyInstances, failedInstances []string)
+	Progress(pollingInterval time.Duration, orphanCount, processedCount, skippedCount, toRetryCount, deletedCount int)
+	Finished(orphanCount, finishedCount, skippedCount, deletedCount int, busyInstances, failedInstances []string)
 	CanariesStarting(canaries int, filter config.CanarySelectionParams)
 	CanariesFinished()
 }
@@ -285,7 +285,7 @@ func (it *Iterator) pollRunningTasks() {
 
 func (it *Iterator) reportProgress() {
 	summary := it.iteratorState.Summary()
-	it.listener.Progress(it.attemptInterval, summary.orphaned, summary.succeeded, summary.busy, summary.deleted)
+	it.listener.Progress(it.attemptInterval, summary.orphaned, summary.succeeded, summary.skipped, summary.busy, summary.deleted)
 }
 
 func (it *Iterator) printSummary() {
@@ -298,7 +298,7 @@ func (it *Iterator) printSummary() {
 		failedInstances = append(failedInstances, failure.guid)
 	}
 
-	it.listener.Finished(summary.orphaned, summary.succeeded, summary.deleted, busyInstances, failedInstances)
+	it.listener.Finished(summary.orphaned, summary.succeeded, summary.skipped, summary.deleted, busyInstances, failedInstances)
 }
 
 func (it *Iterator) checkStillBusyInstances() error {

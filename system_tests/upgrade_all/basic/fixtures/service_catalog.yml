@@ -2,7 +2,7 @@
   path: /instance_groups/name=broker/jobs/name=broker/properties/service_catalog/plans?
   value:
     - name: dedicated-vm
-      plan_id: ((plan_id))
+      plan_id: ((plan_id))-1
       properties: {persistence: true}
       metadata: {bullets: [], display_name: Redis with dedicated VM}
       cf_service_access: enable
@@ -13,3 +13,26 @@
           instances: 1
           networks: [((meta.services_subnet))]
           vm_type: ((meta.vm_type))
+
+    - name: dedicated-vm-with-post-deploy
+      plan_id: ((plan_id))-2
+      properties: {persistence: true}
+      metadata: {bullets: [], display_name: Redis with Dedicated VM and post-deploy}
+      cf_service_access: enable
+      description: Redis with post-deploy errand
+      instance_groups:
+        - name: redis-server
+          azs: [((meta.az))]
+          instances: 1
+          networks: [((meta.services_subnet))]
+          vm_type: ((meta.vm_type))
+        - name: health-check
+          azs: [((meta.az))]
+          instances: 1
+          lifecycle: errand
+          networks: [((meta.services_subnet))]
+          vm_type: ((meta.vm_type))
+
+      lifecycle_errands:
+        post_deploy:
+          - name: health-check

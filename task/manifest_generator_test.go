@@ -166,7 +166,15 @@ var _ = Describe("Manifest Generator", func() {
 		})
 
 		JustBeforeEach(func() {
-			generateManifestOutput, err = mg.GenerateManifest(deploymentName, planGUID, requestParams, oldManifest, previousPlanID, oldSecretsMap, oldConfigsMap, logger)
+			generateManifestOutput, err = mg.GenerateManifest(GenerateManifestProperties{
+				DeploymentName:  deploymentName,
+				PlanID:          planGUID,
+				RequestParams:   requestParams,
+				OldManifest:     oldManifest,
+				PreviousPlanID:  previousPlanID,
+				SecretsMap:      oldSecretsMap,
+				PreviousConfigs: oldConfigsMap},
+				logger)
 			manifest = []byte(generateManifestOutput.Manifest)
 		})
 
@@ -200,7 +208,7 @@ var _ = Describe("Manifest Generator", func() {
 				expectedServiceDeployment := serviceadapter.ServiceDeployment{
 					DeploymentName: deploymentName,
 					Releases:       serviceReleases,
-					Stemcells:       serviceStemcells,
+					Stemcells:      serviceStemcells,
 				}
 				Expect(passedServiceDeployment).To(Equal(expectedServiceDeployment))
 			})

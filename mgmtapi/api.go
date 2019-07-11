@@ -178,6 +178,8 @@ func (a *api) upgradeInstance(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusGone)
 	case broker.OperationInProgressError:
 		w.WriteHeader(http.StatusConflict)
+	case broker.OperationAlreadyCompletedError:
+		w.WriteHeader(http.StatusNoContent)
 	case error:
 		logger.Printf("error occurred upgrading instance %s: %s", instanceID, err)
 		w.WriteHeader(http.StatusInternalServerError)

@@ -78,7 +78,7 @@ func setupTest(states []*testState, brokerServices *fakes.FakeBrokerServices) {
 
 func hasReportedFinished(fakeListener *fakes.FakeListener, expectedOrphans, expectedProcessed, expectedDeleted int, expectedBusyInstances []string, expectedFailedInstances []string) {
 	Expect(fakeListener.FinishedCallCount()).To(Equal(1), "Finished call count")
-	orphanCount, processedCount, deletedCount, busyInstances, failedInstances := fakeListener.FinishedArgsForCall(0)
+	orphanCount, processedCount, _, deletedCount, busyInstances, failedInstances := fakeListener.FinishedArgsForCall(0)
 	Expect(orphanCount).To(Equal(expectedOrphans), "orphans")
 	Expect(processedCount).To(Equal(expectedProcessed), "processed")
 	Expect(deletedCount).To(Equal(expectedDeleted), "deleted")
@@ -110,7 +110,7 @@ func hasReportedCanaryAttempts(fakeListener *fakes.FakeListener, count, limit, r
 
 func hasReportedRetries(fakeListener *fakes.FakeListener, expectedPendingInstancesCount ...int) {
 	for i, expectedRetryCount := range expectedPendingInstancesCount {
-		_, _, _, toRetryCount, _ := fakeListener.ProgressArgsForCall(i)
+		_, _, _, _, toRetryCount, _ := fakeListener.ProgressArgsForCall(i)
 		Expect(toRetryCount).To(Equal(expectedRetryCount), "Retry count: "+string(i))
 	}
 }
@@ -123,7 +123,7 @@ func hasReportedStarting(fakeListener *fakes.FakeListener, maxInFlight int) {
 
 func hasReportedProgress(fakeListener *fakes.FakeListener, callIndex int, expectedInterval time.Duration, expectedOrphans, expectedProcessed, expectedToRetry, expectedDeleted int) {
 	Expect(fakeListener.ProgressCallCount()).To(BeNumerically(">", callIndex), "callCount")
-	attemptInterval, orphanCount, processedCount, toRetryCount, deletedCount := fakeListener.ProgressArgsForCall(callIndex)
+	attemptInterval, orphanCount, processedCount, _, toRetryCount, deletedCount := fakeListener.ProgressArgsForCall(callIndex)
 	Expect(attemptInterval).To(Equal(expectedInterval), "attempt interval")
 	Expect(orphanCount).To(Equal(expectedOrphans), "orphans")
 	Expect(processedCount).To(Equal(expectedProcessed), "processed")

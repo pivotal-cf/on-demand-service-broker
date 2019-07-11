@@ -84,7 +84,7 @@ var _ = Describe("Deployer", func() {
 		}
 	})
 
-	Describe("Create()", func() {
+	Describe("Create", func() {
 		JustBeforeEach(func() {
 			returnedTaskID, deployedManifest, deployError = deployer.Create(
 				deploymentName,
@@ -348,17 +348,7 @@ var _ = Describe("Deployer", func() {
 		})
 	})
 
-	Describe("Upgrade()", func() {
-		JustBeforeEach(func() {
-			returnedTaskID, deployedManifest, deployError = deployer.Upgrade(
-				deploymentName,
-				planID,
-				previousPlanID,
-				boshContextID,
-				logger,
-			)
-		})
-
+	Describe("Upgrade", func() {
 		BeforeEach(func() {
 			oldManifest = []byte("---\nold-manifest-fetched-from-bosh: bar")
 			previousPlanID = stringPointer(existingPlanID)
@@ -376,34 +366,41 @@ var _ = Describe("Deployer", func() {
 				boshClient.DeployReturns(42, nil)
 			})
 
-			It("checks that the deployment exists", func() {
+			It("starts upgrading successfully", func() {
+				returnedTaskID, deployedManifest, deployError = deployer.Upgrade(
+					deploymentName,
+					planID,
+					previousPlanID,
+					boshContextID,
+					logger,
+				)
+
+				By("not returning an error")
+				Expect(deployError).NotTo(HaveOccurred())
+
+				By("returning the bosh task ID")
+				Expect(returnedTaskID).To(Equal(boshTaskID))
+
+				By("return the newly generated manifest")
+				Expect(string(deployedManifest)).To(Equal(generatedManifest))
+
+				By("checking that the deployment exists")
 				Expect(boshClient.GetDeploymentCallCount()).To(Equal(1))
 				actualDeploymentName, _ := boshClient.GetDeploymentArgsForCall(0)
 				Expect(actualDeploymentName).To(Equal(deploymentName))
-			})
 
-			It("checks tasks for the deployment", func() {
+				By("checking tasks for the deployment")
 				Expect(boshClient.GetTasksCallCount()).To(Equal(1))
-				actualDeploymentName, _ := boshClient.GetTasksArgsForCall(0)
+				actualDeploymentName, _ = boshClient.GetTasksArgsForCall(0)
 				Expect(actualDeploymentName).To(Equal(deploymentName))
-			})
 
-			It("returns the bosh task ID", func() {
-				Expect(returnedTaskID).To(Equal(boshTaskID))
-			})
-
-			It("Creates a bosh deployment using generated manifest", func() {
+				By("Creating a bosh deployment using generated manifest")
 				Expect(boshClient.DeployCallCount()).To(Equal(1))
 				deployedManifest, _, _, _ := boshClient.DeployArgsForCall(0)
 				Expect(string(deployedManifest)).To(Equal(generatedManifest))
-			})
 
-			It("return the newly generated manifest", func() {
-				Expect(string(deployedManifest)).To(Equal(generatedManifest))
-			})
-
-			It("does not return an error", func() {
-				Expect(deployError).NotTo(HaveOccurred())
+				By("logging the bosh task ID returned by the director")
+				Expect(logBuffer.String()).To(ContainSubstring(fmt.Sprintf("Bosh task ID for upgrade deployment %s is %d", deploymentName, boshTaskID)))
 			})
 
 			Context("when bosh context ID is provided", func() {
@@ -412,6 +409,14 @@ var _ = Describe("Deployer", func() {
 				})
 
 				It("invokes boshdirector's Create with context ID", func() {
+					returnedTaskID, deployedManifest, deployError = deployer.Upgrade(
+						deploymentName,
+						planID,
+						previousPlanID,
+						boshContextID,
+						logger,
+					)
+
 					Expect(boshClient.DeployCallCount()).To(Equal(1))
 					_, actualBoshContextID, _, _ := boshClient.DeployArgsForCall(0)
 					Expect(actualBoshContextID).To(Equal(boshContextID))
@@ -419,14 +424,123 @@ var _ = Describe("Deployer", func() {
 			})
 		})
 
-		Context("logging", func() {
+		Context("when the deployment is already updated", func() {
 			BeforeEach(func() {
-				boshClient.DeployReturns(42, nil)
-				boshClient.GetTasksReturns([]boshdirector.BoshTask{{State: boshdirector.TaskDone}}, nil)
+				By("making sure the manifest is the same")
+				boshClient.GetDeploymentReturns([]byte(generatedManifest), true, nil)
 			})
 
-			It("logs the bosh task ID returned by the director", func() {
-				Expect(logBuffer.String()).To(ContainSubstring(fmt.Sprintf("Bosh task ID for upgrade deployment %s is %d", deploymentName, boshTaskID)))
+			Context("when all errands have run successfully in the previous run", func() {
+				const expectedDeploymentTask = 103
+				const expectedContextID = "231"
+				BeforeEach(func() {
+					boshClient.GetEventsReturns([]boshdirector.BoshEvent{
+						{TaskId: fmt.Sprintf("%d", expectedDeploymentTask)},
+					}, nil)
+					boshClient.GetTaskReturns(boshdirector.BoshTask{
+						State: boshdirector.TaskDone, ID: 3232, ContextID: expectedContextID,
+					}, nil)
+					boshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{
+						{State: boshdirector.TaskDone, ID: 1, ContextID: expectedContextID},
+						{State: boshdirector.TaskDone, ID: 2, ContextID: expectedContextID},
+						{State: boshdirector.TaskDone, ID: 3, ContextID: expectedContextID},
+					}, nil)
+				})
+
+				It("returns OperationAlreadyCompletedError error", func() {
+					returnedTaskID, deployedManifest, deployError = deployer.Upgrade(
+						deploymentName,
+						planID,
+						previousPlanID,
+						boshContextID,
+						logger,
+					)
+
+					By("asserting all calls to task")
+					taskId, _ := boshClient.GetTaskArgsForCall(0)
+					Expect(taskId).To(Equal(expectedDeploymentTask))
+
+					By("asserting all calls to task by context id")
+					actualDeploymentName, contextID, _ := boshClient.GetNormalisedTasksByContextArgsForCall(0)
+					Expect(actualDeploymentName).To(Equal(deploymentName))
+					Expect(contextID).To(Equal(expectedContextID))
+
+					By("returning an error")
+					Expect(deployError).NotTo(BeNil())
+					Expect(deployError).To(BeAssignableToTypeOf(broker.OperationAlreadyCompletedError{}))
+					Expect(deployError).To(MatchError(ContainSubstring("instance is already up to date")))
+
+					By("returning no bosh task ID")
+					Expect(returnedTaskID).To(BeZero())
+
+					By("return empty manifest")
+					Expect(string(deployedManifest)).To(BeEmpty())
+				})
+			})
+
+			Context("when one errand ", func() {
+				const expectedDeploymentTask = "103"
+				const expectedContextID = "231"
+				const expectedNewDeploymentTask = 35
+				BeforeEach(func() {
+					boshClient.GetEventsReturns([]boshdirector.BoshEvent{
+						{TaskId: expectedDeploymentTask},
+					}, nil)
+					boshClient.GetTaskReturns(boshdirector.BoshTask{
+						State: boshdirector.TaskDone, ID: 3232, ContextID: expectedContextID,
+					}, nil)
+					boshClient.DeployReturns(expectedNewDeploymentTask, nil)
+				})
+
+				It("has failed the previous run then starts upgrading sucessfully", func() {
+					boshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{
+						{State: boshdirector.TaskError, ID: 3234, ContextID: expectedContextID},
+						{State: boshdirector.TaskDone, ID: 3233, ContextID: expectedContextID},
+						{State: boshdirector.TaskDone, ID: 3232, ContextID: expectedContextID},
+					}, nil)
+
+					returnedTaskID, deployedManifest, deployError = deployer.Upgrade(
+						deploymentName,
+						planID,
+						previousPlanID,
+						boshContextID,
+						logger,
+					)
+
+					By("not returning an error")
+					Expect(deployError).NotTo(HaveOccurred())
+
+					By("returning the bosh task ID")
+					Expect(returnedTaskID).To(Equal(expectedNewDeploymentTask))
+
+					By("return the newly generated manifest")
+					Expect(string(deployedManifest)).To(Equal(generatedManifest))
+				})
+
+				It("has not completed the previous run then starts upgrading sucessfully", func() {
+					boshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{
+						{State: boshdirector.TaskProcessing, ID: 3234, ContextID: expectedContextID},
+						{State: boshdirector.TaskDone, ID: 3233, ContextID: expectedContextID},
+						{State: boshdirector.TaskDone, ID: 3232, ContextID: expectedContextID},
+					}, nil)
+
+					returnedTaskID, deployedManifest, deployError = deployer.Upgrade(
+						deploymentName,
+						planID,
+						previousPlanID,
+						boshContextID,
+						logger,
+					)
+
+					By("not returning an error")
+					Expect(deployError).NotTo(HaveOccurred())
+
+					By("returning the bosh task ID")
+					Expect(returnedTaskID).To(Equal(expectedNewDeploymentTask))
+
+					By("return the newly generated manifest")
+					Expect(string(deployedManifest)).To(Equal(generatedManifest))
+				})
 			})
 		})
 
@@ -436,6 +550,14 @@ var _ = Describe("Deployer", func() {
 			})
 
 			It("returns a deployment not found error", func() {
+				returnedTaskID, deployedManifest, deployError = deployer.Upgrade(
+					deploymentName,
+					planID,
+					previousPlanID,
+					boshContextID,
+					logger,
+				)
+
 				Expect(deployError).To(MatchError(ContainSubstring("not found")))
 				Expect(boshClient.DeployCallCount()).To(Equal(0))
 			})
@@ -447,12 +569,28 @@ var _ = Describe("Deployer", func() {
 			})
 
 			It("returns a deployment not found error", func() {
+				returnedTaskID, deployedManifest, deployError = deployer.Upgrade(
+					deploymentName,
+					planID,
+					previousPlanID,
+					boshContextID,
+					logger,
+				)
+
 				Expect(deployError).To(MatchError(errors.New("error getting deployment")))
 				Expect(boshClient.DeployCallCount()).To(Equal(0))
 			})
 		})
 
 		It("returns the bosh task ID and new manifest", func() {
+			returnedTaskID, deployedManifest, deployError = deployer.Upgrade(
+				deploymentName,
+				planID,
+				previousPlanID,
+				boshContextID,
+				logger,
+			)
+
 			Expect(returnedTaskID).To(Equal(42))
 			Expect(string(deployedManifest)).To(Equal(generatedManifest))
 			Expect(deployError).NotTo(HaveOccurred())
@@ -472,20 +610,24 @@ var _ = Describe("Deployer", func() {
 				}, nil)
 			})
 
-			It("logs the error", func() {
+			It("returns and logs an error", func() {
+				returnedTaskID, deployedManifest, deployError = deployer.Upgrade(
+					deploymentName,
+					planID,
+					previousPlanID,
+					boshContextID,
+					logger,
+				)
+
+				Expect(deployError).To(BeAssignableToTypeOf(broker.TaskInProgressError{}))
 				Expect(logBuffer.String()).To(ContainSubstring(
 					fmt.Sprintf("deployment %s is still in progress: tasks %s\n",
 						deploymentName,
 						boshdirector.BoshTasks{queuedTask}.ToLog(),
 					),
 				))
-			})
 
-			It("returns an error", func() {
-				Expect(deployError).To(BeAssignableToTypeOf(broker.TaskInProgressError{}))
-			})
-
-			It("does not log the previous completed tasks for the deployment", func() {
+				By("does not log the previous completed tasks for the deployment")
 				Expect(logBuffer.String()).NotTo(ContainSubstring("done"))
 				Expect(logBuffer.String()).NotTo(ContainSubstring("\"ID\":%d", previousDoneBoshTaskID))
 				Expect(logBuffer.String()).NotTo(ContainSubstring("error"))
@@ -499,28 +641,30 @@ var _ = Describe("Deployer", func() {
 
 			var inProgressTask = boshdirector.BoshTask{State: boshdirector.TaskProcessing, ID: boshTaskID}
 
-			BeforeEach(func() {
+			It("returns and logs the error", func() {
 				boshClient.GetTasksReturns([]boshdirector.BoshTask{
 					inProgressTask,
 					{State: boshdirector.TaskDone, ID: previousDoneBoshTaskID},
 					{State: boshdirector.TaskError, ID: previousErrorBoshTaskID},
 				}, nil)
-			})
 
-			It("logs the error", func() {
+				returnedTaskID, deployedManifest, deployError = deployer.Upgrade(
+					deploymentName,
+					planID,
+					previousPlanID,
+					boshContextID,
+					logger,
+				)
+
+				Expect(deployError).To(BeAssignableToTypeOf(broker.TaskInProgressError{}))
 				Expect(logBuffer.String()).To(ContainSubstring(
 					fmt.Sprintf("deployment %s is still in progress: tasks %s\n",
 						deploymentName,
 						boshdirector.BoshTasks{inProgressTask}.ToLog(),
 					),
 				))
-			})
 
-			It("returns an error", func() {
-				Expect(deployError).To(BeAssignableToTypeOf(broker.TaskInProgressError{}))
-			})
-
-			It("does not log the previous tasks for the deployment", func() {
+				By("does not log the previous tasks for the deployment")
 				Expect(logBuffer.String()).NotTo(ContainSubstring("done"))
 				Expect(logBuffer.String()).NotTo(ContainSubstring("\"ID\":%d", previousDoneBoshTaskID))
 				Expect(logBuffer.String()).NotTo(ContainSubstring("error"))
@@ -529,54 +673,84 @@ var _ = Describe("Deployer", func() {
 		})
 
 		Context("when the last bosh task for deployment fails to fetch", func() {
-			BeforeEach(func() {
-				boshClient.GetTasksReturns(nil, errors.New("connection error"))
-			})
-
 			It("wraps the error", func() {
+				boshClient.GetTasksReturns(nil, errors.New("connection error"))
+
+				returnedTaskID, deployedManifest, deployError = deployer.Upgrade(
+					deploymentName,
+					planID,
+					previousPlanID,
+					boshContextID,
+					logger,
+				)
+
 				Expect(deployError).To(MatchError(fmt.Sprintf("error getting tasks for deployment %s: connection error\n", deploymentName)))
 			})
 		})
 
 		Context("when bosh fails to deploy the release", func() {
-			BeforeEach(func() {
+			It("wraps the error", func() {
 				boshClient.GetTasksReturns([]boshdirector.BoshTask{{State: boshdirector.TaskDone}}, nil)
 				boshClient.DeployReturns(0, errors.New("error deploying"))
-			})
 
-			It("wraps the error", func() {
+				returnedTaskID, deployedManifest, deployError = deployer.Upgrade(
+					deploymentName,
+					planID,
+					previousPlanID,
+					boshContextID,
+					logger,
+				)
+
 				Expect(deployError).To(MatchError(ContainSubstring("error deploying")))
 			})
 		})
 
 		Context("when there are bosh configs", func() {
-			BeforeEach(func() {
-				boshClient.GetConfigsReturns(boshConfigs, nil)
-			})
-
 			It("sends the old configs to service adapter", func() {
-				_, _, _, _, _, _, previousConfigs, _ := manifestGenerator.GenerateManifestArgsForCall(0)
-				Expect(previousConfigs).To(Equal(configsMap))
+				boshClient.GetConfigsReturns(boshConfigs, nil)
+
+				returnedTaskID, deployedManifest, deployError = deployer.Upgrade(
+					deploymentName,
+					planID,
+					previousPlanID,
+					boshContextID,
+					logger,
+				)
+
+				generateManifestProps, _ := manifestGenerator.GenerateManifestArgsForCall(0)
+				Expect(generateManifestProps.PreviousConfigs).To(Equal(configsMap))
 			})
 		})
 
 		Context("when getting bosh configs fails", func() {
-			BeforeEach(func() {
-				boshClient.GetConfigsReturns(nil, errors.New("some-error"))
-			})
-
 			It("wraps the error", func() {
+				boshClient.GetConfigsReturns(nil, errors.New("some-error"))
+
+				returnedTaskID, deployedManifest, deployError = deployer.Upgrade(
+					deploymentName,
+					planID,
+					previousPlanID,
+					boshContextID,
+					logger,
+				)
+
 				Expect(deployError).To(MatchError(ContainSubstring("some-error")))
 			})
 		})
 
 		Context("bosh configs is disabled on the deployer", func() {
-			BeforeEach(func() {
+			It("doesn't call UpdateConfig or GetConfigs", func() {
 				deployer.DisableBoshConfigs = true
 				boshClient.DeployReturns(boshTaskID, nil)
-			})
 
-			It("doesn't call UpdateConfig or GetConfigs", func() {
+				returnedTaskID, deployedManifest, deployError = deployer.Upgrade(
+					deploymentName,
+					planID,
+					previousPlanID,
+					boshContextID,
+					logger,
+				)
+
 				Expect(deployError).NotTo(HaveOccurred())
 				Expect(returnedTaskID).To(Equal(boshTaskID))
 				Expect(boshClient.UpdateConfigCallCount()).To(Equal(0), "UpdateConfig shouldn't be called")
@@ -585,7 +759,7 @@ var _ = Describe("Deployer", func() {
 		})
 	})
 
-	Describe("Update()", func() {
+	Describe("Update", func() {
 		BeforeEach(func() {
 			oldManifest = []byte("---\nname: a-manifest\nupdate:\n canaries: 5\n max_in_flight: 1")
 
@@ -618,8 +792,8 @@ var _ = Describe("Deployer", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(manifestGenerator.GenerateManifestCallCount()).To(Equal(2))
-			_, _, actualRequestParams, _, _, _, _, _ := manifestGenerator.GenerateManifestArgsForCall(1)
-			Expect(actualRequestParams).To(Equal(copyParams))
+			generateManifestProps, _ := manifestGenerator.GenerateManifestArgsForCall(1)
+			Expect(generateManifestProps.RequestParams).To(Equal(copyParams))
 		})
 
 		Context("passing secret map", func() {
@@ -637,8 +811,8 @@ var _ = Describe("Deployer", func() {
 
 				Expect(manifestGenerator.GenerateManifestCallCount()).To(Equal(2))
 				for i := 0; i < 2; i++ {
-					_, _, _, _, _, actualSecretsMap, _, _ := manifestGenerator.GenerateManifestArgsForCall(i)
-					Expect(actualSecretsMap).To(Equal(secretsMap), fmt.Sprintf("call %d", i+1))
+					generateManifestProps, _ := manifestGenerator.GenerateManifestArgsForCall(i)
+					Expect(generateManifestProps.SecretsMap).To(Equal(secretsMap), fmt.Sprintf("call %d", i+1))
 				}
 			})
 		})
@@ -668,18 +842,13 @@ var _ = Describe("Deployer", func() {
 				BeforeEach(func() {
 					requestParams = map[string]interface{}{"foo": "bar"}
 					manifestGenerator.GenerateManifestStub = func(
-						_, _ string,
-						requestParams map[string]interface{},
-						previousManifest []byte,
-						_ *string,
-						_ map[string]string,
-						_ map[string]string,
+						generateManifestProps task.GenerateManifestProperties,
 						_ *log.Logger,
 					) (serviceadapter.MarshalledGenerateManifest, error) {
 						if len(requestParams) > 0 {
 							return serviceadapter.MarshalledGenerateManifest{Manifest: generatedManifest}, nil
 						}
-						return serviceadapter.MarshalledGenerateManifest{Manifest: string(previousManifest)}, nil
+						return serviceadapter.MarshalledGenerateManifest{Manifest: string(generateManifestProps.OldManifest)}, nil
 					}
 
 					boshClient.DeployReturns(42, nil)
@@ -706,11 +875,11 @@ var _ = Describe("Deployer", func() {
 
 					Expect(manifestGenerator.GenerateManifestCallCount()).To(Equal(2))
 
-					_, _, passedRequestParams, _, _, _, _, _ := manifestGenerator.GenerateManifestArgsForCall(0)
-					Expect(passedRequestParams).To(BeEmpty())
+					generateManifestProps, _ := manifestGenerator.GenerateManifestArgsForCall(0)
+					Expect(generateManifestProps.RequestParams).To(BeEmpty())
 
-					_, _, passedRequestParams, _, _, _, _, _ = manifestGenerator.GenerateManifestArgsForCall(1)
-					Expect(passedRequestParams).To(Equal(requestParams))
+					generateManifestProps, _ = manifestGenerator.GenerateManifestArgsForCall(1)
+					Expect(generateManifestProps.RequestParams).To(Equal(requestParams))
 
 					Expect(boshClient.DeployCallCount()).To(Equal(1))
 					deployedManifest, _, _, _ := boshClient.DeployArgsForCall(0)
@@ -741,18 +910,13 @@ var _ = Describe("Deployer", func() {
 			Context("and the manifest generator fails to generate the manifest the second time", func() {
 				BeforeEach(func() {
 					manifestGenerator.GenerateManifestStub = func(
-						_, _ string,
-						requestParams map[string]interface{},
-						previousManifest []byte,
-						_ *string,
-						_ map[string]string,
-						_ map[string]string,
+						generateManifestProps task.GenerateManifestProperties,
 						_ *log.Logger,
 					) (serviceadapter.MarshalledGenerateManifest, error) {
 						if len(requestParams) > 0 {
 							return serviceadapter.MarshalledGenerateManifest{}, errors.New("manifest fail")
 						}
-						return serviceadapter.MarshalledGenerateManifest{Manifest: string(previousManifest)}, nil
+						return serviceadapter.MarshalledGenerateManifest{Manifest: string(generateManifestProps.OldManifest)}, nil
 					}
 				})
 
@@ -905,8 +1069,8 @@ var _ = Describe("Deployer", func() {
 			})
 
 			It("sends the old configs to service adapter", func() {
-				_, _, _, _, _, _, previousConfigs, _ := manifestGenerator.GenerateManifestArgsForCall(0)
-				Expect(previousConfigs).To(Equal(configsMap))
+				generateManifestProps, _ := manifestGenerator.GenerateManifestArgsForCall(0)
+				Expect(generateManifestProps.PreviousConfigs).To(Equal(configsMap))
 			})
 		})
 
@@ -979,8 +1143,8 @@ var _ = Describe("Deployer", func() {
 			Expect(deployError).To(BeNil())
 
 			Expect(manifestGenerator.GenerateManifestCallCount()).To(Equal(2))
-			_, _, passedRequestParams, _, _, _, _, _ := manifestGenerator.GenerateManifestArgsForCall(1)
-			Expect(passedRequestParams).To(Equal(requestParams))
+			generateManifestProps, _ := manifestGenerator.GenerateManifestArgsForCall(1)
+			Expect(generateManifestProps.RequestParams).To(Equal(requestParams))
 
 			manifestToDeploy, _, _, _ := boshClient.DeployArgsForCall(0)
 			Expect(string(manifestToDeploy)).To(Equal(string(generatedManifest)))
@@ -1025,8 +1189,8 @@ instance_groups:
 			Expect(deployError).To(BeNil())
 
 			Expect(manifestGenerator.GenerateManifestCallCount()).To(Equal(2))
-			_, _, passedRequestParams, _, _, _, _, _ := manifestGenerator.GenerateManifestArgsForCall(1)
-			Expect(passedRequestParams).To(Equal(requestParams))
+			generateManifestProps, _ := manifestGenerator.GenerateManifestArgsForCall(1)
+			Expect(generateManifestProps.RequestParams).To(Equal(requestParams))
 
 			manifestToDeploy, _, _, _ := boshClient.DeployArgsForCall(0)
 			Expect(string(manifestToDeploy)).To(Equal(string(generatedManifest)))

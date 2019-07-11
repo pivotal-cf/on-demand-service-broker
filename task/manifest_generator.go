@@ -54,29 +54,24 @@ func NewManifestGenerator(
 type RawBoshManifest []byte
 
 func (m manifestGenerator) GenerateManifest(
-	deploymentName, planID string,
-	requestParams map[string]interface{},
-	oldManifest []byte,
-	previousPlanID *string,
-	secretsMap map[string]string,
-	previousConfigs map[string]string,
+	generateManifestProps GenerateManifestProperties,
 	logger *log.Logger,
 ) (serviceadapter.MarshalledGenerateManifest, error) {
 
 	serviceDeployment := serviceadapter.ServiceDeployment{
-		DeploymentName: deploymentName,
+		DeploymentName: generateManifestProps.DeploymentName,
 		Releases:       m.serviceReleases,
 		Stemcells:      m.serviceStemcells,
 	}
 
-	plan, previousPlan, err := m.findPlans(planID, previousPlanID)
+	plan, previousPlan, err := m.findPlans(generateManifestProps.PlanID, generateManifestProps.PreviousPlanID)
 	if err != nil {
 		logger.Println(err)
 		return serviceadapter.MarshalledGenerateManifest{}, err
 	}
-	logger.Printf("service adapter will generate manifest for deployment %s\n", deploymentName)
+	logger.Printf("service adapter will generate manifest for deployment %s\n", generateManifestProps.DeploymentName)
 
-	manifest, err := m.adapterClient.GenerateManifest(serviceDeployment, plan, requestParams, oldManifest, previousPlan, secretsMap, previousConfigs, logger)
+	manifest, err := m.adapterClient.GenerateManifest(serviceDeployment, plan, generateManifestProps.RequestParams, generateManifestProps.OldManifest, previousPlan, generateManifestProps.SecretsMap, generateManifestProps.PreviousConfigs, logger)
 	if err != nil {
 		logger.Printf("generate manifest: %v\n", err)
 	}

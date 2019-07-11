@@ -7,12 +7,12 @@
 package task
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"reflect"
 
-	"errors"
-
+	"github.com/cloudfoundry/bosh-cli/director"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
@@ -25,23 +25,30 @@ type BoshClient interface {
 	Deploy(manifest []byte, contextID string, logger *log.Logger, reporter *boshdirector.AsyncTaskReporter) (int, error)
 	Recreate(deploymentName, contextID string, logger *log.Logger, taskReporter *boshdirector.AsyncTaskReporter) (int, error)
 	GetTasks(deploymentName string, logger *log.Logger) (boshdirector.BoshTasks, error)
+	GetTask(taskID int, logger *log.Logger) (boshdirector.BoshTask, error)
+	GetNormalisedTasksByContext(deploymentName, contextID string, logger *log.Logger) (boshdirector.BoshTasks, error)
 	GetDeployment(name string, logger *log.Logger) ([]byte, bool, error)
 	GetConfigs(configName string, logger *log.Logger) ([]boshdirector.BoshConfig, error)
 	UpdateConfig(configType, configName string, configContent []byte, logger *log.Logger) error
+	GetEvents(filter director.EventsFilter, logger *log.Logger) ([]boshdirector.BoshEvent, error)
 }
 
 //go:generate counterfeiter -o fakes/fake_manifest_generator.go . ManifestGenerator
 type ManifestGenerator interface {
 	GenerateManifest(
-		deploymentName,
-		planID string,
-		requestParams map[string]interface{},
-		oldManifest []byte,
-		previousPlanID *string,
-		secretsMap map[string]string,
-		previousConfigs map[string]string,
+		generateManifestProperties GenerateManifestProperties,
 		logger *log.Logger,
 	) (serviceadapter.MarshalledGenerateManifest, error)
+}
+
+type GenerateManifestProperties struct {
+	DeploymentName  string
+	PlanID          string
+	RequestParams   map[string]interface{}
+	OldManifest     []byte
+	PreviousPlanID  *string
+	SecretsMap      map[string]string
+	PreviousConfigs map[string]string
 }
 
 //go:generate counterfeiter -o fakes/fake_odb_secrets.go . ODBSecrets
@@ -63,6 +70,7 @@ type Deployer struct {
 	odbSecrets         ODBSecrets
 	bulkSetter         BulkSetter
 	DisableBoshConfigs bool
+	preUpgrade         PreUpgrade
 }
 
 func NewDeployer(boshClient BoshClient, manifestGenerator ManifestGenerator, odbSecrets ODBSecrets, bulkSetter BulkSetter) Deployer {
@@ -71,6 +79,7 @@ func NewDeployer(boshClient BoshClient, manifestGenerator ManifestGenerator, odb
 		manifestGenerator: manifestGenerator,
 		odbSecrets:        odbSecrets,
 		bulkSetter:        bulkSetter,
+		preUpgrade:        PreUpgrade{boshClient: boshClient, manifestGenerator: manifestGenerator}, //TODO inject this
 	}
 }
 
@@ -80,7 +89,17 @@ func (d Deployer) Create(deploymentName, planID string, requestParams map[string
 		return 0, nil, err
 	}
 
-	return d.doDeploy(deploymentName, planID, "create", requestParams, nil, nil, boshContextID, nil, nil, logger)
+	generateManifestProperties := GenerateManifestProperties{
+		deploymentName,
+		planID,
+		requestParams,
+		nil,
+		nil,
+		nil,
+		nil,
+	}
+
+	return d.doDeploy(generateManifestProperties, "create", boshContextID, logger)
 }
 
 func (d Deployer) Upgrade(deploymentName, planID string, previousPlanID *string, boshContextID string, logger *log.Logger) (int, []byte, error) {
@@ -102,7 +121,19 @@ func (d Deployer) Upgrade(deploymentName, planID string, previousPlanID *string,
 		}
 	}
 
-	return d.doDeploy(deploymentName, planID, "upgrade", nil, oldManifest, previousPlanID, boshContextID, nil, oldConfigs, logger)
+	generateManifestProperties := GenerateManifestProperties{
+		DeploymentName:  deploymentName,
+		PlanID:          planID,
+		OldManifest:     oldManifest,
+		PreviousPlanID:  previousPlanID,
+		PreviousConfigs: oldConfigs,
+	}
+
+	if !d.preUpgrade.ShouldUpgrade(generateManifestProperties, logger) {
+		return 0, nil, broker.NewOperationAlreadyCompletedError(errors.New("instance is already up to date"))
+	}
+
+	return d.doDeploy(generateManifestProperties, "upgrade", boshContextID, logger)
 }
 
 func (d Deployer) Recreate(
@@ -156,7 +187,17 @@ func (d Deployer) Update(
 		return 0, nil, err
 	}
 
-	return d.doDeploy(deploymentName, planID, "update", requestParams, oldManifest, previousPlanID, boshContextID, oldSecretsMap, oldConfigs, logger)
+	generateManifestProperties := GenerateManifestProperties{
+		DeploymentName:  deploymentName,
+		PlanID:          planID,
+		RequestParams:   requestParams,
+		OldManifest:     oldManifest,
+		PreviousPlanID:  previousPlanID,
+		SecretsMap:      oldSecretsMap,
+		PreviousConfigs: oldConfigs,
+	}
+
+	return d.doDeploy(generateManifestProperties, "update", boshContextID, logger)
 }
 
 func (d Deployer) getDeploymentManifest(deploymentName string, logger *log.Logger) ([]byte, error) {
@@ -208,7 +249,17 @@ func (d Deployer) checkForPendingChanges(
 	previousConfigs map[string]string,
 	logger *log.Logger,
 ) error {
-	regeneratedManifestContent, err := d.manifestGenerator.GenerateManifest(deploymentName, *previousPlanID, map[string]interface{}{}, rawOldManifest, previousPlanID, oldSecretsMap, previousConfigs, logger)
+	regeneratedManifestContent, err := d.manifestGenerator.GenerateManifest(
+		GenerateManifestProperties{
+			DeploymentName:  deploymentName,
+			PlanID:          *previousPlanID,
+			RequestParams:   map[string]interface{}{},
+			OldManifest:     rawOldManifest,
+			PreviousPlanID:  previousPlanID,
+			SecretsMap:      oldSecretsMap,
+			PreviousConfigs: previousConfigs},
+		logger)
+
 	if err != nil {
 		return err
 	}
@@ -236,27 +287,16 @@ func (d Deployer) checkForPendingChanges(
 	return nil
 }
 
-func (d Deployer) doDeploy(
-	deploymentName,
-	planID string,
-	operationType string,
-	requestParams map[string]interface{},
-	oldManifest []byte,
-	previousPlanID *string,
-	boshContextID string,
-	oldSecretsMap map[string]string,
-	previousConfigs map[string]string,
-	logger *log.Logger,
-) (int, []byte, error) {
+func (d Deployer) doDeploy(generateManifestProperties GenerateManifestProperties, operationType string, boshContextID string, logger *log.Logger) (int, []byte, error) {
 
-	generateManifestOutput, err := d.manifestGenerator.GenerateManifest(deploymentName, planID, requestParams, oldManifest, previousPlanID, oldSecretsMap, previousConfigs, logger)
+	generateManifestOutput, err := d.manifestGenerator.GenerateManifest(generateManifestProperties, logger)
 	if err != nil {
 		return 0, nil, err
 	}
 	manifest := generateManifestOutput.Manifest
 
 	if d.bulkSetter != nil && !reflect.ValueOf(d.bulkSetter).IsNil() {
-		secrets := d.odbSecrets.GenerateSecretPaths(deploymentName, manifest, generateManifestOutput.ODBManagedSecrets)
+		secrets := d.odbSecrets.GenerateSecretPaths(generateManifestProperties.DeploymentName, manifest, generateManifestOutput.ODBManagedSecrets)
 		if err = d.bulkSetter.BulkSet(secrets); err != nil {
 			return 0, nil, err
 		}
@@ -268,7 +308,7 @@ func (d Deployer) doDeploy(
 	}
 	if !d.DisableBoshConfigs {
 		for configType, configContent := range generateManifestOutput.Configs {
-			err := d.boshClient.UpdateConfig(configType, deploymentName, []byte(configContent), logger)
+			err := d.boshClient.UpdateConfig(configType, generateManifestProperties.DeploymentName, []byte(configContent), logger)
 			if err != nil {
 				return 0, nil, fmt.Errorf("error updating config: %s\n", err)
 			}
@@ -279,7 +319,7 @@ func (d Deployer) doDeploy(
 	if err != nil {
 		return 0, nil, fmt.Errorf("error deploying instance: %s\n", err)
 	}
-	logger.Printf("Bosh task ID for %s deployment %s is %d\n", operationType, deploymentName, boshTaskID)
+	logger.Printf("Bosh task ID for %s deployment %s is %d\n", operationType, generateManifestProperties.DeploymentName, boshTaskID)
 
 	return boshTaskID, []byte(manifest), nil
 }

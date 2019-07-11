@@ -78,6 +78,8 @@ func (ll LoggingListener) InstanceOperationStartResult(instance string, resultTy
 		message = "orphan service instance detected - no corresponding bosh deployment"
 	case services.OperationInProgress:
 		message = "operation in progress"
+	case services.OperationSkipped:
+		message = "instance already up to date - operation skipped"
 	default:
 		message = "unexpected result"
 	}
@@ -93,22 +95,24 @@ func (ll LoggingListener) WaitingFor(instance string, boshTaskId int) {
 	ll.printf("[%s] Waiting for operation to complete: bosh task id %d", instance, boshTaskId)
 }
 
-func (ll LoggingListener) Progress(pollingInterval time.Duration, orphanCount, processedCount, toRetryCount, deletedCount int) {
+func (ll LoggingListener) Progress(pollingInterval time.Duration, orphanCount, processedCount, skippedCount, toRetryCount, deletedCount int) {
 	ll.printf("Progress summary: "+
 		"Sleep interval until next attempt: %s; "+
 		"Number of successful operations so far: %d; "+
+		"Number of skipped operations so far: %d; "+
 		"Number of service instance orphans detected so far: %d; "+
 		"Number of deleted instances before operation could happen: %d; "+
 		"Number of operations in progress (to retry) so far: %d",
 		pollingInterval,
 		processedCount,
+		skippedCount,
 		orphanCount,
 		deletedCount,
 		toRetryCount,
 	)
 }
 
-func (ll LoggingListener) Finished(orphanCount, finishedCount, deletedCount int, busyInstances, failedInstances []string) {
+func (ll LoggingListener) Finished(orphanCount, finishedCount, skippedCount, deletedCount int, busyInstances, failedInstances []string) {
 	var failedList string
 	var busyList string
 	if len(failedInstances) > 0 {
@@ -125,12 +129,14 @@ func (ll LoggingListener) Finished(orphanCount, finishedCount, deletedCount int,
 
 	ll.printf("FINISHED PROCESSING Status: %s; Summary: "+
 		"Number of successful operations: %d; "+
+		"Number of skipped operations: %d; "+
 		"Number of service instance orphans detected: %d; "+
 		"Number of deleted instances before operation could happen: %d; "+
 		"Number of busy instances which could not be processed: %d%s; "+
 		"Number of service instances that failed to process: %d%s",
 		status,
 		finishedCount,
+		skippedCount,
 		orphanCount,
 		deletedCount,
 		len(busyInstances),
