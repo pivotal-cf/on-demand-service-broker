@@ -1,14 +1,16 @@
 package boshdirector
 
 import (
+	"fmt"
 	"log"
+	"strconv"
 
 	"github.com/cloudfoundry/bosh-cli/director"
 	"github.com/pkg/errors"
 )
 
 type BoshEvent struct {
-	TaskId string
+	TaskId int
 }
 
 func (c *Client) GetUpdatesEvents(deploymentName string, logger *log.Logger) ([]BoshEvent, error) {
@@ -33,7 +35,12 @@ func (c *Client) getEvents(filter director.EventsFilter, logger *log.Logger) ([]
 
 	var boshEvents []BoshEvent
 	for _, event := range events {
-		boshEvents = append(boshEvents, BoshEvent{TaskId: event.TaskID()})
+		taskId, err := strconv.Atoi(event.TaskID())
+		if err != nil {
+			return []BoshEvent{}, errors.New(fmt.Sprintf("could not convert task id %q to int", event.TaskID()))
+		}
+
+		boshEvents = append(boshEvents, BoshEvent{TaskId: taskId})
 	}
 
 	return boshEvents, nil

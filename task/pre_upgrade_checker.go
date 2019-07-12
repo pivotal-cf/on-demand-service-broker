@@ -3,7 +3,6 @@ package task
 import (
 	"bytes"
 	"log"
-	"strconv"
 
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
@@ -53,15 +52,14 @@ func (p PreUpgrade) ShouldUpgrade(generateManifestProp GenerateManifestPropertie
 		}
 
 		taskID := events[0].TaskId
-		taskIDint, err := strconv.Atoi(taskID)
 
-		task, err := p.boshClient.GetTask(taskIDint, logger)
+		task, err := p.boshClient.GetTask(taskID, logger)
 		if err != nil {
-			logger.Printf("failed to get task for id %d with cause %q for deployment %q", taskIDint, err.Error(), generateManifestProp.DeploymentName)
+			logger.Printf("failed to get task for id %d with cause %q for deployment %q", taskID, err.Error(), generateManifestProp.DeploymentName)
 			return ShouldUpgrade
 		}
 		if (boshdirector.BoshTask{}) == task {
-			logger.Printf("no task found for taskID %q for deployment %q", taskIDint, generateManifestProp.DeploymentName)
+			logger.Printf("no task found for taskID %q for deployment %q", taskID, generateManifestProp.DeploymentName)
 			return ShouldUpgrade
 		}
 		if task.ContextID == "" {

@@ -23,8 +23,8 @@ var _ = Describe("Get Events", func() {
 			Expect(actualEventsFilter).To(Equal(director.EventsFilter{Deployment: "deployment-name", Action: "update", ObjectType: "deployment"}))
 			Expect(err).To(Not(HaveOccurred()))
 			Expect(events).To(SatisfyAll(
-				ContainElement(boshdirector.BoshEvent{TaskId: "123"}),
-				ContainElement(boshdirector.BoshEvent{TaskId: "456"}),
+				ContainElement(boshdirector.BoshEvent{TaskId: 123}),
+				ContainElement(boshdirector.BoshEvent{TaskId: 456}),
 			))
 		})
 
@@ -47,6 +47,19 @@ var _ = Describe("Get Events", func() {
 			Expect(fakeDirector.EventsCallCount()).To(BeZero())
 			Expect(events).To(BeEmpty())
 		})
+
+		It("return an error when failing to convert the task id", func() {
+			fakeDirector.EventsReturns([]director.Event{
+				director.NewEventFromResp(director.Client{}, director.EventResp{TaskID: ""}),
+			}, nil)
+
+			events, err := c.GetUpdatesEvents("deployment-name", logger)
+
+			Expect(err).To(HaveOccurred())
+			Expect(err).To(MatchError(`could not convert task id "" to int`))
+			Expect(events).To(BeEmpty())
+		})
+
 	})
 
 	Context("Get errands events", func() {
@@ -63,8 +76,8 @@ var _ = Describe("Get Events", func() {
 			Expect(actualEventsFilter).To(Equal(director.EventsFilter{Deployment: "deployment-name", ObjectType: "errand"}))
 			Expect(err).To(Not(HaveOccurred()))
 			Expect(events).To(SatisfyAll(
-				ContainElement(boshdirector.BoshEvent{TaskId: "123"}),
-				ContainElement(boshdirector.BoshEvent{TaskId: "456"}),
+				ContainElement(boshdirector.BoshEvent{TaskId: 123}),
+				ContainElement(boshdirector.BoshEvent{TaskId: 456}),
 			))
 		})
 
@@ -85,6 +98,18 @@ var _ = Describe("Get Events", func() {
 
 			Expect(err).To(MatchError(ContainSubstring("Failed to build director")))
 			Expect(fakeDirector.EventsCallCount()).To(BeZero())
+			Expect(events).To(BeEmpty())
+		})
+
+		It("return an error when failing to convert the task id", func() {
+			fakeDirector.EventsReturns([]director.Event{
+				director.NewEventFromResp(director.Client{}, director.EventResp{TaskID: ""}),
+			}, nil)
+
+			events, err := c.GetErrandEvents("deployment-name", logger)
+
+			Expect(err).To(HaveOccurred())
+			Expect(err).To(MatchError(`could not convert task id "" to int`))
 			Expect(events).To(BeEmpty())
 		})
 	})

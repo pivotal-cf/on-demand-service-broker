@@ -1,8 +1,6 @@
 package task_test
 
 import (
-	"fmt"
-
 	. "github.com/onsi/ginkgo"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/task"
@@ -47,13 +45,13 @@ var _ = Describe("PreUpgrade", func() {
 				const expectedContextID = "231"
 				BeforeEach(func() {
 					boshClient.GetErrandEventsReturns([]boshdirector.BoshEvent{
-						{TaskId: fmt.Sprintf("%d", 9999)},
+						{TaskId: 9999},
 					}, nil)
 					boshClient.GetErrandEventsReturns([]boshdirector.BoshEvent{
-						{TaskId: fmt.Sprintf("%d", 9999)},
+						{TaskId: 9999},
 					}, nil)
 					boshClient.GetUpdatesEventsReturns([]boshdirector.BoshEvent{
-						{TaskId: fmt.Sprintf("%d", expectedDeploymentTask)},
+						{TaskId: expectedDeploymentTask},
 					}, nil)
 					boshClient.GetTaskReturns(boshdirector.BoshTask{
 						State: boshdirector.TaskDone, ID: 3232, ContextID: expectedContextID,
@@ -87,12 +85,12 @@ var _ = Describe("PreUpgrade", func() {
 			})
 
 			Context("when one errand", func() {
-				const expectedDeploymentTask = "103"
+				const expectedDeploymentTask = 103
 				const expectedContextID = "231"
 				const expectedNewDeploymentTask = 35
 				BeforeEach(func() {
 					boshClient.GetErrandEventsReturns([]boshdirector.BoshEvent{
-						{TaskId: fmt.Sprintf("%d", 9999)},
+						{TaskId: 9999},
 					}, nil)
 					boshClient.GetUpdatesEventsReturns([]boshdirector.BoshEvent{
 						{TaskId: expectedDeploymentTask},
@@ -216,7 +214,7 @@ var _ = Describe("PreUpgrade", func() {
 			It("should upgrade when get update events fail", func() {
 				errorMessage := "failed to retrieve events"
 				boshClient.GetErrandEventsReturns([]boshdirector.BoshEvent{
-					{TaskId: fmt.Sprintf("%d", 9999)},
+					{TaskId: 9999},
 				}, nil)
 				boshClient.GetUpdatesEventsReturns([]boshdirector.BoshEvent{}, errors.New(errorMessage))
 
@@ -235,7 +233,7 @@ var _ = Describe("PreUpgrade", func() {
 
 			It("should upgrade when get update events returns no events", func() {
 				boshClient.GetErrandEventsReturns([]boshdirector.BoshEvent{
-					{TaskId: fmt.Sprintf("%d", 9999)},
+					{TaskId: 9999},
 				}, nil)
 				boshClient.GetUpdatesEventsReturns([]boshdirector.BoshEvent{}, nil)
 
@@ -253,10 +251,10 @@ var _ = Describe("PreUpgrade", func() {
 
 			It("should upgrade when get tasks returns no tasks", func() {
 				boshClient.GetErrandEventsReturns([]boshdirector.BoshEvent{
-					{TaskId: fmt.Sprintf("%d", 9999)},
+					{TaskId: 9999},
 				}, nil)
 				boshClient.GetUpdatesEventsReturns([]boshdirector.BoshEvent{
-					{TaskId: "189"},
+					{TaskId: 189},
 				}, nil)
 				boshClient.GetTaskReturns(boshdirector.BoshTask{}, nil)
 
@@ -273,10 +271,10 @@ var _ = Describe("PreUpgrade", func() {
 
 			It("should upgrade when get tasks returns task without contextID", func() {
 				boshClient.GetErrandEventsReturns([]boshdirector.BoshEvent{
-					{TaskId: fmt.Sprintf("%d", 9999)},
+					{TaskId: 9999},
 				}, nil)
 				boshClient.GetUpdatesEventsReturns([]boshdirector.BoshEvent{
-					{TaskId: "189"},
+					{TaskId: 189},
 				}, nil)
 				boshClient.GetTaskReturns(boshdirector.BoshTask{ContextID: "", State: boshdirector.TaskDone, ID: 3232}, nil)
 
@@ -293,10 +291,10 @@ var _ = Describe("PreUpgrade", func() {
 
 			It("should upgrade when get tasks returns an error", func() {
 				boshClient.GetErrandEventsReturns([]boshdirector.BoshEvent{
-					{TaskId: fmt.Sprintf("%d", 9999)},
+					{TaskId: 9999},
 				}, nil)
 				boshClient.GetUpdatesEventsReturns([]boshdirector.BoshEvent{
-					{TaskId: "189"},
+					{TaskId: 189},
 				}, nil)
 				errorMessage := "get task failed"
 				boshClient.GetTaskReturns(boshdirector.BoshTask{}, errors.New(errorMessage))
@@ -315,10 +313,10 @@ var _ = Describe("PreUpgrade", func() {
 
 			It("should upgrade when get tasks by context id returns an error", func() {
 				boshClient.GetErrandEventsReturns([]boshdirector.BoshEvent{
-					{TaskId: fmt.Sprintf("%d", 9999)},
+					{TaskId: 9999},
 				}, nil)
 				boshClient.GetUpdatesEventsReturns([]boshdirector.BoshEvent{
-					{TaskId: "189"},
+					{TaskId: 189},
 				}, nil)
 				boshClient.GetTaskReturns(boshdirector.BoshTask{
 					State: boshdirector.TaskDone, ID: 3232, ContextID: "12",
@@ -339,10 +337,10 @@ var _ = Describe("PreUpgrade", func() {
 
 			It("should upgrade when get tasks by context id returns no task", func() {
 				boshClient.GetErrandEventsReturns([]boshdirector.BoshEvent{
-					{TaskId: fmt.Sprintf("%d", 9999)},
+					{TaskId: 9999},
 				}, nil)
 				boshClient.GetUpdatesEventsReturns([]boshdirector.BoshEvent{
-					{TaskId: "189"},
+					{TaskId: 189},
 				}, nil)
 				boshClient.GetTaskReturns(boshdirector.BoshTask{
 					State: boshdirector.TaskDone, ID: 3232, ContextID: "12",
