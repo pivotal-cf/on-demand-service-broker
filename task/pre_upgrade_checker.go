@@ -5,7 +5,6 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/cloudfoundry/bosh-cli/director"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
@@ -34,10 +33,19 @@ func (p PreUpgrade) ShouldUpgrade(generateManifestProp GenerateManifestPropertie
 	}
 
 	if manifestAreTheSame(generateManifestOutput, generateManifestProp.OldManifest) {
+		errandEvents, err := p.boshClient.GetErrandEvents(generateManifestProp.DeploymentName, logger)
+		if err != nil {
+			logger.Printf("failed to get errand events for deployment %q with cause %q", generateManifestProp.DeploymentName, err.Error())
+			return ShouldUpgrade
+		}
+		if p.noPostDeployErrands(errandEvents) {
+			logger.Printf("manifest is unchanged and there are no post-deploy errand for %q, skipping upgrade", generateManifestProp.DeploymentName)
+			return !ShouldUpgrade
+		}
 
 		events, err := p.getUpdateDeploymentEvents(generateManifestProp.DeploymentName, logger)
 		if err != nil {
-			logger.Printf("failed to get update deployment events for deploymentName %q with cause %q", generateManifestProp.DeploymentName, err.Error())
+			logger.Printf("failed to get update deployment events for deployment %q with cause %q", generateManifestProp.DeploymentName, err.Error())
 			return ShouldUpgrade
 		}
 		if p.noPreviousUpgrade(events) {
@@ -49,21 +57,21 @@ func (p PreUpgrade) ShouldUpgrade(generateManifestProp GenerateManifestPropertie
 
 		task, err := p.boshClient.GetTask(taskIDint, logger)
 		if err != nil {
-			logger.Printf("failed to get task for id %d with cause %q", taskIDint, err.Error())
+			logger.Printf("failed to get task for id %d with cause %q for deployment %q", taskIDint, err.Error(), generateManifestProp.DeploymentName)
 			return ShouldUpgrade
 		}
 		if (boshdirector.BoshTask{}) == task {
-			logger.Printf("no task found for taskID /%q", taskIDint)
+			logger.Printf("no task found for taskID %q for deployment %q", taskIDint, generateManifestProp.DeploymentName)
 			return ShouldUpgrade
 		}
-		if p.noPostDeployErrands(task) {
-			logger.Printf("manifest is unchanged and there are no post-deploy errand for %q, skipping upgrade", generateManifestProp.DeploymentName)
-			return !ShouldUpgrade
+		if task.ContextID == "" {
+			logger.Printf("failed to get contextID for deployment %q", generateManifestProp.DeploymentName)
+			return ShouldUpgrade
 		}
 
 		tasksForContextId, err := p.boshClient.GetNormalisedTasksByContext(generateManifestProp.DeploymentName, task.ContextID, logger)
 		if err != nil {
-			logger.Printf("failed to get task by context id %q with cause %q", task.ContextID, err.Error())
+			logger.Printf("failed to get task by context id %q with cause %q for deployment %q", task.ContextID, err.Error(), generateManifestProp.DeploymentName)
 			return ShouldUpgrade
 		}
 		if len(tasksForContextId) == 0 {
@@ -71,16 +79,17 @@ func (p PreUpgrade) ShouldUpgrade(generateManifestProp GenerateManifestPropertie
 			return ShouldUpgrade
 		}
 
-		logger.Printf("no task for contexId %q, upgrading deployment %q", task.ContextID, generateManifestProp.DeploymentName)
-		return !tasksForContextId.AreAllTaskDone()
+		if tasksForContextId.AreAllTaskDone() {
+			logger.Printf("manifest is unchanged and all post-deploy errand were run successfuly for, skipping upgrade for deployment %q", generateManifestProp.DeploymentName)
+			return !ShouldUpgrade
+		}
 	}
 
-	logger.Printf("manifest is unchanged and all post-deploy errand were run successfuly for, skipping upgrade")
 	return ShouldUpgrade
 }
 
-func (p PreUpgrade) noPostDeployErrands(task boshdirector.BoshTask) bool {
-	return task.ContextID == ""
+func (p PreUpgrade) noPostDeployErrands(errandEvents []boshdirector.BoshEvent) bool {
+	return len(errandEvents) == 0
 }
 
 func (p PreUpgrade) noPreviousUpgrade(events []boshdirector.BoshEvent) bool {
@@ -88,7 +97,7 @@ func (p PreUpgrade) noPreviousUpgrade(events []boshdirector.BoshEvent) bool {
 }
 
 func (p PreUpgrade) getUpdateDeploymentEvents(deploymentName string, logger *log.Logger) ([]boshdirector.BoshEvent, error) {
-	events, err := p.boshClient.GetEvents(director.EventsFilter{Deployment: deploymentName, Action: "update", ObjectType: "deployment"}, logger)
+	events, err := p.boshClient.GetUpdatesEvents(deploymentName, logger)
 	return events, err
 }
 

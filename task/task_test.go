@@ -43,6 +43,7 @@ var _ = Describe("Deployer", func() {
 		configsMap        map[string]string
 		boshConfigs       []boshdirector.BoshConfig
 
+		upgradeChecker    *fakes.FakePreUpgradeChecker
 		manifestGenerator *fakes.FakeManifestGenerator
 		odbSecrets        *fakes.FakeODBSecrets
 		bulkSetter        *fakes.FakeBulkSetter
@@ -53,7 +54,8 @@ var _ = Describe("Deployer", func() {
 		manifestGenerator = new(fakes.FakeManifestGenerator)
 		odbSecrets = new(fakes.FakeODBSecrets)
 		bulkSetter = new(fakes.FakeBulkSetter)
-		deployer = task.NewDeployer(boshClient, manifestGenerator, odbSecrets, bulkSetter)
+		upgradeChecker = new(fakes.FakePreUpgradeChecker)
+		deployer = task.NewDeployer(boshClient, manifestGenerator, odbSecrets, bulkSetter, upgradeChecker)
 
 		planID = existingPlanID
 		previousPlanID = nil
@@ -69,6 +71,7 @@ var _ = Describe("Deployer", func() {
 		boshContextID = ""
 
 		manifestGenerator.GenerateManifestReturns(serviceadapter.MarshalledGenerateManifest{Manifest: generatedManifest}, nil)
+		upgradeChecker.ShouldUpgradeReturns(true)
 		odbSecrets.ReplaceODBRefsStub = func(m string, s []broker.ManifestSecret) string {
 			return m
 		}
@@ -206,7 +209,7 @@ var _ = Describe("Deployer", func() {
 			When("Bosh credhub is not configured/enabled", func() {
 				BeforeEach(func() {
 					var b *credhub.Store
-					deployer = task.NewDeployer(boshClient, manifestGenerator, odbSecrets, b)
+					deployer = task.NewDeployer(boshClient, manifestGenerator, odbSecrets, b, upgradeChecker)
 				})
 
 				It("doesn't error", func() {
@@ -424,123 +427,28 @@ var _ = Describe("Deployer", func() {
 			})
 		})
 
-		Context("when the deployment is already updated", func() {
-			BeforeEach(func() {
-				By("making sure the manifest is the same")
-				boshClient.GetDeploymentReturns([]byte(generatedManifest), true, nil)
-			})
+		Context("when upgrade should not happen", func() {
+			It("returns an error", func() {
+				upgradeChecker.ShouldUpgradeReturns(false)
 
-			Context("when all errands have run successfully in the previous run", func() {
-				const expectedDeploymentTask = 103
-				const expectedContextID = "231"
-				BeforeEach(func() {
-					boshClient.GetEventsReturns([]boshdirector.BoshEvent{
-						{TaskId: fmt.Sprintf("%d", expectedDeploymentTask)},
-					}, nil)
-					boshClient.GetTaskReturns(boshdirector.BoshTask{
-						State: boshdirector.TaskDone, ID: 3232, ContextID: expectedContextID,
-					}, nil)
-					boshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{
-						{State: boshdirector.TaskDone, ID: 1, ContextID: expectedContextID},
-						{State: boshdirector.TaskDone, ID: 2, ContextID: expectedContextID},
-						{State: boshdirector.TaskDone, ID: 3, ContextID: expectedContextID},
-					}, nil)
-				})
+				returnedTaskID, deployedManifest, deployError = deployer.Upgrade(
+					deploymentName,
+					planID,
+					previousPlanID,
+					boshContextID,
+					logger,
+				)
 
-				It("returns OperationAlreadyCompletedError error", func() {
-					returnedTaskID, deployedManifest, deployError = deployer.Upgrade(
-						deploymentName,
-						planID,
-						previousPlanID,
-						boshContextID,
-						logger,
-					)
+				By("returning an error")
+				Expect(deployError).NotTo(BeNil(), "should have matched OperationAlreadyCompletedError")
+				Expect(deployError).To(BeAssignableToTypeOf(broker.OperationAlreadyCompletedError{}))
+				Expect(deployError).To(MatchError(ContainSubstring("instance is already up to date")))
 
-					By("asserting all calls to task")
-					taskId, _ := boshClient.GetTaskArgsForCall(0)
-					Expect(taskId).To(Equal(expectedDeploymentTask))
+				By("returning no bosh task ID")
+				Expect(returnedTaskID).To(BeZero())
 
-					By("asserting all calls to task by context id")
-					actualDeploymentName, contextID, _ := boshClient.GetNormalisedTasksByContextArgsForCall(0)
-					Expect(actualDeploymentName).To(Equal(deploymentName))
-					Expect(contextID).To(Equal(expectedContextID))
-
-					By("returning an error")
-					Expect(deployError).NotTo(BeNil())
-					Expect(deployError).To(BeAssignableToTypeOf(broker.OperationAlreadyCompletedError{}))
-					Expect(deployError).To(MatchError(ContainSubstring("instance is already up to date")))
-
-					By("returning no bosh task ID")
-					Expect(returnedTaskID).To(BeZero())
-
-					By("return empty manifest")
-					Expect(string(deployedManifest)).To(BeEmpty())
-				})
-			})
-
-			Context("when one errand ", func() {
-				const expectedDeploymentTask = "103"
-				const expectedContextID = "231"
-				const expectedNewDeploymentTask = 35
-				BeforeEach(func() {
-					boshClient.GetEventsReturns([]boshdirector.BoshEvent{
-						{TaskId: expectedDeploymentTask},
-					}, nil)
-					boshClient.GetTaskReturns(boshdirector.BoshTask{
-						State: boshdirector.TaskDone, ID: 3232, ContextID: expectedContextID,
-					}, nil)
-					boshClient.DeployReturns(expectedNewDeploymentTask, nil)
-				})
-
-				It("has failed the previous run then starts upgrading sucessfully", func() {
-					boshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{
-						{State: boshdirector.TaskError, ID: 3234, ContextID: expectedContextID},
-						{State: boshdirector.TaskDone, ID: 3233, ContextID: expectedContextID},
-						{State: boshdirector.TaskDone, ID: 3232, ContextID: expectedContextID},
-					}, nil)
-
-					returnedTaskID, deployedManifest, deployError = deployer.Upgrade(
-						deploymentName,
-						planID,
-						previousPlanID,
-						boshContextID,
-						logger,
-					)
-
-					By("not returning an error")
-					Expect(deployError).NotTo(HaveOccurred())
-
-					By("returning the bosh task ID")
-					Expect(returnedTaskID).To(Equal(expectedNewDeploymentTask))
-
-					By("return the newly generated manifest")
-					Expect(string(deployedManifest)).To(Equal(generatedManifest))
-				})
-
-				It("has not completed the previous run then starts upgrading sucessfully", func() {
-					boshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{
-						{State: boshdirector.TaskProcessing, ID: 3234, ContextID: expectedContextID},
-						{State: boshdirector.TaskDone, ID: 3233, ContextID: expectedContextID},
-						{State: boshdirector.TaskDone, ID: 3232, ContextID: expectedContextID},
-					}, nil)
-
-					returnedTaskID, deployedManifest, deployError = deployer.Upgrade(
-						deploymentName,
-						planID,
-						previousPlanID,
-						boshContextID,
-						logger,
-					)
-
-					By("not returning an error")
-					Expect(deployError).NotTo(HaveOccurred())
-
-					By("returning the bosh task ID")
-					Expect(returnedTaskID).To(Equal(expectedNewDeploymentTask))
-
-					By("return the newly generated manifest")
-					Expect(string(deployedManifest)).To(Equal(generatedManifest))
-				})
+				By("return empty manifest")
+				Expect(string(deployedManifest)).To(BeEmpty())
 			})
 		})
 

@@ -12,7 +12,6 @@ import (
 	"log"
 	"reflect"
 
-	"github.com/cloudfoundry/bosh-cli/director"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
@@ -30,7 +29,8 @@ type BoshClient interface {
 	GetDeployment(name string, logger *log.Logger) ([]byte, bool, error)
 	GetConfigs(configName string, logger *log.Logger) ([]boshdirector.BoshConfig, error)
 	UpdateConfig(configType, configName string, configContent []byte, logger *log.Logger) error
-	GetEvents(filter director.EventsFilter, logger *log.Logger) ([]boshdirector.BoshEvent, error)
+	GetUpdatesEvents(deploymentName string, logger *log.Logger) ([]boshdirector.BoshEvent, error)
+	GetErrandEvents(deploymentName string, logger *log.Logger) ([]boshdirector.BoshEvent, error)
 }
 
 //go:generate counterfeiter -o fakes/fake_manifest_generator.go . ManifestGenerator
@@ -52,14 +52,17 @@ type GenerateManifestProperties struct {
 }
 
 //go:generate counterfeiter -o fakes/fake_odb_secrets.go . ODBSecrets
-
 type ODBSecrets interface {
 	GenerateSecretPaths(deploymentName, manifest string, secretsMap serviceadapter.ODBManagedSecrets) []broker.ManifestSecret
 	ReplaceODBRefs(manifest string, secrets []broker.ManifestSecret) string
 }
 
-//go:generate counterfeiter -o fakes/fake_bulk_setter.go . BulkSetter
+//go:generate counterfeiter -o fakes/fake_pre_upgrade.go . PreUpgradeChecker
+type PreUpgradeChecker interface {
+	ShouldUpgrade(generateManifestProp GenerateManifestProperties, logger *log.Logger) bool
+}
 
+//go:generate counterfeiter -o fakes/fake_bulk_setter.go . BulkSetter
 type BulkSetter interface {
 	BulkSet([]broker.ManifestSecret) error
 }
@@ -70,16 +73,16 @@ type Deployer struct {
 	odbSecrets         ODBSecrets
 	bulkSetter         BulkSetter
 	DisableBoshConfigs bool
-	preUpgrade         PreUpgrade
+	preUpgrade         PreUpgradeChecker
 }
 
-func NewDeployer(boshClient BoshClient, manifestGenerator ManifestGenerator, odbSecrets ODBSecrets, bulkSetter BulkSetter) Deployer {
+func NewDeployer(boshClient BoshClient, manifestGenerator ManifestGenerator, odbSecrets ODBSecrets, bulkSetter BulkSetter, preUpgrade PreUpgradeChecker) Deployer {
 	return Deployer{
 		boshClient:        boshClient,
 		manifestGenerator: manifestGenerator,
 		odbSecrets:        odbSecrets,
 		bulkSetter:        bulkSetter,
-		preUpgrade:        PreUpgrade{boshClient: boshClient, manifestGenerator: manifestGenerator}, //TODO inject this
+		preUpgrade:        preUpgrade,
 	}
 }
 

@@ -40,7 +40,7 @@ var _ = Describe("upgrade-all-service-instances errand, basic operation", func()
 		brokerDeploymentOptions = bosh_helpers.BrokerDeploymentOptions{BrokerTLS: true}
 
 		brokerInfo = bosh_helpers.DeployAndRegisterBroker(
-			"basic-upgrade-"+uniqueID,
+			"-basic-upgrade-"+uniqueID,
 			brokerDeploymentOptions,
 			service_helpers.Redis,
 			[]string{
@@ -51,7 +51,7 @@ var _ = Describe("upgrade-all-service-instances errand, basic operation", func()
 	})
 
 	AfterEach(func() {
-		//bosh_helpers.DeregisterAndDeleteBroker(brokerInfo.DeploymentName)
+		bosh_helpers.DeregisterAndDeleteBroker(brokerInfo.DeploymentName)
 	})
 
 	It("when there are no service instances provisioned, upgrade-all-service-instances runs successfully", func() {
@@ -97,7 +97,7 @@ var _ = Describe("upgrade-all-service-instances errand, basic operation", func()
 
 			By("changing the name of instance group and disabling persistence", func() {
 				brokerInfo = bosh_helpers.DeployAndRegisterBroker(
-					"basic-upgrade-"+uniqueID,
+					"-basic-upgrade-"+uniqueID,
 					brokerDeploymentOptions,
 					service_helpers.Redis,
 					[]string{
@@ -129,7 +129,7 @@ var _ = Describe("upgrade-all-service-instances errand, basic operation", func()
 				})
 			}
 
-			By("running the upgrade-all errand AGAIN", func() {
+			By("running the upgrade-all errand again", func() {
 				session := bosh_helpers.RunErrand(brokerInfo.DeploymentName, "upgrade-all-service-instances")
 				Expect(session).To(SatisfyAll(
 					gbytes.Say("STARTING OPERATION"),

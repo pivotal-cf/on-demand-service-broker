@@ -50,8 +50,9 @@ func Initiate(conf config.Config,
 	)
 	odbSecrets := manifestsecrets.ODBSecrets{ServiceOfferingID: conf.ServiceCatalog.ID}
 	boshCredhubStore := buildCredhubStore(conf, logger)
+	preUpgradeChecker := task.NewPreUpgrade(manifestGenerator, taskBoshClient)
 
-	deploymentManager := task.NewDeployer(taskBoshClient, manifestGenerator, odbSecrets, boshCredhubStore)
+	deploymentManager := task.NewDeployer(taskBoshClient, manifestGenerator, odbSecrets, boshCredhubStore, preUpgradeChecker)
 	deploymentManager.DisableBoshConfigs = conf.Broker.DisableBoshConfigs
 
 	manifestSecretManager := manifestsecrets.BuildManager(conf.Broker.EnableSecureManifests, new(manifestsecrets.CredHubPathMatcher), boshCredhubStore)
