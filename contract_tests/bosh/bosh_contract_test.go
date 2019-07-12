@@ -16,15 +16,12 @@
 package bosh_test
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"log"
 	"regexp"
 	"time"
-
-	"log"
-
-	"io/ioutil"
-
-	"encoding/json"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -66,9 +63,10 @@ var _ = Describe("BOSH client", func() {
 			reporter := boshdirector.NewAsyncTaskReporter()
 			manifest := getManifest("single_vm_deployment.yml", deploymentName)
 			var (
-				task         boshdirector.BoshTask
-				taskID       int
-				errandTaskID int
+				task           boshdirector.BoshTask
+				taskID         int
+				errandTaskID   int
+				recreateTaskID int
 			)
 
 			By("deploying the manifest", func() {
@@ -145,6 +143,16 @@ var _ = Describe("BOSH client", func() {
 				verifyContextID("some-context-id", errandTaskID)
 			})
 
+			By("verifying an errand event", func() {
+				var err error
+				var errandEvents []boshdirector.BoshEvent
+				errandEvents, err = boshClient.GetErrandEvents(deploymentName, logger)
+
+				Expect(err).NotTo(HaveOccurred())
+				Expect(errandEvents).To(Not(BeEmpty()))
+				Expect(errandEvents[0].TaskId).To(Equal(fmt.Sprintf("%d", errandTaskID)))
+			})
+
 			By("getting the task output", func() {
 				output, err := boshClient.GetTaskOutput(errandTaskID, logger)
 				Expect(err).NotTo(HaveOccurred())
@@ -152,14 +160,26 @@ var _ = Describe("BOSH client", func() {
 			})
 
 			By("recreating the deployment", func() {
+				var err error
+
 				recreateCtx := "recreate-context-1"
 				recreateReporter := boshdirector.NewAsyncTaskReporter()
-				recreateTaskID, err := boshClient.Recreate(deploymentName, recreateCtx, logger, recreateReporter)
+				recreateTaskID, err = boshClient.Recreate(deploymentName, recreateCtx, logger, recreateReporter)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(recreateTaskID).To(BeNumerically(">", 0))
 				verifyContextID(recreateCtx, recreateTaskID)
 				Eventually(recreateReporter.Finished).Should(Receive(), fmt.Sprintf("Timed out waiting for deployment %s to be recreated", deploymentName))
 				Expect(reporter.State).ToNot(Equal("error"), fmt.Sprintf("Recreation of %s failed", deploymentName))
+			})
+
+			By("verifying an errand event", func() {
+				var err error
+				var updateEvents []boshdirector.BoshEvent
+				updateEvents, err = boshClient.GetUpdatesEvents(deploymentName, logger)
+
+				Expect(err).NotTo(HaveOccurred())
+				Expect(updateEvents).To(Not(BeEmpty()))
+				Expect(updateEvents[0].TaskId).To(Equal(fmt.Sprintf("%d", recreateTaskID)))
 			})
 
 			By("deleting the deployment", func() {
