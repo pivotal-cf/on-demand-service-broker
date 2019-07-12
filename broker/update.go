@@ -63,7 +63,6 @@ func (b *Broker) Update(
 	b.deploymentLock.Lock()
 	defer b.deploymentLock.Unlock()
 
-
 	plan, err := b.checkPlanExists(details, logger, ctx)
 	if err != nil {
 		return domain.UpdateServiceSpec{}, b.processError(err, logger)
@@ -76,7 +75,6 @@ func (b *Broker) Update(
 
 	var boshTaskID int
 	var operationType OperationType
-
 
 	err = b.validateQuotasForUpdate(plan, details, logger, ctx)
 	if err != nil {
@@ -136,9 +134,7 @@ func (b *Broker) handleUpdateError(err error, logger *log.Logger, ctx context.Co
 		), logger)
 	case TaskInProgressError:
 		return domain.UpdateServiceSpec{}, b.processError(NewOperationInProgressError(errors.New(OperationInProgressMessage)), logger)
-	case PlanNotFoundError:
-		return domain.UpdateServiceSpec{}, b.processError(err, logger)
-	case DeploymentNotFoundError:
+	case PlanNotFoundError, DeploymentNotFoundError, OperationAlreadyCompletedError:
 		return domain.UpdateServiceSpec{}, b.processError(err, logger)
 	case serviceadapter.UnknownFailureError:
 		return domain.UpdateServiceSpec{}, b.processError(adapterToAPIError(ctx, err), logger)
