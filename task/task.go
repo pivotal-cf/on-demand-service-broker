@@ -31,7 +31,6 @@ type BoshClient interface {
 	GetConfigs(configName string, logger *log.Logger) ([]boshdirector.BoshConfig, error)
 	UpdateConfig(configType, configName string, configContent []byte, logger *log.Logger) error
 	GetUpdatesEvents(deploymentName string, logger *log.Logger) ([]boshdirector.BoshEvent, error)
-	GetErrandEvents(deploymentName string, logger *log.Logger) ([]boshdirector.BoshEvent, error)
 }
 
 //go:generate counterfeiter -o fakes/fake_manifest_generator.go . ManifestGenerator

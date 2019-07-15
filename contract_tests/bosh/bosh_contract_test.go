@@ -143,16 +143,6 @@ var _ = Describe("BOSH client", func() {
 				verifyContextID("some-context-id", errandTaskID)
 			})
 
-			By("verifying an errand event", func() {
-				var err error
-				var errandEvents []boshdirector.BoshEvent
-				errandEvents, err = boshClient.GetErrandEvents(deploymentName, logger)
-
-				Expect(err).NotTo(HaveOccurred())
-				Expect(errandEvents).To(Not(BeEmpty()))
-				Expect(errandEvents[0].TaskId).To(Equal(fmt.Sprintf("%d", errandTaskID)))
-			})
-
 			By("getting the task output", func() {
 				output, err := boshClient.GetTaskOutput(errandTaskID, logger)
 				Expect(err).NotTo(HaveOccurred())
