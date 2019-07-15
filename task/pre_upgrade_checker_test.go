@@ -19,8 +19,9 @@ var _ = Describe("PreUpgrade", func() {
 		generatedManifest string
 		oldManifest       []byte
 
-		preUpgrade        task.PreUpgrade
-		manifestGenerator *fakes.FakeManifestGenerator
+		preUpgrade            task.PreUpgrade
+		manifestGenerator     *fakes.FakeManifestGenerator
+		defaultPlanWithErrand config.Plan
 	)
 
 	BeforeEach(func() {
@@ -34,6 +35,15 @@ var _ = Describe("PreUpgrade", func() {
 			serviceadapter.MarshalledGenerateManifest{Manifest: generatedManifest},
 			nil,
 		)
+
+		defaultPlanWithErrand = config.Plan{
+			ID: "a-plan-id",
+			LifecycleErrands: &serviceadapter.LifecycleErrands{
+				PostDeploy: []serviceadapter.Errand{{
+					Name: "errand-name",
+				}},
+			},
+		}
 
 		preUpgrade = task.NewPreUpgrade(manifestGenerator, boshClient)
 	})
@@ -70,7 +80,7 @@ var _ = Describe("PreUpgrade", func() {
 							DeploymentName: deploymentName,
 							OldManifest:    []byte(generatedManifest),
 						},
-						config.Plan{},
+						defaultPlanWithErrand,
 						logger)
 
 					By("asserting all calls to task")
@@ -91,9 +101,6 @@ var _ = Describe("PreUpgrade", func() {
 				const expectedContextID = "231"
 				const expectedNewDeploymentTask = 35
 				BeforeEach(func() {
-					boshClient.GetErrandEventsReturns([]boshdirector.BoshEvent{
-						{TaskId: 9999},
-					}, nil)
 					boshClient.GetUpdatesEventsReturns([]boshdirector.BoshEvent{
 						{TaskId: expectedDeploymentTask},
 					}, nil)
@@ -115,10 +122,10 @@ var _ = Describe("PreUpgrade", func() {
 							DeploymentName: deploymentName,
 							OldManifest:    []byte(generatedManifest),
 						},
-						config.Plan{},
+						defaultPlanWithErrand,
 						logger)
 
-					Expect(shouldUpgrade).To(BeTrue())
+					Expect(shouldUpgrade).To(BeTrue(), "expected 'shouldUpgrade' to return true")
 				})
 
 				It("has not completed the previous run it should upgrade", func() {
@@ -137,18 +144,35 @@ var _ = Describe("PreUpgrade", func() {
 				})
 			})
 
-			Context("when there are no errands", func() {
-				BeforeEach(func() {
-					boshClient.GetErrandEventsReturns([]boshdirector.BoshEvent{}, nil)
-				})
+			Context("when there are no post-deploy errands", func() {
 
-				It("should skip upgrade", func() {
+				It("should skip upgrade when lifecycle errands does not have post-deploy errands defined", func() {
 					shouldUpgrade := preUpgrade.ShouldUpgrade(
 						task.GenerateManifestProperties{
 							DeploymentName: deploymentName,
 							OldManifest:    []byte(generatedManifest),
 						},
-						config.Plan{},
+						config.Plan{
+							ID:               "a-plan-id",
+							LifecycleErrands: &serviceadapter.LifecycleErrands{},
+						},
+						logger)
+
+					Expect(shouldUpgrade).To(BeFalse())
+					Expect(boshClient.GetUpdatesEventsCallCount()).To(BeZero())
+					Expect(boshClient.GetTaskCallCount()).To(BeZero())
+					Expect(boshClient.GetNormalisedTasksByContextCallCount()).To(BeZero())
+				})
+
+				It("should skip upgrade when lifecycle errands is not defined", func() {
+					shouldUpgrade := preUpgrade.ShouldUpgrade(
+						task.GenerateManifestProperties{
+							DeploymentName: deploymentName,
+							OldManifest:    []byte(generatedManifest),
+						},
+						config.Plan{
+							ID: "a-plan-id",
+						},
 						logger)
 
 					Expect(shouldUpgrade).To(BeFalse())
@@ -166,7 +190,7 @@ var _ = Describe("PreUpgrade", func() {
 						DeploymentName: deploymentName,
 						OldManifest:    oldManifest,
 					},
-					config.Plan{},
+					defaultPlanWithErrand,
 					logger)
 
 				Expect(shouldUpgrade).To(BeTrue())
@@ -187,7 +211,7 @@ var _ = Describe("PreUpgrade", func() {
 						DeploymentName: deploymentName,
 						OldManifest:    []byte(generatedManifest),
 					},
-					config.Plan{},
+					defaultPlanWithErrand,
 					logger)
 
 				Expect(shouldUpgrade).To(BeTrue())
@@ -200,25 +224,6 @@ var _ = Describe("PreUpgrade", func() {
 		})
 
 		Context("when the bosh client fails", func() {
-			It("should upgrade when get errand events fail", func() {
-				errorMessage := "failed to retrieve events"
-				boshClient.GetErrandEventsReturns([]boshdirector.BoshEvent{}, errors.New(errorMessage))
-
-				shouldUpgrade := preUpgrade.ShouldUpgrade(
-					task.GenerateManifestProperties{
-						DeploymentName: deploymentName,
-						OldManifest:    []byte(generatedManifest),
-					},
-					config.Plan{},
-					logger)
-
-				Expect(shouldUpgrade).To(BeTrue())
-				Expect(logBuffer.String()).To(ContainSubstring(errorMessage))
-				Expect(boshClient.GetUpdatesEventsCallCount()).To(BeZero())
-				Expect(boshClient.GetTaskCallCount()).To(BeZero())
-				Expect(boshClient.GetNormalisedTasksByContextCallCount()).To(BeZero())
-			})
-
 			It("should upgrade when get update events fail", func() {
 				errorMessage := "failed to retrieve events"
 				boshClient.GetErrandEventsReturns([]boshdirector.BoshEvent{
@@ -231,7 +236,7 @@ var _ = Describe("PreUpgrade", func() {
 						DeploymentName: deploymentName,
 						OldManifest:    []byte(generatedManifest),
 					},
-					config.Plan{},
+					defaultPlanWithErrand,
 					logger)
 
 				Expect(shouldUpgrade).To(BeTrue())
@@ -251,7 +256,7 @@ var _ = Describe("PreUpgrade", func() {
 						DeploymentName: deploymentName,
 						OldManifest:    []byte(generatedManifest),
 					},
-					config.Plan{},
+					defaultPlanWithErrand,
 					logger)
 
 				Expect(shouldUpgrade).To(BeTrue())
@@ -273,7 +278,7 @@ var _ = Describe("PreUpgrade", func() {
 						DeploymentName: deploymentName,
 						OldManifest:    []byte(generatedManifest),
 					},
-					config.Plan{},
+					defaultPlanWithErrand,
 					logger)
 
 				Expect(shouldUpgrade).To(BeTrue())
@@ -294,7 +299,7 @@ var _ = Describe("PreUpgrade", func() {
 						DeploymentName: deploymentName,
 						OldManifest:    []byte(generatedManifest),
 					},
-					config.Plan{},
+					defaultPlanWithErrand,
 					logger)
 
 				Expect(shouldUpgrade).To(BeTrue())
@@ -316,7 +321,7 @@ var _ = Describe("PreUpgrade", func() {
 						DeploymentName: deploymentName,
 						OldManifest:    []byte(generatedManifest),
 					},
-					config.Plan{},
+					defaultPlanWithErrand,
 					logger)
 
 				Expect(shouldUpgrade).To(BeTrue())
@@ -342,7 +347,7 @@ var _ = Describe("PreUpgrade", func() {
 						DeploymentName: deploymentName,
 						OldManifest:    []byte(generatedManifest),
 					},
-					config.Plan{},
+					defaultPlanWithErrand,
 					logger)
 
 				Expect(logBuffer.String()).To(ContainSubstring(errorMessage))
@@ -366,7 +371,7 @@ var _ = Describe("PreUpgrade", func() {
 						DeploymentName: deploymentName,
 						OldManifest:    []byte(generatedManifest),
 					},
-					config.Plan{},
+					defaultPlanWithErrand,
 					logger)
 
 				Expect(shouldUpgrade).To(BeTrue())

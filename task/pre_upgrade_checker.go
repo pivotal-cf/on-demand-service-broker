@@ -33,12 +33,7 @@ func (p PreUpgrade) ShouldUpgrade(generateManifestProp GenerateManifestPropertie
 	}
 
 	if manifestAreTheSame(generateManifestOutput, generateManifestProp.OldManifest) {
-		errandEvents, err := p.boshClient.GetErrandEvents(generateManifestProp.DeploymentName, logger)
-		if err != nil {
-			logger.Printf("failed to get errand events for deployment %q with cause %q", generateManifestProp.DeploymentName, err.Error())
-			return ShouldUpgrade
-		}
-		if p.noPostDeployErrands(errandEvents) {
+		if p.noPostDeployErrands(plan) {
 			logger.Printf("manifest is unchanged and there are no post-deploy errand for %q, skipping upgrade", generateManifestProp.DeploymentName)
 			return !ShouldUpgrade
 		}
@@ -87,8 +82,12 @@ func (p PreUpgrade) ShouldUpgrade(generateManifestProp GenerateManifestPropertie
 	return ShouldUpgrade
 }
 
-func (p PreUpgrade) noPostDeployErrands(errandEvents []boshdirector.BoshEvent) bool {
-	return len(errandEvents) == 0
+func (p PreUpgrade) noPostDeployErrands(plan config.Plan) bool {
+	errands := plan.LifecycleErrands
+	if errands == nil {
+		return true
+	}
+	return len(errands.PostDeploy) == 0
 }
 
 func (p PreUpgrade) noPreviousUpgrade(events []boshdirector.BoshEvent) bool {
