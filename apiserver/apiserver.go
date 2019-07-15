@@ -98,28 +98,12 @@ func registerManagementAPI(
 func StartAndWait(conf config.Config, server *http.Server, logger *log.Logger, stopServer chan os.Signal) error {
 	stopped := make(chan struct{})
 	signal.Notify(stopServer, os.Interrupt, syscall.SIGTERM)
-	go func() {
-		<-stopServer
 
-		timeoutSecs := conf.Broker.ShutdownTimeoutSecs
-		logger.Printf("Broker shutting down on signal (timeout %d secs)...\n", timeoutSecs)
+	go handleBrokerTerminationSignal(stopServer, conf, logger, server, stopped)
 
-		ctx, cancel := context.WithTimeout(
-			context.Background(),
-			time.Second*time.Duration(timeoutSecs),
-		)
-		defer cancel()
-
-		if err := server.Shutdown(ctx); err != nil {
-			logger.Printf("Error gracefully shutting down server: %v\n", err)
-		} else {
-			logger.Println("Server gracefully shut down")
-		}
-
-		close(stopped)
-	}()
 	logger.Println("Listening on", server.Addr)
 	var err error
+
 	if conf.HasTLS() {
 		if err = CheckCertExpiry(conf.Broker.TLS.CertFile); err != nil {
 			return err
@@ -137,12 +121,34 @@ func StartAndWait(conf config.Config, server *http.Server, logger *log.Logger, s
 	} else {
 		err = server.ListenAndServe()
 	}
-	if err != http.ErrServerClosed {
 
+	if err != http.ErrServerClosed {
 		return errors.Wrap(err, "error starting broker HTTP(s) server")
 	}
+
 	<-stopped
 	return nil
+}
+
+func handleBrokerTerminationSignal(stopServer chan os.Signal, conf config.Config, logger *log.Logger, server *http.Server, stopped chan struct{}) {
+	<-stopServer
+
+	timeoutSecs := conf.Broker.ShutdownTimeoutSecs
+	logger.Printf("Broker shutting down on signal (timeout %d secs)...\n", timeoutSecs)
+
+	ctx, cancel := context.WithTimeout(
+		context.Background(),
+		time.Second*time.Duration(timeoutSecs),
+	)
+	defer cancel()
+
+	if err := server.Shutdown(ctx); err != nil {
+		logger.Printf("Error gracefully shutting down server: %v\n", err)
+	} else {
+		logger.Println("Server gracefully shut down")
+	}
+
+	close(stopped)
 }
 
 func CheckCertExpiry(certFile string) error {

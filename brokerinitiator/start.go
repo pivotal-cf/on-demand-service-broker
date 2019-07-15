@@ -94,6 +94,16 @@ func Initiate(conf config.Config,
 	)
 
 	displayBanner(conf)
+
+	if conf.Broker.EnableTelemetry {
+		allInstances, err := instanceLister.Instances(nil)
+		if err != nil {
+			logger.Printf("Failed to query list of instances for telemetry (cause: %s). Skipping total instances log.", err)
+		} else {
+			logger.Printf(`{"telemetry-source":"odb-%s","service-instances":{"total":%d,"operation":"broker-startup"}}\n`, conf.ServiceCatalog.Name, len(allInstances))
+		}
+	}
+
 	if err := apiserver.StartAndWait(conf, server, logger, stopServer); err != nil {
 		logger.Fatal(err)
 	}

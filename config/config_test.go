@@ -58,6 +58,7 @@ var _ = Describe("Broker Config", func() {
 						EnablePlanSchemas:          false,
 						ShutdownTimeoutSecs:        10,
 						UsingStdin:                 true,
+						EnableTelemetry:            true,
 					},
 					Bosh: config.Bosh{
 						URL:         "some-url",

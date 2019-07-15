@@ -13,6 +13,7 @@ broker:
   startup_banner: false
   shutdown_timeout_in_seconds: 10
   use_stdin: true
+  enable_telemetry: true
 bosh:
   url: some-url
   root_ca_cert: some-cert

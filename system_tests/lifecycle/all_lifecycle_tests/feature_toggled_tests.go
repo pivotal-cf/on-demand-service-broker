@@ -37,6 +37,12 @@ func FeatureToggledLifecycleTest(
 		appURL              string
 	)
 
+	By("logging telemetry data at startup", func() {
+		stdoutLogs := bosh_helpers.GetBrokerLogs(brokerInfo.DeploymentName)
+		telemetryLog := fmt.Sprintf(`{"telemetry-source":"odb-%s","service-instances":{"total":0,"operation":"broker-startup"}}`, brokerInfo.ServiceName)
+		Expect(stdoutLogs).To(ContainSubstring(telemetryLog))
+	})
+
 	By("creating a service", func() {
 		serviceInstanceName = "service" + brokerInfo.TestSuffix
 		cf_helpers.CreateService(brokerInfo.ServiceName, planName, serviceInstanceName, "")

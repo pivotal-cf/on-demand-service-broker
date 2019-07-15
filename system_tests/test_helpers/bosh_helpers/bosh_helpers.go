@@ -195,11 +195,6 @@ func systemTestLogger() *log.Logger {
 	return log.New(GinkgoWriter, "[system tests boshdirector] ", log.LstdFlags)
 }
 
-func FindJobProperties(brokerManifest *bosh.BoshManifest, igName, jobName string) map[string]interface{} {
-	job := FindJob(brokerManifest, igName, jobName)
-	return job.Properties
-}
-
 func FindJob(brokerManifest *bosh.BoshManifest, igName, jobName string) bosh.Job {
 	for _, job := range FindInstanceGroupJobs(brokerManifest, igName) {
 		if job.Name == jobName {

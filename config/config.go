@@ -44,6 +44,7 @@ type Broker struct {
 	EnablePlanSchemas          bool `yaml:"enable_plan_schemas"`
 	UsingStdin                 bool `yaml:"use_stdin"`
 	EnableSecureManifests      bool `yaml:"enable_secure_manifests"`
+	EnableTelemetry            bool `yaml:"enable_telemetry"`
 	TLS                        TLSConfig
 }
 

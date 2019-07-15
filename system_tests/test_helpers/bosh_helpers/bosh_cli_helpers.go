@@ -437,6 +437,21 @@ func GetBOSHConfig(configType, configName string) (string, error) {
 	return string(out), nil
 }
 
+func GetBrokerLogs(deploymentName string) string {
+	downloadedLogFile, err := ioutil.TempFile("/tmp", "")
+	Expect(err).NotTo(HaveOccurred())
+	RunOnVM(
+		deploymentName,
+		"broker",
+		"sudo cp /var/vcap/sys/log/broker/broker.stdout.log /tmp/broker.log; sudo chmod 755 /tmp/broker.log",
+	)
+
+	CopyFromVM(deploymentName, "broker", "/tmp/broker.log", downloadedLogFile.Name())
+	b, err := ioutil.ReadAll(downloadedLogFile)
+	Expect(err).NotTo(HaveOccurred())
+	return string(b)
+}
+
 func DeleteBOSHConfig(configType, configName string) error {
 	args := []string{
 		"delete-config",
