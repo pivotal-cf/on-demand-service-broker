@@ -14,6 +14,7 @@ import (
 
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
+	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 	"gopkg.in/yaml.v2"
@@ -59,7 +60,7 @@ type ODBSecrets interface {
 
 //go:generate counterfeiter -o fakes/fake_pre_upgrade.go . PreUpgradeChecker
 type PreUpgradeChecker interface {
-	ShouldUpgrade(generateManifestProp GenerateManifestProperties, logger *log.Logger) bool
+	ShouldUpgrade(generateManifestProp GenerateManifestProperties, plan config.Plan, logger *log.Logger) bool
 }
 
 //go:generate counterfeiter -o fakes/fake_bulk_setter.go . BulkSetter
@@ -105,7 +106,7 @@ func (d Deployer) Create(deploymentName, planID string, requestParams map[string
 	return d.doDeploy(generateManifestProperties, "create", boshContextID, logger)
 }
 
-func (d Deployer) Upgrade(deploymentName, planID string, previousPlanID *string, boshContextID string, logger *log.Logger) (int, []byte, error) {
+func (d Deployer) Upgrade(deploymentName string, plan config.Plan, boshContextID string, logger *log.Logger) (int, []byte, error) {
 	err := d.assertNoOperationsInProgress(deploymentName, logger)
 	if err != nil {
 		return 0, nil, err
@@ -126,13 +127,13 @@ func (d Deployer) Upgrade(deploymentName, planID string, previousPlanID *string,
 
 	generateManifestProperties := GenerateManifestProperties{
 		DeploymentName:  deploymentName,
-		PlanID:          planID,
+		PlanID:          plan.ID,
 		OldManifest:     oldManifest,
-		PreviousPlanID:  previousPlanID,
+		PreviousPlanID:  &plan.ID,
 		PreviousConfigs: oldConfigs,
 	}
 
-	if !d.preUpgrade.ShouldUpgrade(generateManifestProperties, logger) {
+	if !d.preUpgrade.ShouldUpgrade(generateManifestProperties, plan, logger) {
 		return 0, nil, broker.NewOperationAlreadyCompletedError(errors.New("instance is already up to date"))
 	}
 

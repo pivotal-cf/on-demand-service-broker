@@ -3,6 +3,7 @@ package task_test
 import (
 	. "github.com/onsi/ginkgo"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
+	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/task"
 	"github.com/pivotal-cf/on-demand-service-broker/task/fakes"
 	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
@@ -69,6 +70,7 @@ var _ = Describe("PreUpgrade", func() {
 							DeploymentName: deploymentName,
 							OldManifest:    []byte(generatedManifest),
 						},
+						config.Plan{},
 						logger)
 
 					By("asserting all calls to task")
@@ -113,6 +115,7 @@ var _ = Describe("PreUpgrade", func() {
 							DeploymentName: deploymentName,
 							OldManifest:    []byte(generatedManifest),
 						},
+						config.Plan{},
 						logger)
 
 					Expect(shouldUpgrade).To(BeTrue())
@@ -127,6 +130,7 @@ var _ = Describe("PreUpgrade", func() {
 
 					shouldUpgrade := preUpgrade.ShouldUpgrade(
 						task.GenerateManifestProperties{DeploymentName: deploymentName},
+						config.Plan{},
 						logger)
 
 					Expect(shouldUpgrade).To(BeTrue())
@@ -144,6 +148,7 @@ var _ = Describe("PreUpgrade", func() {
 							DeploymentName: deploymentName,
 							OldManifest:    []byte(generatedManifest),
 						},
+						config.Plan{},
 						logger)
 
 					Expect(shouldUpgrade).To(BeFalse())
@@ -161,6 +166,7 @@ var _ = Describe("PreUpgrade", func() {
 						DeploymentName: deploymentName,
 						OldManifest:    oldManifest,
 					},
+					config.Plan{},
 					logger)
 
 				Expect(shouldUpgrade).To(BeTrue())
@@ -181,6 +187,7 @@ var _ = Describe("PreUpgrade", func() {
 						DeploymentName: deploymentName,
 						OldManifest:    []byte(generatedManifest),
 					},
+					config.Plan{},
 					logger)
 
 				Expect(shouldUpgrade).To(BeTrue())
@@ -202,6 +209,7 @@ var _ = Describe("PreUpgrade", func() {
 						DeploymentName: deploymentName,
 						OldManifest:    []byte(generatedManifest),
 					},
+					config.Plan{},
 					logger)
 
 				Expect(shouldUpgrade).To(BeTrue())
@@ -223,6 +231,7 @@ var _ = Describe("PreUpgrade", func() {
 						DeploymentName: deploymentName,
 						OldManifest:    []byte(generatedManifest),
 					},
+					config.Plan{},
 					logger)
 
 				Expect(shouldUpgrade).To(BeTrue())
@@ -242,6 +251,7 @@ var _ = Describe("PreUpgrade", func() {
 						DeploymentName: deploymentName,
 						OldManifest:    []byte(generatedManifest),
 					},
+					config.Plan{},
 					logger)
 
 				Expect(shouldUpgrade).To(BeTrue())
@@ -263,6 +273,7 @@ var _ = Describe("PreUpgrade", func() {
 						DeploymentName: deploymentName,
 						OldManifest:    []byte(generatedManifest),
 					},
+					config.Plan{},
 					logger)
 
 				Expect(shouldUpgrade).To(BeTrue())
@@ -283,6 +294,7 @@ var _ = Describe("PreUpgrade", func() {
 						DeploymentName: deploymentName,
 						OldManifest:    []byte(generatedManifest),
 					},
+					config.Plan{},
 					logger)
 
 				Expect(shouldUpgrade).To(BeTrue())
@@ -304,6 +316,7 @@ var _ = Describe("PreUpgrade", func() {
 						DeploymentName: deploymentName,
 						OldManifest:    []byte(generatedManifest),
 					},
+					config.Plan{},
 					logger)
 
 				Expect(shouldUpgrade).To(BeTrue())
@@ -329,6 +342,7 @@ var _ = Describe("PreUpgrade", func() {
 						DeploymentName: deploymentName,
 						OldManifest:    []byte(generatedManifest),
 					},
+					config.Plan{},
 					logger)
 
 				Expect(logBuffer.String()).To(ContainSubstring(errorMessage))
@@ -352,6 +366,7 @@ var _ = Describe("PreUpgrade", func() {
 						DeploymentName: deploymentName,
 						OldManifest:    []byte(generatedManifest),
 					},
+					config.Plan{},
 					logger)
 
 				Expect(shouldUpgrade).To(BeTrue())

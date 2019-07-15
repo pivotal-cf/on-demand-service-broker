@@ -49,11 +49,9 @@ var _ = Describe("Upgrade", func() {
 		Expect(fakeDeployer.CreateCallCount()).To(Equal(0))
 		Expect(fakeDeployer.UpgradeCallCount()).To(Equal(1))
 		Expect(fakeDeployer.UpdateCallCount()).To(Equal(0))
-		actualDeploymentName, actualPlanID, actualPreviousPlanID, actualBoshContextID, _ := fakeDeployer.UpgradeArgsForCall(0)
-		Expect(actualPlanID).To(Equal(existingPlanID))
+		actualDeploymentName, actualPlan, actualBoshContextID, _ := fakeDeployer.UpgradeArgsForCall(0)
+		Expect(actualPlan).To(Equal(existingPlan))
 		Expect(actualDeploymentName).To(Equal(broker.InstancePrefix + instanceID))
-		oldPlanIDCopy := existingPlanID
-		Expect(actualPreviousPlanID).To(Equal(&oldPlanIDCopy))
 		Expect(actualBoshContextID).To(BeEmpty())
 	})
 
@@ -89,7 +87,7 @@ var _ = Describe("Upgrade", func() {
 
 			upgradeOperationData, _ = b.Upgrade(context.Background(), instanceID, details, logger)
 
-			_, _, _, contextID, _ := fakeDeployer.UpgradeArgsForCall(0)
+			_, _, contextID, _ := fakeDeployer.UpgradeArgsForCall(0)
 			Expect(contextID).NotTo(BeEmpty())
 			Expect(upgradeOperationData.BoshContextID).NotTo(BeEmpty())
 			Expect(upgradeOperationData).To(Equal(

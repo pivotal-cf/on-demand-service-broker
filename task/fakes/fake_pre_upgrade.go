@@ -5,15 +5,17 @@ import (
 	"log"
 	"sync"
 
+	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/task"
 )
 
 type FakePreUpgradeChecker struct {
-	ShouldUpgradeStub        func(task.GenerateManifestProperties, *log.Logger) bool
+	ShouldUpgradeStub        func(task.GenerateManifestProperties, config.Plan, *log.Logger) bool
 	shouldUpgradeMutex       sync.RWMutex
 	shouldUpgradeArgsForCall []struct {
 		arg1 task.GenerateManifestProperties
-		arg2 *log.Logger
+		arg2 config.Plan
+		arg3 *log.Logger
 	}
 	shouldUpgradeReturns struct {
 		result1 bool
@@ -25,17 +27,18 @@ type FakePreUpgradeChecker struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakePreUpgradeChecker) ShouldUpgrade(arg1 task.GenerateManifestProperties, arg2 *log.Logger) bool {
+func (fake *FakePreUpgradeChecker) ShouldUpgrade(arg1 task.GenerateManifestProperties, arg2 config.Plan, arg3 *log.Logger) bool {
 	fake.shouldUpgradeMutex.Lock()
 	ret, specificReturn := fake.shouldUpgradeReturnsOnCall[len(fake.shouldUpgradeArgsForCall)]
 	fake.shouldUpgradeArgsForCall = append(fake.shouldUpgradeArgsForCall, struct {
 		arg1 task.GenerateManifestProperties
-		arg2 *log.Logger
-	}{arg1, arg2})
-	fake.recordInvocation("ShouldUpgrade", []interface{}{arg1, arg2})
+		arg2 config.Plan
+		arg3 *log.Logger
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("ShouldUpgrade", []interface{}{arg1, arg2, arg3})
 	fake.shouldUpgradeMutex.Unlock()
 	if fake.ShouldUpgradeStub != nil {
-		return fake.ShouldUpgradeStub(arg1, arg2)
+		return fake.ShouldUpgradeStub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1
@@ -50,17 +53,17 @@ func (fake *FakePreUpgradeChecker) ShouldUpgradeCallCount() int {
 	return len(fake.shouldUpgradeArgsForCall)
 }
 
-func (fake *FakePreUpgradeChecker) ShouldUpgradeCalls(stub func(task.GenerateManifestProperties, *log.Logger) bool) {
+func (fake *FakePreUpgradeChecker) ShouldUpgradeCalls(stub func(task.GenerateManifestProperties, config.Plan, *log.Logger) bool) {
 	fake.shouldUpgradeMutex.Lock()
 	defer fake.shouldUpgradeMutex.Unlock()
 	fake.ShouldUpgradeStub = stub
 }
 
-func (fake *FakePreUpgradeChecker) ShouldUpgradeArgsForCall(i int) (task.GenerateManifestProperties, *log.Logger) {
+func (fake *FakePreUpgradeChecker) ShouldUpgradeArgsForCall(i int) (task.GenerateManifestProperties, config.Plan, *log.Logger) {
 	fake.shouldUpgradeMutex.RLock()
 	defer fake.shouldUpgradeMutex.RUnlock()
 	argsForCall := fake.shouldUpgradeArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *FakePreUpgradeChecker) ShouldUpgradeReturns(result1 bool) {

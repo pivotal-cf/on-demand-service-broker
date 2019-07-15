@@ -372,8 +372,7 @@ var _ = Describe("Deployer", func() {
 			It("starts upgrading successfully", func() {
 				returnedTaskID, deployedManifest, deployError = deployer.Upgrade(
 					deploymentName,
-					planID,
-					previousPlanID,
+					plan,
 					boshContextID,
 					logger,
 				)
@@ -414,8 +413,7 @@ var _ = Describe("Deployer", func() {
 				It("invokes boshdirector's Create with context ID", func() {
 					returnedTaskID, deployedManifest, deployError = deployer.Upgrade(
 						deploymentName,
-						planID,
-						previousPlanID,
+						plan,
 						boshContextID,
 						logger,
 					)
@@ -433,11 +431,20 @@ var _ = Describe("Deployer", func() {
 
 				returnedTaskID, deployedManifest, deployError = deployer.Upgrade(
 					deploymentName,
-					planID,
-					previousPlanID,
+					plan,
 					boshContextID,
 					logger,
 				)
+
+				generateManifestProperties, passedPlan, _ := upgradeChecker.ShouldUpgradeArgsForCall(0)
+				Expect(passedPlan).To(Equal(plan))
+				Expect(generateManifestProperties).To(Equal(task.GenerateManifestProperties{
+					DeploymentName:  deploymentName,
+					PlanID:          planID,
+					OldManifest:     oldManifest,
+					PreviousPlanID:  previousPlanID,
+					PreviousConfigs: map[string]string{},
+				}))
 
 				By("returning an error")
 				Expect(deployError).NotTo(BeNil(), "should have matched OperationAlreadyCompletedError")
@@ -460,8 +467,7 @@ var _ = Describe("Deployer", func() {
 			It("returns a deployment not found error", func() {
 				returnedTaskID, deployedManifest, deployError = deployer.Upgrade(
 					deploymentName,
-					planID,
-					previousPlanID,
+					plan,
 					boshContextID,
 					logger,
 				)
@@ -479,8 +485,7 @@ var _ = Describe("Deployer", func() {
 			It("returns a deployment not found error", func() {
 				returnedTaskID, deployedManifest, deployError = deployer.Upgrade(
 					deploymentName,
-					planID,
-					previousPlanID,
+					plan,
 					boshContextID,
 					logger,
 				)
@@ -493,8 +498,7 @@ var _ = Describe("Deployer", func() {
 		It("returns the bosh task ID and new manifest", func() {
 			returnedTaskID, deployedManifest, deployError = deployer.Upgrade(
 				deploymentName,
-				planID,
-				previousPlanID,
+				plan,
 				boshContextID,
 				logger,
 			)
@@ -521,8 +525,7 @@ var _ = Describe("Deployer", func() {
 			It("returns and logs an error", func() {
 				returnedTaskID, deployedManifest, deployError = deployer.Upgrade(
 					deploymentName,
-					planID,
-					previousPlanID,
+					plan,
 					boshContextID,
 					logger,
 				)
@@ -558,8 +561,7 @@ var _ = Describe("Deployer", func() {
 
 				returnedTaskID, deployedManifest, deployError = deployer.Upgrade(
 					deploymentName,
-					planID,
-					previousPlanID,
+					plan,
 					boshContextID,
 					logger,
 				)
@@ -586,8 +588,7 @@ var _ = Describe("Deployer", func() {
 
 				returnedTaskID, deployedManifest, deployError = deployer.Upgrade(
 					deploymentName,
-					planID,
-					previousPlanID,
+					plan,
 					boshContextID,
 					logger,
 				)
@@ -603,8 +604,7 @@ var _ = Describe("Deployer", func() {
 
 				returnedTaskID, deployedManifest, deployError = deployer.Upgrade(
 					deploymentName,
-					planID,
-					previousPlanID,
+					plan,
 					boshContextID,
 					logger,
 				)
@@ -619,8 +619,7 @@ var _ = Describe("Deployer", func() {
 
 				returnedTaskID, deployedManifest, deployError = deployer.Upgrade(
 					deploymentName,
-					planID,
-					previousPlanID,
+					plan,
 					boshContextID,
 					logger,
 				)
@@ -636,8 +635,7 @@ var _ = Describe("Deployer", func() {
 
 				returnedTaskID, deployedManifest, deployError = deployer.Upgrade(
 					deploymentName,
-					planID,
-					previousPlanID,
+					plan,
 					boshContextID,
 					logger,
 				)
@@ -653,8 +651,7 @@ var _ = Describe("Deployer", func() {
 
 				returnedTaskID, deployedManifest, deployError = deployer.Upgrade(
 					deploymentName,
-					planID,
-					previousPlanID,
+					plan,
 					boshContextID,
 					logger,
 				)

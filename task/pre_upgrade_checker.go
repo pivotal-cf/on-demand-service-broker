@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
+	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
 
@@ -21,7 +22,7 @@ func NewPreUpgrade(generator ManifestGenerator, client BoshClient) PreUpgrade {
 	return PreUpgrade{manifestGenerator: generator, boshClient: client}
 }
 
-func (p PreUpgrade) ShouldUpgrade(generateManifestProp GenerateManifestProperties, logger *log.Logger) bool {
+func (p PreUpgrade) ShouldUpgrade(generateManifestProp GenerateManifestProperties, plan config.Plan, logger *log.Logger) bool {
 	generateManifestOutput, err := p.manifestGenerator.GenerateManifest(
 		generateManifestProp,
 		logger,

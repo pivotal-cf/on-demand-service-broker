@@ -14,6 +14,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 )
 
@@ -30,12 +31,18 @@ var (
 	logBuffer     *bytes.Buffer
 	loggerFactory *loggerfactory.LoggerFactory
 	logger        *log.Logger
+	plan          config.Plan
 )
 
 var _ = BeforeEach(func() {
 	logBuffer = new(bytes.Buffer)
 	loggerFactory = loggerfactory.New(io.MultiWriter(GinkgoWriter, logBuffer), "task-unit-tests", log.LstdFlags)
 	logger = loggerFactory.NewWithRequestID()
+
+	plan = config.Plan{
+		ID:   existingPlanID,
+		Name: existingPlanName,
+	}
 })
 
 func TestTask(t *testing.T) {
