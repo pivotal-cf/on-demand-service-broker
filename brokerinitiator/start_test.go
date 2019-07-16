@@ -99,7 +99,7 @@ var _ = Describe("Start", func() {
 			loggerFactory,
 		)
 
-		Eventually(logBuffer).Should(gbytes.Say(fmt.Sprintf(`{"telemetry-source":"odb-%s","service-instances":{"total":2,"operation":"broker-startup"}}`, brokerConfig.ServiceCatalog.Name)))
+		Eventually(logBuffer).Should(gbytes.Say(fmt.Sprintf(`"telemetry-source":"odb-%s","service-instances":{"total":2},"event":{"item":"broker","operation":"startup"}}`, brokerConfig.ServiceCatalog.Name)))
 	})
 
 	It("doesn't log telemetry data when telemetry is not enabled", func() {

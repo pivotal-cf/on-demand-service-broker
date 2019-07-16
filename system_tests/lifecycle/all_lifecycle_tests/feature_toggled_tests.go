@@ -39,7 +39,7 @@ func FeatureToggledLifecycleTest(
 
 	By("logging telemetry data at startup", func() {
 		stdoutLogs := bosh_helpers.GetBrokerLogs(brokerInfo.DeploymentName)
-		telemetryLog := fmt.Sprintf(`{"telemetry-source":"odb-%s","service-instances":{"total":0,"operation":"broker-startup"}}`, brokerInfo.ServiceName)
+		telemetryLog := fmt.Sprintf(`"telemetry-source":"odb-%s","service-instances":{"total":0},"event":{"item":"broker","operation":"startup"}}`, brokerInfo.ServiceName)
 		Expect(stdoutLogs).To(ContainSubstring(telemetryLog))
 	})
 
@@ -49,7 +49,7 @@ func FeatureToggledLifecycleTest(
 	})
 
 	By("logging telemetry data after a create-service", func() {
-		telemetryLog := fmt.Sprintf(`{"telemetry-source":"odb-%s","service-instances":{"total":1,"operation":"instance-create"}}`, brokerInfo.ServiceName)
+		telemetryLog := fmt.Sprintf(`"telemetry-source":"odb-%s","service-instances":{"total":1},"event":{"item":"instance","operation":"create"}}`, brokerInfo.ServiceName)
 		stdoutLogs := bosh_helpers.GetBrokerLogs(brokerInfo.DeploymentName)
 		Expect(stdoutLogs).To(ContainSubstring(telemetryLog))
 	})
@@ -122,7 +122,7 @@ func FeatureToggledLifecycleTest(
 	By("logging telemetry data after a delete-service", func() {
 		stdoutLogs := bosh_helpers.GetBrokerLogs(brokerInfo.DeploymentName)
 		// total number of instances will not decrease since we are using CF to get the count and CF is not aware of the result of delete at the point of logging.
-		telemetryLog := fmt.Sprintf(`{"telemetry-source":"odb-%s","service-instances":{"total":1,"operation":"instance-delete"}}`, brokerInfo.ServiceName)
+		telemetryLog := fmt.Sprintf(`"telemetry-source":"odb-%s","service-instances":{"total":1},"event":{"item":"instance","operation":"delete"}}`, brokerInfo.ServiceName)
 		Expect(stdoutLogs).To(ContainSubstring(telemetryLog))
 	})
 }

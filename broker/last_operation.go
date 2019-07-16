@@ -98,7 +98,7 @@ func (b *Broker) LastOperation(
 	lastOperation := constructLastOperation(ctx, taskState, lastBoshTask, operationData, b.ExposeOperationalErrors)
 	logLastOperation(instanceID, lastBoshTask, operationData, logger)
 
-	b.telemetryLogger.LogTotalInstances(b.instanceLister, fmt.Sprintf("instance-%s", operationData.OperationType))
+	b.telemetryLogger.LogTotalInstances(b.instanceLister, "instance", string(operationData.OperationType))
 
 	return lastOperation, nil
 }
