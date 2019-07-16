@@ -9,28 +9,26 @@ import (
 )
 
 type FakeTelemetryLogger struct {
-	LogTotalInstancesStub        func(service.InstanceLister, string, string)
+	LogTotalInstancesStub        func(service.InstanceLister, string)
 	logTotalInstancesMutex       sync.RWMutex
 	logTotalInstancesArgsForCall []struct {
 		arg1 service.InstanceLister
 		arg2 string
-		arg3 string
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeTelemetryLogger) LogTotalInstances(arg1 service.InstanceLister, arg2 string, arg3 string) {
+func (fake *FakeTelemetryLogger) LogTotalInstances(arg1 service.InstanceLister, arg2 string) {
 	fake.logTotalInstancesMutex.Lock()
 	fake.logTotalInstancesArgsForCall = append(fake.logTotalInstancesArgsForCall, struct {
 		arg1 service.InstanceLister
 		arg2 string
-		arg3 string
-	}{arg1, arg2, arg3})
-	fake.recordInvocation("LogTotalInstances", []interface{}{arg1, arg2, arg3})
+	}{arg1, arg2})
+	fake.recordInvocation("LogTotalInstances", []interface{}{arg1, arg2})
 	fake.logTotalInstancesMutex.Unlock()
 	if fake.LogTotalInstancesStub != nil {
-		fake.LogTotalInstancesStub(arg1, arg2, arg3)
+		fake.LogTotalInstancesStub(arg1, arg2)
 	}
 }
 
@@ -40,17 +38,17 @@ func (fake *FakeTelemetryLogger) LogTotalInstancesCallCount() int {
 	return len(fake.logTotalInstancesArgsForCall)
 }
 
-func (fake *FakeTelemetryLogger) LogTotalInstancesCalls(stub func(service.InstanceLister, string, string)) {
+func (fake *FakeTelemetryLogger) LogTotalInstancesCalls(stub func(service.InstanceLister, string)) {
 	fake.logTotalInstancesMutex.Lock()
 	defer fake.logTotalInstancesMutex.Unlock()
 	fake.LogTotalInstancesStub = stub
 }
 
-func (fake *FakeTelemetryLogger) LogTotalInstancesArgsForCall(i int) (service.InstanceLister, string, string) {
+func (fake *FakeTelemetryLogger) LogTotalInstancesArgsForCall(i int) (service.InstanceLister, string) {
 	fake.logTotalInstancesMutex.RLock()
 	defer fake.logTotalInstancesMutex.RUnlock()
 	argsForCall := fake.logTotalInstancesArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeTelemetryLogger) Invocations() map[string][][]interface{} {

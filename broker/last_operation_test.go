@@ -315,8 +315,7 @@ var _ = Describe("LastOperation", func() {
 					Expect(fakeSecretManager.DeleteSecretsForInstanceCallCount()).To(Equal(0), "delete secrets should not be called")
 
 					Expect(fakeTelemetryLogger.LogTotalInstancesCallCount()).To(Equal(1), "telemetry logger should be called once")
-					_, brokerName, operation := fakeTelemetryLogger.LogTotalInstancesArgsForCall(0)
-					Expect(brokerName).To(Equal(serviceCatalog.Name))
+					_, operation := fakeTelemetryLogger.LogTotalInstancesArgsForCall(0)
 					Expect(operation).To(Equal("instance-" + string(testCase.ActualOperationType)))
 				})
 			}

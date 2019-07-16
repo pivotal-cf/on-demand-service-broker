@@ -15,20 +15,22 @@ import (
 
 var _ = Describe("Telemetry", func() {
 	var (
-		instanceLister *fakes.FakeInstanceLister
-		logBuffer      *gbytes.Buffer
-		loggerFactory  *loggerfactory.LoggerFactory
+		instanceLister   *fakes.FakeInstanceLister
+		logBuffer        *gbytes.Buffer
+		loggerFactory    *loggerfactory.LoggerFactory
+		brokerIdentifier string
 	)
 
 	Describe("Telemetry Logger enabled", func() {
 		var telemetryLogger broker.TelemetryLogger
 
 		BeforeEach(func() {
+			brokerIdentifier = "a-cute-broker"
 			logBuffer = gbytes.NewBuffer()
-			loggerFactory = loggerfactory.New(logBuffer, "telemetry-test", loggerfactory.Flags)
+			loggerFactory = loggerfactory.New(logBuffer, brokerIdentifier, loggerfactory.Flags)
 
 			instanceLister = new(fakes.FakeInstanceLister)
-			telemetryLogger = telemetry.Build(true, loggerFactory.New())
+			telemetryLogger = telemetry.Build(true, brokerIdentifier, loggerFactory.New())
 		})
 
 		Describe("LogTotalInstances", func() {
@@ -40,19 +42,16 @@ var _ = Describe("Telemetry", func() {
 					},
 				}, nil)
 
-				brokerIdentifier := "service-offering-name"
-				telemetryLogger.LogTotalInstances(instanceLister, brokerIdentifier, "broker-startup")
+				telemetryLogger.LogTotalInstances(instanceLister, "broker-startup")
 
 				Eventually(logBuffer).Should(gbytes.Say(fmt.Sprintf(`{"telemetry-source":"odb-%s","service-instances":{"total":1,"operation":"broker-startup"}}`, brokerIdentifier)))
 			})
 
 			It("logs error log when it cant get the total number of instances", func() {
-				telemetryLogger := telemetry.Build(true, loggerFactory.New())
-
 				errorMessage := "opsie"
 				instanceLister.InstancesReturns([]service.Instance{}, errors.New(errorMessage))
 
-				telemetryLogger.LogTotalInstances(instanceLister, "service-offering-name", "broker-startup")
+				telemetryLogger.LogTotalInstances(instanceLister, "broker-startup")
 
 				Eventually(logBuffer).Should(gbytes.Say(`Failed to query list of instances for telemetry`))
 				Eventually(logBuffer).Should(gbytes.Say(errorMessage))
@@ -73,9 +72,9 @@ var _ = Describe("Telemetry", func() {
 
 		Describe("LogTotalInstances", func() {
 			It("does not log telemetry", func() {
-				telemetryLogger = telemetry.Build(false, loggerFactory.New())
+				telemetryLogger = telemetry.Build(false, brokerIdentifier, loggerFactory.New())
 
-				telemetryLogger.LogTotalInstances(instanceLister, "service-offering-name", "broker-startup")
+				telemetryLogger.LogTotalInstances(instanceLister, "broker-startup")
 
 				Eventually(logBuffer).ShouldNot(gbytes.Say(`{"telemetry-source":`))
 				Expect(instanceLister.InstancesCallCount()).To(BeZero(), "Instance listener was not called")

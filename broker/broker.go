@@ -224,7 +224,7 @@ type CloudFoundryClient interface {
 
 //go:generate counterfeiter -o fakes/fake_telemetry_logger.go . TelemetryLogger
 type TelemetryLogger interface {
-	LogTotalInstances(instanceLister service.InstanceLister, brokerIdentifier, operation string)
+	LogTotalInstances(instanceLister service.InstanceLister, operation string)
 }
 
 //go:generate counterfeiter -o fakes/fake_map_hasher.go . Hasher
