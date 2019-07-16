@@ -2,6 +2,7 @@ package brokerinitiator
 
 import (
 	"fmt"
+	"github.com/pivotal-cf/on-demand-service-broker/telemetry"
 	"log"
 	"os"
 
@@ -62,6 +63,8 @@ func Initiate(conf config.Config,
 		logger.Fatalf("error building instance lister: %s", err)
 	}
 
+	telemetryLogger := telemetry.Build(conf.Broker.EnableTelemetry, logger)
+
 	var onDemandBroker apiserver.CombinedBroker
 	onDemandBroker, err = broker.New(
 		brokerBoshClient,
@@ -75,6 +78,7 @@ func Initiate(conf config.Config,
 		instanceLister,
 		&hasher.MapHasher{},
 		loggerFactory,
+		telemetryLogger,
 		maintenanceinfo.Checker{},
 	)
 	if err != nil {
@@ -95,14 +99,7 @@ func Initiate(conf config.Config,
 
 	displayBanner(conf)
 
-	if conf.Broker.EnableTelemetry {
-		allInstances, err := instanceLister.Instances(nil)
-		if err != nil {
-			logger.Printf("Failed to query list of instances for telemetry (cause: %s). Skipping total instances log.", err)
-		} else {
-			logger.Printf(`{"telemetry-source":"odb-%s","service-instances":{"total":%d,"operation":"broker-startup"}}\n`, conf.ServiceCatalog.Name, len(allInstances))
-		}
-	}
+	telemetryLogger.LogTotalInstances(instanceLister, conf.ServiceCatalog.Name, "broker-startup")
 
 	if err := apiserver.StartAndWait(conf, server, logger, stopServer); err != nil {
 		logger.Fatal(err)

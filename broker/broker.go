@@ -38,9 +38,10 @@ type Broker struct {
 	EnableSecureManifests   bool
 	DisableBoshConfigs      bool
 
-	loggerFactory *loggerfactory.LoggerFactory
-	catalogLock   sync.Mutex
-	cachedCatalog []domain.Service
+	loggerFactory   *loggerfactory.LoggerFactory
+	telemetryLogger TelemetryLogger
+	catalogLock     sync.Mutex
+	cachedCatalog   []domain.Service
 
 	maintenanceInfoChecker MaintenanceInfoChecker
 }
@@ -57,6 +58,7 @@ func New(
 	instanceLister service.InstanceLister,
 	hasher Hasher,
 	loggerFactory *loggerfactory.LoggerFactory,
+	telemetryLogger TelemetryLogger,
 	maintenanceInfoChecker MaintenanceInfoChecker,
 ) (*Broker, error) {
 
@@ -75,6 +77,7 @@ func New(
 		instanceLister:          instanceLister,
 		hasher:                  hasher,
 		loggerFactory:           loggerFactory,
+		telemetryLogger:         telemetryLogger,
 		maintenanceInfoChecker:  maintenanceInfoChecker,
 	}
 
@@ -217,6 +220,11 @@ type CloudFoundryClient interface {
 	CountInstancesOfServiceOffering(serviceOfferingID string, logger *log.Logger) (instanceCountByPlanID map[cf.ServicePlan]int, err error)
 	GetInstanceState(serviceInstanceGUID string, logger *log.Logger) (cf.InstanceState, error)
 	GetInstances(filter cf.GetInstancesFilter, logger *log.Logger) ([]cf.Instance, error)
+}
+
+//go:generate counterfeiter -o fakes/fake_telemetry_logger.go . TelemetryLogger
+type TelemetryLogger interface {
+	LogTotalInstances(instanceLister service.InstanceLister, brokerIdentifier, operation string)
 }
 
 //go:generate counterfeiter -o fakes/fake_map_hasher.go . Hasher

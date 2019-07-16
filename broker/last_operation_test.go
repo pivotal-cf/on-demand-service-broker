@@ -11,7 +11,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/brokerapi/domain"
@@ -246,7 +245,7 @@ var _ = Describe("LastOperation", func() {
 
 	Context("when the task can be retrieved", func() {
 		var (
-			instanceID = "not-relevent"
+			instanceID = "not-relevant"
 			taskID     = 199
 		)
 
@@ -314,6 +313,11 @@ var _ = Describe("LastOperation", func() {
 						))))
 
 					Expect(fakeSecretManager.DeleteSecretsForInstanceCallCount()).To(Equal(0), "delete secrets should not be called")
+
+					Expect(fakeTelemetryLogger.LogTotalInstancesCallCount()).To(Equal(1), "telemetry logger should be called once")
+					_, brokerName, operation := fakeTelemetryLogger.LogTotalInstancesArgsForCall(0)
+					Expect(brokerName).To(Equal(serviceCatalog.Name))
+					Expect(operation).To(Equal("instance-" + string(testCase.ActualOperationType)))
 				})
 			}
 		}

@@ -96,6 +96,7 @@ func StartServer(
 		instanceLister,
 		fakeMapHasher,
 		loggerFactory,
+		new(fakes.FakeTelemetryLogger),
 		maintenanceInfoChecker,
 	)
 	Expect(err).NotTo(HaveOccurred())

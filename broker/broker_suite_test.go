@@ -56,6 +56,7 @@ var (
 	serviceCatalog             config.ServiceOffering
 	logBuffer                  *bytes.Buffer
 	loggerFactory              *loggerfactory.LoggerFactory
+	fakeTelemetryLogger        *fakes.FakeTelemetryLogger
 	brokerConfig               config.Broker
 	fakeSecretManager          *fakes.FakeManifestSecretManager
 	fakeMapHasher              *fakes.FakeHasher
@@ -329,6 +330,7 @@ var _ = BeforeEach(func() {
 	fakeSecretManager = new(fakes.FakeManifestSecretManager)
 	fakeInstanceLister = new(servicefakes.FakeInstanceLister)
 	cfClient = new(fakes.FakeCloudFoundryClient)
+	fakeTelemetryLogger = new(fakes.FakeTelemetryLogger)
 	fakeMapHasher = new(fakes.FakeHasher)
 	fakeMapHasher.HashStub = ReturnSameValueHasher
 	cfClient.GetAPIVersionReturns("2.57.0", nil)
@@ -402,6 +404,7 @@ func createBrokerWithAdapter(serviceAdapter *fakes.FakeServiceAdapterClient) *br
 		fakeInstanceLister,
 		fakeMapHasher,
 		loggerFactory,
+		fakeTelemetryLogger,
 		fakeMaintenanceInfoChecker,
 	)
 
@@ -424,6 +427,7 @@ func createBrokerWithServiceCatalog(catalog config.ServiceOffering) *broker.Brok
 		fakeInstanceLister,
 		fakeMapHasher,
 		loggerFactory,
+		fakeTelemetryLogger,
 		fakeMaintenanceInfoChecker,
 	)
 
@@ -448,6 +452,7 @@ func createBroker(startupCheckers []broker.StartupChecker, overrideClient ...bro
 		fakeInstanceLister,
 		fakeMapHasher,
 		loggerFactory,
+		fakeTelemetryLogger,
 		fakeMaintenanceInfoChecker,
 	)
 }

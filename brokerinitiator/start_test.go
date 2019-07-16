@@ -118,7 +118,7 @@ var _ = Describe("Start", func() {
 		Consistently(logBuffer).ShouldNot(gbytes.Say("telemetry-source"))
 	})
 
-	It("errors when cannot query list of instances", func() {
+	It("logs error when cannot query list of instances", func() {
 		fakeCloudFoundryClient.GetInstancesReturns([]cf.Instance{
 			{GUID: "123", PlanUniqueID: "plan-id"},
 			{GUID: "321", PlanUniqueID: "plan-id"},

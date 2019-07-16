@@ -48,6 +48,12 @@ func FeatureToggledLifecycleTest(
 		cf_helpers.CreateService(brokerInfo.ServiceName, planName, serviceInstanceName, "")
 	})
 
+	By("logging telemetry data after a create-service", func() {
+		telemetryLog := fmt.Sprintf(`{"telemetry-source":"odb-%s","service-instances":{"total":1,"operation":"instance-create"}}`, brokerInfo.ServiceName)
+		stdoutLogs := bosh_helpers.GetBrokerLogs(brokerInfo.DeploymentName)
+		Expect(stdoutLogs).To(ContainSubstring(telemetryLog))
+	})
+
 	By("creating a service key", func() {
 		serviceKeyName = "serviceKey" + brokerInfo.TestSuffix
 		cf_helpers.CreateServiceKey(serviceInstanceName, serviceKeyName)
@@ -111,6 +117,13 @@ func FeatureToggledLifecycleTest(
 
 	By("deleting the service", func() {
 		cf_helpers.DeleteService(serviceInstanceName)
+	})
+
+	By("logging telemetry data after a delete-service", func() {
+		stdoutLogs := bosh_helpers.GetBrokerLogs(brokerInfo.DeploymentName)
+		// total number of instances will not decrease since we are using CF to get the count and CF is not aware of the result of delete at the point of logging.
+		telemetryLog := fmt.Sprintf(`{"telemetry-source":"odb-%s","service-instances":{"total":1,"operation":"instance-delete"}}`, brokerInfo.ServiceName)
+		Expect(stdoutLogs).To(ContainSubstring(telemetryLog))
 	})
 }
 
