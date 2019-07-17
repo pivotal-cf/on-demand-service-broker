@@ -10,6 +10,7 @@ import (
 
 func Build(enableLogging bool, brokerIdentifier string, logger *log.Logger) broker.TelemetryLogger {
 	if !enableLogging {
+		logger.Printf("Telemetry logging is disabled.")
 		return &NoopTelemetryLogger{}
 	}
 
