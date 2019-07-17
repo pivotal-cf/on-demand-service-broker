@@ -17,6 +17,12 @@ func Build(enableLogging bool, brokerIdentifier string, logger *log.Logger) brok
 	return &TelemetryLogger{Logger: logger, BrokerIdentifier: brokerIdentifier, Time: &RealTime{format: time.RFC3339}}
 }
 
+type TelemetryLogger struct {
+	Logger           *log.Logger
+	BrokerIdentifier string
+	Time             Time
+}
+
 func (t *TelemetryLogger) LogTotalInstances(instanceLister InstanceLister, item string, operation string) {
 	allInstances, err := instanceLister.Instances(nil)
 	if err != nil {
@@ -57,12 +63,6 @@ type RealTime struct {
 
 func (r *RealTime) Now() string {
 	return time.Now().Format(r.format)
-}
-
-type TelemetryLogger struct {
-	Logger           *log.Logger
-	BrokerIdentifier string
-	Time             Time
 }
 
 type ServiceInstances struct {

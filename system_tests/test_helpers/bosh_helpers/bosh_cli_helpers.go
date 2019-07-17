@@ -438,15 +438,22 @@ func GetBOSHConfig(configType, configName string) (string, error) {
 }
 
 func GetBrokerLogs(deploymentName string) string {
+	return getLogs(deploymentName, "broker", "broker")
+}
+
+func GetTelemetryLogs(deploymentName string) string {
+	return getLogs(deploymentName, "broker", "telemetry-centralizer")
+}
+
+func getLogs(deploymentName, VMName, jobName string) string {
 	downloadedLogFile, err := ioutil.TempFile("/tmp", "")
 	Expect(err).NotTo(HaveOccurred())
 	RunOnVM(
 		deploymentName,
-		"broker",
-		"sudo cp /var/vcap/sys/log/broker/broker.stdout.log /tmp/broker.log; sudo chmod 755 /tmp/broker.log",
+		VMName,
+		fmt.Sprintf("sudo cp /var/vcap/sys/log/%[1]s/%[1]s.stdout.log /tmp/%[1]s.log; sudo chmod 755 /tmp/%[1]s.log", jobName),
 	)
-
-	CopyFromVM(deploymentName, "broker", "/tmp/broker.log", downloadedLogFile.Name())
+	CopyFromVM(deploymentName, VMName, fmt.Sprintf("/tmp/%s.log", jobName), downloadedLogFile.Name())
 	b, err := ioutil.ReadAll(downloadedLogFile)
 	Expect(err).NotTo(HaveOccurred())
 	return string(b)

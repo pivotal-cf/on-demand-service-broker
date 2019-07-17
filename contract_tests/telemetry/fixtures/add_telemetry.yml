@@ -1,0 +1,72 @@
+- type: replace
+  path: /instance_groups/name=broker/jobs/name=broker/properties/enable_telemetry?
+  value: true
+
+- type: replace
+  path: /instance_groups/name=broker/jobs/-
+  value:
+    name: telemetry-agent
+    release: telemetry-components
+    properties:
+      tls:
+        cert: ((telemetry-agent-cert.certificate))
+        private_key: ((telemetry-agent-cert.private_key))
+
+- type: replace
+  path: /instance_groups/name=broker/jobs/-
+  value:
+    name: telemetry-centralizer
+    release: telemetry-components
+    provides:
+      telemetry-centralizer-address:
+        as: my-custom-telemetry-centralizer-address
+    custom_provider_definitions:
+      - name: telemetry-centralizer-address
+        type: address
+    properties:
+      flush_interval: 60
+      tls:
+        ca_cert: ((telemetry-ca-cert.certificate))
+        cert: ((telemetry-centralizer-cert.certificate))
+        private_key: ((telemetry-centralizer-cert.private_key))
+      telemetry:
+        endpoint: "http://not-the-real-endpoint"
+        api_key: "not-a-good-api-key"
+        env_type: ((telemetry_env_type))
+        iaas_type: gcp
+        foundation_id: ((foundation_id))
+
+- type: replace
+  path: /variables/name=telemetry-ca-cert?
+  value:
+    name: telemetry-ca-cert
+    type: certificate
+    options:
+      is_ca: true
+      common_name: 'Telemetry CA'
+
+- type: replace
+  path: /variables/name=telemetry-centralizer-cert?
+  value:
+    name: telemetry-centralizer-cert
+    type: certificate
+    options:
+      ca: telemetry-ca-cert
+      common_name: Telemetry centralizer
+    consumes:
+      alternative_name: { from: my-custom-telemetry-centralizer-address }
+
+- type: replace
+  path: /variables/name=telemetry-agent-cert?
+  value:
+    name: telemetry-agent-cert
+    type: certificate
+    options:
+      common_name: telemetry-agent
+      ca: telemetry-ca-cert
+
+- type: replace
+  path: /releases/-
+  value:
+    name: telemetry-components
+    version: latest
