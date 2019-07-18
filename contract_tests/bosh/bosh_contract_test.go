@@ -169,7 +169,7 @@ var _ = Describe("BOSH client", func() {
 
 				Expect(err).NotTo(HaveOccurred())
 				Expect(updateEvents).To(Not(BeEmpty()))
-				Expect(updateEvents[0].TaskId).To(Equal(fmt.Sprintf("%d", recreateTaskID)))
+				Expect(updateEvents[0].TaskId).To(Equal(recreateTaskID))
 			})
 
 			By("deleting the deployment", func() {

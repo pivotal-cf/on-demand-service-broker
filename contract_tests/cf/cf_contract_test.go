@@ -188,7 +188,7 @@ var _ = Describe("CF client", func() {
 			planVisibilities := servicePlanVisibilities(plan.GUID)
 			Expect(len(planVisibilities)).To(BeNumerically(">=", 1))
 
-			err := subject.EnableServiceAccess(brokerDeployment.ServiceName, planName, logger)
+			err := subject.EnableServiceAccess(brokerDeployment.ServiceID, planName, logger)
 			Expect(err).ToNot(HaveOccurred())
 
 			updatedPlan := servicePlan(brokerGUID, planName)
@@ -318,7 +318,7 @@ var _ = Describe("CF client", func() {
 			planVisibilities := servicePlanVisibilities(plan.GUID)
 			Expect(len(planVisibilities)).To(BeZero())
 
-			err := subject.CreateServicePlanVisibility(orgName, brokerDeployment.ServiceName, planName, logger)
+			err := subject.CreateServicePlanVisibility(orgName, brokerDeployment.ServiceID, planName, logger)
 			Expect(err).ToNot(HaveOccurred())
 
 			createdPlanVisibilities := servicePlanVisibilities(plan.GUID)
