@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
 
+set -euo pipefail
+
 usage() {
 	echo "$0 <test to run> "
 	echo ""
 	exit 1
 }
 
-if [[ "$#" < "1" ]]; then
+if [[ "$#" -lt "1" ]]; then
 	usage
 fi
 
@@ -24,7 +26,7 @@ uploadReleases(){
     bosh upload-release --name redis-example-service-$DEV_ENV --dir $ODB/examples/redis-example-service-release --rebase
 }
 
-if [ "$2" != "-skip-upload-releases" ]; then
+if [ "${2:-""}" != "-skip-upload-releases" ]; then
     uploadReleases
 fi
 
