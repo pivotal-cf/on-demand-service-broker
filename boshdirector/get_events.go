@@ -13,11 +13,9 @@ type BoshEvent struct {
 	TaskId int
 }
 
-func (c *Client) GetUpdatesEvents(deploymentName string, logger *log.Logger) ([]BoshEvent, error) {
-	return c.getEvents(director.EventsFilter{Deployment: deploymentName, Action: "update", ObjectType: "deployment"}, logger)
-}
+func (c *Client) GetEvents(deploymentName string, action string, logger *log.Logger) ([]BoshEvent, error) {
+	filter := director.EventsFilter{Deployment: deploymentName, Action: action, ObjectType: "deployment"}
 
-func (c *Client) getEvents(filter director.EventsFilter, logger *log.Logger) ([]BoshEvent, error) {
 	logger.Printf("getting events for %v from bosh", filter)
 	d, err := c.Director(director.NewNoopTaskReporter())
 	if err != nil {

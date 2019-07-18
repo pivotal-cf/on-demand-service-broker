@@ -162,16 +162,6 @@ var _ = Describe("BOSH client", func() {
 				Expect(reporter.State).ToNot(Equal("error"), fmt.Sprintf("Recreation of %s failed", deploymentName))
 			})
 
-			By("verifying an errand event", func() {
-				var err error
-				var updateEvents []boshdirector.BoshEvent
-				updateEvents, err = boshClient.GetUpdatesEvents(deploymentName, logger)
-
-				Expect(err).NotTo(HaveOccurred())
-				Expect(updateEvents).To(Not(BeEmpty()))
-				Expect(updateEvents[0].TaskId).To(Equal(recreateTaskID))
-			})
-
 			By("deleting the deployment", func() {
 				deleteDeploymentReporter := boshdirector.NewAsyncTaskReporter()
 				deleteTaskID, err := boshClient.DeleteDeployment(deploymentName, "some-context-id", false, deleteDeploymentReporter, logger)
@@ -443,6 +433,54 @@ var _ = Describe("BOSH client", func() {
 				configs, err := boshClient.GetConfigs(deploymentName, logger)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(len(configs)).To(Equal(0))
+			})
+		})
+	})
+
+	Describe("Events API", func() {
+		Describe("GetEvents()", func() {
+			var expectedTaskID int
+
+			BeforeEach(func() {
+				reporter := boshdirector.NewAsyncTaskReporter()
+				manifest := getManifest("single_vm_deployment.yml", deploymentName)
+
+				var err error
+				expectedTaskID, err = boshClient.Deploy(manifest, "some-context-id", logger, reporter)
+				Expect(err).NotTo(HaveOccurred())
+				Eventually(reporter.Finished).Should(Receive(), fmt.Sprintf("Timed out waiting for %s to deploy", deploymentName))
+				Expect(reporter.State).ToNot(Equal("error"), fmt.Sprintf("Deployment of %s failed", deploymentName))
+			})
+
+			AfterEach(func() {
+				reporter := boshdirector.NewAsyncTaskReporter()
+				_, err := boshClient.DeleteDeployment(deploymentName, "", false, reporter, logger)
+				Expect(err).NotTo(HaveOccurred())
+				Eventually(reporter.Finished).Should(Receive(), fmt.Sprintf("Timed out waiting for deployment %s to be deleted", deploymentName))
+			})
+
+			It("returns a list of events for that deployment", func() {
+
+				By("querying create events", func() {
+					events, err := boshClient.GetEvents(deploymentName, "create", logger)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(len(events)).To(BeNumerically(">", 0))
+					Expect(events[0].TaskId).To(Equal(expectedTaskID))
+				})
+
+				By("querying update events", func() {
+					reporter := boshdirector.NewAsyncTaskReporter()
+					manifest := getManifest("single_vm_deployment.yml", deploymentName)
+					redeployTaskID, err := boshClient.Deploy(manifest, "some-other-context-id", logger, reporter)
+					Expect(err).NotTo(HaveOccurred())
+					Eventually(reporter.Finished).Should(Receive(), fmt.Sprintf("Timed out waiting for %s to deploy", deploymentName))
+					Expect(reporter.State).ToNot(Equal("error"), fmt.Sprintf("Deployment of %s failed", deploymentName))
+
+					events, err := boshClient.GetEvents(deploymentName, "update", logger)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(len(events)).To(BeNumerically(">", 0))
+					Expect(events[0].TaskId).To(Equal(redeployTaskID))
+				})
 			})
 		})
 	})

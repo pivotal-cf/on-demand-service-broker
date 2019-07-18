@@ -32,57 +32,67 @@ func (p PreUpgrade) ShouldUpgrade(generateManifestProp GenerateManifestPropertie
 		return ShouldUpgrade
 	}
 
-	if manifestAreTheSame(generateManifestOutput, generateManifestProp.OldManifest) {
-		if p.noPostDeployErrands(plan) {
-			logger.Printf("manifest is unchanged and there are no post-deploy errand for %q, skipping upgrade", generateManifestProp.DeploymentName)
-			return !ShouldUpgrade
-		}
+	if !manifestAreTheSame(generateManifestOutput, generateManifestProp.OldManifest) {
+		return ShouldUpgrade
+	}
 
-		events, err := p.getUpdateDeploymentEvents(generateManifestProp.DeploymentName, logger)
+	if p.hasNoPostDeployErrands(plan) {
+		logger.Printf("manifest is unchanged and there are no post-deploy errand for %q, skipping upgrade", generateManifestProp.DeploymentName)
+		return !ShouldUpgrade
+	}
+
+	events, err := p.getUpdateDeploymentEvents(generateManifestProp.DeploymentName, logger)
+	if err != nil {
+		logger.Printf("failed to get update deployment events for deployment %q with cause %q", generateManifestProp.DeploymentName, err.Error())
+		return ShouldUpgrade
+	}
+
+	if p.hasNoPreviousUpgrade(events) {
+		events, err = p.getCreateDeploymentEvents(generateManifestProp.DeploymentName, logger)
 		if err != nil {
-			logger.Printf("failed to get update deployment events for deployment %q with cause %q", generateManifestProp.DeploymentName, err.Error())
-			return ShouldUpgrade
-		}
-		if p.noPreviousUpgrade(events) {
+			logger.Printf("failed to get create deployment events for deployment %q with cause %q", generateManifestProp.DeploymentName, err.Error())
 			return ShouldUpgrade
 		}
 
-		taskID := events[0].TaskId
+		if len(events) == 0 {
+			return ShouldUpgrade
+		}
+	}
 
-		task, err := p.boshClient.GetTask(taskID, logger)
-		if err != nil {
-			logger.Printf("failed to get task for id %d with cause %q for deployment %q", taskID, err.Error(), generateManifestProp.DeploymentName)
-			return ShouldUpgrade
-		}
-		if (boshdirector.BoshTask{}) == task {
-			logger.Printf("no task found for taskID %q for deployment %q", taskID, generateManifestProp.DeploymentName)
-			return ShouldUpgrade
-		}
-		if task.ContextID == "" {
-			logger.Printf("failed to get contextID for deployment %q", generateManifestProp.DeploymentName)
-			return ShouldUpgrade
-		}
+	mostRecentBOSHUpdateEvent := events[0]
+	taskID := mostRecentBOSHUpdateEvent.TaskId
 
-		tasksForContextId, err := p.boshClient.GetNormalisedTasksByContext(generateManifestProp.DeploymentName, task.ContextID, logger)
-		if err != nil {
-			logger.Printf("failed to get task by context id %q with cause %q for deployment %q", task.ContextID, err.Error(), generateManifestProp.DeploymentName)
-			return ShouldUpgrade
-		}
-		if len(tasksForContextId) == 0 {
-			logger.Printf("no task for contexId %q, upgrading deployment %q", task.ContextID, generateManifestProp.DeploymentName)
-			return ShouldUpgrade
-		}
+	task, err := p.boshClient.GetTask(taskID, logger)
+	if err != nil {
+		logger.Printf("failed to get task for id %d with cause %q for deployment %q", taskID, err.Error(), generateManifestProp.DeploymentName)
+		return ShouldUpgrade
+	}
 
-		if tasksForContextId.AreAllTaskDone() {
-			logger.Printf("manifest is unchanged and all post-deploy errand were run successfuly for, skipping upgrade for deployment %q", generateManifestProp.DeploymentName)
-			return !ShouldUpgrade
-		}
+	if task.ContextID == "" {
+		logger.Printf("failed to get contextID for deployment %q", generateManifestProp.DeploymentName)
+		return ShouldUpgrade
+	}
+
+	tasksForContextId, err := p.boshClient.GetNormalisedTasksByContext(generateManifestProp.DeploymentName, task.ContextID, logger)
+	if err != nil {
+		logger.Printf("failed to get task by context id %q with cause %q for deployment %q", task.ContextID, err.Error(), generateManifestProp.DeploymentName)
+		return ShouldUpgrade
+	}
+
+	if len(tasksForContextId) == 0 {
+		logger.Printf("no tasks for contextID %q, upgrading deployment %q", task.ContextID, generateManifestProp.DeploymentName)
+		return ShouldUpgrade
+	}
+
+	if p.allErrandsHaveRun(plan, tasksForContextId) && tasksForContextId.AllTasksAreDone() {
+		logger.Printf("manifest is unchanged and all post-deploy errands were run successfuly. Skipping upgrade for deployment %q", generateManifestProp.DeploymentName)
+		return !ShouldUpgrade
 	}
 
 	return ShouldUpgrade
 }
 
-func (p PreUpgrade) noPostDeployErrands(plan config.Plan) bool {
+func (p PreUpgrade) hasNoPostDeployErrands(plan config.Plan) bool {
 	errands := plan.LifecycleErrands
 	if errands == nil {
 		return true
@@ -90,13 +100,26 @@ func (p PreUpgrade) noPostDeployErrands(plan config.Plan) bool {
 	return len(errands.PostDeploy) == 0
 }
 
-func (p PreUpgrade) noPreviousUpgrade(events []boshdirector.BoshEvent) bool {
+func (p PreUpgrade) hasNoPreviousUpgrade(events []boshdirector.BoshEvent) bool {
 	return len(events) == 0
 }
 
 func (p PreUpgrade) getUpdateDeploymentEvents(deploymentName string, logger *log.Logger) ([]boshdirector.BoshEvent, error) {
-	events, err := p.boshClient.GetUpdatesEvents(deploymentName, logger)
+	events, err := p.boshClient.GetEvents(deploymentName, "update", logger)
 	return events, err
+}
+
+func (p PreUpgrade) getCreateDeploymentEvents(deploymentName string, logger *log.Logger) ([]boshdirector.BoshEvent, error) {
+	events, err := p.boshClient.GetEvents(deploymentName, "create", logger)
+	return events, err
+}
+
+func (p PreUpgrade) allErrandsHaveRun(plan config.Plan, tasks boshdirector.BoshTasks) bool {
+	numTasksForDeploy := 1
+	numPostDeployErrands := len(plan.LifecycleErrands.PostDeploy)
+	numTasksBoshRan := len(tasks)
+
+	return numPostDeployErrands+numTasksForDeploy == numTasksBoshRan
 }
 
 func manifestAreTheSame(generateManifestOutput serviceadapter.MarshalledGenerateManifest, oldManifest []byte) bool {

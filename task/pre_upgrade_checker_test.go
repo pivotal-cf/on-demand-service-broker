@@ -49,19 +49,29 @@ var _ = Describe("PreUpgrade", func() {
 	})
 
 	Describe("ShouldUpgrade", func() {
+		Context("when the manifest has changed", func() {
+			It("should upgrade", func() {
+				shouldUpgrade := preUpgrade.ShouldUpgrade(
+					task.GenerateManifestProperties{
+						DeploymentName: deploymentName,
+						OldManifest:    oldManifest,
+					},
+					defaultPlanWithErrand,
+					logger)
+
+				Expect(shouldUpgrade).To(BeTrue())
+				Expect(boshClient.GetEventsCallCount()).To(BeZero())
+				Expect(boshClient.GetTaskCallCount()).To(BeZero())
+				Expect(boshClient.GetNormalisedTasksByContextCallCount()).To(BeZero())
+			})
+		})
 
 		Context("when the manifest has not changed", func() {
-			Context("when all errands have run successfully in the previous run", func() {
+			Context("when all errands have run successfully in a previous BOSH update event", func() {
 				const expectedDeploymentTask = 103
 				const expectedContextID = "231"
 				BeforeEach(func() {
-					boshClient.GetErrandEventsReturns([]boshdirector.BoshEvent{
-						{TaskId: 9999},
-					}, nil)
-					boshClient.GetErrandEventsReturns([]boshdirector.BoshEvent{
-						{TaskId: 9999},
-					}, nil)
-					boshClient.GetUpdatesEventsReturns([]boshdirector.BoshEvent{
+					boshClient.GetEventsReturns([]boshdirector.BoshEvent{
 						{TaskId: expectedDeploymentTask},
 					}, nil)
 					boshClient.GetTaskReturns(boshdirector.BoshTask{
@@ -70,7 +80,6 @@ var _ = Describe("PreUpgrade", func() {
 					boshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{
 						{State: boshdirector.TaskDone, ID: 1, ContextID: expectedContextID},
 						{State: boshdirector.TaskDone, ID: 2, ContextID: expectedContextID},
-						{State: boshdirector.TaskDone, ID: 3, ContextID: expectedContextID},
 					}, nil)
 				})
 
@@ -82,6 +91,49 @@ var _ = Describe("PreUpgrade", func() {
 						},
 						defaultPlanWithErrand,
 						logger)
+
+					_, eventType, _ := boshClient.GetEventsArgsForCall(0)
+					Expect(eventType).To(Equal("update"))
+
+					By("asserting all calls to task")
+					taskId, _ := boshClient.GetTaskArgsForCall(0)
+					Expect(taskId).To(Equal(expectedDeploymentTask))
+
+					By("asserting all calls to task by context id")
+					actualDeploymentName, contextID, _ := boshClient.GetNormalisedTasksByContextArgsForCall(0)
+					Expect(actualDeploymentName).To(Equal(deploymentName))
+					Expect(contextID).To(Equal(expectedContextID))
+
+					Expect(shouldUpgrade).To(BeFalse())
+				})
+			})
+
+			Context("when all errands have run successfully in a previous BOSH create event", func() {
+				const expectedDeploymentTask = 103
+				const expectedContextID = "231"
+				BeforeEach(func() {
+					boshClient.GetEventsReturnsOnCall(0, []boshdirector.BoshEvent{}, nil)
+					boshClient.GetEventsReturnsOnCall(1, []boshdirector.BoshEvent{{TaskId: expectedDeploymentTask}}, nil)
+					boshClient.GetTaskReturns(boshdirector.BoshTask{
+						State: boshdirector.TaskDone, ID: 3232, ContextID: expectedContextID,
+					}, nil)
+					boshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{
+						{State: boshdirector.TaskDone, ID: 1, ContextID: expectedContextID},
+						{State: boshdirector.TaskDone, ID: 2, ContextID: expectedContextID},
+					}, nil)
+				})
+
+				It("should skip upgrade", func() {
+					shouldUpgrade := preUpgrade.ShouldUpgrade(
+						task.GenerateManifestProperties{
+							DeploymentName: deploymentName,
+							OldManifest:    []byte(generatedManifest),
+						},
+						defaultPlanWithErrand,
+						logger)
+
+					_, eventType, _ := boshClient.GetEventsArgsForCall(1)
+					Expect(eventType).To(Equal("create"))
 
 					By("asserting all calls to task")
 					taskId, _ := boshClient.GetTaskArgsForCall(0)
@@ -101,7 +153,7 @@ var _ = Describe("PreUpgrade", func() {
 				const expectedContextID = "231"
 				const expectedNewDeploymentTask = 35
 				BeforeEach(func() {
-					boshClient.GetUpdatesEventsReturns([]boshdirector.BoshEvent{
+					boshClient.GetEventsReturns([]boshdirector.BoshEvent{
 						{TaskId: expectedDeploymentTask},
 					}, nil)
 					boshClient.GetTaskReturns(boshdirector.BoshTask{
@@ -113,7 +165,6 @@ var _ = Describe("PreUpgrade", func() {
 				It("has failed the previous run it should upgrade", func() {
 					boshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{
 						{State: boshdirector.TaskError, ID: 3234, ContextID: expectedContextID},
-						{State: boshdirector.TaskDone, ID: 3233, ContextID: expectedContextID},
 						{State: boshdirector.TaskDone, ID: 3232, ContextID: expectedContextID},
 					}, nil)
 
@@ -132,7 +183,6 @@ var _ = Describe("PreUpgrade", func() {
 					boshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{
 						{State: boshdirector.TaskProcessing, ID: 3234, ContextID: expectedContextID},
 						{State: boshdirector.TaskDone, ID: 3233, ContextID: expectedContextID},
-						{State: boshdirector.TaskDone, ID: 3232, ContextID: expectedContextID},
 					}, nil)
 
 					shouldUpgrade := preUpgrade.ShouldUpgrade(
@@ -159,7 +209,7 @@ var _ = Describe("PreUpgrade", func() {
 						logger)
 
 					Expect(shouldUpgrade).To(BeFalse())
-					Expect(boshClient.GetUpdatesEventsCallCount()).To(BeZero())
+					Expect(boshClient.GetEventsCallCount()).To(BeZero())
 					Expect(boshClient.GetTaskCallCount()).To(BeZero())
 					Expect(boshClient.GetNormalisedTasksByContextCallCount()).To(BeZero())
 				})
@@ -176,27 +226,38 @@ var _ = Describe("PreUpgrade", func() {
 						logger)
 
 					Expect(shouldUpgrade).To(BeFalse())
-					Expect(boshClient.GetUpdatesEventsCallCount()).To(BeZero())
+					Expect(boshClient.GetEventsCallCount()).To(BeZero())
 					Expect(boshClient.GetTaskCallCount()).To(BeZero())
 					Expect(boshClient.GetNormalisedTasksByContextCallCount()).To(BeZero())
 				})
 			})
-		})
 
-		Context("when the manifest has changed", func() {
-			It("should upgrade", func() {
-				shouldUpgrade := preUpgrade.ShouldUpgrade(
-					task.GenerateManifestProperties{
-						DeploymentName: deploymentName,
-						OldManifest:    oldManifest,
-					},
-					defaultPlanWithErrand,
-					logger)
+			When("not all errands have run", func() {
+				const expectedDeploymentTask = 103
+				const expectedContextID = "231"
+				BeforeEach(func() {
+					boshClient.GetEventsReturns([]boshdirector.BoshEvent{
+						{TaskId: expectedDeploymentTask},
+					}, nil)
+					boshClient.GetTaskReturns(boshdirector.BoshTask{
+						State: boshdirector.TaskDone, ID: 3232, ContextID: expectedContextID,
+					}, nil)
+					boshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{
+						{State: boshdirector.TaskDone, ID: 3, ContextID: expectedContextID},
+					}, nil)
+				})
 
-				Expect(shouldUpgrade).To(BeTrue())
-				Expect(boshClient.GetUpdatesEventsCallCount()).To(BeZero())
-				Expect(boshClient.GetTaskCallCount()).To(BeZero())
-				Expect(boshClient.GetNormalisedTasksByContextCallCount()).To(BeZero())
+				It("should upgrade", func() {
+					shouldUpgrade := preUpgrade.ShouldUpgrade(
+						task.GenerateManifestProperties{
+							DeploymentName: deploymentName,
+							OldManifest:    []byte(generatedManifest),
+						},
+						defaultPlanWithErrand,
+						logger)
+
+					Expect(shouldUpgrade).To(BeTrue())
+				})
 			})
 		})
 
@@ -217,19 +278,16 @@ var _ = Describe("PreUpgrade", func() {
 				Expect(shouldUpgrade).To(BeTrue())
 				Expect(logBuffer.String()).To(ContainSubstring(errorMessage))
 
-				Expect(boshClient.GetUpdatesEventsCallCount()).To(BeZero())
+				Expect(boshClient.GetEventsCallCount()).To(BeZero())
 				Expect(boshClient.GetTaskCallCount()).To(BeZero())
 				Expect(boshClient.GetNormalisedTasksByContextCallCount()).To(BeZero())
 			})
 		})
 
-		Context("when the bosh client fails", func() {
-			It("should upgrade when get update events fail", func() {
+		When("the bosh client output is unexpected", func() {
+			It("should upgrade when get update events fails", func() {
 				errorMessage := "failed to retrieve events"
-				boshClient.GetErrandEventsReturns([]boshdirector.BoshEvent{
-					{TaskId: 9999},
-				}, nil)
-				boshClient.GetUpdatesEventsReturns([]boshdirector.BoshEvent{}, errors.New(errorMessage))
+				boshClient.GetEventsReturns([]boshdirector.BoshEvent{}, errors.New(errorMessage))
 
 				shouldUpgrade := preUpgrade.ShouldUpgrade(
 					task.GenerateManifestProperties{
@@ -245,12 +303,26 @@ var _ = Describe("PreUpgrade", func() {
 				Expect(boshClient.GetNormalisedTasksByContextCallCount()).To(BeZero())
 			})
 
-			It("should upgrade when get update events returns no events", func() {
-				boshClient.GetErrandEventsReturns([]boshdirector.BoshEvent{
-					{TaskId: 9999},
-				}, nil)
-				boshClient.GetUpdatesEventsReturns([]boshdirector.BoshEvent{}, nil)
+			It("should upgrade when get create events fails", func() {
+				errorMessage := "failed to retrieve events"
+				boshClient.GetEventsReturnsOnCall(0, []boshdirector.BoshEvent{}, errors.New(errorMessage))
+				boshClient.GetEventsReturnsOnCall(1, []boshdirector.BoshEvent{}, errors.New(errorMessage))
 
+				shouldUpgrade := preUpgrade.ShouldUpgrade(
+					task.GenerateManifestProperties{
+						DeploymentName: deploymentName,
+						OldManifest:    []byte(generatedManifest),
+					},
+					defaultPlanWithErrand,
+					logger)
+
+				Expect(shouldUpgrade).To(BeTrue())
+				Expect(logBuffer.String()).To(ContainSubstring(errorMessage))
+				Expect(boshClient.GetTaskCallCount()).To(BeZero())
+				Expect(boshClient.GetNormalisedTasksByContextCallCount()).To(BeZero())
+			})
+
+			It("should upgrade when there are no create or update events", func() {
 				shouldUpgrade := preUpgrade.ShouldUpgrade(
 					task.GenerateManifestProperties{
 						DeploymentName: deploymentName,
@@ -264,32 +336,8 @@ var _ = Describe("PreUpgrade", func() {
 				Expect(boshClient.GetNormalisedTasksByContextCallCount()).To(BeZero())
 			})
 
-			It("should upgrade when get tasks returns no tasks", func() {
-				boshClient.GetErrandEventsReturns([]boshdirector.BoshEvent{
-					{TaskId: 9999},
-				}, nil)
-				boshClient.GetUpdatesEventsReturns([]boshdirector.BoshEvent{
-					{TaskId: 189},
-				}, nil)
-				boshClient.GetTaskReturns(boshdirector.BoshTask{}, nil)
-
-				shouldUpgrade := preUpgrade.ShouldUpgrade(
-					task.GenerateManifestProperties{
-						DeploymentName: deploymentName,
-						OldManifest:    []byte(generatedManifest),
-					},
-					defaultPlanWithErrand,
-					logger)
-
-				Expect(shouldUpgrade).To(BeTrue())
-				Expect(boshClient.GetNormalisedTasksByContextCallCount()).To(BeZero())
-			})
-
-			It("should upgrade when get tasks returns task without contextID", func() {
-				boshClient.GetErrandEventsReturns([]boshdirector.BoshEvent{
-					{TaskId: 9999},
-				}, nil)
-				boshClient.GetUpdatesEventsReturns([]boshdirector.BoshEvent{
+			It("should upgrade when get task returns task without contextID", func() {
+				boshClient.GetEventsReturns([]boshdirector.BoshEvent{
 					{TaskId: 189},
 				}, nil)
 				boshClient.GetTaskReturns(boshdirector.BoshTask{ContextID: "", State: boshdirector.TaskDone, ID: 3232}, nil)
@@ -303,14 +351,11 @@ var _ = Describe("PreUpgrade", func() {
 					logger)
 
 				Expect(shouldUpgrade).To(BeTrue())
-				Expect(boshClient.GetNormalisedTasksByContextCallCount()).To(BeZero())
+				Expect(boshClient.GetNormalisedTasksByContextCallCount()).To(BeZero(), "expected to call GetNormalisedTasksByContext")
 			})
 
-			It("should upgrade when get tasks returns an error", func() {
-				boshClient.GetErrandEventsReturns([]boshdirector.BoshEvent{
-					{TaskId: 9999},
-				}, nil)
-				boshClient.GetUpdatesEventsReturns([]boshdirector.BoshEvent{
+			It("should upgrade when get task returns an error", func() {
+				boshClient.GetEventsReturns([]boshdirector.BoshEvent{
 					{TaskId: 189},
 				}, nil)
 				errorMessage := "get task failed"
@@ -329,11 +374,8 @@ var _ = Describe("PreUpgrade", func() {
 				Expect(boshClient.GetNormalisedTasksByContextCallCount()).To(BeZero())
 			})
 
-			It("should upgrade when get tasks by context id returns an error", func() {
-				boshClient.GetErrandEventsReturns([]boshdirector.BoshEvent{
-					{TaskId: 9999},
-				}, nil)
-				boshClient.GetUpdatesEventsReturns([]boshdirector.BoshEvent{
+			It("should upgrade when GetNormalisedTasksByContext returns an error", func() {
+				boshClient.GetEventsReturns([]boshdirector.BoshEvent{
 					{TaskId: 189},
 				}, nil)
 				boshClient.GetTaskReturns(boshdirector.BoshTask{
@@ -354,11 +396,8 @@ var _ = Describe("PreUpgrade", func() {
 				Expect(shouldUpgrade).To(BeTrue())
 			})
 
-			It("should upgrade when get tasks by context id returns no task", func() {
-				boshClient.GetErrandEventsReturns([]boshdirector.BoshEvent{
-					{TaskId: 9999},
-				}, nil)
-				boshClient.GetUpdatesEventsReturns([]boshdirector.BoshEvent{
+			It("should upgrade and log when get tasks by context id returns no task", func() {
+				boshClient.GetEventsReturns([]boshdirector.BoshEvent{
 					{TaskId: 189},
 				}, nil)
 				boshClient.GetTaskReturns(boshdirector.BoshTask{
@@ -375,6 +414,7 @@ var _ = Describe("PreUpgrade", func() {
 					logger)
 
 				Expect(shouldUpgrade).To(BeTrue())
+				Expect(logBuffer.String()).To(ContainSubstring("no tasks for contextID"))
 			})
 		})
 	})

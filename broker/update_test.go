@@ -748,6 +748,17 @@ var _ = Describe("Update", func() {
 				Expect(logBuffer.String()).To(MatchRegexp(`\[[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\] \d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2} upgrading instance`))
 			}
 		})
+
+		It("returns an synchronous spec and nil error when the operation has already completed", func() {
+			for i, updateDetails := range testCases {
+				fakeDeployer.UpgradeReturns(0, []byte{}, broker.NewOperationAlreadyCompletedError(errors.New("done")))
+
+				updateSpec, updateError = testBroker.Update(context.Background(), instanceID, updateDetails, async)
+
+				Expect(updateError).ToNot(HaveOccurred(), fmt.Sprintf("test case %d", i))
+				Expect(updateSpec.IsAsync).To(BeFalse())
+			}
+		})
 	})
 
 	Describe("regardless of the type of update", func() {

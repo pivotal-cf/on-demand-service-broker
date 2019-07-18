@@ -51,6 +51,9 @@ func (b *Broker) Update(
 	if b.isUpgrade(details, detailsMap) {
 		operationData, err := b.Upgrade(ctx, instanceID, details, logger)
 		if err != nil {
+			if _, ok := err.(OperationAlreadyCompletedError); ok {
+				return domain.UpdateServiceSpec{IsAsync: false}, nil
+			}
 			return domain.UpdateServiceSpec{}, err
 		}
 		operationDataJson, err := json.Marshal(operationData)

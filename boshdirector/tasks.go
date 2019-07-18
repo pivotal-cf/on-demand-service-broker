@@ -27,7 +27,7 @@ func (t BoshTasks) ToLog() string {
 	return string(output)
 }
 
-func (t BoshTasks) AreAllTaskDone() bool {
+func (t BoshTasks) AllTasksAreDone() bool {
 	return len(t.DoneTasks()) == len(t)
 }
 
