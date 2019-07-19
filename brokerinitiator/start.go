@@ -99,7 +99,7 @@ func Initiate(conf config.Config,
 
 	displayBanner(conf)
 
-	telemetryLogger.LogTotalInstances(instanceLister, "broker", "startup")
+	telemetryLogger.LogInstances(instanceLister, "broker", "startup")
 
 	if err := apiserver.StartAndWait(conf, server, logger, stopServer); err != nil {
 		logger.Fatal(err)

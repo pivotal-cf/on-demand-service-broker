@@ -9,9 +9,9 @@ import (
 )
 
 type FakeTelemetryLogger struct {
-	LogTotalInstancesStub        func(service.InstanceLister, string, string)
-	logTotalInstancesMutex       sync.RWMutex
-	logTotalInstancesArgsForCall []struct {
+	LogInstancesStub        func(service.InstanceLister, string, string)
+	logInstancesMutex       sync.RWMutex
+	logInstancesArgsForCall []struct {
 		arg1 service.InstanceLister
 		arg2 string
 		arg3 string
@@ -20,44 +20,44 @@ type FakeTelemetryLogger struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeTelemetryLogger) LogTotalInstances(arg1 service.InstanceLister, arg2 string, arg3 string) {
-	fake.logTotalInstancesMutex.Lock()
-	fake.logTotalInstancesArgsForCall = append(fake.logTotalInstancesArgsForCall, struct {
+func (fake *FakeTelemetryLogger) LogInstances(arg1 service.InstanceLister, arg2 string, arg3 string) {
+	fake.logInstancesMutex.Lock()
+	fake.logInstancesArgsForCall = append(fake.logInstancesArgsForCall, struct {
 		arg1 service.InstanceLister
 		arg2 string
 		arg3 string
 	}{arg1, arg2, arg3})
-	fake.recordInvocation("LogTotalInstances", []interface{}{arg1, arg2, arg3})
-	fake.logTotalInstancesMutex.Unlock()
-	if fake.LogTotalInstancesStub != nil {
-		fake.LogTotalInstancesStub(arg1, arg2, arg3)
+	fake.recordInvocation("LogInstances", []interface{}{arg1, arg2, arg3})
+	fake.logInstancesMutex.Unlock()
+	if fake.LogInstancesStub != nil {
+		fake.LogInstancesStub(arg1, arg2, arg3)
 	}
 }
 
-func (fake *FakeTelemetryLogger) LogTotalInstancesCallCount() int {
-	fake.logTotalInstancesMutex.RLock()
-	defer fake.logTotalInstancesMutex.RUnlock()
-	return len(fake.logTotalInstancesArgsForCall)
+func (fake *FakeTelemetryLogger) LogInstancesCallCount() int {
+	fake.logInstancesMutex.RLock()
+	defer fake.logInstancesMutex.RUnlock()
+	return len(fake.logInstancesArgsForCall)
 }
 
-func (fake *FakeTelemetryLogger) LogTotalInstancesCalls(stub func(service.InstanceLister, string, string)) {
-	fake.logTotalInstancesMutex.Lock()
-	defer fake.logTotalInstancesMutex.Unlock()
-	fake.LogTotalInstancesStub = stub
+func (fake *FakeTelemetryLogger) LogInstancesCalls(stub func(service.InstanceLister, string, string)) {
+	fake.logInstancesMutex.Lock()
+	defer fake.logInstancesMutex.Unlock()
+	fake.LogInstancesStub = stub
 }
 
-func (fake *FakeTelemetryLogger) LogTotalInstancesArgsForCall(i int) (service.InstanceLister, string, string) {
-	fake.logTotalInstancesMutex.RLock()
-	defer fake.logTotalInstancesMutex.RUnlock()
-	argsForCall := fake.logTotalInstancesArgsForCall[i]
+func (fake *FakeTelemetryLogger) LogInstancesArgsForCall(i int) (service.InstanceLister, string, string) {
+	fake.logInstancesMutex.RLock()
+	defer fake.logInstancesMutex.RUnlock()
+	argsForCall := fake.logInstancesArgsForCall[i]
 	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *FakeTelemetryLogger) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.logTotalInstancesMutex.RLock()
-	defer fake.logTotalInstancesMutex.RUnlock()
+	fake.logInstancesMutex.RLock()
+	defer fake.logInstancesMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

@@ -8,52 +8,8 @@ import (
 	"time"
 )
 
-func Build(enableLogging bool, brokerIdentifier string, logger *log.Logger) broker.TelemetryLogger {
-	if !enableLogging {
-		logger.Printf("Telemetry logging is disabled.")
-		return &NoopTelemetryLogger{}
-	}
-
-	return &TelemetryLogger{Logger: logger, BrokerIdentifier: brokerIdentifier, Time: &RealTime{format: time.RFC3339}}
-}
-
-type TelemetryLogger struct {
-	Logger           *log.Logger
-	BrokerIdentifier string
-	Time             Time
-}
-
-func (t *TelemetryLogger) LogTotalInstances(instanceLister InstanceLister, item string, operation string) {
-	allInstances, err := instanceLister.Instances(nil)
-	if err != nil {
-		t.Logger.Printf("Failed to query list of instances for telemetry (cause: %s). Skipping total instances log.", err)
-	} else {
-		t.Logger.Printf(t.buildMessage(allInstances, item, operation))
-	}
-}
-
-func (t *TelemetryLogger) buildMessage(allInstances []Instance, item string, operation string) string {
-	telemetryLog := Log{
-		TelemetryTime:   t.Time.Now(),
-		TelemetrySource: "odb-" + t.BrokerIdentifier,
-		ServiceInstances: ServiceInstances{
-			Total: len(allInstances),
-		},
-		Event: Event{
-			Item:      item,
-			Operation: operation,
-		},
-	}
-	telemetryMessage, err := json.Marshal(telemetryLog)
-	if err != nil {
-		t.Logger.Printf("could not marshal telemetry log: %s", err.Error())
-	}
-
-	return string(telemetryMessage)
-}
-
-//go:generate counterfeiter -o fakes_telemetry/fake_telemetry_time.go . Time
-type Time interface {
+//go:generate counterfeiter -o fakes_telemetry/fake_telemetry_time.go . timer
+type Timer interface {
 	Now() string
 }
 
@@ -61,12 +17,13 @@ type RealTime struct {
 	format string
 }
 
-func (r *RealTime) Now() string {
-	return time.Now().Format(r.format)
-}
-
 type ServiceInstances struct {
 	Total int `json:"total"`
+}
+
+type ServiceInstancesPerPlan struct {
+	PlanID string `json:"plan-id"`
+	Total  int    `json:"total"`
 }
 
 type Event struct {
@@ -74,14 +31,102 @@ type Event struct {
 	Operation string `json:"operation"`
 }
 
-type Log struct {
+type TotalInstancesLog struct {
 	TelemetryTime    string           `json:"telemetry-time"`
 	TelemetrySource  string           `json:"telemetry-source"`
 	ServiceInstances ServiceInstances `json:"service-instances"`
 	Event            Event            `json:"event"`
 }
 
+type PerPlanInstancesLog struct {
+	TelemetryTime           string                  `json:"telemetry-time"`
+	TelemetrySource         string                  `json:"telemetry-source"`
+	ServiceInstancesPerPlan ServiceInstancesPerPlan `json:"service-instances-per-plan"`
+	Event                   Event                   `json:"event"`
+}
+
+type TelemetryLogger struct {
+	logger           *log.Logger
+	brokerIdentifier string
+	timer            Timer
+}
+
+func Build(enableLogging bool, brokerIdentifier string, logger *log.Logger) broker.TelemetryLogger {
+	if !enableLogging {
+		logger.Printf("Telemetry logging is disabled.")
+		return &NoopTelemetryLogger{}
+	}
+
+	return NewTelemetryLogger(logger, brokerIdentifier, &RealTime{format: time.RFC3339})
+}
+
+func NewTelemetryLogger(logger *log.Logger, brokerIdentifier string, timer Timer) broker.TelemetryLogger {
+	return &TelemetryLogger{
+		logger:           logger,
+		brokerIdentifier: "odb-" + brokerIdentifier,
+		timer:            timer,
+	}
+}
+
+func (t *TelemetryLogger) LogInstances(instanceLister InstanceLister, item string, operation string) {
+	allInstances, err := instanceLister.Instances(nil)
+	if err != nil {
+		t.logger.Printf("Failed to query list of instances for telemetry (cause: %s). Skipping total instances log.", err)
+	} else {
+		t.logTotalInstances(allInstances, Event{Item: item, Operation: operation})
+		t.logInstancesPerPlan(allInstances, Event{Item: item, Operation: operation})
+	}
+}
+
+func (t *TelemetryLogger) logTotalInstances(allInstances []Instance, event Event) {
+	telemetryLog := TotalInstancesLog{
+		TelemetryTime:   t.timer.Now(),
+		TelemetrySource: t.brokerIdentifier,
+		ServiceInstances: ServiceInstances{
+			Total: len(allInstances),
+		},
+		Event: event,
+	}
+
+	t.logger.Printf(t.marshalLog(telemetryLog))
+}
+
+func (t *TelemetryLogger) logInstancesPerPlan(instances []Instance, event Event) {
+	instancesPerPlan := map[string]int{}
+
+	for _, instance := range instances {
+		instancesPerPlan[instance.PlanUniqueID]++
+	}
+
+	for planID, count := range instancesPerPlan {
+		planInstancesLog := PerPlanInstancesLog{
+			TelemetryTime:   t.timer.Now(),
+			TelemetrySource: t.brokerIdentifier,
+			Event:           event,
+			ServiceInstancesPerPlan: ServiceInstancesPerPlan{
+				PlanID: planID,
+				Total:  count,
+			},
+		}
+
+		t.logger.Printf(t.marshalLog(planInstancesLog))
+	}
+}
+
+func (t *TelemetryLogger) marshalLog(telemetryLog interface{}) string {
+	telemetryMessage, err := json.Marshal(telemetryLog)
+	if err != nil {
+		t.logger.Printf("could not marshal telemetry log: %s", err.Error())
+	}
+
+	return string(telemetryMessage)
+}
+
 type NoopTelemetryLogger struct{}
 
-func (t *NoopTelemetryLogger) LogTotalInstances(instanceLister InstanceLister, item string, operation string) {
+func (r *RealTime) Now() string {
+	return time.Now().Format(r.format)
+}
+
+func (t *NoopTelemetryLogger) LogInstances(instanceLister InstanceLister, item string, operation string) {
 }

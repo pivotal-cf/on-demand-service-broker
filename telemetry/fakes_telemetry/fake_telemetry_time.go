@@ -98,4 +98,4 @@ func (fake *FakeTime) recordInvocation(key string, args []interface{}) {
 	fake.invocations[key] = append(fake.invocations[key], args)
 }
 
-var _ telemetry.Time = new(FakeTime)
+var _ telemetry.Timer = new(FakeTime)
