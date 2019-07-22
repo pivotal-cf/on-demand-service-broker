@@ -15,9 +15,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
-	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
-	"gopkg.in/yaml.v2"
 )
 
 //go:generate counterfeiter -o fakes/fake_bosh_client.go . BoshClient
@@ -267,19 +265,10 @@ func (d Deployer) checkForPendingChanges(
 		return err
 	}
 
-	regeneratedManifest, err := marshalBoshManifest([]byte(regeneratedManifestContent.Manifest))
+	manifestsSame, err := ManifestsAreTheSame([]byte(regeneratedManifestContent.Manifest), rawOldManifest)
 	if err != nil {
 		return err
 	}
-	ignoreUpdateBlock(&regeneratedManifest)
-
-	oldManifest, err := marshalBoshManifest(rawOldManifest)
-	if err != nil {
-		return err
-	}
-	ignoreUpdateBlock(&oldManifest)
-
-	manifestsSame := reflect.DeepEqual(regeneratedManifest, oldManifest)
 
 	pendingChanges := !manifestsSame
 
@@ -325,21 +314,4 @@ func (d Deployer) doDeploy(generateManifestProperties GenerateManifestProperties
 	logger.Printf("Bosh task ID for %s deployment %s is %d\n", operationType, generateManifestProperties.DeploymentName, boshTaskID)
 
 	return boshTaskID, []byte(manifest), nil
-}
-
-func marshalBoshManifest(rawManifest []byte) (bosh.BoshManifest, error) {
-	var boshManifest bosh.BoshManifest
-	err := yaml.Unmarshal(rawManifest, &boshManifest)
-
-	if err != nil {
-		return bosh.BoshManifest{}, fmt.Errorf("error detecting change in manifest, unable to unmarshal manifest: %s", err)
-	}
-	return boshManifest, nil
-}
-
-func ignoreUpdateBlock(manifest *bosh.BoshManifest) {
-	manifest.Update = nil
-	for i := range manifest.InstanceGroups {
-		manifest.InstanceGroups[i].Update = nil
-	}
 }

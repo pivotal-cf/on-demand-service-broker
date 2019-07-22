@@ -1,12 +1,10 @@
 package task
 
 import (
-	"bytes"
 	"log"
 
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
-	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
 
 type PreUpgrade struct {
@@ -32,7 +30,7 @@ func (p PreUpgrade) ShouldUpgrade(generateManifestProp GenerateManifestPropertie
 		return ShouldUpgrade
 	}
 
-	if !manifestAreTheSame(generateManifestOutput, generateManifestProp.OldManifest) {
+	if !manifestAreTheSame([]byte(generateManifestOutput.Manifest), generateManifestProp.OldManifest) {
 		return ShouldUpgrade
 	}
 
@@ -122,6 +120,8 @@ func (p PreUpgrade) allErrandsHaveRun(plan config.Plan, tasks boshdirector.BoshT
 	return numPostDeployErrands+numTasksForDeploy == numTasksBoshRan
 }
 
-func manifestAreTheSame(generateManifestOutput serviceadapter.MarshalledGenerateManifest, oldManifest []byte) bool {
-	return bytes.Compare([]byte(generateManifestOutput.Manifest), oldManifest) == 0
+func manifestAreTheSame(generateManifest, oldManifest []byte) bool {
+	areTheSame, _ := ManifestsAreTheSame(generateManifest, oldManifest)
+
+	return areTheSame
 }
