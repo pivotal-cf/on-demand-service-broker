@@ -414,7 +414,7 @@ var _ = Describe("PreUpgrade", func() {
 					logger)
 
 				Expect(shouldUpgrade).To(BeTrue())
-				Expect(logBuffer.String()).To(ContainSubstring("no tasks for contextID"))
+				Expect(logBuffer.String()).To(ContainSubstring(`No tasks for contextID "12"`))
 			})
 		})
 	})
