@@ -53,9 +53,12 @@ var _ = Describe("Start", func() {
 				},
 			},
 			ServiceCatalog: config.ServiceOffering{
-				ID:    "service-id",
-				Name:  "service-name",
-				Plans: []config.Plan{{ID: "plan-id", Name: "plan-name"}},
+				ID:   "service-id",
+				Name: "service-name",
+				Plans: []config.Plan{
+					{ID: "a-plan-id", Name: "plan-name"},
+					{ID: "another-plan-id", Name: "another-plan-name"},
+				},
 			},
 			ServiceAdapter: config.ServiceAdapter{
 				Path: "test_assets/executable.sh",
@@ -85,8 +88,8 @@ var _ = Describe("Start", func() {
 
 	It("logs telemetry data when telemetry is enabled", func() {
 		fakeCloudFoundryClient.GetInstancesReturns([]cf.Instance{
-			{GUID: "123", PlanUniqueID: "plan-id"},
-			{GUID: "321", PlanUniqueID: "plan-id"},
+			{GUID: "123", PlanUniqueID: "a-plan-id"},
+			{GUID: "321", PlanUniqueID: "a-plan-id"},
 		}, nil)
 
 		go brokerinitiator.Initiate(
@@ -100,6 +103,8 @@ var _ = Describe("Start", func() {
 		)
 
 		Eventually(logBuffer).Should(gbytes.Say(fmt.Sprintf(`"telemetry-source":"odb-%s","service-instances":{"total":2},"event":{"item":"broker","operation":"startup"}}`, brokerConfig.ServiceCatalog.Name)))
+		Eventually(logBuffer).Should(gbytes.Say(fmt.Sprintf(`"telemetry-source":"odb-%s","service-instances-per-plan":{"plan-id":"a-plan-id","total":2},"event":{"item":"broker","operation":"startup"}}`, brokerConfig.ServiceCatalog.Name)))
+		Eventually(logBuffer).Should(gbytes.Say(fmt.Sprintf(`"telemetry-source":"odb-%s","service-instances-per-plan":{"plan-id":"another-plan-id","total":0},"event":{"item":"broker","operation":"startup"}}`, brokerConfig.ServiceCatalog.Name)))
 	})
 
 	It("doesn't log telemetry data when telemetry is not enabled", func() {

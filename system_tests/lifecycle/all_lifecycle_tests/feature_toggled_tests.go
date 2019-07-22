@@ -40,7 +40,14 @@ func FeatureToggledLifecycleTest(
 	By("logging telemetry data at startup", func() {
 		stdoutLogs := bosh_helpers.GetBrokerLogs(brokerInfo.DeploymentName)
 		telemetryLogTotal := fmt.Sprintf(`"telemetry-source":"odb-%s","service-instances":{"total":0},"event":{"item":"broker","operation":"startup"}}`, brokerInfo.ServiceName)
+		telemetryLogPlanSmall := fmt.Sprintf(`"telemetry-source":"odb-%s","service-instances-per-plan":{"plan-id":"%s","total":0},"event":{"item":"broker","operation":"startup"}}`, brokerInfo.ServiceName, brokerInfo.PlanID+"-small")
+		telemetryLogPlanMedium := fmt.Sprintf(`"telemetry-source":"odb-%s","service-instances-per-plan":{"plan-id":"%s","total":0},"event":{"item":"broker","operation":"startup"}}`, brokerInfo.ServiceName, brokerInfo.PlanID+"-medium")
 		Expect(stdoutLogs).To(ContainSubstring(telemetryLogTotal))
+		Expect(stdoutLogs).To(SatisfyAll(
+			ContainSubstring(telemetryLogTotal),
+			ContainSubstring(telemetryLogPlanSmall),
+			ContainSubstring(telemetryLogPlanMedium),
+		))
 	})
 
 	By("creating a service", func() {
@@ -52,10 +59,12 @@ func FeatureToggledLifecycleTest(
 		stdoutLogs := bosh_helpers.GetBrokerLogs(brokerInfo.DeploymentName)
 
 		telemetryLogTotal := fmt.Sprintf(`"telemetry-source":"odb-%s","service-instances":{"total":1},"event":{"item":"instance","operation":"create"}}`, brokerInfo.ServiceName)
-		telemetryLogPerPlan := fmt.Sprintf(`"telemetry-source":"odb-%s","service-instances-per-plan":{"plan-id":"%s","total":1},"event":{"item":"instance","operation":"create"}}`, brokerInfo.ServiceName, brokerInfo.PlanID+"-small")
+		telemetryLogPlanSmall := fmt.Sprintf(`"telemetry-source":"odb-%s","service-instances-per-plan":{"plan-id":"%s","total":1},"event":{"item":"instance","operation":"create"}}`, brokerInfo.ServiceName, brokerInfo.PlanID+"-small")
+		telemetryLogPlanMedium := fmt.Sprintf(`"telemetry-source":"odb-%s","service-instances-per-plan":{"plan-id":"%s","total":0},"event":{"item":"instance","operation":"create"}}`, brokerInfo.ServiceName, brokerInfo.PlanID+"-medium")
 		Expect(stdoutLogs).To(SatisfyAll(
 			ContainSubstring(telemetryLogTotal),
-			ContainSubstring(telemetryLogPerPlan),
+			ContainSubstring(telemetryLogPlanSmall),
+			ContainSubstring(telemetryLogPlanMedium),
 		))
 	})
 
@@ -128,10 +137,12 @@ func FeatureToggledLifecycleTest(
 		stdoutLogs := bosh_helpers.GetBrokerLogs(brokerInfo.DeploymentName)
 		// total number of instances will not decrease since we are using CF to get the count and CF is not aware of the result of delete at the point of logging.
 		telemetryLogTotal := fmt.Sprintf(`"telemetry-source":"odb-%s","service-instances":{"total":1},"event":{"item":"instance","operation":"delete"}}`, brokerInfo.ServiceName)
-		telemetryLogPerPlan := fmt.Sprintf(`"telemetry-source":"odb-%s","service-instances-per-plan":{"plan-id":"%s","total":1},"event":{"item":"instance","operation":"create"}}`, brokerInfo.ServiceName, brokerInfo.PlanID+"-small")
+		telemetryLogPlanSmall := fmt.Sprintf(`"telemetry-source":"odb-%s","service-instances-per-plan":{"plan-id":"%s","total":0},"event":{"item":"instance","operation":"delete"}}`, brokerInfo.ServiceName, brokerInfo.PlanID+"-small")
+		telemetryLogPlanMedium := fmt.Sprintf(`"telemetry-source":"odb-%s","service-instances-per-plan":{"plan-id":"%s","total":1},"event":{"item":"instance","operation":"delete"}}`, brokerInfo.ServiceName, brokerInfo.PlanID+"-medium")
 		Expect(stdoutLogs).To(SatisfyAll(
 			ContainSubstring(telemetryLogTotal),
-			ContainSubstring(telemetryLogPerPlan),
+			ContainSubstring(telemetryLogPlanSmall),
+			ContainSubstring(telemetryLogPlanMedium),
 		))
 	})
 }

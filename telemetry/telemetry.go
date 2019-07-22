@@ -3,6 +3,7 @@ package telemetry
 import (
 	"encoding/json"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
+	"github.com/pivotal-cf/on-demand-service-broker/config"
 	. "github.com/pivotal-cf/on-demand-service-broker/service"
 	"log"
 	"time"
@@ -46,25 +47,27 @@ type PerPlanInstancesLog struct {
 }
 
 type TelemetryLogger struct {
-	logger           *log.Logger
-	brokerIdentifier string
-	timer            Timer
+	logger             *log.Logger
+	brokerIdentifier   string
+	timer              Timer
+	brokerServicePlans config.Plans
 }
 
-func Build(enableLogging bool, brokerIdentifier string, logger *log.Logger) broker.TelemetryLogger {
+func Build(enableLogging bool, serviceOffering config.ServiceOffering, logger *log.Logger) broker.TelemetryLogger {
 	if !enableLogging {
 		logger.Printf("Telemetry logging is disabled.")
 		return &NoopTelemetryLogger{}
 	}
 
-	return NewTelemetryLogger(logger, brokerIdentifier, &RealTime{format: time.RFC3339})
+	return NewTelemetryLogger(logger, serviceOffering, &RealTime{format: time.RFC3339})
 }
 
-func NewTelemetryLogger(logger *log.Logger, brokerIdentifier string, timer Timer) broker.TelemetryLogger {
+func NewTelemetryLogger(logger *log.Logger, serviceOffering config.ServiceOffering, timer Timer) broker.TelemetryLogger {
 	return &TelemetryLogger{
-		logger:           logger,
-		brokerIdentifier: "odb-" + brokerIdentifier,
-		timer:            timer,
+		logger:             logger,
+		brokerIdentifier:   "odb-" + serviceOffering.Name,
+		brokerServicePlans: serviceOffering.Plans,
+		timer:              timer,
 	}
 }
 
@@ -98,13 +101,14 @@ func (t *TelemetryLogger) logInstancesPerPlan(instances []Instance, event Event)
 		instancesPerPlan[instance.PlanUniqueID]++
 	}
 
-	for planID, count := range instancesPerPlan {
+	for _, plan := range t.brokerServicePlans {
+		count := instancesPerPlan[plan.ID]
 		planInstancesLog := PerPlanInstancesLog{
 			TelemetryTime:   t.timer.Now(),
 			TelemetrySource: t.brokerIdentifier,
 			Event:           event,
 			ServiceInstancesPerPlan: ServiceInstancesPerPlan{
-				PlanID: planID,
+				PlanID: plan.ID,
 				Total:  count,
 			},
 		}

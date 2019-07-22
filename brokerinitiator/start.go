@@ -63,7 +63,7 @@ func Initiate(conf config.Config,
 		logger.Fatalf("error building instance lister: %s", err)
 	}
 
-	telemetryLogger := telemetry.Build(conf.Broker.EnableTelemetry, conf.ServiceCatalog.Name, logger)
+	telemetryLogger := telemetry.Build(conf.Broker.EnableTelemetry, conf.ServiceCatalog, logger)
 
 	var onDemandBroker apiserver.CombinedBroker
 	onDemandBroker, err = broker.New(

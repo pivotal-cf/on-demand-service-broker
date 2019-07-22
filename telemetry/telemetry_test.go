@@ -6,6 +6,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
+	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 	"github.com/pivotal-cf/on-demand-service-broker/service"
 	"github.com/pivotal-cf/on-demand-service-broker/service/fakes"
@@ -16,58 +17,56 @@ import (
 
 var _ = Describe("Telemetry", func() {
 	var (
-		instanceLister   *fakes.FakeInstanceLister
-		logBuffer        *gbytes.Buffer
-		loggerFactory    *loggerfactory.LoggerFactory
-		brokerIdentifier string
-		telemetryTime    *FakeTime
+		instanceLister            *fakes.FakeInstanceLister
+		logBuffer                 *gbytes.Buffer
+		loggerFactory             *loggerfactory.LoggerFactory
+		serviceOffering           config.ServiceOffering
+		telemetryTime             *FakeTime
+		planID1, planID2, planID3 string
 	)
 
 	Describe("Telemetry Logger enabled", func() {
 		var telemetryLogger broker.TelemetryLogger
 
 		BeforeEach(func() {
-			brokerIdentifier = "a-cute-broker"
+			planID1 = "plan-unique-id"
+			planID2 = "another-plan-unique-id"
+			planID3 = "plan-id-with-no-instances"
+
+			serviceOffering = config.ServiceOffering{
+				Name: "offering-name",
+				Plans: config.Plans{
+					{ID: planID1},
+					{ID: planID2},
+					{ID: planID3},
+				},
+			}
 			logBuffer = gbytes.NewBuffer()
-			loggerFactory = loggerfactory.New(logBuffer, brokerIdentifier, loggerfactory.Flags)
+			loggerFactory = loggerfactory.New(logBuffer, serviceOffering.Name, loggerfactory.Flags)
 
 			instanceLister = new(fakes.FakeInstanceLister)
 			telemetryTime = new(FakeTime)
 
-			telemetryLogger = telemetry.NewTelemetryLogger(loggerFactory.New(), brokerIdentifier, telemetryTime)
+			telemetryLogger = telemetry.NewTelemetryLogger(loggerFactory.New(), serviceOffering, telemetryTime)
 		})
 
 		Describe("LogInstances", func() {
 			It("logs telemetry about the total number of instances", func() {
-				instanceLister.InstancesReturns([]service.Instance{
-					{
-						GUID:         "test-guid",
-						PlanUniqueID: "plan-id",
-					},
-				}, nil)
+				instanceLister.InstancesReturns([]service.Instance{{GUID: "test-guid"}}, nil)
 
 				fakeTime := "2006-01-02 15:04:05"
 				telemetryTime.NowReturns(fakeTime)
 
 				telemetryLogger.LogInstances(instanceLister, "broker", "startup")
 
-				Eventually(logBuffer).Should(gbytes.Say(fmt.Sprintf(`{"telemetry-time":"%s","telemetry-source":"odb-%s","service-instances":{"total":1},"event":{"item":"broker","operation":"startup"}}`, fakeTime, brokerIdentifier)))
+				Eventually(logBuffer).Should(gbytes.Say(fmt.Sprintf(`{"telemetry-time":"%s","telemetry-source":"odb-%s","service-instances":{"total":1},"event":{"item":"broker","operation":"startup"}}`, fakeTime, serviceOffering.Name)))
 			})
 
 			It("logs telemetry about the number of instances per plan", func() {
 				instanceLister.InstancesReturns([]service.Instance{
-					{
-						GUID:         "test-guid-1",
-						PlanUniqueID: "plan-unique-id",
-					},
-					{
-						GUID:         "test-guid-2",
-						PlanUniqueID: "plan-unique-id",
-					},
-					{
-						GUID:         "test-guid-3",
-						PlanUniqueID: "another-plan-unique-id",
-					},
+					{GUID: "test-guid-1", PlanUniqueID: planID1},
+					{GUID: "test-guid-2", PlanUniqueID: planID1},
+					{GUID: "test-guid-3", PlanUniqueID: planID2},
 				}, nil)
 
 				fakeTime := "fake-timer"
@@ -75,20 +74,9 @@ var _ = Describe("Telemetry", func() {
 
 				telemetryLogger.LogInstances(instanceLister, "broker", "startup")
 
-				Expect(logBuffer).To(gbytes.Say(fmt.Sprintf(`{"telemetry-time":"%s","telemetry-source":"odb-%s","service-instances-per-plan":{"plan-id":"plan-unique-id","total":2},"event":{"item":"broker","operation":"startup"}}`, fakeTime, brokerIdentifier)))
-				Expect(logBuffer).To(gbytes.Say(fmt.Sprintf(`{"telemetry-time":"%s","telemetry-source":"odb-%s","service-instances-per-plan":{"plan-id":"another-plan-unique-id","total":1},"event":{"item":"broker","operation":"startup"}}`, fakeTime, brokerIdentifier)))
-			})
-
-			It("logs only about total when there are no instances", func() {
-				instanceLister.InstancesReturns([]service.Instance{}, nil)
-
-				fakeTime := "fake-timer"
-				telemetryTime.NowReturns(fakeTime)
-
-				telemetryLogger.LogInstances(instanceLister, "not-relevant", "not-relevant")
-
-				Expect(logBuffer).To(gbytes.Say(fmt.Sprintf(`"service-instances":{"total":0}`)))
-				Expect(logBuffer).ToNot(gbytes.Say(fmt.Sprintf(`service-instances-per-plan`)))
+				Expect(logBuffer).To(gbytes.Say(fmt.Sprintf(`{"telemetry-time":"%s","telemetry-source":"odb-%s","service-instances-per-plan":{"plan-id":%q,"total":2},"event":{"item":"broker","operation":"startup"}}`, fakeTime, serviceOffering.Name, planID1)))
+				Expect(logBuffer).To(gbytes.Say(fmt.Sprintf(`{"telemetry-time":"%s","telemetry-source":"odb-%s","service-instances-per-plan":{"plan-id":%q,"total":1},"event":{"item":"broker","operation":"startup"}}`, fakeTime, serviceOffering.Name, planID2)))
+				Expect(logBuffer).To(gbytes.Say(fmt.Sprintf(`{"telemetry-time":"%s","telemetry-source":"odb-%s","service-instances-per-plan":{"plan-id":%q,"total":0},"event":{"item":"broker","operation":"startup"}}`, fakeTime, serviceOffering.Name, planID3)))
 			})
 
 			It("logs error log when it cant get the total number of instances", func() {
@@ -116,7 +104,7 @@ var _ = Describe("Telemetry", func() {
 
 		Describe("LogInstances", func() {
 			It("does not log telemetry", func() {
-				telemetryLogger = telemetry.Build(false, brokerIdentifier, loggerFactory.New())
+				telemetryLogger = telemetry.Build(false, serviceOffering, loggerFactory.New())
 
 				telemetryLogger.LogInstances(instanceLister, "not-relevant", "not-relevant")
 
