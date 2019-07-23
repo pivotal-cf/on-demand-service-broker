@@ -106,7 +106,7 @@ var _ = Describe("Upgrading deployment", func() {
 		By("running the upgrade errand", func() {
 			session := bosh_helpers.RunErrand(brokerInfo.DeploymentName, "upgrade-all-service-instances")
 			Expect(session.ExitCode()).To(Equal(0))
-			Expect(session).To(gbytes.Say("Number of successful operations: 1"))
+			Expect(session).To(gbytes.Say("FINISHED PROCESSING Status: SUCCESS"))
 		})
 
 		By("updating the service instance", func() {
