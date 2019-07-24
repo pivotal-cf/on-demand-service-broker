@@ -23,12 +23,12 @@ func main() {
 	configContents := readFileContent(configPath, logger)
 	errandConfig := unmarshalConfig(configContents, logger)
 
-	cfAuthenticator, err := errandConfig.CF.NewAuthHeaderBuilder(errandConfig.DisableSSLCertVerification)
+	cfAuthenticator, err := errandConfig.CF.NewAuthHeaderBuilder(errandConfig.CF.DisableSSLCertVerification)
 	if err != nil {
 		logger.Fatalf("Error creating CF authorization header builder: %s", err)
 	}
 
-	cfClient, err := cf.New(errandConfig.CF.URL, cfAuthenticator, []byte(errandConfig.CF.TrustedCert), errandConfig.DisableSSLCertVerification, logger)
+	cfClient, err := cf.New(errandConfig.CF.URL, cfAuthenticator, []byte(errandConfig.CF.TrustedCert), errandConfig.CF.DisableSSLCertVerification, logger)
 	if err != nil {
 		logger.Fatalf("Error creating Cloud Foundry client: %s", err)
 	}

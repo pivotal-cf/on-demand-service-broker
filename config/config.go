@@ -82,9 +82,10 @@ type Bosh struct {
 }
 
 type CF struct {
-	URL            string
-	TrustedCert    string `yaml:"root_ca_cert"`
-	Authentication Authentication
+	URL                        string
+	TrustedCert                string `yaml:"root_ca_cert"`
+	Authentication             Authentication
+	DisableSSLCertVerification bool `yaml:"disable_ssl_cert_verification"`
 }
 
 type TLSConfig struct {
@@ -618,14 +619,13 @@ type ErrandTLSConfig struct {
 }
 
 type RegisterBrokerErrandConfig struct {
-	BrokerName                 string       `yaml:"broker_name"`
-	BrokerUsername             string       `yaml:"broker_username"`
-	BrokerPassword             string       `yaml:"broker_password"`
-	BrokerURL                  string       `yaml:"broker_url"`
-	CF                         CF           `yaml:"cf"`
-	DisableSSLCertVerification bool         `yaml:"disable_ssl_cert_verification"` //TODO: move this to CF
-	ServiceOfferingID          string       `yaml:"service_offering_id"`
-	Plans                      []PlanAccess `yaml:"plans"`
+	BrokerName        string       `yaml:"broker_name"`
+	BrokerUsername    string       `yaml:"broker_username"`
+	BrokerPassword    string       `yaml:"broker_password"`
+	BrokerURL         string       `yaml:"broker_url"`
+	CF                CF           `yaml:"cf"`
+	ServiceOfferingID string       `yaml:"service_offering_id"`
+	Plans             []PlanAccess `yaml:"plans"`
 }
 
 type CFServiceAccess string

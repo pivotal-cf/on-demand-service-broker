@@ -90,9 +90,9 @@ var _ = Describe("RegisterBroker", func() {
 						UserCredentials: config.UserCredentials{Username: "foo", Password: "bar"},
 					},
 				},
+				DisableSSLCertVerification: true,
 			},
-			DisableSSLCertVerification: true,
-			ServiceOfferingID:          serviceID,
+			ServiceOfferingID: serviceID,
 		}
 	})
 
