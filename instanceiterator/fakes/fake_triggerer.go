@@ -4,12 +4,27 @@ package fakes
 import (
 	"sync"
 
+	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
 	"github.com/pivotal-cf/on-demand-service-broker/instanceiterator"
 	"github.com/pivotal-cf/on-demand-service-broker/service"
 )
 
 type FakeTriggerer struct {
+	CheckStub        func(string, broker.OperationData) (services.BOSHOperation, error)
+	checkMutex       sync.RWMutex
+	checkArgsForCall []struct {
+		arg1 string
+		arg2 broker.OperationData
+	}
+	checkReturns struct {
+		result1 services.BOSHOperation
+		result2 error
+	}
+	checkReturnsOnCall map[int]struct {
+		result1 services.BOSHOperation
+		result2 error
+	}
 	TriggerOperationStub        func(service.Instance) (services.BOSHOperation, error)
 	triggerOperationMutex       sync.RWMutex
 	triggerOperationArgsForCall []struct {
@@ -25,6 +40,70 @@ type FakeTriggerer struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
+}
+
+func (fake *FakeTriggerer) Check(arg1 string, arg2 broker.OperationData) (services.BOSHOperation, error) {
+	fake.checkMutex.Lock()
+	ret, specificReturn := fake.checkReturnsOnCall[len(fake.checkArgsForCall)]
+	fake.checkArgsForCall = append(fake.checkArgsForCall, struct {
+		arg1 string
+		arg2 broker.OperationData
+	}{arg1, arg2})
+	fake.recordInvocation("Check", []interface{}{arg1, arg2})
+	fake.checkMutex.Unlock()
+	if fake.CheckStub != nil {
+		return fake.CheckStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.checkReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeTriggerer) CheckCallCount() int {
+	fake.checkMutex.RLock()
+	defer fake.checkMutex.RUnlock()
+	return len(fake.checkArgsForCall)
+}
+
+func (fake *FakeTriggerer) CheckCalls(stub func(string, broker.OperationData) (services.BOSHOperation, error)) {
+	fake.checkMutex.Lock()
+	defer fake.checkMutex.Unlock()
+	fake.CheckStub = stub
+}
+
+func (fake *FakeTriggerer) CheckArgsForCall(i int) (string, broker.OperationData) {
+	fake.checkMutex.RLock()
+	defer fake.checkMutex.RUnlock()
+	argsForCall := fake.checkArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeTriggerer) CheckReturns(result1 services.BOSHOperation, result2 error) {
+	fake.checkMutex.Lock()
+	defer fake.checkMutex.Unlock()
+	fake.CheckStub = nil
+	fake.checkReturns = struct {
+		result1 services.BOSHOperation
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeTriggerer) CheckReturnsOnCall(i int, result1 services.BOSHOperation, result2 error) {
+	fake.checkMutex.Lock()
+	defer fake.checkMutex.Unlock()
+	fake.CheckStub = nil
+	if fake.checkReturnsOnCall == nil {
+		fake.checkReturnsOnCall = make(map[int]struct {
+			result1 services.BOSHOperation
+			result2 error
+		})
+	}
+	fake.checkReturnsOnCall[i] = struct {
+		result1 services.BOSHOperation
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeTriggerer) TriggerOperation(arg1 service.Instance) (services.BOSHOperation, error) {
@@ -93,6 +172,8 @@ func (fake *FakeTriggerer) TriggerOperationReturnsOnCall(i int, result1 services
 func (fake *FakeTriggerer) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.checkMutex.RLock()
+	defer fake.checkMutex.RUnlock()
 	fake.triggerOperationMutex.RLock()
 	defer fake.triggerOperationMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

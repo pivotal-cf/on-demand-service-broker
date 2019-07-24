@@ -183,7 +183,7 @@ var _ = Describe("Recreate all service instances", func() {
 				Eventually(session).Should(gexec.Exit())
 				Expect(session.ExitCode()).NotTo(Equal(0), "recreate-all execution succeeded unexpectedly")
 
-				Expect(stdout).To(gbytes.Say("Operation type: recreate failed for service instance service-1: unexpected status code: 500. description: bosh recreate failed"))
+				Expect(stdout).To(gbytes.Say("operation type: recreate failed for service instance service-1: unexpected status code: 500. description: bosh recreate failed"))
 			})
 
 			It("returns a non-zero exit code when the post-deploy errand fails", func() {

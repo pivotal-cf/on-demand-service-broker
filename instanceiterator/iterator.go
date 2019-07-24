@@ -59,9 +59,6 @@ type instanceFailure struct {
 //go:generate counterfeiter -o fakes/fake_triggerer.go . Triggerer
 type Triggerer interface {
 	TriggerOperation(service.Instance) (services.BOSHOperation, error)
-}
-
-type StateChecker interface {
 	Check(string, broker.OperationData) (services.BOSHOperation, error)
 }
 
@@ -79,7 +76,6 @@ type Iterator struct {
 	canarySelectionParams config.CanarySelectionParams
 	iteratorState         *iteratorState
 	triggerer             Triggerer
-	stateChecker          StateChecker
 }
 
 func New(builder *Builder) *Iterator {
@@ -94,7 +90,6 @@ func New(builder *Builder) *Iterator {
 		canaries:              builder.Canaries,
 		canarySelectionParams: builder.CanarySelectionParams,
 		triggerer:             builder.Triggerer,
-		stateChecker:          NewStateChecker(builder.BrokerServices),
 	}
 }
 
@@ -264,7 +259,7 @@ func (it *Iterator) triggerOperation() {
 func (it *Iterator) pollRunningTasks() {
 	for _, inst := range it.iteratorState.InProgressInstances() {
 		guid := inst.GUID
-		state, err := it.stateChecker.Check(guid, it.iteratorState.GetOperation(guid).Data)
+		state, err := it.triggerer.Check(guid, it.iteratorState.GetOperation(guid).Data)
 		if err != nil {
 			it.iteratorState.SetState(guid, services.OperationFailed)
 			it.failures = append(it.failures, instanceFailure{guid: guid, err: err})

@@ -21,20 +21,38 @@ import (
 	"github.com/pivotal-cf/brokerapi/domain"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
+	"github.com/pivotal-cf/on-demand-service-broker/service"
 )
 
-type LastOperationChecker struct {
+type BrokerTriggerer struct {
+	operationType  string
 	brokerServices BrokerServices
 }
 
-func NewStateChecker(brokerServices BrokerServices) *LastOperationChecker {
-	return &LastOperationChecker{
-		brokerServices: brokerServices,
-	}
+func NewUpgradeTriggerer(brokerServices BrokerServices) *BrokerTriggerer {
+	return &BrokerTriggerer{operationType: "upgrade", brokerServices: brokerServices}
 }
 
-func (l *LastOperationChecker) Check(guid string, operationData broker.OperationData) (services.BOSHOperation, error) {
-	lastOperation, err := l.brokerServices.LastOperation(guid, operationData)
+func NewRecreateTriggerer(brokerServices BrokerServices) *BrokerTriggerer {
+	return &BrokerTriggerer{operationType: "recreate", brokerServices: brokerServices}
+}
+
+func (t *BrokerTriggerer) TriggerOperation(instance service.Instance) (services.BOSHOperation, error) {
+	operation, err := t.brokerServices.ProcessInstance(instance, t.operationType)
+	if err != nil {
+		return services.BOSHOperation{},
+			fmt.Errorf(
+				"operation type: %s failed for service instance %s: %s",
+				t.operationType,
+				instance.GUID,
+				err,
+			)
+	}
+	return operation, nil
+}
+
+func (t *BrokerTriggerer) Check(guid string, operationData broker.OperationData) (services.BOSHOperation, error) {
+	lastOperation, err := t.brokerServices.LastOperation(guid, operationData)
 	if err != nil {
 		return services.BOSHOperation{}, fmt.Errorf("error getting last operation: %s", err)
 	}

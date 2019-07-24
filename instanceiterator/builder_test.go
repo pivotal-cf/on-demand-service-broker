@@ -207,7 +207,7 @@ var _ = Describe("Builder", func() {
 			err = builder.SetUpgradeTriggerer()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(builder.Triggerer).ToNot(BeNil())
-			Expect(builder.Triggerer).To(BeAssignableToTypeOf(new(instanceiterator.UpgradeTriggerer)))
+			Expect(builder.Triggerer).To(BeAssignableToTypeOf(new(instanceiterator.BrokerTriggerer)))
 		})
 
 		It("returns an error when builder not properly initialised", func() {
@@ -227,7 +227,7 @@ var _ = Describe("Builder", func() {
 			err = builder.SetRecreateTriggerer()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(builder.Triggerer).ToNot(BeNil())
-			Expect(builder.Triggerer).To(BeAssignableToTypeOf(new(instanceiterator.RecreateTriggerer)))
+			Expect(builder.Triggerer).To(BeAssignableToTypeOf(new(instanceiterator.BrokerTriggerer)))
 		})
 
 		It("returns an error when builder not properly initialised", func() {
