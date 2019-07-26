@@ -2,6 +2,8 @@ package cf_test
 
 import (
 	"encoding/json"
+	"github.com/pborman/uuid"
+	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/service_helpers"
 	"io"
 	"log"
 	"os"
@@ -11,233 +13,134 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
-	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/cf_helpers"
-	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/service_helpers"
 )
 
 var _ = Describe("CF client", func() {
 	var (
-		brokerDeployment bosh_helpers.BrokerInfo
-		subject          *cf.Client
-		logger           *log.Logger
+		subject *cf.Client
+		logger  *log.Logger
 	)
 
 	BeforeEach(func() {
-		brokerDeployment = bosh_helpers.DeployBroker(
-			uuid.New()[:8]+"-cf-contract-tests",
-			bosh_helpers.BrokerDeploymentOptions{
-				ServiceMetrics: false,
-				BrokerTLS:      false,
-			},
-			service_helpers.Redis,
-			[]string{"basic_service_catalog.yml"},
-		)
-
 		logBuffer := gbytes.NewBuffer()
 		logger = log.New(io.MultiWriter(logBuffer, GinkgoWriter), "my-app", log.LstdFlags)
 		subject = NewCFClient(logger)
 	})
 
-	AfterEach(func() {
-		bosh_helpers.DeleteDeployment(brokerDeployment.DeploymentName)
-	})
-
-	Describe("CreateServiceBroker", func() {
-		var brokerName string
+	Describe("Broker Operations", func() {
+		var (
+			brokerDeployment                 bosh_helpers.BrokerInfo
+			brokerName, brokerGUID, planName string
+		)
 
 		BeforeEach(func() {
+			brokerDeployment = bosh_helpers.DeployBroker(
+				uuid.New()[:8]+"-cf-contract-tests",
+				bosh_helpers.BrokerDeploymentOptions{
+					ServiceMetrics: false,
+					BrokerTLS:      false,
+				},
+				service_helpers.Redis,
+				[]string{"basic_service_catalog.yml"},
+			)
+
 			brokerName = "contract-" + brokerDeployment.TestSuffix
+			planName = "redis-small"
 		})
 
 		AfterEach(func() {
 			session := cf_helpers.Cf("delete-service-broker", "-f", brokerName)
-			Eventually(session).Should(gexec.Exit(0))
+			Expect(session).To(gexec.Exit(0))
+
+			bosh_helpers.DeleteDeployment(brokerDeployment.DeploymentName)
 		})
 
-		It("creates a service broker", func() {
-			err := subject.CreateServiceBroker(
-				brokerName,
-				brokerDeployment.BrokerUsername,
-				brokerDeployment.BrokerPassword,
-				"http://"+brokerDeployment.URI,
-			)
-			Expect(err).NotTo(HaveOccurred())
+		It("manages broker operations successfully", func() {
+			By("creating a broker with CreateServiceBroker", func() {
+				err := subject.CreateServiceBroker(
+					brokerName,
+					brokerDeployment.BrokerUsername,
+					brokerDeployment.BrokerPassword,
+					"http://"+brokerDeployment.URI,
+				)
+				Expect(err).NotTo(HaveOccurred())
 
-			session := cf_helpers.Cf("service-brokers")
-			Eventually(session).Should(gexec.Exit(0))
+				session := cf_helpers.Cf("service-brokers")
+				Expect(session).To(gexec.Exit(0))
+				Expect(session).To(gbytes.Say(brokerDeployment.URI))
+			})
 
-			Expect(session).To(gbytes.Say(brokerDeployment.URI))
-		})
-	})
+			By("verifying the existing brokers with ServiceBrokers", func() {
+				serviceBrokers, err := subject.ServiceBrokers()
+				Expect(err).NotTo(HaveOccurred())
 
-	Describe("ServiceBrokers", func() {
-		var brokerName string
-
-		BeforeEach(func() {
-			brokerName = "contract-" + brokerDeployment.TestSuffix
-			session := cf_helpers.Cf("create-service-broker",
-				brokerName,
-				brokerDeployment.BrokerUsername,
-				brokerDeployment.BrokerPassword,
-				"http://"+brokerDeployment.URI,
-			)
-			Eventually(session).Should(gexec.Exit(0))
-		})
-
-		AfterEach(func() {
-			session := cf_helpers.Cf("delete-service-broker", "-f", brokerName)
-			Eventually(session).Should(gexec.Exit())
-		})
-
-		It("returns a list of service brokers", func() {
-			serviceBrokers, err := subject.ServiceBrokers()
-			Expect(err).NotTo(HaveOccurred())
-
-			found := false
-			for _, serviceBroker := range serviceBrokers {
-				if serviceBroker.Name == brokerName {
-					found = true
-					break
+				found := false
+				for _, serviceBroker := range serviceBrokers {
+					if serviceBroker.Name == brokerName {
+						found = true
+						brokerGUID = serviceBroker.GUID
+						break
+					}
 				}
-			}
-			Expect(found).To(BeTrue(), "List of brokers did not include the created broker")
-		})
-	})
+				Expect(found).To(BeTrue(), "List of brokers did not include the created broker")
 
-	Describe("UpdateServiceBroker", func() {
-		var (
-			brokerName string
-			brokerGUID string
-		)
+			})
 
-		BeforeEach(func() {
-			brokerName = "contract-" + brokerDeployment.TestSuffix
-			session := cf_helpers.Cf("create-service-broker",
-				brokerName,
-				brokerDeployment.BrokerUsername,
-				brokerDeployment.BrokerPassword,
-				"http://"+brokerDeployment.URI,
-			)
-			Eventually(session).Should(gexec.Exit(0))
+			By("updating the broker with UpdateServiceBroker", func() {
+				newBrokerName := "new-" + brokerName
 
-			var err error
-			brokerGUID, err = subject.GetServiceOfferingGUID(brokerName, logger)
-			Expect(err).ToNot(HaveOccurred())
-		})
+				err := subject.UpdateServiceBroker(brokerGUID, newBrokerName, brokerDeployment.BrokerUsername, brokerDeployment.BrokerPassword, "http://"+brokerDeployment.URI)
+				Expect(err).NotTo(HaveOccurred())
 
-		AfterEach(func() {
-			session := cf_helpers.Cf("delete-service-broker", "-f", brokerName)
-			Eventually(session).Should(gexec.Exit())
-		})
+				session := cf_helpers.Cf("service-brokers")
+				Expect(session).To(gexec.Exit(0))
+				Expect(session).To(gbytes.Say(newBrokerName))
 
-		It("returns a list of service brokers", func() {
-			brokerName = "new-" + brokerName
-			err := subject.UpdateServiceBroker(brokerGUID, brokerName, brokerDeployment.BrokerUsername, brokerDeployment.BrokerPassword, "http://"+brokerDeployment.URI)
-			Expect(err).NotTo(HaveOccurred())
+				brokerName = newBrokerName
+			})
 
-			session := cf_helpers.Cf("service-brokers")
-			Eventually(session).Should(gexec.Exit(0))
-			Expect(session).To(gbytes.Say(brokerName))
-		})
-	})
+			By("enabling plan access with EnableServiceAccess", func() {
+				By("SETUP: Plan is restricted to an org", func() {
+					session := cf_helpers.Cf("disable-service-access", brokerDeployment.ServiceName, "-p", planName)
+					Expect(session).To(gexec.Exit(0))
 
-	Describe("EnableServiceAccess", func() {
-		var (
-			brokerName string
-			brokerGUID string
-			planName   string
-		)
+					session = cf_helpers.Cf("enable-service-access", brokerDeployment.ServiceName, "-p", planName, "-o", os.Getenv("CF_ORG"))
+					Expect(session).To(gexec.Exit(0))
 
-		BeforeEach(func() {
-			planName = "redis-small"
+					plan := servicePlan(brokerGUID, planName)
+					Expect(plan.Public).To(BeFalse(), "Plan expected to be private")
 
-			brokerName = "contract-" + brokerDeployment.TestSuffix
-			session := cf_helpers.Cf("create-service-broker",
-				brokerName,
-				brokerDeployment.BrokerUsername,
-				brokerDeployment.BrokerPassword,
-				"http://"+brokerDeployment.URI,
-			)
-			Eventually(session).Should(gexec.Exit(0))
+					planVisibilities := servicePlanVisibilities(plan.GUID)
+					Expect(len(planVisibilities)).To(BeNumerically(">=", 1), "Plan visibilities were not created")
+				})
 
-			Eventually(
-				cf_helpers.Cf("disable-service-access", brokerDeployment.ServiceName, "-p", planName),
-			).Should(gexec.Exit(0))
+				err := subject.EnableServiceAccess(brokerDeployment.ServiceID, planName, logger)
+				Expect(err).ToNot(HaveOccurred())
+				updatedPlan := servicePlan(brokerGUID, planName)
 
-			Eventually(
-				cf_helpers.Cf("enable-service-access", brokerDeployment.ServiceName, "-p", planName, "-o", os.Getenv("CF_ORG")),
-			).Should(gexec.Exit(0))
+				By("ensuring the plan is now public", func() {
+					Expect(updatedPlan.Public).To(BeTrue(), "plan was not made public")
+				})
 
-			var err error
-			brokerGUID, err = subject.GetServiceOfferingGUID(brokerName, logger)
-			Expect(err).ToNot(HaveOccurred())
-		})
+				By("ensuring the plan visibilities were deleted", func() {
 
-		AfterEach(func() {
-			session := cf_helpers.Cf("delete-service-broker", "-f", brokerName)
-			Eventually(session).Should(gexec.Exit(0))
-		})
+					updatedPlanVisibilities := servicePlanVisibilities(updatedPlan.GUID)
+					Expect(len(updatedPlanVisibilities)).To(Equal(0), "plan visibilities were not cleaned")
+				})
 
-		It("enables service access", func() {
-			plan := servicePlan(brokerGUID, planName)
-			Expect(plan.Public).To(BeFalse())
+			})
 
-			planVisibilities := servicePlanVisibilities(plan.GUID)
-			Expect(len(planVisibilities)).To(BeNumerically(">=", 1))
-
-			err := subject.EnableServiceAccess(brokerDeployment.ServiceID, planName, logger)
-			Expect(err).ToNot(HaveOccurred())
-
-			updatedPlan := servicePlan(brokerGUID, planName)
-			Expect(updatedPlan.Public).To(BeTrue(), "plan was not made public")
-
-			updatedPlanVisibilities := servicePlanVisibilities(plan.GUID)
-			Expect(len(updatedPlanVisibilities)).To(Equal(0), "plan visibilities were not cleaned")
-		})
-	})
-
-	Describe("Disabling service access", func() {
-		var (
-			brokerName string
-			brokerGUID string
-			planName   string
-		)
-
-		BeforeEach(func() {
-			planName = "redis-small"
-
-			brokerName = "contract-" + brokerDeployment.TestSuffix
-			session := cf_helpers.Cf("create-service-broker",
-				brokerName,
-				brokerDeployment.BrokerUsername,
-				brokerDeployment.BrokerPassword,
-				"http://"+brokerDeployment.URI,
-			)
-			Eventually(session).Should(gexec.Exit(0))
-
-			Eventually(
-				cf_helpers.Cf("enable-service-access", brokerDeployment.ServiceName, "-p", planName),
-			).Should(gexec.Exit(0))
-
-			var err error
-			brokerGUID, err = subject.GetServiceOfferingGUID(brokerName, logger)
-			Expect(err).ToNot(HaveOccurred())
-		})
-
-		AfterEach(func() {
-			session := cf_helpers.Cf("delete-service-broker", "-f", brokerName)
-			Eventually(session).Should(gexec.Exit(0))
-		})
-
-		Context("DisableServiceAccess", func() {
-			It("disables service access for a plan", func() {
-				plan := servicePlan(brokerGUID, planName)
-
-				By("setting plan.public to false", func() {
-					Expect(plan.Public).To(BeTrue())
+			By("disabling plan access with DisableServiceAccess", func() {
+				By("turning public plans into private", func() {
+					By("SETUP: Plan is public", func() {
+						session := cf_helpers.Cf("enable-service-access", brokerDeployment.ServiceName, "-p", planName)
+						Expect(session).To(gexec.Exit(0))
+						plan := servicePlan(brokerGUID, planName)
+						Expect(plan.Public).To(BeTrue())
+					})
 
 					err := subject.DisableServiceAccess(brokerDeployment.ServiceID, planName, logger)
 					Expect(err).ToNot(HaveOccurred())
@@ -246,10 +149,20 @@ var _ = Describe("CF client", func() {
 					Expect(updatedPlan.Public).To(BeFalse(), "plan was not made private")
 				})
 
-				By("removing any plan visibilities", func() {
-					Eventually(
-						cf_helpers.Cf("enable-service-access", brokerDeployment.ServiceName, "-p", planName, "-o", os.Getenv("CF_ORG")),
-					).Should(gexec.Exit(0))
+				By("removing visibilities of org-restricted plans", func() {
+					plan := servicePlan(brokerGUID, planName)
+					By("SETUP: Plan is restricted to an org", func() {
+						session := cf_helpers.Cf("disable-service-access", brokerDeployment.ServiceName, "-p", planName)
+						Expect(session).To(gexec.Exit(0))
+
+						session = cf_helpers.Cf("enable-service-access", brokerDeployment.ServiceName, "-p", planName, "-o", os.Getenv("CF_ORG"))
+						Expect(session).To(gexec.Exit(0))
+
+						Expect(plan.Public).To(BeFalse(), "Plan expected to be private")
+
+						planVisibilities := servicePlanVisibilities(plan.GUID)
+						Expect(len(planVisibilities)).To(BeNumerically(">=", 1), "Plan visibilities were not created")
+					})
 
 					planVisibilities := servicePlanVisibilities(plan.GUID)
 					Expect(len(planVisibilities)).To(BeNumerically(">=", 1))
@@ -262,77 +175,50 @@ var _ = Describe("CF client", func() {
 				})
 			})
 
-		})
+			By("disabling access to all plans with DisableServiceAccessForAllPlans", func() {
+				By("SETUP: Plan is public", func() {
+					session := cf_helpers.Cf("enable-service-access", brokerDeployment.ServiceName, "-p", planName)
+					Expect(session).To(gexec.Exit(0))
+					plan := servicePlan(brokerGUID, planName)
+					Expect(plan.Public).To(BeTrue())
+				})
 
-		Context("DisableServiceAccessForAllPlans", func() {
-			It("disables service access for all plans", func() {
 				err := subject.DisableServiceAccessForAllPlans(brokerDeployment.ServiceID, logger)
 
 				Expect(err).NotTo(HaveOccurred())
 
 				session := cf_helpers.Cf("m")
-				Eventually(session, cf_helpers.CfTimeout).Should(gexec.Exit(0))
+				Expect(session).To(gexec.Exit(0))
 				Expect(session.Out).NotTo(gbytes.Say(planName))
 			})
-		})
-	})
 
-	Describe("CreateServicePlanVisibility", func() {
-		var (
-			brokerName string
-			brokerGUID string
-			planName   string
-			orgName    string
-		)
+			By("creating plan visibilities with CreateServicePlanVisibility", func() {
+				By("SETUP: Plan is disabled", func() {
+					session := cf_helpers.Cf("disable-service-access", brokerDeployment.ServiceName, "-p", planName)
+					Expect(session).To(gexec.Exit(0))
+				})
+				orgName := os.Getenv("CF_ORG")
+				plan := servicePlan(brokerGUID, planName)
 
-		BeforeEach(func() {
-			planName = "redis-small"
-			orgName = os.Getenv("CF_ORG")
+				planVisibilities := servicePlanVisibilities(plan.GUID)
+				Expect(len(planVisibilities)).To(BeZero())
 
-			brokerName = "contract-" + brokerDeployment.TestSuffix
-			session := cf_helpers.Cf("create-service-broker",
-				brokerName,
-				brokerDeployment.BrokerUsername,
-				brokerDeployment.BrokerPassword,
-				"http://"+brokerDeployment.URI,
-			)
-			Eventually(session).Should(gexec.Exit(0))
+				err := subject.CreateServicePlanVisibility(orgName, brokerDeployment.ServiceID, planName, logger)
+				Expect(err).ToNot(HaveOccurred())
 
-			Eventually(
-				cf_helpers.Cf("disable-service-access", brokerDeployment.ServiceName, "-p", planName),
-			).Should(gexec.Exit(0))
+				createdPlanVisibilities := servicePlanVisibilities(plan.GUID)
+				Expect(len(createdPlanVisibilities)).To(Equal(1), "service plan visibility was not created")
 
-			var err error
-			brokerGUID, err = subject.GetServiceOfferingGUID(brokerName, logger)
-			Expect(err).ToNot(HaveOccurred())
-		})
-
-		AfterEach(func() {
-			session := cf_helpers.Cf("delete-service-broker", "-f", brokerName)
-			Eventually(session).Should(gexec.Exit(0))
-		})
-
-		It("creates a service plan visibility", func() {
-			plan := servicePlan(brokerGUID, planName)
-
-			planVisibilities := servicePlanVisibilities(plan.GUID)
-			Expect(len(planVisibilities)).To(BeZero())
-
-			err := subject.CreateServicePlanVisibility(orgName, brokerDeployment.ServiceID, planName, logger)
-			Expect(err).ToNot(HaveOccurred())
-
-			createdPlanVisibilities := servicePlanVisibilities(plan.GUID)
-			Expect(len(createdPlanVisibilities)).To(Equal(1), "expected to created 1 service plan visibility")
-
-			Expect(createdPlanVisibilities[0].ServicePlanGUID).To(Equal(plan.GUID))
-			Expect(createdPlanVisibilities[0].OrganizationGUID).To(Equal(orgGuid(orgName)))
+				Expect(createdPlanVisibilities[0].ServicePlanGUID).To(Equal(plan.GUID))
+				Expect(createdPlanVisibilities[0].OrganizationGUID).To(Equal(orgGuid(orgName)))
+			})
 		})
 	})
 })
 
 func orgGuid(orgName string) string {
 	session := cf_helpers.Cf("org", "--guid", orgName)
-	Eventually(session).Should(gexec.Exit(0))
+	Expect(session).To(gexec.Exit(0))
 	return strings.TrimSpace(string(session.Out.Contents()))
 }
 
@@ -349,7 +235,7 @@ type PlanVisibility struct {
 
 func servicePlanVisibilities(planGUID string) []PlanVisibility {
 	session := cf_helpers.Cf("curl", "/v2/service_plan_visibilities?q=service_plan_guid:"+planGUID)
-	Eventually(session).Should(gexec.Exit(0))
+	Expect(session).To(gexec.Exit(0))
 	rawVisibilities := session.Out.Contents()
 
 	var parsedVisibilities struct {
@@ -379,7 +265,7 @@ func servicePlanVisibilities(planGUID string) []PlanVisibility {
 
 func servicePlan(brokerGUID, planName string) ServicePlan {
 	session := cf_helpers.Cf("curl", "/v2/service_plans?q=service_broker_guid:"+brokerGUID)
-	Eventually(session).Should(gexec.Exit(0))
+	Expect(session).To(gexec.Exit(0))
 	rawPlans := session.Out.Contents()
 
 	var parsedPlans struct {

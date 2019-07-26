@@ -35,6 +35,7 @@ func CfWithTimeout(timeout time.Duration, args ...string) *gexec.Session {
 	case <-time.After(timeout):
 		session.Kill().Wait()
 	}
+
 	return session
 }
 
@@ -50,21 +51,21 @@ func Cf(args ...string) *gexec.Session {
 }
 
 func CreateSpace(orgName, spaceName string) {
-	Eventually(Cf("create-space", spaceName, "-o", orgName)).Should(gexec.Exit(0), fmt.Sprintf("creating space %q in org %q", orgName, spaceName))
+	Expect(Cf("create-space", spaceName, "-o", orgName)).To(gexec.Exit(0), fmt.Sprintf("creating space %q in org %q", orgName, spaceName))
 }
 
 func DeleteSpace(orgName, spaceName string) {
-	Eventually(Cf("delete-space", spaceName, "-o", orgName, "-f")).Should(gexec.Exit(0), fmt.Sprintf("deleting space %q in org %q", orgName, spaceName))
+	Expect(Cf("delete-space", spaceName, "-o", orgName, "-f")).To(gexec.Exit(0), fmt.Sprintf("deleting space %q in org %q", orgName, spaceName))
 }
 
 func CreateOrg(orgName string) {
-	Eventually(Cf("create-org", orgName)).Should(gexec.Exit(0), fmt.Sprintf("creating org %q", orgName))
+	Expect(Cf("create-org", orgName)).To(gexec.Exit(0), fmt.Sprintf("creating org %q", orgName))
 }
 
 func DeleteOrg(orgName string) {
-	Eventually(Cf("delete-org", orgName, "-f")).Should(gexec.Exit(0), fmt.Sprintf("deleting org %q", orgName))
+	Expect(Cf("delete-org", orgName, "-f")).To(gexec.Exit(0), fmt.Sprintf("deleting org %q", orgName))
 }
 
 func TargetOrgAndSpace(orgName, spaceName string) {
-	Eventually(Cf("target", "-o", orgName, "-s", spaceName)).Should(gexec.Exit(0), fmt.Sprintf("targeting org %q and space %q", orgName, spaceName))
+	Expect(Cf("target", "-o", orgName, "-s", spaceName)).To(gexec.Exit(0), fmt.Sprintf("targeting org %q and space %q", orgName, spaceName))
 }

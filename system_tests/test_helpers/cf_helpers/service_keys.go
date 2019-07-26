@@ -27,12 +27,12 @@ import (
 func CreateServiceKey(serviceName, serviceKeyName string) {
 	cfArgs := []string{"create-service-key", serviceName, serviceKeyName}
 
-	Eventually(Cf(cfArgs...), CfTimeout).Should(gexec.Exit(0))
+	Expect(Cf(cfArgs...)).To(gexec.Exit(0))
 }
 
 func GetServiceKey(serviceName, serviceKeyName string) string {
 	serviceKey := Cf("service-key", serviceName, serviceKeyName)
-	Eventually(serviceKey, CfTimeout).Should(gexec.Exit(0))
+	Expect(serviceKey).To(gexec.Exit(0))
 	serviceKeyContent := string(serviceKey.Buffer().Contents())
 
 	firstBracket := strings.Index(serviceKeyContent, "{")
@@ -41,12 +41,12 @@ func GetServiceKey(serviceName, serviceKeyName string) string {
 
 func DeleteServiceKey(serviceName, serviceKeyName string) {
 	cfArgs := []string{"delete-service-key", serviceName, serviceKeyName, "-f"}
-	Eventually(Cf(cfArgs...), CfTimeout).Should(gexec.Exit(0))
+	Expect(Cf(cfArgs...)).To(gexec.Exit(0))
 }
 
 func DeleteServiceKeyWithoutChecking(serviceName, serviceKeyName string) {
 	cfArgs := []string{"delete-service-key", serviceName, serviceKeyName, "-f"}
-	Eventually(Cf(cfArgs...), CfTimeout).Should(gexec.Exit())
+	Expect(Cf(cfArgs...)).To(gexec.Exit())
 }
 
 func LooksLikeAServiceKey(key string) {

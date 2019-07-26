@@ -60,13 +60,13 @@ func GetAppPath(serviceType service_helpers.ServiceType) string {
 }
 
 func PushAndBindApp(appName, serviceName, testAppPath string) string {
-	Eventually(Cf("push", "-p", testAppPath, "-f", filepath.Join(testAppPath, "manifest.yml"), "--no-start", appName), CfTimeout).Should(gexec.Exit(0))
-	Eventually(Cf("bind-service", appName, serviceName), CfTimeout).Should(gexec.Exit(0))
+	Expect(Cf("push", "-p", testAppPath, "-f", filepath.Join(testAppPath, "manifest.yml"), "--no-start", appName)).To(gexec.Exit(0))
+	Expect(Cf("bind-service", appName, serviceName)).To(gexec.Exit(0))
 
 	// The first time apps start, it is very slow as the buildpack downloads runtimes and caches them
-	Eventually(CfWithTimeout(LongCfTimeout, "start", appName), LongCfTimeout).Should(gexec.Exit(0))
+	Expect(CfWithTimeout(LongCfTimeout, "start", appName)).To(gexec.Exit(0))
 	appDetails := Cf("app", appName)
-	Eventually(appDetails, CfTimeout).Should(gexec.Exit(0))
+	Expect(appDetails).To(gexec.Exit(0))
 	appDetailsOutput := string(appDetails.Buffer().Contents())
 	testAppURL := findURL(appDetailsOutput)
 	Expect(testAppURL).NotTo(BeEmpty())
@@ -74,12 +74,12 @@ func PushAndBindApp(appName, serviceName, testAppPath string) string {
 }
 
 func UnbindAndDeleteApp(appName, serviceName string) {
-	Eventually(Cf("unbind-service", appName, serviceName), CfTimeout).Should(gexec.Exit(0))
+	Expect(Cf("unbind-service", appName, serviceName)).To(gexec.Exit(0))
 	DeleteApp(appName)
 }
 
 func DeleteApp(appName string) {
-	Eventually(Cf("delete", appName, "-f"), CfTimeout).Should(gexec.Exit(0))
+	Expect(Cf("delete", appName, "-f")).To(gexec.Exit(0))
 }
 
 func ExerciseApp(serviceType service_helpers.ServiceType, appURL string) {
@@ -154,7 +154,7 @@ func appEnv(appName string) (io.Reader, error) {
 		fmt.Sprintf("/v2/apps/%s/env", appGUID(appName)),
 	)
 
-	Eventually(session, CfTimeout).Should(gexec.Exit(0))
+	Expect(session).To(gexec.Exit(0))
 	return bytes.NewReader(session.Out.Contents()), nil
 }
 
@@ -192,7 +192,7 @@ func AppBindingCreds(appName, serviceName string) (interface{}, error) {
 
 func guid(name, typ string) string {
 	session := Cf(typ, name, "--guid")
-	Eventually(session, CfTimeout).Should(gexec.Exit(0))
+	Expect(session).To(gexec.Exit(0))
 	return strings.Trim(string(session.Out.Contents()), " \n")
 }
 

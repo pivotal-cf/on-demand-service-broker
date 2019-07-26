@@ -8,9 +8,9 @@ import (
 )
 
 func GetOAuthToken() string {
-	cmd := Cf("oauth-token")
-	Eventually(cmd, CfTimeout).Should(gexec.Exit(0))
-	oauthTokenOutput := string(cmd.Buffer().Contents())
+	session := Cf("oauth-token")
+	Expect(session).To(gexec.Exit(0))
+	oauthTokenOutput := string(session.Buffer().Contents())
 	oauthTokenRe := regexp.MustCompile(`(?m)^bearer .*$`)
 	authToken := oauthTokenRe.FindString(oauthTokenOutput)
 	Expect(authToken).ToNot(BeEmpty())

@@ -28,7 +28,7 @@ func CreateService(serviceOffering, servicePlan, serviceName, arbitraryParams st
 		cfArgs = append(cfArgs, "-c", arbitraryParams)
 	}
 
-	Eventually(Cf(cfArgs...), CfTimeout).Should(gexec.Exit(0))
+	Expect(Cf(cfArgs...)).To(gexec.Exit(0))
 	AwaitServiceCreation(serviceName)
 }
 
@@ -38,39 +38,37 @@ func CreateServiceWithoutWaiting(serviceOffering, servicePlan, serviceName, arbi
 		cfArgs = append(cfArgs, "-c", arbitraryParams)
 	}
 
-	Eventually(Cf(cfArgs...), CfTimeout).Should(gexec.Exit(0))
+	Expect(Cf(cfArgs...), CfTimeout).To(gexec.Exit(0))
 }
 
 func DeleteServiceWithoutChecking(serviceName string) {
-	Eventually(Cf("delete-service", serviceName, "-f"), CfTimeout).Should(gexec.Exit())
+	Expect(Cf("delete-service", serviceName, "-f")).To(gexec.Exit())
 	AwaitServiceDeletion(serviceName)
 }
 
 func DeleteService(serviceName string) {
-	Eventually(Cf("delete-service", serviceName, "-f"), CfTimeout).Should(gexec.Exit(0))
+	Expect(Cf("delete-service", serviceName, "-f")).To(gexec.Exit(0))
 	AwaitServiceDeletion(serviceName)
 }
 
 func GetServiceInstanceGUID(serviceName string) string {
 	session := Cf("service", serviceName, "--guid")
-	Eventually(session, CfTimeout).Should(gexec.Exit(0))
+	Expect(session).To(gexec.Exit(0))
 	bytes := session.Out.Contents()
 	return strings.TrimSpace(string(bytes))
 }
 
 func UpdateServiceToPlan(serviceName, newPlanName string) {
-	Eventually(
+	Expect(
 		Cf("update-service", serviceName, "-p", newPlanName),
-		CfTimeout,
-	).Should(gexec.Exit(0))
+	).To(gexec.Exit(0))
 	AwaitServiceUpdate(serviceName)
 }
 
 func UpdateServiceWithArbitraryParams(serviceName, arbitraryParams string) {
-	Eventually(
+	Expect(
 		Cf("update-service", serviceName, "-c", arbitraryParams),
-		CfTimeout,
-	).Should(gexec.Exit(0))
+	).To(gexec.Exit(0))
 	AwaitServiceUpdate(serviceName)
 }
 
@@ -122,15 +120,6 @@ func AwaitServiceCreationFailure(serviceName string) {
 	)
 }
 
-func AwaitServiceDeletionFailure(serviceName string) {
-	awaitServiceOperation(
-		cfService(serviceName),
-		ContainSubstring("delete failed"),
-		Not(ContainSubstring("in progress")),
-		LongCfTimeout,
-	)
-}
-
 func awaitServiceOperation(
 	cfCommand func() *gexec.Session,
 	successMessageMatcher types.GomegaMatcher,
@@ -139,7 +128,7 @@ func awaitServiceOperation(
 ) {
 	Eventually(func() bool {
 		session := cfCommand()
-		Eventually(session, CfTimeout).Should(gexec.Exit(), "'cf service' command timed out")
+		Expect(session).To(gexec.Exit())
 
 		contentsOut := session.Out.Contents()
 		contentsErr := session.Err.Contents()
