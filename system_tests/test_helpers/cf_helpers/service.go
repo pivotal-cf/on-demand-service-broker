@@ -38,7 +38,7 @@ func CreateServiceWithoutWaiting(serviceOffering, servicePlan, serviceName, arbi
 		cfArgs = append(cfArgs, "-c", arbitraryParams)
 	}
 
-	Expect(Cf(cfArgs...), CfTimeout).To(gexec.Exit(0))
+	Expect(Cf(cfArgs...)).To(gexec.Exit(0))
 }
 
 func DeleteServiceWithoutChecking(serviceName string) {
