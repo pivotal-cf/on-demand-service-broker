@@ -12,7 +12,9 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strings"
 
+	"github.com/coreos/go-semver/semver"
 	"github.com/pkg/errors"
 )
 
@@ -34,7 +36,12 @@ type Instance struct {
 	PlanUniqueID string `json:"plan_id"`
 }
 
-func New(url string, authHeaderBuilder AuthHeaderBuilder, trustedCertPEM []byte, disableTLSCertVerification bool, logger *log.Logger) (Client, error) {
+func New(
+	url string,
+	authHeaderBuilder AuthHeaderBuilder,
+	trustedCertPEM []byte,
+	disableTLSCertVerification bool,
+	logger *log.Logger) (Client, error) {
 	httpClient, err := newWrappedHttpClient(authHeaderBuilder, trustedCertPEM, disableTLSCertVerification)
 	if err != nil {
 		return Client{}, err
@@ -274,6 +281,22 @@ func (c Client) GetAPIVersion(logger *log.Logger) (string, error) {
 		return "", err
 	}
 	return infoResponse.APIVersion, nil
+}
+
+func (c Client) GetOSBAPIVersion(logger *log.Logger) *semver.Version {
+	var infoResponse infoResponse
+	err := c.get(fmt.Sprintf("%s/v2/info", c.url), &infoResponse, logger)
+	osbapiVersion := infoResponse.OSBAPIVersion
+	versionNumbers := strings.Split(osbapiVersion, ".")
+	if len(versionNumbers) == 2 { // TODO think more about this
+		osbapiVersion = osbapiVersion + ".0"
+	}
+
+	osbapiSemVer, err := semver.NewVersion(osbapiVersion)
+	if err != nil {
+		logger.Printf("error converting OSBAPI version %q to semver. %s", osbapiVersion, err)
+	}
+	return osbapiSemVer
 }
 
 func (c Client) GetServiceOfferingGUID(brokerName string, logger *log.Logger) (string, error) {
@@ -608,9 +631,9 @@ func (c Client) findServiceByUniqueID(uniqueID string, logger *log.Logger) (*ser
 	return nil, nil
 }
 
-func (c Client) getServiceInstance(serviceInstanceGUID string, logger *log.Logger) (serviceInstanceResource, error) {
+func (c Client) getServiceInstance(serviceInstanceGUID string, logger *log.Logger) (ServiceInstanceResource, error) {
 	path := fmt.Sprintf("/v2/service_instances/%s", serviceInstanceGUID)
-	var instance serviceInstanceResource
+	var instance ServiceInstanceResource
 	err := c.get(fmt.Sprintf("%s%s", c.url, path), &instance, logger)
 	return instance, err
 }

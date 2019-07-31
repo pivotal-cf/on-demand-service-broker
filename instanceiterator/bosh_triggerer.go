@@ -24,20 +24,20 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/service"
 )
 
-type BrokerTriggerer struct {
+type BOSHTriggerer struct {
 	operationType  string
 	brokerServices BrokerServices
 }
 
-func NewUpgradeTriggerer(brokerServices BrokerServices) *BrokerTriggerer {
-	return &BrokerTriggerer{operationType: "upgrade", brokerServices: brokerServices}
+func NewBOSHUpgradeTriggerer(brokerServices BrokerServices) *BOSHTriggerer {
+	return &BOSHTriggerer{operationType: "upgrade", brokerServices: brokerServices}
 }
 
-func NewRecreateTriggerer(brokerServices BrokerServices) *BrokerTriggerer {
-	return &BrokerTriggerer{operationType: "recreate", brokerServices: brokerServices}
+func NewRecreateTriggerer(brokerServices BrokerServices) *BOSHTriggerer {
+	return &BOSHTriggerer{operationType: "recreate", brokerServices: brokerServices}
 }
 
-func (t *BrokerTriggerer) TriggerOperation(instance service.Instance) (services.BOSHOperation, error) {
+func (t *BOSHTriggerer) TriggerOperation(instance service.Instance) (services.BOSHOperation, error) {
 	operation, err := t.brokerServices.ProcessInstance(instance, t.operationType)
 	if err != nil {
 		return services.BOSHOperation{},
@@ -51,8 +51,8 @@ func (t *BrokerTriggerer) TriggerOperation(instance service.Instance) (services.
 	return operation, nil
 }
 
-func (t *BrokerTriggerer) Check(guid string, operationData broker.OperationData) (services.BOSHOperation, error) {
-	lastOperation, err := t.brokerServices.LastOperation(guid, operationData)
+func (t *BOSHTriggerer) Check(serviceInstanceGUID string, operationData broker.OperationData) (services.BOSHOperation, error) {
+	lastOperation, err := t.brokerServices.LastOperation(serviceInstanceGUID, operationData)
 	if err != nil {
 		return services.BOSHOperation{}, fmt.Errorf("error getting last operation: %s", err)
 	}

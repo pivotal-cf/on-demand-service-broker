@@ -9,8 +9,10 @@ package main
 import (
 	"flag"
 	"io/ioutil"
+	"log"
 	"os"
 
+	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/instanceiterator"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
@@ -29,26 +31,49 @@ func main() {
 		logger.Fatalln("-configPath must be given as argument")
 	}
 
-	var conf config.InstanceIteratorConfig
+	var errandConfig config.InstanceIteratorConfig
 	configContents, err := ioutil.ReadFile(configPath)
 	if err != nil {
 		logger.Fatalln(err.Error())
 	}
 
-	err = yaml.Unmarshal(configContents, &conf)
+	err = yaml.Unmarshal(configContents, &errandConfig)
 	if err != nil {
 		logger.Fatalln(err.Error())
 	}
 
-	builder, err := instanceiterator.NewBuilder(conf, logger, "upgrade-all")
+	builder, err := instanceiterator.NewBuilder(errandConfig, logger, "upgrade-all")
 	if err != nil {
 		logger.Fatalln(err.Error())
 	}
-	builder.SetUpgradeTriggerer()
+
+	builder.SetUpgradeTriggerer(
+		createCFClient(errandConfig, logger),
+		errandConfig.MaintenanceInfoPresent,
+		logger,
+	)
+
 	upgradeTool := instanceiterator.New(builder)
 
 	err = upgradeTool.Iterate()
 	if err != nil {
 		logger.Fatalln(err.Error())
 	}
+}
+
+func createCFClient(errandConfig config.InstanceIteratorConfig, logger *log.Logger) instanceiterator.CFClient {
+	if errandConfig.CF != (config.CF{}) {
+		cfAuthenticator, err := errandConfig.CF.NewAuthHeaderBuilder(errandConfig.CF.DisableSSLCertVerification)
+		if err != nil {
+			logger.Printf("Error creating CF authorization header builder: %s", err)
+			return nil
+		}
+		cfClient, err := cf.New(errandConfig.CF.URL, cfAuthenticator, []byte(errandConfig.CF.TrustedCert), errandConfig.CF.DisableSSLCertVerification, logger)
+		if err != nil {
+			logger.Printf("Error creating Cloud Foundry client: %s", err)
+			return nil
+		}
+		return cfClient
+	}
+	return nil
 }

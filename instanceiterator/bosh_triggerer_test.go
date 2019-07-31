@@ -30,7 +30,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/service"
 )
 
-var _ = Describe("Broker Operation Triggerer", func() {
+var _ = Describe("BOSH Operation Triggerer", func() {
 	var (
 		guid              string
 		instance          service.Instance
@@ -44,7 +44,7 @@ var _ = Describe("Broker Operation Triggerer", func() {
 			instance = service.Instance{GUID: guid}
 			fakeBrokerService = new(fakes.FakeBrokerServices)
 
-			subject = instanceiterator.NewUpgradeTriggerer(fakeBrokerService)
+			subject = instanceiterator.NewBOSHUpgradeTriggerer(fakeBrokerService)
 		})
 
 		It("returns OperationAccepted when the the instance is ready to be processed", func() {
@@ -82,7 +82,7 @@ var _ = Describe("Broker Operation Triggerer", func() {
 
 		When("it is an Upgrade Triggerer", func() {
 			It("sets the operation type to upgrade", func() {
-				subject = instanceiterator.NewUpgradeTriggerer(fakeBrokerService)
+				subject = instanceiterator.NewBOSHUpgradeTriggerer(fakeBrokerService)
 
 				_, err := subject.TriggerOperation(service.Instance{GUID: "1234"})
 				Expect(err).ToNot(HaveOccurred())
@@ -116,7 +116,7 @@ var _ = Describe("Broker Operation Triggerer", func() {
 			guid = "some-guid"
 			expectedOperationData = broker.OperationData{BoshTaskID: 123}
 			fakeBrokerService = new(fakes.FakeBrokerServices)
-			subject = instanceiterator.NewUpgradeTriggerer(fakeBrokerService)
+			subject = instanceiterator.NewBOSHUpgradeTriggerer(fakeBrokerService)
 		})
 
 		It("returns OperationSucceeded when last operation reports success", func() {

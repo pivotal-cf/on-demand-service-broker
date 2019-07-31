@@ -16,12 +16,13 @@
 package instanceiterator_test
 
 import (
+	"log"
 	"time"
 
+	"github.com/coreos/go-semver/semver"
 	"github.com/pivotal-cf/on-demand-service-broker/instanceiterator"
+	"github.com/pivotal-cf/on-demand-service-broker/instanceiterator/fakes"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
-
-	"log"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
@@ -46,7 +47,7 @@ var _ = Describe("Builder", func() {
 
 	Describe("Broker Services", func() {
 		It("when provided with valid conf returns a expected BrokerServices", func() {
-			conf := makeErrandConfig("user", "password", "http://example.org")
+			conf := newErrandConfig("user", "password", "http://example.org")
 			builder, err := instanceiterator.NewBuilder(conf, logger, logPrefix)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -56,7 +57,7 @@ var _ = Describe("Builder", func() {
 		DescribeTable(
 			"when provided with config missing",
 			func(user, password, url string) {
-				conf := makeErrandConfig(user, password, url)
+				conf := newErrandConfig(user, password, url)
 				_, err := instanceiterator.NewBuilder(conf, logger, logPrefix)
 
 				Expect(err).To(MatchError(Equal("the brokerUsername, brokerPassword and brokerUrl are required to function")))
@@ -72,7 +73,7 @@ var _ = Describe("Builder", func() {
 		DescribeTable(
 			"config is invalidly set to",
 			func(val int) {
-				conf := makeErrandConfig("user", "password", "http://example.org")
+				conf := newErrandConfig("user", "password", "http://example.org")
 				conf.PollingInterval = val
 				_, err := instanceiterator.NewBuilder(conf, logger, logPrefix)
 
@@ -83,7 +84,7 @@ var _ = Describe("Builder", func() {
 		)
 
 		It("when configured returns the value", func() {
-			conf := makeErrandConfig("user", "password", "http://example.org")
+			conf := newErrandConfig("user", "password", "http://example.org")
 			conf.PollingInterval = 10
 			builder, err := instanceiterator.NewBuilder(conf, logger, logPrefix)
 			Expect(err).NotTo(HaveOccurred())
@@ -96,7 +97,7 @@ var _ = Describe("Builder", func() {
 		DescribeTable(
 			"config is invalidly set to",
 			func(val int) {
-				conf := makeErrandConfig("user", "password", "http://example.org")
+				conf := newErrandConfig("user", "password", "http://example.org")
 				conf.AttemptInterval = val
 				_, err := instanceiterator.NewBuilder(conf, logger, logPrefix)
 
@@ -107,7 +108,7 @@ var _ = Describe("Builder", func() {
 		)
 
 		It("when configured returns the value", func() {
-			conf := makeErrandConfig("user", "password", "http://example.org")
+			conf := newErrandConfig("user", "password", "http://example.org")
 			conf.AttemptInterval = 60
 			builder, err := instanceiterator.NewBuilder(conf, logger, logPrefix)
 			Expect(err).NotTo(HaveOccurred())
@@ -120,7 +121,7 @@ var _ = Describe("Builder", func() {
 		DescribeTable(
 			"config is invalidly set to",
 			func(val int) {
-				conf := makeErrandConfig("user", "password", "http://example.org")
+				conf := newErrandConfig("user", "password", "http://example.org")
 				conf.AttemptLimit = val
 				_, err := instanceiterator.NewBuilder(conf, logger, logPrefix)
 
@@ -131,7 +132,7 @@ var _ = Describe("Builder", func() {
 		)
 
 		It("when configured returns the value", func() {
-			conf := makeErrandConfig("user", "password", "http://example.org")
+			conf := newErrandConfig("user", "password", "http://example.org")
 			conf.AttemptLimit = 42
 			builder, err := instanceiterator.NewBuilder(conf, logger, logPrefix)
 			Expect(err).NotTo(HaveOccurred())
@@ -143,7 +144,7 @@ var _ = Describe("Builder", func() {
 		DescribeTable(
 			"config is invalidly set to",
 			func(val int) {
-				conf := makeErrandConfig("user", "password", "http://example.org")
+				conf := newErrandConfig("user", "password", "http://example.org")
 				conf.MaxInFlight = val
 				_, err := instanceiterator.NewBuilder(conf, logger, logPrefix)
 
@@ -154,7 +155,7 @@ var _ = Describe("Builder", func() {
 		)
 
 		It("when configured returns the value", func() {
-			conf := makeErrandConfig("user", "password", "http://example.org")
+			conf := newErrandConfig("user", "password", "http://example.org")
 			conf.MaxInFlight = 10
 			builder, err := instanceiterator.NewBuilder(conf, logger, logPrefix)
 			Expect(err).NotTo(HaveOccurred())
@@ -166,7 +167,7 @@ var _ = Describe("Builder", func() {
 		DescribeTable(
 			"config is invalidly set to",
 			func(val int) {
-				conf := makeErrandConfig("user", "password", "http://example.org")
+				conf := newErrandConfig("user", "password", "http://example.org")
 				conf.Canaries = val
 				_, err := instanceiterator.NewBuilder(conf, logger, logPrefix)
 
@@ -176,7 +177,7 @@ var _ = Describe("Builder", func() {
 		)
 
 		It("when configured returns the value", func() {
-			conf := makeErrandConfig("user", "password", "http://example.org")
+			conf := newErrandConfig("user", "password", "http://example.org")
 			conf.Canaries = 10
 			builder, err := instanceiterator.NewBuilder(conf, logger, logPrefix)
 			Expect(err).NotTo(HaveOccurred())
@@ -184,7 +185,7 @@ var _ = Describe("Builder", func() {
 		})
 
 		It("can parse canaries selection params", func() {
-			conf := makeErrandConfig("user", "password", "http://example.org")
+			conf := newErrandConfig("user", "password", "http://example.org")
 			conf.CanarySelectionParams = config.CanarySelectionParams{
 				"size": "small",
 				"test": "true",
@@ -198,39 +199,113 @@ var _ = Describe("Builder", func() {
 		})
 	})
 
-	Describe("SetUpdateTriggerer", func() {
-		It("sets an update triggerer on a properly initiated builder", func() {
-			conf := makeErrandConfig("user", "password", "http://example.org")
-			builder, err := instanceiterator.NewBuilder(conf, logger, logPrefix)
-			Expect(err).NotTo(HaveOccurred())
+	Describe("SetUpgradeTriggerer", func() {
+		When("CF is not configured", func() {
+			It("sets the triggerer to a broker triggerer", func() {
+				conf := newErrandConfig("user", "password", "http://example.org")
+				builder, err := instanceiterator.NewBuilder(conf, logger, logPrefix)
+				Expect(err).NotTo(HaveOccurred())
 
-			err = builder.SetUpgradeTriggerer()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(builder.Triggerer).ToNot(BeNil())
-			Expect(builder.Triggerer).To(BeAssignableToTypeOf(new(instanceiterator.BrokerTriggerer)))
+				err = builder.SetUpgradeTriggerer(nil, false, logger)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(builder.Triggerer).ToNot(BeNil())
+				Expect(builder.Triggerer).To(BeAssignableToTypeOf(new(instanceiterator.BOSHTriggerer)))
+			})
+
+			It("returns an error when builder not properly initialised", func() {
+				builder := new(instanceiterator.Builder)
+
+				err := builder.SetUpgradeTriggerer(nil, false, logger)
+				Expect(err).To(HaveOccurred())
+			})
 		})
 
-		It("returns an error when builder not properly initialised", func() {
-			builder := new(instanceiterator.Builder)
+		When("CF is configured", func() {
+			var (
+				fakeCfClient *fakes.FakeCFClient
+				conf         config.InstanceIteratorConfig
+			)
 
-			err := builder.SetUpgradeTriggerer()
-			Expect(err).To(HaveOccurred())
+			BeforeEach(func() {
+				fakeCfClient = new(fakes.FakeCFClient)
+				conf = newErrandConfig("user", "password", "http://example.org")
+			})
+
+			It("sets the triggerer to CF triggerer when CF single instance upgrade is possible", func() {
+				fakeCfClient.GetOSBAPIVersionReturns(semver.New("2.15.0"))
+
+				builder, err := instanceiterator.NewBuilder(conf, logger, logPrefix)
+				Expect(err).NotTo(HaveOccurred())
+
+				err = builder.SetUpgradeTriggerer(fakeCfClient, true, logger)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(builder.Triggerer).ToNot(BeNil())
+
+				Expect(builder.Triggerer).To(BeAssignableToTypeOf(new(instanceiterator.CFTriggerer)))
+			})
+
+			When("CF single instance upgrade is not possible", func() {
+				It("sets the triggerer to Broker triggerer when OSBAPI version is < 2.15", func() {
+					fakeCfClient.GetOSBAPIVersionReturns(semver.New("2.14.0"))
+					builder, err := instanceiterator.NewBuilder(conf, logger, logPrefix)
+					Expect(err).NotTo(HaveOccurred())
+
+					err = builder.SetUpgradeTriggerer(fakeCfClient, false, logger)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(builder.Triggerer).ToNot(BeNil())
+
+					Expect(builder.Triggerer).To(BeAssignableToTypeOf(new(instanceiterator.BOSHTriggerer)))
+				})
+
+				It("sets the triggerer to Broker triggerer when getting OSBAPI version returns nil", func() {
+					fakeCfClient.GetOSBAPIVersionReturns(nil)
+					builder, err := instanceiterator.NewBuilder(conf, logger, logPrefix)
+					Expect(err).NotTo(HaveOccurred())
+
+					err = builder.SetUpgradeTriggerer(fakeCfClient, false, logger)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(builder.Triggerer).ToNot(BeNil())
+
+					Expect(builder.Triggerer).To(BeAssignableToTypeOf(new(instanceiterator.BOSHTriggerer)))
+				})
+
+				It("sets the triggerer to Broker triggerer when maintenance_info is not set", func() {
+					fakeCfClient.GetOSBAPIVersionReturns(semver.New("2.15.0"))
+
+					builder, err := instanceiterator.NewBuilder(conf, logger, logPrefix)
+					Expect(err).NotTo(HaveOccurred())
+
+					err = builder.SetUpgradeTriggerer(fakeCfClient, false, logger)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(builder.Triggerer).ToNot(BeNil())
+
+					Expect(builder.Triggerer).To(BeAssignableToTypeOf(new(instanceiterator.BOSHTriggerer)))
+				})
+
+				It("returns an error when Broker Services is not properly initialised", func() {
+					fakeCfClient.GetOSBAPIVersionReturns(semver.New("2.15.0"))
+					builder := new(instanceiterator.Builder)
+
+					err := builder.SetUpgradeTriggerer(fakeCfClient, false, logger)
+					Expect(err).To(HaveOccurred())
+				})
+			})
 		})
 	})
 
 	Describe("SetRecreateTriggerer", func() {
 		It("sets a recreate triggerer on a properly initiated builder", func() {
-			conf := makeErrandConfig("user", "password", "http://example.org")
+			conf := newErrandConfig("user", "password", "http://example.org")
 			builder, err := instanceiterator.NewBuilder(conf, logger, logPrefix)
 			Expect(err).NotTo(HaveOccurred())
 
 			err = builder.SetRecreateTriggerer()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(builder.Triggerer).ToNot(BeNil())
-			Expect(builder.Triggerer).To(BeAssignableToTypeOf(new(instanceiterator.BrokerTriggerer)))
+			Expect(builder.Triggerer).To(BeAssignableToTypeOf(new(instanceiterator.BOSHTriggerer)))
 		})
 
-		It("returns an error when builder not properly initialised", func() {
+		It("returns an error wh en builder not properly initialised", func() {
 			builder := new(instanceiterator.Builder)
 
 			err := builder.SetRecreateTriggerer()
@@ -240,7 +315,7 @@ var _ = Describe("Builder", func() {
 
 	Describe("passing logging prefix into builder", func() {
 		It("sets an appropriately configured logger on the builder", func() {
-			conf := makeErrandConfig("user", "password", "http://example.org")
+			conf := newErrandConfig("user", "password", "http://example.org")
 			builder, err := instanceiterator.NewBuilder(conf, logger, "pseudo-")
 			Expect(err).NotTo(HaveOccurred())
 
@@ -250,7 +325,7 @@ var _ = Describe("Builder", func() {
 	})
 })
 
-func makeErrandConfig(brokerUser, brokerPassword, brokerURL string) config.InstanceIteratorConfig {
+func newErrandConfig(brokerUser, brokerPassword, brokerURL string) config.InstanceIteratorConfig {
 	return config.InstanceIteratorConfig{
 		BrokerAPI: config.BrokerAPI{
 			Authentication: config.Authentication{

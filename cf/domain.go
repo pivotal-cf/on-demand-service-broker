@@ -6,13 +6,12 @@
 
 package cf
 
-import "time"
-
 const (
 	defaultPerPage = 100
 
 	OperationTypeDelete OperationType = "delete"
 
+	OperationStateSucceeded  OperationState = "succeeded"
 	OperationStateFailed     OperationState = "failed"
 	OperationStateInProgress OperationState = "in progress"
 )
@@ -52,13 +51,8 @@ type pagination struct {
 }
 
 type infoResponse struct {
-	APIVersion string `json:"api_version"`
-}
-
-type oauthTokenResponse struct {
-	AccessToken  string        `json:"access_token"`
-	RefreshToken string        `json:"refresh_token"`
-	ExpiresIn    time.Duration `json:"expires_in"`
+	APIVersion    string `json:"api_version"`
+	OSBAPIVersion string `json:"osbapi_version"`
 }
 
 type ServicePlanResponse struct {
@@ -72,14 +66,19 @@ type ServicePlan struct {
 }
 
 type ServicePlanEntity struct {
-	UniqueID            string `json:"unique_id"`
-	ServiceInstancesUrl string `json:"service_instances_url"`
-	Name                string `json:"name"`
+	UniqueID            string          `json:"unique_id"`
+	ServiceInstancesUrl string          `json:"service_instances_url"`
+	Name                string          `json:"name"`
+	MaintenanceInfo     MaintenanceInfo `json:"maintenance_info"`
 }
 
-type serviceInstanceResource struct {
+type MaintenanceInfo struct {
+	Version string `json:"version"`
+}
+
+type ServiceInstanceResource struct {
 	Metadata Metadata              `json:"metadata"`
-	Entity   serviceInstanceEntity `json:"entity"`
+	Entity   ServiceInstanceEntity `json:"entity"`
 }
 
 type Metadata struct {
@@ -95,14 +94,14 @@ func (o LastOperation) IsDelete() bool {
 	return o.Type == OperationTypeDelete
 }
 
-type serviceInstanceEntity struct {
+type ServiceInstanceEntity struct {
 	ServicePlanURL string        `json:"service_plan_url"`
 	LastOperation  LastOperation `json:"last_operation"`
 }
 
 type serviceInstancesResponse struct {
 	pagination
-	ServiceInstances []serviceInstanceResource `json:"resources"`
+	ServiceInstances []ServiceInstanceResource `json:"resources"`
 }
 
 func (o LastOperation) OperationFailed() bool {

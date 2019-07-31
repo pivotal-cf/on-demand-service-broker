@@ -21,6 +21,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/coreos/go-semver/semver"
 	"github.com/craigfurman/herottp"
 	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
@@ -96,11 +97,24 @@ func NewBuilder(conf config.InstanceIteratorConfig, logger *log.Logger, logPrefi
 	return b, nil
 }
 
-func (b *Builder) SetUpgradeTriggerer() error {
+func (b *Builder) SetUpgradeTriggerer(cfClient CFClient, maintenanceInfoPresent bool, logger *log.Logger) error {
+	if cfClient != nil {
+		cfOSBAPIversion := cfClient.GetOSBAPIVersion(logger)
+		if cfOSBAPIversion != nil &&
+			!cfOSBAPIversion.LessThan(*semver.New("2.15.0")) &&
+			maintenanceInfoPresent {
+			logger.Printf("Upgrading all instances via CF") // TODO use listener
+			b.Triggerer = NewCFTrigger(cfClient, logger)
+			return nil
+		}
+	}
+
 	if b.BrokerServices == nil {
 		return errors.New("unable to set triggerer, brokerServices must not be nil")
 	}
-	b.Triggerer = NewUpgradeTriggerer(b.BrokerServices)
+
+	logger.Printf("Upgrading all instances via BOSH")
+	b.Triggerer = NewBOSHUpgradeTriggerer(b.BrokerServices)
 	return nil
 }
 
