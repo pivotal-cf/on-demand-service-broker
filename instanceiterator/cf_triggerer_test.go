@@ -125,7 +125,7 @@ var _ = Describe("CfTriggerer", func() {
 		})
 	})
 
-	FDescribe("Check", func() {
+	Describe("Check", func() {
 		var (
 			fakeCFClient *fakes.FakeCFClient
 		)

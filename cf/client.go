@@ -67,23 +67,6 @@ func (c Client) CountInstancesOfServiceOffering(serviceID string, logger *log.Lo
 	return output, nil
 }
 
-func (c Client) GetInstanceState(serviceInstanceGUID string, logger *log.Logger) (InstanceState, error) {
-	instance, err := c.getServiceInstance(serviceInstanceGUID, logger)
-	if err != nil {
-		return InstanceState{}, err
-	}
-
-	plan, err := c.getServicePlan(instance.Entity.ServicePlanURL, logger)
-	if err != nil {
-		return InstanceState{}, err
-	}
-
-	return InstanceState{
-		PlanID:              plan.ServicePlanEntity.UniqueID,
-		OperationInProgress: instance.Entity.LastOperation.State == OperationStateInProgress,
-	}, nil
-}
-
 func (c Client) GetLastOperationForInstance(serviceInstanceGUID string, logger *log.Logger) (LastOperation, error) {
 	instance, err := c.getServiceInstance(serviceInstanceGUID, logger)
 	if err != nil {
