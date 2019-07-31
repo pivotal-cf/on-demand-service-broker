@@ -16,7 +16,7 @@ import (
 type CFClient interface {
 	GetOSBAPIVersion(logger *log.Logger) *semver.Version
 	UpgradeServiceInstance(serviceInstanceGUID string, maintenanceInfo cf.MaintenanceInfo, logger *log.Logger) (cf.LastOperation, error)
-	GetServiceInstance(serviceInstanceGUID string, logger *log.Logger) (cf.ServiceInstanceResource, error)
+	GetLastOperationForInstance(serviceInstanceGUID string, logger *log.Logger) (cf.LastOperation, error)
 	GetPlanByServiceInstanceGUID(planUniqueID string, logger *log.Logger) (cf.ServicePlan, error)
 }
 
@@ -51,11 +51,11 @@ func (t *CFTriggerer) TriggerOperation(instance service.Instance) (services.BOSH
 }
 
 func (t *CFTriggerer) Check(serviceInstanceGUID string, operationData broker.OperationData) (services.BOSHOperation, error) {
-	serviceInstanceResource, err := t.cfClient.GetServiceInstance(serviceInstanceGUID, t.logger)
+	lastOperation, err := t.cfClient.GetLastOperationForInstance(serviceInstanceGUID, t.logger)
 	if err != nil {
 		return services.BOSHOperation{}, errors.Wrap(err, fmt.Sprintf("failed to check operation for instance %q", serviceInstanceGUID))
 	}
-	operationType := handleUpgradeResponse(serviceInstanceResource.Entity.LastOperation)
+	operationType := handleUpgradeResponse(lastOperation)
 
 	return services.BOSHOperation{
 		Type: operationType,

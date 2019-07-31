@@ -134,32 +134,30 @@ var _ = Describe("CfTriggerer", func() {
 		})
 
 		It("should return latest state of the service instance", func() {
-			fakeCFClient.GetServiceInstanceReturns(cf.ServiceInstanceResource{
-				Metadata: cf.Metadata{},
-				Entity: cf.ServiceInstanceEntity{
-					ServicePlanURL: "",
-					LastOperation: cf.LastOperation{
-						Type:  cf.OperationType("update"),
-						State: cf.OperationStateSucceeded,
-					},
+			fakeCFClient.GetLastOperationForInstanceReturns(
+				cf.LastOperation{
+					Type:  cf.OperationType("update"),
+					State: cf.OperationStateSucceeded,
 				},
-			}, nil)
+				nil)
 
 			cfTriggerer := instanceiterator.NewCFTrigger(fakeCFClient, new(log.Logger))
 
 			expectedServiceInstanceGUID := "service-instance-id"
 			triggeredOperation, _ := cfTriggerer.Check(expectedServiceInstanceGUID, broker.OperationData{})
 
-			Expect(fakeCFClient.GetServiceInstanceCallCount()).To(Equal(1), "expected to call CF get service instance")
+			Expect(fakeCFClient.GetLastOperationForInstanceCallCount()).To(Equal(1), "expected to call CF get service instance")
 
-			actualServiceInstanceGUID, _ := fakeCFClient.GetServiceInstanceArgsForCall(0)
+			actualServiceInstanceGUID, _ := fakeCFClient.GetLastOperationForInstanceArgsForCall(0)
 			Expect(actualServiceInstanceGUID).To(Equal(expectedServiceInstanceGUID))
 
 			Expect(triggeredOperation.Type).To(Equal(services.OperationSucceeded))
 		})
 
 		It("return an error when the CF client cannot get service instance", func() {
-			fakeCFClient.GetServiceInstanceReturns(cf.ServiceInstanceResource{}, errors.New("failed to get service instance"))
+			fakeCFClient.GetLastOperationForInstanceReturns(
+				cf.LastOperation{},
+				errors.New("failed to get service instance"))
 			cfTriggerer := instanceiterator.NewCFTrigger(fakeCFClient, new(log.Logger))
 
 			_, err := cfTriggerer.Check("service-instance-id", broker.OperationData{})

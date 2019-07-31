@@ -11,6 +11,20 @@ import (
 )
 
 type FakeCFClient struct {
+	GetLastOperationForInstanceStub        func(string, *log.Logger) (cf.LastOperation, error)
+	getLastOperationForInstanceMutex       sync.RWMutex
+	getLastOperationForInstanceArgsForCall []struct {
+		arg1 string
+		arg2 *log.Logger
+	}
+	getLastOperationForInstanceReturns struct {
+		result1 cf.LastOperation
+		result2 error
+	}
+	getLastOperationForInstanceReturnsOnCall map[int]struct {
+		result1 cf.LastOperation
+		result2 error
+	}
 	GetOSBAPIVersionStub        func(*log.Logger) *semver.Version
 	getOSBAPIVersionMutex       sync.RWMutex
 	getOSBAPIVersionArgsForCall []struct {
@@ -36,20 +50,6 @@ type FakeCFClient struct {
 		result1 cf.ServicePlan
 		result2 error
 	}
-	GetServiceInstanceStub        func(string, *log.Logger) (cf.ServiceInstanceResource, error)
-	getServiceInstanceMutex       sync.RWMutex
-	getServiceInstanceArgsForCall []struct {
-		arg1 string
-		arg2 *log.Logger
-	}
-	getServiceInstanceReturns struct {
-		result1 cf.ServiceInstanceResource
-		result2 error
-	}
-	getServiceInstanceReturnsOnCall map[int]struct {
-		result1 cf.ServiceInstanceResource
-		result2 error
-	}
 	UpgradeServiceInstanceStub        func(string, cf.MaintenanceInfo, *log.Logger) (cf.LastOperation, error)
 	upgradeServiceInstanceMutex       sync.RWMutex
 	upgradeServiceInstanceArgsForCall []struct {
@@ -67,6 +67,70 @@ type FakeCFClient struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
+}
+
+func (fake *FakeCFClient) GetLastOperationForInstance(arg1 string, arg2 *log.Logger) (cf.LastOperation, error) {
+	fake.getLastOperationForInstanceMutex.Lock()
+	ret, specificReturn := fake.getLastOperationForInstanceReturnsOnCall[len(fake.getLastOperationForInstanceArgsForCall)]
+	fake.getLastOperationForInstanceArgsForCall = append(fake.getLastOperationForInstanceArgsForCall, struct {
+		arg1 string
+		arg2 *log.Logger
+	}{arg1, arg2})
+	fake.recordInvocation("GetLastOperationForInstance", []interface{}{arg1, arg2})
+	fake.getLastOperationForInstanceMutex.Unlock()
+	if fake.GetLastOperationForInstanceStub != nil {
+		return fake.GetLastOperationForInstanceStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.getLastOperationForInstanceReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeCFClient) GetLastOperationForInstanceCallCount() int {
+	fake.getLastOperationForInstanceMutex.RLock()
+	defer fake.getLastOperationForInstanceMutex.RUnlock()
+	return len(fake.getLastOperationForInstanceArgsForCall)
+}
+
+func (fake *FakeCFClient) GetLastOperationForInstanceCalls(stub func(string, *log.Logger) (cf.LastOperation, error)) {
+	fake.getLastOperationForInstanceMutex.Lock()
+	defer fake.getLastOperationForInstanceMutex.Unlock()
+	fake.GetLastOperationForInstanceStub = stub
+}
+
+func (fake *FakeCFClient) GetLastOperationForInstanceArgsForCall(i int) (string, *log.Logger) {
+	fake.getLastOperationForInstanceMutex.RLock()
+	defer fake.getLastOperationForInstanceMutex.RUnlock()
+	argsForCall := fake.getLastOperationForInstanceArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeCFClient) GetLastOperationForInstanceReturns(result1 cf.LastOperation, result2 error) {
+	fake.getLastOperationForInstanceMutex.Lock()
+	defer fake.getLastOperationForInstanceMutex.Unlock()
+	fake.GetLastOperationForInstanceStub = nil
+	fake.getLastOperationForInstanceReturns = struct {
+		result1 cf.LastOperation
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeCFClient) GetLastOperationForInstanceReturnsOnCall(i int, result1 cf.LastOperation, result2 error) {
+	fake.getLastOperationForInstanceMutex.Lock()
+	defer fake.getLastOperationForInstanceMutex.Unlock()
+	fake.GetLastOperationForInstanceStub = nil
+	if fake.getLastOperationForInstanceReturnsOnCall == nil {
+		fake.getLastOperationForInstanceReturnsOnCall = make(map[int]struct {
+			result1 cf.LastOperation
+			result2 error
+		})
+	}
+	fake.getLastOperationForInstanceReturnsOnCall[i] = struct {
+		result1 cf.LastOperation
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeCFClient) GetOSBAPIVersion(arg1 *log.Logger) *semver.Version {
@@ -193,70 +257,6 @@ func (fake *FakeCFClient) GetPlanByServiceInstanceGUIDReturnsOnCall(i int, resul
 	}{result1, result2}
 }
 
-func (fake *FakeCFClient) GetServiceInstance(arg1 string, arg2 *log.Logger) (cf.ServiceInstanceResource, error) {
-	fake.getServiceInstanceMutex.Lock()
-	ret, specificReturn := fake.getServiceInstanceReturnsOnCall[len(fake.getServiceInstanceArgsForCall)]
-	fake.getServiceInstanceArgsForCall = append(fake.getServiceInstanceArgsForCall, struct {
-		arg1 string
-		arg2 *log.Logger
-	}{arg1, arg2})
-	fake.recordInvocation("GetServiceInstance", []interface{}{arg1, arg2})
-	fake.getServiceInstanceMutex.Unlock()
-	if fake.GetServiceInstanceStub != nil {
-		return fake.GetServiceInstanceStub(arg1, arg2)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	fakeReturns := fake.getServiceInstanceReturns
-	return fakeReturns.result1, fakeReturns.result2
-}
-
-func (fake *FakeCFClient) GetServiceInstanceCallCount() int {
-	fake.getServiceInstanceMutex.RLock()
-	defer fake.getServiceInstanceMutex.RUnlock()
-	return len(fake.getServiceInstanceArgsForCall)
-}
-
-func (fake *FakeCFClient) GetServiceInstanceCalls(stub func(string, *log.Logger) (cf.ServiceInstanceResource, error)) {
-	fake.getServiceInstanceMutex.Lock()
-	defer fake.getServiceInstanceMutex.Unlock()
-	fake.GetServiceInstanceStub = stub
-}
-
-func (fake *FakeCFClient) GetServiceInstanceArgsForCall(i int) (string, *log.Logger) {
-	fake.getServiceInstanceMutex.RLock()
-	defer fake.getServiceInstanceMutex.RUnlock()
-	argsForCall := fake.getServiceInstanceArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
-}
-
-func (fake *FakeCFClient) GetServiceInstanceReturns(result1 cf.ServiceInstanceResource, result2 error) {
-	fake.getServiceInstanceMutex.Lock()
-	defer fake.getServiceInstanceMutex.Unlock()
-	fake.GetServiceInstanceStub = nil
-	fake.getServiceInstanceReturns = struct {
-		result1 cf.ServiceInstanceResource
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeCFClient) GetServiceInstanceReturnsOnCall(i int, result1 cf.ServiceInstanceResource, result2 error) {
-	fake.getServiceInstanceMutex.Lock()
-	defer fake.getServiceInstanceMutex.Unlock()
-	fake.GetServiceInstanceStub = nil
-	if fake.getServiceInstanceReturnsOnCall == nil {
-		fake.getServiceInstanceReturnsOnCall = make(map[int]struct {
-			result1 cf.ServiceInstanceResource
-			result2 error
-		})
-	}
-	fake.getServiceInstanceReturnsOnCall[i] = struct {
-		result1 cf.ServiceInstanceResource
-		result2 error
-	}{result1, result2}
-}
-
 func (fake *FakeCFClient) UpgradeServiceInstance(arg1 string, arg2 cf.MaintenanceInfo, arg3 *log.Logger) (cf.LastOperation, error) {
 	fake.upgradeServiceInstanceMutex.Lock()
 	ret, specificReturn := fake.upgradeServiceInstanceReturnsOnCall[len(fake.upgradeServiceInstanceArgsForCall)]
@@ -325,12 +325,12 @@ func (fake *FakeCFClient) UpgradeServiceInstanceReturnsOnCall(i int, result1 cf.
 func (fake *FakeCFClient) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.getLastOperationForInstanceMutex.RLock()
+	defer fake.getLastOperationForInstanceMutex.RUnlock()
 	fake.getOSBAPIVersionMutex.RLock()
 	defer fake.getOSBAPIVersionMutex.RUnlock()
 	fake.getPlanByServiceInstanceGUIDMutex.RLock()
 	defer fake.getPlanByServiceInstanceGUIDMutex.RUnlock()
-	fake.getServiceInstanceMutex.RLock()
-	defer fake.getServiceInstanceMutex.RUnlock()
 	fake.upgradeServiceInstanceMutex.RLock()
 	defer fake.upgradeServiceInstanceMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

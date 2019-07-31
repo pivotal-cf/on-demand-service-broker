@@ -9,15 +9,6 @@ import (
 	"net/http"
 )
 
-func (c Client) GetServiceInstance(serviceInstanceGUID string, logger *log.Logger) (ServiceInstanceResource, error) {
-	serviceInstance, err := c.getServiceInstance(serviceInstanceGUID, logger)
-	if err != nil {
-		return ServiceInstanceResource{}, errors.Wrap(err, fmt.Sprintf("failed to get service instance %q", serviceInstanceGUID))
-	}
-
-	return serviceInstance, err
-}
-
 func (c Client) UpgradeServiceInstance(serviceInstanceGUID string, maintenanceInfo MaintenanceInfo, logger *log.Logger) (LastOperation, error) {
 	path := fmt.Sprintf(`%s/v2/service_instances/%s?accepts_incomplete=true`, c.url, serviceInstanceGUID)
 

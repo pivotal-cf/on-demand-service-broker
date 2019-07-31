@@ -111,48 +111,4 @@ var _ = Describe("ServiceInstancesClient", func() {
 			Expect(err.Error()).To(ContainSubstring(`failed to de-serialise the response body`))
 		})
 	})
-
-	Describe("GetServiceInstance", func() {
-		It("returns service instance when it is retrieved from CF", func() {
-			expectedServiceInstanceGUID := "service-instance-guid"
-
-			serviceInstanceResponse := `
-			{
-				"entity": {
-					"last_operation": {
-						"type": "update",
-						"state": "in progress"
-					}
-				}
-			}`
-
-			cfApi.RouteToHandler(http.MethodGet, regexp.MustCompile(`/v2/service_instances/*`), ghttp.CombineHandlers(
-				ghttp.VerifyRequest(http.MethodGet, fmt.Sprintf(`/v2/service_instances/%s`, expectedServiceInstanceGUID)),
-				ghttp.RespondWith(http.StatusOK, serviceInstanceResponse),
-			))
-			client, err := cf.New(cfApi.URL(), authHeaderBuilder, nil, true, testLogger)
-			Expect(err).NotTo(HaveOccurred())
-
-			actualResponse, err := client.GetServiceInstance(expectedServiceInstanceGUID, testLogger)
-
-			Expect(err).NotTo(HaveOccurred())
-			Expect(actualResponse.Entity.LastOperation.State).To(Equal(cf.OperationStateInProgress))
-		})
-
-		It("returns error when CF endpoint returns an unexpected HTTP response code", func() {
-			expectedServiceInstanceGUID := "service-instance-guid"
-
-			cfApi.RouteToHandler(http.MethodGet, regexp.MustCompile(`/v2/service_instances/*`), ghttp.CombineHandlers(
-				ghttp.VerifyRequest(http.MethodGet, fmt.Sprintf(`/v2/service_instances/%s`, expectedServiceInstanceGUID)),
-				ghttp.RespondWith(http.StatusInternalServerError, ""),
-			))
-
-			client, err := cf.New(cfApi.URL(), authHeaderBuilder, nil, true, testLogger)
-			Expect(err).NotTo(HaveOccurred())
-
-			_, err = client.GetServiceInstance(expectedServiceInstanceGUID, testLogger)
-
-			Expect(err.Error()).To(ContainSubstring(`failed to get service instance "service-instance-guid"`))
-		})
-	})
 })
