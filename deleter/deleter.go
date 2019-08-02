@@ -34,7 +34,7 @@ type Sleeper interface {
 
 type Config struct {
 	ServiceCatalog             ServiceCatalog `yaml:"service_catalog"`
-	DisableSSLCertVerification bool           `yaml:"disable_ssl_cert_verification"`
+	DisableSSLCertVerification bool           `yaml:"disable_ssl_cert_verification"` // TODO use the CF.disable_ssl_cert_verification field
 	CF                         config.CF      `yaml:"cf"`
 	PollingInterval            int            `yaml:"polling_interval"`
 	PollingInitialOffset       int            `yaml:"polling_initial_offset"`

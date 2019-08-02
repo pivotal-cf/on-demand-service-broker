@@ -16,9 +16,11 @@
 package basic_test
 
 import (
+	"fmt"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
+	"github.com/onsi/gomega/gexec"
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/cf_helpers"
@@ -27,117 +29,226 @@ import (
 )
 
 var _ = Describe("upgrade-all-service-instances errand, basic operation", func() {
+	const instancesToTest = 2
 
-	var (
-		brokerInfo              bosh_helpers.BrokerInfo
-		brokerDeploymentOptions bosh_helpers.BrokerDeploymentOptions
-		uniqueID                string
-	)
+	Context("BOSH upgrade", func() {
+		var (
+			brokerSuffix            string
+			brokerInfo              bosh_helpers.BrokerInfo
+			brokerDeploymentOptions bosh_helpers.BrokerDeploymentOptions
+			uniqueID                string
+		)
 
-	BeforeEach(func() {
-		uniqueID = uuid.New()[:8]
+		BeforeEach(func() {
+			uniqueID = uuid.New()[:8]
 
-		brokerDeploymentOptions = bosh_helpers.BrokerDeploymentOptions{BrokerTLS: true}
+			brokerDeploymentOptions = bosh_helpers.BrokerDeploymentOptions{BrokerTLS: true}
 
-		brokerInfo = bosh_helpers.DeployAndRegisterBroker(
-			"-basic-upgrade-"+uniqueID,
-			brokerDeploymentOptions,
-			service_helpers.Redis,
-			[]string{
-				"service_catalog.yml",
-				"remove_parallel_upgrade.yml",
-				"update_upgrade_all_job.yml",
-			})
-	})
+			brokerSuffix = "-basic-upgrade-with-bosh-" + uniqueID
 
-	AfterEach(func() {
-		bosh_helpers.DeregisterAndDeleteBroker(brokerInfo.DeploymentName)
-	})
-
-	It("when there are no service instances provisioned, upgrade-all-service-instances runs successfully", func() {
-		By("logging stdout to the errand output")
-		session := bosh_helpers.RunErrand(brokerInfo.DeploymentName, "upgrade-all-service-instances")
-		Expect(session).To(gbytes.Say("STARTING OPERATION"))
-		Expect(session).To(gbytes.Say("FINISHED PROCESSING Status: SUCCESS"))
-	})
-
-	Context("upgrading some instances in series", func() {
-		var appDetailsList []upgrade_all.AppDetails
-
-		AfterEach(func() {
-			for _, appDtls := range appDetailsList {
-				cf_helpers.UnbindAndDeleteApp(appDtls.AppName, appDtls.ServiceName)
-			}
+			brokerInfo = bosh_helpers.DeployAndRegisterBroker(
+				brokerSuffix,
+				brokerDeploymentOptions,
+				service_helpers.Redis,
+				[]string{
+					"service_catalog.yml",
+					"remove_parallel_upgrade.yml",
+					"update_upgrade_all_job.yml",
+				})
 		})
 
-		It("succeeds", func() {
-			instancesToTest := 2
+		AfterEach(func() {
+			bosh_helpers.DeregisterAndDeleteBroker(brokerInfo.DeploymentName)
+		})
 
-			appDtlsCh := make(chan upgrade_all.AppDetails, instancesToTest)
+		It("when there are no service instances provisioned, upgrade-all-service-instances runs successfully", func() {
+			By("logging stdout to the errand output")
+			session := bosh_helpers.RunErrand(brokerInfo.DeploymentName, "upgrade-all-service-instances")
+			Expect(session).To(gbytes.Say("STARTING OPERATION"))
+			Expect(session).To(gbytes.Say("FINISHED PROCESSING Status: SUCCESS"))
+		})
 
-			upgrade_all.PerformInParallel(func(planName string) {
-				appDtls := upgrade_all.CreateServiceAndApp(brokerInfo.ServiceName, planName)
-				appDtlsCh <- appDtls
+		Context("upgrading some instances in series", func() {
+			var appDetailsList []upgrade_all.AppDetails
 
-				By("verifying that the persistence property starts as 'yes'", func() {
-					manifest := bosh_helpers.GetManifest(appDtls.ServiceDeploymentName)
-					instanceGroupProperties := bosh_helpers.FindInstanceGroupProperties(&manifest, "redis-server")
-					Expect(instanceGroupProperties["redis"].(map[interface{}]interface{})["persistence"]).To(Equal("yes"))
+			AfterEach(func() {
+				for _, appDtls := range appDetailsList {
+					cf_helpers.UnbindAndDeleteApp(appDtls.AppName, appDtls.ServiceName)
+				}
+			})
+
+			It("succeeds", func() {
+				createTestServiceInstancesAndApps(instancesToTest, brokerInfo.ServiceName)
+
+				By("changing the name of instance group and disabling persistence", func() {
+					brokerInfo = bosh_helpers.DeployAndRegisterBroker(
+						brokerSuffix,
+						brokerDeploymentOptions,
+						service_helpers.Redis,
+						[]string{
+							"service_catalog_updated.yml",
+							"remove_parallel_upgrade.yml",
+							"update_upgrade_all_job.yml",
+						})
 				})
-			}, instancesToTest, upgrade_all.PlanNamesForParallelCreate{
-				Items: []upgrade_all.PlanName{
-					{Index: 0, Value: "dedicated-vm"},
-					{Index: 1, Value: "dedicated-vm-with-post-deploy"},
-				}})
 
-			close(appDtlsCh)
-			for dtls := range appDtlsCh {
-				appDetailsList = append(appDetailsList, dtls)
-			}
+				By("running the upgrade-all errand", func() {
+					session := bosh_helpers.RunErrand(brokerInfo.DeploymentName, "upgrade-all-service-instances")
+					Expect(session).To(SatisfyAll(
+						gbytes.Say("STARTING OPERATION"),
+						gbytes.Say("FINISHED PROCESSING Status: SUCCESS"),
+						gbytes.Say("Number of successful operations: %d", instancesToTest),
+						gbytes.Say("Number of skipped operations: 0"),
+					))
+				})
 
-			By("changing the name of instance group and disabling persistence", func() {
-				brokerInfo = bosh_helpers.DeployAndRegisterBroker(
-					"-basic-upgrade-"+uniqueID,
-					brokerDeploymentOptions,
-					service_helpers.Redis,
-					[]string{
-						"service_catalog_updated.yml",
-						"remove_parallel_upgrade.yml",
-						"update_upgrade_all_job.yml",
+				for _, appDtls := range appDetailsList {
+					By("verifying the update changes were applied to the instance", func() {
+						manifest := bosh_helpers.GetManifest(appDtls.ServiceDeploymentName)
+						instanceGroupProperties := bosh_helpers.FindInstanceGroupProperties(&manifest, "redis")
+						Expect(instanceGroupProperties["redis"].(map[interface{}]interface{})["persistence"]).To(Equal("no"))
 					})
-			})
 
-			By("running the upgrade-all errand", func() {
-				session := bosh_helpers.RunErrand(brokerInfo.DeploymentName, "upgrade-all-service-instances")
-				Expect(session).To(SatisfyAll(
-					gbytes.Say("STARTING OPERATION"),
-					gbytes.Say("FINISHED PROCESSING Status: SUCCESS"),
-					gbytes.Say("Number of successful operations: %d", instancesToTest),
-					gbytes.Say("Number of skipped operations: 0"),
-				))
-			})
+					By("checking apps still have access to the data previously stored in their service", func() {
+						Expect(cf_helpers.GetFromTestApp(appDtls.AppURL, "uuid")).To(Equal(appDtls.UUID))
+					})
+				}
 
-			for _, appDtls := range appDetailsList {
-				By("verifying the update changes were applied to the instance", func() {
-					manifest := bosh_helpers.GetManifest(appDtls.ServiceDeploymentName)
-					instanceGroupProperties := bosh_helpers.FindInstanceGroupProperties(&manifest, "redis")
-					Expect(instanceGroupProperties["redis"].(map[interface{}]interface{})["persistence"]).To(Equal("no"))
+				By("running the upgrade-all errand again", func() {
+					session := bosh_helpers.RunErrand(brokerInfo.DeploymentName, "upgrade-all-service-instances")
+					Expect(session).To(SatisfyAll(
+						gbytes.Say("STARTING OPERATION"),
+						gbytes.Say("FINISHED PROCESSING Status: SUCCESS"),
+						gbytes.Say("Number of successful operations: 0"),
+						gbytes.Say("Number of skipped operations: %d", instancesToTest),
+					))
 				})
+			})
+		})
+	})
 
-				By("checking apps still have access to the data previously stored in their service", func() {
-					Expect(cf_helpers.GetFromTestApp(appDtls.AppURL, "uuid")).To(Equal(appDtls.UUID))
-				})
+	Context("CF upgrade", func() {
+		var (
+			brokerSuffix            string
+			appDetails              []upgrade_all.AppDetails
+			brokerInfo              bosh_helpers.BrokerInfo
+			brokerDeploymentOptions bosh_helpers.BrokerDeploymentOptions
+			uniqueID                string
+		)
+
+		BeforeEach(func() {
+			uniqueID = uuid.New()[:8]
+
+			brokerDeploymentOptions = bosh_helpers.BrokerDeploymentOptions{BrokerTLS: false}
+
+			brokerSuffix = "-basic-upgrade-with-cf-" + uniqueID
+
+			brokerInfo = bosh_helpers.DeployAndRegisterBroker(
+				brokerSuffix,
+				brokerDeploymentOptions,
+				service_helpers.Redis,
+				[]string{
+					"service_catalog.yml",
+					"remove_parallel_upgrade.yml",
+					"update_upgrade_all_job.yml",
+					"add_maintenance_info.yml",
+				},
+				"--var", "version=1.7.8",
+			)
+
+			appDetails = createTestServiceInstancesAndApps(instancesToTest, brokerInfo.ServiceName)
+
+		})
+
+		AfterEach(func() {
+			for _, appDtls := range appDetails {
+				cf_helpers.UnbindAndDeleteApp(appDtls.AppName, appDtls.ServiceName)
 			}
 
-			By("running the upgrade-all errand again", func() {
-				session := bosh_helpers.RunErrand(brokerInfo.DeploymentName, "upgrade-all-service-instances")
-				Expect(session).To(SatisfyAll(
-					gbytes.Say("STARTING OPERATION"),
-					gbytes.Say("FINISHED PROCESSING Status: SUCCESS"),
-					gbytes.Say("Number of successful operations: 0"),
-					gbytes.Say("Number of skipped operations: %d", instancesToTest),
-				))
+			bosh_helpers.DeregisterAndDeleteBroker(brokerInfo.DeploymentName)
+		})
+
+		Context("upgrading service instances", func() {
+
+			It("succeeds", func() {
+				By("updating service offering, re-deploy and re-register broker", func() {
+					brokerInfo = bosh_helpers.DeployAndRegisterBroker(
+						brokerSuffix,
+						brokerDeploymentOptions,
+						service_helpers.Redis,
+						[]string{
+							"service_catalog_updated.yml",
+							"remove_parallel_upgrade.yml",
+							"update_upgrade_all_job.yml",
+							"add_maintenance_info.yml",
+						},
+						"--var", "version=1.7.9",
+					)
+				})
+
+				By("verifying that the service instance is out-dated", func() {
+					for i, app := range appDetails {
+						identifier := fmt.Sprintf("instance %d", i)
+						session := cf_helpers.Cf("service", app.ServiceName)
+						Eventually(session).Should(gexec.Exit(0), identifier)
+						Expect(session).To(SatisfyAll(gbytes.Say("Showing available upgrade details for this service")), identifier)
+					}
+				})
+
+				By("running the upgrade-all errand", func() {
+					session := bosh_helpers.RunErrand(brokerInfo.DeploymentName, "upgrade-all-service-instances")
+					Expect(session).To(SatisfyAll(
+						gbytes.Say("STARTING OPERATION"),
+						gbytes.Say("FINISHED PROCESSING Status: SUCCESS"),
+						gbytes.Say("Number of successful operations: %d", instancesToTest),
+						gbytes.Say("Number of skipped operations: 0"),
+					))
+				})
+
+				By("assuring that CF knows the service instance is updated", func() {
+					for i, app := range appDetails {
+						identifier := fmt.Sprintf("instance %d", i)
+						session := cf_helpers.Cf("service", app.ServiceName)
+						Eventually(session).Should(gexec.Exit(0), identifier)
+						Expect(session).To(gbytes.Say("There is no upgrade available for this service."), identifier)
+					}
+				})
+
+				By("running the upgrade-all errand again", func() {
+					session := bosh_helpers.RunErrand(brokerInfo.DeploymentName, "upgrade-all-service-instances")
+					Expect(session).To(SatisfyAll(
+						gbytes.Say("STARTING OPERATION"),
+						gbytes.Say("FINISHED PROCESSING Status: SUCCESS"),
+						gbytes.Say("Number of successful operations: %d", instancesToTest),
+						gbytes.Say("Number of skipped operations: 0"),
+					))
+				})
 			})
 		})
 	})
 })
+
+func createTestServiceInstancesAndApps(count int, serviceName string) (appDetailsList []upgrade_all.AppDetails) {
+	appDtlsCh := make(chan upgrade_all.AppDetails, count)
+	upgrade_all.PerformInParallel(func(planName string) {
+		appDtls := upgrade_all.CreateServiceAndApp(serviceName, planName)
+		appDtlsCh <- appDtls
+
+		By("verifying that the persistence property starts as 'yes'", func() {
+			manifest := bosh_helpers.GetManifest(appDtls.ServiceDeploymentName)
+			instanceGroupProperties := bosh_helpers.FindInstanceGroupProperties(&manifest, "redis-server")
+			Expect(instanceGroupProperties["redis"].(map[interface{}]interface{})["persistence"]).To(Equal("yes"))
+		})
+	}, count, upgrade_all.PlanNamesForParallelCreate{
+		Items: []upgrade_all.PlanName{
+			{Index: 0, Value: "dedicated-vm"},
+			{Index: 1, Value: "dedicated-vm-with-post-deploy"},
+		}})
+	close(appDtlsCh)
+
+	for dtls := range appDtlsCh {
+		appDetailsList = append(appDetailsList, dtls)
+	}
+
+	return appDetailsList
+}
