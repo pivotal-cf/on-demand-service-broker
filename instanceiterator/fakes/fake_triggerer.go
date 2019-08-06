@@ -5,44 +5,43 @@ import (
 	"sync"
 
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
-	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
 	"github.com/pivotal-cf/on-demand-service-broker/instanceiterator"
 	"github.com/pivotal-cf/on-demand-service-broker/service"
 )
 
 type FakeTriggerer struct {
-	CheckStub        func(string, broker.OperationData) (services.BOSHOperation, error)
+	CheckStub        func(string, broker.OperationData) (instanceiterator.TriggeredOperation, error)
 	checkMutex       sync.RWMutex
 	checkArgsForCall []struct {
 		arg1 string
 		arg2 broker.OperationData
 	}
 	checkReturns struct {
-		result1 services.BOSHOperation
+		result1 instanceiterator.TriggeredOperation
 		result2 error
 	}
 	checkReturnsOnCall map[int]struct {
-		result1 services.BOSHOperation
+		result1 instanceiterator.TriggeredOperation
 		result2 error
 	}
-	TriggerOperationStub        func(service.Instance) (services.BOSHOperation, error)
+	TriggerOperationStub        func(service.Instance) (instanceiterator.TriggeredOperation, error)
 	triggerOperationMutex       sync.RWMutex
 	triggerOperationArgsForCall []struct {
 		arg1 service.Instance
 	}
 	triggerOperationReturns struct {
-		result1 services.BOSHOperation
+		result1 instanceiterator.TriggeredOperation
 		result2 error
 	}
 	triggerOperationReturnsOnCall map[int]struct {
-		result1 services.BOSHOperation
+		result1 instanceiterator.TriggeredOperation
 		result2 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeTriggerer) Check(arg1 string, arg2 broker.OperationData) (services.BOSHOperation, error) {
+func (fake *FakeTriggerer) Check(arg1 string, arg2 broker.OperationData) (instanceiterator.TriggeredOperation, error) {
 	fake.checkMutex.Lock()
 	ret, specificReturn := fake.checkReturnsOnCall[len(fake.checkArgsForCall)]
 	fake.checkArgsForCall = append(fake.checkArgsForCall, struct {
@@ -67,7 +66,7 @@ func (fake *FakeTriggerer) CheckCallCount() int {
 	return len(fake.checkArgsForCall)
 }
 
-func (fake *FakeTriggerer) CheckCalls(stub func(string, broker.OperationData) (services.BOSHOperation, error)) {
+func (fake *FakeTriggerer) CheckCalls(stub func(string, broker.OperationData) (instanceiterator.TriggeredOperation, error)) {
 	fake.checkMutex.Lock()
 	defer fake.checkMutex.Unlock()
 	fake.CheckStub = stub
@@ -80,33 +79,33 @@ func (fake *FakeTriggerer) CheckArgsForCall(i int) (string, broker.OperationData
 	return argsForCall.arg1, argsForCall.arg2
 }
 
-func (fake *FakeTriggerer) CheckReturns(result1 services.BOSHOperation, result2 error) {
+func (fake *FakeTriggerer) CheckReturns(result1 instanceiterator.TriggeredOperation, result2 error) {
 	fake.checkMutex.Lock()
 	defer fake.checkMutex.Unlock()
 	fake.CheckStub = nil
 	fake.checkReturns = struct {
-		result1 services.BOSHOperation
+		result1 instanceiterator.TriggeredOperation
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeTriggerer) CheckReturnsOnCall(i int, result1 services.BOSHOperation, result2 error) {
+func (fake *FakeTriggerer) CheckReturnsOnCall(i int, result1 instanceiterator.TriggeredOperation, result2 error) {
 	fake.checkMutex.Lock()
 	defer fake.checkMutex.Unlock()
 	fake.CheckStub = nil
 	if fake.checkReturnsOnCall == nil {
 		fake.checkReturnsOnCall = make(map[int]struct {
-			result1 services.BOSHOperation
+			result1 instanceiterator.TriggeredOperation
 			result2 error
 		})
 	}
 	fake.checkReturnsOnCall[i] = struct {
-		result1 services.BOSHOperation
+		result1 instanceiterator.TriggeredOperation
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeTriggerer) TriggerOperation(arg1 service.Instance) (services.BOSHOperation, error) {
+func (fake *FakeTriggerer) TriggerOperation(arg1 service.Instance) (instanceiterator.TriggeredOperation, error) {
 	fake.triggerOperationMutex.Lock()
 	ret, specificReturn := fake.triggerOperationReturnsOnCall[len(fake.triggerOperationArgsForCall)]
 	fake.triggerOperationArgsForCall = append(fake.triggerOperationArgsForCall, struct {
@@ -130,7 +129,7 @@ func (fake *FakeTriggerer) TriggerOperationCallCount() int {
 	return len(fake.triggerOperationArgsForCall)
 }
 
-func (fake *FakeTriggerer) TriggerOperationCalls(stub func(service.Instance) (services.BOSHOperation, error)) {
+func (fake *FakeTriggerer) TriggerOperationCalls(stub func(service.Instance) (instanceiterator.TriggeredOperation, error)) {
 	fake.triggerOperationMutex.Lock()
 	defer fake.triggerOperationMutex.Unlock()
 	fake.TriggerOperationStub = stub
@@ -143,28 +142,28 @@ func (fake *FakeTriggerer) TriggerOperationArgsForCall(i int) service.Instance {
 	return argsForCall.arg1
 }
 
-func (fake *FakeTriggerer) TriggerOperationReturns(result1 services.BOSHOperation, result2 error) {
+func (fake *FakeTriggerer) TriggerOperationReturns(result1 instanceiterator.TriggeredOperation, result2 error) {
 	fake.triggerOperationMutex.Lock()
 	defer fake.triggerOperationMutex.Unlock()
 	fake.TriggerOperationStub = nil
 	fake.triggerOperationReturns = struct {
-		result1 services.BOSHOperation
+		result1 instanceiterator.TriggeredOperation
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeTriggerer) TriggerOperationReturnsOnCall(i int, result1 services.BOSHOperation, result2 error) {
+func (fake *FakeTriggerer) TriggerOperationReturnsOnCall(i int, result1 instanceiterator.TriggeredOperation, result2 error) {
 	fake.triggerOperationMutex.Lock()
 	defer fake.triggerOperationMutex.Unlock()
 	fake.TriggerOperationStub = nil
 	if fake.triggerOperationReturnsOnCall == nil {
 		fake.triggerOperationReturnsOnCall = make(map[int]struct {
-			result1 services.BOSHOperation
+			result1 instanceiterator.TriggeredOperation
 			result2 error
 		})
 	}
 	fake.triggerOperationReturnsOnCall[i] = struct {
-		result1 services.BOSHOperation
+		result1 instanceiterator.TriggeredOperation
 		result2 error
 	}{result1, result2}
 }

@@ -9,13 +9,13 @@ package instanceiterator_test
 import (
 	"errors"
 	"fmt"
+	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
 	"time"
 
 	"sync"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/instanceiterator"
 	"github.com/pivotal-cf/on-demand-service-broker/instanceiterator/fakes"
@@ -70,7 +70,7 @@ var _ = Describe("Iterator", func() {
 			fakeBrokerServicesClient.LatestInstanceInfoStub = func(inst service.Instance) (service.Instance, error) {
 				return inst, nil
 			}
-			fakeTriggerer.TriggerOperationReturns(services.BOSHOperation{}, errors.New("oops"))
+			fakeTriggerer.TriggerOperationReturns(instanceiterator.TriggeredOperation{}, errors.New("oops"))
 
 			u := instanceiterator.New(&builder)
 			err := u.Iterate()
@@ -80,8 +80,8 @@ var _ = Describe("Iterator", func() {
 		It("fails when cannot poll last operation", func() {
 			fakeBrokerServicesClient.InstancesReturns([]service.Instance{{GUID: "1"}}, nil)
 
-			fakeTriggerer.TriggerOperationReturns(services.BOSHOperation{Type: services.OperationAccepted}, nil)
-			fakeTriggerer.CheckReturns(services.BOSHOperation{Type: services.OperationFailed}, errors.New("oops"))
+			fakeTriggerer.TriggerOperationReturns(instanceiterator.TriggeredOperation{State: instanceiterator.OperationAccepted}, nil)
+			fakeTriggerer.CheckReturns(instanceiterator.TriggeredOperation{State: instanceiterator.OperationFailed}, errors.New("oops"))
 
 			u := instanceiterator.New(&builder)
 			err := u.Iterate()
@@ -94,8 +94,8 @@ var _ = Describe("Iterator", func() {
 			fakeBrokerServicesClient.InstancesReturnsOnCall(0, []service.Instance{{GUID: "1", PlanUniqueID: "plan-id-1"}}, nil)
 			fakeBrokerServicesClient.LatestInstanceInfoReturnsOnCall(0, service.Instance{GUID: "1", PlanUniqueID: "plan-id-2"}, nil)
 
-			fakeTriggerer.TriggerOperationReturns(services.BOSHOperation{Type: services.OperationAccepted}, nil)
-			fakeTriggerer.CheckReturns(services.BOSHOperation{Type: services.OperationSucceeded}, nil)
+			fakeTriggerer.TriggerOperationReturns(instanceiterator.TriggeredOperation{State: instanceiterator.OperationAccepted}, nil)
+			fakeTriggerer.CheckReturns(instanceiterator.TriggeredOperation{State: instanceiterator.OperationSucceeded}, nil)
 
 			iterator := instanceiterator.New(&builder)
 			err := iterator.Iterate()
@@ -110,8 +110,8 @@ var _ = Describe("Iterator", func() {
 			fakeBrokerServicesClient.InstancesReturnsOnCall(0, instances, nil)
 			fakeBrokerServicesClient.LatestInstanceInfoReturnsOnCall(0, service.Instance{}, errors.New("unexpected error"))
 
-			fakeTriggerer.TriggerOperationReturns(services.BOSHOperation{Type: services.OperationAccepted}, nil)
-			fakeTriggerer.CheckReturns(services.BOSHOperation{Type: services.OperationSucceeded}, nil)
+			fakeTriggerer.TriggerOperationReturns(instanceiterator.TriggeredOperation{State: instanceiterator.OperationAccepted}, nil)
+			fakeTriggerer.CheckReturns(instanceiterator.TriggeredOperation{State: instanceiterator.OperationSucceeded}, nil)
 
 			iterator := instanceiterator.New(&builder)
 			err := iterator.Iterate()
@@ -132,7 +132,7 @@ var _ = Describe("Iterator", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			hasReportedFinished(fakeListener, 0, 0, 1, emptyBusyList, emptyFailedList)
-			hasReportedInstanceOperationStartResult(fakeListener, 0, "1", services.InstanceNotFound)
+			hasReportedInstanceOperationStartResult(fakeListener, 0, "1", instanceiterator.InstanceNotFound)
 		})
 	})
 
@@ -145,9 +145,9 @@ var _ = Describe("Iterator", func() {
 
 		It("succeeds", func() {
 			states := []*testState{
-				{instance: service.Instance{GUID: "1"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 1},
-				{instance: service.Instance{GUID: "2"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 2},
-				{instance: service.Instance{GUID: "3"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 3},
+				{instance: service.Instance{GUID: "1"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 1},
+				{instance: service.Instance{GUID: "2"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 2},
+				{instance: service.Instance{GUID: "3"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 3},
 			}
 			setupTest(states, fakeBrokerServicesClient, fakeTriggerer)
 
@@ -183,9 +183,9 @@ var _ = Describe("Iterator", func() {
 
 		It("does not fail and reports a deleted instance", func() {
 			states := []*testState{
-				{instance: service.Instance{GUID: "1"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 1},
-				{instance: service.Instance{GUID: "2"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 2},
-				{instance: service.Instance{GUID: "3"}, triggerOutput: []services.BOSHOperationType{services.InstanceNotFound}, checkStatusOutput: []services.BOSHOperationType{}, taskID: 3},
+				{instance: service.Instance{GUID: "1"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 1},
+				{instance: service.Instance{GUID: "2"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 2},
+				{instance: service.Instance{GUID: "3"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.InstanceNotFound}, checkStatusOutput: []instanceiterator.OperationState{}, taskID: 3},
 			}
 			setupTest(states, fakeBrokerServicesClient, fakeTriggerer)
 
@@ -221,9 +221,9 @@ var _ = Describe("Iterator", func() {
 
 		It("does not fail and reports an orphaned instance", func() {
 			states := []*testState{
-				{instance: service.Instance{GUID: "1"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 1},
-				{instance: service.Instance{GUID: "2"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 2},
-				{instance: service.Instance{GUID: "3"}, triggerOutput: []services.BOSHOperationType{services.OrphanDeployment}, checkStatusOutput: []services.BOSHOperationType{}, taskID: 3},
+				{instance: service.Instance{GUID: "1"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 1},
+				{instance: service.Instance{GUID: "2"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 2},
+				{instance: service.Instance{GUID: "3"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OrphanDeployment}, checkStatusOutput: []instanceiterator.OperationState{}, taskID: 3},
 			}
 			setupTest(states, fakeBrokerServicesClient, fakeTriggerer)
 
@@ -259,9 +259,9 @@ var _ = Describe("Iterator", func() {
 
 		It("polls last_operation endpoint when process is not synchronous", func() {
 			states := []*testState{
-				{instance: service.Instance{GUID: "1"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 1},
-				{instance: service.Instance{GUID: "2"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationAccepted, services.OperationAccepted, services.OperationSucceeded}, taskID: 2},
-				{instance: service.Instance{GUID: "3"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 3},
+				{instance: service.Instance{GUID: "1"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 1},
+				{instance: service.Instance{GUID: "2"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted, instanceiterator.OperationAccepted, instanceiterator.OperationSucceeded}, taskID: 2},
+				{instance: service.Instance{GUID: "3"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 3},
 			}
 			setupTest(states, fakeBrokerServicesClient, fakeTriggerer)
 
@@ -305,9 +305,9 @@ var _ = Describe("Iterator", func() {
 
 		It("retries busy instances until the upgrade request is accepted", func() {
 			states := []*testState{
-				{instance: service.Instance{GUID: "1"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 1},
-				{instance: service.Instance{GUID: "2"}, triggerOutput: []services.BOSHOperationType{services.OperationInProgress, services.OperationInProgress, services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 2},
-				{instance: service.Instance{GUID: "3"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 3},
+				{instance: service.Instance{GUID: "1"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 1},
+				{instance: service.Instance{GUID: "2"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationInProgress, instanceiterator.OperationInProgress, instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 2},
+				{instance: service.Instance{GUID: "3"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 3},
 			}
 			setupTest(states, fakeBrokerServicesClient, fakeTriggerer)
 
@@ -344,9 +344,9 @@ var _ = Describe("Iterator", func() {
 
 		It("fails when retrying busy instances reach the attempt limit", func() {
 			states := []*testState{
-				{instance: service.Instance{GUID: "1"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 1},
-				{instance: service.Instance{GUID: "2"}, triggerOutput: []services.BOSHOperationType{services.OperationInProgress, services.OperationInProgress, services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 2},
-				{instance: service.Instance{GUID: "3"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 3},
+				{instance: service.Instance{GUID: "1"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 1},
+				{instance: service.Instance{GUID: "2"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationInProgress, instanceiterator.OperationInProgress, instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 2},
+				{instance: service.Instance{GUID: "3"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 3},
 			}
 			setupTest(states, fakeBrokerServicesClient, fakeTriggerer)
 
@@ -381,9 +381,9 @@ var _ = Describe("Iterator", func() {
 
 		It("returns an error when an last operation returns a failure", func() {
 			states := []*testState{
-				{instance: service.Instance{GUID: "1"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 1},
-				{instance: service.Instance{GUID: "2"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationFailed}, taskID: 2},
-				{instance: service.Instance{GUID: "3"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 3},
+				{instance: service.Instance{GUID: "1"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 1},
+				{instance: service.Instance{GUID: "2"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationFailed}, taskID: 2},
+				{instance: service.Instance{GUID: "3"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 3},
 			}
 			setupTest(states, fakeBrokerServicesClient, fakeTriggerer)
 
@@ -415,9 +415,9 @@ var _ = Describe("Iterator", func() {
 
 		It("retries until a deleted instance is detected", func() {
 			states := []*testState{
-				{instance: service.Instance{GUID: "1"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 1},
-				{instance: service.Instance{GUID: "2"}, triggerOutput: []services.BOSHOperationType{services.OperationInProgress, services.OperationInProgress, services.InstanceNotFound}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 2},
-				{instance: service.Instance{GUID: "3"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 3},
+				{instance: service.Instance{GUID: "1"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 1},
+				{instance: service.Instance{GUID: "2"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationInProgress, instanceiterator.OperationInProgress, instanceiterator.InstanceNotFound}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 2},
+				{instance: service.Instance{GUID: "3"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 3},
 			}
 			setupTest(states, fakeBrokerServicesClient, fakeTriggerer)
 
@@ -454,9 +454,9 @@ var _ = Describe("Iterator", func() {
 
 		It("retries until an orphaned instance is detected", func() {
 			states := []*testState{
-				{instance: service.Instance{GUID: "1"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 1},
-				{instance: service.Instance{GUID: "2"}, triggerOutput: []services.BOSHOperationType{services.OperationInProgress, services.OperationInProgress, services.OrphanDeployment}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 2},
-				{instance: service.Instance{GUID: "3"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 3},
+				{instance: service.Instance{GUID: "1"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 1},
+				{instance: service.Instance{GUID: "2"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationInProgress, instanceiterator.OperationInProgress, instanceiterator.OrphanDeployment}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 2},
+				{instance: service.Instance{GUID: "3"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 3},
 			}
 			setupTest(states, fakeBrokerServicesClient, fakeTriggerer)
 
@@ -492,12 +492,12 @@ var _ = Describe("Iterator", func() {
 
 		It("processes in batches when max_in_flight is greater than 1", func() {
 			states := []*testState{
-				{instance: service.Instance{GUID: "1"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 1},
-				{instance: service.Instance{GUID: "2"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 2},
-				{instance: service.Instance{GUID: "3"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 3},
-				{instance: service.Instance{GUID: "4"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 4},
-				{instance: service.Instance{GUID: "5"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 5},
-				{instance: service.Instance{GUID: "6"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 6},
+				{instance: service.Instance{GUID: "1"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 1},
+				{instance: service.Instance{GUID: "2"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 2},
+				{instance: service.Instance{GUID: "3"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 3},
+				{instance: service.Instance{GUID: "4"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 4},
+				{instance: service.Instance{GUID: "5"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 5},
+				{instance: service.Instance{GUID: "6"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 6},
 			}
 			setupTest(states, fakeBrokerServicesClient, fakeTriggerer)
 
@@ -529,9 +529,9 @@ var _ = Describe("Iterator", func() {
 
 		It("returns multiple errors if multiple instances fail to upgrade", func() {
 			states := []*testState{
-				{instance: service.Instance{GUID: "1"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationFailed}, taskID: 1},
-				{instance: service.Instance{GUID: "2"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationFailed}, taskID: 2},
-				{instance: service.Instance{GUID: "3"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 3},
+				{instance: service.Instance{GUID: "1"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationFailed}, taskID: 1},
+				{instance: service.Instance{GUID: "2"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationFailed}, taskID: 2},
+				{instance: service.Instance{GUID: "3"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 3},
 			}
 			setupTest(states, fakeBrokerServicesClient, fakeTriggerer)
 
@@ -571,10 +571,10 @@ var _ = Describe("Iterator", func() {
 
 		It("succeeds upgrading first a canary instance", func() {
 			states := []*testState{
-				{instance: service.Instance{GUID: "1"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 1},
-				{instance: service.Instance{GUID: "2"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 2},
-				{instance: service.Instance{GUID: "3"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 3},
-				{instance: service.Instance{GUID: "4"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 4},
+				{instance: service.Instance{GUID: "1"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 1},
+				{instance: service.Instance{GUID: "2"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 2},
+				{instance: service.Instance{GUID: "3"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 3},
+				{instance: service.Instance{GUID: "4"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 4},
 			}
 			setupTest(states, fakeBrokerServicesClient, fakeTriggerer)
 
@@ -610,10 +610,10 @@ var _ = Describe("Iterator", func() {
 
 		It("succeeds upgrading using max_in_flight as batch size if it is smaller than the number of required canaries", func() {
 			states := []*testState{
-				{instance: service.Instance{GUID: "1"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 1},
-				{instance: service.Instance{GUID: "2"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 2},
-				{instance: service.Instance{GUID: "3"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 3},
-				{instance: service.Instance{GUID: "4"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 4},
+				{instance: service.Instance{GUID: "1"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 1},
+				{instance: service.Instance{GUID: "2"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 2},
+				{instance: service.Instance{GUID: "3"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 3},
+				{instance: service.Instance{GUID: "4"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 4},
 			}
 			setupTest(states, fakeBrokerServicesClient, fakeTriggerer)
 
@@ -667,9 +667,9 @@ var _ = Describe("Iterator", func() {
 
 		It("stops upgrading if a canary instance fails to upgrade", func() {
 			states := []*testState{
-				{instance: service.Instance{GUID: "1"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationFailed}, taskID: 1},
-				{instance: service.Instance{GUID: "2"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 2},
-				{instance: service.Instance{GUID: "3"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 3},
+				{instance: service.Instance{GUID: "1"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationFailed}, taskID: 1},
+				{instance: service.Instance{GUID: "2"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 2},
+				{instance: service.Instance{GUID: "3"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 3},
 			}
 			setupTest(states, fakeBrokerServicesClient, fakeTriggerer)
 
@@ -701,9 +701,9 @@ var _ = Describe("Iterator", func() {
 
 		It("picks another canary instance if one is busy", func() {
 			states := []*testState{
-				{instance: service.Instance{GUID: "1"}, triggerOutput: []services.BOSHOperationType{services.OperationInProgress, services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 1},
-				{instance: service.Instance{GUID: "2"}, triggerOutput: []services.BOSHOperationType{services.OperationInProgress, services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 2},
-				{instance: service.Instance{GUID: "3"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 3},
+				{instance: service.Instance{GUID: "1"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationInProgress, instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 1},
+				{instance: service.Instance{GUID: "2"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationInProgress, instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 2},
+				{instance: service.Instance{GUID: "3"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 3},
 			}
 			setupTest(states, fakeBrokerServicesClient, fakeTriggerer)
 
@@ -735,9 +735,9 @@ var _ = Describe("Iterator", func() {
 
 		It("picks another canary instance if one is deleted", func() {
 			states := []*testState{
-				{instance: service.Instance{GUID: "1"}, triggerOutput: []services.BOSHOperationType{services.InstanceNotFound}, checkStatusOutput: []services.BOSHOperationType{}, taskID: 1},
-				{instance: service.Instance{GUID: "2"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 2},
-				{instance: service.Instance{GUID: "3"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 3},
+				{instance: service.Instance{GUID: "1"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.InstanceNotFound}, checkStatusOutput: []instanceiterator.OperationState{}, taskID: 1},
+				{instance: service.Instance{GUID: "2"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 2},
+				{instance: service.Instance{GUID: "3"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 3},
 			}
 			setupTest(states, fakeBrokerServicesClient, fakeTriggerer)
 
@@ -770,9 +770,9 @@ var _ = Describe("Iterator", func() {
 
 		It("picks another canary instance if one is orphaned", func() {
 			states := []*testState{
-				{instance: service.Instance{GUID: "1"}, triggerOutput: []services.BOSHOperationType{services.OrphanDeployment}, checkStatusOutput: []services.BOSHOperationType{}, taskID: 1},
-				{instance: service.Instance{GUID: "2"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 2},
-				{instance: service.Instance{GUID: "3"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 3},
+				{instance: service.Instance{GUID: "1"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OrphanDeployment}, checkStatusOutput: []instanceiterator.OperationState{}, taskID: 1},
+				{instance: service.Instance{GUID: "2"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 2},
+				{instance: service.Instance{GUID: "3"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 3},
 			}
 			setupTest(states, fakeBrokerServicesClient, fakeTriggerer)
 
@@ -805,9 +805,9 @@ var _ = Describe("Iterator", func() {
 
 		It("retries busy canaries if needed", func() {
 			states := []*testState{
-				{instance: service.Instance{GUID: "1"}, triggerOutput: []services.BOSHOperationType{services.OperationInProgress, services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 1},
-				{instance: service.Instance{GUID: "2"}, triggerOutput: []services.BOSHOperationType{services.OperationInProgress, services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 2},
-				{instance: service.Instance{GUID: "3"}, triggerOutput: []services.BOSHOperationType{services.OperationInProgress, services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 3},
+				{instance: service.Instance{GUID: "1"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationInProgress, instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 1},
+				{instance: service.Instance{GUID: "2"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationInProgress, instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 2},
+				{instance: service.Instance{GUID: "3"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationInProgress, instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 3},
 			}
 			setupTest(states, fakeBrokerServicesClient, fakeTriggerer)
 
@@ -837,9 +837,9 @@ var _ = Describe("Iterator", func() {
 
 		It("fails when reaching the attempt limit retrying canaries", func() {
 			states := []*testState{
-				{instance: service.Instance{GUID: "1"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 1},
-				{instance: service.Instance{GUID: "2"}, triggerOutput: []services.BOSHOperationType{services.OperationInProgress}, checkStatusOutput: []services.BOSHOperationType{}, taskID: 2},
-				{instance: service.Instance{GUID: "3"}, triggerOutput: []services.BOSHOperationType{services.OperationInProgress}, checkStatusOutput: []services.BOSHOperationType{}, taskID: 3},
+				{instance: service.Instance{GUID: "1"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 1},
+				{instance: service.Instance{GUID: "2"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationInProgress}, checkStatusOutput: []instanceiterator.OperationState{}, taskID: 2},
+				{instance: service.Instance{GUID: "3"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationInProgress}, checkStatusOutput: []instanceiterator.OperationState{}, taskID: 3},
 			}
 			setupTest(states, fakeBrokerServicesClient, fakeTriggerer)
 
@@ -870,9 +870,9 @@ var _ = Describe("Iterator", func() {
 
 		It("retries busy instances after all canaries have passed", func() {
 			states := []*testState{
-				{instance: service.Instance{GUID: "1"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 1},
-				{instance: service.Instance{GUID: "2"}, triggerOutput: []services.BOSHOperationType{services.OperationInProgress, services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 2},
-				{instance: service.Instance{GUID: "3"}, triggerOutput: []services.BOSHOperationType{services.OperationInProgress, services.OperationInProgress, services.OperationInProgress, services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 3},
+				{instance: service.Instance{GUID: "1"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 1},
+				{instance: service.Instance{GUID: "2"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationInProgress, instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 2},
+				{instance: service.Instance{GUID: "3"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationInProgress, instanceiterator.OperationInProgress, instanceiterator.OperationInProgress, instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 3},
 			}
 			setupTest(states, fakeBrokerServicesClient, fakeTriggerer)
 
@@ -915,10 +915,10 @@ var _ = Describe("Iterator", func() {
 
 		It("reports count status accurately when retrying in canaries and rest", func() {
 			states := []*testState{
-				{instance: service.Instance{GUID: "1"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 1},
-				{instance: service.Instance{GUID: "2"}, triggerOutput: []services.BOSHOperationType{services.OperationInProgress, services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 2},
-				{instance: service.Instance{GUID: "3"}, triggerOutput: []services.BOSHOperationType{services.OperationInProgress, services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 3},
-				{instance: service.Instance{GUID: "4"}, triggerOutput: []services.BOSHOperationType{services.OperationInProgress, services.OperationInProgress, services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 4},
+				{instance: service.Instance{GUID: "1"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 1},
+				{instance: service.Instance{GUID: "2"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationInProgress, instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 2},
+				{instance: service.Instance{GUID: "3"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationInProgress, instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 3},
+				{instance: service.Instance{GUID: "4"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationInProgress, instanceiterator.OperationInProgress, instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 4},
 			}
 			setupTest(states, fakeBrokerServicesClient, fakeTriggerer)
 
@@ -1002,10 +1002,10 @@ var _ = Describe("Iterator", func() {
 
 		It("reports the progress of an upgrade", func() {
 			states := []*testState{
-				{instance: service.Instance{GUID: "1"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 1},
-				{instance: service.Instance{GUID: "2"}, triggerOutput: []services.BOSHOperationType{services.InstanceNotFound}, checkStatusOutput: []services.BOSHOperationType{}, taskID: 2},
-				{instance: service.Instance{GUID: "3"}, triggerOutput: []services.BOSHOperationType{services.OrphanDeployment}, checkStatusOutput: []services.BOSHOperationType{}, taskID: 3},
-				{instance: service.Instance{GUID: "4"}, triggerOutput: []services.BOSHOperationType{services.OperationInProgress, services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 4},
+				{instance: service.Instance{GUID: "1"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 1},
+				{instance: service.Instance{GUID: "2"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.InstanceNotFound}, checkStatusOutput: []instanceiterator.OperationState{}, taskID: 2},
+				{instance: service.Instance{GUID: "3"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OrphanDeployment}, checkStatusOutput: []instanceiterator.OperationState{}, taskID: 3},
+				{instance: service.Instance{GUID: "4"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationInProgress, instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 4},
 			}
 			setupTest(states, fakeBrokerServicesClient, fakeTriggerer)
 
@@ -1031,7 +1031,7 @@ var _ = Describe("Iterator", func() {
 				hasReportedCanariesStarting(fakeListener, 1, nil)
 				hasReportedCanaryAttempts(fakeListener, 1, 5, 1)
 				hasReportedInstanceOperationStarted(fakeListener, 0, "1", 1, 4, true)
-				hasReportedInstanceOperationStartResult(fakeListener, 0, "1", services.OperationAccepted)
+				hasReportedInstanceOperationStartResult(fakeListener, 0, "1", instanceiterator.OperationAccepted)
 				hasReportedWaitingFor(fakeListener, 0, "1", 1)
 				allowToProceed(states[0].controller)
 
@@ -1045,13 +1045,13 @@ var _ = Describe("Iterator", func() {
 			{
 				hasReportedAttempts(fakeListener, 0, 1, 5)
 				hasReportedInstanceOperationStarted(fakeListener, 1, "2", 2, 4, false)
-				hasReportedInstanceOperationStartResult(fakeListener, 1, "2", services.InstanceNotFound)
+				hasReportedInstanceOperationStartResult(fakeListener, 1, "2", instanceiterator.InstanceNotFound)
 
 				hasReportedInstanceOperationStarted(fakeListener, 2, "3", 3, 4, false)
-				hasReportedInstanceOperationStartResult(fakeListener, 2, "3", services.OrphanDeployment)
+				hasReportedInstanceOperationStartResult(fakeListener, 2, "3", instanceiterator.OrphanDeployment)
 
 				hasReportedInstanceOperationStarted(fakeListener, 3, "4", 4, 4, false)
-				hasReportedInstanceOperationStartResult(fakeListener, 3, "4", services.OperationInProgress)
+				hasReportedInstanceOperationStartResult(fakeListener, 3, "4", instanceiterator.OperationInProgress)
 
 				hasReportedProgress(fakeListener, 0, builder.AttemptInterval, 1, 1, 1, 1)
 
@@ -1067,7 +1067,7 @@ var _ = Describe("Iterator", func() {
 			{
 				hasReportedAttempts(fakeListener, 1, 2, 5)
 				hasReportedInstanceOperationStarted(fakeListener, 4, "4", 4, 4, false)
-				hasReportedInstanceOperationStartResult(fakeListener, 4, "4", services.OperationAccepted)
+				hasReportedInstanceOperationStartResult(fakeListener, 4, "4", instanceiterator.OperationAccepted)
 				hasReportedWaitingFor(fakeListener, 1, "4", 4)
 				hasReportedOperationState(fakeListener, 1, "4", "success")
 				hasReportedProgress(fakeListener, 1, builder.AttemptInterval, 1, 2, 0, 1)
@@ -1099,12 +1099,12 @@ var _ = Describe("Iterator", func() {
 				iterator := instanceiterator.New(&builder)
 
 				states := []*testState{
-					{instance: service.Instance{GUID: "1"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 1},
-					{instance: service.Instance{GUID: "2"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 2},
-					{instance: service.Instance{GUID: "3"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 3},
-					{instance: service.Instance{GUID: "4"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 4},
-					{instance: service.Instance{GUID: "5"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 5},
-					{instance: service.Instance{GUID: "6"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 6},
+					{instance: service.Instance{GUID: "1"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 1},
+					{instance: service.Instance{GUID: "2"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 2},
+					{instance: service.Instance{GUID: "3"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 3},
+					{instance: service.Instance{GUID: "4"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 4},
+					{instance: service.Instance{GUID: "5"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 5},
+					{instance: service.Instance{GUID: "6"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 6},
 				}
 				setupTest(states, fakeBrokerServicesClient, fakeTriggerer)
 
@@ -1148,10 +1148,10 @@ var _ = Describe("Iterator", func() {
 				iterator := instanceiterator.New(&builder)
 
 				states := []*testState{
-					{instance: service.Instance{GUID: "1"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 1},
-					{instance: service.Instance{GUID: "2"}, triggerOutput: []services.BOSHOperationType{services.OrphanDeployment}, checkStatusOutput: []services.BOSHOperationType{}, taskID: 2},
-					{instance: service.Instance{GUID: "3"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 3},
-					{instance: service.Instance{GUID: "4"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 4},
+					{instance: service.Instance{GUID: "1"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 1},
+					{instance: service.Instance{GUID: "2"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OrphanDeployment}, checkStatusOutput: []instanceiterator.OperationState{}, taskID: 2},
+					{instance: service.Instance{GUID: "3"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 3},
+					{instance: service.Instance{GUID: "4"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 4},
 				}
 				setupTest(states, fakeBrokerServicesClient, fakeTriggerer)
 
@@ -1189,10 +1189,10 @@ var _ = Describe("Iterator", func() {
 				iterator := instanceiterator.New(&builder)
 
 				states := []*testState{
-					{instance: service.Instance{GUID: "1"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 1},
-					{instance: service.Instance{GUID: "2"}, triggerOutput: []services.BOSHOperationType{services.OrphanDeployment}, checkStatusOutput: []services.BOSHOperationType{}, taskID: 2},
-					{instance: service.Instance{GUID: "3"}, triggerOutput: []services.BOSHOperationType{services.InstanceNotFound}, checkStatusOutput: []services.BOSHOperationType{}, taskID: 3},
-					{instance: service.Instance{GUID: "4"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 4},
+					{instance: service.Instance{GUID: "1"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 1},
+					{instance: service.Instance{GUID: "2"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OrphanDeployment}, checkStatusOutput: []instanceiterator.OperationState{}, taskID: 2},
+					{instance: service.Instance{GUID: "3"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.InstanceNotFound}, checkStatusOutput: []instanceiterator.OperationState{}, taskID: 3},
+					{instance: service.Instance{GUID: "4"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 4},
 				}
 				setupTest(states, fakeBrokerServicesClient, fakeTriggerer)
 
@@ -1225,10 +1225,10 @@ var _ = Describe("Iterator", func() {
 				iterator := instanceiterator.New(&builder)
 
 				states := []*testState{
-					{instance: service.Instance{GUID: "1"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 1},
-					{instance: service.Instance{GUID: "2"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 2},
-					{instance: service.Instance{GUID: "3"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 3},
-					{instance: service.Instance{GUID: "4"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 4},
+					{instance: service.Instance{GUID: "1"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 1},
+					{instance: service.Instance{GUID: "2"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 2},
+					{instance: service.Instance{GUID: "3"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 3},
+					{instance: service.Instance{GUID: "4"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 4},
 				}
 				setupTest(states, fakeBrokerServicesClient, fakeTriggerer)
 
@@ -1266,10 +1266,10 @@ var _ = Describe("Iterator", func() {
 				iterator := instanceiterator.New(&builder)
 
 				states := []*testState{
-					{instance: service.Instance{GUID: "1"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 1},
-					{instance: service.Instance{GUID: "2"}, triggerOutput: []services.BOSHOperationType{services.OrphanDeployment}, checkStatusOutput: []services.BOSHOperationType{}, taskID: 2},
-					{instance: service.Instance{GUID: "3"}, triggerOutput: []services.BOSHOperationType{services.InstanceNotFound}, checkStatusOutput: []services.BOSHOperationType{}, taskID: 3},
-					{instance: service.Instance{GUID: "4"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 4},
+					{instance: service.Instance{GUID: "1"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 1},
+					{instance: service.Instance{GUID: "2"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OrphanDeployment}, checkStatusOutput: []instanceiterator.OperationState{}, taskID: 2},
+					{instance: service.Instance{GUID: "3"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.InstanceNotFound}, checkStatusOutput: []instanceiterator.OperationState{}, taskID: 3},
+					{instance: service.Instance{GUID: "4"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 4},
 				}
 				setupTest(states, fakeBrokerServicesClient, fakeTriggerer)
 
@@ -1299,12 +1299,12 @@ var _ = Describe("Iterator", func() {
 
 			It("processes all the instances matching the criteria when canaries number is not specified", func() {
 				states := []*testState{
-					{instance: service.Instance{GUID: "1"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 1},
-					{instance: service.Instance{GUID: "2"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 2},
-					{instance: service.Instance{GUID: "3"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 3},
-					{instance: service.Instance{GUID: "4"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 4},
-					{instance: service.Instance{GUID: "5"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 5},
-					{instance: service.Instance{GUID: "6"}, triggerOutput: []services.BOSHOperationType{services.OperationAccepted}, checkStatusOutput: []services.BOSHOperationType{services.OperationSucceeded}, taskID: 6},
+					{instance: service.Instance{GUID: "1"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 1},
+					{instance: service.Instance{GUID: "2"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 2},
+					{instance: service.Instance{GUID: "3"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 3},
+					{instance: service.Instance{GUID: "4"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 4},
+					{instance: service.Instance{GUID: "5"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 5},
+					{instance: service.Instance{GUID: "6"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 6},
 				}
 				setupTest(states, fakeBrokerServicesClient, fakeTriggerer)
 

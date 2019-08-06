@@ -21,7 +21,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
 	"github.com/pivotal-cf/on-demand-service-broker/instanceiterator"
 	"github.com/pivotal-cf/on-demand-service-broker/service"
 )
@@ -53,7 +52,7 @@ var _ = Describe("Iterate State", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(canary.GUID).To(Equal("guid_1"))
 
-			err = us.SetState(canaries[1].GUID, services.OperationAccepted)
+			err = us.SetState(canaries[1].GUID, instanceiterator.OperationAccepted)
 			Expect(err).NotTo(HaveOccurred())
 
 			canary, err = us.NextPending()
@@ -78,7 +77,7 @@ var _ = Describe("Iterate State", func() {
 			}, 2)
 			us, err := instanceiterator.NewIteratorState(canaries, all, 0)
 			Expect(err).NotTo(HaveOccurred())
-			us.SetState(canaries[0].GUID, services.OperationAccepted)
+			us.SetState(canaries[0].GUID, instanceiterator.OperationAccepted)
 
 			_, err = us.NextPending()
 			Expect(err).To(MatchError("Cannot retrieve next pending instance"))
@@ -92,11 +91,11 @@ var _ = Describe("Iterate State", func() {
 			us, err := instanceiterator.NewIteratorState(canaries, all, 0)
 			Expect(err).NotTo(HaveOccurred())
 
-			us.SetState(all[0].GUID, services.OperationAccepted)
-			us.SetState(all[3].GUID, services.OperationAccepted)
-			us.SetState(all[5].GUID, services.OperationFailed)
+			us.SetState(all[0].GUID, instanceiterator.OperationAccepted)
+			us.SetState(all[3].GUID, instanceiterator.OperationAccepted)
+			us.SetState(all[5].GUID, instanceiterator.OperationFailed)
 
-			instances := us.GetInstancesInStates(services.OperationAccepted, services.OperationFailed)
+			instances := us.GetInstancesInStates(instanceiterator.OperationAccepted, instanceiterator.OperationFailed)
 			Expect(instances).To(Equal([]service.Instance{all[3], all[5]}))
 		})
 	})
@@ -108,7 +107,7 @@ var _ = Describe("Iterate State", func() {
 		us, err := instanceiterator.NewIteratorState(canaries, all, 0)
 		Expect(err).NotTo(HaveOccurred())
 
-		err = us.SetState(canaries[0].GUID, services.OperationAccepted)
+		err = us.SetState(canaries[0].GUID, instanceiterator.OperationAccepted)
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -127,7 +126,7 @@ var _ = Describe("Iterate State", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				for i := 0; i < complete; i++ {
-					us.SetState(fmt.Sprintf("guid_%d", i), services.OperationSucceeded)
+					us.SetState(fmt.Sprintf("guid_%d", i), instanceiterator.OperationSucceeded)
 				}
 
 				Expect(us.CurrentPhaseIsComplete()).To(Equal(expected))
@@ -148,7 +147,7 @@ var _ = Describe("Iterate State", func() {
 				us.MarkCanariesCompleted()
 
 				for i := 0; i < complete; i++ {
-					us.SetState(fmt.Sprintf("guid_%d", i), services.OperationSucceeded)
+					us.SetState(fmt.Sprintf("guid_%d", i), instanceiterator.OperationSucceeded)
 				}
 
 				Expect(us.CurrentPhaseIsComplete()).To(Equal(expected))
@@ -168,7 +167,7 @@ var _ = Describe("Iterate State", func() {
 		next, err := us.NextPending()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(next.GUID).To(Equal("guid_1"))
-		us.SetState(next.GUID, services.OperationAccepted)
+		us.SetState(next.GUID, instanceiterator.OperationAccepted)
 
 		us.MarkCanariesCompleted()
 

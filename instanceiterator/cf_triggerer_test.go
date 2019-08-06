@@ -6,7 +6,6 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/instanceiterator"
 	"github.com/pivotal-cf/on-demand-service-broker/instanceiterator/fakes"
@@ -51,7 +50,7 @@ var _ = Describe("CfTriggerer", func() {
 			_, actualMaintenanceInfo, _ := fakeCFClient.UpgradeServiceInstanceArgsForCall(0)
 			Expect(actualMaintenanceInfo).To(Equal(expectedMaintenanceInfo))
 
-			Expect(triggeredOperation.Type).To(Equal(services.OperationAccepted))
+			Expect(triggeredOperation.State).To(Equal(instanceiterator.OperationAccepted))
 		})
 
 		It("should return operation type failed when CF responds with state failed", func() {
@@ -73,7 +72,7 @@ var _ = Describe("CfTriggerer", func() {
 			_, actualMaintenanceInfo, _ := fakeCFClient.UpgradeServiceInstanceArgsForCall(0)
 			Expect(actualMaintenanceInfo).To(Equal(expectedMaintenanceInfo))
 
-			Expect(triggeredOperation.Type).To(Equal(services.OperationFailed))
+			Expect(triggeredOperation.State).To(Equal(instanceiterator.OperationFailed))
 		})
 
 		It("should return operation type succeeded when CF responds with state succeeded", func() {
@@ -95,7 +94,7 @@ var _ = Describe("CfTriggerer", func() {
 			_, actualMaintenanceInfo, _ := fakeCFClient.UpgradeServiceInstanceArgsForCall(0)
 			Expect(actualMaintenanceInfo).To(Equal(expectedMaintenanceInfo))
 
-			Expect(triggeredOperation.Type).To(Equal(services.OperationSucceeded))
+			Expect(triggeredOperation.State).To(Equal(instanceiterator.OperationSucceeded))
 		})
 
 		It("return an error when the CF client cannot get plan by unique ID", func() {
@@ -151,7 +150,7 @@ var _ = Describe("CfTriggerer", func() {
 			actualServiceInstanceGUID, _ := fakeCFClient.GetLastOperationForInstanceArgsForCall(0)
 			Expect(actualServiceInstanceGUID).To(Equal(expectedServiceInstanceGUID))
 
-			Expect(triggeredOperation.Type).To(Equal(services.OperationSucceeded))
+			Expect(triggeredOperation.State).To(Equal(instanceiterator.OperationSucceeded))
 		})
 
 		It("return an error when the CF client cannot get service instance", func() {

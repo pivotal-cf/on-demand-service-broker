@@ -9,13 +9,13 @@ package instanceiterator_test
 import (
 	"errors"
 	"fmt"
+	"github.com/pivotal-cf/on-demand-service-broker/instanceiterator"
 	"testing"
 	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
-	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/instanceiterator/fakes"
 	"github.com/pivotal-cf/on-demand-service-broker/service"
@@ -28,9 +28,9 @@ func TestIterator(t *testing.T) {
 
 type testState struct {
 	instance             service.Instance
-	triggerOutput        []services.BOSHOperationType
+	triggerOutput        []instanceiterator.OperationState
 	triggerCallCount     int
-	checkStatusOutput    []services.BOSHOperationType
+	checkStatusOutput    []instanceiterator.OperationState
 	checkStatusCallCount int
 	taskID               int
 	controller           *processController
@@ -47,32 +47,32 @@ func setupTest(states []*testState, brokerServices *fakes.FakeBrokerServices, fa
 		return i, nil
 	}
 
-	fakeTriggerer.TriggerOperationStub = func(instance service.Instance) (services.BOSHOperation, error) {
+	fakeTriggerer.TriggerOperationStub = func(instance service.Instance) (instanceiterator.TriggeredOperation, error) {
 		for _, s := range states {
 			if instance.GUID == s.instance.GUID {
 				s.controller.NotifyStart()
 				s.triggerCallCount++
-				return services.BOSHOperation{
-					Type: s.triggerOutput[s.triggerCallCount-1],
-					Data: broker.OperationData{BoshTaskID: s.taskID, OperationType: broker.OperationTypeUpgrade},
+				return instanceiterator.TriggeredOperation{
+					State: s.triggerOutput[s.triggerCallCount-1],
+					Data:  broker.OperationData{BoshTaskID: s.taskID, OperationType: broker.OperationTypeUpgrade},
 				}, nil
 			}
 		}
-		return services.BOSHOperation{}, errors.New("unexpected instance GUID")
+		return instanceiterator.TriggeredOperation{}, errors.New("unexpected instance GUID")
 	}
 
-	fakeTriggerer.CheckStub = func(guid string, operationData broker.OperationData) (services.BOSHOperation, error) {
+	fakeTriggerer.CheckStub = func(guid string, operationData broker.OperationData) (instanceiterator.TriggeredOperation, error) {
 		for _, s := range states {
 			if guid == s.instance.GUID {
 				s.controller.WaitForSignalToProceed()
 				s.checkStatusCallCount++
-				return services.BOSHOperation{
-					Type: s.checkStatusOutput[s.checkStatusCallCount-1],
-					Data: broker.OperationData{BoshTaskID: s.taskID, OperationType: broker.OperationTypeUpgrade},
+				return instanceiterator.TriggeredOperation{
+					State: s.checkStatusOutput[s.checkStatusCallCount-1],
+					Data:  broker.OperationData{BoshTaskID: s.taskID, OperationType: broker.OperationTypeUpgrade},
 				}, nil
 			}
 		}
-		return services.BOSHOperation{}, errors.New("unexpected instance GUID")
+		return instanceiterator.TriggeredOperation{}, errors.New("unexpected instance GUID")
 	}
 }
 
@@ -143,7 +143,7 @@ func hasReportedCanariesFinished(fakeListener *fakes.FakeListener, count int) {
 }
 
 func hasReportedInstanceOperationStartResult(fakeListener *fakes.FakeListener, idx int,
-	expectedGuid string, expectedStatus services.BOSHOperationType) {
+	expectedGuid string, expectedStatus instanceiterator.OperationState) {
 
 	Expect(fakeListener.InstanceOperationStartResultCallCount()).To(BeNumerically(">", idx))
 	guid, operationType := fakeListener.InstanceOperationStartResultArgsForCall(idx)

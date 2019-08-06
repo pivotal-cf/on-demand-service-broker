@@ -29,7 +29,7 @@ type Listener interface {
 	RetryCanariesAttempt(num, limit, remainingCanaries int)
 	InstancesToProcess(instances []service.Instance)
 	InstanceOperationStarting(instance string, index int, totalInstances int, isCanary bool)
-	InstanceOperationStartResult(instance string, status services.BOSHOperationType)
+	InstanceOperationStartResult(instance string, status OperationState)
 	InstanceOperationFinished(instance string, result string)
 	WaitingFor(instance string, boshTaskId int)
 	Progress(pollingInterval time.Duration, orphanCount, processedCount, skippedCount, toRetryCount, deletedCount int)
@@ -56,10 +56,29 @@ type instanceFailure struct {
 	err  error
 }
 
+type TriggeredOperation struct {
+	State       OperationState
+	Data        broker.OperationData
+	Description string
+}
+
+type OperationState string
+
+const (
+	OperationAccepted   OperationState = "accepted"
+	OperationSucceeded  OperationState = "succeeded"
+	OperationSkipped    OperationState = "skipped"
+	OperationFailed     OperationState = "failed"
+	OperationInProgress OperationState = "busy"
+	InstanceNotFound    OperationState = "instance-not-found"
+	OperationPending    OperationState = "not-started"
+	OrphanDeployment    OperationState = "orphan-deployment"
+)
+
 //go:generate counterfeiter -o fakes/fake_triggerer.go . Triggerer
 type Triggerer interface {
-	TriggerOperation(service.Instance) (services.BOSHOperation, error)
-	Check(string, broker.OperationData) (services.BOSHOperation, error)
+	TriggerOperation(service.Instance) (TriggeredOperation, error)
+	Check(string, broker.OperationData) (TriggeredOperation, error)
 }
 
 type Iterator struct {
@@ -227,11 +246,11 @@ func (it *Iterator) triggerOperation() {
 		}
 		it.listener.InstanceOperationStarting(instance.GUID, it.iteratorState.GetIteratorIndex(), totalInstances, it.iteratorState.IsProcessingCanaries())
 
-		var operation services.BOSHOperation
+		var operation TriggeredOperation
 		latestInstance, err := it.brokerServices.LatestInstanceInfo(instance)
 
 		if err == services.InstanceNotFoundError {
-			operation, err = services.BOSHOperation{Type: services.InstanceNotFound}, nil
+			operation, err = TriggeredOperation{State: InstanceNotFound}, nil
 		} else {
 			if err != nil {
 				it.listener.FailedToRefreshInstanceInfo(instance.GUID)
@@ -241,15 +260,15 @@ func (it *Iterator) triggerOperation() {
 		}
 
 		if err != nil {
-			it.iteratorState.SetState(instance.GUID, services.OperationFailed)
+			it.iteratorState.SetState(instance.GUID, OperationFailed)
 			it.failures = append(it.failures, instanceFailure{guid: instance.GUID, err: err})
 			return
 		}
 		it.iteratorState.SetOperation(instance.GUID, operation)
-		it.iteratorState.SetState(instance.GUID, operation.Type)
-		it.listener.InstanceOperationStartResult(instance.GUID, operation.Type)
+		it.iteratorState.SetState(instance.GUID, operation.State)
+		it.listener.InstanceOperationStartResult(instance.GUID, operation.State)
 
-		if operation.Type == services.OperationAccepted {
+		if operation.State == OperationAccepted {
 			it.listener.WaitingFor(instance.GUID, operation.Data.BoshTaskID)
 			acceptedCount++
 		}
@@ -259,20 +278,20 @@ func (it *Iterator) triggerOperation() {
 func (it *Iterator) pollRunningTasks() {
 	for _, inst := range it.iteratorState.InProgressInstances() {
 		guid := inst.GUID
-		state, err := it.triggerer.Check(guid, it.iteratorState.GetOperation(guid).Data)
+		triggedOperation, err := it.triggerer.Check(guid, it.iteratorState.GetOperation(guid).Data)
 		if err != nil {
-			it.iteratorState.SetState(guid, services.OperationFailed)
+			it.iteratorState.SetState(guid, OperationFailed)
 			it.failures = append(it.failures, instanceFailure{guid: guid, err: err})
 			continue
 		}
-		it.iteratorState.SetState(guid, state.Type)
+		it.iteratorState.SetState(guid, triggedOperation.State)
 
-		switch state.Type {
-		case services.OperationSucceeded:
+		switch triggedOperation.State {
+		case OperationSucceeded:
 			it.listener.InstanceOperationFinished(guid, "success")
-		case services.OperationFailed:
+		case OperationFailed:
 			it.listener.InstanceOperationFinished(guid, "failure")
-			err := fmt.Errorf("[%s] Operation failed: bosh task id %d: %s", guid, state.Data.BoshTaskID, state.Description)
+			err := fmt.Errorf("[%s] Operation failed: bosh task id %d: %s", guid, triggedOperation.Data.BoshTaskID, triggedOperation.Description)
 			it.failures = append(it.failures, instanceFailure{guid: guid, err: err})
 		}
 	}
@@ -286,7 +305,7 @@ func (it *Iterator) reportProgress() {
 func (it *Iterator) printSummary() {
 	summary := it.iteratorState.Summary()
 
-	busyInstances := it.iteratorState.GetGUIDsInStates(services.OperationInProgress)
+	busyInstances := it.iteratorState.GetGUIDsInStates(OperationInProgress)
 	failedList := it.failures
 	var failedInstances []string
 	for _, failure := range failedList {
@@ -297,7 +316,7 @@ func (it *Iterator) printSummary() {
 }
 
 func (it *Iterator) checkStillBusyInstances() error {
-	busyInstances := it.iteratorState.GetGUIDsInStates(services.OperationInProgress)
+	busyInstances := it.iteratorState.GetGUIDsInStates(OperationInProgress)
 	busyInstancesCount := len(busyInstances)
 
 	if busyInstancesCount == 0 {

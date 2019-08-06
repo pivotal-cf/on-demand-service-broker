@@ -52,7 +52,7 @@ var _ = Describe("BOSH Operation Triggerer", func() {
 
 			operation, err := subject.TriggerOperation(instance)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(operation).To(Equal(services.BOSHOperation{Type: services.OperationAccepted}))
+			Expect(operation).To(Equal(instanceiterator.TriggeredOperation{State: instanceiterator.OperationAccepted}))
 
 			By("requesting to process an instance")
 			Expect(fakeBrokerService.ProcessInstanceCallCount()).To(Equal(1))
@@ -68,16 +68,16 @@ var _ = Describe("BOSH Operation Triggerer", func() {
 		})
 
 		DescribeTable("when operation returns",
-			func(operationResult services.BOSHOperationType, expectedOperation services.BOSHOperation) {
+			func(operationResult services.BOSHOperationType, expectedOperation instanceiterator.TriggeredOperation) {
 				fakeBrokerService.ProcessInstanceReturns(services.BOSHOperation{Type: operationResult}, nil)
 
 				op, err := subject.TriggerOperation(instance)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(op).To(Equal(expectedOperation))
 			},
-			Entry("orphan", services.OrphanDeployment, services.BOSHOperation{Type: services.OrphanDeployment}),
-			Entry("instance not found", services.InstanceNotFound, services.BOSHOperation{Type: services.InstanceNotFound}),
-			Entry("operation in progress", services.OperationInProgress, services.BOSHOperation{Type: services.OperationInProgress}),
+			Entry("orphan", services.OrphanDeployment, instanceiterator.TriggeredOperation{State: instanceiterator.OrphanDeployment}),
+			Entry("instance not found", services.InstanceNotFound, instanceiterator.TriggeredOperation{State: instanceiterator.InstanceNotFound}),
+			Entry("operation in progress", services.OperationInProgress, instanceiterator.TriggeredOperation{State: instanceiterator.OperationInProgress}),
 		)
 
 		When("it is an Upgrade Triggerer", func() {
@@ -131,7 +131,7 @@ var _ = Describe("BOSH Operation Triggerer", func() {
 			Expect(guidArg).To(Equal(guid))
 			Expect(operationData).To(Equal(expectedOperationData))
 
-			Expect(state).To(Equal(services.BOSHOperation{Type: services.OperationSucceeded, Data: expectedOperationData}))
+			Expect(state).To(Equal(instanceiterator.TriggeredOperation{State: instanceiterator.OperationSucceeded, Data: expectedOperationData}))
 		})
 
 		It("returns an error if it fails to pull last operation", func() {
@@ -147,7 +147,7 @@ var _ = Describe("BOSH Operation Triggerer", func() {
 			state, err := subject.Check(guid, expectedOperationData)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(state).To(Equal(services.BOSHOperation{Type: services.OperationFailed, Data: expectedOperationData}))
+			Expect(state).To(Equal(instanceiterator.TriggeredOperation{State: instanceiterator.OperationFailed, Data: expectedOperationData}))
 		})
 
 		It("returns OperationAccepted when last operation reports the operation is in progress", func() {
@@ -156,7 +156,7 @@ var _ = Describe("BOSH Operation Triggerer", func() {
 			state, err := subject.Check(guid, expectedOperationData)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(state).To(Equal(services.BOSHOperation{Type: services.OperationAccepted, Data: expectedOperationData}))
+			Expect(state).To(Equal(instanceiterator.TriggeredOperation{State: instanceiterator.OperationAccepted, Data: expectedOperationData}))
 		})
 
 		It("returns an error if last operation returns an unknown state", func() {

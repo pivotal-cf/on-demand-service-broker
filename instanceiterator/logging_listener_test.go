@@ -14,7 +14,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gbytes"
-	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/instanceiterator"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
@@ -111,7 +110,7 @@ var _ = Describe("Logging Listener", func() {
 
 	Describe("InstanceOperationStartResult()", func() {
 		var (
-			result       services.BOSHOperationType
+			result       instanceiterator.OperationState
 			loggedString string
 		)
 
@@ -123,7 +122,7 @@ var _ = Describe("Logging Listener", func() {
 
 		Context("when accepted", func() {
 			BeforeEach(func() {
-				result = services.OperationAccepted
+				result = instanceiterator.OperationAccepted
 			})
 
 			It("Shows accepted operation", func() {
@@ -133,7 +132,7 @@ var _ = Describe("Logging Listener", func() {
 
 		Context("when not found", func() {
 			BeforeEach(func() {
-				result = services.InstanceNotFound
+				result = instanceiterator.InstanceNotFound
 			})
 
 			It("shows already deleted from platform", func() {
@@ -143,7 +142,7 @@ var _ = Describe("Logging Listener", func() {
 
 		Context("when orphaned", func() {
 			BeforeEach(func() {
-				result = services.OrphanDeployment
+				result = instanceiterator.OrphanDeployment
 			})
 
 			It("shows already deleted from platform", func() {
@@ -153,7 +152,7 @@ var _ = Describe("Logging Listener", func() {
 
 		Context("when conflict", func() {
 			BeforeEach(func() {
-				result = services.OperationInProgress
+				result = instanceiterator.OperationInProgress
 			})
 
 			It("shows already deleted from platform", func() {
@@ -163,7 +162,7 @@ var _ = Describe("Logging Listener", func() {
 
 		Context("when skipped", func() {
 			BeforeEach(func() {
-				result = services.OperationSkipped
+				result = instanceiterator.OperationSkipped
 			})
 
 			It("shows already skipped from platform", func() {
@@ -173,7 +172,7 @@ var _ = Describe("Logging Listener", func() {
 
 		Context("when error", func() {
 			BeforeEach(func() {
-				result = services.BOSHOperationType(-1)
+				result = instanceiterator.OperationState(-1)
 			})
 
 			It("shows already deleted from platform", func() {

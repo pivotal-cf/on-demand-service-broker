@@ -17,7 +17,6 @@ package instanceiterator
 
 import (
 	"fmt"
-
 	"github.com/pivotal-cf/brokerapi/domain"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
@@ -37,10 +36,10 @@ func NewRecreateTriggerer(brokerServices BrokerServices) *BOSHTriggerer {
 	return &BOSHTriggerer{operationType: "recreate", brokerServices: brokerServices}
 }
 
-func (t *BOSHTriggerer) TriggerOperation(instance service.Instance) (services.BOSHOperation, error) {
+func (t *BOSHTriggerer) TriggerOperation(instance service.Instance) (TriggeredOperation, error) {
 	operation, err := t.brokerServices.ProcessInstance(instance, t.operationType)
 	if err != nil {
-		return services.BOSHOperation{},
+		return TriggeredOperation{},
 			fmt.Errorf(
 				"operation type: %s failed for service instance %s: %s",
 				t.operationType,
@@ -48,27 +47,62 @@ func (t *BOSHTriggerer) TriggerOperation(instance service.Instance) (services.BO
 				err,
 			)
 	}
-	return operation, nil
+	return translateTriggerResponse(operation), nil
 }
 
-func (t *BOSHTriggerer) Check(serviceInstanceGUID string, operationData broker.OperationData) (services.BOSHOperation, error) {
+func (t *BOSHTriggerer) Check(serviceInstanceGUID string, operationData broker.OperationData) (TriggeredOperation, error) {
 	lastOperation, err := t.brokerServices.LastOperation(serviceInstanceGUID, operationData)
 	if err != nil {
-		return services.BOSHOperation{}, fmt.Errorf("error getting last operation: %s", err)
+		return TriggeredOperation{}, fmt.Errorf("error getting last operation: %s", err)
 	}
 
-	boshOperation := services.BOSHOperation{Data: operationData, Description: lastOperation.Description}
+	return translateCheckResponse(lastOperation, operationData)
+}
 
+func translateCheckResponse(lastOperation domain.LastOperation, operationData broker.OperationData) (TriggeredOperation, error) {
+	var operationState OperationState
 	switch lastOperation.State {
 	case domain.Failed:
-		boshOperation.Type = services.OperationFailed
+		operationState = OperationFailed
 	case domain.Succeeded:
-		boshOperation.Type = services.OperationSucceeded
+		operationState = OperationSucceeded
 	case domain.InProgress:
-		boshOperation.Type = services.OperationAccepted
+		operationState = OperationAccepted
 	default:
-		return services.BOSHOperation{}, fmt.Errorf("unknown state from last operation: %s", lastOperation.State)
+		return TriggeredOperation{}, fmt.Errorf("unknown state from last operation: %s", lastOperation.State)
 	}
 
-	return boshOperation, nil
+	return TriggeredOperation{
+		State:       operationState,
+		Data:        operationData,
+		Description: lastOperation.Description,
+	}, nil
+}
+
+func translateTriggerResponse(boshOperation services.BOSHOperation) TriggeredOperation {
+	var operationState OperationState
+	switch boshOperation.Type {
+	case services.OperationAccepted:
+		operationState = OperationAccepted
+	case services.OperationSucceeded:
+		operationState = OperationSucceeded
+	case services.OperationSkipped:
+		operationState = OperationSkipped
+	case services.OperationFailed:
+		operationState = OperationFailed
+	case services.OperationInProgress:
+		operationState = OperationInProgress
+	case services.InstanceNotFound:
+		operationState = InstanceNotFound
+	case services.OperationPending:
+		operationState = OperationPending
+	case services.OrphanDeployment:
+		operationState = OrphanDeployment
+	}
+
+	return TriggeredOperation{
+		State:       operationState,
+		Data:        boshOperation.Data,
+		Description: boshOperation.Description,
+	}
 }

@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/service"
 )
@@ -66,19 +65,19 @@ func (ll LoggingListener) InstanceOperationStarting(instance string, index, tota
 	ll.printf("[%s] Starting to process service instance%s", instance, instanceCount)
 }
 
-func (ll LoggingListener) InstanceOperationStartResult(instance string, resultType services.BOSHOperationType) {
+func (ll LoggingListener) InstanceOperationStartResult(instance string, status OperationState) {
 	var message string
 
-	switch resultType {
-	case services.OperationAccepted:
+	switch status {
+	case OperationAccepted:
 		message = "operation accepted"
-	case services.InstanceNotFound:
+	case InstanceNotFound:
 		message = "already deleted from platform"
-	case services.OrphanDeployment:
+	case OrphanDeployment:
 		message = "orphan service instance detected - no corresponding bosh deployment"
-	case services.OperationInProgress:
+	case OperationInProgress:
 		message = "operation in progress"
-	case services.OperationSkipped:
+	case OperationSkipped:
 		message = "instance already up to date - operation skipped"
 	default:
 		message = "unexpected result"

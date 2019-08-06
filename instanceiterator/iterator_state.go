@@ -19,14 +19,13 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
 	"github.com/pivotal-cf/on-demand-service-broker/service"
 )
 
 type instanceInfo struct {
-	status        services.BOSHOperationType
+	status        OperationState
 	initialPlan   string
-	operation     services.BOSHOperation
+	operation     TriggeredOperation
 	couldBeCanary bool
 }
 
@@ -57,7 +56,7 @@ func NewIteratorState(canaryInstances, allInstances []service.Instance, canaryLi
 	us.states = map[string]instanceInfo{}
 	for _, i := range allInstances {
 		us.guids = append(us.guids, i.GUID)
-		us.states[i.GUID] = instanceInfo{status: services.OperationPending, initialPlan: i.PlanUniqueID}
+		us.states[i.GUID] = instanceInfo{status: OperationPending, initialPlan: i.PlanUniqueID}
 	}
 	for _, i := range canaryInstances {
 		info, ok := us.states[i.GUID]
@@ -81,27 +80,27 @@ func (is *iteratorState) IsProcessingCanaries() bool {
 func (is *iteratorState) RewindAndResetBusyInstances() {
 	is.pos = 0
 	for k, v := range is.states {
-		if v.status == services.OperationInProgress {
-			v.status = services.OperationPending
+		if v.status == OperationInProgress {
+			v.status = OperationPending
 			is.states[k] = v
 		}
 	}
 }
 
 func (is *iteratorState) HasInstancesToProcess() bool {
-	return len(is.GetInstancesInStates(services.OperationPending, services.OperationAccepted)) > 0
+	return len(is.GetInstancesInStates(OperationPending, OperationAccepted)) > 0
 }
 
 func (is *iteratorState) HasInstancesProcessing() bool {
-	return len(is.GetInstancesInStates(services.OperationAccepted)) > 0
+	return len(is.GetInstancesInStates(OperationAccepted)) > 0
 }
 
 func (is *iteratorState) HasFailures() bool {
-	return len(is.GetInstancesInStates(services.OperationFailed)) > 0
+	return len(is.GetInstancesInStates(OperationFailed)) > 0
 }
 
 func (is *iteratorState) InProgressInstances() []service.Instance {
-	return is.GetInstancesInStates(services.OperationAccepted)
+	return is.GetInstancesInStates(OperationAccepted)
 }
 
 func (is *iteratorState) CountInProgressInstances() int {
@@ -124,10 +123,10 @@ func (is *iteratorState) NextPending() (service.Instance, error) {
 }
 
 func (is *iteratorState) GetIteratorIndex() int {
-	return len(is.GetInstancesInStates(services.OperationSucceeded, services.OperationAccepted, services.InstanceNotFound, services.OrphanDeployment)) + 1
+	return len(is.GetInstancesInStates(OperationSucceeded, OperationAccepted, InstanceNotFound, OrphanDeployment)) + 1
 }
 
-func (is *iteratorState) GetGUIDsInStates(states ...services.BOSHOperationType) (guids []string) {
+func (is *iteratorState) GetGUIDsInStates(states ...OperationState) (guids []string) {
 	guids = []string{}
 	for _, i := range is.GetInstancesInStates(states...) {
 		guids = append(guids, i.GUID)
@@ -135,7 +134,7 @@ func (is *iteratorState) GetGUIDsInStates(states ...services.BOSHOperationType) 
 	return
 }
 
-func (is *iteratorState) GetInstancesInStates(states ...services.BOSHOperationType) (instances []service.Instance) {
+func (is *iteratorState) GetInstancesInStates(states ...OperationState) (instances []service.Instance) {
 	instances = []service.Instance{}
 	for _, guid := range is.guids {
 		inst := is.states[guid]
@@ -153,28 +152,28 @@ func (is *iteratorState) GetInstancesInStates(states ...services.BOSHOperationTy
 
 func (is *iteratorState) Summary() summary {
 	return summary{
-		orphaned:  len(is.GetInstancesInStates(services.OrphanDeployment)),
-		succeeded: len(is.GetInstancesInStates(services.OperationSucceeded)),
-		busy:      len(is.GetInstancesInStates(services.OperationInProgress)),
-		deleted:   len(is.GetInstancesInStates(services.InstanceNotFound)),
-		skipped:   len(is.GetInstancesInStates(services.OperationSkipped)),
+		orphaned:  len(is.GetInstancesInStates(OrphanDeployment)),
+		succeeded: len(is.GetInstancesInStates(OperationSucceeded)),
+		busy:      len(is.GetInstancesInStates(OperationInProgress)),
+		deleted:   len(is.GetInstancesInStates(InstanceNotFound)),
+		skipped:   len(is.GetInstancesInStates(OperationSkipped)),
 	}
 }
 
-func (is *iteratorState) SetState(guid string, status services.BOSHOperationType) error {
+func (is *iteratorState) SetState(guid string, state OperationState) error {
 	info := is.states[guid]
-	info.status = status
+	info.status = state
 	is.states[guid] = info
 	return nil
 }
 
-func (is *iteratorState) SetOperation(guid string, iteratorOp services.BOSHOperation) {
+func (is *iteratorState) SetOperation(guid string, iteratorOp TriggeredOperation) {
 	info := is.states[guid]
 	info.operation = iteratorOp
 	is.states[guid] = info
 }
 
-func (is *iteratorState) GetOperation(guid string) services.BOSHOperation {
+func (is *iteratorState) GetOperation(guid string) TriggeredOperation {
 	return is.states[guid].operation
 }
 
@@ -194,7 +193,7 @@ func (is *iteratorState) OutstandingCanaryCount() int {
 		if !info.couldBeCanary {
 			continue
 		}
-		if info.status == services.OperationPending {
+		if info.status == OperationPending {
 			pending++
 		} else {
 			triggered++
@@ -264,17 +263,17 @@ func (is *iteratorState) processable(guid string) bool {
 func (is *iteratorState) doingCanariesAndPendingCanary(guid string) bool {
 	return is.processCanaries &&
 		is.states[guid].couldBeCanary &&
-		is.states[guid].status == services.OperationPending
+		is.states[guid].status == OperationPending
 }
 
 func (is *iteratorState) notDoingCanariesAndPendingInstance(guid string) bool {
 	return !is.processCanaries &&
-		is.states[guid].status == services.OperationPending
+		is.states[guid].status == OperationPending
 }
 
-func isFinalState(status services.BOSHOperationType) bool {
+func isFinalState(status OperationState) bool {
 	// TODO:
 	// * add tests
 	// * add missing states
-	return status != services.OperationInProgress && status != services.OperationPending && status != services.OperationAccepted //status == services.OperationSucceeded || status == services.OperationFailed
+	return status != OperationInProgress && status != OperationPending && status != OperationAccepted //status == OperationSucceeded || status == OperationFailed
 }

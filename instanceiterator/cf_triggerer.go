@@ -6,7 +6,6 @@ import (
 
 	"github.com/coreos/go-semver/semver"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
-	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/service"
 	"github.com/pkg/errors"
@@ -32,45 +31,40 @@ func NewCFTrigger(client CFClient, logger *log.Logger) *CFTriggerer {
 	}
 }
 
-func (t *CFTriggerer) TriggerOperation(instance service.Instance) (services.BOSHOperation, error) {
+func (t *CFTriggerer) TriggerOperation(instance service.Instance) (TriggeredOperation, error) {
 	servicePlan, err := t.cfClient.GetPlanByServiceInstanceGUID(instance.GUID, t.logger)
 	if err != nil {
-		return services.BOSHOperation{}, errors.Wrap(err, fmt.Sprintf("failed to trigger operation for instance %q", instance.GUID))
+		return TriggeredOperation{}, errors.Wrap(err, fmt.Sprintf("failed to trigger operation for instance %q", instance.GUID))
 	}
 
 	lastOperation, err := t.cfClient.UpgradeServiceInstance(instance.GUID, servicePlan.ServicePlanEntity.MaintenanceInfo, t.logger)
 	if err != nil {
-		return services.BOSHOperation{}, errors.Wrap(err, fmt.Sprintf("failed to trigger operation for instance %q", instance.GUID))
+		return TriggeredOperation{}, errors.Wrap(err, fmt.Sprintf("failed to trigger operation for instance %q", instance.GUID))
 	}
 
-	operationType := handleUpgradeResponse(lastOperation)
-
-	return services.BOSHOperation{
-		Type: operationType, // TODO: what other properties of BOSH operation are used in iterator?
-	}, nil
+	return translateUpgradeResponse(lastOperation), nil
 }
 
-func (t *CFTriggerer) Check(serviceInstanceGUID string, operationData broker.OperationData) (services.BOSHOperation, error) {
+func (t *CFTriggerer) Check(serviceInstanceGUID string, operationData broker.OperationData) (TriggeredOperation, error) {
 	lastOperation, err := t.cfClient.GetLastOperationForInstance(serviceInstanceGUID, t.logger)
 	if err != nil {
-		return services.BOSHOperation{}, errors.Wrap(err, fmt.Sprintf("failed to check operation for instance %q", serviceInstanceGUID))
+		return TriggeredOperation{}, errors.Wrap(err, fmt.Sprintf("failed to check operation for instance %q", serviceInstanceGUID))
 	}
-	operationType := handleUpgradeResponse(lastOperation)
 
-	return services.BOSHOperation{
-		Type: operationType,
-	}, nil
+	return translateUpgradeResponse(lastOperation), nil
 }
 
-func handleUpgradeResponse(lastOperation cf.LastOperation) services.BOSHOperationType {
-	var operationType services.BOSHOperationType
+func translateUpgradeResponse(lastOperation cf.LastOperation) TriggeredOperation {
+	var operationState OperationState
 	switch lastOperation.State {
 	case cf.OperationStateSucceeded:
-		operationType = services.OperationSucceeded
+		operationState = OperationSucceeded
 	case cf.OperationStateInProgress:
-		operationType = services.OperationAccepted // TODO Accepted or InProgress??
+		operationState = OperationAccepted
 	case cf.OperationStateFailed:
-		operationType = services.OperationFailed
+		operationState = OperationFailed
 	}
-	return operationType
+	return TriggeredOperation{
+		State: operationState,
+	}
 }

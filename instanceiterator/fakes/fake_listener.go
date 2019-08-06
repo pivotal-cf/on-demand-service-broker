@@ -5,7 +5,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/instanceiterator"
 	"github.com/pivotal-cf/on-demand-service-broker/service"
@@ -43,11 +42,11 @@ type FakeListener struct {
 		arg1 string
 		arg2 string
 	}
-	InstanceOperationStartResultStub        func(string, services.BOSHOperationType)
+	InstanceOperationStartResultStub        func(string, instanceiterator.OperationState)
 	instanceOperationStartResultMutex       sync.RWMutex
 	instanceOperationStartResultArgsForCall []struct {
 		arg1 string
-		arg2 services.BOSHOperationType
+		arg2 instanceiterator.OperationState
 	}
 	InstanceOperationStartingStub        func(string, int, int, bool)
 	instanceOperationStartingMutex       sync.RWMutex
@@ -264,11 +263,11 @@ func (fake *FakeListener) InstanceOperationFinishedArgsForCall(i int) (string, s
 	return argsForCall.arg1, argsForCall.arg2
 }
 
-func (fake *FakeListener) InstanceOperationStartResult(arg1 string, arg2 services.BOSHOperationType) {
+func (fake *FakeListener) InstanceOperationStartResult(arg1 string, arg2 instanceiterator.OperationState) {
 	fake.instanceOperationStartResultMutex.Lock()
 	fake.instanceOperationStartResultArgsForCall = append(fake.instanceOperationStartResultArgsForCall, struct {
 		arg1 string
-		arg2 services.BOSHOperationType
+		arg2 instanceiterator.OperationState
 	}{arg1, arg2})
 	fake.recordInvocation("InstanceOperationStartResult", []interface{}{arg1, arg2})
 	fake.instanceOperationStartResultMutex.Unlock()
@@ -283,13 +282,13 @@ func (fake *FakeListener) InstanceOperationStartResultCallCount() int {
 	return len(fake.instanceOperationStartResultArgsForCall)
 }
 
-func (fake *FakeListener) InstanceOperationStartResultCalls(stub func(string, services.BOSHOperationType)) {
+func (fake *FakeListener) InstanceOperationStartResultCalls(stub func(string, instanceiterator.OperationState)) {
 	fake.instanceOperationStartResultMutex.Lock()
 	defer fake.instanceOperationStartResultMutex.Unlock()
 	fake.InstanceOperationStartResultStub = stub
 }
 
-func (fake *FakeListener) InstanceOperationStartResultArgsForCall(i int) (string, services.BOSHOperationType) {
+func (fake *FakeListener) InstanceOperationStartResultArgsForCall(i int) (string, instanceiterator.OperationState) {
 	fake.instanceOperationStartResultMutex.RLock()
 	defer fake.instanceOperationStartResultMutex.RUnlock()
 	argsForCall := fake.instanceOperationStartResultArgsForCall[i]
