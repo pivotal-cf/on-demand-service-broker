@@ -17,6 +17,7 @@ package basic_test
 
 import (
 	"fmt"
+	"github.com/coreos/go-semver/semver"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -137,6 +138,10 @@ var _ = Describe("upgrade-all-service-instances errand, basic operation", func()
 		)
 
 		BeforeEach(func() {
+			if hasSufficientCAPIRelease, CAPISemver := checkCAPIVersion(); hasSufficientCAPIRelease {
+				Skip(fmt.Sprintf(`Single instance upgrade not possible in this version. CAPI v%s`, CAPISemver))
+			}
+
 			uniqueID = uuid.New()[:8]
 
 			brokerDeploymentOptions = bosh_helpers.BrokerDeploymentOptions{BrokerTLS: false}
@@ -251,4 +256,10 @@ func createTestServiceInstancesAndApps(count int, serviceName string) (appDetail
 	}
 
 	return appDetailsList
+}
+
+func checkCAPIVersion() (bool, *semver.Version) {
+	capiVersion := bosh_helpers.GetLatestReleaseVersion("capi")
+	capiSemver := semver.New(capiVersion)
+	return capiSemver.LessThan(*semver.New("1.84.0")), capiSemver
 }
