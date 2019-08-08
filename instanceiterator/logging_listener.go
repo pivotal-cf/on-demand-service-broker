@@ -28,6 +28,10 @@ func NewLoggingListener(logger *log.Logger, processType string) Listener {
 	}
 }
 
+func (ll LoggingListener) UpgradeStrategy(strategy string) {
+	ll.printf("Upgrading all instances via %s", strategy)
+}
+
 func (ll LoggingListener) Starting(maxInFlight int) {
 	ll.printf("STARTING OPERATION with %d concurrent workers\n", maxInFlight)
 }
@@ -91,7 +95,11 @@ func (ll LoggingListener) InstanceOperationFinished(instance string, result stri
 }
 
 func (ll LoggingListener) WaitingFor(instance string, boshTaskId int) {
-	ll.printf("[%s] Waiting for operation to complete: bosh task id %d", instance, boshTaskId)
+	if boshTaskId == 0 {
+		ll.printf("[%s] Waiting for operation to complete", instance)
+	} else {
+		ll.printf("[%s] Waiting for operation to complete: bosh task id %d", instance, boshTaskId)
+	}
 }
 
 func (ll LoggingListener) Progress(pollingInterval time.Duration, orphanCount, processedCount, skippedCount, toRetryCount, deletedCount int) {

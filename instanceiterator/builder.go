@@ -103,7 +103,7 @@ func (b *Builder) SetUpgradeTriggerer(cfClient CFClient, maintenanceInfoPresent 
 		if cfOSBAPIversion != nil &&
 			!cfOSBAPIversion.LessThan(*semver.New("2.15.0")) &&
 			maintenanceInfoPresent {
-			logger.Printf("Upgrading all instances via CF") // TODO use listener
+			b.Listener.UpgradeStrategy("CF")
 			b.Triggerer = NewCFTrigger(cfClient, logger)
 			return nil
 		}
@@ -113,7 +113,7 @@ func (b *Builder) SetUpgradeTriggerer(cfClient CFClient, maintenanceInfoPresent 
 		return errors.New("unable to set triggerer, brokerServices must not be nil")
 	}
 
-	logger.Printf("Upgrading all instances via BOSH")
+	b.Listener.UpgradeStrategy("BOSH")
 	b.Triggerer = NewBOSHUpgradeTriggerer(b.BrokerServices)
 	return nil
 }

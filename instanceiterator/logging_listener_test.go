@@ -31,6 +31,11 @@ var _ = Describe("Logging Listener", func() {
 			To(Say(`\[GUID\] Failed to get refreshed list of instances. Continuing with previously fetched info.`))
 	})
 
+	It("Logs the upgrade strategy", func() {
+		Expect(logResultsFromAsString(processType, func(listener instanceiterator.Listener) { listener.UpgradeStrategy("foo") })).
+			To(ContainSubstring("[%s] Upgrading all instances via foo", logPrefix))
+	})
+
 	It("Shows starting message", func() {
 		Expect(logResultsFromAsString(processType, func(listener instanceiterator.Listener) { listener.Starting(2) })).
 			To(ContainSubstring("[%s] STARTING OPERATION with 2 concurrent workers", logPrefix))
@@ -181,9 +186,18 @@ var _ = Describe("Logging Listener", func() {
 		})
 	})
 
-	It("Shows which instance is still in progress", func() {
-		Expect(logResultsFromAsString(processType, func(listener instanceiterator.Listener) { listener.WaitingFor("one", 999) })).
-			To(ContainSubstring("[%s] [one] Waiting for operation to complete: bosh task id 999", logPrefix))
+	Context("WaitingFor()", func() {
+		It("Shows an instance is still in progress", func() {
+			const boshTaskID = 0
+			Expect(logResultsFromAsString(processType, func(listener instanceiterator.Listener) { listener.WaitingFor("one", boshTaskID) })).
+				To(MatchRegexp(".*Waiting for operation to complete\\s+$"))
+		})
+
+		It("Shows which bosh task is still in progress", func() {
+			const boshTaskID = 999
+			Expect(logResultsFromAsString(processType, func(listener instanceiterator.Listener) { listener.WaitingFor("one", boshTaskID) })).
+				To(MatchRegexp(".*Waiting for operation to complete: bosh task id 999\\s+$"))
+		})
 	})
 
 	It("Shows which instance has been processed", func() {

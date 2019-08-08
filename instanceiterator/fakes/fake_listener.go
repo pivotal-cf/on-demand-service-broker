@@ -89,6 +89,11 @@ type FakeListener struct {
 	startingArgsForCall []struct {
 		arg1 int
 	}
+	UpgradeStrategyStub        func(string)
+	upgradeStrategyMutex       sync.RWMutex
+	upgradeStrategyArgsForCall []struct {
+		arg1 string
+	}
 	WaitingForStub        func(string, int)
 	waitingForMutex       sync.RWMutex
 	waitingForArgsForCall []struct {
@@ -497,6 +502,37 @@ func (fake *FakeListener) StartingArgsForCall(i int) int {
 	return argsForCall.arg1
 }
 
+func (fake *FakeListener) UpgradeStrategy(arg1 string) {
+	fake.upgradeStrategyMutex.Lock()
+	fake.upgradeStrategyArgsForCall = append(fake.upgradeStrategyArgsForCall, struct {
+		arg1 string
+	}{arg1})
+	fake.recordInvocation("UpgradeStrategy", []interface{}{arg1})
+	fake.upgradeStrategyMutex.Unlock()
+	if fake.UpgradeStrategyStub != nil {
+		fake.UpgradeStrategyStub(arg1)
+	}
+}
+
+func (fake *FakeListener) UpgradeStrategyCallCount() int {
+	fake.upgradeStrategyMutex.RLock()
+	defer fake.upgradeStrategyMutex.RUnlock()
+	return len(fake.upgradeStrategyArgsForCall)
+}
+
+func (fake *FakeListener) UpgradeStrategyCalls(stub func(string)) {
+	fake.upgradeStrategyMutex.Lock()
+	defer fake.upgradeStrategyMutex.Unlock()
+	fake.UpgradeStrategyStub = stub
+}
+
+func (fake *FakeListener) UpgradeStrategyArgsForCall(i int) string {
+	fake.upgradeStrategyMutex.RLock()
+	defer fake.upgradeStrategyMutex.RUnlock()
+	argsForCall := fake.upgradeStrategyArgsForCall[i]
+	return argsForCall.arg1
+}
+
 func (fake *FakeListener) WaitingFor(arg1 string, arg2 int) {
 	fake.waitingForMutex.Lock()
 	fake.waitingForArgsForCall = append(fake.waitingForArgsForCall, struct {
@@ -556,6 +592,8 @@ func (fake *FakeListener) Invocations() map[string][][]interface{} {
 	defer fake.retryCanariesAttemptMutex.RUnlock()
 	fake.startingMutex.RLock()
 	defer fake.startingMutex.RUnlock()
+	fake.upgradeStrategyMutex.RLock()
+	defer fake.upgradeStrategyMutex.RUnlock()
 	fake.waitingForMutex.RLock()
 	defer fake.waitingForMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

@@ -208,12 +208,6 @@ func (is *iteratorState) OutstandingCanaryCount() int {
 	return outstanding
 }
 
-func (is *iteratorState) DebugStates() {
-	for guid, info := range is.states {
-		fmt.Printf("%s: %s\n", guid, info.status)
-	}
-}
-
 func (is *iteratorState) canariesCompleted() bool {
 	completedCanaries := 0
 	for _, info := range is.states {
@@ -272,8 +266,5 @@ func (is *iteratorState) notDoingCanariesAndPendingInstance(guid string) bool {
 }
 
 func isFinalState(status OperationState) bool {
-	// TODO:
-	// * add tests
-	// * add missing states
-	return status != OperationInProgress && status != OperationPending && status != OperationAccepted //status == OperationSucceeded || status == OperationFailed
+	return status != OperationInProgress && status != OperationPending && status != OperationAccepted
 }

@@ -36,6 +36,7 @@ type Listener interface {
 	Finished(orphanCount, finishedCount, skippedCount, deletedCount int, busyInstances, failedInstances []string)
 	CanariesStarting(canaries int, filter config.CanarySelectionParams)
 	CanariesFinished()
+	UpgradeStrategy(strategy string)
 }
 
 //go:generate counterfeiter -o fakes/fake_broker_services.go . BrokerServices

@@ -62,7 +62,7 @@ var _ = Describe("upgrade-all-service-instances errand, basic operation", func()
 			bosh_helpers.DeregisterAndDeleteBroker(brokerInfo.DeploymentName)
 		})
 
-		It("when there are no service instances provisioned, upgrade-all-service-instances runs successfully", func() {
+		It("runs successfully when there are no service instances provisioned", func() {
 			By("logging stdout to the errand output")
 			session := bosh_helpers.RunErrand(brokerInfo.DeploymentName, "upgrade-all-service-instances")
 			Expect(session).To(gbytes.Say("STARTING OPERATION"))
@@ -96,6 +96,7 @@ var _ = Describe("upgrade-all-service-instances errand, basic operation", func()
 				By("running the upgrade-all errand", func() {
 					session := bosh_helpers.RunErrand(brokerInfo.DeploymentName, "upgrade-all-service-instances")
 					Expect(session).To(SatisfyAll(
+						gbytes.Say("Upgrading all instances via BOSH"),
 						gbytes.Say("STARTING OPERATION"),
 						gbytes.Say("FINISHED PROCESSING Status: SUCCESS"),
 						gbytes.Say("Number of successful operations: %d", instancesToTest),
@@ -203,6 +204,7 @@ var _ = Describe("upgrade-all-service-instances errand, basic operation", func()
 				By("running the upgrade-all errand", func() {
 					session := bosh_helpers.RunErrand(brokerInfo.DeploymentName, "upgrade-all-service-instances")
 					Expect(session).To(SatisfyAll(
+						gbytes.Say("Upgrading all instances via CF"),
 						gbytes.Say("STARTING OPERATION"),
 						gbytes.Say("FINISHED PROCESSING Status: SUCCESS"),
 						gbytes.Say("Number of successful operations: %d", instancesToTest),
