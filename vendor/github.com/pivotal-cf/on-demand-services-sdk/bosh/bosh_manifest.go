@@ -49,26 +49,27 @@ type PlacementRuleStemcell struct {
 }
 
 type PlacementRule struct {
-    Stemcell       []PlacementRuleStemcell `yaml:"stemcell,omitempty"`
-    Deployments    []string                `yaml:"deployments,omitempty"`
-    Jobs           []Job                   `yaml:"jobs,omitempty"`
-    InstanceGroups []string                `yaml:"instance_groups,omitempty"`
-    Networks       []string                `yaml:"networks,omitempty"`
-    Teams          []string                `yaml:"teams,omitempty"`
+	Stemcell       []PlacementRuleStemcell `yaml:"stemcell,omitempty"`
+	Deployments    []string                `yaml:"deployments,omitempty"`
+	Jobs           []Job                   `yaml:"jobs,omitempty"`
+	InstanceGroups []string                `yaml:"instance_groups,omitempty"`
+	Networks       []string                `yaml:"networks,omitempty"`
+	Teams          []string                `yaml:"teams,omitempty"`
 }
 
 type Addon struct {
-    Name    string        `yaml:"name"`
-    Jobs    []Job         `yaml:"jobs"`
-    Include PlacementRule `yaml:"include,omitempty"`
-    Exclude PlacementRule `yaml:"exclude,omitempty"`
+	Name    string        `yaml:"name"`
+	Jobs    []Job         `yaml:"jobs"`
+	Include PlacementRule `yaml:"include,omitempty"`
+	Exclude PlacementRule `yaml:"exclude,omitempty"`
 }
 
 // Variable represents a variable in the `variables` block of a BOSH manifest
 type Variable struct {
-	Name    string                 `yaml:"name"`
-	Type    string                 `yaml:"type"`
-	Options map[string]interface{} `yaml:"options,omitempty"`
+	Name       string                 `yaml:"name"`
+	Type       string                 `yaml:"type"`
+	UpdateMode string                 `yaml:"update_mode,omitempty"`
+	Options    map[string]interface{} `yaml:"options,omitempty"`
 
 	// Variables of type `certificate` can optionally be configured with a
 	// `consumes` block, so generated certificates can be created with automatic
