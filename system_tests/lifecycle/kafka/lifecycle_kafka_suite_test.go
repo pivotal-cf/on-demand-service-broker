@@ -16,7 +16,7 @@ func TestKafkaLifecycle(t *testing.T) {
 }
 
 var (
-	brokerInfo     BrokerInfo
+	brokerInfo BrokerInfo
 )
 
 var _ = BeforeSuite(func() {

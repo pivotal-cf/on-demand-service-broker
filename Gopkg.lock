@@ -60,19 +60,6 @@
   version = "v1.0.18"
 
 [[projects]]
-  branch = "master"
-  digest = "1:487501f5ee8d074435decadc169fc477e6be236d4d63e2f4ac98ead059f22c0b"
-  name = "github.com/cloudfoundry-incubator/cf-test-helpers"
-  packages = [
-    "cf",
-    "commandreporter",
-    "commandstarter",
-    "internal",
-  ]
-  pruneopts = "NUT"
-  revision = "820a007a30e27f0a63666254fc19d1198536eb33"
-
-[[projects]]
   digest = "1:e9ccf090649915d54e0d11a1cfd3918b8d35303b10a2ad67705afa73ea0659c5"
   name = "github.com/cloudfoundry/bosh-cli"
   packages = [
@@ -511,7 +498,6 @@
     "code.cloudfoundry.org/credhub-cli/credhub/credentials/values",
     "code.cloudfoundry.org/credhub-cli/credhub/permissions",
     "code.cloudfoundry.org/lager",
-    "github.com/cloudfoundry-incubator/cf-test-helpers/cf",
     "github.com/cloudfoundry/bosh-cli/director",
     "github.com/cloudfoundry/bosh-cli/uaa",
     "github.com/cloudfoundry/bosh-utils/httpclient",

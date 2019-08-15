@@ -342,7 +342,6 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 
 			cfInfoHandler := new(FakeHandler)
 			cfUpgradeHandler = new(FakeHandler)
-			cfServiceHandler := new(FakeHandler)
 			serviceInstancesHandler := new(FakeHandler)
 			servicePlanHandler := new(FakeHandler)
 			uaaAuthenticationHandler := new(FakeHandler)
@@ -405,17 +404,11 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 			servicePlanHandler.RespondsWith(http.StatusOK, servicePlanResponse)
 
 			cfApi.RouteToHandler(http.MethodPut, regexp.MustCompile(`/v2/service_instances/.*`), ghttp.CombineHandlers(
-				ghttp.VerifyRequest(http.MethodPut, ContainSubstring("/v2/service_instances/"), "accepts_incomplete=true"),
+				ghttp.VerifyRequest(http.MethodPut, ContainSubstring(`/v2/service_instances/`), "accepts_incomplete=true"),
 				cfUpgradeHandler.Handle,
 			))
 			upgradeResponse := `{ "entity": { "last_operation": { "type": "update", "state": "in progress" }}}`
 			cfUpgradeHandler.RespondsWith(http.StatusAccepted, upgradeResponse)
-
-			cfApi.RouteToHandler(http.MethodGet, regexp.MustCompile(`/v2/service_instances/.*`), ghttp.CombineHandlers(
-				cfServiceHandler.Handle,
-			))
-			serviceResponse := `{ "entity": { "last_operation": { "type": "update", "state": "succeeded" }}}`
-			cfServiceHandler.RespondsWith(http.StatusOK, serviceResponse)
 		})
 
 		AfterEach(func() {
@@ -423,15 +416,61 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 			cfApi.Close()
 		})
 
-		It("exits successfully and upgrades the instance", func() {
-			runningTool := startUpgradeAllInstanceBinary(errandConfig)
+		When("there is an upgrade available", func() {
+			BeforeEach(func() {
+				cfServiceHandler := new(FakeHandler)
+				cfApi.RouteToHandler(http.MethodGet, regexp.MustCompile(`/v2/service_instances/.*`), ghttp.CombineHandlers(
+					cfServiceHandler.Handle,
+				))
+				serviceResponse := `{
+					"entity": {
+						"last_operation": { "type": "update", "state": "succeeded" },
+						"maintenance_info": { "version": "0.29.0" }
+					}
+				}`
+				cfServiceHandler.RespondsWith(http.StatusOK, serviceResponse)
+			})
 
-			Eventually(runningTool, 5*time.Second).Should(gexec.Exit(0))
-			Expect(runningTool).To(gbytes.Say("Sleep interval until next attempt: 2s"))
-			Expect(runningTool).To(gbytes.Say(`\[upgrade\-all\] FINISHED PROCESSING Status: SUCCESS`))
-			Expect(runningTool).To(gbytes.Say("Number of successful operations: 1"))
+			It("exits successfully and upgrades the instance", func() {
+				runningTool := startUpgradeAllInstanceBinary(errandConfig)
 
-			Expect(cfUpgradeHandler.GetRequestForCall(0).Body).To(MatchJSON(`{"maintenance_info": {"version": "0.31.0"}}`))
+				Eventually(runningTool, 5*time.Second).Should(gexec.Exit(0))
+				Expect(runningTool).To(gbytes.Say("Sleep interval until next attempt: 2s"))
+				Expect(runningTool).To(gbytes.Say(`\[upgrade\-all\] FINISHED PROCESSING Status: SUCCESS`))
+				Expect(runningTool).To(gbytes.Say("Number of successful operations: 1"))
+				Expect(runningTool).To(gbytes.Say("Number of skipped operations: 0"))
+
+				Expect(cfUpgradeHandler.GetRequestForCall(0).Body).To(MatchJSON(`{"maintenance_info": {"version": "0.31.0"}}`))
+			})
+		})
+
+		When("upgrade is not available because it is up to date", func() {
+			BeforeEach(func() {
+				cfServiceHandler := new(FakeHandler)
+				cfApi.RouteToHandler(http.MethodGet, regexp.MustCompile(`/v2/service_instances/.*`), ghttp.CombineHandlers(
+					cfServiceHandler.Handle,
+				))
+				serviceResponse := `{
+					"entity": {
+						"last_operation": { "type": "update", "state": "succeeded" },
+						"maintenance_info": { "version": "0.31.0" }
+					}
+				}`
+				cfServiceHandler.RespondsWith(http.StatusOK, serviceResponse)
+			})
+
+			It("skips an instance upgrade when it is already up to date", func() {
+				runningTool := startUpgradeAllInstanceBinary(errandConfig)
+
+				Eventually(runningTool, 5*time.Second).Should(gexec.Exit(0))
+				Expect(runningTool).To(gbytes.Say("instance already up to date - operation skipped"))
+				Expect(runningTool).To(gbytes.Say("Sleep interval until next attempt: 2s"))
+				Expect(runningTool).To(gbytes.Say(`\[upgrade\-all\] FINISHED PROCESSING Status: SUCCESS`))
+				Expect(runningTool).To(gbytes.Say("Number of successful operations: 0"))
+				Expect(runningTool).To(gbytes.Say("Number of skipped operations: 1"))
+
+				Expect(cfUpgradeHandler.RequestsReceived()).To(Equal(0))
+			})
 		})
 	})
 })

@@ -58,8 +58,8 @@ func main() {
 	rootCAs.AppendCertsFromPEM([]byte(errandConfig.BrokerAPI.TLS.CACert))
 
 	httpClient := herottp.New(herottp.Config{
-		Timeout: 30 * time.Second,
-		RootCAs: rootCAs,
+		Timeout:                           30 * time.Second,
+		RootCAs:                           rootCAs,
 		DisableTLSCertificateVerification: errandConfig.BrokerAPI.TLS.DisableSSLCertVerification,
 	})
 

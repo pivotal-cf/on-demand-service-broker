@@ -1,8 +1,9 @@
 package instanceiterator_test
 
 import (
-	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"log"
+
+	"github.com/pivotal-cf/on-demand-service-broker/broker"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -19,6 +20,7 @@ var _ = Describe("CfTriggerer", func() {
 			fakeCFClient            *fakes.FakeCFClient
 			expectedMaintenanceInfo cf.MaintenanceInfo
 		)
+
 		BeforeEach(func() {
 			fakeCFClient = new(fakes.FakeCFClient)
 			expectedMaintenanceInfo = cf.MaintenanceInfo{
@@ -97,7 +99,7 @@ var _ = Describe("CfTriggerer", func() {
 			Expect(triggeredOperation.State).To(Equal(instanceiterator.OperationSucceeded))
 		})
 
-		It("return an error when the CF client cannot get plan by unique ID", func() {
+		It("should return an error when the CF client cannot get plan by unique ID", func() {
 			fakeCFClient.GetPlanByServiceInstanceGUIDReturns(cf.ServicePlan{}, errors.New("failed to get plan"))
 			cfTriggerer := instanceiterator.NewCFTrigger(fakeCFClient, new(log.Logger))
 
@@ -110,7 +112,7 @@ var _ = Describe("CfTriggerer", func() {
 			Expect(err.Error()).To(ContainSubstring("failed to get plan"))
 		})
 
-		It("return an error when the CF client cannot upgrade service instance", func() {
+		It("should return an error when the CF client cannot upgrade service instance", func() {
 			fakeCFClient.UpgradeServiceInstanceReturns(cf.LastOperation{}, errors.New("failed to upgrade instance"))
 			cfTriggerer := instanceiterator.NewCFTrigger(fakeCFClient, new(log.Logger))
 
@@ -121,6 +123,19 @@ var _ = Describe("CfTriggerer", func() {
 
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("failed to upgrade instance"))
+		})
+
+		It("should return an error when the CF client cannot get the service instance", func() {
+			fakeCFClient.GetServiceInstanceReturns(cf.ServiceInstanceResource{}, errors.New("failed to get service instance"))
+			cfTriggerer := instanceiterator.NewCFTrigger(fakeCFClient, new(log.Logger))
+
+			_, err := cfTriggerer.TriggerOperation(service.Instance{
+				GUID:         "service-instance-id",
+				PlanUniqueID: "plan-id",
+			})
+
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("failed to get service instance"))
 		})
 	})
 

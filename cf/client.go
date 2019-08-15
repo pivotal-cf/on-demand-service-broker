@@ -68,7 +68,7 @@ func (c Client) CountInstancesOfServiceOffering(serviceID string, logger *log.Lo
 }
 
 func (c Client) GetLastOperationForInstance(serviceInstanceGUID string, logger *log.Logger) (LastOperation, error) {
-	instance, err := c.getServiceInstance(serviceInstanceGUID, logger)
+	instance, err := c.GetServiceInstance(serviceInstanceGUID, logger)
 	if err != nil {
 		return LastOperation{}, err
 	}
@@ -612,13 +612,6 @@ func (c Client) findServiceByUniqueID(uniqueID string, logger *log.Logger) (*ser
 	}
 
 	return nil, nil
-}
-
-func (c Client) getServiceInstance(serviceInstanceGUID string, logger *log.Logger) (ServiceInstanceResource, error) {
-	path := fmt.Sprintf("/v2/service_instances/%s", serviceInstanceGUID)
-	var instance ServiceInstanceResource
-	err := c.get(fmt.Sprintf("%s%s", c.url, path), &instance, logger)
-	return instance, err
 }
 
 func (c Client) getServicePlan(servicePlanPath string, logger *log.Logger) (ServicePlan, error) {

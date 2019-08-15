@@ -47,6 +47,66 @@ var _ = Describe("ServiceInstancesClient", func() {
 		server.VerifyMocks()
 	})
 
+	Describe("GetServiceInstance", func() {
+		It("successfully gets a service instance", func() {
+			cfApi.AppendHandlers(ghttp.CombineHandlers(
+				ghttp.VerifyRequest(http.MethodGet, "/v2/service_instances/fake-service-instance-guid"),
+				ghttp.RespondWith(
+					http.StatusOK,
+					`{
+						"metadata": {
+							"guid": "fake-service-instance-guid"
+						},
+						"entity": {
+							"service_plan_url": "fake-url",
+							"maintenance_info": {
+								"version": "1.2.3"
+							},
+							"last_operation": {
+								"type": "fake-type",
+								"state": "fake-state"
+							}
+						}
+					}`,
+				),
+			))
+
+			client, err := cf.New(cfApi.URL(), authHeaderBuilder, nil, true, testLogger)
+			Expect(err).NotTo(HaveOccurred())
+
+			instance, err := client.GetServiceInstance("fake-service-instance-guid", testLogger)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(instance).To(Equal(cf.ServiceInstanceResource{
+				Metadata: cf.Metadata{
+					GUID: "fake-service-instance-guid",
+				},
+				Entity: cf.ServiceInstanceEntity{
+					ServicePlanURL: "fake-url",
+					MaintenanceInfo: cf.MaintenanceInfo{
+						Version: "1.2.3",
+					},
+					LastOperation: cf.LastOperation{
+						Type:  "fake-type",
+						State: "fake-state",
+					},
+				},
+			}))
+		})
+
+		It("returns an error when getting the service instance failed", func() {
+			cfApi.AppendHandlers(ghttp.CombineHandlers(
+				ghttp.VerifyRequest(http.MethodGet, "/v2/service_instances/fake-service-instance-guid"),
+				ghttp.RespondWith(http.StatusInternalServerError, ""),
+			))
+
+			client, err := cf.New(cfApi.URL(), authHeaderBuilder, nil, true, testLogger)
+			Expect(err).NotTo(HaveOccurred())
+
+			_, err = client.GetServiceInstance("fake-service-instance-guid", testLogger)
+			Expect(err).To(MatchError(ContainSubstring("Unexpected reponse status 500")))
+		})
+	})
+
 	Describe("UpgradeServiceInstance", func() {
 		It("returns last operation", func() {
 			expectedServiceInstanceGUID := "service-instance-guid"

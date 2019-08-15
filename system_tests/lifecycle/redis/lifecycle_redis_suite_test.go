@@ -19,7 +19,7 @@ func TestRedisLifecycle(t *testing.T) {
 var (
 	dopplerAddress    string
 	deploymentOptions BrokerDeploymentOptions
-	metricsOpsFile string
+	metricsOpsFile    string
 )
 
 var _ = BeforeSuite(func() {

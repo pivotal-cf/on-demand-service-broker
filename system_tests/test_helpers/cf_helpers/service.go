@@ -7,6 +7,7 @@
 package cf_helpers
 
 import (
+	"bytes"
 	"fmt"
 	"strings"
 	"time"
@@ -68,6 +69,14 @@ func UpdateServiceToPlan(serviceName, newPlanName string) {
 func UpdateServiceWithArbitraryParams(serviceName, arbitraryParams string) {
 	Expect(
 		Cf("update-service", serviceName, "-c", arbitraryParams),
+	).To(gexec.Exit(0))
+	AwaitServiceUpdate(serviceName)
+}
+
+func UpdateServiceWithUpgrade(serviceName string) {
+	yesInput := bytes.NewBufferString("y\n")
+	Expect(
+		CfWithStdin(yesInput, "update-service", serviceName, "--upgrade"),
 	).To(gexec.Exit(0))
 	AwaitServiceUpdate(serviceName)
 }

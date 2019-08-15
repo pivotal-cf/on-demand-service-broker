@@ -34,10 +34,6 @@
   name = "code.cloudfoundry.org/lager"
 
 [[constraint]]
-  branch = "master"
-  name = "github.com/cloudfoundry-incubator/cf-test-helpers"
-
-[[constraint]]
   name = "github.com/cloudfoundry/noaa"
   version = "2.1.0"
 
@@ -76,10 +72,6 @@
 [[constraint]]
   name = "github.com/pivotal-cf/on-demand-services-sdk"
   branch = "master"
-
-[[constraint]]
-  branch = "master"
-  name = "github.com/totherme/unstructured"
 
 [[constraint]]
   name = "github.com/urfave/negroni"

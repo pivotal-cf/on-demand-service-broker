@@ -3,11 +3,19 @@ package cf
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/pkg/errors"
 	"io/ioutil"
 	"log"
 	"net/http"
+
+	"github.com/pkg/errors"
 )
+
+func (c Client) GetServiceInstance(serviceInstanceGUID string, logger *log.Logger) (ServiceInstanceResource, error) {
+	path := fmt.Sprintf("/v2/service_instances/%s", serviceInstanceGUID)
+	var instance ServiceInstanceResource
+	err := c.get(fmt.Sprintf("%s%s", c.url, path), &instance, logger)
+	return instance, err
+}
 
 func (c Client) UpgradeServiceInstance(serviceInstanceGUID string, maintenanceInfo MaintenanceInfo, logger *log.Logger) (LastOperation, error) {
 	path := fmt.Sprintf(`%s/v2/service_instances/%s?accepts_incomplete=true`, c.url, serviceInstanceGUID)

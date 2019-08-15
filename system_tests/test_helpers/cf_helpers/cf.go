@@ -17,9 +17,11 @@ package cf_helpers
 
 import (
 	"fmt"
+	"io"
+	"os/exec"
 	"time"
 
-	"github.com/cloudfoundry-incubator/cf-test-helpers/cf"
+	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
 )
@@ -28,7 +30,14 @@ const RETRY_LIMIT = 3
 const COMMAND_TIMEOUT = CfTimeout
 
 func CfWithTimeout(timeout time.Duration, args ...string) *gexec.Session {
-	session := cf.Cf(args...)
+	return cfWithTimeoutAndStdin(timeout, nil, args...)
+}
+
+func cfWithTimeoutAndStdin(timeout time.Duration, stdin io.Reader, args ...string) *gexec.Session {
+	cmd := exec.Command("cf", args...)
+	cmd.Stdin = stdin
+	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
+	Expect(err).NotTo(HaveOccurred())
 
 	select {
 	case <-session.Exited:
@@ -40,9 +49,13 @@ func CfWithTimeout(timeout time.Duration, args ...string) *gexec.Session {
 }
 
 func Cf(args ...string) *gexec.Session {
+	return CfWithStdin(nil, args...)
+}
+
+func CfWithStdin(stdin io.Reader, args ...string) *gexec.Session {
 	var s *gexec.Session
 	for i := 0; i < RETRY_LIMIT; i++ {
-		s = CfWithTimeout(COMMAND_TIMEOUT, args...)
+		s = cfWithTimeoutAndStdin(COMMAND_TIMEOUT, stdin, args...)
 		if s.ExitCode() == 0 {
 			return s
 		}

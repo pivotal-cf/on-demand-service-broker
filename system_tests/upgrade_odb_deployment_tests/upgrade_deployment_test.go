@@ -10,7 +10,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/cloudfoundry-incubator/cf-test-helpers/cf"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -58,10 +57,10 @@ var _ = Describe("Upgrading deployment", func() {
 
 	AfterEach(func() {
 		By("deleting the app")
-		Eventually(cf.Cf("delete", appDtls.AppName, "-f", "-r"), cf_helpers.CfTimeout).Should(gexec.Exit(0))
+		Eventually(cf_helpers.Cf("delete", appDtls.AppName, "-f", "-r"), cf_helpers.CfTimeout).Should(gexec.Exit(0))
 
 		By("ensuring the service instance is deleted")
-		Eventually(cf.Cf("delete-service", appDtls.ServiceName, "-f"), cf_helpers.CfTimeout).Should(gexec.Exit())
+		Eventually(cf_helpers.Cf("delete-service", appDtls.ServiceName, "-f"), cf_helpers.CfTimeout).Should(gexec.Exit())
 		cf_helpers.AwaitServiceDeletion(appDtls.ServiceName)
 
 		bosh_helpers.DeregisterAndDeleteBroker(brokerInfo.DeploymentName)
@@ -110,7 +109,7 @@ var _ = Describe("Upgrading deployment", func() {
 		})
 
 		By("updating the service instance", func() {
-			session := cf.Cf("update-service", appDtls.ServiceName, "-c", `{"maxclients": 60}`)
+			session := cf_helpers.Cf("update-service", appDtls.ServiceName, "-c", `{"maxclients": 60}`)
 			Eventually(session, cf_helpers.CfTimeout).Should(gexec.Exit(0))
 			cf_helpers.AwaitServiceUpdate(appDtls.ServiceName)
 		})

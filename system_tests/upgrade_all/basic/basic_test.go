@@ -17,6 +17,7 @@ package basic_test
 
 import (
 	"fmt"
+
 	"github.com/coreos/go-semver/semver"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -30,9 +31,9 @@ import (
 )
 
 var _ = Describe("upgrade-all-service-instances errand, basic operation", func() {
-	const instancesToTest = 2
-
 	Context("BOSH upgrade", func() {
+		const instancesToTest = 2
+
 		var (
 			brokerSuffix            string
 			brokerInfo              bosh_helpers.BrokerInfo
@@ -130,6 +131,8 @@ var _ = Describe("upgrade-all-service-instances errand, basic operation", func()
 	})
 
 	Context("CF upgrade", func() {
+		const instancesToTest = 3
+
 		var (
 			brokerSuffix            string
 			appDetails              []upgrade_all.AppDetails
@@ -163,7 +166,6 @@ var _ = Describe("upgrade-all-service-instances errand, basic operation", func()
 			)
 
 			appDetails = createTestServiceInstancesAndApps(instancesToTest, brokerInfo.ServiceName)
-
 		})
 
 		AfterEach(func() {
@@ -175,7 +177,6 @@ var _ = Describe("upgrade-all-service-instances errand, basic operation", func()
 		})
 
 		Context("upgrading service instances", func() {
-
 			It("succeeds", func() {
 				By("updating service offering, re-deploy and re-register broker", func() {
 					brokerInfo = bosh_helpers.DeployAndRegisterBroker(
@@ -201,14 +202,20 @@ var _ = Describe("upgrade-all-service-instances errand, basic operation", func()
 					}
 				})
 
-				By("running the upgrade-all errand", func() {
+				By("upgrading one of the instances", func() {
+					app := appDetails[0]
+					cf_helpers.UpdateServiceWithUpgrade(app.ServiceName)
+				})
+
+				By("running the upgrade-all errand upgrades only the ones that have upgrade available", func() {
 					session := bosh_helpers.RunErrand(brokerInfo.DeploymentName, "upgrade-all-service-instances")
 					Expect(session).To(SatisfyAll(
 						gbytes.Say("Upgrading all instances via CF"),
 						gbytes.Say("STARTING OPERATION"),
+						gbytes.Say("instance already up to date - operation skipped"),
 						gbytes.Say("FINISHED PROCESSING Status: SUCCESS"),
-						gbytes.Say("Number of successful operations: %d", instancesToTest),
-						gbytes.Say("Number of skipped operations: 0"),
+						gbytes.Say("Number of successful operations: 2"),
+						gbytes.Say("Number of skipped operations: 1"),
 					))
 				})
 
@@ -226,8 +233,8 @@ var _ = Describe("upgrade-all-service-instances errand, basic operation", func()
 					Expect(session).To(SatisfyAll(
 						gbytes.Say("STARTING OPERATION"),
 						gbytes.Say("FINISHED PROCESSING Status: SUCCESS"),
-						gbytes.Say("Number of successful operations: %d", instancesToTest),
-						gbytes.Say("Number of skipped operations: 0"),
+						gbytes.Say("Number of successful operations: 0"),
+						gbytes.Say("Number of skipped operations: %d", instancesToTest),
 					))
 				})
 			})
@@ -250,6 +257,7 @@ func createTestServiceInstancesAndApps(count int, serviceName string) (appDetail
 		Items: []upgrade_all.PlanName{
 			{Index: 0, Value: "dedicated-vm"},
 			{Index: 1, Value: "dedicated-vm-with-post-deploy"},
+			{Index: 2, Value: "dedicated-vm"},
 		}})
 	close(appDtlsCh)
 
