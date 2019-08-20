@@ -70,7 +70,7 @@ func StartServer(
 
 	taskManifestGenerator := task.NewManifestGenerator(serviceAdapterClient, conf.ServiceCatalog, []serviceadapter.Stemcell{}, serviceadapter.ServiceReleases{})
 	odbSecrets := manifestsecrets.ODBSecrets{ServiceOfferingID: conf.ServiceCatalog.ID}
-	preUpgradeChecker := task.NewPreUpgrade(taskManifestGenerator, fakeTaskBoshClient)
+	preUpgradeChecker := task.NewPreUpgrade(taskManifestGenerator, fakeTaskBoshClient, false)
 
 	deployer := task.NewDeployer(fakeTaskBoshClient, taskManifestGenerator, odbSecrets, fakeTaskBulkSetter, preUpgradeChecker)
 	deployer.DisableBoshConfigs = conf.Broker.DisableBoshConfigs

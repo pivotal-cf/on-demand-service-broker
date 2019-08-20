@@ -116,16 +116,6 @@ var _ = Describe("upgrade-all-service-instances errand, basic operation", func()
 						Expect(cf_helpers.GetFromTestApp(appDtls.AppURL, "uuid")).To(Equal(appDtls.UUID))
 					})
 				}
-
-				By("running the upgrade-all errand again", func() {
-					session := bosh_helpers.RunErrand(brokerInfo.DeploymentName, "upgrade-all-service-instances")
-					Expect(session).To(SatisfyAll(
-						gbytes.Say("STARTING OPERATION"),
-						gbytes.Say("FINISHED PROCESSING Status: SUCCESS"),
-						gbytes.Say("Number of successful operations: 0"),
-						gbytes.Say("Number of skipped operations: %d", instancesToTest),
-					))
-				})
 			})
 		})
 	})

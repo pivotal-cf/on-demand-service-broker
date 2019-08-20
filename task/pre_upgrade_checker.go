@@ -9,19 +9,28 @@ import (
 )
 
 type PreUpgrade struct {
-	manifestGenerator ManifestGenerator
-	boshClient        BoshClient
+	manifestGenerator       ManifestGenerator
+	boshClient              BoshClient
+	enableOptimisedUpgrades bool
 }
 
 const (
 	ShouldUpgrade = true
 )
 
-func NewPreUpgrade(generator ManifestGenerator, client BoshClient) PreUpgrade {
-	return PreUpgrade{manifestGenerator: generator, boshClient: client}
+func NewPreUpgrade(generator ManifestGenerator, client BoshClient, enableOptimisedUpgrades bool) PreUpgrade {
+	return PreUpgrade{
+		manifestGenerator:       generator,
+		boshClient:              client,
+		enableOptimisedUpgrades: enableOptimisedUpgrades,
+	}
 }
 
 func (p PreUpgrade) ShouldUpgrade(generateManifestProp GenerateManifestProperties, plan config.Plan, logger *log.Logger) bool {
+	if !p.enableOptimisedUpgrades {
+		return ShouldUpgrade
+	}
+
 	upgradeLogger := LoggerWithContext{
 		logger:  logger,
 		context: fmt.Sprintf("[ShouldUpgrade] Upgrading deployment %q", generateManifestProp.DeploymentName),

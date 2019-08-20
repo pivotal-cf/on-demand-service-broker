@@ -45,10 +45,32 @@ var _ = Describe("PreUpgrade", func() {
 			},
 		}
 
-		preUpgrade = task.NewPreUpgrade(manifestGenerator, boshClient)
+		preUpgrade = task.NewPreUpgrade(manifestGenerator, boshClient, true)
 	})
 
 	Describe("ShouldUpgrade", func() {
+		When("the enableOptimisedUpgrades is false", func() {
+			BeforeEach(func() {
+				preUpgrade = task.NewPreUpgrade(manifestGenerator, boshClient, false)
+			})
+
+			It("should exit immediately and  upgrade", func() {
+				shouldUpgrade := preUpgrade.ShouldUpgrade(
+					task.GenerateManifestProperties{
+						DeploymentName: deploymentName,
+						OldManifest:    oldManifest,
+					},
+					defaultPlanWithErrand,
+					logger)
+
+				Expect(shouldUpgrade).To(BeTrue())
+				Expect(manifestGenerator.GenerateManifestCallCount()).To(BeZero(), "should not call GenerateManifest")
+				Expect(boshClient.GetEventsCallCount()).To(BeZero(), "should not call GetEvents")
+				Expect(boshClient.GetTaskCallCount()).To(BeZero(), "should not call GetTask")
+				Expect(boshClient.GetNormalisedTasksByContextCallCount()).To(BeZero(), "should not call GetNormalisedTasksByContext")
+			})
+		})
+
 		Context("when the manifest has changed", func() {
 			It("should upgrade", func() {
 				shouldUpgrade := preUpgrade.ShouldUpgrade(

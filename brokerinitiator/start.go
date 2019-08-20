@@ -2,9 +2,10 @@ package brokerinitiator
 
 import (
 	"fmt"
-	"github.com/pivotal-cf/on-demand-service-broker/telemetry"
 	"log"
 	"os"
+
+	"github.com/pivotal-cf/on-demand-service-broker/telemetry"
 
 	"github.com/pivotal-cf/on-demand-service-broker/broker/maintenanceinfo"
 	"github.com/pivotal-cf/on-demand-service-broker/hasher"
@@ -51,7 +52,7 @@ func Initiate(conf config.Config,
 	)
 	odbSecrets := manifestsecrets.ODBSecrets{ServiceOfferingID: conf.ServiceCatalog.ID}
 	boshCredhubStore := buildCredhubStore(conf, logger)
-	preUpgradeChecker := task.NewPreUpgrade(manifestGenerator, taskBoshClient)
+	preUpgradeChecker := task.NewPreUpgrade(manifestGenerator, taskBoshClient, conf.Broker.EnableOptimisedUpgrades)
 
 	deploymentManager := task.NewDeployer(taskBoshClient, manifestGenerator, odbSecrets, boshCredhubStore, preUpgradeChecker)
 	deploymentManager.DisableBoshConfigs = conf.Broker.DisableBoshConfigs
