@@ -130,30 +130,6 @@ var _ = Describe("On-demand-broker with maintenance_info", func() {
 				Expect(tasks[1].Description).To(ContainSubstring("deploy"), "Expected service instance to have been redeployed")
 			})
 		})
-
-		By("skipping when instance is already up to date", func() {
-			newMaintenanceInfo := retrieveCatalog().Services[0].Plans[0].MaintenanceInfo
-			updateBody := UpdateBody{
-				ServiceID:       serviceID,
-				MaintenanceInfo: *newMaintenanceInfo,
-				PreviousValues:  domain.PreviousValues{PlanID: planID},
-				PlanID:          planID,
-			}
-
-			By("accepting the upgrade request", func() {
-				url := fmt.Sprintf("http://%s/v2/service_instances/%s?accepts_incomplete=true", brokerInfo.URI, serviceInstanceGUID)
-				response, bodyContent := doRequest(http.MethodPatch, url, updateBody)
-				Expect(response.StatusCode).To(Equal(http.StatusOK))
-
-				updateResponse := apiresponses.UpdateResponse{}
-				Expect(json.Unmarshal(bodyContent, &updateResponse)).To(Succeed())
-			})
-
-			By("not running the post deploy errands", func() {
-				tasks := bosh.TasksForDeployment(broker.InstancePrefix + serviceInstanceGUID)
-				Expect(tasks).To(HaveLen(3), "expected to not run more than 3 BOSH tasks as upgrade was a no-op")
-			})
-		})
 	})
 })
 
