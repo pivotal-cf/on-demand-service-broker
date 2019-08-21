@@ -147,7 +147,7 @@
   name = "github.com/craigfurman/herottp"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "e0beddee8a2f4660428a9fcea371300daffa12e6"
+  revision = "c546d62f2a8d8d52f6cb4c071663a56fe9508518"
 
 [[projects]]
   branch = "master"
