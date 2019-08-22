@@ -25,6 +25,7 @@ func (ch *CredHub) ServerVersion() (*version.Version, error) {
 			return nil, err
 		}
 	}
+
 	return version.NewVersion(v)
 }
 

@@ -1,6 +1,8 @@
 package credhub
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // Error provides errors for the CredHub client
 type Error struct {
@@ -13,4 +15,19 @@ func (e *Error) Error() string {
 		return e.Name
 	}
 	return fmt.Sprintf("%s: %s", e.Name, e.Description)
+}
+
+func newCredhubError(name, description string) error {
+	return &Error{
+		Name:        name,
+		Description: description,
+	}
+}
+
+type NotFoundError struct {
+	Description string `json:"error"`
+}
+
+func (e *NotFoundError) Error() string {
+	return e.Description
 }
