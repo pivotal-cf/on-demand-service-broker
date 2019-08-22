@@ -9,6 +9,7 @@
       name: mercedes
       stemcell_version: "1234"
     version: 7.8.8+test.123
+    description: bumped stemcell and rotated cert
 
 - type: replace
   path: /instance_groups/name=broker/jobs/name=broker/properties/service_catalog/plans?

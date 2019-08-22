@@ -72,6 +72,7 @@ var _ = Describe("On-demand-broker with maintenance_info", func() {
 			Expect(len(maintenanceInfo.Public)).ToNot(BeZero(), "maintenance_info.public should not be nil or empty")
 			Expect(maintenanceInfo.Private).ToNot(BeZero(), "maintenance_info.private should not be nil or empty")
 			Expect(maintenanceInfo.Version).ToNot(BeZero(), "maintenance_info.version should not be nil or empty")
+			Expect(maintenanceInfo.Description).ToNot(BeEmpty(), "maintenance_info.version should not be nil or empty")
 		})
 
 		By("provisioning a service instance with correct maintenance_info", func() {
@@ -94,7 +95,6 @@ var _ = Describe("On-demand-broker with maintenance_info", func() {
 		})
 
 		By("successfully upgrading a single service instance to the latest version", func() {
-			// redeploy the broker, adding a lifecycle errand, and changing the maintenance_info
 			brokerInfo = bosh.DeployBroker(
 				brokerInfo.TestSuffix,
 				bosh.BrokerDeploymentOptions{},
