@@ -16,13 +16,13 @@ type AuthRequestAdjustment struct {
 
 func NewAuthRequestAdjustment(
 	authFunc func(bool) (string, error),
-	client,
-	clientSecret string,
+	username string,
+	password string,
 ) AuthRequestAdjustment {
 	return AuthRequestAdjustment{
 		authFunc: authFunc,
-		username: client,
-		password: clientSecret,
+		username: username,
+		password: password,
 	}
 }
 

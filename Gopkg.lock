@@ -3,6 +3,14 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:a324d70548baeaf58c5a453fafbd0a6bf0d97b584b18c2758a0f8250b6127082"
+  name = "code.cloudfoundry.org/clock"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "1fea04828a6fb034280dcb5d07f39f5b7f5739e9"
+
+[[projects]]
+  branch = "master"
   digest = "1:377af25e14983d57294ef90f94f5c00ec4d319b556ba371f950f32fb50ec3775"
   name = "code.cloudfoundry.org/credhub-cli"
   packages = [
@@ -47,28 +55,36 @@
   revision = "7dc373669fa10ddf827c37c595dee30a2f001be9"
 
 [[projects]]
-  digest = "1:88a7b7136680c80939c15c66e84a0ea4c3c6653a59105c2b62a0c84f08d54747"
+  digest = "1:4dfaa72910b71c63c85fa5ced3a8fb59a6255c8e8ccdc00b79b49b8818ff58a3"
+  name = "github.com/cheggaaa/pb"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "40231cf7fa00b7c9098939b6a9e6f54f4b3ce020"
+  version = "v3.0.1"
+
+[[projects]]
+  digest = "1:e9ccf090649915d54e0d11a1cfd3918b8d35303b10a2ad67705afa73ea0659c5"
   name = "github.com/cloudfoundry/bosh-cli"
   packages = [
-    "common/util",
     "director",
-    "io",
     "uaa",
+    "ui",
+    "ui/fmt",
+    "ui/table",
   ]
   pruneopts = "NUT"
-  revision = "5240e8aa8f1612f32edd8507058884ee52ffd1c6"
-  version = "v6.0.0"
+  revision = "712bfd7271b478ba03c3f604339e2eefbec4647c"
+  version = "v3.0.1"
 
 [[projects]]
   branch = "master"
-  digest = "1:595cbf17ffe061a2868a761014f3f1f040cc9643253854041a54081ee1df9784"
+  digest = "1:c4ecc8a3c2732a93ec1642c315739f4053a5e996c7089e848cb4cfb39911e848"
   name = "github.com/cloudfoundry/bosh-utils"
   packages = [
     "crypto",
     "errors",
     "httpclient",
     "logger",
-    "property",
     "retrystrategy",
     "system",
     "uuid",
@@ -136,6 +152,22 @@
   packages = ["."]
   pruneopts = "NUT"
   revision = "c546d62f2a8d8d52f6cb4c071663a56fe9508518"
+
+[[projects]]
+  branch = "master"
+  digest = "1:e6005275e27bf8eae9197d27d0f76a4463512cbbbc94d2408563e95fe1c80c12"
+  name = "github.com/dustin/go-humanize"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "bb3d318650d48840a39aa21a027c6630e198e626"
+
+[[projects]]
+  digest = "1:b0d5e98ac0f0a509eb320f542e748582d637aae09e74538212e9712d1e71064b"
+  name = "github.com/fatih/color"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "570b54cabe6b8eb0bc2dfce68d964677d63b5260"
+  version = "v1.5.0"
 
 [[projects]]
   digest = "1:e47425a8674d5359620520f74d1376ae70fb3a7debdad83708c94c79816149ba"
@@ -215,6 +247,30 @@
   ]
   pruneopts = "NUT"
   revision = "32fa128f234d041f196a9f3e0fea5ac9772c08e1"
+
+[[projects]]
+  digest = "1:08c231ec84231a7e23d67e4b58f975e1423695a32467a362ee55a803f9de8061"
+  name = "github.com/mattn/go-colorable"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "167de6bfdfba052fa6b2d3664c8f5272e23c9072"
+  version = "v0.0.9"
+
+[[projects]]
+  digest = "1:bc4f7eec3b7be8c6cb1f0af6c1e3333d5bb71072951aaaae2f05067b0803f287"
+  name = "github.com/mattn/go-isatty"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "0360b2af4f38e8d38c7fce2a9f4e702702d73a39"
+  version = "v0.0.3"
+
+[[projects]]
+  digest = "1:cb591533458f6eb6e2c1065ff3eac6b50263d7847deb23fc9f79b25bc608970e"
+  name = "github.com/mattn/go-runewidth"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "9e777a8366cce605130a531d2cd6363d07ad7317"
+  version = "v0.0.2"
 
 [[projects]]
   branch = "master"
@@ -336,6 +392,16 @@
   version = "v1.0.0"
 
 [[projects]]
+  digest = "1:0dbc6fba2dc1190b37bd69a44a8f898221e5ea5d41942b7b50a4f2c32b928462"
+  name = "github.com/vito/go-interact"
+  packages = [
+    "interact",
+    "interact/terminal",
+  ]
+  pruneopts = "NUT"
+  revision = "fa338ed9e9ecbb0e9c2e6c7a0160d9fc9b0efbd9"
+
+[[projects]]
   branch = "master"
   digest = "1:669d39abbe79469bb50e32a26541026fd91326ac0ca56a9ad83be5b9887e5a8c"
   name = "github.com/xeipuuv/gojsonpointer"
@@ -361,13 +427,14 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:da984e090a477c1ccd3812f0169f48e70e4ff08e0e166f05f39922f61d34408a"
+  digest = "1:dfcfb86619619004410bfb8dc8b120eca26c3a2a21e8979f8216c244b5371417"
   name = "golang.org/x/crypto"
   packages = [
     "curve25519",
     "ed25519",
     "ed25519/internal/edwards25519",
     "ssh",
+    "ssh/terminal",
   ]
   pruneopts = "NUT"
   revision = "b080dc9a8c480b08e698fb1219160d598526310f"
@@ -388,9 +455,12 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:9f7130478534c33ac836da038be1e97f3b6e575a6dcebd98151a6dd87e3775a8"
+  digest = "1:3dfd6345fc4ddb031d2569b615d5b93d3b6d1a6d1baa0c8d4258aaa8565760bf"
   name = "golang.org/x/sys"
-  packages = ["unix"]
+  packages = [
+    "unix",
+    "windows",
+  ]
   pruneopts = "NUT"
   revision = "a13efeb2fd213cf4be7227992aa54519af3b2ac0"
 

@@ -34,7 +34,6 @@ func NewClientRequest(
 		logger:       logger,
 	}
 }
-
 func (r ClientRequest) WithContext(contextId string) ClientRequest {
 	// returns a copy of the ClientRequest
 	r.contextId = contextId
@@ -235,7 +234,7 @@ func (r ClientRequest) readResponse(resp *http.Response, out io.Writer) ([]byte,
 
 	if not200 && not201 && not204 && not206 && not302 {
 		msg := "Director responded with non-successful status code '%d' response '%s'"
-		return respBody, resp, bosherr.Errorf(msg, resp.StatusCode, respBody)
+		return nil, resp, bosherr.Errorf(msg, resp.StatusCode, respBody)
 	}
 
 	if out != nil {

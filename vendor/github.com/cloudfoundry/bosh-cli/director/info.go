@@ -45,9 +45,6 @@ type Info struct {
 	Features map[string]bool
 
 	CPI string
-
-	StemcellOS      string
-	StemcellVersion string
 }
 
 type UserAuthentication struct {
@@ -66,9 +63,6 @@ type InfoResp struct {
 	Features map[string]InfoFeatureResp
 
 	CPI string
-
-	StemcellOS      string `json:"stemcell_os"`
-	StemcellVersion string `json:"stemcell_version"`
 }
 
 type InfoFeatureResp struct {
@@ -111,9 +105,7 @@ func (d DirectorImpl) Info() (Info, error) {
 
 		Features: map[string]bool{},
 
-		CPI:             r.CPI,
-		StemcellOS:      r.StemcellOS,
-		StemcellVersion: r.StemcellVersion,
+		CPI: r.CPI,
 	}
 
 	for k, featResp := range r.Features {

@@ -5,11 +5,11 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+
 	"time"
 
-	"github.com/cloudfoundry/bosh-utils/httpclient"
-
 	bosherr "github.com/cloudfoundry/bosh-utils/errors"
+	"github.com/cloudfoundry/bosh-utils/httpclient"
 	boshlog "github.com/cloudfoundry/bosh-utils/logger"
 )
 
@@ -25,14 +25,14 @@ func NewFactory(logger boshlog.Logger) Factory {
 	}
 }
 
-func (f Factory) New(factoryConfig FactoryConfig, taskReporter TaskReporter, fileReporter FileReporter) (Director, error) {
-	err := factoryConfig.Validate()
+func (f Factory) New(config FactoryConfig, taskReporter TaskReporter, fileReporter FileReporter) (Director, error) {
+	err := config.Validate()
 	if err != nil {
 		return DirectorImpl{}, bosherr.WrapErrorf(
 			err, "Validating Director connection config")
 	}
 
-	client, err := f.httpClient(factoryConfig, taskReporter, fileReporter)
+	client, err := f.httpClient(config, taskReporter, fileReporter)
 	if err != nil {
 		return DirectorImpl{}, err
 	}
@@ -40,8 +40,8 @@ func (f Factory) New(factoryConfig FactoryConfig, taskReporter TaskReporter, fil
 	return DirectorImpl{client: client}, nil
 }
 
-func (f Factory) httpClient(factoryConfig FactoryConfig, taskReporter TaskReporter, fileReporter FileReporter) (Client, error) {
-	certPool, err := factoryConfig.CACertPool()
+func (f Factory) httpClient(config FactoryConfig, taskReporter TaskReporter, fileReporter FileReporter) (Client, error) {
+	certPool, err := config.CACertPool()
 	if err != nil {
 		return Client{}, err
 	}
@@ -54,10 +54,7 @@ func (f Factory) httpClient(factoryConfig FactoryConfig, taskReporter TaskReport
 
 	rawClient := httpclient.CreateDefaultClient(certPool)
 	authAdjustment := NewAuthRequestAdjustment(
-		factoryConfig.TokenFunc,
-		factoryConfig.Client,
-		factoryConfig.ClientSecret,
-	)
+		config.TokenFunc, config.Client, config.ClientSecret)
 	rawClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
 		if len(via) > 10 {
 			return bosherr.Error("Too many redirects")
@@ -70,7 +67,7 @@ func (f Factory) httpClient(factoryConfig FactoryConfig, taskReporter TaskReport
 			return err
 		}
 
-		req.URL.Host = net.JoinHostPort(factoryConfig.Host, fmt.Sprintf("%d", factoryConfig.Port))
+		req.URL.Host = net.JoinHostPort(config.Host, fmt.Sprintf("%d", config.Port))
 
 		clearHeaders(req)
 		clearBody(req)
@@ -87,7 +84,7 @@ func (f Factory) httpClient(factoryConfig FactoryConfig, taskReporter TaskReport
 
 	endpoint := url.URL{
 		Scheme: "https",
-		Host:   net.JoinHostPort(factoryConfig.Host, fmt.Sprintf("%d", factoryConfig.Port)),
+		Host:   net.JoinHostPort(config.Host, fmt.Sprintf("%d", config.Port)),
 	}
 
 	return NewClient(endpoint.String(), httpClient, taskReporter, fileReporter, f.logger), nil

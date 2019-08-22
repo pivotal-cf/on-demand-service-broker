@@ -2,7 +2,6 @@ package director
 
 import (
 	"fmt"
-	"net/url"
 
 	bosherr "github.com/cloudfoundry/bosh-utils/errors"
 )
@@ -35,7 +34,7 @@ func (c Client) DeleteVM(cid string) error {
 		return bosherr.Error("Expected non-empty VM CID")
 	}
 
-	path := fmt.Sprintf("/vms/%s", url.PathEscape(cid))
+	path := fmt.Sprintf("/vms/%s", cid)
 
 	_, err := c.taskClientRequest.DeleteResult(path)
 	if err != nil {
