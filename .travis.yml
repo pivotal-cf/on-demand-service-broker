@@ -4,7 +4,8 @@ go:
  - "1.12"
 
 install:
-  - dep ensure
-  - go get -v github.com/onsi/ginkgo/ginkgo
+- go get -v github.com/golang/dep/cmd/dep
+- dep ensure
+- go get -v github.com/onsi/ginkgo/ginkgo
 
 script: ./scripts/run-tests.sh -race -failOnPending -skipPackage=contract_tests,system_tests
