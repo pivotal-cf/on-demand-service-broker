@@ -29,11 +29,14 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:bc8e726b0ac938981d62a7fdbc14aa9314e8af92c75d3858cb583e563d41802b"
+  digest = "1:ccf58b6ad5622a37b131c5673e58c2836d3ea0cbefb47c52d1dfef90b04d0f88"
   name = "code.cloudfoundry.org/lager"
-  packages = ["."]
+  packages = [
+    ".",
+    "internal/truncate",
+  ]
   pruneopts = "NUT"
-  revision = "0bfa98e49e7a976af91e918d47978f07c00b081f"
+  revision = "54c4f2530ddeb742ce9c9ee26f5fa758d6c1b3b6"
 
 [[projects]]
   digest = "1:69b95d47eef70cba62af2aa3d33bd5f9ffe9fa0be66d79d79150c38796c6eac1"
