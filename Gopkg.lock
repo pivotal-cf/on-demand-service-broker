@@ -210,6 +210,20 @@
   revision = "fc61389e27c71d120f87031ca8c88a3428f372dd"
 
 [[projects]]
+  digest = "1:41933d387bfa3eaa6a82647914ed7044f7b8355764c24fb920892bc8c03ef0c3"
+  name = "github.com/hpcloud/tail"
+  packages = [
+    ".",
+    "ratelimiter",
+    "util",
+    "watch",
+    "winfile",
+  ]
+  pruneopts = "NUT"
+  revision = "a30252cb686a21eb2d0b98132633053ec2f7f1e5"
+  version = "v1.0.0"
+
+[[projects]]
   branch = "master"
   digest = "1:502f9bbd100fbf4c61982f86f89a5de9da1cad97f2701fdb7724b3ac69d216e6"
   name = "github.com/mailru/easyjson"
@@ -256,7 +270,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:827eaa3505fb0ebc0137c7f5fcbc398675b92bf2b3ce1b459c6576f05c40e45a"
+  digest = "1:c1b6da1c26fab9c9a8b0ccbf68e94dbfbe7832b6f40c931ba679a9a637da3bcc"
   name = "github.com/onsi/ginkgo"
   packages = [
     ".",
@@ -280,7 +294,7 @@
     "types",
   ]
   pruneopts = "NUT"
-  revision = "ba8e856bb854d6771a72ddf6497a42dad3a0c971"
+  revision = "7e8b50db0c6d0a15ac0eb015d4ca64e7e7e2c88c"
 
 [[projects]]
   digest = "1:709674d2cbee855168d2112a450ac7f089cc484587251d4a1c3d993d93da3c86"
@@ -465,12 +479,29 @@
   revision = "88f656faf3f37f690df1a32515b479415e1a6769"
 
 [[projects]]
+  digest = "1:1b91ae0dc69a41d4c2ed23ea5cffb721ea63f5037ca4b81e6d6771fbb8f45129"
+  name = "gopkg.in/fsnotify.v1"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "c2828203cd70a50dcccfb2761f8b1f8ceef9a8e9"
+  source = "gopkg.in/fsnotify/fsnotify.v1"
+  version = "v1.4.7"
+
+[[projects]]
   digest = "1:0215407129c5f116ae8f6d3af64df59c39d3f606a72ef77a1e6ed874f92a8d9c"
   name = "gopkg.in/go-playground/validator.v8"
   packages = ["."]
   pruneopts = "NUT"
   revision = "5f1438d3fca68893a817e4a66806cea46a9e4ebf"
   version = "v8.18.2"
+
+[[projects]]
+  branch = "v1"
+  digest = "1:8fb1ccb16a6cfecbfdfeb84d8ea1cc7afa8f9ef16526bc2326f72d993e32cef1"
+  name = "gopkg.in/tomb.v1"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "dd632973f1e7218eb1089048e0798ec9ae7dceb8"
 
 [[projects]]
   branch = "v2"
