@@ -111,12 +111,11 @@
   version = "v2.1.0"
 
 [[projects]]
-  digest = "1:6422faebc7a4f3c8f58ff0af81002db6bd2f09204d6005611415163091947ad1"
+  digest = "1:59947b4e4884947608f78e6835925a276504e16439f3cb9198d13f3a35233ea3"
   name = "github.com/cloudfoundry/socks5-proxy"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "633b6fe4c3d8d72a4e7397a948027db02a8e2a96"
-  version = "v0.2.0"
+  revision = "3c6b4eec9c2d16c1dac4c42bdb5f755ba09daff8"
 
 [[projects]]
   branch = "master"
