@@ -358,12 +358,12 @@
   version = "v0.8.0"
 
 [[projects]]
-  digest = "1:bafdddf0e04f4d66c948468a03ecaf30e9cc894c2eed59a89cade22bc4364de8"
+  digest = "1:82d3ecba951974e9842e4f83defa94f7b6feb9b9ec5e07da474bac0954ffbe2e"
   name = "github.com/urfave/negroni"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "5dbbc83f748fc3ad38585842b0aedab546d0ea1e"
-  version = "v0.3.0"
+  revision = "c6a59be0ce122566695fbd5e48a77f8f10c8a63a"
+  version = "v1.0.0"
 
 [[projects]]
   digest = "1:0dbc6fba2dc1190b37bd69a44a8f898221e5ea5d41942b7b50a4f2c32b928462"
