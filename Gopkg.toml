@@ -87,7 +87,7 @@
 
 [[override]]
   name = "github.com/cheggaaa/pb"
-  version = "=1.0.18"
+  version = ">= 1.0.18, < 4.0.0"
 
 [[constraint]]
   branch = "master"

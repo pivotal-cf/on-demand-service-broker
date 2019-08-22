@@ -52,12 +52,12 @@
   revision = "7dc373669fa10ddf827c37c595dee30a2f001be9"
 
 [[projects]]
-  digest = "1:68fea71eed1b7fd133d7badfc595ac4686df601a64355df7edc91de4fabd1bfc"
+  digest = "1:4dfaa72910b71c63c85fa5ced3a8fb59a6255c8e8ccdc00b79b49b8818ff58a3"
   name = "github.com/cheggaaa/pb"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "657164d0228d6bebe316fdf725c69f131a50fb10"
-  version = "v1.0.18"
+  revision = "40231cf7fa00b7c9098939b6a9e6f54f4b3ce020"
+  version = "v3.0.1"
 
 [[projects]]
   digest = "1:e9ccf090649915d54e0d11a1cfd3918b8d35303b10a2ad67705afa73ea0659c5"
