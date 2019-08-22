@@ -471,7 +471,7 @@ var _ = Describe("Bind", func() {
 			_, bindErr = b.Bind(context.Background(), instanceID, bindingID, bindRequest, false)
 			Expect(bindErr).To(HaveOccurred())
 			Expect(bindErr.Error()).To(ContainSubstring(
-				"not-a-param: Additional property not-a-param is not allowed",
+				"Additional property not-a-param is not allowed",
 			))
 
 			actualErr := bindErr.(*apiresponses.FailureResponse)
@@ -480,7 +480,7 @@ var _ = Describe("Bind", func() {
 			response := actualErr.ErrorResponse()
 			Expect(response).To(BeAssignableToTypeOf(apiresponses.ErrorResponse{}))
 			errorResponse := response.(apiresponses.ErrorResponse)
-			Expect(errorResponse.Description).To(ContainSubstring("not-a-param: Additional property not-a-param is not allowed"))
+			Expect(errorResponse.Description).To(ContainSubstring("Additional property not-a-param is not allowed"))
 		})
 
 		It("returns an error if the generated schema is not valid", func() {

@@ -434,7 +434,7 @@ var _ = Describe("Update", func() {
 
 					It("requests the json schemas from the service adapter", func() {
 						Expect(updateError).To(HaveOccurred())
-						Expect(updateError.Error()).To(ContainSubstring("this-is: Additional property this-is is not allowed"))
+						Expect(updateError.Error()).To(ContainSubstring("Additional property this-is is not allowed"))
 
 						actualErr := updateError.(*apiresponses.FailureResponse)
 						Expect(actualErr.ValidatedStatusCode(nil)).To(Equal(http.StatusBadRequest))
@@ -442,7 +442,7 @@ var _ = Describe("Update", func() {
 						response := actualErr.ErrorResponse()
 						Expect(response).To(BeAssignableToTypeOf(apiresponses.ErrorResponse{}))
 						errorResponse := response.(apiresponses.ErrorResponse)
-						Expect(errorResponse.Description).To(ContainSubstring("this-is: Additional property this-is is not allowed"))
+						Expect(errorResponse.Description).To(ContainSubstring("Additional property this-is is not allowed"))
 					})
 				})
 
@@ -457,7 +457,7 @@ var _ = Describe("Update", func() {
 
 					It("requests the json schemas from the service adapter", func() {
 						Expect(updateError).To(HaveOccurred())
-						Expect(updateError.Error()).To(ContainSubstring("auto_create_topic: Additional property auto_create_topic is not allowed"))
+						Expect(updateError.Error()).To(ContainSubstring("Additional property auto_create_topic is not allowed"))
 
 						actualErr := updateError.(*apiresponses.FailureResponse)
 						Expect(actualErr.ValidatedStatusCode(nil)).To(Equal(http.StatusBadRequest))
@@ -465,7 +465,7 @@ var _ = Describe("Update", func() {
 						response := actualErr.ErrorResponse()
 						Expect(response).To(BeAssignableToTypeOf(apiresponses.ErrorResponse{}))
 						errorResponse := response.(apiresponses.ErrorResponse)
-						Expect(errorResponse.Description).To(ContainSubstring("auto_create_topic: Additional property auto_create_topic is not allowed"))
+						Expect(errorResponse.Description).To(ContainSubstring("Additional property auto_create_topic is not allowed"))
 					})
 				})
 
