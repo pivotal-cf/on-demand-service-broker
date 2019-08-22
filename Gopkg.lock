@@ -78,7 +78,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:bcaa2381e43fa6ad89ec76d5c1066dd76c4cd572cdea9a17f37515f97550245d"
+  digest = "1:c4ecc8a3c2732a93ec1642c315739f4053a5e996c7089e848cb4cfb39911e848"
   name = "github.com/cloudfoundry/bosh-utils"
   packages = [
     "crypto",
@@ -90,7 +90,7 @@
     "uuid",
   ]
   pruneopts = "NUT"
-  revision = "15c556314b68953d0449541ded010b033767c805"
+  revision = "701ecef9262dd61cda41a511781e9b49a426241b"
 
 [[projects]]
   branch = "master"
