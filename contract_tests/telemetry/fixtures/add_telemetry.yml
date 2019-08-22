@@ -20,9 +20,6 @@
     provides:
       telemetry-centralizer-address:
         as: my-custom-telemetry-centralizer-address
-    custom_provider_definitions:
-      - name: telemetry-centralizer-address
-        type: address
     properties:
       flush_interval: 60
       tls:
