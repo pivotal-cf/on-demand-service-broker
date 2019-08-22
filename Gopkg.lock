@@ -123,7 +123,7 @@
   name = "github.com/cloudfoundry/sonde-go"
   packages = ["events"]
   pruneopts = "NUT"
-  revision = "bb123910ff45b9b3a3090a9b18302f3c8fda5e8b"
+  revision = "b33733203bb48d7c56de7cb639d77f78b0449d19"
 
 [[projects]]
   digest = "1:0ef770954bca104ee99b3b6b7f9b240605ac03517d9f98cbc1893daa03f3c038"
