@@ -120,16 +120,18 @@ var _ = Describe("Checker", func() {
 				Public: map[string]string{
 					"edition": "gold millennium",
 				},
-				Private: "test",
-				Version: "1.2.3",
+				Private:     "test",
+				Version:     "1.2.3",
+				Description: "best release ever",
 			}
 
 			maintenanceInfo := &domain.MaintenanceInfo{
 				Public: map[string]string{
 					"edition": "gold millennium",
 				},
-				Private: "test",
-				Version: "1.2.3",
+				Private:     "test",
+				Version:     "1.2.3",
+				Description: "best release ever",
 			}
 
 			checker := maintenanceinfo.Checker{}
@@ -144,16 +146,18 @@ var _ = Describe("Checker", func() {
 				Public: map[string]string{
 					"edition": "gold millennium",
 				},
-				Private: "test",
-				Version: "1.2.3",
+				Private:     "test",
+				Version:     "1.2.3",
+				Description: "amazing",
 			}
 
 			maintenanceInfo := domain.MaintenanceInfo{
 				Public: map[string]string{
 					"edition": "NEXT millennium",
 				},
-				Private: "test",
-				Version: "1.2.3-rc3",
+				Private:     "test",
+				Version:     "1.2.3-rc3",
+				Description: "meh",
 			}
 
 			checker := maintenanceinfo.Checker{}

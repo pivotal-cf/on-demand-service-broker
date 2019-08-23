@@ -416,38 +416,10 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 			cfApi.Close()
 		})
 
-		When("there is an upgrade available", func() {
-			BeforeEach(func() {
-				cfServiceHandler := new(FakeHandler)
-				cfApi.RouteToHandler(http.MethodGet, regexp.MustCompile(`/v2/service_instances/.*`), ghttp.CombineHandlers(
-					cfServiceHandler.Handle,
-				))
-				serviceResponse := `{
-					"entity": {
-						"last_operation": { "type": "update", "state": "succeeded" },
-						"maintenance_info": { "version": "0.29.0" }
-					}
-				}`
-				cfServiceHandler.RespondsWith(http.StatusOK, serviceResponse)
-			})
-
-			It("exits successfully and upgrades the instance", func() {
-				runningTool := startUpgradeAllInstanceBinary(errandConfig)
-
-				Eventually(runningTool, 5*time.Second).Should(gexec.Exit(0))
-				Expect(runningTool).To(gbytes.Say("Sleep interval until next attempt: 2s"))
-				Expect(runningTool).To(gbytes.Say(`\[upgrade\-all\] FINISHED PROCESSING Status: SUCCESS`))
-				Expect(runningTool).To(gbytes.Say("Number of successful operations: 1"))
-				Expect(runningTool).To(gbytes.Say("Number of skipped operations: 0"))
-
-				Expect(cfUpgradeHandler.GetRequestForCall(0).Body).To(MatchJSON(`{"maintenance_info": {"version": "0.31.0"}}`))
-			})
-		})
-
 		When("upgrade is not available because it is up to date", func() {
 			BeforeEach(func() {
 				cfServiceHandler := new(FakeHandler)
-				cfApi.RouteToHandler(http.MethodGet, regexp.MustCompile(`/v2/service_instances/.*`), ghttp.CombineHandlers(
+				cfApi.RouteToHandler(http.MethodPut, regexp.MustCompile(`/v2/service_instances/.*`), ghttp.CombineHandlers(
 					cfServiceHandler.Handle,
 				))
 				serviceResponse := `{
@@ -456,7 +428,7 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 						"maintenance_info": { "version": "0.31.0" }
 					}
 				}`
-				cfServiceHandler.RespondsWith(http.StatusOK, serviceResponse)
+				cfServiceHandler.RespondsWith(http.StatusCreated, serviceResponse)
 			})
 
 			It("skips an instance upgrade when it is already up to date", func() {

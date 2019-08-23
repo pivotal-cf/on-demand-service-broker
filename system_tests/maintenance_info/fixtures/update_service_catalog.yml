@@ -34,6 +34,7 @@
           name: dolores
           vm_type: small
         version: 8.0.0+git
+        description: plan description
 
     - name: redis-plan-2
       plan_id: ((plan_id))-2

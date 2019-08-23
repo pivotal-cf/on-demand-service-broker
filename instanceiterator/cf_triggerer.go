@@ -37,23 +37,12 @@ func (t *CFTriggerer) TriggerOperation(instance service.Instance) (TriggeredOper
 		return TriggeredOperation{}, errors.Wrapf(err, "failed to trigger operation for instance %q", instance.GUID)
 	}
 
-	instanceDetails, err := t.cfClient.GetServiceInstance(instance.GUID, t.logger)
-	if err != nil {
-		return TriggeredOperation{}, errors.Wrapf(err, "failed to get service instance %q", instance.GUID)
-	}
-
-	if instanceDetails.Entity.MaintenanceInfo.Version == servicePlan.ServicePlanEntity.MaintenanceInfo.Version {
-		return TriggeredOperation{
-			State: OperationSkipped,
-		}, nil
-	}
-
 	lastOperation, err := t.cfClient.UpgradeServiceInstance(instance.GUID, servicePlan.ServicePlanEntity.MaintenanceInfo, t.logger)
 	if err != nil {
 		return TriggeredOperation{}, errors.Wrapf(err, "failed to trigger operation for instance %q", instance.GUID)
 	}
 
-	return translateUpgradeResponse(lastOperation), nil
+	return t.translateTriggerResponse(lastOperation), nil
 }
 
 func (t *CFTriggerer) Check(serviceInstanceGUID string, operationData broker.OperationData) (TriggeredOperation, error) {
@@ -62,10 +51,10 @@ func (t *CFTriggerer) Check(serviceInstanceGUID string, operationData broker.Ope
 		return TriggeredOperation{}, errors.Wrapf(err, "failed to check operation for instance %q", serviceInstanceGUID)
 	}
 
-	return translateUpgradeResponse(lastOperation), nil
+	return t.translateCheckResponse(lastOperation), nil
 }
 
-func translateUpgradeResponse(lastOperation cf.LastOperation) TriggeredOperation {
+func (t *CFTriggerer) translateCheckResponse(lastOperation cf.LastOperation) TriggeredOperation {
 	var operationState OperationState
 	switch lastOperation.State {
 	case cf.OperationStateSucceeded:
@@ -77,5 +66,14 @@ func translateUpgradeResponse(lastOperation cf.LastOperation) TriggeredOperation
 	}
 	return TriggeredOperation{
 		State: operationState,
+	}
+}
+
+func (t *CFTriggerer) translateTriggerResponse(lastOperation cf.LastOperation) TriggeredOperation {
+	switch lastOperation.State {
+	case cf.OperationStateSucceeded:
+		return TriggeredOperation{State: OperationSkipped}
+	default:
+		return t.translateCheckResponse(lastOperation)
 	}
 }

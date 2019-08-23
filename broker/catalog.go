@@ -108,12 +108,14 @@ func (b *Broker) generateMaintenanceInfo(plan config.Plan) *domain.MaintenanceIn
 	var maintenanceInfo *domain.MaintenanceInfo
 	mergedPublic, mergedPrivate := mergeMaintenanceInfo(b.serviceOffering.MaintenanceInfo, plan.MaintenanceInfo)
 	version := getMaintenanceInfoVersion(b.serviceOffering.MaintenanceInfo, plan.MaintenanceInfo)
+	description := getMaintenanceInfoDescription(b.serviceOffering.MaintenanceInfo, plan.MaintenanceInfo)
 
 	if mergedPublic != nil || mergedPrivate != nil || version != "" {
 		maintenanceInfo = &domain.MaintenanceInfo{
-			Public:  mergedPublic,
-			Private: b.hasher.Hash(mergedPrivate),
-			Version: version,
+			Public:      mergedPublic,
+			Private:     b.hasher.Hash(mergedPrivate),
+			Version:     version,
+			Description: description,
 		}
 	}
 	return maintenanceInfo
@@ -181,6 +183,18 @@ func getMaintenanceInfoVersion(globalInfo *config.MaintenanceInfo, planInfo *con
 
 	if globalInfo != nil {
 		return globalInfo.Version
+	}
+
+	return ""
+}
+
+func getMaintenanceInfoDescription(globalInfo *config.MaintenanceInfo, planInfo *config.MaintenanceInfo) string {
+	if planInfo != nil && planInfo.Description != "" {
+		return planInfo.Description
+	}
+
+	if globalInfo != nil {
+		return globalInfo.Description
 	}
 
 	return ""

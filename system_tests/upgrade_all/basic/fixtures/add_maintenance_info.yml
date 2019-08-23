@@ -1,4 +1,6 @@
 ---
 - type: replace
-  path: /instance_groups/name=broker/jobs/name=broker/properties/service_catalog/maintenance_info?/version?
-  value: ((version))
+  path: /instance_groups/name=broker/jobs/name=broker/properties/service_catalog/maintenance_info?
+  value:
+    version: ((version))
+    description: This is an amazing broker! Version ((version))

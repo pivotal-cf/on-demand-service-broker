@@ -47,7 +47,7 @@ func (t *BOSHTriggerer) TriggerOperation(instance service.Instance) (TriggeredOp
 				err,
 			)
 	}
-	return translateTriggerResponse(operation), nil
+	return t.translateTriggerResponse(operation), nil
 }
 
 func (t *BOSHTriggerer) Check(serviceInstanceGUID string, operationData broker.OperationData) (TriggeredOperation, error) {
@@ -56,10 +56,10 @@ func (t *BOSHTriggerer) Check(serviceInstanceGUID string, operationData broker.O
 		return TriggeredOperation{}, fmt.Errorf("error getting last operation: %s", err)
 	}
 
-	return translateCheckResponse(lastOperation, operationData)
+	return t.translateCheckResponse(lastOperation, operationData)
 }
 
-func translateCheckResponse(lastOperation domain.LastOperation, operationData broker.OperationData) (TriggeredOperation, error) {
+func (t *BOSHTriggerer) translateCheckResponse(lastOperation domain.LastOperation, operationData broker.OperationData) (TriggeredOperation, error) {
 	var operationState OperationState
 	switch lastOperation.State {
 	case domain.Failed:
@@ -79,13 +79,11 @@ func translateCheckResponse(lastOperation domain.LastOperation, operationData br
 	}, nil
 }
 
-func translateTriggerResponse(boshOperation services.BOSHOperation) TriggeredOperation {
+func (t *BOSHTriggerer) translateTriggerResponse(boshOperation services.BOSHOperation) TriggeredOperation {
 	var operationState OperationState
 	switch boshOperation.Type {
 	case services.OperationAccepted:
 		operationState = OperationAccepted
-	case services.OperationSucceeded:
-		operationState = OperationSucceeded
 	case services.OperationSkipped:
 		operationState = OperationSkipped
 	case services.OperationFailed:

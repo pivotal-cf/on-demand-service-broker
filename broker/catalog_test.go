@@ -244,7 +244,8 @@ var _ = Describe("Catalog", func() {
 					"secret":      "globalvalue",
 					"otherglobal": "othervalue",
 				},
-				Version: "8.0.0+global",
+				Version:     "8.0.0+global",
+				Description: "Some global description",
 			},
 			Plans: []config.Plan{
 				{
@@ -257,7 +258,8 @@ var _ = Describe("Catalog", func() {
 						Private: map[string]string{
 							"secret": "planvalue",
 						},
-						Version: "1.2.3+test",
+						Version:     "1.2.3+test",
+						Description: "Some plan description",
 					},
 				}, {
 					ID: "2",
@@ -285,6 +287,8 @@ var _ = Describe("Catalog", func() {
 
 		Expect(catalog[0].Plans[0].MaintenanceInfo.Version).To(Equal("1.2.3+test"))
 
+		Expect(catalog[0].Plans[0].MaintenanceInfo.Description).To(Equal("Some plan description"))
+
 		Expect(catalog[0].Plans[1].MaintenanceInfo.Public).To(SatisfyAll(
 			HaveKeyWithValue("name", "yuliana"),
 			HaveKeyWithValue("vm_type", "small"),
@@ -296,6 +300,9 @@ var _ = Describe("Catalog", func() {
 		))
 
 		Expect(catalog[0].Plans[1].MaintenanceInfo.Version).To(Equal("8.0.0+global"))
+
+		Expect(catalog[0].Plans[1].MaintenanceInfo.Description).To(Equal("Some global description"))
+
 	})
 
 	It("for each plan, calls the adapter to generate the plan schemas", func() {

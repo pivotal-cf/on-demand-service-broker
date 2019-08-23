@@ -175,6 +175,16 @@ var _ = Describe("Logging Listener", func() {
 			})
 		})
 
+		Context("when succeeded", func() {
+			BeforeEach(func() {
+				result = instanceiterator.OperationSucceeded
+			})
+
+			It("shows already skipped from platform", func() {
+				Expect(loggedString).To(ContainSubstring("[%s] [service-instance] Result: instance already up to date - operation skipped", logPrefix))
+			})
+		})
+
 		Context("when error", func() {
 			BeforeEach(func() {
 				result = instanceiterator.OperationState(-1)

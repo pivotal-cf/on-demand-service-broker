@@ -77,7 +77,7 @@ var _ = Describe("CfTriggerer", func() {
 			Expect(triggeredOperation.State).To(Equal(instanceiterator.OperationFailed))
 		})
 
-		It("should return operation type succeeded when CF responds with state succeeded", func() {
+		It("should return operation type skipped when CF responds with state succeeded", func() {
 			fakeCFClient.UpgradeServiceInstanceReturns(cf.LastOperation{
 				Type:  cf.OperationType("update"),
 				State: cf.OperationStateSucceeded,
@@ -96,7 +96,7 @@ var _ = Describe("CfTriggerer", func() {
 			_, actualMaintenanceInfo, _ := fakeCFClient.UpgradeServiceInstanceArgsForCall(0)
 			Expect(actualMaintenanceInfo).To(Equal(expectedMaintenanceInfo))
 
-			Expect(triggeredOperation.State).To(Equal(instanceiterator.OperationSucceeded))
+			Expect(triggeredOperation.State).To(Equal(instanceiterator.OperationSkipped))
 		})
 
 		It("should return an error when the CF client cannot get plan by unique ID", func() {
@@ -123,19 +123,6 @@ var _ = Describe("CfTriggerer", func() {
 
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("failed to upgrade instance"))
-		})
-
-		It("should return an error when the CF client cannot get the service instance", func() {
-			fakeCFClient.GetServiceInstanceReturns(cf.ServiceInstanceResource{}, errors.New("failed to get service instance"))
-			cfTriggerer := instanceiterator.NewCFTrigger(fakeCFClient, new(log.Logger))
-
-			_, err := cfTriggerer.TriggerOperation(service.Instance{
-				GUID:         "service-instance-id",
-				PlanUniqueID: "plan-id",
-			})
-
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("failed to get service instance"))
 		})
 	})
 

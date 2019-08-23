@@ -81,7 +81,7 @@ func (ll LoggingListener) InstanceOperationStartResult(instance string, status O
 		message = "orphan service instance detected - no corresponding bosh deployment"
 	case OperationInProgress:
 		message = "operation in progress"
-	case OperationSkipped:
+	case OperationSkipped, OperationSucceeded:
 		message = "instance already up to date - operation skipped"
 	default:
 		message = "unexpected result"

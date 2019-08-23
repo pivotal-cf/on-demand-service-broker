@@ -66,13 +66,18 @@ var _ = Describe("On-demand-broker with maintenance_info", func() {
 	})
 
 	It("supports the lifecycle of a service instance", func() {
-		maintenanceInfo := serviceCatalog.Services[0].Plans[0].MaintenanceInfo
+		maintenanceInfoWithPlanSpecifics := serviceCatalog.Services[0].Plans[0].MaintenanceInfo
+		maintenanceInfoUsingGlobalDef := serviceCatalog.Services[0].Plans[1].MaintenanceInfo
 		By("having maintenance info set in the catalog", func() {
-			Expect(maintenanceInfo).ToNot(BeNil())
-			Expect(len(maintenanceInfo.Public)).ToNot(BeZero(), "maintenance_info.public should not be nil or empty")
-			Expect(maintenanceInfo.Private).ToNot(BeZero(), "maintenance_info.private should not be nil or empty")
-			Expect(maintenanceInfo.Version).ToNot(BeZero(), "maintenance_info.version should not be nil or empty")
-			Expect(maintenanceInfo.Description).ToNot(BeEmpty(), "maintenance_info.version should not be nil or empty")
+			Expect(maintenanceInfoWithPlanSpecifics).ToNot(BeNil())
+			Expect(len(maintenanceInfoWithPlanSpecifics.Public)).ToNot(BeZero(), "maintenance_info.public should not be nil or empty")
+			Expect(maintenanceInfoWithPlanSpecifics.Private).ToNot(BeZero(), "maintenance_info.private should not be nil or empty")
+
+			Expect(maintenanceInfoUsingGlobalDef.Version).To(Equal("7.8.8+test.123"), "maintenance_info.version does not match")
+			Expect(maintenanceInfoUsingGlobalDef.Description).To(Equal("bumped stemcell and rotated cert"), "maintenance_info.description does not match")
+
+			Expect(maintenanceInfoWithPlanSpecifics.Version).To(Equal("8.0.0+git"), "maintenance_info.version does not match")
+			Expect(maintenanceInfoWithPlanSpecifics.Description).To(Equal("plan description"), "maintenance_info.description does not match")
 		})
 
 		By("provisioning a service instance with correct maintenance_info", func() {
@@ -82,7 +87,7 @@ var _ = Describe("On-demand-broker with maintenance_info", func() {
 				PlanID:           planID,
 				OrganizationGUID: "orgId",
 				SpaceGUID:        "space",
-				MaintenanceInfo:  *maintenanceInfo,
+				MaintenanceInfo:  *maintenanceInfoWithPlanSpecifics,
 			}
 			resp, bodyContent := doRequest(http.MethodPut, url, provisionDetails)
 
@@ -104,13 +109,18 @@ var _ = Describe("On-demand-broker with maintenance_info", func() {
 					"add_lifecycle_errand.yml",
 					"update_maintenance_info.yml"},
 			)
-			newMaintenanceInfo := retrieveCatalog().Services[0].Plans[0].MaintenanceInfo
+			newPlanSpecificMaintenanceInfo := retrieveCatalog().Services[0].Plans[0].MaintenanceInfo
 			updateBody := UpdateBody{
 				ServiceID:       serviceID,
-				MaintenanceInfo: *newMaintenanceInfo,
+				MaintenanceInfo: *newPlanSpecificMaintenanceInfo,
 				PreviousValues:  domain.PreviousValues{PlanID: planID},
 				PlanID:          planID,
 			}
+
+			Expect(len(newPlanSpecificMaintenanceInfo.Public)).ToNot(BeZero(), "maintenance_info.public should not be nil or empty")
+			Expect(newPlanSpecificMaintenanceInfo.Private).ToNot(BeZero(), "maintenance_info.private should not be nil or empty")
+			Expect(newPlanSpecificMaintenanceInfo.Version).To(Equal("7.8.8-beta"), "maintenance_info.version does not match")
+			Expect(newPlanSpecificMaintenanceInfo.Description).To(Equal("rotated creds"), "maintenance_info.description does not match")
 
 			By("accepting the upgrade request", func() {
 				url := fmt.Sprintf("http://%s/v2/service_instances/%s?accepts_incomplete=true", brokerInfo.URI, serviceInstanceGUID)
