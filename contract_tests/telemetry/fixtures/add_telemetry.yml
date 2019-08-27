@@ -26,6 +26,8 @@
         ca_cert: ((telemetry-ca-cert.certificate))
         cert: ((telemetry-centralizer-cert.certificate))
         private_key: ((telemetry-centralizer-cert.private_key))
+        agent_cert: ((telemetry-agent-cert.certificate))
+        agent_private_key: ((telemetry-agent-cert.private_key))
       telemetry:
         endpoint: "http://not-the-real-endpoint"
         api_key: "not-a-good-api-key"
