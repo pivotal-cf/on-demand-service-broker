@@ -70,7 +70,7 @@ var _ = Describe("upgrade-all-service-instances errand, basic operation", func()
 			Expect(session).To(gbytes.Say("FINISHED PROCESSING Status: SUCCESS"))
 		})
 
-		FContext("upgrading some instances in series", func() {
+		Context("upgrading some instances in series", func() {
 			var appDetailsList []upgrade_all.AppDetails
 
 			AfterEach(func() {
