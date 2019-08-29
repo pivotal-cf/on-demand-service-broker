@@ -39,6 +39,14 @@
   revision = "54c4f2530ddeb742ce9c9ee26f5fa758d6c1b3b6"
 
 [[projects]]
+  digest = "1:45c41cd27a8d986998680bfc86da0bbff5fa4f90d0f446c00636c8b099028ffe"
+  name = "github.com/blang/semver"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "ba2c2ddd89069b46a7011d4106f6868f17ee1705"
+  version = "v3.6.1"
+
+[[projects]]
   digest = "1:69b95d47eef70cba62af2aa3d33bd5f9ffe9fa0be66d79d79150c38796c6eac1"
   name = "github.com/bmatcuk/doublestar"
   packages = ["."]
@@ -128,14 +136,6 @@
   packages = ["events"]
   pruneopts = "NUT"
   revision = "b33733203bb48d7c56de7cb639d77f78b0449d19"
-
-[[projects]]
-  digest = "1:05ffeeed3f0f05520de0679f6aa3219ffee69cfd6d9fb6c194879d4c818ad670"
-  name = "github.com/coreos/go-semver"
-  packages = ["semver"]
-  pruneopts = "NUT"
-  revision = "e214231b295a8ea9479f11b70b35d5acf3556d9b"
-  version = "v0.3.0"
 
 [[projects]]
   branch = "master"
@@ -533,13 +533,13 @@
     "code.cloudfoundry.org/credhub-cli/credhub/credentials/values",
     "code.cloudfoundry.org/credhub-cli/credhub/permissions",
     "code.cloudfoundry.org/lager",
+    "github.com/blang/semver",
     "github.com/cloudfoundry/bosh-cli/director",
     "github.com/cloudfoundry/bosh-cli/uaa",
     "github.com/cloudfoundry/bosh-utils/httpclient",
     "github.com/cloudfoundry/bosh-utils/logger",
     "github.com/cloudfoundry/noaa/consumer",
     "github.com/cloudfoundry/sonde-go/events",
-    "github.com/coreos/go-semver/semver",
     "github.com/craigfurman/herottp",
     "github.com/gorilla/mux",
     "github.com/onsi/ginkgo",

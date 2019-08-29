@@ -19,7 +19,6 @@ import (
 	"log"
 	"time"
 
-	"github.com/coreos/go-semver/semver"
 	"github.com/pivotal-cf/on-demand-service-broker/instanceiterator"
 	"github.com/pivotal-cf/on-demand-service-broker/instanceiterator/fakes"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
@@ -232,7 +231,7 @@ var _ = Describe("Builder", func() {
 			})
 
 			It("sets the triggerer to CF triggerer when CF single instance upgrade is possible", func() {
-				fakeCfClient.GetOSBAPIVersionReturns(semver.New("2.15.0"))
+				fakeCfClient.CheckMinimumOSBAPIVersionReturns(true)
 
 				builder, err := instanceiterator.NewBuilder(conf, logger, logPrefix)
 				Expect(err).NotTo(HaveOccurred())
@@ -242,23 +241,15 @@ var _ = Describe("Builder", func() {
 				Expect(builder.Triggerer).ToNot(BeNil())
 
 				Expect(builder.Triggerer).To(BeAssignableToTypeOf(new(instanceiterator.CFTriggerer)))
+
+				Expect(fakeCfClient.CheckMinimumOSBAPIVersionCallCount()).To(Equal(1))
+				min, _ := fakeCfClient.CheckMinimumOSBAPIVersionArgsForCall(0)
+				Expect(min).To(Equal("2.15"))
 			})
 
 			When("CF single instance upgrade is not possible", func() {
 				It("sets the triggerer to Broker triggerer when OSBAPI version is < 2.15", func() {
-					fakeCfClient.GetOSBAPIVersionReturns(semver.New("2.14.0"))
-					builder, err := instanceiterator.NewBuilder(conf, logger, logPrefix)
-					Expect(err).NotTo(HaveOccurred())
-
-					err = builder.SetUpgradeTriggerer(fakeCfClient, false, logger)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(builder.Triggerer).ToNot(BeNil())
-
-					Expect(builder.Triggerer).To(BeAssignableToTypeOf(new(instanceiterator.BOSHTriggerer)))
-				})
-
-				It("sets the triggerer to Broker triggerer when getting OSBAPI version returns nil", func() {
-					fakeCfClient.GetOSBAPIVersionReturns(nil)
+					fakeCfClient.CheckMinimumOSBAPIVersionReturns(false)
 					builder, err := instanceiterator.NewBuilder(conf, logger, logPrefix)
 					Expect(err).NotTo(HaveOccurred())
 
@@ -270,7 +261,7 @@ var _ = Describe("Builder", func() {
 				})
 
 				It("sets the triggerer to Broker triggerer when maintenance_info is not set", func() {
-					fakeCfClient.GetOSBAPIVersionReturns(semver.New("2.15.0"))
+					fakeCfClient.CheckMinimumOSBAPIVersionReturns(true)
 
 					builder, err := instanceiterator.NewBuilder(conf, logger, logPrefix)
 					Expect(err).NotTo(HaveOccurred())
@@ -283,7 +274,7 @@ var _ = Describe("Builder", func() {
 				})
 
 				It("returns an error when Broker Services is not properly initialised", func() {
-					fakeCfClient.GetOSBAPIVersionReturns(semver.New("2.15.0"))
+					fakeCfClient.CheckMinimumOSBAPIVersionReturns(true)
 					builder := new(instanceiterator.Builder)
 
 					err := builder.SetUpgradeTriggerer(fakeCfClient, false, logger)

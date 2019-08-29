@@ -3,7 +3,6 @@ package instanceiterator
 import (
 	"log"
 
-	"github.com/coreos/go-semver/semver"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/service"
@@ -12,7 +11,7 @@ import (
 
 //go:generate counterfeiter -o fakes/fake_cf_client.go . CFClient
 type CFClient interface {
-	GetOSBAPIVersion(logger *log.Logger) *semver.Version
+	CheckMinimumOSBAPIVersion(minimum string, logger *log.Logger) bool
 	GetServiceInstance(serviceInstanceGUID string, logger *log.Logger) (cf.ServiceInstanceResource, error)
 	UpgradeServiceInstance(serviceInstanceGUID string, maintenanceInfo cf.MaintenanceInfo, logger *log.Logger) (cf.LastOperation, error)
 	GetLastOperationForInstance(serviceInstanceGUID string, logger *log.Logger) (cf.LastOperation, error)

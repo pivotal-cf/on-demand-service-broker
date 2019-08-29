@@ -9,20 +9,21 @@ package cf_test
 import (
 	"errors"
 	"fmt"
-	"github.com/coreos/go-semver/semver"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/gbytes"
-	"github.com/pivotal-cf/on-demand-service-broker/cf"
-	"github.com/pivotal-cf/on-demand-service-broker/cf/fakes"
-	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
-	"github.com/pivotal-cf/on-demand-service-broker/mockhttp/mockcfapi"
 	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"path"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
+	"github.com/pivotal-cf/on-demand-service-broker/cf"
+	"github.com/pivotal-cf/on-demand-service-broker/cf/fakes"
+	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
+	"github.com/pivotal-cf/on-demand-service-broker/mockhttp/mockcfapi"
 )
 
 var _ = Describe("Client", func() {
@@ -1784,52 +1785,69 @@ var _ = Describe("Client", func() {
 		})
 	})
 
-	Describe("GetOSBAPIVersion", func() {
-		It("gets OSBAPI version", func() {
-			server.VerifyAndMock(
-				mockcfapi.GetInfo().RespondsOKWith(`{"osbapi_version": "1.2.3"}`),
-			)
-			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
-			Expect(err).NotTo(HaveOccurred())
+	Describe("CheckMinimumOSBAPIVersion", func() {
+		When("the specified minimum version is invalid", func() {
+			It("logs an error and returns false", func() {
+				client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
+				Expect(err).NotTo(HaveOccurred())
 
-			Expect(client.GetOSBAPIVersion(testLogger)).To(Equal(semver.New("1.2.3")))
+				Expect(client.CheckMinimumOSBAPIVersion("", testLogger)).To(BeFalse())
+				Expect(logBuffer).To(gbytes.Say("error parsing specified OSBAPI version '' to semver:"))
+
+				Expect(client.CheckMinimumOSBAPIVersion("not-semver", testLogger)).To(BeFalse())
+				Expect(logBuffer).To(gbytes.Say("error parsing specified OSBAPI version 'not-semver' to semver:"))
+			})
 		})
 
-		It("converts a non-semver OSBAPI version to semver", func() {
-			server.VerifyAndMock(
-				mockcfapi.GetInfo().RespondsOKWith(`{"osbapi_version": "1.2"}`),
-			)
-			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
-			Expect(err).NotTo(HaveOccurred())
+		When("the API returns an error", func() {
+			It("logs an error and returns false", func() {
+				server.VerifyAndMock(
+					mockcfapi.GetInfo().RespondsInternalServerErrorWith(""),
+				)
 
-			Expect(client.GetOSBAPIVersion(testLogger)).To(Equal(semver.New("1.2.0")))
+				client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(client.CheckMinimumOSBAPIVersion("1.2.3", testLogger)).To(BeFalse())
+				Expect(logBuffer).To(gbytes.Say("error requesting OSBAPI version: Unexpected reponse status 500"))
+			})
 		})
 
-		It("returns nil when OSBAPI version is only one number", func() {
-			server.VerifyAndMock(
-				mockcfapi.GetInfo().RespondsOKWith(`{"osbapi_version": "1"}`),
-			)
-			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
-			Expect(err).NotTo(HaveOccurred())
+		When("the API returns an invalid version", func() {
+			It("logs an error and returns false", func() {
+				server.VerifyAndMock(
+					mockcfapi.GetInfo().RespondsOKWith(`{"osbapi_version": "nonsemver"}`),
+				)
 
-			result := client.GetOSBAPIVersion(testLogger)
+				client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
+				Expect(err).NotTo(HaveOccurred())
 
-			Expect(logBuffer).To(gbytes.Say(`error converting OSBAPI version "1" to semver.`))
-			Expect(result).To(BeNil())
+				Expect(client.CheckMinimumOSBAPIVersion("1.2.3", testLogger)).To(BeFalse())
+				Expect(logBuffer).To(gbytes.Say("error parsing discovered OSBAPI version 'nonsemver' to semver:"))
+			})
 		})
 
-		It("returns nil when OSBAPI version is empty", func() {
-			server.VerifyAndMock(
-				mockcfapi.GetInfo().RespondsOKWith(`{"osbapi_version": ""}`),
-			)
-			client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
-			Expect(err).NotTo(HaveOccurred())
+		DescribeTable(
+			"correctly checking minuimum OSBABI versions",
+			func(required, actual string, result bool) {
+				server.VerifyAndMock(
+					mockcfapi.GetInfo().RespondsOKWith(fmt.Sprintf(`{"osbapi_version": "%s"}`, actual)),
+				)
+				client, err := cf.New(server.URL, authHeaderBuilder, nil, true, testLogger)
+				Expect(err).NotTo(HaveOccurred())
 
-			result := client.GetOSBAPIVersion(testLogger)
-
-			Expect(logBuffer).To(gbytes.Say(`error converting OSBAPI version "" to semver.`))
-			Expect(result).To(BeNil())
-		})
+				Expect(client.CheckMinimumOSBAPIVersion(required, testLogger)).To(Equal(result), fmt.Sprintf("%s >= %s = %t", actual, required, result))
+			},
+			Entry("3 digit above", "1.2.3", "1.2.4", true),
+			Entry("3 digit same", "1.2.3", "1.2.3", true),
+			Entry("3 digit below", "1.2.3", "1.2.2", false),
+			Entry("2 digit above", "1.21", "1.22", true),
+			Entry("2 digit same", "1.21", "1.21", true),
+			Entry("2 digit below", "1.21", "1.11", false),
+			Entry("1 digit above", "1.21", "2", true),
+			Entry("1 digit same", "1.21", "1", false),
+			Entry("1 digit below", "1.21", "0", false),
+		)
 	})
 
 	Describe("ServiceBrokers", func() {

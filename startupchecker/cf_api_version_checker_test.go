@@ -16,6 +16,8 @@
 package startupchecker_test
 
 import (
+	"fmt"
+
 	. "github.com/pivotal-cf/on-demand-service-broker/startupchecker"
 
 	"errors"
@@ -62,7 +64,13 @@ var _ = Describe("CFAPIVersionChecker", func() {
 		client.GetAPIVersionReturns(oldCFVersion, nil)
 		c := NewCFAPIVersionChecker(client, minimumCFVersion, noLogTesting)
 		err := c.Check()
-		Expect(err).To(MatchError("CF API error: Cloud Foundry API version is insufficient, ODB requires CF v238+."))
+		Expect(err).To(MatchError(fmt.Sprintf("CF API error: ODB requires minimum Cloud Foundry API version '%s', got '%s'.", minimumCFVersion, oldCFVersion)))
+	})
+
+	It("produces error when minimum CF version is invalid", func() {
+		c := NewCFAPIVersionChecker(client, "foo", noLogTesting)
+		err := c.Check()
+		Expect(err).To(MatchError("Could not parse configured minimum Cloud Foundry API version. Expected a semver, got: foo"))
 	})
 
 	It("produces error when CF API responds with error", func() {
@@ -70,7 +78,7 @@ var _ = Describe("CFAPIVersionChecker", func() {
 		client.GetAPIVersionReturns("", errors.New(cfAPIFailureMessage))
 		c := NewCFAPIVersionChecker(client, minimumCFVersion, noLogTesting)
 		err := c.Check()
-		Expect(err).To(MatchError("CF API error: " + cfAPIFailureMessage + ". ODB requires CF v238+."))
+		Expect(err).To(MatchError(fmt.Sprintf("CF API error: %s. ODB requires minimum Cloud Foundry API version: %s", cfAPIFailureMessage, minimumCFVersion)))
 	})
 
 	It("produces error if the CF API version cannot be parsed", func() {

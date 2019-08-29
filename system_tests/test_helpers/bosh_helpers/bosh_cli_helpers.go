@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/coreos/go-semver/semver"
+	"github.com/blang/semver"
 	"github.com/onsi/gomega/types"
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/service_helpers"
@@ -559,7 +559,7 @@ func noUserCredentialsInVarsFile(varsFile string) bool {
 }
 
 func BOSHSupportsLinksAPIForDNS() bool {
-	return !getBoshVersion().LessThan(semverOf("266.16.0"))
+	return !getBoshVersion().LT(semverOf("266.16.0"))
 }
 
 func getBoshVersion() semver.Version {
@@ -599,11 +599,11 @@ func versionFromBOSHJson(out []byte) string {
 func semverOf(version string) semver.Version {
 	splits := strings.Split(version, " ")
 	Expect(len(splits)).To(BeNumerically(">", 0))
-	boshVersion, err := semver.NewVersion(splits[0])
+	boshVersion, err := semver.Parse(splits[0])
 
 	Expect(err).NotTo(HaveOccurred())
 
-	return *boshVersion
+	return boshVersion
 }
 
 func manifestToFile(brokerManifest bosh.BoshManifest, fileName string) *os.File {

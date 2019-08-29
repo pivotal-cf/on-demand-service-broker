@@ -5,12 +5,23 @@ import (
 	"log"
 	"sync"
 
-	"github.com/coreos/go-semver/semver"
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/instanceiterator"
 )
 
 type FakeCFClient struct {
+	CheckMinimumOSBAPIVersionStub        func(string, *log.Logger) bool
+	checkMinimumOSBAPIVersionMutex       sync.RWMutex
+	checkMinimumOSBAPIVersionArgsForCall []struct {
+		arg1 string
+		arg2 *log.Logger
+	}
+	checkMinimumOSBAPIVersionReturns struct {
+		result1 bool
+	}
+	checkMinimumOSBAPIVersionReturnsOnCall map[int]struct {
+		result1 bool
+	}
 	GetLastOperationForInstanceStub        func(string, *log.Logger) (cf.LastOperation, error)
 	getLastOperationForInstanceMutex       sync.RWMutex
 	getLastOperationForInstanceArgsForCall []struct {
@@ -24,17 +35,6 @@ type FakeCFClient struct {
 	getLastOperationForInstanceReturnsOnCall map[int]struct {
 		result1 cf.LastOperation
 		result2 error
-	}
-	GetOSBAPIVersionStub        func(*log.Logger) *semver.Version
-	getOSBAPIVersionMutex       sync.RWMutex
-	getOSBAPIVersionArgsForCall []struct {
-		arg1 *log.Logger
-	}
-	getOSBAPIVersionReturns struct {
-		result1 *semver.Version
-	}
-	getOSBAPIVersionReturnsOnCall map[int]struct {
-		result1 *semver.Version
 	}
 	GetPlanByServiceInstanceGUIDStub        func(string, *log.Logger) (cf.ServicePlan, error)
 	getPlanByServiceInstanceGUIDMutex       sync.RWMutex
@@ -81,6 +81,67 @@ type FakeCFClient struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
+}
+
+func (fake *FakeCFClient) CheckMinimumOSBAPIVersion(arg1 string, arg2 *log.Logger) bool {
+	fake.checkMinimumOSBAPIVersionMutex.Lock()
+	ret, specificReturn := fake.checkMinimumOSBAPIVersionReturnsOnCall[len(fake.checkMinimumOSBAPIVersionArgsForCall)]
+	fake.checkMinimumOSBAPIVersionArgsForCall = append(fake.checkMinimumOSBAPIVersionArgsForCall, struct {
+		arg1 string
+		arg2 *log.Logger
+	}{arg1, arg2})
+	fake.recordInvocation("CheckMinimumOSBAPIVersion", []interface{}{arg1, arg2})
+	fake.checkMinimumOSBAPIVersionMutex.Unlock()
+	if fake.CheckMinimumOSBAPIVersionStub != nil {
+		return fake.CheckMinimumOSBAPIVersionStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.checkMinimumOSBAPIVersionReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeCFClient) CheckMinimumOSBAPIVersionCallCount() int {
+	fake.checkMinimumOSBAPIVersionMutex.RLock()
+	defer fake.checkMinimumOSBAPIVersionMutex.RUnlock()
+	return len(fake.checkMinimumOSBAPIVersionArgsForCall)
+}
+
+func (fake *FakeCFClient) CheckMinimumOSBAPIVersionCalls(stub func(string, *log.Logger) bool) {
+	fake.checkMinimumOSBAPIVersionMutex.Lock()
+	defer fake.checkMinimumOSBAPIVersionMutex.Unlock()
+	fake.CheckMinimumOSBAPIVersionStub = stub
+}
+
+func (fake *FakeCFClient) CheckMinimumOSBAPIVersionArgsForCall(i int) (string, *log.Logger) {
+	fake.checkMinimumOSBAPIVersionMutex.RLock()
+	defer fake.checkMinimumOSBAPIVersionMutex.RUnlock()
+	argsForCall := fake.checkMinimumOSBAPIVersionArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeCFClient) CheckMinimumOSBAPIVersionReturns(result1 bool) {
+	fake.checkMinimumOSBAPIVersionMutex.Lock()
+	defer fake.checkMinimumOSBAPIVersionMutex.Unlock()
+	fake.CheckMinimumOSBAPIVersionStub = nil
+	fake.checkMinimumOSBAPIVersionReturns = struct {
+		result1 bool
+	}{result1}
+}
+
+func (fake *FakeCFClient) CheckMinimumOSBAPIVersionReturnsOnCall(i int, result1 bool) {
+	fake.checkMinimumOSBAPIVersionMutex.Lock()
+	defer fake.checkMinimumOSBAPIVersionMutex.Unlock()
+	fake.CheckMinimumOSBAPIVersionStub = nil
+	if fake.checkMinimumOSBAPIVersionReturnsOnCall == nil {
+		fake.checkMinimumOSBAPIVersionReturnsOnCall = make(map[int]struct {
+			result1 bool
+		})
+	}
+	fake.checkMinimumOSBAPIVersionReturnsOnCall[i] = struct {
+		result1 bool
+	}{result1}
 }
 
 func (fake *FakeCFClient) GetLastOperationForInstance(arg1 string, arg2 *log.Logger) (cf.LastOperation, error) {
@@ -145,66 +206,6 @@ func (fake *FakeCFClient) GetLastOperationForInstanceReturnsOnCall(i int, result
 		result1 cf.LastOperation
 		result2 error
 	}{result1, result2}
-}
-
-func (fake *FakeCFClient) GetOSBAPIVersion(arg1 *log.Logger) *semver.Version {
-	fake.getOSBAPIVersionMutex.Lock()
-	ret, specificReturn := fake.getOSBAPIVersionReturnsOnCall[len(fake.getOSBAPIVersionArgsForCall)]
-	fake.getOSBAPIVersionArgsForCall = append(fake.getOSBAPIVersionArgsForCall, struct {
-		arg1 *log.Logger
-	}{arg1})
-	fake.recordInvocation("GetOSBAPIVersion", []interface{}{arg1})
-	fake.getOSBAPIVersionMutex.Unlock()
-	if fake.GetOSBAPIVersionStub != nil {
-		return fake.GetOSBAPIVersionStub(arg1)
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	fakeReturns := fake.getOSBAPIVersionReturns
-	return fakeReturns.result1
-}
-
-func (fake *FakeCFClient) GetOSBAPIVersionCallCount() int {
-	fake.getOSBAPIVersionMutex.RLock()
-	defer fake.getOSBAPIVersionMutex.RUnlock()
-	return len(fake.getOSBAPIVersionArgsForCall)
-}
-
-func (fake *FakeCFClient) GetOSBAPIVersionCalls(stub func(*log.Logger) *semver.Version) {
-	fake.getOSBAPIVersionMutex.Lock()
-	defer fake.getOSBAPIVersionMutex.Unlock()
-	fake.GetOSBAPIVersionStub = stub
-}
-
-func (fake *FakeCFClient) GetOSBAPIVersionArgsForCall(i int) *log.Logger {
-	fake.getOSBAPIVersionMutex.RLock()
-	defer fake.getOSBAPIVersionMutex.RUnlock()
-	argsForCall := fake.getOSBAPIVersionArgsForCall[i]
-	return argsForCall.arg1
-}
-
-func (fake *FakeCFClient) GetOSBAPIVersionReturns(result1 *semver.Version) {
-	fake.getOSBAPIVersionMutex.Lock()
-	defer fake.getOSBAPIVersionMutex.Unlock()
-	fake.GetOSBAPIVersionStub = nil
-	fake.getOSBAPIVersionReturns = struct {
-		result1 *semver.Version
-	}{result1}
-}
-
-func (fake *FakeCFClient) GetOSBAPIVersionReturnsOnCall(i int, result1 *semver.Version) {
-	fake.getOSBAPIVersionMutex.Lock()
-	defer fake.getOSBAPIVersionMutex.Unlock()
-	fake.GetOSBAPIVersionStub = nil
-	if fake.getOSBAPIVersionReturnsOnCall == nil {
-		fake.getOSBAPIVersionReturnsOnCall = make(map[int]struct {
-			result1 *semver.Version
-		})
-	}
-	fake.getOSBAPIVersionReturnsOnCall[i] = struct {
-		result1 *semver.Version
-	}{result1}
 }
 
 func (fake *FakeCFClient) GetPlanByServiceInstanceGUID(arg1 string, arg2 *log.Logger) (cf.ServicePlan, error) {
@@ -403,10 +404,10 @@ func (fake *FakeCFClient) UpgradeServiceInstanceReturnsOnCall(i int, result1 cf.
 func (fake *FakeCFClient) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.checkMinimumOSBAPIVersionMutex.RLock()
+	defer fake.checkMinimumOSBAPIVersionMutex.RUnlock()
 	fake.getLastOperationForInstanceMutex.RLock()
 	defer fake.getLastOperationForInstanceMutex.RUnlock()
-	fake.getOSBAPIVersionMutex.RLock()
-	defer fake.getOSBAPIVersionMutex.RUnlock()
 	fake.getPlanByServiceInstanceGUIDMutex.RLock()
 	defer fake.getPlanByServiceInstanceGUIDMutex.RUnlock()
 	fake.getServiceInstanceMutex.RLock()

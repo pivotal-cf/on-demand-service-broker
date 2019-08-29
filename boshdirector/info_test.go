@@ -9,8 +9,8 @@ package boshdirector_test
 import (
 	"errors"
 
+	"github.com/blang/semver"
 	boshdir "github.com/cloudfoundry/bosh-cli/director"
-	"github.com/coreos/go-semver/semver"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
@@ -75,28 +75,28 @@ var _ = Describe("info", func() {
 			boshInfo := createBoshInfoWithVersion("1.3262.0.0 (00000000)")
 			directorVersion, directorVersionErr := boshInfo.GetDirectorVersion()
 			Expect(directorVersionErr).NotTo(HaveOccurred())
-			Expect(directorVersion).To(Equal(boshdirector.Version{Type: "stemcell", Version: *semver.New("3262.0.0")}))
+			Expect(directorVersion).To(Equal(boshdirector.Version{Type: "stemcell", Version: semver.MustParse("3262.0.0")}))
 		})
 
 		It("returns a semver version when it has a semi-semver version (bosh director 260.4)", func() {
 			boshInfo := createBoshInfoWithVersion("260.4 (00000000)")
 			directorVersion, directorVersionErr := boshInfo.GetDirectorVersion()
 			Expect(directorVersionErr).NotTo(HaveOccurred())
-			Expect(directorVersion).To(Equal(boshdirector.Version{Type: "semver", Version: *semver.New("260.4.0")}))
+			Expect(directorVersion).To(Equal(boshdirector.Version{Type: "semver", Version: semver.MustParse("260.4.0")}))
 		})
 
 		It("returns a semver version when it has a semver version less than 261", func() {
 			boshInfo := createBoshInfoWithVersion("260.5.0 (00000000)")
 			directorVersion, directorVersionErr := boshInfo.GetDirectorVersion()
 			Expect(directorVersionErr).NotTo(HaveOccurred())
-			Expect(directorVersion).To(Equal(boshdirector.Version{Type: "semver", Version: *semver.New("260.5.0")}))
+			Expect(directorVersion).To(Equal(boshdirector.Version{Type: "semver", Version: semver.MustParse("260.5.0")}))
 		})
 
 		It("returns a semver version when it has a semver version of 261 or greater", func() {
 			boshInfo := createBoshInfoWithVersion("261.0.0 (00000000)")
 			directorVersion, directorVersionErr := boshInfo.GetDirectorVersion()
 			Expect(directorVersionErr).NotTo(HaveOccurred())
-			Expect(directorVersion).To(Equal(boshdirector.Version{Type: "semver", Version: *semver.New("261.0.0")}))
+			Expect(directorVersion).To(Equal(boshdirector.Version{Type: "semver", Version: semver.MustParse("261.0.0")}))
 		})
 
 		It("returns an error if version is all zeros", func() {

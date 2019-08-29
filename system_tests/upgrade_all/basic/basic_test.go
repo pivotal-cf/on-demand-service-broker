@@ -18,7 +18,7 @@ package basic_test
 import (
 	"fmt"
 
-	"github.com/coreos/go-semver/semver"
+	"github.com/blang/semver"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -258,8 +258,7 @@ func createTestServiceInstancesAndApps(count int, serviceName string) (appDetail
 	return appDetailsList
 }
 
-func checkCAPIVersion() (bool, *semver.Version) {
-	capiVersion := bosh_helpers.GetLatestReleaseVersion("capi")
-	capiSemver := semver.New(capiVersion)
-	return capiSemver.LessThan(*semver.New("1.84.0")), capiSemver
+func checkCAPIVersion() (bool, semver.Version) {
+	capiVersion := semver.MustParse(bosh_helpers.GetLatestReleaseVersion("capi"))
+	return capiVersion.LT(semver.MustParse("1.84.0")), capiVersion
 }

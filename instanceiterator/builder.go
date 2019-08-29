@@ -21,7 +21,6 @@ import (
 	"log"
 	"time"
 
-	"github.com/coreos/go-semver/semver"
 	"github.com/craigfurman/herottp"
 	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
@@ -98,15 +97,10 @@ func NewBuilder(conf config.InstanceIteratorConfig, logger *log.Logger, logPrefi
 }
 
 func (b *Builder) SetUpgradeTriggerer(cfClient CFClient, maintenanceInfoPresent bool, logger *log.Logger) error {
-	if cfClient != nil {
-		cfOSBAPIversion := cfClient.GetOSBAPIVersion(logger)
-		if cfOSBAPIversion != nil &&
-			!cfOSBAPIversion.LessThan(*semver.New("2.15.0")) &&
-			maintenanceInfoPresent {
-			b.Listener.UpgradeStrategy("CF")
-			b.Triggerer = NewCFTrigger(cfClient, logger)
-			return nil
-		}
+	if maintenanceInfoPresent && cfClient != nil && cfClient.CheckMinimumOSBAPIVersion("2.15", logger) {
+		b.Listener.UpgradeStrategy("CF")
+		b.Triggerer = NewCFTrigger(cfClient, logger)
+		return nil
 	}
 
 	if b.BrokerServices == nil {

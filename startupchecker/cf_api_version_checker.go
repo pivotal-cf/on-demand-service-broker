@@ -16,11 +16,10 @@
 package startupchecker
 
 import (
-	"errors"
 	"fmt"
 	"log"
 
-	"github.com/coreos/go-semver/semver"
+	"github.com/blang/semver"
 )
 
 type CFAPIVersionChecker struct {
@@ -38,18 +37,23 @@ func NewCFAPIVersionChecker(cfClient CFAPIVersionGetter, minimumCFVersion string
 }
 
 func (c *CFAPIVersionChecker) Check() error {
-	rawCFAPIVersion, err := c.cfClient.GetAPIVersion(c.logger)
+	minVersion, err := semver.Make(c.minimumCFVersion)
 	if err != nil {
-		return errors.New("CF API error: " + err.Error() + ". ODB requires CF v238+.")
+		return fmt.Errorf("Could not parse configured minimum Cloud Foundry API version. Expected a semver, got: %s", c.minimumCFVersion)
 	}
 
-	version, err := semver.NewVersion(rawCFAPIVersion)
+	rawCFAPIVersion, err := c.cfClient.GetAPIVersion(c.logger)
+	if err != nil {
+		return fmt.Errorf("CF API error: %s. ODB requires minimum Cloud Foundry API version: %s", err.Error(), minVersion)
+	}
+
+	version, err := semver.Make(rawCFAPIVersion)
 	if err != nil {
 		return fmt.Errorf("Cloud Foundry API version couldn't be parsed. Expected a semver, got: %s.", rawCFAPIVersion)
 	}
 
-	if version.LessThan(*semver.New(c.minimumCFVersion)) {
-		return errors.New("CF API error: Cloud Foundry API version is insufficient, ODB requires CF v238+.")
+	if version.LT(minVersion) {
+		return fmt.Errorf("CF API error: ODB requires minimum Cloud Foundry API version '%s', got '%s'.", minVersion, version)
 	}
 
 	return nil

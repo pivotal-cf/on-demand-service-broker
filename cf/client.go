@@ -12,9 +12,8 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"strings"
 
-	"github.com/coreos/go-semver/semver"
+	"github.com/blang/semver"
 	"github.com/pkg/errors"
 )
 
@@ -266,20 +265,25 @@ func (c Client) GetAPIVersion(logger *log.Logger) (string, error) {
 	return infoResponse.APIVersion, nil
 }
 
-func (c Client) GetOSBAPIVersion(logger *log.Logger) *semver.Version {
-	var infoResponse infoResponse
-	err := c.get(fmt.Sprintf("%s/v2/info", c.url), &infoResponse, logger)
-	osbapiVersion := infoResponse.OSBAPIVersion
-	versionNumbers := strings.Split(osbapiVersion, ".")
-	if len(versionNumbers) == 2 { // TODO think more about this
-		osbapiVersion = osbapiVersion + ".0"
+func (c Client) CheckMinimumOSBAPIVersion(minimum string, logger *log.Logger) bool {
+	min, err := semver.ParseTolerant(minimum)
+	if err != nil {
+		logger.Printf("error parsing specified OSBAPI version '%s' to semver: %v", minimum, err)
+		return false
 	}
 
-	osbapiSemVer, err := semver.NewVersion(osbapiVersion)
-	if err != nil {
-		logger.Printf("error converting OSBAPI version %q to semver. %s", osbapiVersion, err)
+	var infoResponse infoResponse
+	if err := c.get(fmt.Sprintf("%s/v2/info", c.url), &infoResponse, logger); err != nil {
+		logger.Printf("error requesting OSBAPI version: %v", err)
 	}
-	return osbapiSemVer
+
+	ver, err := semver.ParseTolerant(infoResponse.OSBAPIVersion)
+	if err != nil {
+		logger.Printf("error parsing discovered OSBAPI version '%s' to semver: %v", infoResponse.OSBAPIVersion, err)
+		return false
+	}
+
+	return ver.GE(min)
 }
 
 func (c Client) GetServiceOfferingGUID(brokerName string, logger *log.Logger) (string, error) {

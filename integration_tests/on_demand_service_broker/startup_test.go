@@ -238,7 +238,7 @@ var _ = Describe("Startup", func() {
 
 				runningBroker = startBrokerWithoutPortCheck(conf)
 
-				Eventually(runningBroker.Out).Should(gbytes.Say("error starting broker: The following broker startup checks failed: CF API error: Cloud Foundry API version is insufficient, ODB requires CF v238+."))
+				Eventually(runningBroker.Out).Should(gbytes.Say("error starting broker: The following broker startup checks failed: CF API error: ODB requires minimum Cloud Foundry API version '2.57.0', got '2.56.0'"))
 				Eventually(runningBroker).Should(gexec.Exit())
 				Expect(runningBroker.ExitCode()).ToNot(Equal(0))
 			})
@@ -258,7 +258,7 @@ var _ = Describe("Startup", func() {
 
 				runningBroker = startBrokerWithoutPortCheck(conf)
 
-				Eventually(runningBroker.Out).Should(gbytes.Say(`error starting broker: The following broker startup checks failed: CF API error: Unexpected reponse status 500, "error getting info". ODB requires CF v238+.`))
+				Eventually(runningBroker.Out).Should(gbytes.Say(`error starting broker: The following broker startup checks failed: CF API error: Unexpected reponse status 500, "error getting info". ODB requires minimum Cloud Foundry API version: 2.57.0`))
 				Eventually(runningBroker).Should(gexec.Exit())
 				Expect(runningBroker.ExitCode()).ToNot(Equal(0))
 			})
@@ -606,7 +606,7 @@ var _ = Describe("Startup", func() {
 				runningBroker = startBrokerWithoutPortCheck(conf)
 
 				By("logging a CF API version error")
-				Eventually(runningBroker.Out).Should(gbytes.Say("CF API error: Cloud Foundry API version is insufficient, ODB requires CF v238+"))
+				Eventually(runningBroker.Out).Should(gbytes.Say("CF API error: ODB requires minimum Cloud Foundry API version '2.57.0', got '2.56.0'"))
 
 				By("logging a BOSH Director API version error")
 				Eventually(runningBroker.Out).Should(gbytes.Say("BOSH Director error: API version is insufficient, ODB requires BOSH v257+."))

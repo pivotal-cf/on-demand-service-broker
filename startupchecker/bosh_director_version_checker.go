@@ -18,7 +18,6 @@ package startupchecker
 import (
 	"fmt"
 
-	"github.com/coreos/go-semver/semver"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 )
@@ -26,7 +25,6 @@ import (
 type BOSHDirectorVersionChecker struct {
 	minimumMajorStemcellDirectorVersionForODB            int
 	minimumMajorSemverDirectorVersionForLifecycleErrands int
-	minimumSemverVersionForBindingWithDNS                semver.Version
 	boshInfo                                             boshdirector.Info
 	brokerConfig                                         config.Config
 }
