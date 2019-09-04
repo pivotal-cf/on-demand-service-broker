@@ -7,7 +7,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/telemetry"
 )
 
-type FakeTimer struct {
+type FakeTime struct {
 	NowStub        func() string
 	nowMutex       sync.RWMutex
 	nowArgsForCall []struct {
@@ -22,7 +22,7 @@ type FakeTimer struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeTimer) Now() string {
+func (fake *FakeTime) Now() string {
 	fake.nowMutex.Lock()
 	ret, specificReturn := fake.nowReturnsOnCall[len(fake.nowArgsForCall)]
 	fake.nowArgsForCall = append(fake.nowArgsForCall, struct {
@@ -39,19 +39,19 @@ func (fake *FakeTimer) Now() string {
 	return fakeReturns.result1
 }
 
-func (fake *FakeTimer) NowCallCount() int {
+func (fake *FakeTime) NowCallCount() int {
 	fake.nowMutex.RLock()
 	defer fake.nowMutex.RUnlock()
 	return len(fake.nowArgsForCall)
 }
 
-func (fake *FakeTimer) NowCalls(stub func() string) {
+func (fake *FakeTime) NowCalls(stub func() string) {
 	fake.nowMutex.Lock()
 	defer fake.nowMutex.Unlock()
 	fake.NowStub = stub
 }
 
-func (fake *FakeTimer) NowReturns(result1 string) {
+func (fake *FakeTime) NowReturns(result1 string) {
 	fake.nowMutex.Lock()
 	defer fake.nowMutex.Unlock()
 	fake.NowStub = nil
@@ -60,7 +60,7 @@ func (fake *FakeTimer) NowReturns(result1 string) {
 	}{result1}
 }
 
-func (fake *FakeTimer) NowReturnsOnCall(i int, result1 string) {
+func (fake *FakeTime) NowReturnsOnCall(i int, result1 string) {
 	fake.nowMutex.Lock()
 	defer fake.nowMutex.Unlock()
 	fake.NowStub = nil
@@ -74,7 +74,7 @@ func (fake *FakeTimer) NowReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
-func (fake *FakeTimer) Invocations() map[string][][]interface{} {
+func (fake *FakeTime) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.nowMutex.RLock()
@@ -86,7 +86,7 @@ func (fake *FakeTimer) Invocations() map[string][][]interface{} {
 	return copiedInvocations
 }
 
-func (fake *FakeTimer) recordInvocation(key string, args []interface{}) {
+func (fake *FakeTime) recordInvocation(key string, args []interface{}) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
@@ -98,4 +98,4 @@ func (fake *FakeTimer) recordInvocation(key string, args []interface{}) {
 	fake.invocations[key] = append(fake.invocations[key], args)
 }
 
-var _ telemetry.Timer = new(FakeTimer)
+var _ telemetry.Time = new(FakeTime)

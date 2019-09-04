@@ -9,8 +9,8 @@ import (
 	"time"
 )
 
-//go:generate counterfeiter -o fakes_telemetry/fake_telemetry_time.go . Timer
-type Timer interface {
+//go:generate counterfeiter -o fakes_telemetry/fake_telemetry_time.go . Time
+type Time interface {
 	Now() string
 }
 
@@ -49,7 +49,7 @@ type PerPlanInstancesLog struct {
 type TelemetryLogger struct {
 	logger             *log.Logger
 	brokerIdentifier   string
-	timer              Timer
+	time               Time
 	brokerServicePlans config.Plans
 }
 
@@ -62,12 +62,12 @@ func Build(enableLogging bool, serviceOffering config.ServiceOffering, logger *l
 	return NewTelemetryLogger(logger, serviceOffering, &RealTime{format: time.RFC3339})
 }
 
-func NewTelemetryLogger(logger *log.Logger, serviceOffering config.ServiceOffering, timer Timer) broker.TelemetryLogger {
+func NewTelemetryLogger(logger *log.Logger, serviceOffering config.ServiceOffering, timer Time) broker.TelemetryLogger {
 	return &TelemetryLogger{
 		logger:             logger,
 		brokerIdentifier:   "odb-" + serviceOffering.Name,
 		brokerServicePlans: serviceOffering.Plans,
-		timer:              timer,
+		time:               timer,
 	}
 }
 
@@ -83,7 +83,7 @@ func (t *TelemetryLogger) LogInstances(instanceLister InstanceLister, item strin
 
 func (t *TelemetryLogger) logTotalInstances(allInstances []Instance, event Event) {
 	telemetryLog := TotalInstancesLog{
-		TelemetryTime:   t.timer.Now(),
+		TelemetryTime:   t.time.Now(),
 		TelemetrySource: t.brokerIdentifier,
 		ServiceInstances: ServiceInstances{
 			Total: len(allInstances),
@@ -104,7 +104,7 @@ func (t *TelemetryLogger) logInstancesPerPlan(instances []Instance, event Event)
 	for _, plan := range t.brokerServicePlans {
 		count := instancesPerPlan[plan.ID]
 		planInstancesLog := PerPlanInstancesLog{
-			TelemetryTime:   t.timer.Now(),
+			TelemetryTime:   t.time.Now(),
 			TelemetrySource: t.brokerIdentifier,
 			Event:           event,
 			ServiceInstancesPerPlan: ServiceInstancesPerPlan{

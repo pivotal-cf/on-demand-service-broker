@@ -69,7 +69,7 @@ var _ = Describe("Telemetry", func() {
 					{GUID: "test-guid-3", PlanUniqueID: planID2},
 				}, nil)
 
-				fakeTime := "fake-timer"
+				fakeTime := "fake-time"
 				telemetryTime.NowReturns(fakeTime)
 
 				telemetryLogger.LogInstances(instanceLister, "broker", "startup")
