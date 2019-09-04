@@ -8,25 +8,10 @@ import (
 )
 
 type FakeDNSRetriever struct {
-	LinkProviderIDStub        func(deploymentName, instanceGroupName, providerName string) (string, error)
-	linkProviderIDMutex       sync.RWMutex
-	linkProviderIDArgsForCall []struct {
-		deploymentName    string
-		instanceGroupName string
-		providerName      string
-	}
-	linkProviderIDReturns struct {
-		result1 string
-		result2 error
-	}
-	linkProviderIDReturnsOnCall map[int]struct {
-		result1 string
-		result2 error
-	}
-	CreateLinkConsumerStub        func(providerID string) (string, error)
+	CreateLinkConsumerStub        func(string) (string, error)
 	createLinkConsumerMutex       sync.RWMutex
 	createLinkConsumerArgsForCall []struct {
-		providerID string
+		arg1 string
 	}
 	createLinkConsumerReturns struct {
 		result1 string
@@ -36,12 +21,23 @@ type FakeDNSRetriever struct {
 		result1 string
 		result2 error
 	}
-	GetLinkAddressStub        func(consumerLinkID string, azs []string, status string) (string, error)
+	DeleteLinkConsumerStub        func(string) error
+	deleteLinkConsumerMutex       sync.RWMutex
+	deleteLinkConsumerArgsForCall []struct {
+		arg1 string
+	}
+	deleteLinkConsumerReturns struct {
+		result1 error
+	}
+	deleteLinkConsumerReturnsOnCall map[int]struct {
+		result1 error
+	}
+	GetLinkAddressStub        func(string, []string, string) (string, error)
 	getLinkAddressMutex       sync.RWMutex
 	getLinkAddressArgsForCall []struct {
-		consumerLinkID string
-		azs            []string
-		status         string
+		arg1 string
+		arg2 []string
+		arg3 string
 	}
 	getLinkAddressReturns struct {
 		result1 string
@@ -51,89 +47,41 @@ type FakeDNSRetriever struct {
 		result1 string
 		result2 error
 	}
-	DeleteLinkConsumerStub        func(consumerID string) error
-	deleteLinkConsumerMutex       sync.RWMutex
-	deleteLinkConsumerArgsForCall []struct {
-		consumerID string
+	LinkProviderIDStub        func(string, string, string) (string, error)
+	linkProviderIDMutex       sync.RWMutex
+	linkProviderIDArgsForCall []struct {
+		arg1 string
+		arg2 string
+		arg3 string
 	}
-	deleteLinkConsumerReturns struct {
-		result1 error
+	linkProviderIDReturns struct {
+		result1 string
+		result2 error
 	}
-	deleteLinkConsumerReturnsOnCall map[int]struct {
-		result1 error
+	linkProviderIDReturnsOnCall map[int]struct {
+		result1 string
+		result2 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeDNSRetriever) LinkProviderID(deploymentName string, instanceGroupName string, providerName string) (string, error) {
-	fake.linkProviderIDMutex.Lock()
-	ret, specificReturn := fake.linkProviderIDReturnsOnCall[len(fake.linkProviderIDArgsForCall)]
-	fake.linkProviderIDArgsForCall = append(fake.linkProviderIDArgsForCall, struct {
-		deploymentName    string
-		instanceGroupName string
-		providerName      string
-	}{deploymentName, instanceGroupName, providerName})
-	fake.recordInvocation("LinkProviderID", []interface{}{deploymentName, instanceGroupName, providerName})
-	fake.linkProviderIDMutex.Unlock()
-	if fake.LinkProviderIDStub != nil {
-		return fake.LinkProviderIDStub(deploymentName, instanceGroupName, providerName)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	return fake.linkProviderIDReturns.result1, fake.linkProviderIDReturns.result2
-}
-
-func (fake *FakeDNSRetriever) LinkProviderIDCallCount() int {
-	fake.linkProviderIDMutex.RLock()
-	defer fake.linkProviderIDMutex.RUnlock()
-	return len(fake.linkProviderIDArgsForCall)
-}
-
-func (fake *FakeDNSRetriever) LinkProviderIDArgsForCall(i int) (string, string, string) {
-	fake.linkProviderIDMutex.RLock()
-	defer fake.linkProviderIDMutex.RUnlock()
-	return fake.linkProviderIDArgsForCall[i].deploymentName, fake.linkProviderIDArgsForCall[i].instanceGroupName, fake.linkProviderIDArgsForCall[i].providerName
-}
-
-func (fake *FakeDNSRetriever) LinkProviderIDReturns(result1 string, result2 error) {
-	fake.LinkProviderIDStub = nil
-	fake.linkProviderIDReturns = struct {
-		result1 string
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeDNSRetriever) LinkProviderIDReturnsOnCall(i int, result1 string, result2 error) {
-	fake.LinkProviderIDStub = nil
-	if fake.linkProviderIDReturnsOnCall == nil {
-		fake.linkProviderIDReturnsOnCall = make(map[int]struct {
-			result1 string
-			result2 error
-		})
-	}
-	fake.linkProviderIDReturnsOnCall[i] = struct {
-		result1 string
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeDNSRetriever) CreateLinkConsumer(providerID string) (string, error) {
+func (fake *FakeDNSRetriever) CreateLinkConsumer(arg1 string) (string, error) {
 	fake.createLinkConsumerMutex.Lock()
 	ret, specificReturn := fake.createLinkConsumerReturnsOnCall[len(fake.createLinkConsumerArgsForCall)]
 	fake.createLinkConsumerArgsForCall = append(fake.createLinkConsumerArgsForCall, struct {
-		providerID string
-	}{providerID})
-	fake.recordInvocation("CreateLinkConsumer", []interface{}{providerID})
+		arg1 string
+	}{arg1})
+	fake.recordInvocation("CreateLinkConsumer", []interface{}{arg1})
 	fake.createLinkConsumerMutex.Unlock()
 	if fake.CreateLinkConsumerStub != nil {
-		return fake.CreateLinkConsumerStub(providerID)
+		return fake.CreateLinkConsumerStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.createLinkConsumerReturns.result1, fake.createLinkConsumerReturns.result2
+	fakeReturns := fake.createLinkConsumerReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeDNSRetriever) CreateLinkConsumerCallCount() int {
@@ -142,13 +90,22 @@ func (fake *FakeDNSRetriever) CreateLinkConsumerCallCount() int {
 	return len(fake.createLinkConsumerArgsForCall)
 }
 
+func (fake *FakeDNSRetriever) CreateLinkConsumerCalls(stub func(string) (string, error)) {
+	fake.createLinkConsumerMutex.Lock()
+	defer fake.createLinkConsumerMutex.Unlock()
+	fake.CreateLinkConsumerStub = stub
+}
+
 func (fake *FakeDNSRetriever) CreateLinkConsumerArgsForCall(i int) string {
 	fake.createLinkConsumerMutex.RLock()
 	defer fake.createLinkConsumerMutex.RUnlock()
-	return fake.createLinkConsumerArgsForCall[i].providerID
+	argsForCall := fake.createLinkConsumerArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeDNSRetriever) CreateLinkConsumerReturns(result1 string, result2 error) {
+	fake.createLinkConsumerMutex.Lock()
+	defer fake.createLinkConsumerMutex.Unlock()
 	fake.CreateLinkConsumerStub = nil
 	fake.createLinkConsumerReturns = struct {
 		result1 string
@@ -157,6 +114,8 @@ func (fake *FakeDNSRetriever) CreateLinkConsumerReturns(result1 string, result2 
 }
 
 func (fake *FakeDNSRetriever) CreateLinkConsumerReturnsOnCall(i int, result1 string, result2 error) {
+	fake.createLinkConsumerMutex.Lock()
+	defer fake.createLinkConsumerMutex.Unlock()
 	fake.CreateLinkConsumerStub = nil
 	if fake.createLinkConsumerReturnsOnCall == nil {
 		fake.createLinkConsumerReturnsOnCall = make(map[int]struct {
@@ -170,28 +129,89 @@ func (fake *FakeDNSRetriever) CreateLinkConsumerReturnsOnCall(i int, result1 str
 	}{result1, result2}
 }
 
-func (fake *FakeDNSRetriever) GetLinkAddress(consumerLinkID string, azs []string, status string) (string, error) {
-	var azsCopy []string
-	if azs != nil {
-		azsCopy = make([]string, len(azs))
-		copy(azsCopy, azs)
+func (fake *FakeDNSRetriever) DeleteLinkConsumer(arg1 string) error {
+	fake.deleteLinkConsumerMutex.Lock()
+	ret, specificReturn := fake.deleteLinkConsumerReturnsOnCall[len(fake.deleteLinkConsumerArgsForCall)]
+	fake.deleteLinkConsumerArgsForCall = append(fake.deleteLinkConsumerArgsForCall, struct {
+		arg1 string
+	}{arg1})
+	fake.recordInvocation("DeleteLinkConsumer", []interface{}{arg1})
+	fake.deleteLinkConsumerMutex.Unlock()
+	if fake.DeleteLinkConsumerStub != nil {
+		return fake.DeleteLinkConsumerStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.deleteLinkConsumerReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeDNSRetriever) DeleteLinkConsumerCallCount() int {
+	fake.deleteLinkConsumerMutex.RLock()
+	defer fake.deleteLinkConsumerMutex.RUnlock()
+	return len(fake.deleteLinkConsumerArgsForCall)
+}
+
+func (fake *FakeDNSRetriever) DeleteLinkConsumerCalls(stub func(string) error) {
+	fake.deleteLinkConsumerMutex.Lock()
+	defer fake.deleteLinkConsumerMutex.Unlock()
+	fake.DeleteLinkConsumerStub = stub
+}
+
+func (fake *FakeDNSRetriever) DeleteLinkConsumerArgsForCall(i int) string {
+	fake.deleteLinkConsumerMutex.RLock()
+	defer fake.deleteLinkConsumerMutex.RUnlock()
+	argsForCall := fake.deleteLinkConsumerArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeDNSRetriever) DeleteLinkConsumerReturns(result1 error) {
+	fake.deleteLinkConsumerMutex.Lock()
+	defer fake.deleteLinkConsumerMutex.Unlock()
+	fake.DeleteLinkConsumerStub = nil
+	fake.deleteLinkConsumerReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeDNSRetriever) DeleteLinkConsumerReturnsOnCall(i int, result1 error) {
+	fake.deleteLinkConsumerMutex.Lock()
+	defer fake.deleteLinkConsumerMutex.Unlock()
+	fake.DeleteLinkConsumerStub = nil
+	if fake.deleteLinkConsumerReturnsOnCall == nil {
+		fake.deleteLinkConsumerReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.deleteLinkConsumerReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeDNSRetriever) GetLinkAddress(arg1 string, arg2 []string, arg3 string) (string, error) {
+	var arg2Copy []string
+	if arg2 != nil {
+		arg2Copy = make([]string, len(arg2))
+		copy(arg2Copy, arg2)
 	}
 	fake.getLinkAddressMutex.Lock()
 	ret, specificReturn := fake.getLinkAddressReturnsOnCall[len(fake.getLinkAddressArgsForCall)]
 	fake.getLinkAddressArgsForCall = append(fake.getLinkAddressArgsForCall, struct {
-		consumerLinkID string
-		azs            []string
-		status         string
-	}{consumerLinkID, azsCopy, status})
-	fake.recordInvocation("GetLinkAddress", []interface{}{consumerLinkID, azsCopy, status})
+		arg1 string
+		arg2 []string
+		arg3 string
+	}{arg1, arg2Copy, arg3})
+	fake.recordInvocation("GetLinkAddress", []interface{}{arg1, arg2Copy, arg3})
 	fake.getLinkAddressMutex.Unlock()
 	if fake.GetLinkAddressStub != nil {
-		return fake.GetLinkAddressStub(consumerLinkID, azs, status)
+		return fake.GetLinkAddressStub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.getLinkAddressReturns.result1, fake.getLinkAddressReturns.result2
+	fakeReturns := fake.getLinkAddressReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeDNSRetriever) GetLinkAddressCallCount() int {
@@ -200,13 +220,22 @@ func (fake *FakeDNSRetriever) GetLinkAddressCallCount() int {
 	return len(fake.getLinkAddressArgsForCall)
 }
 
+func (fake *FakeDNSRetriever) GetLinkAddressCalls(stub func(string, []string, string) (string, error)) {
+	fake.getLinkAddressMutex.Lock()
+	defer fake.getLinkAddressMutex.Unlock()
+	fake.GetLinkAddressStub = stub
+}
+
 func (fake *FakeDNSRetriever) GetLinkAddressArgsForCall(i int) (string, []string, string) {
 	fake.getLinkAddressMutex.RLock()
 	defer fake.getLinkAddressMutex.RUnlock()
-	return fake.getLinkAddressArgsForCall[i].consumerLinkID, fake.getLinkAddressArgsForCall[i].azs, fake.getLinkAddressArgsForCall[i].status
+	argsForCall := fake.getLinkAddressArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *FakeDNSRetriever) GetLinkAddressReturns(result1 string, result2 error) {
+	fake.getLinkAddressMutex.Lock()
+	defer fake.getLinkAddressMutex.Unlock()
 	fake.GetLinkAddressStub = nil
 	fake.getLinkAddressReturns = struct {
 		result1 string
@@ -215,6 +244,8 @@ func (fake *FakeDNSRetriever) GetLinkAddressReturns(result1 string, result2 erro
 }
 
 func (fake *FakeDNSRetriever) GetLinkAddressReturnsOnCall(i int, result1 string, result2 error) {
+	fake.getLinkAddressMutex.Lock()
+	defer fake.getLinkAddressMutex.Unlock()
 	fake.GetLinkAddressStub = nil
 	if fake.getLinkAddressReturnsOnCall == nil {
 		fake.getLinkAddressReturnsOnCall = make(map[int]struct {
@@ -228,65 +259,82 @@ func (fake *FakeDNSRetriever) GetLinkAddressReturnsOnCall(i int, result1 string,
 	}{result1, result2}
 }
 
-func (fake *FakeDNSRetriever) DeleteLinkConsumer(consumerID string) error {
-	fake.deleteLinkConsumerMutex.Lock()
-	ret, specificReturn := fake.deleteLinkConsumerReturnsOnCall[len(fake.deleteLinkConsumerArgsForCall)]
-	fake.deleteLinkConsumerArgsForCall = append(fake.deleteLinkConsumerArgsForCall, struct {
-		consumerID string
-	}{consumerID})
-	fake.recordInvocation("DeleteLinkConsumer", []interface{}{consumerID})
-	fake.deleteLinkConsumerMutex.Unlock()
-	if fake.DeleteLinkConsumerStub != nil {
-		return fake.DeleteLinkConsumerStub(consumerID)
+func (fake *FakeDNSRetriever) LinkProviderID(arg1 string, arg2 string, arg3 string) (string, error) {
+	fake.linkProviderIDMutex.Lock()
+	ret, specificReturn := fake.linkProviderIDReturnsOnCall[len(fake.linkProviderIDArgsForCall)]
+	fake.linkProviderIDArgsForCall = append(fake.linkProviderIDArgsForCall, struct {
+		arg1 string
+		arg2 string
+		arg3 string
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("LinkProviderID", []interface{}{arg1, arg2, arg3})
+	fake.linkProviderIDMutex.Unlock()
+	if fake.LinkProviderIDStub != nil {
+		return fake.LinkProviderIDStub(arg1, arg2, arg3)
 	}
 	if specificReturn {
-		return ret.result1
+		return ret.result1, ret.result2
 	}
-	return fake.deleteLinkConsumerReturns.result1
+	fakeReturns := fake.linkProviderIDReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
-func (fake *FakeDNSRetriever) DeleteLinkConsumerCallCount() int {
-	fake.deleteLinkConsumerMutex.RLock()
-	defer fake.deleteLinkConsumerMutex.RUnlock()
-	return len(fake.deleteLinkConsumerArgsForCall)
+func (fake *FakeDNSRetriever) LinkProviderIDCallCount() int {
+	fake.linkProviderIDMutex.RLock()
+	defer fake.linkProviderIDMutex.RUnlock()
+	return len(fake.linkProviderIDArgsForCall)
 }
 
-func (fake *FakeDNSRetriever) DeleteLinkConsumerArgsForCall(i int) string {
-	fake.deleteLinkConsumerMutex.RLock()
-	defer fake.deleteLinkConsumerMutex.RUnlock()
-	return fake.deleteLinkConsumerArgsForCall[i].consumerID
+func (fake *FakeDNSRetriever) LinkProviderIDCalls(stub func(string, string, string) (string, error)) {
+	fake.linkProviderIDMutex.Lock()
+	defer fake.linkProviderIDMutex.Unlock()
+	fake.LinkProviderIDStub = stub
 }
 
-func (fake *FakeDNSRetriever) DeleteLinkConsumerReturns(result1 error) {
-	fake.DeleteLinkConsumerStub = nil
-	fake.deleteLinkConsumerReturns = struct {
-		result1 error
-	}{result1}
+func (fake *FakeDNSRetriever) LinkProviderIDArgsForCall(i int) (string, string, string) {
+	fake.linkProviderIDMutex.RLock()
+	defer fake.linkProviderIDMutex.RUnlock()
+	argsForCall := fake.linkProviderIDArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
-func (fake *FakeDNSRetriever) DeleteLinkConsumerReturnsOnCall(i int, result1 error) {
-	fake.DeleteLinkConsumerStub = nil
-	if fake.deleteLinkConsumerReturnsOnCall == nil {
-		fake.deleteLinkConsumerReturnsOnCall = make(map[int]struct {
-			result1 error
+func (fake *FakeDNSRetriever) LinkProviderIDReturns(result1 string, result2 error) {
+	fake.linkProviderIDMutex.Lock()
+	defer fake.linkProviderIDMutex.Unlock()
+	fake.LinkProviderIDStub = nil
+	fake.linkProviderIDReturns = struct {
+		result1 string
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeDNSRetriever) LinkProviderIDReturnsOnCall(i int, result1 string, result2 error) {
+	fake.linkProviderIDMutex.Lock()
+	defer fake.linkProviderIDMutex.Unlock()
+	fake.LinkProviderIDStub = nil
+	if fake.linkProviderIDReturnsOnCall == nil {
+		fake.linkProviderIDReturnsOnCall = make(map[int]struct {
+			result1 string
+			result2 error
 		})
 	}
-	fake.deleteLinkConsumerReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
+	fake.linkProviderIDReturnsOnCall[i] = struct {
+		result1 string
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeDNSRetriever) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.linkProviderIDMutex.RLock()
-	defer fake.linkProviderIDMutex.RUnlock()
 	fake.createLinkConsumerMutex.RLock()
 	defer fake.createLinkConsumerMutex.RUnlock()
-	fake.getLinkAddressMutex.RLock()
-	defer fake.getLinkAddressMutex.RUnlock()
 	fake.deleteLinkConsumerMutex.RLock()
 	defer fake.deleteLinkConsumerMutex.RUnlock()
+	fake.getLinkAddressMutex.RLock()
+	defer fake.getLinkAddressMutex.RUnlock()
+	fake.linkProviderIDMutex.RLock()
+	defer fake.linkProviderIDMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

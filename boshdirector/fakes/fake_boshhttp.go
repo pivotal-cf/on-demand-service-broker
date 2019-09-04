@@ -8,38 +8,10 @@ import (
 )
 
 type FakeHTTP struct {
-	RawGetStub        func(path string) (string, error)
-	rawGetMutex       sync.RWMutex
-	rawGetArgsForCall []struct {
-		path string
-	}
-	rawGetReturns struct {
-		result1 string
-		result2 error
-	}
-	rawGetReturnsOnCall map[int]struct {
-		result1 string
-		result2 error
-	}
-	RawPostStub        func(path, data, contentType string) (string, error)
-	rawPostMutex       sync.RWMutex
-	rawPostArgsForCall []struct {
-		path        string
-		data        string
-		contentType string
-	}
-	rawPostReturns struct {
-		result1 string
-		result2 error
-	}
-	rawPostReturnsOnCall map[int]struct {
-		result1 string
-		result2 error
-	}
-	RawDeleteStub        func(path string) (string, error)
+	RawDeleteStub        func(string) (string, error)
 	rawDeleteMutex       sync.RWMutex
 	rawDeleteArgsForCall []struct {
-		path string
+		arg1 string
 	}
 	rawDeleteReturns struct {
 		result1 string
@@ -49,129 +21,54 @@ type FakeHTTP struct {
 		result1 string
 		result2 error
 	}
+	RawGetStub        func(string) (string, error)
+	rawGetMutex       sync.RWMutex
+	rawGetArgsForCall []struct {
+		arg1 string
+	}
+	rawGetReturns struct {
+		result1 string
+		result2 error
+	}
+	rawGetReturnsOnCall map[int]struct {
+		result1 string
+		result2 error
+	}
+	RawPostStub        func(string, string, string) (string, error)
+	rawPostMutex       sync.RWMutex
+	rawPostArgsForCall []struct {
+		arg1 string
+		arg2 string
+		arg3 string
+	}
+	rawPostReturns struct {
+		result1 string
+		result2 error
+	}
+	rawPostReturnsOnCall map[int]struct {
+		result1 string
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeHTTP) RawGet(path string) (string, error) {
-	fake.rawGetMutex.Lock()
-	ret, specificReturn := fake.rawGetReturnsOnCall[len(fake.rawGetArgsForCall)]
-	fake.rawGetArgsForCall = append(fake.rawGetArgsForCall, struct {
-		path string
-	}{path})
-	fake.recordInvocation("RawGet", []interface{}{path})
-	fake.rawGetMutex.Unlock()
-	if fake.RawGetStub != nil {
-		return fake.RawGetStub(path)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	return fake.rawGetReturns.result1, fake.rawGetReturns.result2
-}
-
-func (fake *FakeHTTP) RawGetCallCount() int {
-	fake.rawGetMutex.RLock()
-	defer fake.rawGetMutex.RUnlock()
-	return len(fake.rawGetArgsForCall)
-}
-
-func (fake *FakeHTTP) RawGetArgsForCall(i int) string {
-	fake.rawGetMutex.RLock()
-	defer fake.rawGetMutex.RUnlock()
-	return fake.rawGetArgsForCall[i].path
-}
-
-func (fake *FakeHTTP) RawGetReturns(result1 string, result2 error) {
-	fake.RawGetStub = nil
-	fake.rawGetReturns = struct {
-		result1 string
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeHTTP) RawGetReturnsOnCall(i int, result1 string, result2 error) {
-	fake.RawGetStub = nil
-	if fake.rawGetReturnsOnCall == nil {
-		fake.rawGetReturnsOnCall = make(map[int]struct {
-			result1 string
-			result2 error
-		})
-	}
-	fake.rawGetReturnsOnCall[i] = struct {
-		result1 string
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeHTTP) RawPost(path string, data string, contentType string) (string, error) {
-	fake.rawPostMutex.Lock()
-	ret, specificReturn := fake.rawPostReturnsOnCall[len(fake.rawPostArgsForCall)]
-	fake.rawPostArgsForCall = append(fake.rawPostArgsForCall, struct {
-		path        string
-		data        string
-		contentType string
-	}{path, data, contentType})
-	fake.recordInvocation("RawPost", []interface{}{path, data, contentType})
-	fake.rawPostMutex.Unlock()
-	if fake.RawPostStub != nil {
-		return fake.RawPostStub(path, data, contentType)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	return fake.rawPostReturns.result1, fake.rawPostReturns.result2
-}
-
-func (fake *FakeHTTP) RawPostCallCount() int {
-	fake.rawPostMutex.RLock()
-	defer fake.rawPostMutex.RUnlock()
-	return len(fake.rawPostArgsForCall)
-}
-
-func (fake *FakeHTTP) RawPostArgsForCall(i int) (string, string, string) {
-	fake.rawPostMutex.RLock()
-	defer fake.rawPostMutex.RUnlock()
-	return fake.rawPostArgsForCall[i].path, fake.rawPostArgsForCall[i].data, fake.rawPostArgsForCall[i].contentType
-}
-
-func (fake *FakeHTTP) RawPostReturns(result1 string, result2 error) {
-	fake.RawPostStub = nil
-	fake.rawPostReturns = struct {
-		result1 string
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeHTTP) RawPostReturnsOnCall(i int, result1 string, result2 error) {
-	fake.RawPostStub = nil
-	if fake.rawPostReturnsOnCall == nil {
-		fake.rawPostReturnsOnCall = make(map[int]struct {
-			result1 string
-			result2 error
-		})
-	}
-	fake.rawPostReturnsOnCall[i] = struct {
-		result1 string
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeHTTP) RawDelete(path string) (string, error) {
+func (fake *FakeHTTP) RawDelete(arg1 string) (string, error) {
 	fake.rawDeleteMutex.Lock()
 	ret, specificReturn := fake.rawDeleteReturnsOnCall[len(fake.rawDeleteArgsForCall)]
 	fake.rawDeleteArgsForCall = append(fake.rawDeleteArgsForCall, struct {
-		path string
-	}{path})
-	fake.recordInvocation("RawDelete", []interface{}{path})
+		arg1 string
+	}{arg1})
+	fake.recordInvocation("RawDelete", []interface{}{arg1})
 	fake.rawDeleteMutex.Unlock()
 	if fake.RawDeleteStub != nil {
-		return fake.RawDeleteStub(path)
+		return fake.RawDeleteStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.rawDeleteReturns.result1, fake.rawDeleteReturns.result2
+	fakeReturns := fake.rawDeleteReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeHTTP) RawDeleteCallCount() int {
@@ -180,13 +77,22 @@ func (fake *FakeHTTP) RawDeleteCallCount() int {
 	return len(fake.rawDeleteArgsForCall)
 }
 
+func (fake *FakeHTTP) RawDeleteCalls(stub func(string) (string, error)) {
+	fake.rawDeleteMutex.Lock()
+	defer fake.rawDeleteMutex.Unlock()
+	fake.RawDeleteStub = stub
+}
+
 func (fake *FakeHTTP) RawDeleteArgsForCall(i int) string {
 	fake.rawDeleteMutex.RLock()
 	defer fake.rawDeleteMutex.RUnlock()
-	return fake.rawDeleteArgsForCall[i].path
+	argsForCall := fake.rawDeleteArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeHTTP) RawDeleteReturns(result1 string, result2 error) {
+	fake.rawDeleteMutex.Lock()
+	defer fake.rawDeleteMutex.Unlock()
 	fake.RawDeleteStub = nil
 	fake.rawDeleteReturns = struct {
 		result1 string
@@ -195,6 +101,8 @@ func (fake *FakeHTTP) RawDeleteReturns(result1 string, result2 error) {
 }
 
 func (fake *FakeHTTP) RawDeleteReturnsOnCall(i int, result1 string, result2 error) {
+	fake.rawDeleteMutex.Lock()
+	defer fake.rawDeleteMutex.Unlock()
 	fake.RawDeleteStub = nil
 	if fake.rawDeleteReturnsOnCall == nil {
 		fake.rawDeleteReturnsOnCall = make(map[int]struct {
@@ -208,15 +116,143 @@ func (fake *FakeHTTP) RawDeleteReturnsOnCall(i int, result1 string, result2 erro
 	}{result1, result2}
 }
 
+func (fake *FakeHTTP) RawGet(arg1 string) (string, error) {
+	fake.rawGetMutex.Lock()
+	ret, specificReturn := fake.rawGetReturnsOnCall[len(fake.rawGetArgsForCall)]
+	fake.rawGetArgsForCall = append(fake.rawGetArgsForCall, struct {
+		arg1 string
+	}{arg1})
+	fake.recordInvocation("RawGet", []interface{}{arg1})
+	fake.rawGetMutex.Unlock()
+	if fake.RawGetStub != nil {
+		return fake.RawGetStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.rawGetReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeHTTP) RawGetCallCount() int {
+	fake.rawGetMutex.RLock()
+	defer fake.rawGetMutex.RUnlock()
+	return len(fake.rawGetArgsForCall)
+}
+
+func (fake *FakeHTTP) RawGetCalls(stub func(string) (string, error)) {
+	fake.rawGetMutex.Lock()
+	defer fake.rawGetMutex.Unlock()
+	fake.RawGetStub = stub
+}
+
+func (fake *FakeHTTP) RawGetArgsForCall(i int) string {
+	fake.rawGetMutex.RLock()
+	defer fake.rawGetMutex.RUnlock()
+	argsForCall := fake.rawGetArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeHTTP) RawGetReturns(result1 string, result2 error) {
+	fake.rawGetMutex.Lock()
+	defer fake.rawGetMutex.Unlock()
+	fake.RawGetStub = nil
+	fake.rawGetReturns = struct {
+		result1 string
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeHTTP) RawGetReturnsOnCall(i int, result1 string, result2 error) {
+	fake.rawGetMutex.Lock()
+	defer fake.rawGetMutex.Unlock()
+	fake.RawGetStub = nil
+	if fake.rawGetReturnsOnCall == nil {
+		fake.rawGetReturnsOnCall = make(map[int]struct {
+			result1 string
+			result2 error
+		})
+	}
+	fake.rawGetReturnsOnCall[i] = struct {
+		result1 string
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeHTTP) RawPost(arg1 string, arg2 string, arg3 string) (string, error) {
+	fake.rawPostMutex.Lock()
+	ret, specificReturn := fake.rawPostReturnsOnCall[len(fake.rawPostArgsForCall)]
+	fake.rawPostArgsForCall = append(fake.rawPostArgsForCall, struct {
+		arg1 string
+		arg2 string
+		arg3 string
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("RawPost", []interface{}{arg1, arg2, arg3})
+	fake.rawPostMutex.Unlock()
+	if fake.RawPostStub != nil {
+		return fake.RawPostStub(arg1, arg2, arg3)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.rawPostReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeHTTP) RawPostCallCount() int {
+	fake.rawPostMutex.RLock()
+	defer fake.rawPostMutex.RUnlock()
+	return len(fake.rawPostArgsForCall)
+}
+
+func (fake *FakeHTTP) RawPostCalls(stub func(string, string, string) (string, error)) {
+	fake.rawPostMutex.Lock()
+	defer fake.rawPostMutex.Unlock()
+	fake.RawPostStub = stub
+}
+
+func (fake *FakeHTTP) RawPostArgsForCall(i int) (string, string, string) {
+	fake.rawPostMutex.RLock()
+	defer fake.rawPostMutex.RUnlock()
+	argsForCall := fake.rawPostArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+}
+
+func (fake *FakeHTTP) RawPostReturns(result1 string, result2 error) {
+	fake.rawPostMutex.Lock()
+	defer fake.rawPostMutex.Unlock()
+	fake.RawPostStub = nil
+	fake.rawPostReturns = struct {
+		result1 string
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeHTTP) RawPostReturnsOnCall(i int, result1 string, result2 error) {
+	fake.rawPostMutex.Lock()
+	defer fake.rawPostMutex.Unlock()
+	fake.RawPostStub = nil
+	if fake.rawPostReturnsOnCall == nil {
+		fake.rawPostReturnsOnCall = make(map[int]struct {
+			result1 string
+			result2 error
+		})
+	}
+	fake.rawPostReturnsOnCall[i] = struct {
+		result1 string
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeHTTP) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.rawDeleteMutex.RLock()
+	defer fake.rawDeleteMutex.RUnlock()
 	fake.rawGetMutex.RLock()
 	defer fake.rawGetMutex.RUnlock()
 	fake.rawPostMutex.RLock()
 	defer fake.rawPostMutex.RUnlock()
-	fake.rawDeleteMutex.RLock()
-	defer fake.rawDeleteMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

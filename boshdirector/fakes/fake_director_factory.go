@@ -9,12 +9,12 @@ import (
 )
 
 type FakeDirectorFactory struct {
-	NewStub        func(config director.FactoryConfig, taskReporter director.TaskReporter, fileReporter director.FileReporter) (director.Director, error)
+	NewStub        func(director.FactoryConfig, director.TaskReporter, director.FileReporter) (director.Director, error)
 	newMutex       sync.RWMutex
 	newArgsForCall []struct {
-		config       director.FactoryConfig
-		taskReporter director.TaskReporter
-		fileReporter director.FileReporter
+		arg1 director.FactoryConfig
+		arg2 director.TaskReporter
+		arg3 director.FileReporter
 	}
 	newReturns struct {
 		result1 director.Director
@@ -28,23 +28,24 @@ type FakeDirectorFactory struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeDirectorFactory) New(config director.FactoryConfig, taskReporter director.TaskReporter, fileReporter director.FileReporter) (director.Director, error) {
+func (fake *FakeDirectorFactory) New(arg1 director.FactoryConfig, arg2 director.TaskReporter, arg3 director.FileReporter) (director.Director, error) {
 	fake.newMutex.Lock()
 	ret, specificReturn := fake.newReturnsOnCall[len(fake.newArgsForCall)]
 	fake.newArgsForCall = append(fake.newArgsForCall, struct {
-		config       director.FactoryConfig
-		taskReporter director.TaskReporter
-		fileReporter director.FileReporter
-	}{config, taskReporter, fileReporter})
-	fake.recordInvocation("New", []interface{}{config, taskReporter, fileReporter})
+		arg1 director.FactoryConfig
+		arg2 director.TaskReporter
+		arg3 director.FileReporter
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("New", []interface{}{arg1, arg2, arg3})
 	fake.newMutex.Unlock()
 	if fake.NewStub != nil {
-		return fake.NewStub(config, taskReporter, fileReporter)
+		return fake.NewStub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.newReturns.result1, fake.newReturns.result2
+	fakeReturns := fake.newReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeDirectorFactory) NewCallCount() int {
@@ -53,13 +54,22 @@ func (fake *FakeDirectorFactory) NewCallCount() int {
 	return len(fake.newArgsForCall)
 }
 
+func (fake *FakeDirectorFactory) NewCalls(stub func(director.FactoryConfig, director.TaskReporter, director.FileReporter) (director.Director, error)) {
+	fake.newMutex.Lock()
+	defer fake.newMutex.Unlock()
+	fake.NewStub = stub
+}
+
 func (fake *FakeDirectorFactory) NewArgsForCall(i int) (director.FactoryConfig, director.TaskReporter, director.FileReporter) {
 	fake.newMutex.RLock()
 	defer fake.newMutex.RUnlock()
-	return fake.newArgsForCall[i].config, fake.newArgsForCall[i].taskReporter, fake.newArgsForCall[i].fileReporter
+	argsForCall := fake.newArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *FakeDirectorFactory) NewReturns(result1 director.Director, result2 error) {
+	fake.newMutex.Lock()
+	defer fake.newMutex.Unlock()
 	fake.NewStub = nil
 	fake.newReturns = struct {
 		result1 director.Director
@@ -68,6 +78,8 @@ func (fake *FakeDirectorFactory) NewReturns(result1 director.Director, result2 e
 }
 
 func (fake *FakeDirectorFactory) NewReturnsOnCall(i int, result1 director.Director, result2 error) {
+	fake.newMutex.Lock()
+	defer fake.newMutex.Unlock()
 	fake.NewStub = nil
 	if fake.newReturnsOnCall == nil {
 		fake.newReturnsOnCall = make(map[int]struct {

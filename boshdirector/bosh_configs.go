@@ -40,7 +40,7 @@ func (c *Client) UpdateConfig(configType, configName string, configContent []byt
 	if err != nil {
 		return errors.Wrap(err, "Failed to build director")
 	}
-	if _, err := d.UpdateConfig(configType, configName, configContent); err != nil {
+	if _, err := d.UpdateConfig(configType, configName, "", configContent); err != nil {
 		return errors.Wrap(err, fmt.Sprintf(`BOSH error updating "%s" config "%s"`, configType, configName))
 	}
 

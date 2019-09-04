@@ -8,10 +8,10 @@ import (
 )
 
 type FakeCertAppender struct {
-	AppendCertsFromPEMStub        func(pemCerts []byte) (ok bool)
+	AppendCertsFromPEMStub        func([]byte) bool
 	appendCertsFromPEMMutex       sync.RWMutex
 	appendCertsFromPEMArgsForCall []struct {
-		pemCerts []byte
+		arg1 []byte
 	}
 	appendCertsFromPEMReturns struct {
 		result1 bool
@@ -23,26 +23,27 @@ type FakeCertAppender struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeCertAppender) AppendCertsFromPEM(pemCerts []byte) (ok bool) {
-	var pemCertsCopy []byte
-	if pemCerts != nil {
-		pemCertsCopy = make([]byte, len(pemCerts))
-		copy(pemCertsCopy, pemCerts)
+func (fake *FakeCertAppender) AppendCertsFromPEM(arg1 []byte) bool {
+	var arg1Copy []byte
+	if arg1 != nil {
+		arg1Copy = make([]byte, len(arg1))
+		copy(arg1Copy, arg1)
 	}
 	fake.appendCertsFromPEMMutex.Lock()
 	ret, specificReturn := fake.appendCertsFromPEMReturnsOnCall[len(fake.appendCertsFromPEMArgsForCall)]
 	fake.appendCertsFromPEMArgsForCall = append(fake.appendCertsFromPEMArgsForCall, struct {
-		pemCerts []byte
-	}{pemCertsCopy})
-	fake.recordInvocation("AppendCertsFromPEM", []interface{}{pemCertsCopy})
+		arg1 []byte
+	}{arg1Copy})
+	fake.recordInvocation("AppendCertsFromPEM", []interface{}{arg1Copy})
 	fake.appendCertsFromPEMMutex.Unlock()
 	if fake.AppendCertsFromPEMStub != nil {
-		return fake.AppendCertsFromPEMStub(pemCerts)
+		return fake.AppendCertsFromPEMStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.appendCertsFromPEMReturns.result1
+	fakeReturns := fake.appendCertsFromPEMReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeCertAppender) AppendCertsFromPEMCallCount() int {
@@ -51,13 +52,22 @@ func (fake *FakeCertAppender) AppendCertsFromPEMCallCount() int {
 	return len(fake.appendCertsFromPEMArgsForCall)
 }
 
+func (fake *FakeCertAppender) AppendCertsFromPEMCalls(stub func([]byte) bool) {
+	fake.appendCertsFromPEMMutex.Lock()
+	defer fake.appendCertsFromPEMMutex.Unlock()
+	fake.AppendCertsFromPEMStub = stub
+}
+
 func (fake *FakeCertAppender) AppendCertsFromPEMArgsForCall(i int) []byte {
 	fake.appendCertsFromPEMMutex.RLock()
 	defer fake.appendCertsFromPEMMutex.RUnlock()
-	return fake.appendCertsFromPEMArgsForCall[i].pemCerts
+	argsForCall := fake.appendCertsFromPEMArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeCertAppender) AppendCertsFromPEMReturns(result1 bool) {
+	fake.appendCertsFromPEMMutex.Lock()
+	defer fake.appendCertsFromPEMMutex.Unlock()
 	fake.AppendCertsFromPEMStub = nil
 	fake.appendCertsFromPEMReturns = struct {
 		result1 bool
@@ -65,6 +75,8 @@ func (fake *FakeCertAppender) AppendCertsFromPEMReturns(result1 bool) {
 }
 
 func (fake *FakeCertAppender) AppendCertsFromPEMReturnsOnCall(i int, result1 bool) {
+	fake.appendCertsFromPEMMutex.Lock()
+	defer fake.appendCertsFromPEMMutex.Unlock()
 	fake.AppendCertsFromPEMStub = nil
 	if fake.appendCertsFromPEMReturnsOnCall == nil {
 		fake.appendCertsFromPEMReturnsOnCall = make(map[int]struct {
