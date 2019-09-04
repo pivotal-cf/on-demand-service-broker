@@ -22,7 +22,7 @@ func (c *Client) Recreate(deploymentName, contextID string, logger *log.Logger, 
 	}
 
 	go func() {
-		err = deployment.Recreate(director.AllOrInstanceGroupOrInstanceSlug{}, director.RecreateOpts{Fix: true})
+		err = deployment.Recreate(director.AllOrInstanceGroupOrInstanceSlug{}, director.RecreateOpts{Fix: true, Converge: true})
 		if err != nil {
 			taskReporter.Err <- errors.Wrapf(err, "Could not recreate deployment %s", deploymentName)
 		}

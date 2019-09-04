@@ -46,6 +46,12 @@ func (fake *FakeDNSRetrieverFactory) CallCount() int {
 	return len(fake.argsForCall)
 }
 
+func (fake *FakeDNSRetrieverFactory) Calls(stub func(boshdirector.HTTP) boshdirector.DNSRetriever) {
+	fake.mutex.Lock()
+	defer fake.mutex.Unlock()
+	fake.Stub = stub
+}
+
 func (fake *FakeDNSRetrieverFactory) ArgsForCall(i int) boshdirector.HTTP {
 	fake.mutex.RLock()
 	defer fake.mutex.RUnlock()
@@ -53,6 +59,8 @@ func (fake *FakeDNSRetrieverFactory) ArgsForCall(i int) boshdirector.HTTP {
 }
 
 func (fake *FakeDNSRetrieverFactory) Returns(result1 boshdirector.DNSRetriever) {
+	fake.mutex.Lock()
+	defer fake.mutex.Unlock()
 	fake.Stub = nil
 	fake.returns = struct {
 		result1 boshdirector.DNSRetriever
@@ -60,6 +68,8 @@ func (fake *FakeDNSRetrieverFactory) Returns(result1 boshdirector.DNSRetriever) 
 }
 
 func (fake *FakeDNSRetrieverFactory) ReturnsOnCall(i int, result1 boshdirector.DNSRetriever) {
+	fake.mutex.Lock()
+	defer fake.mutex.Unlock()
 	fake.Stub = nil
 	if fake.returnsOnCall == nil {
 		fake.returnsOnCall = make(map[int]struct {

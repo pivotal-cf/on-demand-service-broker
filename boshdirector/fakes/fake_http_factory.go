@@ -46,6 +46,12 @@ func (fake *FakeHTTPFactory) CallCount() int {
 	return len(fake.argsForCall)
 }
 
+func (fake *FakeHTTPFactory) Calls(stub func(*boshdirector.Client) boshdirector.HTTP) {
+	fake.mutex.Lock()
+	defer fake.mutex.Unlock()
+	fake.Stub = stub
+}
+
 func (fake *FakeHTTPFactory) ArgsForCall(i int) *boshdirector.Client {
 	fake.mutex.RLock()
 	defer fake.mutex.RUnlock()
@@ -53,6 +59,8 @@ func (fake *FakeHTTPFactory) ArgsForCall(i int) *boshdirector.Client {
 }
 
 func (fake *FakeHTTPFactory) Returns(result1 boshdirector.HTTP) {
+	fake.mutex.Lock()
+	defer fake.mutex.Unlock()
 	fake.Stub = nil
 	fake.returns = struct {
 		result1 boshdirector.HTTP
@@ -60,6 +68,8 @@ func (fake *FakeHTTPFactory) Returns(result1 boshdirector.HTTP) {
 }
 
 func (fake *FakeHTTPFactory) ReturnsOnCall(i int, result1 boshdirector.HTTP) {
+	fake.mutex.Lock()
+	defer fake.mutex.Unlock()
 	fake.Stub = nil
 	if fake.returnsOnCall == nil {
 		fake.returnsOnCall = make(map[int]struct {

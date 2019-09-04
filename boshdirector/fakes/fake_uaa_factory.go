@@ -4,43 +4,44 @@ package fakes
 import (
 	"sync"
 
-	boshuaa "github.com/cloudfoundry/bosh-cli/uaa"
+	"github.com/cloudfoundry/bosh-cli/uaa"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 )
 
 type FakeUAAFactory struct {
-	NewStub        func(config boshuaa.Config) (boshuaa.UAA, error)
+	NewStub        func(uaa.Config) (uaa.UAA, error)
 	newMutex       sync.RWMutex
 	newArgsForCall []struct {
-		config boshuaa.Config
+		arg1 uaa.Config
 	}
 	newReturns struct {
-		result1 boshuaa.UAA
+		result1 uaa.UAA
 		result2 error
 	}
 	newReturnsOnCall map[int]struct {
-		result1 boshuaa.UAA
+		result1 uaa.UAA
 		result2 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeUAAFactory) New(config boshuaa.Config) (boshuaa.UAA, error) {
+func (fake *FakeUAAFactory) New(arg1 uaa.Config) (uaa.UAA, error) {
 	fake.newMutex.Lock()
 	ret, specificReturn := fake.newReturnsOnCall[len(fake.newArgsForCall)]
 	fake.newArgsForCall = append(fake.newArgsForCall, struct {
-		config boshuaa.Config
-	}{config})
-	fake.recordInvocation("New", []interface{}{config})
+		arg1 uaa.Config
+	}{arg1})
+	fake.recordInvocation("New", []interface{}{arg1})
 	fake.newMutex.Unlock()
 	if fake.NewStub != nil {
-		return fake.NewStub(config)
+		return fake.NewStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.newReturns.result1, fake.newReturns.result2
+	fakeReturns := fake.newReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeUAAFactory) NewCallCount() int {
@@ -49,30 +50,41 @@ func (fake *FakeUAAFactory) NewCallCount() int {
 	return len(fake.newArgsForCall)
 }
 
-func (fake *FakeUAAFactory) NewArgsForCall(i int) boshuaa.Config {
-	fake.newMutex.RLock()
-	defer fake.newMutex.RUnlock()
-	return fake.newArgsForCall[i].config
+func (fake *FakeUAAFactory) NewCalls(stub func(uaa.Config) (uaa.UAA, error)) {
+	fake.newMutex.Lock()
+	defer fake.newMutex.Unlock()
+	fake.NewStub = stub
 }
 
-func (fake *FakeUAAFactory) NewReturns(result1 boshuaa.UAA, result2 error) {
+func (fake *FakeUAAFactory) NewArgsForCall(i int) uaa.Config {
+	fake.newMutex.RLock()
+	defer fake.newMutex.RUnlock()
+	argsForCall := fake.newArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeUAAFactory) NewReturns(result1 uaa.UAA, result2 error) {
+	fake.newMutex.Lock()
+	defer fake.newMutex.Unlock()
 	fake.NewStub = nil
 	fake.newReturns = struct {
-		result1 boshuaa.UAA
+		result1 uaa.UAA
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeUAAFactory) NewReturnsOnCall(i int, result1 boshuaa.UAA, result2 error) {
+func (fake *FakeUAAFactory) NewReturnsOnCall(i int, result1 uaa.UAA, result2 error) {
+	fake.newMutex.Lock()
+	defer fake.newMutex.Unlock()
 	fake.NewStub = nil
 	if fake.newReturnsOnCall == nil {
 		fake.newReturnsOnCall = make(map[int]struct {
-			result1 boshuaa.UAA
+			result1 uaa.UAA
 			result2 error
 		})
 	}
 	fake.newReturnsOnCall[i] = struct {
-		result1 boshuaa.UAA
+		result1 uaa.UAA
 		result2 error
 	}{result1, result2}
 }

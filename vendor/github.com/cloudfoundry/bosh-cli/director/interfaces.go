@@ -5,7 +5,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/cloudfoundry/bosh-cli/ui"
+	bio "github.com/cloudfoundry/bosh-cli/io"
+	biproperty "github.com/cloudfoundry/bosh-utils/property"
 	semver "github.com/cppforlife/go-semi-semantic/version"
 )
 
@@ -22,12 +23,15 @@ type Director interface {
 	RecentTasks(int, TasksFilter) ([]Task, error)
 	FindTask(int) (Task, error)
 	FindTasksByContextId(string) ([]Task, error)
+	CancelTasks(TasksFilter) error
 
 	Events(EventsFilter) ([]Event, error)
 	Event(string) (Event, error)
 
 	Deployments() ([]Deployment, error)
 	FindDeployment(string) (Deployment, error)
+	ListDeployments() ([]DeploymentResp, error)
+	ListDeploymentConfigs(name string) (DeploymentConfigs, error)
 
 	Releases() ([]Release, error)
 	HasRelease(name, version string, stemcell OSVersionSlug) (bool, error)
@@ -47,11 +51,11 @@ type Director interface {
 	LatestConfig(configType string, name string) (Config, error)
 	LatestConfigByID(configID string) (Config, error)
 	ListConfigs(limit int, filter ConfigsFilter) ([]Config, error)
-	UpdateConfig(configType string, name string, content []byte) (Config, error)
+	UpdateConfig(configType string, name string, expectedLatestId string, content []byte) (Config, error)
 	DeleteConfig(configType string, name string) (bool, error)
 	DeleteConfigByID(configID string) (bool, error)
 	DiffConfig(configType string, name string, manifest []byte) (ConfigDiff, error)
-	DiffConfigByID(fromID string, toID string) (ConfigDiff, error)
+	DiffConfigByIDOrContent(fromID string, fromContent []byte, toID string, toContent []byte) (ConfigDiff, error)
 
 	LatestCloudConfig() (CloudConfig, error)
 	UpdateCloudConfig([]byte) error
@@ -69,9 +73,16 @@ type Director interface {
 	OrphanDisks() ([]OrphanDisk, error)
 	OrphanDisk(string) error
 
+	FindOrphanNetwork(string) (OrphanNetwork, error)
+	OrphanNetworks() ([]OrphanNetwork, error)
+
 	EnableResurrection(bool) error
 	CleanUp(bool) error
 	DownloadResourceUnchecked(blobstoreID string, out io.Writer) error
+
+	OrphanedVMs() ([]OrphanedVM, error)
+
+	CertificateExpiry() ([]CertificateExpiryInfo, error)
 }
 
 var _ Director = &DirectorImpl{}
@@ -81,24 +92,38 @@ type UploadFile interface {
 	Stat() (os.FileInfo, error)
 }
 
+type ReleaseMetadata struct {
+	Name    string `yaml:"name"`
+	Version string `yaml:"version"`
+	// other fields ignored
+}
+
 //go:generate counterfeiter . ReleaseArchive
 
 type ReleaseArchive interface {
-	Info() (string, string, error)
+	Info() (ReleaseMetadata, error)
 	File() (UploadFile, error)
+}
+
+type StemcellMetadata struct {
+	Name            string         `yaml:"name"`
+	OS              string         `yaml:"operating_system"`
+	Version         string         `yaml:"version"`
+	CloudProperties biproperty.Map `yaml:"cloud_properties"`
+	// other fields ignored
 }
 
 //go:generate counterfeiter . StemcellArchive
 
 type StemcellArchive interface {
-	Info() (string, string, error)
+	Info() (StemcellMetadata, error)
 	File() (UploadFile, error)
 }
 
 //go:generate counterfeiter . FileReporter
 
 type FileReporter interface {
-	TrackUpload(int64, io.ReadCloser) ui.ReadSeekCloser
+	TrackUpload(int64, io.ReadCloser) bio.ReadSeekCloser
 	TrackDownload(int64, io.Writer) io.Writer
 }
 
@@ -152,12 +177,13 @@ type Deployment interface {
 	Update(manifest []byte, opts UpdateOpts) error
 	Delete(force bool) error
 
-	AttachDisk(slug InstanceSlug, diskCID string) error
+	AttachDisk(slug InstanceSlug, diskCID string, diskProperties string) error
 }
 
 type StartOpts struct {
 	Canaries    string
 	MaxInFlight string
+	Converge    bool
 }
 
 type StopOpts struct {
@@ -166,6 +192,7 @@ type StopOpts struct {
 	Force       bool
 	SkipDrain   bool
 	Hard        bool
+	Converge    bool
 }
 
 type RestartOpts struct {
@@ -173,6 +200,7 @@ type RestartOpts struct {
 	MaxInFlight string
 	Force       bool
 	SkipDrain   bool
+	Converge    bool
 }
 
 type RecreateOpts struct {
@@ -182,16 +210,18 @@ type RecreateOpts struct {
 	Fix         bool
 	SkipDrain   bool
 	DryRun      bool
+	Converge    bool
 }
 
 type UpdateOpts struct {
-	Recreate    bool
-	Fix         bool
-	SkipDrain   SkipDrains
-	Canaries    string
-	MaxInFlight string
-	DryRun      bool
-	Diff        DeploymentDiff
+	Recreate                bool
+	RecreatePersistentDisks bool
+	Fix                     bool
+	SkipDrain               SkipDrains
+	Canaries                string
+	MaxInFlight             string
+	DryRun                  bool
+	Diff                    DeploymentDiff
 }
 
 //go:generate counterfeiter . ReleaseSeries
@@ -199,6 +229,7 @@ type UpdateOpts struct {
 type ReleaseSeries interface {
 	Name() string
 	Delete(force bool) error
+	Exists() (bool, error)
 }
 
 //go:generate counterfeiter . Release
@@ -206,6 +237,7 @@ type ReleaseSeries interface {
 type Release interface {
 	Name() string
 	Version() semver.Version
+	Exists() (bool, error)
 	VersionMark(mark string) string
 	CommitHashWithMark(mark string) string
 
@@ -233,12 +265,14 @@ type Stemcell interface {
 type TasksFilter struct {
 	All        bool
 	Deployment string
+	Types      []string
+	States     []string
 }
 
 type Task interface {
 	ID() int
 	StartedAt() time.Time
-	LastActivityAt() time.Time
+	FinishedAt() time.Time
 
 	State() string
 	IsError() bool
@@ -280,6 +314,25 @@ type OrphanDisk interface {
 	Delete() error
 }
 
+//go:generate counterfeiter . OrphanNetwork
+
+type OrphanNetwork interface {
+	Name() string
+	Type() string
+	OrphanedAt() time.Time
+	CreatedAt() time.Time
+	Delete() error
+}
+
+type OrphanedVM struct {
+	CID            string
+	DeploymentName string
+	InstanceName   string
+	AZName         string
+	IPAddresses    []string
+	OrphanedAt     time.Time
+}
+
 type EventsFilter struct {
 	BeforeID   string
 	Before     string
@@ -308,4 +361,10 @@ type Event interface {
 	Instance() string
 	Context() map[string]interface{}
 	Error() string
+}
+
+type CertificateExpiryInfo struct {
+	Path     string `json:"certificate_path"`
+	Expiry   string `json:"expiry"`
+	DaysLeft int    `json:"days_left"`
 }
