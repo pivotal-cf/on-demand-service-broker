@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-//go:generate counterfeiter -o fakes_telemetry/fake_telemetry_time.go . timer
+//go:generate counterfeiter -o fakes_telemetry/fake_telemetry_time.go . Timer
 type Timer interface {
 	Now() string
 }

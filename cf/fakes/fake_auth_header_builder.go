@@ -10,11 +10,11 @@ import (
 )
 
 type FakeAuthHeaderBuilder struct {
-	AddAuthHeaderStub        func(request *http.Request, logger *log.Logger) error
+	AddAuthHeaderStub        func(*http.Request, *log.Logger) error
 	addAuthHeaderMutex       sync.RWMutex
 	addAuthHeaderArgsForCall []struct {
-		request *http.Request
-		logger  *log.Logger
+		arg1 *http.Request
+		arg2 *log.Logger
 	}
 	addAuthHeaderReturns struct {
 		result1 error
@@ -26,22 +26,23 @@ type FakeAuthHeaderBuilder struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeAuthHeaderBuilder) AddAuthHeader(request *http.Request, logger *log.Logger) error {
+func (fake *FakeAuthHeaderBuilder) AddAuthHeader(arg1 *http.Request, arg2 *log.Logger) error {
 	fake.addAuthHeaderMutex.Lock()
 	ret, specificReturn := fake.addAuthHeaderReturnsOnCall[len(fake.addAuthHeaderArgsForCall)]
 	fake.addAuthHeaderArgsForCall = append(fake.addAuthHeaderArgsForCall, struct {
-		request *http.Request
-		logger  *log.Logger
-	}{request, logger})
-	fake.recordInvocation("AddAuthHeader", []interface{}{request, logger})
+		arg1 *http.Request
+		arg2 *log.Logger
+	}{arg1, arg2})
+	fake.recordInvocation("AddAuthHeader", []interface{}{arg1, arg2})
 	fake.addAuthHeaderMutex.Unlock()
 	if fake.AddAuthHeaderStub != nil {
-		return fake.AddAuthHeaderStub(request, logger)
+		return fake.AddAuthHeaderStub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.addAuthHeaderReturns.result1
+	fakeReturns := fake.addAuthHeaderReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeAuthHeaderBuilder) AddAuthHeaderCallCount() int {
@@ -50,13 +51,22 @@ func (fake *FakeAuthHeaderBuilder) AddAuthHeaderCallCount() int {
 	return len(fake.addAuthHeaderArgsForCall)
 }
 
+func (fake *FakeAuthHeaderBuilder) AddAuthHeaderCalls(stub func(*http.Request, *log.Logger) error) {
+	fake.addAuthHeaderMutex.Lock()
+	defer fake.addAuthHeaderMutex.Unlock()
+	fake.AddAuthHeaderStub = stub
+}
+
 func (fake *FakeAuthHeaderBuilder) AddAuthHeaderArgsForCall(i int) (*http.Request, *log.Logger) {
 	fake.addAuthHeaderMutex.RLock()
 	defer fake.addAuthHeaderMutex.RUnlock()
-	return fake.addAuthHeaderArgsForCall[i].request, fake.addAuthHeaderArgsForCall[i].logger
+	argsForCall := fake.addAuthHeaderArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeAuthHeaderBuilder) AddAuthHeaderReturns(result1 error) {
+	fake.addAuthHeaderMutex.Lock()
+	defer fake.addAuthHeaderMutex.Unlock()
 	fake.AddAuthHeaderStub = nil
 	fake.addAuthHeaderReturns = struct {
 		result1 error
@@ -64,6 +74,8 @@ func (fake *FakeAuthHeaderBuilder) AddAuthHeaderReturns(result1 error) {
 }
 
 func (fake *FakeAuthHeaderBuilder) AddAuthHeaderReturnsOnCall(i int, result1 error) {
+	fake.addAuthHeaderMutex.Lock()
+	defer fake.addAuthHeaderMutex.Unlock()
 	fake.AddAuthHeaderStub = nil
 	if fake.addAuthHeaderReturnsOnCall == nil {
 		fake.addAuthHeaderReturnsOnCall = make(map[int]struct {

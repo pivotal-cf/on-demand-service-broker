@@ -8,10 +8,10 @@ import (
 )
 
 type FakeCommandRunner struct {
-	RunStub        func(arg ...string) ([]byte, []byte, *int, error)
+	RunStub        func(...string) ([]byte, []byte, *int, error)
 	runMutex       sync.RWMutex
 	runArgsForCall []struct {
-		arg []string
+		arg1 []string
 	}
 	runReturns struct {
 		result1 []byte
@@ -25,11 +25,11 @@ type FakeCommandRunner struct {
 		result3 *int
 		result4 error
 	}
-	RunWithInputParamsStub        func(inputParams interface{}, arg ...string) ([]byte, []byte, *int, error)
+	RunWithInputParamsStub        func(interface{}, ...string) ([]byte, []byte, *int, error)
 	runWithInputParamsMutex       sync.RWMutex
 	runWithInputParamsArgsForCall []struct {
-		inputParams interface{}
-		arg         []string
+		arg1 interface{}
+		arg2 []string
 	}
 	runWithInputParamsReturns struct {
 		result1 []byte
@@ -47,21 +47,22 @@ type FakeCommandRunner struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeCommandRunner) Run(arg ...string) ([]byte, []byte, *int, error) {
+func (fake *FakeCommandRunner) Run(arg1 ...string) ([]byte, []byte, *int, error) {
 	fake.runMutex.Lock()
 	ret, specificReturn := fake.runReturnsOnCall[len(fake.runArgsForCall)]
 	fake.runArgsForCall = append(fake.runArgsForCall, struct {
-		arg []string
-	}{arg})
-	fake.recordInvocation("Run", []interface{}{arg})
+		arg1 []string
+	}{arg1})
+	fake.recordInvocation("Run", []interface{}{arg1})
 	fake.runMutex.Unlock()
 	if fake.RunStub != nil {
-		return fake.RunStub(arg...)
+		return fake.RunStub(arg1...)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3, ret.result4
 	}
-	return fake.runReturns.result1, fake.runReturns.result2, fake.runReturns.result3, fake.runReturns.result4
+	fakeReturns := fake.runReturns
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3, fakeReturns.result4
 }
 
 func (fake *FakeCommandRunner) RunCallCount() int {
@@ -70,13 +71,22 @@ func (fake *FakeCommandRunner) RunCallCount() int {
 	return len(fake.runArgsForCall)
 }
 
+func (fake *FakeCommandRunner) RunCalls(stub func(...string) ([]byte, []byte, *int, error)) {
+	fake.runMutex.Lock()
+	defer fake.runMutex.Unlock()
+	fake.RunStub = stub
+}
+
 func (fake *FakeCommandRunner) RunArgsForCall(i int) []string {
 	fake.runMutex.RLock()
 	defer fake.runMutex.RUnlock()
-	return fake.runArgsForCall[i].arg
+	argsForCall := fake.runArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeCommandRunner) RunReturns(result1 []byte, result2 []byte, result3 *int, result4 error) {
+	fake.runMutex.Lock()
+	defer fake.runMutex.Unlock()
 	fake.RunStub = nil
 	fake.runReturns = struct {
 		result1 []byte
@@ -87,6 +97,8 @@ func (fake *FakeCommandRunner) RunReturns(result1 []byte, result2 []byte, result
 }
 
 func (fake *FakeCommandRunner) RunReturnsOnCall(i int, result1 []byte, result2 []byte, result3 *int, result4 error) {
+	fake.runMutex.Lock()
+	defer fake.runMutex.Unlock()
 	fake.RunStub = nil
 	if fake.runReturnsOnCall == nil {
 		fake.runReturnsOnCall = make(map[int]struct {
@@ -104,22 +116,23 @@ func (fake *FakeCommandRunner) RunReturnsOnCall(i int, result1 []byte, result2 [
 	}{result1, result2, result3, result4}
 }
 
-func (fake *FakeCommandRunner) RunWithInputParams(inputParams interface{}, arg ...string) ([]byte, []byte, *int, error) {
+func (fake *FakeCommandRunner) RunWithInputParams(arg1 interface{}, arg2 ...string) ([]byte, []byte, *int, error) {
 	fake.runWithInputParamsMutex.Lock()
 	ret, specificReturn := fake.runWithInputParamsReturnsOnCall[len(fake.runWithInputParamsArgsForCall)]
 	fake.runWithInputParamsArgsForCall = append(fake.runWithInputParamsArgsForCall, struct {
-		inputParams interface{}
-		arg         []string
-	}{inputParams, arg})
-	fake.recordInvocation("RunWithInputParams", []interface{}{inputParams, arg})
+		arg1 interface{}
+		arg2 []string
+	}{arg1, arg2})
+	fake.recordInvocation("RunWithInputParams", []interface{}{arg1, arg2})
 	fake.runWithInputParamsMutex.Unlock()
 	if fake.RunWithInputParamsStub != nil {
-		return fake.RunWithInputParamsStub(inputParams, arg...)
+		return fake.RunWithInputParamsStub(arg1, arg2...)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3, ret.result4
 	}
-	return fake.runWithInputParamsReturns.result1, fake.runWithInputParamsReturns.result2, fake.runWithInputParamsReturns.result3, fake.runWithInputParamsReturns.result4
+	fakeReturns := fake.runWithInputParamsReturns
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3, fakeReturns.result4
 }
 
 func (fake *FakeCommandRunner) RunWithInputParamsCallCount() int {
@@ -128,13 +141,22 @@ func (fake *FakeCommandRunner) RunWithInputParamsCallCount() int {
 	return len(fake.runWithInputParamsArgsForCall)
 }
 
+func (fake *FakeCommandRunner) RunWithInputParamsCalls(stub func(interface{}, ...string) ([]byte, []byte, *int, error)) {
+	fake.runWithInputParamsMutex.Lock()
+	defer fake.runWithInputParamsMutex.Unlock()
+	fake.RunWithInputParamsStub = stub
+}
+
 func (fake *FakeCommandRunner) RunWithInputParamsArgsForCall(i int) (interface{}, []string) {
 	fake.runWithInputParamsMutex.RLock()
 	defer fake.runWithInputParamsMutex.RUnlock()
-	return fake.runWithInputParamsArgsForCall[i].inputParams, fake.runWithInputParamsArgsForCall[i].arg
+	argsForCall := fake.runWithInputParamsArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeCommandRunner) RunWithInputParamsReturns(result1 []byte, result2 []byte, result3 *int, result4 error) {
+	fake.runWithInputParamsMutex.Lock()
+	defer fake.runWithInputParamsMutex.Unlock()
 	fake.RunWithInputParamsStub = nil
 	fake.runWithInputParamsReturns = struct {
 		result1 []byte
@@ -145,6 +167,8 @@ func (fake *FakeCommandRunner) RunWithInputParamsReturns(result1 []byte, result2
 }
 
 func (fake *FakeCommandRunner) RunWithInputParamsReturnsOnCall(i int, result1 []byte, result2 []byte, result3 *int, result4 error) {
+	fake.runWithInputParamsMutex.Lock()
+	defer fake.runWithInputParamsMutex.Unlock()
 	fake.RunWithInputParamsStub = nil
 	if fake.runWithInputParamsReturnsOnCall == nil {
 		fake.runWithInputParamsReturnsOnCall = make(map[int]struct {

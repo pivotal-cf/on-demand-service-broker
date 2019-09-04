@@ -9,24 +9,24 @@ import (
 )
 
 type FakeSleeper struct {
-	Stub        func(duration time.Duration)
+	Stub        func(time.Duration)
 	mutex       sync.RWMutex
 	argsForCall []struct {
-		duration time.Duration
+		arg1 time.Duration
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeSleeper) Spy(duration time.Duration) {
+func (fake *FakeSleeper) Spy(arg1 time.Duration) {
 	fake.mutex.Lock()
 	fake.argsForCall = append(fake.argsForCall, struct {
-		duration time.Duration
-	}{duration})
-	fake.recordInvocation("Sleeper", []interface{}{duration})
+		arg1 time.Duration
+	}{arg1})
+	fake.recordInvocation("Sleeper", []interface{}{arg1})
 	fake.mutex.Unlock()
 	if fake.Stub != nil {
-		fake.Stub(duration)
+		fake.Stub(arg1)
 	}
 }
 
@@ -36,10 +36,16 @@ func (fake *FakeSleeper) CallCount() int {
 	return len(fake.argsForCall)
 }
 
+func (fake *FakeSleeper) Calls(stub func(time.Duration)) {
+	fake.mutex.Lock()
+	defer fake.mutex.Unlock()
+	fake.Stub = stub
+}
+
 func (fake *FakeSleeper) ArgsForCall(i int) time.Duration {
 	fake.mutex.RLock()
 	defer fake.mutex.RUnlock()
-	return fake.argsForCall[i].duration
+	return fake.argsForCall[i].arg1
 }
 
 func (fake *FakeSleeper) Invocations() map[string][][]interface{} {

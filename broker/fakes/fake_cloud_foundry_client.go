@@ -52,20 +52,6 @@ type FakeCloudFoundryClient struct {
 		result1 string
 		result2 error
 	}
-	GetInstanceStateStub        func(string, *log.Logger) (cf.InstanceState, error)
-	getInstanceStateMutex       sync.RWMutex
-	getInstanceStateArgsForCall []struct {
-		arg1 string
-		arg2 *log.Logger
-	}
-	getInstanceStateReturns struct {
-		result1 cf.InstanceState
-		result2 error
-	}
-	getInstanceStateReturnsOnCall map[int]struct {
-		result1 cf.InstanceState
-		result2 error
-	}
 	GetInstancesStub        func(cf.GetInstancesFilter, *log.Logger) ([]cf.Instance, error)
 	getInstancesMutex       sync.RWMutex
 	getInstancesArgsForCall []struct {
@@ -276,70 +262,6 @@ func (fake *FakeCloudFoundryClient) GetAPIVersionReturnsOnCall(i int, result1 st
 	}{result1, result2}
 }
 
-func (fake *FakeCloudFoundryClient) GetInstanceState(arg1 string, arg2 *log.Logger) (cf.InstanceState, error) {
-	fake.getInstanceStateMutex.Lock()
-	ret, specificReturn := fake.getInstanceStateReturnsOnCall[len(fake.getInstanceStateArgsForCall)]
-	fake.getInstanceStateArgsForCall = append(fake.getInstanceStateArgsForCall, struct {
-		arg1 string
-		arg2 *log.Logger
-	}{arg1, arg2})
-	fake.recordInvocation("GetInstanceState", []interface{}{arg1, arg2})
-	fake.getInstanceStateMutex.Unlock()
-	if fake.GetInstanceStateStub != nil {
-		return fake.GetInstanceStateStub(arg1, arg2)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	fakeReturns := fake.getInstanceStateReturns
-	return fakeReturns.result1, fakeReturns.result2
-}
-
-func (fake *FakeCloudFoundryClient) GetInstanceStateCallCount() int {
-	fake.getInstanceStateMutex.RLock()
-	defer fake.getInstanceStateMutex.RUnlock()
-	return len(fake.getInstanceStateArgsForCall)
-}
-
-func (fake *FakeCloudFoundryClient) GetInstanceStateCalls(stub func(string, *log.Logger) (cf.InstanceState, error)) {
-	fake.getInstanceStateMutex.Lock()
-	defer fake.getInstanceStateMutex.Unlock()
-	fake.GetInstanceStateStub = stub
-}
-
-func (fake *FakeCloudFoundryClient) GetInstanceStateArgsForCall(i int) (string, *log.Logger) {
-	fake.getInstanceStateMutex.RLock()
-	defer fake.getInstanceStateMutex.RUnlock()
-	argsForCall := fake.getInstanceStateArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
-}
-
-func (fake *FakeCloudFoundryClient) GetInstanceStateReturns(result1 cf.InstanceState, result2 error) {
-	fake.getInstanceStateMutex.Lock()
-	defer fake.getInstanceStateMutex.Unlock()
-	fake.GetInstanceStateStub = nil
-	fake.getInstanceStateReturns = struct {
-		result1 cf.InstanceState
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeCloudFoundryClient) GetInstanceStateReturnsOnCall(i int, result1 cf.InstanceState, result2 error) {
-	fake.getInstanceStateMutex.Lock()
-	defer fake.getInstanceStateMutex.Unlock()
-	fake.GetInstanceStateStub = nil
-	if fake.getInstanceStateReturnsOnCall == nil {
-		fake.getInstanceStateReturnsOnCall = make(map[int]struct {
-			result1 cf.InstanceState
-			result2 error
-		})
-	}
-	fake.getInstanceStateReturnsOnCall[i] = struct {
-		result1 cf.InstanceState
-		result2 error
-	}{result1, result2}
-}
-
 func (fake *FakeCloudFoundryClient) GetInstances(arg1 cf.GetInstancesFilter, arg2 *log.Logger) ([]cf.Instance, error) {
 	fake.getInstancesMutex.Lock()
 	ret, specificReturn := fake.getInstancesReturnsOnCall[len(fake.getInstancesArgsForCall)]
@@ -413,8 +335,6 @@ func (fake *FakeCloudFoundryClient) Invocations() map[string][][]interface{} {
 	defer fake.countInstancesOfServiceOfferingMutex.RUnlock()
 	fake.getAPIVersionMutex.RLock()
 	defer fake.getAPIVersionMutex.RUnlock()
-	fake.getInstanceStateMutex.RLock()
-	defer fake.getInstanceStateMutex.RUnlock()
 	fake.getInstancesMutex.RLock()
 	defer fake.getInstancesMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

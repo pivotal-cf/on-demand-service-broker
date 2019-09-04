@@ -38,7 +38,8 @@ func (fake *FakeAuthVerifier) VerifyAuth(arg1 *log.Logger) error {
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.verifyAuthReturns.result1
+	fakeReturns := fake.verifyAuthReturns
+	return fakeReturns.result1
 }
 
 func (fake *FakeAuthVerifier) VerifyAuthCallCount() int {
@@ -47,13 +48,22 @@ func (fake *FakeAuthVerifier) VerifyAuthCallCount() int {
 	return len(fake.verifyAuthArgsForCall)
 }
 
+func (fake *FakeAuthVerifier) VerifyAuthCalls(stub func(*log.Logger) error) {
+	fake.verifyAuthMutex.Lock()
+	defer fake.verifyAuthMutex.Unlock()
+	fake.VerifyAuthStub = stub
+}
+
 func (fake *FakeAuthVerifier) VerifyAuthArgsForCall(i int) *log.Logger {
 	fake.verifyAuthMutex.RLock()
 	defer fake.verifyAuthMutex.RUnlock()
-	return fake.verifyAuthArgsForCall[i].arg1
+	argsForCall := fake.verifyAuthArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeAuthVerifier) VerifyAuthReturns(result1 error) {
+	fake.verifyAuthMutex.Lock()
+	defer fake.verifyAuthMutex.Unlock()
 	fake.VerifyAuthStub = nil
 	fake.verifyAuthReturns = struct {
 		result1 error
@@ -61,6 +71,8 @@ func (fake *FakeAuthVerifier) VerifyAuthReturns(result1 error) {
 }
 
 func (fake *FakeAuthVerifier) VerifyAuthReturnsOnCall(i int, result1 error) {
+	fake.verifyAuthMutex.Lock()
+	defer fake.verifyAuthMutex.Unlock()
 	fake.VerifyAuthStub = nil
 	if fake.verifyAuthReturnsOnCall == nil {
 		fake.verifyAuthReturnsOnCall = make(map[int]struct {

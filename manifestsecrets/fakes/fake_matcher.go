@@ -9,11 +9,11 @@ import (
 )
 
 type FakeMatcher struct {
-	MatchStub        func(manifest []byte, deploymentVariables []boshdirector.Variable) (map[string]boshdirector.Variable, error)
+	MatchStub        func([]byte, []boshdirector.Variable) (map[string]boshdirector.Variable, error)
 	matchMutex       sync.RWMutex
 	matchArgsForCall []struct {
-		manifest            []byte
-		deploymentVariables []boshdirector.Variable
+		arg1 []byte
+		arg2 []boshdirector.Variable
 	}
 	matchReturns struct {
 		result1 map[string]boshdirector.Variable
@@ -27,32 +27,33 @@ type FakeMatcher struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeMatcher) Match(manifest []byte, deploymentVariables []boshdirector.Variable) (map[string]boshdirector.Variable, error) {
-	var manifestCopy []byte
-	if manifest != nil {
-		manifestCopy = make([]byte, len(manifest))
-		copy(manifestCopy, manifest)
+func (fake *FakeMatcher) Match(arg1 []byte, arg2 []boshdirector.Variable) (map[string]boshdirector.Variable, error) {
+	var arg1Copy []byte
+	if arg1 != nil {
+		arg1Copy = make([]byte, len(arg1))
+		copy(arg1Copy, arg1)
 	}
-	var deploymentVariablesCopy []boshdirector.Variable
-	if deploymentVariables != nil {
-		deploymentVariablesCopy = make([]boshdirector.Variable, len(deploymentVariables))
-		copy(deploymentVariablesCopy, deploymentVariables)
+	var arg2Copy []boshdirector.Variable
+	if arg2 != nil {
+		arg2Copy = make([]boshdirector.Variable, len(arg2))
+		copy(arg2Copy, arg2)
 	}
 	fake.matchMutex.Lock()
 	ret, specificReturn := fake.matchReturnsOnCall[len(fake.matchArgsForCall)]
 	fake.matchArgsForCall = append(fake.matchArgsForCall, struct {
-		manifest            []byte
-		deploymentVariables []boshdirector.Variable
-	}{manifestCopy, deploymentVariablesCopy})
-	fake.recordInvocation("Match", []interface{}{manifestCopy, deploymentVariablesCopy})
+		arg1 []byte
+		arg2 []boshdirector.Variable
+	}{arg1Copy, arg2Copy})
+	fake.recordInvocation("Match", []interface{}{arg1Copy, arg2Copy})
 	fake.matchMutex.Unlock()
 	if fake.MatchStub != nil {
-		return fake.MatchStub(manifest, deploymentVariables)
+		return fake.MatchStub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.matchReturns.result1, fake.matchReturns.result2
+	fakeReturns := fake.matchReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeMatcher) MatchCallCount() int {
@@ -61,13 +62,22 @@ func (fake *FakeMatcher) MatchCallCount() int {
 	return len(fake.matchArgsForCall)
 }
 
+func (fake *FakeMatcher) MatchCalls(stub func([]byte, []boshdirector.Variable) (map[string]boshdirector.Variable, error)) {
+	fake.matchMutex.Lock()
+	defer fake.matchMutex.Unlock()
+	fake.MatchStub = stub
+}
+
 func (fake *FakeMatcher) MatchArgsForCall(i int) ([]byte, []boshdirector.Variable) {
 	fake.matchMutex.RLock()
 	defer fake.matchMutex.RUnlock()
-	return fake.matchArgsForCall[i].manifest, fake.matchArgsForCall[i].deploymentVariables
+	argsForCall := fake.matchArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeMatcher) MatchReturns(result1 map[string]boshdirector.Variable, result2 error) {
+	fake.matchMutex.Lock()
+	defer fake.matchMutex.Unlock()
 	fake.MatchStub = nil
 	fake.matchReturns = struct {
 		result1 map[string]boshdirector.Variable
@@ -76,6 +86,8 @@ func (fake *FakeMatcher) MatchReturns(result1 map[string]boshdirector.Variable, 
 }
 
 func (fake *FakeMatcher) MatchReturnsOnCall(i int, result1 map[string]boshdirector.Variable, result2 error) {
+	fake.matchMutex.Lock()
+	defer fake.matchMutex.Unlock()
 	fake.MatchStub = nil
 	if fake.matchReturnsOnCall == nil {
 		fake.matchReturnsOnCall = make(map[int]struct {

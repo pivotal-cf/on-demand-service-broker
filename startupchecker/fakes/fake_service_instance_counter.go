@@ -10,11 +10,11 @@ import (
 )
 
 type FakeServiceInstanceCounter struct {
-	CountInstancesOfServiceOfferingStub        func(serviceOfferingID string, logger *log.Logger) (instanceCountByPlanID map[cf.ServicePlan]int, err error)
+	CountInstancesOfServiceOfferingStub        func(string, *log.Logger) (map[cf.ServicePlan]int, error)
 	countInstancesOfServiceOfferingMutex       sync.RWMutex
 	countInstancesOfServiceOfferingArgsForCall []struct {
-		serviceOfferingID string
-		logger            *log.Logger
+		arg1 string
+		arg2 *log.Logger
 	}
 	countInstancesOfServiceOfferingReturns struct {
 		result1 map[cf.ServicePlan]int
@@ -28,22 +28,23 @@ type FakeServiceInstanceCounter struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeServiceInstanceCounter) CountInstancesOfServiceOffering(serviceOfferingID string, logger *log.Logger) (instanceCountByPlanID map[cf.ServicePlan]int, err error) {
+func (fake *FakeServiceInstanceCounter) CountInstancesOfServiceOffering(arg1 string, arg2 *log.Logger) (map[cf.ServicePlan]int, error) {
 	fake.countInstancesOfServiceOfferingMutex.Lock()
 	ret, specificReturn := fake.countInstancesOfServiceOfferingReturnsOnCall[len(fake.countInstancesOfServiceOfferingArgsForCall)]
 	fake.countInstancesOfServiceOfferingArgsForCall = append(fake.countInstancesOfServiceOfferingArgsForCall, struct {
-		serviceOfferingID string
-		logger            *log.Logger
-	}{serviceOfferingID, logger})
-	fake.recordInvocation("CountInstancesOfServiceOffering", []interface{}{serviceOfferingID, logger})
+		arg1 string
+		arg2 *log.Logger
+	}{arg1, arg2})
+	fake.recordInvocation("CountInstancesOfServiceOffering", []interface{}{arg1, arg2})
 	fake.countInstancesOfServiceOfferingMutex.Unlock()
 	if fake.CountInstancesOfServiceOfferingStub != nil {
-		return fake.CountInstancesOfServiceOfferingStub(serviceOfferingID, logger)
+		return fake.CountInstancesOfServiceOfferingStub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.countInstancesOfServiceOfferingReturns.result1, fake.countInstancesOfServiceOfferingReturns.result2
+	fakeReturns := fake.countInstancesOfServiceOfferingReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeServiceInstanceCounter) CountInstancesOfServiceOfferingCallCount() int {
@@ -52,13 +53,22 @@ func (fake *FakeServiceInstanceCounter) CountInstancesOfServiceOfferingCallCount
 	return len(fake.countInstancesOfServiceOfferingArgsForCall)
 }
 
+func (fake *FakeServiceInstanceCounter) CountInstancesOfServiceOfferingCalls(stub func(string, *log.Logger) (map[cf.ServicePlan]int, error)) {
+	fake.countInstancesOfServiceOfferingMutex.Lock()
+	defer fake.countInstancesOfServiceOfferingMutex.Unlock()
+	fake.CountInstancesOfServiceOfferingStub = stub
+}
+
 func (fake *FakeServiceInstanceCounter) CountInstancesOfServiceOfferingArgsForCall(i int) (string, *log.Logger) {
 	fake.countInstancesOfServiceOfferingMutex.RLock()
 	defer fake.countInstancesOfServiceOfferingMutex.RUnlock()
-	return fake.countInstancesOfServiceOfferingArgsForCall[i].serviceOfferingID, fake.countInstancesOfServiceOfferingArgsForCall[i].logger
+	argsForCall := fake.countInstancesOfServiceOfferingArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeServiceInstanceCounter) CountInstancesOfServiceOfferingReturns(result1 map[cf.ServicePlan]int, result2 error) {
+	fake.countInstancesOfServiceOfferingMutex.Lock()
+	defer fake.countInstancesOfServiceOfferingMutex.Unlock()
 	fake.CountInstancesOfServiceOfferingStub = nil
 	fake.countInstancesOfServiceOfferingReturns = struct {
 		result1 map[cf.ServicePlan]int
@@ -67,6 +77,8 @@ func (fake *FakeServiceInstanceCounter) CountInstancesOfServiceOfferingReturns(r
 }
 
 func (fake *FakeServiceInstanceCounter) CountInstancesOfServiceOfferingReturnsOnCall(i int, result1 map[cf.ServicePlan]int, result2 error) {
+	fake.countInstancesOfServiceOfferingMutex.Lock()
+	defer fake.countInstancesOfServiceOfferingMutex.Unlock()
 	fake.CountInstancesOfServiceOfferingStub = nil
 	if fake.countInstancesOfServiceOfferingReturnsOnCall == nil {
 		fake.countInstancesOfServiceOfferingReturnsOnCall = make(map[int]struct {

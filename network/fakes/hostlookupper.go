@@ -8,10 +8,10 @@ import (
 )
 
 type FakeHostLookUpper struct {
-	Stub        func(host string) (addrs []string, err error)
+	Stub        func(string) ([]string, error)
 	mutex       sync.RWMutex
 	argsForCall []struct {
-		host string
+		arg1 string
 	}
 	returns struct {
 		result1 []string
@@ -25,16 +25,16 @@ type FakeHostLookUpper struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeHostLookUpper) Spy(host string) (addrs []string, err error) {
+func (fake *FakeHostLookUpper) Spy(arg1 string) ([]string, error) {
 	fake.mutex.Lock()
 	ret, specificReturn := fake.returnsOnCall[len(fake.argsForCall)]
 	fake.argsForCall = append(fake.argsForCall, struct {
-		host string
-	}{host})
-	fake.recordInvocation("HostLookUpper", []interface{}{host})
+		arg1 string
+	}{arg1})
+	fake.recordInvocation("HostLookUpper", []interface{}{arg1})
 	fake.mutex.Unlock()
 	if fake.Stub != nil {
-		return fake.Stub(host)
+		return fake.Stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -48,13 +48,21 @@ func (fake *FakeHostLookUpper) CallCount() int {
 	return len(fake.argsForCall)
 }
 
+func (fake *FakeHostLookUpper) Calls(stub func(string) ([]string, error)) {
+	fake.mutex.Lock()
+	defer fake.mutex.Unlock()
+	fake.Stub = stub
+}
+
 func (fake *FakeHostLookUpper) ArgsForCall(i int) string {
 	fake.mutex.RLock()
 	defer fake.mutex.RUnlock()
-	return fake.argsForCall[i].host
+	return fake.argsForCall[i].arg1
 }
 
 func (fake *FakeHostLookUpper) Returns(result1 []string, result2 error) {
+	fake.mutex.Lock()
+	defer fake.mutex.Unlock()
 	fake.Stub = nil
 	fake.returns = struct {
 		result1 []string
@@ -63,6 +71,8 @@ func (fake *FakeHostLookUpper) Returns(result1 []string, result2 error) {
 }
 
 func (fake *FakeHostLookUpper) ReturnsOnCall(i int, result1 []string, result2 error) {
+	fake.mutex.Lock()
+	defer fake.mutex.Unlock()
 	fake.Stub = nil
 	if fake.returnsOnCall == nil {
 		fake.returnsOnCall = make(map[int]struct {

@@ -9,10 +9,10 @@ import (
 )
 
 type FakeCFAPIVersionGetter struct {
-	GetAPIVersionStub        func(logger *log.Logger) (string, error)
+	GetAPIVersionStub        func(*log.Logger) (string, error)
 	getAPIVersionMutex       sync.RWMutex
 	getAPIVersionArgsForCall []struct {
-		logger *log.Logger
+		arg1 *log.Logger
 	}
 	getAPIVersionReturns struct {
 		result1 string
@@ -26,21 +26,22 @@ type FakeCFAPIVersionGetter struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeCFAPIVersionGetter) GetAPIVersion(logger *log.Logger) (string, error) {
+func (fake *FakeCFAPIVersionGetter) GetAPIVersion(arg1 *log.Logger) (string, error) {
 	fake.getAPIVersionMutex.Lock()
 	ret, specificReturn := fake.getAPIVersionReturnsOnCall[len(fake.getAPIVersionArgsForCall)]
 	fake.getAPIVersionArgsForCall = append(fake.getAPIVersionArgsForCall, struct {
-		logger *log.Logger
-	}{logger})
-	fake.recordInvocation("GetAPIVersion", []interface{}{logger})
+		arg1 *log.Logger
+	}{arg1})
+	fake.recordInvocation("GetAPIVersion", []interface{}{arg1})
 	fake.getAPIVersionMutex.Unlock()
 	if fake.GetAPIVersionStub != nil {
-		return fake.GetAPIVersionStub(logger)
+		return fake.GetAPIVersionStub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.getAPIVersionReturns.result1, fake.getAPIVersionReturns.result2
+	fakeReturns := fake.getAPIVersionReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeCFAPIVersionGetter) GetAPIVersionCallCount() int {
@@ -49,13 +50,22 @@ func (fake *FakeCFAPIVersionGetter) GetAPIVersionCallCount() int {
 	return len(fake.getAPIVersionArgsForCall)
 }
 
+func (fake *FakeCFAPIVersionGetter) GetAPIVersionCalls(stub func(*log.Logger) (string, error)) {
+	fake.getAPIVersionMutex.Lock()
+	defer fake.getAPIVersionMutex.Unlock()
+	fake.GetAPIVersionStub = stub
+}
+
 func (fake *FakeCFAPIVersionGetter) GetAPIVersionArgsForCall(i int) *log.Logger {
 	fake.getAPIVersionMutex.RLock()
 	defer fake.getAPIVersionMutex.RUnlock()
-	return fake.getAPIVersionArgsForCall[i].logger
+	argsForCall := fake.getAPIVersionArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeCFAPIVersionGetter) GetAPIVersionReturns(result1 string, result2 error) {
+	fake.getAPIVersionMutex.Lock()
+	defer fake.getAPIVersionMutex.Unlock()
 	fake.GetAPIVersionStub = nil
 	fake.getAPIVersionReturns = struct {
 		result1 string
@@ -64,6 +74,8 @@ func (fake *FakeCFAPIVersionGetter) GetAPIVersionReturns(result1 string, result2
 }
 
 func (fake *FakeCFAPIVersionGetter) GetAPIVersionReturnsOnCall(i int, result1 string, result2 error) {
+	fake.getAPIVersionMutex.Lock()
+	defer fake.getAPIVersionMutex.Unlock()
 	fake.GetAPIVersionStub = nil
 	if fake.getAPIVersionReturnsOnCall == nil {
 		fake.getAPIVersionReturnsOnCall = make(map[int]struct {

@@ -9,35 +9,12 @@ import (
 )
 
 type FakeCredentialStore struct {
-	SetStub        func(key string, value interface{}) error
-	setMutex       sync.RWMutex
-	setArgsForCall []struct {
-		key   string
-		value interface{}
-	}
-	setReturns struct {
-		result1 error
-	}
-	setReturnsOnCall map[int]struct {
-		result1 error
-	}
-	DeleteStub        func(key string) error
-	deleteMutex       sync.RWMutex
-	deleteArgsForCall []struct {
-		key string
-	}
-	deleteReturns struct {
-		result1 error
-	}
-	deleteReturnsOnCall map[int]struct {
-		result1 error
-	}
-	AddPermissionStub        func(credentialName string, actor string, ops []string) (*permissions.Permission, error)
+	AddPermissionStub        func(string, string, []string) (*permissions.Permission, error)
 	addPermissionMutex       sync.RWMutex
 	addPermissionArgsForCall []struct {
-		credentialName string
-		actor          string
-		ops            []string
+		arg1 string
+		arg2 string
+		arg3 []string
 	}
 	addPermissionReturns struct {
 		result1 *permissions.Permission
@@ -47,129 +24,56 @@ type FakeCredentialStore struct {
 		result1 *permissions.Permission
 		result2 error
 	}
+	DeleteStub        func(string) error
+	deleteMutex       sync.RWMutex
+	deleteArgsForCall []struct {
+		arg1 string
+	}
+	deleteReturns struct {
+		result1 error
+	}
+	deleteReturnsOnCall map[int]struct {
+		result1 error
+	}
+	SetStub        func(string, interface{}) error
+	setMutex       sync.RWMutex
+	setArgsForCall []struct {
+		arg1 string
+		arg2 interface{}
+	}
+	setReturns struct {
+		result1 error
+	}
+	setReturnsOnCall map[int]struct {
+		result1 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeCredentialStore) Set(key string, value interface{}) error {
-	fake.setMutex.Lock()
-	ret, specificReturn := fake.setReturnsOnCall[len(fake.setArgsForCall)]
-	fake.setArgsForCall = append(fake.setArgsForCall, struct {
-		key   string
-		value interface{}
-	}{key, value})
-	fake.recordInvocation("Set", []interface{}{key, value})
-	fake.setMutex.Unlock()
-	if fake.SetStub != nil {
-		return fake.SetStub(key, value)
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.setReturns.result1
-}
-
-func (fake *FakeCredentialStore) SetCallCount() int {
-	fake.setMutex.RLock()
-	defer fake.setMutex.RUnlock()
-	return len(fake.setArgsForCall)
-}
-
-func (fake *FakeCredentialStore) SetArgsForCall(i int) (string, interface{}) {
-	fake.setMutex.RLock()
-	defer fake.setMutex.RUnlock()
-	return fake.setArgsForCall[i].key, fake.setArgsForCall[i].value
-}
-
-func (fake *FakeCredentialStore) SetReturns(result1 error) {
-	fake.SetStub = nil
-	fake.setReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeCredentialStore) SetReturnsOnCall(i int, result1 error) {
-	fake.SetStub = nil
-	if fake.setReturnsOnCall == nil {
-		fake.setReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.setReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeCredentialStore) Delete(key string) error {
-	fake.deleteMutex.Lock()
-	ret, specificReturn := fake.deleteReturnsOnCall[len(fake.deleteArgsForCall)]
-	fake.deleteArgsForCall = append(fake.deleteArgsForCall, struct {
-		key string
-	}{key})
-	fake.recordInvocation("Delete", []interface{}{key})
-	fake.deleteMutex.Unlock()
-	if fake.DeleteStub != nil {
-		return fake.DeleteStub(key)
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.deleteReturns.result1
-}
-
-func (fake *FakeCredentialStore) DeleteCallCount() int {
-	fake.deleteMutex.RLock()
-	defer fake.deleteMutex.RUnlock()
-	return len(fake.deleteArgsForCall)
-}
-
-func (fake *FakeCredentialStore) DeleteArgsForCall(i int) string {
-	fake.deleteMutex.RLock()
-	defer fake.deleteMutex.RUnlock()
-	return fake.deleteArgsForCall[i].key
-}
-
-func (fake *FakeCredentialStore) DeleteReturns(result1 error) {
-	fake.DeleteStub = nil
-	fake.deleteReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeCredentialStore) DeleteReturnsOnCall(i int, result1 error) {
-	fake.DeleteStub = nil
-	if fake.deleteReturnsOnCall == nil {
-		fake.deleteReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.deleteReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeCredentialStore) AddPermission(credentialName string, actor string, ops []string) (*permissions.Permission, error) {
-	var opsCopy []string
-	if ops != nil {
-		opsCopy = make([]string, len(ops))
-		copy(opsCopy, ops)
+func (fake *FakeCredentialStore) AddPermission(arg1 string, arg2 string, arg3 []string) (*permissions.Permission, error) {
+	var arg3Copy []string
+	if arg3 != nil {
+		arg3Copy = make([]string, len(arg3))
+		copy(arg3Copy, arg3)
 	}
 	fake.addPermissionMutex.Lock()
 	ret, specificReturn := fake.addPermissionReturnsOnCall[len(fake.addPermissionArgsForCall)]
 	fake.addPermissionArgsForCall = append(fake.addPermissionArgsForCall, struct {
-		credentialName string
-		actor          string
-		ops            []string
-	}{credentialName, actor, opsCopy})
-	fake.recordInvocation("AddPermission", []interface{}{credentialName, actor, opsCopy})
+		arg1 string
+		arg2 string
+		arg3 []string
+	}{arg1, arg2, arg3Copy})
+	fake.recordInvocation("AddPermission", []interface{}{arg1, arg2, arg3Copy})
 	fake.addPermissionMutex.Unlock()
 	if fake.AddPermissionStub != nil {
-		return fake.AddPermissionStub(credentialName, actor, ops)
+		return fake.AddPermissionStub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.addPermissionReturns.result1, fake.addPermissionReturns.result2
+	fakeReturns := fake.addPermissionReturns
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeCredentialStore) AddPermissionCallCount() int {
@@ -178,13 +82,22 @@ func (fake *FakeCredentialStore) AddPermissionCallCount() int {
 	return len(fake.addPermissionArgsForCall)
 }
 
+func (fake *FakeCredentialStore) AddPermissionCalls(stub func(string, string, []string) (*permissions.Permission, error)) {
+	fake.addPermissionMutex.Lock()
+	defer fake.addPermissionMutex.Unlock()
+	fake.AddPermissionStub = stub
+}
+
 func (fake *FakeCredentialStore) AddPermissionArgsForCall(i int) (string, string, []string) {
 	fake.addPermissionMutex.RLock()
 	defer fake.addPermissionMutex.RUnlock()
-	return fake.addPermissionArgsForCall[i].credentialName, fake.addPermissionArgsForCall[i].actor, fake.addPermissionArgsForCall[i].ops
+	argsForCall := fake.addPermissionArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *FakeCredentialStore) AddPermissionReturns(result1 *permissions.Permission, result2 error) {
+	fake.addPermissionMutex.Lock()
+	defer fake.addPermissionMutex.Unlock()
 	fake.AddPermissionStub = nil
 	fake.addPermissionReturns = struct {
 		result1 *permissions.Permission
@@ -193,6 +106,8 @@ func (fake *FakeCredentialStore) AddPermissionReturns(result1 *permissions.Permi
 }
 
 func (fake *FakeCredentialStore) AddPermissionReturnsOnCall(i int, result1 *permissions.Permission, result2 error) {
+	fake.addPermissionMutex.Lock()
+	defer fake.addPermissionMutex.Unlock()
 	fake.AddPermissionStub = nil
 	if fake.addPermissionReturnsOnCall == nil {
 		fake.addPermissionReturnsOnCall = make(map[int]struct {
@@ -206,15 +121,136 @@ func (fake *FakeCredentialStore) AddPermissionReturnsOnCall(i int, result1 *perm
 	}{result1, result2}
 }
 
+func (fake *FakeCredentialStore) Delete(arg1 string) error {
+	fake.deleteMutex.Lock()
+	ret, specificReturn := fake.deleteReturnsOnCall[len(fake.deleteArgsForCall)]
+	fake.deleteArgsForCall = append(fake.deleteArgsForCall, struct {
+		arg1 string
+	}{arg1})
+	fake.recordInvocation("Delete", []interface{}{arg1})
+	fake.deleteMutex.Unlock()
+	if fake.DeleteStub != nil {
+		return fake.DeleteStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.deleteReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeCredentialStore) DeleteCallCount() int {
+	fake.deleteMutex.RLock()
+	defer fake.deleteMutex.RUnlock()
+	return len(fake.deleteArgsForCall)
+}
+
+func (fake *FakeCredentialStore) DeleteCalls(stub func(string) error) {
+	fake.deleteMutex.Lock()
+	defer fake.deleteMutex.Unlock()
+	fake.DeleteStub = stub
+}
+
+func (fake *FakeCredentialStore) DeleteArgsForCall(i int) string {
+	fake.deleteMutex.RLock()
+	defer fake.deleteMutex.RUnlock()
+	argsForCall := fake.deleteArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeCredentialStore) DeleteReturns(result1 error) {
+	fake.deleteMutex.Lock()
+	defer fake.deleteMutex.Unlock()
+	fake.DeleteStub = nil
+	fake.deleteReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeCredentialStore) DeleteReturnsOnCall(i int, result1 error) {
+	fake.deleteMutex.Lock()
+	defer fake.deleteMutex.Unlock()
+	fake.DeleteStub = nil
+	if fake.deleteReturnsOnCall == nil {
+		fake.deleteReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.deleteReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeCredentialStore) Set(arg1 string, arg2 interface{}) error {
+	fake.setMutex.Lock()
+	ret, specificReturn := fake.setReturnsOnCall[len(fake.setArgsForCall)]
+	fake.setArgsForCall = append(fake.setArgsForCall, struct {
+		arg1 string
+		arg2 interface{}
+	}{arg1, arg2})
+	fake.recordInvocation("Set", []interface{}{arg1, arg2})
+	fake.setMutex.Unlock()
+	if fake.SetStub != nil {
+		return fake.SetStub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.setReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeCredentialStore) SetCallCount() int {
+	fake.setMutex.RLock()
+	defer fake.setMutex.RUnlock()
+	return len(fake.setArgsForCall)
+}
+
+func (fake *FakeCredentialStore) SetCalls(stub func(string, interface{}) error) {
+	fake.setMutex.Lock()
+	defer fake.setMutex.Unlock()
+	fake.SetStub = stub
+}
+
+func (fake *FakeCredentialStore) SetArgsForCall(i int) (string, interface{}) {
+	fake.setMutex.RLock()
+	defer fake.setMutex.RUnlock()
+	argsForCall := fake.setArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *FakeCredentialStore) SetReturns(result1 error) {
+	fake.setMutex.Lock()
+	defer fake.setMutex.Unlock()
+	fake.SetStub = nil
+	fake.setReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeCredentialStore) SetReturnsOnCall(i int, result1 error) {
+	fake.setMutex.Lock()
+	defer fake.setMutex.Unlock()
+	fake.SetStub = nil
+	if fake.setReturnsOnCall == nil {
+		fake.setReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.setReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeCredentialStore) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.setMutex.RLock()
-	defer fake.setMutex.RUnlock()
-	fake.deleteMutex.RLock()
-	defer fake.deleteMutex.RUnlock()
 	fake.addPermissionMutex.RLock()
 	defer fake.addPermissionMutex.RUnlock()
+	fake.deleteMutex.RLock()
+	defer fake.deleteMutex.RUnlock()
+	fake.setMutex.RLock()
+	defer fake.setMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

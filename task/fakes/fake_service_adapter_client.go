@@ -2,12 +2,12 @@
 package fakes
 
 import (
-	log "log"
-	sync "sync"
+	"log"
+	"sync"
 
 	"github.com/pivotal-cf/brokerapi/domain"
-	task "github.com/pivotal-cf/on-demand-service-broker/task"
-	serviceadapter "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
+	"github.com/pivotal-cf/on-demand-service-broker/task"
+	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
 
 type FakeServiceAdapterClient struct {
