@@ -28,6 +28,9 @@ func (b *Broker) Bind(
 	asyncAllowed bool,
 ) (domain.Binding, error) {
 
+	b.bindLock.Lock()
+	defer b.bindLock.Unlock()
+
 	requestID := uuid.New()
 	if len(brokercontext.GetReqID(ctx)) > 0 {
 		requestID = brokercontext.GetReqID(ctx)

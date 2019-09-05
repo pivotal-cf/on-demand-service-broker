@@ -31,6 +31,7 @@ type Broker struct {
 	instanceLister service.InstanceLister
 	hasher         Hasher
 	deploymentLock *sync.Mutex
+	bindLock       *sync.Mutex
 
 	serviceOffering         config.ServiceOffering
 	ExposeOperationalErrors bool
@@ -68,6 +69,7 @@ func New(
 		adapterClient:           serviceAdapter,
 		deployer:                deployer,
 		deploymentLock:          &sync.Mutex{},
+		bindLock:                &sync.Mutex{},
 		serviceOffering:         serviceOffering,
 		ExposeOperationalErrors: brokerConfig.ExposeOperationalErrors,
 		EnablePlanSchemas:       brokerConfig.EnablePlanSchemas,

@@ -23,6 +23,9 @@ func (b *Broker) Unbind(
 	asyncAllowed bool,
 ) (domain.UnbindSpec, error) {
 
+	b.bindLock.Lock()
+	defer b.bindLock.Unlock()
+
 	emptyUnbindSpec := domain.UnbindSpec{}
 	requestID := uuid.New()
 	if len(brokercontext.GetReqID(ctx)) > 0 {
