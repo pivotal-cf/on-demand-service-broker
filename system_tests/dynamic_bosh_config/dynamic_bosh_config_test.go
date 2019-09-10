@@ -38,7 +38,8 @@ var _ = Describe("DynamicBoshConfig", func() {
 
 		By("updating the service with a new bosh config")
 		newBoshConfig := fmt.Sprintf(`{"vm_extensions_config": "vm_extensions: [{name: vm-new-ext%s}]"}`, brokerInfo.TestSuffix)
-		Eventually(cf.Cf("update-service", serviceInstanceName, "-c", newBoshConfig), cf.CfTimeout).Should(gexec.Exit(0))
+		session := cf.CfWithTimeout(cf.CfTimeout, "update-service", serviceInstanceName, "-c", newBoshConfig)
+		Expect(session).To(gexec.Exit(0))
 		cf.AwaitServiceUpdate(serviceInstanceName)
 
 		configDetails, err = bosh_helpers.GetBOSHConfig("cloud", serviceId)

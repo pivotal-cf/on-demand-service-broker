@@ -82,58 +82,58 @@ func envMustHave(key string) string {
 
 func cfCreateSpaceDevUser() {
 	cfLogInAsAdmin()
-	Eventually(cf.Cf("create-user", cfSpaceDeveloperUsername, cfSpaceDeveloperPassword)).Should(gexec.Exit(0))
-	Eventually(cf.Cf("set-space-role", cfSpaceDeveloperUsername, cfOrg, cfSpace, "SpaceDeveloper")).Should(gexec.Exit(0))
+	Expect(cf.Cf("create-user", cfSpaceDeveloperUsername, cfSpaceDeveloperPassword)).To(gexec.Exit(0))
+	Expect(cf.Cf("set-space-role", cfSpaceDeveloperUsername, cfOrg, cfSpace, "SpaceDeveloper")).To(gexec.Exit(0))
 }
 
 func cfCreateDefaultSpaceDevUser() {
 	cfLogInAsAdmin()
-	Eventually(cf.Cf("create-user", cfDefaultSpaceDeveloperUsername, cfDefaultSpaceDeveloperPassword)).Should(gexec.Exit(0))
-	Eventually(cf.Cf("set-space-role", cfDefaultSpaceDeveloperUsername, defaultOrg, defaultSpace, "SpaceDeveloper")).Should(gexec.Exit(0))
+	Expect(cf.Cf("create-user", cfDefaultSpaceDeveloperUsername, cfDefaultSpaceDeveloperPassword)).To(gexec.Exit(0))
+	Expect(cf.Cf("set-space-role", cfDefaultSpaceDeveloperUsername, defaultOrg, defaultSpace, "SpaceDeveloper")).To(gexec.Exit(0))
 }
 
 func cfDeleteSpaceDevUser() {
 	cfLogInAsAdmin()
-	Eventually(cf.Cf("delete-user", cfSpaceDeveloperUsername, "-f")).Should(gexec.Exit(0))
+	Expect(cf.Cf("delete-user", cfSpaceDeveloperUsername, "-f")).To(gexec.Exit(0))
 }
 
 func cfLogInAsSpaceDev() {
 	cfLogout()
-	Eventually(cf.Cf("auth", cfSpaceDeveloperUsername, cfSpaceDeveloperPassword)).Should(gexec.Exit(0))
-	Eventually(cf.Cf("target", "-o", cfOrg, "-s", cfSpace)).Should(gexec.Exit(0))
+	Expect(cf.Cf("auth", cfSpaceDeveloperUsername, cfSpaceDeveloperPassword)).To(gexec.Exit(0))
+	Expect(cf.Cf("target", "-o", cfOrg, "-s", cfSpace)).To(gexec.Exit(0))
 }
 
 func cfLogInAsDefaultSpaceDev() {
 	cfLogout()
-	Eventually(cf.Cf("auth", cfDefaultSpaceDeveloperUsername, cfDefaultSpaceDeveloperPassword)).Should(gexec.Exit(0))
-	Eventually(cf.Cf("target", "-o", defaultOrg, "-s", defaultSpace)).Should(gexec.Exit(0))
+	Expect(cf.Cf("auth", cfDefaultSpaceDeveloperUsername, cfDefaultSpaceDeveloperPassword)).To(gexec.Exit(0))
+	Expect(cf.Cf("target", "-o", defaultOrg, "-s", defaultSpace)).To(gexec.Exit(0))
 }
 
 func cfLogInAsAdmin() {
 	cfLogout()
-	Eventually(cf.Cf("auth", cfAdminUsername, cfAdminPassword)).Should(gexec.Exit(0))
-	Eventually(cf.Cf("target", "-o", cfOrg, "-s", cfSpace)).Should(gexec.Exit(0))
+	Expect(cf.Cf("auth", cfAdminUsername, cfAdminPassword)).To(gexec.Exit(0))
+	Expect(cf.Cf("target", "-o", cfOrg, "-s", cfSpace)).To(gexec.Exit(0))
 }
 
 func cfLogout() {
-	Eventually(cf.Cf("logout")).Should(gexec.Exit(0))
+	Expect(cf.Cf("logout")).To(gexec.Exit(0))
 }
 
 func cfCreateDefaultOrgAndSpace() {
 	cfLogInAsAdmin()
-	Eventually(cf.Cf("create-org", defaultOrg)).Should(gexec.Exit(0))
-	Eventually(cf.Cf("create-space", "-o", defaultOrg, defaultSpace)).Should(gexec.Exit(0))
+	Expect(cf.Cf("create-org", defaultOrg)).To(gexec.Exit(0))
+	Expect(cf.Cf("create-space", "-o", defaultOrg, defaultSpace)).To(gexec.Exit(0))
 }
 
 func cfDeleteDefaultOrg() {
 	cfLogInAsAdmin()
-	Eventually(cf.Cf("delete-org", "-f", defaultOrg)).Should(gexec.Exit(0))
+	Expect(cf.Cf("delete-org", "-f", defaultOrg)).To(gexec.Exit(0))
 }
 
 func targetSystemOrgAndSpace() {
-	Eventually(cf.Cf("target", "-o", cfOrg, "-s", cfSpace)).Should(gexec.Exit(0))
+	Expect(cf.Cf("target", "-o", cfOrg, "-s", cfSpace)).To(gexec.Exit(0))
 }
 
 func targetDefaultOrgAndSpace() {
-	Eventually(cf.Cf("target", "-o", defaultOrg, "-s", defaultSpace)).Should(gexec.Exit(0))
+	Expect(cf.Cf("target", "-o", defaultOrg, "-s", defaultSpace)).To(gexec.Exit(0))
 }
