@@ -45,7 +45,7 @@ var _ = Describe("orphan deployments errand", func() {
 			anotherInstanceDeploymentName := fmt.Sprintf("service-instance_%s", anotherInstanceGUID)
 
 			By("purging one service instance")
-			Eventually(cf.Cf("purge-service-instance", orphanInstanceName, "-f"), cf.CfTimeout).Should(gexec.Exit(0))
+			Expect(cf.CfWithTimeout(cf.CfTimeout, "purge-service-instance", orphanInstanceName, "-f")).To(gexec.Exit(0))
 
 			By("running the orphan-deployments errand")
 			session := bosh.RunErrand(brokerInfo.DeploymentName, "orphan-deployments", gexec.Exit(1))

@@ -151,7 +151,7 @@ var _ = Describe("FeatureFlags", func() {
 			cf.AwaitServiceCreationFailure(serviceName)
 
 			s := cf.Cf("service", serviceName)
-			Eventually(s.Out).Should(gbytes.Say(`Instance group 'redis-server' references an unknown vm type`))
+			Expect(s.Out).To(gbytes.Say(`Instance group 'redis-server' references an unknown vm type`))
 
 			cf.DeleteService(serviceName)
 			cf.AwaitServiceDeletion(serviceName)

@@ -34,7 +34,7 @@ var _ = Describe("quotas", func() {
 
 		Context("when the global limit is reached during provision", func() {
 			BeforeEach(func() {
-				Eventually(cf.Cf("create-service", brokerInfo.ServiceName, planWithGlobalQuota, instanceA), cf.CfTimeout).Should(gexec.Exit(0))
+				Expect(cf.CfWithTimeout(cf.CfTimeout, "create-service", brokerInfo.ServiceName, planWithGlobalQuota, instanceA)).To(gexec.Exit(0))
 				cf.AwaitServiceCreation(instanceA)
 			})
 
@@ -42,8 +42,8 @@ var _ = Describe("quotas", func() {
 				cf.AwaitInProgressOperations(instanceA)
 				cf.AwaitInProgressOperations(instanceB)
 
-				Eventually(cf.Cf("delete-service", instanceA, "-f"), cf.CfTimeout).Should(gexec.Exit())
-				Eventually(cf.Cf("delete-service", instanceB, "-f"), cf.CfTimeout).Should(gexec.Exit())
+				Expect(cf.CfWithTimeout(cf.CfTimeout, "delete-service", instanceA, "-f")).To(gexec.Exit())
+				Expect(cf.CfWithTimeout(cf.CfTimeout, "delete-service", instanceB, "-f")).To(gexec.Exit())
 
 				cf.AwaitServiceDeletion(instanceA)
 				cf.AwaitServiceDeletion(instanceB)
@@ -51,8 +51,8 @@ var _ = Describe("quotas", func() {
 
 			It("respects global quotas", func() {
 				By("creating a service when quota is maxed", func() {
-					session := cf.Cf("create-service", brokerInfo.ServiceName, planWithGlobalQuota, instanceB)
-					Eventually(session, cf.CfTimeout).Should(gexec.Exit())
+					session := cf.CfWithTimeout(cf.CfTimeout, "create-service", brokerInfo.ServiceName, planWithGlobalQuota, instanceB)
+					Expect(session).To(gexec.Exit())
 					if session.ExitCode() == 0 {
 						cf.AwaitServiceCreation(instanceB)
 						Fail("global quota was not enforced")
@@ -61,12 +61,12 @@ var _ = Describe("quotas", func() {
 				})
 
 				By("deleting instance to free up global quota", func() {
-					Eventually(cf.Cf("delete-service", instanceA, "-f"), cf.CfTimeout).Should(gexec.Exit(0))
+					Expect(cf.CfWithTimeout(cf.CfTimeout, "delete-service", instanceA, "-f")).To(gexec.Exit(0))
 					cf.AwaitServiceDeletion(instanceA)
 				})
 
 				By("creating a service instance with newly freed quota", func() {
-					Eventually(cf.Cf("create-service", brokerInfo.ServiceName, planWithGlobalQuota, instanceB), cf.CfTimeout).Should(gexec.Exit(0))
+					Expect(cf.CfWithTimeout(cf.CfTimeout, "create-service", brokerInfo.ServiceName, planWithGlobalQuota, instanceB)).To(gexec.Exit(0))
 					cf.AwaitServiceCreation(instanceB)
 				})
 			})
@@ -78,8 +78,8 @@ var _ = Describe("quotas", func() {
 			)
 
 			BeforeEach(func() {
-				Eventually(cf.Cf("create-service", brokerInfo.ServiceName, planWithNoCost, instanceA), cf.CfTimeout).Should(gexec.Exit(0))
-				Eventually(cf.Cf("create-service", brokerInfo.ServiceName, planWithGlobalQuota, instanceB), cf.CfTimeout).Should(gexec.Exit(0))
+				Expect(cf.CfWithTimeout(cf.CfTimeout, "create-service", brokerInfo.ServiceName, planWithNoCost, instanceA)).To(gexec.Exit(0))
+				Expect(cf.CfWithTimeout(cf.CfTimeout, "create-service", brokerInfo.ServiceName, planWithGlobalQuota, instanceB)).To(gexec.Exit(0))
 				cf.AwaitServiceCreation(instanceA)
 				cf.AwaitServiceCreation(instanceB)
 			})
@@ -88,8 +88,8 @@ var _ = Describe("quotas", func() {
 				cf.AwaitInProgressOperations(instanceA)
 				cf.AwaitInProgressOperations(instanceB)
 
-				Eventually(cf.Cf("delete-service", instanceA, "-f"), cf.CfTimeout).Should(gexec.Exit())
-				Eventually(cf.Cf("delete-service", instanceB, "-f"), cf.CfTimeout).Should(gexec.Exit())
+				Expect(cf.CfWithTimeout(cf.CfTimeout, "delete-service", instanceA, "-f")).To(gexec.Exit())
+				Expect(cf.CfWithTimeout(cf.CfTimeout, "delete-service", instanceB, "-f")).To(gexec.Exit())
 
 				cf.AwaitServiceDeletion(instanceA)
 				cf.AwaitServiceDeletion(instanceB)
@@ -97,8 +97,8 @@ var _ = Describe("quotas", func() {
 
 			It("respects plan quotas when updating", func() {
 				By("updating a service when quota is maxed", func() {
-					session := cf.Cf("update-service", instanceA, "-p", planWithGlobalQuota)
-					Eventually(session, cf.CfTimeout).Should(gexec.Exit())
+					session := cf.CfWithTimeout(cf.CfTimeout, "update-service", instanceA, "-p", planWithGlobalQuota)
+					Expect(session).To(gexec.Exit())
 
 					if session.ExitCode() == 0 {
 						cf.AwaitServiceCreation(instanceB)
@@ -109,7 +109,7 @@ var _ = Describe("quotas", func() {
 				})
 
 				By("deleting instance to free up plan quota", func() {
-					Eventually(cf.Cf("delete-service", instanceB, "-f"), cf.CfTimeout).Should(gexec.Exit(0))
+					Expect(cf.CfWithTimeout(cf.CfTimeout, "delete-service", instanceB, "-f")).To(gexec.Exit(0))
 					cf.AwaitServiceDeletion(instanceB)
 				})
 
@@ -133,7 +133,7 @@ var _ = Describe("quotas", func() {
 
 		Context("when the plan limit is reached during provision", func() {
 			BeforeEach(func() {
-				Eventually(cf.Cf("create-service", brokerInfo.ServiceName, planWithQuota, instanceA), cf.CfTimeout).Should(gexec.Exit(0))
+				Expect(cf.CfWithTimeout(cf.CfTimeout, "create-service", brokerInfo.ServiceName, planWithQuota, instanceA)).To(gexec.Exit(0))
 				cf.AwaitServiceCreation(instanceA)
 			})
 
@@ -141,8 +141,8 @@ var _ = Describe("quotas", func() {
 				cf.AwaitInProgressOperations(instanceA)
 				cf.AwaitInProgressOperations(instanceB)
 
-				Eventually(cf.Cf("delete-service", instanceA, "-f"), cf.CfTimeout).Should(gexec.Exit())
-				Eventually(cf.Cf("delete-service", instanceB, "-f"), cf.CfTimeout).Should(gexec.Exit())
+				Expect(cf.CfWithTimeout(cf.CfTimeout, "delete-service", instanceA, "-f")).To(gexec.Exit())
+				Expect(cf.CfWithTimeout(cf.CfTimeout, "delete-service", instanceB, "-f")).To(gexec.Exit())
 
 				cf.AwaitServiceDeletion(instanceA)
 				cf.AwaitServiceDeletion(instanceB)
@@ -150,8 +150,8 @@ var _ = Describe("quotas", func() {
 
 			It("respects plan quotas", func() {
 				By("creating a service when quota is maxed", func() {
-					session := cf.Cf("create-service", brokerInfo.ServiceName, planWithQuota, instanceB)
-					Eventually(session, cf.CfTimeout).Should(gexec.Exit())
+					session := cf.CfWithTimeout(cf.CfTimeout, "create-service", brokerInfo.ServiceName, planWithQuota, instanceB)
+					Expect(session).To(gexec.Exit())
 
 					if session.ExitCode() == 0 {
 						cf.AwaitServiceCreation(instanceB)
@@ -162,12 +162,12 @@ var _ = Describe("quotas", func() {
 				})
 
 				By("deleting instance to free up plan quota", func() {
-					Eventually(cf.Cf("delete-service", instanceA, "-f"), cf.CfTimeout).Should(gexec.Exit(0))
+					Expect(cf.CfWithTimeout(cf.CfTimeout, "delete-service", instanceA, "-f")).To(gexec.Exit(0))
 					cf.AwaitServiceDeletion(instanceA)
 				})
 
 				By("creating a service instance with newly freed quota", func() {
-					Eventually(cf.Cf("create-service", brokerInfo.ServiceName, planWithQuota, instanceB), cf.CfTimeout).Should(gexec.Exit(0))
+					Expect(cf.CfWithTimeout(cf.CfTimeout, "create-service", brokerInfo.ServiceName, planWithQuota, instanceB)).To(gexec.Exit(0))
 					cf.AwaitServiceCreation(instanceB)
 				})
 			})
@@ -176,8 +176,8 @@ var _ = Describe("quotas", func() {
 
 		Context("when the plan limit is reached during update", func() {
 			BeforeEach(func() {
-				Eventually(cf.Cf("create-service", brokerInfo.ServiceName, planWithoutQuota, instanceA), cf.CfTimeout).Should(gexec.Exit(0))
-				Eventually(cf.Cf("create-service", brokerInfo.ServiceName, planWithQuota, instanceB), cf.CfTimeout).Should(gexec.Exit(0))
+				Expect(cf.CfWithTimeout(cf.CfTimeout, "create-service", brokerInfo.ServiceName, planWithoutQuota, instanceA)).To(gexec.Exit(0))
+				Expect(cf.CfWithTimeout(cf.CfTimeout, "create-service", brokerInfo.ServiceName, planWithQuota, instanceB)).To(gexec.Exit(0))
 				cf.AwaitServiceCreation(instanceA)
 				cf.AwaitServiceCreation(instanceB)
 			})
@@ -186,8 +186,8 @@ var _ = Describe("quotas", func() {
 				cf.AwaitInProgressOperations(instanceA)
 				cf.AwaitInProgressOperations(instanceB)
 
-				Eventually(cf.Cf("delete-service", instanceA, "-f"), cf.CfTimeout).Should(gexec.Exit())
-				Eventually(cf.Cf("delete-service", instanceB, "-f"), cf.CfTimeout).Should(gexec.Exit())
+				Expect(cf.CfWithTimeout(cf.CfTimeout, "delete-service", instanceA, "-f")).To(gexec.Exit())
+				Expect(cf.CfWithTimeout(cf.CfTimeout, "delete-service", instanceB, "-f")).To(gexec.Exit())
 
 				cf.AwaitServiceDeletion(instanceA)
 				cf.AwaitServiceDeletion(instanceB)
@@ -195,8 +195,8 @@ var _ = Describe("quotas", func() {
 
 			It("respects plan quotas when updating", func() {
 				By("update a service when quota is maxed", func() {
-					session := cf.Cf("update-service", instanceA, "-p", planWithQuota)
-					Eventually(session, cf.CfTimeout).Should(gexec.Exit())
+					session := cf.CfWithTimeout(cf.CfTimeout, "update-service", instanceA, "-p", planWithQuota)
+					Expect(session).To(gexec.Exit())
 
 					if session.ExitCode() == 0 {
 						cf.AwaitServiceCreation(instanceB)
@@ -207,7 +207,7 @@ var _ = Describe("quotas", func() {
 				})
 
 				By("deleting instance to free up plan quota", func() {
-					Eventually(cf.Cf("delete-service", instanceB, "-f"), cf.CfTimeout).Should(gexec.Exit(0))
+					Expect(cf.CfWithTimeout(cf.CfTimeout, "delete-service", instanceB, "-f")).To(gexec.Exit(0))
 					cf.AwaitServiceDeletion(instanceB)
 				})
 

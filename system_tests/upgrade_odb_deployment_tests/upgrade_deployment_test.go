@@ -57,10 +57,11 @@ var _ = Describe("Upgrading deployment", func() {
 
 	AfterEach(func() {
 		By("deleting the app")
-		Eventually(cf_helpers.Cf("delete", appDtls.AppName, "-f", "-r"), cf_helpers.CfTimeout).Should(gexec.Exit(0))
+		session := cf_helpers.CfWithTimeout(cf_helpers.CfTimeout, "delete", appDtls.AppName, "-f", "-r")
+		Expect(session).To(gexec.Exit(0))
 
 		By("ensuring the service instance is deleted")
-		Eventually(cf_helpers.Cf("delete-service", appDtls.ServiceName, "-f"), cf_helpers.CfTimeout).Should(gexec.Exit())
+		session = cf_helpers.CfWithTimeout(cf_helpers.CfTimeout, "delete-service", appDtls.ServiceName, "-f")
 		cf_helpers.AwaitServiceDeletion(appDtls.ServiceName)
 
 		bosh_helpers.DeregisterAndDeleteBroker(brokerInfo.DeploymentName)
@@ -109,8 +110,8 @@ var _ = Describe("Upgrading deployment", func() {
 		})
 
 		By("updating the service instance", func() {
-			session := cf_helpers.Cf("update-service", appDtls.ServiceName, "-c", `{"maxclients": 60}`)
-			Eventually(session, cf_helpers.CfTimeout).Should(gexec.Exit(0))
+			session := cf_helpers.CfWithTimeout(cf_helpers.CfTimeout, "update-service", appDtls.ServiceName, "-c", `{"maxclients": 60}`)
+			Expect(session).To(gexec.Exit(0))
 			cf_helpers.AwaitServiceUpdate(appDtls.ServiceName)
 		})
 
