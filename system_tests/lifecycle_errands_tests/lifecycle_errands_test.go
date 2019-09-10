@@ -167,8 +167,8 @@ var _ = Describe("lifecycle errand tests", func() {
 })
 
 func getServiceDeploymentName(serviceInstanceName string) string {
-	getInstanceDetailsCmd := cf.Cf("service", serviceInstanceName, "--guid")
-	Eventually(getInstanceDetailsCmd, cf.CfTimeout).Should(gexec.Exit(0))
+	getInstanceDetailsCmd := cf.CfWithTimeout(cf.CfTimeout, "service", serviceInstanceName, "--guid")
+	Expect(getInstanceDetailsCmd).To(gexec.Exit(0))
 	re := regexp.MustCompile("(?m)^[[:alnum:]]{8}-[[:alnum:]-]*$")
 	serviceGUID := re.FindString(string(getInstanceDetailsCmd.Out.Contents()))
 	serviceInstanceID := strings.TrimSpace(serviceGUID)

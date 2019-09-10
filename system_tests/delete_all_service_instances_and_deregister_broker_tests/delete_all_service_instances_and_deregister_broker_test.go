@@ -24,28 +24,29 @@ var _ = Describe("purge instances and deregister broker", func() {
 	serviceInstance2 := uuid.New()[:7]
 	serviceKeyName := uuid.New()[:7]
 	testAppName := uuid.New()[:7]
+	customTimeout := time.Second * 30
 
 	BeforeEach(func() {
-		Eventually(cf.Cf("create-service", brokerInfo.ServiceName, "dedicated-vm", serviceInstance1), cf.CfTimeout).Should(gexec.Exit(0))
-		Eventually(cf.Cf("create-service", brokerInfo.ServiceName, "dedicated-high-memory-vm", serviceInstance2), cf.CfTimeout).Should(gexec.Exit(0))
+		Expect(cf.CfWithTimeout(cf.CfTimeout, "create-service", brokerInfo.ServiceName, "dedicated-vm", serviceInstance1)).To(gexec.Exit(0))
+		Expect(cf.CfWithTimeout(cf.CfTimeout, "create-service", brokerInfo.ServiceName, "dedicated-high-memory-vm", serviceInstance2)).To(gexec.Exit(0))
 		cf.AwaitServiceCreation(serviceInstance1)
 		cf.AwaitServiceCreation(serviceInstance2)
 	})
 
 	AfterEach(func() {
-		Eventually(cf.Cf("unbind-service", testAppName, serviceInstance1), time.Second*30).Should(gexec.Exit())
-		Eventually(cf.Cf("delete", testAppName, "-f", "-r"), time.Second*30).Should(gexec.Exit(0))
-		Eventually(cf.Cf("delete-service-key", serviceInstance1, serviceKeyName, "-f"), time.Second*30).Should(gexec.Exit())
-		Eventually(cf.Cf("delete-service", serviceInstance1, "-f"), time.Second*30).Should(gexec.Exit())
-		Eventually(cf.Cf("delete-service", serviceInstance2, "-f"), time.Second*30).Should(gexec.Exit())
+		Expect(cf.CfWithTimeout(customTimeout, "unbind-service", testAppName, serviceInstance1)).To(gexec.Exit())
+		Expect(cf.CfWithTimeout(customTimeout, "delete", testAppName, "-f", "-r")).To(gexec.Exit(0))
+		Expect(cf.CfWithTimeout(customTimeout, "delete-service-key", serviceInstance1, serviceKeyName, "-f")).To(gexec.Exit())
+		Expect(cf.CfWithTimeout(customTimeout, "delete-service", serviceInstance1, "-f")).To(gexec.Exit())
+		Expect(cf.CfWithTimeout(customTimeout, "delete-service", serviceInstance2, "-f")).To(gexec.Exit())
 		cf.AwaitServiceDeletion(serviceInstance1)
 		cf.AwaitServiceDeletion(serviceInstance2)
 	})
 
 	It("deletes and unbinds all service instances", func() {
-		Eventually(cf.Cf("push", "-p", exampleAppPath, "--no-start", testAppName), time.Minute).Should(gexec.Exit(0))
-		Eventually(cf.Cf("bind-service", testAppName, serviceInstance1), cf.CfTimeout).Should(gexec.Exit(0))
-		Eventually(cf.Cf("create-service-key", serviceInstance1, serviceKeyName), cf.CfTimeout).Should(gexec.Exit(0))
+		Expect(cf.CfWithTimeout(time.Minute, "push", "-p", exampleAppPath, "--no-start", testAppName)).To(gexec.Exit(0))
+		Expect(cf.CfWithTimeout(cf.CfTimeout, "bind-service", testAppName, serviceInstance1)).To(gexec.Exit(0))
+		Expect(cf.CfWithTimeout(cf.CfTimeout, "create-service-key", serviceInstance1, serviceKeyName)).To(gexec.Exit(0))
 
 		session := bosh_helpers.RunErrand(
 			brokerInfo.DeploymentName,
@@ -58,8 +59,8 @@ var _ = Describe("purge instances and deregister broker", func() {
 		cf.AwaitServiceDeletion(serviceInstance1)
 		cf.AwaitServiceDeletion(serviceInstance2)
 
-		session = cf.Cf("marketplace", "-s", brokerInfo.ServiceName)
-		Eventually(session, cf.CfTimeout).Should(gexec.Exit(1))
+		session = cf.CfWithTimeout(cf.CfTimeout, "marketplace", "-s", brokerInfo.ServiceName)
+		Expect(session).To(gexec.Exit(1))
 		Expect(session.Err).Should(gbytes.Say(`Service offering '%s' not found`, brokerInfo.ServiceName))
 	})
 })

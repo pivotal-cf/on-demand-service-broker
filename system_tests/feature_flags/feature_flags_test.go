@@ -145,13 +145,13 @@ var _ = Describe("FeatureFlags", func() {
 			bosh.RunErrand(brokerInfo.DeploymentName, "register-broker")
 			serviceName := uuid.New()[:8]
 
-			createServiceSession := cf.Cf("create-service", brokerInfo.ServiceName, "invalid-vm-type", serviceName)
-			Eventually(createServiceSession, cf.CfTimeout).Should(gexec.Exit(0))
+			createServiceSession := cf.CfWithTimeout(cf.CfTimeout, "create-service", brokerInfo.ServiceName, "invalid-vm-type", serviceName)
+			Expect(createServiceSession).To(gexec.Exit(0))
 
 			cf.AwaitServiceCreationFailure(serviceName)
 
 			s := cf.Cf("service", serviceName)
-			Eventually(s.Out).Should(gbytes.Say(`Instance group 'redis-server' references an unknown vm type`))
+			Expect(s.Out).To(gbytes.Say(`Instance group 'redis-server' references an unknown vm type`))
 
 			cf.DeleteService(serviceName)
 			cf.AwaitServiceDeletion(serviceName)
