@@ -145,8 +145,8 @@ var _ = Describe("FeatureFlags", func() {
 			bosh.RunErrand(brokerInfo.DeploymentName, "register-broker")
 			serviceName := uuid.New()[:8]
 
-			createServiceSession := cf.Cf("create-service", brokerInfo.ServiceName, "invalid-vm-type", serviceName)
-			Eventually(createServiceSession, cf.CfTimeout).Should(gexec.Exit(0))
+			createServiceSession := cf.CfWithTimeout(cf.CfTimeout, "create-service", brokerInfo.ServiceName, "invalid-vm-type", serviceName)
+			Expect(createServiceSession).To(gexec.Exit(0))
 
 			cf.AwaitServiceCreationFailure(serviceName)
 

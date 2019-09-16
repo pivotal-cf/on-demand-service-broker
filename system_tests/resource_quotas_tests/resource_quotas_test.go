@@ -109,12 +109,12 @@ var _ = Describe("quotas", func() {
 				})
 
 				By("deleting instance to free up plan quota", func() {
-					Expect(cf.CfWithTimeout(cf.CfTimeout, "delete-service", instanceB, "-f")).To(gexec.Exit(0))
+					Expect(cf.Cf("delete-service", instanceB, "-f")).To(gexec.Exit(0))
 					cf.AwaitServiceDeletion(instanceB)
 				})
 
 				By("updating a service instance with newly freed quota", func() {
-					Eventually(cf.Cf("update-service", instanceA, "-p", planWithGlobalQuota)).Should(gexec.Exit(0))
+					Expect(cf.Cf("update-service", instanceA, "-p", planWithGlobalQuota)).To(gexec.Exit(0))
 					cf.AwaitServiceUpdate(instanceA)
 				})
 			})
@@ -212,7 +212,7 @@ var _ = Describe("quotas", func() {
 				})
 
 				By("updating a service instance with newly freed quota", func() {
-					Eventually(cf.Cf("update-service", instanceA, "-p", planWithQuota)).Should(gexec.Exit(0))
+					Expect(cf.Cf("update-service", instanceA, "-p", planWithQuota)).To(gexec.Exit(0))
 					cf.AwaitServiceUpdate(instanceA)
 				})
 			})
