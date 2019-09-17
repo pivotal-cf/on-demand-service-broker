@@ -17,7 +17,7 @@
     "errors",
   ]
   pruneopts = "NUT"
-  revision = "91e16a79b1e9ecf1cb7f6f90b5b5feec5f51e226"
+  revision = "27747254405c01b25ae0636bcac5c620f7de97d6"
 
 [[projects]]
   branch = "master"
