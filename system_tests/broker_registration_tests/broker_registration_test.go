@@ -139,7 +139,7 @@ var _ = Describe("broker registration errands", func() {
 				It("should be restricted after previously being enabled", func() {
 					By("manually enabling service access to the plan to all", func() {
 						cfLogInAsAdmin()
-						session := cf.Cf("enable-service-access", brokerInfo.ServiceName, "-p", "org-restricted-plan-2"))
+						session := cf.Cf("enable-service-access", brokerInfo.ServiceName, "-p", "org-restricted-plan-2")
 						Expect(session).To(gexec.Exit(0))
 					})
 
