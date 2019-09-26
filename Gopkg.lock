@@ -55,7 +55,7 @@
   revision = "7dc373669fa10ddf827c37c595dee30a2f001be9"
 
 [[projects]]
-  digest = "1:88a7b7136680c80939c15c66e84a0ea4c3c6653a59105c2b62a0c84f08d54747"
+  digest = "1:e7309299a8a32d76608006ee4b03ff01a5237a1e4cff35ead75408980b516615"
   name = "github.com/cloudfoundry/bosh-cli"
   packages = [
     "common/util",
@@ -64,8 +64,8 @@
     "uaa",
   ]
   pruneopts = "NUT"
-  revision = "5240e8aa8f1612f32edd8507058884ee52ffd1c6"
-  version = "v6.0.0"
+  revision = "9c1c210c83673a780e3787a91f444541755e6585"
+  version = "v6.1.0"
 
 [[projects]]
   branch = "master"
