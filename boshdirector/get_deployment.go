@@ -19,13 +19,24 @@ func (c *Client) GetDeployment(name string, logger *log.Logger) ([]byte, bool, e
 	if err != nil {
 		return nil, false, errors.Wrap(err, "Failed to build director")
 	}
-	deployments, err := d.Deployments()
+
+	deployments, err := d.ListDeployments()
 	if err != nil {
 		return nil, false, errors.Wrap(err, "Cannot get the list of deployments")
 	}
-	for _, d := range deployments {
-		if d.Name() == name {
-			rawManifest, _ := d.Manifest()
+
+	for _, deployment := range deployments {
+		if deployment.Name == name {
+			dep, err := d.FindDeployment(name)
+			if err != nil {
+				return nil, false, errors.Wrapf(err, "Cannot create deployment object for deployment %q", name)
+			}
+
+			rawManifest, err := dep.Manifest()
+			if err != nil {
+				return nil, false, errors.Wrapf(err, "Cannot obtain manifest for deployment %q", name)
+			}
+
 			return []byte(rawManifest), true, nil
 		}
 	}

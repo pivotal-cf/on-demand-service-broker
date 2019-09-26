@@ -19,15 +19,19 @@ import (
 var _ = Describe("deleting bosh deployments", func() {
 	const deploymentName = "some-deployment"
 	var (
-		fakeDeployment *fakes.FakeBOSHDeployment
-		taskReporter   *boshdirector.AsyncTaskReporter
-		taskId         = 90
+		fakeDeployment         *fakes.FakeBOSHDeployment
+		fakeDeploymentResponse director.DeploymentResp
+		taskReporter           *boshdirector.AsyncTaskReporter
+		taskId                 = 90
 	)
 
 	BeforeEach(func() {
+		fakeDeploymentResponse = director.DeploymentResp{
+			Name: deploymentName,
+		}
+
 		fakeDeployment = new(fakes.FakeBOSHDeployment)
-		fakeDeployment.NameReturns(deploymentName)
-		fakeDirector.DeploymentsReturns([]director.Deployment{fakeDeployment}, nil)
+		fakeDirector.ListDeploymentsReturns([]director.DeploymentResp{fakeDeploymentResponse}, nil)
 		fakeDirector.FindDeploymentReturns(fakeDeployment, nil)
 		fakeDirector.WithContextReturns(fakeDirector)
 		taskReporter = boshdirector.NewAsyncTaskReporter()
@@ -52,14 +56,14 @@ var _ = Describe("deleting bosh deployments", func() {
 	})
 
 	It("returns an error when the GetDeployment errors", func() {
-		fakeDirector.DeploymentsReturns(nil, errors.New("oops"))
+		fakeDirector.ListDeploymentsReturns(nil, errors.New("oops"))
 		_, deleteErr := c.DeleteDeployment(deploymentName, "delete-some-deployment", false, taskReporter, logger)
 
 		Expect(deleteErr).To(MatchError(ContainSubstring(`BOSH error when deleting deployment "some-deployment"`)))
 	})
 
 	It("reports task started and task finished when the deployment doesn't exist", func() {
-		fakeDirector.DeploymentsReturns([]director.Deployment{}, nil)
+		fakeDirector.ListDeploymentsReturns([]director.DeploymentResp{}, nil)
 		taskID, deleteErr := c.DeleteDeployment(deploymentName, "delete-some-deployment", false, taskReporter, logger)
 
 		Expect(taskID).To(Equal(0))

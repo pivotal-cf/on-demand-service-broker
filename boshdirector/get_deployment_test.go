@@ -17,20 +17,24 @@ import (
 
 var _ = Describe("getting deployment", func() {
 	var (
-		deploymentName   = "some-deployment"
-		manifest         []byte
-		deploymentFound  bool
-		rawManifest      = []byte("a-raw-manifest")
-		manifestFetchErr error
-		fakeDeployment   *fakes.FakeBOSHDeployment
+		deploymentName         = "some-deployment"
+		manifest               []byte
+		deploymentFound        bool
+		rawManifest            = []byte("a-raw-manifest")
+		manifestFetchErr       error
+		fakeDeployment         *fakes.FakeBOSHDeployment
+		fakeDeploymentResponse director.DeploymentResp
 	)
 
 	BeforeEach(func() {
 		fakeDeployment = new(fakes.FakeBOSHDeployment)
-		fakeDeployment.NameReturns(deploymentName)
 		fakeDeployment.ManifestReturns(string(rawManifest), nil)
 
-		fakeDirector.DeploymentsReturns([]director.Deployment{fakeDeployment}, nil)
+		fakeDeploymentResponse = director.DeploymentResp{
+			Name: deploymentName,
+		}
+
+		fakeDirector.ListDeploymentsReturns([]director.DeploymentResp{fakeDeploymentResponse}, nil)
 	})
 
 	It("returns the manifest when the deployment exists", func() {
@@ -40,7 +44,7 @@ var _ = Describe("getting deployment", func() {
 		manifest, deploymentFound, manifestFetchErr = c.GetDeployment(deploymentName, logger)
 
 		By("finding the deployment")
-		Expect(fakeDirector.DeploymentsCallCount()).To(Equal(1))
+		Expect(fakeDirector.ListDeploymentsCallCount()).To(Equal(1))
 
 		By("acquiring the manifest")
 		Expect(fakeDeployment.ManifestCallCount()).To(Equal(1))
@@ -56,15 +60,28 @@ var _ = Describe("getting deployment", func() {
 
 		Expect(deploymentFound).To(BeFalse())
 		Expect(manifestFetchErr).NotTo(HaveOccurred())
-
 	})
 
 	It("returns an error when the client cannot get the list of the deployments", func() {
-		fakeDirector.DeploymentsReturns(nil, errors.New("oops"))
+		fakeDirector.ListDeploymentsReturns(nil, errors.New("oops"))
 		_, deploymentFound, manifestFetchErr = c.GetDeployment(deploymentName, logger)
 
 		Expect(deploymentFound).To(BeFalse())
 		Expect(manifestFetchErr).To(MatchError(ContainSubstring("Cannot get the list of deployments")))
+	})
 
+	It("returns an error when the deployment object cannot be created", func() {
+		fakeDirector.FindDeploymentReturns(nil, errors.New("cannot find deployment"))
+
+		_, _, manifestFetchErr = c.GetDeployment(deploymentName, logger)
+		Expect(manifestFetchErr).To(MatchError(ContainSubstring(`Cannot create deployment object for deployment "some-deployment"`)))
+	})
+
+	It("returns an error when the manifest cannot be downloaded", func() {
+		fakeDirector.FindDeploymentReturns(fakeDeployment, nil)
+		fakeDeployment.ManifestReturns("", errors.New("fake manifest error"))
+
+		_, _, manifestFetchErr = c.GetDeployment(deploymentName, logger)
+		Expect(manifestFetchErr).To(MatchError(ContainSubstring(`Cannot obtain manifest for deployment "some-deployment"`)))
 	})
 })

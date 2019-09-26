@@ -14,6 +14,6 @@ type deploymentsMock struct {
 
 func Deployments() *deploymentsMock {
 	return &deploymentsMock{
-		Handler: mockhttp.NewMockedHttpRequest("GET", "/deployments"),
+		Handler: mockhttp.NewMockedHttpRequest("GET", "/deployments?exclude_configs=true"),
 	}
 }
