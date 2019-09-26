@@ -62,6 +62,7 @@ var _ = Describe("Upgrading deployment", func() {
 
 		By("ensuring the service instance is deleted")
 		session = cf_helpers.CfWithTimeout(cf_helpers.CfTimeout, "delete-service", appDtls.ServiceName, "-f")
+		Expect(session).To(gexec.Exit())
 		cf_helpers.AwaitServiceDeletion(appDtls.ServiceName)
 
 		bosh_helpers.DeregisterAndDeleteBroker(brokerInfo.DeploymentName)
