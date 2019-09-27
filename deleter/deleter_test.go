@@ -53,7 +53,7 @@ var _ = Describe("Deleter", func() {
 
 		cfClient = new(fakes.FakeCloudFoundryClient)
 
-		cfClient.GetInstancesReturns([]cf.Instance{{GUID: serviceInstance1GUID}}, nil)
+		cfClient.GetServiceInstancesReturns([]cf.Instance{{GUID: serviceInstance1GUID}}, nil)
 
 		binding = cf.Binding{
 			GUID:    serviceInstance1BindingGUID,
@@ -80,25 +80,25 @@ var _ = Describe("Deleter", func() {
 
 	Context("when no service instances exist", func() {
 		It("logs that there are no instances", func() {
-			cfClient.GetInstancesReturns([]cf.Instance{}, nil)
+			cfClient.GetServiceInstancesReturns([]cf.Instance{}, nil)
 
 			err := deleteTool.DeleteAllServiceInstances(serviceUniqueID)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(logBuffer.String()).To(ContainSubstring("No service instances found."))
 
-			Expect(cfClient.GetInstancesCallCount()).To(Equal(1), "Expected to call get instances only once")
+			Expect(cfClient.GetServiceInstancesCallCount()).To(Equal(1), "Expected to call get instances only once")
 		})
 	})
 
 	Context("when it succeeds", func() {
 		Context("when two service instances are deleted immediately", func() {
 			BeforeEach(func() {
-				cfClient.GetInstancesReturnsOnCall(0, []cf.Instance{
+				cfClient.GetServiceInstancesReturnsOnCall(0, []cf.Instance{
 					{GUID: serviceInstance1GUID},
 					{GUID: serviceInstance2GUID},
 				}, nil)
-				cfClient.GetInstancesReturnsOnCall(1, []cf.Instance{}, nil)
+				cfClient.GetServiceInstancesReturnsOnCall(1, []cf.Instance{}, nil)
 				cfClient.GetBindingsForInstanceReturnsOnCall(0, []cf.Binding{binding}, nil)
 				cfClient.GetBindingsForInstanceReturnsOnCall(1, []cf.Binding{}, nil)
 				cfClient.GetServiceKeysForInstanceReturnsOnCall(0, []cf.ServiceKey{serviceKey}, nil)
@@ -111,7 +111,7 @@ var _ = Describe("Deleter", func() {
 			It("by deleting instances", func() {
 				By("By getting all instances for the service offering")
 
-				actualServiceUniqueID, actualLogger := cfClient.GetInstancesArgsForCall(0)
+				actualServiceUniqueID, actualLogger := cfClient.GetServiceInstancesArgsForCall(0)
 				Expect(actualServiceUniqueID.ServiceOfferingID).To(Equal(serviceUniqueID))
 				Expect(actualLogger).To(Equal(logger))
 
@@ -174,7 +174,7 @@ var _ = Describe("Deleter", func() {
 
 				By("Verifying that all service instances have been deleted")
 
-				actualServiceUniqueID, actualLogger = cfClient.GetInstancesArgsForCall(1)
+				actualServiceUniqueID, actualLogger = cfClient.GetServiceInstancesArgsForCall(1)
 				Expect(actualServiceUniqueID.ServiceOfferingID).To(Equal(serviceUniqueID))
 				Expect(actualLogger).To(Equal(logger))
 			})
@@ -182,8 +182,8 @@ var _ = Describe("Deleter", func() {
 
 		Context("when the service instance is not deleted immediately", func() {
 			BeforeEach(func() {
-				cfClient.GetInstancesReturns([]cf.Instance{{GUID: serviceInstance1GUID}}, nil)
-				cfClient.GetInstancesReturnsOnCall(1, []cf.Instance{}, nil)
+				cfClient.GetServiceInstancesReturns([]cf.Instance{{GUID: serviceInstance1GUID}}, nil)
+				cfClient.GetServiceInstancesReturnsOnCall(1, []cf.Instance{}, nil)
 
 				cfClient.GetLastOperationForInstanceReturnsOnCall(0, cf.LastOperation{
 					Type:  "any-non-delete-status",
@@ -221,8 +221,8 @@ var _ = Describe("Deleter", func() {
 
 		Context("when the service instance operation is delete succeeded", func() {
 			BeforeEach(func() {
-				cfClient.GetInstancesReturns([]cf.Instance{{GUID: serviceInstance1GUID}}, nil)
-				cfClient.GetInstancesReturnsOnCall(1, []cf.Instance{}, nil)
+				cfClient.GetServiceInstancesReturns([]cf.Instance{{GUID: serviceInstance1GUID}}, nil)
+				cfClient.GetServiceInstancesReturnsOnCall(1, []cf.Instance{}, nil)
 
 				lastOperation := cf.LastOperation{
 					Type:  cf.OperationTypeDelete,
@@ -247,8 +247,8 @@ var _ = Describe("Deleter", func() {
 			BeforeEach(func() {
 				cfClient.DeleteServiceInstanceReturns(errors.New("Operation in progress"))
 
-				cfClient.GetInstancesReturns([]cf.Instance{{GUID: serviceInstance1GUID}}, nil)
-				cfClient.GetInstancesReturnsOnCall(1, []cf.Instance{}, nil)
+				cfClient.GetServiceInstancesReturns([]cf.Instance{{GUID: serviceInstance1GUID}}, nil)
+				cfClient.GetServiceInstancesReturnsOnCall(1, []cf.Instance{}, nil)
 
 				lastOperation := cf.LastOperation{
 					Type:  cf.OperationTypeDelete,
@@ -281,8 +281,8 @@ var _ = Describe("Deleter", func() {
 
 		When("It cannot retrieve instance latest operation information", func() {
 			BeforeEach(func() {
-				cfClient.GetInstancesReturns([]cf.Instance{{GUID: serviceInstance1GUID}}, nil)
-				cfClient.GetInstancesReturnsOnCall(1, []cf.Instance{}, nil)
+				cfClient.GetServiceInstancesReturns([]cf.Instance{{GUID: serviceInstance1GUID}}, nil)
+				cfClient.GetServiceInstancesReturnsOnCall(1, []cf.Instance{}, nil)
 
 				cfClient.GetLastOperationForInstanceReturnsOnCall(0, cf.LastOperation{}, errors.New("failed to get instance"))
 				cfClient.GetLastOperationForInstanceReturnsOnCall(1, cf.LastOperation{}, cf.NewResourceNotFoundError("service instanceBeingDeleted not found"))
@@ -299,8 +299,8 @@ var _ = Describe("Deleter", func() {
 
 		Context("when get bindings returns a resource not found error", func() {
 			It("skips deleting the binding and continues", func() {
-				cfClient.GetInstancesReturns([]cf.Instance{{GUID: serviceInstance1GUID}}, nil)
-				cfClient.GetInstancesReturnsOnCall(1, []cf.Instance{}, nil)
+				cfClient.GetServiceInstancesReturns([]cf.Instance{{GUID: serviceInstance1GUID}}, nil)
+				cfClient.GetServiceInstancesReturnsOnCall(1, []cf.Instance{}, nil)
 
 				cfClient.GetBindingsForInstanceReturns(
 					[]cf.Binding{},
@@ -316,8 +316,8 @@ var _ = Describe("Deleter", func() {
 
 		Context("when get service keys returns a resource not found error", func() {
 			It("skips deleting the binding and continues", func() {
-				cfClient.GetInstancesReturns([]cf.Instance{{GUID: serviceInstance1GUID}}, nil)
-				cfClient.GetInstancesReturnsOnCall(1, []cf.Instance{}, nil)
+				cfClient.GetServiceInstancesReturns([]cf.Instance{{GUID: serviceInstance1GUID}}, nil)
+				cfClient.GetServiceInstancesReturnsOnCall(1, []cf.Instance{}, nil)
 
 				cfClient.GetServiceKeysForInstanceReturns(
 					[]cf.ServiceKey{},
@@ -333,8 +333,8 @@ var _ = Describe("Deleter", func() {
 
 		Context("when the get service instance request fails", func() {
 			BeforeEach(func() {
-				cfClient.GetInstancesReturns([]cf.Instance{{GUID: serviceInstance1GUID}}, nil)
-				cfClient.GetInstancesReturnsOnCall(1, []cf.Instance{}, nil)
+				cfClient.GetServiceInstancesReturns([]cf.Instance{{GUID: serviceInstance1GUID}}, nil)
+				cfClient.GetServiceInstancesReturnsOnCall(1, []cf.Instance{}, nil)
 
 				cfClient.GetLastOperationForInstanceReturnsOnCall(0, cf.LastOperation{}, errors.New("request failed"))
 				notFoundError := cf.NewResourceNotFoundError("service instance not found")
@@ -354,7 +354,7 @@ var _ = Describe("Deleter", func() {
 
 	Context("when get all service instances returns an error", func() {
 		It("returns an error", func() {
-			cfClient.GetInstancesReturns([]cf.Instance{}, errors.New("cannot get instances"))
+			cfClient.GetServiceInstancesReturns([]cf.Instance{}, errors.New("cannot get instances"))
 
 			err := deleteTool.DeleteAllServiceInstances(serviceUniqueID)
 			Expect(err).To(HaveOccurred())
@@ -473,10 +473,10 @@ var _ = Describe("Deleter", func() {
 	Context("after deleting", func() {
 		Context("when get instances of service offering returns any instances", func() {
 			It("returns an instances found error", func() {
-				getInstancesCallCount := 0
-				cfClient.GetInstancesStub = func(filter cf.GetInstancesFilter, logger *log.Logger) ([]cf.Instance, error) {
-					if getInstancesCallCount == 0 {
-						getInstancesCallCount++
+				GetServiceInstancesCallCount := 0
+				cfClient.GetServiceInstancesStub = func(filter cf.GetInstancesFilter, logger *log.Logger) ([]cf.Instance, error) {
+					if GetServiceInstancesCallCount == 0 {
+						GetServiceInstancesCallCount++
 						return []cf.Instance{
 							{GUID: serviceInstance1GUID},
 							{GUID: serviceInstance2GUID},
@@ -494,10 +494,10 @@ var _ = Describe("Deleter", func() {
 
 		Context("when get instances of service offerings returns an error", func() {
 			It("returns the error", func() {
-				getInstancesCallCount := 0
-				cfClient.GetInstancesStub = func(filter cf.GetInstancesFilter, logger *log.Logger) ([]cf.Instance, error) {
-					if getInstancesCallCount == 0 {
-						getInstancesCallCount++
+				GetServiceInstancesCallCount := 0
+				cfClient.GetServiceInstancesStub = func(filter cf.GetInstancesFilter, logger *log.Logger) ([]cf.Instance, error) {
+					if GetServiceInstancesCallCount == 0 {
+						GetServiceInstancesCallCount++
 						return []cf.Instance{
 							{GUID: serviceInstance1GUID},
 							{GUID: serviceInstance2GUID},

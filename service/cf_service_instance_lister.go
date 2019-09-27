@@ -46,7 +46,7 @@ func (l *CFServiceInstanceLister) Instances(filter map[string]string) ([]Instanc
 		return nil, err
 	}
 
-	cfInstances, err := l.client.GetInstances(cf.GetInstancesFilter{
+	cfInstances, err := l.client.GetServiceInstances(cf.GetInstancesFilter{
 		ServiceOfferingID: l.serviceOfferingID,
 		OrgName:           orgName,
 		SpaceName:         spaceName,

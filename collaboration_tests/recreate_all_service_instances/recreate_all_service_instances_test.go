@@ -106,7 +106,7 @@ var _ = Describe("Recreate all service instances", func() {
 		fakeBoshClient = new(fakes.FakeBoshClient)
 		fakeTaskBoshClient = new(taskfakes.FakeBoshClient)
 
-		fakeCfClient.GetInstancesReturns([]cf.Instance{
+		fakeCfClient.GetServiceInstancesReturns([]cf.Instance{
 			{GUID: "service-1", PlanUniqueID: dedicatedPlanID},
 			{GUID: "service-2", PlanUniqueID: dedicatedPlanID},
 		}, nil)
@@ -227,7 +227,7 @@ var _ = Describe("Recreate all service instances", func() {
 			})
 
 			It("returns a non-zero exit code when it fails to get the list of service instances", func() {
-				fakeCfClient.GetInstancesReturns(nil, errors.New("failed to get instances from CF"))
+				fakeCfClient.GetServiceInstancesReturns(nil, errors.New("failed to get instances from CF"))
 
 				session, err := gexec.Start(cmd, stdout, stderr)
 				Expect(err).NotTo(HaveOccurred(), "unexpected error when starting the command")

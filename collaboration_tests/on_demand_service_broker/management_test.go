@@ -83,7 +83,7 @@ var _ = Describe("Management API", func() {
 
 		When("CF is set", func() {
 			It("returns all service instances results", func() {
-				fakeCfClient.GetInstancesReturns([]cf.Instance{
+				fakeCfClient.GetServiceInstancesReturns([]cf.Instance{
 					{
 						GUID:         "service-instance-id",
 						PlanUniqueID: "plan-id",
@@ -109,7 +109,7 @@ var _ = Describe("Management API", func() {
 			})
 
 			It("returns filtered service instances results", func() {
-				fakeCfClient.GetInstancesReturns([]cf.Instance{
+				fakeCfClient.GetServiceInstancesReturns([]cf.Instance{
 					{
 						GUID:         "service-instance-id",
 						PlanUniqueID: "plan-id",
@@ -125,13 +125,13 @@ var _ = Describe("Management API", func() {
 				Expect(bodyContent).To(MatchJSON(
 					`[{"service_instance_id": "service-instance-id", "plan_id":"plan-id"}]`,
 				))
-				filter, _ := fakeCfClient.GetInstancesArgsForCall(0)
+				filter, _ := fakeCfClient.GetServiceInstancesArgsForCall(0)
 				Expect(filter.OrgName).To(Equal("banana"))
 				Expect(filter.SpaceName).To(Equal("banane"))
 			})
 
 			It("returns 500 when getting instances fails", func() {
-				fakeCfClient.GetInstancesReturns([]cf.Instance{}, errors.New("something failed"))
+				fakeCfClient.GetServiceInstancesReturns([]cf.Instance{}, errors.New("something failed"))
 
 				response, _ := doGetRequest(serviceInstancesPath)
 
@@ -193,7 +193,7 @@ var _ = Describe("Management API", func() {
 
 				By("returning the service instances")
 				Expect(bodyContent).To(MatchJSON(expectedResponse))
-				Expect(fakeCfClient.GetInstancesCallCount()).To(Equal(0))
+				Expect(fakeCfClient.GetServiceInstancesCallCount()).To(Equal(0))
 			})
 
 			It("returns filtered service instances results", func() {
@@ -208,7 +208,7 @@ var _ = Describe("Management API", func() {
 
 				By("returning the service instances")
 				Expect(bodyContent).To(MatchJSON(expectedResponse))
-				Expect(fakeCfClient.GetInstancesCallCount()).To(Equal(0))
+				Expect(fakeCfClient.GetServiceInstancesCallCount()).To(Equal(0))
 			})
 
 			AfterEach(func() {
@@ -223,7 +223,7 @@ var _ = Describe("Management API", func() {
 		)
 
 		It("responds with the orphan deployments", func() {
-			fakeCfClient.GetInstancesReturns([]cf.Instance{
+			fakeCfClient.GetServiceInstancesReturns([]cf.Instance{
 				{
 					GUID:         "not-orphan",
 					PlanUniqueID: "plan-id",
@@ -246,7 +246,7 @@ var _ = Describe("Management API", func() {
 		})
 
 		It("responds with 500 when CF API call fails", func() {
-			fakeCfClient.GetInstancesReturns([]cf.Instance{}, errors.New("something failed on cf"))
+			fakeCfClient.GetServiceInstancesReturns([]cf.Instance{}, errors.New("something failed on cf"))
 
 			response, _ := doGetRequest(orphanDeploymentsPath)
 
@@ -258,7 +258,7 @@ var _ = Describe("Management API", func() {
 		})
 
 		It("responds with 500 when BOSH API call fails", func() {
-			fakeCfClient.GetInstancesReturns([]cf.Instance{
+			fakeCfClient.GetServiceInstancesReturns([]cf.Instance{
 				{
 					GUID:         "not-orphan",
 					PlanUniqueID: "plan-id",

@@ -87,7 +87,7 @@ var _ = Describe("Start", func() {
 	})
 
 	It("logs telemetry data when telemetry is enabled", func() {
-		fakeCloudFoundryClient.GetInstancesReturns([]cf.Instance{
+		fakeCloudFoundryClient.GetServiceInstancesReturns([]cf.Instance{
 			{GUID: "123", PlanUniqueID: "a-plan-id"},
 			{GUID: "321", PlanUniqueID: "a-plan-id"},
 		}, nil)
@@ -124,7 +124,7 @@ var _ = Describe("Start", func() {
 	})
 
 	It("logs error when cannot query list of instances", func() {
-		fakeCloudFoundryClient.GetInstancesReturns([]cf.Instance{
+		fakeCloudFoundryClient.GetServiceInstancesReturns([]cf.Instance{
 			{GUID: "123", PlanUniqueID: "plan-id"},
 			{GUID: "321", PlanUniqueID: "plan-id"},
 		}, errors.New("nope"))

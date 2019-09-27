@@ -41,7 +41,7 @@ type InstanceLister interface {
 
 //go:generate counterfeiter -o fakes/fake_lister_client.go . CFListerClient
 type CFListerClient interface {
-	GetInstances(cf.GetInstancesFilter, *log.Logger) ([]cf.Instance, error)
+	GetServiceInstances(cf.GetInstancesFilter, *log.Logger) ([]cf.Instance, error)
 }
 
 func BuildInstanceLister(

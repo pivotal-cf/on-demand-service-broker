@@ -18,7 +18,7 @@ import (
 
 //go:generate counterfeiter -o fakes/fake_cloud_foundry_client.go . CloudFoundryClient
 type CloudFoundryClient interface {
-	GetInstances(filter cf.GetInstancesFilter, logger *log.Logger) ([]cf.Instance, error)
+	GetServiceInstances(filter cf.GetInstancesFilter, logger *log.Logger) ([]cf.Instance, error)
 	GetLastOperationForInstance(instanceGUID string, logger *log.Logger) (cf.LastOperation, error)
 	GetBindingsForInstance(instanceGUID string, logger *log.Logger) ([]cf.Binding, error)
 	DeleteBinding(binding cf.Binding, logger *log.Logger) error
@@ -65,7 +65,7 @@ func New(cfClient CloudFoundryClient, sleeper Sleeper, pollingInitialOffset int,
 func (d *Deleter) DeleteAllServiceInstances(serviceUniqueID string) error {
 	d.logger.Printf("Deleter Configuration: polling_intial_offset: %v, polling_interval: %v.", d.pollingInitialOffset.Seconds(), d.pollingInterval.Seconds())
 	instancesFilter := cf.GetInstancesFilter{ServiceOfferingID: serviceUniqueID}
-	serviceInstances, err := d.cfClient.GetInstances(instancesFilter, d.logger)
+	serviceInstances, err := d.cfClient.GetServiceInstances(instancesFilter, d.logger)
 	if err != nil {
 		return err
 	}
@@ -106,7 +106,7 @@ func (d *Deleter) DeleteAllServiceInstances(serviceUniqueID string) error {
 		}
 	}
 
-	serviceInstances, err = d.cfClient.GetInstances(instancesFilter, d.logger)
+	serviceInstances, err = d.cfClient.GetServiceInstances(instancesFilter, d.logger)
 	if err != nil {
 		return err
 	}

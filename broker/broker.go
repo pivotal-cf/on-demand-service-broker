@@ -220,7 +220,7 @@ type CloudFoundryClient interface {
 	GetAPIVersion(logger *log.Logger) (string, error)
 	CountInstancesOfPlan(serviceOfferingID, planID string, logger *log.Logger) (int, error)
 	CountInstancesOfServiceOffering(serviceOfferingID string, logger *log.Logger) (instanceCountByPlanID map[cf.ServicePlan]int, err error)
-	GetInstances(filter cf.GetInstancesFilter, logger *log.Logger) ([]cf.Instance, error)
+	GetServiceInstances(filter cf.GetInstancesFilter, logger *log.Logger) ([]cf.Instance, error)
 }
 
 //go:generate counterfeiter -o fakes/fake_telemetry_logger.go . TelemetryLogger

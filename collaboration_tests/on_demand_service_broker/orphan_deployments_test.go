@@ -85,7 +85,7 @@ var _ = Describe("Orphan Deployments", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Eventually(session).Should(gexec.Exit(0))
 
-			Expect(fakeCfClient.GetInstancesCallCount()).To(Equal(1), "CF Client wasn't called")
+			Expect(fakeCfClient.GetServiceInstancesCallCount()).To(Equal(1), "CF Client wasn't called")
 			Expect(session).To(gbytes.Say(`\[\]`))
 		})
 
@@ -102,7 +102,7 @@ var _ = Describe("Orphan Deployments", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Eventually(session).Should(gexec.Exit(10), "expected exit code 10 for presence of orphans")
 
-				Expect(fakeCfClient.GetInstancesCallCount()).To(Equal(1), "CF Client wasn't called")
+				Expect(fakeCfClient.GetServiceInstancesCallCount()).To(Equal(1), "CF Client wasn't called")
 				Expect(session).To(gbytes.Say(`\[{"deployment_name":"service-instance_1"}\]`))
 			})
 		})
@@ -170,7 +170,7 @@ var _ = Describe("Orphan Deployments", func() {
 				Eventually(session).Should(gexec.Exit(10), "expected exit code 10 for presence of orphans")
 				Expect(SIAPIServer.ReceivedRequests()).To(HaveLen(1), "No request was sent through the SI API")
 
-				Expect(fakeCfClient.GetInstancesCallCount()).To(Equal(0))
+				Expect(fakeCfClient.GetServiceInstancesCallCount()).To(Equal(0))
 				Expect(session).To(gbytes.Say(`\[{"deployment_name":"service-instance_1"}\]`))
 			})
 
@@ -188,7 +188,7 @@ var _ = Describe("Orphan Deployments", func() {
 
 				Expect(session).To(gbytes.Say(`\[\]`))
 
-				Expect(fakeCfClient.GetInstancesCallCount()).To(Equal(0), "Unexpected call to CF")
+				Expect(fakeCfClient.GetServiceInstancesCallCount()).To(Equal(0), "Unexpected call to CF")
 			})
 		})
 	})

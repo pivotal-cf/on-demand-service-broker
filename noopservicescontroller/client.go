@@ -32,7 +32,7 @@ func (Client) GetInstanceState(serviceInstanceGUID string, logger *log.Logger) (
 	return cf.InstanceState{}, nil
 }
 
-func (Client) GetInstances(f cf.GetInstancesFilter, logger *log.Logger) ([]cf.Instance, error) {
+func (Client) GetServiceInstances(f cf.GetInstancesFilter, logger *log.Logger) ([]cf.Instance, error) {
 	return []cf.Instance{}, nil
 }
 

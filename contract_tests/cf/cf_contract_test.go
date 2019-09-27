@@ -126,11 +126,9 @@ var _ = Describe("CF client", func() {
 				})
 
 				By("ensuring the plan visibilities were deleted", func() {
-
 					updatedPlanVisibilities := servicePlanVisibilities(updatedPlan.GUID)
 					Expect(len(updatedPlanVisibilities)).To(Equal(0), "plan visibilities were not cleaned")
 				})
-
 			})
 
 			By("disabling plan access with DisableServiceAccess", func() {

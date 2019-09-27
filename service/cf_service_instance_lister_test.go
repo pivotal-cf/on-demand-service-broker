@@ -27,7 +27,7 @@ var _ = Describe("CFServiceInstanceLister", func() {
 
 	Describe("Instances", func() {
 		It("queries CF for a list of service instances", func() {
-			fakeCfClient.GetInstancesReturns([]cf.Instance{
+			fakeCfClient.GetServiceInstancesReturns([]cf.Instance{
 				{GUID: "some-guid", PlanUniqueID: "some-plan"},
 				{GUID: "some-other-guid", PlanUniqueID: "some-plan"},
 				{GUID: "yet-another-guid", PlanUniqueID: "some-other-plan"},
@@ -45,8 +45,8 @@ var _ = Describe("CFServiceInstanceLister", func() {
 				service.Instance{GUID: "yet-another-guid", PlanUniqueID: "some-other-plan"},
 			))
 
-			Expect(fakeCfClient.GetInstancesCallCount()).To(Equal(1), "cf client wasn't called")
-			filters, logger := fakeCfClient.GetInstancesArgsForCall(0)
+			Expect(fakeCfClient.GetServiceInstancesCallCount()).To(Equal(1), "cf client wasn't called")
+			filters, logger := fakeCfClient.GetServiceInstancesArgsForCall(0)
 			Expect(filters.ServiceOfferingID).To(Equal("some-offering-id"))
 			Expect(logger).To(Equal(fakeLogger))
 		})
@@ -54,7 +54,7 @@ var _ = Describe("CFServiceInstanceLister", func() {
 		It("errors when pulling the list of instances fails", func() {
 			fakeLogger := new(log.Logger)
 			fakeCfClient := new(fakes.FakeCFListerClient)
-			fakeCfClient.GetInstancesReturns(nil, fmt.Errorf("boom"))
+			fakeCfClient.GetServiceInstancesReturns(nil, fmt.Errorf("boom"))
 
 			l, err := service.BuildInstanceLister(fakeCfClient, "some-offering-id", config.ServiceInstancesAPI{}, fakeLogger)
 			Expect(err).ToNot(HaveOccurred(), "unexpected error while building the lister")
@@ -75,7 +75,7 @@ var _ = Describe("CFServiceInstanceLister", func() {
 		})
 
 		It("can filter instances by org and space", func() {
-			fakeCfClient.GetInstancesReturns([]cf.Instance{
+			fakeCfClient.GetServiceInstancesReturns([]cf.Instance{
 				{GUID: "some-guid", PlanUniqueID: "some-plan"},
 				{GUID: "some-other-guid", PlanUniqueID: "some-plan"},
 			}, nil)
@@ -88,8 +88,8 @@ var _ = Describe("CFServiceInstanceLister", func() {
 				service.Instance{GUID: "some-other-guid", PlanUniqueID: "some-plan"},
 			))
 
-			Expect(fakeCfClient.GetInstancesCallCount()).To(Equal(1), "cf client wasn't called")
-			instancesFilter, logger := fakeCfClient.GetInstancesArgsForCall(0)
+			Expect(fakeCfClient.GetServiceInstancesCallCount()).To(Equal(1), "cf client wasn't called")
+			instancesFilter, logger := fakeCfClient.GetServiceInstancesArgsForCall(0)
 			Expect(instancesFilter.ServiceOfferingID).To(Equal("some-offering-id"))
 			Expect(instancesFilter.OrgName).To(Equal("some-org"))
 			Expect(instancesFilter.SpaceName).To(Equal("some-space"))
@@ -121,7 +121,7 @@ var _ = Describe("CFServiceInstanceLister", func() {
 		})
 
 		It("fails when it cannot talk to CF", func() {
-			fakeCfClient.GetInstancesReturns(nil, errors.New("some error"))
+			fakeCfClient.GetServiceInstancesReturns(nil, errors.New("some error"))
 
 			_, err := subject.Instances(map[string]string{"cf_org": "some-org", "cf_space": "some-space"})
 

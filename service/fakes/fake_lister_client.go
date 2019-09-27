@@ -10,17 +10,17 @@ import (
 )
 
 type FakeCFListerClient struct {
-	GetInstancesStub        func(cf.GetInstancesFilter, *log.Logger) ([]cf.Instance, error)
-	getInstancesMutex       sync.RWMutex
-	getInstancesArgsForCall []struct {
+	GetServiceInstancesStub        func(cf.GetInstancesFilter, *log.Logger) ([]cf.Instance, error)
+	getServiceInstancesMutex       sync.RWMutex
+	getServiceInstancesArgsForCall []struct {
 		arg1 cf.GetInstancesFilter
 		arg2 *log.Logger
 	}
-	getInstancesReturns struct {
+	getServiceInstancesReturns struct {
 		result1 []cf.Instance
 		result2 error
 	}
-	getInstancesReturnsOnCall map[int]struct {
+	getServiceInstancesReturnsOnCall map[int]struct {
 		result1 []cf.Instance
 		result2 error
 	}
@@ -28,65 +28,65 @@ type FakeCFListerClient struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeCFListerClient) GetInstances(arg1 cf.GetInstancesFilter, arg2 *log.Logger) ([]cf.Instance, error) {
-	fake.getInstancesMutex.Lock()
-	ret, specificReturn := fake.getInstancesReturnsOnCall[len(fake.getInstancesArgsForCall)]
-	fake.getInstancesArgsForCall = append(fake.getInstancesArgsForCall, struct {
+func (fake *FakeCFListerClient) GetServiceInstances(arg1 cf.GetInstancesFilter, arg2 *log.Logger) ([]cf.Instance, error) {
+	fake.getServiceInstancesMutex.Lock()
+	ret, specificReturn := fake.getServiceInstancesReturnsOnCall[len(fake.getServiceInstancesArgsForCall)]
+	fake.getServiceInstancesArgsForCall = append(fake.getServiceInstancesArgsForCall, struct {
 		arg1 cf.GetInstancesFilter
 		arg2 *log.Logger
 	}{arg1, arg2})
-	fake.recordInvocation("GetInstances", []interface{}{arg1, arg2})
-	fake.getInstancesMutex.Unlock()
-	if fake.GetInstancesStub != nil {
-		return fake.GetInstancesStub(arg1, arg2)
+	fake.recordInvocation("GetServiceInstances", []interface{}{arg1, arg2})
+	fake.getServiceInstancesMutex.Unlock()
+	if fake.GetServiceInstancesStub != nil {
+		return fake.GetServiceInstancesStub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.getInstancesReturns
+	fakeReturns := fake.getServiceInstancesReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
-func (fake *FakeCFListerClient) GetInstancesCallCount() int {
-	fake.getInstancesMutex.RLock()
-	defer fake.getInstancesMutex.RUnlock()
-	return len(fake.getInstancesArgsForCall)
+func (fake *FakeCFListerClient) GetServiceInstancesCallCount() int {
+	fake.getServiceInstancesMutex.RLock()
+	defer fake.getServiceInstancesMutex.RUnlock()
+	return len(fake.getServiceInstancesArgsForCall)
 }
 
-func (fake *FakeCFListerClient) GetInstancesCalls(stub func(cf.GetInstancesFilter, *log.Logger) ([]cf.Instance, error)) {
-	fake.getInstancesMutex.Lock()
-	defer fake.getInstancesMutex.Unlock()
-	fake.GetInstancesStub = stub
+func (fake *FakeCFListerClient) GetServiceInstancesCalls(stub func(cf.GetInstancesFilter, *log.Logger) ([]cf.Instance, error)) {
+	fake.getServiceInstancesMutex.Lock()
+	defer fake.getServiceInstancesMutex.Unlock()
+	fake.GetServiceInstancesStub = stub
 }
 
-func (fake *FakeCFListerClient) GetInstancesArgsForCall(i int) (cf.GetInstancesFilter, *log.Logger) {
-	fake.getInstancesMutex.RLock()
-	defer fake.getInstancesMutex.RUnlock()
-	argsForCall := fake.getInstancesArgsForCall[i]
+func (fake *FakeCFListerClient) GetServiceInstancesArgsForCall(i int) (cf.GetInstancesFilter, *log.Logger) {
+	fake.getServiceInstancesMutex.RLock()
+	defer fake.getServiceInstancesMutex.RUnlock()
+	argsForCall := fake.getServiceInstancesArgsForCall[i]
 	return argsForCall.arg1, argsForCall.arg2
 }
 
-func (fake *FakeCFListerClient) GetInstancesReturns(result1 []cf.Instance, result2 error) {
-	fake.getInstancesMutex.Lock()
-	defer fake.getInstancesMutex.Unlock()
-	fake.GetInstancesStub = nil
-	fake.getInstancesReturns = struct {
+func (fake *FakeCFListerClient) GetServiceInstancesReturns(result1 []cf.Instance, result2 error) {
+	fake.getServiceInstancesMutex.Lock()
+	defer fake.getServiceInstancesMutex.Unlock()
+	fake.GetServiceInstancesStub = nil
+	fake.getServiceInstancesReturns = struct {
 		result1 []cf.Instance
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeCFListerClient) GetInstancesReturnsOnCall(i int, result1 []cf.Instance, result2 error) {
-	fake.getInstancesMutex.Lock()
-	defer fake.getInstancesMutex.Unlock()
-	fake.GetInstancesStub = nil
-	if fake.getInstancesReturnsOnCall == nil {
-		fake.getInstancesReturnsOnCall = make(map[int]struct {
+func (fake *FakeCFListerClient) GetServiceInstancesReturnsOnCall(i int, result1 []cf.Instance, result2 error) {
+	fake.getServiceInstancesMutex.Lock()
+	defer fake.getServiceInstancesMutex.Unlock()
+	fake.GetServiceInstancesStub = nil
+	if fake.getServiceInstancesReturnsOnCall == nil {
+		fake.getServiceInstancesReturnsOnCall = make(map[int]struct {
 			result1 []cf.Instance
 			result2 error
 		})
 	}
-	fake.getInstancesReturnsOnCall[i] = struct {
+	fake.getServiceInstancesReturnsOnCall[i] = struct {
 		result1 []cf.Instance
 		result2 error
 	}{result1, result2}
@@ -95,8 +95,8 @@ func (fake *FakeCFListerClient) GetInstancesReturnsOnCall(i int, result1 []cf.In
 func (fake *FakeCFListerClient) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.getInstancesMutex.RLock()
-	defer fake.getInstancesMutex.RUnlock()
+	fake.getServiceInstancesMutex.RLock()
+	defer fake.getServiceInstancesMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
