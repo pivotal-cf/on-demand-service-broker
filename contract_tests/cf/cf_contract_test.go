@@ -2,8 +2,6 @@ package cf_test
 
 import (
 	"encoding/json"
-	"github.com/pborman/uuid"
-	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/service_helpers"
 	"io"
 	"log"
 	"os"
@@ -14,7 +12,6 @@ import (
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
-	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/cf_helpers"
 )
 
@@ -31,34 +28,10 @@ var _ = Describe("CF client", func() {
 	})
 
 	Describe("Broker Operations", func() {
-		var (
-			brokerDeployment                 bosh_helpers.BrokerInfo
-			brokerName, brokerGUID, planName string
-		)
-
-		BeforeEach(func() {
-			brokerDeployment = bosh_helpers.DeployBroker(
-				uuid.New()[:8]+"-cf-contract-tests",
-				bosh_helpers.BrokerDeploymentOptions{
-					ServiceMetrics: false,
-					BrokerTLS:      false,
-				},
-				service_helpers.Redis,
-				[]string{"basic_service_catalog.yml"},
-			)
-
-			brokerName = "contract-" + brokerDeployment.TestSuffix
-			planName = "redis-small"
-		})
-
-		AfterEach(func() {
-			session := cf_helpers.Cf("delete-service-broker", "-f", brokerName)
-			Expect(session).To(gexec.Exit(0))
-
-			bosh_helpers.DeleteDeployment(brokerDeployment.DeploymentName)
-		})
 
 		It("manages broker operations successfully", func() {
+			var brokerGUID string
+
 			By("creating a broker with CreateServiceBroker", func() {
 				err := subject.CreateServiceBroker(
 					brokerName,

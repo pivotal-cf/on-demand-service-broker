@@ -4,14 +4,13 @@ import (
 	"io"
 	"log"
 
-	"github.com/blang/semver"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 )
 
-var _ = Describe("/v2/info contract", func() {
+var _ = Describe("/v2/service_plans contract", func() {
 	var (
 		subject *cf.Client
 		logger  *log.Logger
@@ -23,16 +22,13 @@ var _ = Describe("/v2/info contract", func() {
 		subject = NewCFClient(logger)
 	})
 
-	It("works for GetAPIVersion()", func() {
-		version, err := subject.GetAPIVersion(logger)
-
+	It("works for GetServiceInstances()", func() {
+		instances, err := subject.GetServiceInstances(cf.GetInstancesFilter{
+			ServiceOfferingID: brokerDeployment.ServiceID,
+		}, logger)
 		Expect(err).NotTo(HaveOccurred())
-		_, err = semver.Parse(version)
-		Expect(err).NotTo(HaveOccurred())
-	})
-
-	It("works for CheckMinimumOSBAPIVersion()", func() {
-		Expect(subject.CheckMinimumOSBAPIVersion("0.0.1", logger)).To(BeTrue())
-		Expect(subject.CheckMinimumOSBAPIVersion("999999999.0.0", logger)).To(BeFalse())
+		Expect(instances).To(HaveLen(1))
+		Expect(instances[0].PlanUniqueID).To(Equal(brokerDeployment.PlanID + "-small"))
+		Expect(instances[0].GUID).To(Equal(serviceInstanceGUID))
 	})
 })
