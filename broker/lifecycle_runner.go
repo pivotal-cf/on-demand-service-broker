@@ -76,7 +76,7 @@ func (l LifeCycleRunner) processPostDeployment(
 	}
 
 	if isOldStylePostDeployOperationData(boshTasks, operationData) {
-		return l.runErrand(deploymentName, config.Errand{operationData.PostDeployErrand.Name, operationData.PostDeployErrand.Instances}, operationData.BoshContextID, logger)
+		return l.runErrand(deploymentName, config.Errand{Name: operationData.PostDeployErrand.Name, Instances: operationData.PostDeployErrand.Instances}, operationData.BoshContextID, logger)
 	}
 
 	nextErrandIndex := len(boshTasks) - 1

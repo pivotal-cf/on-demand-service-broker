@@ -18,7 +18,7 @@ type AppDetails struct {
 	ServiceDeploymentName string
 }
 
-func PerformInParallel(createFunction func(planName string), count int, planNames PlanNamesForParallelCreate) {
+func PerformInParallel(createFunction func(planName string), count int, planNames *PlanNamesForParallelCreate) {
 	var wg sync.WaitGroup
 	wg.Add(count)
 

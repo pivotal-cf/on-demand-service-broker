@@ -243,7 +243,7 @@ func createTestServiceInstancesAndApps(count int, serviceName string) (appDetail
 			instanceGroupProperties := bosh_helpers.FindInstanceGroupProperties(&manifest, "redis-server")
 			Expect(instanceGroupProperties["redis"].(map[interface{}]interface{})["persistence"]).To(Equal("yes"))
 		})
-	}, count, upgrade_all.PlanNamesForParallelCreate{
+	}, count, &upgrade_all.PlanNamesForParallelCreate{
 		Items: []upgrade_all.PlanName{
 			{Index: 0, Value: "dedicated-vm"},
 			{Index: 1, Value: "dedicated-vm-with-post-deploy"},
