@@ -82,7 +82,7 @@
     "uuid",
   ]
   pruneopts = "NUT"
-  revision = "64e3370c6fb002b121eae175741968fa754c6e91"
+  revision = "4335459ccbb76e68abfc04866659f1879f0aee91"
 
 [[projects]]
   branch = "master"
