@@ -25,14 +25,12 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+const (
+	brokerUsername = "broker username"
+	brokerPassword = "broker password"
+)
+
 var _ = Describe("running the tool to upgrade all service instances", func() {
-	const (
-		brokerUsername = "broker username"
-		brokerPassword = "broker password"
-	)
-
-	var errandConfig config.InstanceIteratorConfig
-
 	startUpgradeAllInstanceBinary := func(errandConfig config.InstanceIteratorConfig) *gexec.Session {
 		b, err := yaml.Marshal(errandConfig)
 		Expect(err).ToNot(HaveOccurred())
@@ -47,61 +45,21 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 		Describe("HTTP Broker", func() {
 			var (
 				serviceInstances string
-				operationData    string
 				instanceID       string
 
 				lastOperationHandler    *FakeHandler
 				serviceInstancesHandler *FakeHandler
 				upgradeHandler          *FakeHandler
+				errandConfig            config.InstanceIteratorConfig
 			)
 
 			BeforeEach(func() {
 				broker = ghttp.NewServer()
+				errandConfig = errandConfigurationBOSH(broker.URL())
 
-				lastOperationHandler = new(FakeHandler)
-				serviceInstancesHandler = new(FakeHandler)
-				upgradeHandler = new(FakeHandler)
-
-				errandConfig = config.InstanceIteratorConfig{
-					PollingInterval: 1,
-					AttemptLimit:    2,
-					AttemptInterval: 2,
-					MaxInFlight:     1,
-					BrokerAPI: config.BrokerAPI{
-						URL: broker.URL(),
-						Authentication: config.Authentication{
-							Basic: config.UserCredentials{
-								Username: brokerUsername,
-								Password: brokerPassword,
-							},
-						},
-					},
-				}
-
-				broker.RouteToHandler(http.MethodGet, "/mgmt/service_instances", ghttp.CombineHandlers(
-					ghttp.VerifyBasicAuth(brokerUsername, brokerPassword),
-					serviceInstancesHandler.Handle,
-				))
-
-				broker.RouteToHandler(http.MethodPatch, regexp.MustCompile(`/mgmt/service_instances/.*`), ghttp.CombineHandlers(
-					ghttp.VerifyBasicAuth(brokerUsername, brokerPassword),
-					ghttp.VerifyRequest(http.MethodPatch, ContainSubstring("/mgmt/service_instances/"), "operation_type=upgrade"),
-					upgradeHandler.Handle,
-				))
-
-				broker.RouteToHandler(http.MethodGet, regexp.MustCompile(`/v2/service_instances/.*/last_operation`), ghttp.CombineHandlers(
-					ghttp.VerifyBasicAuth(brokerUsername, brokerPassword),
-					lastOperationHandler.Handle,
-				))
-
-				operationData = `{"BoshTaskID":1,"OperationType":"upgrade","PostDeployErrand":{},"PreDeleteErrand":{}}`
-				instanceID = "service-instance-id"
-				serviceInstances = fmt.Sprintf(`[{"plan_id": "service-plan-id", "service_instance_id": "%s"}]`, instanceID)
-
-				serviceInstancesHandler.RespondsWith(http.StatusOK, serviceInstances)
-				upgradeHandler.RespondsWith(http.StatusAccepted, operationData)
-				lastOperationHandler.RespondsOnCall(0, http.StatusOK, `{"state":"in progress"}`)
-				lastOperationHandler.RespondsOnCall(1, http.StatusOK, `{"state":"succeeded"}`)
+				serviceInstancesHandler, instanceID, serviceInstances = handleServiceInstanceList(broker)
+				upgradeHandler = handleBOSHServiceInstanceUpgrade(broker)
+				lastOperationHandler = handleBOSHLastOperation(broker)
 			})
 
 			AfterEach(func() {
@@ -192,7 +150,7 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 
 			Context("when the attempt limit is reached", func() {
 				It("exits with an error reporting the instances that were not upgraded", func() {
-					upgradeHandler.RespondsWith(http.StatusConflict, operationData)
+					upgradeHandler.RespondsWith(http.StatusConflict, "")
 
 					runningTool := startUpgradeAllInstanceBinary(errandConfig)
 
@@ -254,46 +212,22 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 		})
 
 		Describe("HTTPS Broker", func() {
-			var pemCert string
+			var (
+				pemCert      string
+				errandConfig config.InstanceIteratorConfig
+			)
 
 			BeforeEach(func() {
 				broker = ghttp.NewTLSServer()
+				broker.HTTPTestServer.Config.ErrorLog = loggerfactory.New(GinkgoWriter, "server", loggerfactory.Flags).New()
 				rawPem := broker.HTTPTestServer.Certificate().Raw
 				pemCert = string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: rawPem}))
 
-				errandConfig = config.InstanceIteratorConfig{
-					PollingInterval: 1,
-					AttemptLimit:    5,
-					AttemptInterval: 2,
-					MaxInFlight:     1,
-					BrokerAPI: config.BrokerAPI{
-						URL: broker.URL(),
-						Authentication: config.Authentication{
-							Basic: config.UserCredentials{
-								Username: brokerUsername,
-								Password: brokerPassword,
-							},
-						},
-					},
-				}
+				errandConfig = errandConfigurationBOSH(broker.URL())
 
-				broker.RouteToHandler(http.MethodGet, "/mgmt/service_instances", ghttp.CombineHandlers(
-					ghttp.VerifyBasicAuth(brokerUsername, brokerPassword),
-					ghttp.RespondWith(http.StatusOK, `[{"service_instance_id":"foo"}]`),
-				))
-
-				broker.RouteToHandler(http.MethodPatch, regexp.MustCompile(`/mgmt/service_instances/.*`), ghttp.CombineHandlers(
-					ghttp.VerifyBasicAuth(brokerUsername, brokerPassword),
-					ghttp.RespondWith(http.StatusAccepted, `{"operation":{"task_id":7}}`),
-					ghttp.VerifyRequest(http.MethodPatch, ContainSubstring(`/mgmt/service_instances/`), "operation_type=upgrade"),
-				))
-
-				broker.RouteToHandler(http.MethodGet, regexp.MustCompile(`/v2/service_instances/.*/last_operation`), ghttp.CombineHandlers(
-					ghttp.VerifyBasicAuth(brokerUsername, brokerPassword),
-					ghttp.RespondWith(http.StatusOK, `{"state":"succeeded"}`),
-				))
-
-				broker.HTTPTestServer.Config.ErrorLog = loggerfactory.New(GinkgoWriter, "server", loggerfactory.Flags).New()
+				handleServiceInstanceList(broker)
+				handleBOSHServiceInstanceUpgrade(broker)
+				handleBOSHLastOperation(broker)
 			})
 
 			AfterEach(func() {
@@ -322,17 +256,10 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 
 	Describe("Upgrading via CF", func() {
 		var (
-			serviceInstances string
-			instanceID       string
-			broker           *ghttp.Server
-			cfApi            *ghttp.Server
-			uaaApi           *ghttp.Server
-			cfUpgradeHandler *FakeHandler
-		)
-
-		const (
-			cfUsername = "cf-username"
-			cfPassword = "cf-password"
+			broker       *ghttp.Server
+			cfApi        *ghttp.Server
+			uaaApi       *ghttp.Server
+			errandConfig config.InstanceIteratorConfig
 		)
 
 		BeforeEach(func() {
@@ -340,95 +267,34 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 			cfApi = ghttp.NewServer()
 			uaaApi = ghttp.NewServer()
 
-			cfInfoHandler := new(FakeHandler)
-			cfUpgradeHandler = new(FakeHandler)
-			serviceInstancesHandler := new(FakeHandler)
-			servicePlanHandler := new(FakeHandler)
-			uaaAuthenticationHandler := new(FakeHandler)
+			errandConfig = errandConfigurationCF(broker.URL(), cfApi.URL(), uaaApi.URL())
 
-			errandConfig = config.InstanceIteratorConfig{
-				BrokerAPI: config.BrokerAPI{
-					URL: broker.URL(),
-					Authentication: config.Authentication{
-						Basic: config.UserCredentials{
-							Username: brokerUsername,
-							Password: brokerPassword,
-						},
-					},
-				},
-				PollingInterval: 1,
-				AttemptInterval: 2,
-				AttemptLimit:    2,
-				MaxInFlight:     1,
-				CF: config.CF{
-					URL: cfApi.URL(),
-					Authentication: config.Authentication{
-						UAA: config.UAAAuthentication{
-							URL: uaaApi.URL(),
-							UserCredentials: config.UserCredentials{
-								Username: cfUsername,
-								Password: cfPassword,
-							},
-						},
-					},
-					DisableSSLCertVerification: true,
-				},
-				MaintenanceInfoPresent: true,
-			}
+			handleServiceInstanceList(broker)
+			handleUAA(uaaApi)
 
-			broker.RouteToHandler(http.MethodGet, "/mgmt/service_instances", ghttp.CombineHandlers(
-				ghttp.VerifyBasicAuth(brokerUsername, brokerPassword),
-				serviceInstancesHandler.Handle,
-			))
-
-			instanceID = "service-instance-id"
-			serviceInstances = fmt.Sprintf(`[{"plan_id": "service-plan-id", "service_instance_id": "%s"}]`, instanceID)
-			serviceInstancesHandler.RespondsWith(http.StatusOK, serviceInstances)
-
-			uaaApi.RouteToHandler(http.MethodPost, regexp.MustCompile(`/oauth/token`), ghttp.CombineHandlers(
-				uaaAuthenticationHandler.Handle,
-			))
-			authenticationResponse := `{ "access_token": "some-random-token", "expires_in": 3600}`
-			uaaAuthenticationHandler.RespondsWith(http.StatusOK, authenticationResponse)
-
-			cfApi.RouteToHandler(http.MethodGet, "/v2/info", ghttp.CombineHandlers(
-				cfInfoHandler.Handle))
-
-			cfInfoResponse := `{"api_version": "2.139.0","osbapi_version": "2.15"}`
-			cfInfoHandler.RespondsWith(http.StatusOK, cfInfoResponse)
-
-			cfApi.RouteToHandler(http.MethodGet, regexp.MustCompile(`/v2/service_plans`), ghttp.CombineHandlers(
-				servicePlanHandler.Handle,
-			))
-			servicePlanResponse := `{ "resources":[{ "entity": { "maintenance_info": { "version": "0.31.0" }}}]}`
-			servicePlanHandler.RespondsWith(http.StatusOK, servicePlanResponse)
-
-			cfApi.RouteToHandler(http.MethodPut, regexp.MustCompile(`/v2/service_instances/.*`), ghttp.CombineHandlers(
-				ghttp.VerifyRequest(http.MethodPut, ContainSubstring(`/v2/service_instances/`), "accepts_incomplete=true"),
-				cfUpgradeHandler.Handle,
-			))
-			upgradeResponse := `{ "entity": { "last_operation": { "type": "update", "state": "in progress" }}}`
-			cfUpgradeHandler.RespondsWith(http.StatusAccepted, upgradeResponse)
+			handleCFInfo(cfApi)
+			handleCFServicePlans(cfApi)
 		})
 
 		AfterEach(func() {
 			broker.Close()
 			cfApi.Close()
+			uaaApi.Close()
 		})
 
 		When("upgrade is not available because it is up to date", func() {
 			BeforeEach(func() {
-				cfServiceHandler := new(FakeHandler)
-				cfApi.RouteToHandler(http.MethodPut, regexp.MustCompile(`/v2/service_instances/.*`), ghttp.CombineHandlers(
-					cfServiceHandler.Handle,
-				))
-				serviceResponse := `{
-					"entity": {
-						"last_operation": { "type": "update", "state": "succeeded" },
-						"maintenance_info": { "version": "0.31.0" }
-					}
-				}`
-				cfServiceHandler.RespondsWith(http.StatusCreated, serviceResponse)
+				cfApi.RouteToHandler(http.MethodPut, regexp.MustCompile(`/v2/service_instances/.*`),
+					ghttp.CombineHandlers(
+						ghttp.RespondWith(http.StatusCreated, `
+						{
+							"entity": {
+								"last_operation": { "type": "update", "state": "succeeded" },
+								"maintenance_info": { "version": "0.31.0" }
+							}
+						}`),
+					),
+				)
 			})
 
 			It("skips an instance upgrade when it is already up to date", func() {
@@ -440,8 +306,6 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 				Expect(runningTool).To(gbytes.Say(`\[upgrade\-all\] FINISHED PROCESSING Status: SUCCESS`))
 				Expect(runningTool).To(gbytes.Say("Number of successful operations: 0"))
 				Expect(runningTool).To(gbytes.Say("Number of skipped operations: 1"))
-
-				Expect(cfUpgradeHandler.RequestsReceived()).To(Equal(0))
 			})
 		})
 	})
@@ -456,4 +320,112 @@ func writeConfigFile(configContent string) string {
 	Expect(err).NotTo(HaveOccurred())
 
 	return file.Name()
+}
+
+func handleServiceInstanceList(broker *ghttp.Server) (*FakeHandler, string, string) {
+	serviceInstancesHandler := new(FakeHandler)
+
+	broker.RouteToHandler(http.MethodGet, "/mgmt/service_instances", ghttp.CombineHandlers(
+		ghttp.VerifyBasicAuth(brokerUsername, brokerPassword),
+		serviceInstancesHandler.Handle,
+	))
+	instanceID := "service-instance-id"
+	serviceInstances := fmt.Sprintf(`[{"plan_id": "service-plan-id", "service_instance_id": "%s"}]`, instanceID)
+	serviceInstancesHandler.RespondsWith(http.StatusOK, serviceInstances)
+
+	return serviceInstancesHandler, instanceID, serviceInstances
+}
+
+func handleBOSHServiceInstanceUpgrade(broker *ghttp.Server) *FakeHandler {
+	upgradeHandler := new(FakeHandler)
+
+	broker.RouteToHandler(http.MethodPatch, regexp.MustCompile(`/mgmt/service_instances/.*`), ghttp.CombineHandlers(
+		ghttp.VerifyBasicAuth(brokerUsername, brokerPassword),
+		ghttp.VerifyRequest(http.MethodPatch, ContainSubstring("/mgmt/service_instances/"), "operation_type=upgrade"),
+		upgradeHandler.Handle,
+	))
+	operationData := `{"BoshTaskID":1,"OperationType":"upgrade","PostDeployErrand":{},"PreDeleteErrand":{}}`
+
+	upgradeHandler.RespondsWith(http.StatusAccepted, operationData)
+
+	return upgradeHandler
+}
+
+func handleBOSHLastOperation(broker *ghttp.Server) *FakeHandler {
+	lastOperationHandler := new(FakeHandler)
+
+	broker.RouteToHandler(http.MethodGet, regexp.MustCompile(`/v2/service_instances/.*/last_operation`), ghttp.CombineHandlers(
+		ghttp.VerifyBasicAuth(brokerUsername, brokerPassword),
+		lastOperationHandler.Handle,
+	))
+
+	lastOperationHandler.RespondsOnCall(0, http.StatusOK, `{"state":"in progress"}`)
+	lastOperationHandler.RespondsOnCall(1, http.StatusOK, `{"state":"succeeded"}`)
+
+	return lastOperationHandler
+}
+
+func handleUAA(uaaAPI *ghttp.Server) {
+	uaaAuthenticationHandler := new(FakeHandler)
+	uaaAPI.RouteToHandler(http.MethodPost, regexp.MustCompile(`/oauth/token`), ghttp.CombineHandlers(
+		uaaAuthenticationHandler.Handle,
+	))
+	authenticationResponse := `{ "access_token": "some-random-token", "expires_in": 3600}`
+	uaaAuthenticationHandler.RespondsWith(http.StatusOK, authenticationResponse)
+}
+
+func handleCFInfo(cfAPI *ghttp.Server) {
+	cfInfoHandler := new(FakeHandler)
+
+	cfAPI.RouteToHandler(http.MethodGet, "/v2/info", ghttp.CombineHandlers(
+		cfInfoHandler.Handle))
+
+	cfInfoResponse := `{"api_version": "2.139.0","osbapi_version": "2.15"}`
+	cfInfoHandler.RespondsWith(http.StatusOK, cfInfoResponse)
+}
+
+func handleCFServicePlans(cfAPI *ghttp.Server) {
+	servicePlanHandler := new(FakeHandler)
+	cfAPI.RouteToHandler(http.MethodGet, regexp.MustCompile(`/v2/service_plans`), ghttp.CombineHandlers(
+		servicePlanHandler.Handle,
+	))
+	servicePlanResponse := `{ "resources":[{ "entity": { "maintenance_info": { "version": "0.31.0" }}}]}`
+	servicePlanHandler.RespondsWith(http.StatusOK, servicePlanResponse)
+}
+
+func errandConfigurationBOSH(brokerURL string) config.InstanceIteratorConfig {
+	return config.InstanceIteratorConfig{
+		PollingInterval: 1,
+		AttemptLimit:    2,
+		AttemptInterval: 2,
+		MaxInFlight:     1,
+		BrokerAPI: config.BrokerAPI{
+			URL: brokerURL,
+			Authentication: config.Authentication{
+				Basic: config.UserCredentials{
+					Username: brokerUsername,
+					Password: brokerPassword,
+				},
+			},
+		},
+	}
+}
+
+func errandConfigurationCF(brokerURL, cfURL, uaaURL string) config.InstanceIteratorConfig {
+	errandConfig := errandConfigurationBOSH(brokerURL)
+	errandConfig.CF = config.CF{
+		URL: cfURL,
+		Authentication: config.Authentication{
+			UAA: config.UAAAuthentication{
+				URL: uaaURL,
+				UserCredentials: config.UserCredentials{
+					Username: "cf-username",
+					Password: "cf-password",
+				},
+			},
+		},
+		DisableSSLCertVerification: true,
+	}
+	errandConfig.MaintenanceInfoPresent = true
+	return errandConfig
 }
