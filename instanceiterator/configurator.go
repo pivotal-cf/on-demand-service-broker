@@ -96,20 +96,14 @@ func NewConfigurator(conf config.InstanceIteratorConfig, logger *log.Logger, log
 	return b, nil
 }
 
-func (b *Configurator) SetUpgradeTriggerer(cfClient CFClient, maintenanceInfoPresent bool, logger *log.Logger) error {
-	if maintenanceInfoPresent && cfClient != nil && cfClient.CheckMinimumOSBAPIVersion("2.15", logger) {
-		b.Listener.UpgradeStrategy("CF")
-		b.Triggerer = NewCFTrigger(cfClient, logger)
-		return nil
-	}
-
-	if b.BrokerServices == nil {
-		return errors.New("unable to set triggerer, brokerServices must not be nil")
-	}
-
+func (b *Configurator) SetUpgradeTriggererToBOSH() {
 	b.Listener.UpgradeStrategy("BOSH")
 	b.Triggerer = NewBOSHUpgradeTriggerer(b.BrokerServices)
-	return nil
+}
+
+func (b *Configurator) SetUpgradeTriggererToCF(cfClient CFClient, logger *log.Logger) {
+	b.Listener.UpgradeStrategy("CF")
+	b.Triggerer = NewCFTrigger(cfClient, logger)
 }
 
 func (b *Configurator) SetRecreateTriggerer() error {

@@ -70,7 +70,7 @@ var _ = Describe("upgrade-all-service-instances errand, basic operation", func()
 			Expect(session).To(gbytes.Say("FINISHED PROCESSING Status: SUCCESS"))
 		})
 
-		Context("upgrading some instances in series", func() {
+		When("there are service instances provisioned", func() {
 			var appDetailsList []upgrade_all.AppDetails
 
 			AfterEach(func() {
@@ -97,6 +97,7 @@ var _ = Describe("upgrade-all-service-instances errand, basic operation", func()
 				By("running the upgrade-all errand", func() {
 					session := bosh_helpers.RunErrand(brokerInfo.DeploymentName, "upgrade-all-service-instances")
 					Expect(session).To(SatisfyAll(
+						Not(gbytes.Say("Upgrading all instances via CF")),
 						gbytes.Say("Upgrading all instances via BOSH"),
 						gbytes.Say("STARTING OPERATION"),
 						gbytes.Say("FINISHED PROCESSING Status: SUCCESS"),
@@ -166,67 +167,75 @@ var _ = Describe("upgrade-all-service-instances errand, basic operation", func()
 			bosh_helpers.DeregisterAndDeleteBroker(brokerInfo.DeploymentName)
 		})
 
-		Context("upgrading service instances", func() {
-			It("succeeds", func() {
-				By("updating service offering, re-deploy and re-register broker", func() {
-					brokerInfo = bosh_helpers.DeployAndRegisterBroker(
-						brokerSuffix,
-						brokerDeploymentOptions,
-						service_helpers.Redis,
-						[]string{
-							"service_catalog_updated.yml",
-							"remove_parallel_upgrade.yml",
-							"update_upgrade_all_job.yml",
-							"add_maintenance_info.yml",
-						},
-						"--var", "version=1.7.9",
-					)
-				})
+		It("succeeds", func() {
+			By("updating service offering, re-deploy and re-register broker", func() {
+				brokerInfo = bosh_helpers.DeployAndRegisterBroker(
+					brokerSuffix,
+					brokerDeploymentOptions,
+					service_helpers.Redis,
+					[]string{
+						"service_catalog_updated.yml",
+						"remove_parallel_upgrade.yml",
+						"update_upgrade_all_job.yml",
+						"add_maintenance_info.yml",
+					},
+					"--var", "version=1.7.9",
+				)
+			})
 
-				By("verifying that the service instance is out-dated", func() {
-					for i, app := range appDetails {
-						identifier := fmt.Sprintf("instance %d", i)
-						session := cf_helpers.Cf("service", app.ServiceName)
-						Expect(session).To(gexec.Exit(0))
-						Expect(session).To(SatisfyAll(gbytes.Say("Showing available upgrade details for this service")), identifier)
-					}
-				})
+			By("verifying that the service instance is out-dated", func() {
+				for i, app := range appDetails {
+					identifier := fmt.Sprintf("instance %d", i)
+					session := cf_helpers.Cf("service", app.ServiceName)
+					Expect(session).To(gexec.Exit(0))
+					Expect(session).To(SatisfyAll(gbytes.Say("Showing available upgrade details for this service")), identifier)
+				}
+			})
 
-				By("upgrading one of the instances", func() {
-					app := appDetails[0]
-					cf_helpers.UpdateServiceWithUpgrade(app.ServiceName)
-				})
+			By("upgrading one of the instances", func() {
+				app := appDetails[0]
+				cf_helpers.UpdateServiceWithUpgrade(app.ServiceName)
+			})
 
-				By("running the upgrade-all errand upgrades only the ones that have upgrade available", func() {
-					session := bosh_helpers.RunErrand(brokerInfo.DeploymentName, "upgrade-all-service-instances")
-					Expect(session).To(SatisfyAll(
-						gbytes.Say("Upgrading all instances via CF"),
-						gbytes.Say("STARTING OPERATION"),
-						gbytes.Say("instance already up to date - operation skipped"),
-						gbytes.Say("FINISHED PROCESSING Status: SUCCESS"),
-						gbytes.Say("Number of successful operations: 2"),
-						gbytes.Say("Number of skipped operations: 1"),
-					))
-				})
+			By("running the upgrade-all errand upgrades only the ones that have upgrade available", func() {
+				session := bosh_helpers.RunErrand(brokerInfo.DeploymentName, "upgrade-all-service-instances")
+				Expect(session).To(SatisfyAll(
+					gbytes.Say("Upgrading all instances via CF"),
+					gbytes.Say("STARTING OPERATION"),
+					gbytes.Say("instance already up to date - operation skipped"),
+					gbytes.Say("FINISHED PROCESSING Status: SUCCESS"),
+					gbytes.Say("Number of successful operations: 2"),
+					gbytes.Say("Number of skipped operations: 1"),
+					gbytes.Say("Upgrading all instances via BOSH"),
+					gbytes.Say("FINISHED PROCESSING Status: SUCCESS"),
+					gbytes.Say("Number of successful operations: 3"),
+					gbytes.Say("Number of skipped operations: 0"),
+				))
+			})
 
-				By("assuring that CF knows the service instance is updated", func() {
-					for i, app := range appDetails {
-						identifier := fmt.Sprintf("instance %d", i)
-						session := cf_helpers.Cf("service", app.ServiceName)
-						Expect(session).To(gexec.Exit(0), identifier)
-						Expect(session).To(gbytes.Say("There is no upgrade available for this service."), identifier)
-					}
-				})
+			By("checking that CF knows the service instance is updated", func() {
+				for i, app := range appDetails {
+					identifier := fmt.Sprintf("instance %d", i)
+					session := cf_helpers.Cf("service", app.ServiceName)
+					Expect(session).To(gexec.Exit(0), identifier)
+					Expect(session).To(gbytes.Say("There is no upgrade available for this service."), identifier)
+				}
+			})
 
-				By("running the upgrade-all errand again", func() {
-					session := bosh_helpers.RunErrand(brokerInfo.DeploymentName, "upgrade-all-service-instances")
-					Expect(session).To(SatisfyAll(
-						gbytes.Say("STARTING OPERATION"),
-						gbytes.Say("FINISHED PROCESSING Status: SUCCESS"),
-						gbytes.Say("Number of successful operations: 0"),
-						gbytes.Say("Number of skipped operations: %d", instancesToTest),
-					))
-				})
+			By("running the upgrade-all errand again", func() {
+				session := bosh_helpers.RunErrand(brokerInfo.DeploymentName, "upgrade-all-service-instances")
+				Expect(session).To(SatisfyAll(
+					gbytes.Say("Upgrading all instances via CF"),
+					gbytes.Say("STARTING OPERATION"),
+					gbytes.Say("FINISHED PROCESSING Status: SUCCESS"),
+					gbytes.Say("Number of successful operations: 0"),
+					gbytes.Say("Number of skipped operations: %d", instancesToTest),
+					gbytes.Say("Upgrading all instances via BOSH"),
+					gbytes.Say("STARTING OPERATION"),
+					gbytes.Say("FINISHED PROCESSING Status: SUCCESS"),
+					gbytes.Say("Number of successful operations: %d", instancesToTest),
+					gbytes.Say("Number of skipped operations: 0"),
+				))
 			})
 		})
 	})

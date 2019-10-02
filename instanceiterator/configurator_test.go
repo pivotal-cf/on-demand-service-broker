@@ -198,89 +198,46 @@ var _ = Describe("Configurator", func() {
 		})
 	})
 
-	Describe("SetUpgradeTriggerer", func() {
-		When("CF is not configured", func() {
-			It("sets the triggerer to a broker triggerer", func() {
-				conf := newErrandConfig("user", "password", "http://example.org")
-				configurator, err := instanceiterator.NewConfigurator(conf, logger, logPrefix)
-				Expect(err).NotTo(HaveOccurred())
+	Describe("SetUpgradeTriggererToBOSH", func() {
+		It("sets the triggerer to a BOSH triggerer", func() {
+			conf := newErrandConfig("user", "password", "http://example.org")
+			configurator, err := instanceiterator.NewConfigurator(conf, logger, logPrefix)
+			Expect(err).NotTo(HaveOccurred())
 
-				err = configurator.SetUpgradeTriggerer(nil, false, logger)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(configurator.Triggerer).ToNot(BeNil())
-				Expect(configurator.Triggerer).To(BeAssignableToTypeOf(new(instanceiterator.BOSHTriggerer)))
-			})
-
-			It("returns an error when configurator not properly initialised", func() {
-				configurator := new(instanceiterator.Configurator)
-
-				err := configurator.SetUpgradeTriggerer(nil, false, logger)
-				Expect(err).To(HaveOccurred())
-			})
+			err = configurator.SetUpgradeTriggererToBOSH()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(configurator.Triggerer).ToNot(BeNil())
+			Expect(configurator.Triggerer).To(BeAssignableToTypeOf(new(instanceiterator.BOSHTriggerer)))
 		})
 
-		When("CF is configured", func() {
-			var (
-				fakeCfClient *fakes.FakeCFClient
-				conf         config.InstanceIteratorConfig
-			)
+		It("returns an error when configurator not properly initialised", func() {
+			configurator := new(instanceiterator.Configurator)
 
-			BeforeEach(func() {
-				fakeCfClient = new(fakes.FakeCFClient)
-				conf = newErrandConfig("user", "password", "http://example.org")
-			})
+			err := configurator.SetUpgradeTriggererToBOSH()
+			Expect(err).To(HaveOccurred())
+		})
+	})
 
-			It("sets the triggerer to CF triggerer when CF single instance upgrade is possible", func() {
-				fakeCfClient.CheckMinimumOSBAPIVersionReturns(true)
+	Describe("SetUpgradeTriggererToCF", func() {
+		var (
+			configurator *instanceiterator.Configurator
+			fakeCfClient instanceiterator.CFClient
+		)
 
-				configurator, err := instanceiterator.NewConfigurator(conf, logger, logPrefix)
-				Expect(err).NotTo(HaveOccurred())
+		BeforeEach(func() {
+			fakeCfClient = new(fakes.FakeCFClient)
+			conf := newErrandConfig("user", "password", "http://example.org")
 
-				err = configurator.SetUpgradeTriggerer(fakeCfClient, true, logger)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(configurator.Triggerer).ToNot(BeNil())
+			var err error
+			configurator, err = instanceiterator.NewConfigurator(conf, logger, logPrefix)
+			Expect(err).NotTo(HaveOccurred())
+		})
 
-				Expect(configurator.Triggerer).To(BeAssignableToTypeOf(new(instanceiterator.CFTriggerer)))
+		It("sets the triggerer to CF triggerer", func() {
+			configurator.SetUpgradeTriggererToCF(fakeCfClient, logger)
 
-				Expect(fakeCfClient.CheckMinimumOSBAPIVersionCallCount()).To(Equal(1))
-				min, _ := fakeCfClient.CheckMinimumOSBAPIVersionArgsForCall(0)
-				Expect(min).To(Equal("2.15"))
-			})
-
-			When("CF single instance upgrade is not possible", func() {
-				It("sets the triggerer to Broker triggerer when OSBAPI version is < 2.15", func() {
-					fakeCfClient.CheckMinimumOSBAPIVersionReturns(false)
-					configurator, err := instanceiterator.NewConfigurator(conf, logger, logPrefix)
-					Expect(err).NotTo(HaveOccurred())
-
-					err = configurator.SetUpgradeTriggerer(fakeCfClient, false, logger)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(configurator.Triggerer).ToNot(BeNil())
-
-					Expect(configurator.Triggerer).To(BeAssignableToTypeOf(new(instanceiterator.BOSHTriggerer)))
-				})
-
-				It("sets the triggerer to Broker triggerer when maintenance_info is not set", func() {
-					fakeCfClient.CheckMinimumOSBAPIVersionReturns(true)
-
-					configurator, err := instanceiterator.NewConfigurator(conf, logger, logPrefix)
-					Expect(err).NotTo(HaveOccurred())
-
-					err = configurator.SetUpgradeTriggerer(fakeCfClient, false, logger)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(configurator.Triggerer).ToNot(BeNil())
-
-					Expect(configurator.Triggerer).To(BeAssignableToTypeOf(new(instanceiterator.BOSHTriggerer)))
-				})
-
-				It("returns an error when Broker Services is not properly initialised", func() {
-					fakeCfClient.CheckMinimumOSBAPIVersionReturns(true)
-					configurator := new(instanceiterator.Configurator)
-
-					err := configurator.SetUpgradeTriggerer(fakeCfClient, false, logger)
-					Expect(err).To(HaveOccurred())
-				})
-			})
+			Expect(configurator.Triggerer).ToNot(BeNil())
+			Expect(configurator.Triggerer).To(BeAssignableToTypeOf(new(instanceiterator.CFTriggerer)))
 		})
 	})
 

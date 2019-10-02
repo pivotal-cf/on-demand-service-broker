@@ -38,11 +38,11 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 		return StartBinaryWithParams(binaryPath, []string{"-configPath", configPath})
 	}
 
-	Describe("upgrading via BOSH", func() {
+	Describe("upgrading only via BOSH", func() {
 
 		var broker *ghttp.Server
 
-		Describe("HTTP Broker", func() {
+		When("the broker is not configured with TLS", func() {
 			var (
 				serviceInstances string
 				instanceID       string
@@ -70,9 +70,13 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 				runningTool := startUpgradeAllInstanceBinary(errandConfig)
 
 				Eventually(runningTool, 5*time.Second).Should(gexec.Exit(0))
-				Expect(runningTool).To(gbytes.Say("Sleep interval until next attempt: 2s"))
-				Expect(runningTool).To(gbytes.Say(`\[upgrade\-all\] FINISHED PROCESSING Status: SUCCESS`))
-				Expect(runningTool).To(gbytes.Say("Number of successful operations: 1"))
+				Expect(runningTool).To(SatisfyAll(
+					Not(gbytes.Say("Upgrading all instances via CF")),
+					gbytes.Say("Upgrading all instances via BOSH"),
+					gbytes.Say("Sleep interval until next attempt: 2s"),
+					gbytes.Say(`\[upgrade\-all\] FINISHED PROCESSING Status: SUCCESS`),
+					gbytes.Say("Number of successful operations: 1"),
+				))
 			})
 
 			It("exits successfully when all instances are already up-to-date", func() {
@@ -85,10 +89,12 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 				runningTool = startUpgradeAllInstanceBinary(errandConfig)
 				Eventually(runningTool, 5*time.Second).Should(gexec.Exit(0))
 
-				Expect(runningTool).To(gbytes.Say(`Result: instance already up to date - operation skipped`))
-				Expect(runningTool).To(gbytes.Say("Sleep interval until next attempt: 2s"))
-				Expect(runningTool).To(gbytes.Say(`\[upgrade\-all\] FINISHED PROCESSING Status: SUCCESS`))
-				Expect(runningTool).To(gbytes.Say("Number of skipped operations: 1"))
+				Expect(runningTool).To(SatisfyAll(
+					gbytes.Say(`Result: instance already up to date - operation skipped`),
+					gbytes.Say("Sleep interval until next attempt: 2s"),
+					gbytes.Say(`\[upgrade\-all\] FINISHED PROCESSING Status: SUCCESS`),
+					gbytes.Say("Number of skipped operations: 1"),
+				))
 			})
 
 			It("uses the canary_selection_params when querying canary instances", func() {
@@ -107,11 +113,13 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 				runningTool := startUpgradeAllInstanceBinary(errandConfig)
 
 				Eventually(runningTool, 5*time.Second).Should(gexec.Exit(0))
-				Expect(runningTool).To(gbytes.Say(`\[upgrade\-all\] STARTING CANARIES: 1 canaries`))
-				Expect(runningTool).To(gbytes.Say(`\[canary-instance-id] Starting to process service instance`))
-				Expect(runningTool).To(gbytes.Say(`\[upgrade\-all\] FINISHED CANARIES`))
-				Expect(runningTool).To(gbytes.Say(`\[upgrade\-all\] FINISHED PROCESSING Status: SUCCESS`))
-				Expect(runningTool).To(gbytes.Say("Number of successful operations: 2"))
+				Expect(runningTool).To(SatisfyAll(
+					gbytes.Say(`\[upgrade\-all\] STARTING CANARIES: 1 canaries`),
+					gbytes.Say(`\[canary-instance-id] Starting to process service instance`),
+					gbytes.Say(`\[upgrade\-all\] FINISHED CANARIES`),
+					gbytes.Say(`\[upgrade\-all\] FINISHED PROCESSING Status: SUCCESS`),
+					gbytes.Say("Number of successful operations: 2"),
+				))
 			})
 
 			It("uses the canary_selection_params but returns an error if no instances found but instances exist", func() {
@@ -148,21 +156,23 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 				Expect(runningTool).To(gbytes.Say(fmt.Sprintf(`Number of service instances that failed to process: 1 \[%s\]`, instanceID)))
 			})
 
-			Context("when the attempt limit is reached", func() {
+			When("the attempt limit is reached", func() {
 				It("exits with an error reporting the instances that were not upgraded", func() {
 					upgradeHandler.RespondsWith(http.StatusConflict, "")
 
 					runningTool := startUpgradeAllInstanceBinary(errandConfig)
 
 					Eventually(runningTool, 5*time.Second).Should(gexec.Exit(1))
-					Expect(runningTool).To(gbytes.Say(`\[upgrade\-all\] Processing all instances. Attempt 1/2`))
-					Expect(runningTool).To(gbytes.Say(`\[upgrade\-all\] Processing all remaining instances. Attempt 2/2`))
-					Expect(runningTool).To(gbytes.Say("Number of busy instances which could not be processed: 1"))
-					Expect(runningTool).To(gbytes.Say(fmt.Sprintf("The following instances could not be processed: %s", instanceID)))
+					Expect(runningTool).To(SatisfyAll(
+						gbytes.Say(`\[upgrade\-all\] Processing all instances. Attempt 1/2`),
+						gbytes.Say(`\[upgrade\-all\] Processing all remaining instances. Attempt 2/2`),
+						gbytes.Say("Number of busy instances which could not be processed: 1"),
+						gbytes.Say(fmt.Sprintf("The following instances could not be processed: %s", instanceID)),
+					))
 				})
 			})
 
-			Context("when a service instance plan is updated after upgrade-all starts but before instance upgrade", func() {
+			When("a service instance plan is updated after upgrade-all starts but before instance upgrade", func() {
 				It("uses the new plan for the upgrade", func() {
 					serviceInstancesInitialResponse := fmt.Sprintf(`[{"plan_id": "service-plan-id", "service_instance_id": "%s"}]`, instanceID)
 					serviceInstancesResponseAfterPlanUpdate := fmt.Sprintf(`[{"plan_id": "service-plan-id-2", "service_instance_id": "%s"}]`, instanceID)
@@ -173,15 +183,17 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 					runningTool := startUpgradeAllInstanceBinary(errandConfig)
 
 					Eventually(runningTool, 5*time.Second).Should(gexec.Exit(0))
-					Expect(runningTool).To(gbytes.Say("Sleep interval until next attempt: 2s"))
-					Expect(runningTool).To(gbytes.Say(`\[upgrade\-all\] FINISHED PROCESSING Status: SUCCESS`))
-					Expect(runningTool).To(gbytes.Say("Number of successful operations: 1"))
+					Expect(runningTool).To(SatisfyAll(
+						gbytes.Say("Sleep interval until next attempt: 2s"),
+						gbytes.Say(`\[upgrade\-all\] FINISHED PROCESSING Status: SUCCESS`),
+						gbytes.Say("Number of successful operations: 1"),
+					))
 
 					Expect(upgradeHandler.GetRequestForCall(0).Body).To(Equal(`{"plan_id": "service-plan-id-2"}`))
 				})
 			})
 
-			Context("when a service instance is deleted after upgrade-all starts but before the instance upgrade", func() {
+			When("a service instance is deleted after upgrade-all starts but before the instance upgrade", func() {
 				It("Fetches the latest service instances info and reports a deleted service", func() {
 					serviceInstancesHandler.RespondsOnCall(0, http.StatusOK, serviceInstances)
 					serviceInstancesHandler.RespondsOnCall(1, http.StatusOK, "[]")
@@ -189,29 +201,32 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 					runningTool := startUpgradeAllInstanceBinary(errandConfig)
 
 					Eventually(runningTool, 5*time.Second).Should(gexec.Exit(0))
-					Expect(runningTool).To(gbytes.Say(`\[upgrade\-all\] FINISHED PROCESSING Status: SUCCESS`))
-					Expect(runningTool).To(gbytes.Say("Number of successful operations: 0"))
-					Expect(runningTool).To(gbytes.Say("Number of deleted instances before operation could happen: 1"))
+					Expect(runningTool).To(SatisfyAll(
+						gbytes.Say(`\[upgrade\-all\] FINISHED PROCESSING Status: SUCCESS`),
+						gbytes.Say("Number of successful operations: 0"),
+						gbytes.Say("Number of deleted instances before operation could happen: 1"),
+					))
 				})
 			})
 
-			Context("when a service instance refresh fails prior to instance upgrade", func() {
-				It("we log failure and carry on with previous data", func() {
+			When("a service instance refresh fails prior to instance upgrade", func() {
+				It("logs failure and carries on with previous data", func() {
 					serviceInstancesHandler.RespondsOnCall(0, http.StatusOK, serviceInstances)
 					serviceInstancesHandler.RespondsOnCall(1, http.StatusInternalServerError, "oops")
 
 					runningTool := startUpgradeAllInstanceBinary(errandConfig)
 
 					Eventually(runningTool, 5*time.Second).Should(gexec.Exit(0))
-
-					Expect(runningTool).To(gbytes.Say("Failed to get refreshed list of instances. Continuing with previously fetched info"))
-					Expect(runningTool).To(gbytes.Say(`\[upgrade\-all\] FINISHED PROCESSING Status: SUCCESS`))
-					Expect(runningTool).To(gbytes.Say("Number of successful operations: 1"))
+					Expect(runningTool).To(SatisfyAll(
+						gbytes.Say("Failed to get refreshed list of instances. Continuing with previously fetched info"),
+						gbytes.Say(`\[upgrade\-all\] FINISHED PROCESSING Status: SUCCESS`),
+						gbytes.Say("Number of successful operations: 1"),
+					))
 				})
 			})
 		})
 
-		Describe("HTTPS Broker", func() {
+		When("the broker is configured with TLS", func() {
 			var (
 				pemCert      string
 				errandConfig config.InstanceIteratorConfig
@@ -254,7 +269,7 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 		})
 	})
 
-	Describe("Upgrading via CF", func() {
+	Describe("upgrading via CF and BOSH", func() {
 		var (
 			broker       *ghttp.Server
 			cfApi        *ghttp.Server
@@ -269,8 +284,11 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 
 			errandConfig = errandConfigurationCF(broker.URL(), cfApi.URL(), uaaApi.URL())
 
-			handleServiceInstanceList(broker)
 			handleUAA(uaaApi)
+			handleServiceInstanceList(broker)
+
+			handleBOSHServiceInstanceUpgrade(broker)
+			handleBOSHLastOperation(broker)
 
 			handleCFInfo(cfApi)
 			handleCFServicePlans(cfApi)
@@ -282,30 +300,84 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 			uaaApi.Close()
 		})
 
-		When("upgrade is not available because it is up to date", func() {
+		When("an upgrade is available via CF", func() {
 			BeforeEach(func() {
 				cfApi.RouteToHandler(http.MethodPut, regexp.MustCompile(`/v2/service_instances/.*`),
 					ghttp.CombineHandlers(
-						ghttp.RespondWith(http.StatusCreated, `
-						{
-							"entity": {
-								"last_operation": { "type": "update", "state": "succeeded" },
-								"maintenance_info": { "version": "0.31.0" }
-							}
-						}`),
+						ghttp.RespondWith(http.StatusAccepted, `{"entity": {"last_operation": { "type": "update", "state": "in progress" }}}`),
+					),
+				)
+
+				cfApi.RouteToHandler(http.MethodGet, regexp.MustCompile(`/v2/service_instances/.*`),
+					ghttp.CombineHandlers(
+						ghttp.RespondWith(http.StatusOK, `{"entity": {"last_operation": { "type": "update", "state": "succeeded" }}}`),
 					),
 				)
 			})
 
-			It("skips an instance upgrade when it is already up to date", func() {
+			It("upgrades via CF then BOSH", func() {
 				runningTool := startUpgradeAllInstanceBinary(errandConfig)
 
 				Eventually(runningTool, 5*time.Second).Should(gexec.Exit(0))
-				Expect(runningTool).To(gbytes.Say("instance already up to date - operation skipped"))
-				Expect(runningTool).To(gbytes.Say("Sleep interval until next attempt: 2s"))
-				Expect(runningTool).To(gbytes.Say(`\[upgrade\-all\] FINISHED PROCESSING Status: SUCCESS`))
-				Expect(runningTool).To(gbytes.Say("Number of successful operations: 0"))
-				Expect(runningTool).To(gbytes.Say("Number of skipped operations: 1"))
+				Expect(runningTool).To(SatisfyAll(
+					gbytes.Say("Upgrading all instances via CF"),
+					gbytes.Say("Sleep interval until next attempt: 2s"),
+					gbytes.Say(`\[upgrade\-all\] FINISHED PROCESSING Status: SUCCESS`),
+					gbytes.Say("Number of successful operations: 1"),
+					gbytes.Say("Number of skipped operations: 0"),
+					gbytes.Say("Upgrading all instances via BOSH"),
+					gbytes.Say(`\[upgrade\-all\] FINISHED PROCESSING Status: SUCCESS`),
+					gbytes.Say("Number of successful operations: 1"),
+					gbytes.Say("Number of skipped operations: 0"),
+				))
+			})
+
+			When("the CF upgrade fails", func() {
+				It("doesn't do BOSH upgrades", func() {
+					cfApi.RouteToHandler(http.MethodGet, regexp.MustCompile(`/v2/service_instances/.*`),
+						ghttp.CombineHandlers(
+							ghttp.RespondWith(http.StatusOK, `{"entity": {"last_operation": { "type": "update", "state": "failed" }}}`),
+						),
+					)
+
+					runningTool := startUpgradeAllInstanceBinary(errandConfig)
+
+					Eventually(runningTool, 5*time.Second).Should(gexec.Exit(1))
+					Expect(runningTool).To(SatisfyAll(
+						gbytes.Say("Upgrading all instances via CF"),
+						gbytes.Say(`\[upgrade\-all\] FINISHED PROCESSING Status: FAILED`),
+						gbytes.Say("Number of service instances that failed to process: 1"),
+						Not(gbytes.Say("Upgrading all instances via BOSH")),
+					))
+				})
+			})
+		})
+
+		When("no upgrades are available via CF", func() {
+			BeforeEach(func() {
+				cfApi.RouteToHandler(http.MethodPut, regexp.MustCompile(`/v2/service_instances/.*`),
+					ghttp.CombineHandlers(
+						ghttp.RespondWith(http.StatusCreated, `{"entity": {"last_operation": {"type": "update", "state": "succeeded"}}}`),
+					),
+				)
+			})
+
+			It("says that the CF upgrade was skipped, and does the upgrade via BOSH", func() {
+				runningTool := startUpgradeAllInstanceBinary(errandConfig)
+
+				Eventually(runningTool, 5*time.Second).Should(gexec.Exit(0))
+				Expect(runningTool).To(SatisfyAll(
+					gbytes.Say("Upgrading all instances via CF"),
+					gbytes.Say("instance already up to date - operation skipped"),
+					gbytes.Say("Sleep interval until next attempt: 2s"),
+					gbytes.Say(`\[upgrade\-all\] FINISHED PROCESSING Status: SUCCESS`),
+					gbytes.Say("Number of successful operations: 0"),
+					gbytes.Say("Number of skipped operations: 1"),
+					gbytes.Say("Upgrading all instances via BOSH"),
+					gbytes.Say(`\[upgrade\-all\] FINISHED PROCESSING Status: SUCCESS`),
+					gbytes.Say("Number of successful operations: 1"),
+					gbytes.Say("Number of skipped operations: 0"),
+				))
 			})
 		})
 	})
