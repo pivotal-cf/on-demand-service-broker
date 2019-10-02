@@ -42,18 +42,18 @@ func main() {
 		logger.Fatalln(err.Error())
 	}
 
-	builder, err := instanceiterator.NewBuilder(errandConfig, logger, "upgrade-all")
+	configurator, err := instanceiterator.NewConfigurator(errandConfig, logger, "upgrade-all")
 	if err != nil {
 		logger.Fatalln(err.Error())
 	}
 
-	builder.SetUpgradeTriggerer(
+	configurator.SetUpgradeTriggerer(
 		createCFClient(errandConfig, logger),
 		errandConfig.MaintenanceInfoPresent,
 		logger,
 	)
 
-	upgradeTool := instanceiterator.New(builder)
+	upgradeTool := instanceiterator.New(configurator)
 
 	err = upgradeTool.Iterate()
 	if err != nil {

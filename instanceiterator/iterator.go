@@ -98,7 +98,7 @@ type Iterator struct {
 	triggerer             Triggerer
 }
 
-func New(builder *Builder) *Iterator {
+func New(builder *Configurator) *Iterator {
 	return &Iterator{
 		brokerServices:        builder.BrokerServices,
 		pollingInterval:       builder.PollingInterval,

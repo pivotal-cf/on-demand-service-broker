@@ -32,7 +32,7 @@ var _ = Describe("Iterator", func() {
 		fakeSleeper              *fakes.FakeSleeper
 		fakeTriggerer            *fakes.FakeTriggerer
 
-		builder instanceiterator.Builder
+		builder instanceiterator.Configurator
 
 		iteratorError error
 	)
@@ -44,7 +44,7 @@ var _ = Describe("Iterator", func() {
 
 		fakeTriggerer = new(fakes.FakeTriggerer)
 
-		builder = instanceiterator.Builder{
+		builder = instanceiterator.Configurator{
 			BrokerServices:  fakeBrokerServicesClient,
 			Listener:        fakeListener,
 			PollingInterval: 10 * time.Second,

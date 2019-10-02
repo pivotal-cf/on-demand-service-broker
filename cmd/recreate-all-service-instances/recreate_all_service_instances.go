@@ -54,13 +54,13 @@ func main() {
 		log.Fatal(err)
 	}
 
-	builder, err := instanceiterator.NewBuilder(conf, logger, "recreate-all")
+	configurator, err := instanceiterator.NewConfigurator(conf, logger, "recreate-all")
 	if err != nil {
 		logger.Fatalln(err.Error())
 	}
-	builder.SetRecreateTriggerer()
+	configurator.SetRecreateTriggerer()
 
-	recreateTool := instanceiterator.New(builder)
+	recreateTool := instanceiterator.New(configurator)
 	err = recreateTool.Iterate()
 	if err != nil {
 		logger.Fatalln(err.Error())

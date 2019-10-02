@@ -29,7 +29,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/tools"
 )
 
-type Builder struct {
+type Configurator struct {
 	BrokerServices        BrokerServices
 	PollingInterval       time.Duration
 	AttemptInterval       time.Duration
@@ -42,7 +42,7 @@ type Builder struct {
 	CanarySelectionParams config.CanarySelectionParams
 }
 
-func NewBuilder(conf config.InstanceIteratorConfig, logger *log.Logger, logPrefix string) (*Builder, error) {
+func NewConfigurator(conf config.InstanceIteratorConfig, logger *log.Logger, logPrefix string) (*Configurator, error) {
 
 	brokerServices, err := brokerServices(conf, logger)
 	if err != nil {
@@ -81,7 +81,7 @@ func NewBuilder(conf config.InstanceIteratorConfig, logger *log.Logger, logPrefi
 
 	listener := NewLoggingListener(logger, logPrefix)
 
-	b := &Builder{
+	b := &Configurator{
 		BrokerServices:        brokerServices,
 		PollingInterval:       pollingInterval,
 		AttemptInterval:       attemptInterval,
@@ -96,7 +96,7 @@ func NewBuilder(conf config.InstanceIteratorConfig, logger *log.Logger, logPrefi
 	return b, nil
 }
 
-func (b *Builder) SetUpgradeTriggerer(cfClient CFClient, maintenanceInfoPresent bool, logger *log.Logger) error {
+func (b *Configurator) SetUpgradeTriggerer(cfClient CFClient, maintenanceInfoPresent bool, logger *log.Logger) error {
 	if maintenanceInfoPresent && cfClient != nil && cfClient.CheckMinimumOSBAPIVersion("2.15", logger) {
 		b.Listener.UpgradeStrategy("CF")
 		b.Triggerer = NewCFTrigger(cfClient, logger)
@@ -112,7 +112,7 @@ func (b *Builder) SetUpgradeTriggerer(cfClient CFClient, maintenanceInfoPresent 
 	return nil
 }
 
-func (b *Builder) SetRecreateTriggerer() error {
+func (b *Configurator) SetRecreateTriggerer() error {
 	if b.BrokerServices == nil {
 		return errors.New("unable to set triggerer, brokerServices must not be nil")
 	}
