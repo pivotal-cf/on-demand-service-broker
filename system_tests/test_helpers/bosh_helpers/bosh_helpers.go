@@ -204,9 +204,10 @@ func FindJob(brokerManifest *bosh.BoshManifest, igName, jobName string) bosh.Job
 	return bosh.Job{}
 }
 
-func FindInstanceGroupProperties(manifest *bosh.BoshManifest, igName string) map[string]interface{} {
-	ig := FindInstanceGroup(manifest, igName)
-	return ig.Properties
+func FindJobProperties(brokerManifest *bosh.BoshManifest, igName, jobName string) map[string]interface{} {
+	props := FindJob(brokerManifest, igName, jobName).Properties
+	ExpectWithOffset(1, props).NotTo(BeNil(), fmt.Sprintf("Expected to find properties for job %q on instance group %q in manifest:\n%+v", jobName, igName, brokerManifest))
+	return props
 }
 
 func FindInstanceGroupJobs(manifest *bosh.BoshManifest, igName string) []bosh.Job {

@@ -108,8 +108,8 @@ var _ = Describe("upgrade-all-service-instances errand, basic operation", func()
 				for _, appDtls := range appDetailsList {
 					By("verifying the update changes were applied to the instance", func() {
 						manifest := bosh_helpers.GetManifest(appDtls.ServiceDeploymentName)
-						instanceGroupProperties := bosh_helpers.FindInstanceGroupProperties(&manifest, "redis")
-						Expect(instanceGroupProperties["redis"].(map[interface{}]interface{})["persistence"]).To(Equal("no"))
+						jobProperties := bosh_helpers.FindJobProperties(&manifest, "redis", "redis-server")
+						Expect(jobProperties["redis"].(map[interface{}]interface{})["persistence"]).To(Equal("no"))
 					})
 
 					By("checking apps still have access to the data previously stored in their service", func() {
@@ -240,8 +240,8 @@ func createTestServiceInstancesAndApps(count int, serviceName string) (appDetail
 
 		By("verifying that the persistence property starts as 'yes'", func() {
 			manifest := bosh_helpers.GetManifest(appDtls.ServiceDeploymentName)
-			instanceGroupProperties := bosh_helpers.FindInstanceGroupProperties(&manifest, "redis-server")
-			Expect(instanceGroupProperties["redis"].(map[interface{}]interface{})["persistence"]).To(Equal("yes"))
+			jobProperties := bosh_helpers.FindJobProperties(&manifest, "redis-server", "redis-server")
+			Expect(jobProperties["redis"].(map[interface{}]interface{})["persistence"]).To(Equal("yes"))
 		})
 	}, count, &upgrade_all.PlanNamesForParallelCreate{
 		Items: []upgrade_all.PlanName{

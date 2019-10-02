@@ -145,8 +145,8 @@ var _ = Describe("upgrade-all-service-instances errand using all the features av
 		for _, appDtls := range append(nonCanariesDetails, canaryDetails) {
 			By("verifying the update changes were applied to the instance", func() {
 				manifest := bosh_helpers.GetManifest(appDtls.ServiceDeploymentName)
-				instanceGroupProperties := bosh_helpers.FindInstanceGroupProperties(&manifest, "redis")
-				Expect(instanceGroupProperties["redis"].(map[interface{}]interface{})["persistence"]).To(Equal("no"))
+				jobProperties := bosh_helpers.FindJobProperties(&manifest, "redis", "redis-server")
+				Expect(jobProperties["redis"].(map[interface{}]interface{})["persistence"]).To(Equal("no"))
 			})
 
 			By("checking apps still have access to the data previously stored in their service", func() {
