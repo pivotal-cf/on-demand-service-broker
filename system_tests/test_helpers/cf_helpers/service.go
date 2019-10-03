@@ -154,7 +154,7 @@ func awaitServiceOperation(
 			return true
 		}
 
-		match, err = failureMessageMatcher.Match(contents)
+		match, err = failureMessageMatcher.Match(bytes.ToLower(contents))
 		if err != nil {
 			Fail(err.Error())
 		}
