@@ -498,6 +498,7 @@ func brokerRespondsOnCatalogEndpoint(brokerURI string) bool {
 	}
 	client := http.Client{
 		Transport: transport,
+		Timeout:   3 * time.Second,
 	}
 	res, err := client.Get("https://" + brokerURI + "/v2/catalog")
 	if err != nil {
