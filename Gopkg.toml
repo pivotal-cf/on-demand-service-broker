@@ -67,7 +67,7 @@
 
 [[constraint]]
   name = "github.com/pivotal-cf/brokerapi"
-  version = "^6.0.0"
+  version = "^6.4.2"
 
 [[constraint]]
   name = "github.com/pivotal-cf/on-demand-services-sdk"
@@ -78,8 +78,8 @@
   version = ">= 0.3.0, < 2.0.0"
 
 [[constraint]]
-  branch = "v2"
   name = "gopkg.in/yaml.v2"
+  version = "^v2.2.4"
 
 [[constraint]]
   name = "github.com/cloudfoundry/bosh-cli"
