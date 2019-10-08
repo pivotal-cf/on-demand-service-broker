@@ -204,17 +204,9 @@ var _ = Describe("Configurator", func() {
 			configurator, err := instanceiterator.NewConfigurator(conf, logger, logPrefix)
 			Expect(err).NotTo(HaveOccurred())
 
-			err = configurator.SetUpgradeTriggererToBOSH()
-			Expect(err).NotTo(HaveOccurred())
+			configurator.SetUpgradeTriggererToBOSH()
 			Expect(configurator.Triggerer).ToNot(BeNil())
 			Expect(configurator.Triggerer).To(BeAssignableToTypeOf(new(instanceiterator.BOSHTriggerer)))
-		})
-
-		It("returns an error when configurator not properly initialised", func() {
-			configurator := new(instanceiterator.Configurator)
-
-			err := configurator.SetUpgradeTriggererToBOSH()
-			Expect(err).To(HaveOccurred())
 		})
 	})
 
