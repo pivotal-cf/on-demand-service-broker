@@ -357,7 +357,7 @@
   name = "github.com/xeipuuv/gojsonschema"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "6a016cf16650f6be7151db7c3be6fc90a2c4d9b1"
+  revision = "66521ed8df07c4f32aa6e40c4e919cbd4c2d267f"
 
 [[projects]]
   branch = "master"
