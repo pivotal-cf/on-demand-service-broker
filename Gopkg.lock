@@ -297,8 +297,8 @@
     "utils",
   ]
   pruneopts = "NUT"
-  revision = "dcf20a4a7117e2f9f167d4f7c06d68e1263cbf52"
-  version = "v6.4.2"
+  revision = "134c188e3246e8e28ba1336dd37e1e3fe27cf611"
+  version = "v6.5.0"
 
 [[projects]]
   branch = "master"
@@ -309,7 +309,7 @@
     "serviceadapter",
   ]
   pruneopts = "NUT"
-  revision = "716dcd80d4c78b971ba4c20cea5494399836c53e"
+  revision = "55caf23e94ff5209ed77fa8d56cda2b43380293f"
 
 [[projects]]
   branch = "master"
