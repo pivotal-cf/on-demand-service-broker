@@ -55,11 +55,6 @@ type ODBSecrets interface {
 	ReplaceODBRefs(manifest string, secrets []broker.ManifestSecret) string
 }
 
-//go:generate counterfeiter -o fakes/fake_pre_upgrade.go . PreUpgradeChecker
-type PreUpgradeChecker interface {
-	ShouldUpgrade(generateManifestProp GenerateManifestProperties, plan config.Plan, logger *log.Logger) bool
-}
-
 //go:generate counterfeiter -o fakes/fake_bulk_setter.go . BulkSetter
 type BulkSetter interface {
 	BulkSet([]broker.ManifestSecret) error
@@ -71,16 +66,14 @@ type Deployer struct {
 	odbSecrets         ODBSecrets
 	bulkSetter         BulkSetter
 	DisableBoshConfigs bool
-	preUpgrade         PreUpgradeChecker
 }
 
-func NewDeployer(boshClient BoshClient, manifestGenerator ManifestGenerator, odbSecrets ODBSecrets, bulkSetter BulkSetter, preUpgrade PreUpgradeChecker) Deployer {
+func NewDeployer(boshClient BoshClient, manifestGenerator ManifestGenerator, odbSecrets ODBSecrets, bulkSetter BulkSetter) Deployer {
 	return Deployer{
 		boshClient:        boshClient,
 		manifestGenerator: manifestGenerator,
 		odbSecrets:        odbSecrets,
 		bulkSetter:        bulkSetter,
-		preUpgrade:        preUpgrade,
 	}
 }
 
@@ -128,10 +121,6 @@ func (d Deployer) Upgrade(deploymentName string, plan config.Plan, boshContextID
 		OldManifest:     oldManifest,
 		PreviousPlanID:  &plan.ID,
 		PreviousConfigs: oldConfigs,
-	}
-
-	if !d.preUpgrade.ShouldUpgrade(generateManifestProperties, plan, logger) {
-		return 0, nil, broker.NewOperationAlreadyCompletedError(errors.New("instance is already up to date"))
 	}
 
 	return d.doDeploy(generateManifestProperties, "upgrade", boshContextID, logger)
@@ -280,7 +269,6 @@ func (d Deployer) checkForPendingChanges(
 }
 
 func (d Deployer) doDeploy(generateManifestProperties GenerateManifestProperties, operationType string, boshContextID string, logger *log.Logger) (int, []byte, error) {
-
 	generateManifestOutput, err := d.manifestGenerator.GenerateManifest(generateManifestProperties, logger)
 	if err != nil {
 		return 0, nil, err

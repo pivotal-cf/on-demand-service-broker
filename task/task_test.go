@@ -43,7 +43,6 @@ var _ = Describe("Deployer", func() {
 		configsMap        map[string]string
 		boshConfigs       []boshdirector.BoshConfig
 
-		upgradeChecker    *fakes.FakePreUpgradeChecker
 		manifestGenerator *fakes.FakeManifestGenerator
 		odbSecrets        *fakes.FakeODBSecrets
 		bulkSetter        *fakes.FakeBulkSetter
@@ -54,8 +53,7 @@ var _ = Describe("Deployer", func() {
 		manifestGenerator = new(fakes.FakeManifestGenerator)
 		odbSecrets = new(fakes.FakeODBSecrets)
 		bulkSetter = new(fakes.FakeBulkSetter)
-		upgradeChecker = new(fakes.FakePreUpgradeChecker)
-		deployer = task.NewDeployer(boshClient, manifestGenerator, odbSecrets, bulkSetter, upgradeChecker)
+		deployer = task.NewDeployer(boshClient, manifestGenerator, odbSecrets, bulkSetter)
 
 		planID = existingPlanID
 		previousPlanID = nil
@@ -71,7 +69,6 @@ var _ = Describe("Deployer", func() {
 		boshContextID = ""
 
 		manifestGenerator.GenerateManifestReturns(serviceadapter.MarshalledGenerateManifest{Manifest: generatedManifest}, nil)
-		upgradeChecker.ShouldUpgradeReturns(true)
 		odbSecrets.ReplaceODBRefsStub = func(m string, s []broker.ManifestSecret) string {
 			return m
 		}
@@ -209,7 +206,7 @@ var _ = Describe("Deployer", func() {
 			When("Bosh credhub is not configured/enabled", func() {
 				BeforeEach(func() {
 					var b *credhub.Store
-					deployer = task.NewDeployer(boshClient, manifestGenerator, odbSecrets, b, upgradeChecker)
+					deployer = task.NewDeployer(boshClient, manifestGenerator, odbSecrets, b)
 				})
 
 				It("doesn't error", func() {
@@ -422,40 +419,6 @@ var _ = Describe("Deployer", func() {
 					_, actualBoshContextID, _, _ := boshClient.DeployArgsForCall(0)
 					Expect(actualBoshContextID).To(Equal(boshContextID))
 				})
-			})
-		})
-
-		Context("when upgrade should not happen", func() {
-			It("returns an error", func() {
-				upgradeChecker.ShouldUpgradeReturns(false)
-
-				returnedTaskID, deployedManifest, deployError = deployer.Upgrade(
-					deploymentName,
-					plan,
-					boshContextID,
-					logger,
-				)
-
-				generateManifestProperties, passedPlan, _ := upgradeChecker.ShouldUpgradeArgsForCall(0)
-				Expect(passedPlan).To(Equal(plan))
-				Expect(generateManifestProperties).To(Equal(task.GenerateManifestProperties{
-					DeploymentName:  deploymentName,
-					PlanID:          planID,
-					OldManifest:     oldManifest,
-					PreviousPlanID:  previousPlanID,
-					PreviousConfigs: map[string]string{},
-				}))
-
-				By("returning an error")
-				Expect(deployError).NotTo(BeNil(), "should have matched OperationAlreadyCompletedError")
-				Expect(deployError).To(BeAssignableToTypeOf(broker.OperationAlreadyCompletedError{}))
-				Expect(deployError).To(MatchError(ContainSubstring("instance is already up to date")))
-
-				By("returning no bosh task ID")
-				Expect(returnedTaskID).To(BeZero())
-
-				By("return empty manifest")
-				Expect(string(deployedManifest)).To(BeEmpty())
 			})
 		})
 
