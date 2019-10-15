@@ -49,6 +49,7 @@ var _ = Describe("Client", func() {
 
 	AfterEach(func() {
 		server.VerifyMocks()
+		server.Close()
 	})
 
 	Describe("GetServiceOfferingGUID", func() {
