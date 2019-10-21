@@ -854,7 +854,6 @@ var _ = Describe("Update", func() {
 		})
 
 		It("fails when the requested maintenance info check fails", func() {
-
 			for i, t := range testCases {
 				fakeMaintenanceInfoChecker.CheckReturns(fmt.Errorf("nope"))
 

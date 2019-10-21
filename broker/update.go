@@ -43,8 +43,7 @@ func (b *Broker) Update(
 		return domain.UpdateServiceSpec{}, b.processError(NewGenericError(ctx, err), logger)
 	}
 
-	err = b.validateMaintenanceInfo(details, ctx, logger)
-	if err != nil {
+	if err := b.validateMaintenanceInfo(details, logger); err != nil {
 		return domain.UpdateServiceSpec{}, b.processError(err, logger)
 	}
 
@@ -56,17 +55,17 @@ func (b *Broker) Update(
 			}
 			return domain.UpdateServiceSpec{}, err
 		}
-		operationDataJson, err := json.Marshal(operationData)
+		operationDataJSON, err := json.Marshal(operationData)
 		if err != nil {
 			return domain.UpdateServiceSpec{}, b.processError(NewGenericError(ctx, err), logger)
 		}
-		return domain.UpdateServiceSpec{IsAsync: true, OperationData: string(operationDataJson)}, nil
+		return domain.UpdateServiceSpec{IsAsync: true, OperationData: string(operationDataJSON)}, nil
 	}
 
 	b.deploymentLock.Lock()
 	defer b.deploymentLock.Unlock()
 
-	plan, err := b.checkPlanExists(details, logger, ctx)
+	plan, err := b.checkPlanExists(details, logger)
 	if err != nil {
 		return domain.UpdateServiceSpec{}, b.processError(err, logger)
 	}
@@ -79,7 +78,7 @@ func (b *Broker) Update(
 	var boshTaskID int
 	var operationType OperationType
 
-	err = b.validateQuotasForUpdate(plan, details, logger, ctx)
+	err = b.validateQuotasForUpdate(ctx, plan, details, logger)
 	if err != nil {
 		return domain.UpdateServiceSpec{}, b.processError(err, logger)
 	}
@@ -109,7 +108,7 @@ func (b *Broker) Update(
 	)
 
 	if err != nil {
-		return b.handleUpdateError(err, logger, ctx)
+		return b.handleUpdateError(ctx, err, logger)
 	}
 
 	operationData, err := json.Marshal(OperationData{
@@ -125,7 +124,7 @@ func (b *Broker) Update(
 	return domain.UpdateServiceSpec{IsAsync: true, OperationData: string(operationData)}, nil
 }
 
-func (b *Broker) handleUpdateError(err error, logger *log.Logger, ctx context.Context) (domain.UpdateServiceSpec, error) {
+func (b *Broker) handleUpdateError(ctx context.Context, err error, logger *log.Logger) (domain.UpdateServiceSpec, error) {
 	switch err := err.(type) {
 	case ServiceError:
 		return domain.UpdateServiceSpec{}, b.processError(NewBoshRequestError("update", fmt.Errorf("error deploying instance: %s", err)), logger)
@@ -147,7 +146,7 @@ func (b *Broker) handleUpdateError(err error, logger *log.Logger, ctx context.Co
 	return domain.UpdateServiceSpec{}, nil
 }
 
-func (b *Broker) checkPlanExists(details domain.UpdateDetails, logger *log.Logger, ctx context.Context) (config.Plan, error) {
+func (b *Broker) checkPlanExists(details domain.UpdateDetails, logger *log.Logger) (config.Plan, error) {
 	plan, found := b.serviceOffering.FindPlanByID(details.PlanID)
 	if !found {
 		return config.Plan{}, PlanNotFoundError{PlanGUID: details.PlanID}
@@ -164,7 +163,7 @@ func (b *Broker) isUpgrade(details domain.UpdateDetails, detailsMap map[string]i
 	return false
 }
 
-func (b *Broker) validateMaintenanceInfo(details domain.UpdateDetails, ctx context.Context, logger *log.Logger) error {
+func (b *Broker) validateMaintenanceInfo(details domain.UpdateDetails, logger *log.Logger) error {
 	servicesCatalog, err := b.Services(context.Background())
 	if err != nil {
 		return err
@@ -173,7 +172,7 @@ func (b *Broker) validateMaintenanceInfo(details domain.UpdateDetails, ctx conte
 	return b.maintenanceInfoChecker.Check(details.PlanID, details.MaintenanceInfo, servicesCatalog, logger)
 }
 
-func (b *Broker) validateQuotasForUpdate(plan config.Plan, details domain.UpdateDetails, logger *log.Logger, ctx context.Context) error {
+func (b *Broker) validateQuotasForUpdate(ctx context.Context, plan config.Plan, details domain.UpdateDetails, logger *log.Logger) error {
 	if details.PreviousValues.PlanID != plan.ID {
 		cfPlanCounts, err := b.cfClient.CountInstancesOfServiceOffering(b.serviceOffering.ID, logger)
 		if err != nil {

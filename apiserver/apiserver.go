@@ -33,6 +33,7 @@ import (
 )
 
 //go:generate counterfeiter -o fakes/combined_broker.go . CombinedBroker
+
 type CombinedBroker interface {
 	mgmtapi.ManageableBroker
 	domain.ServiceBroker

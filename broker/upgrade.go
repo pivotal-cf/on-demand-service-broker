@@ -46,7 +46,7 @@ func (b *Broker) Upgrade(ctx context.Context, instanceID string, details domain.
 	)
 
 	if err != nil {
-		_, err := b.handleUpdateError(err, logger, ctx)
+		_, err := b.handleUpdateError(ctx, err, logger)
 		return OperationData{}, err
 	}
 
