@@ -28,7 +28,7 @@
     "internal/truncate",
   ]
   pruneopts = "NUT"
-  revision = "a9afc05ee5be26ca4eb42d46e0208afb44ce2ee5"
+  revision = "5fbb5e17022d21123bcfab4a676967d1956407a9"
 
 [[projects]]
   digest = "1:45c41cd27a8d986998680bfc86da0bbff5fa4f90d0f446c00636c8b099028ffe"
