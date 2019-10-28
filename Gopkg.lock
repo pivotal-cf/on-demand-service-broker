@@ -64,8 +64,8 @@
     "uaa",
   ]
   pruneopts = "NUT"
-  revision = "9c1c210c83673a780e3787a91f444541755e6585"
-  version = "v6.1.0"
+  revision = "a0c78bc2f3e0342378351b9388ba45cfe56d7af7"
+  version = "v6.1.1"
 
 [[projects]]
   branch = "master"
