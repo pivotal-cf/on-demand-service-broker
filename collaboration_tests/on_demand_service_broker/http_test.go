@@ -18,6 +18,7 @@ import (
 	"time"
 
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/brokerapi/domain"
 	brokerConfig "github.com/pivotal-cf/on-demand-service-broker/config"
@@ -65,27 +66,6 @@ var _ = Describe("Server Protocol", func() {
 			Expect(catalog["services"][0].Name).To(Equal(serviceName))
 		})
 
-		It("refuses to respond to TLS 1.1", func() {
-			log.SetOutput(GinkgoWriter)
-			_, _, err := doHTTPSRequest(http.MethodGet, fmt.Sprintf("https://%s/v2/catalog", serverURL), caCertFile, acceptableCipherSuites, tls.VersionTLS11)
-			log.SetOutput(os.Stdout)
-			Expect(err).To(MatchError(ContainSubstring("remote error: tls: protocol version not supported")))
-		})
-
-		It("responds to TLS 1.2", func() {
-			log.SetOutput(GinkgoWriter)
-			_, _, err := doHTTPSRequest(http.MethodGet, fmt.Sprintf("https://%s/v2/catalog", serverURL), caCertFile, acceptableCipherSuites, tls.VersionTLS12)
-			log.SetOutput(os.Stdout)
-			Expect(err).ToNot(HaveOccurred())
-		})
-
-		It("responds to TLS 1.3", func() {
-			log.SetOutput(GinkgoWriter)
-			_, _, err := doHTTPSRequest(http.MethodGet, fmt.Sprintf("https://%s/v2/catalog", serverURL), caCertFile, acceptableCipherSuites, tls.VersionTLS13)
-			log.SetOutput(os.Stdout)
-			Expect(err).ToNot(HaveOccurred())
-		})
-
 		It("does not serve HTTP", func() {
 			req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("http://%s/v2/catalog", serverURL), nil)
 			Expect(err).ToNot(HaveOccurred())
@@ -95,6 +75,59 @@ var _ = Describe("Server Protocol", func() {
 			Expect(err).ToNot(HaveOccurred())
 			log.SetOutput(os.Stdout)
 			Expect(resp.StatusCode).To(Equal(http.StatusBadRequest))
+		})
+
+		When("the client uses TLS 1.1", func() {
+			It("refuses to serve", func() {
+				log.SetOutput(GinkgoWriter)
+				_, _, err := doHTTPSRequest(http.MethodGet, fmt.Sprintf("https://%s/v2/catalog", serverURL), caCertFile, acceptableCipherSuites, tls.VersionTLS11)
+				log.SetOutput(os.Stdout)
+				Expect(err).To(MatchError(ContainSubstring("remote error: tls: protocol version not supported")))
+			})
+		})
+
+		When("the client uses TLS 1.2", func() {
+			It("serves", func() {
+				log.SetOutput(GinkgoWriter)
+				_, _, err := doHTTPSRequest(http.MethodGet, fmt.Sprintf("https://%s/v2/catalog", serverURL), caCertFile, acceptableCipherSuites, tls.VersionTLS12)
+				log.SetOutput(os.Stdout)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			DescribeTable("can use the desired cipher suites",
+				func(cipher uint16) {
+					response, _, err := doHTTPSRequest(http.MethodGet, fmt.Sprintf("https://%s/v2/catalog", serverURL), caCertFile, []uint16{cipher}, tls.VersionTLS12)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(response.StatusCode).To(Equal(http.StatusOK))
+					Expect(response.TLS.CipherSuite).To(Equal(cipher))
+				},
+				Entry("TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256", tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256),
+				Entry("TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384", tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384),
+				// The following cipher suites that Pivotal recommends are not available in Go
+				// - TLS_DHE_RSA_WITH_AES_128_GCM_SHA256
+				// - TLS_DHE_RSA_WITH_AES_256_GCM_SHA384
+			)
+
+			DescribeTable("does not serve when the client uses an unacceptable cipher",
+				func(cipher uint16) {
+					log.SetOutput(GinkgoWriter)
+					_, _, err := doHTTPSRequest(http.MethodGet, fmt.Sprintf("https://%s/v2/catalog", serverURL), caCertFile, []uint16{cipher}, tls.VersionTLS12)
+					log.SetOutput(os.Stdout)
+					Expect(err).To(MatchError(ContainSubstring("remote error: tls: handshake failure")))
+				},
+				Entry("TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305", tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305),
+				Entry("TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA", tls.TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA),
+				Entry("TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256", tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256),
+			)
+		})
+
+		When("the client uses TLS 1.3", func() {
+			It("serves", func() {
+				log.SetOutput(GinkgoWriter)
+				_, _, err := doHTTPSRequest(http.MethodGet, fmt.Sprintf("https://%s/v2/catalog", serverURL), caCertFile, acceptableCipherSuites, tls.VersionTLS13)
+				log.SetOutput(os.Stdout)
+				Expect(err).NotTo(HaveOccurred())
+			})
 		})
 	})
 
