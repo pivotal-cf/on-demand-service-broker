@@ -35,7 +35,7 @@ type Store struct {
 	credhubClient CredhubClient
 }
 
-//go:generate counterfeiter -o fakes/fake_credhub_client.go . CredhubClient
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_credhub_client.go . CredhubClient
 type CredhubClient interface {
 	GetById(id string) (credentials.Credential, error)
 	GetLatestVersion(name string) (credentials.Credential, error)

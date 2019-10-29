@@ -9,7 +9,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-//go:generate counterfeiter -o fakes/fake_cf_client.go . CFClient
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_cf_client.go . CFClient
 type CFClient interface {
 	CheckMinimumOSBAPIVersion(minimum string, logger *log.Logger) bool
 	GetServiceInstance(serviceInstanceGUID string, logger *log.Logger) (cf.ServiceInstanceResource, error)

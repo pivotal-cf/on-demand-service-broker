@@ -16,8 +16,8 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/pborman/uuid"
-	"github.com/pivotal-cf/brokerapi/domain"
-	"github.com/pivotal-cf/brokerapi/domain/apiresponses"
+	"github.com/pivotal-cf/brokerapi/v7/domain"
+	"github.com/pivotal-cf/brokerapi/v7/domain/apiresponses"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/brokercontext"
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
@@ -32,7 +32,7 @@ type api struct {
 	loggerFactory    *loggerfactory.LoggerFactory
 }
 
-//go:generate counterfeiter -o fake_manageable_broker/fake_manageable_broker.go . ManageableBroker
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fake_manageable_broker/fake_manageable_broker.go . ManageableBroker
 type ManageableBroker interface {
 	Instances(filter map[string]string, logger *log.Logger) ([]service.Instance, error)
 	OrphanDeployments(logger *log.Logger) ([]string, error)

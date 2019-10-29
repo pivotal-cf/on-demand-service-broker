@@ -22,9 +22,9 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/gorilla/mux"
-	"github.com/pivotal-cf/brokerapi"
-	apiauth "github.com/pivotal-cf/brokerapi/auth"
-	"github.com/pivotal-cf/brokerapi/domain"
+	brokerapi "github.com/pivotal-cf/brokerapi/v7"
+	apiauth "github.com/pivotal-cf/brokerapi/v7/auth"
+	"github.com/pivotal-cf/brokerapi/v7/domain"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 	"github.com/pivotal-cf/on-demand-service-broker/mgmtapi"
@@ -32,7 +32,7 @@ import (
 	"github.com/urfave/negroni"
 )
 
-//go:generate counterfeiter -o fakes/combined_broker.go . CombinedBroker
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/combined_broker.go . CombinedBroker
 
 type CombinedBroker interface {
 	mgmtapi.ManageableBroker

@@ -16,7 +16,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 )
 
-//go:generate counterfeiter -o fakes/fake_cloud_foundry_client.go . CloudFoundryClient
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_cloud_foundry_client.go . CloudFoundryClient
 type CloudFoundryClient interface {
 	GetServiceInstances(filter cf.GetInstancesFilter, logger *log.Logger) ([]cf.Instance, error)
 	GetLastOperationForInstance(instanceGUID string, logger *log.Logger) (cf.LastOperation, error)
@@ -27,7 +27,7 @@ type CloudFoundryClient interface {
 	DeleteServiceInstance(instanceGUID string, logger *log.Logger) error
 }
 
-//go:generate counterfeiter -o fakes/fake_sleeper.go . Sleeper
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_sleeper.go . Sleeper
 type Sleeper interface {
 	Sleep(d time.Duration)
 }

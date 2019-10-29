@@ -16,7 +16,7 @@ import (
 	"time"
 )
 
-//go:generate counterfeiter -o fakes/fake_auth_header_builder.go . AuthHeaderBuilder
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_auth_header_builder.go . AuthHeaderBuilder
 type AuthHeaderBuilder interface {
 	AddAuthHeader(request *http.Request, logger *log.Logger) error
 }

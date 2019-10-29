@@ -40,7 +40,7 @@ func (c *BOSHAuthChecker) Check() error {
 	return nil
 }
 
-//go:generate counterfeiter -o fakes/fake_auth_verifier.go . AuthVerifier
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_auth_verifier.go . AuthVerifier
 type AuthVerifier interface {
 	VerifyAuth(*log.Logger) error
 }

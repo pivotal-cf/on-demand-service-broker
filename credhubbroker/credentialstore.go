@@ -17,7 +17,7 @@ package credhubbroker
 
 import "code.cloudfoundry.org/credhub-cli/credhub/permissions"
 
-//go:generate counterfeiter -o fakes/credentialstore.go . CredentialStore
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/credentialstore.go . CredentialStore
 type CredentialStore interface {
 	Set(key string, value interface{}) error
 	Delete(key string) error

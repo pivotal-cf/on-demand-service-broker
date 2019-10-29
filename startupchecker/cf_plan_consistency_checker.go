@@ -58,7 +58,7 @@ func (c *CFPlanConsistencyChecker) Check() error {
 	return nil
 }
 
-//go:generate counterfeiter -o fakes/fake_service_instance_counter.go . ServiceInstanceCounter
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_service_instance_counter.go . ServiceInstanceCounter
 type ServiceInstanceCounter interface {
 	CountInstancesOfServiceOffering(serviceOfferingID string, logger *log.Logger) (instanceCountByPlanID map[cf.ServicePlan]int, err error)
 }

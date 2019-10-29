@@ -10,10 +10,10 @@ set -eu
 set -o pipefail
 
 if [[ $# -eq 0 ]]; then
-  LIFECYCLE_TESTS_CONFIG=<(echo "[{}]") ginkgo -r -dryRun system_tests
+  LIFECYCLE_TESTS_CONFIG=<(echo "[{}]") GO111MODULE=on GOFLAGS="-mod=vendor" go run github.com/onsi/ginkgo/ginkgo -r -dryRun system_tests
 fi
 
-GO111MODULE=off GOFLAGS="-mod=vendor" ginkgo \
+GO111MODULE=on GOFLAGS="-mod=vendor" go run github.com/onsi/ginkgo/ginkgo \
   -randomizeSuites=true \
   -randomizeAllSpecs=true \
   -keepGoing=true \

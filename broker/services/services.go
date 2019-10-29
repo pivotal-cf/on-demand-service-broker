@@ -16,14 +16,14 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/pivotal-cf/brokerapi/domain"
+	"github.com/pivotal-cf/brokerapi/v7/domain"
 	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/mgmtapi"
 	"github.com/pivotal-cf/on-demand-service-broker/service"
 )
 
-//go:generate counterfeiter -o fakes/fake_http_client.go . HTTPClient
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_http_client.go . HTTPClient
 type HTTPClient interface {
 	Do(*http.Request) (*http.Response, error)
 }

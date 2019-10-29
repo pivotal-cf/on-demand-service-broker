@@ -14,7 +14,7 @@ type RegisterBrokerRunner struct {
 	Logger   *log.Logger
 }
 
-//go:generate counterfeiter -o fakes/register_broker_cf_client.go . RegisterBrokerCFClient
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/register_broker_cf_client.go . RegisterBrokerCFClient
 type RegisterBrokerCFClient interface {
 	ServiceBrokers() ([]cf.ServiceBroker, error)
 	CreateServiceBroker(name, username, password, url string) error

@@ -12,7 +12,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/pivotal-cf/brokerapi/domain"
+	"github.com/pivotal-cf/brokerapi/v7/domain"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
@@ -173,12 +173,12 @@ func instanceID(deploymentName string) string {
 	return strings.TrimPrefix(deploymentName, InstancePrefix)
 }
 
-//go:generate counterfeiter -o fakes/fake_startup_checker.go . StartupChecker
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_startup_checker.go . StartupChecker
 type StartupChecker interface {
 	Check() error
 }
 
-//go:generate counterfeiter -o fakes/fake_deployer.go . Deployer
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_deployer.go . Deployer
 type Deployer interface {
 	Create(deploymentName, planID string, requestParams map[string]interface{}, boshContextID string, logger *log.Logger) (int, []byte, error)
 	Update(deploymentName, planID string, requestParams map[string]interface{}, previousPlanID *string, boshContextID string, secretsMap map[string]string, logger *log.Logger) (int, []byte, error)
@@ -186,7 +186,7 @@ type Deployer interface {
 	Recreate(deploymentName, planID, boshContextID string, logger *log.Logger) (int, error)
 }
 
-//go:generate counterfeiter -o fakes/fake_service_adapter_client.go . ServiceAdapterClient
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_service_adapter_client.go . ServiceAdapterClient
 type ServiceAdapterClient interface {
 	CreateBinding(bindingID string, deploymentTopology bosh.BoshVMs, manifest []byte, requestParams map[string]interface{}, secretsMap, dnsAddresses map[string]string, logger *log.Logger) (serviceadapter.Binding, error)
 	DeleteBinding(bindingID string, deploymentTopology bosh.BoshVMs, manifest []byte, requestParams map[string]interface{}, secretsMap map[string]string, dnsAddresses map[string]string, logger *log.Logger) error
@@ -194,7 +194,7 @@ type ServiceAdapterClient interface {
 	GeneratePlanSchema(plan serviceadapter.Plan, logger *log.Logger) (domain.ServiceSchemas, error)
 }
 
-//go:generate counterfeiter -o fakes/fake_bosh_client.go . BoshClient
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_bosh_client.go . BoshClient
 type BoshClient interface {
 	GetTask(taskID int, logger *log.Logger) (boshdirector.BoshTask, error)
 	GetTasks(deploymentName string, logger *log.Logger) (boshdirector.BoshTasks, error)
@@ -215,7 +215,7 @@ type BoshClient interface {
 	DeleteConfigs(configName string, logger *log.Logger) error
 }
 
-//go:generate counterfeiter -o fakes/fake_cloud_foundry_client.go . CloudFoundryClient
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_cloud_foundry_client.go . CloudFoundryClient
 type CloudFoundryClient interface {
 	GetAPIVersion(logger *log.Logger) (string, error)
 	CountInstancesOfPlan(serviceOfferingID, planID string, logger *log.Logger) (int, error)
@@ -223,17 +223,17 @@ type CloudFoundryClient interface {
 	GetServiceInstances(filter cf.GetInstancesFilter, logger *log.Logger) ([]cf.Instance, error)
 }
 
-//go:generate counterfeiter -o fakes/fake_telemetry_logger.go . TelemetryLogger
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_telemetry_logger.go . TelemetryLogger
 type TelemetryLogger interface {
 	LogInstances(instanceLister service.InstanceLister, item string, operation string)
 }
 
-//go:generate counterfeiter -o fakes/fake_map_hasher.go . Hasher
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_map_hasher.go . Hasher
 type Hasher interface {
 	Hash(m map[string]string) string
 }
 
-//go:generate counterfeiter -o fakes/fake_maintenance_info_checker.go . MaintenanceInfoChecker
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_maintenance_info_checker.go . MaintenanceInfoChecker
 
 type MaintenanceInfoChecker interface {
 	Check(planID string, maintenanceInfo *domain.MaintenanceInfo, serviceCatalog []domain.Service, logger *log.Logger) error

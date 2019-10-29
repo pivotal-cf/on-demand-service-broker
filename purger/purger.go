@@ -29,17 +29,17 @@ type Purger struct {
 	logger      *log.Logger
 }
 
-//go:generate counterfeiter -o fakes/fake_deleter.go . Deleter
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_deleter.go . Deleter
 type Deleter interface {
 	DeleteAllServiceInstances(string) error
 }
 
-//go:generate counterfeiter -o fakes/fake_registrar.go . Deregistrar
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_registrar.go . Deregistrar
 type Deregistrar interface {
 	Deregister(string) error
 }
 
-//go:generate counterfeiter -o fakes/fake_cloud_foundry_client.go . CloudFoundryClient
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_cloud_foundry_client.go . CloudFoundryClient
 type CloudFoundryClient interface {
 	DisableServiceAccessForAllPlans(serviceOfferingID string, logger *log.Logger) error
 }
