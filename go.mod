@@ -28,7 +28,7 @@ require (
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.2.2
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d // indirect
 	github.com/onsi/ginkgo v1.10.3
-	github.com/onsi/gomega v1.7.0
+	github.com/onsi/gomega v1.7.1
 	github.com/pborman/uuid v0.0.0-20180906182336-adf5a7427709
 	github.com/pivotal-cf/brokerapi/v7 v7.0.0
 	github.com/pivotal-cf/on-demand-services-sdk v0.34.2-0.20191029151844-e5df688d494b
