@@ -93,8 +93,6 @@ github.com/pborman/uuid v0.0.0-20180906182336-adf5a7427709 h1:zNBQb37RGLmJybyMcs
 github.com/pborman/uuid v0.0.0-20180906182336-adf5a7427709/go.mod h1:VyrYX9gd7irzKovcSS6BIIEwPRkP2Wm2m9ufcdFSJ34=
 github.com/pivotal-cf/brokerapi/v7 v7.0.0 h1:rAh2C6RPpTg7dRJVRZaUOFOvxg/DfFLUjApaqHg4iC0=
 github.com/pivotal-cf/brokerapi/v7 v7.0.0/go.mod h1:mdav81DVbnr6PSpqm+iATzHO4OUxDUGcoEDw81SFvco=
-github.com/pivotal-cf/on-demand-services-sdk v0.34.2-0.20191031165755-af870859c59c h1:lf/oHVCRs+WqJZHgYZR5/s1S62cIWZhScxHy3W+GSH8=
-github.com/pivotal-cf/on-demand-services-sdk v0.34.2-0.20191031165755-af870859c59c/go.mod h1:k0+f7kRxEPcg8qSS/s6IXOGRg9x8b5ER8HUtpN6V7/8=
 github.com/pivotal-cf/on-demand-services-sdk v0.35.1-0.20191107154534-d765776a0502 h1:dsAZOMLCE/dlerd7TXAGf5rryak+n3ZdpPmZFcsNXg8=
 github.com/pivotal-cf/on-demand-services-sdk v0.35.1-0.20191107154534-d765776a0502/go.mod h1:CGS35kTPKE6hgVuB3udpogkcUutYPlPrygVTEvGwtR0=
 github.com/pivotal-cf/paraphernalia v0.0.0-20171027171623-4272315231ce h1:GYSr+8qzCnEc04YRfnEFPLL9AHAD/b0hxLXb//Gs9qE=
