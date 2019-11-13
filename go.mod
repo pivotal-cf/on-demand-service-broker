@@ -29,9 +29,9 @@ require (
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d // indirect
 	github.com/onsi/ginkgo v1.10.3
 	github.com/onsi/gomega v1.7.1
-	github.com/pborman/uuid v0.0.0-20180906182336-adf5a7427709
-	github.com/pivotal-cf/brokerapi/v7 v7.0.0
-	github.com/pivotal-cf/on-demand-services-sdk v0.35.1-0.20191107154534-d765776a0502
+	github.com/pborman/uuid v1.2.0
+	github.com/pivotal-cf/brokerapi/v7 v7.1.0
+	github.com/pivotal-cf/on-demand-services-sdk v0.35.1-0.20191113114350-39b59b03c1be
 	github.com/pivotal-cf/paraphernalia v0.0.0-20171027171623-4272315231ce // indirect
 	github.com/pkg/errors v0.8.1
 	github.com/poy/eachers v0.0.0-20181020210610-23942921fe77 // indirect
