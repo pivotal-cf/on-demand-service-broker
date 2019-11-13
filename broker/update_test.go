@@ -42,6 +42,7 @@ var _ = Describe("Update", func() {
 		serialisedArbitraryContext              []byte
 		async                                   = true
 		maintenanceInfo, oldPlanMaintenanceInfo domain.MaintenanceInfo
+		previousMaintenanceInfo                 domain.MaintenanceInfo
 		err                                     error
 		testBroker                              *broker.Broker
 	)
@@ -70,7 +71,7 @@ var _ = Describe("Update", func() {
 		catalog, err := testBroker.Services(context.Background())
 		Expect(err).NotTo(HaveOccurred())
 		oldPlanMaintenanceInfo = *catalog[0].Plans[0].MaintenanceInfo
-
+		previousMaintenanceInfo = oldPlanMaintenanceInfo
 	})
 
 	When("it is an update", func() {
@@ -87,7 +88,8 @@ var _ = Describe("Update", func() {
 				ServiceID:  serviceID,
 				RawContext: serialisedArbitraryContext,
 				PreviousValues: domain.PreviousValues{
-					PlanID: oldPlanID,
+					PlanID:          oldPlanID,
+					MaintenanceInfo: &previousMaintenanceInfo,
 				},
 				MaintenanceInfo: &maintenanceInfo,
 				RawParameters:   serialisedArbitraryParameters,
@@ -105,10 +107,11 @@ var _ = Describe("Update", func() {
 				"parameters": arbitraryParams,
 				"service_id": serviceID,
 				"previous_values": map[string]interface{}{
-					"space_id":        "",
-					"organization_id": "",
-					"plan_id":         oldPlanID,
-					"service_id":      "",
+					"space_id":         "",
+					"organization_id":  "",
+					"plan_id":          oldPlanID,
+					"service_id":       "",
+					"maintenance_info": convertToMap(previousMaintenanceInfo),
 				},
 				"maintenance_info": map[string]interface{}{},
 			}))
@@ -676,6 +679,22 @@ var _ = Describe("Update", func() {
 			})
 		})
 
+		When("previous maintenance info does not match current", func() {
+			BeforeEach(func() {
+				newPlanID = oldPlanID
+				arbitraryParams = map[string]interface{}{"new": "value"}
+
+				previousMaintenanceInfo = oldPlanMaintenanceInfo
+				previousMaintenanceInfo.Version = "v99.8.5674"
+
+				fakeMaintenanceInfoChecker.CheckReturnsOnCall(1, errors.New("failed to check updates"))
+			})
+
+			It("does error", func() {
+				Expect(updateError).To(HaveOccurred())
+				Expect(updateError.Error()).To(ContainSubstring("failed to check updates"))
+			})
+		})
 	})
 
 	When("it is an upgrade", func() {
@@ -874,4 +893,15 @@ func unmarshalOperationData(updateSpec domain.UpdateServiceSpec) broker.Operatio
 	err := json.Unmarshal([]byte(updateSpec.OperationData), &data)
 	Expect(err).NotTo(HaveOccurred())
 	return data
+}
+
+func convertToMap(object interface{}) map[string]interface{} {
+	data, err := json.Marshal(object)
+	Expect(err).ToNot(HaveOccurred())
+
+	genericMap := map[string]interface{}{}
+	err = json.Unmarshal(data, &genericMap)
+	Expect(err).ToNot(HaveOccurred())
+
+	return genericMap
 }

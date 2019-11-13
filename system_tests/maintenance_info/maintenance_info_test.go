@@ -109,12 +109,16 @@ var _ = Describe("On-demand-broker with maintenance_info", func() {
 					"add_lifecycle_errand.yml",
 					"update_maintenance_info.yml"},
 			)
+
 			newPlanSpecificMaintenanceInfo := retrieveCatalog().Services[0].Plans[0].MaintenanceInfo
 			updateBody := UpdateBody{
 				ServiceID:       serviceID,
 				MaintenanceInfo: *newPlanSpecificMaintenanceInfo,
-				PreviousValues:  domain.PreviousValues{PlanID: planID},
 				PlanID:          planID,
+				PreviousValues: domain.PreviousValues{
+					PlanID:          planID,
+					MaintenanceInfo: maintenanceInfoWithPlanSpecifics,
+				},
 			}
 
 			Expect(len(newPlanSpecificMaintenanceInfo.Public)).ToNot(BeZero(), "maintenance_info.public should not be nil or empty")

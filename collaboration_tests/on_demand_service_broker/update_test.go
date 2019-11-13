@@ -129,6 +129,7 @@ var _ = Describe("Update a service instance", func() {
 		oldManifest = []byte(`name: service-instance_some-instance-id`)
 		fakeTaskBoshClient.GetDeploymentReturns(oldManifest, true, nil)
 		fakeTaskBoshClient.DeployReturns(updateTaskID, nil)
+
 		setupFakeGenerateManifestOutput()
 	})
 
@@ -578,6 +579,17 @@ properties:
 					},
 				},
 			}
+		})
+
+		It("responds with 422 when the previous maintenance info does not match catalog's maintenance info", func() {
+			fakeMaintenanceInfoChecker.CheckReturnsOnCall(1, apiresponses.ErrMaintenanceInfoConflict)
+
+			resp, bodyContent := doUpdateRequest(requestBody, instanceID)
+
+			Expect(resp.StatusCode).To(Equal(http.StatusUnprocessableEntity))
+			var body apiresponses.ErrorResponse
+			Expect(json.Unmarshal(bodyContent, &body)).To(Succeed())
+			Expect(body.Description).To(ContainSubstring("service instance needs to be upgraded before updating"))
 		})
 
 		It("responds with 422 when there are pending changes", func() {

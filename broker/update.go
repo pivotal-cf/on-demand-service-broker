@@ -43,7 +43,7 @@ func (b *Broker) Update(
 		return domain.UpdateServiceSpec{}, b.processError(NewGenericError(ctx, err), logger)
 	}
 
-	if err := b.validateMaintenanceInfo(details, logger); err != nil {
+	if err := b.validateMaintenanceInfo(details.PlanID, details.MaintenanceInfo, logger); err != nil {
 		return domain.UpdateServiceSpec{}, b.processError(err, logger)
 	}
 
@@ -60,6 +60,15 @@ func (b *Broker) Update(
 			return domain.UpdateServiceSpec{}, b.processError(NewGenericError(ctx, err), logger)
 		}
 		return domain.UpdateServiceSpec{IsAsync: true, OperationData: string(operationDataJSON)}, nil
+	}
+
+	if err := b.validateMaintenanceInfo(details.PreviousValues.PlanID, details.PreviousValues.MaintenanceInfo, logger); err != nil {
+		if err == apiresponses.ErrMaintenanceInfoConflict {
+			return domain.UpdateServiceSpec{}, b.processError(
+				apiresponses.NewFailureResponseBuilder(errors.New("service instance needs to be upgraded before updating"), http.StatusUnprocessableEntity, "previous-maintenance-info-check").Build(),
+				logger)
+		}
+		return domain.UpdateServiceSpec{}, b.processError(err, logger)
 	}
 
 	b.deploymentLock.Lock()
@@ -163,13 +172,13 @@ func (b *Broker) isUpgrade(details domain.UpdateDetails, detailsMap map[string]i
 	return false
 }
 
-func (b *Broker) validateMaintenanceInfo(details domain.UpdateDetails, logger *log.Logger) error {
+func (b *Broker) validateMaintenanceInfo(planID string, maintenanceInfo *domain.MaintenanceInfo, logger *log.Logger) error {
 	servicesCatalog, err := b.Services(context.Background())
 	if err != nil {
 		return err
 	}
 
-	return b.maintenanceInfoChecker.Check(details.PlanID, details.MaintenanceInfo, servicesCatalog, logger)
+	return b.maintenanceInfoChecker.Check(planID, maintenanceInfo, servicesCatalog, logger)
 }
 
 func (b *Broker) validateQuotasForUpdate(ctx context.Context, plan config.Plan, details domain.UpdateDetails, logger *log.Logger) error {
