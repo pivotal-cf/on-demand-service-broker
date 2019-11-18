@@ -116,6 +116,12 @@ var _ = Describe("Update a service instance", func() {
 			PlanID:        newPlanID,
 			RawParameters: toJson(updateArbParams),
 			ServiceID:     serviceID,
+			MaintenanceInfo: &domain.MaintenanceInfo{
+				Public: map[string]string{
+					"version":   "2",
+					"plan_size": "big",
+				},
+			},
 			PreviousValues: domain.PreviousValues{
 				OrgID:     organizationGUID,
 				ServiceID: serviceID,
@@ -143,6 +149,11 @@ var _ = Describe("Update a service instance", func() {
 				PlanID:        oldPlanID,
 				RawParameters: toJson(nil),
 				ServiceID:     serviceID,
+				MaintenanceInfo: &domain.MaintenanceInfo{
+					Public: map[string]string{
+						"version": "2",
+					},
+				},
 				PreviousValues: domain.PreviousValues{
 					PlanID: oldPlanID,
 				},
@@ -152,13 +163,14 @@ var _ = Describe("Update a service instance", func() {
 
 			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
 
-			Eventually(loggerBuffer).Should(gbytes.Say(`updating instance ` + instanceID))
+			Eventually(loggerBuffer).Should(gbytes.Say(`upgrading instance ` + instanceID))
 		})
 	})
 
 	Describe("updating plans", func() {
 		It("succeeds when there are no pending changes", func() {
 			resp, bodyContent := doUpdateRequest(requestBody, instanceID)
+
 			By("returning the correct status code")
 			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
 
@@ -179,7 +191,11 @@ var _ = Describe("Update a service instance", func() {
 
 		It("succeeds when the new plan has a post-deploy errand", func() {
 			requestBody.PlanID = postDeployErrandPlanID
-			_, bodyContent := doUpdateRequest(requestBody, instanceID)
+			requestBody.MaintenanceInfo.Public = map[string]string{"version": "2"}
+
+			resp, bodyContent := doUpdateRequest(requestBody, instanceID)
+			Expect(resp.StatusCode).To(Equal(http.StatusAccepted), string(bodyContent))
+
 			_, boshContextId, _, _ := fakeTaskBoshClient.DeployArgsForCall(0)
 
 			By("including errands in the operation data")
@@ -238,11 +254,13 @@ var _ = Describe("Update a service instance", func() {
 			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
 		})
 
-		It("fails with 500 if there plan's quota has been reached", func() {
+		It("fails with 500 if the plan's quota has been reached", func() {
 			fakeCfClient.CountInstancesOfServiceOfferingReturns(map[cf.ServicePlan]int{
 				cf.ServicePlan{ServicePlanEntity: cf.ServicePlanEntity{UniqueID: quotaReachedPlanID}}: 1,
 			}, nil)
 			requestBody.PlanID = quotaReachedPlanID
+			requestBody.MaintenanceInfo.Public = map[string]string{"version": "2"}
+
 			resp, bodyContent := doUpdateRequest(requestBody, instanceID)
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 
@@ -273,6 +291,9 @@ var _ = Describe("Update a service instance", func() {
 		BeforeEach(func() {
 			requestBody.RawParameters = []byte(`{"foo":"bar"}`)
 			requestBody.PlanID = requestBody.PreviousValues.PlanID
+			requestBody.MaintenanceInfo.Public = map[string]string{
+				"version": "2",
+			}
 		})
 
 		It("succeeds even when the quota has been reached", func() {
@@ -335,18 +356,8 @@ var _ = Describe("Update a service instance", func() {
 			Eventually(loggerBuffer).Should(gbytes.Say(`updating instance ` + instanceID))
 		})
 
-		It("succeeds when called without maintenance info", func() {
-			resp, _ := doUpdateRequest(requestBody, instanceID)
-
-			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
-		})
-
 		It("succeeds when called with maintenance info", func() {
-			requestBody.MaintenanceInfo = &domain.MaintenanceInfo{
-				Public: map[string]string{
-					"version": "2",
-				},
-			}
+
 			resp, _ := doUpdateRequest(requestBody, instanceID)
 
 			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
@@ -359,7 +370,6 @@ var _ = Describe("Update a service instance", func() {
 					"foo":     "bar",
 				},
 			}
-			fakeMaintenanceInfoChecker.CheckReturns(apiresponses.ErrMaintenanceInfoConflict)
 
 			resp, _ := doUpdateRequest(requestBody, instanceID)
 
@@ -582,7 +592,7 @@ properties:
 		})
 
 		It("responds with 422 when the previous maintenance info does not match catalog's maintenance info", func() {
-			fakeMaintenanceInfoChecker.CheckReturnsOnCall(1, apiresponses.ErrMaintenanceInfoConflict)
+			fakeMaintenanceInfoChecker.CheckReturnsOnCall(0, apiresponses.ErrMaintenanceInfoConflict)
 
 			resp, bodyContent := doUpdateRequest(requestBody, instanceID)
 

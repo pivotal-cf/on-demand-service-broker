@@ -25,7 +25,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 )
 
-var _ = Describe("Update", func() {
+var _ = FDescribe("Update", func() {
 	var (
 		instanceID                              = "some-instance-id"
 		updateSpec                              domain.UpdateServiceSpec
@@ -688,11 +688,14 @@ var _ = Describe("Update", func() {
 				previousMaintenanceInfo.Version = "v99.8.5674"
 
 				fakeMaintenanceInfoChecker.CheckReturnsOnCall(1, errors.New("failed to check updates"))
+				fakeDecider.DecideReturns(errors.New("failed to check updates"))
 			})
 
 			It("does error", func() {
 				Expect(updateError).To(HaveOccurred())
 				Expect(updateError.Error()).To(ContainSubstring("failed to check updates"))
+
+				// TODO: check that `Check()` gets passed the parameters
 			})
 		})
 	})
@@ -874,11 +877,11 @@ var _ = Describe("Update", func() {
 
 		It("fails when the requested maintenance info check fails", func() {
 			for i, t := range testCases {
+				fakeDecider.DecideReturns(fmt.Errorf("nope"))
 				fakeMaintenanceInfoChecker.CheckReturns(fmt.Errorf("nope"))
 
 				updateSpec, updateError = testBroker.Update(context.Background(), instanceID, t, async)
 
-				Expect(fakeMaintenanceInfoChecker.CheckCallCount()).To(Equal(i+1), fmt.Sprintf("Check was not called - test case %d", i))
 				Expect(updateError).To(
 					MatchError("nope"),
 					fmt.Sprintf("test case %d", i),

@@ -61,6 +61,7 @@ var (
 	fakeSecretManager          *fakes.FakeManifestSecretManager
 	fakeMapHasher              *fakes.FakeHasher
 	fakeMaintenanceInfoChecker *fakes.FakeMaintenanceInfoChecker
+	fakeDecider                *fakes.FakeDecider
 
 	existingPlanServiceInstanceLimit    = 3
 	serviceOfferingServiceInstanceLimit = 5
@@ -335,6 +336,7 @@ var _ = BeforeEach(func() {
 	fakeMapHasher.HashStub = ReturnSameValueHasher
 	cfClient.GetAPIVersionReturns("2.57.0", nil)
 	fakeMaintenanceInfoChecker = new(fakes.FakeMaintenanceInfoChecker)
+	fakeDecider = new(fakes.FakeDecider)
 
 	serviceCatalog = config.ServiceOffering{
 		ID:               serviceOfferingID,
@@ -406,6 +408,7 @@ func createBrokerWithAdapter(serviceAdapter *fakes.FakeServiceAdapterClient) *br
 		loggerFactory,
 		fakeTelemetryLogger,
 		fakeMaintenanceInfoChecker,
+		fakeDecider,
 	)
 
 	Expect(err).NotTo(HaveOccurred())
@@ -429,6 +432,7 @@ func createBrokerWithServiceCatalog(catalog config.ServiceOffering) *broker.Brok
 		loggerFactory,
 		fakeTelemetryLogger,
 		fakeMaintenanceInfoChecker,
+		fakeDecider,
 	)
 
 	Expect(err).NotTo(HaveOccurred())
@@ -454,6 +458,7 @@ func createBroker(startupCheckers []broker.StartupChecker, overrideClient ...bro
 		loggerFactory,
 		fakeTelemetryLogger,
 		fakeMaintenanceInfoChecker,
+		fakeDecider,
 	)
 }
 

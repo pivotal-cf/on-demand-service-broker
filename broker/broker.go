@@ -45,6 +45,7 @@ type Broker struct {
 	cachedCatalog   []domain.Service
 
 	maintenanceInfoChecker MaintenanceInfoChecker
+	decider                Decider
 }
 
 func New(
@@ -61,6 +62,7 @@ func New(
 	loggerFactory *loggerfactory.LoggerFactory,
 	telemetryLogger TelemetryLogger,
 	maintenanceInfoChecker MaintenanceInfoChecker,
+	decider Decider,
 ) (*Broker, error) {
 
 	b := &Broker{
@@ -81,6 +83,7 @@ func New(
 		loggerFactory:           loggerFactory,
 		telemetryLogger:         telemetryLogger,
 		maintenanceInfoChecker:  maintenanceInfoChecker,
+		decider:                 decider,
 	}
 
 	var startupCheckErrMessages []string
@@ -237,4 +240,10 @@ type Hasher interface {
 
 type MaintenanceInfoChecker interface {
 	Check(planID string, maintenanceInfo *domain.MaintenanceInfo, serviceCatalog []domain.Service, logger *log.Logger) error
+}
+
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_decider.go . Decider
+
+type Decider interface {
+	Decide(catalog []domain.Service, details domain.UpdateDetails, logger *log.Logger) error
 }
