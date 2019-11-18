@@ -2,6 +2,7 @@ package brokerinitiator
 
 import (
 	"fmt"
+	"github.com/pivotal-cf/on-demand-service-broker/broker/decider"
 	"log"
 	"os"
 
@@ -80,6 +81,7 @@ func Initiate(conf config.Config,
 		loggerFactory,
 		telemetryLogger,
 		maintenanceinfo.Checker{},
+		decider.Decider{},
 	)
 	if err != nil {
 		logger.Fatalf("error starting broker: %s", err)

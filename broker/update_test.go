@@ -45,6 +45,7 @@ var _ = Describe("Update", func() {
 		previousMaintenanceInfo                 domain.MaintenanceInfo
 		err                                     error
 		testBroker                              *broker.Broker
+		catalog                                 []domain.Service
 	)
 
 	BeforeEach(func() {
@@ -68,7 +69,7 @@ var _ = Describe("Update", func() {
 		fakeSecretManager.ResolveManifestSecretsReturns(expectedSecretsMap, nil)
 		maintenanceInfo = domain.MaintenanceInfo{}
 		testBroker = createDefaultBroker()
-		catalog, err := testBroker.Services(context.Background())
+		catalog, err = testBroker.Services(context.Background())
 		Expect(err).NotTo(HaveOccurred())
 		oldPlanMaintenanceInfo = *catalog[0].Plans[0].MaintenanceInfo
 		previousMaintenanceInfo = oldPlanMaintenanceInfo
@@ -76,6 +77,10 @@ var _ = Describe("Update", func() {
 
 	When("it is an update", func() {
 		var updateDetails domain.UpdateDetails
+		BeforeEach(func() {
+			fakeDecider.DecideReturns(false, nil)
+		})
+
 		JustBeforeEach(func() {
 			serialisedArbitraryContext, err := json.Marshal(arbContext)
 			Expect(err).NotTo(HaveOccurred())
@@ -185,21 +190,6 @@ var _ = Describe("Update", func() {
 					Expect(fakeDeployer.UpdateCallCount()).To(Equal(1))
 					_, _, _, _, actualBoshContextID, _, _ := fakeDeployer.UpdateArgsForCall(0)
 					Expect(actualBoshContextID).NotTo(BeEmpty())
-				})
-			})
-
-			Context("and the incoming maintenance_info matches the broker maintenance_info", func() {
-				BeforeEach(func() {
-					arbitraryParams = nil
-					catalog, err := b.Services(context.Background())
-					Expect(err).NotTo(HaveOccurred())
-					maintenanceInfo = *catalog[0].Plans[1].MaintenanceInfo
-					Expect(secondPlan.ID).To(Equal(catalog[0].Plans[1].ID))
-					newPlanID = secondPlan.ID
-				})
-
-				It("does not error", func() {
-					Expect(updateError).NotTo(HaveOccurred())
 				})
 			})
 
@@ -678,105 +668,52 @@ var _ = Describe("Update", func() {
 				))
 			})
 		})
-
-		When("previous maintenance info does not match current", func() {
-			BeforeEach(func() {
-				newPlanID = oldPlanID
-				arbitraryParams = map[string]interface{}{"new": "value"}
-
-				previousMaintenanceInfo = oldPlanMaintenanceInfo
-				previousMaintenanceInfo.Version = "v99.8.5674"
-
-				fakeMaintenanceInfoChecker.CheckReturnsOnCall(1, errors.New("failed to check updates"))
-			})
-
-			It("does error", func() {
-				Expect(updateError).To(HaveOccurred())
-				Expect(updateError.Error()).To(ContainSubstring("failed to check updates"))
-			})
-		})
 	})
 
 	When("it is an upgrade", func() {
-		var testCases []domain.UpdateDetails
+		var updateDetails domain.UpdateDetails
 
 		BeforeEach(func() {
 			fakeDeployer.UpgradeReturns(50, nil, nil)
 			fakeDeployer.UpdateReturns(-1, nil, errors.New("fail"))
+			fakeDecider.DecideReturns(true, nil)
 
-			testCases = []domain.UpdateDetails{
-				{
-					PlanID:     oldPlanID,
-					ServiceID:  serviceID,
-					RawContext: serialisedArbitraryContext,
-					PreviousValues: domain.PreviousValues{
-						PlanID: oldPlanID,
-					},
-					MaintenanceInfo: &domain.MaintenanceInfo{
-						Private: "secret:secret;",
-					},
-				},
-				{
-					PlanID:     oldPlanID,
-					ServiceID:  serviceID,
-					RawContext: serialisedArbitraryContext,
-					PreviousValues: domain.PreviousValues{
-						PlanID: oldPlanID,
-					},
-					MaintenanceInfo: &domain.MaintenanceInfo{
-						Public: map[string]string{
-							"something": "fancy",
-						},
-					},
-				},
-				{
-					PlanID:     oldPlanID,
-					ServiceID:  serviceID,
-					RawContext: serialisedArbitraryContext,
-					PreviousValues: domain.PreviousValues{
-						PlanID: oldPlanID,
-					},
-					MaintenanceInfo: &domain.MaintenanceInfo{
-						Version: "1.2.3",
-					},
+			updateDetails = domain.UpdateDetails{
+				PlanID:     oldPlanID,
+				ServiceID:  serviceID,
+				RawContext: serialisedArbitraryContext,
+				PreviousValues: domain.PreviousValues{
+					PlanID: oldPlanID,
 				},
 			}
 		})
 
-		It("accepts the upgrade when maintenance_info is set", func() {
-			for i, updateDetails := range testCases {
-				fakeMaintenanceInfoChecker.CheckReturns(nil)
+		It("returns an upgrade service spec", func() {
+			updateSpec, updateError = testBroker.Update(context.Background(), instanceID, updateDetails, async)
+			Expect(updateError).NotTo(HaveOccurred())
 
-				updateSpec, updateError = testBroker.Update(context.Background(), instanceID, updateDetails, async)
+			opData, err := json.Marshal(broker.OperationData{
+				BoshTaskID:    50,
+				OperationType: broker.OperationTypeUpgrade,
+				Errands:       nil,
+			})
+			Expect(err).NotTo(HaveOccurred())
 
-				Expect(fakeDeployer.UpdateCallCount()).To(Equal(0), fmt.Sprintf("Update was called - test case %d", i))
-				Expect(updateError).NotTo(HaveOccurred())
+			Expect(updateSpec).To(Equal(domain.UpdateServiceSpec{
+				IsAsync:       true,
+				OperationData: string(opData),
+			}))
 
-				opData, err := json.Marshal(broker.OperationData{
-					BoshTaskID:    50,
-					OperationType: broker.OperationTypeUpgrade,
-					Errands:       nil,
-				})
-				Expect(err).NotTo(HaveOccurred())
-
-				Expect(updateSpec).To(Equal(domain.UpdateServiceSpec{
-					IsAsync:       true,
-					OperationData: string(opData),
-				}))
-
-				Expect(logBuffer.String()).To(MatchRegexp(`\[[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\] \d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2} upgrading instance`))
-			}
+			Expect(logBuffer.String()).To(MatchRegexp(`\[[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\] \d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2} upgrading instance`))
 		})
 
 		It("returns an synchronous spec and nil error when the operation has already completed", func() {
-			for i, updateDetails := range testCases {
-				fakeDeployer.UpgradeReturns(0, []byte{}, broker.NewOperationAlreadyCompletedError(errors.New("done")))
+			fakeDeployer.UpgradeReturns(0, []byte{}, broker.NewOperationAlreadyCompletedError(errors.New("done")))
 
-				updateSpec, updateError = testBroker.Update(context.Background(), instanceID, updateDetails, async)
+			updateSpec, updateError = testBroker.Update(context.Background(), instanceID, updateDetails, async)
 
-				Expect(updateError).ToNot(HaveOccurred(), fmt.Sprintf("test case %d", i))
-				Expect(updateSpec.IsAsync).To(BeFalse())
-			}
+			Expect(updateError).ToNot(HaveOccurred())
+			Expect(updateSpec.IsAsync).To(BeFalse())
 		})
 	})
 
@@ -808,6 +745,27 @@ var _ = Describe("Update", func() {
 					},
 					MaintenanceInfo: &oldPlanMaintenanceInfo,
 				},
+			}
+		})
+
+		It("passes the correct data to the decider", func() {
+			for i, t := range testCases {
+				_, updateError = testBroker.Update(context.Background(), instanceID, t, async)
+				Expect(updateError).NotTo(HaveOccurred())
+
+				Expect(fakeDecider.DecideCallCount()).To(Equal(i + 1))
+				c, d, _ := fakeDecider.DecideArgsForCall(i)
+				Expect(c).To(Equal(catalog))
+				Expect(d).To(Equal(t))
+			}
+		})
+
+		It("fails when the the decider errors", func() {
+			deciderError := errors.New("some decider error")
+			fakeDecider.DecideReturns(false, deciderError)
+			for _, t := range testCases {
+				_, updateError = testBroker.Update(context.Background(), instanceID, t, async)
+				Expect(updateError).To(MatchError(deciderError))
 			}
 		})
 
@@ -874,11 +832,10 @@ var _ = Describe("Update", func() {
 
 		It("fails when the requested maintenance info check fails", func() {
 			for i, t := range testCases {
-				fakeMaintenanceInfoChecker.CheckReturns(fmt.Errorf("nope"))
+				fakeDecider.DecideReturns(false, fmt.Errorf("nope"))
 
 				updateSpec, updateError = testBroker.Update(context.Background(), instanceID, t, async)
 
-				Expect(fakeMaintenanceInfoChecker.CheckCallCount()).To(Equal(i+1), fmt.Sprintf("Check was not called - test case %d", i))
 				Expect(updateError).To(
 					MatchError("nope"),
 					fmt.Sprintf("test case %d", i),

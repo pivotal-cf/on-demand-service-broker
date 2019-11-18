@@ -37,17 +37,14 @@ func (b *Broker) Update(
 		return domain.UpdateServiceSpec{}, b.processError(apiresponses.ErrAsyncRequired, logger)
 	}
 
-	detailsWithRawParameters := domain.DetailsWithRawParameters(details)
-	detailsMap, err := convertDetailsToMap(detailsWithRawParameters)
-	if err != nil {
-		return domain.UpdateServiceSpec{}, b.processError(NewGenericError(ctx, err), logger)
-	}
+	servicesCatalog, _ := b.Services(ctx) // Can't error
 
-	if err := b.validateMaintenanceInfo(details.PlanID, details.MaintenanceInfo, logger); err != nil {
+	isUpgrade, err := b.decider.Decide(servicesCatalog, details, logger)
+	if err != nil {
 		return domain.UpdateServiceSpec{}, b.processError(err, logger)
 	}
 
-	if b.isUpgrade(details, detailsMap) {
+	if isUpgrade {
 		operationData, err := b.Upgrade(ctx, instanceID, details, logger)
 		if err != nil {
 			if _, ok := err.(OperationAlreadyCompletedError); ok {
@@ -60,15 +57,6 @@ func (b *Broker) Update(
 			return domain.UpdateServiceSpec{}, b.processError(NewGenericError(ctx, err), logger)
 		}
 		return domain.UpdateServiceSpec{IsAsync: true, OperationData: string(operationDataJSON)}, nil
-	}
-
-	if err := b.validateMaintenanceInfo(details.PreviousValues.PlanID, details.PreviousValues.MaintenanceInfo, logger); err != nil {
-		if err == apiresponses.ErrMaintenanceInfoConflict {
-			return domain.UpdateServiceSpec{}, b.processError(
-				apiresponses.NewFailureResponseBuilder(errors.New("service instance needs to be upgraded before updating"), http.StatusUnprocessableEntity, "previous-maintenance-info-check").Build(),
-				logger)
-		}
-		return domain.UpdateServiceSpec{}, b.processError(err, logger)
 	}
 
 	b.deploymentLock.Lock()
@@ -104,6 +92,11 @@ func (b *Broker) Update(
 	}
 
 	logger.Printf("updating instance %s", instanceID)
+
+	detailsMap, err := convertDetailsToMap(domain.DetailsWithRawParameters(details))
+	if err != nil {
+		return domain.UpdateServiceSpec{}, b.processError(NewGenericError(ctx, err), logger)
+	}
 
 	operationType = OperationTypeUpdate
 	boshTaskID, _, err = b.deployer.Update(
@@ -162,23 +155,6 @@ func (b *Broker) checkPlanExists(details domain.UpdateDetails, logger *log.Logge
 	}
 
 	return plan, nil
-}
-
-func (b *Broker) isUpgrade(details domain.UpdateDetails, detailsMap map[string]interface{}) bool {
-	if details.MaintenanceInfo != nil {
-		params := detailsMap["parameters"]
-		return details.PlanID == details.PreviousValues.PlanID && len(params.(map[string]interface{})) == 0
-	}
-	return false
-}
-
-func (b *Broker) validateMaintenanceInfo(planID string, maintenanceInfo *domain.MaintenanceInfo, logger *log.Logger) error {
-	servicesCatalog, err := b.Services(context.Background())
-	if err != nil {
-		return err
-	}
-
-	return b.maintenanceInfoChecker.Check(planID, maintenanceInfo, servicesCatalog, logger)
 }
 
 func (b *Broker) validateQuotasForUpdate(ctx context.Context, plan config.Plan, details domain.UpdateDetails, logger *log.Logger) error {

@@ -9,6 +9,7 @@ package helpers
 import (
 	"crypto/tls"
 	"fmt"
+	"github.com/pivotal-cf/on-demand-service-broker/broker/decider"
 	"net/http"
 	"os"
 	"syscall"
@@ -97,6 +98,7 @@ func StartServer(
 		loggerFactory,
 		new(fakes.FakeTelemetryLogger),
 		maintenanceInfoChecker,
+		decider.Decider{},
 	)
 	Expect(err).NotTo(HaveOccurred())
 	var fakeBroker apiserver.CombinedBroker
