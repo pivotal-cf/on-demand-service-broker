@@ -10,7 +10,7 @@ import (
 )
 
 type FakeDecider struct {
-	DecideStub        func([]domain.Service, domain.UpdateDetails, *log.Logger) error
+	DecideStub        func([]domain.Service, domain.UpdateDetails, *log.Logger) (bool, error)
 	decideMutex       sync.RWMutex
 	decideArgsForCall []struct {
 		arg1 []domain.Service
@@ -18,16 +18,18 @@ type FakeDecider struct {
 		arg3 *log.Logger
 	}
 	decideReturns struct {
-		result1 error
+		result1 bool
+		result2 error
 	}
 	decideReturnsOnCall map[int]struct {
-		result1 error
+		result1 bool
+		result2 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeDecider) Decide(arg1 []domain.Service, arg2 domain.UpdateDetails, arg3 *log.Logger) error {
+func (fake *FakeDecider) Decide(arg1 []domain.Service, arg2 domain.UpdateDetails, arg3 *log.Logger) (bool, error) {
 	var arg1Copy []domain.Service
 	if arg1 != nil {
 		arg1Copy = make([]domain.Service, len(arg1))
@@ -46,10 +48,10 @@ func (fake *FakeDecider) Decide(arg1 []domain.Service, arg2 domain.UpdateDetails
 		return fake.DecideStub(arg1, arg2, arg3)
 	}
 	if specificReturn {
-		return ret.result1
+		return ret.result1, ret.result2
 	}
 	fakeReturns := fake.decideReturns
-	return fakeReturns.result1
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeDecider) DecideCallCount() int {
@@ -58,7 +60,7 @@ func (fake *FakeDecider) DecideCallCount() int {
 	return len(fake.decideArgsForCall)
 }
 
-func (fake *FakeDecider) DecideCalls(stub func([]domain.Service, domain.UpdateDetails, *log.Logger) error) {
+func (fake *FakeDecider) DecideCalls(stub func([]domain.Service, domain.UpdateDetails, *log.Logger) (bool, error)) {
 	fake.decideMutex.Lock()
 	defer fake.decideMutex.Unlock()
 	fake.DecideStub = stub
@@ -71,27 +73,30 @@ func (fake *FakeDecider) DecideArgsForCall(i int) ([]domain.Service, domain.Upda
 	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
-func (fake *FakeDecider) DecideReturns(result1 error) {
+func (fake *FakeDecider) DecideReturns(result1 bool, result2 error) {
 	fake.decideMutex.Lock()
 	defer fake.decideMutex.Unlock()
 	fake.DecideStub = nil
 	fake.decideReturns = struct {
-		result1 error
-	}{result1}
+		result1 bool
+		result2 error
+	}{result1, result2}
 }
 
-func (fake *FakeDecider) DecideReturnsOnCall(i int, result1 error) {
+func (fake *FakeDecider) DecideReturnsOnCall(i int, result1 bool, result2 error) {
 	fake.decideMutex.Lock()
 	defer fake.decideMutex.Unlock()
 	fake.DecideStub = nil
 	if fake.decideReturnsOnCall == nil {
 		fake.decideReturnsOnCall = make(map[int]struct {
-			result1 error
+			result1 bool
+			result2 error
 		})
 	}
 	fake.decideReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
+		result1 bool
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeDecider) Invocations() map[string][][]interface{} {

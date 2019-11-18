@@ -2,6 +2,7 @@ package decider_test
 
 import (
 	"bytes"
+	"encoding/json"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/brokerapi/v7/domain"
@@ -28,8 +29,6 @@ var _ = Describe("Decider", func() {
 				Plans: []domain.ServicePlan{
 					{
 						ID: "fake-plan-id-with-mi",
-						//Name:        "fake-service-plan-name-1",
-						//Description: "fake service plan description 1",
 						MaintenanceInfo: &domain.MaintenanceInfo{
 							Public: map[string]string{
 								"foo": "bar",
@@ -38,8 +37,9 @@ var _ = Describe("Decider", func() {
 					},
 					{
 						ID: "fake-plan-id-no-mi",
-						//Name:        "fake-service-plan-name-2",
-						//Description: "fake service plan description 2",
+					},
+					{
+						ID: "fake-other-plan-id-no-mi",
 					},
 				},
 			},
@@ -55,46 +55,113 @@ var _ = Describe("Decider", func() {
 			PlanID: "not-in-catalog",
 		}
 
-		err := decider.Decider{}.Decide(catalog, details, logger)
+		_, err := decider.Decider{}.Decide(catalog, details, logger)
 
 		Expect(err).To(MatchError("plan not-in-catalog does not exist"))
 	})
 
-	It("fails when the maintenance_info requested does not match the plan", func() {
-		details := domain.UpdateDetails{
-			PlanID: "fake-plan-id-with-mi",
-			MaintenanceInfo: &domain.MaintenanceInfo{
-				Public: map[string]string{
-					"other-key": "other-value",
+	Context("without maintenance_info", func() {
+		When("the request is a change of plan", func() {
+			It("is an update", func() {
+				details := domain.UpdateDetails{
+					PlanID: "fake-other-plan-id-no-mi",
+					PreviousValues: domain.PreviousValues{
+						PlanID: "fake-plan-id-no-mi",
+					},
+				}
+
+				isUpgrade, err := decider.Decider{}.Decide(catalog, details, logger)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(isUpgrade).To(BeFalse())
+			})
+		})
+
+		When("there are request parameters", func() {
+			It("is an update", func() {
+				details := domain.UpdateDetails{
+					PlanID:        "fake-plan-id-no-mi",
+					RawParameters: json.RawMessage(`{"foo": "bar"}`),
+					PreviousValues: domain.PreviousValues{
+						PlanID: "fake-plan-id-no-mi",
+					},
+				}
+
+				isUpgrade, err := decider.Decider{}.Decide(catalog, details, logger)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(isUpgrade).To(BeFalse())
+			})
+		})
+
+		When("the plan does not change and there are no request parameters", func() {
+			It("is an upgrade", func() {
+				details := domain.UpdateDetails{
+					PlanID:        "fake-plan-id-no-mi",
+					RawParameters: json.RawMessage(`{ }`),
+					PreviousValues: domain.PreviousValues{
+						PlanID: "fake-plan-id-no-mi",
+					},
+				}
+
+				isUpgrade, err := decider.Decider{}.Decide(catalog, details, logger)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(isUpgrade).To(BeTrue())
+			})
+		})
+
+		When("the request parameters is invalid JSON (and the plan does not change)", func() {
+			It("is an update", func() {
+				details := domain.UpdateDetails{
+					PlanID:        "fake-plan-id-no-mi",
+					RawParameters: json.RawMessage(`{ --- }`),
+					PreviousValues: domain.PreviousValues{
+						PlanID: "fake-plan-id-no-mi",
+					},
+				}
+
+				isUpgrade, err := decider.Decider{}.Decide(catalog, details, logger)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(isUpgrade).To(BeFalse())
+			})
+		})
+	})
+
+	Context("maintenance_info mismatches", func() {
+		It("fails when the maintenance_info requested does not match the plan", func() {
+			details := domain.UpdateDetails{
+				PlanID: "fake-plan-id-with-mi",
+				MaintenanceInfo: &domain.MaintenanceInfo{
+					Public: map[string]string{
+						"other-key": "other-value",
+					},
 				},
-			},
-		}
+			}
 
-		err := decider.Decider{}.Decide(catalog, details, logger)
+			_, err := decider.Decider{}.Decide(catalog, details, logger)
 
-		Expect(err).To(MatchError(apiresponses.ErrMaintenanceInfoConflict))
-	})
+			Expect(err).To(MatchError(apiresponses.ErrMaintenanceInfoConflict))
+		})
 
-	It("fails when the request contains maintenance_info but the plan does not", func() {
-		details := domain.UpdateDetails{
-			PlanID: "fake-plan-id-with-mi",
-		}
+		It("fails when the request contains maintenance_info but the plan does not", func() {
+			details := domain.UpdateDetails{
+				PlanID: "fake-plan-id-with-mi",
+			}
 
-		err := decider.Decider{}.Decide(catalog, details, logger)
-		Expect(err).To(MatchError(apiresponses.ErrMaintenanceInfoConflict))
-	})
+			_, err := decider.Decider{}.Decide(catalog, details, logger)
+			Expect(err).To(MatchError(apiresponses.ErrMaintenanceInfoConflict))
+		})
 
-	It("fails when the plan contains maintenance_info but the request does not", func() {
-		details := domain.UpdateDetails{
-			PlanID: "fake-plan-id-no-mi",
-			MaintenanceInfo: &domain.MaintenanceInfo{
-				Public: map[string]string{"some": "thing"},
-			},
-		}
+		It("fails when the plan contains maintenance_info but the request does not", func() {
+			details := domain.UpdateDetails{
+				PlanID: "fake-plan-id-no-mi",
+				MaintenanceInfo: &domain.MaintenanceInfo{
+					Public: map[string]string{"some": "thing"},
+				},
+			}
 
-		err := decider.Decider{}.Decide(catalog, details, logger)
-		Expect(err).To(MatchError(apiresponses.ErrMaintenanceInfoConflict))
+			_, err := decider.Decider{}.Decide(catalog, details, logger)
+			Expect(err).To(MatchError(apiresponses.ErrMaintenanceInfoConflict))
 
+		})
 	})
 
 	It("does not fail when the requested plan is in the catalog and has matching maintenance_info", func() {
@@ -107,7 +174,7 @@ var _ = Describe("Decider", func() {
 			},
 		}
 
-		err := decider.Decider{}.Decide(catalog, details, logger)
+		_, err := decider.Decider{}.Decide(catalog, details, logger)
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -116,7 +183,7 @@ var _ = Describe("Decider", func() {
 			PlanID: "fake-plan-id-no-mi",
 		}
 
-		err := decider.Decider{}.Decide(catalog, details, logger)
+		_, err := decider.Decider{}.Decide(catalog, details, logger)
 
 		Expect(err).NotTo(HaveOccurred())
 	})

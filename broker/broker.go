@@ -245,5 +245,5 @@ type MaintenanceInfoChecker interface {
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_decider.go . Decider
 
 type Decider interface {
-	Decide(catalog []domain.Service, details domain.UpdateDetails, logger *log.Logger) error
+	Decide(catalog []domain.Service, details domain.UpdateDetails, logger *log.Logger) (bool, error)
 }

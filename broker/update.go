@@ -37,27 +37,17 @@ func (b *Broker) Update(
 		return domain.UpdateServiceSpec{}, b.processError(apiresponses.ErrAsyncRequired, logger)
 	}
 
-	detailsWithRawParameters := domain.DetailsWithRawParameters(details)
-	detailsMap, err := convertDetailsToMap(detailsWithRawParameters)
-	if err != nil {
-		return domain.UpdateServiceSpec{}, b.processError(NewGenericError(ctx, err), logger)
-	}
-
-	// START
-	//if err := b.validateMaintenanceInfo(ctx, details.PlanID, details.MaintenanceInfo, logger); err != nil {
-	//	return domain.UpdateServiceSpec{}, b.processError(err, logger)
-	//}
-
 	servicesCatalog, err := b.Services(ctx)
 	if err != nil {
 		return domain.UpdateServiceSpec{}, b.processError(err, logger) // TODO test?
 	}
 
-	if err := b.decider.Decide(servicesCatalog, details, logger); err != nil {
+	isUpgrade, err := b.decider.Decide(servicesCatalog, details, logger)
+	if err != nil {
 		return domain.UpdateServiceSpec{}, b.processError(err, logger)
 	}
 
-	if b.isUpgrade(details, detailsMap) {
+	if isUpgrade {
 		operationData, err := b.Upgrade(ctx, instanceID, details, logger)
 		if err != nil {
 			if _, ok := err.(OperationAlreadyCompletedError); ok {
@@ -80,8 +70,6 @@ func (b *Broker) Update(
 		}
 		return domain.UpdateServiceSpec{}, b.processError(err, logger)
 	}
-
-	// END
 
 	b.deploymentLock.Lock()
 	defer b.deploymentLock.Unlock()
@@ -116,6 +104,11 @@ func (b *Broker) Update(
 	}
 
 	logger.Printf("updating instance %s", instanceID)
+
+	detailsMap, err := convertDetailsToMap(domain.DetailsWithRawParameters(details))
+	if err != nil {
+		return domain.UpdateServiceSpec{}, b.processError(NewGenericError(ctx, err), logger)
+	}
 
 	operationType = OperationTypeUpdate
 	boshTaskID, _, err = b.deployer.Update(
@@ -174,17 +167,6 @@ func (b *Broker) checkPlanExists(details domain.UpdateDetails, logger *log.Logge
 	}
 
 	return plan, nil
-}
-
-func (b *Broker) isUpgrade(details domain.UpdateDetails, detailsMap map[string]interface{}) bool {
-	if details.MaintenanceInfo != nil {
-		params := detailsMap["parameters"]
-		planSame := details.PlanID == details.PreviousValues.PlanID
-		numParams := len(params.(map[string]interface{}))
-		// TODO: the cast here can *panic*:
-		return planSame && numParams == 0
-	}
-	return false
 }
 
 func (b *Broker) validateMaintenanceInfo(ctx context.Context, planID string, maintenanceInfo *domain.MaintenanceInfo, logger *log.Logger) error {

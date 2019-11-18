@@ -25,7 +25,8 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 )
 
-var _ = FDescribe("Update", func() {
+// TODO check for calls to fake checker
+var _ = Describe("Update", func() {
 	var (
 		instanceID                              = "some-instance-id"
 		updateSpec                              domain.UpdateServiceSpec
@@ -688,7 +689,7 @@ var _ = FDescribe("Update", func() {
 				previousMaintenanceInfo.Version = "v99.8.5674"
 
 				fakeMaintenanceInfoChecker.CheckReturnsOnCall(1, errors.New("failed to check updates"))
-				fakeDecider.DecideReturns(errors.New("failed to check updates"))
+				fakeDecider.DecideReturns(false, errors.New("failed to check updates"))
 			})
 
 			It("does error", func() {
@@ -748,7 +749,7 @@ var _ = FDescribe("Update", func() {
 
 		It("accepts the upgrade when maintenance_info is set", func() {
 			for i, updateDetails := range testCases {
-				fakeMaintenanceInfoChecker.CheckReturns(nil)
+				fakeDecider.DecideReturns(true, nil)
 
 				updateSpec, updateError = testBroker.Update(context.Background(), instanceID, updateDetails, async)
 
@@ -773,6 +774,7 @@ var _ = FDescribe("Update", func() {
 
 		It("returns an synchronous spec and nil error when the operation has already completed", func() {
 			for i, updateDetails := range testCases {
+				fakeDecider.DecideReturns(true, nil)
 				fakeDeployer.UpgradeReturns(0, []byte{}, broker.NewOperationAlreadyCompletedError(errors.New("done")))
 
 				updateSpec, updateError = testBroker.Update(context.Background(), instanceID, updateDetails, async)
@@ -877,7 +879,7 @@ var _ = FDescribe("Update", func() {
 
 		It("fails when the requested maintenance info check fails", func() {
 			for i, t := range testCases {
-				fakeDecider.DecideReturns(fmt.Errorf("nope"))
+				fakeDecider.DecideReturns(false, fmt.Errorf("nope"))
 				fakeMaintenanceInfoChecker.CheckReturns(fmt.Errorf("nope"))
 
 				updateSpec, updateError = testBroker.Update(context.Background(), instanceID, t, async)
