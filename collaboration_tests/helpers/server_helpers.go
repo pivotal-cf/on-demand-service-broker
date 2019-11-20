@@ -44,20 +44,7 @@ type Server struct {
 	loggerBuffer   *gbytes.Buffer
 }
 
-func StartServer(
-	conf config.Config,
-	stopServerChan chan os.Signal,
-	fakeCommandRunner *serviceadapterfakes.FakeCommandRunner,
-	fakeTaskBoshClient *taskfakes.FakeBoshClient,
-	fakeTaskBulkSetter *taskfakes.FakeBulkSetter,
-	fakeCfClient *fakes.FakeCloudFoundryClient,
-	fakeBoshClient *fakes.FakeBoshClient,
-	fakeMapHasher *fakes.FakeHasher,
-	maintenanceInfoChecker *fakes.FakeMaintenanceInfoChecker,
-	fakeCredentialStore *credhubfakes.FakeCredentialStore,
-	fakeCredhubOperator *manifestsecretsfakes.FakeCredhubOperator,
-	loggerBuffer *gbytes.Buffer,
-) (*Server, error) {
+func StartServer(conf config.Config, stopServerChan chan os.Signal, fakeCommandRunner *serviceadapterfakes.FakeCommandRunner, fakeTaskBoshClient *taskfakes.FakeBoshClient, fakeTaskBulkSetter *taskfakes.FakeBulkSetter, fakeCfClient *fakes.FakeCloudFoundryClient, fakeBoshClient *fakes.FakeBoshClient, fakeMapHasher *fakes.FakeHasher, fakeCredentialStore *credhubfakes.FakeCredentialStore, fakeCredhubOperator *manifestsecretsfakes.FakeCredhubOperator, loggerBuffer *gbytes.Buffer) (*Server, error) {
 	var err error
 
 	if conf.Broker.ShutdownTimeoutSecs == 0 {
@@ -84,22 +71,7 @@ func StartServer(
 	credhubPathMatcher := new(manifestsecrets.CredHubPathMatcher)
 	secretManager := manifestsecrets.BuildManager(true, credhubPathMatcher, fakeCredhubOperator)
 
-	fakeOnDemandBroker, err := broker.New(
-		fakeBoshClient,
-		fakeCfClient,
-		conf.ServiceCatalog,
-		conf.Broker,
-		nil,
-		serviceAdapterClient,
-		deployer,
-		secretManager,
-		instanceLister,
-		fakeMapHasher,
-		loggerFactory,
-		new(fakes.FakeTelemetryLogger),
-		maintenanceInfoChecker,
-		decider.Decider{},
-	)
+	fakeOnDemandBroker, err := broker.New(fakeBoshClient, fakeCfClient, conf.ServiceCatalog, conf.Broker, nil, serviceAdapterClient, deployer, secretManager, instanceLister, fakeMapHasher, loggerFactory, new(fakes.FakeTelemetryLogger), decider.Decider{})
 	Expect(err).NotTo(HaveOccurred())
 	var fakeBroker apiserver.CombinedBroker
 	if conf.HasRuntimeCredHub() {

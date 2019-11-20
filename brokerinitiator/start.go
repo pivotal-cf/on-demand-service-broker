@@ -8,7 +8,6 @@ import (
 
 	"github.com/pivotal-cf/on-demand-service-broker/telemetry"
 
-	"github.com/pivotal-cf/on-demand-service-broker/broker/maintenanceinfo"
 	"github.com/pivotal-cf/on-demand-service-broker/hasher"
 	"github.com/pivotal-cf/on-demand-service-broker/service"
 
@@ -67,22 +66,7 @@ func Initiate(conf config.Config,
 	telemetryLogger := telemetry.Build(conf.Broker.EnableTelemetry, conf.ServiceCatalog, logger)
 
 	var onDemandBroker apiserver.CombinedBroker
-	onDemandBroker, err = broker.New(
-		brokerBoshClient,
-		cfClient,
-		conf.ServiceCatalog,
-		conf.Broker,
-		startupChecks,
-		serviceAdapter,
-		deploymentManager,
-		manifestSecretManager,
-		instanceLister,
-		&hasher.MapHasher{},
-		loggerFactory,
-		telemetryLogger,
-		maintenanceinfo.Checker{},
-		decider.Decider{},
-	)
+	onDemandBroker, err = broker.New(brokerBoshClient, cfClient, conf.ServiceCatalog, conf.Broker, startupChecks, serviceAdapter, deploymentManager, manifestSecretManager, instanceLister, &hasher.MapHasher{}, loggerFactory, telemetryLogger, decider.Decider{})
 	if err != nil {
 		logger.Fatalf("error starting broker: %s", err)
 	}

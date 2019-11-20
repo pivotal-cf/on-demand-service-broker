@@ -44,8 +44,7 @@ type Broker struct {
 	catalogLock     sync.Mutex
 	cachedCatalog   []domain.Service
 
-	maintenanceInfoChecker MaintenanceInfoChecker
-	decider                Decider
+	decider Decider
 }
 
 func New(
@@ -61,9 +60,7 @@ func New(
 	hasher Hasher,
 	loggerFactory *loggerfactory.LoggerFactory,
 	telemetryLogger TelemetryLogger,
-	maintenanceInfoChecker MaintenanceInfoChecker,
-	decider Decider,
-) (*Broker, error) {
+	decider Decider) (*Broker, error) {
 
 	b := &Broker{
 		boshClient:              boshClient,
@@ -82,7 +79,6 @@ func New(
 		hasher:                  hasher,
 		loggerFactory:           loggerFactory,
 		telemetryLogger:         telemetryLogger,
-		maintenanceInfoChecker:  maintenanceInfoChecker,
 		decider:                 decider,
 	}
 
@@ -234,12 +230,6 @@ type TelemetryLogger interface {
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_map_hasher.go . Hasher
 type Hasher interface {
 	Hash(m map[string]string) string
-}
-
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_maintenance_info_checker.go . MaintenanceInfoChecker
-
-type MaintenanceInfoChecker interface {
-	Check(planID string, maintenanceInfo *domain.MaintenanceInfo, serviceCatalog []domain.Service, logger *log.Logger) error
 }
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_decider.go . Decider

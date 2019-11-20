@@ -996,8 +996,7 @@ var _ = Describe("Provisioning", func() {
 			fakeDeployer.CreateReturns(deployTaskID, newlyGeneratedManifest, nil)
 		})
 
-		It("succeeds when maintenanceInfo.Checker succeeds", func() {
-
+		It("succeeds when decider succeeds", func() {
 			provisionDetails.MaintenanceInfo = &domain.MaintenanceInfo{
 				Version: "1.2.3",
 				Public: map[string]string{
@@ -1007,24 +1006,21 @@ var _ = Describe("Provisioning", func() {
 			}
 
 			_, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
+			serviceCatalog, _ := b.Services(nil)
 
 			Expect(provisionErr).ToNot(HaveOccurred())
-			Expect(fakeMaintenanceInfoChecker.CheckCallCount()).To(Equal(1), "Check was not called")
-			actualPlanID, actualMaintenanceInfo, actualServiceCatalog, _ := fakeMaintenanceInfoChecker.CheckArgsForCall(0)
-			Expect(actualMaintenanceInfo).To(Equal(provisionDetails.MaintenanceInfo))
-			Expect(actualPlanID).To(Equal(provisionDetails.PlanID))
-
-			serviceCatalog, _ := b.Services(nil)
+			Expect(fakeDecider.DecideCallCount()).To(Equal(1), "Check was not called")
+			actualServiceCatalog, actualDetails, _ := fakeDecider.DecideArgsForCall(0)
+			Expect(actualDetails.MaintenanceInfo).To(Equal(provisionDetails.MaintenanceInfo))
+			Expect(actualDetails.PlanID).To(Equal(provisionDetails.PlanID))
 			Expect(actualServiceCatalog).To(Equal(serviceCatalog))
 		})
 
-		It("fails when the maintenanceInfo.Checker fails", func() {
-			fakeMaintenanceInfoChecker.CheckReturns(fmt.Errorf("nope"))
+		It("fails when the decider fails", func() {
+			fakeDecider.DecideReturns(false, fmt.Errorf("decider nope"))
 
 			_, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
-
-			Expect(fakeMaintenanceInfoChecker.CheckCallCount()).To(Equal(1), "Check was not called")
-			Expect(provisionErr).To(MatchError(ContainSubstring("nope")))
+			Expect(provisionErr).To(MatchError(ContainSubstring("decider nope")))
 		})
 	})
 })

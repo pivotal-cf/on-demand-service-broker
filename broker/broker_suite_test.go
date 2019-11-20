@@ -46,22 +46,21 @@ const (
 )
 
 var (
-	b                          *broker.Broker
-	brokerCreationErr          error
-	boshClient                 *fakes.FakeBoshClient
-	cfClient                   *fakes.FakeCloudFoundryClient
-	serviceAdapter             *fakes.FakeServiceAdapterClient
-	fakeDeployer               *fakes.FakeDeployer
-	fakeInstanceLister         *servicefakes.FakeInstanceLister
-	serviceCatalog             config.ServiceOffering
-	logBuffer                  *bytes.Buffer
-	loggerFactory              *loggerfactory.LoggerFactory
-	fakeTelemetryLogger        *fakes.FakeTelemetryLogger
-	brokerConfig               config.Broker
-	fakeSecretManager          *fakes.FakeManifestSecretManager
-	fakeMapHasher              *fakes.FakeHasher
-	fakeMaintenanceInfoChecker *fakes.FakeMaintenanceInfoChecker
-	fakeDecider                *fakes.FakeDecider
+	b                   *broker.Broker
+	brokerCreationErr   error
+	boshClient          *fakes.FakeBoshClient
+	cfClient            *fakes.FakeCloudFoundryClient
+	serviceAdapter      *fakes.FakeServiceAdapterClient
+	fakeDeployer        *fakes.FakeDeployer
+	fakeInstanceLister  *servicefakes.FakeInstanceLister
+	serviceCatalog      config.ServiceOffering
+	logBuffer           *bytes.Buffer
+	loggerFactory       *loggerfactory.LoggerFactory
+	fakeTelemetryLogger *fakes.FakeTelemetryLogger
+	brokerConfig        config.Broker
+	fakeSecretManager   *fakes.FakeManifestSecretManager
+	fakeMapHasher       *fakes.FakeHasher
+	fakeDecider         *fakes.FakeDecider
 
 	existingPlanServiceInstanceLimit    = 3
 	serviceOfferingServiceInstanceLimit = 5
@@ -335,7 +334,6 @@ var _ = BeforeEach(func() {
 	fakeMapHasher = new(fakes.FakeHasher)
 	fakeMapHasher.HashStub = ReturnSameValueHasher
 	cfClient.GetAPIVersionReturns("2.57.0", nil)
-	fakeMaintenanceInfoChecker = new(fakes.FakeMaintenanceInfoChecker)
 	fakeDecider = new(fakes.FakeDecider)
 
 	serviceCatalog = config.ServiceOffering{
@@ -394,22 +392,7 @@ func createDefaultBroker() *broker.Broker {
 func createBrokerWithAdapter(serviceAdapter *fakes.FakeServiceAdapterClient) *broker.Broker {
 	var client broker.CloudFoundryClient = cfClient
 
-	broker, err := broker.New(
-		boshClient,
-		client,
-		serviceCatalog,
-		brokerConfig,
-		[]broker.StartupChecker{},
-		serviceAdapter,
-		fakeDeployer,
-		fakeSecretManager,
-		fakeInstanceLister,
-		fakeMapHasher,
-		loggerFactory,
-		fakeTelemetryLogger,
-		fakeMaintenanceInfoChecker,
-		fakeDecider,
-	)
+	broker, err := broker.New(boshClient, client, serviceCatalog, brokerConfig, []broker.StartupChecker{}, serviceAdapter, fakeDeployer, fakeSecretManager, fakeInstanceLister, fakeMapHasher, loggerFactory, fakeTelemetryLogger, fakeDecider)
 
 	Expect(err).NotTo(HaveOccurred())
 	return broker
@@ -418,22 +401,7 @@ func createBrokerWithAdapter(serviceAdapter *fakes.FakeServiceAdapterClient) *br
 func createBrokerWithServiceCatalog(catalog config.ServiceOffering) *broker.Broker {
 	var client broker.CloudFoundryClient = cfClient
 
-	broker, err := broker.New(
-		boshClient,
-		client,
-		catalog,
-		brokerConfig,
-		[]broker.StartupChecker{},
-		serviceAdapter,
-		fakeDeployer,
-		fakeSecretManager,
-		fakeInstanceLister,
-		fakeMapHasher,
-		loggerFactory,
-		fakeTelemetryLogger,
-		fakeMaintenanceInfoChecker,
-		fakeDecider,
-	)
+	broker, err := broker.New(boshClient, client, catalog, brokerConfig, []broker.StartupChecker{}, serviceAdapter, fakeDeployer, fakeSecretManager, fakeInstanceLister, fakeMapHasher, loggerFactory, fakeTelemetryLogger, fakeDecider)
 
 	Expect(err).NotTo(HaveOccurred())
 	return broker
@@ -444,22 +412,7 @@ func createBroker(startupCheckers []broker.StartupChecker, overrideClient ...bro
 	if len(overrideClient) > 0 {
 		client = overrideClient[0]
 	}
-	return broker.New(
-		boshClient,
-		client,
-		serviceCatalog,
-		brokerConfig,
-		startupCheckers,
-		serviceAdapter,
-		fakeDeployer,
-		fakeSecretManager,
-		fakeInstanceLister,
-		fakeMapHasher,
-		loggerFactory,
-		fakeTelemetryLogger,
-		fakeMaintenanceInfoChecker,
-		fakeDecider,
-	)
+	return broker.New(boshClient, client, serviceCatalog, brokerConfig, startupCheckers, serviceAdapter, fakeDeployer, fakeSecretManager, fakeInstanceLister, fakeMapHasher, loggerFactory, fakeTelemetryLogger, fakeDecider)
 }
 
 func ReturnSameValueHasher(m map[string]string) string {

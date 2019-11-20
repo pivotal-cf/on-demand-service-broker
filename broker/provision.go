@@ -59,7 +59,11 @@ func (b *Broker) Provision(
 		return domain.ProvisionedServiceSpec{}, b.processError(err, logger)
 	}
 
-	err = b.maintenanceInfoChecker.Check(details.PlanID, details.MaintenanceInfo, serviceCatalog, logger)
+	_, err = b.decider.Decide(serviceCatalog, domain.UpdateDetails{ // <-- not quite nice
+		PlanID:          details.PlanID,
+		MaintenanceInfo: details.MaintenanceInfo,
+	}, logger)
+
 	if err != nil {
 		return domain.ProvisionedServiceSpec{}, b.processError(err, logger)
 	}

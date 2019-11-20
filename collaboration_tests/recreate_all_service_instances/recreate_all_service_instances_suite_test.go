@@ -55,20 +55,7 @@ func StartServer(conf config.Config) *helpers.Server {
 	loggerBuffer = gbytes.NewBuffer()
 	stopServer := make(chan os.Signal)
 
-	server, err := helpers.StartServer(
-		conf,
-		stopServer,
-		fakeCommandRunner,
-		fakeTaskBoshClient,
-		fakeTaskBulkSetter,
-		fakeCfClient,
-		fakeBoshClient,
-		new(fakes.FakeHasher),
-		new(fakes.FakeMaintenanceInfoChecker),
-		fakeCredentialStore,
-		fakeCredhubOperator,
-		loggerBuffer,
-	)
+	server, err := helpers.StartServer(conf, stopServer, fakeCommandRunner, fakeTaskBoshClient, fakeTaskBulkSetter, fakeCfClient, fakeBoshClient, new(fakes.FakeHasher), fakeCredentialStore, fakeCredhubOperator, loggerBuffer)
 	Expect(err).NotTo(HaveOccurred())
 	return server
 }

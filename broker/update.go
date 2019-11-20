@@ -37,7 +37,7 @@ func (b *Broker) Update(
 		return domain.UpdateServiceSpec{}, b.processError(apiresponses.ErrAsyncRequired, logger)
 	}
 
-	servicesCatalog, _ := b.Services(ctx) // Can't error
+	servicesCatalog, _ := b.Services(ctx)
 
 	isUpgrade, err := b.decider.Decide(servicesCatalog, details, logger)
 	if err != nil {
