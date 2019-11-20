@@ -45,25 +45,43 @@ func (b *Broker) Update(
 	}
 
 	if isUpgrade {
-		operationData, err := b.Upgrade(ctx, instanceID, details, logger)
-		if err != nil {
-			if _, ok := err.(OperationAlreadyCompletedError); ok {
-				return domain.UpdateServiceSpec{IsAsync: false}, nil
-			}
-			return domain.UpdateServiceSpec{}, err
-		}
-		operationDataJSON, err := json.Marshal(operationData)
-		if err != nil {
-			return domain.UpdateServiceSpec{}, b.processError(NewGenericError(ctx, err), logger)
-		}
-		return domain.UpdateServiceSpec{IsAsync: true, OperationData: string(operationDataJSON)}, nil
+		return b.doUpgrade(ctx, instanceID, details, logger)
 	}
 
+	return b.doUpdate(ctx, instanceID, details, logger)
+}
+
+func (b *Broker) doUpgrade(ctx context.Context, instanceID string, details domain.UpdateDetails, logger *log.Logger) (domain.UpdateServiceSpec, error) {
+	operationData, err := b.Upgrade(ctx, instanceID, details, logger)
+	if err != nil {
+		if _, ok := err.(OperationAlreadyCompletedError); ok {
+			return domain.UpdateServiceSpec{IsAsync: false}, nil
+		}
+		return domain.UpdateServiceSpec{}, err
+	}
+
+	operationDataJSON, err := json.Marshal(operationData)
+	if err != nil {
+		return domain.UpdateServiceSpec{}, b.processError(NewGenericError(ctx, err), logger)
+	}
+
+	return domain.UpdateServiceSpec{IsAsync: true, OperationData: string(operationDataJSON)}, nil
+}
+
+func (b *Broker) doUpdate(ctx context.Context, instanceID string, details domain.UpdateDetails, logger *log.Logger) (domain.UpdateServiceSpec, error) {
 	b.deploymentLock.Lock()
 	defer b.deploymentLock.Unlock()
 
-	plan, err := b.checkPlanExists(details, logger)
+	plan, err := b.findPlanInCatalog(details, logger)
 	if err != nil {
+		return domain.UpdateServiceSpec{}, b.processError(err, logger)
+	}
+
+	if err := b.validateQuotasForUpdate(ctx, plan, details, logger); err != nil {
+		return domain.UpdateServiceSpec{}, b.processError(err, logger)
+	}
+
+	if err := b.validatePlanSchemas(plan, details, logger); err != nil {
 		return domain.UpdateServiceSpec{}, b.processError(err, logger)
 	}
 
@@ -72,34 +90,18 @@ func (b *Broker) Update(
 		boshContextID = uuid.New()
 	}
 
-	var boshTaskID int
-	var operationType OperationType
-
-	err = b.validateQuotasForUpdate(ctx, plan, details, logger)
-	if err != nil {
-		return domain.UpdateServiceSpec{}, b.processError(err, logger)
-	}
-
-	err = b.validatePlanSchemas(plan, details, logger)
-	if err != nil {
-		return domain.UpdateServiceSpec{}, b.processError(err, logger)
-	}
-
-	var secretMap map[string]string
-	secretMap, err = b.getSecretMap(instanceID, logger)
+	secretMap, err := b.getSecretMap(instanceID, logger)
 	if err != nil {
 		return domain.UpdateServiceSpec{}, b.processError(NewGenericError(ctx, err), logger)
 	}
-
-	logger.Printf("updating instance %s", instanceID)
 
 	detailsMap, err := convertDetailsToMap(domain.DetailsWithRawParameters(details))
 	if err != nil {
 		return domain.UpdateServiceSpec{}, b.processError(NewGenericError(ctx, err), logger)
 	}
 
-	operationType = OperationTypeUpdate
-	boshTaskID, _, err = b.deployer.Update(
+	logger.Printf("updating instance %s", instanceID)
+	boshTaskID, _, err := b.deployer.Update(
 		deploymentName(instanceID),
 		details.PlanID,
 		detailsMap,
@@ -108,14 +110,13 @@ func (b *Broker) Update(
 		secretMap,
 		logger,
 	)
-
 	if err != nil {
 		return b.handleUpdateError(ctx, err, logger)
 	}
 
 	operationData, err := json.Marshal(OperationData{
 		BoshTaskID:    boshTaskID,
-		OperationType: operationType,
+		OperationType: OperationTypeUpdate,
 		BoshContextID: boshContextID,
 		Errands:       plan.PostDeployErrands(),
 	})
@@ -148,7 +149,7 @@ func (b *Broker) handleUpdateError(ctx context.Context, err error, logger *log.L
 	return domain.UpdateServiceSpec{}, nil
 }
 
-func (b *Broker) checkPlanExists(details domain.UpdateDetails, logger *log.Logger) (config.Plan, error) {
+func (b *Broker) findPlanInCatalog(details domain.UpdateDetails, logger *log.Logger) (config.Plan, error) {
 	plan, found := b.serviceOffering.FindPlanByID(details.PlanID)
 	if !found {
 		return config.Plan{}, PlanNotFoundError{PlanGUID: details.PlanID}

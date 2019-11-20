@@ -175,7 +175,7 @@ var _ = Describe("Update a service instance", func() {
 		})
 	})
 
-	Describe("updating plans", func() {
+	Describe("changing plans", func() {
 		It("succeeds when there are no pending changes", func() {
 			resp, bodyContent := doUpdateRequest(requestBody, instanceID)
 
@@ -300,7 +300,7 @@ var _ = Describe("Update a service instance", func() {
 		})
 	})
 
-	Describe("updating arbitrary parameters", func() {
+	Describe("changing arbitrary parameters", func() {
 		BeforeEach(func() {
 			requestBody.RawParameters = []byte(`{"foo":"bar"}`)
 			requestBody.PlanID = requestBody.PreviousValues.PlanID
@@ -395,7 +395,7 @@ var _ = Describe("Update a service instance", func() {
 		})
 	})
 
-	Describe("updating maintenance_info", func() {
+	Describe("changing maintenance_info", func() {
 		BeforeEach(func() {
 			oldManifest := "name: service-instance_some-instance-id"
 			fakeTaskBoshClient.GetDeploymentReturns([]byte(oldManifest), true, nil)
@@ -412,6 +412,11 @@ properties:
 			requestBody.MaintenanceInfo = &domain.MaintenanceInfo{
 				Public: map[string]string{
 					"version": "2",
+				},
+			}
+			requestBody.PreviousValues.MaintenanceInfo = &domain.MaintenanceInfo{
+				Public: map[string]string{
+					"version": "1",
 				},
 			}
 			requestBody.PlanID = oldPlanID

@@ -37,7 +37,7 @@ func (d Decider) Decide(catalog []domain.Service, details domain.UpdateDetails, 
 		return false, apiresponses.ErrMaintenanceInfoConflict
 	}
 
-	if planNotChanged(details) && requestParamsEmpty(details) {
+	if planNotChanged(details) && requestParamsEmpty(details) && requestMaintenanceInfoValuesDiffer(details) {
 		return true, nil
 	}
 
@@ -48,6 +48,22 @@ func (d Decider) Decide(catalog []domain.Service, details domain.UpdateDetails, 
 	}
 
 	return false, nil
+}
+
+func requestMaintenanceInfoValuesDiffer(details domain.UpdateDetails) bool {
+	if details.MaintenanceInfo == nil && details.PreviousValues.MaintenanceInfo != nil {
+		return true
+	}
+
+	if details.MaintenanceInfo != nil && details.PreviousValues.MaintenanceInfo == nil {
+		return true
+	}
+
+	if details.MaintenanceInfo == nil && details.PreviousValues.MaintenanceInfo == nil {
+		return false
+	}
+
+	return !details.MaintenanceInfo.Equals(*details.PreviousValues.MaintenanceInfo)
 }
 
 func planNotChanged(details domain.UpdateDetails) bool {
