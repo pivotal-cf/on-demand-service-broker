@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/pivotal-cf/on-demand-service-broker/broker/decider"
 	"log"
 	"net/http"
 
@@ -39,12 +40,12 @@ func (b *Broker) Update(
 
 	servicesCatalog, _ := b.Services(ctx)
 
-	isUpgrade, err := b.decider.Decide(servicesCatalog, details, logger)
+	operation, err := b.decider.DecideOperation(servicesCatalog, details, logger)
 	if err != nil {
 		return domain.UpdateServiceSpec{}, b.processError(err, logger)
 	}
 
-	if isUpgrade {
+	if operation == decider.Upgrade {
 		return b.doUpgrade(ctx, instanceID, details, logger)
 	}
 

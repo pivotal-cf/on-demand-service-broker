@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/pivotal-cf/on-demand-service-broker/broker/decider"
 	"net/http"
 
 	"github.com/pivotal-cf/brokerapi/v7/domain"
@@ -78,7 +79,7 @@ var _ = Describe("Update", func() {
 	When("it is an update", func() {
 		var updateDetails domain.UpdateDetails
 		BeforeEach(func() {
-			fakeDecider.DecideReturns(false, nil)
+			fakeDecider.DecideOperationReturns(decider.Update, nil)
 		})
 
 		JustBeforeEach(func() {
@@ -668,6 +669,22 @@ var _ = Describe("Update", func() {
 				))
 			})
 		})
+
+		When("the plan does not exist in the catalog", func() {
+			BeforeEach(func() {
+				newPlanID = "invalid-plan-guid"
+			})
+
+			It("fails", func() {
+				planNotFoundError := broker.PlanNotFoundError{PlanGUID: "invalid-plan-guid"}
+
+				Expect(updateError).To(Equal(planNotFoundError))
+
+				Expect(boshClient.GetDeploymentCallCount()).To(BeZero())
+				Expect(fakeDeployer.UpdateCallCount()).To(BeZero())
+			})
+		})
+
 	})
 
 	When("it is an upgrade", func() {
@@ -676,7 +693,7 @@ var _ = Describe("Update", func() {
 		BeforeEach(func() {
 			fakeDeployer.UpgradeReturns(50, nil, nil)
 			fakeDeployer.UpdateReturns(-1, nil, errors.New("fail"))
-			fakeDecider.DecideReturns(true, nil)
+			fakeDecider.DecideOperationReturns(decider.Upgrade, nil)
 
 			updateDetails = domain.UpdateDetails{
 				PlanID:     oldPlanID,
@@ -753,8 +770,8 @@ var _ = Describe("Update", func() {
 				_, updateError = testBroker.Update(context.Background(), instanceID, t, async)
 				Expect(updateError).NotTo(HaveOccurred())
 
-				Expect(fakeDecider.DecideCallCount()).To(Equal(i + 1))
-				c, d, _ := fakeDecider.DecideArgsForCall(i)
+				Expect(fakeDecider.DecideOperationCallCount()).To(Equal(i + 1))
+				c, d, _ := fakeDecider.DecideOperationArgsForCall(i)
 				Expect(c).To(Equal(catalog))
 				Expect(d).To(Equal(t))
 			}
@@ -762,26 +779,10 @@ var _ = Describe("Update", func() {
 
 		It("fails when the the decider errors", func() {
 			deciderError := errors.New("some decider error")
-			fakeDecider.DecideReturns(false, deciderError)
+			fakeDecider.DecideOperationReturns(decider.Update, deciderError)
 			for _, t := range testCases {
 				_, updateError = testBroker.Update(context.Background(), instanceID, t, async)
 				Expect(updateError).To(MatchError(deciderError))
-			}
-		})
-
-		It("fails when plan is not found", func() {
-			for i, t := range testCases {
-				invalidPlanId := "invalid-plan-guid"
-				planNotFoundError := broker.PlanNotFoundError{PlanGUID: invalidPlanId}
-
-				t.PlanID = invalidPlanId
-
-				updateSpec, updateError = testBroker.Update(context.Background(), instanceID, t, async)
-
-				Expect(updateError).To(Equal(planNotFoundError), fmt.Sprintf("test case %d", i))
-
-				Expect(boshClient.GetDeploymentCallCount()).To(BeZero())
-				Expect(fakeDeployer.UpdateCallCount()).To(BeZero())
 			}
 		})
 
@@ -832,7 +833,7 @@ var _ = Describe("Update", func() {
 
 		It("fails when the requested maintenance info check fails", func() {
 			for i, t := range testCases {
-				fakeDecider.DecideReturns(false, fmt.Errorf("nope"))
+				fakeDecider.DecideOperationReturns(decider.Update, fmt.Errorf("nope"))
 
 				updateSpec, updateError = testBroker.Update(context.Background(), instanceID, t, async)
 

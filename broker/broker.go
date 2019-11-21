@@ -8,6 +8,7 @@ package broker
 
 import (
 	"fmt"
+	"github.com/pivotal-cf/on-demand-service-broker/broker/decider"
 	"log"
 	"strings"
 	"sync"
@@ -235,6 +236,6 @@ type Hasher interface {
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_decider.go . Decider
 
 type Decider interface {
-	Decide(catalog []domain.Service, details domain.UpdateDetails, logger *log.Logger) (bool, error)
+	DecideOperation(catalog []domain.Service, details domain.UpdateDetails, logger *log.Logger) (decider.Operation, error)
 	CanProvision(catalog []domain.Service, planID string, maintenanceInfo *domain.MaintenanceInfo, logger *log.Logger) error
 }

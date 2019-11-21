@@ -22,6 +22,14 @@ var warningMaintenanceInfoNilInTheRequest = errors.New(
 
 type Decider struct{}
 
+type Operation int
+
+const (
+	Update Operation = iota
+	Upgrade
+	Failed
+)
+
 func (d Decider) CanProvision(catalog []domain.Service, planID string, maintenanceInfo *domain.MaintenanceInfo, logger *log.Logger) error {
 	if err := validateMaintenanceInfo(catalog, planID, maintenanceInfo, logger); err != nil {
 		if err != warningMaintenanceInfoNilInTheRequest {
@@ -31,25 +39,25 @@ func (d Decider) CanProvision(catalog []domain.Service, planID string, maintenan
 	return nil
 }
 
-func (d Decider) Decide(catalog []domain.Service, details domain.UpdateDetails, logger *log.Logger) (bool, error) {
+func (d Decider) DecideOperation(catalog []domain.Service, details domain.UpdateDetails, logger *log.Logger) (Operation, error) {
 	if err := validateMaintenanceInfo(catalog, details.PlanID, details.MaintenanceInfo, logger); err != nil {
 		if err == warningMaintenanceInfoNilInTheRequest {
-			return false, nil
+			return Update, nil
 		}
-		return false, err
+		return Failed, err
 	}
 
 	if planNotChanged(details) && requestParamsEmpty(details) && requestMaintenanceInfoValuesDiffer(details) {
-		return true, nil
+		return Upgrade, nil
 	}
 
 	if previousPlanMaintenanceInfo, err := getMaintenanceInfoForPlan(details.PreviousValues.PlanID, catalog); err == nil {
 		if maintenanceInfoConflict(details.PreviousValues.MaintenanceInfo, previousPlanMaintenanceInfo) {
-			return false, errInstanceMustBeUpgradedFirst
+			return Failed, errInstanceMustBeUpgradedFirst
 		}
 	}
 
-	return false, nil
+	return Update, nil
 }
 
 func validateMaintenanceInfo(catalog []domain.Service, planID string, maintenanceInfo *domain.MaintenanceInfo, logger *log.Logger) error {

@@ -63,8 +63,7 @@ var _ = Describe("Decider", func() {
 				PlanID: "not-in-catalog",
 			}
 
-			_, err := decider.Decider{}.Decide(catalog, details, logger)
-
+			_, err := decider.Decider{}.DecideOperation(catalog, details, logger)
 			Expect(err).To(MatchError("plan not-in-catalog does not exist"))
 		})
 
@@ -74,9 +73,9 @@ var _ = Describe("Decider", func() {
 				MaintenanceInfo: defaultMI,
 			}
 
-			isUpgrade, err := decider.Decider{}.Decide(catalog, details, logger)
+			operation, err := decider.Decider{}.DecideOperation(catalog, details, logger)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(isUpgrade).To(BeFalse())
+			Expect(operation).To(Equal(decider.Update))
 		})
 
 		Context("request without maintenance_info", func() {
@@ -88,7 +87,7 @@ var _ = Describe("Decider", func() {
 					},
 				}
 
-				_, err := decider.Decider{}.Decide(catalog, details, logger)
+				_, err := decider.Decider{}.DecideOperation(catalog, details, logger)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(logBuffer.String()).To(BeEmpty())
 			})
@@ -102,9 +101,9 @@ var _ = Describe("Decider", func() {
 						},
 					}
 
-					isUpgrade, err := decider.Decider{}.Decide(catalog, details, logger)
+					operation, err := decider.Decider{}.DecideOperation(catalog, details, logger)
 					Expect(err).NotTo(HaveOccurred())
-					Expect(isUpgrade).To(BeFalse())
+					Expect(operation).To(Equal(decider.Update))
 				})
 			})
 
@@ -115,9 +114,9 @@ var _ = Describe("Decider", func() {
 						RawParameters: json.RawMessage(`{"foo": "bar"}`),
 					}
 
-					isUpgrade, err := decider.Decider{}.Decide(catalog, details, logger)
+					operation, err := decider.Decider{}.DecideOperation(catalog, details, logger)
 					Expect(err).NotTo(HaveOccurred())
-					Expect(isUpgrade).To(BeFalse())
+					Expect(operation).To(Equal(decider.Update))
 				})
 			})
 
@@ -131,9 +130,9 @@ var _ = Describe("Decider", func() {
 						},
 					}
 
-					isUpgrade, err := decider.Decider{}.Decide(catalog, details, logger)
+					operation, err := decider.Decider{}.DecideOperation(catalog, details, logger)
 					Expect(err).NotTo(HaveOccurred())
-					Expect(isUpgrade).To(BeFalse())
+					Expect(operation).To(Equal(decider.Update))
 				})
 			})
 
@@ -147,9 +146,9 @@ var _ = Describe("Decider", func() {
 						},
 					}
 
-					isUpgrade, err := decider.Decider{}.Decide(catalog, details, logger)
+					operation, err := decider.Decider{}.DecideOperation(catalog, details, logger)
 					Expect(err).NotTo(HaveOccurred())
-					Expect(isUpgrade).To(BeFalse())
+					Expect(operation).To(Equal(decider.Update))
 				})
 			})
 
@@ -162,9 +161,9 @@ var _ = Describe("Decider", func() {
 						},
 					}
 
-					isUpgrade, err := decider.Decider{}.Decide(catalog, details, logger)
+					operation, err := decider.Decider{}.DecideOperation(catalog, details, logger)
 					Expect(err).NotTo(HaveOccurred())
-					Expect(isUpgrade).To(BeFalse())
+					Expect(operation).To(Equal(decider.Update))
 					Expect(logBuffer.String()).To(ContainSubstring(
 						"warning: maintenance info defined in broker service catalog, but not passed in request",
 					))
@@ -184,9 +183,9 @@ var _ = Describe("Decider", func() {
 						},
 					}
 
-					isUpgrade, err := decider.Decider{}.Decide(catalog, details, logger)
+					operation, err := decider.Decider{}.DecideOperation(catalog, details, logger)
 					Expect(err).NotTo(HaveOccurred())
-					Expect(isUpgrade).To(BeFalse())
+					Expect(operation).To(Equal(decider.Update))
 				})
 			})
 
@@ -198,9 +197,9 @@ var _ = Describe("Decider", func() {
 						RawParameters:   json.RawMessage(`{"foo": "bar"}`),
 					}
 
-					isUpgrade, err := decider.Decider{}.Decide(catalog, details, logger)
+					operation, err := decider.Decider{}.DecideOperation(catalog, details, logger)
 					Expect(err).NotTo(HaveOccurred())
-					Expect(isUpgrade).To(BeFalse())
+					Expect(operation).To(Equal(decider.Update))
 				})
 			})
 
@@ -216,9 +215,9 @@ var _ = Describe("Decider", func() {
 						},
 					}
 
-					isUpgrade, err := decider.Decider{}.Decide(catalog, details, logger)
+					operation, err := decider.Decider{}.DecideOperation(catalog, details, logger)
 					Expect(err).NotTo(HaveOccurred())
-					Expect(isUpgrade).To(BeFalse())
+					Expect(operation).To(Equal(decider.Update))
 				})
 			})
 
@@ -234,9 +233,9 @@ var _ = Describe("Decider", func() {
 						},
 					}
 
-					isUpgrade, err := decider.Decider{}.Decide(catalog, details, logger)
+					operation, err := decider.Decider{}.DecideOperation(catalog, details, logger)
 					Expect(err).NotTo(HaveOccurred())
-					Expect(isUpgrade).To(BeFalse())
+					Expect(operation).To(Equal(decider.Update))
 				})
 			})
 		})
@@ -252,9 +251,9 @@ var _ = Describe("Decider", func() {
 						},
 					}
 
-					isUpgrade, err := decider.Decider{}.Decide(catalog, details, logger)
+					operation, err := decider.Decider{}.DecideOperation(catalog, details, logger)
 					Expect(err).NotTo(HaveOccurred())
-					Expect(isUpgrade).To(BeTrue())
+					Expect(operation).To(Equal(decider.Upgrade))
 				})
 			})
 
@@ -268,9 +267,9 @@ var _ = Describe("Decider", func() {
 						},
 					}
 
-					isUpgrade, err := decider.Decider{}.Decide(catalog, details, logger)
+					operation, err := decider.Decider{}.DecideOperation(catalog, details, logger)
 					Expect(err).NotTo(HaveOccurred())
-					Expect(isUpgrade).To(BeTrue())
+					Expect(operation).To(Equal(decider.Upgrade))
 				})
 			})
 
@@ -285,9 +284,9 @@ var _ = Describe("Decider", func() {
 						},
 					}
 
-					isUpgrade, err := decider.Decider{}.Decide(catalog, details, logger)
+					operation, err := decider.Decider{}.DecideOperation(catalog, details, logger)
 					Expect(err).NotTo(HaveOccurred())
-					Expect(isUpgrade).To(BeTrue())
+					Expect(operation).To(Equal(decider.Upgrade))
 				})
 			})
 
@@ -302,7 +301,7 @@ var _ = Describe("Decider", func() {
 						},
 					}
 
-					_, err := decider.Decider{}.Decide(catalog, details, logger)
+					_, err := decider.Decider{}.DecideOperation(catalog, details, logger)
 					Expect(err).To(MatchError(apiresponses.NewFailureResponseBuilder(
 						errors.New("service instance needs to be upgraded before updating"),
 						http.StatusUnprocessableEntity,
@@ -320,9 +319,9 @@ var _ = Describe("Decider", func() {
 						},
 					}
 
-					isUpgrade, err := decider.Decider{}.Decide(catalog, details, logger)
+					operation, err := decider.Decider{}.DecideOperation(catalog, details, logger)
 					Expect(err).NotTo(HaveOccurred())
-					Expect(isUpgrade).To(BeFalse())
+					Expect(operation).To(Equal(decider.Update))
 				})
 
 				It("is an update when the previous plan is not in the catalog", func() {
@@ -337,9 +336,9 @@ var _ = Describe("Decider", func() {
 						},
 					}
 
-					isUpgrade, err := decider.Decider{}.Decide(catalog, details, logger)
+					operation, err := decider.Decider{}.DecideOperation(catalog, details, logger)
 					Expect(err).NotTo(HaveOccurred())
-					Expect(isUpgrade).To(BeFalse())
+					Expect(operation).To(Equal(decider.Update))
 				})
 			})
 
@@ -355,7 +354,7 @@ var _ = Describe("Decider", func() {
 						},
 					}
 
-					_, err := decider.Decider{}.Decide(catalog, details, logger)
+					_, err := decider.Decider{}.DecideOperation(catalog, details, logger)
 					Expect(err).To(MatchError(apiresponses.NewFailureResponseBuilder(
 						errors.New("service instance needs to be upgraded before updating"),
 						http.StatusUnprocessableEntity,
@@ -372,7 +371,7 @@ var _ = Describe("Decider", func() {
 					MaintenanceInfo: higherMI,
 				}
 
-				_, err := decider.Decider{}.Decide(catalog, details, logger)
+				_, err := decider.Decider{}.DecideOperation(catalog, details, logger)
 
 				Expect(err).To(MatchError(apiresponses.ErrMaintenanceInfoConflict))
 			})
@@ -383,7 +382,7 @@ var _ = Describe("Decider", func() {
 					MaintenanceInfo: defaultMI,
 				}
 
-				_, err := decider.Decider{}.Decide(catalog, details, logger)
+				_, err := decider.Decider{}.DecideOperation(catalog, details, logger)
 				Expect(err).To(MatchError(apiresponses.ErrMaintenanceInfoNilConflict))
 			})
 		})
