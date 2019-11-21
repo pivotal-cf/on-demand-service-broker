@@ -10,6 +10,20 @@ import (
 )
 
 type FakeDecider struct {
+	CanProvisionStub        func([]domain.Service, string, *domain.MaintenanceInfo, *log.Logger) error
+	canProvisionMutex       sync.RWMutex
+	canProvisionArgsForCall []struct {
+		arg1 []domain.Service
+		arg2 string
+		arg3 *domain.MaintenanceInfo
+		arg4 *log.Logger
+	}
+	canProvisionReturns struct {
+		result1 error
+	}
+	canProvisionReturnsOnCall map[int]struct {
+		result1 error
+	}
 	DecideStub        func([]domain.Service, domain.UpdateDetails, *log.Logger) (bool, error)
 	decideMutex       sync.RWMutex
 	decideArgsForCall []struct {
@@ -27,6 +41,74 @@ type FakeDecider struct {
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
+}
+
+func (fake *FakeDecider) CanProvision(arg1 []domain.Service, arg2 string, arg3 *domain.MaintenanceInfo, arg4 *log.Logger) error {
+	var arg1Copy []domain.Service
+	if arg1 != nil {
+		arg1Copy = make([]domain.Service, len(arg1))
+		copy(arg1Copy, arg1)
+	}
+	fake.canProvisionMutex.Lock()
+	ret, specificReturn := fake.canProvisionReturnsOnCall[len(fake.canProvisionArgsForCall)]
+	fake.canProvisionArgsForCall = append(fake.canProvisionArgsForCall, struct {
+		arg1 []domain.Service
+		arg2 string
+		arg3 *domain.MaintenanceInfo
+		arg4 *log.Logger
+	}{arg1Copy, arg2, arg3, arg4})
+	fake.recordInvocation("CanProvision", []interface{}{arg1Copy, arg2, arg3, arg4})
+	fake.canProvisionMutex.Unlock()
+	if fake.CanProvisionStub != nil {
+		return fake.CanProvisionStub(arg1, arg2, arg3, arg4)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.canProvisionReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeDecider) CanProvisionCallCount() int {
+	fake.canProvisionMutex.RLock()
+	defer fake.canProvisionMutex.RUnlock()
+	return len(fake.canProvisionArgsForCall)
+}
+
+func (fake *FakeDecider) CanProvisionCalls(stub func([]domain.Service, string, *domain.MaintenanceInfo, *log.Logger) error) {
+	fake.canProvisionMutex.Lock()
+	defer fake.canProvisionMutex.Unlock()
+	fake.CanProvisionStub = stub
+}
+
+func (fake *FakeDecider) CanProvisionArgsForCall(i int) ([]domain.Service, string, *domain.MaintenanceInfo, *log.Logger) {
+	fake.canProvisionMutex.RLock()
+	defer fake.canProvisionMutex.RUnlock()
+	argsForCall := fake.canProvisionArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
+}
+
+func (fake *FakeDecider) CanProvisionReturns(result1 error) {
+	fake.canProvisionMutex.Lock()
+	defer fake.canProvisionMutex.Unlock()
+	fake.CanProvisionStub = nil
+	fake.canProvisionReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeDecider) CanProvisionReturnsOnCall(i int, result1 error) {
+	fake.canProvisionMutex.Lock()
+	defer fake.canProvisionMutex.Unlock()
+	fake.CanProvisionStub = nil
+	if fake.canProvisionReturnsOnCall == nil {
+		fake.canProvisionReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.canProvisionReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
 }
 
 func (fake *FakeDecider) Decide(arg1 []domain.Service, arg2 domain.UpdateDetails, arg3 *log.Logger) (bool, error) {
@@ -102,6 +184,8 @@ func (fake *FakeDecider) DecideReturnsOnCall(i int, result1 bool, result2 error)
 func (fake *FakeDecider) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.canProvisionMutex.RLock()
+	defer fake.canProvisionMutex.RUnlock()
 	fake.decideMutex.RLock()
 	defer fake.decideMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

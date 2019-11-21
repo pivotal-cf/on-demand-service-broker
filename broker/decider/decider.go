@@ -16,25 +16,27 @@ var errInstanceMustBeUpgradedFirst = apiresponses.NewFailureResponseBuilder(
 	"previous-maintenance-info-check",
 ).Build()
 
+var warningMaintenanceInfoNilInTheRequest = errors.New(
+	"maintenance info defined in broker service catalog, but not passed in request",
+)
+
 type Decider struct{}
 
-func (d Decider) Decide(catalog []domain.Service, details domain.UpdateDetails, logger *log.Logger) (bool, error) {
-	planMaintenanceInfo, err := getMaintenanceInfoForPlan(details.PlanID, catalog)
-	if err != nil {
-		return false, err
+func (d Decider) CanProvision(catalog []domain.Service, planID string, maintenanceInfo *domain.MaintenanceInfo, logger *log.Logger) error {
+	if err := validateMaintenanceInfo(catalog, planID, maintenanceInfo, logger); err != nil {
+		if err != warningMaintenanceInfoNilInTheRequest {
+			return err
+		}
 	}
+	return nil
+}
 
-	if maintenanceInfoConflict(details.MaintenanceInfo, planMaintenanceInfo) {
-		if details.MaintenanceInfo == nil {
-			logger.Println("warning: maintenance info defined in broker service catalog, but not passed in request")
+func (d Decider) Decide(catalog []domain.Service, details domain.UpdateDetails, logger *log.Logger) (bool, error) {
+	if err := validateMaintenanceInfo(catalog, details.PlanID, details.MaintenanceInfo, logger); err != nil {
+		if err == warningMaintenanceInfoNilInTheRequest {
 			return false, nil
 		}
-
-		if planMaintenanceInfo == nil {
-			return false, apiresponses.ErrMaintenanceInfoNilConflict
-		}
-
-		return false, apiresponses.ErrMaintenanceInfoConflict
+		return false, err
 	}
 
 	if planNotChanged(details) && requestParamsEmpty(details) && requestMaintenanceInfoValuesDiffer(details) {
@@ -48,6 +50,28 @@ func (d Decider) Decide(catalog []domain.Service, details domain.UpdateDetails, 
 	}
 
 	return false, nil
+}
+
+func validateMaintenanceInfo(catalog []domain.Service, planID string, maintenanceInfo *domain.MaintenanceInfo, logger *log.Logger) error {
+	planMaintenanceInfo, err := getMaintenanceInfoForPlan(planID, catalog)
+	if err != nil {
+		return err
+	}
+
+	if maintenanceInfoConflict(maintenanceInfo, planMaintenanceInfo) {
+		if maintenanceInfo == nil {
+			logger.Printf("warning: %s\n", warningMaintenanceInfoNilInTheRequest)
+			return warningMaintenanceInfoNilInTheRequest
+		}
+
+		if planMaintenanceInfo == nil {
+			return apiresponses.ErrMaintenanceInfoNilConflict
+		}
+
+		return apiresponses.ErrMaintenanceInfoConflict
+	}
+
+	return nil
 }
 
 func requestMaintenanceInfoValuesDiffer(details domain.UpdateDetails) bool {

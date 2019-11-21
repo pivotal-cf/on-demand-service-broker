@@ -1009,18 +1009,18 @@ var _ = Describe("Provisioning", func() {
 			serviceCatalog, _ := b.Services(nil)
 
 			Expect(provisionErr).ToNot(HaveOccurred())
-			Expect(fakeDecider.DecideCallCount()).To(Equal(1), "Check was not called")
-			actualServiceCatalog, actualDetails, _ := fakeDecider.DecideArgsForCall(0)
-			Expect(actualDetails.MaintenanceInfo).To(Equal(provisionDetails.MaintenanceInfo))
-			Expect(actualDetails.PlanID).To(Equal(provisionDetails.PlanID))
+			Expect(fakeDecider.CanProvisionCallCount()).To(Equal(1), "Check was not called")
+			actualServiceCatalog, actualPlanID, actualMaintenanceInfo, _ := fakeDecider.CanProvisionArgsForCall(0)
 			Expect(actualServiceCatalog).To(Equal(serviceCatalog))
+			Expect(actualMaintenanceInfo).To(Equal(provisionDetails.MaintenanceInfo))
+			Expect(actualPlanID).To(Equal(provisionDetails.PlanID))
 		})
 
 		It("fails when the decider fails", func() {
-			fakeDecider.DecideReturns(false, fmt.Errorf("decider nope"))
+			fakeDecider.CanProvisionReturns(fmt.Errorf("decider CanProvision nope"))
 
 			_, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
-			Expect(provisionErr).To(MatchError(ContainSubstring("decider nope")))
+			Expect(provisionErr).To(MatchError(ContainSubstring("decider CanProvision nope")))
 		})
 	})
 })

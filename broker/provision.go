@@ -59,12 +59,7 @@ func (b *Broker) Provision(
 		return domain.ProvisionedServiceSpec{}, b.processError(err, logger)
 	}
 
-	_, err = b.decider.Decide(serviceCatalog, domain.UpdateDetails{ // <-- not quite nice
-		PlanID:          details.PlanID,
-		MaintenanceInfo: details.MaintenanceInfo,
-	}, logger)
-
-	if err != nil {
+	if err := b.decider.CanProvision(serviceCatalog, details.PlanID, details.MaintenanceInfo, logger); err != nil {
 		return domain.ProvisionedServiceSpec{}, b.processError(err, logger)
 	}
 

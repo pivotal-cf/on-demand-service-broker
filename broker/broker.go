@@ -236,4 +236,5 @@ type Hasher interface {
 
 type Decider interface {
 	Decide(catalog []domain.Service, details domain.UpdateDetails, logger *log.Logger) (bool, error)
+	CanProvision(catalog []domain.Service, planID string, maintenanceInfo *domain.MaintenanceInfo, logger *log.Logger) error
 }
