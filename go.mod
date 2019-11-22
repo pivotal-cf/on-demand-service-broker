@@ -31,7 +31,7 @@ require (
 	github.com/onsi/gomega v1.7.1
 	github.com/pborman/uuid v1.2.0
 	github.com/pivotal-cf/brokerapi/v7 v7.1.0
-	github.com/pivotal-cf/on-demand-services-sdk v0.35.1-0.20191122094312-9dc3d806f2b6
+	github.com/pivotal-cf/on-demand-services-sdk v0.35.1-0.20191122102643-d385332b55fc
 	github.com/pivotal-cf/paraphernalia v0.0.0-20171027171623-4272315231ce // indirect
 	github.com/pkg/errors v0.8.1
 	github.com/poy/eachers v0.0.0-20181020210610-23942921fe77 // indirect
