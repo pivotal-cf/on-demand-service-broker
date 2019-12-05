@@ -42,7 +42,9 @@ func (d Decider) CanProvision(catalog []domain.Service, planID string, maintenan
 func (d Decider) DecideOperation(catalog []domain.Service, details domain.UpdateDetails, logger *log.Logger) (Operation, error) {
 	if err := validateMaintenanceInfo(catalog, details.PlanID, details.MaintenanceInfo, logger); err != nil {
 		if err == warningMaintenanceInfoNilInTheRequest {
-			return Update, nil
+			if err = validatePreviousMaintenanceInfo(details, catalog); err == nil {
+				return Update, nil
+			}
 		}
 		return Failed, err
 	}
@@ -51,13 +53,22 @@ func (d Decider) DecideOperation(catalog []domain.Service, details domain.Update
 		return Upgrade, nil
 	}
 
-	if previousPlanMaintenanceInfo, err := getMaintenanceInfoForPlan(details.PreviousValues.PlanID, catalog); err == nil {
-		if maintenanceInfoConflict(details.PreviousValues.MaintenanceInfo, previousPlanMaintenanceInfo) {
-			return Failed, errInstanceMustBeUpgradedFirst
-		}
+	if err := validatePreviousMaintenanceInfo(details, catalog); err != nil {
+		return Failed, err
 	}
 
 	return Update, nil
+}
+
+func validatePreviousMaintenanceInfo(details domain.UpdateDetails, catalog []domain.Service) error {
+	if details.PreviousValues.MaintenanceInfo != nil {
+		if previousPlanMaintenanceInfo, err := getMaintenanceInfoForPlan(details.PreviousValues.PlanID, catalog); err == nil {
+			if maintenanceInfoConflict(details.PreviousValues.MaintenanceInfo, previousPlanMaintenanceInfo) {
+				return errInstanceMustBeUpgradedFirst
+			}
+		}
+	}
+	return nil
 }
 
 func validateMaintenanceInfo(catalog []domain.Service, planID string, maintenanceInfo *domain.MaintenanceInfo, logger *log.Logger) error {

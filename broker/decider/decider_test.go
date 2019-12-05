@@ -57,7 +57,7 @@ var _ = Describe("Decider", func() {
 		logger = loggerFactory.New()
 	})
 
-	Describe("Decide()", func() {
+	Describe("DecideOperation()", func() {
 		It("fails when the requested plan is not in the catalog", func() {
 			details := domain.UpdateDetails{
 				PlanID: "not-in-catalog",
@@ -152,21 +152,83 @@ var _ = Describe("Decider", func() {
 				})
 			})
 
-			When("the plan has maintenance_info", func() {
-				It("is an update, and it warns", func() {
-					details := domain.UpdateDetails{
-						PlanID: planWithMI,
-						PreviousValues: domain.PreviousValues{
-							PlanID: planWithMI,
-						},
-					}
+			When("the desired plan has maintenance_info in the catalog", func() {
+				When("no previous maintenance_info is present in the request", func() {
+					When("the previous plan has maintenance info", func() {
+						It("is an update, and it warns", func() {
+							details := domain.UpdateDetails{
+								PlanID: otherPlanWithMI,
+								PreviousValues: domain.PreviousValues{
+									PlanID: planWithMI,
+								},
+							}
 
-					operation, err := decider.Decider{}.DecideOperation(catalog, details, logger)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(operation).To(Equal(decider.Update))
-					Expect(logBuffer.String()).To(ContainSubstring(
-						"warning: maintenance info defined in broker service catalog, but not passed in request",
-					))
+							operation, err := decider.Decider{}.DecideOperation(catalog, details, logger)
+							Expect(err).NotTo(HaveOccurred())
+							Expect(operation).To(Equal(decider.Update))
+							Expect(logBuffer.String()).To(ContainSubstring(
+								"warning: maintenance info defined in broker service catalog, but not passed in request",
+							))
+						})
+					})
+
+					When("the previous plan doesn't have maintenance info", func() {
+						It("is an update, and it warns", func() {
+							details := domain.UpdateDetails{
+								PlanID: planWithMI,
+								PreviousValues: domain.PreviousValues{
+									PlanID: planWithoutMI,
+								},
+							}
+
+							operation, err := decider.Decider{}.DecideOperation(catalog, details, logger)
+							Expect(err).NotTo(HaveOccurred())
+							Expect(operation).To(Equal(decider.Update))
+							Expect(logBuffer.String()).To(ContainSubstring(
+								"warning: maintenance info defined in broker service catalog, but not passed in request",
+							))
+						})
+					})
+
+				})
+
+				When("previous maintenance_info is present in the request", func() {
+					It("fails when it does not match the catalog's maintenance info for the previous plan", func() {
+						details := domain.UpdateDetails{
+							PlanID: otherPlanWithMI,
+							PreviousValues: domain.PreviousValues{
+								PlanID:          planWithMI,
+								MaintenanceInfo: higherMI,
+							},
+						}
+
+						_, err := decider.Decider{}.DecideOperation(catalog, details, logger)
+						Expect(err).To(MatchError(apiresponses.NewFailureResponseBuilder(
+							errors.New("service instance needs to be upgraded before updating"),
+							http.StatusUnprocessableEntity,
+							"previous-maintenance-info-check",
+						).Build()))
+						Expect(logBuffer.String()).To(ContainSubstring(
+							"warning: maintenance info defined in broker service catalog, but not passed in request",
+						))
+					})
+
+					It("is an update when it matches the catalog's maintenance info for the previous plan", func() {
+						details := domain.UpdateDetails{
+							PlanID: otherPlanWithMI,
+							PreviousValues: domain.PreviousValues{
+								PlanID:          planWithMI,
+								MaintenanceInfo: defaultMI,
+							},
+						}
+
+						op, err := decider.Decider{}.DecideOperation(catalog, details, logger)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(op).To(Equal(decider.Update))
+						Expect(logBuffer.String()).To(ContainSubstring(
+							"warning: maintenance info defined in broker service catalog, but not passed in request",
+						))
+					})
 				})
 			})
 		})
