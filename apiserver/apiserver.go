@@ -109,14 +109,7 @@ func StartAndWait(conf config.Config, server *http.Server, logger *log.Logger, s
 		if err = CheckCertExpiry(conf.Broker.TLS.CertFile); err != nil {
 			return err
 		}
-		acceptableCipherSuites := []uint16{
-			tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-		}
-		server.TLSConfig = &tls.Config{
-			CipherSuites: acceptableCipherSuites,
-			MinVersion:   tls.VersionTLS12,
-		}
+		server.TLSConfig = &tls.Config{MinVersion: tls.VersionTLS13}
 		err = server.ListenAndServeTLS(conf.Broker.TLS.CertFile, conf.Broker.TLS.KeyFile)
 	} else {
 		err = server.ListenAndServe()
