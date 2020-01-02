@@ -3,6 +3,8 @@ package brokerinitiator_test
 import (
 	"errors"
 	"fmt"
+	"os"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -15,7 +17,6 @@ import (
 	serviceAdapterFakes "github.com/pivotal-cf/on-demand-service-broker/serviceadapter/fakes"
 	tasksFakes "github.com/pivotal-cf/on-demand-service-broker/task/fakes"
 	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
-	"os"
 )
 
 var _ = Describe("Start", func() {
@@ -102,9 +103,9 @@ var _ = Describe("Start", func() {
 			loggerFactory,
 		)
 
-		Eventually(logBuffer).Should(gbytes.Say(fmt.Sprintf(`"telemetry-source":"odb-%s","service-instances":{"total":2},"event":{"item":"broker","operation":"startup"}}`, brokerConfig.ServiceCatalog.Name)))
-		Eventually(logBuffer).Should(gbytes.Say(fmt.Sprintf(`"telemetry-source":"odb-%s","service-instances-per-plan":{"plan-id":"a-plan-id","total":2},"event":{"item":"broker","operation":"startup"}}`, brokerConfig.ServiceCatalog.Name)))
-		Eventually(logBuffer).Should(gbytes.Say(fmt.Sprintf(`"telemetry-source":"odb-%s","service-instances-per-plan":{"plan-id":"another-plan-id","total":0},"event":{"item":"broker","operation":"startup"}}`, brokerConfig.ServiceCatalog.Name)))
+		Eventually(logBuffer).Should(gbytes.Say(fmt.Sprintf(`"telemetry-source":"on-demand-broker","service-offering":{"name":"%s"},"service-instances":{"total":2},"event":{"item":"broker","operation":"startup"}}`, brokerConfig.ServiceCatalog.Name)))
+		Eventually(logBuffer).Should(gbytes.Say(fmt.Sprintf(`"telemetry-source":"on-demand-broker","service-offering":{"name":"%s"},"service-instances-per-plan":{"plan-id":"a-plan-id","total":2},"event":{"item":"broker","operation":"startup"}}`, brokerConfig.ServiceCatalog.Name)))
+		Eventually(logBuffer).Should(gbytes.Say(fmt.Sprintf(`"telemetry-source":"on-demand-broker","service-offering":{"name":"%s"},"service-instances-per-plan":{"plan-id":"another-plan-id","total":0},"event":{"item":"broker","operation":"startup"}}`, brokerConfig.ServiceCatalog.Name)))
 	})
 
 	It("doesn't log telemetry data when telemetry is not enabled", func() {

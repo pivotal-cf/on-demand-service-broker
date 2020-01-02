@@ -2,11 +2,12 @@ package telemetry
 
 import (
 	"encoding/json"
+	"log"
+	"time"
+
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	. "github.com/pivotal-cf/on-demand-service-broker/service"
-	"log"
-	"time"
 )
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes_telemetry/fake_telemetry_time.go . Time
@@ -32,9 +33,14 @@ type Event struct {
 	Operation string `json:"operation"`
 }
 
+type ServiceOffering struct {
+	Name string `json:"name"`
+}
+
 type TotalInstancesLog struct {
 	TelemetryTime    string           `json:"telemetry-time"`
 	TelemetrySource  string           `json:"telemetry-source"`
+	ServiceOffering  ServiceOffering  `json:"service-offering"`
 	ServiceInstances ServiceInstances `json:"service-instances"`
 	Event            Event            `json:"event"`
 }
@@ -42,16 +48,19 @@ type TotalInstancesLog struct {
 type PerPlanInstancesLog struct {
 	TelemetryTime           string                  `json:"telemetry-time"`
 	TelemetrySource         string                  `json:"telemetry-source"`
+	ServiceOffering         ServiceOffering         `json:"service-offering"`
 	ServiceInstancesPerPlan ServiceInstancesPerPlan `json:"service-instances-per-plan"`
 	Event                   Event                   `json:"event"`
 }
 
 type TelemetryLogger struct {
-	logger             *log.Logger
-	brokerIdentifier   string
-	time               Time
-	brokerServicePlans config.Plans
+	logger              *log.Logger
+	serviceOfferingName string
+	time                Time
+	brokerServicePlans  config.Plans
 }
+
+const TelemetrySource = "on-demand-broker"
 
 func Build(enableLogging bool, serviceOffering config.ServiceOffering, logger *log.Logger) broker.TelemetryLogger {
 	if !enableLogging {
@@ -64,10 +73,10 @@ func Build(enableLogging bool, serviceOffering config.ServiceOffering, logger *l
 
 func NewTelemetryLogger(logger *log.Logger, serviceOffering config.ServiceOffering, timer Time) broker.TelemetryLogger {
 	return &TelemetryLogger{
-		logger:             logger,
-		brokerIdentifier:   "odb-" + serviceOffering.Name,
-		brokerServicePlans: serviceOffering.Plans,
-		time:               timer,
+		logger:              logger,
+		serviceOfferingName: serviceOffering.Name,
+		brokerServicePlans:  serviceOffering.Plans,
+		time:                timer,
 	}
 }
 
@@ -84,7 +93,8 @@ func (t *TelemetryLogger) LogInstances(instanceLister InstanceLister, item strin
 func (t *TelemetryLogger) logTotalInstances(allInstances []Instance, event Event) {
 	telemetryLog := TotalInstancesLog{
 		TelemetryTime:   t.time.Now(),
-		TelemetrySource: t.brokerIdentifier,
+		TelemetrySource: TelemetrySource,
+		ServiceOffering: ServiceOffering{Name: t.serviceOfferingName},
 		ServiceInstances: ServiceInstances{
 			Total: len(allInstances),
 		},
@@ -105,7 +115,8 @@ func (t *TelemetryLogger) logInstancesPerPlan(instances []Instance, event Event)
 		count := instancesPerPlan[plan.ID]
 		planInstancesLog := PerPlanInstancesLog{
 			TelemetryTime:   t.time.Now(),
-			TelemetrySource: t.brokerIdentifier,
+			TelemetrySource: TelemetrySource,
+			ServiceOffering: ServiceOffering{Name: t.serviceOfferingName},
 			Event:           event,
 			ServiceInstancesPerPlan: ServiceInstancesPerPlan{
 				PlanID: plan.ID,

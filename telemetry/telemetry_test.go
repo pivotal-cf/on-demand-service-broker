@@ -2,6 +2,7 @@ package telemetry_test
 
 import (
 	"fmt"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
@@ -59,7 +60,7 @@ var _ = Describe("Telemetry", func() {
 
 				telemetryLogger.LogInstances(instanceLister, "broker", "startup")
 
-				Eventually(logBuffer).Should(gbytes.Say(fmt.Sprintf(`{"telemetry-time":"%s","telemetry-source":"odb-%s","service-instances":{"total":1},"event":{"item":"broker","operation":"startup"}}`, fakeTime, serviceOffering.Name)))
+				Eventually(logBuffer).Should(gbytes.Say(fmt.Sprintf(`{"telemetry-time":"%s","telemetry-source":"on-demand-broker","service-offering":{"name":"%s"},"service-instances":{"total":1},"event":{"item":"broker","operation":"startup"}}`, fakeTime, serviceOffering.Name)))
 			})
 
 			It("logs telemetry about the number of instances per plan", func() {
@@ -74,9 +75,9 @@ var _ = Describe("Telemetry", func() {
 
 				telemetryLogger.LogInstances(instanceLister, "broker", "startup")
 
-				Expect(logBuffer).To(gbytes.Say(fmt.Sprintf(`{"telemetry-time":"%s","telemetry-source":"odb-%s","service-instances-per-plan":{"plan-id":%q,"total":2},"event":{"item":"broker","operation":"startup"}}`, fakeTime, serviceOffering.Name, planID1)))
-				Expect(logBuffer).To(gbytes.Say(fmt.Sprintf(`{"telemetry-time":"%s","telemetry-source":"odb-%s","service-instances-per-plan":{"plan-id":%q,"total":1},"event":{"item":"broker","operation":"startup"}}`, fakeTime, serviceOffering.Name, planID2)))
-				Expect(logBuffer).To(gbytes.Say(fmt.Sprintf(`{"telemetry-time":"%s","telemetry-source":"odb-%s","service-instances-per-plan":{"plan-id":%q,"total":0},"event":{"item":"broker","operation":"startup"}}`, fakeTime, serviceOffering.Name, planID3)))
+				Expect(logBuffer).To(gbytes.Say(fmt.Sprintf(`{"telemetry-time":"%s","telemetry-source":"on-demand-broker","service-offering":{"name":"%s"},"service-instances-per-plan":{"plan-id":%q,"total":2},"event":{"item":"broker","operation":"startup"}}`, fakeTime, serviceOffering.Name, planID1)))
+				Expect(logBuffer).To(gbytes.Say(fmt.Sprintf(`{"telemetry-time":"%s","telemetry-source":"on-demand-broker","service-offering":{"name":"%s"},"service-instances-per-plan":{"plan-id":%q,"total":1},"event":{"item":"broker","operation":"startup"}}`, fakeTime, serviceOffering.Name, planID2)))
+				Expect(logBuffer).To(gbytes.Say(fmt.Sprintf(`{"telemetry-time":"%s","telemetry-source":"on-demand-broker","service-offering":{"name":"%s"},"service-instances-per-plan":{"plan-id":%q,"total":0},"event":{"item":"broker","operation":"startup"}}`, fakeTime, serviceOffering.Name, planID3)))
 			})
 
 			It("logs error log when it cant get the total number of instances", func() {
