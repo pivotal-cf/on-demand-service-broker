@@ -39,9 +39,9 @@ func FeatureToggledLifecycleTest(
 
 	By("logging telemetry data at startup", func() {
 		stdoutLogs := bosh_helpers.GetBrokerLogs(brokerInfo.DeploymentName)
-		telemetryLogTotal := fmt.Sprintf(`"telemetry-source":"odb-%s","service-instances":{"total":0},"event":{"item":"broker","operation":"startup"}}`, brokerInfo.ServiceName)
-		telemetryLogPlanSmall := fmt.Sprintf(`"telemetry-source":"odb-%s","service-instances-per-plan":{"plan-id":"%s","total":0},"event":{"item":"broker","operation":"startup"}}`, brokerInfo.ServiceName, brokerInfo.PlanID+"-small")
-		telemetryLogPlanMedium := fmt.Sprintf(`"telemetry-source":"odb-%s","service-instances-per-plan":{"plan-id":"%s","total":0},"event":{"item":"broker","operation":"startup"}}`, brokerInfo.ServiceName, brokerInfo.PlanID+"-medium")
+		telemetryLogTotal := fmt.Sprintf(`"telemetry-source":"on-demand-broker","service-offering":{"name":"%s"},"event":{"item":"broker","operation":"startup"},"service-instances":{"total":0}}`, brokerInfo.ServiceName)
+		telemetryLogPlanSmall := fmt.Sprintf(`"telemetry-source":"on-demand-broker","service-offering":{"name":"%s"},"event":{"item":"broker","operation":"startup"},"service-instances-per-plan":{"plan-id":"%s","total":0}}`, brokerInfo.ServiceName, brokerInfo.PlanID+"-small")
+		telemetryLogPlanMedium := fmt.Sprintf(`"telemetry-source":"on-demand-broker","service-offering":{"name":"%s"},"event":{"item":"broker","operation":"startup"},"service-instances-per-plan":{"plan-id":"%s","total":0}}`, brokerInfo.ServiceName, brokerInfo.PlanID+"-medium")
 		Expect(stdoutLogs).To(ContainSubstring(telemetryLogTotal))
 		Expect(stdoutLogs).To(SatisfyAll(
 			ContainSubstring(telemetryLogTotal),
@@ -58,9 +58,9 @@ func FeatureToggledLifecycleTest(
 	By("logging telemetry data after a create-service", func() {
 		stdoutLogs := bosh_helpers.GetBrokerLogs(brokerInfo.DeploymentName)
 
-		telemetryLogTotal := fmt.Sprintf(`"telemetry-source":"odb-%s","service-instances":{"total":1},"event":{"item":"instance","operation":"create"}}`, brokerInfo.ServiceName)
-		telemetryLogPlanSmall := fmt.Sprintf(`"telemetry-source":"odb-%s","service-instances-per-plan":{"plan-id":"%s","total":1},"event":{"item":"instance","operation":"create"}}`, brokerInfo.ServiceName, brokerInfo.PlanID+"-small")
-		telemetryLogPlanMedium := fmt.Sprintf(`"telemetry-source":"odb-%s","service-instances-per-plan":{"plan-id":"%s","total":0},"event":{"item":"instance","operation":"create"}}`, brokerInfo.ServiceName, brokerInfo.PlanID+"-medium")
+		telemetryLogTotal := fmt.Sprintf(`"telemetry-source":"on-demand-broker","service-offering":{"name":"%s"},"event":{"item":"instance","operation":"create"},"service-instances":{"total":1}}`, brokerInfo.ServiceName)
+		telemetryLogPlanSmall := fmt.Sprintf(`"telemetry-source":"on-demand-broker","service-offering":{"name":"%s"},"event":{"item":"instance","operation":"create"},"service-instances-per-plan":{"plan-id":"%s","total":1}}`, brokerInfo.ServiceName, brokerInfo.PlanID+"-small")
+		telemetryLogPlanMedium := fmt.Sprintf(`"telemetry-source":"on-demand-broker","service-offering":{"name":"%s"},"event":{"item":"instance","operation":"create"},"service-instances-per-plan":{"plan-id":"%s","total":0}}`, brokerInfo.ServiceName, brokerInfo.PlanID+"-medium")
 		Expect(stdoutLogs).To(SatisfyAll(
 			ContainSubstring(telemetryLogTotal),
 			ContainSubstring(telemetryLogPlanSmall),
