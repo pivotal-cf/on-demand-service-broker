@@ -31,8 +31,8 @@ var _ = Describe("Telemetry", func() {
 			ContainSubstring(`"telemetry-env-type":"contract-test-env"`),
 			ContainSubstring(`"telemetry-foundation-id":"contract-test-foundation"`),
 			ContainSubstring(`"telemetry-source":"on-demand-broker"`),
-			ContainSubstring(fmt.Sprintf(`"service-offering":{"name":"%s"}`, brokerDeployment.ServiceName)),
 			ContainSubstring(`"event":{"item":"broker","operation":"startup"}`),
+			ContainSubstring(fmt.Sprintf(`"service-offering":{"name":"%s"}`, brokerDeployment.ServiceName)),
 		))
 
 		bosh_helpers.DeleteDeployment(brokerDeployment.DeploymentName)

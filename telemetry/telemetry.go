@@ -37,20 +37,21 @@ type ServiceOffering struct {
 	Name string `json:"name"`
 }
 
+type BaseLog struct {
+	TelemetryTime   string          `json:"telemetry-time"`
+	TelemetrySource string          `json:"telemetry-source"`
+	ServiceOffering ServiceOffering `json:"service-offering"`
+	Event           Event           `json:"event"`
+}
+
 type TotalInstancesLog struct {
-	TelemetryTime    string           `json:"telemetry-time"`
-	TelemetrySource  string           `json:"telemetry-source"`
-	ServiceOffering  ServiceOffering  `json:"service-offering"`
+	BaseLog
 	ServiceInstances ServiceInstances `json:"service-instances"`
-	Event            Event            `json:"event"`
 }
 
 type PerPlanInstancesLog struct {
-	TelemetryTime           string                  `json:"telemetry-time"`
-	TelemetrySource         string                  `json:"telemetry-source"`
-	ServiceOffering         ServiceOffering         `json:"service-offering"`
+	BaseLog
 	ServiceInstancesPerPlan ServiceInstancesPerPlan `json:"service-instances-per-plan"`
-	Event                   Event                   `json:"event"`
 }
 
 type TelemetryLogger struct {
@@ -85,20 +86,27 @@ func (t *TelemetryLogger) LogInstances(instanceLister InstanceLister, item strin
 	if err != nil {
 		t.logger.Printf("Failed to query list of instances for telemetry (cause: %s). Skipping total instances log.", err)
 	} else {
-		t.logTotalInstances(allInstances, Event{Item: item, Operation: operation})
-		t.logInstancesPerPlan(allInstances, Event{Item: item, Operation: operation})
+		event := Event{Item: item, Operation: operation}
+		t.logTotalInstances(allInstances, event)
+		t.logInstancesPerPlan(allInstances, event)
+	}
+}
+
+func (t *TelemetryLogger) baseLog(event Event) BaseLog {
+	return BaseLog{
+		TelemetryTime:   t.time.Now(),
+		TelemetrySource: TelemetrySource,
+		ServiceOffering: ServiceOffering{Name: t.serviceOfferingName},
+		Event:           event,
 	}
 }
 
 func (t *TelemetryLogger) logTotalInstances(allInstances []Instance, event Event) {
 	telemetryLog := TotalInstancesLog{
-		TelemetryTime:   t.time.Now(),
-		TelemetrySource: TelemetrySource,
-		ServiceOffering: ServiceOffering{Name: t.serviceOfferingName},
+		BaseLog: t.baseLog(event),
 		ServiceInstances: ServiceInstances{
 			Total: len(allInstances),
 		},
-		Event: event,
 	}
 
 	t.logger.Printf(t.marshalLog(telemetryLog))
@@ -114,10 +122,7 @@ func (t *TelemetryLogger) logInstancesPerPlan(instances []Instance, event Event)
 	for _, plan := range t.brokerServicePlans {
 		count := instancesPerPlan[plan.ID]
 		planInstancesLog := PerPlanInstancesLog{
-			TelemetryTime:   t.time.Now(),
-			TelemetrySource: TelemetrySource,
-			ServiceOffering: ServiceOffering{Name: t.serviceOfferingName},
-			Event:           event,
+			BaseLog: t.baseLog(event),
 			ServiceInstancesPerPlan: ServiceInstancesPerPlan{
 				PlanID: plan.ID,
 				Total:  count,

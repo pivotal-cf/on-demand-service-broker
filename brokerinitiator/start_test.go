@@ -103,9 +103,9 @@ var _ = Describe("Start", func() {
 			loggerFactory,
 		)
 
-		Eventually(logBuffer).Should(gbytes.Say(fmt.Sprintf(`"telemetry-source":"on-demand-broker","service-offering":{"name":"%s"},"service-instances":{"total":2},"event":{"item":"broker","operation":"startup"}}`, brokerConfig.ServiceCatalog.Name)))
-		Eventually(logBuffer).Should(gbytes.Say(fmt.Sprintf(`"telemetry-source":"on-demand-broker","service-offering":{"name":"%s"},"service-instances-per-plan":{"plan-id":"a-plan-id","total":2},"event":{"item":"broker","operation":"startup"}}`, brokerConfig.ServiceCatalog.Name)))
-		Eventually(logBuffer).Should(gbytes.Say(fmt.Sprintf(`"telemetry-source":"on-demand-broker","service-offering":{"name":"%s"},"service-instances-per-plan":{"plan-id":"another-plan-id","total":0},"event":{"item":"broker","operation":"startup"}}`, brokerConfig.ServiceCatalog.Name)))
+		Eventually(logBuffer).Should(gbytes.Say(fmt.Sprintf(`"telemetry-source":"on-demand-broker","service-offering":{"name":"%s"},"event":{"item":"broker","operation":"startup"},"service-instances":{"total":2}`, brokerConfig.ServiceCatalog.Name)))
+		Eventually(logBuffer).Should(gbytes.Say(fmt.Sprintf(`"telemetry-source":"on-demand-broker","service-offering":{"name":"%s"},"event":{"item":"broker","operation":"startup"},"service-instances-per-plan":{"plan-id":"a-plan-id","total":2}`, brokerConfig.ServiceCatalog.Name)))
+		Eventually(logBuffer).Should(gbytes.Say(fmt.Sprintf(`"telemetry-source":"on-demand-broker","service-offering":{"name":"%s"},"event":{"item":"broker","operation":"startup"},"service-instances-per-plan":{"plan-id":"another-plan-id","total":0}`, brokerConfig.ServiceCatalog.Name)))
 	})
 
 	It("doesn't log telemetry data when telemetry is not enabled", func() {
