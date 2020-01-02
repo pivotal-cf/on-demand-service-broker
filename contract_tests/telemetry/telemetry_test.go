@@ -2,6 +2,7 @@ package telemetry_test
 
 import (
 	"fmt"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pborman/uuid"
@@ -29,7 +30,8 @@ var _ = Describe("Telemetry", func() {
 		Expect(logs).To(SatisfyAll(
 			ContainSubstring(`"telemetry-env-type":"contract-test-env"`),
 			ContainSubstring(`"telemetry-foundation-id":"contract-test-foundation"`),
-			ContainSubstring(fmt.Sprintf(`"telemetry-source":"odb-%s"`, brokerDeployment.ServiceName)),
+			ContainSubstring(`"telemetry-source":"on-demand-broker"`),
+			ContainSubstring(fmt.Sprintf(`"service-offering":{"name":"%s"}`, brokerDeployment.ServiceName)),
 			ContainSubstring(`"event":{"item":"broker","operation":"startup"}`),
 		))
 
