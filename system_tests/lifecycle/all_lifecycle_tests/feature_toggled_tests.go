@@ -138,7 +138,7 @@ func FeatureToggledLifecycleTest(
 		// total number of instances will not decrease since we are using CF to get the count and CF is not aware of the result of delete at the point of logging.
 		telemetryLogTotal := fmt.Sprintf(`"telemetry-source":"on-demand-broker","service-offering":{"name":"%s"},"event":{"item":"instance","operation":"delete"},"service-instances":{"total":1}}`, brokerInfo.ServiceName)
 		telemetryLogPlanSmall := fmt.Sprintf(`"telemetry-source":"on-demand-broker","service-offering":{"name":"%s"},"event":{"item":"instance","operation":"delete"},"service-instances-per-plan":{"plan-id":"%s","total":0}}`, brokerInfo.ServiceName, brokerInfo.PlanID+"-small")
-		telemetryLogPlanMedium := fmt.Sprintf(`"telemetry-source":""on-demand-broker","service-offering":{"name":"%s"},"event":{"item":"instance","operation":"delete"},"service-instances-per-plan":{"plan-id":"%s","total":1}}`, brokerInfo.ServiceName, brokerInfo.PlanID+"-medium")
+		telemetryLogPlanMedium := fmt.Sprintf(`"telemetry-source":"on-demand-broker","service-offering":{"name":"%s"},"event":{"item":"instance","operation":"delete"},"service-instances-per-plan":{"plan-id":"%s","total":1}}`, brokerInfo.ServiceName, brokerInfo.PlanID+"-medium")
 		Expect(stdoutLogs).To(SatisfyAll(
 			ContainSubstring(telemetryLogTotal),
 			ContainSubstring(telemetryLogPlanSmall),
