@@ -46,6 +46,8 @@
         from: doppler
         deployment: ((cf.deployment_name))
     properties:
+      grpc_port: 3459
+      disable_udp: true
       loggregator:
         tls:
           agent:
