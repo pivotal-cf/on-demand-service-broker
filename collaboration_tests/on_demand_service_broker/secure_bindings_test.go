@@ -117,6 +117,43 @@ var _ = Describe("Secure Binding", func() {
 			Eventually(loggerBuffer).Should(gbytes.Say(`storing credentials for instance ID`))
 		})
 
+		It("does not set empty credentials in credhub and returns a reference", func() {
+			bindings := sdk.Binding{
+				Credentials:     nil,
+				SyslogDrainURL:  "other.fqdn",
+				RouteServiceURL: "some.fqdn",
+			}
+
+			var zero int
+			bindingsJson := toJson(bindings)
+			fakeCommandRunner.RunWithInputParamsReturns(bindingsJson, nil, &zero, nil)
+
+			response, bodyContent := doBindRequest(instanceID, bindingID, bindDetails)
+
+			By("returning the correct status code")
+			Expect(response.StatusCode).To(Equal(http.StatusCreated))
+
+			By("calling bind on the adapter")
+			Expect(fakeCommandRunner.RunWithInputParamsCallCount()).To(Equal(1))
+			_, varArgs := fakeCommandRunner.RunWithInputParamsArgsForCall(0)
+			Expect(varArgs).To(HaveLen(2))
+			Expect(varArgs[1]).To(Equal("create-binding"))
+
+			By("not calling credhub")
+			Expect(fakeCredentialStore.SetCallCount()).To(Equal(0))
+			Expect(fakeCredentialStore.AddPermissionCallCount()).To(Equal(0))
+
+			By("returning the correct binding metadata")
+			var responseBody domain.Binding
+			Expect(json.Unmarshal(bodyContent, &responseBody)).To(Succeed())
+			Expect(responseBody).To(Equal(domain.Binding{
+				Credentials:     nil,
+				SyslogDrainURL:  "other.fqdn",
+				RouteServiceURL: "some.fqdn",
+				VolumeMounts:    nil,
+			}))
+		})
+
 		It("fails when cannot set credentials in credhub", func() {
 			fakeCredentialStore.SetReturns(errors.New("oops"))
 

@@ -59,129 +59,183 @@ var _ = Describe("CredHub broker", func() {
 	})
 
 	Describe("Bind", func() {
+		When("there are credentials", func() {
+			It("returns the credhub reference on Bind", func() {
+				creds := "justAString"
+				bindingResponse := domain.Binding{
+					Credentials: creds,
+				}
+				fakeBroker.BindReturns(bindingResponse, nil)
 
-		It("returns the credhub reference on Bind", func() {
-			creds := "justAString"
-			bindingResponse := domain.Binding{
-				Credentials: creds,
-			}
-			fakeBroker.BindReturns(bindingResponse, nil)
+				credhubRef := constructCredhubRef(bindDetails.ServiceID, instanceID, bindingID)
+				expectedBindingCredentials := map[string]string{"credhub-ref": credhubRef}
 
-			credhubRef := constructCredhubRef(bindDetails.ServiceID, instanceID, bindingID)
-			expectedBindingCredentials := map[string]string{"credhub-ref": credhubRef}
+				fakeCredStore := new(credfakes.FakeCredentialStore)
+				credhubBroker := credhubbroker.New(fakeBroker, fakeCredStore, serviceName, loggerFactory)
 
-			fakeCredStore := new(credfakes.FakeCredentialStore)
-			credhubBroker := credhubbroker.New(fakeBroker, fakeCredStore, serviceName, loggerFactory)
+				bindDetails.AppGUID = "an-app"
 
-			bindDetails.AppGUID = "an-app"
+				response, err := credhubBroker.Bind(ctx, instanceID, bindingID, bindDetails, false)
 
-			response, err := credhubBroker.Bind(ctx, instanceID, bindingID, bindDetails, false)
+				By("verifying responses of bind")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(response.Credentials).To(Equal(expectedBindingCredentials))
 
-			By("verifying responses of bind")
-			Expect(err).NotTo(HaveOccurred())
-			Expect(response.Credentials).To(Equal(expectedBindingCredentials))
+				By("logging that we are storing credentials")
+				brokerctx, _, _, _, _ := fakeBroker.BindArgsForCall(0)
+				requestID := brokercontext.GetReqID(brokerctx)
 
-			By("logging that we are storing credentials")
-			brokerctx, _, _, _, _ := fakeBroker.BindArgsForCall(0)
-			requestID := brokercontext.GetReqID(brokerctx)
+				Expect(logBuffer.String()).To(SatisfyAll(
+					MatchRegexp(requestIDRegex),
+					ContainSubstring(
+						fmt.Sprintf("storing credentials for instance ID: %s, with binding ID: %s", instanceID, bindingID),
+					),
+					ContainSubstring(requestID),
+				))
 
-			Expect(logBuffer.String()).To(SatisfyAll(
-				MatchRegexp(requestIDRegex),
-				ContainSubstring(
-					fmt.Sprintf("storing credentials for instance ID: %s, with binding ID: %s", instanceID, bindingID),
-				),
-				ContainSubstring(requestID),
-			))
+				By("receiving correct key & credentials in credstore.Set")
+				key, receivedCreds := fakeCredStore.SetArgsForCall(0)
+				Expect(key).To(Equal(credhubRef))
+				Expect(receivedCreds).To(Equal(creds))
+			})
 
-			By("receiving correct key & credentials in credstore.Set")
-			key, receivedCreds := fakeCredStore.SetArgsForCall(0)
-			Expect(key).To(Equal(credhubRef))
-			Expect(receivedCreds).To(Equal(creds))
+			It("adds permissions to the credentials in the credential store when an app guid exists on bind details", func() {
+				fakeCredStore := new(credfakes.FakeCredentialStore)
+				creds := "justAString"
+				bindingResponse := domain.Binding{
+					Credentials: creds,
+				}
+				fakeBroker.BindReturns(bindingResponse, nil)
+
+				appGUID := "app-guid"
+				bindDetails.AppGUID = appGUID
+
+				credhubBroker := credhubbroker.New(fakeBroker, fakeCredStore, serviceName, loggerFactory)
+				credhubBroker.Bind(ctx, instanceID, bindingID, bindDetails, false)
+
+				Expect(fakeCredStore.AddPermissionCallCount()).To(Equal(1))
+				returnedCredentialName, returnedActor, returnedOps := fakeCredStore.AddPermissionArgsForCall(0)
+
+				expectedCredentialName := constructCredhubRef(bindDetails.ServiceID, instanceID, bindingID)
+				expectedActor := fmt.Sprintf("mtls-app:%s", appGUID)
+				expectedOps := []string{"read"}
+
+				Expect(returnedCredentialName).To(Equal(expectedCredentialName))
+				Expect(returnedActor).To(Equal(expectedActor))
+				Expect(returnedOps).To(Equal(expectedOps))
+			})
+
+			It("adds permissions to the credentials in the credential store when an app guid exists on bind resource", func() {
+				fakeCredStore := new(credfakes.FakeCredentialStore)
+				creds := "justAString"
+				bindingResponse := domain.Binding{
+					Credentials: creds,
+				}
+				fakeBroker.BindReturns(bindingResponse, nil)
+
+				appGUID := "app-guid"
+				bindDetails.BindResource = &domain.BindResource{}
+				bindDetails.BindResource.AppGuid = appGUID
+
+				credhubBroker := credhubbroker.New(fakeBroker, fakeCredStore, serviceName, loggerFactory)
+				_, err := credhubBroker.Bind(ctx, instanceID, bindingID, bindDetails, false)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("adds permissions to the credentials in the credentials store when a credential_client_id exists in the bind resource", func() {
+				fakeCredStore := new(credfakes.FakeCredentialStore)
+				creds := "justAString"
+				bindingResponse := domain.Binding{
+					Credentials: creds,
+				}
+				fakeBroker.BindReturns(bindingResponse, nil)
+
+				credentialClientID := "client_id"
+				bindDetails.BindResource = &domain.BindResource{
+					CredentialClientID: credentialClientID,
+				}
+
+				credhubBroker := credhubbroker.New(fakeBroker, fakeCredStore, serviceName, loggerFactory)
+				credhubBroker.Bind(ctx, instanceID, bindingID, bindDetails, false)
+
+				Expect(fakeCredStore.AddPermissionCallCount()).To(Equal(1))
+				returnedCredentialName, returnedActor, returnedOps := fakeCredStore.AddPermissionArgsForCall(0)
+
+				expectedCredentialName := constructCredhubRef(bindDetails.ServiceID, instanceID, bindingID)
+				expectedActor := fmt.Sprintf("uaa-client:%s", credentialClientID)
+				expectedOps := []string{"read"}
+
+				Expect(returnedCredentialName).To(Equal(expectedCredentialName))
+				Expect(returnedActor).To(Equal(expectedActor))
+				Expect(returnedOps).To(Equal(expectedOps))
+			})
+
+			It("returns an error when neither app guid or credential_client_id exist in bind request", func() {
+				fakeCredStore := new(credfakes.FakeCredentialStore)
+				creds := "justAString"
+				bindingResponse := domain.Binding{
+					Credentials: creds,
+				}
+				fakeBroker.BindReturns(bindingResponse, nil)
+
+				credhubBroker := credhubbroker.New(fakeBroker, fakeCredStore, serviceName, loggerFactory)
+				_, err := credhubBroker.Bind(ctx, instanceID, bindingID, bindDetails, false)
+
+				Expect(err).To(MatchError(Equal("No app-guid or credential client ID were provided in the binding request, you must configure one of these")))
+			})
+
+			It("produces an error if it cannot store the credential", func() {
+				fakeCredStore := new(credfakes.FakeCredentialStore)
+				bindingResponse := domain.Binding{
+					Credentials: "justAString",
+				}
+				fakeBroker.BindReturns(bindingResponse, nil)
+
+				credhubBroker := credhubbroker.New(fakeBroker, fakeCredStore, serviceName, loggerFactory)
+				fakeCredStore.SetReturns(errors.New("credential store unavailable"))
+				bindDetails.AppGUID = "some-app-guid"
+				_, bindErr := credhubBroker.Bind(ctx, instanceID, bindingID, bindDetails, false)
+
+				Expect(bindErr.Error()).NotTo(ContainSubstring("credential store unavailable"))
+				Expect(bindErr.Error()).To(ContainSubstring(instanceID))
+
+				brokerctx, _, _, _, _ := fakeBroker.BindArgsForCall(0)
+				requestID := brokercontext.GetReqID(brokerctx)
+				Expect(bindErr.Error()).To(ContainSubstring(requestID))
+
+				Expect(logBuffer.String()).To(ContainSubstring(
+					"failed to set credentials in credential store:"))
+			})
 		})
 
-		It("adds permissions to the credentials in the credential store when an app guid exists on bind details", func() {
-			fakeCredStore := new(credfakes.FakeCredentialStore)
-			creds := "justAString"
-			bindingResponse := domain.Binding{
-				Credentials: creds,
-			}
-			fakeBroker.BindReturns(bindingResponse, nil)
+		When("there are no credentials", func() {
+			It("returns the Bind", func() {
+				bindingResponse := domain.Binding{
+					Credentials:     nil,
+					SyslogDrainURL:  "some.thing",
+					RouteServiceURL: "some.url",
+					VolumeMounts:    nil,
+				}
+				fakeBroker.BindReturns(bindingResponse, nil)
 
-			appGUID := "app-guid"
-			bindDetails.AppGUID = appGUID
+				fakeCredStore := new(credfakes.FakeCredentialStore)
+				credhubBroker := credhubbroker.New(fakeBroker, fakeCredStore, serviceName, loggerFactory)
 
-			credhubBroker := credhubbroker.New(fakeBroker, fakeCredStore, serviceName, loggerFactory)
-			credhubBroker.Bind(ctx, instanceID, bindingID, bindDetails, false)
+				bindDetails.AppGUID = "an-app"
 
-			Expect(fakeCredStore.AddPermissionCallCount()).To(Equal(1))
-			returnedCredentialName, returnedActor, returnedOps := fakeCredStore.AddPermissionArgsForCall(0)
+				response, err := credhubBroker.Bind(ctx, instanceID, bindingID, bindDetails, false)
 
-			expectedCredentialName := constructCredhubRef(bindDetails.ServiceID, instanceID, bindingID)
-			expectedActor := fmt.Sprintf("mtls-app:%s", appGUID)
-			expectedOps := []string{"read"}
+				By("verifying responses of bind")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(response.Credentials).To(BeNil())
+				Expect(response.SyslogDrainURL).To(Equal("some.thing"))
+				Expect(response.RouteServiceURL).To(Equal("some.url"))
+				Expect(response.VolumeMounts).To(BeNil())
 
-			Expect(returnedCredentialName).To(Equal(expectedCredentialName))
-			Expect(returnedActor).To(Equal(expectedActor))
-			Expect(returnedOps).To(Equal(expectedOps))
-		})
-
-		It("adds permissions to the credentials in the credential store when an app guid exists on bind resource", func() {
-			fakeCredStore := new(credfakes.FakeCredentialStore)
-			creds := "justAString"
-			bindingResponse := domain.Binding{
-				Credentials: creds,
-			}
-			fakeBroker.BindReturns(bindingResponse, nil)
-
-			appGUID := "app-guid"
-			bindDetails.BindResource = &domain.BindResource{}
-			bindDetails.BindResource.AppGuid = appGUID
-
-			credhubBroker := credhubbroker.New(fakeBroker, fakeCredStore, serviceName, loggerFactory)
-			_, err := credhubBroker.Bind(ctx, instanceID, bindingID, bindDetails, false)
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		It("adds permissions to the credentials in the credentials store when a credential_client_id exists in the bind resource", func() {
-			fakeCredStore := new(credfakes.FakeCredentialStore)
-			creds := "justAString"
-			bindingResponse := domain.Binding{
-				Credentials: creds,
-			}
-			fakeBroker.BindReturns(bindingResponse, nil)
-
-			credentialClientID := "client_id"
-			bindDetails.BindResource = &domain.BindResource{
-				CredentialClientID: credentialClientID,
-			}
-
-			credhubBroker := credhubbroker.New(fakeBroker, fakeCredStore, serviceName, loggerFactory)
-			credhubBroker.Bind(ctx, instanceID, bindingID, bindDetails, false)
-
-			Expect(fakeCredStore.AddPermissionCallCount()).To(Equal(1))
-			returnedCredentialName, returnedActor, returnedOps := fakeCredStore.AddPermissionArgsForCall(0)
-
-			expectedCredentialName := constructCredhubRef(bindDetails.ServiceID, instanceID, bindingID)
-			expectedActor := fmt.Sprintf("uaa-client:%s", credentialClientID)
-			expectedOps := []string{"read"}
-
-			Expect(returnedCredentialName).To(Equal(expectedCredentialName))
-			Expect(returnedActor).To(Equal(expectedActor))
-			Expect(returnedOps).To(Equal(expectedOps))
-		})
-
-		It("returns an error when neither app guid or credential_client_id exist in bind request", func() {
-			fakeCredStore := new(credfakes.FakeCredentialStore)
-			creds := "justAString"
-			bindingResponse := domain.Binding{
-				Credentials: creds,
-			}
-			fakeBroker.BindReturns(bindingResponse, nil)
-
-			credhubBroker := credhubbroker.New(fakeBroker, fakeCredStore, serviceName, loggerFactory)
-			_, err := credhubBroker.Bind(ctx, instanceID, bindingID, bindDetails, false)
-
-			Expect(err).To(MatchError(Equal("No app-guid or credential client ID were provided in the binding request, you must configure one of these")))
+				By("not calling the credstore")
+				Expect(fakeCredStore.SetCallCount()).To(Equal(0))
+				Expect(fakeCredStore.AddPermissionCallCount()).To(Equal(0))
+			})
 		})
 
 		It("produces an error if it cannot retrieve the binding from the wrapped broker", func() {
@@ -195,29 +249,6 @@ var _ = Describe("CredHub broker", func() {
 
 			Expect(receivedCreds).To(Equal(emptyCreds))
 			Expect(bindErr).To(MatchError("error message from base broker"))
-		})
-
-		It("produces an error if it cannot store the credential", func() {
-			fakeCredStore := new(credfakes.FakeCredentialStore)
-			bindingResponse := domain.Binding{
-				Credentials: "justAString",
-			}
-			fakeBroker.BindReturns(bindingResponse, nil)
-
-			credhubBroker := credhubbroker.New(fakeBroker, fakeCredStore, serviceName, loggerFactory)
-			fakeCredStore.SetReturns(errors.New("credential store unavailable"))
-			bindDetails.AppGUID = "some-app-guid"
-			_, bindErr := credhubBroker.Bind(ctx, instanceID, bindingID, bindDetails, false)
-
-			Expect(bindErr.Error()).NotTo(ContainSubstring("credential store unavailable"))
-			Expect(bindErr.Error()).To(ContainSubstring(instanceID))
-
-			brokerctx, _, _, _, _ := fakeBroker.BindArgsForCall(0)
-			requestID := brokercontext.GetReqID(brokerctx)
-			Expect(bindErr.Error()).To(ContainSubstring(requestID))
-
-			Expect(logBuffer.String()).To(ContainSubstring(
-				"failed to set credentials in credential store:"))
 		})
 	})
 

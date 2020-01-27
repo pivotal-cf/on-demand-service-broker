@@ -71,6 +71,10 @@ func (b *CredHubBroker) Bind(ctx context.Context, instanceID, bindingID string, 
 		return domain.Binding{}, err
 	}
 
+	if b.credentialsEmpty(binding) {
+		return binding, nil
+	}
+
 	key := constructKey(details.ServiceID, instanceID, bindingID)
 	logger.Printf("storing credentials for instance ID: %s, with binding ID: %s", instanceID, bindingID)
 	err = b.credStore.Set(key, binding.Credentials)
@@ -85,6 +89,22 @@ func (b *CredHubBroker) Bind(ctx context.Context, instanceID, bindingID string, 
 
 	binding.Credentials = map[string]string{"credhub-ref": key}
 	return binding, nil
+}
+
+func (b *CredHubBroker) credentialsEmpty(binding domain.Binding) bool {
+	switch credValue := binding.Credentials.(type) {
+	case map[string]interface{}:
+		if len(credValue) == 0 {
+			return true
+		}
+	case string:
+		if credValue == "" {
+			return true
+		}
+	case nil:
+		return true
+	}
+	return false
 }
 
 func (b *CredHubBroker) Unbind(ctx context.Context, instanceID, bindingID string, details domain.UnbindDetails, asyncAllowed bool) (domain.UnbindSpec, error) {
