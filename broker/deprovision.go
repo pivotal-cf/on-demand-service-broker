@@ -129,7 +129,7 @@ func (b *Broker) assertDeploymentExists(ctx context.Context, instanceID string, 
 
 func (b *Broker) assertNoOperationsInProgress(ctx context.Context, instanceID string, logger *log.Logger) error {
 
-	tasks, err := b.boshClient.GetTasks(deploymentName(instanceID), logger)
+	incompleteTasks, err := b.boshClient.GetTasksInProgress(deploymentName(instanceID), logger)
 	switch err.(type) {
 	case boshdirector.RequestError:
 		return NewBoshRequestError("delete", err)
@@ -140,7 +140,6 @@ func (b *Broker) assertNoOperationsInProgress(ctx context.Context, instanceID st
 		)
 	}
 
-	incompleteTasks := tasks.IncompleteTasks()
 	if len(incompleteTasks) > 0 {
 		userError := errors.New("An operation is in progress for your service instance. Please try again later.")
 		operatorError := NewOperationInProgressError(

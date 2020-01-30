@@ -132,13 +132,6 @@ func (b *BoshHelperClient) getTaskOutput(taskID int, logger *log.Logger) boshdir
 	return output
 }
 
-func (b *BoshHelperClient) GetTasksForDeployment(deploymentName string) boshdirector.BoshTasks {
-	logger := systemTestLogger()
-	boshTasks, err := b.Client.GetTasks(deploymentName, logger)
-	Expect(err).NotTo(HaveOccurred())
-	return boshTasks
-}
-
 func (b *BoshHelperClient) GetManifest(deploymentName string) *bosh.BoshManifest {
 	logger := systemTestLogger()
 

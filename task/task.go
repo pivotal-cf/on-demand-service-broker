@@ -22,7 +22,7 @@ import (
 type BoshClient interface {
 	Deploy(manifest []byte, contextID string, logger *log.Logger, reporter *boshdirector.AsyncTaskReporter) (int, error)
 	Recreate(deploymentName, contextID string, logger *log.Logger, taskReporter *boshdirector.AsyncTaskReporter) (int, error)
-	GetTasks(deploymentName string, logger *log.Logger) (boshdirector.BoshTasks, error)
+	GetTasksInProgress(deploymentName string, logger *log.Logger) (boshdirector.BoshTasks, error)
 	GetTask(taskID int, logger *log.Logger) (boshdirector.BoshTask, error)
 	GetNormalisedTasksByContext(deploymentName, contextID string, logger *log.Logger) (boshdirector.BoshTasks, error)
 	GetDeployment(name string, logger *log.Logger) ([]byte, bool, error)
@@ -77,7 +77,13 @@ func NewDeployer(boshClient BoshClient, manifestGenerator ManifestGenerator, odb
 	}
 }
 
-func (d Deployer) Create(deploymentName, planID string, requestParams map[string]interface{}, boshContextID string, logger *log.Logger) (int, []byte, error) {
+func (d Deployer) Create(
+	deploymentName string,
+	planID string,
+	requestParams map[string]interface{},
+	boshContextID string,
+	logger *log.Logger,
+) (int, []byte, error) {
 	err := d.assertNoOperationsInProgress(deploymentName, logger)
 	if err != nil {
 		return 0, nil, err
@@ -96,7 +102,12 @@ func (d Deployer) Create(deploymentName, planID string, requestParams map[string
 	return d.doDeploy(generateManifestProperties, "create", boshContextID, logger)
 }
 
-func (d Deployer) Upgrade(deploymentName string, plan config.Plan, boshContextID string, logger *log.Logger) (int, []byte, error) {
+func (d Deployer) Upgrade(
+	deploymentName string,
+	plan config.Plan,
+	boshContextID string,
+	logger *log.Logger,
+) (int, []byte, error) {
 	err := d.assertNoOperationsInProgress(deploymentName, logger)
 	if err != nil {
 		return 0, nil, err
@@ -218,13 +229,13 @@ func (d Deployer) getConfigMap(deploymentName string, logger *log.Logger) (map[s
 }
 
 func (d Deployer) assertNoOperationsInProgress(deploymentName string, logger *log.Logger) error {
-	clientTasks, err := d.boshClient.GetTasks(deploymentName, logger)
+	tasksInProgress, err := d.boshClient.GetTasksInProgress(deploymentName, logger)
 	if err != nil {
 		return broker.NewServiceError(fmt.Errorf("error getting tasks for deployment %s: %s\n", deploymentName, err))
 	}
 
-	if incompleteTasks := clientTasks.IncompleteTasks(); len(incompleteTasks) != 0 {
-		logger.Printf("deployment %s is still in progress: tasks %s\n", deploymentName, incompleteTasks.ToLog())
+	if len(tasksInProgress) != 0 {
+		logger.Printf("deployment %s is still in progress: tasks %s\n", deploymentName, tasksInProgress.ToLog())
 		return broker.TaskInProgressError{Message: "task in progress"}
 	}
 

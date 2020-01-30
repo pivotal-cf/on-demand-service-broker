@@ -314,7 +314,7 @@ var _ = Describe("Deprovision", func() {
 				State: boshdirector.TaskProcessing,
 			}
 			tasks := boshdirector.BoshTasks{task}
-			fakeBoshClient.GetTasksReturns(tasks, nil)
+			fakeBoshClient.GetTasksInProgressReturns(tasks, nil)
 
 			response, bodyContent := doDeprovisionRequest(instanceID, dedicatedPlanID, serviceID, true, false)
 

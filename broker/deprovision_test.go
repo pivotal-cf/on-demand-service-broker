@@ -46,7 +46,7 @@ var _ = Describe("deprovisioning instances", func() {
 		b = createDefaultBroker()
 	})
 
-	Context("when CF integration is disabled", func() {
+	When("CF integration is disabled", func() {
 
 		BeforeEach(func() {
 			var err error
@@ -149,7 +149,7 @@ var _ = Describe("deprovisioning instances", func() {
 		})
 	})
 
-	Context("when the async allowed flag is false", func() {
+	When("the async allowed flag is false", func() {
 		BeforeEach(func() {
 			asyncAllowed = false
 		})
@@ -166,110 +166,10 @@ var _ = Describe("deprovisioning instances", func() {
 		})
 	})
 
-	Context("when getting the deployment returns a request error", func() {
-		BeforeEach(func() {
-			boshClient.GetDeploymentReturns(nil, false, boshdirector.NewRequestError(errors.New("problem fetching manifest")))
-		})
-
-		It("returns an error and logs it", func() {
-			deprovisionSpec, deprovisionErr = b.Deprovision(
-				context.Background(),
-				instanceID,
-				deprovisionDetails,
-				asyncAllowed,
-			)
-
-			Expect(deprovisionErr).To(HaveOccurred())
-			Expect(logBuffer.String()).To(
-				ContainSubstring("error: problem fetching manifest. error for user: Currently unable to delete service instance, please try again later."),
-			)
-		})
-	})
-
-	Context("when getting the deployment returns a non-request error", func() {
-		err := errors.New("oops")
-
-		BeforeEach(func() {
-			boshClient.GetDeploymentReturns(nil, false, err)
-		})
-
-		It("returns an error and logs it", func() {
-			deprovisionSpec, deprovisionErr = b.Deprovision(
-				context.Background(),
-				instanceID,
-				deprovisionDetails,
-				asyncAllowed,
-			)
-
-			Expect(deprovisionErr).To(HaveOccurred())
-			Expect(logBuffer.String()).To(
-				ContainSubstring(fmt.Sprintf("error deprovisioning: cannot get deployment %s: %s", deploymentName(instanceID), err)),
-			)
-		})
-	})
-
-	Context("when getting the deployment returns that deployment is not found", func() {
-		BeforeEach(func() {
-			boshClient.GetDeploymentReturns(nil, false, nil)
-		})
-
-		Context("and disable_bosh_configs is true", func() {
+	Context("getting the deployment", func() {
+		When("it returns a request error", func() {
 			BeforeEach(func() {
-				brokerConfig.DisableBoshConfigs = true
-			})
-
-			It("doesn't call DeleteConfigs", func() {
-				deprovisionSpec, deprovisionErr = b.Deprovision(
-					context.Background(),
-					instanceID,
-					deprovisionDetails,
-					asyncAllowed,
-				)
-
-				Expect(boshClient.DeleteConfigsCallCount()).To(Equal(0), "DeleteConfigs was called")
-			})
-		})
-
-		Context("bosh configs can be deleted", func() {
-			It("deletes the bosh configs and returns expected error about missing deployment", func() {
-				deprovisionSpec, deprovisionErr = b.Deprovision(
-					context.Background(),
-					instanceID,
-					deprovisionDetails,
-					asyncAllowed,
-				)
-
-				Expect(boshClient.DeleteConfigsCallCount()).To(Equal(1))
-				Expect(deprovisionErr).To(Equal(apiresponses.ErrInstanceDoesNotExist))
-				Expect(logBuffer.String()).To(ContainSubstring(
-					fmt.Sprintf("error deprovisioning: instance %s, not found.", instanceID),
-				))
-			})
-		})
-
-		Context("deleting bosh configs fails", func() {
-			BeforeEach(func() {
-				boshClient.DeleteConfigsReturns(errors.New("oops"))
-			})
-
-			It("returns error about deleting service", func() {
-				deprovisionSpec, deprovisionErr = b.Deprovision(
-					context.Background(),
-					instanceID,
-					deprovisionDetails,
-					asyncAllowed,
-				)
-
-				Expect(deprovisionErr).To(MatchError("Unable to delete service. Please try again later or contact your operator."))
-				Expect(logBuffer.String()).To(ContainSubstring(
-					fmt.Sprintf("error deprovisioning: failed to delete configs for instance service-instance_%s", instanceID),
-				))
-			})
-		})
-
-		Context("and removing secrets succeeds", func() {
-			BeforeEach(func() {
-				fakeSecretManager.DeleteSecretsForInstanceReturns(nil)
+				boshClient.GetDeploymentReturns(nil, false, boshdirector.NewRequestError(errors.New("problem fetching manifest")))
 			})
 
 			It("returns an error and logs it", func() {
@@ -280,16 +180,18 @@ var _ = Describe("deprovisioning instances", func() {
 					asyncAllowed,
 				)
 
-				Expect(deprovisionErr).To(Equal(apiresponses.ErrInstanceDoesNotExist))
-				Expect(logBuffer.String()).To(ContainSubstring(
-					fmt.Sprintf("error deprovisioning: instance %s, not found.", instanceID),
-				))
+				Expect(deprovisionErr).To(HaveOccurred())
+				Expect(logBuffer.String()).To(
+					ContainSubstring("error: problem fetching manifest. error for user: Currently unable to delete service instance, please try again later."),
+				)
 			})
 		})
 
-		Context("and removing secrets fails", func() {
+		When("it returns a non-request error", func() {
+			err := errors.New("oops")
+
 			BeforeEach(func() {
-				fakeSecretManager.DeleteSecretsForInstanceReturns(errors.New("oops"))
+				boshClient.GetDeploymentReturns(nil, false, err)
 			})
 
 			It("returns an error and logs it", func() {
@@ -300,15 +202,115 @@ var _ = Describe("deprovisioning instances", func() {
 					asyncAllowed,
 				)
 
-				Expect(deprovisionErr).To(MatchError("Unable to delete service. Please try again later or contact your operator."))
-				Expect(logBuffer.String()).To(ContainSubstring(
-					fmt.Sprintf("error deprovisioning: failed to delete secrets for instance service-instance_%s", instanceID),
-				))
+				Expect(deprovisionErr).To(HaveOccurred())
+				Expect(logBuffer.String()).To(
+					ContainSubstring(fmt.Sprintf("error deprovisioning: cannot get deployment %s: %s", deploymentName(instanceID), err)),
+				)
+			})
+		})
+
+		When("it returns that deployment is not found", func() {
+			BeforeEach(func() {
+				boshClient.GetDeploymentReturns(nil, false, nil)
+			})
+
+			Context("and disable_bosh_configs is true", func() {
+				BeforeEach(func() {
+					brokerConfig.DisableBoshConfigs = true
+				})
+
+				It("doesn't call DeleteConfigs", func() {
+					deprovisionSpec, deprovisionErr = b.Deprovision(
+						context.Background(),
+						instanceID,
+						deprovisionDetails,
+						asyncAllowed,
+					)
+
+					Expect(boshClient.DeleteConfigsCallCount()).To(Equal(0), "DeleteConfigs was called")
+				})
+			})
+
+			Context("bosh configs can be deleted", func() {
+				It("deletes the bosh configs and returns expected error about missing deployment", func() {
+					deprovisionSpec, deprovisionErr = b.Deprovision(
+						context.Background(),
+						instanceID,
+						deprovisionDetails,
+						asyncAllowed,
+					)
+
+					Expect(boshClient.DeleteConfigsCallCount()).To(Equal(1))
+					Expect(deprovisionErr).To(Equal(apiresponses.ErrInstanceDoesNotExist))
+					Expect(logBuffer.String()).To(ContainSubstring(
+						fmt.Sprintf("error deprovisioning: instance %s, not found.", instanceID),
+					))
+				})
+			})
+
+			Context("deleting bosh configs fails", func() {
+				BeforeEach(func() {
+					boshClient.DeleteConfigsReturns(errors.New("oops"))
+				})
+
+				It("returns error about deleting service", func() {
+					deprovisionSpec, deprovisionErr = b.Deprovision(
+						context.Background(),
+						instanceID,
+						deprovisionDetails,
+						asyncAllowed,
+					)
+
+					Expect(deprovisionErr).To(MatchError("Unable to delete service. Please try again later or contact your operator."))
+					Expect(logBuffer.String()).To(ContainSubstring(
+						fmt.Sprintf("error deprovisioning: failed to delete configs for instance service-instance_%s", instanceID),
+					))
+				})
+			})
+
+			Context("and removing secrets succeeds", func() {
+				BeforeEach(func() {
+					fakeSecretManager.DeleteSecretsForInstanceReturns(nil)
+				})
+
+				It("returns an error and logs it", func() {
+					deprovisionSpec, deprovisionErr = b.Deprovision(
+						context.Background(),
+						instanceID,
+						deprovisionDetails,
+						asyncAllowed,
+					)
+
+					Expect(deprovisionErr).To(Equal(apiresponses.ErrInstanceDoesNotExist))
+					Expect(logBuffer.String()).To(ContainSubstring(
+						fmt.Sprintf("error deprovisioning: instance %s, not found.", instanceID),
+					))
+				})
+			})
+
+			Context("and removing secrets fails", func() {
+				BeforeEach(func() {
+					fakeSecretManager.DeleteSecretsForInstanceReturns(errors.New("oops"))
+				})
+
+				It("returns an error and logs it", func() {
+					deprovisionSpec, deprovisionErr = b.Deprovision(
+						context.Background(),
+						instanceID,
+						deprovisionDetails,
+						asyncAllowed,
+					)
+
+					Expect(deprovisionErr).To(MatchError("Unable to delete service. Please try again later or contact your operator."))
+					Expect(logBuffer.String()).To(ContainSubstring(
+						fmt.Sprintf("error deprovisioning: failed to delete secrets for instance service-instance_%s", instanceID),
+					))
+				})
 			})
 		})
 	})
 
-	Context("when the deployment has a pre-delete errand", func() {
+	When("the deployment has a pre-delete errand", func() {
 		errandTaskID := 123
 
 		BeforeEach(func() {
@@ -406,7 +408,7 @@ var _ = Describe("deprovisioning instances", func() {
 			})
 		})
 
-		Context("when bosh returns an error attempting to run errand", func() {
+		When("bosh returns an error attempting to run errand", func() {
 			BeforeEach(func() {
 				boshClient.RunErrandReturns(0, errors.New("something went wrong"))
 			})
@@ -423,7 +425,7 @@ var _ = Describe("deprovisioning instances", func() {
 			})
 		})
 
-		Context("when force-delete is passed", func() {
+		When("force-delete is passed", func() {
 			It("returns force-delete operation data", func() {
 				deprovisionDetails.Force = true
 				deprovisionSpec, deprovisionErr = b.Deprovision(
@@ -453,7 +455,7 @@ var _ = Describe("deprovisioning instances", func() {
 		})
 	})
 
-	Describe("when deleting a deployment fails", func() {
+	When("deleting a deployment fails", func() {
 		Context("with a generic error", func() {
 			BeforeEach(func() {
 				boshClient.DeleteDeploymentReturns(0, errors.New("er ma gerd!"))
@@ -501,63 +503,65 @@ var _ = Describe("deprovisioning instances", func() {
 		})
 	})
 
-	Context("when a bosh task is in flight for the deployment", func() {
-		incompleteTasks := boshdirector.BoshTasks{{ID: 1337, State: boshdirector.TaskProcessing}}
-		BeforeEach(func() {
-			boshClient.GetTasksReturns(incompleteTasks, nil)
+	Context("getting bosh tasks in progress", func() {
+		When("a task is in progress", func() {
+			incompleteTasks := boshdirector.BoshTasks{{ID: 1337, State: boshdirector.TaskProcessing}}
+			BeforeEach(func() {
+				boshClient.GetTasksInProgressReturns(incompleteTasks, nil)
+			})
+
+			It("logs and returns an error", func() {
+				deprovisionSpec, deprovisionErr = b.Deprovision(
+					context.Background(),
+					instanceID,
+					deprovisionDetails,
+					asyncAllowed,
+				)
+
+				Expect(deprovisionErr).To(MatchError("An operation is in progress for your service instance. Please try again later."))
+				Expect(logBuffer.String()).To(ContainSubstring(fmt.Sprintf("error deprovisioning: deployment %s is still in progress: tasks %s\n", deploymentName(instanceID), incompleteTasks.ToLog())))
+			})
 		})
 
-		It("logs and returns an error", func() {
-			deprovisionSpec, deprovisionErr = b.Deprovision(
-				context.Background(),
-				instanceID,
-				deprovisionDetails,
-				asyncAllowed,
-			)
+		Context("request error", func() {
+			BeforeEach(func() {
+				boshClient.GetTasksInProgressReturns(
+					boshdirector.BoshTasks{},
+					boshdirector.NewRequestError(errors.New("problem fetching tasks")),
+				)
+			})
 
-			Expect(deprovisionErr).To(MatchError("An operation is in progress for your service instance. Please try again later."))
-			Expect(logBuffer.String()).To(ContainSubstring(fmt.Sprintf("error deprovisioning: deployment %s is still in progress: tasks %s\n", deploymentName(instanceID), incompleteTasks.ToLog())))
-		})
-	})
+			It("logs and returns an error", func() {
+				deprovisionSpec, deprovisionErr = b.Deprovision(
+					context.Background(),
+					instanceID,
+					deprovisionDetails,
+					asyncAllowed,
+				)
 
-	Context("when getting bosh tasks returns a request error", func() {
-		BeforeEach(func() {
-			boshClient.GetTasksReturns(
-				boshdirector.BoshTasks{},
-				boshdirector.NewRequestError(errors.New("problem fetching tasks")),
-			)
-		})
-
-		It("logs and returns an error", func() {
-			deprovisionSpec, deprovisionErr = b.Deprovision(
-				context.Background(),
-				instanceID,
-				deprovisionDetails,
-				asyncAllowed,
-			)
-
-			Expect(deprovisionErr).To(HaveOccurred())
-			Expect(logBuffer.String()).To(
-				ContainSubstring("error: problem fetching tasks. error for user: Currently unable to delete service instance, please try again later."),
-			)
-		})
-	})
-
-	Context("when getting bosh tasks returns a non-request error", func() {
-		BeforeEach(func() {
-			boshClient.GetTasksReturns(boshdirector.BoshTasks{}, errors.New("oops"))
+				Expect(deprovisionErr).To(HaveOccurred())
+				Expect(logBuffer.String()).To(
+					ContainSubstring("error: problem fetching tasks. error for user: Currently unable to delete service instance, please try again later."),
+				)
+			})
 		})
 
-		It("returns an error", func() {
-			deprovisionSpec, deprovisionErr = b.Deprovision(
-				context.Background(),
-				instanceID,
-				deprovisionDetails,
-				asyncAllowed,
-			)
+		Context("non-request error", func() {
+			BeforeEach(func() {
+				boshClient.GetTasksInProgressReturns(boshdirector.BoshTasks{}, errors.New("oops"))
+			})
 
-			Expect(deprovisionErr).To(HaveOccurred())
-			Expect(logBuffer.String()).To(ContainSubstring(fmt.Sprintf("error deprovisioning: cannot get tasks for deployment %s", deploymentName(instanceID))))
+			It("returns an error", func() {
+				deprovisionSpec, deprovisionErr = b.Deprovision(
+					context.Background(),
+					instanceID,
+					deprovisionDetails,
+					asyncAllowed,
+				)
+
+				Expect(deprovisionErr).To(HaveOccurred())
+				Expect(logBuffer.String()).To(ContainSubstring(fmt.Sprintf("error deprovisioning: cannot get tasks for deployment %s", deploymentName(instanceID))))
+			})
 		})
 	})
 })

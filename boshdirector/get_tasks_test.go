@@ -8,8 +8,6 @@ package boshdirector_test
 
 import (
 	"errors"
-	"math"
-
 	"fmt"
 
 	"github.com/cloudfoundry/bosh-cli/director"
@@ -55,28 +53,33 @@ var _ = Describe("getting tasks", func() {
 			{ID: 1, State: boshdirector.TaskProcessing, Description: "snapshot deployment", Result: "result-1", ContextID: ""},
 			{ID: 2, State: boshdirector.TaskDone, Description: "snapshot deployment", Result: "result-2", ContextID: "some-context"},
 		}
-
 	})
 
-	Describe("GetTasks", func() {
-		It("returns the task state when bosh fetches the task successfully", func() {
-			actualTasks, err := c.GetTasks(deploymentName, logger)
+	Describe("GetTasksInProgress", func() {
+		BeforeEach(func() {
+			fakeDirector.CurrentTasksReturns([]director.Task{processingTask}, nil)
+			expectedTasks = boshdirector.BoshTasks{
+				{ID: 1, State: boshdirector.TaskProcessing, Description: "snapshot deployment", Result: "result-1", ContextID: ""},
+			}
+		})
+
+		It("returns the tasks", func() {
+			actualTasks, err := c.GetTasksInProgress(deploymentName, logger)
 			Expect(err).NotTo(HaveOccurred())
 
 			By("fetching all tasks")
-			taskLimit, taskFilter := fakeDirector.RecentTasksArgsForCall(0)
-			Expect(taskLimit).To(Equal(math.MaxInt32))
+			taskFilter := fakeDirector.CurrentTasksArgsForCall(0)
 			Expect(taskFilter).To(Equal(director.TasksFilter{All: false, Deployment: deploymentName}))
 
 			By("returning the expected tasks structure")
 			Expect(actualTasks).To(Equal(expectedTasks))
 		})
 
-		It("wraps the error when fetching the tasks fails", func() {
-			fakeDirector.RecentTasksReturns([]director.Task{}, errors.New("boom"))
+		It("wraps the error when fetching current tasks fails", func() {
+			fakeDirector.CurrentTasksReturns([]director.Task{}, errors.New("boom"))
 
-			_, err := c.GetTasks(deploymentName, logger)
-			Expect(err).To(MatchError(fmt.Sprintf("Could not fetch recent tasks for deployment %s: boom", deploymentName)))
+			_, err := c.GetTasksInProgress(deploymentName, logger)
+			Expect(err).To(MatchError(fmt.Sprintf("Could not fetch current tasks for deployment %s: boom", deploymentName)))
 		})
 	})
 

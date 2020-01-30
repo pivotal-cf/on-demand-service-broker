@@ -69,6 +69,12 @@ var _ = Describe("BOSH client", func() {
 				recreateTaskID int
 			)
 
+			By("verifying no tasks in progress", func() {
+				tasks, err := boshClient.GetTasksInProgress(deploymentName, logger)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(tasks).To(BeEmpty())
+			})
+
 			By("deploying the manifest", func() {
 				var err error
 				taskID, err = boshClient.Deploy(manifest, "some-context-id", logger, reporter)
@@ -97,12 +103,6 @@ var _ = Describe("BOSH client", func() {
 				task, err = boshClient.GetTask(taskID, logger)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(task.ID).To(Equal(taskID))
-			})
-
-			By("verifying all tasks", func() {
-				tasks, err := boshClient.GetTasks(deploymentName, logger)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(tasks).To(ContainElement(task))
 			})
 
 			By("pulling VM information", func() {

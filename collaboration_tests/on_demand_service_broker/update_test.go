@@ -659,7 +659,7 @@ properties:
 		})
 
 		It("responds with 500 if BOSH is an operation is in progress", func() {
-			fakeTaskBoshClient.GetTasksReturns(boshdirector.BoshTasks{
+			fakeTaskBoshClient.GetTasksInProgressReturns(boshdirector.BoshTasks{
 				boshdirector.BoshTask{State: boshdirector.TaskProcessing},
 			}, nil)
 
@@ -672,7 +672,7 @@ properties:
 		})
 
 		It("responds with 500 if BOSH is unavailable", func() {
-			fakeTaskBoshClient.GetTasksReturns(nil, errors.New("oops"))
+			fakeTaskBoshClient.GetTasksInProgressReturns(nil, errors.New("oops"))
 
 			resp, bodyContent := doUpdateRequest(requestBody, instanceID)
 

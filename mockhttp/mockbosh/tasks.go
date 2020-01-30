@@ -8,6 +8,7 @@ package mockbosh
 
 import (
 	"fmt"
+	"net/url"
 
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
@@ -23,9 +24,16 @@ func Tasks(deploymentName string) *tasksMock {
 	}
 }
 
-func TasksWithLimit(deploymentName string, limit int) *tasksMock {
+func TasksInProgress(deploymentName string) *tasksMock {
 	return &tasksMock{
-		Handler: mockhttp.NewMockedHttpRequest("GET", fmt.Sprintf("/tasks?deployment=%s&limit=%d&verbose=1", deploymentName, limit)),
+		Handler: mockhttp.NewMockedHttpRequest(
+			"GET",
+			fmt.Sprintf(
+				"/tasks?deployment=%s&state=%s&verbose=1",
+				deploymentName,
+				url.QueryEscape("processing,cancelling,queued"),
+			),
+		),
 	}
 }
 func (t *tasksMock) RespondsWithNoTasks() *mockhttp.Handler {

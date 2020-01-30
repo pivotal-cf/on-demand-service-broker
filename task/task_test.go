@@ -221,14 +221,14 @@ var _ = Describe("Deployer", func() {
 		Context("when bosh deploys the release successfully", func() {
 			BeforeEach(func() {
 				By("not having any previous tasks")
-				boshClient.GetTasksReturns([]boshdirector.BoshTask{}, nil)
+				boshClient.GetTasksInProgressReturns(boshdirector.BoshTasks{}, nil)
 				manifestGenerator.GenerateManifestReturns(serviceadapter.MarshalledGenerateManifest{Manifest: generatedManifest}, nil)
 				boshClient.DeployReturns(42, nil)
 			})
 
 			It("checks tasks for the deployment", func() {
-				Expect(boshClient.GetTasksCallCount()).To(Equal(1))
-				actualDeploymentName, _ := boshClient.GetTasksArgsForCall(0)
+				Expect(boshClient.GetTasksInProgressCallCount()).To(Equal(1))
+				actualDeploymentName, _ := boshClient.GetTasksInProgressArgsForCall(0)
 				Expect(actualDeploymentName).To(Equal(deploymentName))
 			})
 
@@ -262,7 +262,7 @@ var _ = Describe("Deployer", func() {
 		Context("logging", func() {
 			BeforeEach(func() {
 				boshClient.DeployReturns(42, nil)
-				boshClient.GetTasksReturns([]boshdirector.BoshTask{{State: boshdirector.TaskDone}}, nil)
+				boshClient.GetTasksInProgressReturns(boshdirector.BoshTasks{}, nil)
 
 				oldManifest = nil
 			})
@@ -274,71 +274,37 @@ var _ = Describe("Deployer", func() {
 			})
 		})
 
-		Context("when the last bosh task for deployment is queued", func() {
-			var previousDoneBoshTaskID = 41
-			var previousErrorBoshTaskID = 40
+		Context("asserts that no operation is in progress", func() {
+			When("the last bosh task for deployment is incomplete", func() {
+				BeforeEach(func() {
+					boshClient.GetTasksInProgressReturns(boshdirector.BoshTasks{boshdirector.BoshTask{ID: 42, State: "queued"}}, nil)
+				})
 
-			BeforeEach(func() {
-				boshClient.GetTasksReturns([]boshdirector.BoshTask{
-					{State: boshdirector.TaskQueued, ID: boshTaskID},
-					{State: boshdirector.TaskDone, ID: previousDoneBoshTaskID},
-					{State: boshdirector.TaskError, ID: previousErrorBoshTaskID},
-				}, nil)
+				It("fails because deployment is still in progress", func() {
+					Expect(deployError).To(BeAssignableToTypeOf(broker.TaskInProgressError{}))
+
+					Expect(logBuffer.String()).To(SatisfyAll(
+						ContainSubstring(fmt.Sprintf("deployment %s is still in progress", deploymentName)),
+						ContainSubstring(`"ID":%d`, 42),
+						ContainSubstring("queued"),
+					))
+				})
 			})
 
-			It("fails because deployment is still in progress", func() {
-				Expect(deployError).To(BeAssignableToTypeOf(broker.TaskInProgressError{}))
+			When("get current tasks fails to communicate with BOSH", func() {
+				BeforeEach(func() {
+					boshClient.GetTasksInProgressReturns(boshdirector.BoshTasks{}, errors.New("connection error"))
+				})
 
-				Expect(logBuffer.String()).To(SatisfyAll(
-					ContainSubstring(fmt.Sprintf("deployment %s is still in progress", deploymentName)),
-					ContainSubstring("\"ID\":%d", boshTaskID),
-					Not(ContainSubstring("done")),
-					Not(ContainSubstring("\"ID\":%d", previousDoneBoshTaskID)),
-					Not(ContainSubstring("error")),
-					Not(ContainSubstring("\"ID\":%d", previousErrorBoshTaskID)),
-				))
-			})
-		})
-
-		Context("when the last bosh task for deployment is processing", func() {
-			var previousDoneBoshTaskID = 41
-			var previousErrorBoshTaskID = 40
-
-			BeforeEach(func() {
-				boshClient.GetTasksReturns([]boshdirector.BoshTask{
-					{State: boshdirector.TaskProcessing, ID: boshTaskID},
-					{State: boshdirector.TaskDone, ID: previousDoneBoshTaskID},
-					{State: boshdirector.TaskError, ID: previousErrorBoshTaskID},
-				}, nil)
-			})
-
-			It("fails because deployment is still in progress", func() {
-				Expect(deployError).To(BeAssignableToTypeOf(broker.TaskInProgressError{}))
-
-				Expect(logBuffer.String()).To(SatisfyAll(
-					ContainSubstring(fmt.Sprintf("deployment %s is still in progress", deploymentName)),
-					ContainSubstring("\"ID\":%d", boshTaskID),
-					Not(ContainSubstring("done")),
-					Not(ContainSubstring("\"ID\":%d", previousDoneBoshTaskID)),
-					Not(ContainSubstring("error")),
-					Not(ContainSubstring("\"ID\":%d", previousErrorBoshTaskID)),
-				))
-			})
-		})
-
-		Context("when the last bosh task for deployment fails to fetch", func() {
-			BeforeEach(func() {
-				boshClient.GetTasksReturns(nil, errors.New("connection error"))
-			})
-
-			It("wraps the error", func() {
-				Expect(deployError).To(MatchError(fmt.Sprintf("error getting tasks for deployment %s: connection error\n", deploymentName)))
+				It("wraps the error", func() {
+					Expect(deployError).To(MatchError(fmt.Sprintf("error getting tasks for deployment %s: connection error\n", deploymentName)))
+				})
 			})
 		})
 
 		Context("when bosh fails to deploy the release", func() {
 			BeforeEach(func() {
-				boshClient.GetTasksReturns([]boshdirector.BoshTask{{State: boshdirector.TaskDone}}, nil)
+				boshClient.GetTasksInProgressReturns(boshdirector.BoshTasks{}, nil)
 				boshClient.DeployReturns(0, errors.New("error deploying"))
 			})
 
@@ -354,7 +320,7 @@ var _ = Describe("Deployer", func() {
 			previousPlanID = stringPointer(existingPlanID)
 
 			boshClient.GetDeploymentReturns(oldManifest, true, nil)
-			boshClient.GetTasksReturns([]boshdirector.BoshTask{}, nil)
+			boshClient.GetTasksInProgressReturns(boshdirector.BoshTasks{}, nil)
 			boshClient.DeployReturns(42, nil)
 		})
 
@@ -362,7 +328,7 @@ var _ = Describe("Deployer", func() {
 			BeforeEach(func() {
 				By("not having any previous tasks")
 				boshClient.GetDeploymentReturns(oldManifest, true, nil)
-				boshClient.GetTasksReturns([]boshdirector.BoshTask{}, nil)
+				boshClient.GetTasksInProgressReturns(boshdirector.BoshTasks{}, nil)
 				boshClient.DeployReturns(42, nil)
 			})
 
@@ -388,9 +354,9 @@ var _ = Describe("Deployer", func() {
 				actualDeploymentName, _ := boshClient.GetDeploymentArgsForCall(0)
 				Expect(actualDeploymentName).To(Equal(deploymentName))
 
-				By("checking tasks for the deployment")
-				Expect(boshClient.GetTasksCallCount()).To(Equal(1))
-				actualDeploymentName, _ = boshClient.GetTasksArgsForCall(0)
+				By("checking incomplete tasks for the deployment")
+				Expect(boshClient.GetTasksInProgressCallCount()).To(Equal(1))
+				actualDeploymentName, _ = boshClient.GetTasksInProgressArgsForCall(0)
 				Expect(actualDeploymentName).To(Equal(deploymentName))
 
 				By("Creating a bosh deployment using generated manifest")
@@ -471,98 +437,45 @@ var _ = Describe("Deployer", func() {
 			Expect(deployError).NotTo(HaveOccurred())
 		})
 
-		Context("when the last bosh task for deployment is queued", func() {
-			var previousDoneBoshTaskID = 41
-			var previousErrorBoshTaskID = 40
+		Context("asserts that no operation is in progress", func() {
+			When("the last bosh task for deployment is incomplete", func() {
+				BeforeEach(func() {
+					boshClient.GetTasksInProgressReturns(boshdirector.BoshTasks{boshdirector.BoshTask{ID: 42}}, nil)
+				})
 
-			var queuedTask = boshdirector.BoshTask{State: boshdirector.TaskQueued, ID: boshTaskID}
-
-			BeforeEach(func() {
-				boshClient.GetTasksReturns([]boshdirector.BoshTask{
-					queuedTask,
-					{State: boshdirector.TaskDone, ID: previousDoneBoshTaskID},
-					{State: boshdirector.TaskError, ID: previousErrorBoshTaskID},
-				}, nil)
-			})
-
-			It("returns and logs an error", func() {
-				returnedTaskID, deployedManifest, deployError = deployer.Upgrade(
-					deploymentName,
-					plan,
-					boshContextID,
-					logger,
-				)
-
-				Expect(deployError).To(BeAssignableToTypeOf(broker.TaskInProgressError{}))
-				Expect(logBuffer.String()).To(ContainSubstring(
-					fmt.Sprintf("deployment %s is still in progress: tasks %s\n",
+				It("fails because deployment is still in progress", func() {
+					_, _, deployError = deployer.Upgrade(
 						deploymentName,
-						boshdirector.BoshTasks{queuedTask}.ToLog(),
-					),
-				))
+						plan,
+						boshContextID,
+						logger,
+					)
 
-				By("does not log the previous completed tasks for the deployment")
-				Expect(logBuffer.String()).NotTo(ContainSubstring("done"))
-				Expect(logBuffer.String()).NotTo(ContainSubstring("\"ID\":%d", previousDoneBoshTaskID))
-				Expect(logBuffer.String()).NotTo(ContainSubstring("error"))
-				Expect(logBuffer.String()).NotTo(ContainSubstring("\"ID\":%d", previousErrorBoshTaskID))
+					Expect(deployError).To(BeAssignableToTypeOf(broker.TaskInProgressError{}))
+				})
 			})
-		})
 
-		Context("when the last bosh task for deployment is processing", func() {
-			var previousDoneBoshTaskID = 41
-			var previousErrorBoshTaskID = 40
+			When("get current tasks fails to communicate with BOSH", func() {
+				BeforeEach(func() {
+					boshClient.GetTasksInProgressReturns(boshdirector.BoshTasks{}, errors.New("connection error"))
+				})
 
-			var inProgressTask = boshdirector.BoshTask{State: boshdirector.TaskProcessing, ID: boshTaskID}
-
-			It("returns and logs the error", func() {
-				boshClient.GetTasksReturns([]boshdirector.BoshTask{
-					inProgressTask,
-					{State: boshdirector.TaskDone, ID: previousDoneBoshTaskID},
-					{State: boshdirector.TaskError, ID: previousErrorBoshTaskID},
-				}, nil)
-
-				returnedTaskID, deployedManifest, deployError = deployer.Upgrade(
-					deploymentName,
-					plan,
-					boshContextID,
-					logger,
-				)
-
-				Expect(deployError).To(BeAssignableToTypeOf(broker.TaskInProgressError{}))
-				Expect(logBuffer.String()).To(ContainSubstring(
-					fmt.Sprintf("deployment %s is still in progress: tasks %s\n",
+				It("wraps the error", func() {
+					_, _, deployError = deployer.Upgrade(
 						deploymentName,
-						boshdirector.BoshTasks{inProgressTask}.ToLog(),
-					),
-				))
+						plan,
+						boshContextID,
+						logger,
+					)
 
-				By("does not log the previous tasks for the deployment")
-				Expect(logBuffer.String()).NotTo(ContainSubstring("done"))
-				Expect(logBuffer.String()).NotTo(ContainSubstring("\"ID\":%d", previousDoneBoshTaskID))
-				Expect(logBuffer.String()).NotTo(ContainSubstring("error"))
-				Expect(logBuffer.String()).NotTo(ContainSubstring("\"ID\":%d", previousErrorBoshTaskID))
-			})
-		})
-
-		Context("when the last bosh task for deployment fails to fetch", func() {
-			It("wraps the error", func() {
-				boshClient.GetTasksReturns(nil, errors.New("connection error"))
-
-				returnedTaskID, deployedManifest, deployError = deployer.Upgrade(
-					deploymentName,
-					plan,
-					boshContextID,
-					logger,
-				)
-
-				Expect(deployError).To(MatchError(fmt.Sprintf("error getting tasks for deployment %s: connection error\n", deploymentName)))
+					Expect(deployError).To(MatchError(fmt.Sprintf("error getting tasks for deployment %s: connection error\n", deploymentName)))
+				})
 			})
 		})
 
 		Context("when bosh fails to deploy the release", func() {
 			It("wraps the error", func() {
-				boshClient.GetTasksReturns([]boshdirector.BoshTask{{State: boshdirector.TaskDone}}, nil)
+				boshClient.GetTasksInProgressReturns(boshdirector.BoshTasks{}, nil)
 				boshClient.DeployReturns(0, errors.New("error deploying"))
 
 				returnedTaskID, deployedManifest, deployError = deployer.Upgrade(
@@ -633,7 +546,7 @@ var _ = Describe("Deployer", func() {
 
 			previousPlanID = stringPointer(existingPlanID)
 
-			boshClient.GetTasksReturns([]boshdirector.BoshTask{{State: boshdirector.TaskDone}}, nil)
+			boshClient.GetTasksInProgressReturns(boshdirector.BoshTasks{}, nil)
 			boshClient.GetDeploymentReturns(oldManifest, true, nil)
 		})
 
@@ -733,8 +646,9 @@ var _ = Describe("Deployer", func() {
 						logger,
 					)
 
-					Expect(boshClient.GetTasksCallCount()).To(Equal(1))
-					actualDeploymentName, _ := boshClient.GetTasksArgsForCall(0)
+					By("checking incomplete tasks for the deployment")
+					Expect(boshClient.GetTasksInProgressCallCount()).To(Equal(1))
+					actualDeploymentName, _ := boshClient.GetTasksInProgressArgsForCall(0)
 					Expect(actualDeploymentName).To(Equal(deploymentName))
 
 					Expect(boshClient.GetDeploymentCallCount()).To(Equal(1))
@@ -878,23 +792,45 @@ var _ = Describe("Deployer", func() {
 			})
 		})
 
-		Context("and when the last bosh task for deployment fails to fetch", func() {
-			BeforeEach(func() {
-				boshClient.GetTasksReturns(nil, errors.New("connection error"))
+		Context("asserts that no operation is in progress", func() {
+			When("the last bosh task for deployment is incomplete", func() {
+				BeforeEach(func() {
+					boshClient.GetTasksInProgressReturns(boshdirector.BoshTasks{boshdirector.BoshTask{ID: 42}}, nil)
+				})
+
+				It("fails because deployment is still in progress", func() {
+					_, _, deployError = deployer.Update(
+						deploymentName,
+						planID,
+						requestParams,
+						previousPlanID,
+						boshContextID,
+						secretsMap,
+						logger,
+					)
+
+					Expect(deployError).To(BeAssignableToTypeOf(broker.TaskInProgressError{}))
+				})
 			})
 
-			It("wraps the error", func() {
-				returnedTaskID, deployedManifest, deployError = deployer.Update(
-					deploymentName,
-					planID,
-					requestParams,
-					previousPlanID,
-					boshContextID,
-					secretsMap,
-					logger,
-				)
+			When("get current tasks fails to communicate with BOSH", func() {
+				BeforeEach(func() {
+					boshClient.GetTasksInProgressReturns(boshdirector.BoshTasks{}, errors.New("connection error"))
+				})
 
-				Expect(deployError).To(MatchError(fmt.Sprintf("error getting tasks for deployment %s: connection error\n", deploymentName)))
+				It("wraps the error", func() {
+					_, _, deployError = deployer.Update(
+						deploymentName,
+						planID,
+						requestParams,
+						previousPlanID,
+						boshContextID,
+						secretsMap,
+						logger,
+					)
+
+					Expect(deployError).To(MatchError(fmt.Sprintf("error getting tasks for deployment %s: connection error\n", deploymentName)))
+				})
 			})
 		})
 
@@ -1245,7 +1181,7 @@ instance_groups:
 		var err error
 
 		It("calls BOSH recreate", func() {
-			boshClient.GetTasksReturns([]boshdirector.BoshTask{}, nil)
+			boshClient.GetTasksInProgressReturns(boshdirector.BoshTasks{}, nil)
 			boshClient.RecreateReturns(42, nil)
 
 			returnedTaskID, err = deployer.Recreate(deploymentName, planID, boshContextID, logger)
@@ -1255,23 +1191,34 @@ instance_groups:
 			Expect(logBuffer.String()).To(ContainSubstring("Submitted BOSH recreate with task ID"))
 		})
 
-		It("fails when it can't get bosh in progess tasks", func() {
-			boshClient.GetTasksReturns([]boshdirector.BoshTask{}, fmt.Errorf("boom!"))
-			_, err = deployer.Recreate(deploymentName, planID, boshContextID, logger)
-			Expect(err).To(MatchError(ContainSubstring("error getting tasks for deployment")))
-		})
+		Context("asserts that no operation is in progress", func() {
+			When("the last bosh task for deployment is incomplete", func() {
+				BeforeEach(func() {
+					boshClient.GetTasksInProgressReturns(boshdirector.BoshTasks{boshdirector.BoshTask{ID: 42}}, nil)
+				})
 
-		It("fails if an operation is in progress", func() {
-			boshClient.GetTasksReturns([]boshdirector.BoshTask{{
-				State: "processing",
-			}}, nil)
+				It("fails because deployment is still in progress", func() {
+					_, deployError = deployer.Recreate(deploymentName, planID, boshContextID, logger)
 
-			_, err = deployer.Recreate(deploymentName, planID, boshContextID, logger)
-			Expect(err).To(MatchError("task in progress"))
+					Expect(deployError).To(BeAssignableToTypeOf(broker.TaskInProgressError{}))
+				})
+			})
+
+			When("get current tasks fails to communicate with BOSH", func() {
+				BeforeEach(func() {
+					boshClient.GetTasksInProgressReturns(boshdirector.BoshTasks{}, errors.New("connection error"))
+				})
+
+				It("wraps the error", func() {
+					_, deployError = deployer.Recreate(deploymentName, planID, boshContextID, logger)
+
+					Expect(deployError).To(MatchError(fmt.Sprintf("error getting tasks for deployment %s: connection error\n", deploymentName)))
+				})
+			})
 		})
 
 		It("fails when bosh recreate returns an error", func() {
-			boshClient.GetTasksReturns([]boshdirector.BoshTask{}, nil)
+			boshClient.GetTasksInProgressReturns(boshdirector.BoshTasks{}, nil)
 			boshClient.RecreateReturns(0, errors.New("zork"))
 
 			_, err = deployer.Recreate(deploymentName, planID, boshContextID, logger)
@@ -1279,7 +1226,6 @@ instance_groups:
 
 			Expect(logBuffer.String()).To(ContainSubstring("failed to recreate deployment"))
 		})
-
 	})
 })
 

@@ -74,7 +74,7 @@ var _ = Describe("Basic authentication for BOSH", func() {
 				boshDirector.VerifyAndMock(
 					mockbosh.Info().RespondsOKWith(`{}`),
 					mockbosh.Deployments().RespondsOKWith(fmt.Sprintf(`[{"Name": "not-the-one"}]`)),
-					mockbosh.Tasks(deploymentName("some-instance-id")).RespondsWithNoTasks(),
+					mockbosh.TasksInProgress(deploymentName("some-instance-id")).RespondsWithNoTasks(),
 					mockbosh.Deploy().RedirectsToTask(101),
 					mockbosh.Task(101).RespondsWithTaskContainingState("in progress"),
 					mockbosh.Task(101).RespondsWithTaskContainingState("done"),

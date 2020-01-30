@@ -582,7 +582,7 @@ var _ = Describe("Management API", func() {
 			})
 
 			It("responds with 409 when there are incomplete tasks for the instance's deployment", func() {
-				fakeTaskBoshClient.GetTasksReturns(boshdirector.BoshTasks{
+				fakeTaskBoshClient.GetTasksInProgressReturns(boshdirector.BoshTasks{
 					{State: boshdirector.TaskProcessing},
 				}, nil)
 

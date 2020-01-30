@@ -7,28 +7,37 @@
 package boshdirector
 
 import (
-	"log"
-	"math"
-
 	"github.com/cloudfoundry/bosh-cli/director"
 	"github.com/pkg/errors"
+	"log"
 )
 
-func (c *Client) GetTasks(deploymentName string, logger *log.Logger) (BoshTasks, error) {
-	logger.Printf("getting tasks for deployment %s from bosh\n", deploymentName)
+func (c *Client) GetTasksInProgress(deploymentName string, logger *log.Logger) (BoshTasks, error) {
+	logger.Printf("getting current tasks for deployment %s from bosh\n", deploymentName)
 	d, err := c.Director(director.NewNoopTaskReporter())
 	if err != nil {
 		return BoshTasks{}, errors.Wrap(err, "Failed to build director")
 	}
 
-	tasks, err := d.RecentTasks(math.MaxInt32, director.TasksFilter{
-		All: false, Deployment: deploymentName,
-	})
+	currentTasks, err := d.CurrentTasks(
+		director.TasksFilter{
+			All: false, Deployment: deploymentName,
+		})
 	if err != nil {
-		return nil, errors.Wrapf(err, "Could not fetch recent tasks for deployment %s", deploymentName)
+		return BoshTasks{}, errors.Wrapf(err, "Could not fetch current tasks for deployment %s", deploymentName)
 	}
-	return c.toBoshTasks(tasks, deploymentName, logger)
 
+	var boshTasks BoshTasks
+	for _, task := range currentTasks {
+		boshTasks = append(boshTasks, BoshTask{
+			ID:          task.ID(),
+			State:       task.State(),
+			Description: task.Description(),
+			Result:      task.Result(),
+			ContextID:   task.ContextID(),
+		})
+	}
+	return boshTasks, nil
 }
 
 func (c *Client) GetNormalisedTasksByContext(deploymentName, contextID string, logger *log.Logger) (BoshTasks, error) {
@@ -40,14 +49,11 @@ func (c *Client) GetNormalisedTasksByContext(deploymentName, contextID string, l
 	if err != nil {
 		return BoshTasks{}, errors.Wrapf(err, "Could not fetch tasks for deployment %s with context id %s", deploymentName, contextID)
 	}
-	return c.toBoshTasks(tasks, deploymentName, logger)
-}
 
-func (c *Client) toBoshTasks(tasks []director.Task, deploymentName string, logger *log.Logger) (BoshTasks, error) {
 	var boshTasks BoshTasks
 	for _, task := range tasks {
 		if task.DeploymentName() == deploymentName {
-			taskState, err := c.taskState(task, logger)
+			taskState, err := c.fetchTaskState(task, logger)
 			if err != nil {
 				return nil, errors.Wrap(err, "Could not retrieve task output")
 			}
@@ -65,7 +71,7 @@ func (c *Client) toBoshTasks(tasks []director.Task, deploymentName string, logge
 
 // bosh status for failed errands is 'done', not 'error'
 // https://github.com/cloudfoundry/bosh/issues/1592
-func (c *Client) taskState(task director.Task, logger *log.Logger) (string, error) {
+func (c *Client) fetchTaskState(task director.Task, logger *log.Logger) (string, error) {
 	if task.State() == TaskDone {
 		taskOutput, err := c.GetTaskOutput(task.ID(), logger)
 		if err != nil {

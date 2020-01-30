@@ -197,7 +197,7 @@ type ServiceAdapterClient interface {
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_bosh_client.go . BoshClient
 type BoshClient interface {
 	GetTask(taskID int, logger *log.Logger) (boshdirector.BoshTask, error)
-	GetTasks(deploymentName string, logger *log.Logger) (boshdirector.BoshTasks, error)
+	GetTasksInProgress(deploymentName string, logger *log.Logger) (boshdirector.BoshTasks, error)
 	GetNormalisedTasksByContext(deploymentName, contextID string, logger *log.Logger) (boshdirector.BoshTasks, error)
 	VMs(deploymentName string, logger *log.Logger) (bosh.BoshVMs, error)
 	GetDeployment(name string, logger *log.Logger) ([]byte, bool, error)

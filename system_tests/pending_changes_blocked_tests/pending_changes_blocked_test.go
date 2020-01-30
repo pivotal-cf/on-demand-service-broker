@@ -15,7 +15,7 @@ import (
 )
 
 var _ = Describe("service instance with pending changes", func() {
-	var expectedErrMsg = "The service broker has been updated, and this service instance is out of date. Please contact your operator."
+	const expectedErrMsg = "The service broker has been updated, and this service instance is out of date. Please contact your operator."
 
 	It("prevents a plan change", func() {
 		session := cf.CfWithTimeout(cf.CfTimeout, "update-service", serviceInstanceName, "-p", "redis-plan-2")
