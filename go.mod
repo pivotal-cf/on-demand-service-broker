@@ -21,7 +21,7 @@ require (
 	github.com/elazarl/goproxy v0.0.0-20191011121108-aa519ddbe484 // indirect
 	github.com/elazarl/goproxy/ext v0.0.0-20191011121108-aa519ddbe484 // indirect
 	github.com/gogo/protobuf v0.0.0-20171007142547-342cbe0a0415 // indirect
-	github.com/gorilla/mux v1.7.3
+	github.com/gorilla/mux v1.7.4
 	github.com/gorilla/websocket v1.2.0 // indirect
 	github.com/hashicorp/go-version v0.0.0-20170914154128-fc61389e27c7 // indirect
 	github.com/mailru/easyjson v0.0.0-20171120080333-32fa128f234d // indirect
