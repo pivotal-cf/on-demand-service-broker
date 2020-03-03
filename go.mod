@@ -39,6 +39,7 @@ require (
 	github.com/tedsuo/ifrit v0.0.0-20191009134036-9a97d0632f00 // indirect
 	github.com/urfave/negroni v1.0.0
 	github.com/xeipuuv/gojsonschema v1.2.0
+	golang.org/x/crypto v0.0.0-20200302210943-78000ba7a073 // indirect
 	gopkg.in/yaml.v2 v2.2.8
 )
 
