@@ -37,6 +37,7 @@ var _ = Describe("Bind", func() {
 			Credentials:     map[string]interface{}{"foo": "bar"},
 			RouteServiceURL: "route",
 			SyslogDrainURL:  "syslog",
+			BackupAgentURL:  "some-url",
 		}
 		boshVms             = bosh.BoshVMs{"redis-server": []string{"an.ip"}}
 		actualManifest      = []byte("valid manifest")
@@ -175,6 +176,7 @@ var _ = Describe("Bind", func() {
 				Credentials:     adapterBindingResponse.Credentials,
 				SyslogDrainURL:  adapterBindingResponse.SyslogDrainURL,
 				RouteServiceURL: adapterBindingResponse.RouteServiceURL,
+				BackupAgentURL:  adapterBindingResponse.BackupAgentURL,
 			}))
 		})
 

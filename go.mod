@@ -21,7 +21,7 @@ require (
 	github.com/elazarl/goproxy v0.0.0-20191011121108-aa519ddbe484 // indirect
 	github.com/elazarl/goproxy/ext v0.0.0-20191011121108-aa519ddbe484 // indirect
 	github.com/gogo/protobuf v0.0.0-20171007142547-342cbe0a0415 // indirect
-	github.com/gorilla/mux v1.7.3
+	github.com/gorilla/mux v1.7.4
 	github.com/gorilla/websocket v1.2.0 // indirect
 	github.com/hashicorp/go-version v0.0.0-20170914154128-fc61389e27c7 // indirect
 	github.com/mailru/easyjson v0.0.0-20171120080333-32fa128f234d // indirect
@@ -30,8 +30,8 @@ require (
 	github.com/onsi/ginkgo v1.11.0
 	github.com/onsi/gomega v1.8.1
 	github.com/pborman/uuid v1.2.0
-	github.com/pivotal-cf/brokerapi/v7 v7.1.1
-	github.com/pivotal-cf/on-demand-services-sdk v0.37.1-0.20200128152816-9130659fb4d7
+	github.com/pivotal-cf/brokerapi/v7 v7.2.0
+	github.com/pivotal-cf/on-demand-services-sdk v0.38.1-0.20200303140208-545aed61c1b7
 	github.com/pivotal-cf/paraphernalia v0.0.0-20171027171623-4272315231ce // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/poy/eachers v0.0.0-20181020210610-23942921fe77 // indirect

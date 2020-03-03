@@ -114,5 +114,6 @@ func (b *Broker) Bind(
 		Credentials:     binding.Credentials,
 		SyslogDrainURL:  binding.SyslogDrainURL,
 		RouteServiceURL: binding.RouteServiceURL,
+		BackupAgentURL:  binding.BackupAgentURL,
 	}, nil
 }
