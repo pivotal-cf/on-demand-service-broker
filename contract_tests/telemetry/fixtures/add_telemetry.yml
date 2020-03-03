@@ -21,6 +21,7 @@
       telemetry-centralizer-address:
         as: my-custom-telemetry-centralizer-address
     properties:
+      audit_mode: true
       flush_interval: 60
       tls:
         ca_cert: ((telemetry-ca-cert.certificate))
