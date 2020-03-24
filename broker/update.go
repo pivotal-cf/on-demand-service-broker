@@ -11,9 +11,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/pivotal-cf/on-demand-service-broker/broker/decider"
 	"log"
 	"net/http"
+
+	"github.com/pivotal-cf/on-demand-service-broker/broker/decider"
 
 	"github.com/pivotal-cf/brokerapi/v7/domain"
 	"github.com/pivotal-cf/brokerapi/v7/domain/apiresponses"

@@ -59,6 +59,7 @@ var _ = Describe("Broker Config", func() {
 						ShutdownTimeoutSecs:        10,
 						UsingStdin:                 true,
 						EnableTelemetry:            true,
+						SupportBackupAgentBinding:  true,
 					},
 					Bosh: config.Bosh{
 						URL:         "some-url",

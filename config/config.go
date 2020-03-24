@@ -1,8 +1,12 @@
 // Copyright (C) 2016-Present Pivotal Software, Inc. All rights reserved.
-// This program and the accompanying materials are made available under the terms of the under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-// http://www.apache.org/licenses/LICENSE-2.0
-// Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+// This program and the accompanying materials are made available under the
+// terms of the under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License.  You may obtain a
+// copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless
+// required by applicable law or agreed to in writing, software distributed
+// under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
+// specific language governing permissions and limitations under the License.
 
 package config
 
@@ -32,21 +36,22 @@ type Config struct {
 }
 
 type Broker struct {
-	Port                       int
-	Username                   string
-	Password                   string
-	DisableSSLCertVerification bool `yaml:"disable_ssl_cert_verification"`
-	DisableBoshConfigs         bool `yaml:"disable_bosh_configs"`
-	StartUpBanner              bool `yaml:"startup_banner"`
-	ShutdownTimeoutSecs        int  `yaml:"shutdown_timeout_in_seconds"`
-	DisableCFStartupChecks     bool `yaml:"disable_cf_startup_checks"`
-	ExposeOperationalErrors    bool `yaml:"expose_operational_errors"`
-	EnablePlanSchemas          bool `yaml:"enable_plan_schemas"`
-	UsingStdin                 bool `yaml:"use_stdin"`
-	EnableSecureManifests      bool `yaml:"enable_secure_manifests"`
-	EnableTelemetry            bool `yaml:"enable_telemetry"`
-	EnableOptimisedUpgrades    bool
-	TLS                        TLSConfig
+	Port                       int       `yaml:"port"`
+	Username                   string    `yaml:"username"`
+	Password                   string    `yaml:"password"`
+	DisableSSLCertVerification bool      `yaml:"disable_ssl_cert_verification"`
+	DisableBoshConfigs         bool      `yaml:"disable_bosh_configs"`
+	StartUpBanner              bool      `yaml:"startup_banner"`
+	ShutdownTimeoutSecs        int       `yaml:"shutdown_timeout_in_seconds"`
+	DisableCFStartupChecks     bool      `yaml:"disable_cf_startup_checks"`
+	ExposeOperationalErrors    bool      `yaml:"expose_operational_errors"`
+	EnablePlanSchemas          bool      `yaml:"enable_plan_schemas"`
+	UsingStdin                 bool      `yaml:"use_stdin"`
+	EnableSecureManifests      bool      `yaml:"enable_secure_manifests"`
+	EnableTelemetry            bool      `yaml:"enable_telemetry"`
+	EnableOptimisedUpgrades    bool      `yaml:"enable_optimised_upgrades"`
+	SupportBackupAgentBinding  bool      `yaml:"support_backup_agent_binding"`
+	TLS                        TLSConfig `yaml:"tls"`
 }
 
 type BoshCredhub struct {

@@ -8,10 +8,11 @@ package broker
 
 import (
 	"fmt"
-	"github.com/pivotal-cf/on-demand-service-broker/broker/decider"
 	"log"
 	"strings"
 	"sync"
+
+	"github.com/pivotal-cf/on-demand-service-broker/broker/decider"
 
 	"github.com/pivotal-cf/brokerapi/v7/domain"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
@@ -34,11 +35,12 @@ type Broker struct {
 	deploymentLock *sync.Mutex
 	bindLock       *sync.Mutex
 
-	serviceOffering         config.ServiceOffering
-	ExposeOperationalErrors bool
-	EnablePlanSchemas       bool
-	EnableSecureManifests   bool
-	DisableBoshConfigs      bool
+	serviceOffering           config.ServiceOffering
+	ExposeOperationalErrors   bool
+	EnablePlanSchemas         bool
+	EnableSecureManifests     bool
+	SupportBackupAgentBinding bool
+	DisableBoshConfigs        bool
 
 	loggerFactory   *loggerfactory.LoggerFactory
 	telemetryLogger TelemetryLogger
@@ -64,23 +66,24 @@ func New(
 	decider Decider) (*Broker, error) {
 
 	b := &Broker{
-		boshClient:              boshClient,
-		cfClient:                cfClient,
-		adapterClient:           serviceAdapter,
-		deployer:                deployer,
-		deploymentLock:          &sync.Mutex{},
-		bindLock:                &sync.Mutex{},
-		serviceOffering:         serviceOffering,
-		ExposeOperationalErrors: brokerConfig.ExposeOperationalErrors,
-		EnablePlanSchemas:       brokerConfig.EnablePlanSchemas,
-		EnableSecureManifests:   brokerConfig.EnableSecureManifests,
-		DisableBoshConfigs:      brokerConfig.DisableBoshConfigs,
-		secretManager:           manifestSecretManager,
-		instanceLister:          instanceLister,
-		hasher:                  hasher,
-		loggerFactory:           loggerFactory,
-		telemetryLogger:         telemetryLogger,
-		decider:                 decider,
+		boshClient:                boshClient,
+		cfClient:                  cfClient,
+		adapterClient:             serviceAdapter,
+		deployer:                  deployer,
+		deploymentLock:            &sync.Mutex{},
+		bindLock:                  &sync.Mutex{},
+		serviceOffering:           serviceOffering,
+		ExposeOperationalErrors:   brokerConfig.ExposeOperationalErrors,
+		EnablePlanSchemas:         brokerConfig.EnablePlanSchemas,
+		EnableSecureManifests:     brokerConfig.EnableSecureManifests,
+		DisableBoshConfigs:        brokerConfig.DisableBoshConfigs,
+		SupportBackupAgentBinding: brokerConfig.SupportBackupAgentBinding,
+		secretManager:             manifestSecretManager,
+		instanceLister:            instanceLister,
+		hasher:                    hasher,
+		loggerFactory:             loggerFactory,
+		telemetryLogger:           telemetryLogger,
+		decider:                   decider,
 	}
 
 	var startupCheckErrMessages []string

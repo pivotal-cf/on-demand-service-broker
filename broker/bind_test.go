@@ -67,7 +67,8 @@ var _ = Describe("Bind", func() {
 			PlanID:    "plan_id",
 			ServiceID: "service_id",
 			BindResource: &domain.BindResource{
-				AppGuid: "app_guid",
+				AppGuid:     "app_guid",
+				BackupAgent: true,
 			},
 			RawParameters: serialisedArbitraryParameters,
 			RawContext:    serialisedContext,
@@ -126,7 +127,8 @@ var _ = Describe("Bind", func() {
 				"plan_id":    "plan_id",
 				"service_id": "service_id",
 				"bind_resource": map[string]interface{}{
-					"app_guid": "app_guid",
+					"app_guid":     "app_guid",
+					"backup_agent": true,
 				},
 				"parameters": arbitraryParameters,
 				"context":    arbitraryContext,
@@ -164,14 +166,15 @@ var _ = Describe("Bind", func() {
 				"plan_id":    "plan_id",
 				"service_id": "service_id",
 				"bind_resource": map[string]interface{}{
-					"app_guid": "app_guid",
+					"app_guid":     "app_guid",
+					"backup_agent": true,
 				},
 				"parameters": arbitraryParameters,
 				"context":    arbitraryContext,
 			}))
 		})
 
-		It("returns the credentials, syslog drain url, and route service url produced by the service adapter", func() {
+		It("returns the binding details produced by the service adapter", func() {
 			Expect(bindResult).To(Equal(domain.Binding{
 				Credentials:     adapterBindingResponse.Credentials,
 				SyslogDrainURL:  adapterBindingResponse.SyslogDrainURL,
@@ -601,6 +604,38 @@ var _ = Describe("Bind", func() {
 			Expect(bindErr).To(HaveOccurred())
 			Expect(logBuffer.String()).ToNot(ContainSubstring("resolve_secrets_at_bind was:"))
 			Expect(logBuffer.String()).To(ContainSubstring("secrets needed"))
+		})
+	})
+
+	When("Backup agent binding is not supported", func() {
+		When("it is requested anyway", func() {
+			It("fails with a 422", func() {
+				brokerConfig.SupportBackupAgentBinding = false
+				b, brokerCreationErr = createBroker([]broker.StartupChecker{}, noopservicescontroller.New())
+				Expect(brokerCreationErr).NotTo(HaveOccurred())
+
+				_, bindErr = b.Bind(context.Background(), instanceID, bindingID, bindRequest, false)
+				Expect(bindErr).To(HaveOccurred())
+				actualErr := bindErr.(*apiresponses.FailureResponse)
+				Expect(actualErr.ValidatedStatusCode(nil)).To(Equal(http.StatusUnprocessableEntity))
+
+				response := actualErr.ErrorResponse()
+				Expect(response).To(BeAssignableToTypeOf(apiresponses.ErrorResponse{}))
+				errorResponse := response.(apiresponses.ErrorResponse)
+				Expect(errorResponse.Description).To(ContainSubstring("service does not support backup agent binding"))
+			})
+		})
+
+		When("it is not requested", func() {
+			It("succeeds", func() {
+				brokerConfig.SupportBackupAgentBinding = false
+				bindRequest.BindResource.BackupAgent = false
+				b, brokerCreationErr = createBroker([]broker.StartupChecker{}, noopservicescontroller.New())
+				Expect(brokerCreationErr).NotTo(HaveOccurred())
+
+				_, bindErr = b.Bind(context.Background(), instanceID, bindingID, bindRequest, false)
+				Expect(bindErr).NotTo(HaveOccurred())
+			})
 		})
 	})
 })

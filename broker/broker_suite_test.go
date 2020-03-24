@@ -278,7 +278,11 @@ var (
 )
 
 var _ = BeforeEach(func() {
-	brokerConfig = config.Broker{ExposeOperationalErrors: false, EnablePlanSchemas: false}
+	brokerConfig = config.Broker{
+		ExposeOperationalErrors:   false,
+		EnablePlanSchemas:         false,
+		SupportBackupAgentBinding: true,
+	}
 	secondPlan = config.Plan{
 		ID: secondPlanID,
 		Properties: serviceadapter.Properties{

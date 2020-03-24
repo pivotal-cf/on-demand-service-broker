@@ -14,6 +14,7 @@ broker:
   shutdown_timeout_in_seconds: 10
   use_stdin: true
   enable_telemetry: true
+  support_backup_agent_binding: true
 bosh:
   url: some-url
   root_ca_cert: some-cert
