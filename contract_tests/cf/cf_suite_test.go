@@ -20,13 +20,9 @@ func NewCFClient(logger *log.Logger) *cf.Client {
 	cfConfig := config.CF{
 		URL:         os.Getenv("CF_URL"),
 		TrustedCert: os.Getenv("CF_CA_CERT"),
-		Authentication: config.Authentication{
-			Basic: config.UserCredentials{
-				Username: os.Getenv("CF_USERNAME"),
-				Password: os.Getenv("CF_PASSWORD"),
-			},
-			UAA: config.UAAAuthentication{
-				URL: "https://uaa." + os.Getenv("BROKER_SYSTEM_DOMAIN"),
+		UAA: config.UAAConfig{
+			URL: "https://uaa." + os.Getenv("BROKER_SYSTEM_DOMAIN"),
+			Authentication: config.UAACredentials{
 				ClientCredentials: config.ClientCredentials{
 					ID:     os.Getenv("CF_CLIENT_ID"),
 					Secret: os.Getenv("CF_CLIENT_SECRET"),
