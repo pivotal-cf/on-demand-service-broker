@@ -50,6 +50,7 @@ var _ = Describe("Upgrading deployment", func() {
 			[]string{
 				"service_catalog.yml",
 				"add_update_all_certificate.yml",
+				"deprecated_uaa_auth.yml",
 			},
 		)
 

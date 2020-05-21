@@ -1,0 +1,10 @@
+- type: remove
+  path: /instance_groups/name=broker/jobs/name=broker/properties/cf/uaa?
+
+- type: replace
+  path: /instance_groups/name=broker/jobs/name=broker/properties/cf/authentication?
+  value:
+    url: ((cf.uaa.url))
+    user_credentials:
+      username: ((cf.user_credentials.username))
+      password: ((cf.user_credentials.password))
