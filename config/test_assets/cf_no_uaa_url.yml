@@ -22,8 +22,8 @@ bosh:
       password: some-password
 cf:
   url: "a-url"
-  authentication:
-    uaa:
+  uaa:
+    authentication:
       client_credentials:
         client_id: some-client-id
         secret: some-client-secret

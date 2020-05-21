@@ -22,9 +22,9 @@ bosh:
       password: some-password
 cf:
   url: "a-cf-url"
-  authentication:
-    uaa:
-      url: "a-uaa-url"
+  uaa:
+    url: "a-uaa-url"
+    authentication:
       client_credentials:
         client_id: some-client-id
         secret: some-client-secret

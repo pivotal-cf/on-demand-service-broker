@@ -27,11 +27,12 @@ bosh:
 cf:
   url: some-cf-url
   root_ca_cert: some-cf-cert
-  authentication:
+  uaa:
     url: a-uaa-url
-    user_credentials:
-      username: some-cf-username
-      password: some-cf-password
+    authentication:
+      user_credentials:
+        username: some-cf-username
+        password: some-cf-password
 service_catalog:
   id: some-id
   service_name: some-marketplace-name

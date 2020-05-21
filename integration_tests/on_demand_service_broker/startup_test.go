@@ -148,7 +148,7 @@ var _ = Describe("Startup", func() {
 
 		Context("when the broker cannot obtain a UAA token for CF", func() {
 			It("fails to start", func() {
-				conf.CF.Authentication.UAA.ClientCredentials.Secret = "wrong-secret"
+				conf.CF.UAA.Authentication.ClientCredentials.Secret = "wrong-secret"
 				boshDirector.VerifyAndMock(
 					mockbosh.Info().RespondsWithSufficientStemcellVersionForODB(boshDirector.UAAURL),
 					mockbosh.Info().RespondsWithSufficientStemcellVersionForODB(boshDirector.UAAURL),

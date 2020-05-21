@@ -487,9 +487,9 @@ func errandConfigurationCF(brokerURL, cfURL, uaaURL string) config.InstanceItera
 	errandConfig := errandConfigurationBOSH(brokerURL)
 	errandConfig.CF = config.CF{
 		URL: cfURL,
-		Authentication: config.Authentication{
-			UAA: config.UAAAuthentication{
-				URL: uaaURL,
+		UAA: config.UAAConfig{
+			URL: uaaURL,
+			Authentication: config.UAACredentials{
 				UserCredentials: config.UserCredentials{
 					Username: "cf-username",
 					Password: "cf-password",

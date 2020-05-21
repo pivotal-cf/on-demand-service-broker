@@ -285,9 +285,9 @@ func defaultBrokerConfig(boshURL, uaaURL, cfURL, cfUAAURL string) config.Config 
 		},
 		CF: config.CF{
 			URL: cfURL,
-			Authentication: config.Authentication{
-				UAA: config.UAAAuthentication{
-					URL: cfUAAURL,
+			UAA: config.UAAConfig{
+				URL: cfUAAURL,
+				Authentication: config.UAACredentials{
 					ClientCredentials: config.ClientCredentials{
 						ID:     cfUaaClientID,
 						Secret: cfUaaClientSecret,

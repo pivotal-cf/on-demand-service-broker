@@ -22,7 +22,8 @@ bosh:
       password: some-password
 cf:
   url: "a-url"
-  authentication:
+  uaa:
+    authentication:
 
 service_catalog:
   id: some-id

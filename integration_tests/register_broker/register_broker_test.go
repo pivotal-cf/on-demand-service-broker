@@ -84,9 +84,9 @@ var _ = Describe("RegisterBroker", func() {
 			BrokerURL:      brokerURL,
 			CF: config.CF{
 				URL: cfServer.URL(),
-				Authentication: config.Authentication{
-					UAA: config.UAAAuthentication{
-						URL:             cfServer.URL(),
+				UAA: config.UAAConfig{
+					URL: cfServer.URL(),
+					Authentication: config.UAACredentials{
 						UserCredentials: config.UserCredentials{Username: "foo", Password: "bar"},
 					},
 				},

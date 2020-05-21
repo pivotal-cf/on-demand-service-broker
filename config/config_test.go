@@ -39,6 +39,13 @@ var _ = Describe("Broker Config", func() {
 		conf, parseErr = config.Parse(configFilePath)
 	})
 
+	/*
+		TODO: Consider whether we need all this validation tests
+		- The validation tests we have are quite complex and long (lots of fixtures)
+		- The configuration is tested at release level: it's not possible to successfully template
+		  a broker with an invalid configuration when BOSH deploying.
+	*/
+
 	Context("when the config file is valid YAML", func() {
 		Context("and the config is good", func() {
 			BeforeEach(func() {
@@ -74,9 +81,9 @@ var _ = Describe("Broker Config", func() {
 					CF: config.CF{
 						URL:         "some-cf-url",
 						TrustedCert: "some-cf-cert",
-						Authentication: config.Authentication{
-							UAA: config.UAAAuthentication{
-								URL: "a-uaa-url",
+						UAA: config.UAAConfig{
+							URL: "a-uaa-url",
+							Authentication: config.UAACredentials{
 								UserCredentials: config.UserCredentials{
 									Username: "some-cf-username",
 									Password: "some-cf-password",
@@ -438,7 +445,7 @@ var _ = Describe("Broker Config", func() {
 				})
 
 				It("returns an error", func() {
-					Expect(parseErr).To(MatchError("CF configuration error: must specify an authentication type"))
+					Expect(parseErr).To(MatchError("CF configuration error: must specify UAA authentication"))
 				})
 			})
 
@@ -448,7 +455,7 @@ var _ = Describe("Broker Config", func() {
 				})
 
 				It("returns an error", func() {
-					Expect(parseErr).To(MatchError("CF configuration error: authentication.uaa.url can't be empty"))
+					Expect(parseErr).To(MatchError("CF configuration error: uaa url can't be empty"))
 				})
 			})
 
@@ -458,7 +465,7 @@ var _ = Describe("Broker Config", func() {
 				})
 
 				It("returns an error", func() {
-					Expect(parseErr).To(MatchError("CF configuration error: authentication.uaa.user_credentials.password can't be empty"))
+					Expect(parseErr).To(MatchError("CF configuration error: user_credentials.password can't be empty"))
 				})
 			})
 
@@ -468,7 +475,7 @@ var _ = Describe("Broker Config", func() {
 				})
 
 				It("returns an error", func() {
-					Expect(parseErr).To(MatchError("CF configuration error: authentication.uaa.client_credentials.client_secret can't be empty"))
+					Expect(parseErr).To(MatchError("CF configuration error: client_credentials.client_secret can't be empty"))
 				})
 			})
 
@@ -478,7 +485,7 @@ var _ = Describe("Broker Config", func() {
 				})
 
 				It("returns an error", func() {
-					Expect(parseErr).To(MatchError("CF configuration error: authentication.uaa contains both client and user credentials"))
+					Expect(parseErr).To(MatchError("CF configuration error: contains both client and user credentials"))
 				})
 			})
 
@@ -488,7 +495,7 @@ var _ = Describe("Broker Config", func() {
 				})
 
 				It("returns an error", func() {
-					Expect(parseErr).To(MatchError("CF configuration error: authentication.uaa should contain either user_credentials or client_credentials"))
+					Expect(parseErr).To(MatchError("CF configuration error: authentication should contain either user_credentials or client_credentials"))
 				})
 			})
 		})
@@ -905,8 +912,8 @@ var _ = Describe("CF#NewAuthHeaderBuilder", func() {
 			cfConfig := config.CF{
 				URL:         "some-cf-url",
 				TrustedCert: "some-cf-cert",
-				Authentication: config.Authentication{
-					UAA: config.UAAAuthentication{
+				UAA: config.UAAConfig{
+					Authentication: config.UAACredentials{
 						UserCredentials: config.UserCredentials{
 							Username: "some-cf-username",
 							Password: "some-cf-password",
@@ -917,11 +924,11 @@ var _ = Describe("CF#NewAuthHeaderBuilder", func() {
 			mockUAA := mockuaa.NewUserCredentialsServer(
 				"cf",
 				"",
-				cfConfig.Authentication.UAA.UserCredentials.Username,
-				cfConfig.Authentication.UAA.UserCredentials.Password,
+				cfConfig.UAA.Authentication.UserCredentials.Username,
+				cfConfig.UAA.Authentication.UserCredentials.Password,
 				tokenToReturn,
 			)
-			cfConfig.Authentication.UAA.URL = mockUAA.URL
+			cfConfig.UAA.URL = mockUAA.URL
 
 			builder, err := cfConfig.NewAuthHeaderBuilder(true)
 			Expect(err).NotTo(HaveOccurred())
@@ -938,8 +945,8 @@ var _ = Describe("CF#NewAuthHeaderBuilder", func() {
 			cfConfig := config.CF{
 				URL:         "some-cf-url",
 				TrustedCert: "some-cf-cert",
-				Authentication: config.Authentication{
-					UAA: config.UAAAuthentication{
+				UAA: config.UAAConfig{
+					Authentication: config.UAACredentials{
 						ClientCredentials: config.ClientCredentials{
 							ID:     "some-cf-client-id",
 							Secret: "some-cf-client-secret",
@@ -948,11 +955,11 @@ var _ = Describe("CF#NewAuthHeaderBuilder", func() {
 				},
 			}
 			mockUAA := mockuaa.NewClientCredentialsServer(
-				cfConfig.Authentication.UAA.ClientCredentials.ID,
-				cfConfig.Authentication.UAA.ClientCredentials.Secret,
+				cfConfig.UAA.Authentication.ClientCredentials.ID,
+				cfConfig.UAA.Authentication.ClientCredentials.Secret,
 				tokenToReturn,
 			)
-			cfConfig.Authentication.UAA.URL = mockUAA.URL
+			cfConfig.UAA.URL = mockUAA.URL
 
 			builder, err := cfConfig.NewAuthHeaderBuilder(true)
 			Expect(err).NotTo(HaveOccurred())
@@ -1096,13 +1103,13 @@ var _ = Describe("Config validation", func() {
 			"fails if URL is required and specifies user_credentials",
 			uaaAuthBlock(validBasicAuthBlock(), config.ClientCredentials{}),
 			true,
-			errors.New("url can't be empty"),
+			errors.New("uaa url can't be empty"),
 		),
 		Entry(
 			"fails if URL is required and specifies client_credentials",
 			uaaAuthBlock(config.UserCredentials{}, validClientCredentialsBlock()),
 			true,
-			errors.New("url can't be empty"),
+			errors.New("uaa url can't be empty"),
 		),
 		Entry(
 			"fails if both user_credentials and client_credentials are configured",

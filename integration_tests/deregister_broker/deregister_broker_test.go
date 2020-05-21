@@ -59,9 +59,9 @@ var _ = Describe("DeregisterBroker", func() {
 			DisableSSLCertVerification: true,
 			CF: config.CF{
 				URL: cfAPI.URL,
-				Authentication: config.Authentication{
-					UAA: config.UAAAuthentication{
-						URL: cfUAA.URL,
+				UAA: config.UAAConfig{
+					URL: cfUAA.URL,
+					Authentication: config.UAACredentials{
 						ClientCredentials: config.ClientCredentials{
 							ID:     cfUaaClientID,
 							Secret: cfUaaClientSecret,

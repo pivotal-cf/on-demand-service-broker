@@ -81,17 +81,28 @@ type ClientCredentials struct {
 	Secret string `yaml:"client_secret"`
 }
 
+// TODO: Refactor BOSH Authentication structure to look like CF one
 type Bosh struct {
 	URL            string `yaml:"url"`
 	TrustedCert    string `yaml:"root_ca_cert"`
 	Authentication Authentication
 }
 
+type UAACredentials struct {
+	ClientCredentials ClientCredentials `yaml:"client_credentials"`
+	UserCredentials   UserCredentials   `yaml:"user_credentials"`
+}
+
+type UAAConfig struct {
+	URL            string         `yaml:url`
+	Authentication UAACredentials `yaml:authentication`
+}
+
 type CF struct {
 	URL                        string
-	TrustedCert                string `yaml:"root_ca_cert"`
-	Authentication             Authentication
-	DisableSSLCertVerification bool `yaml:"disable_ssl_cert_verification"`
+	TrustedCert                string    `yaml:"root_ca_cert"`
+	UAA                        UAAConfig `yaml:"uaa"`
+	DisableSSLCertVerification bool      `yaml:"disable_ssl_cert_verification"`
 }
 
 type TLSConfig struct {
@@ -205,21 +216,21 @@ type AuthHeaderBuilder interface {
 }
 
 func (cf CF) NewAuthHeaderBuilder(disableSSLCertVerification bool) (AuthHeaderBuilder, error) {
-	if cf.Authentication.UAA.ClientCredentials.IsSet() {
+	if cf.UAA.Authentication.ClientCredentials.IsSet() {
 		return authorizationheader.NewClientTokenAuthHeaderBuilder(
-			cf.Authentication.UAA.URL,
-			cf.Authentication.UAA.ClientCredentials.ID,
-			cf.Authentication.UAA.ClientCredentials.Secret,
+			cf.UAA.URL,
+			cf.UAA.Authentication.ClientCredentials.ID,
+			cf.UAA.Authentication.ClientCredentials.Secret,
 			disableSSLCertVerification,
 			[]byte(cf.TrustedCert),
 		)
 	} else {
 		return authorizationheader.NewUserTokenAuthHeaderBuilder(
-			cf.Authentication.UAA.URL,
+			cf.UAA.URL,
 			"cf",
 			"",
-			cf.Authentication.UAA.UserCredentials.Username,
-			cf.Authentication.UAA.UserCredentials.Password,
+			cf.UAA.Authentication.UserCredentials.Username,
+			cf.UAA.Authentication.UserCredentials.Password,
 			disableSSLCertVerification,
 			[]byte(cf.TrustedCert),
 		)
@@ -237,7 +248,12 @@ func (cf CF) Validate() error {
 	if cf.URL == "" {
 		return fmt.Errorf("must specify CF url")
 	}
-	return cf.Authentication.Validate(true)
+	return validateAuthenticationFields(
+		true,
+		cf.UAA.URL,
+		cf.UAA.Authentication.ClientCredentials,
+		cf.UAA.Authentication.UserCredentials,
+	)
 }
 
 func (cc UAAAuthentication) IsSet() bool {
@@ -245,25 +261,29 @@ func (cc UAAAuthentication) IsSet() bool {
 }
 
 func (a UAAAuthentication) Validate(URLRequired bool) error {
-	urlIsSet := a.URL != ""
-	clientCredentialsSet := a.ClientCredentials.IsSet()
-	userCredentialsSet := a.UserCredentials.IsSet()
+	return validateAuthenticationFields(URLRequired, a.URL, a.ClientCredentials, a.UserCredentials)
+}
+
+func validateAuthenticationFields(URLRequired bool, url string, clientCredentials ClientCredentials, userCredentials UserCredentials) error {
+	urlIsSet := url != ""
+	clientCredentialsSet := clientCredentials.IsSet()
+	userCredentialsSet := userCredentials.IsSet()
 
 	switch {
 	case !urlIsSet && !clientCredentialsSet && !userCredentialsSet:
 		return fmt.Errorf("must specify UAA authentication")
 	case !urlIsSet && URLRequired:
-		return newFieldError("url", errors.New("can't be empty"))
+		return newFieldError("uaa url", errors.New("can't be empty"))
 	case !clientCredentialsSet && !userCredentialsSet:
-		return fmt.Errorf("should contain either user_credentials or client_credentials")
+		return fmt.Errorf("authentication should contain either user_credentials or client_credentials")
 	case clientCredentialsSet && userCredentialsSet:
 		return fmt.Errorf("contains both client and user credentials")
 	case clientCredentialsSet:
-		if err := a.ClientCredentials.Validate(); err != nil {
+		if err := clientCredentials.Validate(); err != nil {
 			return newFieldError("client_credentials", err)
 		}
 	case userCredentialsSet:
-		if err := a.UserCredentials.Validate(); err != nil {
+		if err := userCredentials.Validate(); err != nil {
 			return newFieldError("user_credentials", err)
 		}
 	}

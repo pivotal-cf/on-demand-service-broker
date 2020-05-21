@@ -22,9 +22,9 @@ bosh:
 cf:
   url: some-cf-url
   root_ca_cert: some-cf-cert
-  authentication:
-    uaa:
-      url: a-uaa-url
+  uaa:
+    url: a-uaa-url
+    authentication:
       user_credentials:
         username: some-cf-username
         password: some-cf-password
