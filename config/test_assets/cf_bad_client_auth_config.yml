@@ -27,7 +27,7 @@ cf:
     authentication:
       client_credentials:
         client_id: some-client-id
-        secret: #blank
+        client_secret: #blank
 
 service_catalog:
   id: some-id

@@ -27,7 +27,7 @@ cf:
     authentication:
       client_credentials:
         client_id: some-client-id
-        secret: some-client-secret
+        client_secret: some-client-secret
       user_credentials:
         username: some-username
         password: some-password

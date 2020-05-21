@@ -9,7 +9,7 @@ cf:
     authentication:
       client_credentials:
         client_id: cf-uaa-client-id
-        secret: cf-uaa-client-secret
+        client_secret: cf-uaa-client-secret
       user_credentials:
         username: ""
         password: ""
