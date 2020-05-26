@@ -41,6 +41,7 @@ var _ = Describe("Deployer", func() {
 		oldManifest       []byte
 		secretsMap        map[string]string
 		configsMap        map[string]string
+		uaaClientMap      map[string]string
 		boshConfigs       []boshdirector.BoshConfig
 
 		manifestGenerator *fakes.FakeManifestGenerator
@@ -82,6 +83,12 @@ var _ = Describe("Deployer", func() {
 		boshConfigs = []boshdirector.BoshConfig{
 			boshdirector.BoshConfig{Type: "some-config-type", Name: "some-config-name", Content: "some-config-content"},
 		}
+
+		uaaClientMap = map[string]string{
+			"client_secret": "123",
+			"client_id":     "1",
+			"foo":           "bar",
+		}
 	})
 
 	Describe("Create", func() {
@@ -91,6 +98,7 @@ var _ = Describe("Deployer", func() {
 				planID,
 				requestParams,
 				boshContextID,
+				uaaClientMap,
 				logger,
 			)
 		})
@@ -199,7 +207,7 @@ var _ = Describe("Deployer", func() {
 
 			It("errors when fail to store the secret", func() {
 				bulkSetter.BulkSetReturns(errors.New("what is this?"))
-				_, _, deployError = deployer.Create(deploymentName, planID, requestParams, boshContextID, logger)
+				_, _, deployError = deployer.Create(deploymentName, planID, requestParams, boshContextID, uaaClientMap, logger)
 				Expect(deployError).To(MatchError(ContainSubstring("what is this?")))
 			})
 
@@ -210,12 +218,21 @@ var _ = Describe("Deployer", func() {
 				})
 
 				It("doesn't error", func() {
-					_, _, deployError = deployer.Create(deploymentName, planID, requestParams, boshContextID, logger)
+					_, _, deployError = deployer.Create(deploymentName, planID, requestParams, boshContextID, uaaClientMap, logger)
 					Expect(deployError).ToNot(HaveOccurred())
 
 					Expect(bulkSetter.BulkSetCallCount()).To(Equal(0))
 				})
 			})
+		})
+
+		It("pass the context to the service adapter", func() {
+			Expect(manifestGenerator.GenerateManifestCallCount()).To(Equal(1))
+			generateManifestProps, _ := manifestGenerator.GenerateManifestArgsForCall(0)
+			Expect(generateManifestProps.DeploymentName).To(Equal("some-deployment-name"))
+			Expect(generateManifestProps.PlanID).To(Equal("some-plan-id"))
+			Expect(generateManifestProps.RequestParams).To(Equal(requestParams))
+			Expect(generateManifestProps.UAAClient).To(Equal(uaaClientMap))
 		})
 
 		Context("when bosh deploys the release successfully", func() {

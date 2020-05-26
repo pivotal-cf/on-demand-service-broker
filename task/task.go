@@ -47,6 +47,7 @@ type GenerateManifestProperties struct {
 	PreviousPlanID  *string
 	SecretsMap      map[string]string
 	PreviousConfigs map[string]string
+	UAAClient       map[string]string
 }
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_odb_secrets.go . ODBSecrets
@@ -82,6 +83,7 @@ func (d Deployer) Create(
 	planID string,
 	requestParams map[string]interface{},
 	boshContextID string,
+	uaaClientObject map[string]string,
 	logger *log.Logger,
 ) (int, []byte, error) {
 	err := d.assertNoOperationsInProgress(deploymentName, logger)
@@ -90,13 +92,10 @@ func (d Deployer) Create(
 	}
 
 	generateManifestProperties := GenerateManifestProperties{
-		deploymentName,
-		planID,
-		requestParams,
-		nil,
-		nil,
-		nil,
-		nil,
+		DeploymentName: deploymentName,
+		PlanID:         planID,
+		RequestParams:  requestParams,
+		UAAClient:      uaaClientObject,
 	}
 
 	return d.doDeploy(generateManifestProperties, "create", boshContextID, logger)

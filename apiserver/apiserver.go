@@ -12,6 +12,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -37,6 +38,7 @@ import (
 type CombinedBroker interface {
 	mgmtapi.ManageableBroker
 	domain.ServiceBroker
+	SetUAAClient(uaaClient broker.UAAClient)
 }
 
 func New(

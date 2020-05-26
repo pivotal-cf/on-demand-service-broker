@@ -50,6 +50,7 @@ var _ = Describe("external service adapter", func() {
 		previousManifest  []byte
 		previousSecrets   map[string]string
 		previousConfigs   map[string]string
+		expectedUAAClient map[string]string
 
 		inputParams sdk.InputParams
 
@@ -104,23 +105,38 @@ var _ = Describe("external service adapter", func() {
 		}
 		previousSecrets = map[string]string{"sup": "yeah!"}
 		previousConfigs = map[string]string{"some-config-type": "some-config-content"}
+		expectedUAAClient = map[string]string{
+			"client": "some-client",
+			"prop":   "another-prop",
+		}
 
 		inputParams = sdk.InputParams{
 			GenerateManifest: sdk.GenerateManifestJSONParams{
-				ServiceDeployment: toJson(serviceDeployment),
-				Plan:              planToJson(plan),
-				PreviousPlan:      planToJson(*previousPlan),
-				PreviousManifest:  string(previousManifest),
-				RequestParameters: toJson(params),
-				PreviousSecrets:   toJson(previousSecrets),
-				PreviousConfigs:   toJson(previousConfigs),
+				ServiceDeployment:        toJson(serviceDeployment),
+				Plan:                     planToJson(plan),
+				PreviousPlan:             planToJson(*previousPlan),
+				PreviousManifest:         string(previousManifest),
+				RequestParameters:        toJson(params),
+				PreviousSecrets:          toJson(previousSecrets),
+				PreviousConfigs:          toJson(previousConfigs),
+				ServiceInstanceUAAClient: toJson(expectedUAAClient),
 			},
 		}
 
 	})
 
 	JustBeforeEach(func() {
-		generateManifestOutput, generateErr = a.GenerateManifest(serviceDeployment, plan, params, previousManifest, previousPlan, previousSecrets, previousConfigs, logger)
+		generateManifestOutput, generateErr = a.GenerateManifest(
+			serviceDeployment,
+			plan,
+			params,
+			previousManifest,
+			previousPlan,
+			previousSecrets,
+			previousConfigs,
+			expectedUAAClient,
+			logger,
+		)
 	})
 
 	It("invokes external manifest generator with serialised parameters when 'UsingStdin' not set", func() {

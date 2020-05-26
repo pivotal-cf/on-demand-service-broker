@@ -8,6 +8,7 @@ package broker
 
 import (
 	"fmt"
+	"github.com/pivotal-cf/on-demand-service-broker/uaa"
 	"log"
 	"strings"
 	"sync"
@@ -48,6 +49,8 @@ type Broker struct {
 	cachedCatalog   []domain.Service
 
 	decider Decider
+
+	uaaClient UAAClient
 }
 
 func New(
@@ -84,6 +87,7 @@ func New(
 		loggerFactory:             loggerFactory,
 		telemetryLogger:           telemetryLogger,
 		decider:                   decider,
+		uaaClient:                 &uaa.NoopClient{},
 	}
 
 	var startupCheckErrMessages []string
@@ -114,6 +118,10 @@ func (b *Broker) processError(err error, logger *log.Logger) error {
 	default:
 		return processedError
 	}
+}
+
+func (b *Broker) SetUAAClient(uaaClient UAAClient) {
+	b.uaaClient = uaaClient
 }
 
 const (
@@ -176,6 +184,11 @@ func instanceID(deploymentName string) string {
 	return strings.TrimPrefix(deploymentName, InstancePrefix)
 }
 
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_uaa_client.go . UAAClient
+type UAAClient interface {
+	CreateClient() (map[string]string, error)
+}
+
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_startup_checker.go . StartupChecker
 type StartupChecker interface {
 	Check() error
@@ -183,7 +196,7 @@ type StartupChecker interface {
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_deployer.go . Deployer
 type Deployer interface {
-	Create(deploymentName, planID string, requestParams map[string]interface{}, boshContextID string, logger *log.Logger) (int, []byte, error)
+	Create(deploymentName, planID string, requestParams map[string]interface{}, boshContextID string, uaaClient map[string]string, logger *log.Logger) (int, []byte, error)
 	Update(deploymentName, planID string, requestParams map[string]interface{}, previousPlanID *string, boshContextID string, secretsMap map[string]string, logger *log.Logger) (int, []byte, error)
 	Upgrade(deploymentName string, plan config.Plan, boshContextID string, logger *log.Logger) (int, []byte, error)
 	Recreate(deploymentName, planID, boshContextID string, logger *log.Logger) (int, error)

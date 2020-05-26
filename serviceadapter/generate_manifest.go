@@ -38,6 +38,7 @@ func (c *Client) GenerateManifest(
 	previousPlan *sdk.Plan,
 	previousSecrets map[string]string,
 	previousConfigs map[string]string,
+	uaaClient map[string]string,
 	logger *log.Logger,
 ) (sdk.MarshalledGenerateManifest, error) {
 
@@ -74,6 +75,11 @@ func (c *Client) GenerateManifest(
 		return sdk.MarshalledGenerateManifest{}, err
 	}
 
+	serialisedUAAClient, err := json.Marshal(uaaClient)
+	if err != nil {
+		return sdk.MarshalledGenerateManifest{}, err
+	}
+
 	var stdout, stderr []byte
 	var output sdk.MarshalledGenerateManifest
 	var exitCode *int
@@ -82,13 +88,14 @@ func (c *Client) GenerateManifest(
 	if c.UsingStdin {
 		inputParams := sdk.InputParams{
 			GenerateManifest: sdk.GenerateManifestJSONParams{
-				ServiceDeployment: string(serialisedServiceDeployment),
-				Plan:              string(serialisedPlan),
-				RequestParameters: string(serialisedRequestParams),
-				PreviousPlan:      string(serialisedPreviousPlan),
-				PreviousManifest:  string(previousManifest),
-				PreviousSecrets:   string(serialisedPreviousSecrets),
-				PreviousConfigs:   string(serialisedPreviousConfigs),
+				ServiceDeployment:        string(serialisedServiceDeployment),
+				Plan:                     string(serialisedPlan),
+				RequestParameters:        string(serialisedRequestParams),
+				PreviousPlan:             string(serialisedPreviousPlan),
+				PreviousManifest:         string(previousManifest),
+				PreviousSecrets:          string(serialisedPreviousSecrets),
+				PreviousConfigs:          string(serialisedPreviousConfigs),
+				ServiceInstanceUAAClient: string(serialisedUAAClient),
 			},
 		}
 		stdout, stderr, exitCode, err = c.CommandRunner.RunWithInputParams(

@@ -11,7 +11,7 @@ import (
 )
 
 type FakeServiceAdapterClient struct {
-	GenerateManifestStub        func(serviceadapter.ServiceDeployment, serviceadapter.Plan, map[string]interface{}, []byte, *serviceadapter.Plan, map[string]string, map[string]string, *log.Logger) (serviceadapter.MarshalledGenerateManifest, error)
+	GenerateManifestStub        func(serviceadapter.ServiceDeployment, serviceadapter.Plan, map[string]interface{}, []byte, *serviceadapter.Plan, map[string]string, map[string]string, map[string]string, *log.Logger) (serviceadapter.MarshalledGenerateManifest, error)
 	generateManifestMutex       sync.RWMutex
 	generateManifestArgsForCall []struct {
 		arg1 serviceadapter.ServiceDeployment
@@ -21,7 +21,8 @@ type FakeServiceAdapterClient struct {
 		arg5 *serviceadapter.Plan
 		arg6 map[string]string
 		arg7 map[string]string
-		arg8 *log.Logger
+		arg8 map[string]string
+		arg9 *log.Logger
 	}
 	generateManifestReturns struct {
 		result1 serviceadapter.MarshalledGenerateManifest
@@ -49,7 +50,7 @@ type FakeServiceAdapterClient struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeServiceAdapterClient) GenerateManifest(arg1 serviceadapter.ServiceDeployment, arg2 serviceadapter.Plan, arg3 map[string]interface{}, arg4 []byte, arg5 *serviceadapter.Plan, arg6 map[string]string, arg7 map[string]string, arg8 *log.Logger) (serviceadapter.MarshalledGenerateManifest, error) {
+func (fake *FakeServiceAdapterClient) GenerateManifest(arg1 serviceadapter.ServiceDeployment, arg2 serviceadapter.Plan, arg3 map[string]interface{}, arg4 []byte, arg5 *serviceadapter.Plan, arg6 map[string]string, arg7 map[string]string, arg8 map[string]string, arg9 *log.Logger) (serviceadapter.MarshalledGenerateManifest, error) {
 	var arg4Copy []byte
 	if arg4 != nil {
 		arg4Copy = make([]byte, len(arg4))
@@ -65,12 +66,13 @@ func (fake *FakeServiceAdapterClient) GenerateManifest(arg1 serviceadapter.Servi
 		arg5 *serviceadapter.Plan
 		arg6 map[string]string
 		arg7 map[string]string
-		arg8 *log.Logger
-	}{arg1, arg2, arg3, arg4Copy, arg5, arg6, arg7, arg8})
-	fake.recordInvocation("GenerateManifest", []interface{}{arg1, arg2, arg3, arg4Copy, arg5, arg6, arg7, arg8})
+		arg8 map[string]string
+		arg9 *log.Logger
+	}{arg1, arg2, arg3, arg4Copy, arg5, arg6, arg7, arg8, arg9})
+	fake.recordInvocation("GenerateManifest", []interface{}{arg1, arg2, arg3, arg4Copy, arg5, arg6, arg7, arg8, arg9})
 	fake.generateManifestMutex.Unlock()
 	if fake.GenerateManifestStub != nil {
-		return fake.GenerateManifestStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8)
+		return fake.GenerateManifestStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -85,17 +87,17 @@ func (fake *FakeServiceAdapterClient) GenerateManifestCallCount() int {
 	return len(fake.generateManifestArgsForCall)
 }
 
-func (fake *FakeServiceAdapterClient) GenerateManifestCalls(stub func(serviceadapter.ServiceDeployment, serviceadapter.Plan, map[string]interface{}, []byte, *serviceadapter.Plan, map[string]string, map[string]string, *log.Logger) (serviceadapter.MarshalledGenerateManifest, error)) {
+func (fake *FakeServiceAdapterClient) GenerateManifestCalls(stub func(serviceadapter.ServiceDeployment, serviceadapter.Plan, map[string]interface{}, []byte, *serviceadapter.Plan, map[string]string, map[string]string, map[string]string, *log.Logger) (serviceadapter.MarshalledGenerateManifest, error)) {
 	fake.generateManifestMutex.Lock()
 	defer fake.generateManifestMutex.Unlock()
 	fake.GenerateManifestStub = stub
 }
 
-func (fake *FakeServiceAdapterClient) GenerateManifestArgsForCall(i int) (serviceadapter.ServiceDeployment, serviceadapter.Plan, map[string]interface{}, []byte, *serviceadapter.Plan, map[string]string, map[string]string, *log.Logger) {
+func (fake *FakeServiceAdapterClient) GenerateManifestArgsForCall(i int) (serviceadapter.ServiceDeployment, serviceadapter.Plan, map[string]interface{}, []byte, *serviceadapter.Plan, map[string]string, map[string]string, map[string]string, *log.Logger) {
 	fake.generateManifestMutex.RLock()
 	defer fake.generateManifestMutex.RUnlock()
 	argsForCall := fake.generateManifestArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5, argsForCall.arg6, argsForCall.arg7, argsForCall.arg8
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5, argsForCall.arg6, argsForCall.arg7, argsForCall.arg8, argsForCall.arg9
 }
 
 func (fake *FakeServiceAdapterClient) GenerateManifestReturns(result1 serviceadapter.MarshalledGenerateManifest, result2 error) {

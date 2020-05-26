@@ -142,7 +142,16 @@ func (b *Broker) provisionInstance(ctx context.Context, instanceID string, planI
 		boshContextID = uuid.New()
 	}
 
-	boshTaskID, manifest, err := b.deployer.Create(deploymentName(instanceID), plan.ID, requestParams, boshContextID, logger)
+	client, _ := b.uaaClient.CreateClient()
+
+	boshTaskID, manifest, err := b.deployer.Create(
+		deploymentName(instanceID),
+		plan.ID,
+		requestParams,
+		boshContextID,
+		client,
+		logger,
+	)
 	switch err := err.(type) {
 	case boshdirector.RequestError:
 		return errs(NewBoshRequestError("create", err))

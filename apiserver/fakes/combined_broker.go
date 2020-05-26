@@ -192,6 +192,11 @@ type FakeCombinedBroker struct {
 		result1 []domain.Service
 		result2 error
 	}
+	SetUAAClientStub        func(broker.UAAClient)
+	setUAAClientMutex       sync.RWMutex
+	setUAAClientArgsForCall []struct {
+		arg1 broker.UAAClient
+	}
 	UnbindStub        func(context.Context, string, string, domain.UnbindDetails, bool) (domain.UnbindSpec, error)
 	unbindMutex       sync.RWMutex
 	unbindArgsForCall []struct {
@@ -1023,6 +1028,37 @@ func (fake *FakeCombinedBroker) ServicesReturnsOnCall(i int, result1 []domain.Se
 	}{result1, result2}
 }
 
+func (fake *FakeCombinedBroker) SetUAAClient(arg1 broker.UAAClient) {
+	fake.setUAAClientMutex.Lock()
+	fake.setUAAClientArgsForCall = append(fake.setUAAClientArgsForCall, struct {
+		arg1 broker.UAAClient
+	}{arg1})
+	fake.recordInvocation("SetUAAClient", []interface{}{arg1})
+	fake.setUAAClientMutex.Unlock()
+	if fake.SetUAAClientStub != nil {
+		fake.SetUAAClientStub(arg1)
+	}
+}
+
+func (fake *FakeCombinedBroker) SetUAAClientCallCount() int {
+	fake.setUAAClientMutex.RLock()
+	defer fake.setUAAClientMutex.RUnlock()
+	return len(fake.setUAAClientArgsForCall)
+}
+
+func (fake *FakeCombinedBroker) SetUAAClientCalls(stub func(broker.UAAClient)) {
+	fake.setUAAClientMutex.Lock()
+	defer fake.setUAAClientMutex.Unlock()
+	fake.SetUAAClientStub = stub
+}
+
+func (fake *FakeCombinedBroker) SetUAAClientArgsForCall(i int) broker.UAAClient {
+	fake.setUAAClientMutex.RLock()
+	defer fake.setUAAClientMutex.RUnlock()
+	argsForCall := fake.setUAAClientArgsForCall[i]
+	return argsForCall.arg1
+}
+
 func (fake *FakeCombinedBroker) Unbind(arg1 context.Context, arg2 string, arg3 string, arg4 domain.UnbindDetails, arg5 bool) (domain.UnbindSpec, error) {
 	fake.unbindMutex.Lock()
 	ret, specificReturn := fake.unbindReturnsOnCall[len(fake.unbindArgsForCall)]
@@ -1249,6 +1285,8 @@ func (fake *FakeCombinedBroker) Invocations() map[string][][]interface{} {
 	defer fake.recreateMutex.RUnlock()
 	fake.servicesMutex.RLock()
 	defer fake.servicesMutex.RUnlock()
+	fake.setUAAClientMutex.RLock()
+	defer fake.setUAAClientMutex.RUnlock()
 	fake.unbindMutex.RLock()
 	defer fake.unbindMutex.RUnlock()
 	fake.updateMutex.RLock()

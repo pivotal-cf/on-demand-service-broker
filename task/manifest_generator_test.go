@@ -154,6 +154,8 @@ var _ = Describe("Manifest Generator", func() {
 			previousPlanID *string
 			requestParams  map[string]interface{}
 			oldManifest    []byte
+
+			expectedUAAClient map[string]string
 		)
 
 		BeforeEach(func() {
@@ -163,6 +165,12 @@ var _ = Describe("Manifest Generator", func() {
 			requestParams = map[string]interface{}{"foo": "bar"}
 
 			oldManifest = []byte("oldmanifest")
+
+			expectedUAAClient = map[string]string{
+				"avocado": "guacamole",
+				"potato":  "french fries",
+				"carrot":  "cake",
+			}
 		})
 
 		JustBeforeEach(func() {
@@ -173,8 +181,9 @@ var _ = Describe("Manifest Generator", func() {
 				OldManifest:     oldManifest,
 				PreviousPlanID:  previousPlanID,
 				SecretsMap:      oldSecretsMap,
-				PreviousConfigs: oldConfigsMap},
-				logger)
+				PreviousConfigs: oldConfigsMap,
+				UAAClient:       expectedUAAClient,
+			}, logger)
 			manifest = []byte(generateManifestOutput.Manifest)
 		})
 
@@ -204,7 +213,7 @@ var _ = Describe("Manifest Generator", func() {
 			})
 
 			It("calls the service adapter with the service deployment", func() {
-				passedServiceDeployment, _, _, _, _, _, _, _ := serviceAdapter.GenerateManifestArgsForCall(0)
+				passedServiceDeployment, _, _, _, _, _, _, _, _ := serviceAdapter.GenerateManifestArgsForCall(0)
 				expectedServiceDeployment := serviceadapter.ServiceDeployment{
 					DeploymentName: deploymentName,
 					Releases:       serviceReleases,
@@ -214,32 +223,37 @@ var _ = Describe("Manifest Generator", func() {
 			})
 
 			It("calls the service adapter with the plan", func() {
-				_, passedPlan, _, _, _, _, _, _ := serviceAdapter.GenerateManifestArgsForCall(0)
+				_, passedPlan, _, _, _, _, _, _, _ := serviceAdapter.GenerateManifestArgsForCall(0)
 				Expect(passedPlan.InstanceGroups).To(Equal(existingPlan.InstanceGroups))
 			})
 
 			It("calls the service adapter with the request params", func() {
-				_, _, passedRequestParams, _, _, _, _, _ := serviceAdapter.GenerateManifestArgsForCall(0)
+				_, _, passedRequestParams, _, _, _, _, _, _ := serviceAdapter.GenerateManifestArgsForCall(0)
 				Expect(passedRequestParams).To(Equal(requestParams))
 			})
 
 			It("calls the service adapter with the old manifest", func() {
-				_, _, _, passedOldManifest, _, _, _, _ := serviceAdapter.GenerateManifestArgsForCall(0)
+				_, _, _, passedOldManifest, _, _, _, _, _ := serviceAdapter.GenerateManifestArgsForCall(0)
 				Expect(passedOldManifest).To(Equal(oldManifest))
 			})
 
 			It("calls the service adapter with the secrets map", func() {
-				_, _, _, _, _, passedSecretsMap, _, _ := serviceAdapter.GenerateManifestArgsForCall(0)
+				_, _, _, _, _, passedSecretsMap, _, _, _ := serviceAdapter.GenerateManifestArgsForCall(0)
 				Expect(passedSecretsMap).To(Equal(oldSecretsMap))
 			})
 
 			It("calls the service adapter with the configs map", func() {
-				_, _, _, _, _, _, passedConfigsMap, _ := serviceAdapter.GenerateManifestArgsForCall(0)
+				_, _, _, _, _, _, passedConfigsMap, _, _ := serviceAdapter.GenerateManifestArgsForCall(0)
 				Expect(passedConfigsMap).To(Equal(oldConfigsMap))
 			})
 
+			It("calls the service adapter with the provided uaa client", func() {
+				_, _, _, _, _, _, _, passedUAAClient, _ := serviceAdapter.GenerateManifestArgsForCall(0)
+				Expect(passedUAAClient).To(Equal(expectedUAAClient))
+			})
+
 			It("merges global and plan properties", func() {
-				_, actualPlan, _, _, _, _, _, _ := serviceAdapter.GenerateManifestArgsForCall(0)
+				_, actualPlan, _, _, _, _, _, _, _ := serviceAdapter.GenerateManifestArgsForCall(0)
 				expectedProperties := serviceadapter.Properties{
 					"a_global_property":          "global_value",
 					"some_other_global_property": "other_global_value",
@@ -255,12 +269,12 @@ var _ = Describe("Manifest Generator", func() {
 				})
 
 				It("calls the service adapter with the previous plan", func() {
-					_, _, _, _, passedPreviousPlan, _, _, _ := serviceAdapter.GenerateManifestArgsForCall(0)
+					_, _, _, _, passedPreviousPlan, _, _, _, _ := serviceAdapter.GenerateManifestArgsForCall(0)
 					Expect(passedPreviousPlan.InstanceGroups).To(Equal(secondPlan.InstanceGroups))
 				})
 
 				It("merges global and previous plan properties, overriding global with plan props", func() {
-					_, _, _, _, previousPlan, _, _, _ := serviceAdapter.GenerateManifestArgsForCall(0)
+					_, _, _, _, previousPlan, _, _, _, _ := serviceAdapter.GenerateManifestArgsForCall(0)
 					expectedProperties := serviceadapter.Properties{
 						"a_global_property":          "overrides_global_value",
 						"some_other_global_property": "other_global_value",
@@ -277,7 +291,7 @@ var _ = Describe("Manifest Generator", func() {
 				})
 
 				It("calls the service adapter with the nil previous plan", func() {
-					_, _, _, _, passedPreviousPlan, _, _, _ := serviceAdapter.GenerateManifestArgsForCall(0)
+					_, _, _, _, passedPreviousPlan, _, _, _, _ := serviceAdapter.GenerateManifestArgsForCall(0)
 					Expect(passedPreviousPlan).To(BeNil())
 				})
 			})

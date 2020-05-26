@@ -10,14 +10,15 @@ import (
 )
 
 type FakeDeployer struct {
-	CreateStub        func(string, string, map[string]interface{}, string, *log.Logger) (int, []byte, error)
+	CreateStub        func(string, string, map[string]interface{}, string, map[string]string, *log.Logger) (int, []byte, error)
 	createMutex       sync.RWMutex
 	createArgsForCall []struct {
 		arg1 string
 		arg2 string
 		arg3 map[string]interface{}
 		arg4 string
-		arg5 *log.Logger
+		arg5 map[string]string
+		arg6 *log.Logger
 	}
 	createReturns struct {
 		result1 int
@@ -88,7 +89,7 @@ type FakeDeployer struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeDeployer) Create(arg1 string, arg2 string, arg3 map[string]interface{}, arg4 string, arg5 *log.Logger) (int, []byte, error) {
+func (fake *FakeDeployer) Create(arg1 string, arg2 string, arg3 map[string]interface{}, arg4 string, arg5 map[string]string, arg6 *log.Logger) (int, []byte, error) {
 	fake.createMutex.Lock()
 	ret, specificReturn := fake.createReturnsOnCall[len(fake.createArgsForCall)]
 	fake.createArgsForCall = append(fake.createArgsForCall, struct {
@@ -96,12 +97,13 @@ func (fake *FakeDeployer) Create(arg1 string, arg2 string, arg3 map[string]inter
 		arg2 string
 		arg3 map[string]interface{}
 		arg4 string
-		arg5 *log.Logger
-	}{arg1, arg2, arg3, arg4, arg5})
-	fake.recordInvocation("Create", []interface{}{arg1, arg2, arg3, arg4, arg5})
+		arg5 map[string]string
+		arg6 *log.Logger
+	}{arg1, arg2, arg3, arg4, arg5, arg6})
+	fake.recordInvocation("Create", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6})
 	fake.createMutex.Unlock()
 	if fake.CreateStub != nil {
-		return fake.CreateStub(arg1, arg2, arg3, arg4, arg5)
+		return fake.CreateStub(arg1, arg2, arg3, arg4, arg5, arg6)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
@@ -116,17 +118,17 @@ func (fake *FakeDeployer) CreateCallCount() int {
 	return len(fake.createArgsForCall)
 }
 
-func (fake *FakeDeployer) CreateCalls(stub func(string, string, map[string]interface{}, string, *log.Logger) (int, []byte, error)) {
+func (fake *FakeDeployer) CreateCalls(stub func(string, string, map[string]interface{}, string, map[string]string, *log.Logger) (int, []byte, error)) {
 	fake.createMutex.Lock()
 	defer fake.createMutex.Unlock()
 	fake.CreateStub = stub
 }
 
-func (fake *FakeDeployer) CreateArgsForCall(i int) (string, string, map[string]interface{}, string, *log.Logger) {
+func (fake *FakeDeployer) CreateArgsForCall(i int) (string, string, map[string]interface{}, string, map[string]string, *log.Logger) {
 	fake.createMutex.RLock()
 	defer fake.createMutex.RUnlock()
 	argsForCall := fake.createArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5, argsForCall.arg6
 }
 
 func (fake *FakeDeployer) CreateReturns(result1 int, result2 []byte, result3 error) {

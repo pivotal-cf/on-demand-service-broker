@@ -48,11 +48,13 @@ var _ = Describe("Provisioning", func() {
 		arbParams              map[string]interface{}
 		arbContext             map[string]interface{}
 		requestMaintenanceInfo domain.MaintenanceInfo
+		expectedClient         map[string]string
 
 		asyncAllowed = true
 		deployTaskID int
 
 		provisionDetails domain.ProvisionDetails
+		fakeUAAClient    *brokerfakes.FakeUAAClient
 	)
 
 	BeforeEach(func() {
@@ -79,10 +81,19 @@ var _ = Describe("Provisioning", func() {
 			ServiceID:        serviceOfferingID,
 			MaintenanceInfo:  &requestMaintenanceInfo,
 		}
+		fakeUAAClient = new(brokerfakes.FakeUAAClient)
+
+		expectedClient = map[string]string{
+			"client_secret": "some-secret",
+			"client_id":     "some-id",
+			"foo":           "bar",
+		}
+		fakeUAAClient.CreateClientReturns(expectedClient, nil)
 	})
 
 	JustBeforeEach(func() {
 		b = createDefaultBroker()
+		b.SetUAAClient(fakeUAAClient)
 	})
 
 	Context("when bosh deploys the release successfully", func() {
@@ -103,9 +114,13 @@ var _ = Describe("Provisioning", func() {
 				Expect(serviceSpec.IsAsync).To(BeTrue())
 			})
 
+			By("creating the client on UAA", func() {
+				Expect(fakeUAAClient.CreateClientCallCount()).To(Equal(1))
+			})
+
 			By("invoking the deployer", func() {
 				Expect(fakeDeployer.CreateCallCount()).To(Equal(1))
-				actualDeploymentName, actualPlan, actualRequestParams, actualBoshContextID, _ := fakeDeployer.CreateArgsForCall(0)
+				actualDeploymentName, actualPlan, actualRequestParams, actualBoshContextID, actualClient, _ := fakeDeployer.CreateArgsForCall(0)
 				Expect(actualRequestParams).To(Equal(map[string]interface{}{
 					"plan_id":           planID,
 					"context":           arbContext,
@@ -118,6 +133,7 @@ var _ = Describe("Provisioning", func() {
 				Expect(actualPlan).To(Equal(planID))
 				Expect(actualDeploymentName).To(Equal(deploymentName(instanceID)))
 				Expect(actualBoshContextID).To(BeEmpty())
+				Expect(actualClient).To(Equal(expectedClient))
 			})
 
 			var operationData broker.OperationData
@@ -244,7 +260,7 @@ var _ = Describe("Provisioning", func() {
 
 			By("calling the deployer with a bosh context id", func() {
 				Expect(fakeDeployer.CreateCallCount()).To(Equal(1))
-				_, _, _, actualBoshContextID, _ := fakeDeployer.CreateArgsForCall(0)
+				_, _, _, actualBoshContextID, _, _ := fakeDeployer.CreateArgsForCall(0)
 				Expect(actualBoshContextID).NotTo(BeEmpty())
 			})
 		})
@@ -256,10 +272,10 @@ var _ = Describe("Provisioning", func() {
 
 			Expect(secondProvisionErr).NotTo(HaveOccurred())
 			Expect(fakeDeployer.CreateCallCount()).To(Equal(2))
-			_, _, _, firstBoshContextID, _ := fakeDeployer.CreateArgsForCall(0)
+			_, _, _, firstBoshContextID, _, _ := fakeDeployer.CreateArgsForCall(0)
 			Expect(firstBoshContextID).NotTo(BeNil())
 
-			_, _, _, secondBoshContextID, _ := fakeDeployer.CreateArgsForCall(1)
+			_, _, _, secondBoshContextID, _, _ := fakeDeployer.CreateArgsForCall(1)
 			Expect(secondBoshContextID).NotTo(Equal(firstBoshContextID))
 		})
 
@@ -327,7 +343,7 @@ var _ = Describe("Provisioning", func() {
 			serviceSpec, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
 
 			Expect(provisionErr).NotTo(HaveOccurred())
-			_, _, actualRequestParams, _, _ := fakeDeployer.CreateArgsForCall(0)
+			_, _, actualRequestParams, _, _, _ := fakeDeployer.CreateArgsForCall(0)
 			Expect(actualRequestParams["parameters"]).To(HaveLen(0))
 			Expect(fakeDeployer.CreateCallCount()).To(Equal(1))
 		})

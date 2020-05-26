@@ -3,6 +3,7 @@ package brokerinitiator
 import (
 	"fmt"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/decider"
+	"github.com/pivotal-cf/on-demand-service-broker/uaa"
 	"log"
 	"os"
 
@@ -69,6 +70,10 @@ func Initiate(conf config.Config,
 	onDemandBroker, err = broker.New(brokerBoshClient, cfClient, conf.ServiceCatalog, conf.Broker, startupChecks, serviceAdapter, deploymentManager, manifestSecretManager, instanceLister, &hasher.MapHasher{}, loggerFactory, telemetryLogger, decider.Decider{})
 	if err != nil {
 		logger.Fatalf("error starting broker: %s", err)
+	}
+
+	if conf.HasClientDefinition() {
+		onDemandBroker.SetUAAClient(uaa.New(conf.CF.UAA))
 	}
 
 	if conf.HasRuntimeCredHub() {

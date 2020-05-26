@@ -25,6 +25,7 @@ type ServiceAdapterClient interface {
 		previousPlan *serviceadapter.Plan,
 		oldSecretsMap map[string]string,
 		previousConfigs map[string]string,
+		uaaClient map[string]string,
 		logger *log.Logger,
 	) (serviceadapter.MarshalledGenerateManifest, error)
 	GeneratePlanSchema(plan serviceadapter.Plan, logger *log.Logger) (domain.ServiceSchemas, error)
@@ -71,7 +72,17 @@ func (m manifestGenerator) GenerateManifest(
 	}
 	logger.Printf("service adapter will generate manifest for deployment %s\n", generateManifestProps.DeploymentName)
 
-	manifest, err := m.adapterClient.GenerateManifest(serviceDeployment, plan, generateManifestProps.RequestParams, generateManifestProps.OldManifest, previousPlan, generateManifestProps.SecretsMap, generateManifestProps.PreviousConfigs, logger)
+	// TODO: That's a lot of arguments...
+	manifest, err := m.adapterClient.GenerateManifest(
+		serviceDeployment,
+		plan,
+		generateManifestProps.RequestParams,
+		generateManifestProps.OldManifest,
+		previousPlan,
+		generateManifestProps.SecretsMap,
+		generateManifestProps.PreviousConfigs,
+		generateManifestProps.UAAClient,
+		logger)
 	if err != nil {
 		logger.Printf("generate manifest: %v\n", err)
 	}
