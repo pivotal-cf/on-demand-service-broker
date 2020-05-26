@@ -27,6 +27,11 @@ cf:
   root_ca_cert: some-cf-cert
   uaa:
     url: a-uaa-url
+    client_definition:
+      scopes: scope1,scope2
+      authorities: authority1,authority2
+      authorized_grant_types: grant_type1,grant_type2
+      resource_ids: resource2,resource3
     authentication:
       user_credentials:
         username: some-cf-username

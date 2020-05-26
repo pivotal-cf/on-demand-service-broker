@@ -83,6 +83,12 @@ var _ = Describe("Broker Config", func() {
 						TrustedCert: "some-cf-cert",
 						UAA: config.UAAConfig{
 							URL: "a-uaa-url",
+							ClientDefinition: config.ClientDefinition{
+								Authorities:          "authority1,authority2",
+								AuthorizedGrantTypes: "grant_type1,grant_type2",
+								ResourceIDs:          "resource2,resource3",
+								Scopes:               "scope1,scope2",
+							},
 							Authentication: config.UAACredentials{
 								UserCredentials: config.UserCredentials{
 									Username: "some-cf-username",
@@ -428,7 +434,7 @@ var _ = Describe("Broker Config", func() {
 			})
 		})
 
-		Context("CF Authentication", func() {
+		Context("CF UAA", func() {
 			Context("when the configuration does not specify a CF url", func() {
 				BeforeEach(func() {
 					configFileName = "cf_no_url_config.yml"
@@ -439,7 +445,7 @@ var _ = Describe("Broker Config", func() {
 				})
 			})
 
-			Context("when the CF configuration does not specify any UAA authentication", func() {
+			Context("when the configuration does not specify any authentication", func() {
 				BeforeEach(func() {
 					configFileName = "cf_no_auth_config.yml"
 				})
@@ -449,7 +455,7 @@ var _ = Describe("Broker Config", func() {
 				})
 			})
 
-			Context("when the CF configuration does not specify a UAA url", func() {
+			Context("when the configuration does not specify a UAA url", func() {
 				BeforeEach(func() {
 					configFileName = "cf_no_uaa_url.yml"
 				})
@@ -459,7 +465,7 @@ var _ = Describe("Broker Config", func() {
 				})
 			})
 
-			Context("when the CF configuration specified incomplete UAA user credentials", func() {
+			Context("when the configuration specified incomplete UAA user credentials", func() {
 				BeforeEach(func() {
 					configFileName = "cf_bad_user_auth_config.yml"
 				})
@@ -469,7 +475,7 @@ var _ = Describe("Broker Config", func() {
 				})
 			})
 
-			Context("when the CF configuration specifies incomplete UAA client credentials", func() {
+			Context("when the configuration specifies incomplete UAA client credentials", func() {
 				BeforeEach(func() {
 					configFileName = "cf_bad_client_auth_config.yml"
 				})
@@ -479,7 +485,7 @@ var _ = Describe("Broker Config", func() {
 				})
 			})
 
-			Context("when the CF configuration specifies both types of UAA credentials", func() {
+			Context("when the configuration specifies both types of UAA credentials", func() {
 				BeforeEach(func() {
 					configFileName = "cf_both_auth_config.yml"
 				})
@@ -489,7 +495,7 @@ var _ = Describe("Broker Config", func() {
 				})
 			})
 
-			Context("when the CF configuration specifies no types of UAA credentials", func() {
+			Context("when the configuration specifies no types of UAA credentials", func() {
 				BeforeEach(func() {
 					configFileName = "cf_uaa_no_credentials.yml"
 				})
@@ -832,6 +838,30 @@ var _ = Describe("Broker Config", func() {
 			}
 
 			Expect(yaml.Marshal(conf)).NotTo(ContainSubstring("dashboard_client"))
+		})
+	})
+
+	Describe("#HasClientDefinition", func() {
+		It("returns true when at least one property is set", func() {
+			c := config.Config{}
+			c.CF.UAA.ClientDefinition.AuthorizedGrantTypes = "123"
+			Expect(c.HasClientDefinition()).To(BeTrue())
+
+			c = config.Config{}
+			c.CF.UAA.ClientDefinition.Authorities = "111"
+			Expect(c.HasClientDefinition()).To(BeTrue())
+
+			c = config.Config{}
+			c.CF.UAA.ClientDefinition.ResourceIDs = "222"
+			Expect(c.HasClientDefinition()).To(BeTrue())
+
+			c = config.Config{}
+			c.CF.UAA.ClientDefinition.Scopes = "admin"
+			Expect(c.HasClientDefinition()).To(BeTrue())
+		})
+
+		It("returns false when no property is set", func() {
+			Expect(config.Config{}.HasClientDefinition()).To(BeFalse())
 		})
 	})
 })

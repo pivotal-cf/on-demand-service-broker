@@ -93,9 +93,17 @@ type UAACredentials struct {
 	UserCredentials   UserCredentials   `yaml:"user_credentials"`
 }
 
+type ClientDefinition struct {
+	Authorities          string `yaml:"authorities"`
+	AuthorizedGrantTypes string `yaml:"authorized_grant_types"`
+	ResourceIDs          string `yaml:"resource_ids"`
+	Scopes               string `yaml:"scopes"`
+}
+
 type UAAConfig struct {
-	URL            string         `yaml:url`
-	Authentication UAACredentials `yaml:authentication`
+	URL              string           `yaml:"url"`
+	ClientDefinition ClientDefinition `yaml:"client_definition"`
+	Authentication   UAACredentials   `yaml:"authentication"`
 }
 
 type CF struct {
@@ -154,6 +162,11 @@ func (c Config) HasBindingWithDNSConfigured() bool {
 
 func (c Config) HasTLS() bool {
 	return c.Broker.TLS.CertFile != "" && c.Broker.TLS.KeyFile != ""
+}
+
+func (c Config) HasClientDefinition() bool {
+	cd := c.CF.UAA.ClientDefinition
+	return cd.Authorities != "" || cd.AuthorizedGrantTypes != "" || cd.Scopes != "" || cd.ResourceIDs != ""
 }
 
 func (b Broker) Validate() error {
