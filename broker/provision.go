@@ -68,11 +68,14 @@ func (b *Broker) Provision(
 		return domain.ProvisionedServiceSpec{}, b.processError(NewBoshRequestError("create", err), logger)
 	}
 
+	instanceName := getInstanceNameFromContext(details.GetRawContext())
+
 	operationData, dashboardURL, err := b.provisionInstance(
 		ctx,
 		instanceID,
 		details.PlanID,
 		requestParams,
+		instanceName,
 		logger,
 	)
 
@@ -92,8 +95,21 @@ func (b *Broker) Provision(
 	}, nil
 }
 
-func (b *Broker) provisionInstance(ctx context.Context, instanceID string, planID string,
-	requestParams map[string]interface{}, logger *log.Logger) (OperationData, string, error) {
+func getInstanceNameFromContext(rawContext json.RawMessage) string {
+	var name string
+	rawCtx, err := convertToMap(rawContext)
+	if err != nil {
+		return name
+	}
+
+	if rawName, found := rawCtx["instance_name"]; found {
+		name = rawName.(string)
+	}
+
+	return name
+}
+
+func (b *Broker) provisionInstance(ctx context.Context, instanceID string, planID string, requestParams map[string]interface{}, instanceName string, logger *log.Logger) (OperationData, string, error) {
 
 	errs := func(err error) (OperationData, string, error) {
 		return OperationData{}, "", err
@@ -142,14 +158,17 @@ func (b *Broker) provisionInstance(ctx context.Context, instanceID string, planI
 		boshContextID = uuid.New()
 	}
 
-	client, _ := b.uaaClient.CreateClient()
+	serviceInstanceClient, err := b.uaaClient.CreateClient(instanceID, instanceName)
+	if err != nil {
+		return errs(NewGenericError(ctx, err))
+	}
 
 	boshTaskID, manifest, err := b.deployer.Create(
 		deploymentName(instanceID),
 		plan.ID,
 		requestParams,
 		boshContextID,
-		client,
+		serviceInstanceClient,
 		logger,
 	)
 	switch err := err.(type) {

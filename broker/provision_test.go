@@ -64,7 +64,11 @@ var _ = Describe("Provisioning", func() {
 		requestMaintenanceInfo = domain.MaintenanceInfo{}
 
 		arbParams = map[string]interface{}{"foo": "bar"}
-		arbContext = map[string]interface{}{"platform": "cloudfoundry", "space_guid": "final"}
+		arbContext = map[string]interface{}{
+			"platform":      "cloudfoundry",
+			"space_guid":    "final",
+			"instance_name": "my-super-service",
+		}
 
 		var err error
 		jsonParams, err = json.Marshal(arbParams)
@@ -116,6 +120,10 @@ var _ = Describe("Provisioning", func() {
 
 			By("creating the client on UAA", func() {
 				Expect(fakeUAAClient.CreateClientCallCount()).To(Equal(1))
+				actualClientID, actualClientName := fakeUAAClient.CreateClientArgsForCall(0)
+
+				Expect(actualClientID).To(Equal(instanceID))
+				Expect(actualClientName).To(Equal("my-super-service"))
 			})
 
 			By("invoking the deployer", func() {
@@ -438,6 +446,18 @@ var _ = Describe("Provisioning", func() {
 			serviceSpec, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
 
 			Expect(provisionErr).To(Equal(apiresponses.ErrInstanceAlreadyExists))
+		})
+	})
+
+	When("creating the uaa client fails", func() {
+		It("returns a generic error", func() {
+			fakeUAAClient.CreateClientReturns(nil, errors.New("oh no"))
+
+			_, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
+
+			Expect(provisionErr).To(MatchError(ContainSubstring(
+				"There was a problem completing your request. Please contact your operations team providing the following information:",
+			)))
 		})
 	})
 
