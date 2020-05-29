@@ -207,6 +207,11 @@ func (b *Broker) provisionInstance(ctx context.Context, instanceID string, planI
 		return operationData, dashboardUrl, err
 	}
 
+	_, err = b.uaaClient.UpdateClient(instanceID, dashboardUrl)
+	if err != nil {
+		return errs(NewGenericError(ctx, err))
+	}
+
 	return operationData, dashboardUrl, nil
 }
 

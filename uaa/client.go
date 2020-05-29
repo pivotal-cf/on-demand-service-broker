@@ -1,8 +1,13 @@
 package uaa
 
 import (
+	"crypto/tls"
+	"crypto/x509"
+	gouaa "github.com/cloudfoundry-community/go-uaa"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"math/rand"
+	"net/http"
+	"strings"
 	"time"
 )
 
@@ -12,18 +17,59 @@ func (n *NoopClient) CreateClient(_, _ string) (map[string]string, error) {
 	return nil, nil
 }
 
+func (n *NoopClient) UpdateClient(_, _ string) (map[string]string, error) {
+	return nil, nil
+}
+
 type Client struct {
-	config config.UAAConfig
+	config     config.UAAConfig
+	httpClient HTTPClient
+	RandFunc   func() string
 }
 
-func New(config config.UAAConfig) *Client {
-	return &Client{config: config}
+type HTTPClient interface {
+	CreateClient(client gouaa.Client) (*gouaa.Client, error)
+	UpdateClient(client gouaa.Client) (*gouaa.Client, error)
 }
 
-func (c *Client) CreateClient(id, name string) (map[string]string, error) {
+func New(config config.UAAConfig, trustedCert string) (*Client, error) {
+	httpClient := newHTTPClient(trustedCert)
+
+	apiClient, err := gouaa.New(
+		config.URL,
+		gouaa.WithClientCredentials(
+			config.Authentication.ClientCredentials.ID,
+			config.Authentication.ClientCredentials.Secret,
+			gouaa.JSONWebToken,
+		),
+		gouaa.WithClient(httpClient),
+	)
+	return &Client{
+		config:     config,
+		httpClient: apiClient,
+		RandFunc:   randomString,
+	}, err
+}
+
+func newHTTPClient(caCert string) *http.Client {
+	rootCAs, _ := x509.SystemCertPool()
+	if rootCAs == nil {
+		rootCAs = x509.NewCertPool()
+	}
+	rootCAs.AppendCertsFromPEM([]byte(caCert))
+
+	return &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{RootCAs: rootCAs},
+		},
+	}
+}
+
+func (c *Client) CreateClient(clientID, name string) (map[string]string, error) {
+	clientSecret := c.RandFunc()
 	m := map[string]string{
-		"client_id":              id,
-		"client_secret":          randomString(),
+		"client_id":              clientID,
+		"client_secret":          clientSecret,
 		"scopes":                 c.config.ClientDefinition.Scopes,
 		"resource_ids":           c.config.ClientDefinition.ResourceIDs,
 		"authorities":            c.config.ClientDefinition.Authorities,
@@ -34,7 +80,69 @@ func (c *Client) CreateClient(id, name string) (map[string]string, error) {
 		m["name"] = name
 	}
 
-	return m, nil
+	resp, err := c.httpClient.CreateClient(c.transformToClient(m))
+	if err != nil {
+		return nil, err
+	}
+
+	return c.transformToMap(resp, clientSecret), nil
+}
+
+func (c *Client) UpdateClient(clientID string, redirectURI string) (map[string]string, error) {
+	clientSecret := c.RandFunc()
+	m := map[string]string{
+		"client_id":              clientID,
+		"client_secret":          clientSecret,
+		"scopes":                 c.config.ClientDefinition.Scopes,
+		"resource_ids":           c.config.ClientDefinition.ResourceIDs,
+		"authorities":            c.config.ClientDefinition.Authorities,
+		"authorized_grant_types": c.config.ClientDefinition.AuthorizedGrantTypes,
+		"redirect_uri":           redirectURI,
+	}
+
+	resp, err := c.httpClient.UpdateClient(c.transformToClient(m))
+	if err != nil {
+		return nil, err
+	}
+	return c.transformToMap(resp, clientSecret), nil
+}
+
+func (c *Client) transformToMap(resp *gouaa.Client, secret string) map[string]string {
+	return map[string]string{
+		"client_id":              resp.ClientID,
+		"client_secret":          secret, // client secret is not part of the response
+		"name":                   resp.DisplayName,
+		"scopes":                 fromSlice(resp.Scope),
+		"resource_ids":           fromSlice(resp.ResourceIDs),
+		"authorities":            fromSlice(resp.Authorities),
+		"authorized_grant_types": fromSlice(resp.AuthorizedGrantTypes),
+	}
+}
+
+func (c *Client) transformToClient(m map[string]string) gouaa.Client {
+	client := gouaa.Client{
+		Authorities:          toSlice(m["authorities"]),
+		AuthorizedGrantTypes: toSlice(m["authorized_grant_types"]),
+		ClientID:             m["client_id"],
+		ClientSecret:         m["client_secret"],
+		DisplayName:          m["name"],
+		ResourceIDs:          toSlice(m["resource_ids"]),
+		Scope:                toSlice(m["scopes"]),
+		RedirectURI:          toSlice(m["redirect_uri"]),
+	}
+
+	return client
+}
+
+func fromSlice(s []string) string {
+	return strings.Join(s, ",")
+}
+
+func toSlice(s string) []string {
+	if s == "" {
+		return nil
+	}
+	return strings.Split(s, ",")
 }
 
 func randomString() string {

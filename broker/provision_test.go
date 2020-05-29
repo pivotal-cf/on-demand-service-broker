@@ -154,11 +154,12 @@ var _ = Describe("Provisioning", func() {
 
 		Context("Handling dashboard url generation", func() {
 			It("includes the dashboard url when implemented by the adapter", func() {
-				serviceAdapter.GenerateDashboardUrlReturns("http://google.com", nil)
+				dashboardURL := "http://example.com/dashboard"
+				serviceAdapter.GenerateDashboardUrlReturns(dashboardURL, nil)
 
 				serviceSpec, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
 
-				Expect(serviceSpec.DashboardURL).To(Equal("http://google.com"))
+				Expect(serviceSpec.DashboardURL).To(Equal(dashboardURL))
 				Expect(provisionErr).NotTo(HaveOccurred())
 
 				By("invoking the adapter with the right arguments", func() {
@@ -173,6 +174,14 @@ var _ = Describe("Provisioning", func() {
 					}))
 					Expect(boshManifest).To(Equal(newlyGeneratedManifest))
 				})
+
+				By("updating the uaa client", func() {
+					Expect(fakeUAAClient.UpdateClientCallCount()).To(Equal(1))
+					actualClientID, redirectURI := fakeUAAClient.UpdateClientArgsForCall(0)
+
+					Expect(actualClientID).To(Equal(instanceID))
+					Expect(redirectURI).To(Equal(dashboardURL))
+				})
 			})
 
 			It("doesn't use dashboard url when adapter has not implemented the dashboard url", func() {
@@ -182,6 +191,7 @@ var _ = Describe("Provisioning", func() {
 
 				Expect(serviceSpec.DashboardURL).To(BeEmpty())
 				Expect(provisionErr).NotTo(HaveOccurred())
+				Expect(fakeUAAClient.UpdateClientCallCount()).To(Equal(0))
 			})
 
 			It("includes a standard message when adapter returns a generic error", func() {
@@ -452,6 +462,18 @@ var _ = Describe("Provisioning", func() {
 	When("creating the uaa client fails", func() {
 		It("returns a generic error", func() {
 			fakeUAAClient.CreateClientReturns(nil, errors.New("oh no"))
+
+			_, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
+
+			Expect(provisionErr).To(MatchError(ContainSubstring(
+				"There was a problem completing your request. Please contact your operations team providing the following information:",
+			)))
+		})
+	})
+
+	When("updating the uaa client fails", func() {
+		It("returns a generic error", func() {
+			fakeUAAClient.UpdateClientReturns(nil, errors.New("oh no"))
 
 			_, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
 

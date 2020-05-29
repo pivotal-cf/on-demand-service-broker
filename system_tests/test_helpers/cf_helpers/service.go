@@ -8,6 +8,7 @@ package cf_helpers
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -31,6 +32,22 @@ func CreateService(serviceOffering, servicePlan, serviceName, arbitraryParams st
 
 	Expect(Cf(cfArgs...)).To(gexec.Exit(0))
 	AwaitServiceCreation(serviceName)
+}
+
+func GetDashboardURL(instanceGUID string) string {
+	session := Cf("curl", "/v2/service_instances/"+instanceGUID)
+
+	Expect(session).To(gexec.Exit(0))
+	b := session.Out.Contents()
+
+	var obj struct {
+		Entitiy struct {
+			DashboardURL string `json:"dashboard_url"`
+		} `json:"entity"`
+	}
+
+	json.Unmarshal(b, &obj)
+	return obj.Entitiy.DashboardURL
 }
 
 func CreateServiceWithoutWaiting(serviceOffering, servicePlan, serviceName, arbitraryParams string) {

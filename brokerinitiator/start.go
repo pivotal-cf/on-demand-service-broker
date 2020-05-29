@@ -73,7 +73,11 @@ func Initiate(conf config.Config,
 	}
 
 	if conf.HasClientDefinition() {
-		onDemandBroker.SetUAAClient(uaa.New(conf.CF.UAA))
+		client, err := uaa.New(conf.CF.UAA, conf.CF.TrustedCert)
+		if err != nil {
+			logger.Fatalf("error creating UAA client: #{err}")
+		}
+		onDemandBroker.SetUAAClient(client)
 	}
 
 	if conf.HasRuntimeCredHub() {

@@ -23,7 +23,7 @@ var (
 )
 
 var _ = BeforeSuite(func() {
-	err := env_helpers.ValidateEnvVars("DOPPLER_ADDRESS")
+	err := env_helpers.ValidateEnvVars("DOPPLER_ADDRESS", "CF_CLIENT_ID", "CF_CLIENT_SECRET", "CF_UAA_URL")
 	Expect(err).ToNot(HaveOccurred(), "Doppler address must be set")
 
 	dopplerAddress = os.Getenv("DOPPLER_ADDRESS")

@@ -19,6 +19,8 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/cf_helpers"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/service_helpers"
+
+	gouaa "github.com/cloudfoundry-community/go-uaa"
 )
 
 func FeatureToggledLifecycleTest(
@@ -53,6 +55,13 @@ func FeatureToggledLifecycleTest(
 	By("creating a service", func() {
 		serviceInstanceName = "service" + brokerInfo.TestSuffix
 		cf_helpers.CreateService(brokerInfo.ServiceName, planName, serviceInstanceName, "")
+	})
+
+	By("creating a uaa client for the SI", func() {
+		serviceInstanceGUID := cf_helpers.GetServiceInstanceGUID(serviceInstanceName)
+		siClient := getUAAClient(serviceInstanceGUID)
+		Expect(siClient.DisplayName).To(Equal(serviceInstanceName))
+		Expect(siClient.RedirectURI).To(ContainElement(cf_helpers.GetDashboardURL(serviceInstanceGUID)))
 	})
 
 	By("logging telemetry data after a create-service", func() {
@@ -145,6 +154,22 @@ func FeatureToggledLifecycleTest(
 			ContainSubstring(telemetryLogPlanMedium),
 		))
 	})
+}
+
+func getUAAClient(clientGUID string) *gouaa.Client {
+	uaaClientID := os.Getenv("CF_CLIENT_ID")
+	uaaClientSecret := os.Getenv("CF_CLIENT_SECRET")
+	uaaURL := os.Getenv("CF_UAA_URL")
+	api, err := gouaa.New(
+		uaaURL,
+		gouaa.WithClientCredentials(uaaClientID, uaaClientSecret, gouaa.JSONWebToken),
+		gouaa.WithSkipSSLValidation(true),
+	)
+	Expect(err).ToNot(HaveOccurred())
+
+	siClient, err := api.GetClient(clientGUID)
+	Expect(err).ToNot(HaveOccurred())
+	return siClient
 }
 
 func downloadIndicatorFromVM(brokerInfo bosh_helpers.BrokerInfo) *os.File {

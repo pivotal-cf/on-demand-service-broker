@@ -1,0 +1,16 @@
+- type: replace
+  path: /instance_groups/name=broker/jobs/name=broker/properties/cf/uaa/client_definition?
+  value:
+    scopes: cloud_controller.read,cloud_controller.write
+    authorized_grant_types: client_credentials
+    authorities: cloud_controller.admin
+    resource_ids: res1,res2
+
+- type: remove
+  path: /instance_groups/name=broker/jobs/name=broker/properties/cf?/uaa/authentication/user_credentials
+
+- type: replace
+  path: /instance_groups/name=broker/jobs/name=broker/properties/cf?/uaa/authentication/client_credentials?
+  value:
+    client_id: ((cf.client_credentials.client_id))
+    client_secret: ((cf.client_credentials.client_secret))

@@ -61,6 +61,7 @@ func (h *FakeHandler) Handle(w http.ResponseWriter, req *http.Request) {
 	if h.requestsReceived == nil {
 		h.requestsReceived = []Request{}
 	}
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 
 	rawBody, err := ioutil.ReadAll(req.Body)
 	defer req.Body.Close()

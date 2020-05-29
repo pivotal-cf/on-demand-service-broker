@@ -187,6 +187,7 @@ func instanceID(deploymentName string) string {
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_uaa_client.go . UAAClient
 type UAAClient interface {
 	CreateClient(id, name string) (map[string]string, error)
+	UpdateClient(id, redirectURI string) (map[string]string, error)
 }
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_startup_checker.go . StartupChecker
