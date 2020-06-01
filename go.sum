@@ -115,6 +115,8 @@ github.com/pivotal-cf/on-demand-services-sdk v0.39.0 h1:ct1UH5/7hPWpp7kPOvNBtTSG
 github.com/pivotal-cf/on-demand-services-sdk v0.39.0/go.mod h1:MHOtG+Z0t80nszYb4MsAozBus8KRJ4rQPOZQ+kSSNek=
 github.com/pivotal-cf/on-demand-services-sdk v0.39.1-0.20200526144324-0d66454eda39 h1:p5RHcb0u6teljuXWxnNqfP+X8vYefdM5wPqO6N92BAQ=
 github.com/pivotal-cf/on-demand-services-sdk v0.39.1-0.20200526144324-0d66454eda39/go.mod h1:MHOtG+Z0t80nszYb4MsAozBus8KRJ4rQPOZQ+kSSNek=
+github.com/pivotal-cf/on-demand-services-sdk v0.39.1-0.20200527101908-57a1c2ef97bd h1:Pod8f6DH4BoMztgg5ghjDnPZrlEYuAsi6mP2EmjtxAQ=
+github.com/pivotal-cf/on-demand-services-sdk v0.39.1-0.20200527101908-57a1c2ef97bd/go.mod h1:MHOtG+Z0t80nszYb4MsAozBus8KRJ4rQPOZQ+kSSNek=
 github.com/pivotal-cf/paraphernalia v0.0.0-20171027171623-4272315231ce h1:GYSr+8qzCnEc04YRfnEFPLL9AHAD/b0hxLXb//Gs9qE=
 github.com/pivotal-cf/paraphernalia v0.0.0-20171027171623-4272315231ce/go.mod h1:Y3IqE20LKprEpLkXb7gXinJf4vvDdQe/BS8E4kL/dgE=
 github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
