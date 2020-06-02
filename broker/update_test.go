@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/decider"
+	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 	"net/http"
 
 	"github.com/pivotal-cf/brokerapi/v7/domain"
@@ -47,6 +48,8 @@ var _ = Describe("Update", func() {
 		err                                     error
 		testBroker                              *broker.Broker
 		catalog                                 []domain.Service
+		fakeUAAClient                           *brokerfakes.FakeUAAClient
+		expectedClient                          map[string]string
 	)
 
 	BeforeEach(func() {
@@ -55,7 +58,11 @@ var _ = Describe("Update", func() {
 		orgGUID = "organizationGUID"
 		spaceGUID = "spaceGUID"
 		boshTaskID = 447
-		arbContext = map[string]interface{}{"platform": "cloudfoundry", "space_guid": "final"}
+		arbContext = map[string]interface{}{
+			"platform":      "cloudfoundry",
+			"space_guid":    "final",
+			"instance_name": "some-instance-name",
+		}
 
 		newPlanID = secondPlanID
 		oldPlanID = existingPlanID
@@ -74,6 +81,16 @@ var _ = Describe("Update", func() {
 		Expect(err).NotTo(HaveOccurred())
 		oldPlanMaintenanceInfo = *catalog[0].Plans[0].MaintenanceInfo
 		previousMaintenanceInfo = oldPlanMaintenanceInfo
+
+		fakeUAAClient = new(brokerfakes.FakeUAAClient)
+
+		expectedClient = map[string]string{
+			"client_secret": "some-secret",
+			"client_id":     "some-id",
+			"foo":           "bar",
+		}
+		fakeUAAClient.UpdateClientReturns(expectedClient, nil)
+		b.SetUAAClient(fakeUAAClient)
 	})
 
 	When("it is an update", func() {
@@ -105,7 +122,7 @@ var _ = Describe("Update", func() {
 
 		It("invokes the deployer with the correct arguments", func() {
 			Expect(fakeDeployer.UpdateCallCount()).To(Equal(1))
-			_, planID, actualRequestParams, _, _, actualSecretsMap, _ := fakeDeployer.UpdateArgsForCall(0)
+			_, planID, actualRequestParams, _, _, actualSecretsMap, _, _ := fakeDeployer.UpdateArgsForCall(0)
 
 			Expect(actualRequestParams).To(Equal(map[string]interface{}{
 				"plan_id":    planID,
@@ -133,7 +150,7 @@ var _ = Describe("Update", func() {
 
 				It("calls the deployer without a bosh context id", func() {
 					Expect(fakeDeployer.UpdateCallCount()).To(Equal(1))
-					_, _, _, _, actualBoshContextID, _, _ := fakeDeployer.UpdateArgsForCall(0)
+					_, _, _, _, actualBoshContextID, _, _, _ := fakeDeployer.UpdateArgsForCall(0)
 					Expect(actualBoshContextID).To(BeEmpty())
 				})
 
@@ -189,7 +206,7 @@ var _ = Describe("Update", func() {
 
 				It("calls the deployer with a bosh context id", func() {
 					Expect(fakeDeployer.UpdateCallCount()).To(Equal(1))
-					_, _, _, _, actualBoshContextID, _, _ := fakeDeployer.UpdateArgsForCall(0)
+					_, _, _, _, actualBoshContextID, _, _, _ := fakeDeployer.UpdateArgsForCall(0)
 					Expect(actualBoshContextID).NotTo(BeEmpty())
 				})
 			})
@@ -303,7 +320,7 @@ var _ = Describe("Update", func() {
 
 					It("calls the deployer with a bosh context id", func() {
 						Expect(fakeDeployer.UpdateCallCount()).To(Equal(1))
-						_, _, _, _, actualBoshContextID, _, _ := fakeDeployer.UpdateArgsForCall(0)
+						_, _, _, _, actualBoshContextID, _, _, _ := fakeDeployer.UpdateArgsForCall(0)
 						Expect(actualBoshContextID).NotTo(BeEmpty())
 					})
 				})
@@ -685,6 +702,137 @@ var _ = Describe("Update", func() {
 			})
 		})
 
+		Context("the service instance UAA client", func() {
+			var newlyGeneratedManifest []byte
+
+			BeforeEach(func() {
+				dashboardURL := "http://example.com/dashboard"
+				serviceAdapter.GenerateDashboardUrlReturns(dashboardURL, nil)
+				newlyGeneratedManifest = []byte("name: new-name")
+				fakeDeployer.UpdateReturns(boshTaskID, newlyGeneratedManifest, nil)
+			})
+
+			When("it does not exist", func() {
+				BeforeEach(func() {
+					fakeUAAClient.GetClientReturns(nil, nil)
+					fakeUAAClient.CreateClientReturns(map[string]string{"client": "some-client"}, nil)
+				})
+
+				It("creates the client", func() {
+					Expect(fakeUAAClient.CreateClientCallCount()).To(Equal(1))
+					actualID, actualName := fakeUAAClient.CreateClientArgsForCall(0)
+					Expect(actualID).To(Equal(instanceID))
+					Expect(actualName).To(Equal("some-instance-name"))
+				})
+
+				It("passes that client to the deployer", func() {
+					_, _, _, _, _, _, actualClient, _ := fakeDeployer.UpdateArgsForCall(0)
+					Expect(actualClient).To(Equal(map[string]string{"client": "some-client"}))
+				})
+
+				When("creating the client fails", func() {
+					BeforeEach(func() {
+						fakeUAAClient.CreateClientReturns(nil, errors.New("oh no error"))
+					})
+
+					It("returns an error", func() {
+						Expect(updateError).To(HaveOccurred())
+						Expect(updateError).To(MatchError(ContainSubstring(
+							"There was a problem completing your request. Please contact your operations team providing the following information:",
+						)))
+					})
+				})
+			})
+
+			When("it already exists", func() {
+				var existingClient map[string]string
+				BeforeEach(func() {
+					existingClient = map[string]string{
+						"client_id":   "some-id",
+						"rediret_uri": "http://uri.com/example",
+					}
+
+					fakeUAAClient.GetClientReturns(existingClient, nil)
+				})
+
+				It("passes the existing client to the deployer", func() {
+					Expect(fakeDeployer.UpdateCallCount()).To(Equal(1))
+					_, _, _, _, _, _, actualClient, _ := fakeDeployer.UpdateArgsForCall(0)
+					Expect(actualClient).To(Equal(existingClient))
+				})
+
+				It("updates the service instance client", func() {
+					By("regenerating the dashboard url", func() {
+						Expect(serviceAdapter.GenerateDashboardUrlCallCount()).To(Equal(1))
+						instanceID, plan, boshManifest, _ := serviceAdapter.GenerateDashboardUrlArgsForCall(0)
+						Expect(instanceID).To(Equal(instanceID))
+						expectedProperties := sdk.Properties{
+							"a_global_property":          "overrides_global_value",
+							"some_other_global_property": "other_global_value",
+							"super":                      "yes",
+						}
+						Expect(plan).To(Equal(sdk.Plan{
+							Properties:     expectedProperties,
+							InstanceGroups: secondPlan.InstanceGroups,
+							Update:         secondPlan.Update,
+						}))
+						Expect(boshManifest).To(Equal(newlyGeneratedManifest))
+					})
+
+					Expect(fakeUAAClient.UpdateClientCallCount()).To(Equal(1))
+					actualClientID, actualRedirectURI := fakeUAAClient.UpdateClientArgsForCall(0)
+
+					Expect(actualClientID).To(Equal(instanceID))
+					Expect(actualRedirectURI).To(Equal("http://example.com/dashboard"))
+				})
+			})
+
+			When("updating the uaa client fails", func() {
+				BeforeEach(func() {
+					fakeUAAClient.GetClientReturns(map[string]string{"client_id": "1"}, nil)
+					fakeUAAClient.UpdateClientReturns(nil, errors.New("oh no"))
+				})
+
+				It("returns a generic error message", func() {
+					Expect(updateError).To(HaveOccurred())
+					Expect(updateError).To(MatchError(ContainSubstring(
+						"There was a problem completing your request. Please contact your operations team providing the following information:",
+					)))
+				})
+			})
+
+			When("getting the uaa client fails", func() {
+				BeforeEach(func() {
+					fakeUAAClient.GetClientReturns(nil, errors.New("oh no"))
+				})
+
+				It("returns a generic error message", func() {
+					Expect(updateError).To(HaveOccurred())
+					Expect(updateError).To(MatchError(ContainSubstring(
+						"There was a problem completing your request. Please contact your operations team providing the following information:",
+					)))
+				})
+			})
+
+			When("its not configured", func() {
+				It("does not call generate dashboard", func() {
+					Expect(serviceAdapter.GenerateDashboardUrlCallCount()).To(Equal(0))
+				})
+			})
+
+			When("generating the dashboard fails", func() {
+				BeforeEach(func() {
+					fakeUAAClient.GetClientReturns(map[string]string{"a": "b"}, nil)
+					serviceAdapter.GenerateDashboardUrlReturns("", errors.New("fooo"))
+				})
+
+				It("returns a failure", func() {
+					Expect(updateError).To(MatchError(
+						ContainSubstring("There was a problem completing your request"),
+					))
+				})
+			})
+		})
 	})
 
 	When("it is an upgrade", func() {

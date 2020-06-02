@@ -33,6 +33,19 @@ type FakeUAAClient struct {
 	deleteClientReturnsOnCall map[int]struct {
 		result1 error
 	}
+	GetClientStub        func(string) (map[string]string, error)
+	getClientMutex       sync.RWMutex
+	getClientArgsForCall []struct {
+		arg1 string
+	}
+	getClientReturns struct {
+		result1 map[string]string
+		result2 error
+	}
+	getClientReturnsOnCall map[int]struct {
+		result1 map[string]string
+		result2 error
+	}
 	UpdateClientStub        func(string, string) (map[string]string, error)
 	updateClientMutex       sync.RWMutex
 	updateClientArgsForCall []struct {
@@ -175,6 +188,69 @@ func (fake *FakeUAAClient) DeleteClientReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
+func (fake *FakeUAAClient) GetClient(arg1 string) (map[string]string, error) {
+	fake.getClientMutex.Lock()
+	ret, specificReturn := fake.getClientReturnsOnCall[len(fake.getClientArgsForCall)]
+	fake.getClientArgsForCall = append(fake.getClientArgsForCall, struct {
+		arg1 string
+	}{arg1})
+	fake.recordInvocation("GetClient", []interface{}{arg1})
+	fake.getClientMutex.Unlock()
+	if fake.GetClientStub != nil {
+		return fake.GetClientStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	fakeReturns := fake.getClientReturns
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *FakeUAAClient) GetClientCallCount() int {
+	fake.getClientMutex.RLock()
+	defer fake.getClientMutex.RUnlock()
+	return len(fake.getClientArgsForCall)
+}
+
+func (fake *FakeUAAClient) GetClientCalls(stub func(string) (map[string]string, error)) {
+	fake.getClientMutex.Lock()
+	defer fake.getClientMutex.Unlock()
+	fake.GetClientStub = stub
+}
+
+func (fake *FakeUAAClient) GetClientArgsForCall(i int) string {
+	fake.getClientMutex.RLock()
+	defer fake.getClientMutex.RUnlock()
+	argsForCall := fake.getClientArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeUAAClient) GetClientReturns(result1 map[string]string, result2 error) {
+	fake.getClientMutex.Lock()
+	defer fake.getClientMutex.Unlock()
+	fake.GetClientStub = nil
+	fake.getClientReturns = struct {
+		result1 map[string]string
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *FakeUAAClient) GetClientReturnsOnCall(i int, result1 map[string]string, result2 error) {
+	fake.getClientMutex.Lock()
+	defer fake.getClientMutex.Unlock()
+	fake.GetClientStub = nil
+	if fake.getClientReturnsOnCall == nil {
+		fake.getClientReturnsOnCall = make(map[int]struct {
+			result1 map[string]string
+			result2 error
+		})
+	}
+	fake.getClientReturnsOnCall[i] = struct {
+		result1 map[string]string
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *FakeUAAClient) UpdateClient(arg1 string, arg2 string) (map[string]string, error) {
 	fake.updateClientMutex.Lock()
 	ret, specificReturn := fake.updateClientReturnsOnCall[len(fake.updateClientArgsForCall)]
@@ -246,6 +322,8 @@ func (fake *FakeUAAClient) Invocations() map[string][][]interface{} {
 	defer fake.createClientMutex.RUnlock()
 	fake.deleteClientMutex.RLock()
 	defer fake.deleteClientMutex.RUnlock()
+	fake.getClientMutex.RLock()
+	defer fake.getClientMutex.RUnlock()
 	fake.updateClientMutex.RLock()
 	defer fake.updateClientMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

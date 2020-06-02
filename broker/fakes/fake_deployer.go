@@ -46,7 +46,7 @@ type FakeDeployer struct {
 		result1 int
 		result2 error
 	}
-	UpdateStub        func(string, string, map[string]interface{}, *string, string, map[string]string, *log.Logger) (int, []byte, error)
+	UpdateStub        func(string, string, map[string]interface{}, *string, string, map[string]string, map[string]string, *log.Logger) (int, []byte, error)
 	updateMutex       sync.RWMutex
 	updateArgsForCall []struct {
 		arg1 string
@@ -55,7 +55,8 @@ type FakeDeployer struct {
 		arg4 *string
 		arg5 string
 		arg6 map[string]string
-		arg7 *log.Logger
+		arg7 map[string]string
+		arg8 *log.Logger
 	}
 	updateReturns struct {
 		result1 int
@@ -67,13 +68,14 @@ type FakeDeployer struct {
 		result2 []byte
 		result3 error
 	}
-	UpgradeStub        func(string, config.Plan, string, *log.Logger) (int, []byte, error)
+	UpgradeStub        func(string, config.Plan, string, map[string]string, *log.Logger) (int, []byte, error)
 	upgradeMutex       sync.RWMutex
 	upgradeArgsForCall []struct {
 		arg1 string
 		arg2 config.Plan
 		arg3 string
-		arg4 *log.Logger
+		arg4 map[string]string
+		arg5 *log.Logger
 	}
 	upgradeReturns struct {
 		result1 int
@@ -226,7 +228,7 @@ func (fake *FakeDeployer) RecreateReturnsOnCall(i int, result1 int, result2 erro
 	}{result1, result2}
 }
 
-func (fake *FakeDeployer) Update(arg1 string, arg2 string, arg3 map[string]interface{}, arg4 *string, arg5 string, arg6 map[string]string, arg7 *log.Logger) (int, []byte, error) {
+func (fake *FakeDeployer) Update(arg1 string, arg2 string, arg3 map[string]interface{}, arg4 *string, arg5 string, arg6 map[string]string, arg7 map[string]string, arg8 *log.Logger) (int, []byte, error) {
 	fake.updateMutex.Lock()
 	ret, specificReturn := fake.updateReturnsOnCall[len(fake.updateArgsForCall)]
 	fake.updateArgsForCall = append(fake.updateArgsForCall, struct {
@@ -236,12 +238,13 @@ func (fake *FakeDeployer) Update(arg1 string, arg2 string, arg3 map[string]inter
 		arg4 *string
 		arg5 string
 		arg6 map[string]string
-		arg7 *log.Logger
-	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7})
-	fake.recordInvocation("Update", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6, arg7})
+		arg7 map[string]string
+		arg8 *log.Logger
+	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8})
+	fake.recordInvocation("Update", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8})
 	fake.updateMutex.Unlock()
 	if fake.UpdateStub != nil {
-		return fake.UpdateStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7)
+		return fake.UpdateStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
@@ -256,17 +259,17 @@ func (fake *FakeDeployer) UpdateCallCount() int {
 	return len(fake.updateArgsForCall)
 }
 
-func (fake *FakeDeployer) UpdateCalls(stub func(string, string, map[string]interface{}, *string, string, map[string]string, *log.Logger) (int, []byte, error)) {
+func (fake *FakeDeployer) UpdateCalls(stub func(string, string, map[string]interface{}, *string, string, map[string]string, map[string]string, *log.Logger) (int, []byte, error)) {
 	fake.updateMutex.Lock()
 	defer fake.updateMutex.Unlock()
 	fake.UpdateStub = stub
 }
 
-func (fake *FakeDeployer) UpdateArgsForCall(i int) (string, string, map[string]interface{}, *string, string, map[string]string, *log.Logger) {
+func (fake *FakeDeployer) UpdateArgsForCall(i int) (string, string, map[string]interface{}, *string, string, map[string]string, map[string]string, *log.Logger) {
 	fake.updateMutex.RLock()
 	defer fake.updateMutex.RUnlock()
 	argsForCall := fake.updateArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5, argsForCall.arg6, argsForCall.arg7
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5, argsForCall.arg6, argsForCall.arg7, argsForCall.arg8
 }
 
 func (fake *FakeDeployer) UpdateReturns(result1 int, result2 []byte, result3 error) {
@@ -298,19 +301,20 @@ func (fake *FakeDeployer) UpdateReturnsOnCall(i int, result1 int, result2 []byte
 	}{result1, result2, result3}
 }
 
-func (fake *FakeDeployer) Upgrade(arg1 string, arg2 config.Plan, arg3 string, arg4 *log.Logger) (int, []byte, error) {
+func (fake *FakeDeployer) Upgrade(arg1 string, arg2 config.Plan, arg3 string, arg4 map[string]string, arg5 *log.Logger) (int, []byte, error) {
 	fake.upgradeMutex.Lock()
 	ret, specificReturn := fake.upgradeReturnsOnCall[len(fake.upgradeArgsForCall)]
 	fake.upgradeArgsForCall = append(fake.upgradeArgsForCall, struct {
 		arg1 string
 		arg2 config.Plan
 		arg3 string
-		arg4 *log.Logger
-	}{arg1, arg2, arg3, arg4})
-	fake.recordInvocation("Upgrade", []interface{}{arg1, arg2, arg3, arg4})
+		arg4 map[string]string
+		arg5 *log.Logger
+	}{arg1, arg2, arg3, arg4, arg5})
+	fake.recordInvocation("Upgrade", []interface{}{arg1, arg2, arg3, arg4, arg5})
 	fake.upgradeMutex.Unlock()
 	if fake.UpgradeStub != nil {
-		return fake.UpgradeStub(arg1, arg2, arg3, arg4)
+		return fake.UpgradeStub(arg1, arg2, arg3, arg4, arg5)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
@@ -325,17 +329,17 @@ func (fake *FakeDeployer) UpgradeCallCount() int {
 	return len(fake.upgradeArgsForCall)
 }
 
-func (fake *FakeDeployer) UpgradeCalls(stub func(string, config.Plan, string, *log.Logger) (int, []byte, error)) {
+func (fake *FakeDeployer) UpgradeCalls(stub func(string, config.Plan, string, map[string]string, *log.Logger) (int, []byte, error)) {
 	fake.upgradeMutex.Lock()
 	defer fake.upgradeMutex.Unlock()
 	fake.UpgradeStub = stub
 }
 
-func (fake *FakeDeployer) UpgradeArgsForCall(i int) (string, config.Plan, string, *log.Logger) {
+func (fake *FakeDeployer) UpgradeArgsForCall(i int) (string, config.Plan, string, map[string]string, *log.Logger) {
 	fake.upgradeMutex.RLock()
 	defer fake.upgradeMutex.RUnlock()
 	argsForCall := fake.upgradeArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5
 }
 
 func (fake *FakeDeployer) UpgradeReturns(result1 int, result2 []byte, result3 error) {

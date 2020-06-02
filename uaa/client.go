@@ -3,6 +3,7 @@ package uaa
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"fmt"
 	gouaa "github.com/cloudfoundry-community/go-uaa"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pkg/errors"
@@ -22,6 +23,7 @@ type HTTPClient interface {
 	CreateClient(client gouaa.Client) (*gouaa.Client, error)
 	UpdateClient(client gouaa.Client) (*gouaa.Client, error)
 	DeleteClient(clientID string) (*gouaa.Client, error)
+	ListClients(filter, by string, order gouaa.SortOrder, start, items int) ([]gouaa.Client, gouaa.Page, error)
 }
 
 func New(config config.UAAConfig, trustedCert string) (*Client, error) {
@@ -81,22 +83,23 @@ func (c *Client) CreateClient(clientID, name string) (map[string]string, error) 
 }
 
 func (c *Client) UpdateClient(clientID string, redirectURI string) (map[string]string, error) {
-	clientSecret := c.RandFunc()
 	m := map[string]string{
 		"client_id":              clientID,
-		"client_secret":          clientSecret,
 		"scopes":                 c.config.ClientDefinition.Scopes,
 		"resource_ids":           c.config.ClientDefinition.ResourceIDs,
 		"authorities":            c.config.ClientDefinition.Authorities,
 		"authorized_grant_types": c.config.ClientDefinition.AuthorizedGrantTypes,
-		"redirect_uri":           redirectURI,
+	}
+
+	if redirectURI != "" {
+		m["redirect_uri"] = redirectURI
 	}
 
 	resp, err := c.httpClient.UpdateClient(c.transformToClient(m))
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to update uaa client")
 	}
-	return c.transformToMap(resp, clientSecret), nil
+	return c.transformToMap(resp, ""), nil
 }
 
 func (c *Client) DeleteClient(clientID string) error {
@@ -105,6 +108,19 @@ func (c *Client) DeleteClient(clientID string) error {
 		return errors.Wrap(err, "failed to delete client")
 	}
 	return err
+}
+
+func (c *Client) GetClient(clientID string) (map[string]string, error) {
+	filter := fmt.Sprintf("client_id eq %q", clientID)
+	existingClients, _, err := c.httpClient.ListClients(filter, "", "", 1, 1)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to list uaa clients")
+	}
+	if len(existingClients) == 0 {
+		return nil, nil
+	}
+
+	return c.transformToMap(&existingClients[0], ""), nil
 }
 
 func (c *Client) transformToMap(resp *gouaa.Client, secret string) map[string]string {
@@ -161,10 +177,12 @@ type NoopClient struct{}
 func (n *NoopClient) CreateClient(_, _ string) (map[string]string, error) {
 	return nil, nil
 }
-
 func (n *NoopClient) UpdateClient(_, _ string) (map[string]string, error) {
 	return nil, nil
 }
-func (c *NoopClient) DeleteClient(clientID string) error {
+func (n *NoopClient) GetClient(_ string) (map[string]string, error) {
+	return nil, nil
+}
+func (c *NoopClient) DeleteClient(_ string) error {
 	return nil
 }

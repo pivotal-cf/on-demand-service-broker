@@ -105,6 +105,7 @@ func (d Deployer) Upgrade(
 	deploymentName string,
 	plan config.Plan,
 	boshContextID string,
+	uaaClientObject map[string]string,
 	logger *log.Logger,
 ) (int, []byte, error) {
 	err := d.assertNoOperationsInProgress(deploymentName, logger)
@@ -131,6 +132,7 @@ func (d Deployer) Upgrade(
 		OldManifest:     oldManifest,
 		PreviousPlanID:  &plan.ID,
 		PreviousConfigs: oldConfigs,
+		UAAClient:       uaaClientObject,
 	}
 
 	return d.doDeploy(generateManifestProperties, "upgrade", boshContextID, logger)
@@ -164,6 +166,7 @@ func (d Deployer) Update(
 	previousPlanID *string,
 	boshContextID string,
 	oldSecretsMap map[string]string,
+	uaaClientObject map[string]string,
 	logger *log.Logger,
 ) (int, []byte, error) {
 
@@ -195,6 +198,7 @@ func (d Deployer) Update(
 		PreviousPlanID:  previousPlanID,
 		SecretsMap:      oldSecretsMap,
 		PreviousConfigs: oldConfigs,
+		UAAClient:       uaaClientObject,
 	}
 
 	return d.doDeploy(generateManifestProperties, "update", boshContextID, logger)

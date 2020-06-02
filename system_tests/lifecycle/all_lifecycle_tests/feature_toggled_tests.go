@@ -38,6 +38,8 @@ func FeatureToggledLifecycleTest(
 		serviceKeyName      string
 		appName             string
 		appURL              string
+
+		uaaClientCreateTimestamp int64
 	)
 
 	By("logging telemetry data at startup", func() {
@@ -64,6 +66,7 @@ func FeatureToggledLifecycleTest(
 		Expect(siClient).NotTo(BeNil(), "client_id not found on UAA: "+serviceInstanceGUID)
 		Expect(siClient.DisplayName).To(Equal(serviceInstanceName))
 		Expect(siClient.RedirectURI).To(ContainElement(cf_helpers.GetDashboardURL(serviceInstanceGUID)))
+		uaaClientCreateTimestamp = siClient.LastModified
 	})
 
 	By("logging telemetry data after a create-service", func() {
@@ -130,6 +133,13 @@ func FeatureToggledLifecycleTest(
 	By("testing the app works after updating arbitrary parameters for the service", func() {
 		cf_helpers.UpdateServiceWithArbitraryParams(serviceInstanceName, arbitraryParams)
 		cf_helpers.ExerciseApp(serviceType, appURL)
+	})
+
+	By("verifying that the service instance client is updated", func() {
+		siClient := findUAAClient(serviceInstanceGUID)
+		Expect(siClient).NotTo(BeNil(), "client_id not found on UAA: "+serviceInstanceGUID)
+		Expect(uaaClientCreateTimestamp).To(BeNumerically("<", siClient.LastModified),
+			"Client wasn't modified after update")
 	})
 
 	By("unbinding the app", func() {

@@ -189,6 +189,7 @@ type UAAClient interface {
 	CreateClient(id, name string) (map[string]string, error)
 	UpdateClient(id, redirectURI string) (map[string]string, error)
 	DeleteClient(id string) error
+	GetClient(id string) (map[string]string, error)
 }
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_startup_checker.go . StartupChecker
@@ -199,8 +200,8 @@ type StartupChecker interface {
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_deployer.go . Deployer
 type Deployer interface {
 	Create(deploymentName, planID string, requestParams map[string]interface{}, boshContextID string, uaaClient map[string]string, logger *log.Logger) (int, []byte, error)
-	Update(deploymentName, planID string, requestParams map[string]interface{}, previousPlanID *string, boshContextID string, secretsMap map[string]string, logger *log.Logger) (int, []byte, error)
-	Upgrade(deploymentName string, plan config.Plan, boshContextID string, logger *log.Logger) (int, []byte, error)
+	Update(deploymentName, planID string, requestParams map[string]interface{}, previousPlanID *string, boshContextID string, secretsMap map[string]string, uaaClient map[string]string, logger *log.Logger) (int, []byte, error)
+	Upgrade(deploymentName string, plan config.Plan, boshContextID string, uaaClient map[string]string, logger *log.Logger) (int, []byte, error)
 	Recreate(deploymentName, planID, boshContextID string, logger *log.Logger) (int, error)
 }
 

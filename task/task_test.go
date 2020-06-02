@@ -37,11 +37,11 @@ var _ = Describe("Deployer", func() {
 		previousPlanID    *string
 		requestParams     map[string]interface{}
 		copyParams        map[string]interface{}
+		uaaClientMap      map[string]string
 		generatedManifest string
 		oldManifest       []byte
 		secretsMap        map[string]string
 		configsMap        map[string]string
-		uaaClientMap      map[string]string
 		boshConfigs       []boshdirector.BoshConfig
 
 		manifestGenerator *fakes.FakeManifestGenerator
@@ -354,6 +354,7 @@ var _ = Describe("Deployer", func() {
 					deploymentName,
 					plan,
 					boshContextID,
+					uaaClientMap,
 					logger,
 				)
 
@@ -383,6 +384,10 @@ var _ = Describe("Deployer", func() {
 
 				By("logging the bosh task ID returned by the director")
 				Expect(logBuffer.String()).To(ContainSubstring(fmt.Sprintf("Bosh task ID for upgrade deployment %s is %d", deploymentName, boshTaskID)))
+
+				By("passing the updated uaa client to generate manifest")
+				generateManifestProps, _ := manifestGenerator.GenerateManifestArgsForCall(0)
+				Expect(generateManifestProps.UAAClient).To(Equal(uaaClientMap))
 			})
 
 			Context("when bosh context ID is provided", func() {
@@ -395,6 +400,7 @@ var _ = Describe("Deployer", func() {
 						deploymentName,
 						plan,
 						boshContextID,
+						uaaClientMap,
 						logger,
 					)
 
@@ -415,6 +421,7 @@ var _ = Describe("Deployer", func() {
 					deploymentName,
 					plan,
 					boshContextID,
+					uaaClientMap,
 					logger,
 				)
 
@@ -433,6 +440,7 @@ var _ = Describe("Deployer", func() {
 					deploymentName,
 					plan,
 					boshContextID,
+					uaaClientMap,
 					logger,
 				)
 
@@ -446,6 +454,7 @@ var _ = Describe("Deployer", func() {
 				deploymentName,
 				plan,
 				boshContextID,
+				uaaClientMap,
 				logger,
 			)
 
@@ -465,6 +474,7 @@ var _ = Describe("Deployer", func() {
 						deploymentName,
 						plan,
 						boshContextID,
+						uaaClientMap,
 						logger,
 					)
 
@@ -482,6 +492,7 @@ var _ = Describe("Deployer", func() {
 						deploymentName,
 						plan,
 						boshContextID,
+						uaaClientMap,
 						logger,
 					)
 
@@ -499,6 +510,7 @@ var _ = Describe("Deployer", func() {
 					deploymentName,
 					plan,
 					boshContextID,
+					uaaClientMap,
 					logger,
 				)
 
@@ -514,6 +526,7 @@ var _ = Describe("Deployer", func() {
 					deploymentName,
 					plan,
 					boshContextID,
+					uaaClientMap,
 					logger,
 				)
 
@@ -530,6 +543,7 @@ var _ = Describe("Deployer", func() {
 					deploymentName,
 					plan,
 					boshContextID,
+					uaaClientMap,
 					logger,
 				)
 
@@ -546,6 +560,7 @@ var _ = Describe("Deployer", func() {
 					deploymentName,
 					plan,
 					boshContextID,
+					uaaClientMap,
 					logger,
 				)
 
@@ -585,6 +600,7 @@ var _ = Describe("Deployer", func() {
 				previousPlanID,
 				boshContextID,
 				secretsMap,
+				uaaClientMap,
 				logger,
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -603,6 +619,7 @@ var _ = Describe("Deployer", func() {
 					previousPlanID,
 					boshContextID,
 					secretsMap,
+					uaaClientMap,
 					logger,
 				)
 				Expect(err).NotTo(HaveOccurred())
@@ -628,6 +645,7 @@ var _ = Describe("Deployer", func() {
 					previousPlanID,
 					boshContextID,
 					secretsMap,
+					uaaClientMap,
 					logger,
 				)
 
@@ -660,6 +678,7 @@ var _ = Describe("Deployer", func() {
 						previousPlanID,
 						boshContextID,
 						secretsMap,
+						uaaClientMap,
 						logger,
 					)
 
@@ -676,9 +695,11 @@ var _ = Describe("Deployer", func() {
 
 					generateManifestProps, _ := manifestGenerator.GenerateManifestArgsForCall(0)
 					Expect(generateManifestProps.RequestParams).To(BeEmpty())
+					Expect(generateManifestProps.UAAClient).To(BeEmpty())
 
 					generateManifestProps, _ = manifestGenerator.GenerateManifestArgsForCall(1)
 					Expect(generateManifestProps.RequestParams).To(Equal(requestParams))
+					Expect(generateManifestProps.UAAClient).To(Equal(uaaClientMap))
 
 					Expect(boshClient.DeployCallCount()).To(Equal(1))
 					deployedManifest, _, _, _ := boshClient.DeployArgsForCall(0)
@@ -698,6 +719,7 @@ var _ = Describe("Deployer", func() {
 							previousPlanID,
 							boshContextID,
 							secretsMap,
+							uaaClientMap,
 							logger,
 						)
 
@@ -727,6 +749,7 @@ var _ = Describe("Deployer", func() {
 						previousPlanID,
 						boshContextID,
 						secretsMap,
+						uaaClientMap,
 						logger,
 					)
 
@@ -749,6 +772,7 @@ var _ = Describe("Deployer", func() {
 					previousPlanID,
 					boshContextID,
 					secretsMap,
+					uaaClientMap,
 					logger,
 				)
 
@@ -782,6 +806,7 @@ var _ = Describe("Deployer", func() {
 				previousPlanID,
 				boshContextID,
 				secretsMap,
+				uaaClientMap,
 				logger,
 			)
 
@@ -801,6 +826,7 @@ var _ = Describe("Deployer", func() {
 					previousPlanID,
 					boshContextID,
 					secretsMap,
+					uaaClientMap,
 					logger,
 				)
 
@@ -823,6 +849,7 @@ var _ = Describe("Deployer", func() {
 						previousPlanID,
 						boshContextID,
 						secretsMap,
+						uaaClientMap,
 						logger,
 					)
 
@@ -843,6 +870,7 @@ var _ = Describe("Deployer", func() {
 						previousPlanID,
 						boshContextID,
 						secretsMap,
+						uaaClientMap,
 						logger,
 					)
 
@@ -864,6 +892,7 @@ var _ = Describe("Deployer", func() {
 					previousPlanID,
 					boshContextID,
 					secretsMap,
+					uaaClientMap,
 					logger,
 				)
 
@@ -885,6 +914,7 @@ var _ = Describe("Deployer", func() {
 					previousPlanID,
 					boshContextID,
 					secretsMap,
+					uaaClientMap,
 					logger,
 				)
 			})
@@ -908,6 +938,7 @@ var _ = Describe("Deployer", func() {
 					previousPlanID,
 					boshContextID,
 					secretsMap,
+					uaaClientMap,
 					logger,
 				)
 			})
@@ -931,6 +962,7 @@ var _ = Describe("Deployer", func() {
 					previousPlanID,
 					boshContextID,
 					secretsMap,
+					uaaClientMap,
 					logger,
 				)
 
@@ -958,6 +990,7 @@ var _ = Describe("Deployer", func() {
 				previousPlanID,
 				boshContextID,
 				secretsMap,
+				uaaClientMap,
 				logger,
 			)
 
@@ -1004,6 +1037,7 @@ instance_groups:
 				previousPlanID,
 				boshContextID,
 				secretsMap,
+				uaaClientMap,
 				logger,
 			)
 
@@ -1038,6 +1072,7 @@ tags:
 				previousPlanID,
 				boshContextID,
 				secretsMap,
+				uaaClientMap,
 				logger,
 			)
 
@@ -1067,6 +1102,7 @@ features:
 				previousPlanID,
 				boshContextID,
 				secretsMap,
+				uaaClientMap,
 				logger,
 			)
 
@@ -1096,6 +1132,7 @@ features:
 				previousPlanID,
 				boshContextID,
 				secretsMap,
+				uaaClientMap,
 				logger,
 			)
 
@@ -1133,6 +1170,7 @@ instance_groups:
 				previousPlanID,
 				boshContextID,
 				secretsMap,
+				uaaClientMap,
 				logger,
 			)
 
@@ -1160,6 +1198,7 @@ instance_groups:
 				previousPlanID,
 				boshContextID,
 				secretsMap,
+				uaaClientMap,
 				logger,
 			)
 
@@ -1186,6 +1225,7 @@ instance_groups:
 				previousPlanID,
 				boshContextID,
 				secretsMap,
+				uaaClientMap,
 				logger,
 			)
 

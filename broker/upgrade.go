@@ -38,16 +38,40 @@ func (b *Broker) Upgrade(ctx context.Context, instanceID string, details domain.
 		boshContextID = uuid.New()
 	}
 
-	taskID, _, err := b.deployer.Upgrade(
+	siClient, err := b.uaaClient.GetClient(instanceID)
+	if err != nil {
+		return OperationData{}, b.processError(NewGenericError(ctx, err), logger)
+	}
+	if siClient == nil {
+		siClient, err = b.uaaClient.CreateClient(instanceID, getInstanceNameFromContext(details.RawContext))
+		if err != nil {
+			return OperationData{}, b.processError(NewGenericError(ctx, err), logger)
+		}
+	}
+
+	taskID, manifest, err := b.deployer.Upgrade(
 		deploymentName(instanceID),
 		plan,
 		boshContextID,
+		siClient,
 		logger,
 	)
 
 	if err != nil {
 		_, err := b.handleUpdateError(ctx, err, logger)
 		return OperationData{}, err
+	}
+
+	if siClient != nil {
+		abridgedPlan := plan.AdapterPlan(b.serviceOffering.GlobalProperties)
+		dashboardUrl, err := b.adapterClient.GenerateDashboardUrl(instanceID, abridgedPlan, manifest, logger)
+		if err != nil {
+			return OperationData{}, b.processError(NewGenericError(ctx, err), logger)
+		}
+		_, err = b.uaaClient.UpdateClient(instanceID, dashboardUrl)
+		if err != nil {
+			return OperationData{}, b.processError(NewGenericError(ctx, err), logger)
+		}
 	}
 
 	return OperationData{

@@ -213,9 +213,7 @@ var _ = Describe("UAA", func() {
 		})
 
 		Describe("#UpdateClient", func() {
-			var (
-				updateHandler *helpers.FakeHandler
-			)
+			var updateHandler *helpers.FakeHandler
 
 			BeforeEach(func() {
 				updateHandler = new(helpers.FakeHandler)
@@ -242,10 +240,6 @@ var _ = Describe("UAA", func() {
 			})
 
 			It("updates and returns a client map", func() {
-				uaaClient.RandFunc = func() string {
-					return "a-new-updated-secret"
-				}
-
 				actualClient, err := uaaClient.UpdateClient("some-client-id", "https://example.com/dashboard/some-client-id")
 				Expect(err).NotTo(HaveOccurred())
 
@@ -256,7 +250,6 @@ var _ = Describe("UAA", func() {
 						{
                           "scope": [ "admin", "read", "write" ],
 						  "client_id": "some-client-id",
-						  "client_secret": "a-new-updated-secret",
 						  "resource_ids": ["resource1", "resource2"],
                           "redirect_uri": ["https://example.com/dashboard/some-client-id"],
 						  "authorized_grant_types": [ "client_credentials", "password" ],
@@ -267,7 +260,6 @@ var _ = Describe("UAA", func() {
 
 				By("generating some properties", func() {
 					Expect(actualClient["client_id"]).To(Equal("some-client-id"))
-					Expect(actualClient["client_secret"]).To(Equal("a-new-updated-secret"))
 				})
 
 				By("using the configured and returned properties", func() {
@@ -277,6 +269,22 @@ var _ = Describe("UAA", func() {
 					Expect(actualClient["authorized_grant_types"]).To(Equal(uaaConfig.ClientDefinition.AuthorizedGrantTypes + ",token"))
 				})
 
+			})
+
+			It("does not send redirect_uri when not passed", func() {
+				_, err := uaaClient.UpdateClient("some-client-id", "")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(updateHandler.RequestsReceived()).To(Equal(1))
+				request := updateHandler.GetRequestForCall(0)
+				Expect(request.Body).To(MatchJSON(`
+						{
+                          "scope": [ "admin", "read", "write" ],
+						  "client_id": "some-client-id",
+						  "resource_ids": ["resource1", "resource2"],
+						  "authorized_grant_types": [ "client_credentials", "password" ],
+						  "authorities": [ "some-authority", "another-authority" ]
+						}`,
+				), "Expected request body mismatch")
 			})
 
 			It("fails when UAA responds with error", func() {
@@ -333,6 +341,54 @@ var _ = Describe("UAA", func() {
 				Expect(err).To(HaveOccurred())
 
 				errorMsg := fmt.Sprintf("An error occurred while calling %s/oauth/clients/some-client-id", server.URL())
+				Expect(err).To(MatchError(ContainSubstring(errorMsg)))
+			})
+		})
+
+		Describe("#GetClient", func() {
+			var (
+				listHandler *helpers.FakeHandler
+				query       []string
+			)
+
+			BeforeEach(func() {
+				listHandler = new(helpers.FakeHandler)
+
+				server.RouteToHandler(http.MethodGet, regexp.MustCompile(`/oauth/clients`), ghttp.CombineHandlers(
+					listHandler.Handle,
+				))
+
+				query = []string{`count=1`, `filter=client_id+eq+%22some-client-id%22`, `startIndex=1`}
+				listHandler.
+					WithQueryParams(query...).
+					RespondsWith(http.StatusOK, `{"resources":[{"client_id":"some-client-id"}]}`)
+			})
+
+			It("returns a client when the client exists", func() {
+				client, err := uaaClient.GetClient("some-client-id")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(client).NotTo(BeNil())
+				Expect(client["client_id"]).To(Equal("some-client-id"))
+			})
+
+			It("returns nil when the client does not exist", func() {
+				listHandler.
+					WithQueryParams(query...).
+					RespondsWith(http.StatusOK, `{"resources":[]}`)
+
+				client, err := uaaClient.GetClient("some-client-id")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(client).To(BeNil())
+			})
+
+			It("fails when cannot query list of clients", func() {
+				listHandler.
+					WithQueryParams(query...).
+					RespondsWith(http.StatusBadRequest, `{"resources":[]}`)
+
+				_, err := uaaClient.GetClient("some-client-id")
+				Expect(err).To(HaveOccurred())
+				errorMsg := fmt.Sprintf("An error occurred while calling %s/oauth/clients", server.URL())
 				Expect(err).To(MatchError(ContainSubstring(errorMsg)))
 			})
 		})

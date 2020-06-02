@@ -50,7 +50,18 @@ func (b *Broker) Update(
 		return b.doUpgrade(ctx, instanceID, details, logger)
 	}
 
-	return b.doUpdate(ctx, instanceID, details, logger)
+	instanceClient, err := b.uaaClient.GetClient(instanceID)
+	if err != nil {
+		return domain.UpdateServiceSpec{}, b.processError(NewGenericError(ctx, err), logger)
+	}
+	if instanceClient == nil {
+		instanceClient, err = b.uaaClient.CreateClient(instanceID, getInstanceNameFromContext(details.RawContext))
+		if err != nil {
+			return domain.UpdateServiceSpec{}, b.processError(NewGenericError(ctx, err), logger)
+		}
+	}
+
+	return b.doUpdate(ctx, instanceID, details, instanceClient, logger)
 }
 
 func (b *Broker) doUpgrade(ctx context.Context, instanceID string, details domain.UpdateDetails, logger *log.Logger) (domain.UpdateServiceSpec, error) {
@@ -70,7 +81,7 @@ func (b *Broker) doUpgrade(ctx context.Context, instanceID string, details domai
 	return domain.UpdateServiceSpec{IsAsync: true, OperationData: string(operationDataJSON)}, nil
 }
 
-func (b *Broker) doUpdate(ctx context.Context, instanceID string, details domain.UpdateDetails, logger *log.Logger) (domain.UpdateServiceSpec, error) {
+func (b *Broker) doUpdate(ctx context.Context, instanceID string, details domain.UpdateDetails, siClient map[string]string, logger *log.Logger) (domain.UpdateServiceSpec, error) {
 	b.deploymentLock.Lock()
 	defer b.deploymentLock.Unlock()
 
@@ -103,17 +114,30 @@ func (b *Broker) doUpdate(ctx context.Context, instanceID string, details domain
 	}
 
 	logger.Printf("updating instance %s", instanceID)
-	boshTaskID, _, err := b.deployer.Update(
+	boshTaskID, manifest, err := b.deployer.Update(
 		deploymentName(instanceID),
 		details.PlanID,
 		detailsMap,
 		&details.PreviousValues.PlanID,
 		boshContextID,
 		secretMap,
+		siClient,
 		logger,
 	)
 	if err != nil {
 		return b.handleUpdateError(ctx, err, logger)
+	}
+
+	if siClient != nil {
+		abridgedPlan := plan.AdapterPlan(b.serviceOffering.GlobalProperties)
+		dashboardUrl, err := b.adapterClient.GenerateDashboardUrl(instanceID, abridgedPlan, manifest, logger)
+		if err != nil {
+			return domain.UpdateServiceSpec{}, b.processError(NewGenericError(ctx, err), logger)
+		}
+		_, err = b.uaaClient.UpdateClient(instanceID, dashboardUrl)
+		if err != nil {
+			return domain.UpdateServiceSpec{}, b.processError(NewGenericError(ctx, err), logger)
+		}
 	}
 
 	operationData, err := json.Marshal(OperationData{
