@@ -22,6 +22,17 @@ type FakeUAAClient struct {
 		result1 map[string]string
 		result2 error
 	}
+	DeleteClientStub        func(string) error
+	deleteClientMutex       sync.RWMutex
+	deleteClientArgsForCall []struct {
+		arg1 string
+	}
+	deleteClientReturns struct {
+		result1 error
+	}
+	deleteClientReturnsOnCall map[int]struct {
+		result1 error
+	}
 	UpdateClientStub        func(string, string) (map[string]string, error)
 	updateClientMutex       sync.RWMutex
 	updateClientArgsForCall []struct {
@@ -104,6 +115,66 @@ func (fake *FakeUAAClient) CreateClientReturnsOnCall(i int, result1 map[string]s
 	}{result1, result2}
 }
 
+func (fake *FakeUAAClient) DeleteClient(arg1 string) error {
+	fake.deleteClientMutex.Lock()
+	ret, specificReturn := fake.deleteClientReturnsOnCall[len(fake.deleteClientArgsForCall)]
+	fake.deleteClientArgsForCall = append(fake.deleteClientArgsForCall, struct {
+		arg1 string
+	}{arg1})
+	fake.recordInvocation("DeleteClient", []interface{}{arg1})
+	fake.deleteClientMutex.Unlock()
+	if fake.DeleteClientStub != nil {
+		return fake.DeleteClientStub(arg1)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.deleteClientReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeUAAClient) DeleteClientCallCount() int {
+	fake.deleteClientMutex.RLock()
+	defer fake.deleteClientMutex.RUnlock()
+	return len(fake.deleteClientArgsForCall)
+}
+
+func (fake *FakeUAAClient) DeleteClientCalls(stub func(string) error) {
+	fake.deleteClientMutex.Lock()
+	defer fake.deleteClientMutex.Unlock()
+	fake.DeleteClientStub = stub
+}
+
+func (fake *FakeUAAClient) DeleteClientArgsForCall(i int) string {
+	fake.deleteClientMutex.RLock()
+	defer fake.deleteClientMutex.RUnlock()
+	argsForCall := fake.deleteClientArgsForCall[i]
+	return argsForCall.arg1
+}
+
+func (fake *FakeUAAClient) DeleteClientReturns(result1 error) {
+	fake.deleteClientMutex.Lock()
+	defer fake.deleteClientMutex.Unlock()
+	fake.DeleteClientStub = nil
+	fake.deleteClientReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeUAAClient) DeleteClientReturnsOnCall(i int, result1 error) {
+	fake.deleteClientMutex.Lock()
+	defer fake.deleteClientMutex.Unlock()
+	fake.DeleteClientStub = nil
+	if fake.deleteClientReturnsOnCall == nil {
+		fake.deleteClientReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.deleteClientReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeUAAClient) UpdateClient(arg1 string, arg2 string) (map[string]string, error) {
 	fake.updateClientMutex.Lock()
 	ret, specificReturn := fake.updateClientReturnsOnCall[len(fake.updateClientArgsForCall)]
@@ -173,6 +244,8 @@ func (fake *FakeUAAClient) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.createClientMutex.RLock()
 	defer fake.createClientMutex.RUnlock()
+	fake.deleteClientMutex.RLock()
+	defer fake.deleteClientMutex.RUnlock()
 	fake.updateClientMutex.RLock()
 	defer fake.updateClientMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}

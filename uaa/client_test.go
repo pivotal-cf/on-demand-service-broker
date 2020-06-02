@@ -288,6 +288,54 @@ var _ = Describe("UAA", func() {
 				Expect(err).To(MatchError(ContainSubstring(errorMsg)))
 			})
 		})
+
+		Describe("#DeleteClient", func() {
+			var (
+				deleteHandler *helpers.FakeHandler
+			)
+
+			BeforeEach(func() {
+				deleteHandler = new(helpers.FakeHandler)
+
+				server.RouteToHandler(
+					http.MethodDelete, regexp.MustCompile(`/oauth/clients/some-client-id`),
+					ghttp.CombineHandlers(
+						deleteHandler.Handle,
+					),
+				)
+
+				deleteJsonResponse := `{
+				  "scope": [ "admin", "read", "write", "extra-scope" ],
+				  "client_id": "some-client-id",
+				  "resource_ids": ["resource1", "resource2", "some-extra-resource"],
+				  "authorized_grant_types": [ "client_credentials", "password", "token" ],
+				  "authorities": [ "some-authority", "another-authority", "some-extra-authority" ],
+                  "redirect_uri": ["https://example.com/dashboard/some-client-id/response"],
+				  "name": "some-name",
+				  "lastModified": 1588809891186,
+				  "required_user_groups": [ ]
+				}`
+				deleteHandler.RespondsWith(http.StatusOK, deleteJsonResponse)
+			})
+
+			It("deletes the client successfully", func() {
+				err := uaaClient.DeleteClient("some-client-id")
+				Expect(err).NotTo(HaveOccurred())
+
+				By("deleting the client on UAA", func() {
+					Expect(deleteHandler.RequestsReceived()).To(Equal(1))
+				})
+			})
+
+			It("fails when UAA responds with error", func() {
+				deleteHandler.RespondsOnCall(0, http.StatusNotFound, "")
+				err := uaaClient.DeleteClient("some-client-id")
+				Expect(err).To(HaveOccurred())
+
+				errorMsg := fmt.Sprintf("An error occurred while calling %s/oauth/clients/some-client-id", server.URL())
+				Expect(err).To(MatchError(ContainSubstring(errorMsg)))
+			})
+		})
 	})
 })
 

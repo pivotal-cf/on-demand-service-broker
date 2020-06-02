@@ -56,6 +56,7 @@ var _ = Describe("Redis Lifecycle Tests", func() {
 					"add_binding_with_dns.yml",
 					"add_secure_binding.yml",
 					"enable_telemetry.yml",
+					"add_client_definition.yml",
 				},
 			)
 		})

@@ -33,6 +33,7 @@ func FeatureToggledLifecycleTest(
 
 	var (
 		serviceInstanceName string
+		serviceInstanceGUID string
 		serviceKeyContents  string
 		serviceKeyName      string
 		appName             string
@@ -58,8 +59,9 @@ func FeatureToggledLifecycleTest(
 	})
 
 	By("creating a uaa client for the SI", func() {
-		serviceInstanceGUID := cf_helpers.GetServiceInstanceGUID(serviceInstanceName)
-		siClient := getUAAClient(serviceInstanceGUID)
+		serviceInstanceGUID = cf_helpers.GetServiceInstanceGUID(serviceInstanceName)
+		siClient := findUAAClient(serviceInstanceGUID)
+		Expect(siClient).NotTo(BeNil(), "client_id not found on UAA: "+serviceInstanceGUID)
 		Expect(siClient.DisplayName).To(Equal(serviceInstanceName))
 		Expect(siClient.RedirectURI).To(ContainElement(cf_helpers.GetDashboardURL(serviceInstanceGUID)))
 	})
@@ -142,6 +144,11 @@ func FeatureToggledLifecycleTest(
 		cf_helpers.DeleteService(serviceInstanceName)
 	})
 
+	By("deleting the uaa client created for the SI", func() {
+		siClient := findUAAClient(serviceInstanceGUID)
+		Expect(siClient).To(BeNil())
+	})
+
 	By("logging telemetry data after a delete-service", func() {
 		stdoutLogs := bosh_helpers.GetBrokerLogs(brokerInfo.DeploymentName)
 		// total number of instances will not decrease since we are using CF to get the count and CF is not aware of the result of delete at the point of logging.
@@ -156,7 +163,7 @@ func FeatureToggledLifecycleTest(
 	})
 }
 
-func getUAAClient(clientGUID string) *gouaa.Client {
+func findUAAClient(clientGUID string) *gouaa.Client {
 	uaaClientID := os.Getenv("CF_CLIENT_ID")
 	uaaClientSecret := os.Getenv("CF_CLIENT_SECRET")
 	uaaURL := os.Getenv("CF_UAA_URL")
@@ -167,9 +174,13 @@ func getUAAClient(clientGUID string) *gouaa.Client {
 	)
 	Expect(err).ToNot(HaveOccurred())
 
-	siClient, err := api.GetClient(clientGUID)
+	filter := fmt.Sprintf("client_id eq %q", clientGUID)
+	siClients, _, err := api.ListClients(filter, "", gouaa.SortAscending, 1, 1)
 	Expect(err).ToNot(HaveOccurred())
-	return siClient
+	if len(siClients) == 0 {
+		return nil
+	}
+	return &siClients[0]
 }
 
 func downloadIndicatorFromVM(brokerInfo bosh_helpers.BrokerInfo) *os.File {

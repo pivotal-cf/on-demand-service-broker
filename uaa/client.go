@@ -5,21 +5,12 @@ import (
 	"crypto/x509"
 	gouaa "github.com/cloudfoundry-community/go-uaa"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
+	"github.com/pkg/errors"
 	"math/rand"
 	"net/http"
 	"strings"
 	"time"
 )
-
-type NoopClient struct{}
-
-func (n *NoopClient) CreateClient(_, _ string) (map[string]string, error) {
-	return nil, nil
-}
-
-func (n *NoopClient) UpdateClient(_, _ string) (map[string]string, error) {
-	return nil, nil
-}
 
 type Client struct {
 	config     config.UAAConfig
@@ -30,6 +21,7 @@ type Client struct {
 type HTTPClient interface {
 	CreateClient(client gouaa.Client) (*gouaa.Client, error)
 	UpdateClient(client gouaa.Client) (*gouaa.Client, error)
+	DeleteClient(clientID string) (*gouaa.Client, error)
 }
 
 func New(config config.UAAConfig, trustedCert string) (*Client, error) {
@@ -82,7 +74,7 @@ func (c *Client) CreateClient(clientID, name string) (map[string]string, error) 
 
 	resp, err := c.httpClient.CreateClient(c.transformToClient(m))
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to create uaa client")
 	}
 
 	return c.transformToMap(resp, clientSecret), nil
@@ -102,9 +94,17 @@ func (c *Client) UpdateClient(clientID string, redirectURI string) (map[string]s
 
 	resp, err := c.httpClient.UpdateClient(c.transformToClient(m))
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to update uaa client")
 	}
 	return c.transformToMap(resp, clientSecret), nil
+}
+
+func (c *Client) DeleteClient(clientID string) error {
+	_, err := c.httpClient.DeleteClient(clientID)
+	if err != nil {
+		return errors.Wrap(err, "failed to delete client")
+	}
+	return err
 }
 
 func (c *Client) transformToMap(resp *gouaa.Client, secret string) map[string]string {
@@ -154,4 +154,17 @@ func randomString() string {
 		b[i] = letters[rand.Intn(len(letters))]
 	}
 	return string(b)
+}
+
+type NoopClient struct{}
+
+func (n *NoopClient) CreateClient(_, _ string) (map[string]string, error) {
+	return nil, nil
+}
+
+func (n *NoopClient) UpdateClient(_, _ string) (map[string]string, error) {
+	return nil, nil
+}
+func (c *NoopClient) DeleteClient(clientID string) error {
+	return nil
 }

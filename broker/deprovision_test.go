@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/pivotal-cf/on-demand-service-broker/broker/fakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -52,7 +53,6 @@ var _ = Describe("deprovisioning instances", func() {
 			var err error
 			b, err = createBroker([]broker.StartupChecker{}, noopservicescontroller.New())
 			Expect(err).NotTo(HaveOccurred())
-
 		})
 
 		It("returns that is deprovisioning asynchronously", func() {
@@ -85,6 +85,9 @@ var _ = Describe("deprovisioning instances", func() {
 
 	When("the async allowed flag is true", func() {
 		It("succeeds deleting bosh deployment", func() {
+			fakeUAAClient := new(fakes.FakeUAAClient)
+			b.SetUAAClient(fakeUAAClient)
+
 			deprovisionSpec, deprovisionErr = b.Deprovision(
 				context.Background(),
 				instanceID,
@@ -115,6 +118,12 @@ var _ = Describe("deprovisioning instances", func() {
 				ContainSubstring(fmt.Sprintf("Bosh task id is %d for operation \"delete\" of instance %s", deleteTaskID, instanceID)),
 				Not(ContainSubstring("pre-delete errand")),
 			))
+
+			By("deleting the service instance uaa client", func() {
+				Expect(fakeUAAClient.DeleteClientCallCount()).To(Equal(1))
+				actualClientID := fakeUAAClient.DeleteClientArgsForCall(0)
+				Expect(actualClientID).To(Equal(instanceID))
+			})
 		})
 
 		It("succeeds force deleting bosh deployment", func() {
@@ -563,5 +572,27 @@ var _ = Describe("deprovisioning instances", func() {
 				Expect(logBuffer.String()).To(ContainSubstring(fmt.Sprintf("error deprovisioning: cannot get tasks for deployment %s", deploymentName(instanceID))))
 			})
 		})
+	})
+
+	When("deleting the uaa client fails", func() {
+		It("should not fail the operation", func() {
+			fakeUAAClient := new(fakes.FakeUAAClient)
+			b.SetUAAClient(fakeUAAClient)
+
+			fakeUAAClient.DeleteClientReturns(errors.New("failed to delete!"))
+
+			deprovisionSpec, deprovisionErr = b.Deprovision(
+				context.Background(),
+				instanceID,
+				deprovisionDetails,
+				asyncAllowed,
+			)
+
+			Expect(deprovisionErr).NotTo(HaveOccurred())
+			Expect(logBuffer.String()).To(ContainSubstring(
+				fmt.Sprintf("failed to delete UAA client associated with service instance %s", instanceID),
+			))
+		})
+
 	})
 })

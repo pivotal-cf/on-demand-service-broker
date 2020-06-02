@@ -84,6 +84,12 @@ func (b *Broker) Deprovision(
 	}
 
 	serviceSpec, err := b.deleteInstance(ctx, instanceID, plan, operationType, logger)
+
+	clientErr := b.uaaClient.DeleteClient(instanceID)
+	if clientErr != nil {
+		logger.Printf("failed to delete UAA client associated with service instance %s\n", instanceID)
+	}
+
 	return serviceSpec, b.processError(err, logger)
 }
 
