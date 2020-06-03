@@ -704,87 +704,51 @@ var _ = Describe("Update", func() {
 
 		Context("the service instance UAA client", func() {
 			var newlyGeneratedManifest []byte
+			var existingClient map[string]string
 
 			BeforeEach(func() {
 				dashboardURL := "http://example.com/dashboard"
 				serviceAdapter.GenerateDashboardUrlReturns(dashboardURL, nil)
 				newlyGeneratedManifest = []byte("name: new-name")
 				fakeDeployer.UpdateReturns(boshTaskID, newlyGeneratedManifest, nil)
+
+				existingClient = map[string]string{
+					"client_id":   "some-id",
+					"rediret_uri": "http://uri.com/example",
+				}
+
+				fakeUAAClient.GetClientReturns(existingClient, nil)
 			})
 
-			When("it does not exist", func() {
-				BeforeEach(func() {
-					fakeUAAClient.GetClientReturns(nil, nil)
-					fakeUAAClient.CreateClientReturns(map[string]string{"client": "some-client"}, nil)
-				})
-
-				It("creates the client", func() {
-					Expect(fakeUAAClient.CreateClientCallCount()).To(Equal(1))
-					actualID, actualName := fakeUAAClient.CreateClientArgsForCall(0)
-					Expect(actualID).To(Equal(instanceID))
-					Expect(actualName).To(Equal("some-instance-name"))
-				})
-
-				It("passes that client to the deployer", func() {
-					_, _, _, _, _, _, actualClient, _ := fakeDeployer.UpdateArgsForCall(0)
-					Expect(actualClient).To(Equal(map[string]string{"client": "some-client"}))
-				})
-
-				When("creating the client fails", func() {
-					BeforeEach(func() {
-						fakeUAAClient.CreateClientReturns(nil, errors.New("oh no error"))
-					})
-
-					It("returns an error", func() {
-						Expect(updateError).To(HaveOccurred())
-						Expect(updateError).To(MatchError(ContainSubstring(
-							"There was a problem completing your request. Please contact your operations team providing the following information:",
-						)))
-					})
-				})
+			It("passes the client to the deployer", func() {
+				Expect(fakeDeployer.UpdateCallCount()).To(Equal(1))
+				_, _, _, _, _, _, actualClient, _ := fakeDeployer.UpdateArgsForCall(0)
+				Expect(actualClient).To(Equal(existingClient))
 			})
 
-			When("it already exists", func() {
-				var existingClient map[string]string
-				BeforeEach(func() {
-					existingClient = map[string]string{
-						"client_id":   "some-id",
-						"rediret_uri": "http://uri.com/example",
+			It("updates the service instance client", func() {
+				By("regenerating the dashboard url", func() {
+					Expect(serviceAdapter.GenerateDashboardUrlCallCount()).To(Equal(1))
+					instanceID, plan, boshManifest, _ := serviceAdapter.GenerateDashboardUrlArgsForCall(0)
+					Expect(instanceID).To(Equal(instanceID))
+					expectedProperties := sdk.Properties{
+						"a_global_property":          "overrides_global_value",
+						"some_other_global_property": "other_global_value",
+						"super":                      "yes",
 					}
-
-					fakeUAAClient.GetClientReturns(existingClient, nil)
+					Expect(plan).To(Equal(sdk.Plan{
+						Properties:     expectedProperties,
+						InstanceGroups: secondPlan.InstanceGroups,
+						Update:         secondPlan.Update,
+					}))
+					Expect(boshManifest).To(Equal(newlyGeneratedManifest))
 				})
 
-				It("passes the existing client to the deployer", func() {
-					Expect(fakeDeployer.UpdateCallCount()).To(Equal(1))
-					_, _, _, _, _, _, actualClient, _ := fakeDeployer.UpdateArgsForCall(0)
-					Expect(actualClient).To(Equal(existingClient))
-				})
+				Expect(fakeUAAClient.UpdateClientCallCount()).To(Equal(1))
+				actualClientID, actualRedirectURI := fakeUAAClient.UpdateClientArgsForCall(0)
 
-				It("updates the service instance client", func() {
-					By("regenerating the dashboard url", func() {
-						Expect(serviceAdapter.GenerateDashboardUrlCallCount()).To(Equal(1))
-						instanceID, plan, boshManifest, _ := serviceAdapter.GenerateDashboardUrlArgsForCall(0)
-						Expect(instanceID).To(Equal(instanceID))
-						expectedProperties := sdk.Properties{
-							"a_global_property":          "overrides_global_value",
-							"some_other_global_property": "other_global_value",
-							"super":                      "yes",
-						}
-						Expect(plan).To(Equal(sdk.Plan{
-							Properties:     expectedProperties,
-							InstanceGroups: secondPlan.InstanceGroups,
-							Update:         secondPlan.Update,
-						}))
-						Expect(boshManifest).To(Equal(newlyGeneratedManifest))
-					})
-
-					Expect(fakeUAAClient.UpdateClientCallCount()).To(Equal(1))
-					actualClientID, actualRedirectURI := fakeUAAClient.UpdateClientArgsForCall(0)
-
-					Expect(actualClientID).To(Equal(instanceID))
-					Expect(actualRedirectURI).To(Equal("http://example.com/dashboard"))
-				})
+				Expect(actualClientID).To(Equal(instanceID))
+				Expect(actualRedirectURI).To(Equal("http://example.com/dashboard"))
 			})
 
 			When("updating the uaa client fails", func() {
@@ -811,12 +775,6 @@ var _ = Describe("Update", func() {
 					Expect(updateError).To(MatchError(ContainSubstring(
 						"There was a problem completing your request. Please contact your operations team providing the following information:",
 					)))
-				})
-			})
-
-			When("its not configured", func() {
-				It("does not call generate dashboard", func() {
-					Expect(serviceAdapter.GenerateDashboardUrlCallCount()).To(Equal(0))
 				})
 			})
 

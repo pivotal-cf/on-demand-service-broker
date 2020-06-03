@@ -194,7 +194,7 @@ func (fake *FakeUAAClient) GetClient(arg1 string) (map[string]string, error) {
 	fake.getClientArgsForCall = append(fake.getClientArgsForCall, struct {
 		arg1 string
 	}{arg1})
-	fake.recordInvocation("GetClient", []interface{}{arg1})
+	fake.recordInvocation("GetServiceInstanceClient", []interface{}{arg1})
 	fake.getClientMutex.Unlock()
 	if fake.GetClientStub != nil {
 		return fake.GetClientStub(arg1)

@@ -50,15 +50,9 @@ func (b *Broker) Update(
 		return b.doUpgrade(ctx, instanceID, details, logger)
 	}
 
-	instanceClient, err := b.uaaClient.GetClient(instanceID)
+	instanceClient, err := b.GetServiceInstanceClient(instanceID, details.RawContext)
 	if err != nil {
 		return domain.UpdateServiceSpec{}, b.processError(NewGenericError(ctx, err), logger)
-	}
-	if instanceClient == nil {
-		instanceClient, err = b.uaaClient.CreateClient(instanceID, getInstanceNameFromContext(details.RawContext))
-		if err != nil {
-			return domain.UpdateServiceSpec{}, b.processError(NewGenericError(ctx, err), logger)
-		}
 	}
 
 	return b.doUpdate(ctx, instanceID, details, instanceClient, logger)
@@ -128,16 +122,8 @@ func (b *Broker) doUpdate(ctx context.Context, instanceID string, details domain
 		return b.handleUpdateError(ctx, err, logger)
 	}
 
-	if siClient != nil {
-		abridgedPlan := plan.AdapterPlan(b.serviceOffering.GlobalProperties)
-		dashboardUrl, err := b.adapterClient.GenerateDashboardUrl(instanceID, abridgedPlan, manifest, logger)
-		if err != nil {
-			return domain.UpdateServiceSpec{}, b.processError(NewGenericError(ctx, err), logger)
-		}
-		_, err = b.uaaClient.UpdateClient(instanceID, dashboardUrl)
-		if err != nil {
-			return domain.UpdateServiceSpec{}, b.processError(NewGenericError(ctx, err), logger)
-		}
+	if err = b.UpdateServiceInstanceClient(instanceID, siClient, plan, manifest, logger); err != nil {
+		return domain.UpdateServiceSpec{}, b.processError(NewGenericError(ctx, err), logger)
 	}
 
 	operationData, err := json.Marshal(OperationData{
