@@ -44,19 +44,16 @@ var _ = Describe("UAA", func() {
 					Scopes:               "admin,read,write",
 				},
 			}
-
 			uaaClient, _ = uaa.New(uaaConfig, trustedCert)
 
 			setupUAARoutes(server, uaaConfig)
 		})
 
-		Describe("Constructor", func() {
-			BeforeEach(func() {
-				uaaConfig = config.UAAConfig{
-					URL: "some-url",
-				}
-			})
+		AfterEach(func() {
+			server.Close()
+		})
 
+		Describe("Constructor", func() {
 			It("returns a new client", func() {
 				uaaClient, err := uaa.New(uaaConfig, trustedCert)
 				Expect(err).ToNot(HaveOccurred())
@@ -83,31 +80,7 @@ var _ = Describe("UAA", func() {
 			)
 
 			BeforeEach(func() {
-				server = ghttp.NewTLSServer()
-				rawPem := server.HTTPTestServer.Certificate().Raw
-				pemCert := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: rawPem})
-				trustedCert = string(pemCert)
-
-				uaaConfig = config.UAAConfig{
-					URL: server.URL(),
-					Authentication: config.UAACredentials{
-						ClientCredentials: config.ClientCredentials{
-							ID:     "authentication_id",
-							Secret: "authentication_secret",
-						},
-					},
-					ClientDefinition: config.ClientDefinition{
-						Authorities:          "some-authority,another-authority",
-						AuthorizedGrantTypes: "client_credentials,password",
-						ResourceIDs:          "resource1,resource2",
-						Scopes:               "admin,read,write",
-					},
-				}
-
-				uaaClient, _ = uaa.New(uaaConfig, trustedCert)
-
 				createHandler = new(helpers.FakeHandler)
-				setupUAARoutes(server, uaaConfig)
 
 				server.RouteToHandler(http.MethodPost, regexp.MustCompile(`/oauth/clients`), ghttp.CombineHandlers(
 					createHandler.Handle,
@@ -126,10 +99,6 @@ var _ = Describe("UAA", func() {
 				createHandler.RespondsWith(http.StatusCreated, createJsonResponse)
 			})
 
-			AfterEach(func() {
-				server.Close()
-			})
-
 			It("creates and returns a client map", func() {
 				uaaClient.RandFunc = func() string {
 					return "superrandomsecret"
@@ -138,7 +107,7 @@ var _ = Describe("UAA", func() {
 				actualClient, err := uaaClient.CreateClient("some-client-id", "some-name")
 				Expect(err).NotTo(HaveOccurred())
 
-				By("generating some properties", func() {
+				By("injecting some properties", func() {
 					Expect(actualClient["client_id"]).To(Equal("some-client-id"))
 					Expect(actualClient["client_secret"]).To(Equal("superrandomsecret"))
 					Expect(actualClient["name"]).To(Equal("some-name"))
@@ -258,7 +227,7 @@ var _ = Describe("UAA", func() {
 					), "Expected request body mismatch")
 				})
 
-				By("generating some properties", func() {
+				By("injecting some properties", func() {
 					Expect(actualClient["client_id"]).To(Equal("some-client-id"))
 				})
 
