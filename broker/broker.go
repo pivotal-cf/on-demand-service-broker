@@ -87,7 +87,7 @@ func New(
 		loggerFactory:             loggerFactory,
 		telemetryLogger:           telemetryLogger,
 		decider:                   decider,
-		uaaClient:                 &uaa.NoopClient{},
+		uaaClient:                 &uaa.Client{},
 	}
 
 	var startupCheckErrMessages []string

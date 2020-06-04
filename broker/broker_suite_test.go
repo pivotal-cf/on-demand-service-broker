@@ -61,6 +61,7 @@ var (
 	fakeSecretManager   *fakes.FakeManifestSecretManager
 	fakeMapHasher       *fakes.FakeHasher
 	fakeDecider         *fakes.FakeDecider
+	fakeUAAClient       *fakes.FakeUAAClient
 
 	existingPlanServiceInstanceLimit    = 3
 	serviceOfferingServiceInstanceLimit = 5
@@ -339,6 +340,7 @@ var _ = BeforeEach(func() {
 	fakeMapHasher.HashStub = ReturnSameValueHasher
 	cfClient.GetAPIVersionReturns("2.57.0", nil)
 	fakeDecider = new(fakes.FakeDecider)
+	fakeUAAClient = new(fakes.FakeUAAClient)
 
 	serviceCatalog = config.ServiceOffering{
 		ID:               serviceOfferingID,
@@ -390,6 +392,7 @@ func cfServicePlan(guid, uniqueID, servicePlanUrl, name string) cf.ServicePlan {
 func createDefaultBroker() *broker.Broker {
 	b, brokerCreationErr = createBroker([]broker.StartupChecker{})
 	Expect(brokerCreationErr).NotTo(HaveOccurred())
+	b.SetUAAClient(fakeUAAClient)
 	return b
 }
 
@@ -397,8 +400,8 @@ func createBrokerWithAdapter(serviceAdapter *fakes.FakeServiceAdapterClient) *br
 	var client broker.CloudFoundryClient = cfClient
 
 	broker, err := broker.New(boshClient, client, serviceCatalog, brokerConfig, []broker.StartupChecker{}, serviceAdapter, fakeDeployer, fakeSecretManager, fakeInstanceLister, fakeMapHasher, loggerFactory, fakeTelemetryLogger, fakeDecider)
-
 	Expect(err).NotTo(HaveOccurred())
+	broker.SetUAAClient(fakeUAAClient)
 	return broker
 }
 
@@ -406,8 +409,8 @@ func createBrokerWithServiceCatalog(catalog config.ServiceOffering) *broker.Brok
 	var client broker.CloudFoundryClient = cfClient
 
 	broker, err := broker.New(boshClient, client, catalog, brokerConfig, []broker.StartupChecker{}, serviceAdapter, fakeDeployer, fakeSecretManager, fakeInstanceLister, fakeMapHasher, loggerFactory, fakeTelemetryLogger, fakeDecider)
-
 	Expect(err).NotTo(HaveOccurred())
+	broker.SetUAAClient(fakeUAAClient)
 	return broker
 }
 

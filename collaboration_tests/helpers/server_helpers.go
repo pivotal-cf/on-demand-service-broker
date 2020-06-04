@@ -44,7 +44,7 @@ type Server struct {
 	loggerBuffer   *gbytes.Buffer
 }
 
-func StartServer(conf config.Config, stopServerChan chan os.Signal, fakeCommandRunner *serviceadapterfakes.FakeCommandRunner, fakeTaskBoshClient *taskfakes.FakeBoshClient, fakeTaskBulkSetter *taskfakes.FakeBulkSetter, fakeCfClient *fakes.FakeCloudFoundryClient, fakeBoshClient *fakes.FakeBoshClient, fakeMapHasher *fakes.FakeHasher, fakeCredentialStore *credhubfakes.FakeCredentialStore, fakeCredhubOperator *manifestsecretsfakes.FakeCredhubOperator, loggerBuffer *gbytes.Buffer) (*Server, error) {
+func StartServer(conf config.Config, stopServerChan chan os.Signal, fakeCommandRunner *serviceadapterfakes.FakeCommandRunner, fakeTaskBoshClient *taskfakes.FakeBoshClient, fakeTaskBulkSetter *taskfakes.FakeBulkSetter, fakeCfClient *fakes.FakeCloudFoundryClient, fakeBoshClient *fakes.FakeBoshClient, fakeMapHasher *fakes.FakeHasher, fakeCredentialStore *credhubfakes.FakeCredentialStore, fakeCredhubOperator *manifestsecretsfakes.FakeCredhubOperator, fakeUAAClient *fakes.FakeUAAClient, loggerBuffer *gbytes.Buffer) (*Server, error) {
 	var err error
 
 	if conf.Broker.ShutdownTimeoutSecs == 0 {
@@ -79,6 +79,9 @@ func StartServer(conf config.Config, stopServerChan chan os.Signal, fakeCommandR
 	} else {
 		fakeBroker = fakeOnDemandBroker
 	}
+
+	fakeOnDemandBroker.SetUAAClient(fakeUAAClient)
+
 	server := apiserver.New(
 		conf,
 		fakeBroker,

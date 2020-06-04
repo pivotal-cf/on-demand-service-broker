@@ -14,34 +14,39 @@ import (
 )
 
 type Client struct {
-	config     config.UAAConfig
-	httpClient HTTPClient
-	RandFunc   func() string
+	config    config.UAAConfig
+	apiClient APIClient
+	RandFunc  func() string
 }
 
-type HTTPClient interface {
+type APIClient interface {
 	CreateClient(client gouaa.Client) (*gouaa.Client, error)
 	UpdateClient(client gouaa.Client) (*gouaa.Client, error)
 	DeleteClient(clientID string) (*gouaa.Client, error)
 	ListClients(filter, by string, order gouaa.SortOrder, start, items int) ([]gouaa.Client, gouaa.Page, error)
 }
 
-func New(config config.UAAConfig, trustedCert string) (*Client, error) {
-	httpClient := newHTTPClient(trustedCert)
+func New(conf config.UAAConfig, trustedCert string) (*Client, error) {
+	var apiClient APIClient = &noopApiClient{}
+	var err error
 
-	apiClient, err := gouaa.New(
-		config.URL,
-		gouaa.WithClientCredentials(
-			config.Authentication.ClientCredentials.ID,
-			config.Authentication.ClientCredentials.Secret,
-			gouaa.JSONWebToken,
-		),
-		gouaa.WithClient(httpClient),
-	)
+	if conf.Authentication.ClientCredentials.IsSet() {
+		httpClient := newHTTPClient(trustedCert)
+		apiClient, err = gouaa.New(
+			conf.URL,
+			gouaa.WithClientCredentials(
+				conf.Authentication.ClientCredentials.ID,
+				conf.Authentication.ClientCredentials.Secret,
+				gouaa.JSONWebToken,
+			),
+			gouaa.WithClient(httpClient),
+		)
+	}
+
 	return &Client{
-		config:     config,
-		httpClient: apiClient,
-		RandFunc:   randomString,
+		config:    conf,
+		apiClient: apiClient,
+		RandFunc:  randomString,
 	}, err
 }
 
@@ -74,7 +79,7 @@ func (c *Client) CreateClient(clientID, name string) (map[string]string, error) 
 		m["name"] = name
 	}
 
-	resp, err := c.httpClient.CreateClient(c.transformToClient(m))
+	resp, err := c.apiClient.CreateClient(c.transformToClient(m))
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create uaa client")
 	}
@@ -95,7 +100,7 @@ func (c *Client) UpdateClient(clientID string, redirectURI string) (map[string]s
 		m["redirect_uri"] = redirectURI
 	}
 
-	resp, err := c.httpClient.UpdateClient(c.transformToClient(m))
+	resp, err := c.apiClient.UpdateClient(c.transformToClient(m))
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to update uaa client")
 	}
@@ -103,7 +108,7 @@ func (c *Client) UpdateClient(clientID string, redirectURI string) (map[string]s
 }
 
 func (c *Client) DeleteClient(clientID string) error {
-	_, err := c.httpClient.DeleteClient(clientID)
+	_, err := c.apiClient.DeleteClient(clientID)
 	if err != nil {
 		return errors.Wrap(err, "failed to delete client")
 	}
@@ -112,7 +117,7 @@ func (c *Client) DeleteClient(clientID string) error {
 
 func (c *Client) GetClient(clientID string) (map[string]string, error) {
 	filter := fmt.Sprintf("client_id eq %q", clientID)
-	existingClients, _, err := c.httpClient.ListClients(filter, "", "", 1, 1)
+	existingClients, _, err := c.apiClient.ListClients(filter, "", "", 1, 1)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to list uaa clients")
 	}
@@ -124,6 +129,9 @@ func (c *Client) GetClient(clientID string) (map[string]string, error) {
 }
 
 func (c *Client) transformToMap(resp *gouaa.Client, secret string) map[string]string {
+	if resp == nil {
+		return nil
+	}
 	return map[string]string{
 		"client_id":              resp.ClientID,
 		"client_secret":          secret, // client secret is not part of the response
@@ -172,17 +180,20 @@ func randomString() string {
 	return string(b)
 }
 
-type NoopClient struct{}
+type noopApiClient struct{}
 
-func (n *NoopClient) CreateClient(_, _ string) (map[string]string, error) {
+func (n *noopApiClient) CreateClient(_ gouaa.Client) (*gouaa.Client, error) {
 	return nil, nil
 }
-func (n *NoopClient) UpdateClient(_, _ string) (map[string]string, error) {
+
+func (n *noopApiClient) UpdateClient(_ gouaa.Client) (*gouaa.Client, error) {
 	return nil, nil
 }
-func (n *NoopClient) GetClient(_ string) (map[string]string, error) {
+
+func (n *noopApiClient) DeleteClient(_ string) (*gouaa.Client, error) {
 	return nil, nil
 }
-func (c *NoopClient) DeleteClient(_ string) error {
-	return nil
+
+func (n *noopApiClient) ListClients(_, _ string, _ gouaa.SortOrder, _, _ int) ([]gouaa.Client, gouaa.Page, error) {
+	return nil, gouaa.Page{}, nil
 }

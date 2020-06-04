@@ -841,27 +841,29 @@ var _ = Describe("Broker Config", func() {
 		})
 	})
 
-	Describe("#HasClientDefinition", func() {
-		It("returns true when at least one property is set", func() {
-			c := config.Config{}
-			c.CF.UAA.ClientDefinition.AuthorizedGrantTypes = "123"
-			Expect(c.HasClientDefinition()).To(BeTrue())
+	Describe("CF#UAA", func() {
+		Describe("#HasClientDefinition", func() {
+			It("returns true when at least one property is set", func() {
+				c := config.Config{}
+				c.CF.UAA.ClientDefinition.AuthorizedGrantTypes = "123"
+				Expect(c.CF.UAA.HasClientDefinition()).To(BeTrue())
 
-			c = config.Config{}
-			c.CF.UAA.ClientDefinition.Authorities = "111"
-			Expect(c.HasClientDefinition()).To(BeTrue())
+				c = config.Config{}
+				c.CF.UAA.ClientDefinition.Authorities = "111"
+				Expect(c.CF.UAA.HasClientDefinition()).To(BeTrue())
 
-			c = config.Config{}
-			c.CF.UAA.ClientDefinition.ResourceIDs = "222"
-			Expect(c.HasClientDefinition()).To(BeTrue())
+				c = config.Config{}
+				c.CF.UAA.ClientDefinition.ResourceIDs = "222"
+				Expect(c.CF.UAA.HasClientDefinition()).To(BeTrue())
 
-			c = config.Config{}
-			c.CF.UAA.ClientDefinition.Scopes = "admin"
-			Expect(c.HasClientDefinition()).To(BeTrue())
-		})
+				c = config.Config{}
+				c.CF.UAA.ClientDefinition.Scopes = "admin"
+				Expect(c.CF.UAA.HasClientDefinition()).To(BeTrue())
+			})
 
-		It("returns false when no property is set", func() {
-			Expect(config.Config{}.HasClientDefinition()).To(BeFalse())
+			It("returns false when no property is set", func() {
+				Expect(config.Config{}.CF.UAA.HasClientDefinition()).To(BeFalse())
+			})
 		})
 	})
 })

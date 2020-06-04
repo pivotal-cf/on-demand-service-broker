@@ -68,9 +68,41 @@ var _ = Describe("UAA", func() {
 			})
 
 			It("returns an error when cannot construct the underlying go-uaa client", func() {
-				_, err := uaa.New(config.UAAConfig{}, trustedCert)
+				uaaConfig.URL = ""
+				_, err := uaa.New(uaaConfig, trustedCert)
 				Expect(err).To(HaveOccurred())
 				Expect(err).To(MatchError("the target is missing"))
+			})
+
+			When("no client credentials are passed", func() {
+				It("is created with a noop underlying client", func() {
+					uaaConfig = config.UAAConfig{
+						URL: server.URL(),
+						ClientDefinition: config.ClientDefinition{
+							Authorities:          "some",
+							AuthorizedGrantTypes: "another",
+						},
+					}
+
+					uaaClient, err := uaa.New(uaaConfig, trustedCert)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(uaaClient).NotTo(BeNil())
+
+					c, err := uaaClient.CreateClient("foo", "bar")
+					Expect(err).NotTo(HaveOccurred())
+					Expect(c).To(BeNil())
+
+					c, err = uaaClient.UpdateClient("foo", "bar")
+					Expect(err).NotTo(HaveOccurred())
+					Expect(c).To(BeNil())
+
+					err = uaaClient.DeleteClient("foo")
+					Expect(err).NotTo(HaveOccurred())
+
+					c, err = uaaClient.GetClient("foo")
+					Expect(err).NotTo(HaveOccurred())
+					Expect(c).To(BeNil())
+				})
 			})
 		})
 

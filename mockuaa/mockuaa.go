@@ -7,11 +7,11 @@
 package mockuaa
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-
-	"crypto/tls"
+	"strings"
 
 	. "github.com/onsi/gomega"
 )
@@ -46,6 +46,8 @@ type UserCredentialsServer struct {
 
 	ValiditySecondsToReturn int
 	TokensIssued            int
+
+	IgnoreOtherPaths bool
 }
 
 func (s ClientCredentialsServer) ExpectedAuthorizationHeader() string {
@@ -53,6 +55,10 @@ func (s ClientCredentialsServer) ExpectedAuthorizationHeader() string {
 }
 
 func (s *ClientCredentialsServer) ServeHTTP(writer http.ResponseWriter, req *http.Request) {
+	if s.TokensIssued > 0 && strings.Contains(req.URL.Path, "oauth/clients") {
+		writeStatusAndResponse(200, nil, writer)
+		return
+	}
 	validateRequest(req, "client_credentials")
 
 	username, password, ok := req.BasicAuth()
@@ -120,7 +126,7 @@ func writeStatusAndResponse(status int, response map[string]interface{}, writer 
 
 func validateRequest(req *http.Request, grantType string) {
 	Expect(req.Method).To(Equal(http.MethodPost))
-	Expect(req.URL.Path).To(MatchRegexp("/oauth/token/?"))
+	Expect(req.URL.Path).To(MatchRegexp("/oauth/token/?"), req.URL.Path)
 	Expect(req.PostFormValue("grant_type")).To(Equal(grantType))
 }
 

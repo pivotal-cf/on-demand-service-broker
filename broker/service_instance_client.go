@@ -3,6 +3,7 @@ package broker
 import (
 	"encoding/json"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
+	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	"log"
 )
 
@@ -25,6 +26,9 @@ func (b *Broker) UpdateServiceInstanceClient(instanceID string, siClient map[str
 		abridgedPlan := plan.AdapterPlan(b.serviceOffering.GlobalProperties)
 		dashboardUrl, err := b.adapterClient.GenerateDashboardUrl(instanceID, abridgedPlan, manifest, logger)
 		if err != nil {
+			if _, ok := err.(serviceadapter.NotImplementedError); ok {
+				return nil
+			}
 			return err
 		}
 		_, err = b.uaaClient.UpdateClient(instanceID, dashboardUrl)

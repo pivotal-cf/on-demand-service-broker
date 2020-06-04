@@ -521,6 +521,7 @@ var _ = Describe("Provisioning", func() {
 		It("succeeds", func() {
 			noopCFClient := noopservicescontroller.New()
 			broker, err := createBroker([]broker.StartupChecker{}, noopCFClient)
+			broker.SetUAAClient(fakeUAAClient)
 			Expect(err).NotTo(HaveOccurred())
 			serviceSpec, provisionErr = broker.Provision(
 				context.Background(),

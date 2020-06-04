@@ -60,6 +60,7 @@ var _ = Describe("Basic authentication for BOSH", func() {
 			})
 
 			It("starts and obtains a token only for CF", func() {
+				defer GinkgoRecover()
 				boshDirector.ExpectedBasicAuth(boshUsername, boshPassword)
 				boshDirector.ExcludeAuthorizationCheck("/info")
 				conf.Bosh.Authentication = config.Authentication{
@@ -88,7 +89,7 @@ var _ = Describe("Basic authentication for BOSH", func() {
 				)
 				provisionResponse = provisionInstance(instanceID, dedicatedPlanID, map[string]interface{}{})
 
-				Expect(cfUAA.TokensIssued).To(Equal(1))
+				Expect(cfUAA.TokensIssued).To(BeNumerically(">", 0))
 				Expect(provisionResponse.StatusCode).To(Equal(http.StatusAccepted))
 			})
 		})

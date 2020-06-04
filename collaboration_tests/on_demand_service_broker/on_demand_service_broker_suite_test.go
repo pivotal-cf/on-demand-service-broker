@@ -66,6 +66,7 @@ var (
 	fakeBoshClient      *fakes.FakeBoshClient
 	fakeMapHasher       *fakes.FakeHasher
 	fakeCfClient        *fakes.FakeCloudFoundryClient
+	fakeUAAClient       *fakes.FakeUAAClient
 	fakeTaskBoshClient  *taskfakes.FakeBoshClient
 	fakeCommandRunner   *serviceadapterfakes.FakeCommandRunner
 	fakeTaskBulkSetter  *taskfakes.FakeBulkSetter
@@ -83,6 +84,7 @@ var _ = BeforeEach(func() {
 	fakeMapHasher.HashStub = ReturnSameValueHasher
 	fakeCredentialStore = new(credhubfakes.FakeCredentialStore)
 	fakeCfClient = new(fakes.FakeCloudFoundryClient)
+	fakeUAAClient = new(fakes.FakeUAAClient)
 
 	fakeTaskBoshClient = new(taskfakes.FakeBoshClient)
 	fakeCommandRunner = new(serviceadapterfakes.FakeCommandRunner)
@@ -104,14 +106,14 @@ func StartServer(conf config.Config) error {
 	shouldSendSigterm = true
 	stopServer = make(chan os.Signal, 1)
 	var err error
-	brokerServer, err = helpers.StartServer(conf, stopServer, fakeCommandRunner, fakeTaskBoshClient, fakeTaskBulkSetter, fakeCfClient, fakeBoshClient, fakeMapHasher, fakeCredentialStore, fakeCredhubOperator, loggerBuffer)
+	brokerServer, err = helpers.StartServer(conf, stopServer, fakeCommandRunner, fakeTaskBoshClient, fakeTaskBulkSetter, fakeCfClient, fakeBoshClient, fakeMapHasher, fakeCredentialStore, fakeCredhubOperator, fakeUAAClient, loggerBuffer)
 	return err
 }
 
 func StartServerWithStopHandler(conf config.Config, stopServerChan chan os.Signal) {
 	loggerBuffer = gbytes.NewBuffer()
 	var err error
-	brokerServer, err = helpers.StartServer(conf, stopServerChan, fakeCommandRunner, fakeTaskBoshClient, fakeTaskBulkSetter, fakeCfClient, fakeBoshClient, fakeMapHasher, fakeCredentialStore, fakeCredhubOperator, loggerBuffer)
+	brokerServer, err = helpers.StartServer(conf, stopServerChan, fakeCommandRunner, fakeTaskBoshClient, fakeTaskBulkSetter, fakeCfClient, fakeBoshClient, fakeMapHasher, fakeCredentialStore, fakeCredhubOperator, fakeUAAClient, loggerBuffer)
 	Expect(err).NotTo(HaveOccurred())
 }
 

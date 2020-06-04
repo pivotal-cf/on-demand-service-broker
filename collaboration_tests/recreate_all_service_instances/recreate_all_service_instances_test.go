@@ -8,6 +8,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os/exec"
+	"time"
 
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 
@@ -192,7 +193,7 @@ var _ = Describe("Recreate all service instances", func() {
 				session, err := gexec.Start(cmd, stdout, stderr)
 				Expect(err).NotTo(HaveOccurred(), "unexpected error when starting the command")
 
-				Eventually(session).Should(gexec.Exit())
+				Eventually(session).Should(gexec.Exit(), time.Second*3)
 				Expect(session.ExitCode()).NotTo(Equal(0), "recreate-all execution succeeded unexpectedly")
 
 				Expect(loggerBuffer).To(gbytes.Say("error: error retrieving tasks from bosh, for deployment 'service-instance_service-1': run errand failed."))

@@ -34,6 +34,7 @@ var (
 	fakeBoshClient      *fakes.FakeBoshClient
 	fakeCredentialStore *credhubfakes.FakeCredentialStore
 	fakeCredhubOperator *manifestsecretsfakes.FakeCredhubOperator
+	fakeUAAClient       *fakes.FakeUAAClient
 	loggerBuffer        *gbytes.Buffer
 )
 
@@ -52,10 +53,11 @@ func StartServer(conf config.Config) *helpers.Server {
 	fakeTaskBulkSetter = new(taskfakes.FakeBulkSetter)
 	fakeCredentialStore = new(credhubfakes.FakeCredentialStore)
 	fakeCredhubOperator = new(manifestsecretsfakes.FakeCredhubOperator)
+	fakeUAAClient = new(fakes.FakeUAAClient)
 	loggerBuffer = gbytes.NewBuffer()
 	stopServer := make(chan os.Signal)
 
-	server, err := helpers.StartServer(conf, stopServer, fakeCommandRunner, fakeTaskBoshClient, fakeTaskBulkSetter, fakeCfClient, fakeBoshClient, new(fakes.FakeHasher), fakeCredentialStore, fakeCredhubOperator, loggerBuffer)
+	server, err := helpers.StartServer(conf, stopServer, fakeCommandRunner, fakeTaskBoshClient, fakeTaskBulkSetter, fakeCfClient, fakeBoshClient, new(fakes.FakeHasher), fakeCredentialStore, fakeCredhubOperator, fakeUAAClient, loggerBuffer)
 	Expect(err).NotTo(HaveOccurred())
 	return server
 }

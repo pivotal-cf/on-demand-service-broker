@@ -164,8 +164,8 @@ func (c Config) HasTLS() bool {
 	return c.Broker.TLS.CertFile != "" && c.Broker.TLS.KeyFile != ""
 }
 
-func (c Config) HasClientDefinition() bool {
-	cd := c.CF.UAA.ClientDefinition
+func (c UAAConfig) HasClientDefinition() bool {
+	cd := c.ClientDefinition
 	return cd.Authorities != "" || cd.AuthorizedGrantTypes != "" || cd.Scopes != "" || cd.ResourceIDs != ""
 }
 

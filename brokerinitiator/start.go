@@ -72,13 +72,11 @@ func Initiate(conf config.Config,
 		logger.Fatalf("error starting broker: %s", err)
 	}
 
-	if conf.HasClientDefinition() {
-		client, err := uaa.New(conf.CF.UAA, conf.CF.TrustedCert)
-		if err != nil {
-			logger.Fatalf("error creating UAA client: #{err}")
-		}
-		onDemandBroker.SetUAAClient(client)
+	client, err := uaa.New(conf.CF.UAA, conf.CF.TrustedCert)
+	if err != nil {
+		logger.Fatalf("error creating UAA client: #{err}")
 	}
+	onDemandBroker.SetUAAClient(client)
 
 	if conf.HasRuntimeCredHub() {
 		onDemandBroker = wrapWithCredHubBroker(conf, logger, onDemandBroker, loggerFactory)

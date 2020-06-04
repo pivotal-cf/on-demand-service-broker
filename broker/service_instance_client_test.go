@@ -6,6 +6,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	brokerfakes "github.com/pivotal-cf/on-demand-service-broker/broker/fakes"
+	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 	"log"
 )
@@ -158,6 +159,16 @@ var _ = Describe("ServiceInstanceClient", func() {
 
 					err := b.UpdateServiceInstanceClient(instanceID, expectedClient, existingPlan, manifest, logger)
 					Expect(err).To(MatchError("dashboard failed"))
+				})
+			})
+
+			When("the adapter doesn't implement generate dashboard", func() {
+				It("returns an error", func() {
+					serviceAdapter.GenerateDashboardUrlReturns("", serviceadapter.NewNotImplementedError("not implemented"))
+
+					err := b.UpdateServiceInstanceClient(instanceID, expectedClient, existingPlan, manifest, logger)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(fakeUAAClient.UpdateClientCallCount()).To(Equal(0))
 				})
 			})
 		})
