@@ -64,6 +64,11 @@ func newHTTPClient(caCert string) *http.Client {
 	}
 }
 
+func (c *Client) HasClientDefinition() bool {
+	cd := c.config.ClientDefinition
+	return cd.Authorities != "" || cd.AuthorizedGrantTypes != "" || cd.Scopes != "" || cd.ResourceIDs != ""
+}
+
 func (c *Client) CreateClient(clientID, name string) (map[string]string, error) {
 	clientSecret := c.RandFunc()
 	m := map[string]string{

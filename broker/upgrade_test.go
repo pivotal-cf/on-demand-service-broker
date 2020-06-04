@@ -190,6 +190,7 @@ var _ = Describe("Upgrade", func() {
 				"redirect_uri": "http://uri.com/example",
 			}
 			fakeUAAClient.GetClientReturns(existingClient, nil)
+			fakeUAAClient.HasClientDefinitionReturns(true)
 		})
 
 		It("passes the client to the deployer", func() {

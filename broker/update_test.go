@@ -718,6 +718,7 @@ var _ = Describe("Update", func() {
 				}
 
 				fakeUAAClient.GetClientReturns(existingClient, nil)
+				fakeUAAClient.HasClientDefinitionReturns(true)
 			})
 
 			It("passes the client to the deployer", func() {

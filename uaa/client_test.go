@@ -393,6 +393,37 @@ var _ = Describe("UAA", func() {
 				Expect(err).To(MatchError(ContainSubstring(errorMsg)))
 			})
 		})
+
+		Describe("#HasClientDefinition", func() {
+			It("returns true when at least one property is set", func() {
+				c := config.UAAConfig{ClientDefinition: config.ClientDefinition{AuthorizedGrantTypes: "123"}}
+
+				client, err := uaa.New(c, "")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(client.HasClientDefinition()).To(BeTrue())
+
+				c = config.UAAConfig{ClientDefinition: config.ClientDefinition{Authorities: "asd"}}
+				client, err = uaa.New(c, "")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(client.HasClientDefinition()).To(BeTrue())
+
+				c = config.UAAConfig{ClientDefinition: config.ClientDefinition{ResourceIDs: "fff"}}
+				client, err = uaa.New(c, "")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(client.HasClientDefinition()).To(BeTrue())
+
+				c = config.UAAConfig{ClientDefinition: config.ClientDefinition{Scopes: "admin"}}
+				client, err = uaa.New(c, "")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(client.HasClientDefinition()).To(BeTrue())
+			})
+
+			It("returns false when no property is set", func() {
+				client, err := uaa.New(config.UAAConfig{}, "")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(client.HasClientDefinition()).To(BeFalse())
+			})
+		})
 	})
 })
 

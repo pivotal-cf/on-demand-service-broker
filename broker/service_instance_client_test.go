@@ -40,6 +40,7 @@ var _ = Describe("ServiceInstanceClient", func() {
 			"foo":           "bar",
 		}
 		fakeUAAClient.UpdateClientReturns(expectedClient, nil)
+		fakeUAAClient.HasClientDefinitionReturns(true)
 	})
 
 	Describe("#GetServiceInstanceClient", func() {
@@ -101,6 +102,12 @@ var _ = Describe("ServiceInstanceClient", func() {
 	})
 
 	Describe("#UpdateServiceInstanceClient", func() {
+		var manifest []byte
+
+		BeforeEach(func() {
+			manifest = []byte("name: some-deployment")
+		})
+
 		When("the current client is nil", func() {
 			It("returns no error", func() {
 				err := b.UpdateServiceInstanceClient(instanceID, nil, existingPlan, nil, logger)
@@ -109,11 +116,6 @@ var _ = Describe("ServiceInstanceClient", func() {
 		})
 
 		When("there's a client to be updated", func() {
-			var manifest []byte
-
-			BeforeEach(func() {
-				manifest = []byte("name: some-deployment")
-			})
 
 			It("regenerates the dashboard url", func() {
 				err := b.UpdateServiceInstanceClient(instanceID, expectedClient, existingPlan, manifest, logger)
@@ -170,6 +172,28 @@ var _ = Describe("ServiceInstanceClient", func() {
 					Expect(err).NotTo(HaveOccurred())
 					Expect(fakeUAAClient.UpdateClientCallCount()).To(Equal(0))
 				})
+			})
+		})
+
+		When("a client exists but the client definition was removed", func() {
+			BeforeEach(func() {
+				fakeUAAClient.HasClientDefinitionReturns(false)
+			})
+
+			It("tries to delete the client", func() {
+				err := b.UpdateServiceInstanceClient(instanceID, expectedClient, existingPlan, manifest, logger)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(fakeUAAClient.DeleteClientCallCount()).To(Equal(1))
+				actualID := fakeUAAClient.DeleteClientArgsForCall(0)
+				Expect(actualID).To(Equal(instanceID))
+			})
+
+			It("logs the error if cannot delete", func() {
+				fakeUAAClient.DeleteClientReturns(errors.New("cannot delete"))
+				err := b.UpdateServiceInstanceClient(instanceID, expectedClient, existingPlan, manifest, logger)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(logBuffer.String()).To(ContainSubstring(`could not delete the service instance client`))
 			})
 		})
 	})

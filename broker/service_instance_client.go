@@ -31,9 +31,15 @@ func (b *Broker) UpdateServiceInstanceClient(instanceID string, siClient map[str
 			}
 			return err
 		}
-		_, err = b.uaaClient.UpdateClient(instanceID, dashboardUrl)
-		if err != nil {
+
+		if b.uaaClient.HasClientDefinition() {
+			_, err = b.uaaClient.UpdateClient(instanceID, dashboardUrl)
 			return err
+		}
+
+		err = b.uaaClient.DeleteClient(instanceID)
+		if err != nil {
+			logger.Printf("could not delete the service instance client: %s\n", err.Error())
 		}
 	}
 	return nil

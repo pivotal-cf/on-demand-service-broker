@@ -164,11 +164,6 @@ func (c Config) HasTLS() bool {
 	return c.Broker.TLS.CertFile != "" && c.Broker.TLS.KeyFile != ""
 }
 
-func (c UAAConfig) HasClientDefinition() bool {
-	cd := c.ClientDefinition
-	return cd.Authorities != "" || cd.AuthorizedGrantTypes != "" || cd.Scopes != "" || cd.ResourceIDs != ""
-}
-
 func (b Broker) Validate() error {
 	if b.Port == 0 {
 		return errors.New("broker.port can't be empty")

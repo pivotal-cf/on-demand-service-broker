@@ -46,6 +46,16 @@ type FakeUAAClient struct {
 		result1 map[string]string
 		result2 error
 	}
+	HasClientDefinitionStub        func() bool
+	hasClientDefinitionMutex       sync.RWMutex
+	hasClientDefinitionArgsForCall []struct {
+	}
+	hasClientDefinitionReturns struct {
+		result1 bool
+	}
+	hasClientDefinitionReturnsOnCall map[int]struct {
+		result1 bool
+	}
 	UpdateClientStub        func(string, string) (map[string]string, error)
 	updateClientMutex       sync.RWMutex
 	updateClientArgsForCall []struct {
@@ -194,7 +204,7 @@ func (fake *FakeUAAClient) GetClient(arg1 string) (map[string]string, error) {
 	fake.getClientArgsForCall = append(fake.getClientArgsForCall, struct {
 		arg1 string
 	}{arg1})
-	fake.recordInvocation("GetServiceInstanceClient", []interface{}{arg1})
+	fake.recordInvocation("GetClient", []interface{}{arg1})
 	fake.getClientMutex.Unlock()
 	if fake.GetClientStub != nil {
 		return fake.GetClientStub(arg1)
@@ -249,6 +259,58 @@ func (fake *FakeUAAClient) GetClientReturnsOnCall(i int, result1 map[string]stri
 		result1 map[string]string
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *FakeUAAClient) HasClientDefinition() bool {
+	fake.hasClientDefinitionMutex.Lock()
+	ret, specificReturn := fake.hasClientDefinitionReturnsOnCall[len(fake.hasClientDefinitionArgsForCall)]
+	fake.hasClientDefinitionArgsForCall = append(fake.hasClientDefinitionArgsForCall, struct {
+	}{})
+	fake.recordInvocation("HasClientDefinition", []interface{}{})
+	fake.hasClientDefinitionMutex.Unlock()
+	if fake.HasClientDefinitionStub != nil {
+		return fake.HasClientDefinitionStub()
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	fakeReturns := fake.hasClientDefinitionReturns
+	return fakeReturns.result1
+}
+
+func (fake *FakeUAAClient) HasClientDefinitionCallCount() int {
+	fake.hasClientDefinitionMutex.RLock()
+	defer fake.hasClientDefinitionMutex.RUnlock()
+	return len(fake.hasClientDefinitionArgsForCall)
+}
+
+func (fake *FakeUAAClient) HasClientDefinitionCalls(stub func() bool) {
+	fake.hasClientDefinitionMutex.Lock()
+	defer fake.hasClientDefinitionMutex.Unlock()
+	fake.HasClientDefinitionStub = stub
+}
+
+func (fake *FakeUAAClient) HasClientDefinitionReturns(result1 bool) {
+	fake.hasClientDefinitionMutex.Lock()
+	defer fake.hasClientDefinitionMutex.Unlock()
+	fake.HasClientDefinitionStub = nil
+	fake.hasClientDefinitionReturns = struct {
+		result1 bool
+	}{result1}
+}
+
+func (fake *FakeUAAClient) HasClientDefinitionReturnsOnCall(i int, result1 bool) {
+	fake.hasClientDefinitionMutex.Lock()
+	defer fake.hasClientDefinitionMutex.Unlock()
+	fake.HasClientDefinitionStub = nil
+	if fake.hasClientDefinitionReturnsOnCall == nil {
+		fake.hasClientDefinitionReturnsOnCall = make(map[int]struct {
+			result1 bool
+		})
+	}
+	fake.hasClientDefinitionReturnsOnCall[i] = struct {
+		result1 bool
+	}{result1}
 }
 
 func (fake *FakeUAAClient) UpdateClient(arg1 string, arg2 string) (map[string]string, error) {
@@ -324,6 +386,8 @@ func (fake *FakeUAAClient) Invocations() map[string][][]interface{} {
 	defer fake.deleteClientMutex.RUnlock()
 	fake.getClientMutex.RLock()
 	defer fake.getClientMutex.RUnlock()
+	fake.hasClientDefinitionMutex.RLock()
+	defer fake.hasClientDefinitionMutex.RUnlock()
 	fake.updateClientMutex.RLock()
 	defer fake.updateClientMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
