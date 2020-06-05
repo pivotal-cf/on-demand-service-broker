@@ -131,6 +131,18 @@ var _ = Describe("UAA", func() {
 				createHandler.RespondsWith(http.StatusCreated, createJsonResponse)
 			})
 
+			It("doesn't go to uaa when client definition is not provided", func() {
+				uaaConfig.ClientDefinition = config.ClientDefinition{}
+				uaaClient, err := uaa.New(uaaConfig, trustedCert)
+				Expect(err).NotTo(HaveOccurred())
+
+				actualClient, err := uaaClient.CreateClient("some-client-id", "some-name")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(actualClient).To(BeNil())
+
+				Expect(createHandler.RequestsReceived()).To(Equal(0))
+			})
+
 			It("creates and returns a client map", func() {
 				uaaClient.RandFunc = func() string {
 					return "superrandomsecret"
@@ -238,6 +250,18 @@ var _ = Describe("UAA", func() {
 				  "required_user_groups": [ ]
 				}`
 				updateHandler.RespondsWith(http.StatusCreated, updateJsonResponse)
+			})
+
+			It("doesn't go to uaa when client definition is not provided", func() {
+				uaaConfig.ClientDefinition = config.ClientDefinition{}
+				uaaClient, err := uaa.New(uaaConfig, trustedCert)
+				Expect(err).NotTo(HaveOccurred())
+
+				actualClient, err := uaaClient.UpdateClient("some-client-id", "some-name")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(actualClient).To(BeNil())
+
+				Expect(updateHandler.RequestsReceived()).To(Equal(0))
 			})
 
 			It("updates and returns a client map", func() {

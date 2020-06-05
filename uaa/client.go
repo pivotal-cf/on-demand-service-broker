@@ -70,6 +70,10 @@ func (c *Client) HasClientDefinition() bool {
 }
 
 func (c *Client) CreateClient(clientID, name string) (map[string]string, error) {
+	if !c.HasClientDefinition() {
+		return nil, nil
+	}
+
 	clientSecret := c.RandFunc()
 	m := map[string]string{
 		"client_id":              clientID,
@@ -93,6 +97,10 @@ func (c *Client) CreateClient(clientID, name string) (map[string]string, error) 
 }
 
 func (c *Client) UpdateClient(clientID string, redirectURI string) (map[string]string, error) {
+	if !c.HasClientDefinition() {
+		return nil, nil
+	}
+
 	m := map[string]string{
 		"client_id":              clientID,
 		"scopes":                 c.config.ClientDefinition.Scopes,
