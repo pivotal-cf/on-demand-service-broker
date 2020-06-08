@@ -6,8 +6,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	brokerfakes "github.com/pivotal-cf/on-demand-service-broker/broker/fakes"
-	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
-	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 	"log"
 )
 
@@ -102,43 +100,17 @@ var _ = Describe("ServiceInstanceClient", func() {
 	})
 
 	Describe("#UpdateServiceInstanceClient", func() {
-		var manifest []byte
-
-		BeforeEach(func() {
-			manifest = []byte("name: some-deployment")
-		})
-
 		When("the current client is nil", func() {
 			It("returns no error", func() {
-				err := b.UpdateServiceInstanceClient(instanceID, nil, existingPlan, nil, logger)
+				err := b.UpdateServiceInstanceClient(instanceID, nil, "", logger)
 				Expect(err).NotTo(HaveOccurred())
 			})
 		})
 
 		When("there's a client to be updated", func() {
-
-			It("regenerates the dashboard url", func() {
-				err := b.UpdateServiceInstanceClient(instanceID, expectedClient, existingPlan, manifest, logger)
-				Expect(err).NotTo(HaveOccurred())
-
-				Expect(serviceAdapter.GenerateDashboardUrlCallCount()).To(Equal(1))
-				actualInstanceID, actualPlan, actualManifest, _ := serviceAdapter.GenerateDashboardUrlArgsForCall(0)
-				Expect(actualInstanceID).To(Equal(instanceID))
-
-				globalProperties := sdk.Properties{
-					"some_other_global_property": "other_global_value",
-					"a_global_property":          "global_value",
-					"super":                      "no",
-				}
-				Expect(actualPlan).To(Equal(existingPlan.AdapterPlan(globalProperties)))
-				Expect(actualManifest).To(Equal(manifest))
-			})
-
 			It("updates the client on UAA", func() {
 				expectedRedirectURI := "http://some.example.com/dashboard"
-				serviceAdapter.GenerateDashboardUrlReturns(expectedRedirectURI, nil)
-
-				err := b.UpdateServiceInstanceClient(instanceID, expectedClient, existingPlan, manifest, logger)
+				err := b.UpdateServiceInstanceClient(instanceID, expectedClient, expectedRedirectURI, logger)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(fakeUAAClient.UpdateClientCallCount()).To(Equal(1))
@@ -150,27 +122,8 @@ var _ = Describe("ServiceInstanceClient", func() {
 			When("updating the client fails", func() {
 				It("returns an error", func() {
 					fakeUAAClient.UpdateClientReturns(nil, errors.New("update failed"))
-					err := b.UpdateServiceInstanceClient(instanceID, expectedClient, existingPlan, manifest, logger)
+					err := b.UpdateServiceInstanceClient(instanceID, expectedClient, "", logger)
 					Expect(err).To(MatchError("update failed"))
-				})
-			})
-
-			When("generating the dashboard url fails", func() {
-				It("returns an error", func() {
-					serviceAdapter.GenerateDashboardUrlReturns("", errors.New("dashboard failed"))
-
-					err := b.UpdateServiceInstanceClient(instanceID, expectedClient, existingPlan, manifest, logger)
-					Expect(err).To(MatchError("dashboard failed"))
-				})
-			})
-
-			When("the adapter doesn't implement generate dashboard", func() {
-				It("returns an error", func() {
-					serviceAdapter.GenerateDashboardUrlReturns("", serviceadapter.NewNotImplementedError("not implemented"))
-
-					err := b.UpdateServiceInstanceClient(instanceID, expectedClient, existingPlan, manifest, logger)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(fakeUAAClient.UpdateClientCallCount()).To(Equal(0))
 				})
 			})
 		})
@@ -181,7 +134,7 @@ var _ = Describe("ServiceInstanceClient", func() {
 			})
 
 			It("tries to delete the client", func() {
-				err := b.UpdateServiceInstanceClient(instanceID, expectedClient, existingPlan, manifest, logger)
+				err := b.UpdateServiceInstanceClient(instanceID, expectedClient, "", logger)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(fakeUAAClient.DeleteClientCallCount()).To(Equal(1))
 				actualID := fakeUAAClient.DeleteClientArgsForCall(0)
@@ -190,7 +143,7 @@ var _ = Describe("ServiceInstanceClient", func() {
 
 			It("logs the error if cannot delete", func() {
 				fakeUAAClient.DeleteClientReturns(errors.New("cannot delete"))
-				err := b.UpdateServiceInstanceClient(instanceID, expectedClient, existingPlan, manifest, logger)
+				err := b.UpdateServiceInstanceClient(instanceID, expectedClient, "", logger)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(logBuffer.String()).To(ContainSubstring(`could not delete the service instance client`))

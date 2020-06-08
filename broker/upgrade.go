@@ -10,26 +10,27 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	"log"
 
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/brokerapi/v7/domain"
 )
 
-func (b *Broker) Upgrade(ctx context.Context, instanceID string, details domain.UpdateDetails, logger *log.Logger) (OperationData, error) {
+func (b *Broker) Upgrade(ctx context.Context, instanceID string, details domain.UpdateDetails, logger *log.Logger) (OperationData, string, error) {
 	b.deploymentLock.Lock()
 	defer b.deploymentLock.Unlock()
 
 	logger.Printf("upgrading instance %s", instanceID)
 
 	if details.PlanID == "" {
-		return OperationData{}, b.processError(errors.New("no plan ID provided in upgrade request body"), logger)
+		return OperationData{}, "", b.processError(errors.New("no plan ID provided in upgrade request body"), logger)
 	}
 
 	plan, found := b.serviceOffering.FindPlanByID(details.PlanID)
 	if !found {
 		logger.Printf("error: finding plan ID %s", details.PlanID)
-		return OperationData{}, b.processError(fmt.Errorf("plan %s not found", details.PlanID), logger)
+		return OperationData{}, "", b.processError(fmt.Errorf("plan %s not found", details.PlanID), logger)
 	}
 
 	var boshContextID string
@@ -40,7 +41,7 @@ func (b *Broker) Upgrade(ctx context.Context, instanceID string, details domain.
 
 	instanceClient, err := b.GetServiceInstanceClient(instanceID, details.RawContext)
 	if err != nil {
-		return OperationData{}, b.processError(NewGenericError(ctx, err), logger)
+		return OperationData{}, "", b.processError(NewGenericError(ctx, err), logger)
 	}
 
 	taskID, manifest, err := b.deployer.Upgrade(
@@ -53,17 +54,27 @@ func (b *Broker) Upgrade(ctx context.Context, instanceID string, details domain.
 
 	if err != nil {
 		_, err := b.handleUpdateError(ctx, err, logger)
-		return OperationData{}, err
+		return OperationData{}, "", err
 	}
 
-	if err = b.UpdateServiceInstanceClient(instanceID, instanceClient, plan, manifest, logger); err != nil {
-		return OperationData{}, b.processError(NewGenericError(ctx, err), logger)
+	abridgedPlan := plan.AdapterPlan(b.serviceOffering.GlobalProperties)
+	dashboardUrl, err := b.adapterClient.GenerateDashboardUrl(instanceID, abridgedPlan, manifest, logger)
+	if err != nil {
+		if _, ok := err.(serviceadapter.NotImplementedError); !ok {
+			return OperationData{}, "", b.processError(NewGenericError(ctx, err), logger)
+		}
+	}
+
+	if err = b.UpdateServiceInstanceClient(instanceID, instanceClient, dashboardUrl, logger); err != nil {
+		return OperationData{}, "", b.processError(NewGenericError(ctx, err), logger)
 	}
 
 	return OperationData{
-		BoshContextID: boshContextID,
-		BoshTaskID:    taskID,
-		OperationType: OperationTypeUpgrade,
-		Errands:       plan.PostDeployErrands(),
-	}, nil
+			BoshContextID: boshContextID,
+			BoshTaskID:    taskID,
+			OperationType: OperationTypeUpgrade,
+			Errands:       plan.PostDeployErrands(),
+		},
+		dashboardUrl,
+		nil
 }

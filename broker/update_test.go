@@ -95,6 +95,7 @@ var _ = Describe("Update", func() {
 
 	When("it is an update", func() {
 		var updateDetails domain.UpdateDetails
+
 		BeforeEach(func() {
 			fakeDecider.DecideOperationReturns(decider.Update, nil)
 		})
@@ -702,21 +703,77 @@ var _ = Describe("Update", func() {
 			})
 		})
 
+		Context("regenerating the dashboard url", func() {
+			var (
+				newlyGeneratedManifest []byte
+				expectedDashboardURL   string
+			)
+
+			BeforeEach(func() {
+				fakeDecider.DecideOperationReturns(decider.Update, nil)
+				expectedDashboardURL = "http://example.com/dashboard"
+				serviceAdapter.GenerateDashboardUrlReturns(expectedDashboardURL, nil)
+				newlyGeneratedManifest = []byte("name: new-name")
+				fakeDeployer.UpdateReturns(boshTaskID, newlyGeneratedManifest, nil)
+			})
+
+			It("calls the adapter", func() {
+				Expect(serviceAdapter.GenerateDashboardUrlCallCount()).To(Equal(1))
+				instanceID, plan, boshManifest, _ := serviceAdapter.GenerateDashboardUrlArgsForCall(0)
+				Expect(instanceID).To(Equal(instanceID))
+				expectedProperties := sdk.Properties{
+					"a_global_property":          "overrides_global_value",
+					"some_other_global_property": "other_global_value",
+					"super":                      "yes",
+				}
+				Expect(plan).To(Equal(sdk.Plan{
+					Properties:     expectedProperties,
+					InstanceGroups: secondPlan.InstanceGroups,
+					Update:         secondPlan.Update,
+				}))
+				Expect(boshManifest).To(Equal(newlyGeneratedManifest))
+			})
+
+			It("returns the dashboard url in the response", func() {
+				Expect(updateSpec.DashboardURL).To(Equal(expectedDashboardURL))
+			})
+
+			When("generating the dashboard fails", func() {
+				BeforeEach(func() {
+					fakeUAAClient.GetClientReturns(map[string]string{"a": "b"}, nil)
+					serviceAdapter.GenerateDashboardUrlReturns("", errors.New("fooo"))
+				})
+
+				It("returns a failure", func() {
+					Expect(updateError).To(MatchError(
+						ContainSubstring("There was a problem completing your request"),
+					))
+				})
+
+				When("its not implemented", func() {
+					BeforeEach(func() {
+						fakeUAAClient.GetClientReturns(map[string]string{"a": "b"}, nil)
+						serviceAdapter.GenerateDashboardUrlReturns("", serviceadapter.NewNotImplementedError("not implemented"))
+					})
+
+					It("succeeds", func() {
+						Expect(updateError).NotTo(HaveOccurred())
+					})
+				})
+			})
+		})
+
 		Context("the service instance UAA client", func() {
-			var newlyGeneratedManifest []byte
 			var existingClient map[string]string
 
 			BeforeEach(func() {
 				dashboardURL := "http://example.com/dashboard"
-				serviceAdapter.GenerateDashboardUrlReturns(dashboardURL, nil)
-				newlyGeneratedManifest = []byte("name: new-name")
-				fakeDeployer.UpdateReturns(boshTaskID, newlyGeneratedManifest, nil)
-
 				existingClient = map[string]string{
 					"client_id":   "some-id",
 					"rediret_uri": "http://uri.com/example",
 				}
 
+				serviceAdapter.GenerateDashboardUrlReturns(dashboardURL, nil)
 				fakeUAAClient.GetClientReturns(existingClient, nil)
 				fakeUAAClient.HasClientDefinitionReturns(true)
 			})
@@ -728,23 +785,6 @@ var _ = Describe("Update", func() {
 			})
 
 			It("updates the service instance client", func() {
-				By("regenerating the dashboard url", func() {
-					Expect(serviceAdapter.GenerateDashboardUrlCallCount()).To(Equal(1))
-					instanceID, plan, boshManifest, _ := serviceAdapter.GenerateDashboardUrlArgsForCall(0)
-					Expect(instanceID).To(Equal(instanceID))
-					expectedProperties := sdk.Properties{
-						"a_global_property":          "overrides_global_value",
-						"some_other_global_property": "other_global_value",
-						"super":                      "yes",
-					}
-					Expect(plan).To(Equal(sdk.Plan{
-						Properties:     expectedProperties,
-						InstanceGroups: secondPlan.InstanceGroups,
-						Update:         secondPlan.Update,
-					}))
-					Expect(boshManifest).To(Equal(newlyGeneratedManifest))
-				})
-
 				Expect(fakeUAAClient.UpdateClientCallCount()).To(Equal(1))
 				actualClientID, actualRedirectURI := fakeUAAClient.UpdateClientArgsForCall(0)
 
@@ -778,19 +818,6 @@ var _ = Describe("Update", func() {
 					)))
 				})
 			})
-
-			When("generating the dashboard fails", func() {
-				BeforeEach(func() {
-					fakeUAAClient.GetClientReturns(map[string]string{"a": "b"}, nil)
-					serviceAdapter.GenerateDashboardUrlReturns("", errors.New("fooo"))
-				})
-
-				It("returns a failure", func() {
-					Expect(updateError).To(MatchError(
-						ContainSubstring("There was a problem completing your request"),
-					))
-				})
-			})
 		})
 	})
 
@@ -800,6 +827,7 @@ var _ = Describe("Update", func() {
 		BeforeEach(func() {
 			fakeDeployer.UpgradeReturns(50, nil, nil)
 			fakeDeployer.UpdateReturns(-1, nil, errors.New("fail"))
+			serviceAdapter.GenerateDashboardUrlReturns("http://some.dashboard.felisia.dev/", nil)
 			fakeDecider.DecideOperationReturns(decider.Upgrade, nil)
 
 			updateDetails = domain.UpdateDetails{
@@ -826,6 +854,7 @@ var _ = Describe("Update", func() {
 			Expect(updateSpec).To(Equal(domain.UpdateServiceSpec{
 				IsAsync:       true,
 				OperationData: string(opData),
+				DashboardURL:  "http://some.dashboard.felisia.dev/",
 			}))
 
 			Expect(logBuffer.String()).To(MatchRegexp(`\[[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\] \d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2} upgrading instance`))

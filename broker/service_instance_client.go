@@ -2,8 +2,6 @@ package broker
 
 import (
 	"encoding/json"
-	"github.com/pivotal-cf/on-demand-service-broker/config"
-	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	"log"
 )
 
@@ -21,24 +19,14 @@ func (b *Broker) GetServiceInstanceClient(instanceID string, rawContext json.Raw
 	return instanceClient, nil
 }
 
-func (b *Broker) UpdateServiceInstanceClient(instanceID string, siClient map[string]string, plan config.Plan, manifest []byte, logger *log.Logger) error {
+func (b *Broker) UpdateServiceInstanceClient(instanceID string, siClient map[string]string, dashboardURL string, logger *log.Logger) error {
 	if siClient != nil {
-		abridgedPlan := plan.AdapterPlan(b.serviceOffering.GlobalProperties)
-		dashboardUrl, err := b.adapterClient.GenerateDashboardUrl(instanceID, abridgedPlan, manifest, logger)
-		if err != nil {
-			if _, ok := err.(serviceadapter.NotImplementedError); ok {
-				return nil
-			}
-			return err
-		}
-
 		if b.uaaClient.HasClientDefinition() {
-			_, err = b.uaaClient.UpdateClient(instanceID, dashboardUrl)
+			_, err := b.uaaClient.UpdateClient(instanceID, dashboardURL)
 			return err
 		}
 
-		err = b.uaaClient.DeleteClient(instanceID)
-		if err != nil {
+		if err := b.uaaClient.DeleteClient(instanceID); err != nil {
 			logger.Printf("could not delete the service instance client: %s\n", err.Error())
 		}
 	}

@@ -36,7 +36,7 @@ type api struct {
 type ManageableBroker interface {
 	Instances(filter map[string]string, logger *log.Logger) ([]service.Instance, error)
 	OrphanDeployments(logger *log.Logger) ([]string, error)
-	Upgrade(ctx context.Context, instanceID string, updateDetails domain.UpdateDetails, logger *log.Logger) (broker.OperationData, error)
+	Upgrade(ctx context.Context, instanceID string, updateDetails domain.UpdateDetails, logger *log.Logger) (broker.OperationData, string, error)
 	Recreate(ctx context.Context, instanceID string, updateDetails domain.UpdateDetails, logger *log.Logger) (broker.OperationData, error)
 	CountInstancesOfPlans(logger *log.Logger) (map[cf.ServicePlan]int, error)
 }
@@ -166,7 +166,7 @@ func (a *api) upgradeInstance(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	operationData, err := a.manageableBroker.Upgrade(ctx, instanceID, details, logger)
+	operationData, _, err := a.manageableBroker.Upgrade(ctx, instanceID, details, logger)
 
 	switch err.(type) {
 	case nil:

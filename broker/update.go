@@ -59,7 +59,7 @@ func (b *Broker) Update(
 }
 
 func (b *Broker) doUpgrade(ctx context.Context, instanceID string, details domain.UpdateDetails, logger *log.Logger) (domain.UpdateServiceSpec, error) {
-	operationData, err := b.Upgrade(ctx, instanceID, details, logger)
+	operationData, dashboardURL, err := b.Upgrade(ctx, instanceID, details, logger)
 	if err != nil {
 		if _, ok := err.(OperationAlreadyCompletedError); ok {
 			return domain.UpdateServiceSpec{IsAsync: false}, nil
@@ -72,7 +72,7 @@ func (b *Broker) doUpgrade(ctx context.Context, instanceID string, details domai
 		return domain.UpdateServiceSpec{}, b.processError(NewGenericError(ctx, err), logger)
 	}
 
-	return domain.UpdateServiceSpec{IsAsync: true, OperationData: string(operationDataJSON)}, nil
+	return domain.UpdateServiceSpec{IsAsync: true, OperationData: string(operationDataJSON), DashboardURL: dashboardURL}, nil
 }
 
 func (b *Broker) doUpdate(ctx context.Context, instanceID string, details domain.UpdateDetails, siClient map[string]string, logger *log.Logger) (domain.UpdateServiceSpec, error) {
@@ -122,7 +122,15 @@ func (b *Broker) doUpdate(ctx context.Context, instanceID string, details domain
 		return b.handleUpdateError(ctx, err, logger)
 	}
 
-	if err = b.UpdateServiceInstanceClient(instanceID, siClient, plan, manifest, logger); err != nil {
+	abridgedPlan := plan.AdapterPlan(b.serviceOffering.GlobalProperties)
+	dashboardUrl, err := b.adapterClient.GenerateDashboardUrl(instanceID, abridgedPlan, manifest, logger)
+	if err != nil {
+		if _, ok := err.(serviceadapter.NotImplementedError); !ok {
+			return domain.UpdateServiceSpec{}, b.processError(NewGenericError(ctx, err), logger)
+		}
+	}
+
+	if err = b.UpdateServiceInstanceClient(instanceID, siClient, dashboardUrl, logger); err != nil {
 		return domain.UpdateServiceSpec{}, b.processError(NewGenericError(ctx, err), logger)
 	}
 
@@ -136,7 +144,7 @@ func (b *Broker) doUpdate(ctx context.Context, instanceID string, details domain
 		return domain.UpdateServiceSpec{}, b.processError(NewGenericError(brokercontext.WithBoshTaskID(ctx, boshTaskID), err), logger)
 	}
 
-	return domain.UpdateServiceSpec{IsAsync: true, OperationData: string(operationData)}, nil
+	return domain.UpdateServiceSpec{IsAsync: true, OperationData: string(operationData), DashboardURL: dashboardUrl}, nil
 }
 
 func (b *Broker) handleUpdateError(ctx context.Context, err error, logger *log.Logger) (domain.UpdateServiceSpec, error) {

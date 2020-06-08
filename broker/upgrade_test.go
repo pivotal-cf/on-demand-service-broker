@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/pivotal-cf/on-demand-service-broker/broker/decider"
 	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 	"log"
 
@@ -62,7 +63,7 @@ var _ = Describe("Upgrade", func() {
 	})
 
 	It("when the deployment goes well deploys with the new planID", func() {
-		upgradeOperationData, redeployErr = b.Upgrade(context.Background(), instanceID, details, logger)
+		upgradeOperationData, _, redeployErr = b.Upgrade(context.Background(), instanceID, details, logger)
 
 		Expect(redeployErr).NotTo(HaveOccurred())
 		Expect(fakeDeployer.CreateCallCount()).To(Equal(0))
@@ -79,7 +80,7 @@ var _ = Describe("Upgrade", func() {
 			expectedError := broker.NewOperationAlreadyCompletedError(errors.New("instance is already up to date"))
 			fakeDeployer.UpgradeReturns(0, nil, expectedError)
 
-			_, redeployErr = b.Upgrade(context.Background(), instanceID, details, logger)
+			_, _, redeployErr = b.Upgrade(context.Background(), instanceID, details, logger)
 
 			Expect(redeployErr).To(Equal(expectedError))
 		})
@@ -87,7 +88,7 @@ var _ = Describe("Upgrade", func() {
 
 	Context("when there is a previous deployment for the service instance", func() {
 		It("responds with the correct upgradeOperationData", func() {
-			upgradeOperationData, _ = b.Upgrade(context.Background(), instanceID, details, logger)
+			upgradeOperationData, _, _ = b.Upgrade(context.Background(), instanceID, details, logger)
 
 			Expect(upgradeOperationData).To(Equal(
 				broker.OperationData{
@@ -104,7 +105,7 @@ var _ = Describe("Upgrade", func() {
 				PlanID: postDeployErrandPlanID,
 			}
 
-			upgradeOperationData, _ = b.Upgrade(context.Background(), instanceID, details, logger)
+			upgradeOperationData, _, _ = b.Upgrade(context.Background(), instanceID, details, logger)
 
 			_, _, contextID, _, _ := fakeDeployer.UpgradeArgsForCall(0)
 			Expect(contextID).NotTo(BeEmpty())
@@ -125,14 +126,14 @@ var _ = Describe("Upgrade", func() {
 		It("and the service adapter returns a UnknownFailureError with a user message returns the error for the user", func() {
 			err := serviceadapter.NewUnknownFailureError("error for cf user")
 			fakeDeployer.UpgradeReturns(boshTaskID, nil, err)
-			_, redeployErr = b.Upgrade(context.Background(), instanceID, details, logger)
+			_, _, redeployErr = b.Upgrade(context.Background(), instanceID, details, logger)
 
 			Expect(redeployErr).To(Equal(err))
 		})
 
 		It("and the service adapter returns a UnknownFailureError with no message returns a generic error", func() {
 			fakeDeployer.UpgradeReturns(boshTaskID, nil, serviceadapter.NewUnknownFailureError(""))
-			_, redeployErr = b.Upgrade(context.Background(), instanceID, details, logger)
+			_, _, redeployErr = b.Upgrade(context.Background(), instanceID, details, logger)
 
 			Expect(redeployErr).To(MatchError(ContainSubstring("There was a problem completing your request. Please contact your operations team providing the following information")))
 		})
@@ -140,7 +141,7 @@ var _ = Describe("Upgrade", func() {
 
 	It("when no update details are provided returns an error", func() {
 		details = domain.UpdateDetails{}
-		_, redeployErr = b.Upgrade(context.Background(), instanceID, details, logger)
+		_, _, redeployErr = b.Upgrade(context.Background(), instanceID, details, logger)
 
 		Expect(redeployErr).To(MatchError(ContainSubstring("no plan ID provided in upgrade request body")))
 	})
@@ -151,7 +152,7 @@ var _ = Describe("Upgrade", func() {
 		details = domain.UpdateDetails{
 			PlanID: planID,
 		}
-		_, redeployErr = b.Upgrade(context.Background(), instanceID, details, logger)
+		_, _, redeployErr = b.Upgrade(context.Background(), instanceID, details, logger)
 
 		Expect(redeployErr).To(MatchError(ContainSubstring(fmt.Sprintf("plan %s not found", planID))))
 		Expect(logBuffer.String()).To(ContainSubstring(fmt.Sprintf("error: finding plan ID %s", planID)))
@@ -160,7 +161,7 @@ var _ = Describe("Upgrade", func() {
 
 	It("when there is a task in progress on the instance upgrade returns an OperationInProgressError", func() {
 		fakeDeployer.UpgradeReturns(0, nil, broker.TaskInProgressError{})
-		_, redeployErr = b.Upgrade(context.Background(), instanceID, details, logger)
+		_, _, redeployErr = b.Upgrade(context.Background(), instanceID, details, logger)
 
 		Expect(redeployErr).To(BeAssignableToTypeOf(broker.OperationInProgressError{}))
 	})
@@ -170,10 +171,78 @@ var _ = Describe("Upgrade", func() {
 		fakeAdapter.GeneratePlanSchemaReturns(domain.ServiceSchemas{}, fmt.Errorf("derp!"))
 		broker := createBrokerWithAdapter(fakeAdapter)
 
-		_, upgradeErr := broker.Upgrade(context.Background(), instanceID, details, logger)
+		_, _, upgradeErr := broker.Upgrade(context.Background(), instanceID, details, logger)
 
 		Expect(fakeAdapter.GeneratePlanSchemaCallCount()).To(Equal(0))
 		Expect(upgradeErr).NotTo(HaveOccurred())
+	})
+
+	Context("regenerating the dashboard url", func() {
+		var (
+			newlyGeneratedManifest []byte
+			expectedDashboardURL   string
+		)
+
+		BeforeEach(func() {
+			fakeDecider.DecideOperationReturns(decider.Update, nil)
+			expectedDashboardURL = "http://example.com/dashboard"
+			serviceAdapter.GenerateDashboardUrlReturns(expectedDashboardURL, nil)
+			newlyGeneratedManifest = []byte("name: new-name")
+			fakeDeployer.UpgradeReturns(boshTaskID, newlyGeneratedManifest, nil)
+		})
+
+		It("calls the adapter", func() {
+			_, _, upgradeError := b.Upgrade(context.Background(), instanceID, details, logger)
+			Expect(upgradeError).NotTo(HaveOccurred())
+
+			Expect(serviceAdapter.GenerateDashboardUrlCallCount()).To(Equal(1))
+			instanceID, plan, boshManifest, _ := serviceAdapter.GenerateDashboardUrlArgsForCall(0)
+			Expect(instanceID).To(Equal(instanceID))
+			expectedProperties := sdk.Properties{
+				"some_other_global_property": "other_global_value",
+				"a_global_property":          "global_value",
+				"super":                      "no",
+			}
+			Expect(plan).To(Equal(sdk.Plan{
+				Properties:     expectedProperties,
+				InstanceGroups: existingPlan.InstanceGroups,
+				Update:         existingPlan.Update,
+			}))
+			Expect(boshManifest).To(Equal(newlyGeneratedManifest))
+		})
+
+		It("returns the dashboard url in the response", func() {
+			_, dashboardURL, _ := b.Upgrade(context.Background(), instanceID, details, logger)
+
+			Expect(dashboardURL).To(Equal(expectedDashboardURL))
+		})
+
+		When("generating the dashboard fails", func() {
+			BeforeEach(func() {
+				fakeUAAClient.GetClientReturns(map[string]string{"a": "b"}, nil)
+				serviceAdapter.GenerateDashboardUrlReturns("", errors.New("fooo"))
+			})
+
+			It("returns a failure", func() {
+				_, _, upgradeError := b.Upgrade(context.Background(), instanceID, details, logger)
+
+				Expect(upgradeError).To(MatchError(
+					ContainSubstring("There was a problem completing your request"),
+				))
+			})
+
+			When("its not implemented", func() {
+				BeforeEach(func() {
+					fakeUAAClient.GetClientReturns(map[string]string{"a": "b"}, nil)
+					serviceAdapter.GenerateDashboardUrlReturns("", serviceadapter.NewNotImplementedError("not implemented"))
+				})
+
+				It("succeeds", func() {
+					_, _, upgradeError := b.Upgrade(context.Background(), instanceID, details, logger)
+					Expect(upgradeError).NotTo(HaveOccurred())
+				})
+			})
+		})
 	})
 
 	Context("the service instance UAA client", func() {
@@ -194,7 +263,7 @@ var _ = Describe("Upgrade", func() {
 		})
 
 		It("passes the client to the deployer", func() {
-			_, upgradeError := b.Upgrade(context.Background(), instanceID, details, logger)
+			_, _, upgradeError := b.Upgrade(context.Background(), instanceID, details, logger)
 			Expect(upgradeError).NotTo(HaveOccurred())
 
 			Expect(fakeDeployer.UpgradeCallCount()).To(Equal(1))
@@ -203,25 +272,8 @@ var _ = Describe("Upgrade", func() {
 		})
 
 		It("updates the service instance client", func() {
-			_, upgradeError := b.Upgrade(context.Background(), instanceID, details, logger)
+			_, _, upgradeError := b.Upgrade(context.Background(), instanceID, details, logger)
 			Expect(upgradeError).NotTo(HaveOccurred())
-
-			By("regenerating the dashboard url", func() {
-				Expect(serviceAdapter.GenerateDashboardUrlCallCount()).To(Equal(1))
-				instanceID, plan, boshManifest, _ := serviceAdapter.GenerateDashboardUrlArgsForCall(0)
-				Expect(instanceID).To(Equal(instanceID))
-				expectedProperties := sdk.Properties{
-					"some_other_global_property": "other_global_value",
-					"a_global_property":          "global_value",
-					"super":                      "no",
-				}
-				Expect(plan).To(Equal(sdk.Plan{
-					Properties:     expectedProperties,
-					InstanceGroups: existingPlan.InstanceGroups,
-					Update:         existingPlan.Update,
-				}))
-				Expect(boshManifest).To(Equal(newlyGeneratedManifest))
-			})
 
 			Expect(fakeUAAClient.UpdateClientCallCount()).To(Equal(1))
 			actualClientID, actualRedirectURI := fakeUAAClient.UpdateClientArgsForCall(0)
@@ -235,7 +287,7 @@ var _ = Describe("Upgrade", func() {
 				fakeUAAClient.GetClientReturns(map[string]string{"client_id": "1"}, nil)
 				fakeUAAClient.UpdateClientReturns(nil, errors.New("oh no"))
 
-				_, upgradeError := b.Upgrade(context.Background(), instanceID, details, logger)
+				_, _, upgradeError := b.Upgrade(context.Background(), instanceID, details, logger)
 
 				Expect(upgradeError).To(HaveOccurred())
 				Expect(upgradeError).To(MatchError(ContainSubstring(
@@ -248,24 +300,12 @@ var _ = Describe("Upgrade", func() {
 			It("returns a generic error message", func() {
 				fakeUAAClient.GetClientReturns(nil, errors.New("oh no"))
 
-				_, upgradeError := b.Upgrade(context.Background(), instanceID, details, logger)
+				_, _, upgradeError := b.Upgrade(context.Background(), instanceID, details, logger)
 
 				Expect(upgradeError).To(HaveOccurred())
 				Expect(upgradeError).To(MatchError(ContainSubstring(
 					"There was a problem completing your request. Please contact your operations team providing the following information:",
 				)))
-			})
-		})
-
-		When("generating the dashboard fails", func() {
-			It("returns a generic error", func() {
-				fakeUAAClient.GetClientReturns(map[string]string{"a": "b"}, nil)
-				serviceAdapter.GenerateDashboardUrlReturns("", errors.New("fooo"))
-				_, upgradeError := b.Upgrade(context.Background(), instanceID, details, logger)
-
-				Expect(upgradeError).To(MatchError(
-					ContainSubstring("There was a problem completing your request"),
-				))
 			})
 		})
 	})

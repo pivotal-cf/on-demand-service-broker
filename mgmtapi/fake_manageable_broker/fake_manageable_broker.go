@@ -70,7 +70,7 @@ type FakeManageableBroker struct {
 		result1 broker.OperationData
 		result2 error
 	}
-	UpgradeStub        func(context.Context, string, domain.UpdateDetails, *log.Logger) (broker.OperationData, error)
+	UpgradeStub        func(context.Context, string, domain.UpdateDetails, *log.Logger) (broker.OperationData, string, error)
 	upgradeMutex       sync.RWMutex
 	upgradeArgsForCall []struct {
 		arg1 context.Context
@@ -80,11 +80,13 @@ type FakeManageableBroker struct {
 	}
 	upgradeReturns struct {
 		result1 broker.OperationData
-		result2 error
+		result2 string
+		result3 error
 	}
 	upgradeReturnsOnCall map[int]struct {
 		result1 broker.OperationData
-		result2 error
+		result2 string
+		result3 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -346,7 +348,7 @@ func (fake *FakeManageableBroker) RecreateReturnsOnCall(i int, result1 broker.Op
 	}{result1, result2}
 }
 
-func (fake *FakeManageableBroker) Upgrade(arg1 context.Context, arg2 string, arg3 domain.UpdateDetails, arg4 *log.Logger) (broker.OperationData, error) {
+func (fake *FakeManageableBroker) Upgrade(arg1 context.Context, arg2 string, arg3 domain.UpdateDetails, arg4 *log.Logger) (broker.OperationData, string, error) {
 	fake.upgradeMutex.Lock()
 	ret, specificReturn := fake.upgradeReturnsOnCall[len(fake.upgradeArgsForCall)]
 	fake.upgradeArgsForCall = append(fake.upgradeArgsForCall, struct {
@@ -361,10 +363,10 @@ func (fake *FakeManageableBroker) Upgrade(arg1 context.Context, arg2 string, arg
 		return fake.UpgradeStub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
-		return ret.result1, ret.result2
+		return ret.result1, ret.result2, ret.result3
 	}
 	fakeReturns := fake.upgradeReturns
-	return fakeReturns.result1, fakeReturns.result2
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
 func (fake *FakeManageableBroker) UpgradeCallCount() int {
@@ -373,7 +375,7 @@ func (fake *FakeManageableBroker) UpgradeCallCount() int {
 	return len(fake.upgradeArgsForCall)
 }
 
-func (fake *FakeManageableBroker) UpgradeCalls(stub func(context.Context, string, domain.UpdateDetails, *log.Logger) (broker.OperationData, error)) {
+func (fake *FakeManageableBroker) UpgradeCalls(stub func(context.Context, string, domain.UpdateDetails, *log.Logger) (broker.OperationData, string, error)) {
 	fake.upgradeMutex.Lock()
 	defer fake.upgradeMutex.Unlock()
 	fake.UpgradeStub = stub
@@ -386,30 +388,33 @@ func (fake *FakeManageableBroker) UpgradeArgsForCall(i int) (context.Context, st
 	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
 }
 
-func (fake *FakeManageableBroker) UpgradeReturns(result1 broker.OperationData, result2 error) {
+func (fake *FakeManageableBroker) UpgradeReturns(result1 broker.OperationData, result2 string, result3 error) {
 	fake.upgradeMutex.Lock()
 	defer fake.upgradeMutex.Unlock()
 	fake.UpgradeStub = nil
 	fake.upgradeReturns = struct {
 		result1 broker.OperationData
-		result2 error
-	}{result1, result2}
+		result2 string
+		result3 error
+	}{result1, result2, result3}
 }
 
-func (fake *FakeManageableBroker) UpgradeReturnsOnCall(i int, result1 broker.OperationData, result2 error) {
+func (fake *FakeManageableBroker) UpgradeReturnsOnCall(i int, result1 broker.OperationData, result2 string, result3 error) {
 	fake.upgradeMutex.Lock()
 	defer fake.upgradeMutex.Unlock()
 	fake.UpgradeStub = nil
 	if fake.upgradeReturnsOnCall == nil {
 		fake.upgradeReturnsOnCall = make(map[int]struct {
 			result1 broker.OperationData
-			result2 error
+			result2 string
+			result3 error
 		})
 	}
 	fake.upgradeReturnsOnCall[i] = struct {
 		result1 broker.OperationData
-		result2 error
-	}{result1, result2}
+		result2 string
+		result3 error
+	}{result1, result2, result3}
 }
 
 func (fake *FakeManageableBroker) Invocations() map[string][][]interface{} {
