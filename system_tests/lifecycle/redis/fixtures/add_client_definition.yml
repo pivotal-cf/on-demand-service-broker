@@ -2,7 +2,7 @@
   path: /instance_groups/name=broker/jobs/name=broker/properties/cf/uaa/client_definition?
   value:
     scopes: cloud_controller.read,cloud_controller.write
-    authorized_grant_types: client_credentials
+    authorized_grant_types: implicit
     authorities: cloud_controller.admin
     resource_ids: res1,res2
 

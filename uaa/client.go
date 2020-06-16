@@ -13,6 +13,8 @@ import (
 	"time"
 )
 
+const placehoderRedirectURI = "https://placeholder.example.com"
+
 type Client struct {
 	config    config.UAAConfig
 	apiClient APIClient
@@ -74,14 +76,23 @@ func (c *Client) CreateClient(clientID, name string) (map[string]string, error) 
 		return nil, nil
 	}
 
-	clientSecret := c.RandFunc()
+	grantTypes := c.config.ClientDefinition.AuthorizedGrantTypes
+
 	m := map[string]string{
 		"client_id":              clientID,
-		"client_secret":          clientSecret,
 		"scopes":                 c.config.ClientDefinition.Scopes,
 		"resource_ids":           c.config.ClientDefinition.ResourceIDs,
 		"authorities":            c.config.ClientDefinition.Authorities,
-		"authorized_grant_types": c.config.ClientDefinition.AuthorizedGrantTypes,
+		"authorized_grant_types": grantTypes,
+	}
+
+	var clientSecret string
+	if strings.Contains(grantTypes, "implicit") {
+		// UAA does not allow `implicit` clients to be created without a redirect uri
+		m["redirect_uri"] = placehoderRedirectURI
+	} else {
+		clientSecret = c.RandFunc()
+		m["client_secret"] = clientSecret
 	}
 
 	if name != "" {
@@ -153,6 +164,7 @@ func (c *Client) transformToMap(resp *gouaa.Client, secret string) map[string]st
 		"resource_ids":           fromSlice(resp.ResourceIDs),
 		"authorities":            fromSlice(resp.Authorities),
 		"authorized_grant_types": fromSlice(resp.AuthorizedGrantTypes),
+		"redirect_uri":           fromSlice(resp.RedirectURI),
 	}
 }
 

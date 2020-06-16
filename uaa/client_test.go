@@ -131,19 +131,7 @@ var _ = Describe("UAA", func() {
 				createHandler.RespondsWith(http.StatusCreated, createJsonResponse)
 			})
 
-			It("doesn't go to uaa when client definition is not provided", func() {
-				uaaConfig.ClientDefinition = config.ClientDefinition{}
-				uaaClient, err := uaa.New(uaaConfig, trustedCert)
-				Expect(err).NotTo(HaveOccurred())
-
-				actualClient, err := uaaClient.CreateClient("some-client-id", "some-name")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(actualClient).To(BeNil())
-
-				Expect(createHandler.RequestsReceived()).To(Equal(0))
-			})
-
-			It("creates and returns a client map", func() {
+			It("creates a client on UAA and returns a client map", func() {
 				uaaClient.RandFunc = func() string {
 					return "superrandomsecret"
 				}
@@ -179,6 +167,54 @@ var _ = Describe("UAA", func() {
 						}`,
 					), "Expected request body mismatch")
 				})
+			})
+
+			When("the definition has implicit grant type", func() {
+				BeforeEach(func() {
+					uaaConfig.ClientDefinition.AuthorizedGrantTypes = "implicit"
+					uaaClient, _ = uaa.New(uaaConfig, trustedCert)
+				})
+
+				It("does not generate a secret", func() {
+					uaaClient.RandFunc = func() string {
+						Fail("secret should not be generated")
+						return ""
+					}
+
+					actualClient, err := uaaClient.CreateClient("some-client-id", "some-name")
+					Expect(err).NotTo(HaveOccurred())
+					Expect(actualClient["client_secret"]).To(BeEmpty())
+				})
+
+				It("generates the client with a placeholder redirect uri", func() {
+					_, err := uaaClient.CreateClient("some-client-id", "some-name")
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(createHandler.RequestsReceived()).To(Equal(1))
+					request := createHandler.GetRequestForCall(0)
+					Expect(request.Body).To(MatchJSON(`
+					{
+						"scope": [ "admin", "read", "write" ],
+						"client_id": "some-client-id",
+						"resource_ids": ["resource1", "resource2"],
+						"authorized_grant_types": [ "implicit" ],
+						"authorities": [ "some-authority", "another-authority" ],
+						"name": "some-name",
+						"redirect_uri": [ "https://placeholder.example.com" ]
+					}`), "Expected request body mismatch")
+				})
+			})
+
+			It("doesn't go to uaa when client definition is not provided", func() {
+				uaaConfig.ClientDefinition = config.ClientDefinition{}
+				uaaClient, err := uaa.New(uaaConfig, trustedCert)
+				Expect(err).NotTo(HaveOccurred())
+
+				actualClient, err := uaaClient.CreateClient("some-client-id", "some-name")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(actualClient).To(BeNil())
+
+				Expect(createHandler.RequestsReceived()).To(Equal(0))
 			})
 
 			It("generates a new password every time it is called", func() {

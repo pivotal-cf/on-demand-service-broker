@@ -48,6 +48,7 @@ export BOSH_NON_INTERACTIVE=true
 
 export CF_URL="$(bosh int --path /cf/api_url "$BOSH_DEPLOYMENT_VARS")"
 export CF_UAA_URL="https://uaa.$BOSH_LITE_DOMAIN"
+export CF_CA_CERT="$(bosh int --path /cf/uaa/ca_cert "$BOSH_DEPLOYMENT_VARS" 2>/dev/null)"
 export CF_CLIENT_ID="$(bosh int --path /cf/client_credentials/client_id "$BOSH_DEPLOYMENT_VARS" 2>/dev/null)"
 export CF_CLIENT_SECRET="$(bosh int --path /cf/client_credentials/client_secret "$BOSH_DEPLOYMENT_VARS" 2>/dev/null)"
 export CF_USERNAME="$(bosh int --path /cf/user_credentials/username "$BOSH_DEPLOYMENT_VARS" 2>/dev/null)"
