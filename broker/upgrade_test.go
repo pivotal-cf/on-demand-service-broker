@@ -34,13 +34,15 @@ var _ = Describe("Upgrade", func() {
 		redeployErr          error
 		fakeUAAClient        *brokerfakes.FakeUAAClient
 		expectedClient       map[string]string
+		arbContext           map[string]interface{}
 	)
 
 	BeforeEach(func() {
 		instanceID = "some-instance"
 		boshTaskID = 876
-		arbContext := map[string]interface{}{
+		arbContext = map[string]interface{}{
 			"instance_name": "some-instance-name",
+			"space_guid":    "a-space-guid",
 		}
 		serialisedArbitraryContext, _ := json.Marshal(arbContext)
 		details = domain.UpdateDetails{
@@ -69,8 +71,11 @@ var _ = Describe("Upgrade", func() {
 		Expect(fakeDeployer.CreateCallCount()).To(Equal(0))
 		Expect(fakeDeployer.UpgradeCallCount()).To(Equal(1))
 		Expect(fakeDeployer.UpdateCallCount()).To(Equal(0))
-		actualDeploymentName, actualPlan, actualBoshContextID, _, _ := fakeDeployer.UpgradeArgsForCall(0)
+		actualDeploymentName, actualPlan, actualRequestParams, actualBoshContextID, _, _ := fakeDeployer.UpgradeArgsForCall(0)
 		Expect(actualPlan).To(Equal(existingPlan))
+		Expect(actualRequestParams).To(Equal(map[string]interface{}{
+			"context": arbContext,
+		}))
 		Expect(actualDeploymentName).To(Equal(broker.InstancePrefix + instanceID))
 		Expect(actualBoshContextID).To(BeEmpty())
 	})
@@ -107,7 +112,7 @@ var _ = Describe("Upgrade", func() {
 
 			upgradeOperationData, _, _ = b.Upgrade(context.Background(), instanceID, details, logger)
 
-			_, _, contextID, _, _ := fakeDeployer.UpgradeArgsForCall(0)
+			_, _, _, contextID, _, _ := fakeDeployer.UpgradeArgsForCall(0)
 			Expect(contextID).NotTo(BeEmpty())
 			Expect(upgradeOperationData.BoshContextID).NotTo(BeEmpty())
 			Expect(upgradeOperationData).To(Equal(
@@ -267,7 +272,7 @@ var _ = Describe("Upgrade", func() {
 			Expect(upgradeError).NotTo(HaveOccurred())
 
 			Expect(fakeDeployer.UpgradeCallCount()).To(Equal(1))
-			_, _, _, actualClient, _ := fakeDeployer.UpgradeArgsForCall(0)
+			_, _, _, _, actualClient, _ := fakeDeployer.UpgradeArgsForCall(0)
 			Expect(actualClient).To(Equal(existingClient))
 		})
 

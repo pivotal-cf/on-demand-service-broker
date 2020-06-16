@@ -50,12 +50,17 @@ func (b *Broker) Update(
 		return b.doUpgrade(ctx, instanceID, details, logger)
 	}
 
-	instanceClient, err := b.GetServiceInstanceClient(instanceID, details.RawContext)
+	detailsMap, err := convertDetailsToMap(domain.DetailsWithRawParameters(details))
 	if err != nil {
 		return domain.UpdateServiceSpec{}, b.processError(NewGenericError(ctx, err), logger)
 	}
 
-	return b.doUpdate(ctx, instanceID, details, instanceClient, logger)
+	instanceClient, err := b.GetServiceInstanceClient(instanceID, detailsMap)
+	if err != nil {
+		return domain.UpdateServiceSpec{}, b.processError(NewGenericError(ctx, err), logger)
+	}
+
+	return b.doUpdate(ctx, instanceID, details, detailsMap, instanceClient, logger)
 }
 
 func (b *Broker) doUpgrade(ctx context.Context, instanceID string, details domain.UpdateDetails, logger *log.Logger) (domain.UpdateServiceSpec, error) {
@@ -75,7 +80,7 @@ func (b *Broker) doUpgrade(ctx context.Context, instanceID string, details domai
 	return domain.UpdateServiceSpec{IsAsync: true, OperationData: string(operationDataJSON), DashboardURL: dashboardURL}, nil
 }
 
-func (b *Broker) doUpdate(ctx context.Context, instanceID string, details domain.UpdateDetails, siClient map[string]string, logger *log.Logger) (domain.UpdateServiceSpec, error) {
+func (b *Broker) doUpdate(ctx context.Context, instanceID string, details domain.UpdateDetails, detailsMap map[string]interface{}, siClient map[string]string, logger *log.Logger) (domain.UpdateServiceSpec, error) {
 	b.deploymentLock.Lock()
 	defer b.deploymentLock.Unlock()
 
@@ -98,11 +103,6 @@ func (b *Broker) doUpdate(ctx context.Context, instanceID string, details domain
 	}
 
 	secretMap, err := b.getSecretMap(instanceID, logger)
-	if err != nil {
-		return domain.UpdateServiceSpec{}, b.processError(NewGenericError(ctx, err), logger)
-	}
-
-	detailsMap, err := convertDetailsToMap(domain.DetailsWithRawParameters(details))
 	if err != nil {
 		return domain.UpdateServiceSpec{}, b.processError(NewGenericError(ctx, err), logger)
 	}

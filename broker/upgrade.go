@@ -39,7 +39,16 @@ func (b *Broker) Upgrade(ctx context.Context, instanceID string, details domain.
 		boshContextID = uuid.New()
 	}
 
-	instanceClient, err := b.GetServiceInstanceClient(instanceID, details.RawContext)
+	rawCtx, err := convertToMap(details.RawContext)
+	if err != nil {
+		return OperationData{}, "", b.processError(fmt.Errorf("invalid request context"), logger)
+	}
+
+	contextMap := map[string]interface{}{
+		"context": rawCtx,
+	}
+
+	instanceClient, err := b.GetServiceInstanceClient(instanceID, contextMap)
 	if err != nil {
 		return OperationData{}, "", b.processError(NewGenericError(ctx, err), logger)
 	}
@@ -47,6 +56,7 @@ func (b *Broker) Upgrade(ctx context.Context, instanceID string, details domain.
 	taskID, manifest, err := b.deployer.Upgrade(
 		deploymentName(instanceID),
 		plan,
+		contextMap,
 		boshContextID,
 		instanceClient,
 		logger,

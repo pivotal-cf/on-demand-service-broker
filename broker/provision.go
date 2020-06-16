@@ -68,7 +68,11 @@ func (b *Broker) Provision(
 		return domain.ProvisionedServiceSpec{}, b.processError(NewBoshRequestError("create", err), logger)
 	}
 
-	instanceName := getInstanceNameFromContext(details.GetRawContext())
+	requestContext := requestParams["context"]
+	var instanceName string
+	if requestContext != nil {
+		instanceName = getInstanceNameFromContext(requestContext.(map[string]interface{}))
+	}
 
 	operationData, dashboardURL, err := b.provisionInstance(
 		ctx,
@@ -95,17 +99,11 @@ func (b *Broker) Provision(
 	}, nil
 }
 
-func getInstanceNameFromContext(rawContext json.RawMessage) string {
+func getInstanceNameFromContext(contextMap map[string]interface{}) string {
 	var name string
-	rawCtx, err := convertToMap(rawContext)
-	if err != nil {
-		return name
-	}
-
-	if rawName, found := rawCtx["instance_name"]; found {
+	if rawName, found := contextMap["instance_name"]; found {
 		name = rawName.(string)
 	}
-
 	return name
 }
 

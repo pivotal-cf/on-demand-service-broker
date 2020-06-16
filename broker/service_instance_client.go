@@ -1,17 +1,16 @@
 package broker
 
 import (
-	"encoding/json"
 	"log"
 )
 
-func (b *Broker) GetServiceInstanceClient(instanceID string, rawContext json.RawMessage) (map[string]string, error) {
+func (b *Broker) GetServiceInstanceClient(instanceID string, contextMap map[string]interface{}) (map[string]string, error) {
 	instanceClient, err := b.uaaClient.GetClient(instanceID)
 	if err != nil {
 		return nil, err
 	}
 	if instanceClient == nil {
-		instanceClient, err = b.uaaClient.CreateClient(instanceID, getInstanceNameFromContext(rawContext))
+		instanceClient, err = b.uaaClient.CreateClient(instanceID, getInstanceNameFromContext(contextMap))
 		if err != nil {
 			return nil, err
 		}

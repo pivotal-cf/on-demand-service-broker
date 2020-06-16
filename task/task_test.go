@@ -336,6 +336,12 @@ var _ = Describe("Deployer", func() {
 			oldManifest = []byte("---\nold-manifest-fetched-from-bosh: bar")
 			previousPlanID = stringPointer(existingPlanID)
 
+			requestParams = map[string]interface{}{
+				"context": map[string]interface{}{
+					"platform": "cloudfoundry",
+				},
+			}
+
 			boshClient.GetDeploymentReturns(oldManifest, true, nil)
 			boshClient.GetTasksInProgressReturns(boshdirector.BoshTasks{}, nil)
 			boshClient.DeployReturns(42, nil)
@@ -353,6 +359,7 @@ var _ = Describe("Deployer", func() {
 				returnedTaskID, deployedManifest, deployError = deployer.Upgrade(
 					deploymentName,
 					plan,
+					requestParams,
 					boshContextID,
 					uaaClientMap,
 					logger,
@@ -385,9 +392,10 @@ var _ = Describe("Deployer", func() {
 				By("logging the bosh task ID returned by the director")
 				Expect(logBuffer.String()).To(ContainSubstring(fmt.Sprintf("Bosh task ID for upgrade deployment %s is %d", deploymentName, boshTaskID)))
 
-				By("passing the updated uaa client to generate manifest")
+				By("passing the right arguments to generate manifest")
 				generateManifestProps, _ := manifestGenerator.GenerateManifestArgsForCall(0)
 				Expect(generateManifestProps.UAAClient).To(Equal(uaaClientMap))
+				Expect(generateManifestProps.RequestParams).To(Equal(requestParams))
 			})
 
 			Context("when bosh context ID is provided", func() {
@@ -399,6 +407,7 @@ var _ = Describe("Deployer", func() {
 					returnedTaskID, deployedManifest, deployError = deployer.Upgrade(
 						deploymentName,
 						plan,
+						requestParams,
 						boshContextID,
 						uaaClientMap,
 						logger,
@@ -420,6 +429,7 @@ var _ = Describe("Deployer", func() {
 				returnedTaskID, deployedManifest, deployError = deployer.Upgrade(
 					deploymentName,
 					plan,
+					requestParams,
 					boshContextID,
 					uaaClientMap,
 					logger,
@@ -439,6 +449,7 @@ var _ = Describe("Deployer", func() {
 				returnedTaskID, deployedManifest, deployError = deployer.Upgrade(
 					deploymentName,
 					plan,
+					requestParams,
 					boshContextID,
 					uaaClientMap,
 					logger,
@@ -453,6 +464,7 @@ var _ = Describe("Deployer", func() {
 			returnedTaskID, deployedManifest, deployError = deployer.Upgrade(
 				deploymentName,
 				plan,
+				requestParams,
 				boshContextID,
 				uaaClientMap,
 				logger,
@@ -473,6 +485,7 @@ var _ = Describe("Deployer", func() {
 					_, _, deployError = deployer.Upgrade(
 						deploymentName,
 						plan,
+						requestParams,
 						boshContextID,
 						uaaClientMap,
 						logger,
@@ -491,6 +504,7 @@ var _ = Describe("Deployer", func() {
 					_, _, deployError = deployer.Upgrade(
 						deploymentName,
 						plan,
+						requestParams,
 						boshContextID,
 						uaaClientMap,
 						logger,
@@ -509,6 +523,7 @@ var _ = Describe("Deployer", func() {
 				returnedTaskID, deployedManifest, deployError = deployer.Upgrade(
 					deploymentName,
 					plan,
+					requestParams,
 					boshContextID,
 					uaaClientMap,
 					logger,
@@ -525,6 +540,7 @@ var _ = Describe("Deployer", func() {
 				returnedTaskID, deployedManifest, deployError = deployer.Upgrade(
 					deploymentName,
 					plan,
+					requestParams,
 					boshContextID,
 					uaaClientMap,
 					logger,
@@ -542,6 +558,7 @@ var _ = Describe("Deployer", func() {
 				returnedTaskID, deployedManifest, deployError = deployer.Upgrade(
 					deploymentName,
 					plan,
+					requestParams,
 					boshContextID,
 					uaaClientMap,
 					logger,
@@ -559,6 +576,7 @@ var _ = Describe("Deployer", func() {
 				returnedTaskID, deployedManifest, deployError = deployer.Upgrade(
 					deploymentName,
 					plan,
+					requestParams,
 					boshContextID,
 					uaaClientMap,
 					logger,

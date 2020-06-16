@@ -1,7 +1,6 @@
 package broker_test
 
 import (
-	"encoding/json"
 	"errors"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -15,16 +14,16 @@ var _ = Describe("ServiceInstanceClient", func() {
 		instanceName   string
 		fakeUAAClient  *brokerfakes.FakeUAAClient
 		expectedClient map[string]string
-		rawContext     json.RawMessage
+		rawContext     map[string]interface{}
 		logger         *log.Logger
 	)
 
 	BeforeEach(func() {
 		instanceID = "some-instance"
 		instanceName = "some-instance-name"
-		rawContext, _ = json.Marshal(map[string]interface{}{
+		rawContext = map[string]interface{}{
 			"instance_name": instanceName,
-		})
+		}
 
 		fakeUAAClient = new(brokerfakes.FakeUAAClient)
 		b = createDefaultBroker()

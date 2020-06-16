@@ -202,7 +202,7 @@ type StartupChecker interface {
 type Deployer interface {
 	Create(deploymentName, planID string, requestParams map[string]interface{}, boshContextID string, uaaClient map[string]string, logger *log.Logger) (int, []byte, error)
 	Update(deploymentName, planID string, requestParams map[string]interface{}, previousPlanID *string, boshContextID string, secretsMap map[string]string, uaaClient map[string]string, logger *log.Logger) (int, []byte, error)
-	Upgrade(deploymentName string, plan config.Plan, boshContextID string, uaaClient map[string]string, logger *log.Logger) (int, []byte, error)
+	Upgrade(deploymentName string, plan config.Plan, requestParams map[string]interface{}, boshContextID string, uaaClient map[string]string, logger *log.Logger) (int, []byte, error)
 	Recreate(deploymentName, planID, boshContextID string, logger *log.Logger) (int, error)
 }
 

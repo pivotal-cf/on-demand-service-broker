@@ -104,6 +104,7 @@ func (d Deployer) Create(
 func (d Deployer) Upgrade(
 	deploymentName string,
 	plan config.Plan,
+	requestParams map[string]interface{},
 	boshContextID string,
 	uaaClientObject map[string]string,
 	logger *log.Logger,
@@ -133,6 +134,7 @@ func (d Deployer) Upgrade(
 		PreviousPlanID:  &plan.ID,
 		PreviousConfigs: oldConfigs,
 		UAAClient:       uaaClientObject,
+		RequestParams:   requestParams,
 	}
 
 	return d.doDeploy(generateManifestProperties, "upgrade", boshContextID, logger)
