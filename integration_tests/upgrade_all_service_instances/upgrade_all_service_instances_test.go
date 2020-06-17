@@ -77,6 +77,10 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 					gbytes.Say(`\[upgrade\-all\] FINISHED PROCESSING Status: SUCCESS`),
 					gbytes.Say("Number of successful operations: 1"),
 				))
+				Expect(upgradeHandler.GetRequestForCall(0).Body).To(MatchJSON(`{
+					"plan_id": "service-plan-id",
+					"context": {"space_guid": "the-space-guid"}
+				}`))
 			})
 
 			It("exits successfully when all instances are already up-to-date", func() {
@@ -174,8 +178,9 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 
 			When("a service instance plan is updated after upgrade-all starts but before instance upgrade", func() {
 				It("uses the new plan for the upgrade", func() {
-					serviceInstancesInitialResponse := fmt.Sprintf(`[{"plan_id": "service-plan-id", "service_instance_id": "%s"}]`, instanceID)
-					serviceInstancesResponseAfterPlanUpdate := fmt.Sprintf(`[{"plan_id": "service-plan-id-2", "service_instance_id": "%s"}]`, instanceID)
+					spaceGuid := "some-space-guid"
+					serviceInstancesInitialResponse := fmt.Sprintf(`[{"plan_id": "service-plan-id", "service_instance_id": "%s", "space_guid": "%s"}]`, instanceID, spaceGuid)
+					serviceInstancesResponseAfterPlanUpdate := fmt.Sprintf(`[{"plan_id": "service-plan-id-2", "service_instance_id": "%s", "space_guid": "%s"}]`, instanceID, spaceGuid)
 
 					serviceInstancesHandler.RespondsOnCall(0, http.StatusOK, serviceInstancesInitialResponse)
 					serviceInstancesHandler.RespondsOnCall(1, http.StatusOK, serviceInstancesResponseAfterPlanUpdate)
@@ -189,7 +194,10 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 						gbytes.Say("Number of successful operations: 1"),
 					))
 
-					Expect(upgradeHandler.GetRequestForCall(0).Body).To(Equal(`{"plan_id": "service-plan-id-2"}`))
+					Expect(upgradeHandler.GetRequestForCall(0).Body).To(MatchJSON(fmt.Sprintf(`{
+						"plan_id": "service-plan-id-2",
+						"context": {"space_guid": %q}
+					}`, spaceGuid)))
 				})
 			})
 
@@ -402,7 +410,8 @@ func handleServiceInstanceList(broker *ghttp.Server) (*FakeHandler, string, stri
 		serviceInstancesHandler.Handle,
 	))
 	instanceID := "service-instance-id"
-	serviceInstances := fmt.Sprintf(`[{"plan_id": "service-plan-id", "service_instance_id": "%s"}]`, instanceID)
+	response := `[{"plan_id": "service-plan-id", "service_instance_id": "%s", "space_guid": "the-space-guid"}]`
+	serviceInstances := fmt.Sprintf(response, instanceID)
 	serviceInstancesHandler.RespondsWith(http.StatusOK, serviceInstances)
 
 	return serviceInstancesHandler, instanceID, serviceInstances

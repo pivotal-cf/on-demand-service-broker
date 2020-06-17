@@ -61,6 +61,7 @@ var _ = Describe("ServiceInstancesClient", func() {
 							"guid": "fake-service-instance-guid"
 						},
 						"entity": {
+							"space_guid": "space-id",
 							"service_plan_url": "fake-url",
 							"maintenance_info": {
 								"version": "1.2.3"
@@ -84,6 +85,7 @@ var _ = Describe("ServiceInstancesClient", func() {
 					GUID: "fake-service-instance-guid",
 				},
 				Entity: cf.ServiceInstanceEntity{
+					SpaceGUID: "space-id",
 					ServicePlanURL: "fake-url",
 					MaintenanceInfo: cf.MaintenanceInfo{
 						Version: "1.2.3",
@@ -127,9 +129,9 @@ var _ = Describe("ServiceInstancesClient", func() {
 			instances, err := client.GetServiceInstances(cf.GetInstancesFilter{ServiceOfferingID: offeringID}, testLogger)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(instances).To(ConsistOf(
-				cf.Instance{GUID: "520f8566-b727-4c67-8be8-d9285645e936", PlanUniqueID: "11789210-D743-4C65-9D38-C80B29F4D9C8"},
-				cf.Instance{GUID: "f897f40d-0b2d-474a-a5c9-98426a2cb4b8", PlanUniqueID: "22789210-D743-4C65-9D38-C80B29F4D9C8"},
-				cf.Instance{GUID: "2f759033-04a4-426b-bccd-01722036c152", PlanUniqueID: "22789210-D743-4C65-9D38-C80B29F4D9C8"},
+				cf.Instance{GUID: "520f8566-b727-4c67-8be8-d9285645e936", PlanUniqueID: "11789210-D743-4C65-9D38-C80B29F4D9C8", SpaceGUID: "a157c861-92bb-4f57-9108-f791260f66ab"},
+				cf.Instance{GUID: "f897f40d-0b2d-474a-a5c9-98426a2cb4b8", PlanUniqueID: "22789210-D743-4C65-9D38-C80B29F4D9C8", SpaceGUID: "a157c861-92bb-4f57-9108-f791260f66ab"},
+				cf.Instance{GUID: "2f759033-04a4-426b-bccd-01722036c152", PlanUniqueID: "22789210-D743-4C65-9D38-C80B29F4D9C8", SpaceGUID: "a157c861-92bb-4f57-9108-f791260f66ab"},
 			))
 		})
 
@@ -151,9 +153,21 @@ var _ = Describe("ServiceInstancesClient", func() {
 				instances, err := client.GetServiceInstances(cf.GetInstancesFilter{ServiceOfferingID: offeringID}, testLogger)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(instances).To(ConsistOf(
-					cf.Instance{GUID: "520f8566-b727-4c67-8be8-d9285645e936", PlanUniqueID: "11789210-D743-4C65-9D38-C80B29F4D9C8"},
-					cf.Instance{GUID: "f897f40d-0b2d-474a-a5c9-98426a2cb4b8", PlanUniqueID: "22789210-D743-4C65-9D38-C80B29F4D9C8"},
-					cf.Instance{GUID: "2f759033-04a4-426b-bccd-01722036c152", PlanUniqueID: "22789210-D743-4C65-9D38-C80B29F4D9C8"},
+					cf.Instance{
+						GUID:         "520f8566-b727-4c67-8be8-d9285645e936",
+						PlanUniqueID: "11789210-D743-4C65-9D38-C80B29F4D9C8",
+						SpaceGUID:    "a157c861-92bb-4f57-9108-f791260f66ab",
+					},
+					cf.Instance{
+						GUID:         "f897f40d-0b2d-474a-a5c9-98426a2cb4b8",
+						PlanUniqueID: "22789210-D743-4C65-9D38-C80B29F4D9C8",
+						SpaceGUID:    "a157c861-92bb-4f57-9108-f791260f66ab",
+					},
+					cf.Instance{
+						GUID:         "2f759033-04a4-426b-bccd-01722036c152",
+						PlanUniqueID: "22789210-D743-4C65-9D38-C80B29F4D9C8",
+						SpaceGUID:    "a157c861-92bb-4f57-9108-f791260f66ab",
+					},
 				))
 			})
 		})
@@ -176,9 +190,21 @@ var _ = Describe("ServiceInstancesClient", func() {
 				instances, err := client.GetServiceInstances(cf.GetInstancesFilter{ServiceOfferingID: offeringID}, testLogger)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(instances).To(ConsistOf(
-					cf.Instance{GUID: "520f8566-b727-4c67-8be8-d9285645e936", PlanUniqueID: "11789210-D743-4C65-9D38-C80B29F4D9C8"},
-					cf.Instance{GUID: "f897f40d-0b2d-474a-a5c9-98426a2cb4b8", PlanUniqueID: "22789210-D743-4C65-9D38-C80B29F4D9C8"},
-					cf.Instance{GUID: "2f759033-04a4-426b-bccd-01722036c152", PlanUniqueID: "22789210-D743-4C65-9D38-C80B29F4D9C8"},
+					cf.Instance{
+						GUID:         "520f8566-b727-4c67-8be8-d9285645e936",
+						PlanUniqueID: "11789210-D743-4C65-9D38-C80B29F4D9C8",
+						SpaceGUID:    "a157c861-92bb-4f57-9108-f791260f66ab",
+					},
+					cf.Instance{
+						GUID:         "f897f40d-0b2d-474a-a5c9-98426a2cb4b8",
+						PlanUniqueID: "22789210-D743-4C65-9D38-C80B29F4D9C8",
+						SpaceGUID:    "a157c861-92bb-4f57-9108-f791260f66ab",
+					},
+					cf.Instance{
+						GUID:         "2f759033-04a4-426b-bccd-01722036c152",
+						PlanUniqueID: "22789210-D743-4C65-9D38-C80B29F4D9C8",
+						SpaceGUID:    "a157c861-92bb-4f57-9108-f791260f66ab",
+					},
 				))
 			})
 		})
@@ -201,9 +227,21 @@ var _ = Describe("ServiceInstancesClient", func() {
 				instances, err := client.GetServiceInstances(cf.GetInstancesFilter{ServiceOfferingID: offeringID}, testLogger)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(instances).To(ConsistOf(
-					cf.Instance{GUID: "520f8566-b727-4c67-8be8-d9285645e936", PlanUniqueID: "11789210-D743-4C65-9D38-C80B29F4D9C8"},
-					cf.Instance{GUID: "f897f40d-0b2d-474a-a5c9-98426a2cb4b8", PlanUniqueID: "22789210-D743-4C65-9D38-C80B29F4D9C8"},
-					cf.Instance{GUID: "2f759033-04a4-426b-bccd-01722036c152", PlanUniqueID: "22789210-D743-4C65-9D38-C80B29F4D9C8"},
+					cf.Instance{
+						GUID:         "520f8566-b727-4c67-8be8-d9285645e936",
+						PlanUniqueID: "11789210-D743-4C65-9D38-C80B29F4D9C8",
+						SpaceGUID:    "a157c861-92bb-4f57-9108-f791260f66ab",
+					},
+					cf.Instance{
+						GUID:         "f897f40d-0b2d-474a-a5c9-98426a2cb4b8",
+						PlanUniqueID: "22789210-D743-4C65-9D38-C80B29F4D9C8",
+						SpaceGUID:    "a157c861-92bb-4f57-9108-f791260f66ab",
+					},
+					cf.Instance{
+						GUID:         "2f759033-04a4-426b-bccd-01722036c152",
+						PlanUniqueID: "22789210-D743-4C65-9D38-C80B29F4D9C8",
+						SpaceGUID:    "a157c861-92bb-4f57-9108-f791260f66ab",
+					},
 				))
 			})
 		})
@@ -313,9 +351,21 @@ var _ = Describe("ServiceInstancesClient", func() {
 				instances, err := client.GetServiceInstances(cf.GetInstancesFilter{ServiceOfferingID: offeringID, OrgName: orgName, SpaceName: spaceName}, testLogger)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(instances).To(ConsistOf(
-					cf.Instance{GUID: "520f8566-b727-4c67-8be8-d9285645e936", PlanUniqueID: "11789210-D743-4C65-9D38-C80B29F4D9C8"},
-					cf.Instance{GUID: "f897f40d-0b2d-474a-a5c9-98426a2cb4b8", PlanUniqueID: "22789210-D743-4C65-9D38-C80B29F4D9C8"},
-					cf.Instance{GUID: "2f759033-04a4-426b-bccd-01722036c152", PlanUniqueID: "22789210-D743-4C65-9D38-C80B29F4D9C8"},
+					cf.Instance{
+						GUID:         "520f8566-b727-4c67-8be8-d9285645e936",
+						PlanUniqueID: "11789210-D743-4C65-9D38-C80B29F4D9C8",
+						SpaceGUID:    "a157c861-92bb-4f57-9108-f791260f66ab",
+					},
+					cf.Instance{
+						GUID:         "f897f40d-0b2d-474a-a5c9-98426a2cb4b8",
+						PlanUniqueID: "22789210-D743-4C65-9D38-C80B29F4D9C8",
+						SpaceGUID:    "a157c861-92bb-4f57-9108-f791260f66ab",
+					},
+					cf.Instance{
+						GUID:         "2f759033-04a4-426b-bccd-01722036c152",
+						PlanUniqueID: "22789210-D743-4C65-9D38-C80B29F4D9C8",
+						SpaceGUID:    "a157c861-92bb-4f57-9108-f791260f66ab",
+					},
 				))
 			})
 

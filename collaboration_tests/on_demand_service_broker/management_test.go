@@ -87,10 +87,12 @@ var _ = Describe("Management API", func() {
 					{
 						GUID:         "service-instance-id",
 						PlanUniqueID: "plan-id",
+						SpaceGUID:    "space-id",
 					},
 					{
 						GUID:         "another-service-instance-id",
 						PlanUniqueID: "another-plan-id",
+						SpaceGUID:    "space-id",
 					},
 				}, nil)
 
@@ -102,8 +104,8 @@ var _ = Describe("Management API", func() {
 				By("returning the service instances")
 				Expect(bodyContent).To(MatchJSON(
 					`[
-					{"service_instance_id": "service-instance-id", "plan_id":"plan-id"},
-					{"service_instance_id": "another-service-instance-id", "plan_id":"another-plan-id"}
+					{"service_instance_id": "service-instance-id", "plan_id":"plan-id", "space_guid":"space-id"},
+					{"service_instance_id": "another-service-instance-id", "plan_id":"another-plan-id", "space_guid":"space-id"}
 				]`,
 				))
 			})
@@ -113,6 +115,7 @@ var _ = Describe("Management API", func() {
 					{
 						GUID:         "service-instance-id",
 						PlanUniqueID: "plan-id",
+						SpaceGUID:    "space-id",
 					},
 				}, nil)
 
@@ -123,7 +126,7 @@ var _ = Describe("Management API", func() {
 
 				By("returning the service instances")
 				Expect(bodyContent).To(MatchJSON(
-					`[{"service_instance_id": "service-instance-id", "plan_id":"plan-id"}]`,
+					`[{"service_instance_id": "service-instance-id", "plan_id":"plan-id", "space_guid":"space-id"}]`,
 				))
 				filter, _ := fakeCfClient.GetServiceInstancesArgsForCall(0)
 				Expect(filter.OrgName).To(Equal("banana"))

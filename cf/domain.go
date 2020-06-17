@@ -95,6 +95,7 @@ func (o LastOperation) IsDelete() bool {
 }
 
 type ServiceInstanceEntity struct {
+	SpaceGUID       string          `json:"space_guid"`
 	ServicePlanURL  string          `json:"service_plan_url"`
 	LastOperation   LastOperation   `json:"last_operation"`
 	MaintenanceInfo MaintenanceInfo `json:"maintenance_info"`

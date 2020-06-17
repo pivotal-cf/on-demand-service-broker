@@ -76,14 +76,17 @@ var _ = Describe("Management API", func() {
 				instance1 = service.Instance{
 					GUID:         "instance-guid-1",
 					PlanUniqueID: "this-is-plan-1",
+					SpaceGUID:    "space-1",
 				}
 				instance2 = service.Instance{
 					GUID:         "instance-guid-2",
 					PlanUniqueID: "this-is-plan-1",
+					SpaceGUID:    "space-2",
 				}
 				instance3 = service.Instance{
 					GUID:         "instance-guid-3",
 					PlanUniqueID: "this-is-plan-2",
+					SpaceGUID:    "space-3",
 				}
 			)
 

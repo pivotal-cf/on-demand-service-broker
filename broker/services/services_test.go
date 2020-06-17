@@ -52,15 +52,18 @@ var _ = Describe("Broker Services", func() {
 
 	Describe("ProcessInstance", func() {
 		It("returns an bosh operation", func() {
+			spaceID := "space-id"
 			brokerServices = services.NewBrokerServices(client, authHeaderBuilder, "http://test.test", logger)
 			planUniqueID := "unique_plan_id"
-			expectedBody := fmt.Sprintf(`{"plan_id": "%s"}`, planUniqueID)
+			expectedBody := fmt.Sprintf(`{"plan_id": "%s", "context":{"space_guid":"%s"}}`, planUniqueID, spaceID)
 			client.DoReturns(response(http.StatusNotFound, ""), nil)
 
-			upgradeOperation, err := brokerServices.ProcessInstance(service.Instance{
-				GUID:         serviceInstanceGUID,
-				PlanUniqueID: planUniqueID,
-			}, operationType)
+			upgradeOperation, err := brokerServices.ProcessInstance(
+				service.Instance{
+					GUID:         serviceInstanceGUID,
+					PlanUniqueID: planUniqueID,
+					SpaceGUID:    spaceID,
+				}, operationType)
 
 			Expect(err).NotTo(HaveOccurred())
 			request := client.DoArgsForCall(0)
@@ -316,7 +319,7 @@ var _ = Describe("Broker Services", func() {
 		It("returns the list of instances when called", func() {
 			host := "test.test"
 			brokerServices = services.NewBrokerServices(client, authHeaderBuilder, "http://"+host, logger)
-			client.DoReturns(response(http.StatusOK, `[{"service_instance_id": "foo", "plan_id": "plan"}, {"service_instance_id": "bar", "plan_id": "another-plan"}]`), nil)
+			client.DoReturns(response(http.StatusOK, `[{"service_instance_id": "foo", "plan_id": "plan", "space_guid": "space_id"}, {"service_instance_id": "bar", "plan_id": "another-plan", "space_guid": "space_id"}]`), nil)
 
 			instances, err := brokerServices.Instances(nil)
 			Expect(err).NotTo(HaveOccurred())
@@ -336,10 +339,12 @@ var _ = Describe("Broker Services", func() {
 				service.Instance{
 					GUID:         "foo",
 					PlanUniqueID: "plan",
+					SpaceGUID:    "space_id",
 				},
 				service.Instance{
 					GUID:         "bar",
 					PlanUniqueID: "another-plan",
+					SpaceGUID:    "space_id",
 				},
 			}))
 		})

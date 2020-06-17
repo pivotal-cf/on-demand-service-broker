@@ -31,6 +31,7 @@ import (
 type Instance struct {
 	GUID         string `json:"service_instance_id"`
 	PlanUniqueID string `json:"plan_id"`
+	SpaceGUID    string `json:"space_guid,omitempty"`
 }
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_instance_lister.go . InstanceLister

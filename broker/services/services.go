@@ -51,7 +51,7 @@ func NewBrokerServices(client HTTPClient, authHeaderBuilder authorizationheader.
 }
 
 func (b *BrokerServices) ProcessInstance(instance service.Instance, operationType string) (BOSHOperation, error) {
-	body := strings.NewReader(fmt.Sprintf(`{"plan_id": "%s"}`, instance.PlanUniqueID))
+	body := strings.NewReader(fmt.Sprintf(`{"plan_id": "%s", "context":{"space_guid":"%s"}}`, instance.PlanUniqueID, instance.SpaceGUID))
 	response, err := b.doRequest(
 		http.MethodPatch,
 		fmt.Sprintf("/mgmt/service_instances/%s?operation_type=%s", instance.GUID, operationType),

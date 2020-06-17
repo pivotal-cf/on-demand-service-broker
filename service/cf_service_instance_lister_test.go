@@ -28,9 +28,9 @@ var _ = Describe("CFServiceInstanceLister", func() {
 	Describe("Instances", func() {
 		It("queries CF for a list of service instances", func() {
 			fakeCfClient.GetServiceInstancesReturns([]cf.Instance{
-				{GUID: "some-guid", PlanUniqueID: "some-plan"},
-				{GUID: "some-other-guid", PlanUniqueID: "some-plan"},
-				{GUID: "yet-another-guid", PlanUniqueID: "some-other-plan"},
+				{GUID: "some-guid", PlanUniqueID: "some-plan", SpaceGUID: "space_id"},
+				{GUID: "some-other-guid", PlanUniqueID: "some-plan", SpaceGUID: "space_id"},
+				{GUID: "yet-another-guid", PlanUniqueID: "some-other-plan", SpaceGUID: "space_id"},
 			}, nil)
 
 			l, err := service.BuildInstanceLister(fakeCfClient, "some-offering-id", config.ServiceInstancesAPI{}, fakeLogger)
@@ -40,9 +40,9 @@ var _ = Describe("CFServiceInstanceLister", func() {
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(instances).To(ConsistOf(
-				service.Instance{GUID: "some-guid", PlanUniqueID: "some-plan"},
-				service.Instance{GUID: "some-other-guid", PlanUniqueID: "some-plan"},
-				service.Instance{GUID: "yet-another-guid", PlanUniqueID: "some-other-plan"},
+				service.Instance{GUID: "some-guid", PlanUniqueID: "some-plan", SpaceGUID: "space_id"},
+				service.Instance{GUID: "some-other-guid", PlanUniqueID: "some-plan", SpaceGUID: "space_id"},
+				service.Instance{GUID: "yet-another-guid", PlanUniqueID: "some-other-plan", SpaceGUID: "space_id"},
 			))
 
 			Expect(fakeCfClient.GetServiceInstancesCallCount()).To(Equal(1), "cf client wasn't called")
@@ -64,7 +64,7 @@ var _ = Describe("CFServiceInstanceLister", func() {
 		})
 	})
 
-	Describe("Instances", func() {
+	Describe("Instances Filtering", func() {
 		var subject service.InstanceLister
 
 		BeforeEach(func() {

@@ -177,6 +177,7 @@ func (c Client) getInstances(plans []ServicePlan, query string, logger *log.Logg
 					Instance{
 						GUID:         instance.Metadata.GUID,
 						PlanUniqueID: plan.ServicePlanEntity.UniqueID,
+						SpaceGUID:    instance.Entity.SpaceGUID,
 					},
 				)
 			}

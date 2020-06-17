@@ -30,15 +30,15 @@ var _ = Describe("Instances", func() {
 
 		It("returns a list of instance IDs", func() {
 			fakeInstanceLister.InstancesReturns([]service.Instance{
-				{GUID: "red", PlanUniqueID: "colour-plan"},
-				{GUID: "green", PlanUniqueID: "colour-plan"},
-				{GUID: "blue", PlanUniqueID: "colour-plan"},
+				{GUID: "red", PlanUniqueID: "colour-plan", SpaceGUID: "space_id"},
+				{GUID: "green", PlanUniqueID: "colour-plan", SpaceGUID: "space_id"},
+				{GUID: "blue", PlanUniqueID: "colour-plan", SpaceGUID: "space_id"},
 			}, nil)
 
 			Expect(b.Instances(nil, logger)).To(ConsistOf(
-				service.Instance{GUID: "red", PlanUniqueID: "colour-plan"},
-				service.Instance{GUID: "green", PlanUniqueID: "colour-plan"},
-				service.Instance{GUID: "blue", PlanUniqueID: "colour-plan"},
+				service.Instance{GUID: "red", PlanUniqueID: "colour-plan", SpaceGUID: "space_id"},
+				service.Instance{GUID: "green", PlanUniqueID: "colour-plan", SpaceGUID: "space_id"},
+				service.Instance{GUID: "blue", PlanUniqueID: "colour-plan", SpaceGUID: "space_id"},
 			))
 		})
 
