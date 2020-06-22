@@ -10,7 +10,7 @@ func (b *Broker) GetServiceInstanceClient(instanceID string, contextMap map[stri
 		return nil, err
 	}
 	if instanceClient == nil {
-		instanceClient, err = b.uaaClient.CreateClient(instanceID, getInstanceNameFromContext(contextMap))
+		instanceClient, err = b.uaaClient.CreateClient(instanceID, getInstanceNameFromContext(contextMap), getSpaceGUIDFromContext(contextMap))
 		if err != nil {
 			return nil, err
 		}
@@ -18,10 +18,10 @@ func (b *Broker) GetServiceInstanceClient(instanceID string, contextMap map[stri
 	return instanceClient, nil
 }
 
-func (b *Broker) UpdateServiceInstanceClient(instanceID string, siClient map[string]string, dashboardURL string, logger *log.Logger) error {
+func (b *Broker) UpdateServiceInstanceClient(instanceID, dashboardURL string, siClient map[string]string, contextMap map[string]interface{}, logger *log.Logger) error {
 	if siClient != nil {
 		if b.uaaClient.HasClientDefinition() {
-			_, err := b.uaaClient.UpdateClient(instanceID, dashboardURL)
+			_, err := b.uaaClient.UpdateClient(instanceID, dashboardURL, getSpaceGUIDFromContext(contextMap))
 			return err
 		}
 
@@ -30,4 +30,20 @@ func (b *Broker) UpdateServiceInstanceClient(instanceID string, siClient map[str
 		}
 	}
 	return nil
+}
+
+func getInstanceNameFromContext(contextMap map[string]interface{}) string {
+	var name string
+	if rawName, found := contextMap["instance_name"]; found {
+		name = rawName.(string)
+	}
+	return name
+}
+
+func getSpaceGUIDFromContext(contextMap map[string]interface{}) string {
+	var spaceGUID string
+	if rawSpaceGUID, found := contextMap["space_guid"]; found {
+		spaceGUID = rawSpaceGUID.(string)
+	}
+	return spaceGUID
 }

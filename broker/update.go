@@ -55,12 +55,16 @@ func (b *Broker) Update(
 		return domain.UpdateServiceSpec{}, b.processError(NewGenericError(ctx, err), logger)
 	}
 
-	instanceClient, err := b.GetServiceInstanceClient(instanceID, detailsMap)
+	var contextMap map[string]interface{}
+	if requestContext, ok := detailsMap["context"]; ok {
+		contextMap = requestContext.(map[string]interface{})
+	}
+	instanceClient, err := b.GetServiceInstanceClient(instanceID, contextMap)
 	if err != nil {
 		return domain.UpdateServiceSpec{}, b.processError(NewGenericError(ctx, err), logger)
 	}
 
-	return b.doUpdate(ctx, instanceID, details, detailsMap, instanceClient, logger)
+	return b.doUpdate(ctx, instanceID, details, detailsMap, contextMap, instanceClient, logger)
 }
 
 func (b *Broker) doUpgrade(ctx context.Context, instanceID string, details domain.UpdateDetails, logger *log.Logger) (domain.UpdateServiceSpec, error) {
@@ -80,7 +84,7 @@ func (b *Broker) doUpgrade(ctx context.Context, instanceID string, details domai
 	return domain.UpdateServiceSpec{IsAsync: true, OperationData: string(operationDataJSON), DashboardURL: dashboardURL}, nil
 }
 
-func (b *Broker) doUpdate(ctx context.Context, instanceID string, details domain.UpdateDetails, detailsMap map[string]interface{}, siClient map[string]string, logger *log.Logger) (domain.UpdateServiceSpec, error) {
+func (b *Broker) doUpdate(ctx context.Context, instanceID string, details domain.UpdateDetails, detailsMap map[string]interface{}, contextMap map[string]interface{}, siClient map[string]string, logger *log.Logger) (domain.UpdateServiceSpec, error) {
 	b.deploymentLock.Lock()
 	defer b.deploymentLock.Unlock()
 
@@ -130,7 +134,7 @@ func (b *Broker) doUpdate(ctx context.Context, instanceID string, details domain
 		}
 	}
 
-	if err = b.UpdateServiceInstanceClient(instanceID, siClient, dashboardUrl, logger); err != nil {
+	if err = b.UpdateServiceInstanceClient(instanceID, dashboardUrl, siClient, contextMap, logger); err != nil {
 		return domain.UpdateServiceSpec{}, b.processError(NewGenericError(ctx, err), logger)
 	}
 

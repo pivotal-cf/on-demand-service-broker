@@ -77,7 +77,7 @@ func (b *Broker) Provision(
 	operationData, dashboardURL, err := b.provisionInstance(
 		ctx,
 		instanceID,
-		details.PlanID,
+		details,
 		requestParams,
 		instanceName,
 		logger,
@@ -99,16 +99,8 @@ func (b *Broker) Provision(
 	}, nil
 }
 
-func getInstanceNameFromContext(contextMap map[string]interface{}) string {
-	var name string
-	if rawName, found := contextMap["instance_name"]; found {
-		name = rawName.(string)
-	}
-	return name
-}
-
-func (b *Broker) provisionInstance(ctx context.Context, instanceID string, planID string, requestParams map[string]interface{}, instanceName string, logger *log.Logger) (OperationData, string, error) {
-
+func (b *Broker) provisionInstance(ctx context.Context, instanceID string, details domain.ProvisionDetails, requestParams map[string]interface{}, instanceName string, logger *log.Logger) (OperationData, string, error) {
+	planID := details.PlanID
 	errs := func(err error) (OperationData, string, error) {
 		return OperationData{}, "", err
 	}
@@ -156,7 +148,13 @@ func (b *Broker) provisionInstance(ctx context.Context, instanceID string, planI
 		boshContextID = uuid.New()
 	}
 
-	serviceInstanceClient, err := b.uaaClient.CreateClient(instanceID, instanceName)
+	requestContext := requestParams["context"]
+	var spaceGUID string
+	if requestContext != nil {
+		spaceGUID = getSpaceGUIDFromContext(requestContext.(map[string]interface{}))
+	}
+
+	serviceInstanceClient, err := b.uaaClient.CreateClient(instanceID, instanceName, spaceGUID)
 	if err != nil {
 		return errs(NewGenericError(ctx, err))
 	}
@@ -205,7 +203,7 @@ func (b *Broker) provisionInstance(ctx context.Context, instanceID string, planI
 		return operationData, dashboardUrl, err
 	}
 
-	_, err = b.uaaClient.UpdateClient(instanceID, dashboardUrl)
+	_, err = b.uaaClient.UpdateClient(instanceID, dashboardUrl, spaceGUID)
 	if err != nil {
 		return errs(NewGenericError(ctx, err))
 	}

@@ -35,14 +35,16 @@ var _ = Describe("Upgrade", func() {
 		fakeUAAClient        *brokerfakes.FakeUAAClient
 		expectedClient       map[string]string
 		arbContext           map[string]interface{}
+		spaceGUID            string
 	)
 
 	BeforeEach(func() {
 		instanceID = "some-instance"
 		boshTaskID = 876
+		spaceGUID = "a-space-guid"
 		arbContext = map[string]interface{}{
 			"instance_name": "some-instance-name",
-			"space_guid":    "a-space-guid",
+			"space_guid":    spaceGUID,
 		}
 		serialisedArbitraryContext, _ := json.Marshal(arbContext)
 		details = domain.UpdateDetails{
@@ -281,10 +283,11 @@ var _ = Describe("Upgrade", func() {
 			Expect(upgradeError).NotTo(HaveOccurred())
 
 			Expect(fakeUAAClient.UpdateClientCallCount()).To(Equal(1))
-			actualClientID, actualRedirectURI := fakeUAAClient.UpdateClientArgsForCall(0)
+			actualClientID, actualRedirectURI, actualSpaceGUID := fakeUAAClient.UpdateClientArgsForCall(0)
 
 			Expect(actualClientID).To(Equal(instanceID))
 			Expect(actualRedirectURI).To(Equal("http://example.com/dashboard"))
+			Expect(actualSpaceGUID).To(Equal(spaceGUID))
 		})
 
 		When("updating the uaa client fails", func() {

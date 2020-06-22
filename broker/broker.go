@@ -187,8 +187,8 @@ func instanceID(deploymentName string) string {
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_uaa_client.go . UAAClient
 type UAAClient interface {
 	HasClientDefinition() bool
-	CreateClient(id, name string) (map[string]string, error)
-	UpdateClient(id, redirectURI string) (map[string]string, error)
+	CreateClient(id, name, spaceGUID string) (map[string]string, error)
+	UpdateClient(id, redirectURI, spaceGUID string) (map[string]string, error)
 	DeleteClient(id string) error
 	GetClient(id string) (map[string]string, error)
 }

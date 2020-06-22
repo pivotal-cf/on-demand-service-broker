@@ -66,7 +66,7 @@ var _ = Describe("Provisioning", func() {
 		arbParams = map[string]interface{}{"foo": "bar"}
 		arbContext = map[string]interface{}{
 			"platform":      "cloudfoundry",
-			"space_guid":    "final",
+			"space_guid":    spaceGUID,
 			"instance_name": "my-super-service",
 		}
 
@@ -120,10 +120,11 @@ var _ = Describe("Provisioning", func() {
 
 			By("creating the client on UAA", func() {
 				Expect(fakeUAAClient.CreateClientCallCount()).To(Equal(1))
-				actualClientID, actualClientName := fakeUAAClient.CreateClientArgsForCall(0)
+				actualClientID, actualClientName, actualSpaceGUID := fakeUAAClient.CreateClientArgsForCall(0)
 
 				Expect(actualClientID).To(Equal(instanceID))
 				Expect(actualClientName).To(Equal("my-super-service"))
+				Expect(actualSpaceGUID).To(Equal(spaceGUID))
 			})
 
 			By("invoking the deployer", func() {
@@ -177,10 +178,11 @@ var _ = Describe("Provisioning", func() {
 
 				By("updating the uaa client", func() {
 					Expect(fakeUAAClient.UpdateClientCallCount()).To(Equal(1))
-					actualClientID, redirectURI := fakeUAAClient.UpdateClientArgsForCall(0)
+					actualClientID, redirectURI, actualSpaceGUID := fakeUAAClient.UpdateClientArgsForCall(0)
 
 					Expect(actualClientID).To(Equal(instanceID))
 					Expect(redirectURI).To(Equal(dashboardURL))
+					Expect(actualSpaceGUID).To(Equal(spaceGUID))
 				})
 			})
 

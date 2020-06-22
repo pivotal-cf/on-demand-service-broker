@@ -56,11 +56,11 @@ var _ = Describe("Update", func() {
 		arbitraryParams = map[string]interface{}{"foo": "bar"}
 		serviceID = "serviceID"
 		orgGUID = "organizationGUID"
-		spaceGUID = "spaceGUID"
+		spaceGUID = "a-space-guid"
 		boshTaskID = 447
 		arbContext = map[string]interface{}{
 			"platform":      "cloudfoundry",
-			"space_guid":    "final",
+			"space_guid":    spaceGUID,
 			"instance_name": "some-instance-name",
 		}
 
@@ -786,10 +786,11 @@ var _ = Describe("Update", func() {
 
 			It("updates the service instance client", func() {
 				Expect(fakeUAAClient.UpdateClientCallCount()).To(Equal(1))
-				actualClientID, actualRedirectURI := fakeUAAClient.UpdateClientArgsForCall(0)
+				actualClientID, actualRedirectURI, actualSpaceGUID := fakeUAAClient.UpdateClientArgsForCall(0)
 
 				Expect(actualClientID).To(Equal(instanceID))
 				Expect(actualRedirectURI).To(Equal("http://example.com/dashboard"))
+				Expect(actualSpaceGUID).To(Equal(spaceGUID))
 			})
 
 			When("updating the uaa client fails", func() {

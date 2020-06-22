@@ -75,7 +75,7 @@ func (b *Broker) Upgrade(ctx context.Context, instanceID string, details domain.
 		}
 	}
 
-	if err = b.UpdateServiceInstanceClient(instanceID, instanceClient, dashboardUrl, logger); err != nil {
+	if err = b.UpdateServiceInstanceClient(instanceID, dashboardUrl, instanceClient, rawCtx, logger); err != nil {
 		return OperationData{}, "", b.processError(NewGenericError(ctx, err), logger)
 	}
 

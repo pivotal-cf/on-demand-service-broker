@@ -88,11 +88,11 @@ var _ = Describe("UAA", func() {
 					Expect(err).ToNot(HaveOccurred())
 					Expect(uaaClient).NotTo(BeNil())
 
-					c, err := uaaClient.CreateClient("foo", "bar")
+					c, err := uaaClient.CreateClient("foo", "bar", "baz")
 					Expect(err).NotTo(HaveOccurred())
 					Expect(c).To(BeNil())
 
-					c, err = uaaClient.UpdateClient("foo", "bar")
+					c, err = uaaClient.UpdateClient("foo", "bar", "baz")
 					Expect(err).NotTo(HaveOccurred())
 					Expect(c).To(BeNil())
 
@@ -136,7 +136,7 @@ var _ = Describe("UAA", func() {
 					return "superrandomsecret"
 				}
 
-				actualClient, err := uaaClient.CreateClient("some-client-id", "some-name")
+				actualClient, err := uaaClient.CreateClient("some-client-id", "some-name", "some-space-guid")
 				Expect(err).NotTo(HaveOccurred())
 
 				By("injecting some properties", func() {
@@ -181,13 +181,13 @@ var _ = Describe("UAA", func() {
 						return ""
 					}
 
-					actualClient, err := uaaClient.CreateClient("some-client-id", "some-name")
+					actualClient, err := uaaClient.CreateClient("some-client-id", "some-name", "some-space-guid")
 					Expect(err).NotTo(HaveOccurred())
 					Expect(actualClient["client_secret"]).To(BeEmpty())
 				})
 
 				It("generates the client with a placeholder redirect uri", func() {
-					_, err := uaaClient.CreateClient("some-client-id", "some-name")
+					_, err := uaaClient.CreateClient("some-client-id", "some-name", "some-space-guid")
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(createHandler.RequestsReceived()).To(Equal(1))
@@ -205,12 +205,34 @@ var _ = Describe("UAA", func() {
 				})
 			})
 
+			When("scopes include ODB_SPACE_GUID", func() {
+				BeforeEach(func() {
+					uaaConfig.ClientDefinition.Scopes = "scope1,scope-2-ODB_SPACE_GUID.*,odb_space_guid_admin"
+					uaaClient, _ = uaa.New(uaaConfig, trustedCert)
+				})
+
+				It("replaces it with the provided space guid", func() {
+					_, err := uaaClient.CreateClient("some-client-id", "some-name", "some-space-guid")
+					Expect(err).NotTo(HaveOccurred())
+
+					var m map[string]interface{}
+					err = json.Unmarshal([]byte(createHandler.GetRequestForCall(0).Body), &m)
+					Expect(err).ToNot(HaveOccurred())
+
+					Expect(m["scope"].([]interface{})).To(ContainElements(
+						"scope1",
+						`scope-2-some-space-guid.*`,
+						"odb_space_guid_admin"),
+					)
+				})
+			})
+
 			It("doesn't go to uaa when client definition is not provided", func() {
 				uaaConfig.ClientDefinition = config.ClientDefinition{}
 				uaaClient, err := uaa.New(uaaConfig, trustedCert)
 				Expect(err).NotTo(HaveOccurred())
 
-				actualClient, err := uaaClient.CreateClient("some-client-id", "some-name")
+				actualClient, err := uaaClient.CreateClient("some-client-id", "some-name", "some-space-guid")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(actualClient).To(BeNil())
 
@@ -218,19 +240,19 @@ var _ = Describe("UAA", func() {
 			})
 
 			It("generates a new password every time it is called", func() {
-				c1, _ := uaaClient.CreateClient("foo", "foo")
-				c2, _ := uaaClient.CreateClient("foo", "foo")
+				c1, _ := uaaClient.CreateClient("foo", "foo", "baz")
+				c2, _ := uaaClient.CreateClient("foo", "foo", "baz")
 
 				Expect(c1["client_secret"]).NotTo(Equal(c2["client_secret"]))
 			})
 
 			It("generates unique but reproducible ids and names", func() {
-				_, err := uaaClient.CreateClient("client1", "name1")
+				_, err := uaaClient.CreateClient("client1", "name1", "space1")
 				Expect(err).NotTo(HaveOccurred())
-				_, err = uaaClient.CreateClient("client2", "name2")
+				_, err = uaaClient.CreateClient("client2", "name2", "space2")
 				Expect(err).NotTo(HaveOccurred())
 
-				_, err = uaaClient.CreateClient("client1", "name1")
+				_, err = uaaClient.CreateClient("client1", "name1", "space1")
 				Expect(err).NotTo(HaveOccurred())
 
 				c1ReqBody := toMap(createHandler.GetRequestForCall(0).Body)
@@ -244,7 +266,7 @@ var _ = Describe("UAA", func() {
 			})
 
 			It("does not generate a name if not passed", func() {
-				_, err := uaaClient.CreateClient("client1", "")
+				_, err := uaaClient.CreateClient("client1", "", "space-1")
 				Expect(err).NotTo(HaveOccurred())
 
 				c1ReqBody := toMap(createHandler.GetRequestForCall(0).Body)
@@ -253,7 +275,7 @@ var _ = Describe("UAA", func() {
 
 			It("fails when UAA responds with error", func() {
 				createHandler.RespondsOnCall(0, 500, "")
-				_, err := uaaClient.CreateClient("some-client-id", "some-name")
+				_, err := uaaClient.CreateClient("some-client-id", "some-name", "space-1")
 				Expect(err).To(HaveOccurred())
 
 				errorMsg := fmt.Sprintf("An error occurred while calling %s/oauth/clients", server.URL())
@@ -293,7 +315,7 @@ var _ = Describe("UAA", func() {
 				uaaClient, err := uaa.New(uaaConfig, trustedCert)
 				Expect(err).NotTo(HaveOccurred())
 
-				actualClient, err := uaaClient.UpdateClient("some-client-id", "some-name")
+				actualClient, err := uaaClient.UpdateClient("some-client-id", "some-name", "space-1")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(actualClient).To(BeNil())
 
@@ -301,7 +323,7 @@ var _ = Describe("UAA", func() {
 			})
 
 			It("updates and returns a client map", func() {
-				actualClient, err := uaaClient.UpdateClient("some-client-id", "https://example.com/dashboard/some-client-id")
+				actualClient, err := uaaClient.UpdateClient("some-client-id", "https://example.com/dashboard/some-client-id", "space-guid")
 				Expect(err).NotTo(HaveOccurred())
 
 				By("updating the client on UAA", func() {
@@ -333,7 +355,7 @@ var _ = Describe("UAA", func() {
 			})
 
 			It("does not send redirect_uri when not passed", func() {
-				_, err := uaaClient.UpdateClient("some-client-id", "")
+				_, err := uaaClient.UpdateClient("some-client-id", "", "some-space")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(updateHandler.RequestsReceived()).To(Equal(1))
 				request := updateHandler.GetRequestForCall(0)
@@ -348,9 +370,31 @@ var _ = Describe("UAA", func() {
 				), "Expected request body mismatch")
 			})
 
+			When("scopes include ODB_SPACE_GUID", func() {
+				BeforeEach(func() {
+					uaaConfig.ClientDefinition.Scopes = "scope1,scope-2-ODB_SPACE_GUID.*,odb_space_guid_admin"
+					uaaClient, _ = uaa.New(uaaConfig, trustedCert)
+				})
+
+				It("replaces it with the provided space guid", func() {
+					_, err := uaaClient.UpdateClient("some-client-id", "", "some-space-guid")
+					Expect(err).NotTo(HaveOccurred())
+
+					var m map[string]interface{}
+					err = json.Unmarshal([]byte(updateHandler.GetRequestForCall(0).Body), &m)
+					Expect(err).ToNot(HaveOccurred())
+
+					Expect(m["scope"].([]interface{})).To(ContainElements(
+						"scope1",
+						`scope-2-some-space-guid.*`,
+						"odb_space_guid_admin"),
+					)
+				})
+			})
+
 			It("fails when UAA responds with error", func() {
 				updateHandler.RespondsOnCall(0, 500, "")
-				_, err := uaaClient.UpdateClient("some-client-id", "some-dashboard")
+				_, err := uaaClient.UpdateClient("some-client-id", "some-dashboard", "some-space")
 				Expect(err).To(HaveOccurred())
 
 				errorMsg := fmt.Sprintf("An error occurred while calling %s/oauth/clients/some-client-id", server.URL())

@@ -12,6 +12,7 @@ var _ = Describe("ServiceInstanceClient", func() {
 	var (
 		instanceID     string
 		instanceName   string
+		spaceGUID      string
 		fakeUAAClient  *brokerfakes.FakeUAAClient
 		expectedClient map[string]string
 		rawContext     map[string]interface{}
@@ -21,8 +22,10 @@ var _ = Describe("ServiceInstanceClient", func() {
 	BeforeEach(func() {
 		instanceID = "some-instance"
 		instanceName = "some-instance-name"
+		spaceGUID = "some-space-guid"
 		rawContext = map[string]interface{}{
 			"instance_name": instanceName,
+			"space_guid":    spaceGUID,
 		}
 
 		fakeUAAClient = new(brokerfakes.FakeUAAClient)
@@ -74,10 +77,11 @@ var _ = Describe("ServiceInstanceClient", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(fakeUAAClient.CreateClientCallCount()).To(Equal(1))
-				actualInstanceID, actualInstanceName := fakeUAAClient.CreateClientArgsForCall(0)
+				actualInstanceID, actualInstanceName, actualSpaceGUID := fakeUAAClient.CreateClientArgsForCall(0)
 
 				Expect(actualInstanceID).To(Equal(instanceID))
 				Expect(actualInstanceName).To(Equal(instanceName))
+				Expect(actualSpaceGUID).To(Equal(spaceGUID))
 			})
 
 			It("returns a newly created client", func() {
@@ -101,7 +105,7 @@ var _ = Describe("ServiceInstanceClient", func() {
 	Describe("#UpdateServiceInstanceClient", func() {
 		When("the current client is nil", func() {
 			It("returns no error", func() {
-				err := b.UpdateServiceInstanceClient(instanceID, nil, "", logger)
+				err := b.UpdateServiceInstanceClient(instanceID, "", nil, nil, logger)
 				Expect(err).NotTo(HaveOccurred())
 			})
 		})
@@ -109,19 +113,20 @@ var _ = Describe("ServiceInstanceClient", func() {
 		When("there's a client to be updated", func() {
 			It("updates the client on UAA", func() {
 				expectedRedirectURI := "http://some.example.com/dashboard"
-				err := b.UpdateServiceInstanceClient(instanceID, expectedClient, expectedRedirectURI, logger)
+				err := b.UpdateServiceInstanceClient(instanceID, expectedRedirectURI, expectedClient, rawContext, logger)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(fakeUAAClient.UpdateClientCallCount()).To(Equal(1))
-				actualID, actualRedirectURI := fakeUAAClient.UpdateClientArgsForCall(0)
+				actualID, actualRedirectURI, actualSpaceGUID := fakeUAAClient.UpdateClientArgsForCall(0)
 				Expect(actualID).To(Equal(instanceID))
 				Expect(actualRedirectURI).To(Equal(expectedRedirectURI))
+				Expect(actualSpaceGUID).To(Equal(spaceGUID))
 			})
 
 			When("updating the client fails", func() {
 				It("returns an error", func() {
 					fakeUAAClient.UpdateClientReturns(nil, errors.New("update failed"))
-					err := b.UpdateServiceInstanceClient(instanceID, expectedClient, "", logger)
+					err := b.UpdateServiceInstanceClient(instanceID, "", expectedClient, rawContext, logger)
 					Expect(err).To(MatchError("update failed"))
 				})
 			})
@@ -133,7 +138,7 @@ var _ = Describe("ServiceInstanceClient", func() {
 			})
 
 			It("tries to delete the client", func() {
-				err := b.UpdateServiceInstanceClient(instanceID, expectedClient, "", logger)
+				err := b.UpdateServiceInstanceClient(instanceID, "", expectedClient, nil, logger)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(fakeUAAClient.DeleteClientCallCount()).To(Equal(1))
 				actualID := fakeUAAClient.DeleteClientArgsForCall(0)
@@ -142,7 +147,7 @@ var _ = Describe("ServiceInstanceClient", func() {
 
 			It("logs the error if cannot delete", func() {
 				fakeUAAClient.DeleteClientReturns(errors.New("cannot delete"))
-				err := b.UpdateServiceInstanceClient(instanceID, expectedClient, "", logger)
+				err := b.UpdateServiceInstanceClient(instanceID, "", expectedClient, nil, logger)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(logBuffer.String()).To(ContainSubstring(`could not delete the service instance client`))

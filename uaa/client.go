@@ -13,7 +13,10 @@ import (
 	"time"
 )
 
-const placehoderRedirectURI = "https://placeholder.example.com"
+const (
+	placeholderRedirectURI = "https://placeholder.example.com"
+	odbSpaceGUID           = "ODB_SPACE_GUID"
+)
 
 type Client struct {
 	config    config.UAAConfig
@@ -71,7 +74,7 @@ func (c *Client) HasClientDefinition() bool {
 	return cd.Authorities != "" || cd.AuthorizedGrantTypes != "" || cd.Scopes != "" || cd.ResourceIDs != ""
 }
 
-func (c *Client) CreateClient(clientID, name string) (map[string]string, error) {
+func (c *Client) CreateClient(clientID, name, spaceGUID string) (map[string]string, error) {
 	if !c.HasClientDefinition() {
 		return nil, nil
 	}
@@ -80,7 +83,7 @@ func (c *Client) CreateClient(clientID, name string) (map[string]string, error) 
 
 	m := map[string]string{
 		"client_id":              clientID,
-		"scopes":                 c.config.ClientDefinition.Scopes,
+		"scopes":                 interpolate(c.config.ClientDefinition.Scopes, map[string]string{odbSpaceGUID: spaceGUID}),
 		"resource_ids":           c.config.ClientDefinition.ResourceIDs,
 		"authorities":            c.config.ClientDefinition.Authorities,
 		"authorized_grant_types": grantTypes,
@@ -89,7 +92,7 @@ func (c *Client) CreateClient(clientID, name string) (map[string]string, error) 
 	var clientSecret string
 	if strings.Contains(grantTypes, "implicit") {
 		// UAA does not allow `implicit` clients to be created without a redirect uri
-		m["redirect_uri"] = placehoderRedirectURI
+		m["redirect_uri"] = placeholderRedirectURI
 	} else {
 		clientSecret = c.RandFunc()
 		m["client_secret"] = clientSecret
@@ -107,14 +110,14 @@ func (c *Client) CreateClient(clientID, name string) (map[string]string, error) 
 	return c.transformToMap(resp, clientSecret), nil
 }
 
-func (c *Client) UpdateClient(clientID string, redirectURI string) (map[string]string, error) {
+func (c *Client) UpdateClient(clientID string, redirectURI, spaceGUID string) (map[string]string, error) {
 	if !c.HasClientDefinition() {
 		return nil, nil
 	}
 
 	m := map[string]string{
 		"client_id":              clientID,
-		"scopes":                 c.config.ClientDefinition.Scopes,
+		"scopes":                 interpolate(c.config.ClientDefinition.Scopes, map[string]string{odbSpaceGUID: spaceGUID}),
 		"resource_ids":           c.config.ClientDefinition.ResourceIDs,
 		"authorities":            c.config.ClientDefinition.Authorities,
 		"authorized_grant_types": c.config.ClientDefinition.AuthorizedGrantTypes,
@@ -203,6 +206,18 @@ func randomString() string {
 		b[i] = letters[rand.Intn(len(letters))]
 	}
 	return string(b)
+}
+
+func interpolate(scopes string, m map[string]string) string {
+	if scopes == "" {
+		return ""
+	}
+
+	r := scopes
+	for k, v := range m {
+		r = strings.ReplaceAll(r, k, v)
+	}
+	return r
 }
 
 type noopApiClient struct{}
