@@ -32,6 +32,7 @@ cf:
       authorities: authority1,authority2
       authorized_grant_types: grant_type1,grant_type2
       resource_ids: resource2,resource3
+      name: client_name
     authentication:
       user_credentials:
         username: some-cf-username

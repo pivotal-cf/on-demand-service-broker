@@ -88,6 +88,7 @@ var _ = Describe("Broker Config", func() {
 								AuthorizedGrantTypes: "grant_type1,grant_type2",
 								ResourceIDs:          "resource2,resource3",
 								Scopes:               "scope1,scope2",
+								Name:                 "client_name",
 							},
 							Authentication: config.UAACredentials{
 								UserCredentials: config.UserCredentials{

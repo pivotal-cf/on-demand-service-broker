@@ -246,7 +246,7 @@ var _ = Describe("UAA", func() {
 				Expect(c1["client_secret"]).NotTo(Equal(c2["client_secret"]))
 			})
 
-			It("generates unique but reproducible ids and names", func() {
+			It("generates unique but reproducible ids", func() {
 				_, err := uaaClient.CreateClient("client1", "name1", "space1")
 				Expect(err).NotTo(HaveOccurred())
 				_, err = uaaClient.CreateClient("client2", "name2", "space2")
@@ -259,13 +259,26 @@ var _ = Describe("UAA", func() {
 				c2ReqBody := toMap(createHandler.GetRequestForCall(1).Body)
 				anotherC1ReqBody := toMap(createHandler.GetRequestForCall(2).Body)
 
-				Expect(c1ReqBody["name"]).NotTo(Equal(c2ReqBody["name"]), "names are not unique")
 				Expect(c1ReqBody["client_id"]).NotTo(Equal(c2ReqBody["client_id"]), "client_ids are not unique")
-				Expect(c1ReqBody["name"]).To(Equal(anotherC1ReqBody["name"]), "name are not reproducible")
 				Expect(c1ReqBody["client_id"]).To(Equal(anotherC1ReqBody["client_id"]), "client_ids are not reproducible")
 			})
 
-			It("does not generate a name if not passed", func() {
+			When("client_definition has name set", func() {
+				BeforeEach(func() {
+					uaaConfig.ClientDefinition.Name = "configured-name"
+					uaaClient, _ = uaa.New(uaaConfig, trustedCert)
+				})
+
+				It("uses the configured name", func() {
+					_, err := uaaClient.CreateClient("client1", "some-other-name", "space-1")
+					Expect(err).NotTo(HaveOccurred())
+
+					c1ReqBody := toMap(createHandler.GetRequestForCall(0).Body)
+					Expect(c1ReqBody["name"]).To(Equal("configured-name"))
+				})
+			})
+
+			It("does not generate a name if not passed and not configured", func() {
 				_, err := uaaClient.CreateClient("client1", "", "space-1")
 				Expect(err).NotTo(HaveOccurred())
 
@@ -389,6 +402,21 @@ var _ = Describe("UAA", func() {
 						`scope-2-some-space-guid.*`,
 						"odb_space_guid_admin"),
 					)
+				})
+			})
+
+			When("client_definition has name set", func() {
+				BeforeEach(func() {
+					uaaConfig.ClientDefinition.Name = "configured-name"
+					uaaClient, _ = uaa.New(uaaConfig, trustedCert)
+				})
+
+				It("uses the configured name", func() {
+					_, err := uaaClient.UpdateClient("some-client-id", "https://example.com/dashboard/some-client-id", "space-guid")
+					Expect(err).NotTo(HaveOccurred())
+
+					body := toMap(updateHandler.GetRequestForCall(0).Body)
+					Expect(body["name"]).To(Equal("configured-name"))
 				})
 			})
 

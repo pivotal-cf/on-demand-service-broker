@@ -98,6 +98,7 @@ type ClientDefinition struct {
 	AuthorizedGrantTypes string `yaml:"authorized_grant_types"`
 	ResourceIDs          string `yaml:"resource_ids"`
 	Scopes               string `yaml:"scopes"`
+	Name                 string `yaml:"name"`
 }
 
 type UAAConfig struct {

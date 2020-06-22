@@ -64,7 +64,7 @@ func FeatureToggledLifecycleTest(
 		serviceInstanceGUID = cf_helpers.GetServiceInstanceGUID(serviceInstanceName)
 		siClient := findUAAClient(serviceInstanceGUID)
 		Expect(siClient).NotTo(BeNil(), "client_id not found on UAA: "+serviceInstanceGUID)
-		Expect(siClient.DisplayName).To(Equal(serviceInstanceName))
+		Expect(siClient.DisplayName).To(Equal("lifecycle_test_client"))
 		Expect(siClient.RedirectURI).To(ContainElement(cf_helpers.GetDashboardURL(serviceInstanceGUID)))
 		uaaClientCreateTimestamp = siClient.LastModified
 	})

@@ -98,8 +98,12 @@ func (c *Client) CreateClient(clientID, name, spaceGUID string) (map[string]stri
 		m["client_secret"] = clientSecret
 	}
 
-	if name != "" {
-		m["name"] = name
+	if c.config.ClientDefinition.Name != "" {
+		m["name"] = c.config.ClientDefinition.Name
+	} else {
+		if name != "" {
+			m["name"] = name
+		}
 	}
 
 	resp, err := c.apiClient.CreateClient(c.transformToClient(m))
@@ -121,6 +125,10 @@ func (c *Client) UpdateClient(clientID string, redirectURI, spaceGUID string) (m
 		"resource_ids":           c.config.ClientDefinition.ResourceIDs,
 		"authorities":            c.config.ClientDefinition.Authorities,
 		"authorized_grant_types": c.config.ClientDefinition.AuthorizedGrantTypes,
+	}
+
+	if c.config.ClientDefinition.Name != "" {
+		m["name"] = c.config.ClientDefinition.Name
 	}
 
 	if redirectURI != "" {
