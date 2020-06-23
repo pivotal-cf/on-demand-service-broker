@@ -37,7 +37,7 @@ var _ = Describe("UAA Contract Tests", func() {
 		})
 
 		By("successfully creating a client on uaa", func() {
-			createdClient, err := client.CreateClient(clientID, "some-name")
+			createdClient, err := client.CreateClient(clientID, "some-name", "some-space-guid")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(createdClient).NotTo(BeNil())
 		})
@@ -51,7 +51,7 @@ var _ = Describe("UAA Contract Tests", func() {
 		})
 
 		By("successfully updating the client", func() {
-			_, err := client.UpdateClient(clientID, "https://new-placeholder.example.com")
+			_, err := client.UpdateClient(clientID, "https://new-placeholder.example.com", "some-space-guid")
 			Expect(err).NotTo(HaveOccurred())
 			updatedClient, err := client.GetClient(clientID)
 			Expect(err).NotTo(HaveOccurred())
