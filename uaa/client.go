@@ -119,11 +119,12 @@ func (c *Client) UpdateClient(clientID string, redirectURI, spaceGUID string) (m
 		return nil, nil
 	}
 
+	interpolationMap := map[string]string{odbSpaceGUID: spaceGUID}
 	m := map[string]string{
 		"client_id":              clientID,
-		"scopes":                 interpolate(c.config.ClientDefinition.Scopes, map[string]string{odbSpaceGUID: spaceGUID}),
-		"resource_ids":           c.config.ClientDefinition.ResourceIDs,
-		"authorities":            c.config.ClientDefinition.Authorities,
+		"scopes":                 interpolate(c.config.ClientDefinition.Scopes, interpolationMap),
+		"resource_ids":           interpolate(c.config.ClientDefinition.ResourceIDs, interpolationMap),
+		"authorities":            interpolate(c.config.ClientDefinition.Authorities, interpolationMap),
 		"authorized_grant_types": c.config.ClientDefinition.AuthorizedGrantTypes,
 	}
 

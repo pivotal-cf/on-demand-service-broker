@@ -383,9 +383,11 @@ var _ = Describe("UAA", func() {
 				), "Expected request body mismatch")
 			})
 
-			When("scopes include ODB_SPACE_GUID", func() {
+			When("properties include ODB_SPACE_GUID", func() {
 				BeforeEach(func() {
 					uaaConfig.ClientDefinition.Scopes = "scope1,scope-2-ODB_SPACE_GUID.*,odb_space_guid_admin"
+					uaaConfig.ClientDefinition.Authorities = "authorities1,authorities-2-ODB_SPACE_GUID.*,odb_space_guid_admin"
+					uaaConfig.ClientDefinition.ResourceIDs = "resource1,resource-2-ODB_SPACE_GUID.*,odb_space_guid_admin"
 					uaaClient, _ = uaa.New(uaaConfig, trustedCert)
 				})
 
@@ -400,6 +402,16 @@ var _ = Describe("UAA", func() {
 					Expect(m["scope"].([]interface{})).To(ContainElements(
 						"scope1",
 						`scope-2-some-space-guid.*`,
+						"odb_space_guid_admin"),
+					)
+					Expect(m["authorities"].([]interface{})).To(ContainElements(
+						"authorities1",
+						`authorities-2-some-space-guid.*`,
+						"odb_space_guid_admin"),
+					)
+					Expect(m["resource_ids"].([]interface{})).To(ContainElements(
+						"resource1",
+						`resource-2-some-space-guid.*`,
 						"odb_space_guid_admin"),
 					)
 				})
