@@ -190,6 +190,8 @@ github.com/pivotal-cf/brokerapi/v7 v7.1.1 h1:ZZpWFbNf3ynI20aSnrSk7aWVSqHinZl1XCb
 github.com/pivotal-cf/brokerapi/v7 v7.1.1/go.mod h1:5QRQ8vJmav91F+AvY5NA/QoDOq70XgBVxXKUK4N/cNE=
 github.com/pivotal-cf/brokerapi/v7 v7.2.0 h1:LL/OS3H2p+K30YG1ppB7Fr1YFQ669My00icLkxYqdwU=
 github.com/pivotal-cf/brokerapi/v7 v7.2.0/go.mod h1:5QRQ8vJmav91F+AvY5NA/QoDOq70XgBVxXKUK4N/cNE=
+github.com/pivotal-cf/brokerapi/v7 v7.3.0 h1:kSPtA0fP3ZPUmrYDWOsPOvjdhNd37Ly5N8LFqfXOs+k=
+github.com/pivotal-cf/brokerapi/v7 v7.3.0/go.mod h1:5QRQ8vJmav91F+AvY5NA/QoDOq70XgBVxXKUK4N/cNE=
 github.com/pivotal-cf/on-demand-services-sdk v0.37.1-0.20200128152816-9130659fb4d7 h1:3DuEJSkpRe4+35knXMGsp73BPr11dc6ZIbMi1nwLGWo=
 github.com/pivotal-cf/on-demand-services-sdk v0.37.1-0.20200128152816-9130659fb4d7/go.mod h1:+EfZGMSar3wmx9qlSRC+4PBQaLnKaMaUll5oEweLHvk=
 github.com/pivotal-cf/on-demand-services-sdk v0.38.1-0.20200303140208-545aed61c1b7 h1:0ZejeJKIruDzvGzgC3WZXGWQVtsYDNfMfiDUB+7dDG4=
