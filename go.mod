@@ -15,7 +15,7 @@ require (
 	github.com/cheggaaa/pb v2.0.7+incompatible // indirect
 	github.com/cloudfoundry-community/go-uaa v0.3.1
 	github.com/cloudfoundry/bosh-agent v2.319.0+incompatible // indirect
-	github.com/cloudfoundry/bosh-cli v6.2.1+incompatible
+	github.com/cloudfoundry/bosh-cli v6.4.0+incompatible
 	github.com/cloudfoundry/bosh-davcli v0.0.44 // indirect
 	github.com/cloudfoundry/bosh-gcscli v0.0.18 // indirect
 	github.com/cloudfoundry/bosh-s3cli v0.0.95 // indirect
