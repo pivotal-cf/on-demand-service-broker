@@ -72,7 +72,7 @@ func Initiate(conf config.Config,
 		logger.Fatalf("error starting broker: %s", err)
 	}
 
-	client, err := uaa.New(conf.CF.UAA, conf.CF.TrustedCert)
+	client, err := uaa.New(conf.CF.UAA, conf.CF.TrustedCert, conf.CF.DisableSSLCertVerification)
 	if err != nil {
 		logger.Fatalf("error creating UAA client: #{err}")
 	}

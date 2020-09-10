@@ -31,7 +31,7 @@ type APIClient interface {
 	ListClients(filter, by string, order gouaa.SortOrder, start, items int) ([]gouaa.Client, gouaa.Page, error)
 }
 
-func New(conf config.UAAConfig, trustedCert string) (*Client, error) {
+func New(conf config.UAAConfig, trustedCert string, skipTLSValidation bool) (*Client, error) {
 	var apiClient APIClient = &noopApiClient{}
 	var err error
 
@@ -45,6 +45,7 @@ func New(conf config.UAAConfig, trustedCert string) (*Client, error) {
 				gouaa.JSONWebToken,
 			),
 			gouaa.WithClient(httpClient),
+			gouaa.WithSkipSSLValidation(skipTLSValidation),
 		)
 	}
 

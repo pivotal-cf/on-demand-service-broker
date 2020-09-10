@@ -17,18 +17,20 @@ import (
 var _ = Describe("UAA", func() {
 	Describe("Client", func() {
 		var (
-			server      *ghttp.Server
-			uaaClient   *uaa.Client
-			uaaConfig   config.UAAConfig
-			trustedCert string
+			server            *ghttp.Server
+			uaaClient         *uaa.Client
+			uaaConfig         config.UAAConfig
+			trustedCert       string
+			skipTLSValidation bool
 		)
 
 		BeforeEach(func() {
 			server = ghttp.NewTLSServer()
-			rawPem := server.HTTPTestServer.Certificate().Raw
-			pemCert := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: rawPem})
-			trustedCert = string(pemCert)
-
+			if !skipTLSValidation {
+				rawPem := server.HTTPTestServer.Certificate().Raw
+				pemCert := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: rawPem})
+				trustedCert = string(pemCert)
+			}
 			uaaConfig = config.UAAConfig{
 				URL: server.URL(),
 				Authentication: config.UAACredentials{
@@ -44,7 +46,7 @@ var _ = Describe("UAA", func() {
 					Scopes:               "admin,read,write",
 				},
 			}
-			uaaClient, _ = uaa.New(uaaConfig, trustedCert)
+			uaaClient, _ = uaa.New(uaaConfig, trustedCert, skipTLSValidation)
 
 			setupUAARoutes(server, uaaConfig)
 		})
@@ -55,13 +57,13 @@ var _ = Describe("UAA", func() {
 
 		Describe("Constructor", func() {
 			It("returns a new client", func() {
-				uaaClient, err := uaa.New(uaaConfig, trustedCert)
+				uaaClient, err := uaa.New(uaaConfig, trustedCert, skipTLSValidation)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(uaaClient).NotTo(BeNil())
 			})
 
 			It("is created with a default random function", func() {
-				uaaClient, err := uaa.New(uaaConfig, trustedCert)
+				uaaClient, err := uaa.New(uaaConfig, trustedCert, skipTLSValidation)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(uaaClient.RandFunc).NotTo(BeNil())
 				Expect(uaaClient.RandFunc()).NotTo(Equal(uaaClient.RandFunc()))
@@ -69,7 +71,7 @@ var _ = Describe("UAA", func() {
 
 			It("returns an error when cannot construct the underlying go-uaa client", func() {
 				uaaConfig.URL = ""
-				_, err := uaa.New(uaaConfig, trustedCert)
+				_, err := uaa.New(uaaConfig, trustedCert, skipTLSValidation)
 				Expect(err).To(HaveOccurred())
 				Expect(err).To(MatchError("the target is missing"))
 			})
@@ -84,7 +86,7 @@ var _ = Describe("UAA", func() {
 						},
 					}
 
-					uaaClient, err := uaa.New(uaaConfig, trustedCert)
+					uaaClient, err := uaa.New(uaaConfig, trustedCert, skipTLSValidation)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(uaaClient).NotTo(BeNil())
 
@@ -102,6 +104,27 @@ var _ = Describe("UAA", func() {
 					c, err = uaaClient.GetClient("foo")
 					Expect(err).NotTo(HaveOccurred())
 					Expect(c).To(BeNil())
+				})
+			})
+
+			When("skip ssl is set to true", func() {
+				var handler *helpers.FakeHandler
+				BeforeEach(func() {
+					handler = new(helpers.FakeHandler)
+					server.RouteToHandler(http.MethodGet, regexp.MustCompile(`/oauth/clients`), ghttp.CombineHandlers(
+						handler.Handle,
+					))
+					handler.RespondsWith(http.StatusOK, `{"resources":[{"client_id":"some-client-id"}]}`)
+				})
+				It("is created with a noop underlying client", func() {
+					uaaClient, err := uaa.New(uaaConfig, "", true)
+
+					Expect(err).ToNot(HaveOccurred())
+					Expect(uaaClient).NotTo(BeNil())
+
+					_, err = uaaClient.GetClient("foo")
+					Expect(err).ToNot(HaveOccurred())
+					Expect(handler.RequestsReceived()).To(Equal(1))
 				})
 			})
 		})
@@ -172,7 +195,7 @@ var _ = Describe("UAA", func() {
 			When("the definition has implicit grant type", func() {
 				BeforeEach(func() {
 					uaaConfig.ClientDefinition.AuthorizedGrantTypes = "implicit"
-					uaaClient, _ = uaa.New(uaaConfig, trustedCert)
+					uaaClient, _ = uaa.New(uaaConfig, trustedCert, skipTLSValidation)
 				})
 
 				It("does not generate a secret", func() {
@@ -208,7 +231,7 @@ var _ = Describe("UAA", func() {
 			When("scopes include ODB_SPACE_GUID", func() {
 				BeforeEach(func() {
 					uaaConfig.ClientDefinition.Scopes = "scope1,scope-2-ODB_SPACE_GUID.*,odb_space_guid_admin"
-					uaaClient, _ = uaa.New(uaaConfig, trustedCert)
+					uaaClient, _ = uaa.New(uaaConfig, trustedCert, skipTLSValidation)
 				})
 
 				It("replaces it with the provided space guid", func() {
@@ -229,7 +252,7 @@ var _ = Describe("UAA", func() {
 
 			It("doesn't go to uaa when client definition is not provided", func() {
 				uaaConfig.ClientDefinition = config.ClientDefinition{}
-				uaaClient, err := uaa.New(uaaConfig, trustedCert)
+				uaaClient, err := uaa.New(uaaConfig, trustedCert, skipTLSValidation)
 				Expect(err).NotTo(HaveOccurred())
 
 				actualClient, err := uaaClient.CreateClient("some-client-id", "some-name", "some-space-guid")
@@ -266,7 +289,7 @@ var _ = Describe("UAA", func() {
 			When("client_definition has name set", func() {
 				BeforeEach(func() {
 					uaaConfig.ClientDefinition.Name = "configured-name"
-					uaaClient, _ = uaa.New(uaaConfig, trustedCert)
+					uaaClient, _ = uaa.New(uaaConfig, trustedCert, skipTLSValidation)
 				})
 
 				It("uses the configured name", func() {
@@ -325,7 +348,7 @@ var _ = Describe("UAA", func() {
 
 			It("doesn't go to uaa when client definition is not provided", func() {
 				uaaConfig.ClientDefinition = config.ClientDefinition{}
-				uaaClient, err := uaa.New(uaaConfig, trustedCert)
+				uaaClient, err := uaa.New(uaaConfig, trustedCert, skipTLSValidation)
 				Expect(err).NotTo(HaveOccurred())
 
 				actualClient, err := uaaClient.UpdateClient("some-client-id", "some-name", "space-1")
@@ -388,7 +411,7 @@ var _ = Describe("UAA", func() {
 					uaaConfig.ClientDefinition.Scopes = "scope1,scope-2-ODB_SPACE_GUID.*,odb_space_guid_admin"
 					uaaConfig.ClientDefinition.Authorities = "authorities1,authorities-2-ODB_SPACE_GUID.*,odb_space_guid_admin"
 					uaaConfig.ClientDefinition.ResourceIDs = "resource1,resource-2-ODB_SPACE_GUID.*,odb_space_guid_admin"
-					uaaClient, _ = uaa.New(uaaConfig, trustedCert)
+					uaaClient, _ = uaa.New(uaaConfig, trustedCert, skipTLSValidation)
 				})
 
 				It("replaces it with the provided space guid", func() {
@@ -420,7 +443,7 @@ var _ = Describe("UAA", func() {
 			When("client_definition has name set", func() {
 				BeforeEach(func() {
 					uaaConfig.ClientDefinition.Name = "configured-name"
-					uaaClient, _ = uaa.New(uaaConfig, trustedCert)
+					uaaClient, _ = uaa.New(uaaConfig, trustedCert, skipTLSValidation)
 				})
 
 				It("uses the configured name", func() {
@@ -542,32 +565,33 @@ var _ = Describe("UAA", func() {
 			It("returns true when at least one property is set", func() {
 				c := config.UAAConfig{ClientDefinition: config.ClientDefinition{AuthorizedGrantTypes: "123"}}
 
-				client, err := uaa.New(c, "")
+				client, err := uaa.New(c, "", skipTLSValidation)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(client.HasClientDefinition()).To(BeTrue())
 
 				c = config.UAAConfig{ClientDefinition: config.ClientDefinition{Authorities: "asd"}}
-				client, err = uaa.New(c, "")
+				client, err = uaa.New(c, "", skipTLSValidation)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(client.HasClientDefinition()).To(BeTrue())
 
 				c = config.UAAConfig{ClientDefinition: config.ClientDefinition{ResourceIDs: "fff"}}
-				client, err = uaa.New(c, "")
+				client, err = uaa.New(c, "", skipTLSValidation)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(client.HasClientDefinition()).To(BeTrue())
 
 				c = config.UAAConfig{ClientDefinition: config.ClientDefinition{Scopes: "admin"}}
-				client, err = uaa.New(c, "")
+				client, err = uaa.New(c, "", skipTLSValidation)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(client.HasClientDefinition()).To(BeTrue())
 			})
 
 			It("returns false when no property is set", func() {
-				client, err := uaa.New(config.UAAConfig{}, "")
+				client, err := uaa.New(config.UAAConfig{}, "", skipTLSValidation)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(client.HasClientDefinition()).To(BeFalse())
 			})
 		})
+
 	})
 })
 
