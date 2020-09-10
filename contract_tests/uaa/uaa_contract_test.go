@@ -32,7 +32,7 @@ var _ = Describe("UAA Contract Tests", func() {
 						Secret: os.Getenv("CF_CLIENT_SECRET"),
 					},
 				},
-			}, cfCert)
+			}, cfCert, false)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
