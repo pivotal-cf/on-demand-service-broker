@@ -202,6 +202,8 @@ github.com/pivotal-cf/brokerapi/v7 v7.2.0 h1:LL/OS3H2p+K30YG1ppB7Fr1YFQ669My00ic
 github.com/pivotal-cf/brokerapi/v7 v7.2.0/go.mod h1:5QRQ8vJmav91F+AvY5NA/QoDOq70XgBVxXKUK4N/cNE=
 github.com/pivotal-cf/brokerapi/v7 v7.3.0 h1:kSPtA0fP3ZPUmrYDWOsPOvjdhNd37Ly5N8LFqfXOs+k=
 github.com/pivotal-cf/brokerapi/v7 v7.3.0/go.mod h1:5QRQ8vJmav91F+AvY5NA/QoDOq70XgBVxXKUK4N/cNE=
+github.com/pivotal-cf/brokerapi/v7 v7.4.0 h1:ByvIIilMfUiaqGOZ3EQKvwOMxPUhbpE43qAxoUaOhYY=
+github.com/pivotal-cf/brokerapi/v7 v7.4.0/go.mod h1:5ew1ejTeTqeJchGP2U2xxVEI7Z25Ca4g85NByKgqIx4=
 github.com/pivotal-cf/on-demand-services-sdk v0.37.1-0.20200128152816-9130659fb4d7 h1:3DuEJSkpRe4+35knXMGsp73BPr11dc6ZIbMi1nwLGWo=
 github.com/pivotal-cf/on-demand-services-sdk v0.37.1-0.20200128152816-9130659fb4d7/go.mod h1:+EfZGMSar3wmx9qlSRC+4PBQaLnKaMaUll5oEweLHvk=
 github.com/pivotal-cf/on-demand-services-sdk v0.38.1-0.20200303140208-545aed61c1b7 h1:0ZejeJKIruDzvGzgC3WZXGWQVtsYDNfMfiDUB+7dDG4=
@@ -354,6 +356,7 @@ golang.org/x/tools v0.0.0-20190621195816-6e04913cbbac/go.mod h1:/rFqwRUd4F7ZHNgw
 golang.org/x/tools v0.0.0-20190628153133-6cdbf07be9d0/go.mod h1:/rFqwRUd4F7ZHNgwSSTFct+R/Kf4OFW1sUzUTQQTgfc=
 golang.org/x/tools v0.0.0-20190706070813-72ffa07ba3db h1:9hRk1xeL9LTT3yX/941DqeBz87XgHAQuj+TbimYJuiw=
 golang.org/x/tools v0.0.0-20190706070813-72ffa07ba3db/go.mod h1:jcCCGcm9btYwXyDqrUWc6MKQKKGJCWEQ3AfLSRIbEuI=
+golang.org/x/tools v0.0.0-20191130070609-6e064ea0cf2d/go.mod h1:b+2E5dAYhXwXZwtnZ6UAqBI28+e2cm9otk0dWdXHAEo=
 golang.org/x/tools v0.0.0-20200130002326-2f3ba24bd6e7/go.mod h1:TB2adYChydJhpapKDTa4BR/hXlZSLoq2Wpct/0txZ28=
 golang.org/x/tools v0.0.0-20200301222351-066e0c02454c h1:FD7jysxM+EJqg5UYYy3XYDsAiUickFsn4UiaanJkf8c=
 golang.org/x/tools v0.0.0-20200301222351-066e0c02454c/go.mod h1:TB2adYChydJhpapKDTa4BR/hXlZSLoq2Wpct/0txZ28=
@@ -420,4 +423,5 @@ honnef.co/go/tools v0.0.0-20190102054323-c2f93a96b099/go.mod h1:rf3lG4BRIbNafJWh
 honnef.co/go/tools v0.0.0-20190106161140-3f1c8253044a/go.mod h1:rf3lG4BRIbNafJWhAfAdb/ePZxsR/4RtNHQocxwk9r4=
 honnef.co/go/tools v0.0.0-20190418001031-e561f6794a2a/go.mod h1:rf3lG4BRIbNafJWhAfAdb/ePZxsR/4RtNHQocxwk9r4=
 honnef.co/go/tools v0.0.1-2019.2.3/go.mod h1:a3bituU0lyd329TUQxRnasdCoJDkEUEAqEt0JzvZhAg=
+honnef.co/go/tools v0.0.1-2020.1.5/go.mod h1:X/FiERA/W4tHapMX5mGpAtMSVEeEUOyHaw9vFzvIQ3k=
 rsc.io/binaryregexp v0.2.0/go.mod h1:qTv7/COck+e2FymRvadv62gMdZztPaShugOCi3I+8D8=
