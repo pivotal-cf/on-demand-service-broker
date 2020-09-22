@@ -36,9 +36,10 @@ func (b *Broker) Provision(
 	instanceID string,
 	details domain.ProvisionDetails,
 	asyncAllowed bool) (domain.ProvisionedServiceSpec, error) {
-
-	b.deploymentLock.Lock()
-	defer b.deploymentLock.Unlock()
+	if err := b.acquireClusterLock(instanceID); err != nil {
+		return domain.ProvisionedServiceSpec{}, b.processError(err, b.loggerFactory.NewWithContext(ctx))
+	}
+	defer b.releaseClusterLock(instanceID)
 
 	requestID := uuid.New()
 	ctx = brokercontext.New(ctx, string(OperationTypeCreate), requestID, b.serviceOffering.Name, instanceID)

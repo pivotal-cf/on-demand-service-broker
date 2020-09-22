@@ -8,10 +8,11 @@ package broker
 
 import (
 	"fmt"
-	"github.com/pivotal-cf/on-demand-service-broker/uaa"
 	"log"
 	"strings"
 	"sync"
+
+	"github.com/pivotal-cf/on-demand-service-broker/uaa"
 
 	"github.com/pivotal-cf/on-demand-service-broker/broker/decider"
 
@@ -26,15 +27,15 @@ import (
 )
 
 type Broker struct {
-	boshClient     BoshClient
-	cfClient       CloudFoundryClient
-	adapterClient  ServiceAdapterClient
-	deployer       Deployer
-	secretManager  ManifestSecretManager
-	instanceLister service.InstanceLister
-	hasher         Hasher
-	deploymentLock *sync.Mutex
-	bindLock       *sync.Mutex
+	boshClient      BoshClient
+	cfClient        CloudFoundryClient
+	adapterClient   ServiceAdapterClient
+	deployer        Deployer
+	secretManager   ManifestSecretManager
+	instanceLister  service.InstanceLister
+	hasher          Hasher
+	deploymentLock  *sync.Mutex
+	clusterRegister map[string]struct{}
 
 	serviceOffering           config.ServiceOffering
 	ExposeOperationalErrors   bool
@@ -45,7 +46,6 @@ type Broker struct {
 
 	loggerFactory   *loggerfactory.LoggerFactory
 	telemetryLogger TelemetryLogger
-	catalogLock     sync.Mutex
 	cachedCatalog   []domain.Service
 
 	decider Decider
@@ -74,7 +74,7 @@ func New(
 		adapterClient:             serviceAdapter,
 		deployer:                  deployer,
 		deploymentLock:            &sync.Mutex{},
-		bindLock:                  &sync.Mutex{},
+		clusterRegister:           map[string]struct{}{},
 		serviceOffering:           serviceOffering,
 		ExposeOperationalErrors:   brokerConfig.ExposeOperationalErrors,
 		EnablePlanSchemas:         brokerConfig.EnablePlanSchemas,

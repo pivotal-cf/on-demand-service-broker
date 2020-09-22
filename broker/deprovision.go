@@ -27,9 +27,11 @@ func (b *Broker) Deprovision(
 	deprovisionDetails domain.DeprovisionDetails,
 	asyncAllowed bool,
 ) (domain.DeprovisionServiceSpec, error) {
+	if err := b.acquireClusterLock(instanceID); err != nil {
+		return domain.DeprovisionServiceSpec{IsAsync: true}, b.processError(err, b.loggerFactory.NewWithContext(ctx))
+	}
+	defer b.releaseClusterLock(instanceID)
 
-	b.deploymentLock.Lock()
-	defer b.deploymentLock.Unlock()
 	requestID := uuid.New()
 	ctx = brokercontext.New(ctx, string(OperationTypeDelete), requestID, b.serviceOffering.Name, instanceID)
 	logger := b.loggerFactory.NewWithContext(ctx)

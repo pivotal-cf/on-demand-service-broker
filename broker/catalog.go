@@ -18,9 +18,6 @@ import (
 )
 
 func (b *Broker) Services(ctx context.Context) ([]domain.Service, error) {
-	b.catalogLock.Lock()
-	defer b.catalogLock.Unlock()
-
 	if b.cachedCatalog != nil {
 		return b.cachedCatalog, nil
 	}

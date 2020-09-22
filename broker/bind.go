@@ -27,8 +27,10 @@ func (b *Broker) Bind(
 	details domain.BindDetails,
 	asyncAllowed bool,
 ) (domain.Binding, error) {
-	b.bindLock.Lock()
-	defer b.bindLock.Unlock()
+	if err := b.acquireClusterLock(instanceID); err != nil {
+		return domain.Binding{}, b.processError(err, b.loggerFactory.NewWithContext(ctx))
+	}
+	defer b.releaseClusterLock(instanceID)
 
 	requestID := uuid.New()
 	if len(brokercontext.GetReqID(ctx)) > 0 {

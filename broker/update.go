@@ -85,8 +85,10 @@ func (b *Broker) doUpgrade(ctx context.Context, instanceID string, details domai
 }
 
 func (b *Broker) doUpdate(ctx context.Context, instanceID string, details domain.UpdateDetails, detailsMap map[string]interface{}, contextMap map[string]interface{}, siClient map[string]string, logger *log.Logger) (domain.UpdateServiceSpec, error) {
-	b.deploymentLock.Lock()
-	defer b.deploymentLock.Unlock()
+	if err := b.acquireClusterLock(instanceID); err != nil {
+		return domain.UpdateServiceSpec{}, b.processError(err, logger)
+	}
+	defer b.releaseClusterLock(instanceID)
 
 	plan, err := b.findPlanInCatalog(details, logger)
 	if err != nil {

@@ -22,9 +22,10 @@ func (b *Broker) Unbind(
 	details domain.UnbindDetails,
 	asyncAllowed bool,
 ) (domain.UnbindSpec, error) {
-
-	b.bindLock.Lock()
-	defer b.bindLock.Unlock()
+	if err := b.acquireClusterLock(instanceID); err != nil {
+		return domain.UnbindSpec{}, b.processError(err, b.loggerFactory.NewWithContext(ctx))
+	}
+	defer b.releaseClusterLock(instanceID)
 
 	emptyUnbindSpec := domain.UnbindSpec{}
 	requestID := uuid.New()

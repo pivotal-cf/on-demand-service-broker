@@ -10,16 +10,19 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	"log"
+
+	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/brokerapi/v7/domain"
 )
 
 func (b *Broker) Upgrade(ctx context.Context, instanceID string, details domain.UpdateDetails, logger *log.Logger) (OperationData, string, error) {
-	b.deploymentLock.Lock()
-	defer b.deploymentLock.Unlock()
+	if err := b.acquireClusterLock(instanceID); err != nil {
+		return OperationData{}, "", b.processError(err, logger)
+	}
+	defer b.releaseClusterLock(instanceID)
 
 	logger.Printf("upgrading instance %s", instanceID)
 
