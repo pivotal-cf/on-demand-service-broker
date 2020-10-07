@@ -8,10 +8,11 @@ package broker
 
 import (
 	"fmt"
-	"github.com/pivotal-cf/on-demand-service-broker/uaa"
 	"log"
 	"strings"
 	"sync"
+
+	"github.com/pivotal-cf/on-demand-service-broker/uaa"
 
 	"github.com/pivotal-cf/on-demand-service-broker/broker/decider"
 
@@ -25,6 +26,7 @@ import (
 	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
 
+// Broker xxxx
 type Broker struct {
 	boshClient     BoshClient
 	cfClient       CloudFoundryClient
