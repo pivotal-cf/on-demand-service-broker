@@ -11,7 +11,7 @@ require (
 	github.com/bmatcuk/doublestar v1.1.5 // indirect
 	github.com/charlievieth/fs v0.0.0-20170613215519-7dc373669fa1 // indirect
 	github.com/cloudfoundry-community/go-uaa v0.3.1
-	github.com/cloudfoundry/bosh-cli v6.4.0+incompatible
+	github.com/cloudfoundry/bosh-cli v6.4.1+incompatible
 	github.com/cloudfoundry/bosh-utils v0.0.0-20191026100324-0b6803ec5382
 	github.com/cloudfoundry/go-socks5 v0.0.0-20180221174514-54f73bdb8a8e // indirect
 	github.com/cloudfoundry/noaa v2.1.0+incompatible
