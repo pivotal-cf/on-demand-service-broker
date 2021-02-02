@@ -28,7 +28,7 @@ require (
 	github.com/mailru/easyjson v0.0.0-20171120080333-32fa128f234d // indirect
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.2.3
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d // indirect
-	github.com/onsi/ginkgo v1.14.1
+	github.com/onsi/ginkgo v1.15.0
 	github.com/onsi/gomega v1.10.2
 	github.com/pborman/uuid v1.2.1
 	github.com/pivotal-cf/brokerapi/v7 v7.4.0
@@ -41,7 +41,6 @@ require (
 	github.com/tedsuo/ifrit v0.0.0-20191009134036-9a97d0632f00 // indirect
 	github.com/urfave/negroni v1.0.0
 	github.com/xeipuuv/gojsonschema v1.2.0
-	golang.org/x/crypto v0.0.0-20200302210943-78000ba7a073 // indirect
 	gopkg.in/yaml.v2 v2.3.0
 )
 
