@@ -10,7 +10,7 @@ import (
 	"encoding/json"
 	"log"
 
-	"github.com/pivotal-cf/brokerapi/v7/domain"
+	"github.com/pivotal-cf/brokerapi/v8/domain"
 	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
 

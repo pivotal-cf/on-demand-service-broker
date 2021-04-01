@@ -15,7 +15,7 @@ import (
 
 	"github.com/pivotal-cf/on-demand-service-broker/broker/decider"
 
-	"github.com/pivotal-cf/brokerapi/v7/domain"
+	"github.com/pivotal-cf/brokerapi/v8/domain"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/config"

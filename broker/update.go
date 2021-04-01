@@ -16,8 +16,8 @@ import (
 
 	"github.com/pivotal-cf/on-demand-service-broker/broker/decider"
 
-	"github.com/pivotal-cf/brokerapi/v7/domain"
-	"github.com/pivotal-cf/brokerapi/v7/domain/apiresponses"
+	"github.com/pivotal-cf/brokerapi/v8/domain"
+	"github.com/pivotal-cf/brokerapi/v8/domain/apiresponses"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 
 	"github.com/pborman/uuid"

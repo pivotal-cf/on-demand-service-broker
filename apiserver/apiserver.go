@@ -23,9 +23,9 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/gorilla/mux"
-	brokerapi "github.com/pivotal-cf/brokerapi/v7"
-	apiauth "github.com/pivotal-cf/brokerapi/v7/auth"
-	"github.com/pivotal-cf/brokerapi/v7/domain"
+	brokerapi "github.com/pivotal-cf/brokerapi/v8"
+	apiauth "github.com/pivotal-cf/brokerapi/v8/auth"
+	"github.com/pivotal-cf/brokerapi/v8/domain"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 	"github.com/pivotal-cf/on-demand-service-broker/mgmtapi"

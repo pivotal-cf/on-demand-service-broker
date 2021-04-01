@@ -2,16 +2,17 @@ package broker_test
 
 import (
 	"context"
+	"github.com/pivotal-cf/brokerapi/v8/domain"
 
 	"code.cloudfoundry.org/lager"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf/brokerapi/v7/domain/apiresponses"
+	"github.com/pivotal-cf/brokerapi/v8/domain/apiresponses"
 )
 
 var _ = Describe("GetBinding", func() {
 	It("returns an error", func() {
-		_, err := b.GetBinding(context.Background(), "instanceID", "bID")
+		_, err := b.GetBinding(context.Background(), "instanceID", "bID", domain.FetchBindingDetails{ServiceID: "test service", PlanID: "test plan"})
 		fresp, ok := err.(*apiresponses.FailureResponse)
 		Expect(ok).To(BeTrue(), "err wasn't a FailureResponse")
 		logger := lager.NewLogger("test")

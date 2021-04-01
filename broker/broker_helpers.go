@@ -12,8 +12,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/pivotal-cf/brokerapi/v7/domain"
-	"github.com/pivotal-cf/brokerapi/v7/domain/apiresponses"
+	"github.com/pivotal-cf/brokerapi/v8/domain"
+	"github.com/pivotal-cf/brokerapi/v8/domain/apiresponses"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 )
 

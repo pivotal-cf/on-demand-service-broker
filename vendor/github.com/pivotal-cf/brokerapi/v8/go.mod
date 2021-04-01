@@ -1,0 +1,16 @@
+module github.com/pivotal-cf/brokerapi/v8
+
+go 1.15
+
+require (
+	code.cloudfoundry.org/lager v1.1.1-0.20191008172124-a9afc05ee5be
+	github.com/drewolson/testflight v1.0.0
+	github.com/google/uuid v1.1.0 // indirect
+	github.com/gorilla/mux v1.8.0
+	github.com/maxbrunsfeld/counterfeiter/v6 v6.3.0
+	github.com/onsi/ginkgo v1.15.2
+	github.com/onsi/gomega v1.11.0
+	github.com/pborman/uuid v0.0.0-20180906182336-adf5a7427709
+	github.com/pkg/errors v0.9.1
+	honnef.co/go/tools v0.2.0-0.dev
+)

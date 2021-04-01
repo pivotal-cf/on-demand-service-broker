@@ -26,13 +26,13 @@ require (
 	github.com/gorilla/websocket v1.2.0 // indirect
 	github.com/hashicorp/go-version v0.0.0-20170914154128-fc61389e27c7 // indirect
 	github.com/mailru/easyjson v0.0.0-20171120080333-32fa128f234d // indirect
-	github.com/maxbrunsfeld/counterfeiter/v6 v6.3.0
+	github.com/maxbrunsfeld/counterfeiter/v6 v6.4.0
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d // indirect
 	github.com/onsi/ginkgo v1.15.2
 	github.com/onsi/gomega v1.11.0
 	github.com/pborman/uuid v1.2.1
-	github.com/pivotal-cf/brokerapi/v7 v7.5.0
-	github.com/pivotal-cf/on-demand-services-sdk v0.40.1-0.20210308102134-1c1127ce17c0
+	github.com/pivotal-cf/brokerapi/v8 v8.0.0-beta
+	github.com/pivotal-cf/on-demand-services-sdk v0.40.1-0.20210401144022-4a0797f178cd
 	github.com/pivotal-cf/paraphernalia v0.0.0-20171027171623-4272315231ce // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/poy/eachers v0.0.0-20181020210610-23942921fe77 // indirect

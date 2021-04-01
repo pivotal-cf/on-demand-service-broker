@@ -15,8 +15,8 @@ import (
 	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 	"net/http"
 
-	"github.com/pivotal-cf/brokerapi/v7/domain"
-	"github.com/pivotal-cf/brokerapi/v7/domain/apiresponses"
+	"github.com/pivotal-cf/brokerapi/v8/domain"
+	"github.com/pivotal-cf/brokerapi/v8/domain/apiresponses"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 
 	. "github.com/onsi/ginkgo"

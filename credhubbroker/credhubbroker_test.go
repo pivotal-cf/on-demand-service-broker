@@ -24,7 +24,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf/brokerapi/v7/domain"
+	"github.com/pivotal-cf/brokerapi/v8/domain"
 	apifakes "github.com/pivotal-cf/on-demand-service-broker/apiserver/fakes"
 	"github.com/pivotal-cf/on-demand-service-broker/brokercontext"
 	"github.com/pivotal-cf/on-demand-service-broker/credhubbroker"
