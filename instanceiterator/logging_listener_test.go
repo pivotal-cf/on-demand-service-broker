@@ -7,6 +7,7 @@
 package instanceiterator_test
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"time"
@@ -187,7 +188,7 @@ var _ = Describe("Logging Listener", func() {
 
 		Context("when error", func() {
 			BeforeEach(func() {
-				result = instanceiterator.OperationState(-1)
+				result = instanceiterator.OperationState(fmt.Sprint(-1))
 			})
 
 			It("shows already deleted from platform", func() {

@@ -111,7 +111,7 @@ func hasReportedCanaryAttempts(fakeListener *fakes.FakeListener, count, limit, r
 func hasReportedRetries(fakeListener *fakes.FakeListener, expectedPendingInstancesCount ...int) {
 	for i, expectedRetryCount := range expectedPendingInstancesCount {
 		_, _, _, _, toRetryCount, _ := fakeListener.ProgressArgsForCall(i)
-		Expect(toRetryCount).To(Equal(expectedRetryCount), "Retry count: "+string(i))
+		Expect(toRetryCount).To(Equal(expectedRetryCount), fmt.Sprintf("Retry count: %v", i))
 	}
 }
 
