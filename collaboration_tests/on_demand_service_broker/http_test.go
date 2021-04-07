@@ -57,7 +57,7 @@ var _ = Describe("Server Protocol", func() {
 		})
 
 		It("serves HTTPS", func() {
-			response, bodyContent, err := doHTTPSRequest(http.MethodGet, fmt.Sprintf("https://%s/v2/catalog", serverURL), caCertFile, acceptableCipherSuites, tls.VersionTLS12)
+			response, bodyContent, err := doHTTPSRequest(http.MethodGet, fmt.Sprintf("https://%s/v2/catalog", serverURL), caCertFile, acceptableCipherSuites, 0)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(response.StatusCode).To(Equal(http.StatusOK))
@@ -83,7 +83,7 @@ var _ = Describe("Server Protocol", func() {
 		DescribeTable("does not serve when the client uses an unacceptable cipher",
 			func(cipher uint16) {
 				log.SetOutput(GinkgoWriter)
-				_, _, err := doHTTPSRequest(http.MethodGet, fmt.Sprintf("https://%s/v2/catalog", serverURL), caCertFile, []uint16{cipher}, 0)
+				_, _, err := doHTTPSRequest(http.MethodGet, fmt.Sprintf("https://%s/v2/catalog", serverURL), caCertFile, []uint16{cipher}, tls.VersionTLS12)
 				log.SetOutput(os.Stdout)
 				Expect(err).To(MatchError(ContainSubstring("remote error: tls: handshake failure")))
 			},
