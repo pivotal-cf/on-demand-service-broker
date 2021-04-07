@@ -57,7 +57,7 @@ var _ = Describe("Server Protocol", func() {
 		})
 
 		It("serves HTTPS", func() {
-			response, bodyContent, err := doHTTPSRequest(http.MethodGet, fmt.Sprintf("https://%s/v2/catalog", serverURL), caCertFile, acceptableCipherSuites, 0)
+			response, bodyContent, err := doHTTPSRequest(http.MethodGet, fmt.Sprintf("https://%s/v2/catalog", serverURL), caCertFile, acceptableCipherSuites, tls.VersionTLS12)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(response.StatusCode).To(Equal(http.StatusOK))
@@ -68,7 +68,7 @@ var _ = Describe("Server Protocol", func() {
 
 		DescribeTable("can use the desired cipher suites",
 			func(cipher uint16) {
-				response, _, err := doHTTPSRequest(http.MethodGet, fmt.Sprintf("https://%s/v2/catalog", serverURL), caCertFile, []uint16{cipher}, 0)
+				response, _, err := doHTTPSRequest(http.MethodGet, fmt.Sprintf("https://%s/v2/catalog", serverURL), caCertFile, []uint16{cipher}, tls.VersionTLS12)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(response.StatusCode).To(Equal(http.StatusOK))
 				Expect(response.TLS.CipherSuite).To(Equal(cipher))
