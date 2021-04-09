@@ -95,8 +95,9 @@ github.com/mailru/easyjson v0.0.0-20171120080333-32fa128f234d/go.mod h1:C1wdFJiN
 github.com/mattn/go-colorable v0.0.9/go.mod h1:9vuHe8Xs5qXnSaW/c/ABM9alt+Vo+STaOChaDxuIBZU=
 github.com/mattn/go-isatty v0.0.3/go.mod h1:M+lRXTBqGeGNdLjl/ufCoiOlB5xdOkqRJdNxMWT7Zi4=
 github.com/maxbrunsfeld/counterfeiter/v6 v6.3.0/go.mod h1:fcEyUyXZXoV4Abw8DX0t7wyL8mCDxXyU4iAFZfT3IHw=
-github.com/maxbrunsfeld/counterfeiter/v6 v6.4.0 h1:yQ9bMx6/ubkDPprq4U3RILwS1Y8K0P6eLifsH2T9Pvs=
 github.com/maxbrunsfeld/counterfeiter/v6 v6.4.0/go.mod h1:DK1Cjkc0E49ShgRVs5jy5ASrM15svSnem3K/hiSGD8o=
+github.com/maxbrunsfeld/counterfeiter/v6 v6.4.1 h1:hZD/8vBuw7x1WqRXD/WGjVjipbbo/HcDBgySYYbrUSk=
+github.com/maxbrunsfeld/counterfeiter/v6 v6.4.1/go.mod h1:DK1Cjkc0E49ShgRVs5jy5ASrM15svSnem3K/hiSGD8o=
 github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e h1:fD57ERR4JtEqsWbfPhv4DMiApHyliiK5xCTNVSPiaAs=
 github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e/go.mod h1:zD1mROLANZcx1PVRCS0qkT7pwLkGfwJo4zjcN/Tysno=
 github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d h1:VhgPp6v9qf9Agr/56bj7Y/xa04UccTW04VP0Qed4vnQ=

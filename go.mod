@@ -26,7 +26,7 @@ require (
 	github.com/gorilla/websocket v1.2.0 // indirect
 	github.com/hashicorp/go-version v0.0.0-20170914154128-fc61389e27c7 // indirect
 	github.com/mailru/easyjson v0.0.0-20171120080333-32fa128f234d // indirect
-	github.com/maxbrunsfeld/counterfeiter/v6 v6.4.0
+	github.com/maxbrunsfeld/counterfeiter/v6 v6.4.1
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d // indirect
 	github.com/onsi/ginkgo v1.16.1
 	github.com/onsi/gomega v1.11.0
