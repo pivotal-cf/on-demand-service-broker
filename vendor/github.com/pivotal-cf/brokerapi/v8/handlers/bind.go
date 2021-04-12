@@ -26,7 +26,7 @@ func (h APIHandler) Bind(w http.ResponseWriter, req *http.Request) {
 	logger := h.logger.Session(bindLogKey, lager.Data{
 		instanceIDLogKey: instanceID,
 		bindingIDLogKey:  bindingID,
-	}, utils.DataForContext(req.Context(), middlewares.CorrelationIDKey))
+	}, utils.DataForContext(req.Context(), middlewares.CorrelationIDKey, middlewares.RequestIdentityKey))
 
 	version := getAPIVersion(req)
 	asyncAllowed := false
@@ -34,7 +34,7 @@ func (h APIHandler) Bind(w http.ResponseWriter, req *http.Request) {
 		asyncAllowed = req.FormValue("accepts_incomplete") == "true"
 	}
 
-	requestId := fmt.Sprintf("%v", req.Context().Value("requestIdentity"))
+	requestId := fmt.Sprintf("%v", req.Context().Value(middlewares.RequestIdentityKey))
 
 	var details domain.BindDetails
 	if err := json.NewDecoder(req.Body).Decode(&details); err != nil {

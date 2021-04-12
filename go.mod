@@ -31,7 +31,7 @@ require (
 	github.com/onsi/ginkgo v1.16.1
 	github.com/onsi/gomega v1.11.0
 	github.com/pborman/uuid v1.2.1
-	github.com/pivotal-cf/brokerapi/v8 v8.0.0-beta
+	github.com/pivotal-cf/brokerapi/v8 v8.0.0
 	github.com/pivotal-cf/on-demand-services-sdk v0.40.1-0.20210409102745-864822dc4e66
 	github.com/pivotal-cf/paraphernalia v0.0.0-20171027171623-4272315231ce // indirect
 	github.com/pkg/errors v0.9.1

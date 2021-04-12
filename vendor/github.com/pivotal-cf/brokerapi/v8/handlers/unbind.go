@@ -22,9 +22,9 @@ func (h APIHandler) Unbind(w http.ResponseWriter, req *http.Request) {
 	logger := h.logger.Session(unbindLogKey, lager.Data{
 		instanceIDLogKey: instanceID,
 		bindingIDLogKey:  bindingID,
-	}, utils.DataForContext(req.Context(), middlewares.CorrelationIDKey))
+	}, utils.DataForContext(req.Context(), middlewares.CorrelationIDKey, middlewares.RequestIdentityKey))
 
-	requestId := fmt.Sprintf("%v", req.Context().Value("requestIdentity"))
+	requestId := fmt.Sprintf("%v", req.Context().Value(middlewares.RequestIdentityKey))
 
 	details := domain.UnbindDetails{
 		PlanID:    req.FormValue("plan_id"),

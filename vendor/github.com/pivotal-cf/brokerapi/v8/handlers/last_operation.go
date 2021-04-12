@@ -25,11 +25,11 @@ func (h APIHandler) LastOperation(w http.ResponseWriter, req *http.Request) {
 
 	logger := h.logger.Session(lastOperationLogKey, lager.Data{
 		instanceIDLogKey: instanceID,
-	}, utils.DataForContext(req.Context(), middlewares.CorrelationIDKey))
+	}, utils.DataForContext(req.Context(), middlewares.CorrelationIDKey, middlewares.RequestIdentityKey))
 
 	logger.Info("starting-check-for-operation")
 
-	requestId := fmt.Sprintf("%v", req.Context().Value("requestIdentity"))
+	requestId := fmt.Sprintf("%v", req.Context().Value(middlewares.RequestIdentityKey))
 
 	lastOperation, err := h.serviceBroker.LastOperation(req.Context(), instanceID, pollDetails)
 	if err != nil {

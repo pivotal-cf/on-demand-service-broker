@@ -20,7 +20,7 @@ func (h APIHandler) Deprovision(w http.ResponseWriter, req *http.Request) {
 
 	logger := h.logger.Session(deprovisionLogKey, lager.Data{
 		instanceIDLogKey: instanceID,
-	}, utils.DataForContext(req.Context(), middlewares.CorrelationIDKey))
+	}, utils.DataForContext(req.Context(), middlewares.CorrelationIDKey, middlewares.RequestIdentityKey))
 
 	details := domain.DeprovisionDetails{
 		PlanID:    req.FormValue("plan_id"),
@@ -28,7 +28,7 @@ func (h APIHandler) Deprovision(w http.ResponseWriter, req *http.Request) {
 		Force:     req.FormValue("force") == "true",
 	}
 
-	requestId := fmt.Sprintf("%v", req.Context().Value("requestIdentity"))
+	requestId := fmt.Sprintf("%v", req.Context().Value(middlewares.RequestIdentityKey))
 
 	if details.ServiceID == "" {
 		h.respond(w, http.StatusBadRequest, requestId, apiresponses.ErrorResponse{
