@@ -4,6 +4,7 @@ package fakes
 import (
 	"sync"
 
+	credhuba "code.cloudfoundry.org/credhub-cli/credhub"
 	"code.cloudfoundry.org/credhub-cli/credhub/credentials"
 	"code.cloudfoundry.org/credhub-cli/credhub/credentials/values"
 	"code.cloudfoundry.org/credhub-cli/credhub/permissions"
@@ -76,11 +77,12 @@ type FakeCredhubClient struct {
 		result1 credentials.Credential
 		result2 error
 	}
-	SetJSONStub        func(string, values.JSON) (credentials.JSON, error)
+	SetJSONStub        func(string, values.JSON, ...credhuba.SetOption) (credentials.JSON, error)
 	setJSONMutex       sync.RWMutex
 	setJSONArgsForCall []struct {
 		arg1 string
 		arg2 values.JSON
+		arg3 []credhuba.SetOption
 	}
 	setJSONReturns struct {
 		result1 credentials.JSON
@@ -90,11 +92,12 @@ type FakeCredhubClient struct {
 		result1 credentials.JSON
 		result2 error
 	}
-	SetValueStub        func(string, values.Value) (credentials.Value, error)
+	SetValueStub        func(string, values.Value, ...credhuba.SetOption) (credentials.Value, error)
 	setValueMutex       sync.RWMutex
 	setValueArgsForCall []struct {
 		arg1 string
 		arg2 values.Value
+		arg3 []credhuba.SetOption
 	}
 	setValueReturns struct {
 		result1 credentials.Value
@@ -121,15 +124,16 @@ func (fake *FakeCredhubClient) AddPermission(arg1 string, arg2 string, arg3 []st
 		arg2 string
 		arg3 []string
 	}{arg1, arg2, arg3Copy})
+	stub := fake.AddPermissionStub
+	fakeReturns := fake.addPermissionReturns
 	fake.recordInvocation("AddPermission", []interface{}{arg1, arg2, arg3Copy})
 	fake.addPermissionMutex.Unlock()
-	if fake.AddPermissionStub != nil {
-		return fake.AddPermissionStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.addPermissionReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -184,15 +188,16 @@ func (fake *FakeCredhubClient) Delete(arg1 string) error {
 	fake.deleteArgsForCall = append(fake.deleteArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.DeleteStub
+	fakeReturns := fake.deleteReturns
 	fake.recordInvocation("Delete", []interface{}{arg1})
 	fake.deleteMutex.Unlock()
-	if fake.DeleteStub != nil {
-		return fake.DeleteStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.deleteReturns
 	return fakeReturns.result1
 }
 
@@ -244,15 +249,16 @@ func (fake *FakeCredhubClient) FindByPartialName(arg1 string) (credentials.FindR
 	fake.findByPartialNameArgsForCall = append(fake.findByPartialNameArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.FindByPartialNameStub
+	fakeReturns := fake.findByPartialNameReturns
 	fake.recordInvocation("FindByPartialName", []interface{}{arg1})
 	fake.findByPartialNameMutex.Unlock()
-	if fake.FindByPartialNameStub != nil {
-		return fake.FindByPartialNameStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.findByPartialNameReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -307,15 +313,16 @@ func (fake *FakeCredhubClient) GetById(arg1 string) (credentials.Credential, err
 	fake.getByIdArgsForCall = append(fake.getByIdArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.GetByIdStub
+	fakeReturns := fake.getByIdReturns
 	fake.recordInvocation("GetById", []interface{}{arg1})
 	fake.getByIdMutex.Unlock()
-	if fake.GetByIdStub != nil {
-		return fake.GetByIdStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.getByIdReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -370,15 +377,16 @@ func (fake *FakeCredhubClient) GetLatestVersion(arg1 string) (credentials.Creden
 	fake.getLatestVersionArgsForCall = append(fake.getLatestVersionArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.GetLatestVersionStub
+	fakeReturns := fake.getLatestVersionReturns
 	fake.recordInvocation("GetLatestVersion", []interface{}{arg1})
 	fake.getLatestVersionMutex.Unlock()
-	if fake.GetLatestVersionStub != nil {
-		return fake.GetLatestVersionStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.getLatestVersionReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -427,22 +435,24 @@ func (fake *FakeCredhubClient) GetLatestVersionReturnsOnCall(i int, result1 cred
 	}{result1, result2}
 }
 
-func (fake *FakeCredhubClient) SetJSON(arg1 string, arg2 values.JSON) (credentials.JSON, error) {
+func (fake *FakeCredhubClient) SetJSON(arg1 string, arg2 values.JSON, arg3 ...credhuba.SetOption) (credentials.JSON, error) {
 	fake.setJSONMutex.Lock()
 	ret, specificReturn := fake.setJSONReturnsOnCall[len(fake.setJSONArgsForCall)]
 	fake.setJSONArgsForCall = append(fake.setJSONArgsForCall, struct {
 		arg1 string
 		arg2 values.JSON
-	}{arg1, arg2})
-	fake.recordInvocation("SetJSON", []interface{}{arg1, arg2})
+		arg3 []credhuba.SetOption
+	}{arg1, arg2, arg3})
+	stub := fake.SetJSONStub
+	fakeReturns := fake.setJSONReturns
+	fake.recordInvocation("SetJSON", []interface{}{arg1, arg2, arg3})
 	fake.setJSONMutex.Unlock()
-	if fake.SetJSONStub != nil {
-		return fake.SetJSONStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2, arg3...)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.setJSONReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -452,17 +462,17 @@ func (fake *FakeCredhubClient) SetJSONCallCount() int {
 	return len(fake.setJSONArgsForCall)
 }
 
-func (fake *FakeCredhubClient) SetJSONCalls(stub func(string, values.JSON) (credentials.JSON, error)) {
+func (fake *FakeCredhubClient) SetJSONCalls(stub func(string, values.JSON, ...credhuba.SetOption) (credentials.JSON, error)) {
 	fake.setJSONMutex.Lock()
 	defer fake.setJSONMutex.Unlock()
 	fake.SetJSONStub = stub
 }
 
-func (fake *FakeCredhubClient) SetJSONArgsForCall(i int) (string, values.JSON) {
+func (fake *FakeCredhubClient) SetJSONArgsForCall(i int) (string, values.JSON, []credhuba.SetOption) {
 	fake.setJSONMutex.RLock()
 	defer fake.setJSONMutex.RUnlock()
 	argsForCall := fake.setJSONArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *FakeCredhubClient) SetJSONReturns(result1 credentials.JSON, result2 error) {
@@ -491,22 +501,24 @@ func (fake *FakeCredhubClient) SetJSONReturnsOnCall(i int, result1 credentials.J
 	}{result1, result2}
 }
 
-func (fake *FakeCredhubClient) SetValue(arg1 string, arg2 values.Value) (credentials.Value, error) {
+func (fake *FakeCredhubClient) SetValue(arg1 string, arg2 values.Value, arg3 ...credhuba.SetOption) (credentials.Value, error) {
 	fake.setValueMutex.Lock()
 	ret, specificReturn := fake.setValueReturnsOnCall[len(fake.setValueArgsForCall)]
 	fake.setValueArgsForCall = append(fake.setValueArgsForCall, struct {
 		arg1 string
 		arg2 values.Value
-	}{arg1, arg2})
-	fake.recordInvocation("SetValue", []interface{}{arg1, arg2})
+		arg3 []credhuba.SetOption
+	}{arg1, arg2, arg3})
+	stub := fake.SetValueStub
+	fakeReturns := fake.setValueReturns
+	fake.recordInvocation("SetValue", []interface{}{arg1, arg2, arg3})
 	fake.setValueMutex.Unlock()
-	if fake.SetValueStub != nil {
-		return fake.SetValueStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2, arg3...)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.setValueReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -516,17 +528,17 @@ func (fake *FakeCredhubClient) SetValueCallCount() int {
 	return len(fake.setValueArgsForCall)
 }
 
-func (fake *FakeCredhubClient) SetValueCalls(stub func(string, values.Value) (credentials.Value, error)) {
+func (fake *FakeCredhubClient) SetValueCalls(stub func(string, values.Value, ...credhuba.SetOption) (credentials.Value, error)) {
 	fake.setValueMutex.Lock()
 	defer fake.setValueMutex.Unlock()
 	fake.SetValueStub = stub
 }
 
-func (fake *FakeCredhubClient) SetValueArgsForCall(i int) (string, values.Value) {
+func (fake *FakeCredhubClient) SetValueArgsForCall(i int) (string, values.Value, []credhuba.SetOption) {
 	fake.setValueMutex.RLock()
 	defer fake.setValueMutex.RUnlock()
 	argsForCall := fake.setValueArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *FakeCredhubClient) SetValueReturns(result1 credentials.Value, result2 error) {

@@ -3,7 +3,7 @@ module github.com/pivotal-cf/on-demand-service-broker
 go 1.16
 
 require (
-	code.cloudfoundry.org/credhub-cli v0.0.0-20190923163340-a6d1ba3b23bd
+	code.cloudfoundry.org/credhub-cli v0.0.0-20201012130117-2ebe14b120cc
 	code.cloudfoundry.org/lager v2.0.0+incompatible
 	github.com/apoydence/eachers v0.0.0-20181020210610-23942921fe77 // indirect
 	github.com/blang/semver v3.5.1+incompatible
@@ -19,7 +19,6 @@ require (
 	github.com/gogo/protobuf v0.0.0-20171007142547-342cbe0a0415 // indirect
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/websocket v1.2.0 // indirect
-	github.com/hashicorp/go-version v0.0.0-20170914154128-fc61389e27c7 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.4.1
 	github.com/onsi/ginkgo v1.16.1

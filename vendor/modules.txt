@@ -1,4 +1,4 @@
-# code.cloudfoundry.org/credhub-cli v0.0.0-20190923163340-a6d1ba3b23bd
+# code.cloudfoundry.org/credhub-cli v0.0.0-20201012130117-2ebe14b120cc
 ## explicit
 code.cloudfoundry.org/credhub-cli/credhub
 code.cloudfoundry.org/credhub-cli/credhub/auth
@@ -85,8 +85,7 @@ github.com/gorilla/mux
 # github.com/gorilla/websocket v1.2.0
 ## explicit
 github.com/gorilla/websocket
-# github.com/hashicorp/go-version v0.0.0-20170914154128-fc61389e27c7
-## explicit
+# github.com/hashicorp/go-version v1.2.1
 github.com/hashicorp/go-version
 # github.com/josharian/intern v1.0.0
 github.com/josharian/intern

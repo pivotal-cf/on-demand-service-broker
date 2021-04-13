@@ -40,8 +40,8 @@ type CredhubClient interface {
 	GetById(id string) (credentials.Credential, error)
 	GetLatestVersion(name string) (credentials.Credential, error)
 	FindByPartialName(partialName string) (credentials.FindResults, error)
-	SetJSON(name string, value values.JSON) (credentials.JSON, error)
-	SetValue(name string, value values.Value) (credentials.Value, error)
+	SetJSON(name string, value values.JSON, options ...credhub.SetOption) (credentials.JSON, error)
+	SetValue(name string, value values.Value, options ...credhub.SetOption) (credentials.Value, error)
 	AddPermission(credName string, actor string, ops []string) (*permissions.Permission, error)
 	Delete(name string) error
 }

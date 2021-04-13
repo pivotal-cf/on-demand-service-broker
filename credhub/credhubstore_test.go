@@ -205,7 +205,7 @@ var _ = Describe("CredStore", func() {
 			err := store.Set("/path/to/secret", secret)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(fakeCredhubClient.SetJSONCallCount()).To(Equal(1))
-			path, val := fakeCredhubClient.SetJSONArgsForCall(0)
+			path, val, _ := fakeCredhubClient.SetJSONArgsForCall(0)
 			Expect(path).To(Equal("/path/to/secret"))
 			Expect(val).To(Equal(values.JSON(secret)))
 		})
@@ -214,7 +214,7 @@ var _ = Describe("CredStore", func() {
 			err := store.Set("/path/to/secret", "caravan")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(fakeCredhubClient.SetValueCallCount()).To(Equal(1))
-			path, val := fakeCredhubClient.SetValueArgsForCall(0)
+			path, val, _ := fakeCredhubClient.SetValueArgsForCall(0)
 			Expect(path).To(Equal("/path/to/secret"))
 			Expect(val).To(Equal(values.Value("caravan")))
 		})
@@ -287,13 +287,13 @@ var _ = Describe("CredStore", func() {
 
 			By("calling SetJSON for JSON values")
 			Expect(fakeCredhubClient.SetJSONCallCount()).To(Equal(1), "SetJSON wasn't called")
-			jsonPath, jsonValue := fakeCredhubClient.SetJSONArgsForCall(0)
+			jsonPath, jsonValue, _ := fakeCredhubClient.SetJSONArgsForCall(0)
 			Expect(jsonPath).To(Equal("/foo/bar"))
 			Expect(jsonValue).To(Equal(values.JSON(map[string]interface{}{"key": "value"})))
 
 			By("calling SetValue for string values")
 			Expect(fakeCredhubClient.SetValueCallCount()).To(Equal(1), "SetValue wasn't called")
-			strPath, strValue := fakeCredhubClient.SetValueArgsForCall(0)
+			strPath, strValue, _ := fakeCredhubClient.SetValueArgsForCall(0)
 			Expect(strPath).To(Equal("/foo/foo"))
 			Expect(strValue).To(Equal(values.Value("123")))
 		})
@@ -332,7 +332,10 @@ var _ = Describe("CredStore", func() {
 	Describe("FindNameLike", func() {
 		It("can find all secrets containing a portion of a path in their path", func() {
 			fakeCredhubClient.FindByPartialNameReturns(credentials.FindResults{
-				Credentials: []credentials.Base{
+				Credentials: []struct {
+					Name             string `json:"name" yaml:"name"`
+					VersionCreatedAt string `json:"version_created_at" yaml:"version_created_at"`
+				}{
 					{Name: "/tofu/path"},
 					{Name: "/not-real-cheese/tofu/other/path"},
 				},
