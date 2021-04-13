@@ -8,9 +8,8 @@ code.cloudfoundry.org/credhub-cli/credhub/credentials/values
 code.cloudfoundry.org/credhub-cli/credhub/permissions
 code.cloudfoundry.org/credhub-cli/credhub/server
 code.cloudfoundry.org/credhub-cli/errors
-# code.cloudfoundry.org/lager v1.1.1-0.20191025172104-c49605531964
+# code.cloudfoundry.org/lager v2.0.0+incompatible
 code.cloudfoundry.org/lager
-code.cloudfoundry.org/lager/internal/truncate
 # github.com/blang/semver v3.5.1+incompatible
 github.com/blang/semver
 # github.com/bmatcuk/doublestar v1.1.5

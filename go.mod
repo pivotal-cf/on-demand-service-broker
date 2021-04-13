@@ -5,7 +5,7 @@ go 1.13
 require (
 	code.cloudfoundry.org/clock v0.0.0-20180518195852-02e53af36e6c // indirect
 	code.cloudfoundry.org/credhub-cli v0.0.0-20190923163340-a6d1ba3b23bd
-	code.cloudfoundry.org/lager v1.1.1-0.20191025172104-c49605531964
+	code.cloudfoundry.org/lager v2.0.0+incompatible
 	github.com/apoydence/eachers v0.0.0-20181020210610-23942921fe77 // indirect
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/bmatcuk/doublestar v1.1.5 // indirect

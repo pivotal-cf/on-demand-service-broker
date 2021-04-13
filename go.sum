@@ -4,8 +4,8 @@ code.cloudfoundry.org/clock v0.0.0-20180518195852-02e53af36e6c/go.mod h1:QD9Lzhd
 code.cloudfoundry.org/credhub-cli v0.0.0-20190923163340-a6d1ba3b23bd h1:n6+3IAQSYkwnY9NZHPRRv6Ac52+zBTptlqA1EpP3KF4=
 code.cloudfoundry.org/credhub-cli v0.0.0-20190923163340-a6d1ba3b23bd/go.mod h1:oZAAU/4R7ssJ+kighWL4VLyyyY+Utm8H9r721AE3edQ=
 code.cloudfoundry.org/lager v1.1.1-0.20191008172124-a9afc05ee5be/go.mod h1:O2sS7gKP3HM2iemG+EnwvyNQK7pTSC6Foi4QiMp9sSk=
-code.cloudfoundry.org/lager v1.1.1-0.20191025172104-c49605531964 h1:lLriyiIi3Vyurhzv3boTFhxMD6P64kUi9bDi32K2ufg=
-code.cloudfoundry.org/lager v1.1.1-0.20191025172104-c49605531964/go.mod h1:O2sS7gKP3HM2iemG+EnwvyNQK7pTSC6Foi4QiMp9sSk=
+code.cloudfoundry.org/lager v2.0.0+incompatible h1:WZwDKDB2PLd/oL+USK4b4aEjUymIej9My2nUQ9oWEwQ=
+code.cloudfoundry.org/lager v2.0.0+incompatible/go.mod h1:O2sS7gKP3HM2iemG+EnwvyNQK7pTSC6Foi4QiMp9sSk=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/apoydence/eachers v0.0.0-20181020210610-23942921fe77 h1:afT88tB6u9JCKQZVAAaa9ICz/uGn5Uw9ekn6P22mYKM=
 github.com/apoydence/eachers v0.0.0-20181020210610-23942921fe77/go.mod h1:bXvGk6IkT1Agy7qzJ+DjIw/SJ1AaB3AvAuMDVV+Vkoo=
