@@ -13,7 +13,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pkg/errors"
 
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/cloudfoundry/bosh-cli/director"
 	boshuaa "github.com/cloudfoundry/bosh-cli/uaa"
 )

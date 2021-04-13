@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 )
 
 type CFAPIVersionChecker struct {

@@ -6,7 +6,7 @@ require (
 	code.cloudfoundry.org/credhub-cli v0.0.0-20201012130117-2ebe14b120cc
 	code.cloudfoundry.org/lager v2.0.0+incompatible
 	github.com/apoydence/eachers v0.0.0-20181020210610-23942921fe77 // indirect
-	github.com/blang/semver v3.5.1+incompatible
+	github.com/blang/semver/v4 v4.0.0
 	github.com/cloudfoundry-community/go-uaa v0.3.1
 	github.com/cloudfoundry/bosh-cli v6.4.1+incompatible
 	github.com/cloudfoundry/bosh-utils v0.0.0-20210412224541-4dc0ba7ee880

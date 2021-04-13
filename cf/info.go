@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 )
 
 func (c Client) GetAPIVersion(logger *log.Logger) (string, error) {

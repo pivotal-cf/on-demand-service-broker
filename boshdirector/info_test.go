@@ -9,7 +9,7 @@ package boshdirector_test
 import (
 	"errors"
 
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	boshdir "github.com/cloudfoundry/bosh-cli/director"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

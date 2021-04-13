@@ -11,7 +11,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/cloudfoundry/bosh-cli/director"
 	"github.com/pkg/errors"
 )
