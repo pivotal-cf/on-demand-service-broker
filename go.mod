@@ -11,7 +11,7 @@ require (
 	github.com/cloudfoundry/bosh-cli v6.4.1+incompatible
 	github.com/cloudfoundry/bosh-utils v0.0.0-20210412224541-4dc0ba7ee880
 	github.com/cloudfoundry/noaa v2.1.0+incompatible
-	github.com/cloudfoundry/sonde-go v0.0.0-20171206171820-b33733203bb4
+	github.com/cloudfoundry/sonde-go v0.0.0-20200416163440-a42463ba266b
 	github.com/cppforlife/go-semi-semantic v0.0.0-20160921010311-576b6af77ae4 // indirect
 	github.com/craigfurman/herottp v0.0.0-20190418132442-c546d62f2a8d
 	github.com/elazarl/goproxy v0.0.0-20191011121108-aa519ddbe484 // indirect
@@ -20,7 +20,7 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/websocket v1.2.0 // indirect
 	github.com/hashicorp/go-version v0.0.0-20170914154128-fc61389e27c7 // indirect
-	github.com/mailru/easyjson v0.0.0-20171120080333-32fa128f234d // indirect
+	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.4.1
 	github.com/onsi/ginkgo v1.16.1
 	github.com/onsi/gomega v1.11.0

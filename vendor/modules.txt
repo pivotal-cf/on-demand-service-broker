@@ -53,7 +53,7 @@ github.com/cloudfoundry/noaa/consumer/internal
 github.com/cloudfoundry/noaa/errors
 # github.com/cloudfoundry/socks5-proxy v0.2.1
 github.com/cloudfoundry/socks5-proxy
-# github.com/cloudfoundry/sonde-go v0.0.0-20171206171820-b33733203bb4
+# github.com/cloudfoundry/sonde-go v0.0.0-20200416163440-a42463ba266b
 ## explicit
 github.com/cloudfoundry/sonde-go/events
 # github.com/cppforlife/go-semi-semantic v0.0.0-20160921010311-576b6af77ae4
@@ -88,9 +88,11 @@ github.com/gorilla/websocket
 # github.com/hashicorp/go-version v0.0.0-20170914154128-fc61389e27c7
 ## explicit
 github.com/hashicorp/go-version
+# github.com/josharian/intern v1.0.0
+github.com/josharian/intern
 # github.com/jpillora/backoff v1.0.0
 github.com/jpillora/backoff
-# github.com/mailru/easyjson v0.0.0-20171120080333-32fa128f234d
+# github.com/mailru/easyjson v0.7.7
 ## explicit
 github.com/mailru/easyjson
 github.com/mailru/easyjson/buffer
@@ -179,8 +181,6 @@ github.com/pivotal-cf/paraphernalia/secure/tlsconfig
 # github.com/pkg/errors v0.9.1
 ## explicit
 github.com/pkg/errors
-# github.com/poy/eachers v0.0.0-20181020210610-23942921fe77
-## explicit
 # github.com/urfave/negroni v1.0.0
 ## explicit
 github.com/urfave/negroni
