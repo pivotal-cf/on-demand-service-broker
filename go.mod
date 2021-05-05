@@ -25,11 +25,9 @@ require (
 	github.com/onsi/gomega v1.11.0
 	github.com/pborman/uuid v1.2.1
 	github.com/pivotal-cf/brokerapi/v8 v8.0.0
-	github.com/pivotal-cf/on-demand-services-sdk v0.40.1-0.20210412132503-a001dbc0dcbd
+	github.com/pivotal-cf/on-demand-services-sdk v0.41.2-0.20210505084604-5563a3a51b88
 	github.com/pkg/errors v0.9.1
 	github.com/urfave/negroni v1.0.0
 	github.com/xeipuuv/gojsonschema v1.2.0
 	gopkg.in/yaml.v2 v2.4.0
 )
-
-replace gopkg.in/fsnotify.v1 v1.4.7 => gopkg.in/fsnotify/fsnotify.v1 v1.4.7
