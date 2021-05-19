@@ -1,8 +1,0 @@
-language: go
-
-go:
- - "1.13"
-
-script:
-- go mod vendor
-- ./scripts/run-tests.sh -race -failOnPending -skipPackage=contract_tests,system_tests
