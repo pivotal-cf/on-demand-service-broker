@@ -142,7 +142,7 @@ github.com/onsi/ginkgo/reporters/stenographer
 github.com/onsi/ginkgo/reporters/stenographer/support/go-colorable
 github.com/onsi/ginkgo/reporters/stenographer/support/go-isatty
 github.com/onsi/ginkgo/types
-# github.com/onsi/gomega v1.12.0
+# github.com/onsi/gomega v1.13.0
 ## explicit
 github.com/onsi/gomega
 github.com/onsi/gomega/format
@@ -151,6 +151,7 @@ github.com/onsi/gomega/gexec
 github.com/onsi/gomega/ghttp
 github.com/onsi/gomega/internal/assertion
 github.com/onsi/gomega/internal/asyncassertion
+github.com/onsi/gomega/internal/defaults
 github.com/onsi/gomega/internal/oraclematcher
 github.com/onsi/gomega/internal/testingtsupport
 github.com/onsi/gomega/matchers
@@ -171,7 +172,7 @@ github.com/pivotal-cf/brokerapi/v8/domain/apiresponses
 github.com/pivotal-cf/brokerapi/v8/handlers
 github.com/pivotal-cf/brokerapi/v8/middlewares
 github.com/pivotal-cf/brokerapi/v8/utils
-# github.com/pivotal-cf/on-demand-services-sdk v0.41.2-0.20210526140706-b23d6a09cf41
+# github.com/pivotal-cf/on-demand-services-sdk v0.41.2-0.20210527063438-a44b3c7816ac
 ## explicit
 github.com/pivotal-cf/on-demand-services-sdk/bosh
 github.com/pivotal-cf/on-demand-services-sdk/serviceadapter
