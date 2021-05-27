@@ -57,13 +57,6 @@ export CF_ORG="$(bosh int --path /cf/org "$BOSH_DEPLOYMENT_VARS")"
 export CF_SPACE="$(bosh int --path /cf/space "$BOSH_DEPLOYMENT_VARS")"
 export DOPPLER_ADDRESS=wss://doppler.${BOSH_LITE_DOMAIN}
 
-export PREVIOUS_ADAPTER_RELEASE_URL="https://storage.googleapis.com/dev-releases/redis-example-service-adapter-prev-0.28.0.tgz" # TODO: fix this
-export PREVIOUS_ODB_RELEASE_URL="https://storage.googleapis.com/dev-releases/on-demand-service-broker-prev-0.28.0.tgz"
-export PREVIOUS_ADAPTER_VERSION="0.28.0"
-export PREVIOUS_ODB_VERSION="0.28.0"
-export PREVIOUS_ODB_RELEASE_NAME="on-demand-service-broker-prev"
-export PREVIOUS_ADAPTER_RELEASE_NAME="redis-example-service-adapter-prev"
-
 cf api ${CF_URL} --skip-ssl-validation
 if [[ -n "${CF_CLIENT_ID:-""}" && "${CF_CLIENT_ID:-""}" != "null" ]]; then
   cf auth "$CF_CLIENT_ID" "$CF_CLIENT_SECRET" --client-credentials
