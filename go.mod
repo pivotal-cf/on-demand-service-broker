@@ -21,11 +21,11 @@ require (
 	github.com/gorilla/websocket v1.2.0 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.4.1
-	github.com/onsi/ginkgo v1.16.2
+	github.com/onsi/ginkgo v1.16.3
 	github.com/onsi/gomega v1.13.0
 	github.com/pborman/uuid v1.2.1
 	github.com/pivotal-cf/brokerapi/v8 v8.1.0
-	github.com/pivotal-cf/on-demand-services-sdk v0.41.2-0.20210527145122-29e45d906ba5
+	github.com/pivotal-cf/on-demand-services-sdk v0.41.2-0.20210531073412-239832112167
 	github.com/pkg/errors v0.9.1
 	github.com/urfave/negroni v1.0.0
 	github.com/xeipuuv/gojsonschema v1.2.0
