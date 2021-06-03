@@ -25,7 +25,7 @@ require (
 	github.com/onsi/gomega v1.13.0
 	github.com/pborman/uuid v1.2.1
 	github.com/pivotal-cf/brokerapi/v8 v8.1.0
-	github.com/pivotal-cf/on-demand-services-sdk v0.42.1-0.20210603070027-6eae4ba77396
+	github.com/pivotal-cf/on-demand-services-sdk v0.42.1-0.20210603115250-564f5c1e58ae
 	github.com/pkg/errors v0.9.1
 	github.com/urfave/negroni v1.0.0
 	github.com/xeipuuv/gojsonschema v1.2.0
