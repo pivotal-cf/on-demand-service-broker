@@ -22,7 +22,7 @@ require (
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.4.1
 	github.com/onsi/ginkgo v1.16.4
-	github.com/onsi/gomega v1.14.0
+	github.com/onsi/gomega v1.13.0
 	github.com/pborman/uuid v1.2.1
 	github.com/pivotal-cf/brokerapi/v8 v8.1.0
 	github.com/pivotal-cf/on-demand-services-sdk v0.42.2-0.20210715094245-ed3da6a41b49
