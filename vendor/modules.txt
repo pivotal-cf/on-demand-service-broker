@@ -67,9 +67,9 @@ github.com/cppforlife/go-semi-semantic/version
 # github.com/craigfurman/herottp v0.0.0-20190418132442-c546d62f2a8d
 ## explicit
 github.com/craigfurman/herottp
-# github.com/elazarl/goproxy v0.0.0-20191011121108-aa519ddbe484
+# github.com/elazarl/goproxy v0.0.0-20210801061803-8e322dfb79c4
 ## explicit
-# github.com/elazarl/goproxy/ext v0.0.0-20191011121108-aa519ddbe484
+# github.com/elazarl/goproxy/ext v0.0.0-20210801061803-8e322dfb79c4
 ## explicit
 # github.com/fsnotify/fsnotify v1.4.9
 ## explicit; go 1.13
@@ -77,8 +77,8 @@ github.com/fsnotify/fsnotify
 # github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0
 ## explicit; go 1.13
 github.com/go-task/slim-sprig
-# github.com/gogo/protobuf v0.0.0-20171007142547-342cbe0a0415
-## explicit
+# github.com/gogo/protobuf v1.3.2
+## explicit; go 1.15
 github.com/gogo/protobuf/gogoproto
 github.com/gogo/protobuf/proto
 github.com/gogo/protobuf/protoc-gen-gogo/descriptor
@@ -182,7 +182,7 @@ github.com/pivotal-cf/brokerapi/v8/domain/apiresponses
 github.com/pivotal-cf/brokerapi/v8/handlers
 github.com/pivotal-cf/brokerapi/v8/middlewares
 github.com/pivotal-cf/brokerapi/v8/utils
-# github.com/pivotal-cf/on-demand-services-sdk v0.42.2-0.20210916093852-bbd4e67853f7
+# github.com/pivotal-cf/on-demand-services-sdk v0.42.2-0.20210916101918-31612e58e5c6
 ## explicit; go 1.17
 github.com/pivotal-cf/on-demand-services-sdk/bosh
 github.com/pivotal-cf/on-demand-services-sdk/serviceadapter
