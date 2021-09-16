@@ -150,13 +150,12 @@ github.com/onsi/gomega v1.14.0/go.mod h1:cIuvLEne0aoVhAgh/O6ac0Op8WWw9H6eYCriF+t
 github.com/onsi/gomega v1.16.0 h1:6gjqkI8iiRHMvdccRJM8rVKjCWk6ZIm6FTm3ddIe4/c=
 github.com/onsi/gomega v1.16.0/go.mod h1:HnhC7FXeEQY45zxNK3PPoIUhzk/80Xly9PcubAlGdZY=
 github.com/pborman/uuid v0.0.0-20180906182336-adf5a7427709/go.mod h1:VyrYX9gd7irzKovcSS6BIIEwPRkP2Wm2m9ufcdFSJ34=
-github.com/pborman/uuid v1.2.0/go.mod h1:X/NO0urCmaxf9VXbdlT7C2Yzkj2IKimNn4k+gtPdI/k=
 github.com/pborman/uuid v1.2.1 h1:+ZZIw58t/ozdjRaXh/3awHfmWRbzYxJoAdNJxe/3pvw=
 github.com/pborman/uuid v1.2.1/go.mod h1:X/NO0urCmaxf9VXbdlT7C2Yzkj2IKimNn4k+gtPdI/k=
 github.com/pivotal-cf/brokerapi/v8 v8.1.0 h1:mQbGfDVp2Vz447pB0XPJTV5jw/soyHP1oI7wHmnEEW0=
 github.com/pivotal-cf/brokerapi/v8 v8.1.0/go.mod h1:SC750nEE9PJ2FER2zFT1TvWN67fTr6jzZ2WQV8oltRc=
-github.com/pivotal-cf/on-demand-services-sdk v0.42.2-0.20210916093852-bbd4e67853f7 h1:wKZIVzlMRHszMEb3sr3B/MVPYK+KVrG4158vIR/3pJU=
-github.com/pivotal-cf/on-demand-services-sdk v0.42.2-0.20210916093852-bbd4e67853f7/go.mod h1:xl+yBCNR5k+E5GhyrAkE0aLpK74886D3uJWl88dfl0c=
+github.com/pivotal-cf/on-demand-services-sdk v0.42.2-0.20210916101918-31612e58e5c6 h1:dLmNLDITLpBeMDtNbBZVNZSzGlzTTsOygjNPpJFOLCA=
+github.com/pivotal-cf/on-demand-services-sdk v0.42.2-0.20210916101918-31612e58e5c6/go.mod h1:I0pyRz8ig6kL6at6Yg+rDx5d5VC06l43KBkqkOr3I1o=
 github.com/pivotal-cf/paraphernalia v0.0.0-20180203224945-a64ae2051c20 h1:DR5eMfe2+6GzLkVyWytdtgUxgbPiOfvKDuqityTV3y8=
 github.com/pivotal-cf/paraphernalia v0.0.0-20180203224945-a64ae2051c20/go.mod h1:Y3IqE20LKprEpLkXb7gXinJf4vvDdQe/BS8E4kL/dgE=
 github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
