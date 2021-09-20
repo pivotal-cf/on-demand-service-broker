@@ -173,8 +173,8 @@ github.com/onsi/gomega/types
 # github.com/pborman/uuid v1.2.1
 ## explicit
 github.com/pborman/uuid
-# github.com/pivotal-cf/brokerapi/v8 v8.1.0
-## explicit; go 1.15
+# github.com/pivotal-cf/brokerapi/v8 v8.2.0
+## explicit; go 1.17
 github.com/pivotal-cf/brokerapi/v8
 github.com/pivotal-cf/brokerapi/v8/auth
 github.com/pivotal-cf/brokerapi/v8/domain
@@ -182,7 +182,7 @@ github.com/pivotal-cf/brokerapi/v8/domain/apiresponses
 github.com/pivotal-cf/brokerapi/v8/handlers
 github.com/pivotal-cf/brokerapi/v8/middlewares
 github.com/pivotal-cf/brokerapi/v8/utils
-# github.com/pivotal-cf/on-demand-services-sdk v0.42.2-0.20210916101918-31612e58e5c6
+# github.com/pivotal-cf/on-demand-services-sdk v0.42.2-0.20210920105913-f2092d41236f
 ## explicit; go 1.17
 github.com/pivotal-cf/on-demand-services-sdk/bosh
 github.com/pivotal-cf/on-demand-services-sdk/serviceadapter
