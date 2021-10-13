@@ -182,7 +182,7 @@ github.com/pivotal-cf/brokerapi/v8/domain/apiresponses
 github.com/pivotal-cf/brokerapi/v8/handlers
 github.com/pivotal-cf/brokerapi/v8/middlewares
 github.com/pivotal-cf/brokerapi/v8/utils
-# github.com/pivotal-cf/on-demand-services-sdk v0.42.3-0.20211012151305-42cb06efc925
+# github.com/pivotal-cf/on-demand-services-sdk v0.42.3-0.20211013132911-368b7f25e16f
 ## explicit; go 1.17
 github.com/pivotal-cf/on-demand-services-sdk/bosh
 github.com/pivotal-cf/on-demand-services-sdk/serviceadapter
@@ -330,3 +330,6 @@ gopkg.in/tomb.v1
 # gopkg.in/yaml.v2 v2.4.0
 ## explicit; go 1.15
 gopkg.in/yaml.v2
+# gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
+## explicit
+gopkg.in/yaml.v3
