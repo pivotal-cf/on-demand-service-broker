@@ -36,7 +36,7 @@ github.com/cloudfoundry/bosh-cli/common/util
 github.com/cloudfoundry/bosh-cli/director
 github.com/cloudfoundry/bosh-cli/io
 github.com/cloudfoundry/bosh-cli/uaa
-# github.com/cloudfoundry/bosh-utils v0.0.284
+# github.com/cloudfoundry/bosh-utils v0.0.286
 ## explicit; go 1.17
 github.com/cloudfoundry/bosh-utils/crypto
 github.com/cloudfoundry/bosh-utils/errors
@@ -236,7 +236,7 @@ golang.org/x/net/proxy
 golang.org/x/oauth2
 golang.org/x/oauth2/clientcredentials
 golang.org/x/oauth2/internal
-# golang.org/x/sys v0.0.0-20211023085530-d6a326fbbf70
+# golang.org/x/sys v0.0.0-20211025201205-69cdffdb9359
 ## explicit; go 1.17
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs
