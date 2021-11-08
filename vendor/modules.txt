@@ -156,7 +156,7 @@ github.com/onsi/ginkgo/reporters/stenographer
 github.com/onsi/ginkgo/reporters/stenographer/support/go-colorable
 github.com/onsi/ginkgo/reporters/stenographer/support/go-isatty
 github.com/onsi/ginkgo/types
-# github.com/onsi/gomega v1.16.0
+# github.com/onsi/gomega v1.17.0
 ## explicit; go 1.16
 github.com/onsi/gomega
 github.com/onsi/gomega/format
@@ -182,7 +182,7 @@ github.com/pivotal-cf/brokerapi/v8/domain/apiresponses
 github.com/pivotal-cf/brokerapi/v8/handlers
 github.com/pivotal-cf/brokerapi/v8/middlewares
 github.com/pivotal-cf/brokerapi/v8/utils
-# github.com/pivotal-cf/on-demand-services-sdk v0.42.3-0.20211021103433-87adf6b219f8
+# github.com/pivotal-cf/on-demand-services-sdk v0.42.4-0.20211108121057-ef9efb424364
 ## explicit; go 1.17
 github.com/pivotal-cf/on-demand-services-sdk/bosh
 github.com/pivotal-cf/on-demand-services-sdk/serviceadapter
