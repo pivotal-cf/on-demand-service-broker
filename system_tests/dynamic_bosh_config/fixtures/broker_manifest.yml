@@ -120,10 +120,15 @@ instance_groups:
           version: "((meta.stemcell.version))"
   - name: route_registrar
     consumes:
-      nats:
+      nats-tls:
+        from: nats-tls
         deployment: ((cf.deployment_name))
-        from: nats
     properties:
+      nats:
+        tls:
+          enabled: true
+          client_cert: ((/bosh-lite/cf/nats_client_cert.certificate))
+          client_key: ((/bosh-lite/cf/nats_client_cert.private_key))
       route_registrar:
         routes:
         - name: ((broker_route_name))
