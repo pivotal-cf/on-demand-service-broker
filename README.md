@@ -21,18 +21,18 @@ We only deploy this application with BOSH. Its dependencies are vendored as subm
 into the [BOSH release](https://github.com/pivotal-cf/on-demand-service-broker-release).
 
 ### Go dependencies
-Go dependencies are managed by dep.
+Go dependencies are managed using `go mod`.
 
 To fetch dependencies use
 ```
-dep ensure
-dep prune
+go mod download
 ```
 
 To update an individual dependency use
 ```
-dep ensure -update <dependency-path>
-dep prune
+go get -u <dependency-path>
+go mod tidy
+go mod vendor
 ```
 
 ### Configuration
@@ -54,7 +54,7 @@ listed in system_tests/.envrc.template. The values for these variables can be
 taken from the pipeline.yml and adjusted for your local environment
 
 ### Dev / test tools
-* go 1.8
+* go 1.17
 * [counterfeiter](https://github.com/maxbrunsfeld/counterfeiter) (for re-generating fakes)
 * CF CLI (for system tests. See below)
 
