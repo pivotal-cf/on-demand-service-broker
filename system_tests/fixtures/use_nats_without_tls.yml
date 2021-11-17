@@ -1,0 +1,13 @@
+---
+
+- type: remove
+  path: /instance_groups/name=broker/jobs/name=route_registrar/consumes/nats-tls?
+
+- type: remove
+  path: /instance_groups/name=broker/jobs/name=route_registrar/properties/nats?
+
+- type: replace
+  path: /instance_groups/name=broker/jobs/name=route_registrar/consumes/nats?
+  value:
+    deployment: ((cf.deployment_name))
+    from: nats
