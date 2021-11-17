@@ -359,6 +359,10 @@ func deploy(systemTestSuffix string, deploymentOptions BrokerDeploymentOptions, 
 		deployArguments = append(deployArguments, "--ops-file", filepath.Join(globalFixturesPath, "add_cf_uaa_client_credentials.yml"))
 	}
 
+	if noNATSTLSCertInVarsFile(variables.BrokerDeploymentVarsPath){
+		deployArguments = append(deployArguments, "--ops-file", filepath.Join(globalFixturesPath, "use_nats_without_tls.yml"))
+	}
+
 	cmd := exec.Command("bosh", deployArguments...)
 	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
 	Expect(err).NotTo(HaveOccurred(), "failed to run bosh deploy command")
@@ -557,6 +561,23 @@ func noUserCredentialsInVarsFile(varsFile string) bool {
 	err = yaml.Unmarshal(varsFileContents, &test)
 	Expect(err).NotTo(HaveOccurred())
 	return test.CF.UserCredentials.ClientID == ""
+}
+
+func noNATSTLSCertInVarsFile(varsFile string) bool {
+	var test struct {
+		NATS struct {
+			TLS struct {
+				Cert string `yaml:"certificate"`
+			} `yaml:"tls"`
+		} `yaml:"nats"`
+	}
+	f, err := os.Open(varsFile)
+	Expect(err).NotTo(HaveOccurred())
+	varsFileContents, err := ioutil.ReadAll(f)
+	Expect(err).NotTo(HaveOccurred())
+	err = yaml.Unmarshal(varsFileContents, &test)
+	Expect(err).NotTo(HaveOccurred())
+	return !strings.Contains(test.NATS.TLS.Cert, "CERTIFICATE")
 }
 
 func BOSHSupportsLinksAPIForDNS() bool {
