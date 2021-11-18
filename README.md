@@ -48,19 +48,10 @@ to your BOSH director.
 ### Running tests
 You can make use of the script in `scripts/run-tests.sh` to run tests skipping system tests.
 
-#### Running Systests
-In order to run the systests you must set the environment variable that are
-listed in system_tests/.envrc.template. The values for these variables can be
-taken from the pipeline.yml and adjusted for your local environment
-
 ### Dev / test tools
 * go 1.17
 * [counterfeiter](https://github.com/maxbrunsfeld/counterfeiter) (for re-generating fakes)
 * CF CLI (for system tests. See below)
-
-### What's in that system_tests directory?
-Black-box tests designed to be run against this broker, a real BOSH director and
-a real Cloud Foundry.
 
 ## Guidelines for PRs
 
