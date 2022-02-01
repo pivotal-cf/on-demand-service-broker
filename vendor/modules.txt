@@ -1,5 +1,5 @@
-# code.cloudfoundry.org/credhub-cli v0.0.0-20220201003547-8bb226d445fe
-## explicit; go 1.14
+# code.cloudfoundry.org/credhub-cli v0.0.0-20220201010243-b54d23c700da
+## explicit; go 1.17
 code.cloudfoundry.org/credhub-cli/credhub
 code.cloudfoundry.org/credhub-cli/credhub/auth
 code.cloudfoundry.org/credhub-cli/credhub/auth/uaa
@@ -193,8 +193,6 @@ github.com/pivotal-cf/paraphernalia/secure/tlsconfig
 # github.com/pkg/errors v0.9.1
 ## explicit
 github.com/pkg/errors
-# github.com/rogpeppe/go-internal v1.8.0
-## explicit; go 1.11
 # github.com/urfave/negroni v1.0.0
 ## explicit
 github.com/urfave/negroni
