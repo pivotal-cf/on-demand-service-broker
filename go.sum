@@ -2,8 +2,8 @@ cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMT
 cloud.google.com/go v0.34.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 code.cloudfoundry.org/clock v1.0.0 h1:kFXWQM4bxYvdBw2X8BbBeXwQNgfoWv1vqAk2ZZyBN2o=
 code.cloudfoundry.org/clock v1.0.0/go.mod h1:QD9Lzhd/ux6eNQVUDVRJX/RKTigpewimNYBi7ivZKY8=
-code.cloudfoundry.org/credhub-cli v0.0.0-20220131140657-191806650d6b h1:U0mTyUZjRNfVSsV/181Q47frcWKULsOoOI+qPIvRsys=
-code.cloudfoundry.org/credhub-cli v0.0.0-20220131140657-191806650d6b/go.mod h1:G0b3JnGdw141+6b/QtTyWOBras6GfGqtfC8b/aOII3I=
+code.cloudfoundry.org/credhub-cli v0.0.0-20220201003547-8bb226d445fe h1:iqIdqeuidLfk/dpSIr4o2+EVfKeiDQ1lvaKB5G+aWjM=
+code.cloudfoundry.org/credhub-cli v0.0.0-20220201003547-8bb226d445fe/go.mod h1:G0b3JnGdw141+6b/QtTyWOBras6GfGqtfC8b/aOII3I=
 code.cloudfoundry.org/lager v2.0.0+incompatible h1:WZwDKDB2PLd/oL+USK4b4aEjUymIej9My2nUQ9oWEwQ=
 code.cloudfoundry.org/lager v2.0.0+incompatible/go.mod h1:O2sS7gKP3HM2iemG+EnwvyNQK7pTSC6Foi4QiMp9sSk=
 code.cloudfoundry.org/tlsconfig v0.0.0-20211123175040-23cc9f05b6b3 h1:fv6SwdaX2uVcQKR8mXZy+6oYdthbKzkgmBzvoxSq/jY=
