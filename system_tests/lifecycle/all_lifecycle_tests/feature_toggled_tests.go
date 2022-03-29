@@ -114,7 +114,7 @@ func FeatureToggledLifecycleTest(
 		cmd := exec.Command("indicator-verification",
 			"-indicators", downloadedIndicator.Name(),
 			"-authorization", cf_helpers.GetOAuthToken(),
-			"-query-endpoint", "https://log-cache."+brokerInfo.BrokerSystemDomain, "-k")
+			"-query-endpoint", "https://log-cache.service.cf.internal."+brokerInfo.BrokerSystemDomain, "-k")
 
 		session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
 		Expect(err).NotTo(HaveOccurred(), "failed to run verification tool")
