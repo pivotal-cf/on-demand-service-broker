@@ -92,13 +92,6 @@ var _ = Describe("Server Protocol", func() {
 			Entry("TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256", tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256),
 		)
 
-		It("refuses to serve TLS 1.1", func() {
-			log.SetOutput(GinkgoWriter)
-			_, _, err := doHTTPSRequest(http.MethodGet, fmt.Sprintf("https://%s/v2/catalog", serverURL), caCertFile, acceptableCipherSuites, tls.VersionTLS11)
-			log.SetOutput(os.Stdout)
-			Expect(err).To(MatchError(ContainSubstring("remote error: tls: protocol version not supported")))
-		})
-
 		It("does not serve HTTP", func() {
 			req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("http://%s/v2/catalog", serverURL), nil)
 			Expect(err).ToNot(HaveOccurred())
