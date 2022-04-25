@@ -1,4 +1,4 @@
-# code.cloudfoundry.org/credhub-cli v0.0.0-20220418130354-8f28a3cc2a91
+# code.cloudfoundry.org/credhub-cli v0.0.0-20220425130248-cac879659e18
 ## explicit; go 1.17
 code.cloudfoundry.org/credhub-cli/credhub
 code.cloudfoundry.org/credhub-cli/credhub/auth
@@ -36,7 +36,7 @@ github.com/cloudfoundry/bosh-cli/common/util
 github.com/cloudfoundry/bosh-cli/director
 github.com/cloudfoundry/bosh-cli/io
 github.com/cloudfoundry/bosh-cli/uaa
-# github.com/cloudfoundry/bosh-utils v0.0.310
+# github.com/cloudfoundry/bosh-utils v0.0.311
 ## explicit; go 1.18
 github.com/cloudfoundry/bosh-utils/crypto
 github.com/cloudfoundry/bosh-utils/errors
@@ -55,7 +55,7 @@ github.com/cloudfoundry/noaa
 github.com/cloudfoundry/noaa/consumer
 github.com/cloudfoundry/noaa/consumer/internal
 github.com/cloudfoundry/noaa/errors
-# github.com/cloudfoundry/socks5-proxy v0.2.51
+# github.com/cloudfoundry/socks5-proxy v0.2.52
 ## explicit; go 1.18
 github.com/cloudfoundry/socks5-proxy
 # github.com/cloudfoundry/sonde-go v0.0.0-20200416163440-a42463ba266b
@@ -71,7 +71,7 @@ github.com/craigfurman/herottp
 ## explicit
 # github.com/elazarl/goproxy/ext v0.0.0-20210801061803-8e322dfb79c4
 ## explicit
-# github.com/fsnotify/fsnotify v1.5.1
+# github.com/fsnotify/fsnotify v1.5.3
 ## explicit; go 1.13
 github.com/fsnotify/fsnotify
 # github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0
@@ -221,7 +221,7 @@ golang.org/x/crypto/ssh/internal/bcrypt_pbkdf
 golang.org/x/mod/internal/lazyregexp
 golang.org/x/mod/module
 golang.org/x/mod/semver
-# golang.org/x/net v0.0.0-20220412020605-290c469a71a5
+# golang.org/x/net v0.0.0-20220421235706-1d1ef9303861
 ## explicit; go 1.17
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
@@ -235,7 +235,7 @@ golang.org/x/net/proxy
 golang.org/x/oauth2
 golang.org/x/oauth2/clientcredentials
 golang.org/x/oauth2/internal
-# golang.org/x/sys v0.0.0-20220412211240-33da011f77ad
+# golang.org/x/sys v0.0.0-20220422013727-9388b58f7150
 ## explicit; go 1.17
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs
