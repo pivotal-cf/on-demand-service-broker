@@ -1,4 +1,4 @@
-# code.cloudfoundry.org/credhub-cli v0.0.0-20220523130515-945e63b6ea75
+# code.cloudfoundry.org/credhub-cli v0.0.0-20220530130342-4190c5b4c3f9
 ## explicit; go 1.17
 code.cloudfoundry.org/credhub-cli/credhub
 code.cloudfoundry.org/credhub-cli/credhub/auth
@@ -36,7 +36,7 @@ github.com/cloudfoundry/bosh-cli/common/util
 github.com/cloudfoundry/bosh-cli/director
 github.com/cloudfoundry/bosh-cli/io
 github.com/cloudfoundry/bosh-cli/uaa
-# github.com/cloudfoundry/bosh-utils v0.0.315
+# github.com/cloudfoundry/bosh-utils v0.0.316
 ## explicit; go 1.18
 github.com/cloudfoundry/bosh-utils/crypto
 github.com/cloudfoundry/bosh-utils/errors
@@ -55,7 +55,7 @@ github.com/cloudfoundry/noaa
 github.com/cloudfoundry/noaa/consumer
 github.com/cloudfoundry/noaa/consumer/internal
 github.com/cloudfoundry/noaa/errors
-# github.com/cloudfoundry/socks5-proxy v0.2.56
+# github.com/cloudfoundry/socks5-proxy v0.2.57
 ## explicit; go 1.18
 github.com/cloudfoundry/socks5-proxy
 # github.com/cloudfoundry/sonde-go v0.0.0-20200416163440-a42463ba266b
@@ -205,7 +205,7 @@ github.com/xeipuuv/gojsonreference
 # github.com/xeipuuv/gojsonschema v1.2.0
 ## explicit
 github.com/xeipuuv/gojsonschema
-# golang.org/x/crypto v0.0.0-20220518034528-6f7dac969898
+# golang.org/x/crypto v0.0.0-20220525230936-793ad666bf5e
 ## explicit; go 1.17
 golang.org/x/crypto/blowfish
 golang.org/x/crypto/chacha20
@@ -221,7 +221,7 @@ golang.org/x/crypto/ssh/internal/bcrypt_pbkdf
 golang.org/x/mod/internal/lazyregexp
 golang.org/x/mod/module
 golang.org/x/mod/semver
-# golang.org/x/net v0.0.0-20220520000938-2e3eb7b945c2
+# golang.org/x/net v0.0.0-20220526153639-5463443f8c37
 ## explicit; go 1.17
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
