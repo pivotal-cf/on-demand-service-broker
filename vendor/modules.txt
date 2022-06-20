@@ -1,4 +1,4 @@
-# code.cloudfoundry.org/credhub-cli v0.0.0-20220613130149-b6d04de2163d
+# code.cloudfoundry.org/credhub-cli v0.0.0-20220620130410-645eee56ecdb
 ## explicit; go 1.17
 code.cloudfoundry.org/credhub-cli/credhub
 code.cloudfoundry.org/credhub-cli/credhub/auth
@@ -36,7 +36,7 @@ github.com/cloudfoundry/bosh-cli/common/util
 github.com/cloudfoundry/bosh-cli/director
 github.com/cloudfoundry/bosh-cli/io
 github.com/cloudfoundry/bosh-cli/uaa
-# github.com/cloudfoundry/bosh-utils v0.0.318
+# github.com/cloudfoundry/bosh-utils v0.0.319
 ## explicit; go 1.18
 github.com/cloudfoundry/bosh-utils/crypto
 github.com/cloudfoundry/bosh-utils/errors
@@ -55,7 +55,7 @@ github.com/cloudfoundry/noaa
 github.com/cloudfoundry/noaa/consumer
 github.com/cloudfoundry/noaa/consumer/internal
 github.com/cloudfoundry/noaa/errors
-# github.com/cloudfoundry/socks5-proxy v0.2.59
+# github.com/cloudfoundry/socks5-proxy v0.2.60
 ## explicit; go 1.18
 github.com/cloudfoundry/socks5-proxy
 # github.com/cloudfoundry/sonde-go v0.0.0-20200416163440-a42463ba266b
@@ -221,7 +221,7 @@ golang.org/x/crypto/ssh/internal/bcrypt_pbkdf
 golang.org/x/mod/internal/lazyregexp
 golang.org/x/mod/module
 golang.org/x/mod/semver
-# golang.org/x/net v0.0.0-20220607020251-c690dde0001d
+# golang.org/x/net v0.0.0-20220617184016-355a448f1bc9
 ## explicit; go 1.17
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
@@ -235,7 +235,7 @@ golang.org/x/net/proxy
 golang.org/x/oauth2
 golang.org/x/oauth2/clientcredentials
 golang.org/x/oauth2/internal
-# golang.org/x/sys v0.0.0-20220610221304-9f5ed59c137d
+# golang.org/x/sys v0.0.0-20220615213510-4f61da869c0c
 ## explicit; go 1.17
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs
