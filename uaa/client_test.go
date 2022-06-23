@@ -228,6 +228,41 @@ var _ = Describe("UAA", func() {
 				})
 			})
 
+                        When("the definition has authorization_code grant type", func() {
+                                BeforeEach(func() {
+                                        uaaConfig.ClientDefinition.AuthorizedGrantTypes = "authorization_code"
+                                        uaaClient, _ = uaa.New(uaaConfig, trustedCert, skipTLSValidation)
+                                        uaaClient.RandFunc = func() string {
+                                                return "a-secret"
+                                        }
+                                })
+
+                                It("does generate a secret", func() {
+                                        actualClient, err := uaaClient.CreateClient("some-client-id", "some-name", "some-space-guid")
+                                        Expect(err).NotTo(HaveOccurred())
+                                        Expect(actualClient["client_secret"]).NotTo(BeEmpty())
+                                })
+
+                                It("generates the client with a placeholder redirect uri", func() {
+                                        _, err := uaaClient.CreateClient("some-client-id", "some-name", "some-space-guid")
+                                        Expect(err).NotTo(HaveOccurred())
+
+                                        Expect(createHandler.RequestsReceived()).To(Equal(1))
+                                        request := createHandler.GetRequestForCall(0)
+                                        Expect(request.Body).To(MatchJSON(`
+                                        {
+                                                "scope": [ "admin", "read", "write" ],
+                                                "client_id": "some-client-id",
+                                                "client_secret": "a-secret",
+                                                "resource_ids": ["resource1", "resource2"],
+                                                "authorized_grant_types": [ "authorization_code" ],
+                                                "authorities": [ "some-authority", "another-authority" ],
+                                                "name": "some-name",
+                                                "redirect_uri": [ "https://placeholder.example.com" ]
+                                        }`), "Expected request body mismatch")
+                                })
+                        })
+			
 			When("scopes include ODB_SPACE_GUID", func() {
 				BeforeEach(func() {
 					uaaConfig.ClientDefinition.Scopes = "scope1,scope-2-ODB_SPACE_GUID.*,odb_space_guid_admin"

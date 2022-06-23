@@ -95,6 +95,10 @@ func (c *Client) CreateClient(clientID, name, spaceGUID string) (map[string]stri
 		// UAA does not allow `implicit` clients to be created without a redirect uri
 		m["redirect_uri"] = placeholderRedirectURI
 	} else {
+		if strings.Contains(grantTypes, "authorization_code") {
+			// UAA does not allow `authorization_code` clients to be created without a redirect uri
+			m["redirect_uri"] = placeholderRedirectURI
+                }
 		clientSecret = c.RandFunc()
 		m["client_secret"] = clientSecret
 	}
