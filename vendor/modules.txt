@@ -1,4 +1,4 @@
-# code.cloudfoundry.org/credhub-cli v0.0.0-20220620130410-645eee56ecdb
+# code.cloudfoundry.org/credhub-cli v0.0.0-20220627131108-2afb54f77ae9
 ## explicit; go 1.17
 code.cloudfoundry.org/credhub-cli/credhub
 code.cloudfoundry.org/credhub-cli/credhub/auth
@@ -12,8 +12,8 @@ code.cloudfoundry.org/credhub-cli/errors
 # code.cloudfoundry.org/lager v2.0.0+incompatible
 ## explicit
 code.cloudfoundry.org/lager
-# code.cloudfoundry.org/tlsconfig v0.0.0-20211123175040-23cc9f05b6b3
-## explicit; go 1.16
+# code.cloudfoundry.org/tlsconfig v0.0.0-20220621140725-0e6fbd869921
+## explicit; go 1.17
 code.cloudfoundry.org/tlsconfig
 # github.com/apoydence/eachers v0.0.0-20181020210610-23942921fe77
 ## explicit
@@ -36,7 +36,7 @@ github.com/cloudfoundry/bosh-cli/common/util
 github.com/cloudfoundry/bosh-cli/director
 github.com/cloudfoundry/bosh-cli/io
 github.com/cloudfoundry/bosh-cli/uaa
-# github.com/cloudfoundry/bosh-utils v0.0.319
+# github.com/cloudfoundry/bosh-utils v0.0.320
 ## explicit; go 1.18
 github.com/cloudfoundry/bosh-utils/crypto
 github.com/cloudfoundry/bosh-utils/errors
@@ -55,7 +55,7 @@ github.com/cloudfoundry/noaa
 github.com/cloudfoundry/noaa/consumer
 github.com/cloudfoundry/noaa/consumer/internal
 github.com/cloudfoundry/noaa/errors
-# github.com/cloudfoundry/socks5-proxy v0.2.60
+# github.com/cloudfoundry/socks5-proxy v0.2.61
 ## explicit; go 1.18
 github.com/cloudfoundry/socks5-proxy
 # github.com/cloudfoundry/sonde-go v0.0.0-20200416163440-a42463ba266b
@@ -205,7 +205,7 @@ github.com/xeipuuv/gojsonreference
 # github.com/xeipuuv/gojsonschema v1.2.0
 ## explicit
 github.com/xeipuuv/gojsonschema
-# golang.org/x/crypto v0.0.0-20220525230936-793ad666bf5e
+# golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d
 ## explicit; go 1.17
 golang.org/x/crypto/blowfish
 golang.org/x/crypto/chacha20
@@ -221,7 +221,7 @@ golang.org/x/crypto/ssh/internal/bcrypt_pbkdf
 golang.org/x/mod/internal/lazyregexp
 golang.org/x/mod/module
 golang.org/x/mod/semver
-# golang.org/x/net v0.0.0-20220617184016-355a448f1bc9
+# golang.org/x/net v0.0.0-20220624214902-1bab6f366d9e
 ## explicit; go 1.17
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
@@ -235,7 +235,7 @@ golang.org/x/net/proxy
 golang.org/x/oauth2
 golang.org/x/oauth2/clientcredentials
 golang.org/x/oauth2/internal
-# golang.org/x/sys v0.0.0-20220615213510-4f61da869c0c
+# golang.org/x/sys v0.0.0-20220624220833-87e55d714810
 ## explicit; go 1.17
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs
