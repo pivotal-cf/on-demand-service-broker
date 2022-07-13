@@ -49,7 +49,7 @@ to your BOSH director.
 You can make use of the script in `scripts/run-tests.sh` to run tests skipping system tests.
 
 ### Dev / test tools
-* go 1.17
+* go 1.18
 * [counterfeiter](https://github.com/maxbrunsfeld/counterfeiter) (for re-generating fakes)
 * CF CLI (for system tests. See below)
 
