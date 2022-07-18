@@ -3,12 +3,12 @@ module github.com/pivotal-cf/on-demand-service-broker
 go 1.18
 
 require (
-	code.cloudfoundry.org/credhub-cli v0.0.0-20220711130737-818b4d4e42db
+	code.cloudfoundry.org/credhub-cli v0.0.0-20220718130749-35c3db51aabc
 	code.cloudfoundry.org/lager v2.0.0+incompatible
 	github.com/blang/semver/v4 v4.0.0
 	github.com/cloudfoundry-community/go-uaa v0.3.1
 	github.com/cloudfoundry/bosh-cli v6.4.1+incompatible
-	github.com/cloudfoundry/bosh-utils v0.0.322
+	github.com/cloudfoundry/bosh-utils v0.0.323
 	github.com/cloudfoundry/noaa v2.1.0+incompatible
 	github.com/cloudfoundry/sonde-go v0.0.0-20200416163440-a42463ba266b
 	github.com/craigfurman/herottp v0.0.0-20190418132442-c546d62f2a8d
@@ -31,7 +31,7 @@ require (
 	github.com/bmatcuk/doublestar v1.3.4 // indirect
 	github.com/charlievieth/fs v0.0.2 // indirect
 	github.com/cloudfoundry/go-socks5 v0.0.0-20180221174514-54f73bdb8a8e // indirect
-	github.com/cloudfoundry/socks5-proxy v0.2.63 // indirect
+	github.com/cloudfoundry/socks5-proxy v0.2.64 // indirect
 	github.com/cppforlife/go-semi-semantic v0.0.0-20160921010311-576b6af77ae4 // indirect
 	github.com/elazarl/goproxy v0.0.0-20210801061803-8e322dfb79c4 // indirect
 	github.com/elazarl/goproxy/ext v0.0.0-20210801061803-8e322dfb79c4 // indirect
@@ -54,7 +54,7 @@ require (
 	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4 // indirect
 	golang.org/x/net v0.0.0-20220708220712-1185a9018129 // indirect
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45 // indirect
-	golang.org/x/sys v0.0.0-20220708085239-5a0f0661e09d // indirect
+	golang.org/x/sys v0.0.0-20220715151400-c0bba94af5f8 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/tools v0.1.11-0.20220513221640-090b14e8501f // indirect
 	google.golang.org/appengine v1.6.1 // indirect
