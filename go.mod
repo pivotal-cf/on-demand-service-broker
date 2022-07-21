@@ -15,10 +15,10 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.5.0
 	github.com/onsi/ginkgo v1.16.5
-	github.com/onsi/gomega v1.19.0
+	github.com/onsi/gomega v1.20.0
 	github.com/pborman/uuid v1.2.1
 	github.com/pivotal-cf/brokerapi/v8 v8.2.2
-	github.com/pivotal-cf/on-demand-services-sdk v0.42.5-0.20220714105955-1aa28daa45d1
+	github.com/pivotal-cf/on-demand-services-sdk v0.42.6-0.20220721121124-b7b7b37bc248
 	github.com/pkg/errors v0.9.1
 	github.com/urfave/negroni v1.0.0
 	github.com/xeipuuv/gojsonschema v1.2.0
@@ -39,6 +39,7 @@ require (
 	github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
+	github.com/google/go-cmp v0.5.8 // indirect
 	github.com/google/uuid v1.1.1 // indirect
 	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/hashicorp/go-version v1.6.0 // indirect
@@ -61,4 +62,5 @@ require (
 	google.golang.org/protobuf v1.28.0 // indirect
 	gopkg.in/go-playground/validator.v8 v8.18.2 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
