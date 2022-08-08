@@ -1,4 +1,4 @@
-# code.cloudfoundry.org/credhub-cli v0.0.0-20220805204610-03431d8a29c4
+# code.cloudfoundry.org/credhub-cli v0.0.0-20220808130641-c90d587dfc9f
 ## explicit; go 1.17
 code.cloudfoundry.org/credhub-cli/credhub
 code.cloudfoundry.org/credhub-cli/credhub/auth
@@ -23,8 +23,8 @@ github.com/blang/semver/v4
 # github.com/bmatcuk/doublestar v1.3.4
 ## explicit; go 1.12
 github.com/bmatcuk/doublestar
-# github.com/charlievieth/fs v0.0.2
-## explicit; go 1.15
+# github.com/charlievieth/fs v0.0.3
+## explicit; go 1.18
 github.com/charlievieth/fs
 # github.com/cloudfoundry-community/go-uaa v0.3.1
 ## explicit; go 1.12
@@ -36,7 +36,7 @@ github.com/cloudfoundry/bosh-cli/common/util
 github.com/cloudfoundry/bosh-cli/director
 github.com/cloudfoundry/bosh-cli/io
 github.com/cloudfoundry/bosh-cli/uaa
-# github.com/cloudfoundry/bosh-utils v0.0.325
+# github.com/cloudfoundry/bosh-utils v0.0.326
 ## explicit; go 1.18
 github.com/cloudfoundry/bosh-utils/crypto
 github.com/cloudfoundry/bosh-utils/errors
@@ -55,7 +55,7 @@ github.com/cloudfoundry/noaa
 github.com/cloudfoundry/noaa/consumer
 github.com/cloudfoundry/noaa/consumer/internal
 github.com/cloudfoundry/noaa/errors
-# github.com/cloudfoundry/socks5-proxy v0.2.66
+# github.com/cloudfoundry/socks5-proxy v0.2.67
 ## explicit; go 1.18
 github.com/cloudfoundry/socks5-proxy
 # github.com/cloudfoundry/sonde-go v0.0.0-20200416163440-a42463ba266b
