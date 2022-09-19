@@ -1,7 +1,7 @@
 cloud.google.com/go v0.34.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 code.cloudfoundry.org/clock v1.0.0 h1:kFXWQM4bxYvdBw2X8BbBeXwQNgfoWv1vqAk2ZZyBN2o=
-code.cloudfoundry.org/credhub-cli v0.0.0-20220912130553-9aede59b2ba5 h1:2r7XzKZXHc4TBfdMiHeUwKC0TnpO3yVWszlJX8Jf4Ow=
-code.cloudfoundry.org/credhub-cli v0.0.0-20220912130553-9aede59b2ba5/go.mod h1:2+IhFKV+aAj444cK2Bx0rX+1wbpPhNmRAIOT0sWguBs=
+code.cloudfoundry.org/credhub-cli v0.0.0-20220919130746-ae2fbb7b7a2f h1:MPN81KH5Gcp+APsGdnFV/s3F1Gym2tnyXoDuwwlIezk=
+code.cloudfoundry.org/credhub-cli v0.0.0-20220919130746-ae2fbb7b7a2f/go.mod h1:K50oovczLsEIp6E5RmgFYyVSEHNDc0KtDqoiR36fDl0=
 code.cloudfoundry.org/lager v2.0.0+incompatible h1:WZwDKDB2PLd/oL+USK4b4aEjUymIej9My2nUQ9oWEwQ=
 code.cloudfoundry.org/lager v2.0.0+incompatible/go.mod h1:O2sS7gKP3HM2iemG+EnwvyNQK7pTSC6Foi4QiMp9sSk=
 code.cloudfoundry.org/tlsconfig v0.0.0-20220621140725-0e6fbd869921 h1:1PLAuQR56K2pw0lnlcXe+37uOaGg939W1Lqv8wxYpu4=
@@ -24,8 +24,8 @@ github.com/cloudfoundry/go-socks5 v0.0.0-20180221174514-54f73bdb8a8e h1:FQdRViao
 github.com/cloudfoundry/go-socks5 v0.0.0-20180221174514-54f73bdb8a8e/go.mod h1:PXmcacyJB/pJjSxEl15IU6rEIKXrhZQRzsr0UTkgNNs=
 github.com/cloudfoundry/noaa v2.1.0+incompatible h1:hr6VnM5VlYRN3YD+NmAedQLW8686sUMknOSe0mFS2vo=
 github.com/cloudfoundry/noaa v2.1.0+incompatible/go.mod h1:5LmacnptvxzrTvMfL9+EJhgkUfIgcwI61BVSTh47ECo=
-github.com/cloudfoundry/socks5-proxy v0.2.72 h1:zfWwqGWTfKpzRBcVZhSekWErz3wQJqQqjgzOkXpQVuA=
-github.com/cloudfoundry/socks5-proxy v0.2.72/go.mod h1:lCSk07wNZHZNbutlh/uW+SYMDJF4PRniXN65B0NZN8E=
+github.com/cloudfoundry/socks5-proxy v0.2.73 h1:LVMeXuA43CqDqwE9ky1EXvThbcaLbty9TNQYKtIc4Aw=
+github.com/cloudfoundry/socks5-proxy v0.2.73/go.mod h1:EYGdgVaNCEFibrR23xFT3GND154foF3GSXPTrAycCwo=
 github.com/cloudfoundry/sonde-go v0.0.0-20200416163440-a42463ba266b h1:cb7pGf4j2ZzRfnQMqVeTtMLv0l2Y81V5biZGF7zVokg=
 github.com/cloudfoundry/sonde-go v0.0.0-20200416163440-a42463ba266b/go.mod h1:GS0pCHd7onIsewbw8Ue9qa9pZPv2V88cUZDttK6KzgI=
 github.com/cppforlife/go-semi-semantic v0.0.0-20160921010311-576b6af77ae4 h1:J+ghqo7ZubTzelkjo9hntpTtP/9lUCWH9icEmAW+B+Q=
@@ -184,8 +184,8 @@ golang.org/x/sys v0.0.0-20200323222414-85ca7c5b95cd/go.mod h1:h1NjWce9XRLGQEsW7w
 golang.org/x/sys v0.0.0-20200930185726-fdedc70b468f/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20210112080510-489259a85091/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20220412211240-33da011f77ad/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
-golang.org/x/sys v0.0.0-20220909162455-aba9fc2a8ff2 h1:wM1k/lXfpc5HdkJJyW9GELpd8ERGdnh8sMGL6Gzq3Ho=
-golang.org/x/sys v0.0.0-20220909162455-aba9fc2a8ff2/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
+golang.org/x/sys v0.0.0-20220919091848-fb04ddd9f9c8 h1:h+EGohizhe9XlX18rfpa8k8RAc5XyaeamM+0VHRd4lc=
+golang.org/x/sys v0.0.0-20220919091848-fb04ddd9f9c8/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/term v0.0.0-20220722155259-a9ba230a4035 h1:Q5284mrmYTpACcm+eAKjKJH48BBwSyfJqmmGDTtT8Vc=
 golang.org/x/text v0.3.0/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
 golang.org/x/text v0.3.2/go.mod h1:bEr9sfX3Q8Zfm5fL9x+3itogRgK3+ptLWKqgva+5dAk=
