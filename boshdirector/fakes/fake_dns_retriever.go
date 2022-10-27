@@ -72,15 +72,16 @@ func (fake *FakeDNSRetriever) CreateLinkConsumer(arg1 string) (string, error) {
 	fake.createLinkConsumerArgsForCall = append(fake.createLinkConsumerArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.CreateLinkConsumerStub
+	fakeReturns := fake.createLinkConsumerReturns
 	fake.recordInvocation("CreateLinkConsumer", []interface{}{arg1})
 	fake.createLinkConsumerMutex.Unlock()
-	if fake.CreateLinkConsumerStub != nil {
-		return fake.CreateLinkConsumerStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.createLinkConsumerReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -135,15 +136,16 @@ func (fake *FakeDNSRetriever) DeleteLinkConsumer(arg1 string) error {
 	fake.deleteLinkConsumerArgsForCall = append(fake.deleteLinkConsumerArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.DeleteLinkConsumerStub
+	fakeReturns := fake.deleteLinkConsumerReturns
 	fake.recordInvocation("DeleteLinkConsumer", []interface{}{arg1})
 	fake.deleteLinkConsumerMutex.Unlock()
-	if fake.DeleteLinkConsumerStub != nil {
-		return fake.DeleteLinkConsumerStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.deleteLinkConsumerReturns
 	return fakeReturns.result1
 }
 
@@ -202,15 +204,16 @@ func (fake *FakeDNSRetriever) GetLinkAddress(arg1 string, arg2 []string, arg3 st
 		arg2 []string
 		arg3 string
 	}{arg1, arg2Copy, arg3})
+	stub := fake.GetLinkAddressStub
+	fakeReturns := fake.getLinkAddressReturns
 	fake.recordInvocation("GetLinkAddress", []interface{}{arg1, arg2Copy, arg3})
 	fake.getLinkAddressMutex.Unlock()
-	if fake.GetLinkAddressStub != nil {
-		return fake.GetLinkAddressStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.getLinkAddressReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -267,15 +270,16 @@ func (fake *FakeDNSRetriever) LinkProviderID(arg1 string, arg2 string, arg3 stri
 		arg2 string
 		arg3 string
 	}{arg1, arg2, arg3})
+	stub := fake.LinkProviderIDStub
+	fakeReturns := fake.linkProviderIDReturns
 	fake.recordInvocation("LinkProviderID", []interface{}{arg1, arg2, arg3})
 	fake.linkProviderIDMutex.Unlock()
-	if fake.LinkProviderIDStub != nil {
-		return fake.LinkProviderIDStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.linkProviderIDReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

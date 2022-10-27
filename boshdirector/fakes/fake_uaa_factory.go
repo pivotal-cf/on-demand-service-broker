@@ -4,7 +4,7 @@ package fakes
 import (
 	"sync"
 
-	"github.com/cloudfoundry/bosh-cli/uaa"
+	"github.com/cloudfoundry/bosh-cli/v7/uaa"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 )
 
@@ -32,15 +32,16 @@ func (fake *FakeUAAFactory) New(arg1 uaa.Config) (uaa.UAA, error) {
 	fake.newArgsForCall = append(fake.newArgsForCall, struct {
 		arg1 uaa.Config
 	}{arg1})
+	stub := fake.NewStub
+	fakeReturns := fake.newReturns
 	fake.recordInvocation("New", []interface{}{arg1})
 	fake.newMutex.Unlock()
-	if fake.NewStub != nil {
-		return fake.NewStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.newReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

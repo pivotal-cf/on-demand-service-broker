@@ -270,15 +270,16 @@ func (fake *FakeBoshClient) DeleteConfig(arg1 string, arg2 string, arg3 *log.Log
 		arg2 string
 		arg3 *log.Logger
 	}{arg1, arg2, arg3})
+	stub := fake.DeleteConfigStub
+	fakeReturns := fake.deleteConfigReturns
 	fake.recordInvocation("DeleteConfig", []interface{}{arg1, arg2, arg3})
 	fake.deleteConfigMutex.Unlock()
-	if fake.DeleteConfigStub != nil {
-		return fake.DeleteConfigStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.deleteConfigReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -334,15 +335,16 @@ func (fake *FakeBoshClient) DeleteConfigs(arg1 string, arg2 *log.Logger) error {
 		arg1 string
 		arg2 *log.Logger
 	}{arg1, arg2})
+	stub := fake.DeleteConfigsStub
+	fakeReturns := fake.deleteConfigsReturns
 	fake.recordInvocation("DeleteConfigs", []interface{}{arg1, arg2})
 	fake.deleteConfigsMutex.Unlock()
-	if fake.DeleteConfigsStub != nil {
-		return fake.DeleteConfigsStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.deleteConfigsReturns
 	return fakeReturns.result1
 }
 
@@ -398,15 +400,16 @@ func (fake *FakeBoshClient) DeleteDeployment(arg1 string, arg2 string, arg3 bool
 		arg4 *boshdirector.AsyncTaskReporter
 		arg5 *log.Logger
 	}{arg1, arg2, arg3, arg4, arg5})
+	stub := fake.DeleteDeploymentStub
+	fakeReturns := fake.deleteDeploymentReturns
 	fake.recordInvocation("DeleteDeployment", []interface{}{arg1, arg2, arg3, arg4, arg5})
 	fake.deleteDeploymentMutex.Unlock()
-	if fake.DeleteDeploymentStub != nil {
-		return fake.DeleteDeploymentStub(arg1, arg2, arg3, arg4, arg5)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4, arg5)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.deleteDeploymentReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -469,15 +472,16 @@ func (fake *FakeBoshClient) Deploy(arg1 []byte, arg2 string, arg3 *log.Logger, a
 		arg3 *log.Logger
 		arg4 *boshdirector.AsyncTaskReporter
 	}{arg1Copy, arg2, arg3, arg4})
+	stub := fake.DeployStub
+	fakeReturns := fake.deployReturns
 	fake.recordInvocation("Deploy", []interface{}{arg1Copy, arg2, arg3, arg4})
 	fake.deployMutex.Unlock()
-	if fake.DeployStub != nil {
-		return fake.DeployStub(arg1, arg2, arg3, arg4)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.deployReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -533,15 +537,16 @@ func (fake *FakeBoshClient) GetConfigs(arg1 string, arg2 *log.Logger) ([]boshdir
 		arg1 string
 		arg2 *log.Logger
 	}{arg1, arg2})
+	stub := fake.GetConfigsStub
+	fakeReturns := fake.getConfigsReturns
 	fake.recordInvocation("GetConfigs", []interface{}{arg1, arg2})
 	fake.getConfigsMutex.Unlock()
-	if fake.GetConfigsStub != nil {
-		return fake.GetConfigsStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.getConfigsReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -602,15 +607,16 @@ func (fake *FakeBoshClient) GetDNSAddresses(arg1 string, arg2 []config.BindingDN
 		arg1 string
 		arg2 []config.BindingDNS
 	}{arg1, arg2Copy})
+	stub := fake.GetDNSAddressesStub
+	fakeReturns := fake.getDNSAddressesReturns
 	fake.recordInvocation("GetDNSAddresses", []interface{}{arg1, arg2Copy})
 	fake.getDNSAddressesMutex.Unlock()
-	if fake.GetDNSAddressesStub != nil {
-		return fake.GetDNSAddressesStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.getDNSAddressesReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -666,15 +672,16 @@ func (fake *FakeBoshClient) GetDeployment(arg1 string, arg2 *log.Logger) ([]byte
 		arg1 string
 		arg2 *log.Logger
 	}{arg1, arg2})
+	stub := fake.GetDeploymentStub
+	fakeReturns := fake.getDeploymentReturns
 	fake.recordInvocation("GetDeployment", []interface{}{arg1, arg2})
 	fake.getDeploymentMutex.Unlock()
-	if fake.GetDeploymentStub != nil {
-		return fake.GetDeploymentStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.getDeploymentReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
@@ -732,15 +739,16 @@ func (fake *FakeBoshClient) GetDeployments(arg1 *log.Logger) ([]boshdirector.Dep
 	fake.getDeploymentsArgsForCall = append(fake.getDeploymentsArgsForCall, struct {
 		arg1 *log.Logger
 	}{arg1})
+	stub := fake.GetDeploymentsStub
+	fakeReturns := fake.getDeploymentsReturns
 	fake.recordInvocation("GetDeployments", []interface{}{arg1})
 	fake.getDeploymentsMutex.Unlock()
-	if fake.GetDeploymentsStub != nil {
-		return fake.GetDeploymentsStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.getDeploymentsReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -795,15 +803,16 @@ func (fake *FakeBoshClient) GetInfo(arg1 *log.Logger) (boshdirector.Info, error)
 	fake.getInfoArgsForCall = append(fake.getInfoArgsForCall, struct {
 		arg1 *log.Logger
 	}{arg1})
+	stub := fake.GetInfoStub
+	fakeReturns := fake.getInfoReturns
 	fake.recordInvocation("GetInfo", []interface{}{arg1})
 	fake.getInfoMutex.Unlock()
-	if fake.GetInfoStub != nil {
-		return fake.GetInfoStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.getInfoReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -860,15 +869,16 @@ func (fake *FakeBoshClient) GetNormalisedTasksByContext(arg1 string, arg2 string
 		arg2 string
 		arg3 *log.Logger
 	}{arg1, arg2, arg3})
+	stub := fake.GetNormalisedTasksByContextStub
+	fakeReturns := fake.getNormalisedTasksByContextReturns
 	fake.recordInvocation("GetNormalisedTasksByContext", []interface{}{arg1, arg2, arg3})
 	fake.getNormalisedTasksByContextMutex.Unlock()
-	if fake.GetNormalisedTasksByContextStub != nil {
-		return fake.GetNormalisedTasksByContextStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.getNormalisedTasksByContextReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -924,15 +934,16 @@ func (fake *FakeBoshClient) GetTask(arg1 int, arg2 *log.Logger) (boshdirector.Bo
 		arg1 int
 		arg2 *log.Logger
 	}{arg1, arg2})
+	stub := fake.GetTaskStub
+	fakeReturns := fake.getTaskReturns
 	fake.recordInvocation("GetTask", []interface{}{arg1, arg2})
 	fake.getTaskMutex.Unlock()
-	if fake.GetTaskStub != nil {
-		return fake.GetTaskStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.getTaskReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -988,15 +999,16 @@ func (fake *FakeBoshClient) GetTasksInProgress(arg1 string, arg2 *log.Logger) (b
 		arg1 string
 		arg2 *log.Logger
 	}{arg1, arg2})
+	stub := fake.GetTasksInProgressStub
+	fakeReturns := fake.getTasksInProgressReturns
 	fake.recordInvocation("GetTasksInProgress", []interface{}{arg1, arg2})
 	fake.getTasksInProgressMutex.Unlock()
-	if fake.GetTasksInProgressStub != nil {
-		return fake.GetTasksInProgressStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.getTasksInProgressReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -1054,15 +1066,16 @@ func (fake *FakeBoshClient) Recreate(arg1 string, arg2 string, arg3 *log.Logger,
 		arg3 *log.Logger
 		arg4 *boshdirector.AsyncTaskReporter
 	}{arg1, arg2, arg3, arg4})
+	stub := fake.RecreateStub
+	fakeReturns := fake.recreateReturns
 	fake.recordInvocation("Recreate", []interface{}{arg1, arg2, arg3, arg4})
 	fake.recreateMutex.Unlock()
-	if fake.RecreateStub != nil {
-		return fake.RecreateStub(arg1, arg2, arg3, arg4)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.recreateReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -1127,15 +1140,16 @@ func (fake *FakeBoshClient) RunErrand(arg1 string, arg2 string, arg3 []string, a
 		arg5 *log.Logger
 		arg6 *boshdirector.AsyncTaskReporter
 	}{arg1, arg2, arg3Copy, arg4, arg5, arg6})
+	stub := fake.RunErrandStub
+	fakeReturns := fake.runErrandReturns
 	fake.recordInvocation("RunErrand", []interface{}{arg1, arg2, arg3Copy, arg4, arg5, arg6})
 	fake.runErrandMutex.Unlock()
-	if fake.RunErrandStub != nil {
-		return fake.RunErrandStub(arg1, arg2, arg3, arg4, arg5, arg6)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4, arg5, arg6)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.runErrandReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -1191,15 +1205,16 @@ func (fake *FakeBoshClient) VMs(arg1 string, arg2 *log.Logger) (bosh.BoshVMs, er
 		arg1 string
 		arg2 *log.Logger
 	}{arg1, arg2})
+	stub := fake.VMsStub
+	fakeReturns := fake.vMsReturns
 	fake.recordInvocation("VMs", []interface{}{arg1, arg2})
 	fake.vMsMutex.Unlock()
-	if fake.VMsStub != nil {
-		return fake.VMsStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.vMsReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -1255,15 +1270,16 @@ func (fake *FakeBoshClient) Variables(arg1 string, arg2 *log.Logger) ([]boshdire
 		arg1 string
 		arg2 *log.Logger
 	}{arg1, arg2})
+	stub := fake.VariablesStub
+	fakeReturns := fake.variablesReturns
 	fake.recordInvocation("Variables", []interface{}{arg1, arg2})
 	fake.variablesMutex.Unlock()
-	if fake.VariablesStub != nil {
-		return fake.VariablesStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.variablesReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -1318,15 +1334,16 @@ func (fake *FakeBoshClient) VerifyAuth(arg1 *log.Logger) error {
 	fake.verifyAuthArgsForCall = append(fake.verifyAuthArgsForCall, struct {
 		arg1 *log.Logger
 	}{arg1})
+	stub := fake.VerifyAuthStub
+	fakeReturns := fake.verifyAuthReturns
 	fake.recordInvocation("VerifyAuth", []interface{}{arg1})
 	fake.verifyAuthMutex.Unlock()
-	if fake.VerifyAuthStub != nil {
-		return fake.VerifyAuthStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.verifyAuthReturns
 	return fakeReturns.result1
 }
 

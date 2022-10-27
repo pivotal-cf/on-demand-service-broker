@@ -58,15 +58,16 @@ func (fake *FakeDecider) CanProvision(arg1 []domain.Service, arg2 string, arg3 *
 		arg3 *domain.MaintenanceInfo
 		arg4 *log.Logger
 	}{arg1Copy, arg2, arg3, arg4})
+	stub := fake.CanProvisionStub
+	fakeReturns := fake.canProvisionReturns
 	fake.recordInvocation("CanProvision", []interface{}{arg1Copy, arg2, arg3, arg4})
 	fake.canProvisionMutex.Unlock()
-	if fake.CanProvisionStub != nil {
-		return fake.CanProvisionStub(arg1, arg2, arg3, arg4)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.canProvisionReturns
 	return fakeReturns.result1
 }
 
@@ -125,15 +126,16 @@ func (fake *FakeDecider) DecideOperation(arg1 []domain.Service, arg2 domain.Upda
 		arg2 domain.UpdateDetails
 		arg3 *log.Logger
 	}{arg1Copy, arg2, arg3})
+	stub := fake.DecideOperationStub
+	fakeReturns := fake.decideOperationReturns
 	fake.recordInvocation("DecideOperation", []interface{}{arg1Copy, arg2, arg3})
 	fake.decideOperationMutex.Unlock()
-	if fake.DecideOperationStub != nil {
-		return fake.DecideOperationStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.decideOperationReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

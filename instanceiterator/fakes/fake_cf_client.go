@@ -90,15 +90,16 @@ func (fake *FakeCFClient) CheckMinimumOSBAPIVersion(arg1 string, arg2 *log.Logge
 		arg1 string
 		arg2 *log.Logger
 	}{arg1, arg2})
+	stub := fake.CheckMinimumOSBAPIVersionStub
+	fakeReturns := fake.checkMinimumOSBAPIVersionReturns
 	fake.recordInvocation("CheckMinimumOSBAPIVersion", []interface{}{arg1, arg2})
 	fake.checkMinimumOSBAPIVersionMutex.Unlock()
-	if fake.CheckMinimumOSBAPIVersionStub != nil {
-		return fake.CheckMinimumOSBAPIVersionStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.checkMinimumOSBAPIVersionReturns
 	return fakeReturns.result1
 }
 
@@ -151,15 +152,16 @@ func (fake *FakeCFClient) GetLastOperationForInstance(arg1 string, arg2 *log.Log
 		arg1 string
 		arg2 *log.Logger
 	}{arg1, arg2})
+	stub := fake.GetLastOperationForInstanceStub
+	fakeReturns := fake.getLastOperationForInstanceReturns
 	fake.recordInvocation("GetLastOperationForInstance", []interface{}{arg1, arg2})
 	fake.getLastOperationForInstanceMutex.Unlock()
-	if fake.GetLastOperationForInstanceStub != nil {
-		return fake.GetLastOperationForInstanceStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.getLastOperationForInstanceReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -215,15 +217,16 @@ func (fake *FakeCFClient) GetPlanByServiceInstanceGUID(arg1 string, arg2 *log.Lo
 		arg1 string
 		arg2 *log.Logger
 	}{arg1, arg2})
+	stub := fake.GetPlanByServiceInstanceGUIDStub
+	fakeReturns := fake.getPlanByServiceInstanceGUIDReturns
 	fake.recordInvocation("GetPlanByServiceInstanceGUID", []interface{}{arg1, arg2})
 	fake.getPlanByServiceInstanceGUIDMutex.Unlock()
-	if fake.GetPlanByServiceInstanceGUIDStub != nil {
-		return fake.GetPlanByServiceInstanceGUIDStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.getPlanByServiceInstanceGUIDReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -279,15 +282,16 @@ func (fake *FakeCFClient) GetServiceInstance(arg1 string, arg2 *log.Logger) (cf.
 		arg1 string
 		arg2 *log.Logger
 	}{arg1, arg2})
+	stub := fake.GetServiceInstanceStub
+	fakeReturns := fake.getServiceInstanceReturns
 	fake.recordInvocation("GetServiceInstance", []interface{}{arg1, arg2})
 	fake.getServiceInstanceMutex.Unlock()
-	if fake.GetServiceInstanceStub != nil {
-		return fake.GetServiceInstanceStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.getServiceInstanceReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -344,15 +348,16 @@ func (fake *FakeCFClient) UpgradeServiceInstance(arg1 string, arg2 cf.Maintenanc
 		arg2 cf.MaintenanceInfo
 		arg3 *log.Logger
 	}{arg1, arg2, arg3})
+	stub := fake.UpgradeServiceInstanceStub
+	fakeReturns := fake.upgradeServiceInstanceReturns
 	fake.recordInvocation("UpgradeServiceInstance", []interface{}{arg1, arg2, arg3})
 	fake.upgradeServiceInstanceMutex.Unlock()
-	if fake.UpgradeServiceInstanceStub != nil {
-		return fake.UpgradeServiceInstanceStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.upgradeServiceInstanceReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

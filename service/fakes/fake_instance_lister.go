@@ -31,15 +31,16 @@ func (fake *FakeInstanceLister) Instances(arg1 map[string]string) ([]service.Ins
 	fake.instancesArgsForCall = append(fake.instancesArgsForCall, struct {
 		arg1 map[string]string
 	}{arg1})
+	stub := fake.InstancesStub
+	fakeReturns := fake.instancesReturns
 	fake.recordInvocation("Instances", []interface{}{arg1})
 	fake.instancesMutex.Unlock()
-	if fake.InstancesStub != nil {
-		return fake.InstancesStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.instancesReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

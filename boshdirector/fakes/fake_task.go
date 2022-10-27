@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cloudfoundry/bosh-cli/director"
+	"github.com/cloudfoundry/bosh-cli/v7/director"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 )
 
@@ -174,15 +174,16 @@ func (fake *FakeTask) CPIOutput(arg1 director.TaskReporter) error {
 	fake.cPIOutputArgsForCall = append(fake.cPIOutputArgsForCall, struct {
 		arg1 director.TaskReporter
 	}{arg1})
+	stub := fake.CPIOutputStub
+	fakeReturns := fake.cPIOutputReturns
 	fake.recordInvocation("CPIOutput", []interface{}{arg1})
 	fake.cPIOutputMutex.Unlock()
-	if fake.CPIOutputStub != nil {
-		return fake.CPIOutputStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.cPIOutputReturns
 	return fakeReturns.result1
 }
 
@@ -233,15 +234,16 @@ func (fake *FakeTask) Cancel() error {
 	ret, specificReturn := fake.cancelReturnsOnCall[len(fake.cancelArgsForCall)]
 	fake.cancelArgsForCall = append(fake.cancelArgsForCall, struct {
 	}{})
+	stub := fake.CancelStub
+	fakeReturns := fake.cancelReturns
 	fake.recordInvocation("Cancel", []interface{}{})
 	fake.cancelMutex.Unlock()
-	if fake.CancelStub != nil {
-		return fake.CancelStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.cancelReturns
 	return fakeReturns.result1
 }
 
@@ -285,15 +287,16 @@ func (fake *FakeTask) ContextID() string {
 	ret, specificReturn := fake.contextIDReturnsOnCall[len(fake.contextIDArgsForCall)]
 	fake.contextIDArgsForCall = append(fake.contextIDArgsForCall, struct {
 	}{})
+	stub := fake.ContextIDStub
+	fakeReturns := fake.contextIDReturns
 	fake.recordInvocation("ContextID", []interface{}{})
 	fake.contextIDMutex.Unlock()
-	if fake.ContextIDStub != nil {
-		return fake.ContextIDStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.contextIDReturns
 	return fakeReturns.result1
 }
 
@@ -338,15 +341,16 @@ func (fake *FakeTask) DebugOutput(arg1 director.TaskReporter) error {
 	fake.debugOutputArgsForCall = append(fake.debugOutputArgsForCall, struct {
 		arg1 director.TaskReporter
 	}{arg1})
+	stub := fake.DebugOutputStub
+	fakeReturns := fake.debugOutputReturns
 	fake.recordInvocation("DebugOutput", []interface{}{arg1})
 	fake.debugOutputMutex.Unlock()
-	if fake.DebugOutputStub != nil {
-		return fake.DebugOutputStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.debugOutputReturns
 	return fakeReturns.result1
 }
 
@@ -397,15 +401,16 @@ func (fake *FakeTask) DeploymentName() string {
 	ret, specificReturn := fake.deploymentNameReturnsOnCall[len(fake.deploymentNameArgsForCall)]
 	fake.deploymentNameArgsForCall = append(fake.deploymentNameArgsForCall, struct {
 	}{})
+	stub := fake.DeploymentNameStub
+	fakeReturns := fake.deploymentNameReturns
 	fake.recordInvocation("DeploymentName", []interface{}{})
 	fake.deploymentNameMutex.Unlock()
-	if fake.DeploymentNameStub != nil {
-		return fake.DeploymentNameStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.deploymentNameReturns
 	return fakeReturns.result1
 }
 
@@ -449,15 +454,16 @@ func (fake *FakeTask) Description() string {
 	ret, specificReturn := fake.descriptionReturnsOnCall[len(fake.descriptionArgsForCall)]
 	fake.descriptionArgsForCall = append(fake.descriptionArgsForCall, struct {
 	}{})
+	stub := fake.DescriptionStub
+	fakeReturns := fake.descriptionReturns
 	fake.recordInvocation("Description", []interface{}{})
 	fake.descriptionMutex.Unlock()
-	if fake.DescriptionStub != nil {
-		return fake.DescriptionStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.descriptionReturns
 	return fakeReturns.result1
 }
 
@@ -502,15 +508,16 @@ func (fake *FakeTask) EventOutput(arg1 director.TaskReporter) error {
 	fake.eventOutputArgsForCall = append(fake.eventOutputArgsForCall, struct {
 		arg1 director.TaskReporter
 	}{arg1})
+	stub := fake.EventOutputStub
+	fakeReturns := fake.eventOutputReturns
 	fake.recordInvocation("EventOutput", []interface{}{arg1})
 	fake.eventOutputMutex.Unlock()
-	if fake.EventOutputStub != nil {
-		return fake.EventOutputStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.eventOutputReturns
 	return fakeReturns.result1
 }
 
@@ -561,15 +568,16 @@ func (fake *FakeTask) FinishedAt() time.Time {
 	ret, specificReturn := fake.finishedAtReturnsOnCall[len(fake.finishedAtArgsForCall)]
 	fake.finishedAtArgsForCall = append(fake.finishedAtArgsForCall, struct {
 	}{})
+	stub := fake.FinishedAtStub
+	fakeReturns := fake.finishedAtReturns
 	fake.recordInvocation("FinishedAt", []interface{}{})
 	fake.finishedAtMutex.Unlock()
-	if fake.FinishedAtStub != nil {
-		return fake.FinishedAtStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.finishedAtReturns
 	return fakeReturns.result1
 }
 
@@ -613,15 +621,16 @@ func (fake *FakeTask) ID() int {
 	ret, specificReturn := fake.iDReturnsOnCall[len(fake.iDArgsForCall)]
 	fake.iDArgsForCall = append(fake.iDArgsForCall, struct {
 	}{})
+	stub := fake.IDStub
+	fakeReturns := fake.iDReturns
 	fake.recordInvocation("ID", []interface{}{})
 	fake.iDMutex.Unlock()
-	if fake.IDStub != nil {
-		return fake.IDStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.iDReturns
 	return fakeReturns.result1
 }
 
@@ -665,15 +674,16 @@ func (fake *FakeTask) IsError() bool {
 	ret, specificReturn := fake.isErrorReturnsOnCall[len(fake.isErrorArgsForCall)]
 	fake.isErrorArgsForCall = append(fake.isErrorArgsForCall, struct {
 	}{})
+	stub := fake.IsErrorStub
+	fakeReturns := fake.isErrorReturns
 	fake.recordInvocation("IsError", []interface{}{})
 	fake.isErrorMutex.Unlock()
-	if fake.IsErrorStub != nil {
-		return fake.IsErrorStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.isErrorReturns
 	return fakeReturns.result1
 }
 
@@ -717,15 +727,16 @@ func (fake *FakeTask) Result() string {
 	ret, specificReturn := fake.resultReturnsOnCall[len(fake.resultArgsForCall)]
 	fake.resultArgsForCall = append(fake.resultArgsForCall, struct {
 	}{})
+	stub := fake.ResultStub
+	fakeReturns := fake.resultReturns
 	fake.recordInvocation("Result", []interface{}{})
 	fake.resultMutex.Unlock()
-	if fake.ResultStub != nil {
-		return fake.ResultStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.resultReturns
 	return fakeReturns.result1
 }
 
@@ -770,15 +781,16 @@ func (fake *FakeTask) ResultOutput(arg1 director.TaskReporter) error {
 	fake.resultOutputArgsForCall = append(fake.resultOutputArgsForCall, struct {
 		arg1 director.TaskReporter
 	}{arg1})
+	stub := fake.ResultOutputStub
+	fakeReturns := fake.resultOutputReturns
 	fake.recordInvocation("ResultOutput", []interface{}{arg1})
 	fake.resultOutputMutex.Unlock()
-	if fake.ResultOutputStub != nil {
-		return fake.ResultOutputStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.resultOutputReturns
 	return fakeReturns.result1
 }
 
@@ -829,15 +841,16 @@ func (fake *FakeTask) StartedAt() time.Time {
 	ret, specificReturn := fake.startedAtReturnsOnCall[len(fake.startedAtArgsForCall)]
 	fake.startedAtArgsForCall = append(fake.startedAtArgsForCall, struct {
 	}{})
+	stub := fake.StartedAtStub
+	fakeReturns := fake.startedAtReturns
 	fake.recordInvocation("StartedAt", []interface{}{})
 	fake.startedAtMutex.Unlock()
-	if fake.StartedAtStub != nil {
-		return fake.StartedAtStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.startedAtReturns
 	return fakeReturns.result1
 }
 
@@ -881,15 +894,16 @@ func (fake *FakeTask) State() string {
 	ret, specificReturn := fake.stateReturnsOnCall[len(fake.stateArgsForCall)]
 	fake.stateArgsForCall = append(fake.stateArgsForCall, struct {
 	}{})
+	stub := fake.StateStub
+	fakeReturns := fake.stateReturns
 	fake.recordInvocation("State", []interface{}{})
 	fake.stateMutex.Unlock()
-	if fake.StateStub != nil {
-		return fake.StateStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.stateReturns
 	return fakeReturns.result1
 }
 
@@ -933,15 +947,16 @@ func (fake *FakeTask) User() string {
 	ret, specificReturn := fake.userReturnsOnCall[len(fake.userArgsForCall)]
 	fake.userArgsForCall = append(fake.userArgsForCall, struct {
 	}{})
+	stub := fake.UserStub
+	fakeReturns := fake.userReturns
 	fake.recordInvocation("User", []interface{}{})
 	fake.userMutex.Unlock()
-	if fake.UserStub != nil {
-		return fake.UserStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.userReturns
 	return fakeReturns.result1
 }
 

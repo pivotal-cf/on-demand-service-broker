@@ -59,15 +59,16 @@ func (fake *FakeHTTP) RawDelete(arg1 string) (string, error) {
 	fake.rawDeleteArgsForCall = append(fake.rawDeleteArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.RawDeleteStub
+	fakeReturns := fake.rawDeleteReturns
 	fake.recordInvocation("RawDelete", []interface{}{arg1})
 	fake.rawDeleteMutex.Unlock()
-	if fake.RawDeleteStub != nil {
-		return fake.RawDeleteStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.rawDeleteReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -122,15 +123,16 @@ func (fake *FakeHTTP) RawGet(arg1 string) (string, error) {
 	fake.rawGetArgsForCall = append(fake.rawGetArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.RawGetStub
+	fakeReturns := fake.rawGetReturns
 	fake.recordInvocation("RawGet", []interface{}{arg1})
 	fake.rawGetMutex.Unlock()
-	if fake.RawGetStub != nil {
-		return fake.RawGetStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.rawGetReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -187,15 +189,16 @@ func (fake *FakeHTTP) RawPost(arg1 string, arg2 string, arg3 string) (string, er
 		arg2 string
 		arg3 string
 	}{arg1, arg2, arg3})
+	stub := fake.RawPostStub
+	fakeReturns := fake.rawPostReturns
 	fake.recordInvocation("RawPost", []interface{}{arg1, arg2, arg3})
 	fake.rawPostMutex.Unlock()
-	if fake.RawPostStub != nil {
-		return fake.RawPostStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.rawPostReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

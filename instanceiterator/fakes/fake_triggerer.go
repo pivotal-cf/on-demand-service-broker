@@ -48,15 +48,16 @@ func (fake *FakeTriggerer) Check(arg1 string, arg2 broker.OperationData) (instan
 		arg1 string
 		arg2 broker.OperationData
 	}{arg1, arg2})
+	stub := fake.CheckStub
+	fakeReturns := fake.checkReturns
 	fake.recordInvocation("Check", []interface{}{arg1, arg2})
 	fake.checkMutex.Unlock()
-	if fake.CheckStub != nil {
-		return fake.CheckStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.checkReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -111,15 +112,16 @@ func (fake *FakeTriggerer) TriggerOperation(arg1 service.Instance) (instanceiter
 	fake.triggerOperationArgsForCall = append(fake.triggerOperationArgsForCall, struct {
 		arg1 service.Instance
 	}{arg1})
+	stub := fake.TriggerOperationStub
+	fakeReturns := fake.triggerOperationReturns
 	fake.recordInvocation("TriggerOperation", []interface{}{arg1})
 	fake.triggerOperationMutex.Unlock()
-	if fake.TriggerOperationStub != nil {
-		return fake.TriggerOperationStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.triggerOperationReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

@@ -34,15 +34,16 @@ func (fake *FakeCertAppender) AppendCertsFromPEM(arg1 []byte) bool {
 	fake.appendCertsFromPEMArgsForCall = append(fake.appendCertsFromPEMArgsForCall, struct {
 		arg1 []byte
 	}{arg1Copy})
+	stub := fake.AppendCertsFromPEMStub
+	fakeReturns := fake.appendCertsFromPEMReturns
 	fake.recordInvocation("AppendCertsFromPEM", []interface{}{arg1Copy})
 	fake.appendCertsFromPEMMutex.Unlock()
-	if fake.AppendCertsFromPEMStub != nil {
-		return fake.AppendCertsFromPEMStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.appendCertsFromPEMReturns
 	return fakeReturns.result1
 }
 

@@ -35,15 +35,16 @@ func (fake *FakeBulkSetter) BulkSet(arg1 []broker.ManifestSecret) error {
 	fake.bulkSetArgsForCall = append(fake.bulkSetArgsForCall, struct {
 		arg1 []broker.ManifestSecret
 	}{arg1Copy})
+	stub := fake.BulkSetStub
+	fakeReturns := fake.bulkSetReturns
 	fake.recordInvocation("BulkSet", []interface{}{arg1Copy})
 	fake.bulkSetMutex.Unlock()
-	if fake.BulkSetStub != nil {
-		return fake.BulkSetStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.bulkSetReturns
 	return fakeReturns.result1
 }
 

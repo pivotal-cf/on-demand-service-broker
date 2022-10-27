@@ -47,15 +47,16 @@ func (fake *FakeODBSecrets) GenerateSecretPaths(arg1 string, arg2 string, arg3 s
 		arg2 string
 		arg3 serviceadapter.ODBManagedSecrets
 	}{arg1, arg2, arg3})
+	stub := fake.GenerateSecretPathsStub
+	fakeReturns := fake.generateSecretPathsReturns
 	fake.recordInvocation("GenerateSecretPaths", []interface{}{arg1, arg2, arg3})
 	fake.generateSecretPathsMutex.Unlock()
-	if fake.GenerateSecretPathsStub != nil {
-		return fake.GenerateSecretPathsStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.generateSecretPathsReturns
 	return fakeReturns.result1
 }
 
@@ -113,15 +114,16 @@ func (fake *FakeODBSecrets) ReplaceODBRefs(arg1 string, arg2 []broker.ManifestSe
 		arg1 string
 		arg2 []broker.ManifestSecret
 	}{arg1, arg2Copy})
+	stub := fake.ReplaceODBRefsStub
+	fakeReturns := fake.replaceODBRefsReturns
 	fake.recordInvocation("ReplaceODBRefs", []interface{}{arg1, arg2Copy})
 	fake.replaceODBRefsMutex.Unlock()
-	if fake.ReplaceODBRefsStub != nil {
-		return fake.ReplaceODBRefsStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.replaceODBRefsReturns
 	return fakeReturns.result1
 }
 

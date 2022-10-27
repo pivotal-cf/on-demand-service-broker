@@ -299,7 +299,7 @@ var _ = Describe("Recreate all service instances", func() {
 				Expect(session.ExitCode()).To(Equal(1), "recreate-all execution unexpectedly succeeded")
 				Expect(stdout).To(SatisfyAll(
 					gbytes.Say("error listing service instances"),
-					gbytes.Say("unknown authority"),
+					gbytes.Say("certificate is not trusted"),
 				))
 			})
 		})

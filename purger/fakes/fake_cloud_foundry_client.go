@@ -32,15 +32,16 @@ func (fake *FakeCloudFoundryClient) DisableServiceAccessForAllPlans(arg1 string,
 		arg1 string
 		arg2 *log.Logger
 	}{arg1, arg2})
+	stub := fake.DisableServiceAccessForAllPlansStub
+	fakeReturns := fake.disableServiceAccessForAllPlansReturns
 	fake.recordInvocation("DisableServiceAccessForAllPlans", []interface{}{arg1, arg2})
 	fake.disableServiceAccessForAllPlansMutex.Unlock()
-	if fake.DisableServiceAccessForAllPlansStub != nil {
-		return fake.DisableServiceAccessForAllPlansStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.disableServiceAccessForAllPlansReturns
 	return fakeReturns.result1
 }
 

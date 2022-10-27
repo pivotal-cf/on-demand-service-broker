@@ -76,15 +76,16 @@ func (fake *FakeBrokerServices) Instances(arg1 map[string]string) ([]service.Ins
 	fake.instancesArgsForCall = append(fake.instancesArgsForCall, struct {
 		arg1 map[string]string
 	}{arg1})
+	stub := fake.InstancesStub
+	fakeReturns := fake.instancesReturns
 	fake.recordInvocation("Instances", []interface{}{arg1})
 	fake.instancesMutex.Unlock()
-	if fake.InstancesStub != nil {
-		return fake.InstancesStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.instancesReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -140,15 +141,16 @@ func (fake *FakeBrokerServices) LastOperation(arg1 string, arg2 broker.Operation
 		arg1 string
 		arg2 broker.OperationData
 	}{arg1, arg2})
+	stub := fake.LastOperationStub
+	fakeReturns := fake.lastOperationReturns
 	fake.recordInvocation("LastOperation", []interface{}{arg1, arg2})
 	fake.lastOperationMutex.Unlock()
-	if fake.LastOperationStub != nil {
-		return fake.LastOperationStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.lastOperationReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -203,15 +205,16 @@ func (fake *FakeBrokerServices) LatestInstanceInfo(arg1 service.Instance) (servi
 	fake.latestInstanceInfoArgsForCall = append(fake.latestInstanceInfoArgsForCall, struct {
 		arg1 service.Instance
 	}{arg1})
+	stub := fake.LatestInstanceInfoStub
+	fakeReturns := fake.latestInstanceInfoReturns
 	fake.recordInvocation("LatestInstanceInfo", []interface{}{arg1})
 	fake.latestInstanceInfoMutex.Unlock()
-	if fake.LatestInstanceInfoStub != nil {
-		return fake.LatestInstanceInfoStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.latestInstanceInfoReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -267,15 +270,16 @@ func (fake *FakeBrokerServices) ProcessInstance(arg1 service.Instance, arg2 stri
 		arg1 service.Instance
 		arg2 string
 	}{arg1, arg2})
+	stub := fake.ProcessInstanceStub
+	fakeReturns := fake.processInstanceReturns
 	fake.recordInvocation("ProcessInstance", []interface{}{arg1, arg2})
 	fake.processInstanceMutex.Unlock()
-	if fake.ProcessInstanceStub != nil {
-		return fake.ProcessInstanceStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.processInstanceReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

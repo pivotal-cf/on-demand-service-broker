@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/cloudfoundry/bosh-cli/director"
+	"github.com/cloudfoundry/bosh-cli/v7/director"
 	"github.com/pkg/errors"
 )
 

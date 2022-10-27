@@ -162,15 +162,16 @@ func (fake *FakeBoshClient) Deploy(arg1 []byte, arg2 string, arg3 *log.Logger, a
 		arg3 *log.Logger
 		arg4 *boshdirector.AsyncTaskReporter
 	}{arg1Copy, arg2, arg3, arg4})
+	stub := fake.DeployStub
+	fakeReturns := fake.deployReturns
 	fake.recordInvocation("Deploy", []interface{}{arg1Copy, arg2, arg3, arg4})
 	fake.deployMutex.Unlock()
-	if fake.DeployStub != nil {
-		return fake.DeployStub(arg1, arg2, arg3, arg4)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.deployReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -226,15 +227,16 @@ func (fake *FakeBoshClient) GetConfigs(arg1 string, arg2 *log.Logger) ([]boshdir
 		arg1 string
 		arg2 *log.Logger
 	}{arg1, arg2})
+	stub := fake.GetConfigsStub
+	fakeReturns := fake.getConfigsReturns
 	fake.recordInvocation("GetConfigs", []interface{}{arg1, arg2})
 	fake.getConfigsMutex.Unlock()
-	if fake.GetConfigsStub != nil {
-		return fake.GetConfigsStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.getConfigsReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -290,15 +292,16 @@ func (fake *FakeBoshClient) GetDeployment(arg1 string, arg2 *log.Logger) ([]byte
 		arg1 string
 		arg2 *log.Logger
 	}{arg1, arg2})
+	stub := fake.GetDeploymentStub
+	fakeReturns := fake.getDeploymentReturns
 	fake.recordInvocation("GetDeployment", []interface{}{arg1, arg2})
 	fake.getDeploymentMutex.Unlock()
-	if fake.GetDeploymentStub != nil {
-		return fake.GetDeploymentStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.getDeploymentReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
@@ -358,15 +361,16 @@ func (fake *FakeBoshClient) GetEvents(arg1 string, arg2 string, arg3 *log.Logger
 		arg2 string
 		arg3 *log.Logger
 	}{arg1, arg2, arg3})
+	stub := fake.GetEventsStub
+	fakeReturns := fake.getEventsReturns
 	fake.recordInvocation("GetEvents", []interface{}{arg1, arg2, arg3})
 	fake.getEventsMutex.Unlock()
-	if fake.GetEventsStub != nil {
-		return fake.GetEventsStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.getEventsReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -423,15 +427,16 @@ func (fake *FakeBoshClient) GetNormalisedTasksByContext(arg1 string, arg2 string
 		arg2 string
 		arg3 *log.Logger
 	}{arg1, arg2, arg3})
+	stub := fake.GetNormalisedTasksByContextStub
+	fakeReturns := fake.getNormalisedTasksByContextReturns
 	fake.recordInvocation("GetNormalisedTasksByContext", []interface{}{arg1, arg2, arg3})
 	fake.getNormalisedTasksByContextMutex.Unlock()
-	if fake.GetNormalisedTasksByContextStub != nil {
-		return fake.GetNormalisedTasksByContextStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.getNormalisedTasksByContextReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -487,15 +492,16 @@ func (fake *FakeBoshClient) GetTask(arg1 int, arg2 *log.Logger) (boshdirector.Bo
 		arg1 int
 		arg2 *log.Logger
 	}{arg1, arg2})
+	stub := fake.GetTaskStub
+	fakeReturns := fake.getTaskReturns
 	fake.recordInvocation("GetTask", []interface{}{arg1, arg2})
 	fake.getTaskMutex.Unlock()
-	if fake.GetTaskStub != nil {
-		return fake.GetTaskStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.getTaskReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -551,15 +557,16 @@ func (fake *FakeBoshClient) GetTasksInProgress(arg1 string, arg2 *log.Logger) (b
 		arg1 string
 		arg2 *log.Logger
 	}{arg1, arg2})
+	stub := fake.GetTasksInProgressStub
+	fakeReturns := fake.getTasksInProgressReturns
 	fake.recordInvocation("GetTasksInProgress", []interface{}{arg1, arg2})
 	fake.getTasksInProgressMutex.Unlock()
-	if fake.GetTasksInProgressStub != nil {
-		return fake.GetTasksInProgressStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.getTasksInProgressReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -617,15 +624,16 @@ func (fake *FakeBoshClient) Recreate(arg1 string, arg2 string, arg3 *log.Logger,
 		arg3 *log.Logger
 		arg4 *boshdirector.AsyncTaskReporter
 	}{arg1, arg2, arg3, arg4})
+	stub := fake.RecreateStub
+	fakeReturns := fake.recreateReturns
 	fake.recordInvocation("Recreate", []interface{}{arg1, arg2, arg3, arg4})
 	fake.recreateMutex.Unlock()
-	if fake.RecreateStub != nil {
-		return fake.RecreateStub(arg1, arg2, arg3, arg4)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.recreateReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -688,15 +696,16 @@ func (fake *FakeBoshClient) UpdateConfig(arg1 string, arg2 string, arg3 []byte, 
 		arg3 []byte
 		arg4 *log.Logger
 	}{arg1, arg2, arg3Copy, arg4})
+	stub := fake.UpdateConfigStub
+	fakeReturns := fake.updateConfigReturns
 	fake.recordInvocation("UpdateConfig", []interface{}{arg1, arg2, arg3Copy, arg4})
 	fake.updateConfigMutex.Unlock()
-	if fake.UpdateConfigStub != nil {
-		return fake.UpdateConfigStub(arg1, arg2, arg3, arg4)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.updateConfigReturns
 	return fakeReturns.result1
 }
 

@@ -84,15 +84,16 @@ func (fake *FakeUAAClient) CreateClient(arg1 string, arg2 string, arg3 string) (
 		arg2 string
 		arg3 string
 	}{arg1, arg2, arg3})
+	stub := fake.CreateClientStub
+	fakeReturns := fake.createClientReturns
 	fake.recordInvocation("CreateClient", []interface{}{arg1, arg2, arg3})
 	fake.createClientMutex.Unlock()
-	if fake.CreateClientStub != nil {
-		return fake.CreateClientStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.createClientReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -147,15 +148,16 @@ func (fake *FakeUAAClient) DeleteClient(arg1 string) error {
 	fake.deleteClientArgsForCall = append(fake.deleteClientArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.DeleteClientStub
+	fakeReturns := fake.deleteClientReturns
 	fake.recordInvocation("DeleteClient", []interface{}{arg1})
 	fake.deleteClientMutex.Unlock()
-	if fake.DeleteClientStub != nil {
-		return fake.DeleteClientStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.deleteClientReturns
 	return fakeReturns.result1
 }
 
@@ -207,15 +209,16 @@ func (fake *FakeUAAClient) GetClient(arg1 string) (map[string]string, error) {
 	fake.getClientArgsForCall = append(fake.getClientArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.GetClientStub
+	fakeReturns := fake.getClientReturns
 	fake.recordInvocation("GetClient", []interface{}{arg1})
 	fake.getClientMutex.Unlock()
-	if fake.GetClientStub != nil {
-		return fake.GetClientStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.getClientReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -269,15 +272,16 @@ func (fake *FakeUAAClient) HasClientDefinition() bool {
 	ret, specificReturn := fake.hasClientDefinitionReturnsOnCall[len(fake.hasClientDefinitionArgsForCall)]
 	fake.hasClientDefinitionArgsForCall = append(fake.hasClientDefinitionArgsForCall, struct {
 	}{})
+	stub := fake.HasClientDefinitionStub
+	fakeReturns := fake.hasClientDefinitionReturns
 	fake.recordInvocation("HasClientDefinition", []interface{}{})
 	fake.hasClientDefinitionMutex.Unlock()
-	if fake.HasClientDefinitionStub != nil {
-		return fake.HasClientDefinitionStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.hasClientDefinitionReturns
 	return fakeReturns.result1
 }
 
@@ -324,15 +328,16 @@ func (fake *FakeUAAClient) UpdateClient(arg1 string, arg2 string, arg3 string) (
 		arg2 string
 		arg3 string
 	}{arg1, arg2, arg3})
+	stub := fake.UpdateClientStub
+	fakeReturns := fake.updateClientReturns
 	fake.recordInvocation("UpdateClient", []interface{}{arg1, arg2, arg3})
 	fake.updateClientMutex.Unlock()
-	if fake.UpdateClientStub != nil {
-		return fake.UpdateClientStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.updateClientReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

@@ -78,15 +78,16 @@ func (fake *FakeCloudFoundryClient) CountInstancesOfPlan(arg1 string, arg2 strin
 		arg2 string
 		arg3 *log.Logger
 	}{arg1, arg2, arg3})
+	stub := fake.CountInstancesOfPlanStub
+	fakeReturns := fake.countInstancesOfPlanReturns
 	fake.recordInvocation("CountInstancesOfPlan", []interface{}{arg1, arg2, arg3})
 	fake.countInstancesOfPlanMutex.Unlock()
-	if fake.CountInstancesOfPlanStub != nil {
-		return fake.CountInstancesOfPlanStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.countInstancesOfPlanReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -142,15 +143,16 @@ func (fake *FakeCloudFoundryClient) CountInstancesOfServiceOffering(arg1 string,
 		arg1 string
 		arg2 *log.Logger
 	}{arg1, arg2})
+	stub := fake.CountInstancesOfServiceOfferingStub
+	fakeReturns := fake.countInstancesOfServiceOfferingReturns
 	fake.recordInvocation("CountInstancesOfServiceOffering", []interface{}{arg1, arg2})
 	fake.countInstancesOfServiceOfferingMutex.Unlock()
-	if fake.CountInstancesOfServiceOfferingStub != nil {
-		return fake.CountInstancesOfServiceOfferingStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.countInstancesOfServiceOfferingReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -205,15 +207,16 @@ func (fake *FakeCloudFoundryClient) GetAPIVersion(arg1 *log.Logger) (string, err
 	fake.getAPIVersionArgsForCall = append(fake.getAPIVersionArgsForCall, struct {
 		arg1 *log.Logger
 	}{arg1})
+	stub := fake.GetAPIVersionStub
+	fakeReturns := fake.getAPIVersionReturns
 	fake.recordInvocation("GetAPIVersion", []interface{}{arg1})
 	fake.getAPIVersionMutex.Unlock()
-	if fake.GetAPIVersionStub != nil {
-		return fake.GetAPIVersionStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.getAPIVersionReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -269,15 +272,16 @@ func (fake *FakeCloudFoundryClient) GetServiceInstances(arg1 cf.GetInstancesFilt
 		arg1 cf.GetInstancesFilter
 		arg2 *log.Logger
 	}{arg1, arg2})
+	stub := fake.GetServiceInstancesStub
+	fakeReturns := fake.getServiceInstancesReturns
 	fake.recordInvocation("GetServiceInstances", []interface{}{arg1, arg2})
 	fake.getServiceInstancesMutex.Unlock()
-	if fake.GetServiceInstancesStub != nil {
-		return fake.GetServiceInstancesStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.getServiceInstancesReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

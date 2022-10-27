@@ -48,15 +48,16 @@ func (fake *FakeManifestSecretManager) DeleteSecretsForInstance(arg1 string, arg
 		arg1 string
 		arg2 *log.Logger
 	}{arg1, arg2})
+	stub := fake.DeleteSecretsForInstanceStub
+	fakeReturns := fake.deleteSecretsForInstanceReturns
 	fake.recordInvocation("DeleteSecretsForInstance", []interface{}{arg1, arg2})
 	fake.deleteSecretsForInstanceMutex.Unlock()
-	if fake.DeleteSecretsForInstanceStub != nil {
-		return fake.DeleteSecretsForInstanceStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.deleteSecretsForInstanceReturns
 	return fakeReturns.result1
 }
 
@@ -120,15 +121,16 @@ func (fake *FakeManifestSecretManager) ResolveManifestSecrets(arg1 []byte, arg2 
 		arg2 []boshdirector.Variable
 		arg3 *log.Logger
 	}{arg1Copy, arg2Copy, arg3})
+	stub := fake.ResolveManifestSecretsStub
+	fakeReturns := fake.resolveManifestSecretsReturns
 	fake.recordInvocation("ResolveManifestSecrets", []interface{}{arg1Copy, arg2Copy, arg3})
 	fake.resolveManifestSecretsMutex.Unlock()
-	if fake.ResolveManifestSecretsStub != nil {
-		return fake.ResolveManifestSecretsStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.resolveManifestSecretsReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

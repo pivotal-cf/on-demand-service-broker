@@ -35,15 +35,16 @@ func (fake *FakeServiceInstanceCounter) CountInstancesOfServiceOffering(arg1 str
 		arg1 string
 		arg2 *log.Logger
 	}{arg1, arg2})
+	stub := fake.CountInstancesOfServiceOfferingStub
+	fakeReturns := fake.countInstancesOfServiceOfferingReturns
 	fake.recordInvocation("CountInstancesOfServiceOffering", []interface{}{arg1, arg2})
 	fake.countInstancesOfServiceOfferingMutex.Unlock()
-	if fake.CountInstancesOfServiceOfferingStub != nil {
-		return fake.CountInstancesOfServiceOfferingStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.countInstancesOfServiceOfferingReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

@@ -98,15 +98,16 @@ func (fake *FakeManageableBroker) CountInstancesOfPlans(arg1 *log.Logger) (map[c
 	fake.countInstancesOfPlansArgsForCall = append(fake.countInstancesOfPlansArgsForCall, struct {
 		arg1 *log.Logger
 	}{arg1})
+	stub := fake.CountInstancesOfPlansStub
+	fakeReturns := fake.countInstancesOfPlansReturns
 	fake.recordInvocation("CountInstancesOfPlans", []interface{}{arg1})
 	fake.countInstancesOfPlansMutex.Unlock()
-	if fake.CountInstancesOfPlansStub != nil {
-		return fake.CountInstancesOfPlansStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.countInstancesOfPlansReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -162,15 +163,16 @@ func (fake *FakeManageableBroker) Instances(arg1 map[string]string, arg2 *log.Lo
 		arg1 map[string]string
 		arg2 *log.Logger
 	}{arg1, arg2})
+	stub := fake.InstancesStub
+	fakeReturns := fake.instancesReturns
 	fake.recordInvocation("Instances", []interface{}{arg1, arg2})
 	fake.instancesMutex.Unlock()
-	if fake.InstancesStub != nil {
-		return fake.InstancesStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.instancesReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -225,15 +227,16 @@ func (fake *FakeManageableBroker) OrphanDeployments(arg1 *log.Logger) ([]string,
 	fake.orphanDeploymentsArgsForCall = append(fake.orphanDeploymentsArgsForCall, struct {
 		arg1 *log.Logger
 	}{arg1})
+	stub := fake.OrphanDeploymentsStub
+	fakeReturns := fake.orphanDeploymentsReturns
 	fake.recordInvocation("OrphanDeployments", []interface{}{arg1})
 	fake.orphanDeploymentsMutex.Unlock()
-	if fake.OrphanDeploymentsStub != nil {
-		return fake.OrphanDeploymentsStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.orphanDeploymentsReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -291,15 +294,16 @@ func (fake *FakeManageableBroker) Recreate(arg1 context.Context, arg2 string, ar
 		arg3 domain.UpdateDetails
 		arg4 *log.Logger
 	}{arg1, arg2, arg3, arg4})
+	stub := fake.RecreateStub
+	fakeReturns := fake.recreateReturns
 	fake.recordInvocation("Recreate", []interface{}{arg1, arg2, arg3, arg4})
 	fake.recreateMutex.Unlock()
-	if fake.RecreateStub != nil {
-		return fake.RecreateStub(arg1, arg2, arg3, arg4)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.recreateReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -357,15 +361,16 @@ func (fake *FakeManageableBroker) Upgrade(arg1 context.Context, arg2 string, arg
 		arg3 domain.UpdateDetails
 		arg4 *log.Logger
 	}{arg1, arg2, arg3, arg4})
+	stub := fake.UpgradeStub
+	fakeReturns := fake.upgradeReturns
 	fake.recordInvocation("Upgrade", []interface{}{arg1, arg2, arg3, arg4})
 	fake.upgradeMutex.Unlock()
-	if fake.UpgradeStub != nil {
-		return fake.UpgradeStub(arg1, arg2, arg3, arg4)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.upgradeReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 

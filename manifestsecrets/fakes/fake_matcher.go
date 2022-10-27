@@ -44,15 +44,16 @@ func (fake *FakeMatcher) Match(arg1 []byte, arg2 []boshdirector.Variable) (map[s
 		arg1 []byte
 		arg2 []boshdirector.Variable
 	}{arg1Copy, arg2Copy})
+	stub := fake.MatchStub
+	fakeReturns := fake.matchReturns
 	fake.recordInvocation("Match", []interface{}{arg1Copy, arg2Copy})
 	fake.matchMutex.Unlock()
-	if fake.MatchStub != nil {
-		return fake.MatchStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.matchReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

@@ -35,15 +35,16 @@ func (fake *FakeCFListerClient) GetServiceInstances(arg1 cf.GetInstancesFilter, 
 		arg1 cf.GetInstancesFilter
 		arg2 *log.Logger
 	}{arg1, arg2})
+	stub := fake.GetServiceInstancesStub
+	fakeReturns := fake.getServiceInstancesReturns
 	fake.recordInvocation("GetServiceInstances", []interface{}{arg1, arg2})
 	fake.getServiceInstancesMutex.Unlock()
-	if fake.GetServiceInstancesStub != nil {
-		return fake.GetServiceInstancesStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.getServiceInstancesReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

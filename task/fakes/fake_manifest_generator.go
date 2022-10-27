@@ -35,15 +35,16 @@ func (fake *FakeManifestGenerator) GenerateManifest(arg1 task.GenerateManifestPr
 		arg1 task.GenerateManifestProperties
 		arg2 *log.Logger
 	}{arg1, arg2})
+	stub := fake.GenerateManifestStub
+	fakeReturns := fake.generateManifestReturns
 	fake.recordInvocation("GenerateManifest", []interface{}{arg1, arg2})
 	fake.generateManifestMutex.Unlock()
-	if fake.GenerateManifestStub != nil {
-		return fake.GenerateManifestStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.generateManifestReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

@@ -64,15 +64,16 @@ func (fake *FakeCredentialStore) AddPermission(arg1 string, arg2 string, arg3 []
 		arg2 string
 		arg3 []string
 	}{arg1, arg2, arg3Copy})
+	stub := fake.AddPermissionStub
+	fakeReturns := fake.addPermissionReturns
 	fake.recordInvocation("AddPermission", []interface{}{arg1, arg2, arg3Copy})
 	fake.addPermissionMutex.Unlock()
-	if fake.AddPermissionStub != nil {
-		return fake.AddPermissionStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.addPermissionReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -127,15 +128,16 @@ func (fake *FakeCredentialStore) Delete(arg1 string) error {
 	fake.deleteArgsForCall = append(fake.deleteArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.DeleteStub
+	fakeReturns := fake.deleteReturns
 	fake.recordInvocation("Delete", []interface{}{arg1})
 	fake.deleteMutex.Unlock()
-	if fake.DeleteStub != nil {
-		return fake.DeleteStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.deleteReturns
 	return fakeReturns.result1
 }
 
@@ -188,15 +190,16 @@ func (fake *FakeCredentialStore) Set(arg1 string, arg2 interface{}) error {
 		arg1 string
 		arg2 interface{}
 	}{arg1, arg2})
+	stub := fake.SetStub
+	fakeReturns := fake.setReturns
 	fake.recordInvocation("Set", []interface{}{arg1, arg2})
 	fake.setMutex.Unlock()
-	if fake.SetStub != nil {
-		return fake.SetStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.setReturns
 	return fakeReturns.result1
 }
 

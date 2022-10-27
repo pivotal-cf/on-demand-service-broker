@@ -14,8 +14,8 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/blang/semver/v4"
-	"github.com/cloudfoundry/bosh-cli/director"
-	boshuaa "github.com/cloudfoundry/bosh-cli/uaa"
+	"github.com/cloudfoundry/bosh-cli/v7/director"
+	boshuaa "github.com/cloudfoundry/bosh-cli/v7/uaa"
 )
 
 type Client struct {

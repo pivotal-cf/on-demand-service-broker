@@ -46,15 +46,16 @@ func (fake *FakeCloudFoundryClient) DeregisterBroker(arg1 string, arg2 *log.Logg
 		arg1 string
 		arg2 *log.Logger
 	}{arg1, arg2})
+	stub := fake.DeregisterBrokerStub
+	fakeReturns := fake.deregisterBrokerReturns
 	fake.recordInvocation("DeregisterBroker", []interface{}{arg1, arg2})
 	fake.deregisterBrokerMutex.Unlock()
-	if fake.DeregisterBrokerStub != nil {
-		return fake.DeregisterBrokerStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.deregisterBrokerReturns
 	return fakeReturns.result1
 }
 
@@ -107,15 +108,16 @@ func (fake *FakeCloudFoundryClient) GetServiceOfferingGUID(arg1 string, arg2 *lo
 		arg1 string
 		arg2 *log.Logger
 	}{arg1, arg2})
+	stub := fake.GetServiceOfferingGUIDStub
+	fakeReturns := fake.getServiceOfferingGUIDReturns
 	fake.recordInvocation("GetServiceOfferingGUID", []interface{}{arg1, arg2})
 	fake.getServiceOfferingGUIDMutex.Unlock()
-	if fake.GetServiceOfferingGUIDStub != nil {
-		return fake.GetServiceOfferingGUIDStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.getServiceOfferingGUIDReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

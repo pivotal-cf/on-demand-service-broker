@@ -4,7 +4,7 @@ package fakes
 import (
 	"sync"
 
-	"github.com/cloudfoundry/bosh-cli/director"
+	"github.com/cloudfoundry/bosh-cli/v7/director"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 )
 
@@ -433,15 +433,16 @@ func (fake *FakeBOSHDeployment) AttachDisk(arg1 director.InstanceSlug, arg2 stri
 		arg2 string
 		arg3 string
 	}{arg1, arg2, arg3})
+	stub := fake.AttachDiskStub
+	fakeReturns := fake.attachDiskReturns
 	fake.recordInvocation("AttachDisk", []interface{}{arg1, arg2, arg3})
 	fake.attachDiskMutex.Unlock()
-	if fake.AttachDiskStub != nil {
-		return fake.AttachDiskStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.attachDiskReturns
 	return fakeReturns.result1
 }
 
@@ -494,15 +495,16 @@ func (fake *FakeBOSHDeployment) CleanUpSSH(arg1 director.AllOrInstanceGroupOrIns
 		arg1 director.AllOrInstanceGroupOrInstanceSlug
 		arg2 director.SSHOpts
 	}{arg1, arg2})
+	stub := fake.CleanUpSSHStub
+	fakeReturns := fake.cleanUpSSHReturns
 	fake.recordInvocation("CleanUpSSH", []interface{}{arg1, arg2})
 	fake.cleanUpSSHMutex.Unlock()
-	if fake.CleanUpSSHStub != nil {
-		return fake.CleanUpSSHStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.cleanUpSSHReturns
 	return fakeReturns.result1
 }
 
@@ -553,15 +555,16 @@ func (fake *FakeBOSHDeployment) CloudConfig() (string, error) {
 	ret, specificReturn := fake.cloudConfigReturnsOnCall[len(fake.cloudConfigArgsForCall)]
 	fake.cloudConfigArgsForCall = append(fake.cloudConfigArgsForCall, struct {
 	}{})
+	stub := fake.CloudConfigStub
+	fakeReturns := fake.cloudConfigReturns
 	fake.recordInvocation("CloudConfig", []interface{}{})
 	fake.cloudConfigMutex.Unlock()
-	if fake.CloudConfigStub != nil {
-		return fake.CloudConfigStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.cloudConfigReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -609,15 +612,16 @@ func (fake *FakeBOSHDeployment) Delete(arg1 bool) error {
 	fake.deleteArgsForCall = append(fake.deleteArgsForCall, struct {
 		arg1 bool
 	}{arg1})
+	stub := fake.DeleteStub
+	fakeReturns := fake.deleteReturns
 	fake.recordInvocation("Delete", []interface{}{arg1})
 	fake.deleteMutex.Unlock()
-	if fake.DeleteStub != nil {
-		return fake.DeleteStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.deleteReturns
 	return fakeReturns.result1
 }
 
@@ -669,15 +673,16 @@ func (fake *FakeBOSHDeployment) DeleteSnapshot(arg1 string) error {
 	fake.deleteSnapshotArgsForCall = append(fake.deleteSnapshotArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.DeleteSnapshotStub
+	fakeReturns := fake.deleteSnapshotReturns
 	fake.recordInvocation("DeleteSnapshot", []interface{}{arg1})
 	fake.deleteSnapshotMutex.Unlock()
-	if fake.DeleteSnapshotStub != nil {
-		return fake.DeleteSnapshotStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.deleteSnapshotReturns
 	return fakeReturns.result1
 }
 
@@ -728,15 +733,16 @@ func (fake *FakeBOSHDeployment) DeleteSnapshots() error {
 	ret, specificReturn := fake.deleteSnapshotsReturnsOnCall[len(fake.deleteSnapshotsArgsForCall)]
 	fake.deleteSnapshotsArgsForCall = append(fake.deleteSnapshotsArgsForCall, struct {
 	}{})
+	stub := fake.DeleteSnapshotsStub
+	fakeReturns := fake.deleteSnapshotsReturns
 	fake.recordInvocation("DeleteSnapshots", []interface{}{})
 	fake.deleteSnapshotsMutex.Unlock()
-	if fake.DeleteSnapshotsStub != nil {
-		return fake.DeleteSnapshotsStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.deleteSnapshotsReturns
 	return fakeReturns.result1
 }
 
@@ -781,15 +787,16 @@ func (fake *FakeBOSHDeployment) DeleteVM(arg1 string) error {
 	fake.deleteVMArgsForCall = append(fake.deleteVMArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.DeleteVMStub
+	fakeReturns := fake.deleteVMReturns
 	fake.recordInvocation("DeleteVM", []interface{}{arg1})
 	fake.deleteVMMutex.Unlock()
-	if fake.DeleteVMStub != nil {
-		return fake.DeleteVMStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.deleteVMReturns
 	return fakeReturns.result1
 }
 
@@ -847,15 +854,16 @@ func (fake *FakeBOSHDeployment) Diff(arg1 []byte, arg2 bool) (director.Deploymen
 		arg1 []byte
 		arg2 bool
 	}{arg1Copy, arg2})
+	stub := fake.DiffStub
+	fakeReturns := fake.diffReturns
 	fake.recordInvocation("Diff", []interface{}{arg1Copy, arg2})
 	fake.diffMutex.Unlock()
-	if fake.DiffStub != nil {
-		return fake.DiffStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.diffReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -911,15 +919,16 @@ func (fake *FakeBOSHDeployment) EnableResurrection(arg1 director.InstanceSlug, a
 		arg1 director.InstanceSlug
 		arg2 bool
 	}{arg1, arg2})
+	stub := fake.EnableResurrectionStub
+	fakeReturns := fake.enableResurrectionReturns
 	fake.recordInvocation("EnableResurrection", []interface{}{arg1, arg2})
 	fake.enableResurrectionMutex.Unlock()
-	if fake.EnableResurrectionStub != nil {
-		return fake.EnableResurrectionStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.enableResurrectionReturns
 	return fakeReturns.result1
 }
 
@@ -970,15 +979,16 @@ func (fake *FakeBOSHDeployment) Errands() ([]director.Errand, error) {
 	ret, specificReturn := fake.errandsReturnsOnCall[len(fake.errandsArgsForCall)]
 	fake.errandsArgsForCall = append(fake.errandsArgsForCall, struct {
 	}{})
+	stub := fake.ErrandsStub
+	fakeReturns := fake.errandsReturns
 	fake.recordInvocation("Errands", []interface{}{})
 	fake.errandsMutex.Unlock()
-	if fake.ErrandsStub != nil {
-		return fake.ErrandsStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.errandsReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -1033,15 +1043,16 @@ func (fake *FakeBOSHDeployment) ExportRelease(arg1 director.ReleaseSlug, arg2 di
 		arg2 director.OSVersionSlug
 		arg3 []string
 	}{arg1, arg2, arg3Copy})
+	stub := fake.ExportReleaseStub
+	fakeReturns := fake.exportReleaseReturns
 	fake.recordInvocation("ExportRelease", []interface{}{arg1, arg2, arg3Copy})
 	fake.exportReleaseMutex.Unlock()
-	if fake.ExportReleaseStub != nil {
-		return fake.ExportReleaseStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.exportReleaseReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -1103,15 +1114,16 @@ func (fake *FakeBOSHDeployment) FetchLogs(arg1 director.AllOrInstanceGroupOrInst
 		arg2 []string
 		arg3 bool
 	}{arg1, arg2Copy, arg3})
+	stub := fake.FetchLogsStub
+	fakeReturns := fake.fetchLogsReturns
 	fake.recordInvocation("FetchLogs", []interface{}{arg1, arg2Copy, arg3})
 	fake.fetchLogsMutex.Unlock()
-	if fake.FetchLogsStub != nil {
-		return fake.FetchLogsStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.fetchLogsReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -1167,15 +1179,16 @@ func (fake *FakeBOSHDeployment) Ignore(arg1 director.InstanceSlug, arg2 bool) er
 		arg1 director.InstanceSlug
 		arg2 bool
 	}{arg1, arg2})
+	stub := fake.IgnoreStub
+	fakeReturns := fake.ignoreReturns
 	fake.recordInvocation("Ignore", []interface{}{arg1, arg2})
 	fake.ignoreMutex.Unlock()
-	if fake.IgnoreStub != nil {
-		return fake.IgnoreStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.ignoreReturns
 	return fakeReturns.result1
 }
 
@@ -1226,15 +1239,16 @@ func (fake *FakeBOSHDeployment) InstanceInfos() ([]director.VMInfo, error) {
 	ret, specificReturn := fake.instanceInfosReturnsOnCall[len(fake.instanceInfosArgsForCall)]
 	fake.instanceInfosArgsForCall = append(fake.instanceInfosArgsForCall, struct {
 	}{})
+	stub := fake.InstanceInfosStub
+	fakeReturns := fake.instanceInfosReturns
 	fake.recordInvocation("InstanceInfos", []interface{}{})
 	fake.instanceInfosMutex.Unlock()
-	if fake.InstanceInfosStub != nil {
-		return fake.InstanceInfosStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.instanceInfosReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -1281,15 +1295,16 @@ func (fake *FakeBOSHDeployment) Instances() ([]director.Instance, error) {
 	ret, specificReturn := fake.instancesReturnsOnCall[len(fake.instancesArgsForCall)]
 	fake.instancesArgsForCall = append(fake.instancesArgsForCall, struct {
 	}{})
+	stub := fake.InstancesStub
+	fakeReturns := fake.instancesReturns
 	fake.recordInvocation("Instances", []interface{}{})
 	fake.instancesMutex.Unlock()
-	if fake.InstancesStub != nil {
-		return fake.InstancesStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.instancesReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -1336,15 +1351,16 @@ func (fake *FakeBOSHDeployment) Manifest() (string, error) {
 	ret, specificReturn := fake.manifestReturnsOnCall[len(fake.manifestArgsForCall)]
 	fake.manifestArgsForCall = append(fake.manifestArgsForCall, struct {
 	}{})
+	stub := fake.ManifestStub
+	fakeReturns := fake.manifestReturns
 	fake.recordInvocation("Manifest", []interface{}{})
 	fake.manifestMutex.Unlock()
-	if fake.ManifestStub != nil {
-		return fake.ManifestStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.manifestReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -1391,15 +1407,16 @@ func (fake *FakeBOSHDeployment) Name() string {
 	ret, specificReturn := fake.nameReturnsOnCall[len(fake.nameArgsForCall)]
 	fake.nameArgsForCall = append(fake.nameArgsForCall, struct {
 	}{})
+	stub := fake.NameStub
+	fakeReturns := fake.nameReturns
 	fake.recordInvocation("Name", []interface{}{})
 	fake.nameMutex.Unlock()
-	if fake.NameStub != nil {
-		return fake.NameStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.nameReturns
 	return fakeReturns.result1
 }
 
@@ -1445,15 +1462,16 @@ func (fake *FakeBOSHDeployment) Recreate(arg1 director.AllOrInstanceGroupOrInsta
 		arg1 director.AllOrInstanceGroupOrInstanceSlug
 		arg2 director.RecreateOpts
 	}{arg1, arg2})
+	stub := fake.RecreateStub
+	fakeReturns := fake.recreateReturns
 	fake.recordInvocation("Recreate", []interface{}{arg1, arg2})
 	fake.recreateMutex.Unlock()
-	if fake.RecreateStub != nil {
-		return fake.RecreateStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.recreateReturns
 	return fakeReturns.result1
 }
 
@@ -1504,15 +1522,16 @@ func (fake *FakeBOSHDeployment) Releases() ([]director.Release, error) {
 	ret, specificReturn := fake.releasesReturnsOnCall[len(fake.releasesArgsForCall)]
 	fake.releasesArgsForCall = append(fake.releasesArgsForCall, struct {
 	}{})
+	stub := fake.ReleasesStub
+	fakeReturns := fake.releasesReturns
 	fake.recordInvocation("Releases", []interface{}{})
 	fake.releasesMutex.Unlock()
-	if fake.ReleasesStub != nil {
-		return fake.ReleasesStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.releasesReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -1565,15 +1584,16 @@ func (fake *FakeBOSHDeployment) ResolveProblems(arg1 []director.ProblemAnswer) e
 	fake.resolveProblemsArgsForCall = append(fake.resolveProblemsArgsForCall, struct {
 		arg1 []director.ProblemAnswer
 	}{arg1Copy})
+	stub := fake.ResolveProblemsStub
+	fakeReturns := fake.resolveProblemsReturns
 	fake.recordInvocation("ResolveProblems", []interface{}{arg1Copy})
 	fake.resolveProblemsMutex.Unlock()
-	if fake.ResolveProblemsStub != nil {
-		return fake.ResolveProblemsStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.resolveProblemsReturns
 	return fakeReturns.result1
 }
 
@@ -1626,15 +1646,16 @@ func (fake *FakeBOSHDeployment) Restart(arg1 director.AllOrInstanceGroupOrInstan
 		arg1 director.AllOrInstanceGroupOrInstanceSlug
 		arg2 director.RestartOpts
 	}{arg1, arg2})
+	stub := fake.RestartStub
+	fakeReturns := fake.restartReturns
 	fake.recordInvocation("Restart", []interface{}{arg1, arg2})
 	fake.restartMutex.Unlock()
-	if fake.RestartStub != nil {
-		return fake.RestartStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.restartReturns
 	return fakeReturns.result1
 }
 
@@ -1694,15 +1715,16 @@ func (fake *FakeBOSHDeployment) RunErrand(arg1 string, arg2 bool, arg3 bool, arg
 		arg3 bool
 		arg4 []director.InstanceGroupOrInstanceSlug
 	}{arg1, arg2, arg3, arg4Copy})
+	stub := fake.RunErrandStub
+	fakeReturns := fake.runErrandReturns
 	fake.recordInvocation("RunErrand", []interface{}{arg1, arg2, arg3, arg4Copy})
 	fake.runErrandMutex.Unlock()
-	if fake.RunErrandStub != nil {
-		return fake.RunErrandStub(arg1, arg2, arg3, arg4)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.runErrandReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -1756,15 +1778,16 @@ func (fake *FakeBOSHDeployment) ScanForProblems() ([]director.Problem, error) {
 	ret, specificReturn := fake.scanForProblemsReturnsOnCall[len(fake.scanForProblemsArgsForCall)]
 	fake.scanForProblemsArgsForCall = append(fake.scanForProblemsArgsForCall, struct {
 	}{})
+	stub := fake.ScanForProblemsStub
+	fakeReturns := fake.scanForProblemsReturns
 	fake.recordInvocation("ScanForProblems", []interface{}{})
 	fake.scanForProblemsMutex.Unlock()
-	if fake.ScanForProblemsStub != nil {
-		return fake.ScanForProblemsStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.scanForProblemsReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -1813,15 +1836,16 @@ func (fake *FakeBOSHDeployment) SetUpSSH(arg1 director.AllOrInstanceGroupOrInsta
 		arg1 director.AllOrInstanceGroupOrInstanceSlug
 		arg2 director.SSHOpts
 	}{arg1, arg2})
+	stub := fake.SetUpSSHStub
+	fakeReturns := fake.setUpSSHReturns
 	fake.recordInvocation("SetUpSSH", []interface{}{arg1, arg2})
 	fake.setUpSSHMutex.Unlock()
-	if fake.SetUpSSHStub != nil {
-		return fake.SetUpSSHStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.setUpSSHReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -1875,15 +1899,16 @@ func (fake *FakeBOSHDeployment) Snapshots() ([]director.Snapshot, error) {
 	ret, specificReturn := fake.snapshotsReturnsOnCall[len(fake.snapshotsArgsForCall)]
 	fake.snapshotsArgsForCall = append(fake.snapshotsArgsForCall, struct {
 	}{})
+	stub := fake.SnapshotsStub
+	fakeReturns := fake.snapshotsReturns
 	fake.recordInvocation("Snapshots", []interface{}{})
 	fake.snapshotsMutex.Unlock()
-	if fake.SnapshotsStub != nil {
-		return fake.SnapshotsStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.snapshotsReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -1932,15 +1957,16 @@ func (fake *FakeBOSHDeployment) Start(arg1 director.AllOrInstanceGroupOrInstance
 		arg1 director.AllOrInstanceGroupOrInstanceSlug
 		arg2 director.StartOpts
 	}{arg1, arg2})
+	stub := fake.StartStub
+	fakeReturns := fake.startReturns
 	fake.recordInvocation("Start", []interface{}{arg1, arg2})
 	fake.startMutex.Unlock()
-	if fake.StartStub != nil {
-		return fake.StartStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.startReturns
 	return fakeReturns.result1
 }
 
@@ -1991,15 +2017,16 @@ func (fake *FakeBOSHDeployment) Stemcells() ([]director.Stemcell, error) {
 	ret, specificReturn := fake.stemcellsReturnsOnCall[len(fake.stemcellsArgsForCall)]
 	fake.stemcellsArgsForCall = append(fake.stemcellsArgsForCall, struct {
 	}{})
+	stub := fake.StemcellsStub
+	fakeReturns := fake.stemcellsReturns
 	fake.recordInvocation("Stemcells", []interface{}{})
 	fake.stemcellsMutex.Unlock()
-	if fake.StemcellsStub != nil {
-		return fake.StemcellsStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.stemcellsReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -2048,15 +2075,16 @@ func (fake *FakeBOSHDeployment) Stop(arg1 director.AllOrInstanceGroupOrInstanceS
 		arg1 director.AllOrInstanceGroupOrInstanceSlug
 		arg2 director.StopOpts
 	}{arg1, arg2})
+	stub := fake.StopStub
+	fakeReturns := fake.stopReturns
 	fake.recordInvocation("Stop", []interface{}{arg1, arg2})
 	fake.stopMutex.Unlock()
-	if fake.StopStub != nil {
-		return fake.StopStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.stopReturns
 	return fakeReturns.result1
 }
 
@@ -2108,15 +2136,16 @@ func (fake *FakeBOSHDeployment) TakeSnapshot(arg1 director.InstanceSlug) error {
 	fake.takeSnapshotArgsForCall = append(fake.takeSnapshotArgsForCall, struct {
 		arg1 director.InstanceSlug
 	}{arg1})
+	stub := fake.TakeSnapshotStub
+	fakeReturns := fake.takeSnapshotReturns
 	fake.recordInvocation("TakeSnapshot", []interface{}{arg1})
 	fake.takeSnapshotMutex.Unlock()
-	if fake.TakeSnapshotStub != nil {
-		return fake.TakeSnapshotStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.takeSnapshotReturns
 	return fakeReturns.result1
 }
 
@@ -2167,15 +2196,16 @@ func (fake *FakeBOSHDeployment) TakeSnapshots() error {
 	ret, specificReturn := fake.takeSnapshotsReturnsOnCall[len(fake.takeSnapshotsArgsForCall)]
 	fake.takeSnapshotsArgsForCall = append(fake.takeSnapshotsArgsForCall, struct {
 	}{})
+	stub := fake.TakeSnapshotsStub
+	fakeReturns := fake.takeSnapshotsReturns
 	fake.recordInvocation("TakeSnapshots", []interface{}{})
 	fake.takeSnapshotsMutex.Unlock()
-	if fake.TakeSnapshotsStub != nil {
-		return fake.TakeSnapshotsStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.takeSnapshotsReturns
 	return fakeReturns.result1
 }
 
@@ -2219,15 +2249,16 @@ func (fake *FakeBOSHDeployment) Teams() ([]string, error) {
 	ret, specificReturn := fake.teamsReturnsOnCall[len(fake.teamsArgsForCall)]
 	fake.teamsArgsForCall = append(fake.teamsArgsForCall, struct {
 	}{})
+	stub := fake.TeamsStub
+	fakeReturns := fake.teamsReturns
 	fake.recordInvocation("Teams", []interface{}{})
 	fake.teamsMutex.Unlock()
-	if fake.TeamsStub != nil {
-		return fake.TeamsStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.teamsReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -2281,15 +2312,16 @@ func (fake *FakeBOSHDeployment) Update(arg1 []byte, arg2 director.UpdateOpts) er
 		arg1 []byte
 		arg2 director.UpdateOpts
 	}{arg1Copy, arg2})
+	stub := fake.UpdateStub
+	fakeReturns := fake.updateReturns
 	fake.recordInvocation("Update", []interface{}{arg1Copy, arg2})
 	fake.updateMutex.Unlock()
-	if fake.UpdateStub != nil {
-		return fake.UpdateStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.updateReturns
 	return fakeReturns.result1
 }
 
@@ -2340,15 +2372,16 @@ func (fake *FakeBOSHDeployment) VMInfos() ([]director.VMInfo, error) {
 	ret, specificReturn := fake.vMInfosReturnsOnCall[len(fake.vMInfosArgsForCall)]
 	fake.vMInfosArgsForCall = append(fake.vMInfosArgsForCall, struct {
 	}{})
+	stub := fake.VMInfosStub
+	fakeReturns := fake.vMInfosReturns
 	fake.recordInvocation("VMInfos", []interface{}{})
 	fake.vMInfosMutex.Unlock()
-	if fake.VMInfosStub != nil {
-		return fake.VMInfosStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.vMInfosReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -2395,15 +2428,16 @@ func (fake *FakeBOSHDeployment) Variables() ([]director.VariableResult, error) {
 	ret, specificReturn := fake.variablesReturnsOnCall[len(fake.variablesArgsForCall)]
 	fake.variablesArgsForCall = append(fake.variablesArgsForCall, struct {
 	}{})
+	stub := fake.VariablesStub
+	fakeReturns := fake.variablesReturns
 	fake.recordInvocation("Variables", []interface{}{})
 	fake.variablesMutex.Unlock()
-	if fake.VariablesStub != nil {
-		return fake.VariablesStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.variablesReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

@@ -33,15 +33,16 @@ func (fake *FakeAuthHeaderBuilder) AddAuthHeader(arg1 *http.Request, arg2 *log.L
 		arg1 *http.Request
 		arg2 *log.Logger
 	}{arg1, arg2})
+	stub := fake.AddAuthHeaderStub
+	fakeReturns := fake.addAuthHeaderReturns
 	fake.recordInvocation("AddAuthHeader", []interface{}{arg1, arg2})
 	fake.addAuthHeaderMutex.Unlock()
-	if fake.AddAuthHeaderStub != nil {
-		return fake.AddAuthHeaderStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.addAuthHeaderReturns
 	return fakeReturns.result1
 }
 

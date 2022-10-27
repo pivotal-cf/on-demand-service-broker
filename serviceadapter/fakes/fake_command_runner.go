@@ -53,15 +53,16 @@ func (fake *FakeCommandRunner) Run(arg1 ...string) ([]byte, []byte, *int, error)
 	fake.runArgsForCall = append(fake.runArgsForCall, struct {
 		arg1 []string
 	}{arg1})
+	stub := fake.RunStub
+	fakeReturns := fake.runReturns
 	fake.recordInvocation("Run", []interface{}{arg1})
 	fake.runMutex.Unlock()
-	if fake.RunStub != nil {
-		return fake.RunStub(arg1...)
+	if stub != nil {
+		return stub(arg1...)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3, ret.result4
 	}
-	fakeReturns := fake.runReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3, fakeReturns.result4
 }
 
@@ -123,15 +124,16 @@ func (fake *FakeCommandRunner) RunWithInputParams(arg1 interface{}, arg2 ...stri
 		arg1 interface{}
 		arg2 []string
 	}{arg1, arg2})
+	stub := fake.RunWithInputParamsStub
+	fakeReturns := fake.runWithInputParamsReturns
 	fake.recordInvocation("RunWithInputParams", []interface{}{arg1, arg2})
 	fake.runWithInputParamsMutex.Unlock()
-	if fake.RunWithInputParamsStub != nil {
-		return fake.RunWithInputParamsStub(arg1, arg2...)
+	if stub != nil {
+		return stub(arg1, arg2...)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3, ret.result4
 	}
-	fakeReturns := fake.runWithInputParamsReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3, fakeReturns.result4
 }
 

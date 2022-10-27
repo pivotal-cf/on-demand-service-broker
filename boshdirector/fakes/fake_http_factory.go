@@ -29,15 +29,17 @@ func (fake *FakeHTTPFactory) Spy(arg1 *boshdirector.Client) boshdirector.HTTP {
 	fake.argsForCall = append(fake.argsForCall, struct {
 		arg1 *boshdirector.Client
 	}{arg1})
+	stub := fake.Stub
+	returns := fake.returns
 	fake.recordInvocation("HTTPFactory", []interface{}{arg1})
 	fake.mutex.Unlock()
-	if fake.Stub != nil {
-		return fake.Stub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.returns.result1
+	return returns.result1
 }
 
 func (fake *FakeHTTPFactory) CallCount() int {

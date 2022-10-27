@@ -103,15 +103,16 @@ func (fake *FakeDeployer) Create(arg1 string, arg2 string, arg3 map[string]inter
 		arg5 map[string]string
 		arg6 *log.Logger
 	}{arg1, arg2, arg3, arg4, arg5, arg6})
+	stub := fake.CreateStub
+	fakeReturns := fake.createReturns
 	fake.recordInvocation("Create", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6})
 	fake.createMutex.Unlock()
-	if fake.CreateStub != nil {
-		return fake.CreateStub(arg1, arg2, arg3, arg4, arg5, arg6)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4, arg5, arg6)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.createReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
@@ -172,15 +173,16 @@ func (fake *FakeDeployer) Recreate(arg1 string, arg2 string, arg3 string, arg4 *
 		arg3 string
 		arg4 *log.Logger
 	}{arg1, arg2, arg3, arg4})
+	stub := fake.RecreateStub
+	fakeReturns := fake.recreateReturns
 	fake.recordInvocation("Recreate", []interface{}{arg1, arg2, arg3, arg4})
 	fake.recreateMutex.Unlock()
-	if fake.RecreateStub != nil {
-		return fake.RecreateStub(arg1, arg2, arg3, arg4)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.recreateReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -242,15 +244,16 @@ func (fake *FakeDeployer) Update(arg1 string, arg2 string, arg3 map[string]inter
 		arg7 map[string]string
 		arg8 *log.Logger
 	}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8})
+	stub := fake.UpdateStub
+	fakeReturns := fake.updateReturns
 	fake.recordInvocation("Update", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8})
 	fake.updateMutex.Unlock()
-	if fake.UpdateStub != nil {
-		return fake.UpdateStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.updateReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
@@ -313,15 +316,16 @@ func (fake *FakeDeployer) Upgrade(arg1 string, arg2 config.Plan, arg3 map[string
 		arg5 map[string]string
 		arg6 *log.Logger
 	}{arg1, arg2, arg3, arg4, arg5, arg6})
+	stub := fake.UpgradeStub
+	fakeReturns := fake.upgradeReturns
 	fake.recordInvocation("Upgrade", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6})
 	fake.upgradeMutex.Unlock()
-	if fake.UpgradeStub != nil {
-		return fake.UpgradeStub(arg1, arg2, arg3, arg4, arg5, arg6)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4, arg5, arg6)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	fakeReturns := fake.upgradeReturns
 	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 

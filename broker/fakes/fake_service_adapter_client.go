@@ -99,15 +99,16 @@ func (fake *FakeServiceAdapterClient) CreateBinding(arg1 string, arg2 bosh.BoshV
 		arg6 map[string]string
 		arg7 *log.Logger
 	}{arg1, arg2, arg3Copy, arg4, arg5, arg6, arg7})
+	stub := fake.CreateBindingStub
+	fakeReturns := fake.createBindingReturns
 	fake.recordInvocation("CreateBinding", []interface{}{arg1, arg2, arg3Copy, arg4, arg5, arg6, arg7})
 	fake.createBindingMutex.Unlock()
-	if fake.CreateBindingStub != nil {
-		return fake.CreateBindingStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4, arg5, arg6, arg7)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.createBindingReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -173,15 +174,16 @@ func (fake *FakeServiceAdapterClient) DeleteBinding(arg1 string, arg2 bosh.BoshV
 		arg6 map[string]string
 		arg7 *log.Logger
 	}{arg1, arg2, arg3Copy, arg4, arg5, arg6, arg7})
+	stub := fake.DeleteBindingStub
+	fakeReturns := fake.deleteBindingReturns
 	fake.recordInvocation("DeleteBinding", []interface{}{arg1, arg2, arg3Copy, arg4, arg5, arg6, arg7})
 	fake.deleteBindingMutex.Unlock()
-	if fake.DeleteBindingStub != nil {
-		return fake.DeleteBindingStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4, arg5, arg6, arg7)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.deleteBindingReturns
 	return fakeReturns.result1
 }
 
@@ -241,15 +243,16 @@ func (fake *FakeServiceAdapterClient) GenerateDashboardUrl(arg1 string, arg2 ser
 		arg3 []byte
 		arg4 *log.Logger
 	}{arg1, arg2, arg3Copy, arg4})
+	stub := fake.GenerateDashboardUrlStub
+	fakeReturns := fake.generateDashboardUrlReturns
 	fake.recordInvocation("GenerateDashboardUrl", []interface{}{arg1, arg2, arg3Copy, arg4})
 	fake.generateDashboardUrlMutex.Unlock()
-	if fake.GenerateDashboardUrlStub != nil {
-		return fake.GenerateDashboardUrlStub(arg1, arg2, arg3, arg4)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.generateDashboardUrlReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -305,15 +308,16 @@ func (fake *FakeServiceAdapterClient) GeneratePlanSchema(arg1 serviceadapter.Pla
 		arg1 serviceadapter.Plan
 		arg2 *log.Logger
 	}{arg1, arg2})
+	stub := fake.GeneratePlanSchemaStub
+	fakeReturns := fake.generatePlanSchemaReturns
 	fake.recordInvocation("GeneratePlanSchema", []interface{}{arg1, arg2})
 	fake.generatePlanSchemaMutex.Unlock()
-	if fake.GeneratePlanSchemaStub != nil {
-		return fake.GeneratePlanSchemaStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.generatePlanSchemaReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

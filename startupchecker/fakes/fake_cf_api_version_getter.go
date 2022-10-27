@@ -32,15 +32,16 @@ func (fake *FakeCFAPIVersionGetter) GetAPIVersion(arg1 *log.Logger) (string, err
 	fake.getAPIVersionArgsForCall = append(fake.getAPIVersionArgsForCall, struct {
 		arg1 *log.Logger
 	}{arg1})
+	stub := fake.GetAPIVersionStub
+	fakeReturns := fake.getAPIVersionReturns
 	fake.recordInvocation("GetAPIVersion", []interface{}{arg1})
 	fake.getAPIVersionMutex.Unlock()
-	if fake.GetAPIVersionStub != nil {
-		return fake.GetAPIVersionStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.getAPIVersionReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

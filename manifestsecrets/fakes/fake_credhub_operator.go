@@ -66,15 +66,16 @@ func (fake *FakeCredhubOperator) BulkDelete(arg1 []string, arg2 *log.Logger) err
 		arg1 []string
 		arg2 *log.Logger
 	}{arg1Copy, arg2})
+	stub := fake.BulkDeleteStub
+	fakeReturns := fake.bulkDeleteReturns
 	fake.recordInvocation("BulkDelete", []interface{}{arg1Copy, arg2})
 	fake.bulkDeleteMutex.Unlock()
-	if fake.BulkDeleteStub != nil {
-		return fake.BulkDeleteStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.bulkDeleteReturns
 	return fakeReturns.result1
 }
 
@@ -127,15 +128,16 @@ func (fake *FakeCredhubOperator) BulkGet(arg1 map[string]boshdirector.Variable, 
 		arg1 map[string]boshdirector.Variable
 		arg2 *log.Logger
 	}{arg1, arg2})
+	stub := fake.BulkGetStub
+	fakeReturns := fake.bulkGetReturns
 	fake.recordInvocation("BulkGet", []interface{}{arg1, arg2})
 	fake.bulkGetMutex.Unlock()
-	if fake.BulkGetStub != nil {
-		return fake.BulkGetStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.bulkGetReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -191,15 +193,16 @@ func (fake *FakeCredhubOperator) FindNameLike(arg1 string, arg2 *log.Logger) ([]
 		arg1 string
 		arg2 *log.Logger
 	}{arg1, arg2})
+	stub := fake.FindNameLikeStub
+	fakeReturns := fake.findNameLikeReturns
 	fake.recordInvocation("FindNameLike", []interface{}{arg1, arg2})
 	fake.findNameLikeMutex.Unlock()
-	if fake.FindNameLikeStub != nil {
-		return fake.FindNameLikeStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.findNameLikeReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

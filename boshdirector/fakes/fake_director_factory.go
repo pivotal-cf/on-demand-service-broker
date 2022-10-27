@@ -4,7 +4,7 @@ package fakes
 import (
 	"sync"
 
-	"github.com/cloudfoundry/bosh-cli/director"
+	"github.com/cloudfoundry/bosh-cli/v7/director"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 )
 
@@ -36,15 +36,16 @@ func (fake *FakeDirectorFactory) New(arg1 director.FactoryConfig, arg2 director.
 		arg2 director.TaskReporter
 		arg3 director.FileReporter
 	}{arg1, arg2, arg3})
+	stub := fake.NewStub
+	fakeReturns := fake.newReturns
 	fake.recordInvocation("New", []interface{}{arg1, arg2, arg3})
 	fake.newMutex.Unlock()
-	if fake.NewStub != nil {
-		return fake.NewStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.newReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

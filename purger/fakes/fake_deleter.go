@@ -29,15 +29,16 @@ func (fake *FakeDeleter) DeleteAllServiceInstances(arg1 string) error {
 	fake.deleteAllServiceInstancesArgsForCall = append(fake.deleteAllServiceInstancesArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.DeleteAllServiceInstancesStub
+	fakeReturns := fake.deleteAllServiceInstancesReturns
 	fake.recordInvocation("DeleteAllServiceInstances", []interface{}{arg1})
 	fake.deleteAllServiceInstancesMutex.Unlock()
-	if fake.DeleteAllServiceInstancesStub != nil {
-		return fake.DeleteAllServiceInstancesStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.deleteAllServiceInstancesReturns
 	return fakeReturns.result1
 }
 

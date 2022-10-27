@@ -30,15 +30,16 @@ func (fake *FakeAuthVerifier) VerifyAuth(arg1 *log.Logger) error {
 	fake.verifyAuthArgsForCall = append(fake.verifyAuthArgsForCall, struct {
 		arg1 *log.Logger
 	}{arg1})
+	stub := fake.VerifyAuthStub
+	fakeReturns := fake.verifyAuthReturns
 	fake.recordInvocation("VerifyAuth", []interface{}{arg1})
 	fake.verifyAuthMutex.Unlock()
-	if fake.VerifyAuthStub != nil {
-		return fake.VerifyAuthStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.verifyAuthReturns
 	return fakeReturns.result1
 }
 

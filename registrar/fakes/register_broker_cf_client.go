@@ -104,15 +104,16 @@ func (fake *FakeRegisterBrokerCFClient) CreateServiceBroker(arg1 string, arg2 st
 		arg3 string
 		arg4 string
 	}{arg1, arg2, arg3, arg4})
+	stub := fake.CreateServiceBrokerStub
+	fakeReturns := fake.createServiceBrokerReturns
 	fake.recordInvocation("CreateServiceBroker", []interface{}{arg1, arg2, arg3, arg4})
 	fake.createServiceBrokerMutex.Unlock()
-	if fake.CreateServiceBrokerStub != nil {
-		return fake.CreateServiceBrokerStub(arg1, arg2, arg3, arg4)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.createServiceBrokerReturns
 	return fakeReturns.result1
 }
 
@@ -167,15 +168,16 @@ func (fake *FakeRegisterBrokerCFClient) CreateServicePlanVisibility(arg1 string,
 		arg3 string
 		arg4 *log.Logger
 	}{arg1, arg2, arg3, arg4})
+	stub := fake.CreateServicePlanVisibilityStub
+	fakeReturns := fake.createServicePlanVisibilityReturns
 	fake.recordInvocation("CreateServicePlanVisibility", []interface{}{arg1, arg2, arg3, arg4})
 	fake.createServicePlanVisibilityMutex.Unlock()
-	if fake.CreateServicePlanVisibilityStub != nil {
-		return fake.CreateServicePlanVisibilityStub(arg1, arg2, arg3, arg4)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.createServicePlanVisibilityReturns
 	return fakeReturns.result1
 }
 
@@ -229,15 +231,16 @@ func (fake *FakeRegisterBrokerCFClient) DisableServiceAccess(arg1 string, arg2 s
 		arg2 string
 		arg3 *log.Logger
 	}{arg1, arg2, arg3})
+	stub := fake.DisableServiceAccessStub
+	fakeReturns := fake.disableServiceAccessReturns
 	fake.recordInvocation("DisableServiceAccess", []interface{}{arg1, arg2, arg3})
 	fake.disableServiceAccessMutex.Unlock()
-	if fake.DisableServiceAccessStub != nil {
-		return fake.DisableServiceAccessStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.disableServiceAccessReturns
 	return fakeReturns.result1
 }
 
@@ -291,15 +294,16 @@ func (fake *FakeRegisterBrokerCFClient) EnableServiceAccess(arg1 string, arg2 st
 		arg2 string
 		arg3 *log.Logger
 	}{arg1, arg2, arg3})
+	stub := fake.EnableServiceAccessStub
+	fakeReturns := fake.enableServiceAccessReturns
 	fake.recordInvocation("EnableServiceAccess", []interface{}{arg1, arg2, arg3})
 	fake.enableServiceAccessMutex.Unlock()
-	if fake.EnableServiceAccessStub != nil {
-		return fake.EnableServiceAccessStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.enableServiceAccessReturns
 	return fakeReturns.result1
 }
 
@@ -350,15 +354,16 @@ func (fake *FakeRegisterBrokerCFClient) ServiceBrokers() ([]cf.ServiceBroker, er
 	ret, specificReturn := fake.serviceBrokersReturnsOnCall[len(fake.serviceBrokersArgsForCall)]
 	fake.serviceBrokersArgsForCall = append(fake.serviceBrokersArgsForCall, struct {
 	}{})
+	stub := fake.ServiceBrokersStub
+	fakeReturns := fake.serviceBrokersReturns
 	fake.recordInvocation("ServiceBrokers", []interface{}{})
 	fake.serviceBrokersMutex.Unlock()
-	if fake.ServiceBrokersStub != nil {
-		return fake.ServiceBrokersStub()
+	if stub != nil {
+		return stub()
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.serviceBrokersReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -410,15 +415,16 @@ func (fake *FakeRegisterBrokerCFClient) UpdateServiceBroker(arg1 string, arg2 st
 		arg4 string
 		arg5 string
 	}{arg1, arg2, arg3, arg4, arg5})
+	stub := fake.UpdateServiceBrokerStub
+	fakeReturns := fake.updateServiceBrokerReturns
 	fake.recordInvocation("UpdateServiceBroker", []interface{}{arg1, arg2, arg3, arg4, arg5})
 	fake.updateServiceBrokerMutex.Unlock()
-	if fake.UpdateServiceBrokerStub != nil {
-		return fake.UpdateServiceBrokerStub(arg1, arg2, arg3, arg4, arg5)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4, arg5)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.updateServiceBrokerReturns
 	return fakeReturns.result1
 }
 

@@ -113,15 +113,16 @@ func (fake *FakeCloudFoundryClient) DeleteBinding(arg1 cf.Binding, arg2 *log.Log
 		arg1 cf.Binding
 		arg2 *log.Logger
 	}{arg1, arg2})
+	stub := fake.DeleteBindingStub
+	fakeReturns := fake.deleteBindingReturns
 	fake.recordInvocation("DeleteBinding", []interface{}{arg1, arg2})
 	fake.deleteBindingMutex.Unlock()
-	if fake.DeleteBindingStub != nil {
-		return fake.DeleteBindingStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.deleteBindingReturns
 	return fakeReturns.result1
 }
 
@@ -174,15 +175,16 @@ func (fake *FakeCloudFoundryClient) DeleteServiceInstance(arg1 string, arg2 *log
 		arg1 string
 		arg2 *log.Logger
 	}{arg1, arg2})
+	stub := fake.DeleteServiceInstanceStub
+	fakeReturns := fake.deleteServiceInstanceReturns
 	fake.recordInvocation("DeleteServiceInstance", []interface{}{arg1, arg2})
 	fake.deleteServiceInstanceMutex.Unlock()
-	if fake.DeleteServiceInstanceStub != nil {
-		return fake.DeleteServiceInstanceStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.deleteServiceInstanceReturns
 	return fakeReturns.result1
 }
 
@@ -235,15 +237,16 @@ func (fake *FakeCloudFoundryClient) DeleteServiceKey(arg1 cf.ServiceKey, arg2 *l
 		arg1 cf.ServiceKey
 		arg2 *log.Logger
 	}{arg1, arg2})
+	stub := fake.DeleteServiceKeyStub
+	fakeReturns := fake.deleteServiceKeyReturns
 	fake.recordInvocation("DeleteServiceKey", []interface{}{arg1, arg2})
 	fake.deleteServiceKeyMutex.Unlock()
-	if fake.DeleteServiceKeyStub != nil {
-		return fake.DeleteServiceKeyStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.deleteServiceKeyReturns
 	return fakeReturns.result1
 }
 
@@ -296,15 +299,16 @@ func (fake *FakeCloudFoundryClient) GetBindingsForInstance(arg1 string, arg2 *lo
 		arg1 string
 		arg2 *log.Logger
 	}{arg1, arg2})
+	stub := fake.GetBindingsForInstanceStub
+	fakeReturns := fake.getBindingsForInstanceReturns
 	fake.recordInvocation("GetBindingsForInstance", []interface{}{arg1, arg2})
 	fake.getBindingsForInstanceMutex.Unlock()
-	if fake.GetBindingsForInstanceStub != nil {
-		return fake.GetBindingsForInstanceStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.getBindingsForInstanceReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -360,15 +364,16 @@ func (fake *FakeCloudFoundryClient) GetLastOperationForInstance(arg1 string, arg
 		arg1 string
 		arg2 *log.Logger
 	}{arg1, arg2})
+	stub := fake.GetLastOperationForInstanceStub
+	fakeReturns := fake.getLastOperationForInstanceReturns
 	fake.recordInvocation("GetLastOperationForInstance", []interface{}{arg1, arg2})
 	fake.getLastOperationForInstanceMutex.Unlock()
-	if fake.GetLastOperationForInstanceStub != nil {
-		return fake.GetLastOperationForInstanceStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.getLastOperationForInstanceReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -424,15 +429,16 @@ func (fake *FakeCloudFoundryClient) GetServiceInstances(arg1 cf.GetInstancesFilt
 		arg1 cf.GetInstancesFilter
 		arg2 *log.Logger
 	}{arg1, arg2})
+	stub := fake.GetServiceInstancesStub
+	fakeReturns := fake.getServiceInstancesReturns
 	fake.recordInvocation("GetServiceInstances", []interface{}{arg1, arg2})
 	fake.getServiceInstancesMutex.Unlock()
-	if fake.GetServiceInstancesStub != nil {
-		return fake.GetServiceInstancesStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.getServiceInstancesReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -488,15 +494,16 @@ func (fake *FakeCloudFoundryClient) GetServiceKeysForInstance(arg1 string, arg2 
 		arg1 string
 		arg2 *log.Logger
 	}{arg1, arg2})
+	stub := fake.GetServiceKeysForInstanceStub
+	fakeReturns := fake.getServiceKeysForInstanceReturns
 	fake.recordInvocation("GetServiceKeysForInstance", []interface{}{arg1, arg2})
 	fake.getServiceKeysForInstanceMutex.Unlock()
-	if fake.GetServiceKeysForInstanceStub != nil {
-		return fake.GetServiceKeysForInstanceStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.getServiceKeysForInstanceReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

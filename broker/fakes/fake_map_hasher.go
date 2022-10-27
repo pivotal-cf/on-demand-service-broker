@@ -29,15 +29,16 @@ func (fake *FakeHasher) Hash(arg1 map[string]string) string {
 	fake.hashArgsForCall = append(fake.hashArgsForCall, struct {
 		arg1 map[string]string
 	}{arg1})
+	stub := fake.HashStub
+	fakeReturns := fake.hashReturns
 	fake.recordInvocation("Hash", []interface{}{arg1})
 	fake.hashMutex.Unlock()
-	if fake.HashStub != nil {
-		return fake.HashStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.hashReturns
 	return fakeReturns.result1
 }
 

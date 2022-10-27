@@ -69,15 +69,16 @@ func (fake *FakeServiceAdapterClient) GenerateManifest(arg1 serviceadapter.Servi
 		arg8 map[string]string
 		arg9 *log.Logger
 	}{arg1, arg2, arg3, arg4Copy, arg5, arg6, arg7, arg8, arg9})
+	stub := fake.GenerateManifestStub
+	fakeReturns := fake.generateManifestReturns
 	fake.recordInvocation("GenerateManifest", []interface{}{arg1, arg2, arg3, arg4Copy, arg5, arg6, arg7, arg8, arg9})
 	fake.generateManifestMutex.Unlock()
-	if fake.GenerateManifestStub != nil {
-		return fake.GenerateManifestStub(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.generateManifestReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
@@ -133,15 +134,16 @@ func (fake *FakeServiceAdapterClient) GeneratePlanSchema(arg1 serviceadapter.Pla
 		arg1 serviceadapter.Plan
 		arg2 *log.Logger
 	}{arg1, arg2})
+	stub := fake.GeneratePlanSchemaStub
+	fakeReturns := fake.generatePlanSchemaReturns
 	fake.recordInvocation("GeneratePlanSchema", []interface{}{arg1, arg2})
 	fake.generatePlanSchemaMutex.Unlock()
-	if fake.GeneratePlanSchemaStub != nil {
-		return fake.GeneratePlanSchemaStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.generatePlanSchemaReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 

@@ -108,9 +108,10 @@ func (fake *FakeListener) CanariesFinished() {
 	fake.canariesFinishedMutex.Lock()
 	fake.canariesFinishedArgsForCall = append(fake.canariesFinishedArgsForCall, struct {
 	}{})
+	stub := fake.CanariesFinishedStub
 	fake.recordInvocation("CanariesFinished", []interface{}{})
 	fake.canariesFinishedMutex.Unlock()
-	if fake.CanariesFinishedStub != nil {
+	if stub != nil {
 		fake.CanariesFinishedStub()
 	}
 }
@@ -133,9 +134,10 @@ func (fake *FakeListener) CanariesStarting(arg1 int, arg2 config.CanarySelection
 		arg1 int
 		arg2 config.CanarySelectionParams
 	}{arg1, arg2})
+	stub := fake.CanariesStartingStub
 	fake.recordInvocation("CanariesStarting", []interface{}{arg1, arg2})
 	fake.canariesStartingMutex.Unlock()
-	if fake.CanariesStartingStub != nil {
+	if stub != nil {
 		fake.CanariesStartingStub(arg1, arg2)
 	}
 }
@@ -164,9 +166,10 @@ func (fake *FakeListener) FailedToRefreshInstanceInfo(arg1 string) {
 	fake.failedToRefreshInstanceInfoArgsForCall = append(fake.failedToRefreshInstanceInfoArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.FailedToRefreshInstanceInfoStub
 	fake.recordInvocation("FailedToRefreshInstanceInfo", []interface{}{arg1})
 	fake.failedToRefreshInstanceInfoMutex.Unlock()
-	if fake.FailedToRefreshInstanceInfoStub != nil {
+	if stub != nil {
 		fake.FailedToRefreshInstanceInfoStub(arg1)
 	}
 }
@@ -210,9 +213,10 @@ func (fake *FakeListener) Finished(arg1 int, arg2 int, arg3 int, arg4 int, arg5 
 		arg5 []string
 		arg6 []string
 	}{arg1, arg2, arg3, arg4, arg5Copy, arg6Copy})
+	stub := fake.FinishedStub
 	fake.recordInvocation("Finished", []interface{}{arg1, arg2, arg3, arg4, arg5Copy, arg6Copy})
 	fake.finishedMutex.Unlock()
-	if fake.FinishedStub != nil {
+	if stub != nil {
 		fake.FinishedStub(arg1, arg2, arg3, arg4, arg5, arg6)
 	}
 }
@@ -242,9 +246,10 @@ func (fake *FakeListener) InstanceOperationFinished(arg1 string, arg2 string) {
 		arg1 string
 		arg2 string
 	}{arg1, arg2})
+	stub := fake.InstanceOperationFinishedStub
 	fake.recordInvocation("InstanceOperationFinished", []interface{}{arg1, arg2})
 	fake.instanceOperationFinishedMutex.Unlock()
-	if fake.InstanceOperationFinishedStub != nil {
+	if stub != nil {
 		fake.InstanceOperationFinishedStub(arg1, arg2)
 	}
 }
@@ -274,9 +279,10 @@ func (fake *FakeListener) InstanceOperationStartResult(arg1 string, arg2 instanc
 		arg1 string
 		arg2 instanceiterator.OperationState
 	}{arg1, arg2})
+	stub := fake.InstanceOperationStartResultStub
 	fake.recordInvocation("InstanceOperationStartResult", []interface{}{arg1, arg2})
 	fake.instanceOperationStartResultMutex.Unlock()
-	if fake.InstanceOperationStartResultStub != nil {
+	if stub != nil {
 		fake.InstanceOperationStartResultStub(arg1, arg2)
 	}
 }
@@ -308,9 +314,10 @@ func (fake *FakeListener) InstanceOperationStarting(arg1 string, arg2 int, arg3 
 		arg3 int
 		arg4 bool
 	}{arg1, arg2, arg3, arg4})
+	stub := fake.InstanceOperationStartingStub
 	fake.recordInvocation("InstanceOperationStarting", []interface{}{arg1, arg2, arg3, arg4})
 	fake.instanceOperationStartingMutex.Unlock()
-	if fake.InstanceOperationStartingStub != nil {
+	if stub != nil {
 		fake.InstanceOperationStartingStub(arg1, arg2, arg3, arg4)
 	}
 }
@@ -344,9 +351,10 @@ func (fake *FakeListener) InstancesToProcess(arg1 []service.Instance) {
 	fake.instancesToProcessArgsForCall = append(fake.instancesToProcessArgsForCall, struct {
 		arg1 []service.Instance
 	}{arg1Copy})
+	stub := fake.InstancesToProcessStub
 	fake.recordInvocation("InstancesToProcess", []interface{}{arg1Copy})
 	fake.instancesToProcessMutex.Unlock()
-	if fake.InstancesToProcessStub != nil {
+	if stub != nil {
 		fake.InstancesToProcessStub(arg1)
 	}
 }
@@ -380,9 +388,10 @@ func (fake *FakeListener) Progress(arg1 time.Duration, arg2 int, arg3 int, arg4 
 		arg5 int
 		arg6 int
 	}{arg1, arg2, arg3, arg4, arg5, arg6})
+	stub := fake.ProgressStub
 	fake.recordInvocation("Progress", []interface{}{arg1, arg2, arg3, arg4, arg5, arg6})
 	fake.progressMutex.Unlock()
-	if fake.ProgressStub != nil {
+	if stub != nil {
 		fake.ProgressStub(arg1, arg2, arg3, arg4, arg5, arg6)
 	}
 }
@@ -412,9 +421,10 @@ func (fake *FakeListener) RetryAttempt(arg1 int, arg2 int) {
 		arg1 int
 		arg2 int
 	}{arg1, arg2})
+	stub := fake.RetryAttemptStub
 	fake.recordInvocation("RetryAttempt", []interface{}{arg1, arg2})
 	fake.retryAttemptMutex.Unlock()
-	if fake.RetryAttemptStub != nil {
+	if stub != nil {
 		fake.RetryAttemptStub(arg1, arg2)
 	}
 }
@@ -445,9 +455,10 @@ func (fake *FakeListener) RetryCanariesAttempt(arg1 int, arg2 int, arg3 int) {
 		arg2 int
 		arg3 int
 	}{arg1, arg2, arg3})
+	stub := fake.RetryCanariesAttemptStub
 	fake.recordInvocation("RetryCanariesAttempt", []interface{}{arg1, arg2, arg3})
 	fake.retryCanariesAttemptMutex.Unlock()
-	if fake.RetryCanariesAttemptStub != nil {
+	if stub != nil {
 		fake.RetryCanariesAttemptStub(arg1, arg2, arg3)
 	}
 }
@@ -476,9 +487,10 @@ func (fake *FakeListener) Starting(arg1 int) {
 	fake.startingArgsForCall = append(fake.startingArgsForCall, struct {
 		arg1 int
 	}{arg1})
+	stub := fake.StartingStub
 	fake.recordInvocation("Starting", []interface{}{arg1})
 	fake.startingMutex.Unlock()
-	if fake.StartingStub != nil {
+	if stub != nil {
 		fake.StartingStub(arg1)
 	}
 }
@@ -507,9 +519,10 @@ func (fake *FakeListener) UpgradeStrategy(arg1 string) {
 	fake.upgradeStrategyArgsForCall = append(fake.upgradeStrategyArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.UpgradeStrategyStub
 	fake.recordInvocation("UpgradeStrategy", []interface{}{arg1})
 	fake.upgradeStrategyMutex.Unlock()
-	if fake.UpgradeStrategyStub != nil {
+	if stub != nil {
 		fake.UpgradeStrategyStub(arg1)
 	}
 }
@@ -539,9 +552,10 @@ func (fake *FakeListener) WaitingFor(arg1 string, arg2 int) {
 		arg1 string
 		arg2 int
 	}{arg1, arg2})
+	stub := fake.WaitingForStub
 	fake.recordInvocation("WaitingFor", []interface{}{arg1, arg2})
 	fake.waitingForMutex.Unlock()
-	if fake.WaitingForStub != nil {
+	if stub != nil {
 		fake.WaitingForStub(arg1, arg2)
 	}
 }

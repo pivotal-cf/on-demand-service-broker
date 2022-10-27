@@ -27,9 +27,10 @@ func (fake *FakeTelemetryLogger) LogInstances(arg1 service.InstanceLister, arg2 
 		arg2 string
 		arg3 string
 	}{arg1, arg2, arg3})
+	stub := fake.LogInstancesStub
 	fake.recordInvocation("LogInstances", []interface{}{arg1, arg2, arg3})
 	fake.logInstancesMutex.Unlock()
-	if fake.LogInstancesStub != nil {
+	if stub != nil {
 		fake.LogInstancesStub(arg1, arg2, arg3)
 	}
 }
