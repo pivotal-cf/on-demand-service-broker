@@ -4,6 +4,7 @@ System tests are end-to-end tests that validate specific broker behaviours by us
 
 Running the tests:
 - Locally 
+  - These tests require cf cli v6, tests may fail under newer cli versions.
   - These are time-consuming and should be run locally only when making changes on a specific
   - You should first claim a bosh-lite environment by running:
   
@@ -19,4 +20,4 @@ Running the tests:
 
 - In CI
   
-These tests are run on bosh-lites on every commit in the [ODB pipeline](https://hush-house.pivotal.io/teams/services-enablement/pipelines/odb) and are run nightly on a PCF toolsmith environment in the different versions of the [PCF pipelines](https://hush-house.pivotal.io/teams/services-enablement/pipelines/pcf-2.11.lts2-tests). 
+These tests are run on bosh-lites on every commit in the [ODB pipeline](https://dedicated-mysql.ci.cf-app.com/teams/main/pipelines/odb).
