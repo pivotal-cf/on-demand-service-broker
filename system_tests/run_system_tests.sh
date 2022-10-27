@@ -15,7 +15,7 @@ if [[ $# -eq 0 ]]; then
 fi
 
 cf api ${CF_URL} --skip-ssl-validation
-
+cf logout
 cf auth $CF_USERNAME $CF_PASSWORD
 cf target -o ${CF_ORG} -s ${CF_SPACE} # must already exist
 
