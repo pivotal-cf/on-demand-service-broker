@@ -225,6 +225,10 @@ func testSecureBindings(brokerInfo bosh_helpers.BrokerInfo, appName string) {
 	Expect(credhubRef).To(ContainSubstring("/c/%s", brokerInfo.ServiceID))
 }
 
+func snakeCase(value string) string {
+	return strings.ReplaceAll(value, "-", "_")
+}
+
 func testMetrics(brokerInfo bosh_helpers.BrokerInfo, planName string, dopplerAddress string) {
 	brokerDeploymentName := brokerInfo.DeploymentName
 	serviceOfferingName := brokerInfo.ServiceName
@@ -235,13 +239,11 @@ func testMetrics(brokerInfo bosh_helpers.BrokerInfo, planName string, dopplerAdd
 
 	msgChan, errChan := firehoseConsumer.Firehose("SystemTests-"+uuid.New(), cf_helpers.GetOAuthToken())
 	timeoutChan := time.After(5 * time.Minute)
-
 	for {
 		select {
 		case msg := <-msgChan:
 			if msg != nil && *msg.EventType == events.Envelope_ValueMetric && strings.HasSuffix(*msg.Deployment, brokerDeploymentName) {
-				fmt.Fprintf(GinkgoWriter, "received metric for deployment %s: %+v\n", brokerDeploymentName, msg)
-				if msg.ValueMetric.GetName() == fmt.Sprintf("/on-demand-broker/%s/%s/total_instances", serviceOfferingName, planName) {
+				if msg.ValueMetric.GetName() == fmt.Sprintf("_on_demand_broker_%s_%s_total_instances", snakeCase(serviceOfferingName), snakeCase(planName)) {
 					fmt.Fprintln(GinkgoWriter, "ODB metrics test successful")
 					return
 				}

@@ -1,19 +1,66 @@
 - type: replace
-  path: /releases/-
+  path: /releases/name=loggregator-agent?
   value:
-    name: loggregator-agent
+    name:    loggregator-agent
     version: latest
+    url:     https://bosh.io/d/github.com/cloudfoundry/loggregator-agent-release
 
 - type: replace
-  path: /releases/-
+  path: /releases/name=service-metrics?
   value:
-    name: service-metrics
+    name:    service-metrics
     version: latest
+    url:     https://bosh.io/d/github.com/cloudfoundry/service-metrics-release
+
 
 - type: replace
-  path: /instance_groups/name=broker/jobs/-
+  path: /variables/name=metric_scraper_ca?
   value:
-    name: service-metrics-adapter
+    name: metric_scraper_ca
+    type: certificate
+    options:
+      is_ca:       true
+      common_name: metricScraperCA
+
+- type: replace
+  path: /variables/name=service_metrics_tls?
+  value:
+    name:        service_metrics_tls
+    type:        certificate
+    update_mode: converge
+    options:
+      ca:          metric_scraper_ca
+      common_name: service_metrics_tls
+      alternative_names: [service_metrics_tls]
+
+- type: replace
+  path: /variables/name=prom_scraper_tls?
+  value:
+    name:        prom_scraper_tls
+    type:        certificate
+    update_mode: converge
+    options:
+      ca:          metric_scraper_ca
+      common_name: prom_scraper_tls
+      alternative_names: [prom_scraper_tls]
+      extended_key_usage: [client_auth]
+
+- type: replace
+  path: /variables/name=prom_scraper_metrics?
+  value:
+    name:        prom_scraper_metrics
+    type:        certificate
+    update_mode: converge
+    options:
+      ca:          metric_scraper_ca
+      common_name: prom_scraper_metrics
+      alternative_names: [prom_scraper_metrics]
+      extended_key_usage: [server_auth]
+
+- type: replace
+  path: /instance_groups/name=broker/jobs/name=service-metrics-adapter?
+  value:
+    name:    service-metrics-adapter
     release: ((broker_release))
     properties:
       broker_uri: https://((broker_uri))
@@ -21,40 +68,145 @@
         ca_cert: ((cf.router.ca_cert))
 
 - type: replace
-  path: /instance_groups/name=broker/jobs/-
+  path: /instance_groups/name=broker/jobs/name=service-metrics?
   value:
-    name: service-metrics
+    name:    service-metrics
     release: service-metrics
     properties:
       service_metrics:
         execution_interval_seconds: 30
-        origin: ((broker_deployment_name))
+        origin:                     ((broker_deployment_name))
+        source_id:                  ((broker_deployment_name))
         monit_dependencies: [broker]
         mount_paths:
         - /var/vcap/jobs/service-metrics-adapter
         tls:
-          ca: ((loggregator.tls.ca_cert))
-          cert: ((loggregator.tls.client.certificate))
-          key: ((loggregator.tls.client.private_key))
+          ca_cert:     ((service_metrics_tls.ca))
+          cert:        ((service_metrics_tls.certificate))
+          key:         ((service_metrics_tls.private_key))
+          server_name: service_metrics_tls
 
 - type: replace
-  path: /instance_groups/name=broker/jobs/-
+  path: /instance_groups/name=broker/jobs/name=prom_scraper?
   value:
-    name: loggregator_agent
+    name:    prom_scraper
+    release: loggregator-agent
+    properties:
+      loggregator_agent:
+        tls:
+          ca_cert: ((loggregator.tls.ca_cert))
+          cert:    ((loggregator.tls.client.certificate))
+          key:     ((loggregator.tls.client.private_key))
+        grpc_port: 3458
+      scrape:
+        tls:
+          ca_cert: ((prom_scraper_tls.ca))
+          cert:    ((prom_scraper_tls.certificate))
+          key:     ((prom_scraper_tls.private_key))
+      metrics:
+        ca_cert:     ((prom_scraper_metrics.ca))
+        cert:        ((prom_scraper_metrics.certificate))
+        key:         ((prom_scraper_metrics.private_key))
+        server_name: prom_scraper_metrics
+
+- type: replace
+  path: /instance_groups/name=broker/jobs/name=loggr-forwarder-agent?
+  value:
+    name:    loggr-forwarder-agent
+    release: loggregator-agent
+    properties:
+      tls:
+        ca_cert: ((loggregator.tls.ca_cert))
+        cert:    ((loggregator.tls.client.certificate))
+        key:     ((loggregator.tls.client.private_key))
+      metrics:
+        ca_cert:     ((forwarder_agent_metrics_tls.ca))
+        cert:        ((forwarder_agent_metrics_tls.certificate))
+        key:         ((forwarder_agent_metrics_tls.private_key))
+        server_name: forwarder_agent_metrics
+
+- type: replace
+  path: /variables/name=forwarder_agent_metrics_tls?
+  value:
+    name: forwarder_agent_metrics_tls
+    type: certificate
+    options:
+      ca:          metric_scraper_ca
+      common_name: forwarder_agent_metrics
+      alternative_names: [forwarder_agent_metrics]
+
+- type: replace
+  path: /instance_groups/name=broker/jobs/name=loggr-syslog-agent?
+  value:
+    name:    loggr-syslog-agent
+    release: loggregator-agent
     consumes:
-      doppler:
-        from: doppler
+      binding_cache:
+        from:       binding_cache
         deployment: ((cf.deployment_name))
     properties:
+      drain_ca_cert: ((loggregator.tls.ca_cert))
+      port:          3460
+      tls:
+        ca_cert: ((loggregator.tls.ca_cert))
+        cert:    ((loggregator.tls.client.certificate))
+        key:     ((loggregator.tls.client.private_key))
+      cache:
+        tls:
+          ca_cert: ((loggregator.tls.ca_cert))
+          cert:    ((loggregator.tls.client.certificate))
+          key:     ((loggregator.tls.client.private_key))
+          cn:      binding-cache
+      metrics:
+        ca_cert:     ((loggr_syslog_agent_metrics.ca))
+        cert:        ((loggr_syslog_agent_metrics.certificate))
+        key:         ((loggr_syslog_agent_metrics.private_key))
+        server_name: loggr_syslog_agent_metrics
+
+- type: replace
+  path: /variables/name=loggr_syslog_agent_metrics?
+  value:
+    name:        loggr_syslog_agent_metrics
+    type:        certificate
+    update_mode: converge
+    options:
+      ca:          metric_scraper_ca
+      common_name: loggr_syslog_agent_metrics
+      alternative_names: [loggr_syslog_agent_metrics]
+      extended_key_usage: [server_auth]
+
+- type: replace
+  path: /instance_groups/name=broker/jobs/name=loggregator_agent?
+  value:
+    name:    loggregator_agent
+    consumes:
+      doppler:
+        from:       doppler
+        deployment: ((cf.deployment_name))
+    properties:
+      grpc_port:   3459
+      disable_udp: true
       loggregator:
         tls:
           agent:
             cert: ((loggregator.tls.client.certificate))
-            key: ((loggregator.tls.client.private_key))
+            key:  ((loggregator.tls.client.private_key))
           ca_cert: ((loggregator.tls.ca_cert))
       metrics:
-        ca_cert: ((loggregator.metrics.tls.ca_cert))
-        cert: ((loggregator.metrics.tls.certificate))
-        key: ((loggregator.metrics.tls.private_key))
-        server_name: ((loggregator.metrics.tls.server_name))
+        ca_cert:     ((loggregator_agent_metrics.ca))
+        cert:        ((loggregator_agent_metrics.certificate))
+        key:         ((loggregator_agent_metrics.private_key))
+        server_name: loggregator_agent_metrics
     release: loggregator-agent
+
+- type: replace
+  path: /variables/name=loggregator_agent_metrics?
+  value:
+    name:        loggregator_agent_metrics
+    type:        certificate
+    update_mode: converge
+    options:
+      ca:          metric_scraper_ca
+      common_name: loggregator_agent_metrics
+      alternative_names: [loggregator_agent_metrics]
+      extended_key_usage: [server_auth]
