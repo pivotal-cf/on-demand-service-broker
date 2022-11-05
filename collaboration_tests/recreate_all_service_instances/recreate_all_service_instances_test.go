@@ -13,11 +13,12 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 
 	"github.com/onsi/gomega/ghttp"
+	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
+
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/fakes"
 	"github.com/pivotal-cf/on-demand-service-broker/collaboration_tests/helpers"
 	taskfakes "github.com/pivotal-cf/on-demand-service-broker/task/fakes"
-	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -299,7 +300,11 @@ var _ = Describe("Recreate all service instances", func() {
 				Expect(session.ExitCode()).To(Equal(1), "recreate-all execution unexpectedly succeeded")
 				Expect(stdout).To(SatisfyAll(
 					gbytes.Say("error listing service instances"),
-					gbytes.Say("certificate is not trusted"),
+					// this error message now differs across darwin and linux platforms
+					SatisfyAny(
+						gbytes.Say("certificate is not trusted"),
+						gbytes.Say("certificate signed by unknown authority"),
+					),
 				))
 			})
 		})
