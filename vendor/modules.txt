@@ -1,4 +1,4 @@
-# code.cloudfoundry.org/credhub-cli v0.0.0-20221212141139-349ee76f9416
+# code.cloudfoundry.org/credhub-cli v0.0.0-20221219140443-e57517e08fb3
 ## explicit; go 1.18
 code.cloudfoundry.org/credhub-cli/credhub
 code.cloudfoundry.org/credhub-cli/credhub/auth
@@ -36,7 +36,7 @@ github.com/cloudfoundry/bosh-cli/v7/common/util
 github.com/cloudfoundry/bosh-cli/v7/director
 github.com/cloudfoundry/bosh-cli/v7/io
 github.com/cloudfoundry/bosh-cli/v7/uaa
-# github.com/cloudfoundry/bosh-utils v0.0.345
+# github.com/cloudfoundry/bosh-utils v0.0.346
 ## explicit; go 1.19
 github.com/cloudfoundry/bosh-utils/crypto
 github.com/cloudfoundry/bosh-utils/errors
