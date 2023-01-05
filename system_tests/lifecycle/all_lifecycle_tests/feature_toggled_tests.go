@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
@@ -195,7 +194,7 @@ func findUAAClient(clientGUID string) *gouaa.Client {
 }
 
 func downloadIndicatorFromVM(brokerInfo bosh_helpers.BrokerInfo) *os.File {
-	downloadedIndicator, err := ioutil.TempFile("/tmp", "")
+	downloadedIndicator, err := os.CreateTemp("/tmp", "")
 	Expect(err).NotTo(HaveOccurred())
 	bosh_helpers.CopyFromVM(brokerInfo.DeploymentName, "broker", "/var/vcap/jobs/broker/config/indicators.yml", downloadedIndicator.Name())
 
