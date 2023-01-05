@@ -11,10 +11,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	noaa_errors "github.com/cloudfoundry/noaa/errors"
+	noaa_errors "github.com/cloudfoundry/noaa/v2/errors"
 	"github.com/cloudfoundry/sonde-go/events"
-	"github.com/gogo/protobuf/proto"
 	"github.com/gorilla/websocket"
+	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -158,15 +158,23 @@ func (c *Consumer) SetOnConnectCallback(cb func()) {
 func (c *Consumer) Close() error {
 	c.connsLock.Lock()
 	defer c.connsLock.Unlock()
+
+	var errStrings []string
+
 	if len(c.conns) == 0 {
 		return errors.New("connection does not exist")
 	}
 	for len(c.conns) > 0 {
 		if err := c.conns[0].close(); err != nil {
-			return err
+			errStrings = append(errStrings, err.Error())
 		}
 		c.conns = c.conns[1:]
 	}
+
+	if len(errStrings) > 0 {
+		return fmt.Errorf(strings.Join(errStrings, ", "))
+	}
+
 	return nil
 }
 
@@ -216,7 +224,7 @@ func (c *Consumer) runStream(appGuid, authToken string, retry bool) (<-chan *eve
 }
 
 func (c *Consumer) streamAppDataTo(conn *connection, appGuid, authToken string, callback func(*events.Envelope), errors chan<- error, retry bool) {
-	streamPath := fmt.Sprintf("/apps/%s/stream", appGuid)
+	streamPath := c.streamPathBuilder(appGuid)
 	if retry {
 		c.retryAction(c.listenAction(conn, streamPath, authToken, callback), errors)
 		return
@@ -489,7 +497,7 @@ func (c *connection) close() error {
 	if c.ws == nil {
 		return nil
 	}
-	err := c.ws.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""), time.Time{})
+	err := c.ws.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""), time.Now().Add(10*time.Second))
 	if err != nil {
 		return err
 	}

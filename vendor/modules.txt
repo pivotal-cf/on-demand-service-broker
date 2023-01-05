@@ -15,8 +15,6 @@ code.cloudfoundry.org/lager
 # code.cloudfoundry.org/tlsconfig v0.0.0-20220621140725-0e6fbd869921
 ## explicit; go 1.17
 code.cloudfoundry.org/tlsconfig
-# github.com/apoydence/eachers v0.0.0-20181020210610-23942921fe77
-## explicit
 # github.com/blang/semver/v4 v4.0.0
 ## explicit; go 1.14
 github.com/blang/semver/v4
@@ -49,17 +47,17 @@ github.com/cloudfoundry/bosh-utils/uuid
 # github.com/cloudfoundry/go-socks5 v0.0.0-20180221174514-54f73bdb8a8e
 ## explicit
 github.com/cloudfoundry/go-socks5
-# github.com/cloudfoundry/noaa v2.1.0+incompatible
-## explicit
-github.com/cloudfoundry/noaa
-github.com/cloudfoundry/noaa/consumer
-github.com/cloudfoundry/noaa/consumer/internal
-github.com/cloudfoundry/noaa/errors
+# github.com/cloudfoundry/noaa/v2 v2.2.0
+## explicit; go 1.18
+github.com/cloudfoundry/noaa/v2
+github.com/cloudfoundry/noaa/v2/consumer
+github.com/cloudfoundry/noaa/v2/consumer/internal
+github.com/cloudfoundry/noaa/v2/errors
 # github.com/cloudfoundry/socks5-proxy v0.2.82
 ## explicit; go 1.19
 github.com/cloudfoundry/socks5-proxy
-# github.com/cloudfoundry/sonde-go v0.0.0-20200416163440-a42463ba266b
-## explicit
+# github.com/cloudfoundry/sonde-go v0.0.0-20220627221915-ff36de9c3435
+## explicit; go 1.17
 github.com/cloudfoundry/sonde-go/events
 # github.com/cppforlife/go-semi-semantic v0.0.0-20160921010311-576b6af77ae4
 ## explicit
@@ -67,21 +65,12 @@ github.com/cppforlife/go-semi-semantic/version
 # github.com/craigfurman/herottp v0.0.0-20190418132442-c546d62f2a8d
 ## explicit
 github.com/craigfurman/herottp
-# github.com/elazarl/goproxy v0.0.0-20210801061803-8e322dfb79c4
-## explicit
-# github.com/elazarl/goproxy/ext v0.0.0-20210801061803-8e322dfb79c4
-## explicit
 # github.com/fsnotify/fsnotify v1.6.0
 ## explicit; go 1.16
 github.com/fsnotify/fsnotify
 # github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0
 ## explicit; go 1.13
 github.com/go-task/slim-sprig
-# github.com/gogo/protobuf v1.3.2
-## explicit; go 1.15
-github.com/gogo/protobuf/gogoproto
-github.com/gogo/protobuf/proto
-github.com/gogo/protobuf/protoc-gen-gogo/descriptor
 # github.com/golang/protobuf v1.5.2
 ## explicit; go 1.9
 github.com/golang/protobuf/proto
@@ -98,7 +87,7 @@ github.com/google/uuid
 # github.com/gorilla/mux v1.8.0
 ## explicit; go 1.12
 github.com/gorilla/mux
-# github.com/gorilla/websocket v1.4.2
+# github.com/gorilla/websocket v1.5.0
 ## explicit; go 1.12
 github.com/gorilla/websocket
 # github.com/hashicorp/go-version v1.6.0
