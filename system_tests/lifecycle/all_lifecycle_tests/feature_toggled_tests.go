@@ -91,7 +91,7 @@ func FeatureToggledLifecycleTest(
 	})
 
 	By("testing binding with DNS", func() {
-		testBindingWithDNS(serviceKeyContents, "dns_addresses")
+		testBindingWithDNS(serviceKeyContents, "credentials", "dns_addresses")
 	})
 
 	By("binding an app", func() {
@@ -201,12 +201,12 @@ func downloadIndicatorFromVM(brokerInfo bosh_helpers.BrokerInfo) *os.File {
 	return downloadedIndicator
 }
 
-func testBindingWithDNS(serviceKeyRaw, bindingDNSAttribute string) {
-	var serviceKey map[string]interface{}
+func testBindingWithDNS(serviceKeyRaw, bindingCredentials string, bindingDNSAttribute string) {
+	var serviceKey map[string]map[string]interface{}
 	err := json.Unmarshal([]byte(serviceKeyRaw), &serviceKey)
 	Expect(err).ToNot(HaveOccurred())
 
-	dnsInfo, ok := serviceKey[bindingDNSAttribute]
+	dnsInfo, ok := serviceKey[bindingCredentials][bindingDNSAttribute]
 	Expect(ok).To(BeTrue(), fmt.Sprintf("%s not returned in binding", bindingDNSAttribute))
 
 	dnsInfoMap, ok := dnsInfo.(map[string]interface{})
