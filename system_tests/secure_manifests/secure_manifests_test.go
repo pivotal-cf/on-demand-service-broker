@@ -97,9 +97,13 @@ func expectTheSecretValueToBeInCredhub(serviceInstanceGUID, secretKey, adapterSe
 
 func getODBManagedSecret(serviceKeyContents string) string {
 	var serviceKey struct {
-		ODBManagedSecret string `json:"odb_managed_secret"`
+		Credentials struct {
+			ExpectedResolvedSecrets struct {
+				ODBManagedSecret string `json:"odb_managed_secret"`
+			} `json:"expected_resolved_secrets"`
+		} `json:"credentials"`
 	}
 	err := json.Unmarshal([]byte(serviceKeyContents), &serviceKey)
 	Expect(err).ToNot(HaveOccurred())
-	return serviceKey.ODBManagedSecret
+	return serviceKey.Credentials.ExpectedResolvedSecrets.ODBManagedSecret
 }

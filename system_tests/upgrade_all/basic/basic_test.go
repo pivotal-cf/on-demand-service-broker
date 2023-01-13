@@ -188,7 +188,7 @@ var _ = Describe("upgrade-all-service-instances errand, basic operation", func()
 					identifier := fmt.Sprintf("instance %d", i)
 					session := cf_helpers.Cf("service", app.ServiceName)
 					Expect(session).To(gexec.Exit(0))
-					Expect(session).To(SatisfyAll(gbytes.Say("Showing available upgrade details for this service")), identifier)
+					Expect(session).To(SatisfyAll(gbytes.Say("There is an upgrade available for this service")), identifier)
 				}
 			})
 
