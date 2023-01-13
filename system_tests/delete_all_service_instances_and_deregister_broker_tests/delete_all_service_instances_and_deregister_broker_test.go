@@ -60,7 +60,7 @@ var _ = Describe("purge instances and deregister broker", func() {
 		cf.AwaitServiceDeletion(serviceInstance2)
 
 		session = cf.CfWithTimeout(cf.CfTimeout, "marketplace", "-e", brokerInfo.ServiceName)
-		Expect(session).To(gexec.Exit(1))
-		Expect(session.Err).Should(gbytes.Say(`Service offering '%s' not found`, brokerInfo.ServiceName))
+		Expect(session).To(gexec.Exit(0))
+		Expect(session.Err).Should(gbytes.Say("No service offerings found."))
 	})
 })
