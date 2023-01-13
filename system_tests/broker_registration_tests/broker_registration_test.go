@@ -21,7 +21,7 @@ var _ = Describe("broker registration errands", func() {
 			It("can see the service and all plans in the marketplace regardless of cf_service_access", func() {
 				cfLogInAsAdmin()
 
-				marketplaceSession := cf.Cf("marketplace", "-e", "--show-unavailable", brokerInfo.ServiceName)
+				marketplaceSession := cf.Cf("marketplace", "-e", brokerInfo.ServiceName, "--show-unavailable")
 
 				By("confirming the registered offerings in the marketplace")
 				Expect(marketplaceSession).To(gbytes.Say(brokerInfo.ServiceName))
