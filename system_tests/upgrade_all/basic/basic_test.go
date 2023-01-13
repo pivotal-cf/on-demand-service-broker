@@ -194,7 +194,7 @@ var _ = Describe("upgrade-all-service-instances errand, basic operation", func()
 
 			By("upgrading one of the instances", func() {
 				app := appDetails[0]
-				cf_helpers.UpdateServiceWithUpgrade(app.ServiceName)
+				cf_helpers.UpgradeService(app.ServiceName)
 			})
 
 			By("running the upgrade-all errand upgrades only the ones that have upgrade available", func() {

@@ -90,10 +90,10 @@ func UpdateServiceWithArbitraryParams(serviceName, arbitraryParams string) {
 	AwaitServiceUpdate(serviceName)
 }
 
-func UpdateServiceWithUpgrade(serviceName string) {
+func UpgradeService(serviceName string) {
 	yesInput := bytes.NewBufferString("y\n")
 	Expect(
-		CfWithStdin(yesInput, "update-service", serviceName, "--upgrade"),
+		CfWithStdin(yesInput, "upgrade-service", serviceName),
 	).To(gexec.Exit(0))
 	AwaitServiceUpdate(serviceName)
 }
