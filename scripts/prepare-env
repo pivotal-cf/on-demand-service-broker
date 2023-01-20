@@ -5,6 +5,9 @@ if [[ -z "${BOSH_LITE_NAME:-""}" ]]; then
     exit 1
 fi
 
+: "${META:=$HOME/workspace/services-enablement-meta}"
+: "${ODB:=$HOME/workspace/on-demand-service-broker-release}"
+
 env_name="$BOSH_LITE_NAME"
 $META/concourse/bosh-lites-pool/tasks/make-broker-deployment-vars.sh "${env_name}" > /tmp/broker-${env_name}.yml
 
