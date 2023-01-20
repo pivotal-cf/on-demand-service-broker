@@ -9,8 +9,6 @@ require (
 	github.com/cloudfoundry-community/go-uaa v0.3.1
 	github.com/cloudfoundry/bosh-cli/v7 v7.0.1
 	github.com/cloudfoundry/bosh-utils v0.0.350
-	github.com/cloudfoundry/noaa/v2 v2.2.0
-	github.com/cloudfoundry/sonde-go v0.0.0-20220627221915-ff36de9c3435
 	github.com/craigfurman/herottp v0.0.0-20190418132442-c546d62f2a8d
 	github.com/gorilla/mux v1.8.0
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.5.0
@@ -37,11 +35,8 @@ require (
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/google/uuid v1.3.0 // indirect
-	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/hashicorp/go-version v1.6.0 // indirect
-	github.com/josharian/intern v1.0.0 // indirect
 	github.com/jpillora/backoff v1.0.0 // indirect
-	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d // indirect
 	github.com/nxadm/tail v1.4.8 // indirect
 	github.com/pivotal-cf/paraphernalia v0.0.0-20180203224945-a64ae2051c20 // indirect

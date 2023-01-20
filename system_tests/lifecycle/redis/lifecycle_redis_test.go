@@ -3,6 +3,7 @@ package lifecycle_test
 import (
 	. "github.com/onsi/ginkgo"
 	"github.com/pborman/uuid"
+
 	. "github.com/pivotal-cf/on-demand-service-broker/system_tests/lifecycle/all_lifecycle_tests"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/service_helpers"
@@ -62,13 +63,7 @@ var _ = Describe("Redis Lifecycle Tests", func() {
 		})
 
 		It("can complete successfully", func() {
-			FeatureToggledLifecycleTest(
-				service_helpers.Redis,
-				brokerInfo,
-				"redis-small",
-				"redis-medium",
-				`{ "maxclients": 100 }`,
-				dopplerAddress)
+			FeatureToggledLifecycleTest(service_helpers.Redis, brokerInfo, "redis-small", "redis-medium", `{ "maxclients": 100 }`)
 		})
 
 		AfterEach(func() {

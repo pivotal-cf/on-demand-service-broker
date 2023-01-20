@@ -1,7 +1,6 @@
 package all_lifecycle_tests
 
 import (
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -9,28 +8,17 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cloudfoundry/noaa/v2/consumer"
-	"github.com/cloudfoundry/sonde-go/events"
+	gouaa "github.com/cloudfoundry-community/go-uaa"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
-	"github.com/pborman/uuid"
 
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/cf_helpers"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/service_helpers"
-
-	gouaa "github.com/cloudfoundry-community/go-uaa"
 )
 
-func FeatureToggledLifecycleTest(
-	serviceType service_helpers.ServiceType,
-	brokerInfo bosh_helpers.BrokerInfo,
-	planName string,
-	newPlanName string,
-	arbitraryParams string,
-	dopplerAddress string) {
-
+func FeatureToggledLifecycleTest(serviceType service_helpers.ServiceType, brokerInfo bosh_helpers.BrokerInfo, planName, newPlanName, arbitraryParams string) {
 	var (
 		serviceInstanceName string
 		serviceInstanceGUID string
@@ -105,7 +93,7 @@ func FeatureToggledLifecycleTest(
 	})
 
 	By("testing the broker emits metrics", func() {
-		testMetrics(brokerInfo, planName, dopplerAddress)
+		testMetrics(brokerInfo, planName)
 	})
 
 	By("validating the broker indicator protocol", func() {
@@ -229,31 +217,17 @@ func snakeCase(value string) string {
 	return strings.ReplaceAll(value, "-", "_")
 }
 
-func testMetrics(brokerInfo bosh_helpers.BrokerInfo, planName string, dopplerAddress string) {
-	brokerDeploymentName := brokerInfo.DeploymentName
-	serviceOfferingName := brokerInfo.ServiceName
-	Expect(dopplerAddress).NotTo(BeEmpty())
+func testMetrics(brokerInfo bosh_helpers.BrokerInfo, planName string) {
+	var (
+		brokerDeploymentName = brokerInfo.DeploymentName
+		serviceOfferingName  = brokerInfo.ServiceName
+		metricName           = fmt.Sprintf("_on_demand_broker_%s_%s_total_instances", snakeCase(serviceOfferingName), snakeCase(planName))
+		promqlQuery          = fmt.Sprintf(`%[1]s{source_id=%[2]q,deployment=%[2]q}`, metricName, brokerDeploymentName)
+	)
 
-	firehoseConsumer := consumer.New(dopplerAddress, &tls.Config{InsecureSkipVerify: true}, nil)
-	defer firehoseConsumer.Close()
-
-	msgChan, errChan := firehoseConsumer.Firehose("SystemTests-"+uuid.New(), cf_helpers.GetOAuthToken())
-	timeoutChan := time.After(5 * time.Minute)
-	for {
-		select {
-		case msg := <-msgChan:
-			if msg != nil && *msg.EventType == events.Envelope_ValueMetric && strings.HasSuffix(*msg.Deployment, brokerDeploymentName) {
-				if msg.ValueMetric.GetName() == fmt.Sprintf("_on_demand_broker_%s_%s_total_instances", snakeCase(serviceOfferingName), snakeCase(planName)) {
-					fmt.Fprintln(GinkgoWriter, "ODB metrics test successful")
-					return
-				}
-			}
-		case err := <-errChan:
-			Expect(err).NotTo(HaveOccurred())
-			return
-		case <-timeoutChan:
-			Fail("Service Metrics test timed out after 5 minutes.")
-			return
-		}
-	}
+	Eventually(func() string {
+		session := cf_helpers.Cf("query", promqlQuery)
+		session.Wait()
+		return string(session.Out.Contents())
+	}, "5m", "10s").Should(MatchRegexp(`"value":\[[0-9.]+,"\d+"\]`))
 }
