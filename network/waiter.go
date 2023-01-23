@@ -7,10 +7,11 @@ import (
 	"time"
 )
 
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/hostlookupper.go . HostLookUpper
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
+//counterfeiter:generate -o fakes/hostlookupper.go . HostLookUpper
 type HostLookUpper func(host string) (addrs []string, err error)
 
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/sleeper.go . Sleeper
+//counterfeiter:generate -o fakes/sleeper.go . Sleeper
 type Sleeper func(duration time.Duration)
 
 type HostWaiter struct {

@@ -15,7 +15,7 @@ import (
 	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
 
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_service_adapter_client.go . ServiceAdapterClient
+//counterfeiter:generate -o fakes/fake_service_adapter_client.go . ServiceAdapterClient
 type ServiceAdapterClient interface {
 	GenerateManifest(
 		serviceReleases serviceadapter.ServiceDeployment,

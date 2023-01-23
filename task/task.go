@@ -18,7 +18,8 @@ import (
 	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
 
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_bosh_client.go . BoshClient
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
+//counterfeiter:generate -o fakes/fake_bosh_client.go . BoshClient
 type BoshClient interface {
 	Deploy(manifest []byte, contextID string, logger *log.Logger, reporter *boshdirector.AsyncTaskReporter) (int, error)
 	Recreate(deploymentName, contextID string, logger *log.Logger, taskReporter *boshdirector.AsyncTaskReporter) (int, error)
@@ -31,7 +32,7 @@ type BoshClient interface {
 	GetEvents(deploymentName string, eventType string, logger *log.Logger) ([]boshdirector.BoshEvent, error)
 }
 
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_manifest_generator.go . ManifestGenerator
+//counterfeiter:generate -o fakes/fake_manifest_generator.go . ManifestGenerator
 type ManifestGenerator interface {
 	GenerateManifest(
 		generateManifestProperties GenerateManifestProperties,
@@ -50,13 +51,13 @@ type GenerateManifestProperties struct {
 	UAAClient       map[string]string
 }
 
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_odb_secrets.go . ODBSecrets
+//counterfeiter:generate -o fakes/fake_odb_secrets.go . ODBSecrets
 type ODBSecrets interface {
 	GenerateSecretPaths(deploymentName, manifest string, secretsMap serviceadapter.ODBManagedSecrets) []broker.ManifestSecret
 	ReplaceODBRefs(manifest string, secrets []broker.ManifestSecret) string
 }
 
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_bulk_setter.go . BulkSetter
+//counterfeiter:generate -o fakes/fake_bulk_setter.go . BulkSetter
 type BulkSetter interface {
 	BulkSet([]broker.ManifestSecret) error
 }

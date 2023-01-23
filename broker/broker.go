@@ -184,7 +184,8 @@ func instanceID(deploymentName string) string {
 	return strings.TrimPrefix(deploymentName, InstancePrefix)
 }
 
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_uaa_client.go . UAAClient
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
+//counterfeiter:generate -o fakes/fake_uaa_client.go . UAAClient
 type UAAClient interface {
 	HasClientDefinition() bool
 	CreateClient(id, name, spaceGUID string) (map[string]string, error)
@@ -193,12 +194,12 @@ type UAAClient interface {
 	GetClient(id string) (map[string]string, error)
 }
 
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_startup_checker.go . StartupChecker
+//counterfeiter:generate -o fakes/fake_startup_checker.go . StartupChecker
 type StartupChecker interface {
 	Check() error
 }
 
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_deployer.go . Deployer
+//counterfeiter:generate -o fakes/fake_deployer.go . Deployer
 type Deployer interface {
 	Create(deploymentName, planID string, requestParams map[string]interface{}, boshContextID string, uaaClient map[string]string, logger *log.Logger) (int, []byte, error)
 	Update(deploymentName, planID string, requestParams map[string]interface{}, previousPlanID *string, boshContextID string, secretsMap map[string]string, uaaClient map[string]string, logger *log.Logger) (int, []byte, error)
@@ -206,7 +207,7 @@ type Deployer interface {
 	Recreate(deploymentName, planID, boshContextID string, logger *log.Logger) (int, error)
 }
 
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_service_adapter_client.go . ServiceAdapterClient
+//counterfeiter:generate -o fakes/fake_service_adapter_client.go . ServiceAdapterClient
 type ServiceAdapterClient interface {
 	CreateBinding(bindingID string, deploymentTopology bosh.BoshVMs, manifest []byte, requestParams map[string]interface{}, secretsMap, dnsAddresses map[string]string, logger *log.Logger) (serviceadapter.Binding, error)
 	DeleteBinding(bindingID string, deploymentTopology bosh.BoshVMs, manifest []byte, requestParams map[string]interface{}, secretsMap map[string]string, dnsAddresses map[string]string, logger *log.Logger) error
@@ -214,7 +215,7 @@ type ServiceAdapterClient interface {
 	GeneratePlanSchema(plan serviceadapter.Plan, logger *log.Logger) (domain.ServiceSchemas, error)
 }
 
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_bosh_client.go . BoshClient
+//counterfeiter:generate -o fakes/fake_bosh_client.go . BoshClient
 type BoshClient interface {
 	GetTask(taskID int, logger *log.Logger) (boshdirector.BoshTask, error)
 	GetTasksInProgress(deploymentName string, logger *log.Logger) (boshdirector.BoshTasks, error)
@@ -235,7 +236,7 @@ type BoshClient interface {
 	DeleteConfigs(configName string, logger *log.Logger) error
 }
 
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_cloud_foundry_client.go . CloudFoundryClient
+//counterfeiter:generate -o fakes/fake_cloud_foundry_client.go . CloudFoundryClient
 type CloudFoundryClient interface {
 	GetAPIVersion(logger *log.Logger) (string, error)
 	CountInstancesOfPlan(serviceOfferingID, planID string, logger *log.Logger) (int, error)
@@ -243,17 +244,17 @@ type CloudFoundryClient interface {
 	GetServiceInstances(filter cf.GetInstancesFilter, logger *log.Logger) ([]cf.Instance, error)
 }
 
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_telemetry_logger.go . TelemetryLogger
+//counterfeiter:generate -o fakes/fake_telemetry_logger.go . TelemetryLogger
 type TelemetryLogger interface {
 	LogInstances(instanceLister service.InstanceLister, item string, operation string)
 }
 
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_map_hasher.go . Hasher
+//counterfeiter:generate -o fakes/fake_map_hasher.go . Hasher
 type Hasher interface {
 	Hash(m map[string]string) string
 }
 
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_decider.go . Decider
+//counterfeiter:generate -o fakes/fake_decider.go . Decider
 
 type Decider interface {
 	DecideOperation(catalog []domain.Service, details domain.UpdateDetails, logger *log.Logger) (decider.Operation, error)

@@ -32,7 +32,7 @@ type Config struct {
 	CF                         config.CF
 }
 
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_cloud_foundry_client.go . CloudFoundryClient
+//counterfeiter:generate -o fakes/fake_cloud_foundry_client.go . CloudFoundryClient
 type CloudFoundryClient interface {
 	GetServiceOfferingGUID(string, *log.Logger) (string, error)
 	DeregisterBroker(string, *log.Logger) error

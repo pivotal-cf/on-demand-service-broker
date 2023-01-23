@@ -31,42 +31,43 @@ type Client struct {
 	dnsRetriever    DNSRetriever
 }
 
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_director.go . Director
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
+//counterfeiter:generate -o fakes/fake_director.go . Director
 type Director interface {
 	director.Director
 }
 
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_deployment.go . BOSHDeployment
+//counterfeiter:generate -o fakes/fake_deployment.go . BOSHDeployment
 type BOSHDeployment interface {
 	director.Deployment
 }
 
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_task.go . Task
+//counterfeiter:generate -o fakes/fake_task.go . Task
 type Task interface {
 	director.Task
 }
 
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_uaa.go . UAA
+//counterfeiter:generate -o fakes/fake_uaa.go . UAA
 type UAA interface {
 	boshuaa.UAA
 }
 
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_director_factory.go . DirectorFactory
+//counterfeiter:generate -o fakes/fake_director_factory.go . DirectorFactory
 type DirectorFactory interface {
 	New(config director.FactoryConfig, taskReporter director.TaskReporter, fileReporter director.FileReporter) (director.Director, error)
 }
 
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_uaa_factory.go . UAAFactory
+//counterfeiter:generate -o fakes/fake_uaa_factory.go . UAAFactory
 type UAAFactory interface {
 	New(config boshuaa.Config) (boshuaa.UAA, error)
 }
 
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_cert_appender.go . CertAppender
+//counterfeiter:generate -o fakes/fake_cert_appender.go . CertAppender
 type CertAppender interface {
 	AppendCertsFromPEM(pemCerts []byte) (ok bool)
 }
 
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_boshhttp.go . HTTP
+//counterfeiter:generate -o fakes/fake_boshhttp.go . HTTP
 
 type HTTP interface {
 	RawGet(path string) (string, error)
@@ -74,7 +75,7 @@ type HTTP interface {
 	RawDelete(path string) (string, error)
 }
 
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_dns_retriever.go . DNSRetriever
+//counterfeiter:generate -o fakes/fake_dns_retriever.go . DNSRetriever
 
 type DNSRetriever interface {
 	LinkProviderID(deploymentName, instanceGroupName, providerName string) (string, error)
@@ -83,7 +84,7 @@ type DNSRetriever interface {
 	DeleteLinkConsumer(consumerID string) error
 }
 
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_dns_retriever_factory.go . DNSRetrieverFactory
+//counterfeiter:generate -o fakes/fake_dns_retriever_factory.go . DNSRetrieverFactory
 
 type DNSRetrieverFactory func(HTTP) DNSRetriever
 

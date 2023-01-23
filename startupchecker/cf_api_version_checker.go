@@ -59,7 +59,8 @@ func (c *CFAPIVersionChecker) Check() error {
 	return nil
 }
 
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_cf_api_version_getter.go . CFAPIVersionGetter
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
+//counterfeiter:generate -o fakes/fake_cf_api_version_getter.go . CFAPIVersionGetter
 type CFAPIVersionGetter interface {
 	GetAPIVersion(logger *log.Logger) (string, error)
 }

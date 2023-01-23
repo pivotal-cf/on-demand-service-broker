@@ -10,7 +10,8 @@ import (
 	. "github.com/pivotal-cf/on-demand-service-broker/service"
 )
 
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes_telemetry/fake_telemetry_time.go . Time
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
+//counterfeiter:generate -o fakes_telemetry/fake_telemetry_time.go . Time
 type Time interface {
 	Now() string
 }

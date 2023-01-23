@@ -33,8 +33,8 @@ import (
 	"github.com/urfave/negroni"
 )
 
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/combined_broker.go . CombinedBroker
-
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
+//counterfeiter:generate -o fakes/combined_broker.go . CombinedBroker
 type CombinedBroker interface {
 	mgmtapi.ManageableBroker
 	domain.ServiceBroker
