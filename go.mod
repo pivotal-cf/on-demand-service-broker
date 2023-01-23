@@ -3,7 +3,7 @@ module github.com/pivotal-cf/on-demand-service-broker
 go 1.19
 
 require (
-	code.cloudfoundry.org/credhub-cli v0.0.0-20230116140613-68a3176aea15
+	code.cloudfoundry.org/credhub-cli v0.0.0-20230123140215-3dd1d7a6cebe
 	code.cloudfoundry.org/lager v2.0.0+incompatible
 	github.com/blang/semver/v4 v4.0.0
 	github.com/cloudfoundry-community/go-uaa v0.3.1
