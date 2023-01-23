@@ -32,7 +32,8 @@ type api struct {
 	loggerFactory    *loggerfactory.LoggerFactory
 }
 
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fake_manageable_broker/fake_manageable_broker.go . ManageableBroker
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
+//counterfeiter:generate -o fake_manageable_broker/fake_manageable_broker.go . ManageableBroker
 type ManageableBroker interface {
 	Instances(filter map[string]string, logger *log.Logger) ([]service.Instance, error)
 	OrphanDeployments(logger *log.Logger) ([]string, error)

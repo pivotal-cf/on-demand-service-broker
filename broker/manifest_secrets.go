@@ -12,8 +12,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 )
 
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_manifest_secrets_manager.go . ManifestSecretManager
-
+//counterfeiter:generate -o fakes/fake_manifest_secrets_manager.go . ManifestSecretManager
 type ManifestSecretManager interface {
 	ResolveManifestSecrets(manifest []byte, deploymentVariables []boshdirector.Variable, logger *log.Logger) (map[string]string, error)
 	DeleteSecretsForInstance(instanceID string, logger *log.Logger) error

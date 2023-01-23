@@ -34,13 +34,14 @@ type Instance struct {
 	SpaceGUID    string `json:"space_guid,omitempty"`
 }
 
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_instance_lister.go . InstanceLister
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
+//counterfeiter:generate -o fakes/fake_instance_lister.go . InstanceLister
 // InstanceLister provides a interface to query service instances present in the platform
 type InstanceLister interface {
 	Instances(map[string]string) ([]Instance, error)
 }
 
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_lister_client.go . CFListerClient
+//counterfeiter:generate -o fakes/fake_lister_client.go . CFListerClient
 type CFListerClient interface {
 	GetServiceInstances(cf.GetInstancesFilter, *log.Logger) ([]cf.Instance, error)
 }

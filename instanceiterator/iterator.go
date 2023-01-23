@@ -21,7 +21,8 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/service"
 )
 
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_listener.go . Listener
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
+//counterfeiter:generate -o fakes/fake_listener.go . Listener
 type Listener interface {
 	FailedToRefreshInstanceInfo(instance string)
 	Starting(maxInFlight int)
@@ -39,7 +40,7 @@ type Listener interface {
 	UpgradeStrategy(strategy string)
 }
 
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_broker_services.go . BrokerServices
+//counterfeiter:generate -o fakes/fake_broker_services.go . BrokerServices
 type BrokerServices interface {
 	ProcessInstance(instance service.Instance, operationType string) (services.BOSHOperation, error)
 	LastOperation(instance string, operationData broker.OperationData) (domain.LastOperation, error)
@@ -47,7 +48,7 @@ type BrokerServices interface {
 	LatestInstanceInfo(inst service.Instance) (service.Instance, error)
 }
 
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_sleeper.go . sleeper
+//counterfeiter:generate -o fakes/fake_sleeper.go . sleeper
 type sleeper interface {
 	Sleep(d time.Duration)
 }
@@ -76,7 +77,7 @@ const (
 	OrphanDeployment    OperationState = "orphan-deployment"
 )
 
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_triggerer.go . Triggerer
+//counterfeiter:generate -o fakes/fake_triggerer.go . Triggerer
 type Triggerer interface {
 	TriggerOperation(service.Instance) (TriggeredOperation, error)
 	Check(string, broker.OperationData) (TriggeredOperation, error)

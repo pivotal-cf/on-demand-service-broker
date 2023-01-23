@@ -16,7 +16,7 @@ type BoshHTTP struct {
 	client *Client
 }
 
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_http_factory.go . HTTPFactory
+//counterfeiter:generate -o fakes/fake_http_factory.go . HTTPFactory
 
 type HTTPFactory func(*Client) HTTP
 

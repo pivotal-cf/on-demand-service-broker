@@ -23,7 +23,8 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/service"
 )
 
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_http_client.go . HTTPClient
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
+//counterfeiter:generate -o fakes/fake_http_client.go . HTTPClient
 type HTTPClient interface {
 	Do(*http.Request) (*http.Response, error)
 }

@@ -15,7 +15,8 @@ import (
 
 const SuccessExitCode = 0
 
-//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -o fakes/fake_command_runner.go . CommandRunner
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
+//counterfeiter:generate -o fakes/fake_command_runner.go . CommandRunner
 type CommandRunner interface {
 	Run(arg ...string) ([]byte, []byte, *int, error)
 	RunWithInputParams(inputParams interface{}, arg ...string) ([]byte, []byte, *int, error)
