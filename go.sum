@@ -31,8 +31,8 @@ cloud.google.com/go/storage v1.6.0/go.mod h1:N7U0C8pVQ/+NIKOBQyamJIeKQKkZ+mxpohl
 cloud.google.com/go/storage v1.8.0/go.mod h1:Wv1Oy7z6Yz3DshWRJFhqM/UCfaWIRTdp0RXyy7KQOVs=
 cloud.google.com/go/storage v1.10.0/go.mod h1:FLPqc6j+Ki4BU591ie1oL6qBQGu2Bl/tZ9ullr3+Kg0=
 code.cloudfoundry.org/clock v1.0.0 h1:kFXWQM4bxYvdBw2X8BbBeXwQNgfoWv1vqAk2ZZyBN2o=
-code.cloudfoundry.org/credhub-cli v0.0.0-20230123140215-3dd1d7a6cebe h1:6qNeOodXUqcsDVDD4z4AA+WvmPun3UL5kgwTf42fmOc=
-code.cloudfoundry.org/credhub-cli v0.0.0-20230123140215-3dd1d7a6cebe/go.mod h1:v1NbWBb5Y2TWkZMiveeLi7XC4ciITNdvs6Sl5zzj0wE=
+code.cloudfoundry.org/credhub-cli v0.0.0-20230130140824-3a8c07c3be58 h1:WCSxX7Hf1wWhgMntCa4SU/yvGd44ekJY/0m1BSNNfYk=
+code.cloudfoundry.org/credhub-cli v0.0.0-20230130140824-3a8c07c3be58/go.mod h1:ENMJevTlJTDxxdGmAhbWlq3rXQy58qNJFqEvLf+KUDc=
 code.cloudfoundry.org/lager v2.0.0+incompatible h1:WZwDKDB2PLd/oL+USK4b4aEjUymIej9My2nUQ9oWEwQ=
 code.cloudfoundry.org/lager v2.0.0+incompatible/go.mod h1:O2sS7gKP3HM2iemG+EnwvyNQK7pTSC6Foi4QiMp9sSk=
 code.cloudfoundry.org/tlsconfig v0.0.0-20220621140725-0e6fbd869921 h1:1PLAuQR56K2pw0lnlcXe+37uOaGg939W1Lqv8wxYpu4=
