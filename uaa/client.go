@@ -4,13 +4,15 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"math/rand"
+	"net/http"
+	"strconv"
+	"strings"
+	"time"
+
 	gouaa "github.com/cloudfoundry-community/go-uaa"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pkg/errors"
-	"math/rand"
-	"net/http"
-	"strings"
-	"time"
 )
 
 const (
@@ -75,12 +77,13 @@ func (c *Client) HasClientDefinition() bool {
 	return cd.Authorities != "" || cd.AuthorizedGrantTypes != "" || cd.Scopes != "" || cd.ResourceIDs != ""
 }
 
-func (c *Client) CreateClient(clientID, name, spaceGUID string) (map[string]string, error) {
+func (c *Client) CreateClient(clientID, clientSecret, name, spaceGUID string) (map[string]string, error) {
 	if !c.HasClientDefinition() {
 		return nil, nil
 	}
 
 	grantTypes := c.config.ClientDefinition.AuthorizedGrantTypes
+	allowPublic := c.config.ClientDefinition.AllowPublic
 
 	m := map[string]string{
 		"client_id":              clientID,
@@ -88,14 +91,18 @@ func (c *Client) CreateClient(clientID, name, spaceGUID string) (map[string]stri
 		"resource_ids":           c.config.ClientDefinition.ResourceIDs,
 		"authorities":            c.config.ClientDefinition.Authorities,
 		"authorized_grant_types": grantTypes,
+		"allowpublic":            allowPublic,
 	}
 
-	var clientSecret string
 	if strings.Contains(grantTypes, "implicit") || strings.Contains(grantTypes, "authorization_code") {
 		// UAA does not allow `implicit` o `authorization_code` clients to be created without a redirect uri
 		m["redirect_uri"] = placeholderRedirectURI
 	}
-	if !strings.Contains(grantTypes, "implicit") {
+	if !strings.Contains(grantTypes, "implicit") && clientSecret != "" {
+		m["client_secret"] = clientSecret
+	}
+
+	if !strings.Contains(grantTypes, "implicit") && clientSecret == "" {
 		clientSecret = c.RandFunc()
 		m["client_secret"] = clientSecret
 	}
@@ -108,7 +115,8 @@ func (c *Client) CreateClient(clientID, name, spaceGUID string) (map[string]stri
 		}
 	}
 
-	resp, err := c.apiClient.CreateClient(c.transformToClient(m))
+	ap, _ := strconv.ParseBool(m["allowpublic"])
+	resp, err := c.apiClient.CreateClient(c.transformToClient(m, ap))
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create uaa client")
 	}
@@ -121,6 +129,7 @@ func (c *Client) UpdateClient(clientID string, redirectURI, spaceGUID string) (m
 		return nil, nil
 	}
 
+	allowPublic := c.config.ClientDefinition.AllowPublic
 	interpolationMap := map[string]string{odbSpaceGUID: spaceGUID}
 	m := map[string]string{
 		"client_id":              clientID,
@@ -128,6 +137,7 @@ func (c *Client) UpdateClient(clientID string, redirectURI, spaceGUID string) (m
 		"resource_ids":           interpolate(c.config.ClientDefinition.ResourceIDs, interpolationMap),
 		"authorities":            interpolate(c.config.ClientDefinition.Authorities, interpolationMap),
 		"authorized_grant_types": c.config.ClientDefinition.AuthorizedGrantTypes,
+		"allowpublic":            allowPublic,
 	}
 
 	if c.config.ClientDefinition.Name != "" {
@@ -138,7 +148,13 @@ func (c *Client) UpdateClient(clientID string, redirectURI, spaceGUID string) (m
 		m["redirect_uri"] = redirectURI
 	}
 
-	resp, err := c.apiClient.UpdateClient(c.transformToClient(m))
+	ap, _ := strconv.ParseBool(m["allowpublic"])
+	// ToDo ParseBool returns an error
+	// if err != nil {
+	// return nil, errors.Wrap(err, "failed to update uaa client")
+	// }
+
+	resp, err := c.apiClient.UpdateClient(c.transformToClient(m, ap))
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to update uaa client")
 	}
@@ -179,10 +195,13 @@ func (c *Client) transformToMap(resp *gouaa.Client, secret string) map[string]st
 		"authorities":            fromSlice(resp.Authorities),
 		"authorized_grant_types": fromSlice(resp.AuthorizedGrantTypes),
 		"redirect_uri":           fromSlice(resp.RedirectURI),
+		// allowpublic wont compile until https://github.com/cloudfoundry-community/go-uaa/pull/62 is merged
+		"allowpublic": strconv.FormatBool(resp.AllowPublic),
 	}
 }
 
-func (c *Client) transformToClient(m map[string]string) gouaa.Client {
+func (c *Client) transformToClient(m map[string]string, allowPublic bool) gouaa.Client {
+
 	client := gouaa.Client{
 		Authorities:          toSlice(m["authorities"]),
 		AuthorizedGrantTypes: toSlice(m["authorized_grant_types"]),
@@ -192,6 +211,7 @@ func (c *Client) transformToClient(m map[string]string) gouaa.Client {
 		ResourceIDs:          toSlice(m["resource_ids"]),
 		Scope:                toSlice(m["scopes"]),
 		RedirectURI:          toSlice(m["redirect_uri"]),
+		AllowPublic:          allowPublic,
 	}
 
 	return client
