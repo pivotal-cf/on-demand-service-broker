@@ -10,7 +10,7 @@ func (b *Broker) GetServiceInstanceClient(instanceID string, contextMap map[stri
 		return nil, err
 	}
 	if instanceClient == nil {
-		instanceClient, err = b.uaaClient.CreateClient(instanceID, getInstanceNameFromContext(contextMap), getSpaceGUIDFromContext(contextMap))
+		instanceClient, err = b.uaaClient.CreateClient(instanceID, "", getInstanceNameFromContext(contextMap), getSpaceGUIDFromContext(contextMap))
 		if err != nil {
 			return nil, err
 		}
