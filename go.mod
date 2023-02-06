@@ -3,12 +3,12 @@ module github.com/pivotal-cf/on-demand-service-broker
 go 1.19
 
 require (
-	code.cloudfoundry.org/credhub-cli v0.0.0-20230130140824-3a8c07c3be58
+	code.cloudfoundry.org/credhub-cli v0.0.0-20230206140622-d50e935fc78e
 	code.cloudfoundry.org/lager v2.0.0+incompatible
 	github.com/blang/semver/v4 v4.0.0
 	github.com/cloudfoundry-community/go-uaa v0.3.1
 	github.com/cloudfoundry/bosh-cli/v7 v7.0.1
-	github.com/cloudfoundry/bosh-utils v0.0.351
+	github.com/cloudfoundry/bosh-utils v0.0.352
 	github.com/craigfurman/herottp v0.0.0-20190418132442-c546d62f2a8d
 	github.com/gorilla/mux v1.8.0
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.6.1
@@ -24,7 +24,7 @@ require (
 )
 
 require (
-	code.cloudfoundry.org/tlsconfig v0.0.0-20230125185630-3cc0b1c5221e // indirect
+	code.cloudfoundry.org/tlsconfig v0.0.0-20230131191323-96331f8f153d // indirect
 	github.com/bmatcuk/doublestar v1.3.4 // indirect
 	github.com/charlievieth/fs v0.0.3 // indirect
 	github.com/cloudfoundry/go-socks5 v0.0.0-20180221174514-54f73bdb8a8e // indirect
