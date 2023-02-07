@@ -120,9 +120,10 @@ var _ = Describe("Provisioning", func() {
 
 			By("creating the client on UAA", func() {
 				Expect(fakeUAAClient.CreateClientCallCount()).To(Equal(1))
-				actualClientID, actualClientName, actualSpaceGUID := fakeUAAClient.CreateClientArgsForCall(0)
+				actualClientID, actualSecret, actualClientName, actualSpaceGUID := fakeUAAClient.CreateClientArgsForCall(0)
 
 				Expect(actualClientID).To(Equal(instanceID))
+				Expect(actualSecret).To(Equal(""))
 				Expect(actualClientName).To(Equal("my-super-service"))
 				Expect(actualSpaceGUID).To(Equal(spaceGUID))
 			})
