@@ -2,21 +2,23 @@ package broker_test
 
 import (
 	"errors"
+	"log"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	brokerfakes "github.com/pivotal-cf/on-demand-service-broker/broker/fakes"
-	"log"
 )
 
 var _ = Describe("ServiceInstanceClient", func() {
 	var (
-		instanceID     string
-		instanceName   string
-		spaceGUID      string
-		fakeUAAClient  *brokerfakes.FakeUAAClient
-		expectedClient map[string]string
-		rawContext     map[string]interface{}
-		logger         *log.Logger
+		instanceID         string
+		instanceName       string
+		spaceGUID          string
+		customClientSecret string
+		fakeUAAClient      *brokerfakes.FakeUAAClient
+		expectedClient     map[string]string
+		rawContext         map[string]interface{}
+		logger             *log.Logger
 	)
 
 	BeforeEach(func() {
@@ -77,9 +79,10 @@ var _ = Describe("ServiceInstanceClient", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(fakeUAAClient.CreateClientCallCount()).To(Equal(1))
-				actualInstanceID, actualInstanceName, actualSpaceGUID := fakeUAAClient.CreateClientArgsForCall(0)
+				actualInstanceID, actualSecret, actualInstanceName, actualSpaceGUID := fakeUAAClient.CreateClientArgsForCall(0)
 
 				Expect(actualInstanceID).To(Equal(instanceID))
+				Expect(actualSecret).To(Equal(""))
 				Expect(actualInstanceName).To(Equal(instanceName))
 				Expect(actualSpaceGUID).To(Equal(spaceGUID))
 			})
@@ -98,6 +101,30 @@ var _ = Describe("ServiceInstanceClient", func() {
 				_, err := b.GetServiceInstanceClient(instanceID, rawContext)
 				Expect(err).To(HaveOccurred())
 				Expect(err).To(MatchError("create failed"))
+			})
+
+			When("a custom client_secret is provided", func() {
+				BeforeEach(func() {
+					customClientSecret = "my-client-secret"
+					rawContext = map[string]interface{}{
+						"instance_name": instanceName,
+						"space_guid":    spaceGUID,
+						"client_secret": customClientSecret,
+					}
+				})
+
+				It("creates a client using the provided client_secret", func() {
+					_, err := b.GetServiceInstanceClient(instanceID, rawContext)
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(fakeUAAClient.CreateClientCallCount()).To(Equal(1))
+					actualInstanceID, actualSecret, actualInstanceName, actualSpaceGUID := fakeUAAClient.CreateClientArgsForCall(0)
+
+					Expect(actualInstanceID).To(Equal(instanceID))
+					Expect(actualSecret).To(Equal(customClientSecret))
+					Expect(actualInstanceName).To(Equal(instanceName))
+					Expect(actualSpaceGUID).To(Equal(spaceGUID))
+				})
 			})
 		})
 	})

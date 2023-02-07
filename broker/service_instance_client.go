@@ -10,7 +10,8 @@ func (b *Broker) GetServiceInstanceClient(instanceID string, contextMap map[stri
 		return nil, err
 	}
 	if instanceClient == nil {
-		instanceClient, err = b.uaaClient.CreateClient(instanceID, "", getInstanceNameFromContext(contextMap), getSpaceGUIDFromContext(contextMap))
+		//TODO set client secret if provided
+		instanceClient, err = b.uaaClient.CreateClient(instanceID, getClientSecretFromContext(contextMap), getInstanceNameFromContext(contextMap), getSpaceGUIDFromContext(contextMap))
 		if err != nil {
 			return nil, err
 		}
@@ -46,4 +47,12 @@ func getSpaceGUIDFromContext(contextMap map[string]interface{}) string {
 		spaceGUID = rawSpaceGUID.(string)
 	}
 	return spaceGUID
+}
+
+func getClientSecretFromContext(contextMap map[string]interface{}) string {
+	var clientSecret string
+	if rawClientSecret, found := contextMap["client_secret"]; found {
+		clientSecret = rawClientSecret.(string)
+	}
+	return clientSecret
 }
