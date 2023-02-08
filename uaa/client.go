@@ -77,7 +77,7 @@ func (c *Client) HasClientDefinition() bool {
 	return cd.Authorities != "" || cd.AuthorizedGrantTypes != "" || cd.Scopes != "" || cd.ResourceIDs != ""
 }
 
-func (c *Client) CreateClient(clientID, clientSecret, name, spaceGUID string) (map[string]string, error) {
+func (c *Client) CreateClient(clientID, name, spaceGUID string) (map[string]string, error) {
 	if !c.HasClientDefinition() {
 		return nil, nil
 	}
@@ -98,12 +98,14 @@ func (c *Client) CreateClient(clientID, clientSecret, name, spaceGUID string) (m
 		// UAA does not allow `implicit` o `authorization_code` clients to be created without a redirect uri
 		m["redirect_uri"] = placeholderRedirectURI
 	}
-	if !strings.Contains(grantTypes, "implicit") && clientSecret != "" {
-		m["client_secret"] = clientSecret
-	}
 
-	if !strings.Contains(grantTypes, "implicit") && clientSecret == "" {
-		clientSecret = c.RandFunc()
+	var clientSecret string
+	if !strings.Contains(grantTypes, "implicit") {
+		if m["allowpublic"] == "true" {
+			clientSecret = ""
+		} else {
+			clientSecret = c.RandFunc()
+		}
 		m["client_secret"] = clientSecret
 	}
 
@@ -115,8 +117,7 @@ func (c *Client) CreateClient(clientID, clientSecret, name, spaceGUID string) (m
 		}
 	}
 
-	ap, _ := strconv.ParseBool(m["allowpublic"])
-	resp, err := c.apiClient.CreateClient(c.transformToClient(m, ap))
+	resp, err := c.apiClient.CreateClient(c.transformToClient(m))
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create uaa client")
 	}
@@ -148,13 +149,7 @@ func (c *Client) UpdateClient(clientID string, redirectURI, spaceGUID string) (m
 		m["redirect_uri"] = redirectURI
 	}
 
-	ap, _ := strconv.ParseBool(m["allowpublic"])
-	// ToDo ParseBool returns an error
-	// if err != nil {
-	// return nil, errors.Wrap(err, "failed to update uaa client")
-	// }
-
-	resp, err := c.apiClient.UpdateClient(c.transformToClient(m, ap))
+	resp, err := c.apiClient.UpdateClient(c.transformToClient(m))
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to update uaa client")
 	}
@@ -200,8 +195,8 @@ func (c *Client) transformToMap(resp *gouaa.Client, secret string) map[string]st
 	}
 }
 
-func (c *Client) transformToClient(m map[string]string, allowPublic bool) gouaa.Client {
-
+func (c *Client) transformToClient(m map[string]string) gouaa.Client {
+	ap, _ := strconv.ParseBool(m["allowpublic"])
 	client := gouaa.Client{
 		Authorities:          toSlice(m["authorities"]),
 		AuthorizedGrantTypes: toSlice(m["authorized_grant_types"]),
@@ -211,7 +206,7 @@ func (c *Client) transformToClient(m map[string]string, allowPublic bool) gouaa.
 		ResourceIDs:          toSlice(m["resource_ids"]),
 		Scope:                toSlice(m["scopes"]),
 		RedirectURI:          toSlice(m["redirect_uri"]),
-		AllowPublic:          allowPublic,
+		AllowPublic:          ap,
 	}
 
 	return client

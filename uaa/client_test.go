@@ -91,7 +91,7 @@ var _ = Describe("UAA", func() {
 					Expect(err).ToNot(HaveOccurred())
 					Expect(uaaClient).NotTo(BeNil())
 
-					c, err := uaaClient.CreateClient("foo", "", "bar", "baz")
+					c, err := uaaClient.CreateClient("foo", "bar", "baz")
 					Expect(err).NotTo(HaveOccurred())
 					Expect(c).To(BeNil())
 
@@ -150,8 +150,7 @@ var _ = Describe("UAA", func() {
 				  "authorities": [ "some-authority", "another-authority", "some-extra-authority" ],
 				  "name": "some-name",
 				  "lastModified": 1588809891186,
-				  "required_user_groups": [ ],
-					"allowpublic": true
+				  "required_user_groups": [ ]
 				}`
 				createHandler.RespondsWith(http.StatusCreated, createJsonResponse)
 			})
@@ -161,7 +160,7 @@ var _ = Describe("UAA", func() {
 					return "superrandomsecret"
 				}
 
-				actualClient, err := uaaClient.CreateClient("some-client-id", "", "some-name", "some-space-guid")
+				actualClient, err := uaaClient.CreateClient("some-client-id", "some-name", "some-space-guid")
 				Expect(err).NotTo(HaveOccurred())
 
 				By("injecting some properties", func() {
@@ -206,13 +205,13 @@ var _ = Describe("UAA", func() {
 						return ""
 					}
 
-					actualClient, err := uaaClient.CreateClient("some-client-id", "", "some-name", "some-space-guid")
+					actualClient, err := uaaClient.CreateClient("some-client-id", "some-name", "some-space-guid")
 					Expect(err).NotTo(HaveOccurred())
 					Expect(actualClient["client_secret"]).To(BeEmpty())
 				})
 
 				It("generates the client with a placeholder redirect uri", func() {
-					_, err := uaaClient.CreateClient("some-client-id", "", "some-name", "some-space-guid")
+					_, err := uaaClient.CreateClient("some-client-id", "some-name", "some-space-guid")
 					Expect(err).NotTo(HaveOccurred())
 
 					Expect(createHandler.RequestsReceived()).To(Equal(1))
@@ -241,13 +240,13 @@ var _ = Describe("UAA", func() {
 					})
 
 					It("does generate a secret", func() {
-						actualClient, err := uaaClient.CreateClient("some-client-id", "", "some-name", "some-space-guid")
+						actualClient, err := uaaClient.CreateClient("some-client-id", "some-name", "some-space-guid")
 						Expect(err).NotTo(HaveOccurred())
 						Expect(actualClient["client_secret"]).NotTo(BeEmpty())
 					})
 
 					It("generates the client with a placeholder redirect uri", func() {
-						_, err := uaaClient.CreateClient("some-client-id", "", "some-name", "some-space-guid")
+						_, err := uaaClient.CreateClient("some-client-id", "some-name", "some-space-guid")
 						Expect(err).NotTo(HaveOccurred())
 
 						Expect(createHandler.RequestsReceived()).To(Equal(1))
@@ -265,50 +264,47 @@ var _ = Describe("UAA", func() {
                                         }`), "Expected request body mismatch")
 					})
 				})
-
-				When("and a client_secret is provided", func() {
-					BeforeEach(func() {
-						uaaConfig.ClientDefinition.AuthorizedGrantTypes = "authorization_code"
-						uaaClient, _ = uaa.New(uaaConfig, trustedCert, skipTLSValidation)
-					})
-
-					It("uses the provided secret", func() {
-						actualClient, err := uaaClient.CreateClient("some-client-id", "some-client-secret", "some-name", "some-space-guid")
-						Expect(err).NotTo(HaveOccurred())
-						Expect(actualClient["client_secret"]).To(Equal("some-client-secret"))
-					})
-
-					It("generates the client with a placeholder redirect uri", func() {
-						_, err := uaaClient.CreateClient("some-client-id", "some-client-secret", "some-name", "some-space-guid")
-						Expect(err).NotTo(HaveOccurred())
-
-						Expect(createHandler.RequestsReceived()).To(Equal(1))
-						request := createHandler.GetRequestForCall(0)
-						Expect(request.Body).To(MatchJSON(`
-                                        {
-                                                "scope": [ "admin", "read", "write" ],
-                                                "client_id": "some-client-id",
-                                                "client_secret": "some-client-secret",
-                                                "resource_ids": ["resource1", "resource2"],
-                                                "authorized_grant_types": [ "authorization_code" ],
-                                                "authorities": [ "some-authority", "another-authority" ],
-                                                "name": "some-name",
-                                                "redirect_uri": [ "https://placeholder.example.com" ]
-                                        }`), "Expected request body mismatch")
-					})
-				})
 			})
 
 			When("the definition has allowpulic: true", func() {
 				BeforeEach(func() {
 					uaaConfig.ClientDefinition.AllowPublic = "true"
 					uaaClient, _ = uaa.New(uaaConfig, trustedCert, skipTLSValidation)
+					createJsonResponse := `{
+				  "scope": [ "admin", "read", "write", "extra-scope" ],
+				  "client_id": "some-client-id",
+				  "resource_ids": ["resource1", "resource2", "some-extra-resource"],
+				  "authorized_grant_types": [ "client_credentials", "password", "token" ],
+				  "authorities": [ "some-authority", "another-authority", "some-extra-authority" ],
+				  "name": "some-name",
+				  "lastModified": 1588809891186,
+				  "required_user_groups": [ ],
+					"allowpublic": true
+				}`
+					createHandler.RespondsWith(http.StatusCreated, createJsonResponse)
 				})
 
-				It("sets allowpublic on the client", func() {
-					actualClient, err := uaaClient.CreateClient("some-client-id", "", "some-name", "some-space-guid")
+				It("sets allowpublic on the client, and configures a client_secret", func() {
+					actualClient, err := uaaClient.CreateClient("some-client-id", "some-name", "some-space-guid")
 					Expect(err).NotTo(HaveOccurred())
 					Expect(actualClient["allowpublic"]).To(Equal("true"))
+					Expect(actualClient["client_secret"]).To(Equal(""))
+				})
+			})
+
+			When("the definition does not have allowpublic", func() {
+				BeforeEach(func() {
+					uaaClient, _ = uaa.New(uaaConfig, trustedCert, skipTLSValidation)
+					uaaClient.RandFunc = func() string {
+						return "superrandomsecret"
+					}
+				})
+
+				It("sets allowpublic on the client, and configures a client_secret", func() {
+					actualClient, err := uaaClient.CreateClient("some-client-id", "some-name", "some-space-guid")
+					Expect(err).NotTo(HaveOccurred())
+					Expect(actualClient["allowpublic"]).To(Equal("false"))
+					Expect(actualClient["client_secret"]).To(Equal("superrandomsecret"))
 				})
 			})
 
@@ -319,7 +315,7 @@ var _ = Describe("UAA", func() {
 				})
 
 				It("replaces it with the provided space guid", func() {
-					_, err := uaaClient.CreateClient("some-client-id", "", "some-name", "some-space-guid")
+					_, err := uaaClient.CreateClient("some-client-id", "some-name", "some-space-guid")
 					Expect(err).NotTo(HaveOccurred())
 
 					var m map[string]interface{}
@@ -339,7 +335,7 @@ var _ = Describe("UAA", func() {
 				uaaClient, err := uaa.New(uaaConfig, trustedCert, skipTLSValidation)
 				Expect(err).NotTo(HaveOccurred())
 
-				actualClient, err := uaaClient.CreateClient("some-client-id", "", "some-name", "some-space-guid")
+				actualClient, err := uaaClient.CreateClient("some-client-id", "some-name", "some-space-guid")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(actualClient).To(BeNil())
 
@@ -347,19 +343,19 @@ var _ = Describe("UAA", func() {
 			})
 
 			It("generates a new password every time it is called", func() {
-				c1, _ := uaaClient.CreateClient("foo", "", "foo", "baz")
-				c2, _ := uaaClient.CreateClient("foo", "", "foo", "baz")
+				c1, _ := uaaClient.CreateClient("foo", "foo", "baz")
+				c2, _ := uaaClient.CreateClient("foo", "foo", "baz")
 
 				Expect(c1["client_secret"]).NotTo(Equal(c2["client_secret"]))
 			})
 
 			It("generates unique but reproducible ids", func() {
-				_, err := uaaClient.CreateClient("client1", "", "name1", "space1")
+				_, err := uaaClient.CreateClient("client1", "name1", "space1")
 				Expect(err).NotTo(HaveOccurred())
-				_, err = uaaClient.CreateClient("client2", "", "name2", "space2")
+				_, err = uaaClient.CreateClient("client2", "name2", "space2")
 				Expect(err).NotTo(HaveOccurred())
 
-				_, err = uaaClient.CreateClient("client1", "", "name1", "space1")
+				_, err = uaaClient.CreateClient("client1", "name1", "space1")
 				Expect(err).NotTo(HaveOccurred())
 
 				c1ReqBody := toMap(createHandler.GetRequestForCall(0).Body)
@@ -377,7 +373,7 @@ var _ = Describe("UAA", func() {
 				})
 
 				It("uses the configured name", func() {
-					_, err := uaaClient.CreateClient("client1", "", "some-other-name", "space-1")
+					_, err := uaaClient.CreateClient("client1", "some-other-name", "space-1")
 					Expect(err).NotTo(HaveOccurred())
 
 					c1ReqBody := toMap(createHandler.GetRequestForCall(0).Body)
@@ -386,7 +382,7 @@ var _ = Describe("UAA", func() {
 			})
 
 			It("does not generate a name if not passed and not configured", func() {
-				_, err := uaaClient.CreateClient("client1", "", "", "space-1")
+				_, err := uaaClient.CreateClient("client1", "", "space-1")
 				Expect(err).NotTo(HaveOccurred())
 
 				c1ReqBody := toMap(createHandler.GetRequestForCall(0).Body)
@@ -395,7 +391,7 @@ var _ = Describe("UAA", func() {
 
 			It("fails when UAA responds with error", func() {
 				createHandler.RespondsOnCall(0, 500, "")
-				_, err := uaaClient.CreateClient("some-client-id", "", "some-name", "space-1")
+				_, err := uaaClient.CreateClient("some-client-id", "some-name", "space-1")
 				Expect(err).To(HaveOccurred())
 
 				errorMsg := fmt.Sprintf("An error occurred while calling %s/oauth/clients", server.URL())
