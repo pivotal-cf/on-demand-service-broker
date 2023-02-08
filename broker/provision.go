@@ -155,7 +155,7 @@ func (b *Broker) provisionInstance(ctx context.Context, instanceID string, detai
 	}
 
 	// ToDo set client secret if provided
-	serviceInstanceClient, err := b.uaaClient.CreateClient(instanceID, "", instanceName, spaceGUID)
+	serviceInstanceClient, err := b.uaaClient.CreateClient(instanceID, instanceName, spaceGUID)
 	if err != nil {
 		return errs(NewGenericError(ctx, err))
 	}
