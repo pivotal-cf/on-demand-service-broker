@@ -102,7 +102,7 @@ func (c *Client) CreateClient(clientID, name, spaceGUID string) (map[string]stri
 	var clientSecret string
 	if !strings.Contains(grantTypes, "implicit") {
 		if m["allowpublic"] == "true" {
-			clientSecret = " "
+			clientSecret = "-"
 		} else {
 			clientSecret = c.RandFunc()
 		}
