@@ -288,7 +288,7 @@ var _ = Describe("UAA", func() {
 					actualClient, err := uaaClient.CreateClient("some-client-id", "some-name", "some-space-guid")
 					Expect(err).NotTo(HaveOccurred())
 					Expect(actualClient["allowpublic"]).To(Equal("true"))
-					Expect(actualClient["client_secret"]).To(Equal(""))
+					Expect(actualClient["client_secret"]).To(Equal(" "))
 				})
 			})
 
