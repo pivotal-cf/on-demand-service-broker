@@ -13,10 +13,10 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.6.1
 	github.com/onsi/ginkgo v1.16.5
-	github.com/onsi/gomega v1.26.0
+	github.com/onsi/gomega v1.27.0
 	github.com/pborman/uuid v1.2.1
 	github.com/pivotal-cf/brokerapi/v8 v8.2.3
-	github.com/pivotal-cf/on-demand-services-sdk v0.42.8-0.20230206120307-4dda97c9cbdd
+	github.com/pivotal-cf/on-demand-services-sdk v0.42.8-0.20230217125800-fecfd8200ba5
 	github.com/pkg/errors v0.9.1
 	github.com/urfave/negroni v1.0.0
 	github.com/xeipuuv/gojsonschema v1.2.0
