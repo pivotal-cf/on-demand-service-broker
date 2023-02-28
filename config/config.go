@@ -99,7 +99,7 @@ type ClientDefinition struct {
 	ResourceIDs          string `yaml:"resource_ids"`
 	Scopes               string `yaml:"scopes"`
 	Name                 string `yaml:"name"`
-	AllowPublic          string `yaml:"allowpublic"`
+	AllowPublic          bool   `yaml:"allowpublic"`
 }
 
 type UAAConfig struct {

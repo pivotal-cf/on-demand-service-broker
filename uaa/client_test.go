@@ -268,7 +268,7 @@ var _ = Describe("UAA", func() {
 
 			When("the definition has allowpulic: true", func() {
 				BeforeEach(func() {
-					uaaConfig.ClientDefinition.AllowPublic = "true"
+					uaaConfig.ClientDefinition.AllowPublic = true
 					uaaClient, _ = uaa.New(uaaConfig, trustedCert, skipTLSValidation)
 					createJsonResponse := `{
 				  "scope": [ "admin", "read", "write", "extra-scope" ],
@@ -524,7 +524,7 @@ var _ = Describe("UAA", func() {
 			When("client_definition has name set", func() {
 				BeforeEach(func() {
 					uaaConfig.ClientDefinition.Name = "configured-name"
-					uaaConfig.ClientDefinition.AllowPublic = "true"
+					uaaConfig.ClientDefinition.AllowPublic = true
 					uaaClient, _ = uaa.New(uaaConfig, trustedCert, skipTLSValidation)
 				})
 
