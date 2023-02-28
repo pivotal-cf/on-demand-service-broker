@@ -83,7 +83,7 @@ func (c *Client) CreateClient(clientID, name, spaceGUID string) (map[string]stri
 	}
 
 	grantTypes := c.config.ClientDefinition.AuthorizedGrantTypes
-	allowPublic := c.config.ClientDefinition.AllowPublic
+	allowPublic := strconv.FormatBool(c.config.ClientDefinition.AllowPublic)
 
 	m := map[string]string{
 		"client_id":              clientID,
@@ -130,7 +130,7 @@ func (c *Client) UpdateClient(clientID string, redirectURI, spaceGUID string) (m
 		return nil, nil
 	}
 
-	allowPublic := c.config.ClientDefinition.AllowPublic
+	allowPublic := strconv.FormatBool(c.config.ClientDefinition.AllowPublic)
 	interpolationMap := map[string]string{odbSpaceGUID: spaceGUID}
 	m := map[string]string{
 		"client_id":              clientID,

@@ -89,7 +89,7 @@ var _ = Describe("Broker Config", func() {
 								ResourceIDs:          "resource2,resource3",
 								Scopes:               "scope1,scope2",
 								Name:                 "client_name",
-								AllowPublic:          "true",
+								AllowPublic:          true,
 							},
 							Authentication: config.UAACredentials{
 								UserCredentials: config.UserCredentials{
