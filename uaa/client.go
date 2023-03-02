@@ -190,8 +190,7 @@ func (c *Client) transformToMap(resp *gouaa.Client, secret string) map[string]st
 		"authorities":            fromSlice(resp.Authorities),
 		"authorized_grant_types": fromSlice(resp.AuthorizedGrantTypes),
 		"redirect_uri":           fromSlice(resp.RedirectURI),
-		// allowpublic wont compile until https://github.com/cloudfoundry-community/go-uaa/pull/62 is merged
-		"allowpublic": strconv.FormatBool(resp.AllowPublic),
+		"allowpublic":            strconv.FormatBool(resp.AllowPublic),
 	}
 }
 

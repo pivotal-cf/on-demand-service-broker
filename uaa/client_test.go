@@ -230,28 +230,27 @@ var _ = Describe("UAA", func() {
 			})
 
 			When("the definition has authorization_code grant type", func() {
-				When("and a client_secret is not provided", func() {
-					BeforeEach(func() {
-						uaaConfig.ClientDefinition.AuthorizedGrantTypes = "authorization_code"
-						uaaClient, _ = uaa.New(uaaConfig, trustedCert, skipTLSValidation)
-						uaaClient.RandFunc = func() string {
-							return "a-secret"
-						}
-					})
+				BeforeEach(func() {
+					uaaConfig.ClientDefinition.AuthorizedGrantTypes = "authorization_code"
+					uaaClient, _ = uaa.New(uaaConfig, trustedCert, skipTLSValidation)
+					uaaClient.RandFunc = func() string {
+						return "a-secret"
+					}
+				})
 
-					It("does generate a secret", func() {
-						actualClient, err := uaaClient.CreateClient("some-client-id", "some-name", "some-space-guid")
-						Expect(err).NotTo(HaveOccurred())
-						Expect(actualClient["client_secret"]).NotTo(BeEmpty())
-					})
+				It("does generate a secret", func() {
+					actualClient, err := uaaClient.CreateClient("some-client-id", "some-name", "some-space-guid")
+					Expect(err).NotTo(HaveOccurred())
+					Expect(actualClient["client_secret"]).NotTo(BeEmpty())
+				})
 
-					It("generates the client with a placeholder redirect uri", func() {
-						_, err := uaaClient.CreateClient("some-client-id", "some-name", "some-space-guid")
-						Expect(err).NotTo(HaveOccurred())
+				It("generates the client with a placeholder redirect uri", func() {
+					_, err := uaaClient.CreateClient("some-client-id", "some-name", "some-space-guid")
+					Expect(err).NotTo(HaveOccurred())
 
-						Expect(createHandler.RequestsReceived()).To(Equal(1))
-						request := createHandler.GetRequestForCall(0)
-						Expect(request.Body).To(MatchJSON(`
+					Expect(createHandler.RequestsReceived()).To(Equal(1))
+					request := createHandler.GetRequestForCall(0)
+					Expect(request.Body).To(MatchJSON(`
                                         {
                                                 "scope": [ "admin", "read", "write" ],
                                                 "client_id": "some-client-id",
@@ -262,11 +261,10 @@ var _ = Describe("UAA", func() {
                                                 "name": "some-name",
                                                 "redirect_uri": [ "https://placeholder.example.com" ]
                                         }`), "Expected request body mismatch")
-					})
 				})
 			})
 
-			When("the definition has allowpulic: true", func() {
+			When("the definition has allowpublic: true", func() {
 				BeforeEach(func() {
 					uaaConfig.ClientDefinition.AllowPublic = true
 					uaaClient, _ = uaa.New(uaaConfig, trustedCert, skipTLSValidation)
@@ -284,7 +282,8 @@ var _ = Describe("UAA", func() {
 					createHandler.RespondsWith(http.StatusCreated, createJsonResponse)
 				})
 
-				It("sets allowpublic on the client, and configures a client_secret", func() {
+				It("sets allowpublic on the client, and set a hardcoded client_secret", func() {
+					// See https://www.pivotaltracker.com/n/projects/2482247/stories/183763390
 					actualClient, err := uaaClient.CreateClient("some-client-id", "some-name", "some-space-guid")
 					Expect(err).NotTo(HaveOccurred())
 					Expect(actualClient["allowpublic"]).To(Equal("true"))
