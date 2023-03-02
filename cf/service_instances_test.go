@@ -11,7 +11,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp/mockcfapi"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/ghttp"
@@ -85,7 +85,7 @@ var _ = Describe("ServiceInstancesClient", func() {
 					GUID: "fake-service-instance-guid",
 				},
 				Entity: cf.ServiceInstanceEntity{
-					SpaceGUID: "space-id",
+					SpaceGUID:      "space-id",
 					ServicePlanURL: "fake-url",
 					MaintenanceInfo: cf.MaintenanceInfo{
 						Version: "1.2.3",

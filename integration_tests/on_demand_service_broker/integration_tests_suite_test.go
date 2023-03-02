@@ -19,7 +19,7 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
@@ -140,10 +140,10 @@ var _ = SynchronizedBeforeSuite(
 		brokerBinPath = compiledBinaries.Broker
 		serviceAdapterPath = compiledBinaries.Adapter
 
-		brokerPort = 37890 + GinkgoParallelNode()
+		brokerPort = 37890 + GinkgoParallelProcess()
 
 		var err error
-		tempDirPath, err = ioutil.TempDir("", fmt.Sprintf("broker-integration-tests-%d", GinkgoParallelNode()))
+		tempDirPath, err = ioutil.TempDir("", fmt.Sprintf("broker-integration-tests-%d", GinkgoParallelProcess()))
 		Expect(err).ToNot(HaveOccurred())
 	},
 )

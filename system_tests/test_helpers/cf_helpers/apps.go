@@ -19,8 +19,7 @@ import (
 	"time"
 
 	"github.com/craigfurman/herottp"
-	"github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/service_helpers"
@@ -91,7 +90,7 @@ func ExerciseApp(serviceType service_helpers.ServiceType, appURL string) {
 		exerciseKafka(appURL)
 		return
 	}
-	Fail(fmt.Sprintf("wrong service type: %d", serviceType))
+	ginkgo.Fail(fmt.Sprintf("wrong service type: %d", serviceType))
 }
 
 func exerciseRedis(appURL string) {

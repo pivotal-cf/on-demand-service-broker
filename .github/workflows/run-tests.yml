@@ -24,7 +24,7 @@ jobs:
       with:
         go-version: ${{ matrix.version }}
     - uses: actions/checkout@v2
-    - run: ./scripts/run-tests.sh -race -failOnPending -skipPackage=contract_tests,system_tests
+    - run: ./scripts/run-tests.sh --race --fail-on-pending --skip-package=contract_tests,system_tests
   call-dependabot-pr-workflow:
     needs: test
     if: ${{ success() && github.actor == 'dependabot[bot]' }}

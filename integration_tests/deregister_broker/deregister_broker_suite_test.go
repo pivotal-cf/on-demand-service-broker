@@ -18,7 +18,7 @@ package deregister_broker_test
 import (
 	"fmt"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"io/ioutil"
@@ -41,7 +41,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	binaryPath = string(rawBinary)
 
 	var err error
-	tempDir, err = ioutil.TempDir("", fmt.Sprintf("broker-integration-tests-%d", GinkgoParallelNode()))
+	tempDir, err = ioutil.TempDir("", fmt.Sprintf("broker-integration-tests-%d", GinkgoParallelProcess()))
 	Expect(err).ToNot(HaveOccurred())
 })
 

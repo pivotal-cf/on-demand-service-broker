@@ -13,7 +13,7 @@ import (
 	"fmt"
 	"net/http"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/brokerapi/v9/domain"

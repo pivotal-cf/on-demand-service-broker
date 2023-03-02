@@ -22,7 +22,7 @@ import (
 
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/env_helpers"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
@@ -359,7 +359,7 @@ func deploy(systemTestSuffix string, deploymentOptions BrokerDeploymentOptions, 
 		deployArguments = append(deployArguments, "--ops-file", filepath.Join(globalFixturesPath, "add_cf_uaa_client_credentials.yml"))
 	}
 
-	if noNATSTLSCertInVarsFile(variables.BrokerDeploymentVarsPath){
+	if noNATSTLSCertInVarsFile(variables.BrokerDeploymentVarsPath) {
 		deployArguments = append(deployArguments, "--ops-file", filepath.Join(globalFixturesPath, "use_nats_without_tls.yml"))
 	}
 

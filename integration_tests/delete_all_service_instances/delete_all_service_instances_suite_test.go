@@ -12,7 +12,7 @@ import (
 	"os"
 	"testing"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
 )
@@ -35,7 +35,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	binaryPath = string(rawBinary)
 
 	var err error
-	tempDir, err = ioutil.TempDir("", fmt.Sprintf("broker-integration-tests-%d", GinkgoParallelNode()))
+	tempDir, err = ioutil.TempDir("", fmt.Sprintf("broker-integration-tests-%d", GinkgoParallelProcess()))
 	Expect(err).ToNot(HaveOccurred())
 })
 
