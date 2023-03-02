@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	code.cloudfoundry.org/credhub-cli v0.0.0-20230227140157-de58674f78a8
-	code.cloudfoundry.org/lager v2.0.0+incompatible
+	code.cloudfoundry.org/lager/v3 v3.0.0
 	github.com/blang/semver/v4 v4.0.0
 	github.com/cloudfoundry-community/go-uaa v0.3.2-0.20230202170949-a3819b81bf7e
 	github.com/cloudfoundry/bosh-cli/v7 v7.1.3
@@ -15,7 +15,7 @@ require (
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.27.2
 	github.com/pborman/uuid v1.2.1
-	github.com/pivotal-cf/brokerapi/v8 v8.2.3
+	github.com/pivotal-cf/brokerapi/v9 v9.0.0
 	github.com/pivotal-cf/on-demand-services-sdk v0.42.8-0.20230303154204-5867ba880f55
 	github.com/pkg/errors v0.9.1
 	github.com/urfave/negroni v1.0.0
@@ -24,7 +24,6 @@ require (
 )
 
 require (
-	code.cloudfoundry.org/lager/v3 v3.0.0 // indirect
 	code.cloudfoundry.org/tlsconfig v0.0.0-20230131191323-96331f8f153d // indirect
 	github.com/bmatcuk/doublestar v1.3.4 // indirect
 	github.com/charlievieth/fs v0.0.3 // indirect
@@ -42,7 +41,6 @@ require (
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d // indirect
 	github.com/nxadm/tail v1.4.8 // indirect
 	github.com/onsi/ginkgo/v2 v2.8.4 // indirect
-	github.com/pivotal-cf/brokerapi/v9 v9.0.0 // indirect
 	github.com/pivotal-cf/paraphernalia v0.0.0-20180203224945-a64ae2051c20 // indirect
 	github.com/xeipuuv/gojsonpointer v0.0.0-20180127040702-4e3ac2762d5f // indirect
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect

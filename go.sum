@@ -2,8 +2,6 @@ cloud.google.com/go v0.34.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMT
 code.cloudfoundry.org/clock v1.0.0 h1:kFXWQM4bxYvdBw2X8BbBeXwQNgfoWv1vqAk2ZZyBN2o=
 code.cloudfoundry.org/credhub-cli v0.0.0-20230227140157-de58674f78a8 h1:DDhc3bLiHZ93naghRK6amRDghfYF7eWeCBMWzoy/Ncs=
 code.cloudfoundry.org/credhub-cli v0.0.0-20230227140157-de58674f78a8/go.mod h1:ETNLtLjOySc8HLg3Jwu2BSQ9EQVgRLB7nEScNUTd/hQ=
-code.cloudfoundry.org/lager v2.0.0+incompatible h1:WZwDKDB2PLd/oL+USK4b4aEjUymIej9My2nUQ9oWEwQ=
-code.cloudfoundry.org/lager v2.0.0+incompatible/go.mod h1:O2sS7gKP3HM2iemG+EnwvyNQK7pTSC6Foi4QiMp9sSk=
 code.cloudfoundry.org/lager/v3 v3.0.0 h1:08qGFO5LbugMVCslmmvdR2RqFaUM4Hm96mCgoOGS/4A=
 code.cloudfoundry.org/lager/v3 v3.0.0/go.mod h1:F/mhRcjfCJSSES/yTwB67aJRdRbkwBkgK+yBKzOvPB0=
 code.cloudfoundry.org/tlsconfig v0.0.0-20230131191323-96331f8f153d h1:n3JgM3s5MEfSKxWis+VWsMghVTyKkO64rAYeVTqbwh0=
@@ -94,8 +92,6 @@ github.com/onsi/gomega v1.27.2 h1:SKU0CXeKE/WVgIV1T61kSa3+IRE8Ekrv9rdXDwwTqnY=
 github.com/onsi/gomega v1.27.2/go.mod h1:5mR3phAHpkAVIDkHEUBY6HGVsU+cpcEscrGPB4oPlZI=
 github.com/pborman/uuid v1.2.1 h1:+ZZIw58t/ozdjRaXh/3awHfmWRbzYxJoAdNJxe/3pvw=
 github.com/pborman/uuid v1.2.1/go.mod h1:X/NO0urCmaxf9VXbdlT7C2Yzkj2IKimNn4k+gtPdI/k=
-github.com/pivotal-cf/brokerapi/v8 v8.2.3 h1:hoi6SpOk5kL8eIEa6q4Q88uVNuPqI1b6zTlpWDLsEoA=
-github.com/pivotal-cf/brokerapi/v8 v8.2.3/go.mod h1:MGZMnpFeMjZ/JVEYDv92uJMf8QMohfOFaSgPwzEQ5/c=
 github.com/pivotal-cf/brokerapi/v9 v9.0.0 h1:KMJ0NcHtEntdI8T+woTtzg3MrcDDklhupDennc5KHME=
 github.com/pivotal-cf/brokerapi/v9 v9.0.0/go.mod h1:iLRDxJv+ctZOVi9DcnCDaBJydssX0RqQRsgZfKK7YYA=
 github.com/pivotal-cf/on-demand-services-sdk v0.42.8-0.20230303154204-5867ba880f55 h1:jMjOV5iUxx4v3mkhk+RXfcWtJ2HSWRbOazux0lHhvsA=

@@ -15,7 +15,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
-	"github.com/pivotal-cf/brokerapi/v8/domain"
+	"github.com/pivotal-cf/brokerapi/v9/domain"
 	brokerConfig "github.com/pivotal-cf/on-demand-service-broker/config"
 	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
