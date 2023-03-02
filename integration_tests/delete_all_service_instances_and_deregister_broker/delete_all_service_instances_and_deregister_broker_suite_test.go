@@ -18,7 +18,7 @@ package delete_all_service_instances_and_deregister_broker_test
 import (
 	"fmt"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
 
@@ -40,7 +40,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	binaryPath = string(rawBinary)
 
 	var err error
-	tempDir, err = ioutil.TempDir("", fmt.Sprintf("broker-integration-tests-%d", GinkgoParallelNode()))
+	tempDir, err = ioutil.TempDir("", fmt.Sprintf("broker-integration-tests-%d", GinkgoParallelProcess()))
 	Expect(err).ToNot(HaveOccurred())
 })
 

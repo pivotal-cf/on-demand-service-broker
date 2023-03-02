@@ -9,16 +9,18 @@
 set -eu
 set -o pipefail
 
+GINKGO="github.com/onsi/ginkgo/v2/ginkgo"
+
 if [[ $# -eq 0 ]]; then
-  LIFECYCLE_TESTS_CONFIG=<(echo "[{}]") GO111MODULE=on GOFLAGS="-mod=vendor" go run github.com/onsi/ginkgo/ginkgo -r -dryRun system_tests
+  LIFECYCLE_TESTS_CONFIG=<(echo "[{}]") go run -mod=vendor "$GINKGO" -r --dry-run system_tests
 fi
 
-GO111MODULE=on GOFLAGS="-mod=vendor" go run github.com/onsi/ginkgo/ginkgo \
-  -randomizeSuites=true \
-  -randomizeAllSpecs=true \
-  -keepGoing=true \
+go run -mod=vendor "$GINKGO" \
+  --randomize-suites \
+  --randomize-all \
+  --keep-going \
   -r \
-  -cover \
-  -trace \
-  -race \
+  --cover \
+  --trace \
+  --race \
   "$@"
