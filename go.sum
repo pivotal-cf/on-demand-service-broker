@@ -4,6 +4,8 @@ code.cloudfoundry.org/credhub-cli v0.0.0-20230227140157-de58674f78a8 h1:DDhc3bLi
 code.cloudfoundry.org/credhub-cli v0.0.0-20230227140157-de58674f78a8/go.mod h1:ETNLtLjOySc8HLg3Jwu2BSQ9EQVgRLB7nEScNUTd/hQ=
 code.cloudfoundry.org/lager v2.0.0+incompatible h1:WZwDKDB2PLd/oL+USK4b4aEjUymIej9My2nUQ9oWEwQ=
 code.cloudfoundry.org/lager v2.0.0+incompatible/go.mod h1:O2sS7gKP3HM2iemG+EnwvyNQK7pTSC6Foi4QiMp9sSk=
+code.cloudfoundry.org/lager/v3 v3.0.0 h1:08qGFO5LbugMVCslmmvdR2RqFaUM4Hm96mCgoOGS/4A=
+code.cloudfoundry.org/lager/v3 v3.0.0/go.mod h1:F/mhRcjfCJSSES/yTwB67aJRdRbkwBkgK+yBKzOvPB0=
 code.cloudfoundry.org/tlsconfig v0.0.0-20230131191323-96331f8f153d h1:n3JgM3s5MEfSKxWis+VWsMghVTyKkO64rAYeVTqbwh0=
 code.cloudfoundry.org/tlsconfig v0.0.0-20230131191323-96331f8f153d/go.mod h1:eEXL1uwhjzQp0klT34gUn0QPSvlYcXP83tgUicS0kVc=
 filippo.io/edwards25519 v1.0.0-rc.1 h1:m0VOOB23frXZvAOK44usCgLWvtsxIoMCTBGJZlpmGfU=
@@ -56,6 +58,7 @@ github.com/google/go-cmp v0.5.5/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/
 github.com/google/go-cmp v0.5.9 h1:O2Tfq5qg4qc4AmwVlvv0oLiVAGB7enBSJ2x2DqQFi38=
 github.com/google/go-cmp v0.5.9/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY=
 github.com/google/pprof v0.0.0-20230222194610-99052d3372e7 h1:pNFnpaSXfibgW7aUbk9pwLmI7LNwh/iR46x/YwN/lNg=
+github.com/google/pprof v0.0.0-20230222194610-99052d3372e7/go.mod h1:uglQLonpP8qtYCYyzA+8c/9qtqgA3qsXGYqCPKARAFg=
 github.com/google/uuid v1.0.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/google/uuid v1.3.0 h1:t6JiXgmwXMjEs8VusXIJk2BXHsn+wx8BZdTaoZ5fu7I=
 github.com/google/uuid v1.3.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
@@ -83,6 +86,7 @@ github.com/onsi/ginkgo v1.12.1/go.mod h1:zj2OWP4+oCPe1qIXoGWkgMRwljMUYCdkwsT2108
 github.com/onsi/ginkgo v1.16.5 h1:8xi0RTUf59SOSfEtZMvwTvXYMzG4gV23XVHOZiXNtnE=
 github.com/onsi/ginkgo v1.16.5/go.mod h1:+E8gABHa3K6zRBolWtd+ROzc/U5bkGt0FwiG042wbpU=
 github.com/onsi/ginkgo/v2 v2.8.4 h1:gf5mIQ8cLFieruNLAdgijHF1PYfLphKm2dxxcUtcqK0=
+github.com/onsi/ginkgo/v2 v2.8.4/go.mod h1:427dEDQZkDKsBvCjc2A/ZPefhKxsTTrsQegMlayL730=
 github.com/onsi/gomega v1.7.1/go.mod h1:XdKZgCCFLUoM/7CFJVPcG8C1xQ1AJ0vpAezJrB7JYyY=
 github.com/onsi/gomega v1.10.1/go.mod h1:iN09h71vgCQne3DLsj+A5owkum+a2tYe+TOCB1ybHNo=
 github.com/onsi/gomega v1.10.3/go.mod h1:V9xEwhxec5O8UDM77eCW8vLymOMltsqPVYWrpDsH8xc=
@@ -92,8 +96,10 @@ github.com/pborman/uuid v1.2.1 h1:+ZZIw58t/ozdjRaXh/3awHfmWRbzYxJoAdNJxe/3pvw=
 github.com/pborman/uuid v1.2.1/go.mod h1:X/NO0urCmaxf9VXbdlT7C2Yzkj2IKimNn4k+gtPdI/k=
 github.com/pivotal-cf/brokerapi/v8 v8.2.3 h1:hoi6SpOk5kL8eIEa6q4Q88uVNuPqI1b6zTlpWDLsEoA=
 github.com/pivotal-cf/brokerapi/v8 v8.2.3/go.mod h1:MGZMnpFeMjZ/JVEYDv92uJMf8QMohfOFaSgPwzEQ5/c=
-github.com/pivotal-cf/on-demand-services-sdk v0.42.8-0.20230228125831-6d8e8ae2cf25 h1:e6qx3uN1K52eF0x1vVJ+s+UwncgE2OyuZm4HzNd8ZUY=
-github.com/pivotal-cf/on-demand-services-sdk v0.42.8-0.20230228125831-6d8e8ae2cf25/go.mod h1:5dho4g823RE7W2O67t0Shh7FhzkrFSt81UwdzGX3xrc=
+github.com/pivotal-cf/brokerapi/v9 v9.0.0 h1:KMJ0NcHtEntdI8T+woTtzg3MrcDDklhupDennc5KHME=
+github.com/pivotal-cf/brokerapi/v9 v9.0.0/go.mod h1:iLRDxJv+ctZOVi9DcnCDaBJydssX0RqQRsgZfKK7YYA=
+github.com/pivotal-cf/on-demand-services-sdk v0.42.8-0.20230303154204-5867ba880f55 h1:jMjOV5iUxx4v3mkhk+RXfcWtJ2HSWRbOazux0lHhvsA=
+github.com/pivotal-cf/on-demand-services-sdk v0.42.8-0.20230303154204-5867ba880f55/go.mod h1:GwavL+iwn8nGwzHz7Gxv0BM5yfW54jpa0vDTAV7aw1M=
 github.com/pivotal-cf/paraphernalia v0.0.0-20180203224945-a64ae2051c20 h1:DR5eMfe2+6GzLkVyWytdtgUxgbPiOfvKDuqityTV3y8=
 github.com/pivotal-cf/paraphernalia v0.0.0-20180203224945-a64ae2051c20/go.mod h1:Y3IqE20LKprEpLkXb7gXinJf4vvDdQe/BS8E4kL/dgE=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
