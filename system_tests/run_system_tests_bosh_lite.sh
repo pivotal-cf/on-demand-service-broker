@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+export DEV_ENV=${DEV_ENV:-$BOSH_LITE_NAME}
+
 usage() {
 	echo "$0 <test to run> "
 	echo ""
