@@ -147,8 +147,8 @@ github.com/pivotal-cf/brokerapi/v9/domain/apiresponses
 github.com/pivotal-cf/brokerapi/v9/handlers
 github.com/pivotal-cf/brokerapi/v9/middlewares
 github.com/pivotal-cf/brokerapi/v9/utils
-# github.com/pivotal-cf/on-demand-services-sdk v0.42.8-0.20230303154204-5867ba880f55
-## explicit; go 1.19
+# github.com/pivotal-cf/on-demand-services-sdk v0.42.8-0.20230303162830-216f8cd57daa
+## explicit; go 1.20
 github.com/pivotal-cf/on-demand-services-sdk/bosh
 github.com/pivotal-cf/on-demand-services-sdk/serviceadapter
 # github.com/pivotal-cf/paraphernalia v0.0.0-20180203224945-a64ae2051c20
