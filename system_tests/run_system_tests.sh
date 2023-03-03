@@ -19,4 +19,12 @@ cf logout
 cf auth $CF_USERNAME $CF_PASSWORD
 cf target -o ${CF_ORG} -s ${CF_SPACE} # must already exist
 
-GO111MODULE=off ginkgo -v -flakeAttempts "${RETRY_ATTEMPTS:-1}" -randomizeSuites=true -randomizeAllSpecs=true -keepGoing=true -race -failOnPending -skipPackage upgrade_deployment_tests -r "$@"
+go run github.com/onsi/ginkgo/v2/ginkgo -r -v \
+  --flake-attempts="${RETRY_ATTEMPTS:-1}" \
+  --randomize-suites \
+  --randomize-all \
+  --keep-going \
+  --race \
+  --fail-on-pending \
+  --skip-package=upgrade_deployment_tests \
+  "$@"
