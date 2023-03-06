@@ -6,6 +6,7 @@
     authorities: cloud_controller.admin
     resource_ids: res1,res2
     name: lifecycle_test_client
+    allowpublic: true
 
 - type: remove
   path: /instance_groups/name=broker/jobs/name=broker/properties/cf?/uaa/authentication/user_credentials
