@@ -98,7 +98,7 @@ github.com/maxbrunsfeld/counterfeiter/v6/generator
 # github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d
 ## explicit
 github.com/nu7hatch/gouuid
-# github.com/onsi/ginkgo/v2 v2.8.4
+# github.com/onsi/ginkgo/v2 v2.9.0
 ## explicit; go 1.18
 github.com/onsi/ginkgo/v2
 github.com/onsi/ginkgo/v2/config
@@ -147,7 +147,7 @@ github.com/pivotal-cf/brokerapi/v9/domain/apiresponses
 github.com/pivotal-cf/brokerapi/v9/handlers
 github.com/pivotal-cf/brokerapi/v9/middlewares
 github.com/pivotal-cf/brokerapi/v9/utils
-# github.com/pivotal-cf/on-demand-services-sdk v0.42.8-0.20230303162830-216f8cd57daa
+# github.com/pivotal-cf/on-demand-services-sdk v0.42.8-0.20230306125928-8f5b6c237759
 ## explicit; go 1.20
 github.com/pivotal-cf/on-demand-services-sdk/bosh
 github.com/pivotal-cf/on-demand-services-sdk/serviceadapter
