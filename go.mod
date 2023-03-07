@@ -8,7 +8,7 @@ require (
 	github.com/blang/semver/v4 v4.0.0
 	github.com/cloudfoundry-community/go-uaa v0.3.2-0.20230202170949-a3819b81bf7e
 	github.com/cloudfoundry/bosh-cli/v7 v7.1.3
-	github.com/cloudfoundry/bosh-utils v0.0.356
+	github.com/cloudfoundry/bosh-utils v0.0.357
 	github.com/craigfurman/herottp v0.0.0-20190418132442-c546d62f2a8d
 	github.com/gorilla/mux v1.8.0
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.6.1
@@ -24,7 +24,7 @@ require (
 )
 
 require (
-	code.cloudfoundry.org/tlsconfig v0.0.0-20230131191323-96331f8f153d // indirect
+	code.cloudfoundry.org/tlsconfig v0.0.0-20230225100352-b3e9427a4d77 // indirect
 	github.com/bmatcuk/doublestar v1.3.4 // indirect
 	github.com/charlievieth/fs v0.0.3 // indirect
 	github.com/cloudfoundry/go-socks5 v0.0.0-20180221174514-54f73bdb8a8e // indirect
@@ -34,7 +34,7 @@ require (
 	github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
-	github.com/google/pprof v0.0.0-20230222194610-99052d3372e7 // indirect
+	github.com/google/pprof v0.0.0-20230228050547-1710fef4ab10 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/hashicorp/go-version v1.6.0 // indirect
 	github.com/jpillora/backoff v1.0.0 // indirect
