@@ -61,6 +61,16 @@ github.com/craigfurman/herottp
 ## explicit; go 1.16
 github.com/go-logr/logr
 github.com/go-logr/logr/funcr
+# github.com/go-playground/locales v0.14.1
+## explicit; go 1.17
+github.com/go-playground/locales
+github.com/go-playground/locales/currency
+# github.com/go-playground/universal-translator v0.18.1
+## explicit; go 1.18
+github.com/go-playground/universal-translator
+# github.com/go-playground/validator/v10 v10.11.2
+## explicit; go 1.18
+github.com/go-playground/validator/v10
 # github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0
 ## explicit; go 1.13
 github.com/go-task/slim-sprig
@@ -89,6 +99,9 @@ github.com/hashicorp/go-version
 # github.com/jpillora/backoff v1.0.0
 ## explicit; go 1.13
 github.com/jpillora/backoff
+# github.com/leodido/go-urn v1.2.1
+## explicit; go 1.13
+github.com/leodido/go-urn
 # github.com/maxbrunsfeld/counterfeiter/v6 v6.6.1
 ## explicit; go 1.17
 github.com/maxbrunsfeld/counterfeiter/v6
@@ -147,7 +160,7 @@ github.com/pivotal-cf/brokerapi/v9/domain/apiresponses
 github.com/pivotal-cf/brokerapi/v9/handlers
 github.com/pivotal-cf/brokerapi/v9/middlewares
 github.com/pivotal-cf/brokerapi/v9/utils
-# github.com/pivotal-cf/on-demand-services-sdk v0.43.0
+# github.com/pivotal-cf/on-demand-services-sdk v0.43.1-0.20230309174816-ad95793d63cc
 ## explicit; go 1.20
 github.com/pivotal-cf/on-demand-services-sdk/bosh
 github.com/pivotal-cf/on-demand-services-sdk/serviceadapter
@@ -178,6 +191,7 @@ golang.org/x/crypto/curve25519/internal/field
 golang.org/x/crypto/ed25519
 golang.org/x/crypto/internal/alias
 golang.org/x/crypto/internal/poly1305
+golang.org/x/crypto/sha3
 golang.org/x/crypto/ssh
 golang.org/x/crypto/ssh/internal/bcrypt_pbkdf
 # golang.org/x/mod v0.8.0
@@ -283,9 +297,6 @@ google.golang.org/protobuf/reflect/protoregistry
 google.golang.org/protobuf/runtime/protoiface
 google.golang.org/protobuf/runtime/protoimpl
 google.golang.org/protobuf/types/descriptorpb
-# gopkg.in/go-playground/validator.v8 v8.18.2
-## explicit
-gopkg.in/go-playground/validator.v8
 # gopkg.in/yaml.v2 v2.4.0
 ## explicit; go 1.15
 gopkg.in/yaml.v2
