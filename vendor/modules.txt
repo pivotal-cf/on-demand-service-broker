@@ -74,7 +74,7 @@ github.com/go-playground/validator/v10
 # github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0
 ## explicit; go 1.13
 github.com/go-task/slim-sprig
-# github.com/golang/protobuf v1.5.2
+# github.com/golang/protobuf v1.5.3
 ## explicit; go 1.9
 github.com/golang/protobuf/proto
 # github.com/google/go-cmp v0.5.9
@@ -133,7 +133,7 @@ github.com/onsi/ginkgo/v2/internal/parallel_support
 github.com/onsi/ginkgo/v2/internal/testingtproxy
 github.com/onsi/ginkgo/v2/reporters
 github.com/onsi/ginkgo/v2/types
-# github.com/onsi/gomega v1.27.2
+# github.com/onsi/gomega v1.27.3
 ## explicit; go 1.18
 github.com/onsi/gomega
 github.com/onsi/gomega/format
@@ -160,7 +160,7 @@ github.com/pivotal-cf/brokerapi/v9/domain/apiresponses
 github.com/pivotal-cf/brokerapi/v9/handlers
 github.com/pivotal-cf/brokerapi/v9/middlewares
 github.com/pivotal-cf/brokerapi/v9/utils
-# github.com/pivotal-cf/on-demand-services-sdk v0.43.1-0.20230309174816-ad95793d63cc
+# github.com/pivotal-cf/on-demand-services-sdk v0.43.1-0.20230313125907-02f3fa6da52c
 ## explicit; go 1.20
 github.com/pivotal-cf/on-demand-services-sdk/bosh
 github.com/pivotal-cf/on-demand-services-sdk/serviceadapter
