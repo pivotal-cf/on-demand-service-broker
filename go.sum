@@ -15,8 +15,8 @@ github.com/charlievieth/fs v0.0.3 h1:3lZQXTj4PbE81CVPwALSn+JoyCNXkZgORHN6h2XHGlg
 github.com/charlievieth/fs v0.0.3/go.mod h1:hD4sRzto1Hw8zCua76tNVKZxaeZZr1RiKftjAJQRLLo=
 github.com/cloudfoundry-community/go-uaa v0.3.2-0.20230202170949-a3819b81bf7e h1:eA0Qy5qp11yFfsD63QzR1Pk8ode+E4Wp238d3p5qx54=
 github.com/cloudfoundry-community/go-uaa v0.3.2-0.20230202170949-a3819b81bf7e/go.mod h1:CZikL3h0Li3DtqoZULq6/bW4KIJsM1FOVxVLSEHROik=
-github.com/cloudfoundry/bosh-cli/v7 v7.2.0 h1:Dnx+Imp2toOxdNPaFdwEqL/uIoIBuyJLC6ZYdoW3l2I=
-github.com/cloudfoundry/bosh-cli/v7 v7.2.0/go.mod h1:Cy/kp5iqrB8ASlqRAvXqJG5S5DocMj1N0HIWNAIKTQE=
+github.com/cloudfoundry/bosh-cli/v7 v7.2.2 h1:QpbSU7DmsGTTkDGOXTGmo70QyX3WG2+LWNq1oj6vVhA=
+github.com/cloudfoundry/bosh-cli/v7 v7.2.2/go.mod h1:5Lp/MaySW2HJdhBQ4eQCfWz0N7hEeqj3KnMrF6709u4=
 github.com/cloudfoundry/bosh-utils v0.0.361 h1:G3kxetv80xXauwZ4X5glQixv9mbCj/pi3zuxmdoL14U=
 github.com/cloudfoundry/bosh-utils v0.0.361/go.mod h1:GUm5UedYfvfrNGVM9yoYimno5M/pxxNqvCInSU1MaNo=
 github.com/cloudfoundry/go-socks5 v0.0.0-20180221174514-54f73bdb8a8e h1:FQdRViaoDphGRfgrotl2QGsX1gbloe57dbGBS5CG6KY=
@@ -33,8 +33,8 @@ github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSs
 github.com/drewolson/testflight v1.0.0 h1:jgA0pHcFIPnXoBmyFzrdoR2ka4UvReMDsjYc7Jcvl80=
 github.com/fsnotify/fsnotify v1.4.7/go.mod h1:jwhsz4b93w/PPRr/qN1Yymfu8t87LnFCMoQvtojpjFo=
 github.com/fsnotify/fsnotify v1.6.0 h1:n+5WquG0fcWoWp6xPWfHdbskMCQaFnG6PfBrh1Ky4HY=
-github.com/go-logr/logr v1.2.3 h1:2DntVwHkVopvECVRSlL5PSo9eG+cAkDCuckLubN+rq0=
-github.com/go-logr/logr v1.2.3/go.mod h1:jdQByPbusPIv2/zmleS9BjJVeZ6kBagPoEUsqbVz/1A=
+github.com/go-logr/logr v1.2.4 h1:g01GSCwiDw2xSZfjJ2/T9M+S6pFdcNtFYsp+Y43HYDQ=
+github.com/go-logr/logr v1.2.4/go.mod h1:jdQByPbusPIv2/zmleS9BjJVeZ6kBagPoEUsqbVz/1A=
 github.com/go-playground/assert/v2 v2.2.0 h1:JvknZsQTYeFEAhQwI4qEt9cyV5ONwRHC+lYKSsYSR8s=
 github.com/go-playground/locales v0.14.1 h1:EWaQ/wswjilfKLTECiXz7Rh+3BjFhfDFKv/oXslEjJA=
 github.com/go-playground/locales v0.14.1/go.mod h1:hxrqLVvrK65+Rwrd5Fc6F2O76J/NuW9t0sjnWqG1slY=
