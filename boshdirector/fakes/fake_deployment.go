@@ -142,14 +142,12 @@ type FakeBOSHDeployment struct {
 		result1 director.ExportReleaseResult
 		result2 error
 	}
-	FetchLogsStub        func(director.AllOrInstanceGroupOrInstanceSlug, []string, bool, bool, bool) (director.LogsResult, error)
+	FetchLogsStub        func(director.AllOrInstanceGroupOrInstanceSlug, []string, string) (director.LogsResult, error)
 	fetchLogsMutex       sync.RWMutex
 	fetchLogsArgsForCall []struct {
 		arg1 director.AllOrInstanceGroupOrInstanceSlug
 		arg2 []string
-		arg3 bool
-		arg4 bool
-		arg5 bool
+		arg3 string
 	}
 	fetchLogsReturns struct {
 		result1 director.LogsResult
@@ -1103,7 +1101,7 @@ func (fake *FakeBOSHDeployment) ExportReleaseReturnsOnCall(i int, result1 direct
 	}{result1, result2}
 }
 
-func (fake *FakeBOSHDeployment) FetchLogs(arg1 director.AllOrInstanceGroupOrInstanceSlug, arg2 []string, arg3 bool, arg4 bool, arg5 bool) (director.LogsResult, error) {
+func (fake *FakeBOSHDeployment) FetchLogs(arg1 director.AllOrInstanceGroupOrInstanceSlug, arg2 []string, arg3 string) (director.LogsResult, error) {
 	var arg2Copy []string
 	if arg2 != nil {
 		arg2Copy = make([]string, len(arg2))
@@ -1114,16 +1112,14 @@ func (fake *FakeBOSHDeployment) FetchLogs(arg1 director.AllOrInstanceGroupOrInst
 	fake.fetchLogsArgsForCall = append(fake.fetchLogsArgsForCall, struct {
 		arg1 director.AllOrInstanceGroupOrInstanceSlug
 		arg2 []string
-		arg3 bool
-		arg4 bool
-		arg5 bool
-	}{arg1, arg2Copy, arg3, arg4, arg5})
+		arg3 string
+	}{arg1, arg2Copy, arg3})
 	stub := fake.FetchLogsStub
 	fakeReturns := fake.fetchLogsReturns
-	fake.recordInvocation("FetchLogs", []interface{}{arg1, arg2Copy, arg3, arg4, arg5})
+	fake.recordInvocation("FetchLogs", []interface{}{arg1, arg2Copy, arg3})
 	fake.fetchLogsMutex.Unlock()
 	if stub != nil {
-		return stub(arg1, arg2, arg3, arg4, arg5)
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -1137,17 +1133,17 @@ func (fake *FakeBOSHDeployment) FetchLogsCallCount() int {
 	return len(fake.fetchLogsArgsForCall)
 }
 
-func (fake *FakeBOSHDeployment) FetchLogsCalls(stub func(director.AllOrInstanceGroupOrInstanceSlug, []string, bool, bool, bool) (director.LogsResult, error)) {
+func (fake *FakeBOSHDeployment) FetchLogsCalls(stub func(director.AllOrInstanceGroupOrInstanceSlug, []string, string) (director.LogsResult, error)) {
 	fake.fetchLogsMutex.Lock()
 	defer fake.fetchLogsMutex.Unlock()
 	fake.FetchLogsStub = stub
 }
 
-func (fake *FakeBOSHDeployment) FetchLogsArgsForCall(i int) (director.AllOrInstanceGroupOrInstanceSlug, []string, bool, bool, bool) {
+func (fake *FakeBOSHDeployment) FetchLogsArgsForCall(i int) (director.AllOrInstanceGroupOrInstanceSlug, []string, string) {
 	fake.fetchLogsMutex.RLock()
 	defer fake.fetchLogsMutex.RUnlock()
 	argsForCall := fake.fetchLogsArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *FakeBOSHDeployment) FetchLogsReturns(result1 director.LogsResult, result2 error) {
