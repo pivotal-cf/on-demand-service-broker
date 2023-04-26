@@ -11,7 +11,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/pivotal-cf/on-demand-service-broker/broker/fakes"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -19,8 +18,10 @@ import (
 	"github.com/pivotal-cf/brokerapi/v9/domain/apiresponses"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
+	"github.com/pivotal-cf/on-demand-service-broker/broker/fakes"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/noopservicescontroller"
+	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
 
@@ -52,6 +53,10 @@ var _ = Describe("deprovisioning instances", func() {
 		BeforeEach(func() {
 			var err error
 			b, err = createBroker([]broker.StartupChecker{}, noopservicescontroller.New())
+			boshVMs := map[string][]string{
+				"test": {"test"},
+			}
+			boshClient.VMsReturns(boshVMs, nil)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -326,6 +331,35 @@ var _ = Describe("deprovisioning instances", func() {
 			instanceID = "an-instance-with-pre-delete-errand"
 			deprovisionDetails.PlanID = preDeleteErrandPlanID
 			boshClient.RunErrandReturns(errandTaskID, nil)
+			boshVMs := map[string][]string{
+				"test": {"test"},
+			}
+			boshClient.VMsReturns(boshVMs, nil)
+		})
+
+		Context("and the errand has no instances", func() {
+			BeforeEach(func() {
+				boshClient.VMsReturnsOnCall(0, bosh.BoshVMs{}, nil)
+			})
+			It("successfully deprovisions despite being unable to run the errand", func() {
+				deprovisionSpec, deprovisionErr = b.Deprovision(
+					context.Background(),
+					instanceID,
+					deprovisionDetails,
+					asyncAllowed,
+				)
+
+				Expect(deprovisionSpec.IsAsync).To(BeTrue())
+
+				By("validating DeleteDeployment args")
+				Expect(boshClient.DeleteDeploymentCallCount()).To(Equal(1))
+				actualInstanceID, _, force, _, _ := boshClient.DeleteDeploymentArgsForCall(0)
+				Expect(actualInstanceID).To(Equal(deploymentName(instanceID)))
+				Expect(force).To(BeFalse())
+
+				By("ensuring errand is not executed")
+				Expect(boshClient.RunErrandCallCount()).To(Equal(0))
+			})
 		})
 
 		It("returns that is deprovisioning asynchronously", func() {

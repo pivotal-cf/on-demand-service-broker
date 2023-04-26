@@ -76,7 +76,9 @@ func (b *Broker) Deprovision(
 
 	operationType := b.getOperationType(deprovisionDetails.Force)
 	plan, found := b.serviceOffering.FindPlanByID(deprovisionDetails.PlanID)
-	if found {
+
+	vms, err := b.boshClient.VMs(deploymentName(instanceID), logger)
+	if found && len(vms) != 0 {
 		if errands := plan.PreDeleteErrands(); len(errands) != 0 {
 			serviceSpec, err := b.runPreDeleteErrands(ctx, instanceID, errands, operationType, logger)
 			return serviceSpec, b.processError(err, logger)
