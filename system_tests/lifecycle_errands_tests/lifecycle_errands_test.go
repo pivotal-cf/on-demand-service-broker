@@ -8,11 +8,10 @@ package lifecycle_tests
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
-
-	"regexp"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -27,9 +26,10 @@ var _ = Describe("lifecycle errand tests", func() {
 	var serviceInstanceName, planName string
 
 	const (
-		colocatedPostDeployPlan = "lifecycle-colocated-post-deploy-plan"
-		colocatedPreDeletePlan  = "lifecycle-colocated-pre-delete-plan"
-		redisSmall              = "redis-small"
+		colocatedPostDeployPlan   = "lifecycle-colocated-post-deploy-plan"
+		colocatedPreDeletePlan    = "lifecycle-colocated-pre-delete-plan"
+		redisSmall                = "redis-small"
+		zeroInstancePreDeletePlan = "lifecycle-zero-instances-colocated-pre-delete-plan"
 	)
 
 	BeforeEach(func() {
@@ -135,34 +135,59 @@ var _ = Describe("lifecycle errand tests", func() {
 	Describe("pre-delete", func() {
 		var deploymentName string
 
-		JustBeforeEach(func() {
-			By("creating an instance")
-			cf.CreateService(brokerInfo.ServiceName, planName, serviceInstanceName, "")
+		Context("deployment with VMs", func() {
+			JustBeforeEach(func() {
+				By("creating an instance")
+				cf.CreateService(brokerInfo.ServiceName, planName, serviceInstanceName, "")
 
-			deploymentName = getServiceDeploymentName(serviceInstanceName)
+				deploymentName = getServiceDeploymentName(serviceInstanceName)
 
-			By("deleting the service instance")
-			cf.DeleteService(serviceInstanceName)
+				By("deleting the service instance")
+				cf.DeleteService(serviceInstanceName)
+			})
+
+			Context("for a plan with colocated pre-delete errands", func() {
+				BeforeEach(func() {
+					planName = colocatedPreDeletePlan
+				})
+				JustBeforeEach(func() {
+					cf.AwaitServiceDeletion(serviceInstanceName)
+				})
+
+				It("runs the pre-delete errand before the delete", func() {
+					boshTasks := bosh_helpers.TasksForDeployment(deploymentName)
+
+					Expect(boshTasks[0].State).To(Equal(boshdirector.TaskDone))
+					Expect(boshTasks[0].Description).To(ContainSubstring("delete deployment"))
+
+					Expect(boshTasks[1].State).To(Equal(boshdirector.TaskDone))
+					Expect(boshTasks[1].Description).To(ContainSubstring("run errand"))
+				})
+			})
 		})
 
-		Context("for a plan with colocated pre-delete errands", func() {
+		FContext("deployment has no VMs", func() {
 			BeforeEach(func() {
-				planName = colocatedPreDeletePlan
+				planName = zeroInstancePreDeletePlan
 			})
 			JustBeforeEach(func() {
-				cf.AwaitServiceDeletion(serviceInstanceName)
+				By("creating an instance with no VMs")
+				cf.CreateService(brokerInfo.ServiceName, planName, serviceInstanceName, "")
+				deploymentName = getServiceDeploymentName(serviceInstanceName)
+				By("deleting the zero-vm service instance")
+				cf.DeleteService(serviceInstanceName)
 			})
-
-			It("runs the pre-delete errand before the delete", func() {
+			It("skips the pre-delete errand while successfully completing the delete", func() {
 				boshTasks := bosh_helpers.TasksForDeployment(deploymentName)
 
 				Expect(boshTasks[0].State).To(Equal(boshdirector.TaskDone))
 				Expect(boshTasks[0].Description).To(ContainSubstring("delete deployment"))
 
 				Expect(boshTasks[1].State).To(Equal(boshdirector.TaskDone))
-				Expect(boshTasks[1].Description).To(ContainSubstring("run errand"))
+				Expect(boshTasks[1].Description).NotTo(ContainSubstring("run errand"))
 			})
 		})
+
 	})
 })
 
