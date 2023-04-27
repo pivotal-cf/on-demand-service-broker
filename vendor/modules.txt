@@ -155,7 +155,7 @@ github.com/openzipkin/zipkin-go/model
 # github.com/pborman/uuid v1.2.1
 ## explicit
 github.com/pborman/uuid
-# github.com/pivotal-cf/brokerapi/v9 v9.0.0
+# github.com/pivotal-cf/brokerapi/v9 v9.0.1
 ## explicit; go 1.19
 github.com/pivotal-cf/brokerapi/v9
 github.com/pivotal-cf/brokerapi/v9/auth
