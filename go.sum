@@ -1,7 +1,7 @@
 cloud.google.com/go v0.34.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 code.cloudfoundry.org/clock v1.1.0 h1:XLzC6W3Ah/Y7ht1rmZ6+QfPdt1iGWEAAtIZXgiaj57c=
-code.cloudfoundry.org/credhub-cli v0.0.0-20230515130523-4bcb92fdb03a h1:mwJnxI5q3xo21+aUoiZ+Y2VXevhQ9kJ890DCCGxm7pU=
-code.cloudfoundry.org/credhub-cli v0.0.0-20230515130523-4bcb92fdb03a/go.mod h1:5EDhhSImeJMtYMP6pLMAtCV1kKjdJoBFtJ7KG4UZKJI=
+code.cloudfoundry.org/credhub-cli v0.0.0-20230522130856-439bdb21cbd1 h1:dGrFKcM334OQ8esPVdn6IASY++DJuROKItUtoV9aiLk=
+code.cloudfoundry.org/credhub-cli v0.0.0-20230522130856-439bdb21cbd1/go.mod h1:T962uE43j4EPPdxZLhRgCjTMkxjfh/Lkqpwu/KGVlkk=
 code.cloudfoundry.org/lager/v3 v3.0.1 h1:AI7h0EgCa4bJCCq0N8JV8EBP+tbJUIovqKc4hB4wZsA=
 code.cloudfoundry.org/lager/v3 v3.0.1/go.mod h1:zA6tOIWhr5uZUez+PGpdfBHDWQOfhOrr0cgKDagZPwk=
 code.cloudfoundry.org/tlsconfig v0.0.0-20230320190829-8f91c367795b h1:FjTuGbVBKeaSyvW7WEATlIFCyb0uCpaiuTSaMQXjUyY=
@@ -17,8 +17,8 @@ github.com/cloudfoundry-community/go-uaa v0.3.2-0.20230202170949-a3819b81bf7e h1
 github.com/cloudfoundry-community/go-uaa v0.3.2-0.20230202170949-a3819b81bf7e/go.mod h1:CZikL3h0Li3DtqoZULq6/bW4KIJsM1FOVxVLSEHROik=
 github.com/cloudfoundry/bosh-cli/v7 v7.2.3 h1:KeqiHKwD1XosatSztiOFMddAyBN61V+SKAeVSkVIZ3k=
 github.com/cloudfoundry/bosh-cli/v7 v7.2.3/go.mod h1:sOBe9HsUciEpuTUOSHJbkn+qg45oqHw0OrE86xfMNag=
-github.com/cloudfoundry/bosh-utils v0.0.364 h1:ZePxgI1B1w3QK1T9/oWxw0WhKZEYB5fxtqQhEscS3UE=
-github.com/cloudfoundry/bosh-utils v0.0.364/go.mod h1:8BO/6/Baa3NYbNKF3bGwBaqvRgfmLIfyhRzFXohB62Y=
+github.com/cloudfoundry/bosh-utils v0.0.365 h1:yXFpgUC1Cdk/9IEhfTf78nJyYp0ol7h7tfNrtyk/Y20=
+github.com/cloudfoundry/bosh-utils v0.0.365/go.mod h1:Gc+eRxbebC1jevksEgzQVXZp1FDzrlZ0MsdGVuEix5E=
 github.com/cloudfoundry/go-socks5 v0.0.0-20180221174514-54f73bdb8a8e h1:FQdRViaoDphGRfgrotl2QGsX1gbloe57dbGBS5CG6KY=
 github.com/cloudfoundry/go-socks5 v0.0.0-20180221174514-54f73bdb8a8e/go.mod h1:PXmcacyJB/pJjSxEl15IU6rEIKXrhZQRzsr0UTkgNNs=
 github.com/cloudfoundry/socks5-proxy v0.2.90 h1:0EOcMduuDtvgFqd8GkuJRN4/FseKgIxDnQBdEIHBpnU=
@@ -122,8 +122,8 @@ github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UV
 github.com/stretchr/testify v1.6.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/stretchr/testify v1.7.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/stretchr/testify v1.8.0/go.mod h1:yNjHg4UonilssWZ8iaSj1OCr/vHnekPRkoO+kdMU+MU=
-github.com/stretchr/testify v1.8.2 h1:+h33VjcLVPDHtOdpUCuF+7gSuG3yGIftsP1YvFihtJ8=
 github.com/stretchr/testify v1.8.2/go.mod h1:w2LPCIKwWwSfY2zedu0+kehJoqGctiVI29o6fzry7u4=
+github.com/stretchr/testify v1.8.3 h1:RP3t2pwF7cMEbC1dqtB6poj3niw/9gnV4Cjg5oW5gtY=
 github.com/urfave/negroni v1.0.0 h1:kIimOitoypq34K7TG7DUaJ9kq/N4Ofuwi1sjz0KipXc=
 github.com/urfave/negroni v1.0.0/go.mod h1:Meg73S6kFm/4PpbYdq35yYWoCZ9mS/YSx+lKnmiohz4=
 github.com/xeipuuv/gojsonpointer v0.0.0-20180127040702-4e3ac2762d5f h1:J9EGpcZtP0E/raorCMxlFGSTBrsSlaDGf3jU/qvAE2c=
