@@ -63,6 +63,9 @@ github.com/gabriel-vasile/mimetype
 github.com/gabriel-vasile/mimetype/internal/charset
 github.com/gabriel-vasile/mimetype/internal/json
 github.com/gabriel-vasile/mimetype/internal/magic
+# github.com/go-chi/chi/v5 v5.0.8
+## explicit; go 1.14
+github.com/go-chi/chi/v5
 # github.com/go-logr/logr v1.2.4
 ## explicit; go 1.16
 github.com/go-logr/logr
@@ -90,7 +93,7 @@ github.com/google/go-cmp/cmp/internal/diff
 github.com/google/go-cmp/cmp/internal/flags
 github.com/google/go-cmp/cmp/internal/function
 github.com/google/go-cmp/cmp/internal/value
-# github.com/google/pprof v0.0.0-20230510103437-eeec1cb781c3
+# github.com/google/pprof v0.0.0-20230602150820-91b7bce49751
 ## explicit; go 1.19
 github.com/google/pprof/profile
 # github.com/google/uuid v1.3.0
@@ -163,16 +166,13 @@ github.com/openzipkin/zipkin-go/model
 github.com/pborman/uuid
 # github.com/pivotal-cf/brokerapi/v10 v10.0.0
 ## explicit; go 1.19
+github.com/pivotal-cf/brokerapi/v10
+github.com/pivotal-cf/brokerapi/v10/auth
 github.com/pivotal-cf/brokerapi/v10/domain
-# github.com/pivotal-cf/brokerapi/v9 v9.0.1
-## explicit; go 1.19
-github.com/pivotal-cf/brokerapi/v9
-github.com/pivotal-cf/brokerapi/v9/auth
-github.com/pivotal-cf/brokerapi/v9/domain
-github.com/pivotal-cf/brokerapi/v9/domain/apiresponses
-github.com/pivotal-cf/brokerapi/v9/handlers
-github.com/pivotal-cf/brokerapi/v9/middlewares
-github.com/pivotal-cf/brokerapi/v9/utils
+github.com/pivotal-cf/brokerapi/v10/domain/apiresponses
+github.com/pivotal-cf/brokerapi/v10/handlers
+github.com/pivotal-cf/brokerapi/v10/middlewares
+github.com/pivotal-cf/brokerapi/v10/utils
 # github.com/pivotal-cf/on-demand-services-sdk v0.43.2-0.20230602221526-500584c2b2b2
 ## explicit; go 1.20
 github.com/pivotal-cf/on-demand-services-sdk/bosh
@@ -249,7 +249,7 @@ golang.org/x/text/internal/utf8internal
 golang.org/x/text/language
 golang.org/x/text/runes
 golang.org/x/text/transform
-# golang.org/x/tools v0.9.2
+# golang.org/x/tools v0.9.3
 ## explicit; go 1.18
 golang.org/x/tools/go/ast/astutil
 golang.org/x/tools/go/ast/inspector

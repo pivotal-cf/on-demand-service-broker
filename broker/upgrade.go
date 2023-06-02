@@ -10,11 +10,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	"log"
 
+	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
+
 	"github.com/pborman/uuid"
-	"github.com/pivotal-cf/brokerapi/v9/domain"
+	"github.com/pivotal-cf/brokerapi/v10/domain"
 )
 
 func (b *Broker) Upgrade(ctx context.Context, instanceID string, details domain.UpdateDetails, logger *log.Logger) (OperationData, string, error) {

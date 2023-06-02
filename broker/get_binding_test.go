@@ -2,12 +2,13 @@ package broker_test
 
 import (
 	"context"
-	"github.com/pivotal-cf/brokerapi/v9/domain"
 
 	"code.cloudfoundry.org/lager/v3"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf/brokerapi/v9/domain/apiresponses"
+
+	"github.com/pivotal-cf/brokerapi/v10/domain"
+	"github.com/pivotal-cf/brokerapi/v10/domain/apiresponses"
 )
 
 var _ = Describe("GetBinding", func() {

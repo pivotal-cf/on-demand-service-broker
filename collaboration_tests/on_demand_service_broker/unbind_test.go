@@ -16,15 +16,13 @@
 package on_demand_service_broker_test
 
 import (
+	"encoding/json"
 	"fmt"
-
-	"github.com/pivotal-cf/brokerapi/v9/domain/apiresponses"
-	brokerConfig "github.com/pivotal-cf/on-demand-service-broker/config"
-	"github.com/pkg/errors"
-
 	"net/http"
 
-	"encoding/json"
+	"github.com/pivotal-cf/brokerapi/v10/domain/apiresponses"
+	brokerConfig "github.com/pivotal-cf/on-demand-service-broker/config"
+	"github.com/pkg/errors"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
