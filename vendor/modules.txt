@@ -161,6 +161,9 @@ github.com/openzipkin/zipkin-go/model
 # github.com/pborman/uuid v1.2.1
 ## explicit
 github.com/pborman/uuid
+# github.com/pivotal-cf/brokerapi/v10 v10.0.0
+## explicit; go 1.19
+github.com/pivotal-cf/brokerapi/v10/domain
 # github.com/pivotal-cf/brokerapi/v9 v9.0.1
 ## explicit; go 1.19
 github.com/pivotal-cf/brokerapi/v9
@@ -170,7 +173,7 @@ github.com/pivotal-cf/brokerapi/v9/domain/apiresponses
 github.com/pivotal-cf/brokerapi/v9/handlers
 github.com/pivotal-cf/brokerapi/v9/middlewares
 github.com/pivotal-cf/brokerapi/v9/utils
-# github.com/pivotal-cf/on-demand-services-sdk v0.43.2-0.20230531125815-cc0d99b098d0
+# github.com/pivotal-cf/on-demand-services-sdk v0.43.2-0.20230602221526-500584c2b2b2
 ## explicit; go 1.20
 github.com/pivotal-cf/on-demand-services-sdk/bosh
 github.com/pivotal-cf/on-demand-services-sdk/serviceadapter
@@ -246,20 +249,20 @@ golang.org/x/text/internal/utf8internal
 golang.org/x/text/language
 golang.org/x/text/runes
 golang.org/x/text/transform
-# golang.org/x/tools v0.9.1
+# golang.org/x/tools v0.9.2
 ## explicit; go 1.18
 golang.org/x/tools/go/ast/astutil
 golang.org/x/tools/go/ast/inspector
 golang.org/x/tools/go/gcexportdata
 golang.org/x/tools/go/internal/packagesdriver
 golang.org/x/tools/go/packages
-golang.org/x/tools/go/types/objectpath
 golang.org/x/tools/go/types/typeutil
 golang.org/x/tools/imports
 golang.org/x/tools/internal/event
 golang.org/x/tools/internal/event/core
 golang.org/x/tools/internal/event/keys
 golang.org/x/tools/internal/event/label
+golang.org/x/tools/internal/event/tag
 golang.org/x/tools/internal/fastwalk
 golang.org/x/tools/internal/gcimporter
 golang.org/x/tools/internal/gocommand
