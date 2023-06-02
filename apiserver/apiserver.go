@@ -12,7 +12,6 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -21,11 +20,14 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/pivotal-cf/on-demand-service-broker/broker"
+
 	"code.cloudfoundry.org/lager/v3"
 	"github.com/gorilla/mux"
-	brokerapi "github.com/pivotal-cf/brokerapi/v9"
-	apiauth "github.com/pivotal-cf/brokerapi/v9/auth"
-	"github.com/pivotal-cf/brokerapi/v9/domain"
+
+	"github.com/pivotal-cf/brokerapi/v10"
+	apiauth "github.com/pivotal-cf/brokerapi/v10/auth"
+	"github.com/pivotal-cf/brokerapi/v10/domain"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 	"github.com/pivotal-cf/on-demand-service-broker/mgmtapi"

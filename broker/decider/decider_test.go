@@ -4,15 +4,16 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf/brokerapi/v9/domain"
-	"github.com/pivotal-cf/brokerapi/v9/domain/apiresponses"
-	"github.com/pivotal-cf/on-demand-service-broker/broker/decider"
-	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 	"io"
 	"log"
 	"net/http"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+	"github.com/pivotal-cf/brokerapi/v10/domain"
+	"github.com/pivotal-cf/brokerapi/v10/domain/apiresponses"
+	"github.com/pivotal-cf/on-demand-service-broker/broker/decider"
+	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 )
 
 var _ = Describe("Decider", func() {

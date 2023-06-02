@@ -18,14 +18,13 @@ package serviceadapter_test
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 
-	"github.com/pivotal-cf/brokerapi/v9/domain"
+	"github.com/pivotal-cf/brokerapi/v10/domain"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter/fakes"
-
-	"fmt"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"

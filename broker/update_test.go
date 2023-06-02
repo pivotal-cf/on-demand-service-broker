@@ -11,12 +11,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/pivotal-cf/on-demand-service-broker/broker/decider"
-	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 	"net/http"
 
-	"github.com/pivotal-cf/brokerapi/v9/domain"
-	"github.com/pivotal-cf/brokerapi/v9/domain/apiresponses"
+	"github.com/pivotal-cf/on-demand-service-broker/broker/decider"
+	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
+
+	"github.com/pivotal-cf/brokerapi/v10/domain"
+	"github.com/pivotal-cf/brokerapi/v10/domain/apiresponses"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 
 	. "github.com/onsi/ginkgo/v2"
