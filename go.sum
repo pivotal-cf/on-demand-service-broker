@@ -1,7 +1,7 @@
 cloud.google.com/go v0.34.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 code.cloudfoundry.org/clock v1.1.0 h1:XLzC6W3Ah/Y7ht1rmZ6+QfPdt1iGWEAAtIZXgiaj57c=
-code.cloudfoundry.org/credhub-cli v0.0.0-20230721011131-f2148eae45a3 h1:mX8GtiE4rbaFq5kZliq/IiM3U0ID509TQLuStZ/tUDk=
-code.cloudfoundry.org/credhub-cli v0.0.0-20230721011131-f2148eae45a3/go.mod h1:HiOMwsakwZCuVbhV1UfSq9wkZ3KHoR09mxuYd1lPShc=
+code.cloudfoundry.org/credhub-cli v0.0.0-20230724130814-3ea1e40d9368 h1:PkE9Zo0ZXhcv8jVeDTVROfQa583mtqnUKVKN2zHEFpg=
+code.cloudfoundry.org/credhub-cli v0.0.0-20230724130814-3ea1e40d9368/go.mod h1:YaoWN7JzCLDS4Gbjsemwptbe4pyBcoBVKiRRuNOzJWg=
 code.cloudfoundry.org/lager/v3 v3.0.2 h1:H0dcQY+814G1Ea0e5K/AMaMpcr+Pe5Iv+AALJEwrP9U=
 code.cloudfoundry.org/lager/v3 v3.0.2/go.mod h1:zA6tOIWhr5uZUez+PGpdfBHDWQOfhOrr0cgKDagZPwk=
 code.cloudfoundry.org/tlsconfig v0.0.0-20230612153104-23c0622de227 h1:QYyb6Ur0Ys6FciDB3+8zCW3eVk7AxAs2++Foa5DAdt0=
@@ -97,8 +97,8 @@ github.com/onsi/ginkgo/v2 v2.11.0 h1:WgqUCUt/lT6yXoQ8Wef0fsNn5cAuMK7+KT9UFRz2tcU
 github.com/onsi/ginkgo/v2 v2.11.0/go.mod h1:ZhrRA5XmEE3x3rhlzamx/JJvujdZoJ2uvgI7kR0iZvM=
 github.com/onsi/gomega v1.7.1/go.mod h1:XdKZgCCFLUoM/7CFJVPcG8C1xQ1AJ0vpAezJrB7JYyY=
 github.com/onsi/gomega v1.10.3/go.mod h1:V9xEwhxec5O8UDM77eCW8vLymOMltsqPVYWrpDsH8xc=
-github.com/onsi/gomega v1.27.9 h1:qIyVWbOsvQEye2QCqLsNSeH/5L1RS9vS382erEWfT3o=
-github.com/onsi/gomega v1.27.9/go.mod h1:RsS8tutOdbdgzbPtzzATp12yT7kM5I5aElG3evPbQ0M=
+github.com/onsi/gomega v1.27.10 h1:naR28SdDFlqrG6kScpT8VWpu1xWY5nJRCF3XaYyBjhI=
+github.com/onsi/gomega v1.27.10/go.mod h1:RsS8tutOdbdgzbPtzzATp12yT7kM5I5aElG3evPbQ0M=
 github.com/openzipkin/zipkin-go v0.4.1 h1:kNd/ST2yLLWhaWrkgchya40TJabe8Hioj9udfPcEO5A=
 github.com/openzipkin/zipkin-go v0.4.1/go.mod h1:qY0VqDSN1pOBN94dBc6w2GJlWLiovAyg7Qt6/I9HecM=
 github.com/pborman/uuid v1.2.1 h1:+ZZIw58t/ozdjRaXh/3awHfmWRbzYxJoAdNJxe/3pvw=
