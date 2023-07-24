@@ -122,7 +122,7 @@ func AwaitServiceCreationWithTimeout(serviceName string, timeout time.Duration) 
 
 func AwaitServiceDeletion(serviceName string) {
 	awaitServiceOperation(cfService(serviceName),
-		ContainSubstring(fmt.Sprintf("Service instance %s not found", serviceName)),
+		ContainSubstring(fmt.Sprintf("Service instance '%s' not found", serviceName)),
 		ContainSubstring("failed"),
 		LongCfTimeout,
 	)
@@ -152,6 +152,7 @@ func awaitServiceOperation(
 	failureMessageMatcher types.GomegaMatcher,
 	timeout time.Duration,
 ) {
+	GinkgoHelper()
 	Eventually(func() bool {
 		session := cfCommand()
 		Expect(session).To(gexec.Exit())
