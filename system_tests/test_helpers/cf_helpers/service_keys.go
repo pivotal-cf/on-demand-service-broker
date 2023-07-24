@@ -21,6 +21,7 @@ import (
 
 	"github.com/onsi/gomega/gexec"
 
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
@@ -31,12 +32,25 @@ func CreateServiceKey(serviceName, serviceKeyName string) {
 }
 
 func GetServiceKey(serviceName, serviceKeyName string) string {
+	GinkgoHelper()
+
 	serviceKey := Cf("service-key", serviceName, serviceKeyName)
 	Expect(serviceKey).To(gexec.Exit(0))
 	serviceKeyContent := string(serviceKey.Buffer().Contents())
 
 	firstBracket := strings.Index(serviceKeyContent, "{")
-	return serviceKeyContent[firstBracket:]
+
+	var m map[string]any
+	Expect(json.Unmarshal([]byte(serviceKeyContent[firstBracket:]), &m)).To(Succeed())
+
+	if nested, ok := m["credentials"].(map[string]any); ok {
+		m = nested
+	}
+
+	serviceKeyRaw, err := json.Marshal(m)
+	Expect(err).NotTo(HaveOccurred())
+
+	return string(serviceKeyRaw)
 }
 
 func DeleteServiceKey(serviceName, serviceKeyName string) {
