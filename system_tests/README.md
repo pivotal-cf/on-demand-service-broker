@@ -4,7 +4,7 @@ System tests are end-to-end tests that validate specific broker behaviours by us
 
 Running the tests:
 - Locally 
-  - These tests require cf cli v8, tests may fail under older cli versions.
+  - These tests require cf cli v6, tests may fail under newer cli versions.
   - The system tests require a cf-redis-example-app is cloned locally in ~/workspace/cf-redis-example-app.
   - The system tests require a cf-kafka-example-app is cloned locally in ~/workspace/cf-kafka-example-app.
   - Running these tests are time-consuming, and it may be prudent to only run the system tests relevant to the feature you are working on.
