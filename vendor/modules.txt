@@ -9,6 +9,12 @@ code.cloudfoundry.org/credhub-cli/credhub/credentials/values
 code.cloudfoundry.org/credhub-cli/credhub/permissions
 code.cloudfoundry.org/credhub-cli/credhub/server
 code.cloudfoundry.org/credhub-cli/errors
+# code.cloudfoundry.org/jsonry v1.1.4
+## explicit; go 1.16
+code.cloudfoundry.org/jsonry
+code.cloudfoundry.org/jsonry/internal/errorcontext
+code.cloudfoundry.org/jsonry/internal/path
+code.cloudfoundry.org/jsonry/internal/tree
 # code.cloudfoundry.org/lager/v3 v3.0.2
 ## explicit; go 1.19
 code.cloudfoundry.org/lager/v3

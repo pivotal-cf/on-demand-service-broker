@@ -7,10 +7,12 @@
 package broker_registration_tests
 
 import (
+	"code.cloudfoundry.org/jsonry"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
+
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
 	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/cf_helpers"
 )
@@ -21,16 +23,21 @@ var _ = Describe("broker registration errands", func() {
 			It("can see the service and all plans in the marketplace regardless of cf_service_access", func() {
 				cfLogInAsAdmin()
 
-				marketplaceSession := cf.Cf("marketplace", "-s", brokerInfo.ServiceName)
+				marketplaceSession := cf.Cf("curl", "/v3/service_plans?service_offering_names="+brokerInfo.ServiceName)
 
-				By("confirming the registered offerings in the marketplace")
-				Expect(marketplaceSession).To(gbytes.Say(brokerInfo.ServiceName))
-				Expect(marketplaceSession).To(gbytes.Say("default-plan"))
-				Expect(marketplaceSession).To(gbytes.Say("enabled-plan"))
-				Expect(marketplaceSession).To(gbytes.Say("disabled-plan"))
-				Expect(marketplaceSession).To(gbytes.Say("org-restricted-plan"))
-				Expect(marketplaceSession).To(gbytes.Say("manual-plan"))
+				var response struct {
+					Names []string `jsonry:"resources[].name"`
+				}
 
+				Expect(jsonry.Unmarshal(marketplaceSession.Out.Contents(), &response)).To(Succeed())
+				Expect(response.Names).To(ConsistOf(
+					"default-plan",
+					"enabled-plan",
+					"disabled-plan",
+					"org-restricted-plan",
+					"org-restricted-plan-2",
+					"manual-plan",
+				))
 				Expect(marketplaceSession).To(gexec.Exit(0))
 			})
 		})
@@ -42,7 +49,7 @@ var _ = Describe("broker registration errands", func() {
 
 			When("cf_service_access is not set for one of the plans", func() {
 				It("should be visible in the marketplace, as it's enabled by default", func() {
-					marketplaceSession := cf.Cf("marketplace", "-s", brokerInfo.ServiceName)
+					marketplaceSession := cf.Cf("marketplace", "-e", brokerInfo.ServiceName)
 					Expect(marketplaceSession).To(gbytes.Say(brokerInfo.ServiceName))
 					Expect(marketplaceSession).To(gbytes.Say("default-plan"))
 				})
@@ -50,7 +57,7 @@ var _ = Describe("broker registration errands", func() {
 
 			When("cf_service_access is set to enable for one of the plans", func() {
 				It("should be visible in the marketplace", func() {
-					marketplaceSession := cf.Cf("marketplace", "-s", brokerInfo.ServiceName)
+					marketplaceSession := cf.Cf("marketplace", "-e", brokerInfo.ServiceName)
 					Expect(marketplaceSession).To(gbytes.Say(brokerInfo.ServiceName))
 					Expect(marketplaceSession).To(gbytes.Say("enabled-plan"))
 				})
@@ -59,7 +66,7 @@ var _ = Describe("broker registration errands", func() {
 			When("cf_service_access is set to disable for one of the plans", func() {
 				It("will disable access when the broker is re-registered", func() {
 					By("should not be visible in the marketplace")
-					marketplaceSession := cf.Cf("marketplace", "-s", brokerInfo.ServiceName)
+					marketplaceSession := cf.Cf("marketplace", "-e", brokerInfo.ServiceName)
 					Expect(marketplaceSession).To(gbytes.Say(brokerInfo.ServiceName))
 					Expect(marketplaceSession).ToNot(gbytes.Say("disabled-plan"))
 
@@ -71,14 +78,14 @@ var _ = Describe("broker registration errands", func() {
 
 					By("confirming the plan is now visible to space devs in the marketplace")
 					cfLogInAsSpaceDev()
-					allEnabledMarketplaceSession := cf.Cf("marketplace", "-s", brokerInfo.ServiceName)
+					allEnabledMarketplaceSession := cf.Cf("marketplace", "-e", brokerInfo.ServiceName)
 					Expect(allEnabledMarketplaceSession).To(gbytes.Say("disabled-plan"))
 
 					By("re-registering the broker")
 					bosh_helpers.RunErrand(brokerInfo.DeploymentName, "register-broker")
 
 					By("confirming the disabled-plan is now disabled again")
-					allButInactiveMarketplaceSession := cf.Cf("marketplace", "-s", brokerInfo.ServiceName)
+					allButInactiveMarketplaceSession := cf.Cf("marketplace", "-e", brokerInfo.ServiceName)
 					Expect(allButInactiveMarketplaceSession).ToNot(gbytes.Say("disabled-plan"))
 				})
 			})
@@ -92,7 +99,7 @@ var _ = Describe("broker registration errands", func() {
 
 				It("has to be enabled manually", func() {
 					By("should not be visible in the marketplace")
-					marketplaceSession := cf.Cf("marketplace", "-s", brokerInfo.ServiceName)
+					marketplaceSession := cf.Cf("marketplace", "-e", brokerInfo.ServiceName)
 					Expect(marketplaceSession).To(gbytes.Say(brokerInfo.ServiceName))
 					Expect(marketplaceSession).ToNot(gbytes.Say("manual-plan"))
 
@@ -103,14 +110,14 @@ var _ = Describe("broker registration errands", func() {
 
 					By("confirming the manual plan is now visible to space devs in the marketplace")
 					cfLogInAsSpaceDev()
-					allEnabledMarketplaceSession := cf.Cf("marketplace", "-s", brokerInfo.ServiceName)
+					allEnabledMarketplaceSession := cf.Cf("marketplace", "-e", brokerInfo.ServiceName)
 					Expect(allEnabledMarketplaceSession).To(gbytes.Say("manual-plan"))
 
 					By("re-registering the broker")
 					bosh_helpers.RunErrand(brokerInfo.DeploymentName, "register-broker")
 
 					By("confirming the manual plan is still visible to space devs in the marketplace")
-					allButInactiveMarketplaceSession := cf.Cf("marketplace", "-s", brokerInfo.ServiceName)
+					allButInactiveMarketplaceSession := cf.Cf("marketplace", "-e", brokerInfo.ServiceName)
 					Expect(allButInactiveMarketplaceSession).To(gbytes.Say("manual-plan"))
 				})
 			})
@@ -119,7 +126,7 @@ var _ = Describe("broker registration errands", func() {
 				It("should be visible when logged in user belongs to the correct org", func() {
 					cfLogInAsDefaultSpaceDev()
 
-					marketplaceSession := cf.Cf("marketplace", "-s", brokerInfo.ServiceName)
+					marketplaceSession := cf.Cf("marketplace", "-e", brokerInfo.ServiceName)
 					Expect(marketplaceSession).To(gexec.Exit(0))
 					Expect(string(marketplaceSession.Buffer().Contents())).To(SatisfyAll(
 						ContainSubstring(brokerInfo.ServiceName),
@@ -131,7 +138,7 @@ var _ = Describe("broker registration errands", func() {
 				It("should not be visible when logged in user belongs to different org", func() {
 					cfLogInAsSpaceDev()
 
-					marketplaceSession := cf.Cf("marketplace", "-s", brokerInfo.ServiceName)
+					marketplaceSession := cf.Cf("marketplace", "-e", brokerInfo.ServiceName)
 					Expect(marketplaceSession).To(gbytes.Say(brokerInfo.ServiceName))
 					Expect(marketplaceSession).ToNot(gbytes.Say("org-restricted-plan"))
 				})
@@ -145,7 +152,7 @@ var _ = Describe("broker registration errands", func() {
 
 					By("making sure that the space dev can see the about-to-be-limited plan", func() {
 						cfLogInAsSpaceDev()
-						marketplaceSession := cf.Cf("marketplace", "-s", brokerInfo.ServiceName)
+						marketplaceSession := cf.Cf("marketplace", "-e", brokerInfo.ServiceName)
 						Expect(marketplaceSession).To(gexec.Exit(0))
 						Expect(marketplaceSession).To(gbytes.Say("org-restricted-plan-2"))
 					})
@@ -156,14 +163,14 @@ var _ = Describe("broker registration errands", func() {
 
 					By("making sure that the space dev now cannot see that", func() {
 						cfLogInAsSpaceDev()
-						marketplaceSession := cf.Cf("marketplace", "-s", brokerInfo.ServiceName)
+						marketplaceSession := cf.Cf("marketplace", "-e", brokerInfo.ServiceName)
 						Expect(marketplaceSession).To(gexec.Exit(0))
 						Expect(marketplaceSession).ToNot(gbytes.Say("org-restricted-plan-2"))
 					})
 
 					By("making sure that the authorised space dev now can see that", func() {
 						cfLogInAsDefaultSpaceDev()
-						marketplaceSession := cf.Cf("marketplace", "-s", brokerInfo.ServiceName)
+						marketplaceSession := cf.Cf("marketplace", "-e", brokerInfo.ServiceName)
 						Expect(marketplaceSession).To(gexec.Exit(0))
 						Expect(marketplaceSession).To(gbytes.Say("org-restricted-plan-2"))
 					})
@@ -179,7 +186,7 @@ var _ = Describe("broker registration errands", func() {
 					bosh_helpers.RunErrand(brokerInfo.DeploymentName, "register-broker")
 
 					cfLogInAsDefaultSpaceDev()
-					marketplaceSession := cf.Cf("marketplace", "-s", brokerInfo.ServiceName)
+					marketplaceSession := cf.Cf("marketplace", "-e", brokerInfo.ServiceName)
 					Expect(marketplaceSession).To(gexec.Exit(0))
 
 					Expect(string(marketplaceSession.Buffer().Contents())).To(SatisfyAll(

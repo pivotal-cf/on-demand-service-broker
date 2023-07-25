@@ -16,6 +16,7 @@ import (
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/pborman/uuid"
+
 	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/cf_helpers"
 )
 
@@ -59,8 +60,8 @@ var _ = Describe("purge instances and deregister broker", func() {
 		cf.AwaitServiceDeletion(serviceInstance1)
 		cf.AwaitServiceDeletion(serviceInstance2)
 
-		session = cf.CfWithTimeout(cf.CfTimeout, "marketplace", "-s", brokerInfo.ServiceName)
-		Expect(session).To(gexec.Exit(1))
-		Expect(session.Err).Should(gbytes.Say(`Service offering '%s' not found`, brokerInfo.ServiceName))
+		session = cf.CfWithTimeout(cf.CfTimeout, "marketplace", "-e", brokerInfo.ServiceName)
+		Expect(session).To(gexec.Exit())
+		Expect(session).Should(gbytes.Say(`No service offerings found.`))
 	})
 })

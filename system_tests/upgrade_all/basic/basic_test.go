@@ -24,6 +24,7 @@ import (
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/pborman/uuid"
+
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/cf_helpers"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/service_helpers"
@@ -188,7 +189,7 @@ var _ = Describe("upgrade-all-service-instances errand, basic operation", func()
 					identifier := fmt.Sprintf("instance %d", i)
 					session := cf_helpers.Cf("service", app.ServiceName)
 					Expect(session).To(gexec.Exit(0))
-					Expect(session).To(SatisfyAll(gbytes.Say("Showing available upgrade details for this service")), identifier)
+					Expect(session).To(gbytes.Say("There is an upgrade available for this service"), identifier)
 				}
 			})
 
