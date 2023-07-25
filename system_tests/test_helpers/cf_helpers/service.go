@@ -9,7 +9,7 @@ package cf_helpers
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -122,7 +122,7 @@ func AwaitServiceCreationWithTimeout(serviceName string, timeout time.Duration) 
 
 func AwaitServiceDeletion(serviceName string) {
 	awaitServiceOperation(cfService(serviceName),
-		ContainSubstring(fmt.Sprintf("Service instance '%s' not found", serviceName)),
+		MatchRegexp(`Service instance '?%s'? not found`, regexp.QuoteMeta(serviceName)),
 		ContainSubstring("failed"),
 		LongCfTimeout,
 	)
