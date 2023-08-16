@@ -11,12 +11,12 @@ require (
 	github.com/cloudfoundry/bosh-utils v0.0.384
 	github.com/craigfurman/herottp v0.0.0-20190418132442-c546d62f2a8d
 	github.com/gorilla/mux v1.8.0
-	github.com/maxbrunsfeld/counterfeiter/v6 v6.6.2
+	github.com/maxbrunsfeld/counterfeiter/v6 v6.7.0
 	github.com/onsi/ginkgo/v2 v2.11.0
 	github.com/onsi/gomega v1.27.10
 	github.com/pborman/uuid v1.2.1
 	github.com/pivotal-cf/brokerapi/v10 v10.0.0
-	github.com/pivotal-cf/on-demand-services-sdk v0.43.3-0.20230807121747-8364c5eb1dd6
+	github.com/pivotal-cf/on-demand-services-sdk v0.43.3-0.20230816125140-809e62e8b09b
 	github.com/pkg/errors v0.9.1
 	github.com/urfave/negroni v1.0.0
 	github.com/xeipuuv/gojsonschema v1.2.0
