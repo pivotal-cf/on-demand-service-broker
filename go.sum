@@ -1,7 +1,7 @@
 cloud.google.com/go v0.34.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 code.cloudfoundry.org/clock v1.1.0 h1:XLzC6W3Ah/Y7ht1rmZ6+QfPdt1iGWEAAtIZXgiaj57c=
-code.cloudfoundry.org/credhub-cli v0.0.0-20230814130401-58c87c63cde2 h1:2FA2YyrRwq80E7LwKfFIjA4Pz8HgvJdULJiP4BAwZT0=
-code.cloudfoundry.org/credhub-cli v0.0.0-20230814130401-58c87c63cde2/go.mod h1:69XobC/Erv0DRdeLHjookvWYlINsFpI2e5tlkoC3Q9s=
+code.cloudfoundry.org/credhub-cli v0.0.0-20230817233335-464dea5e57ce h1:eqmdbal8+tnjmF/V18olOPsJJf0CebDuaPqb1MnVUig=
+code.cloudfoundry.org/credhub-cli v0.0.0-20230817233335-464dea5e57ce/go.mod h1:ElhhVszIbwFeTmmvrWxAfrHyk0yc0tNasiBv/abUzT0=
 code.cloudfoundry.org/lager/v3 v3.0.2 h1:H0dcQY+814G1Ea0e5K/AMaMpcr+Pe5Iv+AALJEwrP9U=
 code.cloudfoundry.org/lager/v3 v3.0.2/go.mod h1:zA6tOIWhr5uZUez+PGpdfBHDWQOfhOrr0cgKDagZPwk=
 code.cloudfoundry.org/tlsconfig v0.0.0-20230612153104-23c0622de227 h1:QYyb6Ur0Ys6FciDB3+8zCW3eVk7AxAs2++Foa5DAdt0=
