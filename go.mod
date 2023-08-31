@@ -1,6 +1,8 @@
 module github.com/pivotal-cf/on-demand-service-broker
 
-go 1.20
+go 1.21
+
+toolchain go1.21.0
 
 require (
 	code.cloudfoundry.org/credhub-cli v0.0.0-20230828130455-fa48b5292e2e
