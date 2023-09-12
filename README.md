@@ -12,7 +12,7 @@ This repository is the broker implementation. To build a service that uses the b
 
 ## User Documentation
 
-User documentation can be found [here](https://docs.pivotal.io/svc-sdk/odb). Documentation is targeted at service authors wishing to deploy their services on-demand and operators wanting to offer services on-demand.
+User documentation can be found [here](https://docs.vmware.com/en/On-Demand-Services-SDK-for-VMware-Tanzu/index.html). Documentation is targeted at service authors wishing to deploy their services on-demand and operators wanting to offer services on-demand.
 
 ## Development
 
