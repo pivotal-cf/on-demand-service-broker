@@ -146,9 +146,7 @@ func (it *Iterator) IterateInstancesWithAttempts() error {
 		it.logRetryAttempt(attempt)
 
 		for it.iteratorState.HasInstancesToProcess() {
-			if !it.iteratorState.HasFailures() {
-				it.triggerOperation()
-			}
+			it.triggerOperation()
 			it.pollRunningTasks()
 
 			if it.iteratorState.HasInstancesProcessing() {
@@ -156,13 +154,13 @@ func (it *Iterator) IterateInstancesWithAttempts() error {
 				continue
 			}
 
-			if it.iteratorState.HasFailures() {
-				return it.formatError()
-			}
-
 			if it.iteratorState.IsProcessingCanaries() && it.iteratorState.CurrentPhaseIsComplete() {
-				return nil
+				return it.formatError() // returns nil if no errors
 			}
+		}
+
+		if it.iteratorState.HasFailures() {
+			return it.formatError()
 		}
 
 		it.reportProgress()

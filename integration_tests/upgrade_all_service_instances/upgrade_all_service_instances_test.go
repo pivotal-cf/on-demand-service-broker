@@ -19,10 +19,11 @@ import (
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/ghttp"
+	"gopkg.in/yaml.v2"
+
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	. "github.com/pivotal-cf/on-demand-service-broker/integration_tests/helpers"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
-	"gopkg.in/yaml.v2"
 )
 
 const (
@@ -230,6 +231,52 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 						gbytes.Say(`\[upgrade\-all\] FINISHED PROCESSING Status: SUCCESS`),
 						gbytes.Say("Number of successful operations: 1"),
 					))
+				})
+			})
+
+			When("a single upgrade fails in the middle of multiple instance upgrades", func() {
+				var runningTool *gexec.Session
+
+				BeforeEach(func() {
+					serviceInstanceList := `[{"plan_id": "service-plan-id", "service_instance_id": "first-instance"},
+						{"plan_id": "service-plan-id", "service_instance_id": "second-instance"},
+						{"plan_id": "service-plan-id", "service_instance_id": "third-instance"},
+						{"plan_id": "service-plan-id", "service_instance_id": "fourth-instance"}]`
+					serviceInstancesHandler.WithQueryParams().RespondsWith(http.StatusOK, serviceInstanceList)
+
+					lastOperationHandler.RespondsOnCall(0, http.StatusOK, `{"state":"in progress"}`)
+					lastOperationHandler.RespondsOnCall(1, http.StatusOK, `{"state":"succeeded"}`)
+					lastOperationHandler.RespondsOnCall(2, http.StatusOK, `{"state":"in progress"}`)
+					lastOperationHandler.RespondsOnCall(3, http.StatusOK, `{"state":"succeeded"}`)
+					lastOperationHandler.RespondsOnCall(4, http.StatusOK, `{"state":"in progress"}`)
+					lastOperationHandler.RespondsOnCall(5, http.StatusOK, `{"state":"failed"}`) // FAIL
+					lastOperationHandler.RespondsOnCall(6, http.StatusOK, `{"state":"in progress"}`)
+					lastOperationHandler.RespondsOnCall(7, http.StatusOK, `{"state":"succeeded"}`)
+				})
+
+				It("upgrades instances beyond the point of failure while still returning an error", func() {
+					runningTool = startUpgradeAllInstanceBinary(errandConfig)
+
+					By("returning overall errand failure")
+					Eventually(runningTool, 5*time.Second).Should(gexec.Exit(1))
+
+					By("attempting to upgrade all instances and continuing in spite of failure")
+					Expect(runningTool).To(SatisfyAll(
+						gbytes.Say(`Service Instances: first\-instance second\-instance third\-instance`),
+						gbytes.Say(`\[first\-instance\] Starting to process`),
+						gbytes.Say(`\[first\-instance\] Result: Service Instance operation success`),
+						gbytes.Say(`\[second\-instance\] Starting to process`),
+						gbytes.Say(`\[second\-instance\] Result: Service Instance operation success`),
+						gbytes.Say(`\[third\-instance\] Starting to process`),
+						gbytes.Say(`\[third\-instance\] Result: Service Instance operation failure`),
+						gbytes.Say(`\[fourth\-instance\] Starting to process`),
+						gbytes.Say(`\[fourth\-instance\] Result: Service Instance operation success`)))
+
+					By("reporting accurate success and failure counts")
+					Expect(runningTool).To(SatisfyAll(
+						gbytes.Say(`PROCESSING Status: FAILED; Summary: Number of successful operations: 3;`),
+						gbytes.Say(`Number of skipped operations: 0;`),
+						gbytes.Say(`Number of service instances that failed to process: 1 \[third\-instance\]`)))
 				})
 			})
 		})

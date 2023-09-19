@@ -9,10 +9,10 @@ package instanceiterator_test
 import (
 	"errors"
 	"fmt"
-	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
+	"sync"
 	"time"
 
-	"sync"
+	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -379,7 +379,7 @@ var _ = Describe("Iterator", func() {
 			hasReportedFinished(fakeListener, 0, 2, 0, []string{states[1].instance.GUID}, []string{})
 		})
 
-		It("returns an error when an last operation returns a failure", func() {
+		It("returns an error when any operation returns a failure", func() {
 			states := []*testState{
 				{instance: service.Instance{GUID: "1"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 1},
 				{instance: service.Instance{GUID: "2"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationFailed}, taskID: 2},
@@ -403,14 +403,17 @@ var _ = Describe("Iterator", func() {
 
 			allowToProceed(states[0].controller)
 			expectToHaveStarted(states[1].controller)
+			expectToHaveNotStarted(states[2].controller)
 
 			allowToProceed(states[1].controller)
+			expectToHaveStarted(states[2].controller)
+			allowToProceed(states[2].controller)
 
 			wg.Wait()
 
 			Expect(iteratorError).To(MatchError(ContainSubstring(fmt.Sprintf("[%s] Operation failed: bosh task id %d", states[1].instance.GUID, states[1].taskID))))
 
-			hasReportedFinished(fakeListener, 0, 1, 0, []string{}, []string{states[1].instance.GUID})
+			hasReportedFinished(fakeListener, 0, 2, 0, []string{}, []string{states[1].instance.GUID})
 		})
 
 		It("retries until a deleted instance is detected", func() {
@@ -527,7 +530,7 @@ var _ = Describe("Iterator", func() {
 			hasReportedFinished(fakeListener, 0, 6, 0, []string{}, []string{})
 		})
 
-		It("returns multiple errors if multiple instances fail to upgrade", func() {
+		It("returns multiple errors if multiple in-flight instances fail to upgrade", func() {
 			states := []*testState{
 				{instance: service.Instance{GUID: "1"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationFailed}, taskID: 1},
 				{instance: service.Instance{GUID: "2"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationFailed}, taskID: 2},
@@ -550,6 +553,9 @@ var _ = Describe("Iterator", func() {
 			expectToHaveNotStarted(states[2].controller)
 			allowToProceed(states[0].controller, states[1].controller)
 
+			expectToHaveStarted(states[2].controller)
+			allowToProceed(states[2].controller)
+
 			wg.Wait()
 
 			Expect(iteratorError).To(HaveOccurred())
@@ -560,7 +566,50 @@ var _ = Describe("Iterator", func() {
 			))
 			hasReportedOperationState(fakeListener, 0, states[0].instance.GUID, "failure")
 			hasReportedOperationState(fakeListener, 1, states[1].instance.GUID, "failure")
-			hasReportedFinished(fakeListener, 0, 0, 0, []string{}, []string{states[0].instance.GUID, states[1].instance.GUID})
+			hasReportedFinished(fakeListener, 0, 1, 0, []string{}, []string{states[0].instance.GUID, states[1].instance.GUID})
+
+		})
+
+		It("returns multiple errors if multiple serial instances fail to upgrade", func() {
+			states := []*testState{
+				{instance: service.Instance{GUID: "1"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 1},
+				{instance: service.Instance{GUID: "2"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 2},
+				{instance: service.Instance{GUID: "3"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationFailed}, taskID: 3},
+				{instance: service.Instance{GUID: "4"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 4},
+				{instance: service.Instance{GUID: "5"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationFailed}, taskID: 5}}
+			setupTest(states, fakeBrokerServicesClient, fakeTriggerer)
+
+			iterator := instanceiterator.New(&builder)
+
+			var wg sync.WaitGroup
+			wg.Add(1)
+			go func() {
+				defer GinkgoRecover()
+				defer wg.Done()
+				iteratorError = iterator.Iterate()
+			}()
+
+			expectToHaveStarted(states[0].controller)
+			allowToProceed(states[0].controller)
+			expectToHaveStarted(states[1].controller)
+			allowToProceed(states[1].controller)
+			expectToHaveStarted(states[2].controller)
+			allowToProceed(states[2].controller)
+			expectToHaveStarted(states[3].controller)
+			allowToProceed(states[3].controller)
+			expectToHaveStarted(states[4].controller)
+			allowToProceed(states[4].controller)
+			wg.Wait()
+
+			Expect(iteratorError).To(HaveOccurred())
+			Expect(iteratorError.Error()).To(SatisfyAll(
+				ContainSubstring("2 errors occurred"),
+				ContainSubstring(fmt.Sprintf("[%s] Operation failed: bosh task id %d: ", states[2].instance.GUID, states[2].taskID)),
+				ContainSubstring(fmt.Sprintf("[%s] Operation failed: bosh task id %d: ", states[4].instance.GUID, states[4].taskID)),
+			))
+			hasReportedOperationState(fakeListener, 2, states[2].instance.GUID, "failure")
+			hasReportedOperationState(fakeListener, 4, states[4].instance.GUID, "failure")
+			hasReportedFinished(fakeListener, 0, 3, 0, []string{}, []string{states[2].instance.GUID, states[4].instance.GUID})
 		})
 	})
 
