@@ -9,9 +9,10 @@ package instanceiterator_test
 import (
 	"errors"
 	"fmt"
-	"github.com/pivotal-cf/on-demand-service-broker/instanceiterator"
 	"testing"
 	"time"
+
+	"github.com/pivotal-cf/on-demand-service-broker/instanceiterator"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -77,6 +78,7 @@ func setupTest(states []*testState, brokerServices *fakes.FakeBrokerServices, fa
 }
 
 func hasReportedFinished(fakeListener *fakes.FakeListener, expectedOrphans, expectedProcessed, expectedDeleted int, expectedBusyInstances []string, expectedFailedInstances []string) {
+	GinkgoHelper()
 	Expect(fakeListener.FinishedCallCount()).To(Equal(1), "Finished call count")
 	orphanCount, processedCount, _, deletedCount, busyInstances, failedInstances := fakeListener.FinishedArgsForCall(0)
 	Expect(orphanCount).To(Equal(expectedOrphans), "orphans")
@@ -87,11 +89,13 @@ func hasReportedFinished(fakeListener *fakes.FakeListener, expectedOrphans, expe
 }
 
 func hasSlept(fakeSleeper *fakes.FakeSleeper, callIndex int, expectedInterval time.Duration) {
+	GinkgoHelper()
 	Expect(fakeSleeper.SleepCallCount()).To(BeNumerically(">", callIndex))
 	Expect(fakeSleeper.SleepArgsForCall(callIndex)).To(Equal(expectedInterval))
 }
 
 func hasReportedAttempts(fakeListener *fakes.FakeListener, index, attempt, limit int) {
+	GinkgoHelper()
 	Expect(fakeListener.RetryAttemptCallCount()).To(BeNumerically(">", index), "Retries call count")
 	c, l := fakeListener.RetryAttemptArgsForCall(index)
 	Expect(c).To(Equal(attempt))
@@ -99,6 +103,7 @@ func hasReportedAttempts(fakeListener *fakes.FakeListener, index, attempt, limit
 }
 
 func hasReportedCanaryAttempts(fakeListener *fakes.FakeListener, count, limit, remaining int) {
+	GinkgoHelper()
 	Expect(fakeListener.RetryCanariesAttemptCallCount()).To(Equal(count), "Canary retries call count")
 	for i := 0; i < count; i++ {
 		c, l, r := fakeListener.RetryCanariesAttemptArgsForCall(i)
@@ -109,6 +114,7 @@ func hasReportedCanaryAttempts(fakeListener *fakes.FakeListener, count, limit, r
 }
 
 func hasReportedRetries(fakeListener *fakes.FakeListener, expectedPendingInstancesCount ...int) {
+	GinkgoHelper()
 	for i, expectedRetryCount := range expectedPendingInstancesCount {
 		_, _, _, _, toRetryCount, _ := fakeListener.ProgressArgsForCall(i)
 		Expect(toRetryCount).To(Equal(expectedRetryCount), fmt.Sprintf("Retry count: %v", i))
@@ -116,12 +122,14 @@ func hasReportedRetries(fakeListener *fakes.FakeListener, expectedPendingInstanc
 }
 
 func hasReportedStarting(fakeListener *fakes.FakeListener, maxInFlight int) {
+	GinkgoHelper()
 	Expect(fakeListener.StartingCallCount()).To(Equal(1))
 	threads := fakeListener.StartingArgsForCall(0)
 	Expect(threads).To(Equal(maxInFlight))
 }
 
 func hasReportedProgress(fakeListener *fakes.FakeListener, callIndex int, expectedInterval time.Duration, expectedOrphans, expectedProcessed, expectedToRetry, expectedDeleted int) {
+	GinkgoHelper()
 	Expect(fakeListener.ProgressCallCount()).To(BeNumerically(">", callIndex), "callCount")
 	attemptInterval, orphanCount, processedCount, _, toRetryCount, deletedCount := fakeListener.ProgressArgsForCall(callIndex)
 	Expect(attemptInterval).To(Equal(expectedInterval), "attempt interval")
@@ -132,6 +140,7 @@ func hasReportedProgress(fakeListener *fakes.FakeListener, callIndex int, expect
 }
 
 func hasReportedCanariesStarting(fakeListener *fakes.FakeListener, count int, filter config.CanarySelectionParams) {
+	GinkgoHelper()
 	Expect(fakeListener.CanariesStartingCallCount()).To(Equal(1), "CanariesStarting() call count")
 	canaryCount, actualFilter := fakeListener.CanariesStartingArgsForCall(0)
 	Expect(canaryCount).To(Equal(count), "canaryCount")
@@ -139,12 +148,14 @@ func hasReportedCanariesStarting(fakeListener *fakes.FakeListener, count int, fi
 }
 
 func hasReportedCanariesFinished(fakeListener *fakes.FakeListener, count int) {
+	GinkgoHelper()
 	Expect(fakeListener.CanariesFinishedCallCount()).To(Equal(count), "CanariesFinished() call count")
 }
 
 func hasReportedInstanceOperationStartResult(fakeListener *fakes.FakeListener, idx int,
 	expectedGuid string, expectedStatus instanceiterator.OperationState) {
 
+	GinkgoHelper()
 	Expect(fakeListener.InstanceOperationStartResultCallCount()).To(BeNumerically(">", idx))
 	guid, operationType := fakeListener.InstanceOperationStartResultArgsForCall(idx)
 	Expect(guid).To(Equal(expectedGuid))
@@ -154,6 +165,7 @@ func hasReportedInstanceOperationStartResult(fakeListener *fakes.FakeListener, i
 func hasReportedInstanceOperationStarted(fakeListener *fakes.FakeListener, idx int,
 	expectedInstance string, expectedIndex, expectedTotalInstances int, expectedIsDoingCanaries bool) {
 
+	GinkgoHelper()
 	Expect(fakeListener.InstanceOperationStartingCallCount()).To(BeNumerically(">", idx))
 	instance, index, total, canaryFlag := fakeListener.InstanceOperationStartingArgsForCall(idx)
 	Expect(instance).To(Equal(expectedInstance))
@@ -163,6 +175,7 @@ func hasReportedInstanceOperationStarted(fakeListener *fakes.FakeListener, idx i
 }
 
 func hasReportedWaitingFor(fakeListener *fakes.FakeListener, idx int, expectedGuid string, expectedTaskID int) {
+	GinkgoHelper()
 	Expect(fakeListener.WaitingForCallCount()).To(BeNumerically(">", idx))
 	guid, taskID := fakeListener.WaitingForArgsForCall(idx)
 	Expect(guid).To(Equal(expectedGuid))
@@ -170,6 +183,7 @@ func hasReportedWaitingFor(fakeListener *fakes.FakeListener, idx int, expectedGu
 }
 
 func hasReportedOperationState(fakeListener *fakes.FakeListener, idx int, expectedGuid, expectedStatus string) {
+	GinkgoHelper()
 	Expect(fakeListener.InstanceOperationFinishedCallCount()).To(BeNumerically(">", idx))
 
 	guid, status := fakeListener.InstanceOperationFinishedArgsForCall(idx)
@@ -178,17 +192,20 @@ func hasReportedOperationState(fakeListener *fakes.FakeListener, idx int, expect
 }
 
 func hasReportedInstancesToProcess(fakeListener *fakes.FakeListener, instances ...service.Instance) {
+	GinkgoHelper()
 	Expect(fakeListener.InstancesToProcessCallCount()).To(Equal(1))
 	Expect(fakeListener.InstancesToProcessArgsForCall(0)).To(Equal(instances))
 }
 
 func expectToHaveStarted(controllers ...*processController) {
+	GinkgoHelper()
 	for _, c := range controllers {
 		c.HasStarted()
 	}
 }
 
 func expectToHaveNotStarted(controllers ...*processController) {
+	GinkgoHelper()
 	for _, c := range controllers {
 		c.DoesNotStart()
 	}
@@ -224,10 +241,12 @@ func (p *processController) WaitForSignalToProceed() {
 }
 
 func (p *processController) HasStarted() {
+	GinkgoHelper()
 	Eventually(p.started).Should(Receive(), fmt.Sprintf("Process %s expected to be in a started state", p.name))
 }
 
 func (p *processController) DoesNotStart() {
+	GinkgoHelper()
 	Consistently(p.started).ShouldNot(Receive(), fmt.Sprintf("Process %s expected to be in a non-started state", p.name))
 }
 
