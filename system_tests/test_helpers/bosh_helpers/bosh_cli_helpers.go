@@ -291,7 +291,7 @@ func buildDeploymentArguments(systemTestSuffix string, deploymentOptions BrokerD
 		BrokerReleaseName:         brokerReleaseName,
 		BrokerCN:                  "'*" + envVars.BrokerSystemDomain + "'",
 		BrokerDeploymentVarsPath:  envVars.BrokerDeploymentVarsPath,
-		BrokerPassword:            uuid.New()[:6],
+		BrokerPassword:            uuid.New(),
 		BrokerRoute:               "test-odb" + systemTestSuffix,
 		BrokerSystemDomain:        envVars.BrokerSystemDomain,
 		BrokerURI:                 brokerURI,
