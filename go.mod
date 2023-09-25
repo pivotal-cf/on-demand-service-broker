@@ -5,7 +5,7 @@ go 1.21
 toolchain go1.21.0
 
 require (
-	code.cloudfoundry.org/credhub-cli v0.0.0-20230918130224-6bcdce1b49f7
+	code.cloudfoundry.org/credhub-cli v0.0.0-20230925130227-ea83747ee14c
 	code.cloudfoundry.org/lager/v3 v3.0.2
 	github.com/blang/semver/v4 v4.0.0
 	github.com/cloudfoundry-community/go-uaa v0.3.2
