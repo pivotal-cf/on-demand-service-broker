@@ -142,7 +142,7 @@ github.com/onsi/ginkgo/v2/internal/parallel_support
 github.com/onsi/ginkgo/v2/internal/testingtproxy
 github.com/onsi/ginkgo/v2/reporters
 github.com/onsi/ginkgo/v2/types
-# github.com/onsi/gomega v1.28.0
+# github.com/onsi/gomega v1.28.1
 ## explicit; go 1.18
 github.com/onsi/gomega
 github.com/onsi/gomega/format
@@ -173,7 +173,7 @@ github.com/pivotal-cf/brokerapi/v10/domain/apiresponses
 github.com/pivotal-cf/brokerapi/v10/handlers
 github.com/pivotal-cf/brokerapi/v10/middlewares
 github.com/pivotal-cf/brokerapi/v10/utils
-# github.com/pivotal-cf/on-demand-services-sdk v0.45.0
+# github.com/pivotal-cf/on-demand-services-sdk v0.45.1-0.20231023120931-b99638d1674f
 ## explicit; go 1.20
 github.com/pivotal-cf/on-demand-services-sdk/bosh
 github.com/pivotal-cf/on-demand-services-sdk/serviceadapter
