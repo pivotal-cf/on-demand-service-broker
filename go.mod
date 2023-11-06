@@ -12,7 +12,7 @@ require (
 	github.com/cloudfoundry/bosh-cli/v7 v7.4.1
 	github.com/cloudfoundry/bosh-utils v0.0.410
 	github.com/craigfurman/herottp v0.0.0-20190418132442-c546d62f2a8d
-	github.com/gorilla/mux v1.8.0
+	github.com/gorilla/mux v1.8.1
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.7.0
 	github.com/onsi/ginkgo/v2 v2.13.0
 	github.com/onsi/gomega v1.29.0
