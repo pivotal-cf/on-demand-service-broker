@@ -1,4 +1,4 @@
-# code.cloudfoundry.org/credhub-cli v0.0.0-20231106140258-a8b206456cb2
+# code.cloudfoundry.org/credhub-cli v0.0.0-20231113140620-f30160402bd4
 ## explicit; go 1.21
 code.cloudfoundry.org/credhub-cli/credhub
 code.cloudfoundry.org/credhub-cli/credhub/auth
@@ -35,7 +35,7 @@ github.com/cloudfoundry/bosh-cli/v7/common/util
 github.com/cloudfoundry/bosh-cli/v7/director
 github.com/cloudfoundry/bosh-cli/v7/io
 github.com/cloudfoundry/bosh-cli/v7/uaa
-# github.com/cloudfoundry/bosh-utils v0.0.412
+# github.com/cloudfoundry/bosh-utils v0.0.413
 ## explicit; go 1.21
 github.com/cloudfoundry/bosh-utils/crypto
 github.com/cloudfoundry/bosh-utils/errors
@@ -48,7 +48,7 @@ github.com/cloudfoundry/bosh-utils/uuid
 # github.com/cloudfoundry/go-socks5 v0.0.0-20180221174514-54f73bdb8a8e
 ## explicit
 github.com/cloudfoundry/go-socks5
-# github.com/cloudfoundry/socks5-proxy v0.2.102
+# github.com/cloudfoundry/socks5-proxy v0.2.103
 ## explicit; go 1.21
 github.com/cloudfoundry/socks5-proxy
 # github.com/cppforlife/go-semi-semantic v0.0.0-20160921010311-576b6af77ae4
@@ -195,8 +195,8 @@ github.com/xeipuuv/gojsonreference
 # github.com/xeipuuv/gojsonschema v1.2.0
 ## explicit
 github.com/xeipuuv/gojsonschema
-# golang.org/x/crypto v0.14.0
-## explicit; go 1.17
+# golang.org/x/crypto v0.15.0
+## explicit; go 1.18
 golang.org/x/crypto/blowfish
 golang.org/x/crypto/chacha20
 golang.org/x/crypto/curve25519
@@ -206,13 +206,13 @@ golang.org/x/crypto/internal/poly1305
 golang.org/x/crypto/sha3
 golang.org/x/crypto/ssh
 golang.org/x/crypto/ssh/internal/bcrypt_pbkdf
-# golang.org/x/mod v0.13.0
+# golang.org/x/mod v0.14.0
 ## explicit; go 1.18
 golang.org/x/mod/internal/lazyregexp
 golang.org/x/mod/module
 golang.org/x/mod/semver
-# golang.org/x/net v0.17.0
-## explicit; go 1.17
+# golang.org/x/net v0.18.0
+## explicit; go 1.18
 golang.org/x/net/context
 golang.org/x/net/html
 golang.org/x/net/html/atom
@@ -248,7 +248,7 @@ golang.org/x/text/internal/utf8internal
 golang.org/x/text/language
 golang.org/x/text/runes
 golang.org/x/text/transform
-# golang.org/x/tools v0.14.0
+# golang.org/x/tools v0.15.0
 ## explicit; go 1.18
 golang.org/x/tools/go/ast/astutil
 golang.org/x/tools/go/ast/inspector
@@ -263,7 +263,6 @@ golang.org/x/tools/internal/event/core
 golang.org/x/tools/internal/event/keys
 golang.org/x/tools/internal/event/label
 golang.org/x/tools/internal/event/tag
-golang.org/x/tools/internal/fastwalk
 golang.org/x/tools/internal/gcimporter
 golang.org/x/tools/internal/gocommand
 golang.org/x/tools/internal/gopathwalk
