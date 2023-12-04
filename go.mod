@@ -5,7 +5,7 @@ go 1.21
 toolchain go1.21.0
 
 require (
-	code.cloudfoundry.org/credhub-cli v0.0.0-20231120141608-b960b71bb88c
+	code.cloudfoundry.org/credhub-cli v0.0.0-20231204140658-79b9df0d93d4
 	code.cloudfoundry.org/lager/v3 v3.0.2
 	github.com/blang/semver/v4 v4.0.0
 	github.com/cloudfoundry-community/go-uaa v0.3.2
@@ -41,7 +41,7 @@ require (
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
-	github.com/google/pprof v0.0.0-20231127191134-f3a68a39ae15 // indirect
+	github.com/google/pprof v0.0.0-20231203200248-ad67f76aa53d // indirect
 	github.com/google/uuid v1.4.0 // indirect
 	github.com/hashicorp/go-version v1.6.0 // indirect
 	github.com/jpillora/backoff v1.0.0 // indirect
