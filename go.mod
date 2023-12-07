@@ -6,7 +6,7 @@ toolchain go1.21.0
 
 require (
 	code.cloudfoundry.org/credhub-cli v0.0.0-20231204140658-79b9df0d93d4
-	code.cloudfoundry.org/lager/v3 v3.0.2
+	code.cloudfoundry.org/lager/v3 v3.0.3
 	github.com/blang/semver/v4 v4.0.0
 	github.com/cloudfoundry-community/go-uaa v0.3.2
 	github.com/cloudfoundry/bosh-cli/v7 v7.5.0
@@ -47,7 +47,7 @@ require (
 	github.com/jpillora/backoff v1.0.0 // indirect
 	github.com/leodido/go-urn v1.2.4 // indirect
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d // indirect
-	github.com/openzipkin/zipkin-go v0.4.1 // indirect
+	github.com/openzipkin/zipkin-go v0.4.2 // indirect
 	github.com/pivotal-cf/paraphernalia v0.0.0-20180203224945-a64ae2051c20 // indirect
 	github.com/xeipuuv/gojsonpointer v0.0.0-20180127040702-4e3ac2762d5f // indirect
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
