@@ -17,8 +17,8 @@ github.com/charlievieth/fs v0.0.3 h1:3lZQXTj4PbE81CVPwALSn+JoyCNXkZgORHN6h2XHGlg
 github.com/charlievieth/fs v0.0.3/go.mod h1:hD4sRzto1Hw8zCua76tNVKZxaeZZr1RiKftjAJQRLLo=
 github.com/cloudfoundry-community/go-uaa v0.3.2 h1:tZOyzrWuTRo02IwcUbIiNy9+ghgjHhLhe3/B04Wfg1w=
 github.com/cloudfoundry-community/go-uaa v0.3.2/go.mod h1:G2QAAVe4I+AZf4yF2EGGUFb/X98nTLWrqscILUznX88=
-github.com/cloudfoundry/bosh-cli/v7 v7.5.1 h1:HsQMmbD0s1N0tOHKQHgp9qwoMV05jbS45iNHxg2EWio=
-github.com/cloudfoundry/bosh-cli/v7 v7.5.1/go.mod h1:VEAjFxV/YvgqqRcMEw9IKQmtEx4citNr4WxuHG+hHSU=
+github.com/cloudfoundry/bosh-cli/v7 v7.5.2 h1:U+jqs51jXu9SHdUegF1PSZuqSi0DbQACgXh0uETue6Y=
+github.com/cloudfoundry/bosh-cli/v7 v7.5.2/go.mod h1:1+VpRloR66b8TB7K7DMRuKmBYVbzjpm2KwN/75jJ+IM=
 github.com/cloudfoundry/bosh-utils v0.0.420 h1:XdRMFXqKQBrc8aT6eeDhhptRn5nLzWTBfUcVFyvjuCo=
 github.com/cloudfoundry/bosh-utils v0.0.420/go.mod h1:Jyae6YVCKWbIad4ku3X9X2f3fGZKVdRLRl4XlKfytjg=
 github.com/cloudfoundry/go-socks5 v0.0.0-20180221174514-54f73bdb8a8e h1:FQdRViaoDphGRfgrotl2QGsX1gbloe57dbGBS5CG6KY=
@@ -78,8 +78,8 @@ github.com/google/go-cmp v0.6.0/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeN
 github.com/google/pprof v0.0.0-20231229205709-960ae82b1e42 h1:dHLYa5D8/Ta0aLR2XcPsrkpAgGeFs6thhMcQK0oQ0n8=
 github.com/google/pprof v0.0.0-20231229205709-960ae82b1e42/go.mod h1:czg5+yv1E0ZGTi6S6vVK1mke0fV+FaUhNGcd6VRS9Ik=
 github.com/google/uuid v1.0.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
-github.com/google/uuid v1.4.0 h1:MtMxsa51/r9yyhkyLsVeVt0B+BGQZzpQiTQ4eHZ8bc4=
-github.com/google/uuid v1.4.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
+github.com/google/uuid v1.5.0 h1:1p67kYwdtXjb0gL0BPiP1Av9wiZPo5A8z2cWkTZ+eyU=
+github.com/google/uuid v1.5.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/gorilla/mux v1.8.1 h1:TuBL49tXwgrFYWhqrNgrUNEY92u81SPhu7sTdzQEiWY=
 github.com/gorilla/mux v1.8.1/go.mod h1:AKf9I4AEqPTmMytcMc0KkNouC66V3BtZ4qD5fmWSiMQ=
 github.com/hashicorp/go-version v1.6.0 h1:feTTfFNnjP967rlCxM/I9g701jU+RN74YKx2mOkIeek=
