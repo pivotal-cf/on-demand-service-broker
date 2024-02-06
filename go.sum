@@ -41,8 +41,8 @@ github.com/fsnotify/fsnotify v1.7.0 h1:8JEhPFa5W2WU7YfeZzPNqzMP6Lwt7L2715Ggo0nos
 github.com/fsnotify/fsnotify v1.7.0/go.mod h1:40Bi/Hjc2AVfZrqy+aj+yEI+/bRxZnMJyTJwOpGvigM=
 github.com/gabriel-vasile/mimetype v1.4.2 h1:w5qFW6JKBz9Y393Y4q372O9A7cUSequkh1Q7OhCmWKU=
 github.com/gabriel-vasile/mimetype v1.4.2/go.mod h1:zApsH/mKG4w07erKIaJPFiX0Tsq9BFQgN3qGY5GnNgA=
-github.com/go-chi/chi/v5 v5.0.10 h1:rLz5avzKpjqxrYwXNfmjkrYYXOyLJd37pz53UFHC6vk=
-github.com/go-chi/chi/v5 v5.0.10/go.mod h1:DslCQbL2OYiznFReuXYUmQ2hGd1aDpCnlMNITLSKoi8=
+github.com/go-chi/chi/v5 v5.0.11 h1:BnpYbFZ3T3S1WMpD79r7R5ThWX40TaFB7L31Y8xqSwA=
+github.com/go-chi/chi/v5 v5.0.11/go.mod h1:DslCQbL2OYiznFReuXYUmQ2hGd1aDpCnlMNITLSKoi8=
 github.com/go-logr/logr v1.4.1 h1:pKouT5E8xu9zeFC39JXRDukb6JFQPXM5p5I91188VAQ=
 github.com/go-logr/logr v1.4.1/go.mod h1:9T104GzyrTigFIr8wt5mBrctHMim0Nb2HLGrmQ40KvY=
 github.com/go-playground/assert/v2 v2.2.0 h1:JvknZsQTYeFEAhQwI4qEt9cyV5ONwRHC+lYKSsYSR8s=
@@ -119,8 +119,8 @@ github.com/openzipkin/zipkin-go v0.4.2 h1:zjqfqHjUpPmB3c1GlCvvgsM1G4LkvqQbBDueDO
 github.com/openzipkin/zipkin-go v0.4.2/go.mod h1:ZeVkFjuuBiSy13y8vpSDCjMi9GoI3hPpCJSBx/EYFhY=
 github.com/pborman/uuid v1.2.1 h1:+ZZIw58t/ozdjRaXh/3awHfmWRbzYxJoAdNJxe/3pvw=
 github.com/pborman/uuid v1.2.1/go.mod h1:X/NO0urCmaxf9VXbdlT7C2Yzkj2IKimNn4k+gtPdI/k=
-github.com/pivotal-cf/brokerapi/v10 v10.1.1 h1:ZVNgqnS7iA5FP6Z2azRPrcnj7k1Pwy/0C+n9zPGWtZk=
-github.com/pivotal-cf/brokerapi/v10 v10.1.1/go.mod h1:qmw79bGqYF5TnXMBni0My7PrPHOi7/CtTo+U3eFIYPo=
+github.com/pivotal-cf/brokerapi/v10 v10.2.0 h1:cdXk5FMkxuBONiaPS+H9aIu0v5aSYv4qvo5keBcUTGA=
+github.com/pivotal-cf/brokerapi/v10 v10.2.0/go.mod h1:UEwbfVgaY8FpQ3NOfjoVRPLW/Ar0c7uYQP5TJj3r3OE=
 github.com/pivotal-cf/on-demand-services-sdk v0.45.4-0.20240115122012-f4e75cf691c6 h1:05MYDd551MZWqwohQliPRLqQ051w1FioSQ8Qw7VbcvM=
 github.com/pivotal-cf/on-demand-services-sdk v0.45.4-0.20240115122012-f4e75cf691c6/go.mod h1:GWBLXe9Nf/a5QcMVHq+AkbwkEHpmqEU/fS1ahOWRAYM=
 github.com/pivotal-cf/paraphernalia v0.0.0-20180203224945-a64ae2051c20 h1:DR5eMfe2+6GzLkVyWytdtgUxgbPiOfvKDuqityTV3y8=

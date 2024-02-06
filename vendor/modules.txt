@@ -63,7 +63,7 @@ github.com/gabriel-vasile/mimetype
 github.com/gabriel-vasile/mimetype/internal/charset
 github.com/gabriel-vasile/mimetype/internal/json
 github.com/gabriel-vasile/mimetype/internal/magic
-# github.com/go-chi/chi/v5 v5.0.10
+# github.com/go-chi/chi/v5 v5.0.11
 ## explicit; go 1.14
 github.com/go-chi/chi/v5
 # github.com/go-logr/logr v1.4.1
@@ -164,7 +164,7 @@ github.com/openzipkin/zipkin-go/model
 # github.com/pborman/uuid v1.2.1
 ## explicit
 github.com/pborman/uuid
-# github.com/pivotal-cf/brokerapi/v10 v10.1.1
+# github.com/pivotal-cf/brokerapi/v10 v10.2.0
 ## explicit; go 1.20
 github.com/pivotal-cf/brokerapi/v10
 github.com/pivotal-cf/brokerapi/v10/auth
