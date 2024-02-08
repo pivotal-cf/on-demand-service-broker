@@ -1,6 +1,7 @@
 module github.com/pivotal-cf/on-demand-service-broker
 
-go 1.21.6
+go 1.22
+
 toolchain go1.22.0
 
 require (
