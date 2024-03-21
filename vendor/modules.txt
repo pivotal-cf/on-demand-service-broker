@@ -1,4 +1,4 @@
-# code.cloudfoundry.org/credhub-cli v0.0.0-20240318130158-1b4a84540c56
+# code.cloudfoundry.org/credhub-cli v0.0.0-20240321182504-6b3dc17b18a7
 ## explicit; go 1.21.6
 code.cloudfoundry.org/credhub-cli/credhub
 code.cloudfoundry.org/credhub-cli/credhub/auth
@@ -8,7 +8,6 @@ code.cloudfoundry.org/credhub-cli/credhub/credentials/generate
 code.cloudfoundry.org/credhub-cli/credhub/credentials/values
 code.cloudfoundry.org/credhub-cli/credhub/permissions
 code.cloudfoundry.org/credhub-cli/credhub/server
-code.cloudfoundry.org/credhub-cli/errors
 # code.cloudfoundry.org/lager/v3 v3.0.3
 ## explicit; go 1.19
 code.cloudfoundry.org/lager/v3
