@@ -18,7 +18,7 @@ require (
 	github.com/onsi/gomega v1.32.0
 	github.com/pborman/uuid v1.2.1
 	github.com/pivotal-cf/brokerapi/v10 v10.2.0
-	github.com/pivotal-cf/on-demand-services-sdk v0.45.4
+	github.com/pivotal-cf/on-demand-services-sdk v0.45.5-0.20240412212149-512df882a3a1
 	github.com/pkg/errors v0.9.1
 	github.com/urfave/negroni v1.0.0
 	github.com/xeipuuv/gojsonschema v1.2.0
@@ -33,7 +33,7 @@ require (
 	github.com/cloudfoundry/socks5-proxy v0.2.116 // indirect
 	github.com/cppforlife/go-semi-semantic v0.0.0-20160921010311-576b6af77ae4 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
-	github.com/go-chi/chi/v5 v5.0.11 // indirect
+	github.com/go-chi/chi/v5 v5.0.12 // indirect
 	github.com/go-logr/logr v1.4.1 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
@@ -47,6 +47,7 @@ require (
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d // indirect
 	github.com/openzipkin/zipkin-go v0.4.2 // indirect
+	github.com/pivotal-cf/brokerapi/v11 v11.0.0 // indirect
 	github.com/pivotal-cf/paraphernalia v0.0.0-20180203224945-a64ae2051c20 // indirect
 	github.com/xeipuuv/gojsonpointer v0.0.0-20180127040702-4e3ac2762d5f // indirect
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect

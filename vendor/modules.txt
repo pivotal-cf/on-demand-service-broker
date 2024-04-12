@@ -62,7 +62,7 @@ github.com/gabriel-vasile/mimetype
 github.com/gabriel-vasile/mimetype/internal/charset
 github.com/gabriel-vasile/mimetype/internal/json
 github.com/gabriel-vasile/mimetype/internal/magic
-# github.com/go-chi/chi/v5 v5.0.11
+# github.com/go-chi/chi/v5 v5.0.12
 ## explicit; go 1.14
 github.com/go-chi/chi/v5
 # github.com/go-logr/logr v1.4.1
@@ -170,8 +170,11 @@ github.com/pivotal-cf/brokerapi/v10/domain/apiresponses
 github.com/pivotal-cf/brokerapi/v10/handlers
 github.com/pivotal-cf/brokerapi/v10/middlewares
 github.com/pivotal-cf/brokerapi/v10/utils
-# github.com/pivotal-cf/on-demand-services-sdk v0.45.4
-## explicit; go 1.20
+# github.com/pivotal-cf/brokerapi/v11 v11.0.0
+## explicit; go 1.21
+github.com/pivotal-cf/brokerapi/v11/domain
+# github.com/pivotal-cf/on-demand-services-sdk v0.45.5-0.20240412212149-512df882a3a1
+## explicit; go 1.21
 github.com/pivotal-cf/on-demand-services-sdk/bosh
 github.com/pivotal-cf/on-demand-services-sdk/serviceadapter
 # github.com/pivotal-cf/paraphernalia v0.0.0-20180203224945-a64ae2051c20
