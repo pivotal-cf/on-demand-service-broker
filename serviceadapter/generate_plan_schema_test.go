@@ -22,7 +22,7 @@ import (
 	"io"
 	"log"
 
-	"github.com/pivotal-cf/brokerapi/v10/domain"
+	"github.com/pivotal-cf/brokerapi/v11/domain"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter/fakes"
 

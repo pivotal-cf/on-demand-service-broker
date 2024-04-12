@@ -7,8 +7,8 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/pivotal-cf/brokerapi/v10/domain"
-	"github.com/pivotal-cf/brokerapi/v10/domain/apiresponses"
+	"github.com/pivotal-cf/brokerapi/v11/domain"
+	"github.com/pivotal-cf/brokerapi/v11/domain/apiresponses"
 )
 
 var errInstanceMustBeUpgradedFirst = apiresponses.NewFailureResponseBuilder(

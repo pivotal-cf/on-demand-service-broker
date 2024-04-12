@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -25,14 +26,15 @@ import (
 	"code.cloudfoundry.org/lager/v3"
 	"github.com/gorilla/mux"
 
-	"github.com/pivotal-cf/brokerapi/v10"
-	apiauth "github.com/pivotal-cf/brokerapi/v10/auth"
-	"github.com/pivotal-cf/brokerapi/v10/domain"
+	"github.com/pivotal-cf/brokerapi/v11"
+	apiauth "github.com/pivotal-cf/brokerapi/v11/auth"
+	"github.com/pivotal-cf/brokerapi/v11/domain"
+	"github.com/pkg/errors"
+	"github.com/urfave/negroni"
+
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 	"github.com/pivotal-cf/on-demand-service-broker/mgmtapi"
-	"github.com/pkg/errors"
-	"github.com/urfave/negroni"
 )
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
@@ -188,8 +190,8 @@ func createNegroniLogger(serverLogger *log.Logger) *negroni.Logger {
 	return negroniLogger
 }
 
-func createBrokerAPILogger(componentName string, serverLogger *log.Logger) lager.Logger {
+func createBrokerAPILogger(componentName string, serverLogger *log.Logger) *slog.Logger {
 	brokerAPILogger := lager.NewLogger(componentName)
 	brokerAPILogger.RegisterSink(lager.NewWriterSink(serverLogger.Writer(), lager.INFO))
-	return brokerAPILogger
+	return slog.New(lager.NewHandler(brokerAPILogger))
 }
