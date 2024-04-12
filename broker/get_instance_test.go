@@ -2,13 +2,14 @@ package broker_test
 
 import (
 	"context"
+	"log/slog"
 
-	"github.com/pivotal-cf/brokerapi/v10/domain"
+	"github.com/pivotal-cf/brokerapi/v11/domain"
 
 	"code.cloudfoundry.org/lager/v3"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf/brokerapi/v10/domain/apiresponses"
+	"github.com/pivotal-cf/brokerapi/v11/domain/apiresponses"
 )
 
 var _ = Describe("GetInstance", func() {
@@ -17,6 +18,6 @@ var _ = Describe("GetInstance", func() {
 		fresp, ok := err.(*apiresponses.FailureResponse)
 		Expect(ok).To(BeTrue(), "err wasn't a FailureResponse")
 		logger := lager.NewLogger("test")
-		Expect(fresp.ValidatedStatusCode(logger)).To(Equal(404))
+		Expect(fresp.ValidatedStatusCode(slog.New(lager.NewHandler(logger)))).To(Equal(404))
 	})
 })

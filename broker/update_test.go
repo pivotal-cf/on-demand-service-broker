@@ -16,8 +16,8 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/broker/decider"
 	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 
-	"github.com/pivotal-cf/brokerapi/v10/domain"
-	"github.com/pivotal-cf/brokerapi/v10/domain/apiresponses"
+	"github.com/pivotal-cf/brokerapi/v11/domain"
+	"github.com/pivotal-cf/brokerapi/v11/domain/apiresponses"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 
 	. "github.com/onsi/ginkgo/v2"

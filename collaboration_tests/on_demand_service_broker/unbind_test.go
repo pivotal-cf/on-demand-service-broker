@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/pivotal-cf/brokerapi/v10/domain/apiresponses"
+	"github.com/pivotal-cf/brokerapi/v11/domain/apiresponses"
 	brokerConfig "github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pkg/errors"
 
