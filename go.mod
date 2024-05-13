@@ -5,11 +5,11 @@ go 1.22
 toolchain go1.22.0
 
 require (
-	code.cloudfoundry.org/credhub-cli v0.0.0-20240506130305-ab16e480dbd6
+	code.cloudfoundry.org/credhub-cli v0.0.0-20240513215556-291b587eb9ac
 	code.cloudfoundry.org/lager/v3 v3.0.3
 	github.com/blang/semver/v4 v4.0.0
 	github.com/cloudfoundry-community/go-uaa v0.3.2
-	github.com/cloudfoundry/bosh-cli/v7 v7.5.6
+	github.com/cloudfoundry/bosh-cli/v7 v7.5.7
 	github.com/cloudfoundry/bosh-utils v0.0.465
 	github.com/craigfurman/herottp v0.0.0-20190418132442-c546d62f2a8d
 	github.com/gorilla/mux v1.8.1
@@ -58,6 +58,6 @@ require (
 	golang.org/x/sys v0.20.0 // indirect
 	golang.org/x/text v0.15.0 // indirect
 	golang.org/x/tools v0.21.0 // indirect
-	google.golang.org/protobuf v1.34.0 // indirect
+	google.golang.org/protobuf v1.34.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
