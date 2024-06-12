@@ -15,6 +15,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/credhub"
 	"github.com/pivotal-cf/on-demand-service-broker/credhubbroker"
 	"github.com/pivotal-cf/on-demand-service-broker/hasher"
+	"github.com/pivotal-cf/on-demand-service-broker/manifest"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 	"github.com/pivotal-cf/on-demand-service-broker/manifestsecrets"
 	"github.com/pivotal-cf/on-demand-service-broker/network"
@@ -53,7 +54,12 @@ func Initiate(conf config.Config,
 	odbSecrets := manifestsecrets.ODBSecrets{ServiceOfferingID: conf.ServiceCatalog.ID}
 	boshCredhubStore := buildCredhubStore(conf, logger)
 
-	deploymentManager := task.NewDeployer(taskBoshClient, manifestGenerator, odbSecrets, boshCredhubStore)
+	// TODO: Add conditional based on config
+	persister := manifest.Persister{
+		Prefix: "/var/vcap/data/broker/manifest/",
+		Logger: logger,
+	}
+	deploymentManager := task.NewDeployer(taskBoshClient, manifestGenerator, odbSecrets, boshCredhubStore, &persister)
 	deploymentManager.DisableBoshConfigs = conf.Broker.DisableBoshConfigs
 
 	manifestSecretManager := manifestsecrets.BuildManager(conf.Broker.EnableSecureManifests, new(manifestsecrets.CredHubPathMatcher), boshCredhubStore)
