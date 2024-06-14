@@ -1,6 +1,9 @@
 package manifest_test
 
 import (
+	"bytes"
+	"compress/gzip"
+	"io"
 	"io/fs"
 	"log"
 	"os"
@@ -49,7 +52,7 @@ var _ = Describe("Persister", func() {
 	})
 
 	It("creates a file with appropriate permissions", func() {
-		path := filepath.Join(tmpdir, deploymentName, fileName)
+		path := filepath.Join(tmpdir, deploymentName, fileName+".gz")
 		persister.PersistManifest(deploymentName, fileName, manifestContents)
 		Expect(path).To(BeAnExistingFile())
 		fileInfo, err := os.Stat(path)
@@ -57,12 +60,18 @@ var _ = Describe("Persister", func() {
 		Expect(fileInfo.Mode().Perm()).To(Equal(fs.FileMode(0640)))
 	})
 
-	It("writes contents to the file", func() {
-		path := filepath.Join(tmpdir, deploymentName, fileName)
+	It("writes compressed contents to the file", func() {
+		path := filepath.Join(tmpdir, deploymentName, fileName+".gz")
 		persister.PersistManifest(deploymentName, fileName, manifestContents)
 		observedContents, err := os.ReadFile(path)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(observedContents).To(Equal(manifestContents))
+
+		compressedReader, err := gzip.NewReader(bytes.NewBuffer(observedContents))
+		Expect(err).NotTo(HaveOccurred(), `Expected manifest contents to be gzip compressed, but gzip decompression failed`)
+
+		decompressedContents, err := io.ReadAll(compressedReader)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(observedContents).ToNot(Equal(decompressedContents))
 	})
 
 	It("logs an error when the subdirectory cannot be created", func() {
@@ -73,10 +82,10 @@ var _ = Describe("Persister", func() {
 	})
 
 	It("logs an error when the manifest file cannot be written", func() {
-		err := os.MkdirAll(tmpdir+"/"+deploymentName+"/"+fileName, 0750)
+		path := filepath.Join(tmpdir, deploymentName, fileName+".gz")
+		err := os.MkdirAll(path, 0750)
 		Expect(err).NotTo(HaveOccurred())
 		persister.PersistManifest(deploymentName, fileName, manifestContents)
-		path := filepath.Join(tmpdir, deploymentName, fileName)
 		Expect(buffer).To(Say(`Failed to persist manifest %s:`, path))
 	})
 })
