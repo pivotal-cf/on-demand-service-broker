@@ -14,11 +14,11 @@ type Persister struct {
 
 func (p *Persister) PersistManifest(deploymentName, manifestName string, data []byte) {
 	directory := filepath.Join(p.Prefix, deploymentName)
+	path := filepath.Join(directory, manifestName+".gz")
 	if err := os.Mkdir(directory, 0750); err != nil && !os.IsExist(err) {
-		p.Logger.Printf("Failed to create directory %s: %s", directory, err)
+		p.Logger.Printf("Failed to create directory for persisted manifest %s: %s", path, err)
 		return
 	}
-	path := filepath.Join(directory, manifestName+".gz")
 
 	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o640)
 	if err != nil {
@@ -27,15 +27,16 @@ func (p *Persister) PersistManifest(deploymentName, manifestName string, data []
 	}
 	defer func() {
 		if err = f.Close(); err != nil {
-			panic("test me: failed to close manifest file")
+			p.Logger.Printf("Failed to close persisted manifest file handle for %s: %s", path, err)
 		}
 	}()
 
 	compressedWriter := gzip.NewWriter(f)
 	if _, err := compressedWriter.Write(data); err != nil {
-		panic("test me: failed to write compressed data")
+		p.Logger.Printf("Failed to write compressed data for %s: %s", path, err)
 	}
+
 	if err := compressedWriter.Close(); err != nil {
-		panic("test me: failed to close compressed data stream")
+		p.Logger.Printf("Failed to close compressed data stream for %s: %s", path, err)
 	}
 }

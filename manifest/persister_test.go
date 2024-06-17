@@ -77,8 +77,8 @@ var _ = Describe("Persister", func() {
 	It("logs an error when the subdirectory cannot be created", func() {
 		persister.Prefix = tmpdir + "/does/not/exist"
 		persister.PersistManifest(deploymentName, fileName, manifestContents)
-		dir := filepath.Join(persister.Prefix, deploymentName)
-		Expect(buffer).To(Say(`Failed to create directory %s:`, dir))
+		dir := filepath.Join(persister.Prefix, deploymentName, fileName+".gz")
+		Expect(buffer).To(Say(`Failed to create directory for persisted manifest %s: .*no such file or directory`, dir))
 	})
 
 	It("logs an error when the manifest file cannot be written", func() {
