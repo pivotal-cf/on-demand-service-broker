@@ -14,11 +14,14 @@ if [[ $# -eq 0 ]]; then
   sleep 5
 fi
 
+pwd="$(cd $(dirname "$0"); pwd)"
+
 cf api ${CF_URL} --skip-ssl-validation
 cf logout
 cf auth $CF_USERNAME $CF_PASSWORD
 cf target -o ${CF_ORG} -s ${CF_SPACE} # must already exist
 
+cd "${pwd}"
 go run github.com/onsi/ginkgo/v2/ginkgo -r -v \
   --flake-attempts="${RETRY_ATTEMPTS:-1}" \
   --randomize-suites \
@@ -28,3 +31,4 @@ go run github.com/onsi/ginkgo/v2/ginkgo -r -v \
   --fail-on-pending \
   --skip-package=upgrade_deployment_tests \
   "$@"
+cd -
