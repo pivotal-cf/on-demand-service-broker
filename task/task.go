@@ -75,7 +75,6 @@ type Deployer struct {
 	bulkSetter         BulkSetter
 	manifestPersister  ManifestPersister
 	DisableBoshConfigs bool
-	PersistManifests   bool
 }
 
 func NewDeployer(boshClient BoshClient, manifestGenerator ManifestGenerator, odbSecrets ODBSecrets, bulkSetter BulkSetter, persister ManifestPersister) Deployer {
@@ -85,7 +84,6 @@ func NewDeployer(boshClient BoshClient, manifestGenerator ManifestGenerator, odb
 		odbSecrets:        odbSecrets,
 		bulkSetter:        bulkSetter,
 		manifestPersister: persister,
-		PersistManifests:  true,
 	}
 }
 

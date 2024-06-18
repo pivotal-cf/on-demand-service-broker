@@ -100,6 +100,6 @@ var _ = Describe("service instance with pending changes", Ordered, func() {
 		runBrokerCmd("sudo ls /var/vcap/data/broker/manifest", &output)
 
 		// bosh ssh always writes "-" as a stub for empty output
-		Expect(output.String()).To(Equal("-"))
+		Expect(strings.TrimSpace(output.String())).To(Equal("-"))
 	})
 })

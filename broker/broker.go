@@ -26,15 +26,16 @@ import (
 )
 
 type Broker struct {
-	boshClient     BoshClient
-	cfClient       CloudFoundryClient
-	adapterClient  ServiceAdapterClient
-	deployer       Deployer
-	secretManager  ManifestSecretManager
-	instanceLister service.InstanceLister
-	hasher         Hasher
-	deploymentLock *sync.Mutex
-	bindLock       *sync.Mutex
+	boshClient      BoshClient
+	cfClient        CloudFoundryClient
+	adapterClient   ServiceAdapterClient
+	deployer        Deployer
+	secretManager   ManifestSecretManager
+	instanceLister  service.InstanceLister
+	hasher          Hasher
+	deploymentLock  *sync.Mutex
+	bindLock        *sync.Mutex
+	manifestCleaner ManifestCleaner
 
 	serviceOffering           config.ServiceOffering
 	ExposeOperationalErrors   bool
@@ -67,6 +68,7 @@ func New(
 	loggerFactory *loggerfactory.LoggerFactory,
 	telemetryLogger TelemetryLogger,
 	decider Decider,
+	cleaner ManifestCleaner,
 ) (*Broker, error) {
 	b := &Broker{
 		boshClient:                boshClient,
@@ -88,6 +90,7 @@ func New(
 		telemetryLogger:           telemetryLogger,
 		decider:                   decider,
 		uaaClient:                 &uaa.Client{},
+		manifestCleaner:           cleaner,
 	}
 
 	var startupCheckErrMessages []string
@@ -259,4 +262,9 @@ type Hasher interface {
 type Decider interface {
 	DecideOperation(catalog []domain.Service, details domain.UpdateDetails, logger *log.Logger) (decider.Operation, error)
 	CanProvision(catalog []domain.Service, planID string, maintenanceInfo *domain.MaintenanceInfo, logger *log.Logger) error
+}
+
+//counterfeiter:generate -o fakes/fake_manifest_cleaner.go . ManifestCleaner
+type ManifestCleaner interface {
+	Cleanup(deploymentName string)
 }

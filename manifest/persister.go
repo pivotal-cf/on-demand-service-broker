@@ -40,3 +40,11 @@ func (p *Persister) PersistManifest(deploymentName, manifestName string, data []
 		p.Logger.Printf("Failed to close compressed data stream for %s: %s", path, err)
 	}
 }
+
+func (p *Persister) Cleanup(deploymentName string) {
+	directory := filepath.Join(p.Prefix, deploymentName)
+
+	if err := os.RemoveAll(directory); err != nil {
+		p.Logger.Printf("Failed to cleanup persisted manifests directory for %s: %s", directory, err)
+	}
+}

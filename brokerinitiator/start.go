@@ -15,8 +15,8 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/credhub"
 	"github.com/pivotal-cf/on-demand-service-broker/credhubbroker"
 	"github.com/pivotal-cf/on-demand-service-broker/hasher"
-	"github.com/pivotal-cf/on-demand-service-broker/manifest"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
+	"github.com/pivotal-cf/on-demand-service-broker/manifest"
 	"github.com/pivotal-cf/on-demand-service-broker/manifestsecrets"
 	"github.com/pivotal-cf/on-demand-service-broker/network"
 	"github.com/pivotal-cf/on-demand-service-broker/service"
@@ -72,7 +72,8 @@ func Initiate(conf config.Config,
 	telemetryLogger := telemetry.Build(conf.Broker.EnableTelemetry, conf.ServiceCatalog, logger)
 
 	var onDemandBroker apiserver.CombinedBroker
-	onDemandBroker, err = broker.New(brokerBoshClient, cfClient, conf.ServiceCatalog, conf.Broker, startupChecks, serviceAdapter, deploymentManager, manifestSecretManager, instanceLister, &hasher.MapHasher{}, loggerFactory, telemetryLogger, decider.Decider{})
+	onDemandBroker, err = broker.New(brokerBoshClient, cfClient, conf.ServiceCatalog, conf.Broker, startupChecks, serviceAdapter, deploymentManager, manifestSecretManager, instanceLister, &hasher.MapHasher{}, loggerFactory, telemetryLogger, decider.Decider{}, &persister)
+
 	if err != nil {
 		logger.Fatalf("error starting broker: %s", err)
 	}

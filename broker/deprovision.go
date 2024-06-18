@@ -90,6 +90,8 @@ func (b *Broker) Deprovision(
 		logger.Printf("failed to delete UAA client associated with service instance %s\n", instanceID)
 	}
 
+	b.manifestCleaner.Cleanup(deploymentName(instanceID))
+
 	return serviceSpec, b.processError(err, logger)
 }
 

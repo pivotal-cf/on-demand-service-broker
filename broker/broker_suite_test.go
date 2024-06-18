@@ -22,6 +22,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
+	"github.com/pivotal-cf/on-demand-service-broker/manifest"
 	servicefakes "github.com/pivotal-cf/on-demand-service-broker/service/fakes"
 )
 
@@ -400,7 +401,7 @@ func createDefaultBroker() *broker.Broker {
 func createBrokerWithAdapter(serviceAdapter *fakes.FakeServiceAdapterClient) *broker.Broker {
 	var client broker.CloudFoundryClient = cfClient
 
-	broker, err := broker.New(boshClient, client, serviceCatalog, brokerConfig, []broker.StartupChecker{}, serviceAdapter, fakeDeployer, fakeSecretManager, fakeInstanceLister, fakeMapHasher, loggerFactory, fakeTelemetryLogger, fakeDecider)
+	broker, err := broker.New(boshClient, client, serviceCatalog, brokerConfig, []broker.StartupChecker{}, serviceAdapter, fakeDeployer, fakeSecretManager, fakeInstanceLister, fakeMapHasher, loggerFactory, fakeTelemetryLogger, fakeDecider, &manifest.DisabledPersister{})
 	Expect(err).NotTo(HaveOccurred())
 	broker.SetUAAClient(fakeUAAClient)
 	return broker
@@ -409,7 +410,7 @@ func createBrokerWithAdapter(serviceAdapter *fakes.FakeServiceAdapterClient) *br
 func createBrokerWithServiceCatalog(catalog config.ServiceOffering) *broker.Broker {
 	var client broker.CloudFoundryClient = cfClient
 
-	broker, err := broker.New(boshClient, client, catalog, brokerConfig, []broker.StartupChecker{}, serviceAdapter, fakeDeployer, fakeSecretManager, fakeInstanceLister, fakeMapHasher, loggerFactory, fakeTelemetryLogger, fakeDecider)
+	broker, err := broker.New(boshClient, client, catalog, brokerConfig, []broker.StartupChecker{}, serviceAdapter, fakeDeployer, fakeSecretManager, fakeInstanceLister, fakeMapHasher, loggerFactory, fakeTelemetryLogger, fakeDecider, &manifest.DisabledPersister{})
 	Expect(err).NotTo(HaveOccurred())
 	broker.SetUAAClient(fakeUAAClient)
 	return broker
@@ -420,7 +421,7 @@ func createBroker(startupCheckers []broker.StartupChecker, overrideClient ...bro
 	if len(overrideClient) > 0 {
 		client = overrideClient[0]
 	}
-	return broker.New(boshClient, client, serviceCatalog, brokerConfig, startupCheckers, serviceAdapter, fakeDeployer, fakeSecretManager, fakeInstanceLister, fakeMapHasher, loggerFactory, fakeTelemetryLogger, fakeDecider)
+	return broker.New(boshClient, client, serviceCatalog, brokerConfig, startupCheckers, serviceAdapter, fakeDeployer, fakeSecretManager, fakeInstanceLister, fakeMapHasher, loggerFactory, fakeTelemetryLogger, fakeDecider, &manifest.DisabledPersister{})
 }
 
 func ReturnSameValueHasher(m map[string]string) string {
