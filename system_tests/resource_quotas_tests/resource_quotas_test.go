@@ -13,6 +13,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
 	"github.com/pborman/uuid"
+
 	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/cf_helpers"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/gbytes"
 )
@@ -171,7 +172,6 @@ var _ = Describe("quotas", func() {
 					cf.AwaitServiceCreation(instanceB)
 				})
 			})
-
 		})
 
 		Context("when the plan limit is reached during update", func() {

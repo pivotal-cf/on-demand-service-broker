@@ -13,7 +13,7 @@ type BoshEvent struct {
 	TaskId int
 }
 
-func (c *Client) GetEvents(deploymentName string, action string, logger *log.Logger) ([]BoshEvent, error) {
+func (c *Client) GetEvents(deploymentName, action string, logger *log.Logger) ([]BoshEvent, error) {
 	filter := director.EventsFilter{Deployment: deploymentName, Action: action, ObjectType: "deployment"}
 
 	logger.Printf("getting events for %v from bosh", filter)

@@ -22,13 +22,14 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
+	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
+	"gopkg.in/yaml.v2"
+
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/integration_tests/on_demand_service_broker/mock"
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp/mockbosh"
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp/mockcfapi"
-	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
-	"gopkg.in/yaml.v2"
 )
 
 var (
@@ -202,7 +203,7 @@ func startBrokerWithoutPortCheck(conf config.Config) *gexec.Session {
 	Expect(err).NotTo(HaveOccurred())
 
 	testConfigFilePath := filepath.Join(tempDirPath, "broker.yml")
-	Expect(ioutil.WriteFile(testConfigFilePath, configContents, 0644)).To(Succeed())
+	Expect(ioutil.WriteFile(testConfigFilePath, configContents, 0o644)).To(Succeed())
 
 	cmd := exec.Command(brokerBinPath, "-configFilePath", testConfigFilePath)
 	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)

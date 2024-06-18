@@ -15,10 +15,11 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
-	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
-	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter/fakes"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
+
+	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
+	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter/fakes"
 )
 
 var _ = Describe("external service adapter", func() {
@@ -179,7 +180,6 @@ var _ = Describe("external service adapter", func() {
 				"delete-binding",
 			))
 			Expect(actualInputParams).To(Equal(inputParams))
-
 		})
 
 		Context("when the external adapter succeeds", func() {

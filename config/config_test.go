@@ -10,18 +10,18 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
 
-	"net/http"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
+	"gopkg.in/yaml.v2"
+
 	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/mockuaa"
-	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
-	"gopkg.in/yaml.v2"
 )
 
 var _ = Describe("Broker Config", func() {
@@ -253,7 +253,6 @@ var _ = Describe("Broker Config", func() {
 					"managers": 137,
 				}))
 			})
-
 		})
 
 		Context("and the config includes the optional plan property binding_with_dns", func() {
@@ -845,7 +844,7 @@ var _ = Describe("Broker Config", func() {
 
 var _ = Describe("ServiceOffering", func() {
 	Context("FindPlanByID", func() {
-		var offering = config.ServiceOffering{
+		offering := config.ServiceOffering{
 			Plans: []config.Plan{
 				{
 					ID:   "planId",
@@ -902,7 +901,6 @@ var _ = Describe("ServiceOffering", func() {
 			isConfigured := conf.HasBindingWithDNSConfigured()
 			Expect(isConfigured).To(BeFalse(), "Expected to return false because the only plan has 'binding_with_dns' configured to be empty")
 		})
-
 	})
 })
 
@@ -1165,7 +1163,6 @@ var _ = Describe("Config validation", func() {
 		Entry("fails when client_id is empty", clientCredsAuthBlock("", "secret"), errors.New("client_id can't be empty")),
 		Entry("fails when client_secret is empty", clientCredsAuthBlock("id", ""), errors.New("client_secret can't be empty")),
 	)
-
 })
 
 func authBlock(basic config.UserCredentials, uaa config.UAAAuthentication) config.Authentication {

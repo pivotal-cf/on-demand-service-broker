@@ -17,20 +17,16 @@ package deregister_broker_test
 
 import (
 	"fmt"
-
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
-
 	"io/ioutil"
 	"os"
 	"testing"
 
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
 )
 
-var (
-	binaryPath, tempDir string
-)
+var binaryPath, tempDir string
 
 var _ = SynchronizedBeforeSuite(func() []byte {
 	binary, err := gexec.Build("github.com/pivotal-cf/on-demand-service-broker/cmd/deregister-broker")

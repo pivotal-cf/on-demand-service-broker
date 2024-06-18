@@ -13,23 +13,22 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/pivotal-cf/brokerapi/v11/domain"
-	"github.com/pivotal-cf/brokerapi/v11/domain/apiresponses"
-	"github.com/pivotal-cf/on-demand-service-broker/cf"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/pivotal-cf/brokerapi/v11/domain"
+	"github.com/pivotal-cf/brokerapi/v11/domain/apiresponses"
+	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
+
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	brokerfakes "github.com/pivotal-cf/on-demand-service-broker/broker/fakes"
+	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/noopservicescontroller"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
-	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
 
 var _ = Describe("Provisioning", func() {
-
 	var (
 		planID          string
 		errandName      string
@@ -101,9 +100,7 @@ var _ = Describe("Provisioning", func() {
 	})
 
 	Context("when bosh deploys the release successfully", func() {
-		var (
-			newlyGeneratedManifest []byte
-		)
+		var newlyGeneratedManifest []byte
 
 		BeforeEach(func() {
 			newlyGeneratedManifest = []byte("a newly generated manifest")
@@ -286,7 +283,6 @@ var _ = Describe("Provisioning", func() {
 		})
 
 		It("calls the deployer with a different bosh context id when provision is called again", func() {
-
 			serviceSpec, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
 			_, secondProvisionErr := b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
 
@@ -298,7 +294,6 @@ var _ = Describe("Provisioning", func() {
 			_, _, _, secondBoshContextID, _, _ := fakeDeployer.CreateArgsForCall(1)
 			Expect(secondBoshContextID).NotTo(Equal(firstBoshContextID))
 		})
-
 	})
 
 	Context("when the plan has a pre-delete lifecycle errand", func() {
@@ -400,7 +395,6 @@ var _ = Describe("Provisioning", func() {
 			Expect(logBuffer.String()).To(ContainSubstring("error: could not get manifest: network timeout"))
 			Expect(provisionErr).To(MatchError(ContainSubstring("Currently unable to create service instance, please try again later")))
 		})
-
 	})
 
 	Context("when a deploy has a bosh request error", func() {
@@ -429,7 +423,7 @@ var _ = Describe("Provisioning", func() {
 
 	Context("when the deploy returns an adapter error with a user message", func() {
 		It("returns the user error", func() {
-			var err = serviceadapter.NewUnknownFailureError("it failed, but all is not lost dear user")
+			err := serviceadapter.NewUnknownFailureError("it failed, but all is not lost dear user")
 			fakeDeployer.CreateReturns(0, nil, err)
 
 			serviceSpec, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
@@ -440,7 +434,7 @@ var _ = Describe("Provisioning", func() {
 
 	Context("when the deploy returns an adapter error with no message", func() {
 		It("returns a generic error", func() {
-			var err = serviceadapter.NewUnknownFailureError("")
+			err := serviceadapter.NewUnknownFailureError("")
 			fakeDeployer.CreateReturns(0, nil, err)
 
 			serviceSpec, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
@@ -539,7 +533,6 @@ var _ = Describe("Provisioning", func() {
 			)
 			Expect(provisionErr).NotTo(HaveOccurred())
 		})
-
 	})
 
 	Context("when plan id given is not configured", func() {
@@ -619,7 +612,6 @@ var _ = Describe("Provisioning", func() {
 				Expect(provisionErr).To(HaveOccurred())
 				Expect(provisionErr.Error()).To(ContainSubstring("oops"))
 			})
-
 		})
 
 		Context("if the service adapter does not implement plan schemas", func() {
@@ -867,7 +859,6 @@ var _ = Describe("Provisioning", func() {
 			jsonContext, err = json.Marshal(arbContext)
 			Expect(err).NotTo(HaveOccurred())
 			boshClient.GetDeploymentReturns(nil, false, nil)
-
 		})
 
 		deployWithQuotas := func(q quotaCase, planToDeploy string, existingInstanceCount int) error {

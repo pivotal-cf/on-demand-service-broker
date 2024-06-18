@@ -16,14 +16,13 @@
 package startupchecker_test
 
 import (
-	. "github.com/pivotal-cf/on-demand-service-broker/startupchecker"
-
-	"log"
-
 	"errors"
+	"log"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	. "github.com/pivotal-cf/on-demand-service-broker/startupchecker"
 	"github.com/pivotal-cf/on-demand-service-broker/startupchecker/fakes"
 )
 

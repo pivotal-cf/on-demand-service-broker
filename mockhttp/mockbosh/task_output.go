@@ -12,9 +12,10 @@ import (
 	"fmt"
 
 	. "github.com/onsi/gomega"
+	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
+
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
-	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 )
 
 type taskOutputMock struct {

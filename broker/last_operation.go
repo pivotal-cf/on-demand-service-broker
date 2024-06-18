@@ -15,6 +15,7 @@ import (
 
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/brokerapi/v11/domain"
+
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/brokercontext"
 )
@@ -51,7 +52,6 @@ func (b *Broker) LastOperation(
 	instanceID string,
 	pollDetails domain.PollDetails,
 ) (domain.LastOperation, error) {
-
 	operationDataRaw := pollDetails.OperationData
 	requestID := uuid.New()
 	ctx = brokercontext.New(ctx, "", requestID, b.serviceOffering.Name, instanceID)
@@ -118,7 +118,6 @@ func constructLastOperation(ctx context.Context, taskState domain.LastOperationS
 
 	}
 	return domain.LastOperation{State: taskState, Description: description}
-
 }
 
 func lastOperationState(task boshdirector.BoshTask, logger *log.Logger) domain.LastOperationState {
@@ -151,7 +150,8 @@ func (b *Broker) deleteConfigsAndSecretsAfterDelete(
 	instanceID string,
 	operationType OperationType,
 	lastBoshTask boshdirector.BoshTask,
-	logger *log.Logger) error {
+	logger *log.Logger,
+) error {
 	if (operationType == OperationTypeDelete || operationType == OperationTypeForceDelete) &&
 		lastBoshTask.StateType() == boshdirector.TaskComplete {
 		if !b.DisableBoshConfigs {

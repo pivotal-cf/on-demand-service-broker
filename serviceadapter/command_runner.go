@@ -8,10 +8,9 @@ package serviceadapter
 
 import (
 	"bytes"
+	"encoding/json"
 	"os/exec"
 	"syscall"
-
-	"encoding/json"
 
 	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
@@ -34,7 +33,6 @@ func (c commandRunner) RunWithInputParams(inputParams interface{}, arg ...string
 
 	b := bytes.NewBuffer([]byte{})
 	err := json.NewEncoder(b).Encode(inputParams)
-
 	if err != nil {
 		return nil, nil, nil, err
 	}

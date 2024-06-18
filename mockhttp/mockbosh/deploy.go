@@ -8,9 +8,10 @@ package mockbosh
 
 import (
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 	"gopkg.in/yaml.v2"
+
+	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
 )
 
 type deployMock struct {

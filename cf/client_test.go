@@ -19,6 +19,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
+
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/cf/fakes"
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
@@ -71,7 +72,6 @@ var _ = Describe("Client", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(brokerGUID).To(Equal("service-broker-guid-2-guid"))
-
 		})
 
 		It("returns an error if it fails to get service brokers", func() {
@@ -111,7 +111,6 @@ var _ = Describe("Client", func() {
 		const offeringID = "D94A086D-203D-4966-A6F1-60A9E2300F72"
 
 		It("disables all the plans across pages", func() {
-
 			server.VerifyAndMock(
 				mockcfapi.ListServiceOfferings().WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_services_response.json")),
 				mockcfapi.ListServicePlans(serviceGUID).WithAuthorizationHeader(cfAuthorizationHeader).RespondsOKWith(fixture("list_service_plans_response_page_1.json")),
@@ -398,7 +397,6 @@ var _ = Describe("Client", func() {
 					ContainSubstring("failed to delete plan visibility for plan %s", planGUID),
 				))
 			})
-
 		})
 	})
 
@@ -673,7 +671,6 @@ var _ = Describe("Client", func() {
 
 			err = client.DeregisterBroker(brokerGUID, testLogger)
 			Expect(err).To(MatchError(ContainSubstring("failed")))
-
 		})
 	})
 
@@ -1382,7 +1379,6 @@ var _ = Describe("Client", func() {
 			err = client.CreateServiceBroker("service-broker-name", "exampleUser", "examplePassword", "https://broker.example.com")
 			Expect(err).To(MatchError(ContainSubstring("failed building header")))
 		})
-
 	})
 
 	Describe("UpdateServiceBroker", func() {
@@ -1431,7 +1427,6 @@ var _ = Describe("Client", func() {
 			err = client.UpdateServiceBroker("a-guid", "service-broker-name", "exampleUser", "examplePassword", "https://broker.example.com")
 			Expect(err).To(MatchError(ContainSubstring("failed building header")))
 		})
-
 	})
 
 	Describe("CreateServicePlanVisibility", func() {

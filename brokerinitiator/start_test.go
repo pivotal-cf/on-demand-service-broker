@@ -8,6 +8,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
+	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
+
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/fakes"
 	"github.com/pivotal-cf/on-demand-service-broker/brokerinitiator"
@@ -16,7 +18,6 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 	serviceAdapterFakes "github.com/pivotal-cf/on-demand-service-broker/serviceadapter/fakes"
 	tasksFakes "github.com/pivotal-cf/on-demand-service-broker/task/fakes"
-	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
 
 var _ = Describe("Start", func() {

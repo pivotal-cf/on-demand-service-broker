@@ -59,7 +59,6 @@ func (l LifeCycleRunner) processPostDeployment(
 	operationData OperationData,
 	logger *log.Logger,
 ) (boshdirector.BoshTask, error) {
-
 	boshTasks, err := l.boshClient.GetNormalisedTasksByContext(deploymentName, operationData.BoshContextID, logger)
 	if err != nil {
 		return boshdirector.BoshTask{}, err
@@ -95,7 +94,6 @@ func (l LifeCycleRunner) processPreDelete(
 	operationData OperationData,
 	logger *log.Logger,
 ) (boshdirector.BoshTask, error) {
-
 	boshTasks, err := l.getTasks(deploymentName, operationData, logger)
 	if err != nil {
 		return boshdirector.BoshTask{}, err

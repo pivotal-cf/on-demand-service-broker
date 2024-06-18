@@ -21,6 +21,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/brokerapi/v11/domain"
+
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/noopservicescontroller"
@@ -301,7 +302,6 @@ var _ = Describe("Catalog", func() {
 		Expect(catalog[0].Plans[1].MaintenanceInfo.Version).To(Equal("8.0.0+global"))
 
 		Expect(catalog[0].Plans[1].MaintenanceInfo.Description).To(Equal("Some global description"))
-
 	})
 
 	It("for each plan, calls the adapter to generate the plan schemas", func() {
@@ -370,7 +370,6 @@ var _ = Describe("Catalog", func() {
 			Expect(servicesII).To(Equal(services))
 			Expect(serviceAdapter.GeneratePlanSchemaCallCount()).To(Equal(len(services[0].Plans)))
 		})
-
 	})
 
 	DescribeTable("when the generated schema is invalid",

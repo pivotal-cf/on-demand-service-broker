@@ -14,11 +14,11 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
 	"github.com/pivotal-cf/on-demand-service-broker/apiserver"
 )
 
 var _ = Describe("Apiserver", func() {
-
 	DescribeTable("checking certificate expiry", func(expiryDate time.Time, ok bool) {
 		_, certPEMBytes := generateCertificateExpiringOn(expiryDate)
 		certFile, err := ioutil.TempFile("", "")
@@ -63,13 +63,12 @@ var _ = Describe("Apiserver", func() {
 			Expect(err).To(MatchError(ContainSubstring("can't parse server certificate file")))
 		})
 	})
-
 })
 
 func generateCertificateExpiringOn(expiry time.Time) (privKey, serverCert []byte) {
 	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	Expect(err).NotTo(HaveOccurred())
-	var privateBlock = &pem.Block{
+	privateBlock := &pem.Block{
 		Type:  "RSA PRIVATE KEY",
 		Bytes: x509.MarshalPKCS1PrivateKey(privateKey),
 	}

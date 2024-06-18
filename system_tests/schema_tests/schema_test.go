@@ -23,6 +23,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
 	"github.com/pivotal-cf/brokerapi/v11/domain"
+
 	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/cf_helpers"
 )
 
@@ -41,7 +42,6 @@ type CFServicePlans struct {
 }
 
 var _ = Describe("Service plan schemas", func() {
-
 	It("fetches the plan schema from cloud foundry", func() {
 		servicesCurlSession := cf.Cf("curl", fmt.Sprintf("/v2/services?q=label:%s", brokerInfo.ServiceName))
 		Expect(servicesCurlSession).To(gexec.Exit(0))
@@ -71,6 +71,5 @@ var _ = Describe("Service plan schemas", func() {
 			Expect(ok).To(BeTrue(), "schema properties were not a map")
 			Expect(len(createPropsMap)).To(BeNumerically(">", 0), "schema properties were empty")
 		}
-
 	})
 })

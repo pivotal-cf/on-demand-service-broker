@@ -11,6 +11,7 @@ import (
 	"fmt"
 
 	. "github.com/onsi/gomega"
+
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
 )

@@ -12,15 +12,14 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
 	"github.com/pivotal-cf/on-demand-service-broker/service"
 )
 
 var _ = Describe("Instances", func() {
-
 	var logger *log.Logger
 	BeforeEach(func() {
 		logger = loggerFactory.NewWithRequestID()
-
 	})
 
 	Describe("listing all instances", func() {

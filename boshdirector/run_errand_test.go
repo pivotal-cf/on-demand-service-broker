@@ -12,6 +12,7 @@ import (
 	"github.com/cloudfoundry/bosh-cli/v7/director"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector/fakes"
 )
@@ -66,7 +67,6 @@ var _ = Describe("running errands", func() {
 		Expect(instances).To(HaveLen(1))
 		Expect(instances[0].Name()).To(Equal("errand_instance"))
 		Expect(instances[0].IndexOrID()).To(Equal("4529480d-9770-4c32-b9bb-d936c0a908ca"))
-
 	})
 
 	It("invokes BOSH to queue up an errand with instances with group only when an instance group is configured", func() {
@@ -103,5 +103,4 @@ var _ = Describe("running errands", func() {
 
 		Expect(err).To(MatchError(ContainSubstring("Could not run errand")))
 	})
-
 })

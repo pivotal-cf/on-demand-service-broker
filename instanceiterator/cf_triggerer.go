@@ -3,10 +3,11 @@ package instanceiterator
 import (
 	"log"
 
+	"github.com/pkg/errors"
+
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/service"
-	"github.com/pkg/errors"
 )
 
 //counterfeiter:generate -o fakes/fake_cf_client.go . CFClient

@@ -2,6 +2,7 @@ package all_lifecycle_tests
 
 import (
 	. "github.com/onsi/ginkgo/v2"
+
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/cf_helpers"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/service_helpers"
@@ -12,8 +13,8 @@ func BasicLifecycleTest(
 	brokerInfo bosh_helpers.BrokerInfo,
 	plan string,
 	newPlanName string,
-	arbitraryParams string) {
-
+	arbitraryParams string,
+) {
 	var (
 		serviceInstanceName string
 		serviceKeyName      string

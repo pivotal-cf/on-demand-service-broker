@@ -40,7 +40,6 @@ var _ = Describe("running the tool to upgrade all service instances", func() {
 	}
 
 	Describe("upgrading only via BOSH", func() {
-
 		var broker *ghttp.Server
 
 		When("the broker is not configured with TLS", func() {

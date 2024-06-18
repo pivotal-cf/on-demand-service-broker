@@ -18,12 +18,13 @@ import (
 	"time"
 
 	"github.com/craigfurman/herottp"
+	"gopkg.in/yaml.v2"
+
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/instanceiterator"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 	"github.com/pivotal-cf/on-demand-service-broker/runtimechecker"
-	"gopkg.in/yaml.v2"
 )
 
 func main() {

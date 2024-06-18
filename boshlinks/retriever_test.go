@@ -23,7 +23,7 @@ var _ = Describe("Boshlinks", func() {
 	})
 
 	Describe("GetLinkProviderId", func() {
-		var providerLinkListJSON = `
+		providerLinkListJSON := `
 		[
 		{
 			"id": "77",

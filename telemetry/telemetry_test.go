@@ -6,6 +6,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
+	"github.com/pkg/errors"
+
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
@@ -13,7 +15,6 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/service/fakes"
 	"github.com/pivotal-cf/on-demand-service-broker/telemetry"
 	. "github.com/pivotal-cf/on-demand-service-broker/telemetry/fakes_telemetry"
-	"github.com/pkg/errors"
 )
 
 var _ = Describe("Telemetry", func() {

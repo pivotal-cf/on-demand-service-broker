@@ -23,6 +23,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
+
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 	"github.com/pivotal-cf/on-demand-service-broker/purger"
 	"github.com/pivotal-cf/on-demand-service-broker/purger/fakes"
@@ -52,10 +53,8 @@ var _ = Describe("purger", func() {
 		fakeRegistrar = new(fakes.FakeDeregistrar)
 		fakeCFClient = new(fakes.FakeCloudFoundryClient)
 		purgeTool = purger.New(fakeDeleter, fakeRegistrar, fakeCFClient, logger)
-
 	})
 	It("does not error when it deletes instances and deregisters the broker", func() {
-
 		Expect(purgeTool.DeleteInstancesAndDeregister(serviceOfferingGUID, brokerName)).NotTo(HaveOccurred())
 
 		Expect(logBuffer).To(gbytes.Say("Disabling service access for all plans"))

@@ -36,11 +36,12 @@ func TasksInProgress(deploymentName string) *tasksMock {
 		),
 	}
 }
+
 func (t *tasksMock) RespondsWithNoTasks() *mockhttp.Handler {
 	return t.RespondsOKWithJSON([]boshdirector.BoshTask{})
 }
 
-func (t *tasksMock) RespondsWithATaskContainingState(state string, description string) *mockhttp.Handler {
+func (t *tasksMock) RespondsWithATaskContainingState(state, description string) *mockhttp.Handler {
 	return t.RespondsWithATask(boshdirector.BoshTask{
 		State:       state,
 		Description: description,

@@ -12,6 +12,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 )
 
@@ -130,7 +131,6 @@ var _ = Describe("tasks", func() {
 			It("returns all incomplete tasks", func() {
 				Expect(boshTasks.IncompleteTasks()).To(Equal(boshTasks))
 			})
-
 		})
 
 		Context("on a list of done tasks", func() {

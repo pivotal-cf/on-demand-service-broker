@@ -10,23 +10,20 @@ import (
 	"os/exec"
 	"time"
 
-	"github.com/pivotal-cf/on-demand-service-broker/cf"
-
-	"github.com/onsi/gomega/ghttp"
-	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
-
-	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
-	"github.com/pivotal-cf/on-demand-service-broker/broker/fakes"
-	"github.com/pivotal-cf/on-demand-service-broker/collaboration_tests/helpers"
-	taskfakes "github.com/pivotal-cf/on-demand-service-broker/task/fakes"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
+	"github.com/onsi/gomega/ghttp"
+	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 	"gopkg.in/yaml.v2"
 
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
+	"github.com/pivotal-cf/on-demand-service-broker/broker/fakes"
+	"github.com/pivotal-cf/on-demand-service-broker/cf"
+	"github.com/pivotal-cf/on-demand-service-broker/collaboration_tests/helpers"
 	brokerConfig "github.com/pivotal-cf/on-demand-service-broker/config"
+	taskfakes "github.com/pivotal-cf/on-demand-service-broker/task/fakes"
 )
 
 var _ = Describe("Recreate all service instances", func() {
@@ -373,7 +370,6 @@ var _ = Describe("Recreate all service instances", func() {
 			Expect(stderr).To(gbytes.Say(`an error occurred while talking to the BOSH director`))
 		})
 	})
-
 })
 
 func toFilePath(c brokerConfig.InstanceIteratorConfig) string {

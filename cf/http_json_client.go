@@ -7,6 +7,7 @@
 package cf
 
 import (
+	"bytes"
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
@@ -15,8 +16,6 @@ import (
 	"log"
 	"net/http"
 	"time"
-
-	"bytes"
 
 	"github.com/craigfurman/herottp"
 )

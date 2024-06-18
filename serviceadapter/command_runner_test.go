@@ -7,15 +7,14 @@
 package serviceadapter_test
 
 import (
-	"io/ioutil"
-	"os"
-
-	"math/rand"
-
 	"fmt"
+	"io/ioutil"
+	"math/rand"
+	"os"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 )
 
@@ -29,7 +28,7 @@ var _ = Describe("CommandRunner", func() {
 		actualExitCode *int
 	)
 
-	var createScript = func(script string) string {
+	createScript := func(script string) string {
 		tempFile, err := ioutil.TempFile("", "cmd")
 		Expect(err).NotTo(HaveOccurred())
 
@@ -38,7 +37,7 @@ var _ = Describe("CommandRunner", func() {
 		_, err = tempFile.WriteString(script)
 		Expect(err).NotTo(HaveOccurred())
 
-		err = tempFile.Chmod(0755)
+		err = tempFile.Chmod(0o755)
 		Expect(err).NotTo(HaveOccurred())
 
 		err = tempFile.Close()
@@ -99,7 +98,7 @@ var _ = Describe("CommandRunner", func() {
 		Context("when the command exists but is not executable", func() {
 			BeforeEach(func() {
 				scriptPath = createScript("this is not a script")
-				os.Chmod(scriptPath, 0644)
+				os.Chmod(scriptPath, 0o644)
 			})
 
 			It("returns an error", func() {

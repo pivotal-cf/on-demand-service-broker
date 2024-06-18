@@ -16,10 +16,10 @@
 package boshdirector_test
 
 import (
-	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 )
 
 var _ = Describe("AsyncTaskReporter", func() {
@@ -41,5 +41,4 @@ var _ = Describe("AsyncTaskReporter", func() {
 		Expect(<-reporter.Finished).To(BeTrue())
 		Expect(reporter.State).To(Equal("failed"))
 	})
-
 })

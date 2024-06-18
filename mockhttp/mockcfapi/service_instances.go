@@ -11,6 +11,7 @@ import (
 	"fmt"
 
 	. "github.com/onsi/gomega"
+
 	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
 )
 
@@ -72,7 +73,6 @@ type listServiceInstancesMock struct {
 
 func ListServiceInstances(servicePlanGUID string) *listServiceInstancesMock {
 	return &listServiceInstancesMock{
-
 		mockhttp.NewMockedHttpRequest(
 			"GET",
 			"/v2/service_plans/"+servicePlanGUID+"/service_instances?results-per-page=100",
@@ -82,7 +82,6 @@ func ListServiceInstances(servicePlanGUID string) *listServiceInstancesMock {
 
 func ListServiceInstancesBySpace(servicePlanGUID, spaceGUID string) *listServiceInstancesMock {
 	return &listServiceInstancesMock{
-
 		mockhttp.NewMockedHttpRequest(
 			"GET",
 			"/v2/service_plans/"+servicePlanGUID+"/service_instances?results-per-page=100&q=space_guid:"+spaceGUID,

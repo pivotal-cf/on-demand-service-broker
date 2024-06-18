@@ -13,7 +13,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-
 	"time"
 
 	"github.com/craigfurman/herottp"

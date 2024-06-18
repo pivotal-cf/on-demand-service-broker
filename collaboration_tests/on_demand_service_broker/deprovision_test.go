@@ -26,11 +26,12 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/pivotal-cf/brokerapi/v11/domain/apiresponses"
+	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
+	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
+
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	brokerConfig "github.com/pivotal-cf/on-demand-service-broker/config"
-	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
-	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
 
 var _ = Describe("Deprovision", func() {
@@ -123,7 +124,6 @@ var _ = Describe("Deprovision", func() {
 				"description": "This service plan requires client support for asynchronous service operations.",
 			}))
 		})
-
 	})
 
 	Context("with pre-delete errand", func() {
@@ -350,7 +350,7 @@ var _ = Describe("Deprovision", func() {
 	})
 })
 
-func doDeprovisionRequest(instanceID, planID, serviceID string, asyncAllowed bool, force bool) (*http.Response, []byte) {
+func doDeprovisionRequest(instanceID, planID, serviceID string, asyncAllowed, force bool) (*http.Response, []byte) {
 	return doRequestWithAuthAndHeaderSet(
 		http.MethodDelete,
 		fmt.Sprintf("http://%s/v2/service_instances/%s?accepts_incomplete=%t&plan_id=%s&service_id=%s&force=%v", serverURL, instanceID, asyncAllowed, planID, serviceID, force),

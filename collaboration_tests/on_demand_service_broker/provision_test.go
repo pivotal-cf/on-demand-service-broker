@@ -27,13 +27,14 @@ import (
 	"github.com/onsi/gomega/gbytes"
 	"github.com/pivotal-cf/brokerapi/v11/domain"
 	"github.com/pivotal-cf/brokerapi/v11/domain/apiresponses"
+	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
+	"github.com/pkg/errors"
+
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	brokerConfig "github.com/pivotal-cf/on-demand-service-broker/config"
 	taskfakes "github.com/pivotal-cf/on-demand-service-broker/task/fakes"
-	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
-	"github.com/pkg/errors"
 )
 
 var _ = Describe("Provision service instance", func() {
@@ -57,7 +58,7 @@ var _ = Describe("Provision service instance", func() {
 		arbitraryParams = map[string]interface{}{"some": "prop"}
 
 		planCounts := map[cf.ServicePlan]int{
-			cf.ServicePlan{
+			{
 				ServicePlanEntity: cf.ServicePlanEntity{
 					UniqueID: planWithQuotaID,
 				},
@@ -424,13 +425,12 @@ password: ((odb_secret:foo))`,
 				ContainSubstring("operation: create"),
 			))
 		})
-
 	})
 
 	It("responds with 500 when the plan quota is reached", func() {
 		instanceLimit := 5
 		planCounts := map[cf.ServicePlan]int{
-			cf.ServicePlan{
+			{
 				ServicePlanEntity: cf.ServicePlanEntity{
 					UniqueID: planWithQuotaID,
 				},
@@ -642,6 +642,7 @@ func doProvisionRequest(instanceID, planID string, arbitraryParams map[string]in
 		bytes.NewReader(bodyBytes),
 	)
 }
+
 func setupFakeGenerateManifestOutput() {
 	generateManifestOutput := sdk.MarshalledGenerateManifest{
 		Manifest: `name: service-instance_some-instance-id`,

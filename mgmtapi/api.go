@@ -18,6 +18,7 @@ import (
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/brokerapi/v11/domain"
 	"github.com/pivotal-cf/brokerapi/v11/domain/apiresponses"
+
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/brokercontext"
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
@@ -191,7 +192,6 @@ func (a *api) upgradeInstance(w http.ResponseWriter, r *http.Request) {
 func (a *api) metrics(w http.ResponseWriter, r *http.Request) {
 	logger := a.loggerFactory.NewWithRequestID()
 	instanceCountsByPlan, err := a.manageableBroker.CountInstancesOfPlans(logger)
-
 	if err != nil {
 		logger.Printf("error getting instance count for service offering %s: %s", a.serviceOffering.Name, err)
 		w.WriteHeader(http.StatusInternalServerError)

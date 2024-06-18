@@ -16,33 +16,28 @@
 package on_demand_service_broker_test
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
-
-	"github.com/pivotal-cf/on-demand-service-broker/integration_tests/helpers"
-
-	"github.com/onsi/gomega/ghttp"
-
-	"encoding/json"
-
 	"strings"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
+	"github.com/onsi/gomega/ghttp"
+	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
+	"github.com/pkg/errors"
+
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	brokerConfig "github.com/pivotal-cf/on-demand-service-broker/config"
+	"github.com/pivotal-cf/on-demand-service-broker/integration_tests/helpers"
 	"github.com/pivotal-cf/on-demand-service-broker/mgmtapi"
-	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
-	"github.com/pkg/errors"
 )
 
 var _ = Describe("Management API", func() {
-	var (
-		conf brokerConfig.Config
-	)
+	var conf brokerConfig.Config
 
 	BeforeEach(func() {
 		conf = brokerConfig.Config{
@@ -146,7 +141,6 @@ var _ = Describe("Management API", func() {
 			})
 
 			It("return 401 when not authorised", func() {
-
 				response, _ := doGetRequestWithoutAuth(serviceInstancesPath)
 
 				By("returning the correct status code")
@@ -155,7 +149,6 @@ var _ = Describe("Management API", func() {
 		})
 
 		Context("when SIAPI is set", func() {
-
 			var (
 				siApiServer             *ghttp.Server
 				expectedResponse        string
@@ -276,7 +269,6 @@ var _ = Describe("Management API", func() {
 
 			By("logging the failure")
 			Expect(loggerBuffer).To(gbytes.Say(`error occurred querying orphan deployments: some bosh error`))
-
 		})
 	})
 
@@ -336,7 +328,6 @@ var _ = Describe("Management API", func() {
 					Unit:  "count",
 				},
 			))
-
 		})
 
 		Context("when no global quota is configured", func() {
@@ -570,7 +561,6 @@ var _ = Describe("Management API", func() {
 		})
 
 		Context("With a valid operation type", func() {
-
 			const (
 				operationType = "upgrade"
 			)
@@ -600,7 +590,6 @@ var _ = Describe("Management API", func() {
 
 			Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
 		})
-
 	})
 })
 

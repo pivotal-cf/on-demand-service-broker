@@ -9,7 +9,6 @@ package deleter
 import (
 	"fmt"
 	"log"
-
 	"time"
 
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
@@ -53,7 +52,7 @@ type Deleter struct {
 	sleeper              Sleeper
 }
 
-func New(cfClient CloudFoundryClient, sleeper Sleeper, pollingInitialOffset int, pollingInterval int, logger *log.Logger) *Deleter {
+func New(cfClient CloudFoundryClient, sleeper Sleeper, pollingInitialOffset, pollingInterval int, logger *log.Logger) *Deleter {
 	return &Deleter{
 		logger:               logger,
 		pollingInitialOffset: time.Duration(pollingInitialOffset) * time.Second,
@@ -199,7 +198,6 @@ func (d Deleter) pollInstanceDeleteStatus(instanceGUID string) error {
 
 func (d Deleter) deleteInProgress(instanceGUID string) (bool, error) {
 	lastOperation, err := d.cfClient.GetLastOperationForInstance(instanceGUID, d.logger)
-
 	if err != nil {
 		return false, err
 	}

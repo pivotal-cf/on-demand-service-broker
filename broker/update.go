@@ -14,14 +14,13 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/pivotal-cf/on-demand-service-broker/broker/decider"
-
+	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/brokerapi/v11/domain"
 	"github.com/pivotal-cf/brokerapi/v11/domain/apiresponses"
-	"github.com/pivotal-cf/on-demand-service-broker/config"
 
-	"github.com/pborman/uuid"
+	"github.com/pivotal-cf/on-demand-service-broker/broker/decider"
 	"github.com/pivotal-cf/on-demand-service-broker/brokercontext"
+	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 )
 
@@ -84,7 +83,7 @@ func (b *Broker) doUpgrade(ctx context.Context, instanceID string, details domai
 	return domain.UpdateServiceSpec{IsAsync: true, OperationData: string(operationDataJSON), DashboardURL: dashboardURL}, nil
 }
 
-func (b *Broker) doUpdate(ctx context.Context, instanceID string, details domain.UpdateDetails, detailsMap map[string]interface{}, contextMap map[string]interface{}, siClient map[string]string, logger *log.Logger) (domain.UpdateServiceSpec, error) {
+func (b *Broker) doUpdate(ctx context.Context, instanceID string, details domain.UpdateDetails, detailsMap, contextMap map[string]interface{}, siClient map[string]string, logger *log.Logger) (domain.UpdateServiceSpec, error) {
 	b.deploymentLock.Lock()
 	defer b.deploymentLock.Unlock()
 
@@ -199,7 +198,6 @@ func (b *Broker) validateQuotasForUpdate(ctx context.Context, plan config.Plan, 
 }
 
 func (b *Broker) validatePlanSchemas(plan config.Plan, details domain.UpdateDetails, logger *log.Logger) error {
-
 	if b.EnablePlanSchemas {
 		var schemas domain.ServiceSchemas
 		schemas, err := b.adapterClient.GeneratePlanSchema(plan.AdapterPlan(b.serviceOffering.GlobalProperties), logger)

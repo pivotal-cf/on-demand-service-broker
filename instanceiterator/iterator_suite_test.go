@@ -12,12 +12,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pivotal-cf/on-demand-service-broker/instanceiterator"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
+	"github.com/pivotal-cf/on-demand-service-broker/instanceiterator"
 	"github.com/pivotal-cf/on-demand-service-broker/instanceiterator/fakes"
 	"github.com/pivotal-cf/on-demand-service-broker/service"
 )
@@ -77,7 +77,7 @@ func setupTest(states []*testState, brokerServices *fakes.FakeBrokerServices, fa
 	}
 }
 
-func hasReportedFinished(fakeListener *fakes.FakeListener, expectedOrphans, expectedProcessed, expectedDeleted int, expectedBusyInstances []string, expectedFailedInstances []string) {
+func hasReportedFinished(fakeListener *fakes.FakeListener, expectedOrphans, expectedProcessed, expectedDeleted int, expectedBusyInstances, expectedFailedInstances []string) {
 	GinkgoHelper()
 	Expect(fakeListener.FinishedCallCount()).To(Equal(1), "Finished call count")
 	orphanCount, processedCount, _, deletedCount, busyInstances, failedInstances := fakeListener.FinishedArgsForCall(0)
@@ -153,8 +153,8 @@ func hasReportedCanariesFinished(fakeListener *fakes.FakeListener, count int) {
 }
 
 func hasReportedInstanceOperationStartResult(fakeListener *fakes.FakeListener, idx int,
-	expectedGuid string, expectedStatus instanceiterator.OperationState) {
-
+	expectedGuid string, expectedStatus instanceiterator.OperationState,
+) {
 	GinkgoHelper()
 	Expect(fakeListener.InstanceOperationStartResultCallCount()).To(BeNumerically(">", idx))
 	guid, operationType := fakeListener.InstanceOperationStartResultArgsForCall(idx)
@@ -163,8 +163,8 @@ func hasReportedInstanceOperationStartResult(fakeListener *fakes.FakeListener, i
 }
 
 func hasReportedInstanceOperationStarted(fakeListener *fakes.FakeListener, idx int,
-	expectedInstance string, expectedIndex, expectedTotalInstances int, expectedIsDoingCanaries bool) {
-
+	expectedInstance string, expectedIndex, expectedTotalInstances int, expectedIsDoingCanaries bool,
+) {
 	GinkgoHelper()
 	Expect(fakeListener.InstanceOperationStartingCallCount()).To(BeNumerically(">", idx))
 	instance, index, total, canaryFlag := fakeListener.InstanceOperationStartingArgsForCall(idx)

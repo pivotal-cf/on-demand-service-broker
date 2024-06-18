@@ -82,7 +82,7 @@ func NewTelemetryLogger(logger *log.Logger, serviceOffering config.ServiceOfferi
 	}
 }
 
-func (t *TelemetryLogger) LogInstances(instanceLister InstanceLister, item string, operation string) {
+func (t *TelemetryLogger) LogInstances(instanceLister InstanceLister, item, operation string) {
 	allInstances, err := instanceLister.Instances(nil)
 	if err != nil {
 		t.logger.Printf("Failed to query list of instances for telemetry (cause: %s). Skipping total instances log.", err)
@@ -149,5 +149,5 @@ func (r *RealTime) Now() string {
 	return time.Now().Format(r.format)
 }
 
-func (t *NoopTelemetryLogger) LogInstances(instanceLister InstanceLister, item string, operation string) {
+func (t *NoopTelemetryLogger) LogInstances(instanceLister InstanceLister, item, operation string) {
 }

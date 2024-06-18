@@ -13,10 +13,11 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
+
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
-	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
 
 var _ = Describe("Lifecycle runner", func() {
@@ -30,7 +31,7 @@ var _ = Describe("Lifecycle runner", func() {
 		planIDWithoutErrands = "without-errands-plan-id"
 	)
 
-	var errandInstances = []string{"some-instance/0"}
+	errandInstances := []string{"some-instance/0"}
 
 	plans := config.Plans{
 		config.Plan{
@@ -271,12 +272,10 @@ var _ = Describe("Lifecycle runner", func() {
 				Expect(logBuffer.String()).To(BeEmpty())
 			})
 		})
-
 	})
 
 	Describe("pre-delete errand", func() {
 		Context("Operation delete", func() {
-
 			BeforeEach(func() {
 				operationData = broker.OperationData{
 					BoshContextID: contextID,
@@ -468,7 +467,6 @@ var _ = Describe("Lifecycle runner", func() {
 					Expect(task).To(Equal(taskComplete))
 				})
 			})
-
 		})
 
 		Context("Operation force-delete", func() {

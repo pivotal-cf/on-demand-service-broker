@@ -22,9 +22,9 @@ type HostWaiter struct {
 func NewHostWaiter() HostWaiter {
 	return HostWaiter{HostLookUpper: net.LookupHost, Sleeper: time.Sleep}
 }
+
 func (h HostWaiter) Wait(url string, pause, retries int) error {
 	host, err := getHostName(url)
-
 	if err != nil {
 		return err
 	}

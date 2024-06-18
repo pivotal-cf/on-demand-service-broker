@@ -26,8 +26,10 @@ import (
 	"github.com/onsi/gomega/gexec"
 )
 
-const RETRY_LIMIT = 3
-const COMMAND_TIMEOUT = CfTimeout
+const (
+	RETRY_LIMIT     = 3
+	COMMAND_TIMEOUT = CfTimeout
+)
 
 func CfWithTimeout(timeout time.Duration, args ...string) *gexec.Session {
 	return cfWithTimeoutAndStdin(timeout, nil, args...)

@@ -12,6 +12,7 @@ import (
 	"github.com/cloudfoundry/bosh-cli/v7/director"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector/fakes"
 )
 
@@ -20,12 +21,10 @@ var _ = Describe("Retriving VM Info", func() {
 		deploymentName = "some-deployment"
 	)
 
-	var (
-		fakeDeployment *fakes.FakeBOSHDeployment
-	)
+	var fakeDeployment *fakes.FakeBOSHDeployment
 
 	BeforeEach(func() {
-		var vmIndex = 1
+		vmIndex := 1
 		fakeDeployment = new(fakes.FakeBOSHDeployment)
 		fakeDeployment.VMInfosReturns([]director.VMInfo{
 			{AgentID: "1", JobName: "some-instance-group", ID: "some-id", Index: &vmIndex, IPs: []string{"ip1", "ip2"}},

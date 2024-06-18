@@ -7,10 +7,9 @@
 package serviceadapter
 
 import (
+	"encoding/json"
 	"log"
 	"strings"
-
-	"encoding/json"
 
 	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 	"gopkg.in/yaml.v2"
@@ -41,7 +40,6 @@ func (c *Client) GenerateManifest(
 	uaaClient map[string]string,
 	logger *log.Logger,
 ) (sdk.MarshalledGenerateManifest, error) {
-
 	serialisedServiceDeployment, err := json.Marshal(serviceDeployment)
 	if err != nil {
 		return sdk.MarshalledGenerateManifest{}, err
@@ -137,7 +135,7 @@ func (c *Client) GenerateManifest(
 	return output, nil
 }
 
-func (v manifestValidator) validateManifest(adapterPath string, genManifest string, stderr []byte) error {
+func (v manifestValidator) validateManifest(adapterPath, genManifest string, stderr []byte) error {
 	var generatedManifest manifest
 
 	if err := yaml.Unmarshal([]byte(genManifest), &generatedManifest); err != nil {

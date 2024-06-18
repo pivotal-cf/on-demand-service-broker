@@ -12,9 +12,10 @@ import (
 	"log"
 
 	"github.com/pivotal-cf/brokerapi/v11/domain"
+	"github.com/pkg/errors"
+
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
-	"github.com/pkg/errors"
 )
 
 func (b *Broker) Services(ctx context.Context) ([]domain.Service, error) {
@@ -142,7 +143,7 @@ func (b *Broker) generatePlanSchemas(plan config.Plan, logger *log.Logger) (*dom
 	return nil, nil
 }
 
-func mergeMaintenanceInfo(globalInfo *config.MaintenanceInfo, planInfo *config.MaintenanceInfo) (map[string]string, map[string]string) {
+func mergeMaintenanceInfo(globalInfo, planInfo *config.MaintenanceInfo) (map[string]string, map[string]string) {
 	if globalInfo == nil && planInfo == nil {
 		return nil, nil
 	}
@@ -176,7 +177,7 @@ func normalize(keyMap map[string]string) map[string]string {
 	return keyMap
 }
 
-func getMaintenanceInfoVersion(globalInfo *config.MaintenanceInfo, planInfo *config.MaintenanceInfo) string {
+func getMaintenanceInfoVersion(globalInfo, planInfo *config.MaintenanceInfo) string {
 	if planInfo != nil && planInfo.Version != "" {
 		return planInfo.Version
 	}
@@ -188,7 +189,7 @@ func getMaintenanceInfoVersion(globalInfo *config.MaintenanceInfo, planInfo *con
 	return ""
 }
 
-func getMaintenanceInfoDescription(globalInfo *config.MaintenanceInfo, planInfo *config.MaintenanceInfo) string {
+func getMaintenanceInfoDescription(globalInfo, planInfo *config.MaintenanceInfo) string {
 	if planInfo != nil && planInfo.Description != "" {
 		return planInfo.Description
 	}

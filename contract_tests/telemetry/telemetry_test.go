@@ -6,13 +6,13 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/pborman/uuid"
+
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/service_helpers"
 )
 
 var _ = Describe("Telemetry", func() {
 	It("logs telemetry when telemetry enabled", func() {
-
 		brokerDeployment := bosh_helpers.DeployBroker(
 			"-"+uuid.New()[:8]+"-telemetry-contract-tests",
 			bosh_helpers.BrokerDeploymentOptions{},

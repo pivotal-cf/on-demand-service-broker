@@ -20,15 +20,15 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/pivotal-cf/brokerapi/v11/domain/apiresponses"
-	brokerConfig "github.com/pivotal-cf/on-demand-service-broker/config"
-	"github.com/pkg/errors"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
+	"github.com/pivotal-cf/brokerapi/v11/domain/apiresponses"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
+	"github.com/pkg/errors"
+
+	brokerConfig "github.com/pivotal-cf/on-demand-service-broker/config"
 )
 
 var _ = Describe("Unbind", func() {
@@ -66,7 +66,6 @@ var _ = Describe("Unbind", func() {
 	})
 
 	It("successfully unbind the service instance", func() {
-
 		secretsMap := map[string]string{"/foo/bar": "some super secret"}
 		fakeCredhubOperator.BulkGetReturns(secretsMap, nil)
 
@@ -179,7 +178,6 @@ var _ = Describe("Unbind", func() {
 			))
 
 			Eventually(loggerBuffer).Should(gbytes.Say("delete binding: command not implemented by service adapter"))
-
 		})
 
 		It("responds with 500 when bosh fails", func() {
@@ -204,7 +202,6 @@ var _ = Describe("Unbind", func() {
 				ContainSubstring("operation: unbind"),
 			))
 		})
-
 	})
 })
 

@@ -23,22 +23,21 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/pivotal-cf/brokerapi/v11/domain"
-	"github.com/pivotal-cf/brokerapi/v11/domain/apiresponses"
-	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
-	"github.com/pivotal-cf/on-demand-service-broker/cf"
-	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
-	"github.com/pivotal-cf/on-demand-service-broker/broker"
-	brokerConfig "github.com/pivotal-cf/on-demand-service-broker/config"
+	"github.com/pivotal-cf/brokerapi/v11/domain"
+	"github.com/pivotal-cf/brokerapi/v11/domain/apiresponses"
 	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
+
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
+	"github.com/pivotal-cf/on-demand-service-broker/broker"
+	"github.com/pivotal-cf/on-demand-service-broker/cf"
+	brokerConfig "github.com/pivotal-cf/on-demand-service-broker/config"
+	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 )
 
 var _ = Describe("Update a service instance", func() {
-
 	const (
 		oldPlanID              = "old-plan-id"
 		newPlanID              = "new-plan-id"
@@ -269,7 +268,7 @@ var _ = Describe("Update a service instance", func() {
 
 		It("fails with 500 if the plan's quota has been reached", func() {
 			fakeCfClient.CountInstancesOfServiceOfferingReturns(map[cf.ServicePlan]int{
-				cf.ServicePlan{ServicePlanEntity: cf.ServicePlanEntity{UniqueID: quotaReachedPlanID}}: 1,
+				{ServicePlanEntity: cf.ServicePlanEntity{UniqueID: quotaReachedPlanID}}: 1,
 			}, nil)
 			requestBody.PlanID = quotaReachedPlanID
 			requestBody.MaintenanceInfo.Public = map[string]string{"version": "2"}
@@ -374,7 +373,6 @@ var _ = Describe("Update a service instance", func() {
 		})
 
 		It("succeeds when called with maintenance info", func() {
-
 			resp, _ := doUpdateRequest(requestBody, instanceID)
 
 			Expect(resp.StatusCode).To(Equal(http.StatusAccepted))
@@ -812,7 +810,6 @@ properties:
 			Eventually(loggerBuffer).Should(gbytes.Say("error updating config"))
 		})
 	})
-
 })
 
 func doUpdateRequest(body interface{}, instanceID string) (*http.Response, []byte) {

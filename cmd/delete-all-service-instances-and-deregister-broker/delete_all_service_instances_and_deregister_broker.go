@@ -20,13 +20,14 @@ import (
 	"io/ioutil"
 	"os"
 
+	"gopkg.in/yaml.v2"
+
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/deleter"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 	"github.com/pivotal-cf/on-demand-service-broker/purger"
 	"github.com/pivotal-cf/on-demand-service-broker/registrar"
 	"github.com/pivotal-cf/on-demand-service-broker/tools"
-	"gopkg.in/yaml.v2"
 )
 
 func main() {

@@ -16,23 +16,19 @@
 package registrar_test
 
 import (
+	"errors"
 	"fmt"
+	"io/ioutil"
+	"os"
 	"path/filepath"
 
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	"gopkg.in/yaml.v2"
 
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/registrar"
 	"github.com/pivotal-cf/on-demand-service-broker/registrar/fakes"
-
-	"errors"
-
-	"os"
-
-	"io/ioutil"
-
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Deregistrar Config", func() {

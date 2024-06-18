@@ -62,7 +62,7 @@ func (m *infoMock) RespondsWithSufficientVersionForLifecycleErrands(uaaUrl strin
 	return m.RespondsOKWith(content)
 }
 
-func (m *infoMock) RespondsWithVersion(version string, uaaUrl string) *mockhttp.Handler {
+func (m *infoMock) RespondsWithVersion(version, uaaUrl string) *mockhttp.Handler {
 	content := fmt.Sprintf(`{
 		"version":"%s",
 		"user":"admin",

@@ -7,8 +7,7 @@ import (
 	"sort"
 )
 
-type MapHasher struct {
-}
+type MapHasher struct{}
 
 func (h *MapHasher) Hash(m map[string]string) string {
 	sortedKeys := sortedMapKeys(m)

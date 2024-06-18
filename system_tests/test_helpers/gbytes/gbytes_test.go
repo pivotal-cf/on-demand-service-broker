@@ -6,14 +6,12 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
+
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/gbytes"
 )
 
 var _ = Describe("gbytes.AnySay", func() {
-
-	var (
-		session *gexec.Session
-	)
+	var session *gexec.Session
 
 	Context("passing something other than a gexec.Session", func() {
 		It("should return an error", func() {
@@ -23,7 +21,6 @@ var _ = Describe("gbytes.AnySay", func() {
 	})
 
 	Context("when stdout matches", func() {
-
 		BeforeEach(func() {
 			cmd := exec.Command("/bin/bash", "-c", "echo foo")
 			var err error
@@ -37,11 +34,9 @@ var _ = Describe("gbytes.AnySay", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(res).To(BeTrue())
 		})
-
 	})
 
 	Context("when neither matches", func() {
-
 		BeforeEach(func() {
 			cmd := exec.Command("/bin/bash", "-c", "echo bar; echo sha >& 2")
 			var err error
@@ -73,11 +68,9 @@ Waiting for:
     foo`
 			Expect(message).To(ContainSubstring(expectedMessage))
 		})
-
 	})
 
 	Context("when stderr matches", func() {
-
 		BeforeEach(func() {
 			cmd := exec.Command("/bin/bash", "-c", "echo foo >& 2")
 			var err error
@@ -91,11 +84,9 @@ Waiting for:
 			Expect(err).NotTo(HaveOccurred())
 			Expect(res).To(BeTrue())
 		})
-
 	})
 
 	Context("negated failure messages", func() {
-
 		BeforeEach(func() {
 			cmd := exec.Command("/bin/bash", "-c", "echo foo ; echo bar >& 2")
 			var err error
@@ -140,6 +131,5 @@ Which matches the unexpected:
 `
 			Expect(matcher.NegatedFailureMessage(session)).To(ContainSubstring(expectedMessage))
 		})
-
 	})
 })

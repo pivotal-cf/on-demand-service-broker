@@ -4,9 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"os/exec"
-	"time"
-
 	"strings"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -66,7 +65,6 @@ func (c *CredHubCLI) VerifyCredhubKeysForInstance(serviceOffering, guid string) 
 	Expect(err).NotTo(HaveOccurred())
 
 	return credhubFindResults["credentials"]
-
 }
 
 func (c *CredHubCLI) GetCredhubValueFor(serviceOffering, serviceInstanceGUID, secretName string) map[string]string {

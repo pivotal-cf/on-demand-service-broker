@@ -1,16 +1,17 @@
 package uaa_test
 
 import (
+	"os"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/pborman/uuid"
+
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/uaa"
-	"os"
 )
 
 var _ = Describe("UAA Contract Tests", func() {
-
 	It("controls the lifecycle of the UAA client", func() {
 		var client *uaa.Client
 		clientID := uuid.New()[:8]

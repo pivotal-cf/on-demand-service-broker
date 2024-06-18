@@ -20,6 +20,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/brokerapi/v11/domain"
+
 	brokerConfig "github.com/pivotal-cf/on-demand-service-broker/config"
 )
 
@@ -103,9 +104,7 @@ var _ = Describe("Server Protocol", func() {
 	})
 
 	Describe("with HTTPS configured badly", func() {
-		var (
-			conf brokerConfig.Config
-		)
+		var conf brokerConfig.Config
 
 		BeforeEach(func() {
 			conf = brokerConfig.Config{
@@ -116,7 +115,6 @@ var _ = Describe("Server Protocol", func() {
 					Name: serviceName,
 				},
 			}
-
 		})
 
 		It("should error when certificate is invalid", func() {
@@ -183,7 +181,7 @@ var _ = Describe("Server Protocol", func() {
 func generateCertificateExpiringOn(expiry time.Time) (privKey, serverCert []byte) {
 	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	Expect(err).NotTo(HaveOccurred())
-	var privateBlock = &pem.Block{
+	privateBlock := &pem.Block{
 		Type:  "RSA PRIVATE KEY",
 		Bytes: x509.MarshalPKCS1PrivateKey(privateKey),
 	}

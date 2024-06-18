@@ -25,6 +25,7 @@ import (
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/brokerapi/v11/domain"
 	"github.com/pivotal-cf/brokerapi/v11/domain/apiresponses"
+
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/brokercontext"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
@@ -35,8 +36,8 @@ func (b *Broker) Provision(
 	ctx context.Context,
 	instanceID string,
 	details domain.ProvisionDetails,
-	asyncAllowed bool) (domain.ProvisionedServiceSpec, error) {
-
+	asyncAllowed bool,
+) (domain.ProvisionedServiceSpec, error) {
 	b.deploymentLock.Lock()
 	defer b.deploymentLock.Unlock()
 
@@ -82,7 +83,6 @@ func (b *Broker) Provision(
 		instanceName,
 		logger,
 	)
-
 	if err != nil {
 		return domain.ProvisionedServiceSpec{}, b.processError(err, logger)
 	}
@@ -194,7 +194,7 @@ func (b *Broker) provisionInstance(ctx context.Context, instanceID string, detai
 		Errands:       plan.PostDeployErrands(),
 	}
 
-	//Dashboard url optional
+	// Dashboard url optional
 	if _, ok := err.(serviceadapter.NotImplementedError); ok {
 		return operationData, dashboardUrl, nil
 	}

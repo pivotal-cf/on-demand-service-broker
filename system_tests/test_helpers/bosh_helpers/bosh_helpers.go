@@ -18,12 +18,12 @@ import (
 	boshlog "github.com/cloudfoundry/bosh-utils/logger"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
+	"gopkg.in/yaml.v2"
 
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/boshlinks"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
-	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
-	"gopkg.in/yaml.v2"
 )
 
 type BoshHelperClient struct {
@@ -106,19 +106,19 @@ func NewBasicAuth(boshURL, boshUsername, boshPassword, boshCACert string, disabl
 	return &BoshHelperClient{Client: boshClient}
 }
 
-func (b *BoshHelperClient) RunErrand(deploymentName string, errandName string, errandInstances []string, contextID string) boshdirector.BoshTaskOutput {
+func (b *BoshHelperClient) RunErrand(deploymentName, errandName string, errandInstances []string, contextID string) boshdirector.BoshTaskOutput {
 	output := b.RunErrandWithoutCheckingSuccess(deploymentName, errandName, errandInstances, contextID)
 	Expect(output.ExitCode).To(BeZero(), fmt.Sprintf("STDOUT: ------------\n%s\n--------------------\nSTDERR: ------------\n%s\n--------------------\n", output.StdOut, output.StdErr))
 	return output
 }
 
-func (b *BoshHelperClient) RunErrandWithoutCheckingSuccess(deploymentName string, errandName string, errandInstances []string, contextID string) boshdirector.BoshTaskOutput {
+func (b *BoshHelperClient) RunErrandWithoutCheckingSuccess(deploymentName, errandName string, errandInstances []string, contextID string) boshdirector.BoshTaskOutput {
 	logger := systemTestLogger()
 	taskID := b.runErrandAndWait(deploymentName, errandName, errandInstances, contextID, logger)
 	return b.getTaskOutput(taskID, logger)
 }
 
-func (b *BoshHelperClient) runErrandAndWait(deploymentName string, errandName string, errandInstances []string, contextID string, logger *log.Logger) int {
+func (b *BoshHelperClient) runErrandAndWait(deploymentName, errandName string, errandInstances []string, contextID string, logger *log.Logger) int {
 	taskReporter := boshdirector.NewAsyncTaskReporter()
 	taskID, err := b.Client.RunErrand(deploymentName, errandName, errandInstances, contextID, logger, taskReporter)
 	Expect(err).NotTo(HaveOccurred())

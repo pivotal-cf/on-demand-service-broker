@@ -10,10 +10,9 @@ import (
 	"crypto/x509"
 	"fmt"
 	"log"
+	"net/http"
 	"sync"
 	"time"
-
-	"net/http"
 
 	"github.com/craigfurman/herottp"
 )

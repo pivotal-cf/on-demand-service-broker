@@ -4,8 +4,9 @@ import (
 	"github.com/cloudfoundry/bosh-cli/v7/director"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pkg/errors"
+
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 )
 
 var _ = Describe("Get Events", func() {
@@ -58,5 +59,4 @@ var _ = Describe("Get Events", func() {
 		Expect(err).To(MatchError(`could not convert task id "" to int`))
 		Expect(events).To(BeEmpty())
 	})
-
 })

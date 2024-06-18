@@ -13,8 +13,7 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 )
 
-type Client struct {
-}
+type Client struct{}
 
 func (Client) GetAPIVersion(logger *log.Logger) (string, error) {
 	return broker.MinimumCFVersion, nil

@@ -10,15 +10,14 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
+	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
-	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
 
 var _ = Describe("Adapter Client", func() {
-
 	DescribeTable("ErrorForExitCode",
-		func(code int, msg string, matchErr types.GomegaMatcher, matchMsg types.GomegaMatcher) {
+		func(code int, msg string, matchErr, matchMsg types.GomegaMatcher) {
 			err := serviceadapter.ErrorForExitCode(code, msg)
 			Expect(err).To(matchErr)
 

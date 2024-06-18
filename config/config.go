@@ -18,9 +18,10 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
 	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 	"gopkg.in/yaml.v2"
+
+	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
 )
 
 type Config struct {

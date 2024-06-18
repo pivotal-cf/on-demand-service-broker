@@ -52,7 +52,7 @@ func (b *Broker) checkQuotas(ctx context.Context, plan config.Plan, cfPlanCounts
 }
 
 func convertCfPlanCounts(cfPlanCounts map[cf.ServicePlan]int) map[string]int {
-	var brokerPlanCounts = make(map[string]int)
+	brokerPlanCounts := make(map[string]int)
 
 	for plan, count := range cfPlanCounts {
 		id := plan.ServicePlanEntity.UniqueID
@@ -71,7 +71,7 @@ func checkPlanServiceCount(plan config.Plan, planCounts map[string]int, planInst
 }
 
 func checkGlobalServiceCount(planCounts map[string]int, instanceLimit int, serviceOffering string) error {
-	var totalServiceInstances = 0
+	totalServiceInstances := 0
 	for _, count := range planCounts {
 		totalServiceInstances += count
 	}

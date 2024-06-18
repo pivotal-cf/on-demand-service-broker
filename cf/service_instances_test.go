@@ -8,15 +8,15 @@ import (
 	"net/http"
 	"regexp"
 
-	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
-	"github.com/pivotal-cf/on-demand-service-broker/mockhttp/mockcfapi"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/ghttp"
+
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/cf/fakes"
+	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
+	"github.com/pivotal-cf/on-demand-service-broker/mockhttp/mockcfapi"
 )
 
 var _ = Describe("ServiceInstancesClient", func() {
@@ -43,7 +43,6 @@ var _ = Describe("ServiceInstancesClient", func() {
 		logBuffer = gbytes.NewBuffer()
 		testLogger = log.New(io.MultiWriter(logBuffer, GinkgoWriter), "service-instances-test", log.LstdFlags)
 		cfApi = ghttp.NewServer()
-
 	})
 
 	AfterEach(func() {
@@ -319,9 +318,7 @@ var _ = Describe("ServiceInstancesClient", func() {
 		})
 
 		Context("filtering by service offering, org and space", func() {
-			var (
-				orgName, spaceName, orgGuid, spaceGuid string
-			)
+			var orgName, spaceName, orgGuid, spaceGuid string
 
 			BeforeEach(func() {
 				orgName = "cf-org"

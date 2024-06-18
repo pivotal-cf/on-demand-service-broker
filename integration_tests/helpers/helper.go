@@ -16,15 +16,13 @@
 package helpers
 
 import (
-	"os/exec"
-
-	"github.com/onsi/gomega/gexec"
-
 	"io/ioutil"
+	"os/exec"
 	"path/filepath"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gexec"
 )
 
 func StartBinaryWithParams(binaryPath string, params []string) *gexec.Session {
@@ -36,6 +34,6 @@ func StartBinaryWithParams(binaryPath string, params []string) *gexec.Session {
 
 func WriteConfig(config []byte, dir string) string {
 	configFilePath := filepath.Join(dir, "config.yml")
-	Expect(ioutil.WriteFile(configFilePath, config, 0644)).To(Succeed())
+	Expect(ioutil.WriteFile(configFilePath, config, 0o644)).To(Succeed())
 	return configFilePath
 }

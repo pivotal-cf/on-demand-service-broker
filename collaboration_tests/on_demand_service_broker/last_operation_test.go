@@ -26,15 +26,15 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/pivotal-cf/brokerapi/v11/domain"
+	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
+	"github.com/pkg/errors"
+
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	brokerConfig "github.com/pivotal-cf/on-demand-service-broker/config"
-	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
-	"github.com/pkg/errors"
 )
 
 var _ = Describe("Last Operation", func() {
-
 	const (
 		instanceID           = "some-instance-id"
 		postDeployErrandName = "post-deploy-errand"
@@ -644,7 +644,7 @@ var _ = Describe("Last Operation", func() {
 				By("running the second errand")
 				firstErrand.State = boshdirector.TaskDone
 				fakeBoshClient.GetNormalisedTasksByContextReturnsOnCall(1, boshdirector.BoshTasks{firstErrand}, nil)
-				fakeBoshClient.RunErrandStub = func(deploymentName string, errand string, instances []string, contextID string, log *log.Logger, reporter *boshdirector.AsyncTaskReporter) (int, error) {
+				fakeBoshClient.RunErrandStub = func(deploymentName, errand string, instances []string, contextID string, log *log.Logger, reporter *boshdirector.AsyncTaskReporter) (int, error) {
 					defer GinkgoRecover()
 					Expect(errand).To(Equal("bar"))
 					return secondErrand.ID, nil
@@ -699,7 +699,7 @@ var _ = Describe("Last Operation", func() {
 
 				By("checking the deletion is complete")
 				fakeBoshClient.GetNormalisedTasksByContextReturnsOnCall(3, boshdirector.BoshTasks{doneTask, secondErrand, firstErrand}, nil)
-				fakeBoshClient.GetConfigsReturns([]boshdirector.BoshConfig{boshdirector.BoshConfig{Type: "some-config-type", Name: "some-config-name"}}, nil)
+				fakeBoshClient.GetConfigsReturns([]boshdirector.BoshConfig{{Type: "some-config-type", Name: "some-config-name"}}, nil)
 
 				response, bodyContent = doLastOperationRequest(instanceID, operationData)
 
@@ -794,7 +794,7 @@ var _ = Describe("Last Operation", func() {
 				By("checking the deletion is complete")
 				fakeBoshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{doneTask}, nil)
 				fakeBoshClient.GetTaskReturns(doneTask, nil)
-				fakeBoshClient.GetConfigsReturns([]boshdirector.BoshConfig{boshdirector.BoshConfig{Type: "some-config-type", Name: "some-config-name"}}, nil)
+				fakeBoshClient.GetConfigsReturns([]boshdirector.BoshConfig{{Type: "some-config-type", Name: "some-config-name"}}, nil)
 
 				operationData.BoshTaskID = doneTask.ID
 				response, bodyContent := doLastOperationRequest(instanceID, operationData)
@@ -827,7 +827,7 @@ var _ = Describe("Last Operation", func() {
 				By("failing errand")
 				fakeBoshClient.GetNormalisedTasksByContextReturns(boshdirector.BoshTasks{failedErrandTask}, nil)
 				fakeBoshClient.GetTaskReturns(processingTask, nil)
-				fakeBoshClient.GetConfigsReturns([]boshdirector.BoshConfig{boshdirector.BoshConfig{Type: "some-config-type", Name: "some-config-name"}}, nil)
+				fakeBoshClient.GetConfigsReturns([]boshdirector.BoshConfig{{Type: "some-config-type", Name: "some-config-name"}}, nil)
 
 				operationData.BoshTaskID = failedErrandTask.ID
 				response, bodyContent := doLastOperationRequest(instanceID, operationData)
@@ -849,7 +849,6 @@ var _ = Describe("Last Operation", func() {
 				))
 			})
 		})
-
 	})
 
 	Context("depending on the setting of the context id on the request body", func() {
@@ -880,7 +879,6 @@ var _ = Describe("Last Operation", func() {
 				},
 			}
 			StartServer(conf)
-
 		})
 
 		It("doesn't run the lifecycle errands when it's empty", func() {
@@ -942,7 +940,6 @@ var _ = Describe("Last Operation", func() {
 			))
 		})
 	})
-
 })
 
 func doLastOperationRequest(instanceID string, operationData broker.OperationData) (*http.Response, []byte) {

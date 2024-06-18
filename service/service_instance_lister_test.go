@@ -16,27 +16,22 @@
 package service_test
 
 import (
-	"errors"
-
-	"github.com/pivotal-cf/on-demand-service-broker/service"
-
-	"io/ioutil"
-	"net/http"
-	"strings"
-
-	"fmt"
-
-	"net/url"
-
 	"crypto/x509"
-
+	"errors"
+	"fmt"
+	"io/ioutil"
 	"log"
+	"net/http"
+	"net/url"
 	"os"
+	"strings"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
 	fakes2 "github.com/pivotal-cf/on-demand-service-broker/authorizationheader/fakes"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
+	"github.com/pivotal-cf/on-demand-service-broker/service"
 	"github.com/pivotal-cf/on-demand-service-broker/service/fakes"
 )
 
@@ -223,9 +218,7 @@ var _ = Describe("ServiceInstanceLister", func() {
 	})
 
 	Describe("requesting filtered instances", func() {
-		var (
-			params map[string]string
-		)
+		var params map[string]string
 
 		BeforeEach(func() {
 			params = map[string]string{
@@ -251,11 +244,11 @@ var _ = Describe("ServiceInstanceLister", func() {
 			Expect(authLogger).To(Equal(logger))
 
 			Expect(filteredInstances).To(Equal([]service.Instance{
-				service.Instance{
+				{
 					GUID:         "foo",
 					PlanUniqueID: "plan",
 				},
-				service.Instance{
+				{
 					GUID:         "bar",
 					PlanUniqueID: "another-plan",
 				},
@@ -270,7 +263,6 @@ var _ = Describe("ServiceInstanceLister", func() {
 			req := client.DoArgsForCall(0)
 			Expect(req.URL.RawQuery).To(Equal(""))
 			Expect(req.URL.Host).To(Equal("odb.example.com"))
-
 		})
 
 		It("fails if cannot retrieve the auth header", func() {

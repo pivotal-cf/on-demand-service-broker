@@ -2,8 +2,6 @@ package cf_test
 
 import (
 	"encoding/json"
-	"github.com/pborman/uuid"
-	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/service_helpers"
 	"io"
 	"log"
 	"os"
@@ -13,9 +11,12 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
+	"github.com/pborman/uuid"
+
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/cf_helpers"
+	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/service_helpers"
 )
 
 var _ = Describe("CF client", func() {
@@ -86,7 +87,6 @@ var _ = Describe("CF client", func() {
 					}
 				}
 				Expect(found).To(BeTrue(), "List of brokers did not include the created broker")
-
 			})
 
 			By("updating the broker with UpdateServiceBroker", func() {

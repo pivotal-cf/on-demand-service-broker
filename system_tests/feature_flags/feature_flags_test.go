@@ -8,15 +8,14 @@ import (
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/pborman/uuid"
+
 	bosh "github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
 	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/cf_helpers"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/service_helpers"
 )
 
 var _ = Describe("FeatureFlags", func() {
-	var (
-		brokerInfo bosh.BrokerInfo
-	)
+	var brokerInfo bosh.BrokerInfo
 
 	When("cf disable_ssl_cert_verification is true", func() {
 		var brokerRegistered bool

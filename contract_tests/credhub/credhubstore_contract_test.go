@@ -27,13 +27,13 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/pborman/uuid"
+
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	odbcredhub "github.com/pivotal-cf/on-demand-service-broker/credhub"
 )
 
 var _ = Describe("Credential store", func() {
-
 	var (
 		subject       *odbcredhub.Store
 		credhubClient *credhub.CredHub
@@ -180,7 +180,6 @@ var _ = Describe("Credential store", func() {
 				Password: "pass",
 			})
 			Expect(err).NotTo(HaveOccurred())
-
 		})
 
 		AfterEach(func() {
@@ -411,5 +410,4 @@ var _ = Describe("Credential store", func() {
 			}
 		})
 	})
-
 })

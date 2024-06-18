@@ -3,15 +3,15 @@ package instanceiterator_test
 import (
 	"log"
 
-	"github.com/pivotal-cf/on-demand-service-broker/broker"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
+
+	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/instanceiterator"
 	"github.com/pivotal-cf/on-demand-service-broker/instanceiterator/fakes"
 	"github.com/pivotal-cf/on-demand-service-broker/service"
-	"github.com/pkg/errors"
 )
 
 var _ = Describe("CfTriggerer", func() {
@@ -127,9 +127,7 @@ var _ = Describe("CfTriggerer", func() {
 	})
 
 	Describe("Check", func() {
-		var (
-			fakeCFClient *fakes.FakeCFClient
-		)
+		var fakeCFClient *fakes.FakeCFClient
 		BeforeEach(func() {
 			fakeCFClient = new(fakes.FakeCFClient)
 		})

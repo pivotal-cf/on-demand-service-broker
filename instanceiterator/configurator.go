@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/craigfurman/herottp"
+
 	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
@@ -43,7 +44,6 @@ type Configurator struct {
 }
 
 func NewConfigurator(conf config.InstanceIteratorConfig, logger *log.Logger, logPrefix string) (*Configurator, error) {
-
 	brokerServices, err := brokerServices(conf, logger)
 	if err != nil {
 		return nil, err

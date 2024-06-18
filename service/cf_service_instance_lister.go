@@ -20,9 +20,9 @@ import (
 	"log"
 	"strings"
 
-	"github.com/pivotal-cf/on-demand-service-broker/cf"
-
 	"github.com/pkg/errors"
+
+	"github.com/pivotal-cf/on-demand-service-broker/cf"
 )
 
 type CFServiceInstanceLister struct {
@@ -58,7 +58,7 @@ func (l *CFServiceInstanceLister) Instances(filter map[string]string) ([]Instanc
 	return l.convertToInstances(cfInstances), nil
 }
 
-func (l *CFServiceInstanceLister) filtersFromMap(filter map[string]string) (orgName string, spaceName string, err error) {
+func (l *CFServiceInstanceLister) filtersFromMap(filter map[string]string) (orgName, spaceName string, err error) {
 	orgName = filter[cfOrgFilterKey]
 	spaceName = filter[cfSpaceFilterKey]
 

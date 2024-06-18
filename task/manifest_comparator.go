@@ -29,7 +29,6 @@ func ManifestsAreTheSame(generateManifest, oldManifest []byte) (bool, error) {
 func marshalBoshManifest(rawManifest []byte) (bosh.BoshManifest, error) {
 	var boshManifest bosh.BoshManifest
 	err := yaml.Unmarshal(rawManifest, &boshManifest)
-
 	if err != nil {
 		return bosh.BoshManifest{}, fmt.Errorf("error detecting change in manifest, unable to unmarshal manifest: %s", err)
 	}

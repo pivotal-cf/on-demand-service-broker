@@ -24,6 +24,7 @@ import (
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/pborman/uuid"
+
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/cf_helpers"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/service_helpers"
@@ -257,7 +258,8 @@ func createTestServiceInstancesAndApps(count int, serviceName string) (appDetail
 			{Index: 0, Value: "dedicated-vm"},
 			{Index: 1, Value: "dedicated-vm-with-post-deploy"},
 			{Index: 2, Value: "dedicated-vm"},
-		}})
+		},
+	})
 	close(appDtlsCh)
 
 	for dtls := range appDtlsCh {

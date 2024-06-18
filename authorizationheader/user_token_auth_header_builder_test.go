@@ -10,12 +10,12 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"time"
-
 	"net/http"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
 	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
 	"github.com/pivotal-cf/on-demand-service-broker/mockuaa"
 )
@@ -137,7 +137,7 @@ var _ = Describe("User Token Auth Header Builder", func() {
 	})
 })
 
-func createUserTokenAuthorizer(mockUAA *mockuaa.UserCredentialsServer, clientID string, secret string, username string, password string) *authorizationheader.UserTokenAuthHeaderBuilder {
+func createUserTokenAuthorizer(mockUAA *mockuaa.UserCredentialsServer, clientID, secret, username, password string) *authorizationheader.UserTokenAuthHeaderBuilder {
 	var certPEM []byte
 	if mockUAA.TLS != nil {
 		cert, err := x509.ParseCertificate(mockUAA.TLS.Certificates[0].Certificate[0])

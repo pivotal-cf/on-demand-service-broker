@@ -16,13 +16,11 @@
 package main
 
 import (
+	"flag"
+	"io/ioutil"
 	"os"
 
 	"gopkg.in/yaml.v2"
-
-	"flag"
-
-	"io/ioutil"
 
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"

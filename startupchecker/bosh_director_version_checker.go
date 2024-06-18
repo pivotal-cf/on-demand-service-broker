@@ -46,7 +46,6 @@ func NewBOSHDirectorVersionChecker(
 func (c *BOSHDirectorVersionChecker) Check() error {
 	errPrefix := "BOSH Director error: "
 	directorVersion, err := c.boshInfo.GetDirectorVersion()
-
 	if err != nil {
 		return fmt.Errorf("%s%s. ODB requires BOSH v257+.", errPrefix, err)
 	}

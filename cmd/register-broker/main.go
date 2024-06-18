@@ -6,13 +6,12 @@ import (
 	"log"
 	"os"
 
+	"gopkg.in/yaml.v2"
+
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
-
-	"github.com/pivotal-cf/on-demand-service-broker/registrar"
-
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
-	"gopkg.in/yaml.v2"
+	"github.com/pivotal-cf/on-demand-service-broker/registrar"
 )
 
 func main() {

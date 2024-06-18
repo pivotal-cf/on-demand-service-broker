@@ -40,7 +40,8 @@ func New(
 	authHeaderBuilder AuthHeaderBuilder,
 	trustedCertPEM []byte,
 	disableTLSCertVerification bool,
-	logger *log.Logger) (Client, error) {
+	logger *log.Logger,
+) (Client, error) {
 	httpClient, err := newWrappedHttpClient(authHeaderBuilder, trustedCertPEM, disableTLSCertVerification)
 	if err != nil {
 		return Client{}, err
@@ -142,7 +143,7 @@ func (c Client) GetServiceOfferingGUID(brokerName string, logger *log.Logger) (s
 	return brokerGUID, nil
 }
 
-func (c Client) CreateServicePlanVisibility(orgName string, serviceOfferingID string, planName string, logger *log.Logger) error {
+func (c Client) CreateServicePlanVisibility(orgName, serviceOfferingID, planName string, logger *log.Logger) error {
 	orgResponse, err := c.getOrganization(orgName, logger)
 	switch err.(type) {
 	case ResourceNotFoundError:
@@ -233,7 +234,7 @@ func (c Client) DisableServiceAccess(serviceOfferingID, planName string, logger 
 	return c.manageServiceAccess(serviceOfferingID, planName, false, logger)
 }
 
-func (c Client) manageServiceAccess(serviceOfferingID string, planName string, isPublic bool, logger *log.Logger) error {
+func (c Client) manageServiceAccess(serviceOfferingID, planName string, isPublic bool, logger *log.Logger) error {
 	plans, err := c.getPlansForServiceID(serviceOfferingID, logger)
 	if err != nil {
 		return err
@@ -256,7 +257,6 @@ func (c Client) manageServiceAccess(serviceOfferingID string, planName string, i
 		)
 	}
 	return nil
-
 }
 
 func (c Client) DisableServiceAccessForAllPlans(serviceOfferingID string, logger *log.Logger) error {

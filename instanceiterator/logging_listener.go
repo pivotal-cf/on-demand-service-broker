@@ -90,7 +90,7 @@ func (ll LoggingListener) InstanceOperationStartResult(instance string, status O
 	ll.printf("[%s] Result: %s", instance, message)
 }
 
-func (ll LoggingListener) InstanceOperationFinished(instance string, result string) {
+func (ll LoggingListener) InstanceOperationFinished(instance, result string) {
 	ll.printf("[%s] Result: Service Instance operation %s\n", instance, result)
 }
 

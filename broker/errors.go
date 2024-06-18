@@ -12,6 +12,7 @@ import (
 	"fmt"
 
 	"github.com/pivotal-cf/brokerapi/v11/domain/apiresponses"
+
 	"github.com/pivotal-cf/on-demand-service-broker/brokercontext"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 )
@@ -116,7 +117,7 @@ func adapterToAPIError(ctx context.Context, err error) error {
 		return apiresponses.ErrAppGuidNotProvided
 	case serviceadapter.UnknownFailureError:
 		if err.Error() == "" {
-			//Adapter returns an unknown error with no message
+			// Adapter returns an unknown error with no message
 			err = NewGenericError(ctx, err).ErrorForCFUser()
 		}
 

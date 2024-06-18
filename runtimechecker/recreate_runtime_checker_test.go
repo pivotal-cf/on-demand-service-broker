@@ -6,6 +6,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/runtimechecker"
 )
@@ -24,7 +25,6 @@ var _ = Describe("RecreateRuntimeChecker", func() {
 				checker := runtimechecker.RecreateRuntimeChecker{BoshInfo: boshdirector.Info{Version: version}}
 				Expect(checker.Check()).To(MatchError(errors.New(fmt.Sprintf("Insufficient BOSH director version: %q. The recreate-all errand requires a BOSH director version 268.4.0 or higher, or one of the following patch releases: 266.15.0+, 267.9.0+, 268.2.2+.", version))))
 			}
-
 		})
 	})
 })

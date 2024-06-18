@@ -10,16 +10,15 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/pivotal-cf/on-demand-service-broker/config"
-	"gopkg.in/yaml.v2"
-
-	"github.com/onsi/gomega/gbytes"
-	"github.com/onsi/gomega/ghttp"
-	"github.com/pivotal-cf/on-demand-service-broker/integration_tests/helpers"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
+	"github.com/onsi/gomega/ghttp"
+	"gopkg.in/yaml.v2"
+
+	"github.com/pivotal-cf/on-demand-service-broker/config"
+	"github.com/pivotal-cf/on-demand-service-broker/integration_tests/helpers"
 )
 
 var _ = Describe("RegisterBroker", func() {
@@ -292,7 +291,6 @@ var _ = Describe("RegisterBroker", func() {
 				"organization_guid": "%s"
 			}`, orgRestrictedPlanGUID, orgGUID)))
 		})
-
 	})
 
 	Describe("error handling", func() {
@@ -321,7 +319,6 @@ var _ = Describe("RegisterBroker", func() {
 			Expect(session).To(gexec.Exit(1))
 		})
 	})
-
 })
 
 func registersBrokerSuccessfully(errandConfig config.RegisterBrokerErrandConfig, stdout, stderr io.Writer) *gexec.Session {

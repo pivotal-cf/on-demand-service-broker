@@ -15,9 +15,10 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
+	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
+
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter/fakes"
-	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
 
 var _ = Describe("dashboard url", func() {
@@ -70,7 +71,6 @@ var _ = Describe("dashboard url", func() {
 		actualDashboardUrl, actualError = a.GenerateDashboardUrl(instanceID, plan, manifest, logger)
 	})
 	Context("when stdin is not set", func() {
-
 		It("invokes external dashboard url generator with serialised params", func() {
 			Expect(cmdRunner.RunCallCount()).To(Equal(1))
 			planJson, err := json.Marshal(plan)
@@ -140,7 +140,7 @@ var _ = Describe("dashboard url", func() {
 		})
 
 		Context("when the external service adapter fails, without an exit code", func() {
-			var err = errors.New("oops")
+			err := errors.New("oops")
 
 			BeforeEach(func() {
 				cmdRunner.RunReturns(nil, nil, nil, err)
@@ -263,7 +263,7 @@ var _ = Describe("dashboard url", func() {
 		})
 
 		Context("when the external service adapter fails, without an exit code", func() {
-			var err = errors.New("oops")
+			err := errors.New("oops")
 
 			BeforeEach(func() {
 				cmdRunner.RunWithInputParamsReturns(nil, nil, nil, err)

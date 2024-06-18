@@ -15,6 +15,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/brokerapi/v11/domain"
+
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 )
@@ -449,7 +450,8 @@ var _ = Describe("LastOperation", func() {
 						fmt.Sprintf("service-instance-guid: %s", instanceID),
 						"operation: create",
 						fmt.Sprintf("task-id: %d", taskID),
-					}}),
+					},
+				}),
 			)
 
 			Describe("last operation is Successful",
@@ -719,7 +721,6 @@ var _ = Describe("LastOperation", func() {
 						"it's a task"+"-"+instanceID,
 					)
 					Expect(logBuffer.String()).To(ContainSubstring(expectedLogMessage))
-
 				})
 
 				It("returns failed status and logs detail when deleting a secret fails", func() {
@@ -1016,7 +1017,6 @@ var _ = Describe("LastOperation", func() {
 						"it's a task"+"-"+instanceID,
 					)
 					Expect(logBuffer.String()).To(ContainSubstring(expectedLogMessage))
-
 				})
 
 				It("returns failed status and logs detail when deleting a secret fails", func() {

@@ -21,8 +21,8 @@ func (c *Client) CreateBinding(
 	requestParams map[string]interface{},
 	secrets map[string]string,
 	dnsAddresses map[string]string,
-	logger *log.Logger) (sdk.Binding, error) {
-
+	logger *log.Logger,
+) (sdk.Binding, error) {
 	var binding sdk.Binding
 
 	serialisedBoshVMs, err := json.Marshal(deploymentTopology)

@@ -22,14 +22,14 @@ import (
 	"io"
 	"log"
 
-	"github.com/pivotal-cf/brokerapi/v11/domain"
-	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
-	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter/fakes"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
+	"github.com/pivotal-cf/brokerapi/v11/domain"
 	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
+
+	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
+	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter/fakes"
 )
 
 var _ = Describe("GeneratePlanSchema", func() {
@@ -70,7 +70,6 @@ var _ = Describe("GeneratePlanSchema", func() {
 		buf := gbytes.NewBuffer()
 		Expect(json.NewEncoder(buf).Encode(expectedPlanSchemas)).To(Succeed())
 		cmdRunner.RunReturns(buf.Contents(), []byte("I'm stderr"), intPtr(serviceadapter.SuccessExitCode), nil)
-
 	})
 
 	JustBeforeEach(func() {
@@ -162,7 +161,7 @@ var _ = Describe("GeneratePlanSchema", func() {
 		})
 
 		Context("when the external service adapter fails, without an exit code", func() {
-			var err = errors.New("oops")
+			err := errors.New("oops")
 
 			BeforeEach(func() {
 				cmdRunner.RunReturns(nil, nil, nil, err)
@@ -287,7 +286,7 @@ var _ = Describe("GeneratePlanSchema", func() {
 		})
 
 		Context("when the external service adapter fails, without an exit code", func() {
-			var err = errors.New("oops")
+			err := errors.New("oops")
 
 			BeforeEach(func() {
 				cmdRunner.RunWithInputParamsReturns(nil, nil, nil, err)

@@ -107,7 +107,6 @@ func (b *BoshHTTP) httpClient(config director.FactoryConfig, logger boshlog.Logg
 	authAdjustment := director.NewAuthRequestAdjustment(
 		config.TokenFunc, config.Client, config.ClientSecret)
 	rawClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
-
 		// Since redirected requests are not retried,
 		// forcefully adjust auth token as this is the last chance.
 		err := authAdjustment.Adjust(req, true)

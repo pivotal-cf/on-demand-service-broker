@@ -18,14 +18,15 @@ import (
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/brokerapi/v11/domain"
 	"github.com/pivotal-cf/brokerapi/v11/domain/apiresponses"
+	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
+	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
+
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	brokerfakes "github.com/pivotal-cf/on-demand-service-broker/broker/fakes"
 	"github.com/pivotal-cf/on-demand-service-broker/brokercontext"
 	"github.com/pivotal-cf/on-demand-service-broker/noopservicescontroller"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
-	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
-	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
 
 var _ = Describe("Bind", func() {
@@ -370,7 +371,7 @@ var _ = Describe("Bind", func() {
 				})
 
 				Context("with an error message for the user", func() {
-					var err = serviceadapter.NewUnknownFailureError("it failed, but all is not lost dear user")
+					err := serviceadapter.NewUnknownFailureError("it failed, but all is not lost dear user")
 
 					BeforeEach(func() {
 						serviceAdapter.CreateBindingReturns(sdk.Binding{}, err)

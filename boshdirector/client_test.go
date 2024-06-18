@@ -20,12 +20,12 @@ import (
 
 	boshdir "github.com/cloudfoundry/bosh-cli/v7/director"
 	boshuaa "github.com/cloudfoundry/bosh-cli/v7/uaa"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+
 	. "github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector/fakes"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
-
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("New", func() {
@@ -122,7 +122,6 @@ var _ = Describe("New", func() {
 				Client:       boshAuthConfig.UAA.ClientCredentials.ID,
 				ClientSecret: boshAuthConfig.UAA.ClientCredentials.Secret,
 			}))
-
 		})
 
 		Describe("but New fails", func() {

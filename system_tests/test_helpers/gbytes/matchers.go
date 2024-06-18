@@ -51,7 +51,6 @@ func (m *anySayMatcher) Match(actual interface{}) (success bool, errOut error) {
 		m.failureMessageErr = m.errMatcher.FailureMessage(session.Err)
 	}
 	return foundErr, errErr
-
 }
 
 func (m *anySayMatcher) FailureMessage(actual interface{}) (message string) {

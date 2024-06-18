@@ -20,13 +20,14 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
 	"github.com/pivotal-cf/on-demand-service-broker/instanceiterator"
 	"github.com/pivotal-cf/on-demand-service-broker/service"
 )
 
 var _ = Describe("Iterate State", func() {
 	It("fails if canary instances is not a subset of all the instances", func() {
-		_, err := instanceiterator.NewIteratorState([]service.Instance{service.Instance{GUID: "a"}}, []service.Instance{}, 0)
+		_, err := instanceiterator.NewIteratorState([]service.Instance{{GUID: "a"}}, []service.Instance{}, 0)
 		Expect(err).To(MatchError(ContainSubstring("Canary 'a' not in")))
 	})
 
@@ -181,10 +182,9 @@ var _ = Describe("Iterate State", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(next.GUID).To(Equal("guid_3"))
 	})
-
 })
 
-func instances(isCanary func(int) bool, total int) (canaries []service.Instance, all []service.Instance) {
+func instances(isCanary func(int) bool, total int) (canaries, all []service.Instance) {
 	for i := 0; i < total; i++ {
 		inst := service.Instance{GUID: fmt.Sprintf("guid_%d", i), PlanUniqueID: "plan"}
 		all = append(all, inst)

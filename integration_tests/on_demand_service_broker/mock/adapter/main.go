@@ -13,10 +13,11 @@ import (
 	"log"
 	"os"
 
-	"github.com/pivotal-cf/on-demand-service-broker/integration_tests/on_demand_service_broker/mock"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 	"gopkg.in/yaml.v2"
+
+	"github.com/pivotal-cf/on-demand-service-broker/integration_tests/on_demand_service_broker/mock"
 )
 
 func main() {
@@ -209,7 +210,7 @@ func (a *Adapter) DashboardUrl(params serviceadapter.DashboardUrlParams) (servic
 }
 
 func serialiseParameter(env string, obj interface{}) error {
-	file, err := os.OpenFile(os.Getenv(env), os.O_RDWR, 0644)
+	file, err := os.OpenFile(os.Getenv(env), os.O_RDWR, 0o644)
 	if err != nil {
 		return err
 	}

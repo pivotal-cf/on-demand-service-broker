@@ -20,27 +20,21 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
-
-	"github.com/pivotal-cf/on-demand-service-broker/config"
-
-	"github.com/pivotal-cf/on-demand-service-broker/collaboration_tests/helpers"
-
+	"io"
+	"io/ioutil"
+	"math"
+	"math/rand"
+	"net/http"
 	"os"
 	"testing"
 
-	"math/rand"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
-	"math"
-
-	"io"
-	"io/ioutil"
-	"net/http"
-
 	"github.com/onsi/gomega/gbytes"
+
 	"github.com/pivotal-cf/on-demand-service-broker/broker/fakes"
+	"github.com/pivotal-cf/on-demand-service-broker/collaboration_tests/helpers"
+	"github.com/pivotal-cf/on-demand-service-broker/config"
 	credhubfakes "github.com/pivotal-cf/on-demand-service-broker/credhubbroker/fakes"
 	manifestsecretsfakes "github.com/pivotal-cf/on-demand-service-broker/manifestsecrets/fakes"
 	serviceadapterfakes "github.com/pivotal-cf/on-demand-service-broker/serviceadapter/fakes"
@@ -162,7 +156,7 @@ func doRequest(req *http.Request) (*http.Response, []byte) {
 	return resp, bodyContent
 }
 
-func createRequest(method string, url string, body io.Reader, requestModifiers []func(r *http.Request)) *http.Request {
+func createRequest(method, url string, body io.Reader, requestModifiers []func(r *http.Request)) *http.Request {
 	req, err := http.NewRequest(method, url, body)
 	Expect(err).ToNot(HaveOccurred())
 
@@ -172,7 +166,7 @@ func createRequest(method string, url string, body io.Reader, requestModifiers [
 	return req
 }
 
-func doHTTPSRequest(method, url string, caCertFile string, cipherSuites []uint16, maxTLSVersion uint16) (*http.Response, []byte, error) {
+func doHTTPSRequest(method, url, caCertFile string, cipherSuites []uint16, maxTLSVersion uint16) (*http.Response, []byte, error) {
 	Expect(url).To(ContainSubstring("https"))
 
 	// Load CA cert

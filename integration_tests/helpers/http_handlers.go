@@ -28,7 +28,7 @@ type FakeHandler struct {
 	requestsReceived []Request
 }
 
-func (h *FakeHandler) RespondsOnCall(call int, statusCode int, body string) {
+func (h *FakeHandler) RespondsOnCall(call, statusCode int, body string) {
 	if h.responses == nil {
 		h.responses = map[int]FakeResponse{}
 	}

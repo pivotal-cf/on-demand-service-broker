@@ -13,12 +13,13 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
+
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/credhub"
 	"github.com/pivotal-cf/on-demand-service-broker/task"
 	"github.com/pivotal-cf/on-demand-service-broker/task/fakes"
-	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
 
 var _ = Describe("Deployer", func() {
@@ -81,7 +82,7 @@ var _ = Describe("Deployer", func() {
 			"some-config-type": "some-config-content",
 		}
 		boshConfigs = []boshdirector.BoshConfig{
-			boshdirector.BoshConfig{Type: "some-config-type", Name: "some-config-name", Content: "some-config-content"},
+			{Type: "some-config-type", Name: "some-config-name", Content: "some-config-content"},
 		}
 
 		uaaClientMap = map[string]string{
@@ -113,9 +114,7 @@ var _ = Describe("Deployer", func() {
 		})
 
 		When("there are configs to be applied", func() {
-			var (
-				boshConfigs serviceadapter.BOSHConfigs
-			)
+			var boshConfigs serviceadapter.BOSHConfigs
 
 			BeforeEach(func() {
 				boshConfigs = serviceadapter.BOSHConfigs{

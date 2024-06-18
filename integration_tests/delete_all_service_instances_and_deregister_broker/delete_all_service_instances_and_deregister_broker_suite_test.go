@@ -17,19 +17,16 @@ package delete_all_service_instances_and_deregister_broker_test
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
+	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
-
-	"io/ioutil"
-	"os"
-	"testing"
 )
 
-var (
-	binaryPath, tempDir string
-)
+var binaryPath, tempDir string
 
 var _ = SynchronizedBeforeSuite(func() []byte {
 	binary, err := gexec.Build("github.com/pivotal-cf/on-demand-service-broker/cmd/delete-all-service-instances-and-deregister-broker")

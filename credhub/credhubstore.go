@@ -16,17 +16,17 @@
 package credhub
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
 	"strings"
 
-	"encoding/json"
-
 	"code.cloudfoundry.org/credhub-cli/credhub"
 	"code.cloudfoundry.org/credhub-cli/credhub/credentials"
 	"code.cloudfoundry.org/credhub-cli/credhub/credentials/values"
 	"code.cloudfoundry.org/credhub-cli/credhub/permissions"
+
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 )
@@ -43,13 +43,12 @@ type CredhubClient interface {
 	FindByPartialName(partialName string) (credentials.FindResults, error)
 	SetJSON(name string, value values.JSON, options ...credhub.SetOption) (credentials.JSON, error)
 	SetValue(name string, value values.Value, options ...credhub.SetOption) (credentials.Value, error)
-	AddPermission(credName string, actor string, ops []string) (*permissions.Permission, error)
+	AddPermission(credName, actor string, ops []string) (*permissions.Permission, error)
 	Delete(name string) error
 }
 
 func Build(APIURL string, options ...credhub.Option) (*Store, error) {
 	credhubClient, err := credhub.New(APIURL, options...)
-
 	if err != nil {
 		return &Store{}, err
 	}
@@ -75,7 +74,7 @@ func (c *Store) Set(key string, value interface{}) error {
 	return err
 }
 
-func (c *Store) AddPermission(credName string, actor string, ops []string) (*permissions.Permission, error) {
+func (c *Store) AddPermission(credName, actor string, ops []string) (*permissions.Permission, error) {
 	return c.credhubClient.AddPermission(credName, actor, ops)
 }
 
@@ -149,7 +148,6 @@ func getKey(requestedValue interface{}) (string, error) {
 	case map[string]interface{}:
 		// this will catch structured types: certificate, user, rsa, ssh
 		credValueJSON, err := json.Marshal(credValue)
-
 		if err != nil {
 			return "", errors.New("failed to marshal secret: " + err.Error())
 		}

@@ -23,7 +23,6 @@ func (c *Client) DeleteBinding(
 	dnsAddresses map[string]string,
 	logger *log.Logger,
 ) error {
-
 	serialisedBoshVMs, err := json.Marshal(deploymentTopology)
 	if err != nil {
 		return err

@@ -21,9 +21,7 @@ func TestOrphanDeployments(t *testing.T) {
 	RunSpecs(t, "Orphan Deployments Suite")
 }
 
-var (
-	binaryPath string
-)
+var binaryPath string
 
 var _ = SynchronizedBeforeSuite(func() []byte {
 	binaryPath, err := gexec.Build("github.com/pivotal-cf/on-demand-service-broker/cmd/orphan-deployments")

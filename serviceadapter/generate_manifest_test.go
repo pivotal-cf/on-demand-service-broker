@@ -7,28 +7,26 @@
 package serviceadapter_test
 
 import (
+	"encoding/json"
 	"errors"
 	"io"
 	"log"
+	"strings"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
+	bosh "github.com/pivotal-cf/on-demand-services-sdk/bosh"
+	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 	yaml "gopkg.in/yaml.v2"
-
-	"encoding/json"
-
-	"strings"
 
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter/fakes"
-	bosh "github.com/pivotal-cf/on-demand-services-sdk/bosh"
-	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
 
 var _ = Describe("external service adapter", func() {
 	const externalBinPath = "/thing"
-	var expectedGenerateManifestOutput = sdk.MarshalledGenerateManifest{
+	expectedGenerateManifestOutput := sdk.MarshalledGenerateManifest{
 		Manifest: `name: "a-service-deployment"`,
 		ODBManagedSecrets: map[string]interface{}{
 			"pirate_status": "noob",
@@ -122,7 +120,6 @@ var _ = Describe("external service adapter", func() {
 				ServiceInstanceUAAClient: toJson(expectedUAAClient),
 			},
 		}
-
 	})
 
 	JustBeforeEach(func() {
@@ -265,7 +262,7 @@ stemcells:
 	})
 
 	Context("when the external service adapter fails, without an exit code", func() {
-		var err = errors.New("oops")
+		err := errors.New("oops")
 		BeforeEach(func() {
 			cmdRunner.RunReturns(nil, nil, nil, err)
 		})
@@ -394,7 +391,6 @@ stemcells:
 						Expect(generateErr).To(MatchError("external service adapter generated manifest that is not valid YAML at /thing. stderr: ''"))
 					})
 				})
-
 			})
 		})
 
@@ -433,7 +429,7 @@ stemcells:
 		})
 
 		Context("when the external service adapter fails, without an exit code", func() {
-			var err = errors.New("oops")
+			err := errors.New("oops")
 			BeforeEach(func() {
 				cmdRunner.RunWithInputParamsReturns(nil, nil, nil, err)
 			})

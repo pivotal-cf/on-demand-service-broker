@@ -26,6 +26,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/pborman/uuid"
+
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/boshlinks"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
@@ -204,7 +205,6 @@ var _ = Describe("BOSH client", func() {
 				Expect(getDeploymentErr).NotTo(HaveOccurred())
 				Expect(deployments).NotTo(ContainElement(boshdirector.Deployment{Name: deploymentName}))
 			})
-
 		})
 	})
 
@@ -460,7 +460,6 @@ var _ = Describe("BOSH client", func() {
 			})
 
 			It("returns a list of events for that deployment", func() {
-
 				By("querying create events", func() {
 					events, err := boshClient.GetEvents(deploymentName, "create", logger)
 					Expect(err).ToNot(HaveOccurred())

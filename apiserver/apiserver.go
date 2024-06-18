@@ -21,17 +21,15 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/pivotal-cf/on-demand-service-broker/broker"
-
 	"code.cloudfoundry.org/lager/v3"
 	"github.com/gorilla/mux"
-
 	"github.com/pivotal-cf/brokerapi/v11"
 	apiauth "github.com/pivotal-cf/brokerapi/v11/auth"
 	"github.com/pivotal-cf/brokerapi/v11/domain"
 	"github.com/pkg/errors"
 	"github.com/urfave/negroni"
 
+	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 	"github.com/pivotal-cf/on-demand-service-broker/mgmtapi"
@@ -52,7 +50,6 @@ func New(
 	mgmtapiLoggerFactory *loggerfactory.LoggerFactory,
 	serverLogger *log.Logger,
 ) *http.Server {
-
 	router := mux.NewRouter()
 	registerManagementAPI(broker, conf, mgmtapiLoggerFactory, router)
 	registerOSBAPI(broker, componentName, serverLogger, conf, router)

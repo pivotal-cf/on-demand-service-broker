@@ -17,16 +17,15 @@ package startupchecker_test
 
 import (
 	"errors"
+	"log"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	. "github.com/pivotal-cf/on-demand-service-broker/startupchecker"
 	"github.com/pivotal-cf/on-demand-service-broker/startupchecker/fakes"
-
-	"log"
-
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("CfPlanConsistencyChecker", func() {

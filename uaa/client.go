@@ -11,8 +11,9 @@ import (
 	"time"
 
 	gouaa "github.com/cloudfoundry-community/go-uaa"
-	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pkg/errors"
+
+	"github.com/pivotal-cf/on-demand-service-broker/config"
 )
 
 const (
@@ -125,7 +126,7 @@ func (c *Client) CreateClient(clientID, name, spaceGUID string) (map[string]stri
 	return c.transformToMap(resp, clientSecret), nil
 }
 
-func (c *Client) UpdateClient(clientID string, redirectURI, spaceGUID string) (map[string]string, error) {
+func (c *Client) UpdateClient(clientID, redirectURI, spaceGUID string) (map[string]string, error) {
 	if !c.HasClientDefinition() {
 		return nil, nil
 	}
@@ -225,7 +226,7 @@ func toSlice(s string) []string {
 func randomString() string {
 	rand.Seed(time.Now().UnixNano())
 	const Length = 32
-	var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+	letters := []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
 	b := make([]rune, Length)
 	for i := range b {
 		b[i] = letters[rand.Intn(len(letters))]

@@ -12,10 +12,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/instanceiterator"
 	"github.com/pivotal-cf/on-demand-service-broker/instanceiterator/fakes"
@@ -23,7 +23,6 @@ import (
 )
 
 var _ = Describe("Iterator", func() {
-
 	var (
 		emptyBusyList            = []string{}
 		emptyFailedList          = []string{}
@@ -567,7 +566,6 @@ var _ = Describe("Iterator", func() {
 			hasReportedOperationState(fakeListener, 0, states[0].instance.GUID, "failure")
 			hasReportedOperationState(fakeListener, 1, states[1].instance.GUID, "failure")
 			hasReportedFinished(fakeListener, 0, 1, 0, []string{}, []string{states[0].instance.GUID, states[1].instance.GUID})
-
 		})
 
 		It("returns multiple errors if multiple serial instances fail to upgrade", func() {
@@ -576,7 +574,8 @@ var _ = Describe("Iterator", func() {
 				{instance: service.Instance{GUID: "2"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 2},
 				{instance: service.Instance{GUID: "3"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationFailed}, taskID: 3},
 				{instance: service.Instance{GUID: "4"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationSucceeded}, taskID: 4},
-				{instance: service.Instance{GUID: "5"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationFailed}, taskID: 5}}
+				{instance: service.Instance{GUID: "5"}, triggerOutput: []instanceiterator.OperationState{instanceiterator.OperationAccepted}, checkStatusOutput: []instanceiterator.OperationState{instanceiterator.OperationFailed}, taskID: 5},
+			}
 			setupTest(states, fakeBrokerServicesClient, fakeTriggerer)
 
 			iterator := instanceiterator.New(&builder)

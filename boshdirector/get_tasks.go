@@ -7,9 +7,10 @@
 package boshdirector
 
 import (
+	"log"
+
 	"github.com/cloudfoundry/bosh-cli/v7/director"
 	"github.com/pkg/errors"
-	"log"
 )
 
 func (c *Client) GetTasksInProgress(deploymentName string, logger *log.Logger) (BoshTasks, error) {

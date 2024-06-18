@@ -13,6 +13,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
 	"github.com/pborman/uuid"
+
 	bosh "github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
 	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/cf_helpers"
 )
@@ -57,7 +58,6 @@ var _ = Describe("orphan deployments errand", func() {
 				ContainSubstring(`{"deployment_name":"%s"}`, orphanInstanceDeploymentName),
 				Not(ContainSubstring(anotherInstanceDeploymentName)),
 			))
-
 		})
 	})
 })

@@ -22,6 +22,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/pborman/uuid"
+
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/cf_helpers"
@@ -30,7 +31,6 @@ import (
 )
 
 var _ = Describe("upgrade-all-service-instances errand using all the features available", func() {
-
 	const canaryOrg = "canary_org"
 	const canarySpace = "canary_space"
 
@@ -77,7 +77,8 @@ var _ = Describe("upgrade-all-service-instances errand using all the features av
 			Items: []upgrade_all.PlanName{
 				{Index: 0, Value: planName},
 				{Index: 1, Value: planName},
-			}})
+			},
+		})
 		close(appDtlsCh)
 
 		for dtls := range appDtlsCh {

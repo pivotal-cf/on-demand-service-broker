@@ -21,10 +21,10 @@ import (
 	"log"
 	"time"
 
-	"github.com/pivotal-cf/on-demand-service-broker/cf"
-
 	"github.com/craigfurman/herottp"
+
 	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
+	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 )
 
@@ -34,9 +34,10 @@ type Instance struct {
 	SpaceGUID    string `json:"space_guid,omitempty"`
 }
 
+// InstanceLister provides a interface to query service instances present in the platform
+//
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
 //counterfeiter:generate -o fakes/fake_instance_lister.go . InstanceLister
-// InstanceLister provides a interface to query service instances present in the platform
 type InstanceLister interface {
 	Instances(map[string]string) ([]Instance, error)
 }

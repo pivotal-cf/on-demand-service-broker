@@ -22,9 +22,7 @@ func TestDeleteAllServiceInstances(t *testing.T) {
 	RunSpecs(t, "Delete All Service Instances Suite")
 }
 
-var (
-	binaryPath, tempDir string
-)
+var binaryPath, tempDir string
 
 var _ = SynchronizedBeforeSuite(func() []byte {
 	binary, err := gexec.Build("github.com/pivotal-cf/on-demand-service-broker/cmd/delete-all-service-instances")

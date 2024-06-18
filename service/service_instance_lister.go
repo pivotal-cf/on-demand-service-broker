@@ -40,16 +40,15 @@ type ServiceInstanceLister struct {
 	logger            *log.Logger
 }
 
-var (
-	InstanceNotFound = errors.New("Service instance not found")
-)
+var InstanceNotFound = errors.New("Service instance not found")
 
 func NewInstanceLister(
 	client Doer,
 	authHeaderBuilder authorizationheader.AuthHeaderBuilder,
 	baseURL string,
 	configured bool,
-	logger *log.Logger) *ServiceInstanceLister {
+	logger *log.Logger,
+) *ServiceInstanceLister {
 	return &ServiceInstanceLister{
 		authHeaderBuilder: authHeaderBuilder,
 		baseURL:           baseURL,
@@ -77,7 +76,6 @@ func (s *ServiceInstanceLister) Instances(params map[string]string) ([]Instance,
 	}
 
 	response, err := s.client.Do(request)
-
 	if err != nil {
 		return s.instanceListerError(response, err)
 	}

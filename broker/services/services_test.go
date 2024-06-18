@@ -19,14 +19,14 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/brokerapi/v11/domain"
+
 	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader/fakes"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
+	fakeclients "github.com/pivotal-cf/on-demand-service-broker/broker/services/fakes"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 	"github.com/pivotal-cf/on-demand-service-broker/mgmtapi"
 	"github.com/pivotal-cf/on-demand-service-broker/service"
-
-	fakeclients "github.com/pivotal-cf/on-demand-service-broker/broker/services/fakes"
 )
 
 var _ = Describe("Broker Services", func() {
@@ -336,12 +336,12 @@ var _ = Describe("Broker Services", func() {
 			Expect(authLogger).To(Equal(logger))
 
 			Expect(instances).To(Equal([]service.Instance{
-				service.Instance{
+				{
 					GUID:         "foo",
 					PlanUniqueID: "plan",
 					SpaceGUID:    "space_id",
 				},
-				service.Instance{
+				{
 					GUID:         "bar",
 					PlanUniqueID: "another-plan",
 					SpaceGUID:    "space_id",

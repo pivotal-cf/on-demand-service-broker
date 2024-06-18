@@ -2,29 +2,28 @@ package brokerinitiator
 
 import (
 	"fmt"
-	"github.com/pivotal-cf/on-demand-service-broker/broker/decider"
-	"github.com/pivotal-cf/on-demand-service-broker/uaa"
 	"log"
 	"os"
 
-	"github.com/pivotal-cf/on-demand-service-broker/telemetry"
-
-	"github.com/pivotal-cf/on-demand-service-broker/hasher"
-	"github.com/pivotal-cf/on-demand-service-broker/service"
-
 	credhub2 "code.cloudfoundry.org/credhub-cli/credhub"
 	"code.cloudfoundry.org/credhub-cli/credhub/auth"
+
 	"github.com/pivotal-cf/on-demand-service-broker/apiserver"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
+	"github.com/pivotal-cf/on-demand-service-broker/broker/decider"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/credhub"
 	"github.com/pivotal-cf/on-demand-service-broker/credhubbroker"
+	"github.com/pivotal-cf/on-demand-service-broker/hasher"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 	"github.com/pivotal-cf/on-demand-service-broker/manifestsecrets"
 	"github.com/pivotal-cf/on-demand-service-broker/network"
+	"github.com/pivotal-cf/on-demand-service-broker/service"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	"github.com/pivotal-cf/on-demand-service-broker/startupchecker"
 	"github.com/pivotal-cf/on-demand-service-broker/task"
+	"github.com/pivotal-cf/on-demand-service-broker/telemetry"
+	"github.com/pivotal-cf/on-demand-service-broker/uaa"
 )
 
 func Initiate(conf config.Config,
@@ -33,8 +32,8 @@ func Initiate(conf config.Config,
 	cfClient broker.CloudFoundryClient,
 	commandRunner serviceadapter.CommandRunner,
 	stopServer chan os.Signal,
-	loggerFactory *loggerfactory.LoggerFactory) {
-
+	loggerFactory *loggerfactory.LoggerFactory,
+) {
 	logger := loggerFactory.New()
 	var err error
 	startupChecks := buildStartupChecks(conf, cfClient, logger, brokerBoshClient)
@@ -110,7 +109,6 @@ func wrapWithCredHubBroker(conf config.Config, logger *log.Logger, onDemandBroke
 		credhub2.CaCerts(conf.CredHub.CaCert, conf.CredHub.InternalUAACaCert),
 		credhub2.Auth(auth.UaaClientCredentials(conf.CredHub.ClientID, conf.CredHub.ClientSecret)),
 	)
-
 	if err != nil {
 		logger.Fatalf("error creating runtime credhub client: %s", err)
 	}
@@ -144,7 +142,6 @@ func buildStartupChecks(conf config.Config, cfClient broker.CloudFoundryClient, 
 			startupchecker.NewCFAPIVersionChecker(cfClient, broker.MinimumCFVersion, logger),
 			startupchecker.NewCFPlanConsistencyChecker(cfClient, conf.ServiceCatalog, logger),
 		)
-
 	}
 	boshInfo, err := boshClient.GetInfo(logger)
 	if err != nil {

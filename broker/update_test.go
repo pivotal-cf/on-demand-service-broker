@@ -13,18 +13,17 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/pivotal-cf/on-demand-service-broker/broker/decider"
-	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
-
-	"github.com/pivotal-cf/brokerapi/v11/domain"
-	"github.com/pivotal-cf/brokerapi/v11/domain/apiresponses"
-	"github.com/pivotal-cf/on-demand-service-broker/config"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/pivotal-cf/brokerapi/v11/domain"
+	"github.com/pivotal-cf/brokerapi/v11/domain/apiresponses"
+	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
+
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
+	"github.com/pivotal-cf/on-demand-service-broker/broker/decider"
 	brokerfakes "github.com/pivotal-cf/on-demand-service-broker/broker/fakes"
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
+	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 )
 
@@ -420,7 +419,6 @@ var _ = Describe("Update", func() {
 						Expect(updateError).To(HaveOccurred())
 						Expect(updateError.Error()).To(ContainSubstring("oops"))
 					})
-
 				})
 
 				Context("if the service adapter does not implement plan schemas", func() {

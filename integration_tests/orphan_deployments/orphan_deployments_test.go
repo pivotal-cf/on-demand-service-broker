@@ -15,6 +15,7 @@ import (
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/ghttp"
+
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/integration_tests/helpers"
 )
@@ -140,7 +141,6 @@ var _ = Describe("Orphan Deployments", func() {
 				gbytes.Say("invalid character 'i'"),
 			))
 		})
-
 	})
 
 	When("the broker is running HTTPS", func() {
@@ -228,5 +228,4 @@ var _ = Describe("Orphan Deployments", func() {
 			Expect(session.Err).To(gbytes.Say("failed to unmarshal errand config"))
 		})
 	})
-
 })

@@ -12,6 +12,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/brokerapi/v11/domain"
 	"github.com/pivotal-cf/brokerapi/v11/domain/apiresponses"
+
 	"github.com/pivotal-cf/on-demand-service-broker/broker/decider"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 )
@@ -190,7 +191,6 @@ var _ = Describe("Decider", func() {
 							))
 						})
 					})
-
 				})
 
 				When("previous maintenance_info is present in the request", func() {

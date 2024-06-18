@@ -9,16 +9,15 @@ import (
 	"net/url"
 	"time"
 
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/brokerapi/v11/domain"
 	"github.com/pivotal-cf/brokerapi/v11/domain/apiresponses"
+
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	bosh "github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/service_helpers"
-
-	. "github.com/onsi/ginkgo/v2"
-
-	. "github.com/onsi/gomega"
 )
 
 type ProvisionDetailsWithMaintenanceInfo struct {
@@ -107,7 +106,8 @@ var _ = Describe("On-demand-broker with maintenance_info", func() {
 				[]string{
 					"update_service_catalog.yml",
 					"add_lifecycle_errand.yml",
-					"update_maintenance_info.yml"},
+					"update_maintenance_info.yml",
+				},
 			)
 
 			newPlanSpecificMaintenanceInfo := retrieveCatalog().Services[0].Plans[0].MaintenanceInfo
@@ -172,7 +172,7 @@ func doRequest(method, url string, reqBody interface{}) (*http.Response, []byte)
 func retrieveCatalog() apiresponses.CatalogResponse {
 	resp, bodyContent := doRequest(http.MethodGet, "http://"+brokerInfo.URI+"/v2/catalog", nil)
 	Expect(resp.StatusCode).To(Equal(http.StatusOK))
-	var catalogResp = apiresponses.CatalogResponse{}
+	catalogResp := apiresponses.CatalogResponse{}
 	err := json.Unmarshal(bodyContent, &catalogResp)
 	Expect(err).NotTo(HaveOccurred(), "Error unmarshalling "+string(bodyContent))
 	return catalogResp

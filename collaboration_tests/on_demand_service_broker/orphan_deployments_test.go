@@ -21,21 +21,18 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/onsi/gomega/ghttp"
-
-	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
-
-	"github.com/onsi/gomega/gbytes"
-	"gopkg.in/yaml.v2"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
+	"github.com/onsi/gomega/ghttp"
+	"gopkg.in/yaml.v2"
+
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	brokerConfig "github.com/pivotal-cf/on-demand-service-broker/config"
 )
 
 var _ = Describe("Orphan Deployments", func() {
-
 	var orphanDeploymentsBinary, errandConfigPath string
 
 	BeforeEach(func() {
@@ -109,9 +106,7 @@ var _ = Describe("Orphan Deployments", func() {
 	})
 
 	Context("with SI API configured in the broker", func() {
-		var (
-			SIAPIServer *ghttp.Server
-		)
+		var SIAPIServer *ghttp.Server
 
 		JustBeforeEach(func() {
 			SIAPIServer = ghttp.NewServer()
@@ -192,7 +187,6 @@ var _ = Describe("Orphan Deployments", func() {
 			})
 		})
 	})
-
 })
 
 func write(c interface{}) string {

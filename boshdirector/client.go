@@ -10,12 +10,12 @@ import (
 	"log"
 	"time"
 
-	"github.com/pivotal-cf/on-demand-service-broker/config"
-	"github.com/pkg/errors"
-
 	"github.com/blang/semver/v4"
 	"github.com/cloudfoundry/bosh-cli/v7/director"
 	boshuaa "github.com/cloudfoundry/bosh-cli/v7/uaa"
+	"github.com/pkg/errors"
+
+	"github.com/pivotal-cf/on-demand-service-broker/config"
 )
 
 type Client struct {
@@ -96,8 +96,8 @@ func New(url string,
 	boshAuth config.Authentication,
 	dnsRetrieverFactory DNSRetrieverFactory,
 	boshHTTPFactory HTTPFactory,
-	logger *log.Logger) (*Client, error) {
-
+	logger *log.Logger,
+) (*Client, error) {
 	certAppender.AppendCertsFromPEM(trustedCertPEM)
 
 	noAuthClient := &Client{url: url, trustedCertPEM: trustedCertPEM, directorFactory: directorFactory}

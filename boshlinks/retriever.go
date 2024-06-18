@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"net/url"
 
-	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pkg/errors"
+
+	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 )
 
 type DNSRetriever struct {

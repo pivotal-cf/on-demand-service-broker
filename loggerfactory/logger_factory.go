@@ -13,6 +13,7 @@ import (
 	"log"
 
 	"github.com/pborman/uuid"
+
 	"github.com/pivotal-cf/on-demand-service-broker/brokercontext"
 )
 

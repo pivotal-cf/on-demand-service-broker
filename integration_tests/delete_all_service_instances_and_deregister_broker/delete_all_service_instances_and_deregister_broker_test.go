@@ -16,14 +16,14 @@
 package delete_all_service_instances_and_deregister_broker_test
 
 import (
-	"gopkg.in/yaml.v2"
-
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
+	"gopkg.in/yaml.v2"
+
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/deleter"
 	"github.com/pivotal-cf/on-demand-service-broker/integration_tests/helpers"
@@ -101,11 +101,11 @@ var _ = Describe("purge instances and deregister tool", func() {
 
 	It("deletes the service instance and deregisters the service broker", func() {
 		cfAPI.VerifyAndMock(
-			//Step 1 of the purger, Disabling service access
+			// Step 1 of the purger, Disabling service access
 			mockcfapi.ListServiceOfferings().RespondsWithServiceOffering(serviceOfferingName, serviceOfferingGUID),
 			mockcfapi.ListServicePlans(serviceOfferingGUID).RespondsWithServicePlan(planID, planGUID),
 			mockcfapi.DisablePlanAccess(planGUID).RespondsCreated(),
-			//Step 2 of the purger, deleting all service instances
+			// Step 2 of the purger, deleting all service instances
 			mockcfapi.ListServiceOfferings().RespondsWithServiceOffering(serviceOfferingName, serviceOfferingGUID),
 			mockcfapi.ListServicePlans(serviceOfferingGUID).RespondsWithServicePlan(planID, planGUID),
 			mockcfapi.ListServiceInstances(planGUID).RespondsWithServiceInstances(instanceGUID),
@@ -120,7 +120,7 @@ var _ = Describe("purge instances and deregister tool", func() {
 			mockcfapi.ListServiceOfferings().RespondsWithServiceOffering(serviceOfferingName, serviceOfferingGUID),
 			mockcfapi.ListServicePlans(serviceOfferingGUID).RespondsWithServicePlan(planID, planGUID),
 			mockcfapi.ListServiceInstances(planGUID).RespondsWithNoServiceInstances(),
-			//Step 3 of the purger, deregistering the broker
+			// Step 3 of the purger, deregistering the broker
 			mockcfapi.ListServiceBrokers().RespondsWithBrokers(serviceBrokerName, serviceBrokerGUID),
 			mockcfapi.DeregisterBroker(serviceBrokerGUID).RespondsNoContent(),
 		)
@@ -141,7 +141,6 @@ var _ = Describe("purge instances and deregister tool", func() {
 		purgerSession = helpers.StartBinaryWithParams(binaryPath, params)
 		Eventually(purgerSession, timeout).Should(gexec.Exit(1))
 		Eventually(purgerSession).Should(gbytes.Say("Purger Failed:"))
-
 	})
 
 	It("fails when broker name is not provided", func() {
@@ -176,5 +175,4 @@ var _ = Describe("purge instances and deregister tool", func() {
 		Eventually(purgerSession, timeout).Should(gexec.Exit(1))
 		Eventually(purgerSession).Should(gbytes.Say("Invalid config file:"))
 	})
-
 })

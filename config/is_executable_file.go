@@ -34,5 +34,5 @@ func checkIsExecutableFile(path string) error {
 }
 
 func isExecutable(info os.FileInfo) bool {
-	return info.Mode()&0500 == 0500
+	return info.Mode()&0o500 == 0o500
 }

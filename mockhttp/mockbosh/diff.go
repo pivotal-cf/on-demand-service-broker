@@ -7,8 +7,9 @@
 package mockbosh
 
 import (
-	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
+
+	"github.com/pivotal-cf/on-demand-service-broker/mockhttp"
 )
 
 type diffMock struct {

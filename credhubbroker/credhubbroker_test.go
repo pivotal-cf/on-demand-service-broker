@@ -25,6 +25,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/brokerapi/v11/domain"
+
 	apifakes "github.com/pivotal-cf/on-demand-service-broker/apiserver/fakes"
 	"github.com/pivotal-cf/on-demand-service-broker/brokercontext"
 	"github.com/pivotal-cf/on-demand-service-broker/credhubbroker"
@@ -253,7 +254,7 @@ var _ = Describe("CredHub broker", func() {
 	})
 
 	Describe("Unbind", func() {
-		var unbindDetails = domain.UnbindDetails{
+		unbindDetails := domain.UnbindDetails{
 			PlanID:    "asdf",
 			ServiceID: "fdsa",
 		}

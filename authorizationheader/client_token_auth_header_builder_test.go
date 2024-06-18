@@ -7,17 +7,15 @@
 package authorizationheader_test
 
 import (
-	"net/http"
-
 	"crypto/x509"
 	"encoding/pem"
-
 	"fmt"
-
+	"net/http"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
 	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
 	"github.com/pivotal-cf/on-demand-service-broker/mockuaa"
 )
@@ -122,7 +120,7 @@ var _ = Describe("Client Token Auth Header Builder", func() {
 	})
 })
 
-func createClientTokenAuthorizer(mockUAA *mockuaa.ClientCredentialsServer, clientID string, secret string) *authorizationheader.ClientTokenAuthHeaderBuilder {
+func createClientTokenAuthorizer(mockUAA *mockuaa.ClientCredentialsServer, clientID, secret string) *authorizationheader.ClientTokenAuthHeaderBuilder {
 	var certPEM []byte
 	if mockUAA.TLS != nil {
 		cert, err := x509.ParseCertificate(mockUAA.TLS.Certificates[0].Certificate[0])

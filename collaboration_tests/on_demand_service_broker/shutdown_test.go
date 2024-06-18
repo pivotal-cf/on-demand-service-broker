@@ -17,20 +17,18 @@ package on_demand_service_broker_test
 
 import (
 	"log"
-	"os"
-
-	"syscall"
-
 	"net/http"
-
+	"os"
+	"syscall"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
+	"github.com/pkg/errors"
+
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	brokerConfig "github.com/pivotal-cf/on-demand-service-broker/config"
-	"github.com/pkg/errors"
 )
 
 var _ = Describe("Shutdown of the broker process", func() {
@@ -42,7 +40,6 @@ var _ = Describe("Shutdown of the broker process", func() {
 	)
 
 	BeforeEach(func() {
-
 		conf = brokerConfig.Config{
 			Broker: brokerConfig.Broker{
 				ShutdownTimeoutSecs: shutDownTimeout,

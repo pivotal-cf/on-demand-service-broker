@@ -5,6 +5,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/manifestsecrets"
@@ -12,7 +13,6 @@ import (
 )
 
 var _ = Describe("ManifestSecrets", func() {
-
 	Context("manager construction", func() {
 		When("resolve secrets is enabled", func() {
 			It("returns a credhub manager", func() {
@@ -107,9 +107,7 @@ var _ = Describe("ManifestSecrets", func() {
 				fakeCredhubOperator.BulkDeleteReturns(errors.New("BulkDelete failed miserably this time"))
 				err := manager.DeleteSecretsForInstance("foo", nil)
 				Expect(err).To(MatchError("BulkDelete failed miserably this time"))
-
 			})
 		})
 	})
-
 })

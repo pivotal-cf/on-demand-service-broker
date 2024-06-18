@@ -12,14 +12,13 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/pivotal-cf/brokerapi/v11/domain"
-	"github.com/pivotal-cf/on-demand-service-broker/config"
-	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
-
-	"github.com/pivotal-cf/on-demand-service-broker/broker"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/pivotal-cf/brokerapi/v11/domain"
+
+	"github.com/pivotal-cf/on-demand-service-broker/broker"
+	"github.com/pivotal-cf/on-demand-service-broker/config"
+	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 )
 
 var _ = Describe("Recreate", func() {
@@ -129,5 +128,4 @@ var _ = Describe("Recreate", func() {
 
 		Expect(err).To(Equal(expectedErr))
 	})
-
 })

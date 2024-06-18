@@ -22,16 +22,16 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/pivotal-cf/brokerapi/v11/domain"
-	brokerConfig "github.com/pivotal-cf/on-demand-service-broker/config"
-	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/pivotal-cf/brokerapi/v11/domain"
+	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
+
+	brokerConfig "github.com/pivotal-cf/on-demand-service-broker/config"
 )
 
 var _ = Describe("Catalog", func() {
-	var schemaParameters = map[string]interface{}{
+	schemaParameters := map[string]interface{}{
 		"$schema": "http://json-schema.org/draft-04/schema#",
 		"properties": map[string]interface{}{
 			"flibbles": map[string]interface{}{
@@ -42,7 +42,7 @@ var _ = Describe("Catalog", func() {
 		"type":     "object",
 		"required": []interface{}{"flibbles"},
 	}
-	var defaultSchemas = domain.ServiceSchemas{
+	defaultSchemas := domain.ServiceSchemas{
 		Instance: domain.ServiceInstanceSchema{
 			Create: domain.Schema{Parameters: schemaParameters},
 			Update: domain.Schema{Parameters: schemaParameters},
@@ -164,7 +164,6 @@ var _ = Describe("Catalog", func() {
 
 					By("returning the correct HTTP status")
 					Expect(response.StatusCode).To(Equal(http.StatusOK))
-
 				}()
 			}
 			wg.Wait()
@@ -315,9 +314,7 @@ var _ = Describe("Catalog", func() {
 	})
 
 	When("GeneratePlanSchemas returns an error", func() {
-		var (
-			serviceCatalogConfig brokerConfig.ServiceOffering
-		)
+		var serviceCatalogConfig brokerConfig.ServiceOffering
 
 		BeforeEach(func() {
 			serviceCatalogConfig = defaultServiceCatalogConfig()

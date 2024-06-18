@@ -22,6 +22,7 @@ import (
 
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/brokerapi/v11/domain"
+
 	"github.com/pivotal-cf/on-demand-service-broker/apiserver"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/brokercontext"
@@ -40,7 +41,6 @@ func New(broker apiserver.CombinedBroker,
 	serviceName string,
 	loggerFactory *loggerfactory.LoggerFactory,
 ) *CredHubBroker {
-
 	return &CredHubBroker{
 		CombinedBroker: broker,
 		credStore:      credStore,

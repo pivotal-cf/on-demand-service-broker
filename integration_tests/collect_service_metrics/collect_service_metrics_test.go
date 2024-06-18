@@ -14,7 +14,6 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
 	"github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/ghttp"
 )
@@ -152,7 +151,6 @@ var _ = Describe("Collect Service Metrics", func() {
 				Expect(string(session.Out.Contents())).To(Equal(body))
 			})
 		})
-
 	})
 
 	Context("when the ODB responds with 500", func() {

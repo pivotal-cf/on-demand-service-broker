@@ -10,9 +10,10 @@ import (
 	"log"
 
 	"github.com/pivotal-cf/brokerapi/v11/domain"
+	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
+
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
-	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
@@ -59,7 +60,6 @@ func (m manifestGenerator) GenerateManifest(
 	generateManifestProps GenerateManifestProperties,
 	logger *log.Logger,
 ) (serviceadapter.MarshalledGenerateManifest, error) {
-
 	serviceDeployment := serviceadapter.ServiceDeployment{
 		DeploymentName: generateManifestProps.DeploymentName,
 		Releases:       m.serviceReleases,

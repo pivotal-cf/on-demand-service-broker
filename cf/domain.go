@@ -16,8 +16,10 @@ const (
 	OperationStateInProgress OperationState = "in progress"
 )
 
-type OperationType string
-type OperationState string
+type (
+	OperationType  string
+	OperationState string
+)
 
 type serviceResponse struct {
 	pagination

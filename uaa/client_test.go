@@ -10,6 +10,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
+
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/integration_tests/helpers"
 	"github.com/pivotal-cf/on-demand-service-broker/uaa"
@@ -131,9 +132,7 @@ var _ = Describe("UAA", func() {
 		})
 
 		Describe("#CreateClient", func() {
-			var (
-				createHandler *helpers.FakeHandler
-			)
+			var createHandler *helpers.FakeHandler
 
 			BeforeEach(func() {
 				createHandler = new(helpers.FakeHandler)
@@ -467,7 +466,6 @@ var _ = Describe("UAA", func() {
 					Expect(actualClient["authorities"]).To(Equal(uaaConfig.ClientDefinition.Authorities + ",some-extra-authority"))
 					Expect(actualClient["authorized_grant_types"]).To(Equal(uaaConfig.ClientDefinition.AuthorizedGrantTypes + ",token"))
 				})
-
 			})
 
 			It("does not send redirect_uri when not passed", func() {
@@ -547,9 +545,7 @@ var _ = Describe("UAA", func() {
 		})
 
 		Describe("#DeleteClient", func() {
-			var (
-				deleteHandler *helpers.FakeHandler
-			)
+			var deleteHandler *helpers.FakeHandler
 
 			BeforeEach(func() {
 				deleteHandler = new(helpers.FakeHandler)
@@ -672,7 +668,6 @@ var _ = Describe("UAA", func() {
 				Expect(client.HasClientDefinition()).To(BeFalse())
 			})
 		})
-
 	})
 })
 

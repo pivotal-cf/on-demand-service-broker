@@ -15,11 +15,11 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
+	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
+	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter/fakes"
-	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
-	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
 
 var _ = Describe("external service adapter", func() {
@@ -182,7 +182,7 @@ var _ = Describe("external service adapter", func() {
 	})
 
 	Context("when the external adapter fails to execute", func() {
-		var err = errors.New("oops")
+		err := errors.New("oops")
 
 		BeforeEach(func() {
 			cmdRunner.RunReturns(nil, nil, nil, err)
@@ -314,5 +314,4 @@ var _ = Describe("external service adapter", func() {
 			})
 		})
 	})
-
 })

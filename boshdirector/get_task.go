@@ -53,5 +53,4 @@ func (c *Client) GetTaskOutput(taskID int, logger *log.Logger) (BoshTaskOutput, 
 	err = task.ResultOutput(reporter)
 
 	return reporter.Output, errors.Wrap(err, "Could not fetch task output")
-
 }

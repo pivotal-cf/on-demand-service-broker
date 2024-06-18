@@ -12,10 +12,11 @@ import (
 	"log"
 	"reflect"
 
+	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
+
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
-	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
 
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
@@ -29,7 +30,7 @@ type BoshClient interface {
 	GetDeployment(name string, logger *log.Logger) ([]byte, bool, error)
 	GetConfigs(configName string, logger *log.Logger) ([]boshdirector.BoshConfig, error)
 	UpdateConfig(configType, configName string, configContent []byte, logger *log.Logger) error
-	GetEvents(deploymentName string, eventType string, logger *log.Logger) ([]boshdirector.BoshEvent, error)
+	GetEvents(deploymentName, eventType string, logger *log.Logger) ([]boshdirector.BoshEvent, error)
 }
 
 //counterfeiter:generate -o fakes/fake_manifest_generator.go . ManifestGenerator
@@ -147,13 +148,11 @@ func (d Deployer) Recreate(
 	boshContextID string,
 	logger *log.Logger,
 ) (int, error) {
-
 	if err := d.assertNoOperationsInProgress(deploymentName, logger); err != nil {
 		return 0, err
 	}
 
 	taskID, err := d.boshClient.Recreate(deploymentName, boshContextID, logger, boshdirector.NewAsyncTaskReporter())
-
 	if err != nil {
 		logger.Printf("failed to recreate deployment %q: %s", deploymentName, err)
 		return 0, err
@@ -172,7 +171,6 @@ func (d Deployer) Update(
 	uaaClientObject map[string]string,
 	logger *log.Logger,
 ) (int, []byte, error) {
-
 	if err := d.assertNoOperationsInProgress(deploymentName, logger); err != nil {
 		return 0, nil, err
 	}
@@ -264,9 +262,9 @@ func (d Deployer) checkForPendingChanges(
 			OldManifest:     rawOldManifest,
 			PreviousPlanID:  previousPlanID,
 			SecretsMap:      oldSecretsMap,
-			PreviousConfigs: previousConfigs},
+			PreviousConfigs: previousConfigs,
+		},
 		logger)
-
 	if err != nil {
 		return err
 	}
@@ -285,7 +283,7 @@ func (d Deployer) checkForPendingChanges(
 	return nil
 }
 
-func (d Deployer) doDeploy(generateManifestProperties GenerateManifestProperties, operationType string, boshContextID string, logger *log.Logger) (int, []byte, error) {
+func (d Deployer) doDeploy(generateManifestProperties GenerateManifestProperties, operationType, boshContextID string, logger *log.Logger) (int, []byte, error) {
 	generateManifestOutput, err := d.manifestGenerator.GenerateManifest(generateManifestProperties, logger)
 	if err != nil {
 		return 0, nil, err

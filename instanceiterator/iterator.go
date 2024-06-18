@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pivotal-cf/brokerapi/v11/domain"
 	"github.com/pkg/errors"
 
-	"github.com/pivotal-cf/brokerapi/v11/domain"
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
@@ -28,9 +28,9 @@ type Listener interface {
 	RetryAttempt(num, limit int)
 	RetryCanariesAttempt(num, limit, remainingCanaries int)
 	InstancesToProcess(instances []service.Instance)
-	InstanceOperationStarting(instance string, index int, totalInstances int, isCanary bool)
+	InstanceOperationStarting(instance string, index, totalInstances int, isCanary bool)
 	InstanceOperationStartResult(instance string, status OperationState)
-	InstanceOperationFinished(instance string, result string)
+	InstanceOperationFinished(instance, result string)
 	WaitingFor(instance string, boshTaskId int)
 	Progress(pollingInterval time.Duration, orphanCount, processedCount, skippedCount, toRetryCount, deletedCount int)
 	Finished(orphanCount, finishedCount, skippedCount, deletedCount int, busyInstances, failedInstances []string)

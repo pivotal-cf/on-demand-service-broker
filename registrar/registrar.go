@@ -3,9 +3,10 @@ package registrar
 import (
 	"log"
 
+	"github.com/pkg/errors"
+
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
-	"github.com/pkg/errors"
 )
 
 type RegisterBrokerRunner struct {

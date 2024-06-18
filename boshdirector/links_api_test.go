@@ -5,12 +5,12 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector/fakes"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 )
 
 var _ = Describe("LinksApi", func() {
-
 	Describe("GetDNSAddresses", func() {
 		var (
 			fakeDNSRetriever *fakes.FakeDNSRetriever

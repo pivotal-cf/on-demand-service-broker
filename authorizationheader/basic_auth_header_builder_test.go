@@ -11,13 +11,12 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
 	"github.com/pivotal-cf/on-demand-service-broker/authorizationheader"
 )
 
 var _ = Describe("Basic Auth Header Builder", func() {
-	var (
-		req *http.Request
-	)
+	var req *http.Request
 
 	BeforeEach(func() {
 		var err error

@@ -22,6 +22,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/pivotal-cf/brokerapi/v11/domain"
+
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/broker/services"
 	"github.com/pivotal-cf/on-demand-service-broker/instanceiterator"
@@ -107,9 +108,7 @@ var _ = Describe("BOSH Operation Triggerer", func() {
 	})
 
 	Context("Check()", func() {
-		var (
-			expectedOperationData broker.OperationData
-		)
+		var expectedOperationData broker.OperationData
 
 		BeforeEach(func() {
 			guid = "some-guid"

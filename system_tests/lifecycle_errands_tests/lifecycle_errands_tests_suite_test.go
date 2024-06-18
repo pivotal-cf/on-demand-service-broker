@@ -9,17 +9,15 @@ package lifecycle_tests
 import (
 	"testing"
 
-	"github.com/pborman/uuid"
-	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/service_helpers"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/pborman/uuid"
+
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/bosh_helpers"
+	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/service_helpers"
 )
 
-var (
-	brokerInfo bosh_helpers.BrokerInfo
-)
+var brokerInfo bosh_helpers.BrokerInfo
 
 var _ = BeforeSuite(func() {
 	uniqueID := uuid.New()[:6]
@@ -28,7 +26,6 @@ var _ = BeforeSuite(func() {
 		bosh_helpers.BrokerDeploymentOptions{},
 		service_helpers.Redis,
 		[]string{"update_service_catalog.yml"})
-
 })
 
 var _ = AfterSuite(func() {

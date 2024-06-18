@@ -22,6 +22,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/pivotal-cf/brokerapi/v11/domain"
+
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
@@ -268,7 +269,6 @@ var _ = Describe("Management API", func() {
 					Eventually(logs).Should(gbytes.Say("error occurred parsing requests body: "))
 				})
 			})
-
 		})
 
 		Context("when the process is an upgrade", func() {
@@ -385,7 +385,6 @@ var _ = Describe("Management API", func() {
 					Eventually(logs).Should(gbytes.Say("error occurred parsing requests body: "))
 				})
 			})
-
 		})
 	})
 
@@ -473,7 +472,6 @@ var _ = Describe("Management API", func() {
 						))
 					})
 				})
-
 			})
 
 			Context("when a plan quota is set", func() {
@@ -619,7 +617,6 @@ var _ = Describe("Management API", func() {
 		})
 
 		Context("resource quotas", func() {
-
 			BeforeEach(func() {
 				serviceOffering.Plans = []config.Plan{
 					{
@@ -635,7 +632,8 @@ var _ = Describe("Management API", func() {
 									Limit: 10,
 									Cost:  5,
 								},
-							}},
+							},
+						},
 					},
 					{
 						ID:   "limit-and-cost-plan-id-2",
@@ -657,7 +655,8 @@ var _ = Describe("Management API", func() {
 								"memory": {
 									Limit: 60,
 								},
-							}},
+							},
+						},
 					},
 					{
 						ID:   "cost-only-plan-id",
@@ -667,14 +666,14 @@ var _ = Describe("Management API", func() {
 								"memory": {
 									Cost: 2,
 								},
-							}},
+							},
+						},
 					},
 					{
 						ID:   "no-quota-plan-id",
 						Name: "no-quota-plan-name",
 					},
 				}
-
 			})
 
 			Context("when a resource quota and cost is set in a plan", func() {
@@ -785,7 +784,6 @@ var _ = Describe("Management API", func() {
 								Unit:  "count",
 							}),
 					))
-
 				})
 			})
 
@@ -817,7 +815,8 @@ var _ = Describe("Management API", func() {
 							"memory":             {Limit: 60},
 							"nutella_jars":       {Limit: 10},
 							"peanut_butter_jars": {Limit: 15},
-						}}
+						},
+					}
 					manageableBroker.CountInstancesOfPlansReturns(map[cf.ServicePlan]int{
 						cfServicePlan("1234", "limit-and-cost-plan-id-1", "url", "not-relevant"): 2,
 						cfServicePlan("1234", "cost-only-plan-id", "url", "not-relevant"):        1,

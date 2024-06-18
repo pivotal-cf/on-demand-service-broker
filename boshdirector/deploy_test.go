@@ -12,6 +12,7 @@ import (
 	"github.com/cloudfoundry/bosh-cli/v7/director"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector/fakes"
 )
@@ -30,7 +31,7 @@ func namelessManifest() []byte {
 }
 
 var _ = Describe("deploying a manifest", func() {
-	//const deploymentName = "some-deployment"
+	// const deploymentName = "some-deployment"
 	var (
 		fakeDeployment    *fakes.FakeBOSHDeployment
 		manifest          []byte

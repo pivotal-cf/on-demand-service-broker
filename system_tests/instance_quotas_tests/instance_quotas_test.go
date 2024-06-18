@@ -13,6 +13,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
 	"github.com/pborman/uuid"
+
 	cf "github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/cf_helpers"
 	"github.com/pivotal-cf/on-demand-service-broker/system_tests/test_helpers/gbytes"
 )
@@ -104,7 +105,7 @@ var _ = Describe("quotas", func() {
 			globalQuotaTemplate = "global instance limit exceeded for service ID: %s. Total instances: %d"
 		)
 
-		var instanceC = fmt.Sprintf("instanceC-%s", uuid.New()[:7])
+		instanceC := fmt.Sprintf("instanceC-%s", uuid.New()[:7])
 
 		Context("when the global limit is reached", func() {
 			BeforeEach(func() {

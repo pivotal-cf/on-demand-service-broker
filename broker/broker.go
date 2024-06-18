@@ -12,18 +12,17 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/pivotal-cf/on-demand-service-broker/uaa"
-
-	"github.com/pivotal-cf/on-demand-service-broker/broker/decider"
-
 	"github.com/pivotal-cf/brokerapi/v11/domain"
+	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
+	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
+
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
+	"github.com/pivotal-cf/on-demand-service-broker/broker/decider"
 	"github.com/pivotal-cf/on-demand-service-broker/cf"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
 	"github.com/pivotal-cf/on-demand-service-broker/loggerfactory"
 	"github.com/pivotal-cf/on-demand-service-broker/service"
-	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
-	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
+	"github.com/pivotal-cf/on-demand-service-broker/uaa"
 )
 
 type Broker struct {
@@ -67,8 +66,8 @@ func New(
 	hasher Hasher,
 	loggerFactory *loggerfactory.LoggerFactory,
 	telemetryLogger TelemetryLogger,
-	decider Decider) (*Broker, error) {
-
+	decider Decider,
+) (*Broker, error) {
 	b := &Broker{
 		boshClient:                boshClient,
 		cfClient:                  cfClient,
@@ -203,7 +202,7 @@ type StartupChecker interface {
 //counterfeiter:generate -o fakes/fake_deployer.go . Deployer
 type Deployer interface {
 	Create(deploymentName, planID string, requestParams map[string]interface{}, boshContextID string, uaaClient map[string]string, logger *log.Logger) (int, []byte, error)
-	Update(deploymentName, planID string, requestParams map[string]interface{}, previousPlanID *string, boshContextID string, secretsMap map[string]string, uaaClient map[string]string, logger *log.Logger) (int, []byte, error)
+	Update(deploymentName, planID string, requestParams map[string]interface{}, previousPlanID *string, boshContextID string, secretsMap, uaaClient map[string]string, logger *log.Logger) (int, []byte, error)
 	Upgrade(deploymentName string, plan config.Plan, requestParams map[string]interface{}, boshContextID string, uaaClient map[string]string, logger *log.Logger) (int, []byte, error)
 	Recreate(deploymentName, planID, boshContextID string, logger *log.Logger) (int, error)
 }
@@ -211,7 +210,7 @@ type Deployer interface {
 //counterfeiter:generate -o fakes/fake_service_adapter_client.go . ServiceAdapterClient
 type ServiceAdapterClient interface {
 	CreateBinding(bindingID string, deploymentTopology bosh.BoshVMs, manifest []byte, requestParams map[string]interface{}, secretsMap, dnsAddresses map[string]string, logger *log.Logger) (serviceadapter.Binding, error)
-	DeleteBinding(bindingID string, deploymentTopology bosh.BoshVMs, manifest []byte, requestParams map[string]interface{}, secretsMap map[string]string, dnsAddresses map[string]string, logger *log.Logger) error
+	DeleteBinding(bindingID string, deploymentTopology bosh.BoshVMs, manifest []byte, requestParams map[string]interface{}, secretsMap, dnsAddresses map[string]string, logger *log.Logger) error
 	GenerateDashboardUrl(instanceID string, plan serviceadapter.Plan, manifest []byte, logger *log.Logger) (string, error)
 	GeneratePlanSchema(plan serviceadapter.Plan, logger *log.Logger) (domain.ServiceSchemas, error)
 }
@@ -247,7 +246,7 @@ type CloudFoundryClient interface {
 
 //counterfeiter:generate -o fakes/fake_telemetry_logger.go . TelemetryLogger
 type TelemetryLogger interface {
-	LogInstances(instanceLister service.InstanceLister, item string, operation string)
+	LogInstances(instanceLister service.InstanceLister, item, operation string)
 }
 
 //counterfeiter:generate -o fakes/fake_map_hasher.go . Hasher

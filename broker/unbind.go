@@ -12,6 +12,7 @@ import (
 
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/brokerapi/v11/domain"
+
 	"github.com/pivotal-cf/on-demand-service-broker/brokercontext"
 )
 
@@ -22,7 +23,6 @@ func (b *Broker) Unbind(
 	details domain.UnbindDetails,
 	asyncAllowed bool,
 ) (domain.UnbindSpec, error) {
-
 	b.bindLock.Lock()
 	defer b.bindLock.Unlock()
 
@@ -70,7 +70,6 @@ func (b *Broker) Unbind(
 
 	logger.Printf("service adapter will delete binding with ID %s for instance %s\n", bindingID, instanceID)
 	err = b.adapterClient.DeleteBinding(bindingID, vms, manifest, requestParams, secretsMap, dnsAddresses, logger)
-
 	if err != nil {
 		logger.Printf("delete binding: %v\n", err)
 	}

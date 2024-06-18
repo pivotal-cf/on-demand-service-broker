@@ -16,6 +16,7 @@ import (
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/brokerapi/v11/domain"
 	"github.com/pivotal-cf/brokerapi/v11/domain/apiresponses"
+
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/brokercontext"
 	"github.com/pivotal-cf/on-demand-service-broker/config"
@@ -27,7 +28,6 @@ func (b *Broker) Deprovision(
 	deprovisionDetails domain.DeprovisionDetails,
 	asyncAllowed bool,
 ) (domain.DeprovisionServiceSpec, error) {
-
 	b.deploymentLock.Lock()
 	defer b.deploymentLock.Unlock()
 	requestID := uuid.New()
@@ -134,7 +134,6 @@ func (b *Broker) assertDeploymentExists(ctx context.Context, instanceID string, 
 }
 
 func (b *Broker) assertNoOperationsInProgress(ctx context.Context, instanceID string, logger *log.Logger) error {
-
 	incompleteTasks, err := b.boshClient.GetTasksInProgress(deploymentName(instanceID), logger)
 	switch err.(type) {
 	case boshdirector.RequestError:
@@ -182,7 +181,6 @@ func (b *Broker) runPreDeleteErrands(ctx context.Context, instanceID string, pre
 		BoshContextID: boshContextID,
 		Errands:       preDeleteErrands,
 	})
-
 	if err != nil {
 		return domain.DeprovisionServiceSpec{IsAsync: true}, NewGenericError(ctx, err)
 	}

@@ -16,10 +16,11 @@ import (
 	"github.com/pborman/uuid"
 	"github.com/pivotal-cf/brokerapi/v11/domain"
 	"github.com/pivotal-cf/brokerapi/v11/domain/apiresponses"
+	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
+
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/brokercontext"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
-	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 )
 
 var _ = Describe("Unbind", func() {
@@ -188,7 +189,7 @@ var _ = Describe("Unbind", func() {
 	})
 
 	It("returns an specific error when the service adapter fails to destroy the binding returning a serviceadapter error", func() {
-		var err = serviceadapter.NewUnknownFailureError("it failed, but all is not lost dear user")
+		err := serviceadapter.NewUnknownFailureError("it failed, but all is not lost dear user")
 		serviceAdapter.DeleteBindingReturns(err)
 		_, unbindErr := b.Unbind(context.Background(), instanceID, bindingID, domain.UnbindDetails{ServiceID: serviceID, PlanID: planID}, asyncAllowed)
 
