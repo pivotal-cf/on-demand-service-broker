@@ -66,6 +66,7 @@ var _ = Describe("Broker Config", func() {
 						UsingStdin:                 true,
 						EnableTelemetry:            true,
 						SupportBackupAgentBinding:  true,
+						EnablePersistManifest:      true,
 					},
 					Bosh: config.Bosh{
 						URL:         "some-url",

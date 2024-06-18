@@ -54,12 +54,24 @@ func Initiate(conf config.Config,
 	odbSecrets := manifestsecrets.ODBSecrets{ServiceOfferingID: conf.ServiceCatalog.ID}
 	boshCredhubStore := buildCredhubStore(conf, logger)
 
-	// TODO: Add conditional based on config
-	persister := manifest.Persister{
+	cleaner := manifest.Persister{
 		Prefix: "/var/vcap/data/broker/manifest/",
 		Logger: logger,
 	}
-	deploymentManager := task.NewDeployer(taskBoshClient, manifestGenerator, odbSecrets, boshCredhubStore, &persister)
+
+	var persister interface {
+		PersistManifest(deploymentName, manifestName string, data []byte)
+	}
+	if conf.Broker.EnablePersistManifest {
+		persister = manifest.Persister{
+			Prefix: "/var/vcap/data/broker/manifest/",
+			Logger: logger,
+		}
+	} else {
+		persister = manifest.DisabledPersister{}
+	}
+
+	deploymentManager := task.NewDeployer(taskBoshClient, manifestGenerator, odbSecrets, boshCredhubStore, persister)
 	deploymentManager.DisableBoshConfigs = conf.Broker.DisableBoshConfigs
 
 	manifestSecretManager := manifestsecrets.BuildManager(conf.Broker.EnableSecureManifests, new(manifestsecrets.CredHubPathMatcher), boshCredhubStore)
@@ -72,7 +84,7 @@ func Initiate(conf config.Config,
 	telemetryLogger := telemetry.Build(conf.Broker.EnableTelemetry, conf.ServiceCatalog, logger)
 
 	var onDemandBroker apiserver.CombinedBroker
-	onDemandBroker, err = broker.New(brokerBoshClient, cfClient, conf.ServiceCatalog, conf.Broker, startupChecks, serviceAdapter, deploymentManager, manifestSecretManager, instanceLister, &hasher.MapHasher{}, loggerFactory, telemetryLogger, decider.Decider{}, &persister)
+	onDemandBroker, err = broker.New(brokerBoshClient, cfClient, conf.ServiceCatalog, conf.Broker, startupChecks, serviceAdapter, deploymentManager, manifestSecretManager, instanceLister, &hasher.MapHasher{}, loggerFactory, telemetryLogger, decider.Decider{}, cleaner)
 
 	if err != nil {
 		logger.Fatalf("error starting broker: %s", err)

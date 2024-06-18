@@ -12,7 +12,7 @@ type Persister struct {
 	Logger *log.Logger
 }
 
-func (p *Persister) PersistManifest(deploymentName, manifestName string, data []byte) {
+func (p Persister) PersistManifest(deploymentName, manifestName string, data []byte) {
 	directory := filepath.Join(p.Prefix, deploymentName)
 	path := filepath.Join(directory, manifestName+".gz")
 	if err := os.Mkdir(directory, 0750); err != nil && !os.IsExist(err) {
@@ -41,7 +41,7 @@ func (p *Persister) PersistManifest(deploymentName, manifestName string, data []
 	}
 }
 
-func (p *Persister) Cleanup(deploymentName string) {
+func (p Persister) Cleanup(deploymentName string) {
 	directory := filepath.Join(p.Prefix, deploymentName)
 
 	if err := os.RemoveAll(directory); err != nil {

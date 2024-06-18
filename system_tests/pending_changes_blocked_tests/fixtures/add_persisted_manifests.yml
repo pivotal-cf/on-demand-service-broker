@@ -1,3 +1,3 @@
 - type: replace
-  path: /instance_groups/name=broker/jobs/name=broker/properties/persist_manifests?
+  path: /instance_groups/name=broker/jobs/name=broker/properties/enable_persist_manifest?
   value: true

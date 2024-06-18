@@ -57,7 +57,7 @@ func StartServer(conf config.Config, stopServerChan chan os.Signal, fakeCommandR
 	taskManifestGenerator := task.NewManifestGenerator(serviceAdapterClient, conf.ServiceCatalog, []serviceadapter.Stemcell{}, serviceadapter.ServiceReleases{})
 	odbSecrets := manifestsecrets.ODBSecrets{ServiceOfferingID: conf.ServiceCatalog.ID}
 
-	deployer := task.NewDeployer(fakeTaskBoshClient, taskManifestGenerator, odbSecrets, fakeTaskBulkSetter, &manifest.DisabledPersister{})
+	deployer := task.NewDeployer(fakeTaskBoshClient, taskManifestGenerator, odbSecrets, fakeTaskBulkSetter, manifest.DisabledPersister{})
 	deployer.DisableBoshConfigs = conf.Broker.DisableBoshConfigs
 
 	loggerFactory := loggerfactory.New(loggerBuffer, "collaboration-tests", loggerfactory.Flags)
@@ -69,7 +69,7 @@ func StartServer(conf config.Config, stopServerChan chan os.Signal, fakeCommandR
 	credhubPathMatcher := new(manifestsecrets.CredHubPathMatcher)
 	secretManager := manifestsecrets.BuildManager(true, credhubPathMatcher, fakeCredhubOperator)
 
-	fakeOnDemandBroker, err := broker.New(fakeBoshClient, fakeCfClient, conf.ServiceCatalog, conf.Broker, nil, serviceAdapterClient, deployer, secretManager, instanceLister, fakeMapHasher, loggerFactory, new(fakes.FakeTelemetryLogger), decider.Decider{}, &manifest.DisabledPersister{})
+	fakeOnDemandBroker, err := broker.New(fakeBoshClient, fakeCfClient, conf.ServiceCatalog, conf.Broker, nil, serviceAdapterClient, deployer, secretManager, instanceLister, fakeMapHasher, loggerFactory, new(fakes.FakeTelemetryLogger), decider.Decider{}, manifest.DisabledPersister{})
 	Expect(err).NotTo(HaveOccurred())
 	var fakeBroker apiserver.CombinedBroker
 	if conf.HasRuntimeCredHub() {

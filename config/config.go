@@ -53,6 +53,7 @@ type Broker struct {
 	EnableOptimisedUpgrades    bool      `yaml:"enable_optimised_upgrades"`
 	SupportBackupAgentBinding  bool      `yaml:"support_backup_agent_binding"`
 	TLS                        TLSConfig `yaml:"tls"`
+	EnablePersistManifest      bool      `yaml:"enable_persist_manifest"`
 }
 
 type BoshCredhub struct {

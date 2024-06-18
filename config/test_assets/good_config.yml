@@ -15,6 +15,7 @@ broker:
   use_stdin: true
   enable_telemetry: true
   support_backup_agent_binding: true
+  enable_persist_manifest: true
 bosh:
   url: some-url
   root_ca_cert: some-cert
