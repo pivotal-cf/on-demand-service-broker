@@ -5,12 +5,12 @@ go 1.22
 toolchain go1.22.0
 
 require (
-	code.cloudfoundry.org/credhub-cli v0.0.0-20240617130427-da5c8e6f4033
+	code.cloudfoundry.org/credhub-cli v0.0.0-20240624130342-778af11070f9
 	code.cloudfoundry.org/lager/v3 v3.0.3
 	github.com/blang/semver/v4 v4.0.0
 	github.com/cloudfoundry-community/go-uaa v0.3.2
 	github.com/cloudfoundry/bosh-cli/v7 v7.6.1
-	github.com/cloudfoundry/bosh-utils v0.0.473
+	github.com/cloudfoundry/bosh-utils v0.0.474
 	github.com/craigfurman/herottp v0.0.0-20190418132442-c546d62f2a8d
 	github.com/gorilla/mux v1.8.1
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.8.1
@@ -40,7 +40,7 @@ require (
 	github.com/go-playground/validator/v10 v10.22.0 // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
-	github.com/google/pprof v0.0.0-20240528025155-186aa0362fba // indirect
+	github.com/google/pprof v0.0.0-20240622144329-c177fd99eaa9 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/hashicorp/go-version v1.7.0 // indirect
 	github.com/jpillora/backoff v1.0.0 // indirect
