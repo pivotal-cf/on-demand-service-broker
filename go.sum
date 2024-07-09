@@ -39,8 +39,8 @@ github.com/fsnotify/fsnotify v1.7.0 h1:8JEhPFa5W2WU7YfeZzPNqzMP6Lwt7L2715Ggo0nos
 github.com/fsnotify/fsnotify v1.7.0/go.mod h1:40Bi/Hjc2AVfZrqy+aj+yEI+/bRxZnMJyTJwOpGvigM=
 github.com/gabriel-vasile/mimetype v1.4.3 h1:in2uUcidCuFcDKtdcBxlR0rJ1+fsokWf+uqxgUFjbI0=
 github.com/gabriel-vasile/mimetype v1.4.3/go.mod h1:d8uq/6HKRL6CGdk+aubisF/M5GcPfT7nKyLpA0lbSSk=
-github.com/go-chi/chi/v5 v5.0.14 h1:PyEwo2Vudraa0x/Wl6eDRRW2NXBvekgfxyydcM0WGE0=
-github.com/go-chi/chi/v5 v5.0.14/go.mod h1:DslCQbL2OYiznFReuXYUmQ2hGd1aDpCnlMNITLSKoi8=
+github.com/go-chi/chi/v5 v5.1.0 h1:acVI1TYaD+hhedDJ3r54HyA6sExp3HfXq7QWEEY/xMw=
+github.com/go-chi/chi/v5 v5.1.0/go.mod h1:DslCQbL2OYiznFReuXYUmQ2hGd1aDpCnlMNITLSKoi8=
 github.com/go-logr/logr v1.4.2 h1:6pFjapn8bFcIbiKo3XT4j/BhANplGihG6tvd+8rYgrY=
 github.com/go-logr/logr v1.4.2/go.mod h1:9T104GzyrTigFIr8wt5mBrctHMim0Nb2HLGrmQ40KvY=
 github.com/go-playground/assert/v2 v2.2.0 h1:JvknZsQTYeFEAhQwI4qEt9cyV5ONwRHC+lYKSsYSR8s=
@@ -115,10 +115,10 @@ github.com/openzipkin/zipkin-go v0.4.2 h1:zjqfqHjUpPmB3c1GlCvvgsM1G4LkvqQbBDueDO
 github.com/openzipkin/zipkin-go v0.4.2/go.mod h1:ZeVkFjuuBiSy13y8vpSDCjMi9GoI3hPpCJSBx/EYFhY=
 github.com/pborman/uuid v1.2.1 h1:+ZZIw58t/ozdjRaXh/3awHfmWRbzYxJoAdNJxe/3pvw=
 github.com/pborman/uuid v1.2.1/go.mod h1:X/NO0urCmaxf9VXbdlT7C2Yzkj2IKimNn4k+gtPdI/k=
-github.com/pivotal-cf/brokerapi/v11 v11.0.1 h1:X7X1PQF7uxNqXAjJo8+98t/zAJPqrIRP1tQExYsfjWM=
-github.com/pivotal-cf/brokerapi/v11 v11.0.1/go.mod h1:kX76obQNqBfMQB2eVDzFnR8Es+EYEVgxkKwxrHpYJGY=
-github.com/pivotal-cf/on-demand-services-sdk v0.46.1-0.20240628124157-645a5f6c3923 h1:C1wo7oONS8WucvylH4QW3clDsaRYJKM+hT6scBEFuLU=
-github.com/pivotal-cf/on-demand-services-sdk v0.46.1-0.20240628124157-645a5f6c3923/go.mod h1:4eRU5HDQ5pdPxDt/ItuH3ND0C8ccXRN+WBVVxTQe+D8=
+github.com/pivotal-cf/brokerapi/v11 v11.0.2 h1:yUdxr1DHVZxOa+2ATjEP9Yx1NYIkJorFLcs3aiklruk=
+github.com/pivotal-cf/brokerapi/v11 v11.0.2/go.mod h1:voCxb92J8tozmdS9VKxcw6mHheKPlz6n2UO2Fbe7ixk=
+github.com/pivotal-cf/on-demand-services-sdk v0.46.1-0.20240709121034-1cd4ddc8c8eb h1:XK2RpvnEnYPbLmbqVvcU6Ia2r7CgcGP4hjSokSeQ/p4=
+github.com/pivotal-cf/on-demand-services-sdk v0.46.1-0.20240709121034-1cd4ddc8c8eb/go.mod h1:RLi4CqQmxX4ltMQMk4G8wjmVk5qWYg7OIygZm1IqZLo=
 github.com/pivotal-cf/paraphernalia v0.0.0-20180203224945-a64ae2051c20 h1:DR5eMfe2+6GzLkVyWytdtgUxgbPiOfvKDuqityTV3y8=
 github.com/pivotal-cf/paraphernalia v0.0.0-20180203224945-a64ae2051c20/go.mod h1:Y3IqE20LKprEpLkXb7gXinJf4vvDdQe/BS8E4kL/dgE=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=

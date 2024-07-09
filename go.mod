@@ -17,8 +17,8 @@ require (
 	github.com/onsi/ginkgo/v2 v2.19.0
 	github.com/onsi/gomega v1.33.1
 	github.com/pborman/uuid v1.2.1
-	github.com/pivotal-cf/brokerapi/v11 v11.0.1
-	github.com/pivotal-cf/on-demand-services-sdk v0.46.1-0.20240628124157-645a5f6c3923
+	github.com/pivotal-cf/brokerapi/v11 v11.0.2
+	github.com/pivotal-cf/on-demand-services-sdk v0.46.1-0.20240709121034-1cd4ddc8c8eb
 	github.com/pkg/errors v0.9.1
 	github.com/urfave/negroni v1.0.0
 	github.com/xeipuuv/gojsonschema v1.2.0
@@ -33,7 +33,7 @@ require (
 	github.com/cloudfoundry/socks5-proxy v0.2.119 // indirect
 	github.com/cppforlife/go-semi-semantic v0.0.0-20160921010311-576b6af77ae4 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
-	github.com/go-chi/chi/v5 v5.0.14 // indirect
+	github.com/go-chi/chi/v5 v5.1.0 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
