@@ -17,8 +17,8 @@ require (
 	github.com/onsi/ginkgo/v2 v2.19.0
 	github.com/onsi/gomega v1.33.1
 	github.com/pborman/uuid v1.2.1
-	github.com/pivotal-cf/brokerapi/v11 v11.0.2
-	github.com/pivotal-cf/on-demand-services-sdk v0.46.1-0.20240709121034-1cd4ddc8c8eb
+	github.com/pivotal-cf/brokerapi/v11 v11.0.4
+	github.com/pivotal-cf/on-demand-services-sdk v0.46.1-0.20240711125316-4181919fce5a
 	github.com/pkg/errors v0.9.1
 	github.com/urfave/negroni v1.0.0
 	github.com/xeipuuv/gojsonschema v1.2.0
