@@ -14,11 +14,11 @@ require (
 	github.com/craigfurman/herottp v0.0.0-20190418132442-c546d62f2a8d
 	github.com/gorilla/mux v1.8.1
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.8.1
-	github.com/onsi/ginkgo/v2 v2.20.0
+	github.com/onsi/ginkgo/v2 v2.20.1
 	github.com/onsi/gomega v1.34.1
 	github.com/pborman/uuid v1.2.1
 	github.com/pivotal-cf/brokerapi/v11 v11.0.6
-	github.com/pivotal-cf/on-demand-services-sdk v0.46.1-0.20240812124728-9d7785a49087
+	github.com/pivotal-cf/on-demand-services-sdk v0.46.1-0.20240822124114-43ec298123a2
 	github.com/pkg/errors v0.9.1
 	github.com/urfave/negroni v1.0.0
 	github.com/xeipuuv/gojsonschema v1.2.0
