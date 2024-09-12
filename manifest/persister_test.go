@@ -12,6 +12,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gbytes"
+	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
+	"gopkg.in/yaml.v2"
 
 	"github.com/pivotal-cf/on-demand-service-broker/manifest"
 )
@@ -39,7 +41,7 @@ var _ = Describe("Persister", func() {
 			}
 			deploymentName = "service-instance_guid"
 			fileName = "manifest.yml"
-			manifestContents = []byte("some stuff")
+			manifestContents = expectedSortedManifest()
 		})
 
 		// we pick 0750 so the directory is writeable by the vcap user
@@ -90,6 +92,7 @@ var _ = Describe("Persister", func() {
 			persister.PersistManifest(deploymentName, fileName, manifestContents)
 			Expect(buffer).To(Say(`Failed to persist manifest %s:`, path))
 		})
+
 	})
 
 	Describe("CleanupManifests", func() {
@@ -128,4 +131,34 @@ var _ = Describe("Persister", func() {
 			Expect(os.IsNotExist(err)).To(BeTrue())
 		})
 	})
+
+	Describe("SortManifest", func() {
+		BeforeEach(func() {
+			var err error
+			manifestContents, err = os.ReadFile("fixtures/unsorted-manifest.yml")
+			Expect(err).NotTo(HaveOccurred())
+		})
+		It("sorts the manifest", func() {
+			var (
+				err error
+			)
+			observed, err := persister.SortManifest(manifestContents)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(observed).To(Equal(expectedSortedManifest()))
+		})
+	})
 })
+
+func expectedSortedManifest() []byte {
+	var (
+		err              error
+		expectedManifest bosh.BoshManifest
+		expected         []byte
+	)
+	expectedContents, err := os.ReadFile("fixtures/sorted-manifest.yml")
+	err = yaml.Unmarshal(expectedContents, &expectedManifest)
+	Expect(err).NotTo(HaveOccurred())
+	expected, err = yaml.Marshal(expectedManifest)
+	Expect(err).NotTo(HaveOccurred())
+	return expected
+}
