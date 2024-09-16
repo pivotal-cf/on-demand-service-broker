@@ -1,4 +1,4 @@
-# code.cloudfoundry.org/credhub-cli v0.0.0-20240909193755-fd43d7668e9f
+# code.cloudfoundry.org/credhub-cli v0.0.0-20240916130534-17db04838e07
 ## explicit; go 1.22.0
 code.cloudfoundry.org/credhub-cli/credhub
 code.cloudfoundry.org/credhub-cli/credhub/auth
@@ -12,7 +12,7 @@ code.cloudfoundry.org/credhub-cli/credhub/server
 ## explicit; go 1.22.0
 code.cloudfoundry.org/lager/v3
 code.cloudfoundry.org/lager/v3/internal/truncate
-# code.cloudfoundry.org/tlsconfig v0.4.0
+# code.cloudfoundry.org/tlsconfig v0.5.0
 ## explicit; go 1.22
 code.cloudfoundry.org/tlsconfig
 # github.com/blang/semver/v4 v4.0.0
@@ -34,7 +34,7 @@ github.com/cloudfoundry/bosh-cli/v7/common/util
 github.com/cloudfoundry/bosh-cli/v7/director
 github.com/cloudfoundry/bosh-cli/v7/io
 github.com/cloudfoundry/bosh-cli/v7/uaa
-# github.com/cloudfoundry/bosh-utils v0.0.495
+# github.com/cloudfoundry/bosh-utils v0.0.496
 ## explicit; go 1.22.0
 github.com/cloudfoundry/bosh-utils/crypto
 github.com/cloudfoundry/bosh-utils/errors
@@ -47,7 +47,7 @@ github.com/cloudfoundry/bosh-utils/uuid
 # github.com/cloudfoundry/go-socks5 v0.0.0-20240831012420-2590b55236ee
 ## explicit; go 1.21.0
 github.com/cloudfoundry/go-socks5
-# github.com/cloudfoundry/socks5-proxy v0.2.123
+# github.com/cloudfoundry/socks5-proxy v0.2.124
 ## explicit; go 1.22.0
 github.com/cloudfoundry/socks5-proxy
 # github.com/cppforlife/go-semi-semantic v0.0.0-20160921010311-576b6af77ae4
