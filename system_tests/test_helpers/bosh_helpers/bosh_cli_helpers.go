@@ -345,7 +345,7 @@ func deploy(systemTestSuffix string, deploymentOptions BrokerDeploymentOptions, 
 		"--var", "service_release=" + variables.ServiceReleaseName,
 		"--var", "service_release_version=" + variables.ServiceReleaseVersion,
 		"--var", "disable_ssl_cert_verification=false",
-		"--var", "stemcell_alias=xenial",
+		"--var", "stemcell_alias=jammy",
 		"--ops-file", adapterOpsFile,
 	}
 

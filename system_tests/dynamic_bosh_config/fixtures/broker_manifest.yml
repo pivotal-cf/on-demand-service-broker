@@ -14,7 +14,7 @@ releases:
   version: latest
 
 stemcells:
-- alias: xenial
+- alias: jammy
   os: ((meta.stemcell.os))
   version: "((meta.stemcell.version))"
 
@@ -26,7 +26,7 @@ instance_groups:
 - name: broker
   networks:
   - name: ((meta.services_subnet))
-  stemcell: xenial
+  stemcell: jammy
   vm_extensions:
   - public_ip
   vm_type: ((meta.vm_type))
