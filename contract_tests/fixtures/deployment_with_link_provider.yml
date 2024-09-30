@@ -6,15 +6,15 @@ releases:
   version: latest
 
 stemcells:
-- alias: xenial
-  os: ubuntu-xenial
+- alias: jammy
+  os: ubuntu-jammy
   version: latest
 
 instance_groups:
 - name: dummy
   instances: 1
   vm_type: small
-  stemcell: xenial
+  stemcell: jammy
   azs: [z1]
   networks:
   - name: default

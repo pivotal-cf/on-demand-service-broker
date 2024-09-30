@@ -6,6 +6,6 @@ update:
   update_watch_time: 3000-180000
   max_in_flight: 4
 stemcells:
-  - alias: xenial
-    os: ubuntu-xenial
+  - alias: jammy
+    os: ubuntu-jammy
     version: latest
