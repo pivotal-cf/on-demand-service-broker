@@ -81,13 +81,13 @@ var _ = Describe("FeatureFlags", func() {
 			siAPIUsername := "siapi"
 			siAPIPassword := "siapipass"
 
-			cf.Cf("push",
+			Expect(cf.Cf("push",
 				"-p", os.Getenv("SI_API_PATH"),
 				"-f", os.Getenv("SI_API_PATH")+"/manifest.yml",
 				"--var", "app_name="+appName,
 				"--var", "username="+siAPIUsername,
 				"--var", "password="+siAPIPassword,
-			)
+			)).To(gexec.Exit(0), `cf push example-service-instances-api app failed!`)
 
 			brokerInfo = bosh.DeployBroker(
 				"-feature-flag-"+uniqueID,
