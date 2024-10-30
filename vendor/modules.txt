@@ -91,7 +91,7 @@ github.com/google/go-cmp/cmp/internal/diff
 github.com/google/go-cmp/cmp/internal/flags
 github.com/google/go-cmp/cmp/internal/function
 github.com/google/go-cmp/cmp/internal/value
-# github.com/google/pprof v0.0.0-20241023014458-598669927662
+# github.com/google/pprof v0.0.0-20241029153458-d1b30febd7db
 ## explicit; go 1.22
 github.com/google/pprof/profile
 # github.com/google/uuid v1.6.0
@@ -121,8 +121,8 @@ github.com/maxbrunsfeld/counterfeiter/v6/generator
 github.com/nu7hatch/gouuid
 # github.com/nxadm/tail v1.4.11
 ## explicit; go 1.13
-# github.com/onsi/ginkgo/v2 v2.20.2
-## explicit; go 1.22
+# github.com/onsi/ginkgo/v2 v2.21.0
+## explicit; go 1.22.0
 github.com/onsi/ginkgo/v2
 github.com/onsi/ginkgo/v2/config
 github.com/onsi/ginkgo/v2/formatter
@@ -175,7 +175,7 @@ github.com/pivotal-cf/brokerapi/v11/handlers
 github.com/pivotal-cf/brokerapi/v11/internal/blog
 github.com/pivotal-cf/brokerapi/v11/middlewares
 github.com/pivotal-cf/brokerapi/v11/utils
-# github.com/pivotal-cf/on-demand-services-sdk v0.46.1-0.20241030124216-f40749c400ae
+# github.com/pivotal-cf/on-demand-services-sdk v0.46.1-0.20241030124422-b9798cf5bf56
 ## explicit; go 1.22.0
 github.com/pivotal-cf/on-demand-services-sdk/bosh
 github.com/pivotal-cf/on-demand-services-sdk/serviceadapter

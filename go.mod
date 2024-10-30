@@ -12,11 +12,11 @@ require (
 	github.com/craigfurman/herottp v0.0.0-20190418132442-c546d62f2a8d
 	github.com/gorilla/mux v1.8.1
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.10.0
-	github.com/onsi/ginkgo/v2 v2.20.2
+	github.com/onsi/ginkgo/v2 v2.21.0
 	github.com/onsi/gomega v1.35.0
 	github.com/pborman/uuid v1.2.1
 	github.com/pivotal-cf/brokerapi/v11 v11.0.11
-	github.com/pivotal-cf/on-demand-services-sdk v0.46.1-0.20241030124216-f40749c400ae
+	github.com/pivotal-cf/on-demand-services-sdk v0.46.1-0.20241030124422-b9798cf5bf56
 	github.com/pkg/errors v0.9.1
 	github.com/urfave/negroni v1.0.0
 	github.com/xeipuuv/gojsonschema v1.2.0
@@ -39,7 +39,7 @@ require (
 	github.com/go-playground/validator/v10 v10.22.1 // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
-	github.com/google/pprof v0.0.0-20241023014458-598669927662 // indirect
+	github.com/google/pprof v0.0.0-20241029153458-d1b30febd7db // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/hashicorp/go-version v1.7.0 // indirect
 	github.com/jpillora/backoff v1.0.0 // indirect
