@@ -4,7 +4,7 @@ go 1.23.0
 
 require (
 	code.cloudfoundry.org/credhub-cli v0.0.0-20241104235029-3abce2cb0fc6
-	code.cloudfoundry.org/lager/v3 v3.13.0
+	code.cloudfoundry.org/lager/v3 v3.14.0
 	github.com/blang/semver/v4 v4.0.0
 	github.com/cloudfoundry-community/go-uaa v0.3.3
 	github.com/cloudfoundry/bosh-cli/v7 v7.8.2
