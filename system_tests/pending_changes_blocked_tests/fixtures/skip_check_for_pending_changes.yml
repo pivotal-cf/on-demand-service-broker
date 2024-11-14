@@ -1,0 +1,4 @@
+---
+- type: replace
+  path: /instance_groups/name=broker/jobs/name=broker/properties/skip_check_for_pending_changes?
+  value: true

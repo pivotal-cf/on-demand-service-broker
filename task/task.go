@@ -64,11 +64,12 @@ type BulkSetter interface {
 }
 
 type Deployer struct {
-	boshClient         BoshClient
-	manifestGenerator  ManifestGenerator
-	odbSecrets         ODBSecrets
-	bulkSetter         BulkSetter
-	DisableBoshConfigs bool
+	boshClient                 BoshClient
+	manifestGenerator          ManifestGenerator
+	odbSecrets                 ODBSecrets
+	bulkSetter                 BulkSetter
+	DisableBoshConfigs         bool
+	SkipCheckForPendingChanges bool
 }
 
 func NewDeployer(boshClient BoshClient, manifestGenerator ManifestGenerator, odbSecrets ODBSecrets, bulkSetter BulkSetter) Deployer {
@@ -187,8 +188,11 @@ func (d Deployer) Update(
 			return 0, nil, err
 		}
 	}
-	if err := d.checkForPendingChanges(deploymentName, previousPlanID, oldManifest, oldSecretsMap, oldConfigs, logger); err != nil {
-		return 0, nil, err
+
+	if !d.SkipCheckForPendingChanges {
+		if err := d.checkForPendingChanges(deploymentName, previousPlanID, oldManifest, oldSecretsMap, oldConfigs, logger); err != nil {
+			return 0, nil, err
+		}
 	}
 
 	generateManifestProperties := GenerateManifestProperties{

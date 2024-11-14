@@ -55,6 +55,7 @@ func Initiate(conf config.Config,
 
 	deploymentManager := task.NewDeployer(taskBoshClient, manifestGenerator, odbSecrets, boshCredhubStore)
 	deploymentManager.DisableBoshConfigs = conf.Broker.DisableBoshConfigs
+	deploymentManager.SkipCheckForPendingChanges = conf.Broker.SkipCheckForPendingChanges
 
 	manifestSecretManager := manifestsecrets.BuildManager(conf.Broker.EnableSecureManifests, new(manifestsecrets.CredHubPathMatcher), boshCredhubStore)
 

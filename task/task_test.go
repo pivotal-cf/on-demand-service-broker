@@ -778,6 +778,9 @@ var _ = Describe("Deployer", func() {
 		Context("and there are pending changes", func() {
 			BeforeEach(func() {
 				manifestGenerator.GenerateManifestReturns(serviceadapter.MarshalledGenerateManifest{Manifest: "name: other-name"}, nil)
+			})
+
+			JustBeforeEach(func() {
 				returnedTaskID, deployedManifest, deployError = deployer.Update(
 					deploymentName,
 					planID,
@@ -794,6 +797,17 @@ var _ = Describe("Deployer", func() {
 				Expect(deployError).To(HaveOccurred())
 				Expect(deployError).To(BeAssignableToTypeOf(broker.PendingChangesNotAppliedError{}))
 				Expect(boshClient.DeployCallCount()).To(BeZero())
+			})
+
+			When("skip_check_for_pending_changes is configured", func() {
+				BeforeEach(func() {
+					deployer.SkipCheckForPendingChanges = true
+				})
+
+				It("succeeds", func() {
+					Expect(deployError).ToNot(HaveOccurred())
+					Expect(boshClient.DeployCallCount()).To(Equal(1))
+				})
 			})
 		})
 
