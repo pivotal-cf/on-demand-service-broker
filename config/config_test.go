@@ -66,6 +66,7 @@ var _ = Describe("Broker Config", func() {
 						UsingStdin:                 true,
 						EnableTelemetry:            true,
 						SupportBackupAgentBinding:  true,
+						SkipCheckForPendingChanges: false,
 					},
 					Bosh: config.Bosh{
 						URL:         "some-url",
@@ -217,6 +218,17 @@ var _ = Describe("Broker Config", func() {
 
 			It("knows that TLS is not configured", func() {
 				Expect(conf.HasTLS()).To(BeFalse())
+			})
+		})
+
+		Context("and the config has skip_check_for_pending_changes enabled", func() {
+			BeforeEach(func() {
+				configFileName = "good_config_with_skip_check_for_pending_changes.yml"
+			})
+
+			It("returns config object", func() {
+				Expect(parseErr).NotTo(HaveOccurred())
+				Expect(conf.Broker.SkipCheckForPendingChanges).To(BeTrue())
 			})
 		})
 
