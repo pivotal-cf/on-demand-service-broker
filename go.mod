@@ -3,17 +3,17 @@ module github.com/pivotal-cf/on-demand-service-broker
 go 1.23.0
 
 require (
-	code.cloudfoundry.org/credhub-cli v0.0.0-20241118140725-15c52bcdbd91
+	code.cloudfoundry.org/credhub-cli v0.0.0-20241125140822-88bb7623a21d
 	code.cloudfoundry.org/lager/v3 v3.15.0
 	github.com/blang/semver/v4 v4.0.0
 	github.com/cloudfoundry-community/go-uaa v0.3.3
 	github.com/cloudfoundry/bosh-cli/v7 v7.8.2
-	github.com/cloudfoundry/bosh-utils v0.0.503
+	github.com/cloudfoundry/bosh-utils v0.0.504
 	github.com/craigfurman/herottp v0.0.0-20190418132442-c546d62f2a8d
 	github.com/gorilla/mux v1.8.1
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.10.0
 	github.com/onsi/ginkgo/v2 v2.22.0
-	github.com/onsi/gomega v1.35.1
+	github.com/onsi/gomega v1.36.0
 	github.com/pborman/uuid v1.2.1
 	github.com/pivotal-cf/brokerapi/v11 v11.0.14
 	github.com/pivotal-cf/on-demand-services-sdk v0.47.1-0.20241122120339-0b16a3bf676f
@@ -24,11 +24,11 @@ require (
 )
 
 require (
-	code.cloudfoundry.org/tlsconfig v0.9.0 // indirect
+	code.cloudfoundry.org/tlsconfig v0.10.0 // indirect
 	github.com/bmatcuk/doublestar v1.3.4 // indirect
 	github.com/charlievieth/fs v0.0.3 // indirect
 	github.com/cloudfoundry/go-socks5 v0.0.0-20240831012420-2590b55236ee // indirect
-	github.com/cloudfoundry/socks5-proxy v0.2.131 // indirect
+	github.com/cloudfoundry/socks5-proxy v0.2.132 // indirect
 	github.com/cppforlife/go-semi-semantic v0.0.0-20160921010311-576b6af77ae4 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
@@ -39,7 +39,7 @@ require (
 	github.com/go-playground/validator/v10 v10.23.0 // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
-	github.com/google/pprof v0.0.0-20241101162523-b92577c0c142 // indirect
+	github.com/google/pprof v0.0.0-20241122213907-cbe949e5a41b // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/hashicorp/go-version v1.7.0 // indirect
 	github.com/jpillora/backoff v1.0.0 // indirect
