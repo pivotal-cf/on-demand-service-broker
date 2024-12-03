@@ -63,27 +63,20 @@ type BulkSetter interface {
 	BulkSet([]broker.ManifestSecret) error
 }
 
-//counterfeiter:generate -o fakes/fake_manifest_persister.go . ManifestPersister
-type ManifestPersister interface {
-	PersistManifest(deploymentName, manifestName string, data []byte)
-}
-
 type Deployer struct {
 	boshClient         BoshClient
 	manifestGenerator  ManifestGenerator
 	odbSecrets         ODBSecrets
 	bulkSetter         BulkSetter
-	manifestPersister  ManifestPersister
 	DisableBoshConfigs bool
 }
 
-func NewDeployer(boshClient BoshClient, manifestGenerator ManifestGenerator, odbSecrets ODBSecrets, bulkSetter BulkSetter, persister ManifestPersister) Deployer {
+func NewDeployer(boshClient BoshClient, manifestGenerator ManifestGenerator, odbSecrets ODBSecrets, bulkSetter BulkSetter) Deployer {
 	return Deployer{
 		boshClient:        boshClient,
 		manifestGenerator: manifestGenerator,
 		odbSecrets:        odbSecrets,
 		bulkSetter:        bulkSetter,
-		manifestPersister: persister,
 	}
 }
 
@@ -275,9 +268,6 @@ func (d Deployer) checkForPendingChanges(
 	if err != nil {
 		return err
 	}
-
-	d.manifestPersister.PersistManifest(deploymentName, "new_manifest.yml", []byte(regeneratedManifestContent.Manifest))
-	d.manifestPersister.PersistManifest(deploymentName, "old_manifest.yml", rawOldManifest)
 
 	manifestsSame, err := ManifestsAreTheSame([]byte(regeneratedManifestContent.Manifest), rawOldManifest)
 	if err != nil {

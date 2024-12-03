@@ -48,7 +48,6 @@ var _ = Describe("Deployer", func() {
 		manifestGenerator *fakes.FakeManifestGenerator
 		odbSecrets        *fakes.FakeODBSecrets
 		bulkSetter        *fakes.FakeBulkSetter
-		manifestPersister *fakes.FakeManifestPersister
 	)
 
 	BeforeEach(func() {
@@ -56,8 +55,7 @@ var _ = Describe("Deployer", func() {
 		manifestGenerator = new(fakes.FakeManifestGenerator)
 		odbSecrets = new(fakes.FakeODBSecrets)
 		bulkSetter = new(fakes.FakeBulkSetter)
-		manifestPersister = new(fakes.FakeManifestPersister)
-		deployer = task.NewDeployer(boshClient, manifestGenerator, odbSecrets, bulkSetter, manifestPersister)
+		deployer = task.NewDeployer(boshClient, manifestGenerator, odbSecrets, bulkSetter)
 
 		planID = existingPlanID
 		previousPlanID = nil
@@ -215,7 +213,7 @@ var _ = Describe("Deployer", func() {
 			When("Bosh credhub is not configured/enabled", func() {
 				BeforeEach(func() {
 					var b *credhub.Store
-					deployer = task.NewDeployer(boshClient, manifestGenerator, odbSecrets, b, manifestPersister)
+					deployer = task.NewDeployer(boshClient, manifestGenerator, odbSecrets, b)
 				})
 
 				It("doesn't error", func() {
@@ -329,13 +327,7 @@ var _ = Describe("Deployer", func() {
 			It("wraps the error", func() {
 				Expect(deployError).To(MatchError(ContainSubstring("error deploying")))
 			})
-
-			It("does not persist the deployed manifest to local disk", func() {
-				By("not taking a ManifestPersister")
-				Expect(manifestPersister.PersistManifestCallCount()).To(Equal(0))
-			})
 		})
-
 	})
 
 	Describe("Upgrade", func() {
@@ -432,11 +424,6 @@ var _ = Describe("Deployer", func() {
 				boshClient.GetDeploymentReturns(nil, false, nil)
 			})
 
-			It("does not persist the deployed manifest to local disk", func() {
-				By("not taking a ManifestPersister")
-				Expect(manifestPersister.PersistManifestCallCount()).To(Equal(0))
-			})
-
 			It("returns a deployment not found error", func() {
 				returnedTaskID, deployedManifest, deployError = deployer.Upgrade(
 					deploymentName,
@@ -455,11 +442,6 @@ var _ = Describe("Deployer", func() {
 		Context("when getting the deployment fails", func() {
 			BeforeEach(func() {
 				boshClient.GetDeploymentReturns(nil, false, errors.New("error getting deployment"))
-			})
-
-			It("does not persist the deployed manifest to local disk", func() {
-				By("not taking a ManifestPersister")
-				Expect(manifestPersister.PersistManifestCallCount()).To(Equal(0))
 			})
 
 			It("returns a deployment not found error", func() {
@@ -498,11 +480,6 @@ var _ = Describe("Deployer", func() {
 					boshClient.GetTasksInProgressReturns(boshdirector.BoshTasks{boshdirector.BoshTask{ID: 42}}, nil)
 				})
 
-				It("does not persist the deployed manifest to local disk", func() {
-					By("not taking a ManifestPersister")
-					Expect(manifestPersister.PersistManifestCallCount()).To(Equal(0))
-				})
-
 				It("fails because deployment is still in progress", func() {
 					_, _, deployError = deployer.Upgrade(
 						deploymentName,
@@ -522,11 +499,6 @@ var _ = Describe("Deployer", func() {
 					boshClient.GetTasksInProgressReturns(boshdirector.BoshTasks{}, errors.New("connection error"))
 				})
 
-				It("does not persist the deployed manifest to local disk", func() {
-					By("not taking a ManifestPersister")
-					Expect(manifestPersister.PersistManifestCallCount()).To(Equal(0))
-				})
-
 				It("wraps the error", func() {
 					_, _, deployError = deployer.Upgrade(
 						deploymentName,
@@ -543,12 +515,6 @@ var _ = Describe("Deployer", func() {
 		})
 
 		Context("when bosh fails to deploy the release", func() {
-
-			It("does not persist the deployed manifest to local disk", func() {
-				By("not taking a ManifestPersister")
-				Expect(manifestPersister.PersistManifestCallCount()).To(Equal(0))
-			})
-
 			It("wraps the error", func() {
 				boshClient.GetTasksInProgressReturns(boshdirector.BoshTasks{}, nil)
 				boshClient.DeployReturns(0, errors.New("error deploying"))
@@ -585,11 +551,6 @@ var _ = Describe("Deployer", func() {
 		})
 
 		Context("when getting bosh configs fails", func() {
-			It("does not persist the deployed manifest to local disk", func() {
-				By("not taking a ManifestPersister")
-				Expect(manifestPersister.PersistManifestCallCount()).To(Equal(0))
-			})
-
 			It("wraps the error", func() {
 				boshClient.GetConfigsReturns(nil, errors.New("some-error"))
 
@@ -692,12 +653,6 @@ var _ = Describe("Deployer", func() {
 			BeforeEach(func() {
 				manifestGenerator.GenerateManifestReturns(serviceadapter.MarshalledGenerateManifest{}, errors.New("manifest fail"))
 			})
-
-			It("does not persist the deployed manifest to local disk", func() {
-				By("not taking a ManifestPersister")
-				Expect(manifestPersister.PersistManifestCallCount()).To(Equal(0))
-			})
-
 			It("wraps the error", func() {
 				returnedTaskID, deployedManifest, deployError = deployer.Update(
 					deploymentName,
@@ -742,15 +697,6 @@ var _ = Describe("Deployer", func() {
 					)
 				})
 
-				It("persists the regenerated manifest to local disk", func() {
-					By("taking a ManifestPersister with appropriate args")
-					Expect(manifestPersister.PersistManifestCallCount()).To(Equal(2))
-					deploymentName, manifestName, contents := manifestPersister.PersistManifestArgsForCall(0)
-					Expect(deploymentName).To(Equal(deploymentName))
-					Expect(manifestName).To(Equal("new_manifest.yml"))
-					Expect(contents).To(Equal(deployedManifest))
-				})
-
 				It("deploys successfully", func() {
 					By("checking incomplete tasks for the deployment")
 					Expect(boshClient.GetTasksInProgressCallCount()).To(Equal(1))
@@ -779,16 +725,6 @@ var _ = Describe("Deployer", func() {
 				})
 
 				Context("and there are no parameters configured", func() {
-
-					It("persists the regenerated manifest to local disk", func() {
-						By("taking a ManifestPersister with appropriate args")
-						Expect(manifestPersister.PersistManifestCallCount()).To(Equal(2))
-						observedDeploymentName, observedManifestName, observedContents := manifestPersister.PersistManifestArgsForCall(0)
-						Expect(observedDeploymentName).To(Equal(deploymentName))
-						Expect(observedManifestName).To(Equal("new_manifest.yml"))
-						Expect(observedContents).To(Equal(deployedManifest))
-					})
-
 					It("deploys successfully", func() {
 						requestParams = map[string]interface{}{}
 
@@ -819,16 +755,6 @@ var _ = Describe("Deployer", func() {
 						}
 						return serviceadapter.MarshalledGenerateManifest{Manifest: string(generateManifestProps.OldManifest)}, nil
 					}
-				})
-
-				It("does not persist the regenerated manifest to local disk", func() {
-					By("not taking a ManifestPersister")
-					Expect(manifestPersister.PersistManifestCallCount()).To(Equal(0))
-				})
-
-				It("does not persist the deployed manifest to local disk", func() {
-					By("not taking a ManifestPersister")
-					Expect(manifestPersister.PersistManifestCallCount()).To(Equal(0))
 				})
 
 				It("wraps the error", func() {
@@ -862,30 +788,6 @@ var _ = Describe("Deployer", func() {
 					uaaClientMap,
 					logger,
 				)
-			})
-
-			It("persists the regenerated manifest to local disk", func() {
-				By("taking a ManifestPersister with appropriate args")
-				Expect(manifestPersister.PersistManifestCallCount()).To(Equal(2))
-				observedDeploymentName, observedManifestName, observedContents := manifestPersister.PersistManifestArgsForCall(0)
-				Expect(observedDeploymentName).To(Equal(deploymentName))
-				Expect(observedManifestName).To(Equal("new_manifest.yml"))
-				Expect(string(observedContents)).To(Equal("name: other-name"))
-
-			})
-
-			It("persists the currently deployed manifest to local disk", func() {
-				By("taking a ManifestPersister with appropriate args")
-				Expect(manifestPersister.PersistManifestCallCount()).To(Equal(2))
-				observedDeploymentName, observedManifestName, observedContents := manifestPersister.PersistManifestArgsForCall(1)
-				Expect(observedDeploymentName).To(Equal(deploymentName))
-				Expect(observedManifestName).To(Equal("old_manifest.yml"))
-				Expect(observedContents).To(Equal(oldManifest))
-			})
-
-			It("does not persist the deployed manifest to local disk", func() {
-				By("not taking a ManifestPersister")
-				Expect(manifestPersister.PersistManifestCallCount()).To(Equal(2))
 			})
 
 			It("fails without deploying", func() {
@@ -931,11 +833,6 @@ var _ = Describe("Deployer", func() {
 				boshClient.GetDeploymentReturns(nil, false, nil)
 			})
 
-			It("does not persist the deployed manifest to local disk", func() {
-				By("no taking a ManifestPersister")
-				Expect(manifestPersister.PersistManifestCallCount()).To(Equal(0))
-			})
-
 			It("returns a deployment not found error", func() {
 				returnedTaskID, deployedManifest, deployError = deployer.Update(
 					deploymentName,
@@ -959,11 +856,6 @@ var _ = Describe("Deployer", func() {
 					boshClient.GetTasksInProgressReturns(boshdirector.BoshTasks{boshdirector.BoshTask{ID: 42}}, nil)
 				})
 
-				It("does not persist the deployed manifest to local disk", func() {
-					By("no taking a ManifestPersister")
-					Expect(manifestPersister.PersistManifestCallCount()).To(Equal(0))
-				})
-
 				It("fails because deployment is still in progress", func() {
 					_, _, deployError = deployer.Update(
 						deploymentName,
@@ -983,11 +875,6 @@ var _ = Describe("Deployer", func() {
 			When("get current tasks fails to communicate with BOSH", func() {
 				BeforeEach(func() {
 					boshClient.GetTasksInProgressReturns(boshdirector.BoshTasks{}, errors.New("connection error"))
-				})
-
-				It("does not persist the deployed manifest to local disk", func() {
-					By("no taking a ManifestPersister")
-					Expect(manifestPersister.PersistManifestCallCount()).To(Equal(0))
 				})
 
 				It("wraps the error", func() {
@@ -1010,11 +897,6 @@ var _ = Describe("Deployer", func() {
 		Context("when getting the deployment fails", func() {
 			BeforeEach(func() {
 				boshClient.GetDeploymentReturns(nil, false, errors.New("error getting deployment"))
-			})
-
-			It("does not persist the deployed manifest to local disk", func() {
-				By("no taking a ManifestPersister")
-				Expect(manifestPersister.PersistManifestCallCount()).To(Equal(0))
 			})
 
 			It("returns a deployment not found error", func() {
@@ -1074,11 +956,6 @@ var _ = Describe("Deployer", func() {
 					uaaClientMap,
 					logger,
 				)
-			})
-
-			It("does not persist the deployed manifest to local disk", func() {
-				By("no taking a ManifestPersister")
-				Expect(manifestPersister.PersistManifestCallCount()).To(Equal(0))
 			})
 
 			It("wraps the error", func() {
@@ -1392,11 +1269,6 @@ instance_groups:
 					boshClient.GetTasksInProgressReturns(boshdirector.BoshTasks{boshdirector.BoshTask{ID: 42}}, nil)
 				})
 
-				It("does not persist the deployed manifest to local disk", func() {
-					By("no taking a ManifestPersister")
-					Expect(manifestPersister.PersistManifestCallCount()).To(Equal(0))
-				})
-
 				It("fails because deployment is still in progress", func() {
 					_, deployError = deployer.Recreate(deploymentName, planID, boshContextID, logger)
 
@@ -1407,11 +1279,6 @@ instance_groups:
 			When("get current tasks fails to communicate with BOSH", func() {
 				BeforeEach(func() {
 					boshClient.GetTasksInProgressReturns(boshdirector.BoshTasks{}, errors.New("connection error"))
-				})
-
-				It("does not persist the deployed manifest to local disk", func() {
-					By("no taking a ManifestPersister")
-					Expect(manifestPersister.PersistManifestCallCount()).To(Equal(0))
 				})
 
 				It("wraps the error", func() {
@@ -1428,11 +1295,6 @@ instance_groups:
 				boshClient.RecreateReturns(0, errors.New("zork"))
 
 				_, err = deployer.Recreate(deploymentName, planID, boshContextID, logger)
-			})
-
-			It("does not persist the deployed manifest to local disk", func() {
-				By("no taking a ManifestPersister")
-				Expect(manifestPersister.PersistManifestCallCount()).To(Equal(0))
 			})
 
 			It("wraps the error", func() {
