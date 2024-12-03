@@ -30,7 +30,7 @@ var _ = BeforeSuite(func() {
 		"-pending-changes-"+uniqueID,
 		bosh_helpers.BrokerDeploymentOptions{},
 		service_helpers.Redis,
-		[]string{"update_service_catalog.yml", "add_persisted_manifests.yml"})
+		[]string{"update_service_catalog.yml"})
 
 	serviceInstanceName = "service" + brokerInfo.TestSuffix
 	cf.CreateService(brokerInfo.ServiceName, "redis-small", serviceInstanceName, "")
