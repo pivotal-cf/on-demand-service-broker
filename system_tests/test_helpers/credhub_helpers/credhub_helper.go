@@ -21,15 +21,7 @@ func NewCredHubCLI(clientName, clientSecret string) *CredHubCLI {
 	return &CredHubCLI{ClientName: clientName, ClientSecret: clientSecret}
 }
 
-func (c *CredHubCLI) ensureLoggedIn() {
-	command := exec.Command("credhub", "login", "--client-name", c.ClientName, "--client-secret", c.ClientSecret)
-	session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
-	Expect(err).NotTo(HaveOccurred())
-	Eventually(session, time.Second*6).Should(gexec.Exit(0))
-}
-
 func (c *CredHubCLI) VerifyCredhubKeysExist(serviceID, guid string) {
-	c.ensureLoggedIn()
 	creds := c.VerifyCredhubKeysForInstance(serviceID, guid)
 
 	var found bool
@@ -44,14 +36,12 @@ func (c *CredHubCLI) VerifyCredhubKeysExist(serviceID, guid string) {
 }
 
 func (c *CredHubCLI) VerifyCredhubKeysEmpty(serviceOffering, guid string) {
-	c.ensureLoggedIn()
 	creds := c.VerifyCredhubKeysForInstance(serviceOffering, guid)
 
 	Expect(creds).To(BeEmpty(), "expected to have no Credhub keys for instance")
 }
 
 func (c *CredHubCLI) VerifyCredhubKeysForInstance(serviceOffering, guid string) []map[string]string {
-	c.ensureLoggedIn()
 	credhubPath := fmt.Sprintf("/odb/%s/service-instance_%s", serviceOffering, guid)
 
 	command := exec.Command("credhub", "find", "-p", credhubPath, "-j")
@@ -68,7 +58,6 @@ func (c *CredHubCLI) VerifyCredhubKeysForInstance(serviceOffering, guid string) 
 }
 
 func (c *CredHubCLI) GetCredhubValueFor(serviceOffering, serviceInstanceGUID, secretName string) map[string]string {
-	c.ensureLoggedIn()
 	credhubRefs := c.VerifyCredhubKeysForInstance(serviceOffering, serviceInstanceGUID)
 	for _, ref := range credhubRefs {
 		if strings.HasSuffix(ref["name"], secretName) {
@@ -79,7 +68,6 @@ func (c *CredHubCLI) GetCredhubValueFor(serviceOffering, serviceInstanceGUID, se
 }
 
 func (c *CredHubCLI) SetCredhubValueFor(path string) {
-	c.ensureLoggedIn()
 	command := exec.Command("credhub", "s", "-t", "value", "-n", path, "-v", "secret-value")
 	session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
 	Expect(err).NotTo(HaveOccurred())
@@ -88,7 +76,6 @@ func (c *CredHubCLI) SetCredhubValueFor(path string) {
 }
 
 func (c *CredHubCLI) DeleteCredhubValueFor(path string) {
-	c.ensureLoggedIn()
 	command := exec.Command("credhub", "d", "-n", path)
 	session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
 	Expect(err).NotTo(HaveOccurred())
