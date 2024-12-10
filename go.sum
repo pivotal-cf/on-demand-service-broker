@@ -1,7 +1,7 @@
 code.cloudfoundry.org/clock v1.17.0 h1:0Zo1EIJkYSQdo6vv97rt5gzSXymjyXnjOzashoKEO6w=
 code.cloudfoundry.org/clock v1.17.0/go.mod h1:5SbAgLf/ZTQY11g3jB68e94/DKtZHr9DJbD8h6xUdTg=
-code.cloudfoundry.org/credhub-cli v0.0.0-20241202140949-a4b4773d90af h1:IEDqUJE82C0LeSbL/oAThWUMXAo9acMJhKyI18agU1o=
-code.cloudfoundry.org/credhub-cli v0.0.0-20241202140949-a4b4773d90af/go.mod h1:FTm1PWWDphj0ZlOl2GG3Nq9LS92bg9xNq+y0yc2xY0o=
+code.cloudfoundry.org/credhub-cli v0.0.0-20241209140622-eb4bf81f3916 h1:1GcFs9rcQB3uOxEdiNZ+HyGUx288+xddbNMkrv1adJk=
+code.cloudfoundry.org/credhub-cli v0.0.0-20241209140622-eb4bf81f3916/go.mod h1:bm1yiSmOMiOlihe+BMViPhUsW2eEo2ezYzcvsCEI99Q=
 code.cloudfoundry.org/lager/v3 v3.18.0 h1:ZPNv70fnu2iVS4mMycv+Lm0bNlYzvoOY2g/6AEQAiBc=
 code.cloudfoundry.org/lager/v3 v3.18.0/go.mod h1:l0A6+06jLPrEwJMYx5WV4+lVDzP1uBfiiO+Jg0QlfKM=
 code.cloudfoundry.org/tlsconfig v0.11.0 h1:I8NZMCRj06Mb6i08kpjyOR7seD16wMe9yOBXnrEPBK0=
