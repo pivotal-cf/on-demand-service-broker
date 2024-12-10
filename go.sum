@@ -2,8 +2,8 @@ code.cloudfoundry.org/clock v1.17.0 h1:0Zo1EIJkYSQdo6vv97rt5gzSXymjyXnjOzashoKEO
 code.cloudfoundry.org/clock v1.17.0/go.mod h1:5SbAgLf/ZTQY11g3jB68e94/DKtZHr9DJbD8h6xUdTg=
 code.cloudfoundry.org/credhub-cli v0.0.0-20241202140949-a4b4773d90af h1:IEDqUJE82C0LeSbL/oAThWUMXAo9acMJhKyI18agU1o=
 code.cloudfoundry.org/credhub-cli v0.0.0-20241202140949-a4b4773d90af/go.mod h1:FTm1PWWDphj0ZlOl2GG3Nq9LS92bg9xNq+y0yc2xY0o=
-code.cloudfoundry.org/lager/v3 v3.17.0 h1:YW115U4MMyXeG9r1+fCE0+WVxFpVH4t91mD5jJj2PcI=
-code.cloudfoundry.org/lager/v3 v3.17.0/go.mod h1:oZJDNgt+DIGNvd5Qt99OKAZ4LnzX3nIoYNiN7jnM0Ig=
+code.cloudfoundry.org/lager/v3 v3.18.0 h1:ZPNv70fnu2iVS4mMycv+Lm0bNlYzvoOY2g/6AEQAiBc=
+code.cloudfoundry.org/lager/v3 v3.18.0/go.mod h1:l0A6+06jLPrEwJMYx5WV4+lVDzP1uBfiiO+Jg0QlfKM=
 code.cloudfoundry.org/tlsconfig v0.11.0 h1:I8NZMCRj06Mb6i08kpjyOR7seD16wMe9yOBXnrEPBK0=
 code.cloudfoundry.org/tlsconfig v0.11.0/go.mod h1:BYtu1JO9TeKqBnHbLke7tioY9Efh1vkYt0XpkXgbF44=
 filippo.io/edwards25519 v1.1.0 h1:FNf4tywRC1HmFuKW5xopWpigGjJKiJSV0Cqo0cJWDaA=
