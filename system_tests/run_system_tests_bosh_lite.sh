@@ -1,41 +1,44 @@
 #!/usr/bin/env bash
 
-export DEV_ENV=${DEV_ENV:-$BOSH_LITE_NAME}
+script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+
+: "${ENVIRONMENT_LOCK_METADATA:?ENVIRONMENT_LOCK_METADATA not set. Are you targeting a Shepherd v2 bosh-lite environment?}"
+: "${ODB:=$HOME/workspace/on-demand-service-broker-release}"
+: "${SKIP_UPLOAD_RELEASES:=false}"
 
 usage() {
-	echo "$0 <test to run> "
-	echo ""
-	echo "Options"
-	echo "-skip-upload-releases : Will not create and upload broker, service and service adapter releases"
-	exit 1
+  echo "$0 <test to run> "
+  echo ""
+  echo "Options"
+  echo "-skip-upload-releases : Will not create and upload broker, service and service adapter releases"
+  exit 1
 }
 
-if [[ "$#" < "1" ]]; then
-	usage
+if [[ "$#" -lt 1 ]]; then
+  usage
 fi
 
-pwd="$(cd $(dirname "$0"); pwd)"
-source "$pwd/../scripts/prepare-env"
+WORKSPACE_DIR="$HOME/workspace" source "$HOME/workspace/services-enablement-meta/concourse/odb/scripts/export-env-vars"
 
-uploadReleases(){
-    bosh create-release --name on-demand-service-broker-$DEV_ENV --dir $ODB --force
-    bosh upload-release --name on-demand-service-broker-$DEV_ENV --dir $ODB --rebase
+upload_releases() {
+  bosh create-release --dir "$ODB" --force --timestamp-version
+  bosh upload-release --dir "$ODB"
 
-    bosh create-release --name redis-example-service-adapter-$DEV_ENV --dir $ODB/examples/redis-example-service-adapter-release --force
-    bosh upload-release --name redis-example-service-adapter-$DEV_ENV --dir $ODB/examples/redis-example-service-adapter-release --rebase
+  bosh create-release --dir "$ODB/examples/redis-example-service-adapter-release" --force --timestamp-version
+  bosh upload-release --dir "$ODB/examples/redis-example-service-adapter-release"
 
-    bosh create-release --name redis-example-service-$DEV_ENV --dir $ODB/examples/redis-example-service-release --force
-    bosh upload-release --name redis-example-service-$DEV_ENV --dir $ODB/examples/redis-example-service-release --rebase
+  bosh create-release --dir "$ODB/examples/redis-example-service-release" --force --timestamp-version
+  bosh upload-release --dir "$ODB/examples/redis-example-service-release"
 
-    bosh create-release --name kafka-example-service-adapter-$DEV_ENV --dir $ODB/examples/kafka-example-service-adapter-release --force
-    bosh upload-release --name kafka-example-service-adapter-$DEV_ENV --dir $ODB/examples/kafka-example-service-adapter-release --rebase
+  bosh create-release --dir "$ODB/examples/kafka-example-service-adapter-release" --force --timestamp-version
+  bosh upload-release --dir "$ODB/examples/kafka-example-service-adapter-release"
 
-    bosh create-release --name kafka-example-service-$DEV_ENV --dir $ODB/examples/kafka-example-service-release --force
-    bosh upload-release --name kafka-example-service-$DEV_ENV --dir $ODB/examples/kafka-example-service-release --rebase
+  bosh create-release --dir "$ODB/examples/kafka-example-service-release" --force --timestamp-version
+  bosh upload-release --dir "$ODB/examples/kafka-example-service-release"
 }
 
-if [ "$2" != "-skip-upload-releases" ]; then
-    uploadReleases
+if [[ $SKIP_UPLOAD_RELEASES != "true" ]]; then
+  upload_releases
 fi
 
-"$pwd/run_system_tests.sh" "$@"
+"${script_dir}/run_system_tests.sh" "$@"
