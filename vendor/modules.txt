@@ -166,8 +166,8 @@ github.com/openzipkin/zipkin-go/model
 # github.com/pborman/uuid v1.2.1
 ## explicit
 github.com/pborman/uuid
-# github.com/pivotal-cf/brokerapi/v11 v11.0.15
-## explicit; go 1.21
+# github.com/pivotal-cf/brokerapi/v11 v11.0.16
+## explicit; go 1.22.1
 github.com/pivotal-cf/brokerapi/v11
 github.com/pivotal-cf/brokerapi/v11/auth
 github.com/pivotal-cf/brokerapi/v11/domain
@@ -176,7 +176,7 @@ github.com/pivotal-cf/brokerapi/v11/handlers
 github.com/pivotal-cf/brokerapi/v11/internal/blog
 github.com/pivotal-cf/brokerapi/v11/middlewares
 github.com/pivotal-cf/brokerapi/v11/utils
-# github.com/pivotal-cf/on-demand-services-sdk v0.47.1-0.20241210124114-f83638d72281
+# github.com/pivotal-cf/on-demand-services-sdk v0.47.1-0.20241212122245-bdfa2919e57b
 ## explicit; go 1.23
 github.com/pivotal-cf/on-demand-services-sdk/bosh
 github.com/pivotal-cf/on-demand-services-sdk/serviceadapter

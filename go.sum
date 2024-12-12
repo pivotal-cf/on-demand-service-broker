@@ -85,10 +85,10 @@ github.com/openzipkin/zipkin-go v0.4.3 h1:9EGwpqkgnwdEIJ+Od7QVSEIH+ocmm5nPat0G7s
 github.com/openzipkin/zipkin-go v0.4.3/go.mod h1:M9wCJZFWCo2RiY+o1eBCEMe0Dp2S5LDHcMZmk3RmK7c=
 github.com/pborman/uuid v1.2.1 h1:+ZZIw58t/ozdjRaXh/3awHfmWRbzYxJoAdNJxe/3pvw=
 github.com/pborman/uuid v1.2.1/go.mod h1:X/NO0urCmaxf9VXbdlT7C2Yzkj2IKimNn4k+gtPdI/k=
-github.com/pivotal-cf/brokerapi/v11 v11.0.15 h1:cupAoYkPaO6Xf+HnnRTF9MFuALIZlOmooUaFIJWbXC8=
-github.com/pivotal-cf/brokerapi/v11 v11.0.15/go.mod h1:LefTwSJILAABVCbL05+N2h9YmebFhAprVn9UdKowodY=
-github.com/pivotal-cf/on-demand-services-sdk v0.47.1-0.20241210124114-f83638d72281 h1:F/GqWEcO87spgzRslRc3T7ioD7ekdc+JrAsDmIHB70Q=
-github.com/pivotal-cf/on-demand-services-sdk v0.47.1-0.20241210124114-f83638d72281/go.mod h1:JZeNayMN5k6qXMW9qHwcnHtu4mBi+QrK+1eXyju4uhs=
+github.com/pivotal-cf/brokerapi/v11 v11.0.16 h1:wdYS6RXgIeyMqY8UKzeJ4SqiQ4a3cEiL3ThV8d6RcNE=
+github.com/pivotal-cf/brokerapi/v11 v11.0.16/go.mod h1:S62Nnukt6K6N8tjZJdaSj3F2/V3Oh8ZeVF+hSdQ2BV4=
+github.com/pivotal-cf/on-demand-services-sdk v0.47.1-0.20241212122245-bdfa2919e57b h1:9139xwHSB6IsdC1tqzZdY0xg8Mhs1TRbsR6sRE3qFsQ=
+github.com/pivotal-cf/on-demand-services-sdk v0.47.1-0.20241212122245-bdfa2919e57b/go.mod h1:zmb0JhhoQbDGnp5Ui1EcaQt84KUrawJ6N/ktKWBmNB0=
 github.com/pivotal-cf/paraphernalia v0.0.0-20180203224945-a64ae2051c20 h1:DR5eMfe2+6GzLkVyWytdtgUxgbPiOfvKDuqityTV3y8=
 github.com/pivotal-cf/paraphernalia v0.0.0-20180203224945-a64ae2051c20/go.mod h1:Y3IqE20LKprEpLkXb7gXinJf4vvDdQe/BS8E4kL/dgE=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
