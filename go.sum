@@ -4,8 +4,8 @@ code.cloudfoundry.org/credhub-cli v0.0.0-20241212234634-b24ee2a402a0 h1:N3V5u2iL
 code.cloudfoundry.org/credhub-cli v0.0.0-20241212234634-b24ee2a402a0/go.mod h1:CKvg4Z6FAfzzKapx9MoOwhGF8h9rEE7KlcBnKr8qyCM=
 code.cloudfoundry.org/lager/v3 v3.18.0 h1:ZPNv70fnu2iVS4mMycv+Lm0bNlYzvoOY2g/6AEQAiBc=
 code.cloudfoundry.org/lager/v3 v3.18.0/go.mod h1:l0A6+06jLPrEwJMYx5WV4+lVDzP1uBfiiO+Jg0QlfKM=
-code.cloudfoundry.org/tlsconfig v0.11.0 h1:I8NZMCRj06Mb6i08kpjyOR7seD16wMe9yOBXnrEPBK0=
-code.cloudfoundry.org/tlsconfig v0.11.0/go.mod h1:BYtu1JO9TeKqBnHbLke7tioY9Efh1vkYt0XpkXgbF44=
+code.cloudfoundry.org/tlsconfig v0.12.0 h1:wM2xJrJzpiwAdtxpp1yDHbA4fh24cGzZ0Ioj0bN8yyA=
+code.cloudfoundry.org/tlsconfig v0.12.0/go.mod h1:pszkpK9KjYpkAzL8W1eRAeJWqX4AfFKgqOTZ5e3E9YE=
 filippo.io/edwards25519 v1.1.0 h1:FNf4tywRC1HmFuKW5xopWpigGjJKiJSV0Cqo0cJWDaA=
 filippo.io/edwards25519 v1.1.0/go.mod h1:BxyFTGdWcka3PhytdK4V28tE5sGfRvvvRV7EaN4VDT4=
 github.com/blang/semver/v4 v4.0.0 h1:1PFHFE6yCCTv8C1TeyNNarDzntLi7wMI5i/pzqYIsAM=
@@ -18,8 +18,8 @@ github.com/cloudfoundry-community/go-uaa v0.3.3 h1:VvThn655xL/drEC0wA32dPOGO81GA
 github.com/cloudfoundry-community/go-uaa v0.3.3/go.mod h1:6I8rkeZMpzdyG/SrAWlrnLs8WwO7j87BXT8njRkctTk=
 github.com/cloudfoundry/bosh-cli/v7 v7.8.3 h1:IVi2Oyo69WLxJuBpqcHJUTkoy1JDM0y5xxjv81pDA/M=
 github.com/cloudfoundry/bosh-cli/v7 v7.8.3/go.mod h1:beOLxNr/c16x5hTFWyheVVNBIhLdE14r/zkBxuEI3HE=
-github.com/cloudfoundry/bosh-utils v0.0.511 h1:23NO5hqJxQ+qddpMzOemJ6Ih8lKRpJG2CMT3Tlw8Z70=
-github.com/cloudfoundry/bosh-utils v0.0.511/go.mod h1:3ZHrCUvHy0KgPparcHcytGPtURRRX0ZXGU0Ss6pXxl0=
+github.com/cloudfoundry/bosh-utils v0.0.513 h1:PV3qhdX5ZcAB8870hqeB9TB/4pEkRsefig9vLtBUZP4=
+github.com/cloudfoundry/bosh-utils v0.0.513/go.mod h1:GCh00+zqULOUWDhIeYYjXP0vghoQgi1uX+RzC8q9rMU=
 github.com/cloudfoundry/go-socks5 v0.0.0-20240831012420-2590b55236ee h1:88ruSYvCUKX2YcF2CMYVTmPGITvNdRbzaBRk2c/iMds=
 github.com/cloudfoundry/go-socks5 v0.0.0-20240831012420-2590b55236ee/go.mod h1:72EEm1oq5oXqGfu9XGtaRPWEcAFYd/P10cMNln0QhA8=
 github.com/cloudfoundry/socks5-proxy v0.2.134 h1:cexlEyL21qfVnXUlaEslGbU9ylBnLFJCsEYm0kbt/n8=
