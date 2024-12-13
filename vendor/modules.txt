@@ -1,4 +1,4 @@
-# code.cloudfoundry.org/credhub-cli v0.0.0-20241209140622-eb4bf81f3916
+# code.cloudfoundry.org/credhub-cli v0.0.0-20241212234634-b24ee2a402a0
 ## explicit; go 1.22.0
 code.cloudfoundry.org/credhub-cli/credhub
 code.cloudfoundry.org/credhub-cli/credhub/auth
@@ -28,7 +28,7 @@ github.com/charlievieth/fs
 ## explicit; go 1.20
 github.com/cloudfoundry-community/go-uaa
 github.com/cloudfoundry-community/go-uaa/passwordcredentials
-# github.com/cloudfoundry/bosh-cli/v7 v7.8.2
+# github.com/cloudfoundry/bosh-cli/v7 v7.8.3
 ## explicit; go 1.22.0
 github.com/cloudfoundry/bosh-cli/v7/common/util
 github.com/cloudfoundry/bosh-cli/v7/director
@@ -91,7 +91,7 @@ github.com/google/go-cmp/cmp/internal/diff
 github.com/google/go-cmp/cmp/internal/flags
 github.com/google/go-cmp/cmp/internal/function
 github.com/google/go-cmp/cmp/internal/value
-# github.com/google/pprof v0.0.0-20241206021119-61a79c692802
+# github.com/google/pprof v0.0.0-20241210010833-40e02aabc2ad
 ## explicit; go 1.22
 github.com/google/pprof/profile
 # github.com/google/uuid v1.6.0
@@ -106,6 +106,12 @@ github.com/hashicorp/go-version
 # github.com/jpillora/backoff v1.0.0
 ## explicit; go 1.13
 github.com/jpillora/backoff
+# github.com/klauspost/compress v1.17.11
+## explicit; go 1.21
+github.com/klauspost/compress/flate
+# github.com/klauspost/pgzip v1.2.6
+## explicit
+github.com/klauspost/pgzip
 # github.com/leodido/go-urn v1.4.0
 ## explicit; go 1.18
 github.com/leodido/go-urn
@@ -221,7 +227,7 @@ golang.org/x/net/html/atom
 golang.org/x/net/html/charset
 golang.org/x/net/internal/socks
 golang.org/x/net/proxy
-# golang.org/x/oauth2 v0.23.0
+# golang.org/x/oauth2 v0.24.0
 ## explicit; go 1.18
 golang.org/x/oauth2
 golang.org/x/oauth2/clientcredentials

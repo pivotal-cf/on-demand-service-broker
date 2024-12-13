@@ -3,11 +3,11 @@ module github.com/pivotal-cf/on-demand-service-broker
 go 1.23.0
 
 require (
-	code.cloudfoundry.org/credhub-cli v0.0.0-20241209140622-eb4bf81f3916
+	code.cloudfoundry.org/credhub-cli v0.0.0-20241212234634-b24ee2a402a0
 	code.cloudfoundry.org/lager/v3 v3.18.0
 	github.com/blang/semver/v4 v4.0.0
 	github.com/cloudfoundry-community/go-uaa v0.3.3
-	github.com/cloudfoundry/bosh-cli/v7 v7.8.2
+	github.com/cloudfoundry/bosh-cli/v7 v7.8.3
 	github.com/cloudfoundry/bosh-utils v0.0.511
 	github.com/craigfurman/herottp v0.0.0-20190418132442-c546d62f2a8d
 	github.com/gorilla/mux v1.8.1
@@ -39,10 +39,12 @@ require (
 	github.com/go-playground/validator/v10 v10.23.0 // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
-	github.com/google/pprof v0.0.0-20241206021119-61a79c692802 // indirect
+	github.com/google/pprof v0.0.0-20241210010833-40e02aabc2ad // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/hashicorp/go-version v1.7.0 // indirect
 	github.com/jpillora/backoff v1.0.0 // indirect
+	github.com/klauspost/compress v1.17.11 // indirect
+	github.com/klauspost/pgzip v1.2.6 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d // indirect
 	github.com/nxadm/tail v1.4.11 // indirect
@@ -53,7 +55,7 @@ require (
 	golang.org/x/crypto v0.31.0 // indirect
 	golang.org/x/mod v0.22.0 // indirect
 	golang.org/x/net v0.32.0 // indirect
-	golang.org/x/oauth2 v0.23.0 // indirect
+	golang.org/x/oauth2 v0.24.0 // indirect
 	golang.org/x/sync v0.10.0 // indirect
 	golang.org/x/sys v0.28.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
