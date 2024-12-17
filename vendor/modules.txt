@@ -1,4 +1,4 @@
-# code.cloudfoundry.org/credhub-cli v0.0.0-20241212234634-b24ee2a402a0
+# code.cloudfoundry.org/credhub-cli v0.0.0-20241217031024-61a24d347517
 ## explicit; go 1.22.0
 code.cloudfoundry.org/credhub-cli/credhub
 code.cloudfoundry.org/credhub-cli/credhub/auth
@@ -28,13 +28,13 @@ github.com/charlievieth/fs
 ## explicit; go 1.20
 github.com/cloudfoundry-community/go-uaa
 github.com/cloudfoundry-community/go-uaa/passwordcredentials
-# github.com/cloudfoundry/bosh-cli/v7 v7.8.3
+# github.com/cloudfoundry/bosh-cli/v7 v7.8.4
 ## explicit; go 1.22.0
 github.com/cloudfoundry/bosh-cli/v7/common/util
 github.com/cloudfoundry/bosh-cli/v7/director
 github.com/cloudfoundry/bosh-cli/v7/io
 github.com/cloudfoundry/bosh-cli/v7/uaa
-# github.com/cloudfoundry/bosh-utils v0.0.514
+# github.com/cloudfoundry/bosh-utils v0.0.515
 ## explicit; go 1.22.0
 github.com/cloudfoundry/bosh-utils/crypto
 github.com/cloudfoundry/bosh-utils/errors
@@ -287,7 +287,7 @@ golang.org/x/tools/internal/stdlib
 golang.org/x/tools/internal/typeparams
 golang.org/x/tools/internal/typesinternal
 golang.org/x/tools/internal/versions
-# google.golang.org/protobuf v1.35.2
+# google.golang.org/protobuf v1.36.0
 ## explicit; go 1.21
 google.golang.org/protobuf/encoding/prototext
 google.golang.org/protobuf/encoding/protowire
@@ -307,6 +307,7 @@ google.golang.org/protobuf/internal/genid
 google.golang.org/protobuf/internal/impl
 google.golang.org/protobuf/internal/order
 google.golang.org/protobuf/internal/pragma
+google.golang.org/protobuf/internal/protolazy
 google.golang.org/protobuf/internal/set
 google.golang.org/protobuf/internal/strs
 google.golang.org/protobuf/internal/version
