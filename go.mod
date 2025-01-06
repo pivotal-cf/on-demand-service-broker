@@ -15,7 +15,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.22.2
 	github.com/onsi/gomega v1.36.2
 	github.com/pborman/uuid v1.2.1
-	github.com/pivotal-cf/brokerapi/v11 v11.0.16
+	github.com/pivotal-cf/brokerapi/v12 v12.0.0
 	github.com/pivotal-cf/on-demand-services-sdk v0.47.1-0.20241231122720-98a5af5bd1e4
 	github.com/pkg/errors v0.9.1
 	github.com/urfave/negroni v1.0.0
@@ -32,7 +32,6 @@ require (
 	github.com/cppforlife/go-semi-semantic v0.0.0-20160921010311-576b6af77ae4 // indirect
 	github.com/fsnotify/fsnotify v1.8.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
-	github.com/go-chi/chi/v5 v5.1.0 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
@@ -47,6 +46,7 @@ require (
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d // indirect
 	github.com/nxadm/tail v1.4.11 // indirect
 	github.com/openzipkin/zipkin-go v0.4.3 // indirect
+	github.com/pivotal-cf/brokerapi/v11 v11.0.16 // indirect
 	github.com/pivotal-cf/paraphernalia v0.0.0-20180203224945-a64ae2051c20 // indirect
 	github.com/rogpeppe/go-internal v1.13.1 // indirect
 	github.com/xeipuuv/gojsonpointer v0.0.0-20180127040702-4e3ac2762d5f // indirect

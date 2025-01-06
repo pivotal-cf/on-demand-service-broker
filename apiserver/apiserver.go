@@ -23,9 +23,9 @@ import (
 
 	"code.cloudfoundry.org/lager/v3"
 	"github.com/gorilla/mux"
-	"github.com/pivotal-cf/brokerapi/v11"
-	apiauth "github.com/pivotal-cf/brokerapi/v11/auth"
-	"github.com/pivotal-cf/brokerapi/v11/domain"
+	"github.com/pivotal-cf/brokerapi/v12"
+	apiauth "github.com/pivotal-cf/brokerapi/v12/auth"
+	"github.com/pivotal-cf/brokerapi/v12/domain"
 	"github.com/pkg/errors"
 	"github.com/urfave/negroni"
 

@@ -11,7 +11,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/pivotal-cf/brokerapi/v11/domain/apiresponses"
+	"github.com/pivotal-cf/brokerapi/v12/domain/apiresponses"
 
 	"github.com/pivotal-cf/on-demand-service-broker/brokercontext"
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"

@@ -64,9 +64,6 @@ github.com/gabriel-vasile/mimetype
 github.com/gabriel-vasile/mimetype/internal/charset
 github.com/gabriel-vasile/mimetype/internal/json
 github.com/gabriel-vasile/mimetype/internal/magic
-# github.com/go-chi/chi/v5 v5.1.0
-## explicit; go 1.14
-github.com/go-chi/chi/v5
 # github.com/go-logr/logr v1.4.2
 ## explicit; go 1.18
 github.com/go-logr/logr
@@ -168,14 +165,18 @@ github.com/openzipkin/zipkin-go/model
 github.com/pborman/uuid
 # github.com/pivotal-cf/brokerapi/v11 v11.0.16
 ## explicit; go 1.22.1
-github.com/pivotal-cf/brokerapi/v11
-github.com/pivotal-cf/brokerapi/v11/auth
 github.com/pivotal-cf/brokerapi/v11/domain
-github.com/pivotal-cf/brokerapi/v11/domain/apiresponses
-github.com/pivotal-cf/brokerapi/v11/handlers
-github.com/pivotal-cf/brokerapi/v11/internal/blog
-github.com/pivotal-cf/brokerapi/v11/middlewares
-github.com/pivotal-cf/brokerapi/v11/utils
+# github.com/pivotal-cf/brokerapi/v12 v12.0.0
+## explicit; go 1.22.1
+github.com/pivotal-cf/brokerapi/v12
+github.com/pivotal-cf/brokerapi/v12/auth
+github.com/pivotal-cf/brokerapi/v12/domain
+github.com/pivotal-cf/brokerapi/v12/domain/apiresponses
+github.com/pivotal-cf/brokerapi/v12/handlers
+github.com/pivotal-cf/brokerapi/v12/internal/blog
+github.com/pivotal-cf/brokerapi/v12/internal/middleware
+github.com/pivotal-cf/brokerapi/v12/middlewares
+github.com/pivotal-cf/brokerapi/v12/utils
 # github.com/pivotal-cf/on-demand-services-sdk v0.47.1-0.20241231122720-98a5af5bd1e4
 ## explicit; go 1.23
 github.com/pivotal-cf/on-demand-services-sdk/bosh
