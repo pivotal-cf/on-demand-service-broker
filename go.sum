@@ -36,8 +36,6 @@ github.com/fsnotify/fsnotify v1.8.0 h1:dAwr6QBTBZIkG8roQaJjGof0pp0EeF+tNV7YBP3F/
 github.com/fsnotify/fsnotify v1.8.0/go.mod h1:8jBTzvmWwFyi3Pb8djgCCO5IBqzKJ/Jwo8TRcHyHii0=
 github.com/gabriel-vasile/mimetype v1.4.3 h1:in2uUcidCuFcDKtdcBxlR0rJ1+fsokWf+uqxgUFjbI0=
 github.com/gabriel-vasile/mimetype v1.4.3/go.mod h1:d8uq/6HKRL6CGdk+aubisF/M5GcPfT7nKyLpA0lbSSk=
-github.com/go-chi/chi/v5 v5.1.0 h1:acVI1TYaD+hhedDJ3r54HyA6sExp3HfXq7QWEEY/xMw=
-github.com/go-chi/chi/v5 v5.1.0/go.mod h1:DslCQbL2OYiznFReuXYUmQ2hGd1aDpCnlMNITLSKoi8=
 github.com/go-logr/logr v1.4.2 h1:6pFjapn8bFcIbiKo3XT4j/BhANplGihG6tvd+8rYgrY=
 github.com/go-logr/logr v1.4.2/go.mod h1:9T104GzyrTigFIr8wt5mBrctHMim0Nb2HLGrmQ40KvY=
 github.com/go-playground/assert/v2 v2.2.0 h1:JvknZsQTYeFEAhQwI4qEt9cyV5ONwRHC+lYKSsYSR8s=
@@ -85,12 +83,10 @@ github.com/openzipkin/zipkin-go v0.4.3 h1:9EGwpqkgnwdEIJ+Od7QVSEIH+ocmm5nPat0G7s
 github.com/openzipkin/zipkin-go v0.4.3/go.mod h1:M9wCJZFWCo2RiY+o1eBCEMe0Dp2S5LDHcMZmk3RmK7c=
 github.com/pborman/uuid v1.2.1 h1:+ZZIw58t/ozdjRaXh/3awHfmWRbzYxJoAdNJxe/3pvw=
 github.com/pborman/uuid v1.2.1/go.mod h1:X/NO0urCmaxf9VXbdlT7C2Yzkj2IKimNn4k+gtPdI/k=
-github.com/pivotal-cf/brokerapi/v11 v11.0.16 h1:wdYS6RXgIeyMqY8UKzeJ4SqiQ4a3cEiL3ThV8d6RcNE=
-github.com/pivotal-cf/brokerapi/v11 v11.0.16/go.mod h1:S62Nnukt6K6N8tjZJdaSj3F2/V3Oh8ZeVF+hSdQ2BV4=
 github.com/pivotal-cf/brokerapi/v12 v12.0.0 h1:wlFDAeN96/Z3iLthhGT8VqGZ/ov7Isz8d5M61mZsDIQ=
 github.com/pivotal-cf/brokerapi/v12 v12.0.0/go.mod h1:Bmk6g2UzyiXohTQmty3129fhD3UMLi21txtgeWV4xGE=
-github.com/pivotal-cf/on-demand-services-sdk v0.47.1-0.20241231122720-98a5af5bd1e4 h1:y1BFcHxU+i2M3J2tRsXuBCtlN9OpgJNjGI1Cdzp3N6A=
-github.com/pivotal-cf/on-demand-services-sdk v0.47.1-0.20241231122720-98a5af5bd1e4/go.mod h1:aqBEgT0F/8s4ycqxPz8pK5f5qYbkLPbiTlxyrNGgJ0I=
+github.com/pivotal-cf/on-demand-services-sdk v0.47.1-0.20250106183339-8b996c5a7cfa h1:pVAUHX1GW1w/BG7URuruPsireAYvIVg2tIPmeLJlajY=
+github.com/pivotal-cf/on-demand-services-sdk v0.47.1-0.20250106183339-8b996c5a7cfa/go.mod h1:5CJ0vW/7japINW+3hpyHNMfbubgINtM46Gxy3f+oVFE=
 github.com/pivotal-cf/paraphernalia v0.0.0-20180203224945-a64ae2051c20 h1:DR5eMfe2+6GzLkVyWytdtgUxgbPiOfvKDuqityTV3y8=
 github.com/pivotal-cf/paraphernalia v0.0.0-20180203224945-a64ae2051c20/go.mod h1:Y3IqE20LKprEpLkXb7gXinJf4vvDdQe/BS8E4kL/dgE=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
