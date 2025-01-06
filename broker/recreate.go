@@ -7,7 +7,7 @@ import (
 	"log"
 
 	"github.com/pborman/uuid"
-	"github.com/pivotal-cf/brokerapi/v11/domain"
+	"github.com/pivotal-cf/brokerapi/v12/domain"
 
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 )

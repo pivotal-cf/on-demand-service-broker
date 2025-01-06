@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 
-	"github.com/pivotal-cf/brokerapi/v11/domain"
-	"github.com/pivotal-cf/brokerapi/v11/domain/apiresponses"
+	"github.com/pivotal-cf/brokerapi/v12/domain"
+	"github.com/pivotal-cf/brokerapi/v12/domain/apiresponses"
 )
 
 func (b *Broker) GetBinding(ctx context.Context, instanceID, bindingID string, bindingsDetails domain.FetchBindingDetails) (domain.GetBindingSpec, error) {
