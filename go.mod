@@ -3,12 +3,12 @@ module github.com/pivotal-cf/on-demand-service-broker
 go 1.23.0
 
 require (
-	code.cloudfoundry.org/credhub-cli v0.0.0-20250106140724-966bccf2e72f
+	code.cloudfoundry.org/credhub-cli v0.0.0-20250113140723-7c2f2d99f5da
 	code.cloudfoundry.org/lager/v3 v3.22.0
 	github.com/blang/semver/v4 v4.0.0
 	github.com/cloudfoundry-community/go-uaa v0.3.3
 	github.com/cloudfoundry/bosh-cli/v7 v7.8.6
-	github.com/cloudfoundry/bosh-utils v0.0.519
+	github.com/cloudfoundry/bosh-utils v0.0.521
 	github.com/craigfurman/herottp v0.0.0-20190418132442-c546d62f2a8d
 	github.com/gorilla/mux v1.8.1
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.11.2
@@ -24,11 +24,11 @@ require (
 )
 
 require (
-	code.cloudfoundry.org/tlsconfig v0.14.0 // indirect
+	code.cloudfoundry.org/tlsconfig v0.15.0 // indirect
 	github.com/bmatcuk/doublestar v1.3.4 // indirect
 	github.com/charlievieth/fs v0.0.3 // indirect
 	github.com/cloudfoundry/go-socks5 v0.0.0-20240831012420-2590b55236ee // indirect
-	github.com/cloudfoundry/socks5-proxy v0.2.137 // indirect
+	github.com/cloudfoundry/socks5-proxy v0.2.138 // indirect
 	github.com/cppforlife/go-semi-semantic v0.0.0-20160921010311-576b6af77ae4 // indirect
 	github.com/fsnotify/fsnotify v1.8.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.8 // indirect
@@ -58,6 +58,6 @@ require (
 	golang.org/x/sys v0.29.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
 	golang.org/x/tools v0.29.0 // indirect
-	google.golang.org/protobuf v1.36.1 // indirect
+	google.golang.org/protobuf v1.36.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
