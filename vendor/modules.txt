@@ -58,7 +58,7 @@ github.com/cppforlife/go-semi-semantic/version
 github.com/craigfurman/herottp
 # github.com/fsnotify/fsnotify v1.8.0
 ## explicit; go 1.17
-# github.com/gabriel-vasile/mimetype v1.4.3
+# github.com/gabriel-vasile/mimetype v1.4.8
 ## explicit; go 1.20
 github.com/gabriel-vasile/mimetype
 github.com/gabriel-vasile/mimetype/internal/charset
@@ -75,8 +75,8 @@ github.com/go-playground/locales/currency
 # github.com/go-playground/universal-translator v0.18.1
 ## explicit; go 1.18
 github.com/go-playground/universal-translator
-# github.com/go-playground/validator/v10 v10.23.0
-## explicit; go 1.18
+# github.com/go-playground/validator/v10 v10.24.0
+## explicit; go 1.20
 github.com/go-playground/validator/v10
 # github.com/go-task/slim-sprig/v3 v3.0.0
 ## explicit; go 1.20
@@ -174,7 +174,7 @@ github.com/pivotal-cf/brokerapi/v12/internal/blog
 github.com/pivotal-cf/brokerapi/v12/internal/middleware
 github.com/pivotal-cf/brokerapi/v12/middlewares
 github.com/pivotal-cf/brokerapi/v12/utils
-# github.com/pivotal-cf/on-demand-services-sdk v0.47.1-0.20250106183339-8b996c5a7cfa
+# github.com/pivotal-cf/on-demand-services-sdk v0.47.1-0.20250113122426-f14762de8735
 ## explicit; go 1.23
 github.com/pivotal-cf/on-demand-services-sdk/bosh
 github.com/pivotal-cf/on-demand-services-sdk/serviceadapter
