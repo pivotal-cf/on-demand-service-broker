@@ -2,8 +2,8 @@ code.cloudfoundry.org/clock v1.28.0 h1:pAF3ykQCUor1iQfhTHDG9IpavGh5/Uw4wbhF5Zl6I
 code.cloudfoundry.org/clock v1.28.0/go.mod h1:B1SaAriBEjF6FjXPlSS1bAPTNvJEnwuc+T5F0fiv+cQ=
 code.cloudfoundry.org/credhub-cli v0.0.0-20250120140441-b4f533288159 h1:0sCrVLK64Pq9A5qfuP+SoPtykVhdqeNAf+cVaQo4cpk=
 code.cloudfoundry.org/credhub-cli v0.0.0-20250120140441-b4f533288159/go.mod h1:KsOwEZdjzX8PGAEJcSHRJpwBAbFly509QSMDaFf50nU=
-code.cloudfoundry.org/lager/v3 v3.22.0 h1:F8+AuJb5Hh1KswKNlm0Qlafgrg4ESo0yZKHAnLDGV+U=
-code.cloudfoundry.org/lager/v3 v3.22.0/go.mod h1:WbzeUscDNJxkBxCjOSHEdRF4KqxM9Y5QRhJoX3iqPOM=
+code.cloudfoundry.org/lager/v3 v3.23.0 h1:xuRBOTLwboOnWkI5QpdfWf7C9LF+kpa4OKkfoMhspbw=
+code.cloudfoundry.org/lager/v3 v3.23.0/go.mod h1:lyBGg9s6FMaodTgcZIuSQHW0TvF7mtznd8+e1xXfKhQ=
 code.cloudfoundry.org/tlsconfig v0.15.0 h1:hio3k6sDncLRkI1R3cM21wGZ01tHknAIGIQN0P/bl6A=
 code.cloudfoundry.org/tlsconfig v0.15.0/go.mod h1:XyJDLJLOYeWgtdiiryJD6sdXtIl6PYKO03UhvtwZjtU=
 filippo.io/edwards25519 v1.1.0 h1:FNf4tywRC1HmFuKW5xopWpigGjJKiJSV0Cqo0cJWDaA=
@@ -50,8 +50,8 @@ github.com/go-task/slim-sprig/v3 v3.0.0 h1:sUs3vkvUymDpBKi3qH1YSqBQk9+9D/8M2mN1v
 github.com/go-task/slim-sprig/v3 v3.0.0/go.mod h1:W848ghGpv3Qj3dhTPRyJypKRiqCdHZiAzKg9hl15HA8=
 github.com/google/go-cmp v0.6.0 h1:ofyhxvXcZhMsU5ulbFiLKl/XBFqE1GSq7atu8tAmTRI=
 github.com/google/go-cmp v0.6.0/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY=
-github.com/google/pprof v0.0.0-20241210010833-40e02aabc2ad h1:a6HEuzUHeKH6hwfN/ZoQgRgVIWFJljSWa/zetS2WTvg=
-github.com/google/pprof v0.0.0-20241210010833-40e02aabc2ad/go.mod h1:vavhavw2zAxS5dIdcRluK6cSGGPlZynqzFM8NdvU144=
+github.com/google/pprof v0.0.0-20250120214715-4e5bb2051dab h1:FcOz+Hn0n9Ek4Ij6mvYUhvHGg0+EhV9ImR+PMmTP0S0=
+github.com/google/pprof v0.0.0-20250120214715-4e5bb2051dab/go.mod h1:vavhavw2zAxS5dIdcRluK6cSGGPlZynqzFM8NdvU144=
 github.com/google/uuid v1.0.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/google/uuid v1.6.0 h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=
 github.com/google/uuid v1.6.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
