@@ -28,7 +28,7 @@ github.com/charlievieth/fs
 ## explicit; go 1.20
 github.com/cloudfoundry-community/go-uaa
 github.com/cloudfoundry-community/go-uaa/passwordcredentials
-# github.com/cloudfoundry/bosh-cli/v7 v7.8.7
+# github.com/cloudfoundry/bosh-cli/v7 v7.9.0
 ## explicit; go 1.22.0
 github.com/cloudfoundry/bosh-cli/v7/common/util
 github.com/cloudfoundry/bosh-cli/v7/director
@@ -56,6 +56,8 @@ github.com/cppforlife/go-semi-semantic/version
 # github.com/craigfurman/herottp v0.0.0-20190418132442-c546d62f2a8d
 ## explicit
 github.com/craigfurman/herottp
+# github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
+## explicit
 # github.com/fsnotify/fsnotify v1.8.0
 ## explicit; go 1.17
 # github.com/gabriel-vasile/mimetype v1.4.8
@@ -184,6 +186,8 @@ github.com/pivotal-cf/paraphernalia/secure/tlsconfig
 # github.com/pkg/errors v0.9.1
 ## explicit
 github.com/pkg/errors
+# github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2
+## explicit
 # github.com/rogpeppe/go-internal v1.13.1
 ## explicit; go 1.22
 # github.com/urfave/negroni v1.0.0
