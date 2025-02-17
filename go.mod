@@ -16,7 +16,7 @@ require (
 	github.com/onsi/gomega v1.36.2
 	github.com/pborman/uuid v1.2.1
 	github.com/pivotal-cf/brokerapi/v12 v12.0.1
-	github.com/pivotal-cf/on-demand-services-sdk v0.48.2-0.20250213122616-980d0e968ab0
+	github.com/pivotal-cf/on-demand-services-sdk v0.48.2-0.20250217121409-d639391a930e
 	github.com/pkg/errors v0.9.1
 	github.com/urfave/negroni v1.0.0
 	github.com/xeipuuv/gojsonschema v1.2.0
@@ -36,7 +36,7 @@ require (
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
-	github.com/go-playground/validator/v10 v10.24.0 // indirect
+	github.com/go-playground/validator/v10 v10.25.0 // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/google/pprof v0.0.0-20250208200701-d0013a598941 // indirect
