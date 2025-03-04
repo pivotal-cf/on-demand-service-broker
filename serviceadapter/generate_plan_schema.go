@@ -10,7 +10,7 @@ import (
 	"encoding/json"
 	"log"
 
-	"github.com/pivotal-cf/brokerapi/v12/domain"
+	"code.cloudfoundry.org/brokerapi/v13/domain"
 	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )
 

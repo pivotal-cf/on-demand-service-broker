@@ -22,10 +22,10 @@ import (
 	"net/http"
 	"strings"
 
+	"code.cloudfoundry.org/brokerapi/v13/domain/apiresponses"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
-	"github.com/pivotal-cf/brokerapi/v12/domain/apiresponses"
 	"github.com/pivotal-cf/on-demand-services-sdk/bosh"
 	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 

@@ -12,10 +12,10 @@ import (
 	"errors"
 	"fmt"
 
+	"code.cloudfoundry.org/brokerapi/v13/domain"
+	"code.cloudfoundry.org/brokerapi/v13/domain/apiresponses"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf/brokerapi/v12/domain"
-	"github.com/pivotal-cf/brokerapi/v12/domain/apiresponses"
 	sdk "github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"

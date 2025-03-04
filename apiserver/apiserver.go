@@ -21,11 +21,11 @@ import (
 	"syscall"
 	"time"
 
+	"code.cloudfoundry.org/brokerapi/v13"
+	apiauth "code.cloudfoundry.org/brokerapi/v13/auth"
+	"code.cloudfoundry.org/brokerapi/v13/domain"
 	"code.cloudfoundry.org/lager/v3"
 	"github.com/gorilla/mux"
-	"github.com/pivotal-cf/brokerapi/v12"
-	apiauth "github.com/pivotal-cf/brokerapi/v12/auth"
-	"github.com/pivotal-cf/brokerapi/v12/domain"
 	"github.com/pkg/errors"
 	"github.com/urfave/negroni"
 

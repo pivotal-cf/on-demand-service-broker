@@ -4,11 +4,11 @@ import (
 	"context"
 	"log/slog"
 
+	"code.cloudfoundry.org/brokerapi/v13/domain"
+	"code.cloudfoundry.org/brokerapi/v13/domain/apiresponses"
 	"code.cloudfoundry.org/lager/v3"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf/brokerapi/v12/domain"
-	"github.com/pivotal-cf/brokerapi/v12/domain/apiresponses"
 )
 
 var _ = Describe("GetInstance", func() {

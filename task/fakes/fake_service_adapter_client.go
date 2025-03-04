@@ -5,7 +5,7 @@ import (
 	"log"
 	"sync"
 
-	"github.com/pivotal-cf/brokerapi/v12/domain"
+	"code.cloudfoundry.org/brokerapi/v13/domain"
 	"github.com/pivotal-cf/on-demand-service-broker/task"
 	"github.com/pivotal-cf/on-demand-services-sdk/serviceadapter"
 )

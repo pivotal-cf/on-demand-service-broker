@@ -17,11 +17,11 @@ import (
 	"net/http/httptest"
 	"strings"
 
+	"code.cloudfoundry.org/brokerapi/v13/domain"
 	"github.com/gorilla/mux"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
-	"github.com/pivotal-cf/brokerapi/v12/domain"
 
 	"github.com/pivotal-cf/on-demand-service-broker/broker"
 	"github.com/pivotal-cf/on-demand-service-broker/cf"

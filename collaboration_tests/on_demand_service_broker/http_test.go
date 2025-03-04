@@ -17,9 +17,9 @@ import (
 	"os"
 	"time"
 
+	"code.cloudfoundry.org/brokerapi/v13/domain"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/pivotal-cf/brokerapi/v12/domain"
 
 	brokerConfig "github.com/pivotal-cf/on-demand-service-broker/config"
 )

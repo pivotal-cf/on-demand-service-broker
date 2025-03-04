@@ -13,8 +13,8 @@ import (
 	"fmt"
 	"log"
 
+	"code.cloudfoundry.org/brokerapi/v13/domain"
 	"github.com/pborman/uuid"
-	"github.com/pivotal-cf/brokerapi/v12/domain"
 
 	"github.com/pivotal-cf/on-demand-service-broker/boshdirector"
 	"github.com/pivotal-cf/on-demand-service-broker/brokercontext"
