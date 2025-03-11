@@ -10,7 +10,7 @@ require (
 	code.cloudfoundry.org/lager/v3 v3.28.0
 	github.com/blang/semver/v4 v4.0.0
 	github.com/cloudfoundry-community/go-uaa v0.3.3
-	github.com/cloudfoundry/bosh-cli/v7 v7.9.3
+	github.com/cloudfoundry/bosh-cli/v7 v7.9.4
 	github.com/cloudfoundry/bosh-utils v0.0.534
 	github.com/craigfurman/herottp v0.0.0-20190418132442-c546d62f2a8d
 	github.com/gorilla/mux v1.8.1
@@ -57,7 +57,7 @@ require (
 	golang.org/x/crypto v0.36.0 // indirect
 	golang.org/x/mod v0.24.0 // indirect
 	golang.org/x/net v0.37.0 // indirect
-	golang.org/x/oauth2 v0.27.0 // indirect
+	golang.org/x/oauth2 v0.28.0 // indirect
 	golang.org/x/sync v0.12.0 // indirect
 	golang.org/x/sys v0.31.0 // indirect
 	golang.org/x/text v0.23.0 // indirect
