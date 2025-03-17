@@ -6,12 +6,12 @@ toolchain go1.23.4
 
 require (
 	code.cloudfoundry.org/brokerapi/v13 v13.0.0
-	code.cloudfoundry.org/credhub-cli v0.0.0-20250310131029-ea50fd1cfd0a
+	code.cloudfoundry.org/credhub-cli v0.0.0-20250317130919-6d4d60c755af
 	code.cloudfoundry.org/lager/v3 v3.28.0
 	github.com/blang/semver/v4 v4.0.0
 	github.com/cloudfoundry-community/go-uaa v0.3.3
-	github.com/cloudfoundry/bosh-cli/v7 v7.9.3
-	github.com/cloudfoundry/bosh-utils v0.0.534
+	github.com/cloudfoundry/bosh-cli/v7 v7.9.4
+	github.com/cloudfoundry/bosh-utils v0.0.536
 	github.com/craigfurman/herottp v0.0.0-20190418132442-c546d62f2a8d
 	github.com/gorilla/mux v1.8.1
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.11.2
@@ -26,7 +26,7 @@ require (
 )
 
 require (
-	code.cloudfoundry.org/tlsconfig v0.20.0 // indirect
+	code.cloudfoundry.org/tlsconfig v0.21.0 // indirect
 	github.com/bmatcuk/doublestar v1.3.4 // indirect
 	github.com/charlievieth/fs v0.0.3 // indirect
 	github.com/cloudfoundry/go-socks5 v0.0.0-20240831012420-2590b55236ee // indirect
@@ -41,7 +41,7 @@ require (
 	github.com/go-playground/validator/v10 v10.25.0 // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
-	github.com/google/pprof v0.0.0-20250302191652-9094ed2288e7 // indirect
+	github.com/google/pprof v0.0.0-20250315033105-103756e64e1d // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/hashicorp/go-version v1.7.0 // indirect
 	github.com/jpillora/backoff v1.0.0 // indirect
@@ -57,7 +57,7 @@ require (
 	golang.org/x/crypto v0.36.0 // indirect
 	golang.org/x/mod v0.24.0 // indirect
 	golang.org/x/net v0.37.0 // indirect
-	golang.org/x/oauth2 v0.27.0 // indirect
+	golang.org/x/oauth2 v0.28.0 // indirect
 	golang.org/x/sync v0.12.0 // indirect
 	golang.org/x/sys v0.31.0 // indirect
 	golang.org/x/text v0.23.0 // indirect
