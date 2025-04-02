@@ -2,7 +2,7 @@ module github.com/pivotal-cf/on-demand-service-broker
 
 go 1.23.0
 
-toolchain go1.23.4
+toolchain go1.24.1
 
 require (
 	code.cloudfoundry.org/brokerapi/v13 v13.0.0
@@ -16,7 +16,7 @@ require (
 	github.com/gorilla/mux v1.8.1
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.11.2
 	github.com/onsi/ginkgo/v2 v2.23.3
-	github.com/onsi/gomega v1.36.3
+	github.com/onsi/gomega v1.37.0
 	github.com/pborman/uuid v1.2.1
 	github.com/pivotal-cf/on-demand-services-sdk v0.48.2-0.20250304230435-66aa99829fa5
 	github.com/pkg/errors v0.9.1
