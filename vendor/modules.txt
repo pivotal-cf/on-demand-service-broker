@@ -1,5 +1,5 @@
-# code.cloudfoundry.org/brokerapi/v13 v13.0.0
-## explicit; go 1.23
+# code.cloudfoundry.org/brokerapi/v13 v13.0.4
+## explicit; go 1.23.0
 code.cloudfoundry.org/brokerapi/v13
 code.cloudfoundry.org/brokerapi/v13/auth
 code.cloudfoundry.org/brokerapi/v13/domain
