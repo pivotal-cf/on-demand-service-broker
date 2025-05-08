@@ -23,7 +23,7 @@ code.cloudfoundry.org/credhub-cli/credhub/server
 ## explicit; go 1.22.0
 code.cloudfoundry.org/lager/v3
 code.cloudfoundry.org/lager/v3/internal/truncate
-# code.cloudfoundry.org/tlsconfig v0.21.0
+# code.cloudfoundry.org/tlsconfig v0.27.0
 ## explicit; go 1.23.0
 code.cloudfoundry.org/tlsconfig
 # github.com/blang/semver/v4 v4.0.0
@@ -45,7 +45,7 @@ github.com/cloudfoundry/bosh-cli/v7/common/util
 github.com/cloudfoundry/bosh-cli/v7/director
 github.com/cloudfoundry/bosh-cli/v7/io
 github.com/cloudfoundry/bosh-cli/v7/uaa
-# github.com/cloudfoundry/bosh-utils v0.0.538
+# github.com/cloudfoundry/bosh-utils v0.0.542
 ## explicit; go 1.23.0
 github.com/cloudfoundry/bosh-utils/crypto
 github.com/cloudfoundry/bosh-utils/errors
@@ -55,10 +55,10 @@ github.com/cloudfoundry/bosh-utils/property
 github.com/cloudfoundry/bosh-utils/retrystrategy
 github.com/cloudfoundry/bosh-utils/system
 github.com/cloudfoundry/bosh-utils/uuid
-# github.com/cloudfoundry/go-socks5 v0.0.0-20240831012420-2590b55236ee
+# github.com/cloudfoundry/go-socks5 v0.0.0-20250423223041-4ad5fea42851
 ## explicit; go 1.21.0
 github.com/cloudfoundry/go-socks5
-# github.com/cloudfoundry/socks5-proxy v0.2.147
+# github.com/cloudfoundry/socks5-proxy v0.2.150
 ## explicit; go 1.23.0
 github.com/cloudfoundry/socks5-proxy
 # github.com/cppforlife/go-semi-semantic v0.0.0-20160921010311-576b6af77ae4
@@ -101,8 +101,8 @@ github.com/google/go-cmp/cmp/internal/diff
 github.com/google/go-cmp/cmp/internal/flags
 github.com/google/go-cmp/cmp/internal/function
 github.com/google/go-cmp/cmp/internal/value
-# github.com/google/pprof v0.0.0-20250403155104-27863c87afa6
-## explicit; go 1.23
+# github.com/google/pprof v0.0.0-20250423184734-337e5dd93bb4
+## explicit; go 1.23.0
 github.com/google/pprof/profile
 # github.com/google/uuid v1.6.0
 ## explicit
@@ -208,7 +208,7 @@ go.uber.org/automaxprocs
 go.uber.org/automaxprocs/internal/cgroups
 go.uber.org/automaxprocs/internal/runtime
 go.uber.org/automaxprocs/maxprocs
-# golang.org/x/crypto v0.37.0
+# golang.org/x/crypto v0.38.0
 ## explicit; go 1.23.0
 golang.org/x/crypto/blowfish
 golang.org/x/crypto/chacha20
@@ -223,7 +223,7 @@ golang.org/x/crypto/ssh/internal/bcrypt_pbkdf
 golang.org/x/mod/internal/lazyregexp
 golang.org/x/mod/module
 golang.org/x/mod/semver
-# golang.org/x/net v0.38.0
+# golang.org/x/net v0.40.0
 ## explicit; go 1.23.0
 golang.org/x/net/context
 golang.org/x/net/html
@@ -236,14 +236,14 @@ golang.org/x/net/proxy
 golang.org/x/oauth2
 golang.org/x/oauth2/clientcredentials
 golang.org/x/oauth2/internal
-# golang.org/x/sync v0.13.0
+# golang.org/x/sync v0.14.0
 ## explicit; go 1.23.0
 golang.org/x/sync/errgroup
-# golang.org/x/sys v0.32.0
+# golang.org/x/sys v0.33.0
 ## explicit; go 1.23.0
 golang.org/x/sys/cpu
 golang.org/x/sys/unix
-# golang.org/x/text v0.24.0
+# golang.org/x/text v0.25.0
 ## explicit; go 1.23.0
 golang.org/x/text/cases
 golang.org/x/text/encoding
@@ -265,7 +265,7 @@ golang.org/x/text/language
 golang.org/x/text/runes
 golang.org/x/text/transform
 golang.org/x/text/unicode/norm
-# golang.org/x/tools v0.31.0
+# golang.org/x/tools v0.33.0
 ## explicit; go 1.23.0
 golang.org/x/tools/cover
 golang.org/x/tools/go/ast/astutil
