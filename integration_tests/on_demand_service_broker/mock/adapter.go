@@ -47,10 +47,10 @@ const (
 	ExitCodeForUnbind = "TEST_UNBINDING_EXIT_CODE"
 	ExitCodeForBind   = "TEST_BINDING_EXIT_CODE"
 
-	ErrorExitCode                     = string(serviceadapter.ErrorExitCode)
-	BindingNotFoundErrorExitCode      = string(serviceadapter.BindingNotFoundErrorExitCode)
-	AppGuidNotProvidedErrorExitCode   = string(serviceadapter.AppGuidNotProvidedErrorExitCode)
-	BindingAlreadyExistsErrorExitCode = string(serviceadapter.BindingAlreadyExistsErrorExitCode)
+	ErrorExitCode                     = string(rune(serviceadapter.ErrorExitCode))
+	BindingNotFoundErrorExitCode      = string(rune(serviceadapter.BindingNotFoundErrorExitCode))
+	AppGuidNotProvidedErrorExitCode   = string(rune(serviceadapter.AppGuidNotProvidedErrorExitCode))
+	BindingAlreadyExistsErrorExitCode = string(rune(serviceadapter.BindingAlreadyExistsErrorExitCode))
 
 	NotImplementedManifestGenerator = "TEST_MANIFEST_GENERATOR_NOT_IMPLEMENTED"
 	NotImplementedBinder            = "TEST_BINDER_NOT_IMPLEMENTED"
