@@ -39,7 +39,7 @@ github.com/charlievieth/fs
 ## explicit; go 1.23.0
 github.com/cloudfoundry-community/go-uaa
 github.com/cloudfoundry-community/go-uaa/passwordcredentials
-# github.com/cloudfoundry/bosh-cli/v7 v7.9.5
+# github.com/cloudfoundry/bosh-cli/v7 v7.9.6
 ## explicit; go 1.23.0
 github.com/cloudfoundry/bosh-cli/v7/common/util
 github.com/cloudfoundry/bosh-cli/v7/director
@@ -69,7 +69,7 @@ github.com/cppforlife/go-semi-semantic/version
 github.com/craigfurman/herottp
 # github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 ## explicit
-# github.com/fsnotify/fsnotify v1.8.0
+# github.com/fsnotify/fsnotify v1.9.0
 ## explicit; go 1.17
 # github.com/gabriel-vasile/mimetype v1.4.9
 ## explicit; go 1.23.0
