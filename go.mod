@@ -7,7 +7,7 @@ toolchain go1.23.4
 require (
 	code.cloudfoundry.org/brokerapi/v13 v13.0.4
 	code.cloudfoundry.org/credhub-cli v0.0.0-20250609132220-beec578d3f6d
-	code.cloudfoundry.org/lager/v3 v3.38.0
+	code.cloudfoundry.org/lager/v3 v3.39.0
 	github.com/blang/semver/v4 v4.0.0
 	github.com/cloudfoundry-community/go-uaa v0.3.5
 	github.com/cloudfoundry/bosh-cli/v7 v7.9.7
