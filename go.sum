@@ -2,8 +2,8 @@ code.cloudfoundry.org/brokerapi/v13 v13.0.4 h1:46I9Bbo5OumlKjjeZIDUM73iQQUTiIYYs
 code.cloudfoundry.org/brokerapi/v13 v13.0.4/go.mod h1:2Jd9gH5kHUfUupSWwklx3I/Ih1HvqNPvInyYbgLs9iM=
 code.cloudfoundry.org/clock v1.39.0 h1:EGIqJ6W1qnNy9ybywyfyeZioOnXYl2gEBqOclLcrMcA=
 code.cloudfoundry.org/clock v1.39.0/go.mod h1:BFNz0hJ+DCXu3wi9D/SPlU5H0FxOyO7UEcVY6EwziME=
-code.cloudfoundry.org/credhub-cli v0.0.0-20250609132220-beec578d3f6d h1:xKQmIqu8EfM3ZpdiBdP55BFQevP2QGwC6z6+HvaY93U=
-code.cloudfoundry.org/credhub-cli v0.0.0-20250609132220-beec578d3f6d/go.mod h1:wLmlThnecyHcAogvajU9fCgpOWZ5OLzBXfIRYqH+GhU=
+code.cloudfoundry.org/credhub-cli v0.0.0-20250616130814-79ad10d5e505 h1:WTUbbkRrFX9wIj4HoR3N/jIpxa9N4WxIBPHcLz6ixlw=
+code.cloudfoundry.org/credhub-cli v0.0.0-20250616130814-79ad10d5e505/go.mod h1:ypjS5gGhGMAAEa6uiNq+Pfh9fHqZEpWuHVVlUfb9OrI=
 code.cloudfoundry.org/lager/v3 v3.39.0 h1:axxT3QTIu7ZWNyV7IKtNrSP4xmtMPbgbIJ5lY3ixYU8=
 code.cloudfoundry.org/lager/v3 v3.39.0/go.mod h1:xcAxUZal+NkRwwF40JEY/rouQB/IaIfzjf5wi3jSYUs=
 code.cloudfoundry.org/tlsconfig v0.28.0 h1:vXP1LsABwFp6L6EJHi0Aw4qwcD2pNxS1dTLIC5BznUU=
@@ -24,8 +24,8 @@ github.com/cloudfoundry/bosh-utils v0.0.545 h1:BK52UlXz9J1x3Ctqbq+0CWSysOPTj5re3
 github.com/cloudfoundry/bosh-utils v0.0.545/go.mod h1:jO+SGaWLau5pkXErgt74MT4ZKpzw4LjV0e6Ua56JMgc=
 github.com/cloudfoundry/go-socks5 v0.0.0-20250423223041-4ad5fea42851 h1:oy59UYcspoP44ggE8DM3kjxl1+sTFd802bbZlBBhBMk=
 github.com/cloudfoundry/go-socks5 v0.0.0-20250423223041-4ad5fea42851/go.mod h1:72EEm1oq5oXqGfu9XGtaRPWEcAFYd/P10cMNln0QhA8=
-github.com/cloudfoundry/socks5-proxy v0.2.153 h1:8pd4W8E3jvgoefDEPpPX+EqqQgT3cIB9BbOZxcklVoo=
-github.com/cloudfoundry/socks5-proxy v0.2.153/go.mod h1:A1oh0RIixDiHRfMRcpnh50U68kTlt9cH6/3Q4GHVad4=
+github.com/cloudfoundry/socks5-proxy v0.2.154 h1:TgTacggAGxa99BAlyI8F4VvNB9nnVHpnT/7oUF6eHPk=
+github.com/cloudfoundry/socks5-proxy v0.2.154/go.mod h1:xMjdxfz4icTZ+JW5wbbHrGTp+kSkAhMbA02KoIm/hyE=
 github.com/cppforlife/go-semi-semantic v0.0.0-20160921010311-576b6af77ae4 h1:J+ghqo7ZubTzelkjo9hntpTtP/9lUCWH9icEmAW+B+Q=
 github.com/cppforlife/go-semi-semantic v0.0.0-20160921010311-576b6af77ae4/go.mod h1:socxpf5+mELPbosI149vWpNlHK6mbfWFxSWOoSndXR8=
 github.com/craigfurman/herottp v0.0.0-20190418132442-c546d62f2a8d h1:Qun4nleHcXeLhMnBphrwAbEBpVYWQ4e7FgATqZzdYW4=
