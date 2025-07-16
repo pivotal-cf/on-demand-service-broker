@@ -23,7 +23,7 @@ code.cloudfoundry.org/credhub-cli/credhub/server
 ## explicit; go 1.23.0
 code.cloudfoundry.org/lager/v3
 code.cloudfoundry.org/lager/v3/internal/truncate
-# code.cloudfoundry.org/tlsconfig v0.30.0
+# code.cloudfoundry.org/tlsconfig v0.31.0
 ## explicit; go 1.23.0
 code.cloudfoundry.org/tlsconfig
 # github.com/blang/semver/v4 v4.0.0
@@ -45,7 +45,7 @@ github.com/cloudfoundry/bosh-cli/v7/common/util
 github.com/cloudfoundry/bosh-cli/v7/director
 github.com/cloudfoundry/bosh-cli/v7/io
 github.com/cloudfoundry/bosh-cli/v7/uaa
-# github.com/cloudfoundry/bosh-utils v0.0.548
+# github.com/cloudfoundry/bosh-utils v0.0.549
 ## explicit; go 1.23.0
 github.com/cloudfoundry/bosh-utils/crypto
 github.com/cloudfoundry/bosh-utils/errors
