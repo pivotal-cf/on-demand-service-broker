@@ -120,8 +120,8 @@ github.com/jpillora/backoff
 ## explicit; go 1.18
 github.com/leodido/go-urn
 github.com/leodido/go-urn/scim/schema
-# github.com/maxbrunsfeld/counterfeiter/v6 v6.11.2
-## explicit; go 1.23
+# github.com/maxbrunsfeld/counterfeiter/v6 v6.11.3
+## explicit; go 1.23.0
 github.com/maxbrunsfeld/counterfeiter/v6
 github.com/maxbrunsfeld/counterfeiter/v6/arguments
 github.com/maxbrunsfeld/counterfeiter/v6/command
@@ -174,7 +174,7 @@ github.com/openzipkin/zipkin-go/model
 # github.com/pborman/uuid v1.2.1
 ## explicit
 github.com/pborman/uuid
-# github.com/pivotal-cf/on-demand-services-sdk v0.49.1-0.20250702123215-c96299fbc5f9
+# github.com/pivotal-cf/on-demand-services-sdk v0.49.1-0.20250716122944-915bdcb4787c
 ## explicit; go 1.23.0
 github.com/pivotal-cf/on-demand-services-sdk/bosh
 github.com/pivotal-cf/on-demand-services-sdk/serviceadapter
