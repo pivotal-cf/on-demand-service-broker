@@ -39,7 +39,7 @@ github.com/charlievieth/fs
 ## explicit; go 1.23.0
 github.com/cloudfoundry-community/go-uaa
 github.com/cloudfoundry-community/go-uaa/passwordcredentials
-# github.com/cloudfoundry/bosh-cli/v7 v7.9.8
+# github.com/cloudfoundry/bosh-cli/v7 v7.9.9
 ## explicit; go 1.23.0
 github.com/cloudfoundry/bosh-cli/v7/common/util
 github.com/cloudfoundry/bosh-cli/v7/director
@@ -290,7 +290,7 @@ golang.org/x/tools/internal/stdlib
 golang.org/x/tools/internal/typeparams
 golang.org/x/tools/internal/typesinternal
 golang.org/x/tools/internal/versions
-# google.golang.org/protobuf v1.36.6
+# google.golang.org/protobuf v1.36.7
 ## explicit; go 1.22
 google.golang.org/protobuf/encoding/prototext
 google.golang.org/protobuf/encoding/protowire
