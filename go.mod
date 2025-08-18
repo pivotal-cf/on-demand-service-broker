@@ -6,12 +6,12 @@ toolchain go1.23.4
 
 require (
 	code.cloudfoundry.org/brokerapi/v13 v13.0.6
-	code.cloudfoundry.org/credhub-cli v0.0.0-20250722200452-0eb58899fb2b
+	code.cloudfoundry.org/credhub-cli v0.0.0-20250818133441-006e3fb362ab
 	code.cloudfoundry.org/lager/v3 v3.43.0
 	github.com/blang/semver/v4 v4.0.0
 	github.com/cloudfoundry-community/go-uaa v0.3.5
 	github.com/cloudfoundry/bosh-cli/v7 v7.9.9
-	github.com/cloudfoundry/bosh-utils v0.0.553
+	github.com/cloudfoundry/bosh-utils v0.0.554
 	github.com/craigfurman/herottp v0.0.0-20190418132442-c546d62f2a8d
 	github.com/gorilla/mux v1.8.1
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.11.3
@@ -26,7 +26,7 @@ require (
 )
 
 require (
-	code.cloudfoundry.org/tlsconfig v0.32.0 // indirect
+	code.cloudfoundry.org/tlsconfig v0.33.0 // indirect
 	github.com/bmatcuk/doublestar v1.3.4 // indirect
 	github.com/charlievieth/fs v0.0.3 // indirect
 	github.com/cloudfoundry/go-socks5 v0.0.0-20250423223041-4ad5fea42851 // indirect
