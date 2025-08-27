@@ -1,5 +1,5 @@
-code.cloudfoundry.org/brokerapi/v13 v13.0.6 h1:mVLZ+VrR9rmt+MlbD+SJ09tBjsblqssaYaW4aM41/UY=
-code.cloudfoundry.org/brokerapi/v13 v13.0.6/go.mod h1:Ar3b20DGMrzsXz1Nm4uTpw92A8nnMbtlGTI7v1IaGow=
+code.cloudfoundry.org/brokerapi/v13 v13.0.7 h1:ZNdZAxmwsjekJ+4oZFht3kUmdf1qiqhCtVwJPWL4878=
+code.cloudfoundry.org/brokerapi/v13 v13.0.7/go.mod h1:RKj2NdkGT0TJtyYvmojvq2C7br6dLNaQZwVKLtqN1pk=
 code.cloudfoundry.org/clock v1.44.0 h1:ChHrSap+WPPy5h0WoyaOrTLfXuLKN9jNYnO9jHGVu70=
 code.cloudfoundry.org/clock v1.44.0/go.mod h1:heJH8VyJ0hUOanXQJTiU0RXmRmIJpeoQB2PO/+Pv43M=
 code.cloudfoundry.org/credhub-cli v0.0.0-20250818133441-006e3fb362ab h1:kStCa3oNYfzhSo6sd+DdLnWiqx4j0rokvVv6a0Dri/w=

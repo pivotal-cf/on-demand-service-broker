@@ -5,7 +5,7 @@ go 1.23.0
 toolchain go1.23.4
 
 require (
-	code.cloudfoundry.org/brokerapi/v13 v13.0.6
+	code.cloudfoundry.org/brokerapi/v13 v13.0.7
 	code.cloudfoundry.org/credhub-cli v0.0.0-20250818133441-006e3fb362ab
 	code.cloudfoundry.org/lager/v3 v3.44.0
 	github.com/blang/semver/v4 v4.0.0
