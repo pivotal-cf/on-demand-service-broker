@@ -113,7 +113,7 @@ func (c *Client) GenerateManifest(
 	}
 
 	if err := ErrorForExitCode(*exitCode, string(stdout)); err != nil {
-		logger.Printf(adapterFailedMessage(*exitCode, c.ExternalBinPath, stdout, stderr))
+		logger.Println(adapterFailedMessage(*exitCode, c.ExternalBinPath, stdout, stderr))
 		return sdk.MarshalledGenerateManifest{}, err
 	}
 	if c.UsingStdin {

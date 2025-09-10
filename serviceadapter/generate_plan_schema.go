@@ -43,7 +43,7 @@ func (c *Client) GeneratePlanSchema(plan sdk.Plan, logger *log.Logger) (domain.S
 	}
 
 	if err := ErrorForExitCode(*exitCode, string(stdout)); err != nil {
-		logger.Printf(adapterFailedMessage(*exitCode, c.ExternalBinPath, stdout, stderr))
+		logger.Println(adapterFailedMessage(*exitCode, c.ExternalBinPath, stdout, stderr))
 		return domain.ServiceSchemas{}, err
 	}
 

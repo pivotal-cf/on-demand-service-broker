@@ -77,7 +77,7 @@ func main() {
 
 	err = purgerTool.DeleteInstancesAndDeregister(config.ServiceCatalog.ID, *brokerName)
 	if err != nil {
-		logger.Fatalf(err.Error())
+		logger.Fatalf("%s", err.Error())
 	}
 	logger.Println("FINISHED PURGE INSTANCES AND DEREGISTER BROKER")
 }

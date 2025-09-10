@@ -42,7 +42,7 @@ func (w httpJsonClient) get(path string, body interface{}, logger *log.Logger) e
 		return err
 	}
 
-	logger.Printf(fmt.Sprintf("GET %s", path))
+	logger.Printf("GET %s", path)
 
 	response, err := w.client.Do(req)
 	if err != nil {
@@ -63,7 +63,7 @@ func (c httpJsonClient) post(path string, reqBody io.Reader, logger *log.Logger)
 	}
 	req.Header.Add("Content-Type", "application/json")
 
-	logger.Printf(fmt.Sprintf("POST %s", path))
+	logger.Printf("POST %s", path)
 
 	resp, err := c.client.Do(req)
 	if err != nil {
@@ -85,7 +85,7 @@ func (c httpJsonClient) put(path, reqBody string, logger *log.Logger) (*http.Res
 	}
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
-	logger.Printf(fmt.Sprintf("PUT %s", path))
+	logger.Printf("PUT %s", path)
 
 	return c.client.Do(req)
 }
@@ -103,7 +103,7 @@ func (c httpJsonClient) delete(path string, logger *log.Logger) error {
 
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
-	logger.Printf(fmt.Sprintf("DELETE %s", path))
+	logger.Printf("DELETE %s", path)
 
 	resp, err := c.client.Do(req)
 	if err != nil {

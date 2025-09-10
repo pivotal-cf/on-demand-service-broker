@@ -110,7 +110,7 @@ func (t *TelemetryLogger) logTotalInstances(allInstances []Instance, event Event
 		},
 	}
 
-	t.logger.Printf(t.marshalLog(telemetryLog))
+	t.logger.Println(t.marshalLog(telemetryLog))
 }
 
 func (t *TelemetryLogger) logInstancesPerPlan(instances []Instance, event Event) {
@@ -130,7 +130,7 @@ func (t *TelemetryLogger) logInstancesPerPlan(instances []Instance, event Event)
 			},
 		}
 
-		t.logger.Printf(t.marshalLog(planInstancesLog))
+		t.logger.Println(t.marshalLog(planInstancesLog))
 	}
 }
 

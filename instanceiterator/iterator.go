@@ -353,7 +353,7 @@ func (it *Iterator) errorFromList() error {
 		for _, e := range failureList {
 			out += "\n* " + e.err.Error()
 		}
-		return fmt.Errorf(out)
+		return errors.New(out)
 	}
 	return nil
 }

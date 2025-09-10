@@ -52,7 +52,7 @@ func (c *Client) GenerateDashboardUrl(instanceID string, plan sdk.Plan, manifest
 	}
 
 	if err := ErrorForExitCode(*exitCode, string(stdout)); err != nil {
-		logger.Printf(adapterFailedMessage(*exitCode, c.ExternalBinPath, stdout, stderr))
+		logger.Println(adapterFailedMessage(*exitCode, c.ExternalBinPath, stdout, stderr))
 		return "", err
 	}
 

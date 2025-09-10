@@ -127,5 +127,5 @@ func invalidVersionError(adapterPath string, stderr []byte, version string) erro
 }
 
 func adapterFailedMessage(exitCode int, adapterPath string, stdout, stderr []byte) string {
-	return fmt.Sprintf("external service adapter exited with %d at %s: stdout: '%s', stderr: '%s'\n", exitCode, adapterPath, stdout, stderr)
+	return fmt.Sprintf("external service adapter exited with %d at %s: stdout: '%s', stderr: '%s'", exitCode, adapterPath, stdout, stderr)
 }
