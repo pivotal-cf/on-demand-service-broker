@@ -4,7 +4,7 @@ go 1.24.0
 
 require (
 	code.cloudfoundry.org/brokerapi/v13 v13.0.9
-	code.cloudfoundry.org/credhub-cli v0.0.0-20250917210352-5fb77f0d7416
+	code.cloudfoundry.org/credhub-cli v0.0.0-20250922235709-cc15f8fa273c
 	code.cloudfoundry.org/lager/v3 v3.48.0
 	github.com/blang/semver/v4 v4.0.0
 	github.com/cloudfoundry-community/go-uaa v0.3.5
@@ -40,7 +40,7 @@ require (
 	github.com/go-playground/validator/v10 v10.27.0 // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
-	github.com/google/pprof v0.0.0-20250903194437-c28834ac2320 // indirect
+	github.com/google/pprof v0.0.0-20250919162441-8b542baf5bcf // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/hashicorp/go-version v1.7.0 // indirect
 	github.com/jpillora/backoff v1.0.0 // indirect
