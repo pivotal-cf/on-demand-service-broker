@@ -75,7 +75,7 @@ func (b *Broker) Provision(
 		instanceName = getInstanceNameFromContext(requestContext.(map[string]interface{}))
 	}
 
-	operationData, dashboardURL, err := b.provisionInstance(
+	operationData, dashboardURL, tags, err := b.provisionInstance(
 		ctx,
 		instanceID,
 		details,
@@ -89,20 +89,23 @@ func (b *Broker) Provision(
 
 	operationDataJSON, err := json.Marshal(operationData)
 	if err != nil {
-		return domain.ProvisionedServiceSpec{}, b.processError(err, logger)
+		return domain.ProvisionedServiceSpec{}, b.processError(NewGenericError(brokercontext.WithBoshTaskID(ctx, operationData.BoshTaskID), err), logger)
 	}
 
 	return domain.ProvisionedServiceSpec{
 		IsAsync:       true,
-		DashboardURL:  dashboardURL,
 		OperationData: string(operationDataJSON),
+		DashboardURL:  dashboardURL,
+		Metadata: domain.InstanceMetadata{
+			Labels: toInstanceMetadataLabels(tags),
+		},
 	}, nil
 }
 
-func (b *Broker) provisionInstance(ctx context.Context, instanceID string, details domain.ProvisionDetails, requestParams map[string]interface{}, instanceName string, logger *log.Logger) (OperationData, string, error) {
+func (b *Broker) provisionInstance(ctx context.Context, instanceID string, details domain.ProvisionDetails, requestParams map[string]interface{}, instanceName string, logger *log.Logger) (OperationData, string, map[string]interface{}, error) {
 	planID := details.PlanID
-	errs := func(err error) (OperationData, string, error) {
-		return OperationData{}, "", err
+	errs := func(err error) (OperationData, string, map[string]interface{}, error) {
+		return OperationData{}, "", nil, err
 	}
 
 	plan, found := b.serviceOffering.FindPlanByID(planID)
@@ -194,13 +197,14 @@ func (b *Broker) provisionInstance(ctx context.Context, instanceID string, detai
 		Errands:       plan.PostDeployErrands(),
 	}
 
+	tags := getTagsFromManifest(manifest)
 	// Dashboard url optional
 	if _, ok := err.(serviceadapter.NotImplementedError); ok {
-		return operationData, dashboardUrl, nil
+		return operationData, dashboardUrl, tags, nil
 	}
 
 	if err := adapterToAPIError(ctx, err); err != nil {
-		return operationData, dashboardUrl, err
+		return operationData, dashboardUrl, tags, err
 	}
 
 	_, err = b.uaaClient.UpdateClient(instanceID, dashboardUrl, spaceGUID)
@@ -208,7 +212,7 @@ func (b *Broker) provisionInstance(ctx context.Context, instanceID string, detai
 		return errs(NewGenericError(ctx, err))
 	}
 
-	return operationData, dashboardUrl, nil
+	return operationData, dashboardUrl, tags, nil
 }
 
 func (b *Broker) checkPlanSchemas(ctx context.Context, requestParams map[string]interface{}, plan config.Plan, logger *log.Logger) error {
