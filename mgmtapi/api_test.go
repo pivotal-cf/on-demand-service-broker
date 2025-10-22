@@ -280,7 +280,7 @@ var _ = Describe("Management API", func() {
 					BoshContextID: contextID,
 					PlanID:        planID,
 					OperationType: broker.OperationTypeUpgrade,
-				}, "", nil)
+				}, "", nil, nil)
 
 				var err error
 				response, err = Patch(fmt.Sprintf("%s/mgmt/service_instances/%s?operation_type=%s", server.URL, instanceID, "upgrade"), requestBody)
@@ -307,7 +307,7 @@ var _ = Describe("Management API", func() {
 
 			Context("when the instance is already up to date", func() {
 				It("succeeds with 204 - No Content ", func() {
-					manageableBroker.UpgradeReturns(broker.OperationData{}, "", broker.NewOperationAlreadyCompletedError(errors.New("instance is already up to date")))
+					manageableBroker.UpgradeReturns(broker.OperationData{}, "", nil, broker.NewOperationAlreadyCompletedError(errors.New("instance is already up to date")))
 
 					var err error
 					response, err = Patch(fmt.Sprintf("%s/mgmt/service_instances/%s?operation_type=%s", server.URL, instanceID, "upgrade"), requestBody)
@@ -329,7 +329,7 @@ var _ = Describe("Management API", func() {
 
 			Context("when the CF service instance is not found", func() {
 				It("responds with HTTP 404 Not Found", func() {
-					manageableBroker.UpgradeReturns(broker.OperationData{}, "", cf.ResourceNotFoundError{})
+					manageableBroker.UpgradeReturns(broker.OperationData{}, "", nil, cf.ResourceNotFoundError{})
 
 					response, err := Patch(fmt.Sprintf("%s/mgmt/service_instances/%s?operation_type=%s", server.URL, instanceID, "upgrade"), requestBody)
 					Expect(err).NotTo(HaveOccurred())
@@ -340,7 +340,7 @@ var _ = Describe("Management API", func() {
 
 			Context("when the bosh deployment is not found", func() {
 				It("responds with HTTP 410 Gone", func() {
-					manageableBroker.UpgradeReturns(broker.OperationData{}, "", broker.NewDeploymentNotFoundError(errors.New("error finding deployment")))
+					manageableBroker.UpgradeReturns(broker.OperationData{}, "", nil, broker.NewDeploymentNotFoundError(errors.New("error finding deployment")))
 
 					response, err := Patch(fmt.Sprintf("%s/mgmt/service_instances/%s?operation_type=%s", server.URL, instanceID, "upgrade"), requestBody)
 					Expect(err).NotTo(HaveOccurred())
@@ -351,7 +351,7 @@ var _ = Describe("Management API", func() {
 
 			Context("when there is an operation in progress", func() {
 				It("responds with HTTP 409 Conflict", func() {
-					manageableBroker.UpgradeReturns(broker.OperationData{}, "", broker.NewOperationInProgressError(errors.New("operation in progress error")))
+					manageableBroker.UpgradeReturns(broker.OperationData{}, "", nil, broker.NewOperationInProgressError(errors.New("operation in progress error")))
 
 					response, err := Patch(fmt.Sprintf("%s/mgmt/service_instances/%s?operation_type=%s", server.URL, instanceID, "upgrade"), requestBody)
 					Expect(err).NotTo(HaveOccurred())
@@ -362,7 +362,7 @@ var _ = Describe("Management API", func() {
 
 			Context("when it fails", func() {
 				It("responds with HTTP 500", func() {
-					manageableBroker.UpgradeReturns(broker.OperationData{}, "", errors.New("upgrade error"))
+					manageableBroker.UpgradeReturns(broker.OperationData{}, "", nil, errors.New("upgrade error"))
 
 					response, err := Patch(fmt.Sprintf("%s/mgmt/service_instances/%s?operation_type=%s", server.URL, instanceID, "upgrade"), requestBody)
 					Expect(err).NotTo(HaveOccurred())

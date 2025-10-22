@@ -232,7 +232,7 @@ type FakeCombinedBroker struct {
 		result1 domain.UpdateServiceSpec
 		result2 error
 	}
-	UpgradeStub        func(context.Context, string, domain.UpdateDetails, *log.Logger) (broker.OperationData, string, error)
+	UpgradeStub        func(context.Context, string, domain.UpdateDetails, *log.Logger) (broker.OperationData, string, map[string]any, error)
 	upgradeMutex       sync.RWMutex
 	upgradeArgsForCall []struct {
 		arg1 context.Context
@@ -243,12 +243,14 @@ type FakeCombinedBroker struct {
 	upgradeReturns struct {
 		result1 broker.OperationData
 		result2 string
-		result3 error
+		result3 map[string]any
+		result4 error
 	}
 	upgradeReturnsOnCall map[int]struct {
 		result1 broker.OperationData
 		result2 string
-		result3 error
+		result3 map[string]any
+		result4 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -1213,7 +1215,7 @@ func (fake *FakeCombinedBroker) UpdateReturnsOnCall(i int, result1 domain.Update
 	}{result1, result2}
 }
 
-func (fake *FakeCombinedBroker) Upgrade(arg1 context.Context, arg2 string, arg3 domain.UpdateDetails, arg4 *log.Logger) (broker.OperationData, string, error) {
+func (fake *FakeCombinedBroker) Upgrade(arg1 context.Context, arg2 string, arg3 domain.UpdateDetails, arg4 *log.Logger) (broker.OperationData, string, map[string]any, error) {
 	fake.upgradeMutex.Lock()
 	ret, specificReturn := fake.upgradeReturnsOnCall[len(fake.upgradeArgsForCall)]
 	fake.upgradeArgsForCall = append(fake.upgradeArgsForCall, struct {
@@ -1230,9 +1232,9 @@ func (fake *FakeCombinedBroker) Upgrade(arg1 context.Context, arg2 string, arg3 
 		return stub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
-		return ret.result1, ret.result2, ret.result3
+		return ret.result1, ret.result2, ret.result3, ret.result4
 	}
-	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3, fakeReturns.result4
 }
 
 func (fake *FakeCombinedBroker) UpgradeCallCount() int {
@@ -1241,7 +1243,7 @@ func (fake *FakeCombinedBroker) UpgradeCallCount() int {
 	return len(fake.upgradeArgsForCall)
 }
 
-func (fake *FakeCombinedBroker) UpgradeCalls(stub func(context.Context, string, domain.UpdateDetails, *log.Logger) (broker.OperationData, string, error)) {
+func (fake *FakeCombinedBroker) UpgradeCalls(stub func(context.Context, string, domain.UpdateDetails, *log.Logger) (broker.OperationData, string, map[string]any, error)) {
 	fake.upgradeMutex.Lock()
 	defer fake.upgradeMutex.Unlock()
 	fake.UpgradeStub = stub
@@ -1254,18 +1256,19 @@ func (fake *FakeCombinedBroker) UpgradeArgsForCall(i int) (context.Context, stri
 	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
 }
 
-func (fake *FakeCombinedBroker) UpgradeReturns(result1 broker.OperationData, result2 string, result3 error) {
+func (fake *FakeCombinedBroker) UpgradeReturns(result1 broker.OperationData, result2 string, result3 map[string]any, result4 error) {
 	fake.upgradeMutex.Lock()
 	defer fake.upgradeMutex.Unlock()
 	fake.UpgradeStub = nil
 	fake.upgradeReturns = struct {
 		result1 broker.OperationData
 		result2 string
-		result3 error
-	}{result1, result2, result3}
+		result3 map[string]any
+		result4 error
+	}{result1, result2, result3, result4}
 }
 
-func (fake *FakeCombinedBroker) UpgradeReturnsOnCall(i int, result1 broker.OperationData, result2 string, result3 error) {
+func (fake *FakeCombinedBroker) UpgradeReturnsOnCall(i int, result1 broker.OperationData, result2 string, result3 map[string]any, result4 error) {
 	fake.upgradeMutex.Lock()
 	defer fake.upgradeMutex.Unlock()
 	fake.UpgradeStub = nil
@@ -1273,14 +1276,16 @@ func (fake *FakeCombinedBroker) UpgradeReturnsOnCall(i int, result1 broker.Opera
 		fake.upgradeReturnsOnCall = make(map[int]struct {
 			result1 broker.OperationData
 			result2 string
-			result3 error
+			result3 map[string]any
+			result4 error
 		})
 	}
 	fake.upgradeReturnsOnCall[i] = struct {
 		result1 broker.OperationData
 		result2 string
-		result3 error
-	}{result1, result2, result3}
+		result3 map[string]any
+		result4 error
+	}{result1, result2, result3, result4}
 }
 
 func (fake *FakeCombinedBroker) Invocations() map[string][][]interface{} {

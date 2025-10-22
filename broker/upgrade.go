@@ -18,20 +18,20 @@ import (
 	"github.com/pivotal-cf/on-demand-service-broker/serviceadapter"
 )
 
-func (b *Broker) Upgrade(ctx context.Context, instanceID string, details domain.UpdateDetails, logger *log.Logger) (OperationData, string, error) {
+func (b *Broker) Upgrade(ctx context.Context, instanceID string, details domain.UpdateDetails, logger *log.Logger) (OperationData, string, map[string]any, error) {
 	b.deploymentLock.Lock()
 	defer b.deploymentLock.Unlock()
 
 	logger.Printf("upgrading instance %s", instanceID)
 
 	if details.PlanID == "" {
-		return OperationData{}, "", b.processError(errors.New("no plan ID provided in upgrade request body"), logger)
+		return OperationData{}, "", nil, b.processError(errors.New("no plan ID provided in upgrade request body"), logger)
 	}
 
 	plan, found := b.serviceOffering.FindPlanByID(details.PlanID)
 	if !found {
 		logger.Printf("error: finding plan ID %s", details.PlanID)
-		return OperationData{}, "", b.processError(fmt.Errorf("plan %s not found", details.PlanID), logger)
+		return OperationData{}, "", nil, b.processError(fmt.Errorf("plan %s not found", details.PlanID), logger)
 	}
 
 	var boshContextID string
@@ -42,7 +42,7 @@ func (b *Broker) Upgrade(ctx context.Context, instanceID string, details domain.
 
 	rawCtx, err := convertToMap(details.RawContext)
 	if err != nil {
-		return OperationData{}, "", b.processError(fmt.Errorf("invalid request context"), logger)
+		return OperationData{}, "", nil, b.processError(fmt.Errorf("invalid request context"), logger)
 	}
 
 	contextMap := map[string]interface{}{
@@ -51,10 +51,10 @@ func (b *Broker) Upgrade(ctx context.Context, instanceID string, details domain.
 
 	instanceClient, err := b.GetServiceInstanceClient(instanceID, contextMap)
 	if err != nil {
-		return OperationData{}, "", b.processError(NewGenericError(ctx, err), logger)
+		return OperationData{}, "", nil, b.processError(NewGenericError(ctx, err), logger)
 	}
 
-	taskID, manifest, err := b.deployer.Upgrade(
+	taskID, manifest, brokerLabels, err := b.deployer.Upgrade(
 		deploymentName(instanceID),
 		plan,
 		contextMap,
@@ -64,19 +64,20 @@ func (b *Broker) Upgrade(ctx context.Context, instanceID string, details domain.
 	)
 	if err != nil {
 		_, err := b.handleUpdateError(ctx, err, logger)
-		return OperationData{}, "", err
+		return OperationData{}, "", nil, err
 	}
 
 	abridgedPlan := plan.AdapterPlan(b.serviceOffering.GlobalProperties)
+
 	dashboardUrl, err := b.adapterClient.GenerateDashboardUrl(instanceID, abridgedPlan, manifest, logger)
 	if err != nil {
 		if _, ok := err.(serviceadapter.NotImplementedError); !ok {
-			return OperationData{}, "", b.processError(NewGenericError(ctx, err), logger)
+			return OperationData{}, "", nil, b.processError(NewGenericError(ctx, err), logger)
 		}
 	}
 
 	if err = b.UpdateServiceInstanceClient(instanceID, dashboardUrl, instanceClient, rawCtx, logger); err != nil {
-		return OperationData{}, "", b.processError(NewGenericError(ctx, err), logger)
+		return OperationData{}, "", nil, b.processError(NewGenericError(ctx, err), logger)
 	}
 
 	return OperationData{
@@ -86,5 +87,6 @@ func (b *Broker) Upgrade(ctx context.Context, instanceID string, details domain.
 			Errands:       plan.PostDeployErrands(),
 		},
 		dashboardUrl,
+		brokerLabels,
 		nil
 }
