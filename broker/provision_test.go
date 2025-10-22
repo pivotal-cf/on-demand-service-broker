@@ -104,7 +104,7 @@ var _ = Describe("Provisioning", func() {
 
 		BeforeEach(func() {
 			newlyGeneratedManifest = []byte("a newly generated manifest")
-			fakeDeployer.CreateReturns(deployTaskID, newlyGeneratedManifest, nil)
+			fakeDeployer.CreateReturns(deployTaskID, newlyGeneratedManifest, nil, nil)
 		})
 
 		It("returns expected operation data", func() {
@@ -366,7 +366,7 @@ var _ = Describe("Provisioning", func() {
 
 	Context("when a deployment has a generic error", func() {
 		It("errors with a standard message", func() {
-			fakeDeployer.CreateReturns(0, []byte{}, fmt.Errorf("fooo"))
+			fakeDeployer.CreateReturns(0, []byte{}, nil, fmt.Errorf("fooo"))
 
 			serviceSpec, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
 
@@ -399,7 +399,7 @@ var _ = Describe("Provisioning", func() {
 
 	Context("when a deploy has a bosh request error", func() {
 		It("logs the error and returns try again error", func() {
-			fakeDeployer.CreateReturns(0, []byte{}, boshdirector.NewRequestError(
+			fakeDeployer.CreateReturns(0, []byte{}, nil, boshdirector.NewRequestError(
 				fmt.Errorf("error deploying instance: network timeout"),
 			))
 
@@ -412,7 +412,7 @@ var _ = Describe("Provisioning", func() {
 
 	Context("when a deployment has a user displayable error", func() {
 		It("logs the error and returns the error", func() {
-			fakeDeployer.CreateReturns(0, []byte{}, broker.NewDisplayableError(fmt.Errorf("user message"), fmt.Errorf("operator message")))
+			fakeDeployer.CreateReturns(0, []byte{}, nil, broker.NewDisplayableError(fmt.Errorf("user message"), fmt.Errorf("operator message")))
 
 			serviceSpec, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
 
@@ -424,7 +424,7 @@ var _ = Describe("Provisioning", func() {
 	Context("when the deploy returns an adapter error with a user message", func() {
 		It("returns the user error", func() {
 			err := serviceadapter.NewUnknownFailureError("it failed, but all is not lost dear user")
-			fakeDeployer.CreateReturns(0, nil, err)
+			fakeDeployer.CreateReturns(0, nil, nil, err)
 
 			serviceSpec, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
 
@@ -435,7 +435,7 @@ var _ = Describe("Provisioning", func() {
 	Context("when the deploy returns an adapter error with no message", func() {
 		It("returns a generic error", func() {
 			err := serviceadapter.NewUnknownFailureError("")
-			fakeDeployer.CreateReturns(0, nil, err)
+			fakeDeployer.CreateReturns(0, nil, nil, err)
 
 			serviceSpec, provisionErr = b.Provision(context.Background(), instanceID, provisionDetails, asyncAllowed)
 
@@ -1045,7 +1045,7 @@ var _ = Describe("Provisioning", func() {
 				},
 				Private: map[string]string{},
 			}
-			fakeDeployer.CreateReturns(deployTaskID, newlyGeneratedManifest, nil)
+			fakeDeployer.CreateReturns(deployTaskID, newlyGeneratedManifest, nil, nil)
 		})
 
 		It("succeeds when decider succeeds", func() {

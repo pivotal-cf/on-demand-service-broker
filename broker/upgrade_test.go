@@ -54,7 +54,7 @@ var _ = Describe("Upgrade", func() {
 		}
 		logger = loggerFactory.NewWithRequestID()
 		b = createDefaultBroker()
-		fakeDeployer.UpgradeReturns(boshTaskID, []byte("new-manifest-fetched-from-adapter"), nil)
+		fakeDeployer.UpgradeReturns(boshTaskID, []byte("new-manifest-fetched-from-adapter"), nil, nil)
 
 		fakeUAAClient = new(brokerfakes.FakeUAAClient)
 
@@ -68,7 +68,7 @@ var _ = Describe("Upgrade", func() {
 	})
 
 	It("when the deployment goes well deploys with the new planID", func() {
-		upgradeOperationData, _, redeployErr = b.Upgrade(context.Background(), instanceID, details, logger)
+		upgradeOperationData, _, _, redeployErr = b.Upgrade(context.Background(), instanceID, details, logger)
 
 		Expect(redeployErr).NotTo(HaveOccurred())
 		Expect(fakeDeployer.CreateCallCount()).To(Equal(0))
@@ -86,9 +86,9 @@ var _ = Describe("Upgrade", func() {
 	Context("when instance is already up to date", func() {
 		It("should return error", func() {
 			expectedError := broker.NewOperationAlreadyCompletedError(errors.New("instance is already up to date"))
-			fakeDeployer.UpgradeReturns(0, nil, expectedError)
+			fakeDeployer.UpgradeReturns(0, nil, nil, expectedError)
 
-			_, _, redeployErr = b.Upgrade(context.Background(), instanceID, details, logger)
+			_, _, _, redeployErr = b.Upgrade(context.Background(), instanceID, details, logger)
 
 			Expect(redeployErr).To(Equal(expectedError))
 		})
@@ -96,7 +96,7 @@ var _ = Describe("Upgrade", func() {
 
 	Context("when there is a previous deployment for the service instance", func() {
 		It("responds with the correct upgradeOperationData", func() {
-			upgradeOperationData, _, _ = b.Upgrade(context.Background(), instanceID, details, logger)
+			upgradeOperationData, _, _, _ = b.Upgrade(context.Background(), instanceID, details, logger)
 
 			Expect(upgradeOperationData).To(Equal(
 				broker.OperationData{
@@ -113,7 +113,7 @@ var _ = Describe("Upgrade", func() {
 				PlanID: postDeployErrandPlanID,
 			}
 
-			upgradeOperationData, _, _ = b.Upgrade(context.Background(), instanceID, details, logger)
+			upgradeOperationData, _, _, _ = b.Upgrade(context.Background(), instanceID, details, logger)
 
 			_, _, _, contextID, _, _ := fakeDeployer.UpgradeArgsForCall(0)
 			Expect(contextID).NotTo(BeEmpty())
@@ -133,15 +133,15 @@ var _ = Describe("Upgrade", func() {
 
 		It("and the service adapter returns a UnknownFailureError with a user message returns the error for the user", func() {
 			err := serviceadapter.NewUnknownFailureError("error for cf user")
-			fakeDeployer.UpgradeReturns(boshTaskID, nil, err)
-			_, _, redeployErr = b.Upgrade(context.Background(), instanceID, details, logger)
+			fakeDeployer.UpgradeReturns(boshTaskID, nil, nil, err)
+			_, _, _, redeployErr = b.Upgrade(context.Background(), instanceID, details, logger)
 
 			Expect(redeployErr).To(Equal(err))
 		})
 
 		It("and the service adapter returns a UnknownFailureError with no message returns a generic error", func() {
-			fakeDeployer.UpgradeReturns(boshTaskID, nil, serviceadapter.NewUnknownFailureError(""))
-			_, _, redeployErr = b.Upgrade(context.Background(), instanceID, details, logger)
+			fakeDeployer.UpgradeReturns(boshTaskID, nil, nil, serviceadapter.NewUnknownFailureError(""))
+			_, _, _, redeployErr = b.Upgrade(context.Background(), instanceID, details, logger)
 
 			Expect(redeployErr).To(MatchError(ContainSubstring("There was a problem completing your request. Please contact your operations team providing the following information")))
 		})
@@ -149,7 +149,7 @@ var _ = Describe("Upgrade", func() {
 
 	It("when no update details are provided returns an error", func() {
 		details = domain.UpdateDetails{}
-		_, _, redeployErr = b.Upgrade(context.Background(), instanceID, details, logger)
+		_, _, _, redeployErr = b.Upgrade(context.Background(), instanceID, details, logger)
 
 		Expect(redeployErr).To(MatchError(ContainSubstring("no plan ID provided in upgrade request body")))
 	})
@@ -160,7 +160,7 @@ var _ = Describe("Upgrade", func() {
 		details = domain.UpdateDetails{
 			PlanID: planID,
 		}
-		_, _, redeployErr = b.Upgrade(context.Background(), instanceID, details, logger)
+		_, _, _, redeployErr = b.Upgrade(context.Background(), instanceID, details, logger)
 
 		Expect(redeployErr).To(MatchError(ContainSubstring(fmt.Sprintf("plan %s not found", planID))))
 		Expect(logBuffer.String()).To(ContainSubstring(fmt.Sprintf("error: finding plan ID %s", planID)))
@@ -168,8 +168,8 @@ var _ = Describe("Upgrade", func() {
 	})
 
 	It("when there is a task in progress on the instance upgrade returns an OperationInProgressError", func() {
-		fakeDeployer.UpgradeReturns(0, nil, broker.TaskInProgressError{})
-		_, _, redeployErr = b.Upgrade(context.Background(), instanceID, details, logger)
+		fakeDeployer.UpgradeReturns(0, nil, nil, broker.TaskInProgressError{})
+		_, _, _, redeployErr = b.Upgrade(context.Background(), instanceID, details, logger)
 
 		Expect(redeployErr).To(BeAssignableToTypeOf(broker.OperationInProgressError{}))
 	})
@@ -179,7 +179,7 @@ var _ = Describe("Upgrade", func() {
 		fakeAdapter.GeneratePlanSchemaReturns(domain.ServiceSchemas{}, fmt.Errorf("derp!"))
 		broker := createBrokerWithAdapter(fakeAdapter)
 
-		_, _, upgradeErr := broker.Upgrade(context.Background(), instanceID, details, logger)
+		_, _, _, upgradeErr := broker.Upgrade(context.Background(), instanceID, details, logger)
 
 		Expect(fakeAdapter.GeneratePlanSchemaCallCount()).To(Equal(0))
 		Expect(upgradeErr).NotTo(HaveOccurred())
@@ -189,18 +189,25 @@ var _ = Describe("Upgrade", func() {
 		var (
 			newlyGeneratedManifest []byte
 			expectedDashboardURL   string
+			expectedLabels         map[string]any
 		)
 
 		BeforeEach(func() {
 			fakeDecider.DecideOperationReturns(decider.Update, nil)
 			expectedDashboardURL = "http://example.com/dashboard"
 			serviceAdapter.GenerateDashboardUrlReturns(expectedDashboardURL, nil)
-			newlyGeneratedManifest = []byte("name: new-name")
-			fakeDeployer.UpgradeReturns(boshTaskID, newlyGeneratedManifest, nil)
+
+			expectedLabels = map[string]any{"my-postgres-tag": "value"}
+			newlyGeneratedManifest = []byte(fmt.Sprintf(`---
+name: new-name
+tags:
+  my-postgres-tag: "value"
+`))
+			fakeDeployer.UpgradeReturns(boshTaskID, newlyGeneratedManifest, expectedLabels, nil)
 		})
 
 		It("calls the adapter", func() {
-			_, _, upgradeError := b.Upgrade(context.Background(), instanceID, details, logger)
+			_, _, _, upgradeError := b.Upgrade(context.Background(), instanceID, details, logger)
 			Expect(upgradeError).NotTo(HaveOccurred())
 
 			Expect(serviceAdapter.GenerateDashboardUrlCallCount()).To(Equal(1))
@@ -219,10 +226,11 @@ var _ = Describe("Upgrade", func() {
 			Expect(boshManifest).To(Equal(newlyGeneratedManifest))
 		})
 
-		It("returns the dashboard url in the response", func() {
-			_, dashboardURL, _ := b.Upgrade(context.Background(), instanceID, details, logger)
+		It("returns the dashboard url and labels in the response", func() {
+			_, dashboardURL, labels, _ := b.Upgrade(context.Background(), instanceID, details, logger)
 
 			Expect(dashboardURL).To(Equal(expectedDashboardURL))
+			Expect(labels).To(Equal(expectedLabels))
 		})
 
 		When("generating the dashboard fails", func() {
@@ -232,7 +240,7 @@ var _ = Describe("Upgrade", func() {
 			})
 
 			It("returns a failure", func() {
-				_, _, upgradeError := b.Upgrade(context.Background(), instanceID, details, logger)
+				_, _, _, upgradeError := b.Upgrade(context.Background(), instanceID, details, logger)
 
 				Expect(upgradeError).To(MatchError(
 					ContainSubstring("There was a problem completing your request"),
@@ -246,7 +254,7 @@ var _ = Describe("Upgrade", func() {
 				})
 
 				It("succeeds", func() {
-					_, _, upgradeError := b.Upgrade(context.Background(), instanceID, details, logger)
+					_, _, _, upgradeError := b.Upgrade(context.Background(), instanceID, details, logger)
 					Expect(upgradeError).NotTo(HaveOccurred())
 				})
 			})
@@ -261,7 +269,7 @@ var _ = Describe("Upgrade", func() {
 			dashboardURL := "http://example.com/dashboard"
 			serviceAdapter.GenerateDashboardUrlReturns(dashboardURL, nil)
 			newlyGeneratedManifest = []byte("name: new-name")
-			fakeDeployer.UpgradeReturns(boshTaskID, newlyGeneratedManifest, nil)
+			fakeDeployer.UpgradeReturns(boshTaskID, newlyGeneratedManifest, nil, nil)
 			existingClient = map[string]string{
 				"client_id":    "some-id",
 				"redirect_uri": "http://uri.com/example",
@@ -271,7 +279,7 @@ var _ = Describe("Upgrade", func() {
 		})
 
 		It("passes the client to the deployer", func() {
-			_, _, upgradeError := b.Upgrade(context.Background(), instanceID, details, logger)
+			_, _, _, upgradeError := b.Upgrade(context.Background(), instanceID, details, logger)
 			Expect(upgradeError).NotTo(HaveOccurred())
 
 			Expect(fakeDeployer.UpgradeCallCount()).To(Equal(1))
@@ -280,7 +288,7 @@ var _ = Describe("Upgrade", func() {
 		})
 
 		It("updates the service instance client", func() {
-			_, _, upgradeError := b.Upgrade(context.Background(), instanceID, details, logger)
+			_, _, _, upgradeError := b.Upgrade(context.Background(), instanceID, details, logger)
 			Expect(upgradeError).NotTo(HaveOccurred())
 
 			Expect(fakeUAAClient.UpdateClientCallCount()).To(Equal(1))
@@ -296,7 +304,7 @@ var _ = Describe("Upgrade", func() {
 				fakeUAAClient.GetClientReturns(map[string]string{"client_id": "1"}, nil)
 				fakeUAAClient.UpdateClientReturns(nil, errors.New("oh no"))
 
-				_, _, upgradeError := b.Upgrade(context.Background(), instanceID, details, logger)
+				_, _, _, upgradeError := b.Upgrade(context.Background(), instanceID, details, logger)
 
 				Expect(upgradeError).To(HaveOccurred())
 				Expect(upgradeError).To(MatchError(ContainSubstring(
@@ -309,7 +317,7 @@ var _ = Describe("Upgrade", func() {
 			It("returns a generic error message", func() {
 				fakeUAAClient.GetClientReturns(nil, errors.New("oh no"))
 
-				_, _, upgradeError := b.Upgrade(context.Background(), instanceID, details, logger)
+				_, _, _, upgradeError := b.Upgrade(context.Background(), instanceID, details, logger)
 
 				Expect(upgradeError).To(HaveOccurred())
 				Expect(upgradeError).To(MatchError(ContainSubstring(

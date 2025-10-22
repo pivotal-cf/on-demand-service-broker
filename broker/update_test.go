@@ -69,7 +69,7 @@ var _ = Describe("Update", func() {
 
 		planCounts := map[cf.ServicePlan]int{}
 		cfClient.CountInstancesOfServiceOfferingReturns(planCounts, nil)
-		fakeDeployer.UpdateReturns(boshTaskID, []byte("new-manifest-fetched-from-adapter"), nil)
+		fakeDeployer.UpdateReturns(boshTaskID, []byte("new-manifest-fetched-from-adapter"), nil, nil)
 
 		expectedSecretsMap = map[string]string{
 			"foo": "b4r",
@@ -214,7 +214,7 @@ var _ = Describe("Update", func() {
 
 			Context("but there are pending changes", func() {
 				BeforeEach(func() {
-					fakeDeployer.UpdateReturns(boshTaskID, nil, broker.PendingChangesNotAppliedError{})
+					fakeDeployer.UpdateReturns(boshTaskID, nil, nil, broker.PendingChangesNotAppliedError{})
 				})
 
 				It("reports a pending changes are present error", func() {
@@ -713,7 +713,7 @@ var _ = Describe("Update", func() {
 				expectedDashboardURL = "http://example.com/dashboard"
 				serviceAdapter.GenerateDashboardUrlReturns(expectedDashboardURL, nil)
 				newlyGeneratedManifest = []byte("name: new-name")
-				fakeDeployer.UpdateReturns(boshTaskID, newlyGeneratedManifest, nil)
+				fakeDeployer.UpdateReturns(boshTaskID, newlyGeneratedManifest, nil, nil)
 			})
 
 			It("calls the adapter", func() {
@@ -825,8 +825,8 @@ var _ = Describe("Update", func() {
 		var updateDetails domain.UpdateDetails
 
 		BeforeEach(func() {
-			fakeDeployer.UpgradeReturns(50, nil, nil)
-			fakeDeployer.UpdateReturns(-1, nil, errors.New("fail"))
+			fakeDeployer.UpgradeReturns(50, nil, nil, nil)
+			fakeDeployer.UpdateReturns(-1, nil, nil, errors.New("fail"))
 			serviceAdapter.GenerateDashboardUrlReturns("http://some.dashboard.felisia.dev/", nil)
 			fakeDecider.DecideOperationReturns(decider.Upgrade, nil)
 
@@ -861,7 +861,7 @@ var _ = Describe("Update", func() {
 		})
 
 		It("returns an synchronous spec and nil error when the operation has already completed", func() {
-			fakeDeployer.UpgradeReturns(0, []byte{}, broker.NewOperationAlreadyCompletedError(errors.New("done")))
+			fakeDeployer.UpgradeReturns(0, []byte{}, nil, broker.NewOperationAlreadyCompletedError(errors.New("done")))
 
 			updateSpec, updateError = testBroker.Update(context.Background(), instanceID, updateDetails, async)
 
@@ -934,8 +934,8 @@ var _ = Describe("Update", func() {
 
 		It("returns a 'try again' message when deployer reports service errors", func() {
 			for i, t := range testCases {
-				fakeDeployer.UpdateReturns(0, []byte{}, broker.NewServiceError(fmt.Errorf("network timeout")))
-				fakeDeployer.UpgradeReturns(0, []byte{}, broker.NewServiceError(fmt.Errorf("network timeout")))
+				fakeDeployer.UpdateReturns(0, []byte{}, nil, broker.NewServiceError(fmt.Errorf("network timeout")))
+				fakeDeployer.UpgradeReturns(0, []byte{}, nil, broker.NewServiceError(fmt.Errorf("network timeout")))
 
 				updateSpec, updateError = testBroker.Update(context.Background(), instanceID, t, async)
 
@@ -946,8 +946,8 @@ var _ = Describe("Update", func() {
 
 		It("returns an operation in progress error when deployer reports task in progress", func() {
 			for i, t := range testCases {
-				fakeDeployer.UpdateReturns(boshTaskID, nil, broker.TaskInProgressError{})
-				fakeDeployer.UpgradeReturns(boshTaskID, nil, broker.TaskInProgressError{})
+				fakeDeployer.UpdateReturns(boshTaskID, nil, nil, broker.TaskInProgressError{})
+				fakeDeployer.UpgradeReturns(boshTaskID, nil, nil, broker.TaskInProgressError{})
 
 				updateSpec, updateError = testBroker.Update(context.Background(), instanceID, t, async)
 
@@ -958,8 +958,8 @@ var _ = Describe("Update", func() {
 		It("returns an API error when the adapter client fails with UnknownFailureError", func() {
 			for i, t := range testCases {
 				unknownFailureError := serviceadapter.NewUnknownFailureError("unknown failure")
-				fakeDeployer.UpdateReturns(boshTaskID, nil, unknownFailureError)
-				fakeDeployer.UpgradeReturns(boshTaskID, nil, unknownFailureError)
+				fakeDeployer.UpdateReturns(boshTaskID, nil, nil, unknownFailureError)
+				fakeDeployer.UpgradeReturns(boshTaskID, nil, nil, unknownFailureError)
 
 				updateSpec, updateError = testBroker.Update(context.Background(), instanceID, t, async)
 

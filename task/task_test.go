@@ -44,7 +44,7 @@ var _ = Describe("Deployer", func() {
 		secretsMap        map[string]string
 		configsMap        map[string]string
 		boshConfigs       []boshdirector.BoshConfig
-
+		brokerLabels      map[string]any
 		manifestGenerator *fakes.FakeManifestGenerator
 		odbSecrets        *fakes.FakeODBSecrets
 		bulkSetter        *fakes.FakeBulkSetter
@@ -68,9 +68,16 @@ var _ = Describe("Deployer", func() {
 		}
 
 		generatedManifest = "name: a-manifest"
+
+		brokerLabels = map[string]any{
+			"postgres_version": "PostgresSQL 16.6",
+		}
 		boshContextID = ""
 
-		manifestGenerator.GenerateManifestReturns(serviceadapter.MarshalledGenerateManifest{Manifest: generatedManifest}, nil)
+		manifestGenerator.GenerateManifestReturns(serviceadapter.MarshalledGenerateManifest{
+			Manifest: generatedManifest,
+			Labels:   brokerLabels,
+		}, nil)
 		odbSecrets.ReplaceODBRefsStub = func(m string, s []broker.ManifestSecret) string {
 			return m
 		}
@@ -94,7 +101,7 @@ var _ = Describe("Deployer", func() {
 
 	Describe("Create", func() {
 		JustBeforeEach(func() {
-			returnedTaskID, deployedManifest, deployError = deployer.Create(
+			returnedTaskID, deployedManifest, _, deployError = deployer.Create(
 				deploymentName,
 				planID,
 				requestParams,
@@ -179,6 +186,7 @@ var _ = Describe("Deployer", func() {
 				manifestGenerator.GenerateManifestReturns(serviceadapter.MarshalledGenerateManifest{
 					Manifest:          manifestWithRefs,
 					ODBManagedSecrets: managedSecrets,
+					Labels:            brokerLabels,
 				}, nil)
 
 				manifestWithPaths = "name: ((/odb/path/foo))\ncred: ((/odb/path/cred))"
@@ -206,7 +214,7 @@ var _ = Describe("Deployer", func() {
 
 			It("errors when fail to store the secret", func() {
 				bulkSetter.BulkSetReturns(errors.New("what is this?"))
-				_, _, deployError = deployer.Create(deploymentName, planID, requestParams, boshContextID, uaaClientMap, logger)
+				_, _, _, deployError = deployer.Create(deploymentName, planID, requestParams, boshContextID, uaaClientMap, logger)
 				Expect(deployError).To(MatchError(ContainSubstring("what is this?")))
 			})
 
@@ -217,7 +225,7 @@ var _ = Describe("Deployer", func() {
 				})
 
 				It("doesn't error", func() {
-					_, _, deployError = deployer.Create(deploymentName, planID, requestParams, boshContextID, uaaClientMap, logger)
+					_, _, _, deployError = deployer.Create(deploymentName, planID, requestParams, boshContextID, uaaClientMap, logger)
 					Expect(deployError).ToNot(HaveOccurred())
 
 					Expect(bulkSetter.BulkSetCallCount()).To(Equal(0))
@@ -238,7 +246,10 @@ var _ = Describe("Deployer", func() {
 			BeforeEach(func() {
 				By("not having any previous tasks")
 				boshClient.GetTasksInProgressReturns(boshdirector.BoshTasks{}, nil)
-				manifestGenerator.GenerateManifestReturns(serviceadapter.MarshalledGenerateManifest{Manifest: generatedManifest}, nil)
+				manifestGenerator.GenerateManifestReturns(serviceadapter.MarshalledGenerateManifest{
+					Manifest: generatedManifest,
+					Labels:   brokerLabels,
+				}, nil)
 				boshClient.DeployReturns(42, nil)
 			})
 
@@ -256,6 +267,47 @@ var _ = Describe("Deployer", func() {
 				Expect(boshClient.DeployCallCount()).To(Equal(1))
 				deployedManifest, _, _, _ := boshClient.DeployArgsForCall(0)
 				Expect(string(deployedManifest)).To(Equal(generatedManifest))
+			})
+
+			It("returns the labels from the service adapter", func() {
+				returnedTaskID, deployedManifest, actualLabels, deployError := deployer.Create(
+					deploymentName,
+					planID,
+					requestParams,
+					boshContextID,
+					uaaClientMap,
+					logger,
+				)
+
+				Expect(deployError).NotTo(HaveOccurred())
+				Expect(returnedTaskID).To(Equal(boshTaskID))
+				Expect(string(deployedManifest)).To(Equal(generatedManifest))
+				Expect(actualLabels).To(Equal(brokerLabels))
+			})
+
+			Context("when service adapter returns no labels", func() {
+				BeforeEach(func() {
+					manifestGenerator.GenerateManifestReturns(serviceadapter.MarshalledGenerateManifest{
+						Manifest: generatedManifest,
+						Labels:   nil, // No labels from adapter
+					}, nil)
+				})
+
+				It("returns nil labels gracefully", func() {
+					returnedTaskID, deployedManifest, actualLabels, deployError := deployer.Create(
+						deploymentName,
+						planID,
+						requestParams,
+						boshContextID,
+						uaaClientMap,
+						logger,
+					)
+
+					Expect(deployError).NotTo(HaveOccurred())
+					Expect(returnedTaskID).To(Equal(boshTaskID))
+					Expect(string(deployedManifest)).To(Equal(generatedManifest))
+					Expect(actualLabels).To(BeNil())
+				})
 			})
 
 			It("does not return an error", func() {
@@ -355,7 +407,7 @@ var _ = Describe("Deployer", func() {
 			})
 
 			It("starts upgrading successfully", func() {
-				returnedTaskID, deployedManifest, deployError = deployer.Upgrade(
+				returnedTaskID, deployedManifest, _, deployError = deployer.Upgrade(
 					deploymentName,
 					plan,
 					requestParams,
@@ -397,13 +449,29 @@ var _ = Describe("Deployer", func() {
 				Expect(generateManifestProps.RequestParams).To(Equal(requestParams))
 			})
 
+			It("returns the labels from the service adapter", func() {
+				returnedTaskID, deployedManifest, actualLabels, deployError := deployer.Upgrade(
+					deploymentName,
+					plan,
+					requestParams,
+					boshContextID,
+					uaaClientMap,
+					logger,
+				)
+
+				Expect(deployError).NotTo(HaveOccurred())
+				Expect(returnedTaskID).To(Equal(boshTaskID))
+				Expect(string(deployedManifest)).To(Equal(generatedManifest))
+				Expect(actualLabels).To(Equal(brokerLabels))
+			})
+
 			Context("when bosh context ID is provided", func() {
 				BeforeEach(func() {
 					boshContextID = "bosh-context-id"
 				})
 
 				It("invokes boshdirector's Create with context ID", func() {
-					returnedTaskID, deployedManifest, deployError = deployer.Upgrade(
+					returnedTaskID, deployedManifest, _, deployError = deployer.Upgrade(
 						deploymentName,
 						plan,
 						requestParams,
@@ -425,7 +493,7 @@ var _ = Describe("Deployer", func() {
 			})
 
 			It("returns a deployment not found error", func() {
-				returnedTaskID, deployedManifest, deployError = deployer.Upgrade(
+				returnedTaskID, deployedManifest, _, deployError = deployer.Upgrade(
 					deploymentName,
 					plan,
 					requestParams,
@@ -445,7 +513,7 @@ var _ = Describe("Deployer", func() {
 			})
 
 			It("returns a deployment not found error", func() {
-				returnedTaskID, deployedManifest, deployError = deployer.Upgrade(
+				returnedTaskID, deployedManifest, _, deployError = deployer.Upgrade(
 					deploymentName,
 					plan,
 					requestParams,
@@ -460,7 +528,7 @@ var _ = Describe("Deployer", func() {
 		})
 
 		It("returns the bosh task ID and new manifest", func() {
-			returnedTaskID, deployedManifest, deployError = deployer.Upgrade(
+			returnedTaskID, deployedManifest, _, deployError = deployer.Upgrade(
 				deploymentName,
 				plan,
 				requestParams,
@@ -481,7 +549,7 @@ var _ = Describe("Deployer", func() {
 				})
 
 				It("fails because deployment is still in progress", func() {
-					_, _, deployError = deployer.Upgrade(
+					_, _, _, deployError = deployer.Upgrade(
 						deploymentName,
 						plan,
 						requestParams,
@@ -500,7 +568,7 @@ var _ = Describe("Deployer", func() {
 				})
 
 				It("wraps the error", func() {
-					_, _, deployError = deployer.Upgrade(
+					_, _, _, deployError = deployer.Upgrade(
 						deploymentName,
 						plan,
 						requestParams,
@@ -519,7 +587,7 @@ var _ = Describe("Deployer", func() {
 				boshClient.GetTasksInProgressReturns(boshdirector.BoshTasks{}, nil)
 				boshClient.DeployReturns(0, errors.New("error deploying"))
 
-				returnedTaskID, deployedManifest, deployError = deployer.Upgrade(
+				returnedTaskID, deployedManifest, _, deployError = deployer.Upgrade(
 					deploymentName,
 					plan,
 					requestParams,
@@ -536,7 +604,7 @@ var _ = Describe("Deployer", func() {
 			It("sends the old configs to service adapter", func() {
 				boshClient.GetConfigsReturns(boshConfigs, nil)
 
-				returnedTaskID, deployedManifest, deployError = deployer.Upgrade(
+				returnedTaskID, deployedManifest, _, deployError = deployer.Upgrade(
 					deploymentName,
 					plan,
 					requestParams,
@@ -554,7 +622,7 @@ var _ = Describe("Deployer", func() {
 			It("wraps the error", func() {
 				boshClient.GetConfigsReturns(nil, errors.New("some-error"))
 
-				returnedTaskID, deployedManifest, deployError = deployer.Upgrade(
+				returnedTaskID, deployedManifest, _, deployError = deployer.Upgrade(
 					deploymentName,
 					plan,
 					requestParams,
@@ -572,7 +640,7 @@ var _ = Describe("Deployer", func() {
 				deployer.DisableBoshConfigs = true
 				boshClient.DeployReturns(boshTaskID, nil)
 
-				returnedTaskID, deployedManifest, deployError = deployer.Upgrade(
+				returnedTaskID, deployedManifest, _, deployError = deployer.Upgrade(
 					deploymentName,
 					plan,
 					requestParams,
@@ -610,7 +678,7 @@ var _ = Describe("Deployer", func() {
 			for k, v := range params {
 				copyParams[k] = v
 			}
-			_, _, err := deployer.Update(
+			_, _, _, err := deployer.Update(
 				deploymentName,
 				planID,
 				params,
@@ -629,7 +697,7 @@ var _ = Describe("Deployer", func() {
 
 		Context("passing secret map", func() {
 			It("manifest regeneration is passed the secrets map", func() {
-				_, _, err := deployer.Update(
+				_, _, _, err := deployer.Update(
 					deploymentName,
 					planID,
 					nil,
@@ -654,7 +722,7 @@ var _ = Describe("Deployer", func() {
 				manifestGenerator.GenerateManifestReturns(serviceadapter.MarshalledGenerateManifest{}, errors.New("manifest fail"))
 			})
 			It("wraps the error", func() {
-				returnedTaskID, deployedManifest, deployError = deployer.Update(
+				returnedTaskID, deployedManifest, _, deployError = deployer.Update(
 					deploymentName,
 					planID,
 					requestParams,
@@ -678,14 +746,20 @@ var _ = Describe("Deployer", func() {
 						_ *log.Logger,
 					) (serviceadapter.MarshalledGenerateManifest, error) {
 						if len(requestParams) > 0 {
-							return serviceadapter.MarshalledGenerateManifest{Manifest: generatedManifest}, nil
+							return serviceadapter.MarshalledGenerateManifest{
+								Manifest: generatedManifest,
+								Labels:   brokerLabels,
+							}, nil
 						}
-						return serviceadapter.MarshalledGenerateManifest{Manifest: string(generateManifestProps.OldManifest)}, nil
+						return serviceadapter.MarshalledGenerateManifest{
+							Manifest: string(generateManifestProps.OldManifest),
+							Labels:   brokerLabels,
+						}, nil
 					}
 
 					boshClient.DeployReturns(42, nil)
 
-					returnedTaskID, deployedManifest, deployError = deployer.Update(
+					returnedTaskID, deployedManifest, _, deployError = deployer.Update(
 						deploymentName,
 						planID,
 						requestParams,
@@ -724,11 +798,29 @@ var _ = Describe("Deployer", func() {
 					Expect(returnedTaskID).To(Equal(boshTaskID))
 				})
 
+				It("returns the labels from the service adapter", func() {
+					returnedTaskID, deployedManifest, actualLabels, deployError := deployer.Update(
+						deploymentName,
+						planID,
+						requestParams,
+						previousPlanID,
+						boshContextID,
+						secretsMap,
+						uaaClientMap,
+						logger,
+					)
+
+					Expect(deployError).NotTo(HaveOccurred())
+					Expect(returnedTaskID).To(Equal(boshTaskID))
+					Expect(string(deployedManifest)).To(Equal(generatedManifest))
+					Expect(actualLabels).To(Equal(brokerLabels))
+				})
+
 				Context("and there are no parameters configured", func() {
 					It("deploys successfully", func() {
 						requestParams = map[string]interface{}{}
 
-						returnedTaskID, deployedManifest, deployError = deployer.Update(
+						returnedTaskID, deployedManifest, _, deployError = deployer.Update(
 							deploymentName,
 							planID,
 							requestParams,
@@ -758,7 +850,7 @@ var _ = Describe("Deployer", func() {
 				})
 
 				It("wraps the error", func() {
-					returnedTaskID, deployedManifest, deployError = deployer.Update(
+					returnedTaskID, deployedManifest, _, deployError = deployer.Update(
 						deploymentName,
 						planID,
 						requestParams,
@@ -781,7 +873,7 @@ var _ = Describe("Deployer", func() {
 			})
 
 			JustBeforeEach(func() {
-				returnedTaskID, deployedManifest, deployError = deployer.Update(
+				returnedTaskID, deployedManifest, _, deployError = deployer.Update(
 					deploymentName,
 					planID,
 					requestParams,
@@ -828,7 +920,7 @@ var _ = Describe("Deployer", func() {
 			odbSecrets.GenerateSecretPathsReturns(manifestSecrets)
 			odbSecrets.ReplaceODBRefsReturns(manifestWithInterpolatedSecrets)
 
-			_, deployedManifest, deployError = deployer.Update(
+			_, deployedManifest, _, deployError = deployer.Update(
 				deploymentName,
 				planID,
 				requestParams,
@@ -848,7 +940,7 @@ var _ = Describe("Deployer", func() {
 			})
 
 			It("returns a deployment not found error", func() {
-				returnedTaskID, deployedManifest, deployError = deployer.Update(
+				returnedTaskID, deployedManifest, _, deployError = deployer.Update(
 					deploymentName,
 					planID,
 					requestParams,
@@ -871,7 +963,7 @@ var _ = Describe("Deployer", func() {
 				})
 
 				It("fails because deployment is still in progress", func() {
-					_, _, deployError = deployer.Update(
+					_, _, _, deployError = deployer.Update(
 						deploymentName,
 						planID,
 						requestParams,
@@ -892,7 +984,7 @@ var _ = Describe("Deployer", func() {
 				})
 
 				It("wraps the error", func() {
-					_, _, deployError = deployer.Update(
+					_, _, _, deployError = deployer.Update(
 						deploymentName,
 						planID,
 						requestParams,
@@ -914,7 +1006,7 @@ var _ = Describe("Deployer", func() {
 			})
 
 			It("returns a deployment not found error", func() {
-				returnedTaskID, deployedManifest, deployError = deployer.Update(
+				returnedTaskID, deployedManifest, _, deployError = deployer.Update(
 					deploymentName,
 					planID,
 					requestParams,
@@ -936,7 +1028,7 @@ var _ = Describe("Deployer", func() {
 			})
 
 			JustBeforeEach(func() {
-				returnedTaskID, deployedManifest, deployError = deployer.Update(
+				returnedTaskID, deployedManifest, _, deployError = deployer.Update(
 					deploymentName,
 					planID,
 					requestParams,
@@ -960,7 +1052,7 @@ var _ = Describe("Deployer", func() {
 			})
 
 			JustBeforeEach(func() {
-				returnedTaskID, deployedManifest, deployError = deployer.Update(
+				returnedTaskID, deployedManifest, _, deployError = deployer.Update(
 					deploymentName,
 					planID,
 					requestParams,
@@ -984,7 +1076,7 @@ var _ = Describe("Deployer", func() {
 			})
 
 			It("doesn't call UpdateConfig or GetConfigs", func() {
-				returnedTaskID, _, deployError = deployer.Update(
+				returnedTaskID, _, _, deployError = deployer.Update(
 					deploymentName,
 					planID,
 					requestParams,
@@ -1012,7 +1104,7 @@ var _ = Describe("Deployer", func() {
 			manifestGenerator.GenerateManifestReturns(serviceadapter.MarshalledGenerateManifest{Manifest: string(generatedManifest)}, nil)
 			boshClient.DeployReturns(42, nil)
 
-			returnedTaskID, deployedManifest, deployError = deployer.Update(
+			returnedTaskID, deployedManifest, _, deployError = deployer.Update(
 				deploymentName,
 				planID,
 				requestParams,
@@ -1059,7 +1151,7 @@ instance_groups:
 			manifestGenerator.GenerateManifestReturns(serviceadapter.MarshalledGenerateManifest{Manifest: string(generatedManifest)}, nil)
 			boshClient.DeployReturns(42, nil)
 
-			returnedTaskID, deployedManifest, deployError = deployer.Update(
+			returnedTaskID, deployedManifest, _, deployError = deployer.Update(
 				deploymentName,
 				planID,
 				requestParams,
@@ -1094,7 +1186,7 @@ tags:
 `)
 			manifestGenerator.GenerateManifestReturns(serviceadapter.MarshalledGenerateManifest{Manifest: string(generatedManifest)}, nil)
 
-			_, _, deployError = deployer.Update(
+			_, _, _, deployError = deployer.Update(
 				deploymentName,
 				planID,
 				requestParams,
@@ -1124,7 +1216,7 @@ features:
 `)
 			manifestGenerator.GenerateManifestReturns(serviceadapter.MarshalledGenerateManifest{Manifest: string(generatedManifest)}, nil)
 
-			_, _, deployError = deployer.Update(
+			_, _, _, deployError = deployer.Update(
 				deploymentName,
 				planID,
 				requestParams,
@@ -1154,7 +1246,7 @@ features:
 `)
 			manifestGenerator.GenerateManifestReturns(serviceadapter.MarshalledGenerateManifest{Manifest: string(generatedManifest)}, nil)
 
-			_, _, deployError = deployer.Update(
+			_, _, _, deployError = deployer.Update(
 				deploymentName,
 				planID,
 				requestParams,
@@ -1192,7 +1284,7 @@ instance_groups:
 `)
 			manifestGenerator.GenerateManifestReturns(serviceadapter.MarshalledGenerateManifest{Manifest: string(generatedManifest)}, nil)
 
-			_, _, deployError = deployer.Update(
+			_, _, _, deployError = deployer.Update(
 				deploymentName,
 				planID,
 				requestParams,
@@ -1220,7 +1312,7 @@ instance_groups:
 			manifestGenerator.GenerateManifestReturns(serviceadapter.MarshalledGenerateManifest{Manifest: string(generatedManifest)}, nil)
 			boshClient.DeployReturns(42, nil)
 
-			returnedTaskID, deployedManifest, deployError = deployer.Update(
+			returnedTaskID, deployedManifest, _, deployError = deployer.Update(
 				deploymentName,
 				planID,
 				requestParams,
@@ -1247,7 +1339,7 @@ instance_groups:
 			manifestGenerator.GenerateManifestReturns(serviceadapter.MarshalledGenerateManifest{Manifest: string(generatedManifestWithInvalidYAML)}, nil)
 			boshClient.DeployReturns(42, nil)
 
-			returnedTaskID, deployedManifest, deployError = deployer.Update(
+			returnedTaskID, deployedManifest, _, deployError = deployer.Update(
 				deploymentName,
 				planID,
 				requestParams,

@@ -88,10 +88,10 @@ func (d Deployer) Create(
 	boshContextID string,
 	uaaClientObject map[string]string,
 	logger *log.Logger,
-) (int, []byte, error) {
+) (int, []byte, map[string]any, error) {
 	err := d.assertNoOperationsInProgress(deploymentName, logger)
 	if err != nil {
-		return 0, nil, err
+		return 0, nil, nil, err
 	}
 
 	generateManifestProperties := GenerateManifestProperties{
@@ -111,22 +111,22 @@ func (d Deployer) Upgrade(
 	boshContextID string,
 	uaaClientObject map[string]string,
 	logger *log.Logger,
-) (int, []byte, error) {
+) (int, []byte, map[string]any, error) {
 	err := d.assertNoOperationsInProgress(deploymentName, logger)
 	if err != nil {
-		return 0, nil, err
+		return 0, nil, nil, err
 	}
 
 	oldManifest, err := d.getDeploymentManifest(deploymentName, logger)
 	if err != nil {
-		return 0, nil, err
+		return 0, nil, nil, err
 	}
 
 	var oldConfigs map[string]string
 	if !d.DisableBoshConfigs {
 		oldConfigs, err = d.getConfigMap(deploymentName, logger)
 		if err != nil {
-			return 0, nil, err
+			return 0, nil, nil, err
 		}
 	}
 
@@ -171,27 +171,27 @@ func (d Deployer) Update(
 	oldSecretsMap map[string]string,
 	uaaClientObject map[string]string,
 	logger *log.Logger,
-) (int, []byte, error) {
+) (int, []byte, map[string]any, error) {
 	if err := d.assertNoOperationsInProgress(deploymentName, logger); err != nil {
-		return 0, nil, err
+		return 0, nil, nil, err
 	}
 
 	oldManifest, err := d.getDeploymentManifest(deploymentName, logger)
 	if err != nil {
-		return 0, nil, err
+		return 0, nil, nil, err
 	}
 
 	var oldConfigs map[string]string
 	if !d.DisableBoshConfigs {
 		oldConfigs, err = d.getConfigMap(deploymentName, logger)
 		if err != nil {
-			return 0, nil, err
+			return 0, nil, nil, err
 		}
 	}
 
 	if !d.SkipCheckForPendingChanges {
 		if err := d.checkForPendingChanges(deploymentName, previousPlanID, oldManifest, oldSecretsMap, oldConfigs, logger); err != nil {
-			return 0, nil, err
+			return 0, nil, nil, err
 		}
 	}
 
@@ -287,38 +287,38 @@ func (d Deployer) checkForPendingChanges(
 	return nil
 }
 
-func (d Deployer) doDeploy(generateManifestProperties GenerateManifestProperties, operationType, boshContextID string, logger *log.Logger) (int, []byte, error) {
+func (d Deployer) doDeploy(generateManifestProperties GenerateManifestProperties, operationType, boshContextID string, logger *log.Logger) (int, []byte, map[string]any, error) {
 	generateManifestOutput, err := d.manifestGenerator.GenerateManifest(generateManifestProperties, logger)
 	if err != nil {
-		return 0, nil, err
+		return 0, nil, nil, err
 	}
 	manifest := generateManifestOutput.Manifest
 
 	if d.bulkSetter != nil && !reflect.ValueOf(d.bulkSetter).IsNil() {
 		secrets := d.odbSecrets.GenerateSecretPaths(generateManifestProperties.DeploymentName, manifest, generateManifestOutput.ODBManagedSecrets)
 		if err = d.bulkSetter.BulkSet(secrets); err != nil {
-			return 0, nil, err
+			return 0, nil, nil, err
 		}
 		manifest = d.odbSecrets.ReplaceODBRefs(generateManifestOutput.Manifest, secrets)
 	}
 
 	if d.DisableBoshConfigs && len(generateManifestOutput.Configs) > 0 {
-		return 0, nil, errors.New("adapter returned bosh configs but feature is turned off")
+		return 0, nil, nil, errors.New("adapter returned bosh configs but feature is turned off")
 	}
 	if !d.DisableBoshConfigs {
 		for configType, configContent := range generateManifestOutput.Configs {
 			err := d.boshClient.UpdateConfig(configType, generateManifestProperties.DeploymentName, []byte(configContent), logger)
 			if err != nil {
-				return 0, nil, fmt.Errorf("error updating config: %s\n", err)
+				return 0, nil, nil, fmt.Errorf("error updating config: %s\n", err)
 			}
 		}
 	}
 
 	boshTaskID, err := d.boshClient.Deploy([]byte(manifest), boshContextID, logger, boshdirector.NewAsyncTaskReporter())
 	if err != nil {
-		return 0, nil, fmt.Errorf("error deploying instance: %s\n", err)
+		return 0, nil, nil, fmt.Errorf("error deploying instance: %s\n", err)
 	}
 	logger.Printf("Bosh task ID for %s deployment %s is %d\n", operationType, generateManifestProperties.DeploymentName, boshTaskID)
 
-	return boshTaskID, []byte(manifest), nil
+	return boshTaskID, []byte(manifest), generateManifestOutput.Labels, nil
 }
