@@ -154,7 +154,7 @@ func (b *Broker) doUpdate(ctx context.Context, instanceID string, details domain
 		return domain.UpdateServiceSpec{}, b.processError(NewGenericError(brokercontext.WithBoshTaskID(ctx, boshTaskID), err), logger)
 	}
 
-	tags := getTagsFromManifest(manifest)
+	tags := getTagsFromManifest(manifest, logger)
 	return domain.UpdateServiceSpec{
 		IsAsync:       true,
 		DashboardURL:  dashboardUrl,

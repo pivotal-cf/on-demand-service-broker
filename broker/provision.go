@@ -199,7 +199,7 @@ func (b *Broker) provisionInstance(ctx context.Context, instanceID string, detai
 		Errands:       plan.PostDeployErrands(),
 	}
 
-	tags := getTagsFromManifest(manifest)
+	tags := getTagsFromManifest(manifest, logger)
 
 	logger.Printf("getting tags from bosh manifest %v", tags)
 	// Dashboard url optional

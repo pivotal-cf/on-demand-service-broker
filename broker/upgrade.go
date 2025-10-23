@@ -68,7 +68,7 @@ func (b *Broker) Upgrade(ctx context.Context, instanceID string, details domain.
 	}
 
 	abridgedPlan := plan.AdapterPlan(b.serviceOffering.GlobalProperties)
-	tags := getTagsFromManifest(manifest)
+	tags := getTagsFromManifest(manifest, logger)
 
 	dashboardUrl, err := b.adapterClient.GenerateDashboardUrl(instanceID, abridgedPlan, manifest, logger)
 	if err != nil {
