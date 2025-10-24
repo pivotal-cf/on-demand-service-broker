@@ -1,4 +1,4 @@
-# code.cloudfoundry.org/brokerapi/v13 v13.0.10
+# code.cloudfoundry.org/brokerapi/v13 v13.0.11
 ## explicit; go 1.24.0
 code.cloudfoundry.org/brokerapi/v13
 code.cloudfoundry.org/brokerapi/v13/auth
