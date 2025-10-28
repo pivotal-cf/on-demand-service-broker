@@ -454,7 +454,7 @@ var _ = Describe("ServiceInstancesClient", func() {
 
 			cfApi.RouteToHandler(http.MethodPut, regexp.MustCompile(`/v2/service_instances/*`), ghttp.CombineHandlers(
 				ghttp.VerifyRequest(http.MethodPut, fmt.Sprintf(`/v2/service_instances/%s`, expectedServiceInstanceGUID), "accepts_incomplete=true"),
-				ghttp.VerifyBody([]byte(`{"maintenance_info":{"version":"1.2.3"}}`)),
+				ghttp.VerifyBody([]byte(`{"maintenance_info":{"version":"1.2.3"},"parameters":{}}`)),
 				ghttp.RespondWith(http.StatusAccepted, serviceInstanceResponse),
 			))
 
@@ -472,7 +472,7 @@ var _ = Describe("ServiceInstancesClient", func() {
 
 			cfApi.RouteToHandler(http.MethodPut, regexp.MustCompile(`/v2/service_instances/*`), ghttp.CombineHandlers(
 				ghttp.VerifyRequest(http.MethodPut, fmt.Sprintf(`/v2/service_instances/%s`, expectedServiceInstanceGUID), "accepts_incomplete=true"),
-				ghttp.VerifyBody([]byte(`{"maintenance_info":{"version":"1.2.3"}}`)),
+				ghttp.VerifyBody([]byte(`{"maintenance_info":{"version":"1.2.3"},"parameters":{}}`)),
 				ghttp.RespondWith(http.StatusInternalServerError, ""),
 			))
 
@@ -490,7 +490,7 @@ var _ = Describe("ServiceInstancesClient", func() {
 
 			cfApi.RouteToHandler(http.MethodPut, regexp.MustCompile(`/v2/service_instances/*`), ghttp.CombineHandlers(
 				ghttp.VerifyRequest(http.MethodPut, fmt.Sprintf(`/v2/service_instances/%s`, expectedServiceInstanceGUID), "accepts_incomplete=true"),
-				ghttp.VerifyBody([]byte(`{"maintenance_info":{"version":"1.2.3"}}`)),
+				ghttp.VerifyBody([]byte(`{"maintenance_info":{"version":"1.2.3"},"parameters":{}}`)),
 				ghttp.RespondWith(http.StatusAccepted, "this-is-not-json"),
 			))
 
