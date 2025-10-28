@@ -5,7 +5,7 @@ go 1.24.0
 require (
 	code.cloudfoundry.org/brokerapi/v13 v13.0.11
 	code.cloudfoundry.org/credhub-cli v0.0.0-20250922235709-cc15f8fa273c
-	code.cloudfoundry.org/lager/v3 v3.52.0
+	code.cloudfoundry.org/lager/v3 v3.53.0
 	github.com/blang/semver/v4 v4.0.0
 	github.com/cloudfoundry-community/go-uaa v0.3.5
 	github.com/cloudfoundry/bosh-cli/v7 v7.9.13
@@ -13,7 +13,7 @@ require (
 	github.com/craigfurman/herottp v0.0.0-20190418132442-c546d62f2a8d
 	github.com/gorilla/mux v1.8.1
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.12.0
-	github.com/onsi/ginkgo/v2 v2.27.1
+	github.com/onsi/ginkgo/v2 v2.27.2
 	github.com/onsi/gomega v1.38.2
 	github.com/pborman/uuid v1.2.1
 	github.com/pivotal-cf/on-demand-services-sdk v0.49.4
@@ -52,7 +52,6 @@ require (
 	github.com/rogpeppe/go-internal v1.14.1 // indirect
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
-	go.uber.org/automaxprocs v1.6.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/crypto v0.43.0 // indirect
 	golang.org/x/mod v0.29.0 // indirect
