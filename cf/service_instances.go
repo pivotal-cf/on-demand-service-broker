@@ -189,9 +189,13 @@ func (c Client) getInstances(plans []ServicePlan, query string, logger *log.Logg
 
 func serialiseMaintenanceInfo(maintenanceInfo MaintenanceInfo) (string, error) {
 	var requestBody struct {
-		MaintenanceInfo MaintenanceInfo `json:"maintenance_info"`
+		MaintenanceInfo MaintenanceInfo        `json:"maintenance_info"`
+		Parameters      map[string]interface{} `json:"parameters,omitempty"`
 	}
 	requestBody.MaintenanceInfo = maintenanceInfo
+	requestBody.Parameters = map[string]interface{}{
+		"force_upgrade": true,
+	}
 	serialisedRequestBody, err := json.Marshal(requestBody)
 	if err != nil {
 		return "", err
