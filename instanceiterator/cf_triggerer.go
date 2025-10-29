@@ -37,13 +37,9 @@ func (t *CFTriggerer) TriggerOperation(instance service.Instance) (TriggeredOper
 		return TriggeredOperation{}, errors.Wrapf(err, "failed to trigger operation for instance %q", instance.GUID)
 	}
 
-	// Force upgrade by slightly modifying maintenance info version
+	// Force upgrade by setting a hardcoded version
 	maintenanceInfo := servicePlan.ServicePlanEntity.MaintenanceInfo
-	if maintenanceInfo.Version == "" {
-		maintenanceInfo.Version = "0.0.1"
-	} else {
-		maintenanceInfo.Version = maintenanceInfo.Version + ".1"
-	}
+	maintenanceInfo.Version = "999.999.999"
 
 	lastOperation, err := t.cfClient.UpgradeServiceInstance(instance.GUID, maintenanceInfo, t.logger)
 	if err != nil {
