@@ -89,7 +89,7 @@ func (b *Broker) Provision(
 
 	operationDataJSON, err := json.Marshal(operationData)
 	if err != nil {
-		return domain.ProvisionedServiceSpec{}, b.processError(NewGenericError(brokercontext.WithBoshTaskID(ctx, operationData.BoshTaskID), err), logger)
+		return domain.ProvisionedServiceSpec{}, b.processError(err, logger)
 	}
 
 	return domain.ProvisionedServiceSpec{
@@ -170,8 +170,6 @@ func (b *Broker) provisionInstance(ctx context.Context, instanceID string, detai
 		serviceInstanceClient,
 		logger,
 	)
-	logger.Printf("getting manifest from bosh for deployment %s", string(manifest))
-
 	switch err := err.(type) {
 	case boshdirector.RequestError:
 		return errs(NewBoshRequestError("create", err))
@@ -200,8 +198,6 @@ func (b *Broker) provisionInstance(ctx context.Context, instanceID string, detai
 	}
 
 	tags := getTagsFromManifest(manifest, logger)
-
-	logger.Printf("getting tags from bosh manifest %v", tags)
 	// Dashboard url optional
 	if _, ok := err.(serviceadapter.NotImplementedError); ok {
 		return operationData, dashboardUrl, tags, nil
