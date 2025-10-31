@@ -67,7 +67,7 @@ func (b *Broker) Update(
 }
 
 func (b *Broker) doUpgrade(ctx context.Context, instanceID string, details domain.UpdateDetails, logger *log.Logger) (domain.UpdateServiceSpec, error) {
-	operationData, dashboardURL, err := b.Upgrade(ctx, instanceID, details, logger)
+	operationData, dashboardURL, tags, err := b.Upgrade(ctx, instanceID, details, logger)
 	if err != nil {
 		if _, ok := err.(OperationAlreadyCompletedError); ok {
 			return domain.UpdateServiceSpec{IsAsync: false}, nil
@@ -80,7 +80,14 @@ func (b *Broker) doUpgrade(ctx context.Context, instanceID string, details domai
 		return domain.UpdateServiceSpec{}, b.processError(NewGenericError(ctx, err), logger)
 	}
 
-	return domain.UpdateServiceSpec{IsAsync: true, OperationData: string(operationDataJSON), DashboardURL: dashboardURL}, nil
+	return domain.UpdateServiceSpec{
+		IsAsync:       true,
+		OperationData: string(operationDataJSON),
+		DashboardURL:  dashboardURL,
+		Metadata: domain.InstanceMetadata{
+			Labels: toInstanceMetadataLabels(tags),
+		},
+	}, nil
 }
 
 func (b *Broker) doUpdate(ctx context.Context, instanceID string, details domain.UpdateDetails, detailsMap, contextMap map[string]interface{}, siClient map[string]string, logger *log.Logger) (domain.UpdateServiceSpec, error) {
@@ -147,7 +154,15 @@ func (b *Broker) doUpdate(ctx context.Context, instanceID string, details domain
 		return domain.UpdateServiceSpec{}, b.processError(NewGenericError(brokercontext.WithBoshTaskID(ctx, boshTaskID), err), logger)
 	}
 
-	return domain.UpdateServiceSpec{IsAsync: true, OperationData: string(operationData), DashboardURL: dashboardUrl}, nil
+	tags := getTagsFromManifest(manifest, logger)
+	return domain.UpdateServiceSpec{
+		IsAsync:       true,
+		DashboardURL:  dashboardUrl,
+		OperationData: string(operationData),
+		Metadata: domain.InstanceMetadata{
+			Labels: toInstanceMetadataLabels(tags),
+		},
+	}, nil
 }
 
 func (b *Broker) handleUpdateError(ctx context.Context, err error, logger *log.Logger) (domain.UpdateServiceSpec, error) {
