@@ -5,7 +5,7 @@ go 1.24.0
 require (
 	code.cloudfoundry.org/brokerapi/v13 v13.0.12
 	code.cloudfoundry.org/credhub-cli v0.0.0-20250922235709-cc15f8fa273c
-	code.cloudfoundry.org/lager/v3 v3.53.0
+	code.cloudfoundry.org/lager/v3 v3.54.0
 	github.com/blang/semver/v4 v4.0.0
 	github.com/cloudfoundry-community/go-uaa v0.3.5
 	github.com/cloudfoundry/bosh-cli/v7 v7.9.13
@@ -57,8 +57,8 @@ require (
 	golang.org/x/mod v0.29.0 // indirect
 	golang.org/x/net v0.46.0 // indirect
 	golang.org/x/oauth2 v0.30.0 // indirect
-	golang.org/x/sync v0.17.0 // indirect
-	golang.org/x/sys v0.37.0 // indirect
+	golang.org/x/sync v0.18.0 // indirect
+	golang.org/x/sys v0.38.0 // indirect
 	golang.org/x/text v0.30.0 // indirect
 	golang.org/x/tools v0.38.0 // indirect
 	google.golang.org/protobuf v1.36.10 // indirect
