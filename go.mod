@@ -4,12 +4,12 @@ go 1.24.0
 
 require (
 	code.cloudfoundry.org/brokerapi/v13 v13.0.12
-	code.cloudfoundry.org/credhub-cli v0.0.0-20251117141034-5ba9bfaa2649
+	code.cloudfoundry.org/credhub-cli v0.0.0-20251120201329-a2c40328cdc4
 	code.cloudfoundry.org/lager/v3 v3.55.0
 	github.com/blang/semver/v4 v4.0.0
 	github.com/cloudfoundry-community/go-uaa v0.3.5
 	github.com/cloudfoundry/bosh-cli/v7 v7.9.13
-	github.com/cloudfoundry/bosh-utils v0.0.569
+	github.com/cloudfoundry/bosh-utils v0.0.570
 	github.com/craigfurman/herottp v0.0.0-20190418132442-c546d62f2a8d
 	github.com/gorilla/mux v1.8.1
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.12.0
@@ -24,12 +24,12 @@ require (
 )
 
 require (
-	code.cloudfoundry.org/tlsconfig v0.34.0 // indirect
+	code.cloudfoundry.org/tlsconfig v0.40.0 // indirect
 	github.com/Masterminds/semver/v3 v3.4.0 // indirect
 	github.com/bmatcuk/doublestar v1.3.4 // indirect
 	github.com/charlievieth/fs v0.0.3 // indirect
 	github.com/cloudfoundry/go-socks5 v0.0.0-20250423223041-4ad5fea42851 // indirect
-	github.com/cloudfoundry/socks5-proxy v0.2.160 // indirect
+	github.com/cloudfoundry/socks5-proxy v0.2.161 // indirect
 	github.com/cppforlife/go-semi-semantic v0.0.0-20160921010311-576b6af77ae4 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
