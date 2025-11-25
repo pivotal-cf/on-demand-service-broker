@@ -100,8 +100,8 @@ github.com/openzipkin/zipkin-go v0.4.3 h1:9EGwpqkgnwdEIJ+Od7QVSEIH+ocmm5nPat0G7s
 github.com/openzipkin/zipkin-go v0.4.3/go.mod h1:M9wCJZFWCo2RiY+o1eBCEMe0Dp2S5LDHcMZmk3RmK7c=
 github.com/pborman/uuid v1.2.1 h1:+ZZIw58t/ozdjRaXh/3awHfmWRbzYxJoAdNJxe/3pvw=
 github.com/pborman/uuid v1.2.1/go.mod h1:X/NO0urCmaxf9VXbdlT7C2Yzkj2IKimNn4k+gtPdI/k=
-github.com/pivotal-cf/on-demand-services-sdk v0.49.7-0.20251124125218-4e7e597e69b6 h1:DHEOGgpdp4M7O5RIFe0oUPXxqkXEMy8Q3eA1g5VNU88=
-github.com/pivotal-cf/on-demand-services-sdk v0.49.7-0.20251124125218-4e7e597e69b6/go.mod h1:kwTc6AgeoEc9HIt2x6uuMQgruvC7AXCIxqDHSaofzZY=
+github.com/pivotal-cf/on-demand-services-sdk v0.49.7 h1:9oWNxGZLb+UaBnThoBPS+x5aMCMtMLhlUN6790XwTO0=
+github.com/pivotal-cf/on-demand-services-sdk v0.49.7/go.mod h1:kwTc6AgeoEc9HIt2x6uuMQgruvC7AXCIxqDHSaofzZY=
 github.com/pivotal-cf/paraphernalia v0.0.0-20180203224945-a64ae2051c20 h1:DR5eMfe2+6GzLkVyWytdtgUxgbPiOfvKDuqityTV3y8=
 github.com/pivotal-cf/paraphernalia v0.0.0-20180203224945-a64ae2051c20/go.mod h1:Y3IqE20LKprEpLkXb7gXinJf4vvDdQe/BS8E4kL/dgE=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
