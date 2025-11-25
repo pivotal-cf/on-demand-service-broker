@@ -26,5 +26,4 @@ go run github.com/onsi/ginkgo/v2/ginkgo -r \
   --race \
   --fail-on-pending \
   --skip-package=upgrade_deployment_tests \
-  --skip-package=telemetry_test \
   "$@"
