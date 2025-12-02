@@ -4,7 +4,7 @@ go 1.24.0
 
 require (
 	code.cloudfoundry.org/brokerapi/v13 v13.0.13
-	code.cloudfoundry.org/credhub-cli v0.0.0-20251125211615-1945033c8416
+	code.cloudfoundry.org/credhub-cli v0.0.0-20251202214439-723ee0594113
 	code.cloudfoundry.org/lager/v3 v3.55.0
 	github.com/blang/semver/v4 v4.0.0
 	github.com/cloudfoundry-community/go-uaa v0.3.5
