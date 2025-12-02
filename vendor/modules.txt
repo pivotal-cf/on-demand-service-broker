@@ -9,7 +9,7 @@ code.cloudfoundry.org/brokerapi/v13/internal/blog
 code.cloudfoundry.org/brokerapi/v13/internal/middleware
 code.cloudfoundry.org/brokerapi/v13/middlewares
 code.cloudfoundry.org/brokerapi/v13/utils
-# code.cloudfoundry.org/credhub-cli v0.0.0-20251202214439-723ee0594113
+# code.cloudfoundry.org/credhub-cli v0.0.0-20251202215125-29206b8257c2
 ## explicit; go 1.24.0
 code.cloudfoundry.org/credhub-cli/credhub
 code.cloudfoundry.org/credhub-cli/credhub/auth
@@ -48,7 +48,7 @@ github.com/cloudfoundry/bosh-cli/v7/common/util
 github.com/cloudfoundry/bosh-cli/v7/director
 github.com/cloudfoundry/bosh-cli/v7/io
 github.com/cloudfoundry/bosh-cli/v7/uaa
-# github.com/cloudfoundry/bosh-utils v0.0.574
+# github.com/cloudfoundry/bosh-utils v0.0.575
 ## explicit; go 1.24.0
 github.com/cloudfoundry/bosh-utils/crypto
 github.com/cloudfoundry/bosh-utils/errors
@@ -116,7 +116,7 @@ github.com/google/uuid
 # github.com/gorilla/mux v1.8.1
 ## explicit; go 1.20
 github.com/gorilla/mux
-# github.com/hashicorp/go-version v1.7.0
+# github.com/hashicorp/go-version v1.8.0
 ## explicit
 github.com/hashicorp/go-version
 # github.com/jpillora/backoff v1.0.0
