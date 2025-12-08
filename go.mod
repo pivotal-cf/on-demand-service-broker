@@ -1,15 +1,15 @@
 module github.com/pivotal-cf/on-demand-service-broker
 
-go 1.24.0
+go 1.24.9
 
 require (
 	code.cloudfoundry.org/brokerapi/v13 v13.0.14
-	code.cloudfoundry.org/credhub-cli v0.0.0-20251202215125-29206b8257c2
+	code.cloudfoundry.org/credhub-cli v0.0.0-20251208140331-892358e8c088
 	code.cloudfoundry.org/lager/v3 v3.55.0
 	github.com/blang/semver/v4 v4.0.0
 	github.com/cloudfoundry-community/go-uaa v0.3.5
-	github.com/cloudfoundry/bosh-cli/v7 v7.9.14
-	github.com/cloudfoundry/bosh-utils v0.0.575
+	github.com/cloudfoundry/bosh-cli/v7 v7.9.15
+	github.com/cloudfoundry/bosh-utils v0.0.576
 	github.com/craigfurman/herottp v0.0.0-20190418132442-c546d62f2a8d
 	github.com/gorilla/mux v1.8.1
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.12.1
@@ -40,7 +40,7 @@ require (
 	github.com/go-playground/validator/v10 v10.28.0 // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
-	github.com/google/pprof v0.0.0-20251114195745-4902fdda35c8 // indirect
+	github.com/google/pprof v0.0.0-20251208000136-3d256cb9ff16 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/hashicorp/go-version v1.8.0 // indirect
 	github.com/jpillora/backoff v1.0.0 // indirect
@@ -57,8 +57,8 @@ require (
 	golang.org/x/mod v0.30.0 // indirect
 	golang.org/x/net v0.47.0 // indirect
 	golang.org/x/oauth2 v0.33.0 // indirect
-	golang.org/x/sync v0.18.0 // indirect
-	golang.org/x/sys v0.38.0 // indirect
+	golang.org/x/sync v0.19.0 // indirect
+	golang.org/x/sys v0.39.0 // indirect
 	golang.org/x/text v0.31.0 // indirect
 	golang.org/x/tools v0.39.0 // indirect
 	google.golang.org/protobuf v1.36.10 // indirect
