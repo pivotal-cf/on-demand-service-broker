@@ -74,7 +74,7 @@ github.com/craigfurman/herottp
 ## explicit
 # github.com/fsnotify/fsnotify v1.9.0
 ## explicit; go 1.17
-# github.com/gabriel-vasile/mimetype v1.4.11
+# github.com/gabriel-vasile/mimetype v1.4.12
 ## explicit; go 1.21
 github.com/gabriel-vasile/mimetype
 github.com/gabriel-vasile/mimetype/internal/charset
@@ -94,7 +94,7 @@ github.com/go-playground/locales/currency
 # github.com/go-playground/universal-translator v0.18.1
 ## explicit; go 1.18
 github.com/go-playground/universal-translator
-# github.com/go-playground/validator/v10 v10.29.0
+# github.com/go-playground/validator/v10 v10.30.0
 ## explicit; go 1.24.0
 github.com/go-playground/validator/v10
 # github.com/go-task/slim-sprig/v3 v3.0.0
@@ -182,7 +182,7 @@ github.com/openzipkin/zipkin-go/model
 # github.com/pborman/uuid v1.2.1
 ## explicit
 github.com/pborman/uuid
-# github.com/pivotal-cf/on-demand-services-sdk v0.50.1-0.20251216120231-58e3af438e9d
+# github.com/pivotal-cf/on-demand-services-sdk v0.50.1-0.20251222120217-83c662650ca0
 ## explicit; go 1.24.0
 github.com/pivotal-cf/on-demand-services-sdk/bosh
 github.com/pivotal-cf/on-demand-services-sdk/serviceadapter
