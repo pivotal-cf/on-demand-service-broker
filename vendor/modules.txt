@@ -38,8 +38,8 @@ github.com/bmatcuk/doublestar
 # github.com/charlievieth/fs v0.0.3
 ## explicit; go 1.18
 github.com/charlievieth/fs
-# github.com/cloudfoundry-community/go-uaa v0.3.5
-## explicit; go 1.23.0
+# github.com/cloudfoundry-community/go-uaa v0.3.6
+## explicit; go 1.24.0
 github.com/cloudfoundry-community/go-uaa
 github.com/cloudfoundry-community/go-uaa/passwordcredentials
 # github.com/cloudfoundry/bosh-cli/v7 v7.9.15
@@ -234,7 +234,7 @@ golang.org/x/net/html/atom
 golang.org/x/net/html/charset
 golang.org/x/net/internal/socks
 golang.org/x/net/proxy
-# golang.org/x/oauth2 v0.33.0
+# golang.org/x/oauth2 v0.34.0
 ## explicit; go 1.24.0
 golang.org/x/oauth2
 golang.org/x/oauth2/clientcredentials

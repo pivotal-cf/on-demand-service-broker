@@ -7,7 +7,7 @@ require (
 	code.cloudfoundry.org/credhub-cli v0.0.0-20251215140710-93274ab0250e
 	code.cloudfoundry.org/lager/v3 v3.57.0
 	github.com/blang/semver/v4 v4.0.0
-	github.com/cloudfoundry-community/go-uaa v0.3.5
+	github.com/cloudfoundry-community/go-uaa v0.3.6
 	github.com/cloudfoundry/bosh-cli/v7 v7.9.15
 	github.com/cloudfoundry/bosh-utils v0.0.579
 	github.com/craigfurman/herottp v0.0.0-20190418132442-c546d62f2a8d
@@ -56,7 +56,7 @@ require (
 	golang.org/x/crypto v0.46.0 // indirect
 	golang.org/x/mod v0.31.0 // indirect
 	golang.org/x/net v0.48.0 // indirect
-	golang.org/x/oauth2 v0.33.0 // indirect
+	golang.org/x/oauth2 v0.34.0 // indirect
 	golang.org/x/sync v0.19.0 // indirect
 	golang.org/x/sys v0.39.0 // indirect
 	golang.org/x/text v0.32.0 // indirect
