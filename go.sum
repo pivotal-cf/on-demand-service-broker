@@ -1,5 +1,5 @@
-code.cloudfoundry.org/brokerapi/v13 v13.0.16 h1:BDyng6BLzz7Sp18togCAmfQgbRmne776n4HlYn7ouPY=
-code.cloudfoundry.org/brokerapi/v13 v13.0.16/go.mod h1:hbMeOU+D5FPKFigs91ozMPhUlKeFHd9ocvOXw6ul388=
+code.cloudfoundry.org/brokerapi/v13 v13.0.17 h1:ynRjknQfOUrtHcKOipbP7wR66OxT2HZ0AWJBFNGqmuQ=
+code.cloudfoundry.org/brokerapi/v13 v13.0.17/go.mod h1:A9B7I/+fgg00gkrLizbLsxxL+b0LK+fmhAtFkpCwmmc=
 code.cloudfoundry.org/clock v1.55.0 h1:XR9Pqnquw7xY5TQcBt8OiMpRCxgcWrKIvKO2NfFUrKU=
 code.cloudfoundry.org/clock v1.55.0/go.mod h1:40iorwRmD18iN8YVhooUCWfId9siD2ZLJ2nzvdrcdbk=
 code.cloudfoundry.org/credhub-cli v0.0.0-20251215140710-93274ab0250e h1:T5Q5vJn1bWY/MReMAhEbBwIpnbdwlYGQjdrePrb/Gss=
@@ -100,8 +100,8 @@ github.com/openzipkin/zipkin-go v0.4.3 h1:9EGwpqkgnwdEIJ+Od7QVSEIH+ocmm5nPat0G7s
 github.com/openzipkin/zipkin-go v0.4.3/go.mod h1:M9wCJZFWCo2RiY+o1eBCEMe0Dp2S5LDHcMZmk3RmK7c=
 github.com/pborman/uuid v1.2.1 h1:+ZZIw58t/ozdjRaXh/3awHfmWRbzYxJoAdNJxe/3pvw=
 github.com/pborman/uuid v1.2.1/go.mod h1:X/NO0urCmaxf9VXbdlT7C2Yzkj2IKimNn4k+gtPdI/k=
-github.com/pivotal-cf/on-demand-services-sdk v0.50.1-0.20260113121007-6cad3ceec4e1 h1:mCeucqO+CHLdLCPvNLxkGeMZCZiBv7civK9N/di2i8g=
-github.com/pivotal-cf/on-demand-services-sdk v0.50.1-0.20260113121007-6cad3ceec4e1/go.mod h1:26K3YaaLBmc6hTip9J/ku2r+SbM2cFV+XWw/+G4pGJs=
+github.com/pivotal-cf/on-demand-services-sdk v0.50.1-0.20260126130002-0a773ba7612c h1:foDntfsJeOZyb+R7QmvEomPtaLazffayrp11Pp31nr0=
+github.com/pivotal-cf/on-demand-services-sdk v0.50.1-0.20260126130002-0a773ba7612c/go.mod h1:LPaamTHL0knyV2RkwW+EAr4LEAZXHWWaqa71DRi9mNs=
 github.com/pivotal-cf/paraphernalia v0.0.0-20180203224945-a64ae2051c20 h1:DR5eMfe2+6GzLkVyWytdtgUxgbPiOfvKDuqityTV3y8=
 github.com/pivotal-cf/paraphernalia v0.0.0-20180203224945-a64ae2051c20/go.mod h1:Y3IqE20LKprEpLkXb7gXinJf4vvDdQe/BS8E4kL/dgE=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
