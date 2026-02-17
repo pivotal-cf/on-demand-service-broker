@@ -1,5 +1,5 @@
-# code.cloudfoundry.org/brokerapi/v13 v13.0.18
-## explicit; go 1.24.0
+# code.cloudfoundry.org/brokerapi/v13 v13.0.19
+## explicit; go 1.25.0
 code.cloudfoundry.org/brokerapi/v13
 code.cloudfoundry.org/brokerapi/v13/auth
 code.cloudfoundry.org/brokerapi/v13/domain
@@ -182,8 +182,8 @@ github.com/openzipkin/zipkin-go/model
 # github.com/pborman/uuid v1.2.1
 ## explicit
 github.com/pborman/uuid
-# github.com/pivotal-cf/on-demand-services-sdk v0.50.1-0.20260205120345-c4ede22611dc
-## explicit; go 1.24.0
+# github.com/pivotal-cf/on-demand-services-sdk v0.50.2-0.20260217120325-fea6e926c623
+## explicit; go 1.25.0
 github.com/pivotal-cf/on-demand-services-sdk/bosh
 github.com/pivotal-cf/on-demand-services-sdk/serviceadapter
 # github.com/pivotal-cf/paraphernalia v0.0.0-20180203224945-a64ae2051c20
