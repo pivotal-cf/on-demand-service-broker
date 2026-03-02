@@ -23,7 +23,7 @@ code.cloudfoundry.org/credhub-cli/credhub/server
 ## explicit; go 1.24.9
 code.cloudfoundry.org/lager/v3
 code.cloudfoundry.org/lager/v3/internal/truncate
-# code.cloudfoundry.org/tlsconfig v0.45.0
+# code.cloudfoundry.org/tlsconfig v0.46.0
 ## explicit; go 1.24.0
 code.cloudfoundry.org/tlsconfig
 # github.com/Masterminds/semver/v3 v3.4.0
@@ -48,7 +48,7 @@ github.com/cloudfoundry/bosh-cli/v7/common/util
 github.com/cloudfoundry/bosh-cli/v7/director
 github.com/cloudfoundry/bosh-cli/v7/io
 github.com/cloudfoundry/bosh-cli/v7/uaa
-# github.com/cloudfoundry/bosh-utils v0.0.592
+# github.com/cloudfoundry/bosh-utils v0.0.593
 ## explicit; go 1.25.0
 github.com/cloudfoundry/bosh-utils/crypto
 github.com/cloudfoundry/bosh-utils/errors
@@ -226,8 +226,8 @@ golang.org/x/crypto/ssh/internal/bcrypt_pbkdf
 golang.org/x/mod/internal/lazyregexp
 golang.org/x/mod/module
 golang.org/x/mod/semver
-# golang.org/x/net v0.50.0
-## explicit; go 1.24.0
+# golang.org/x/net v0.51.0
+## explicit; go 1.25.0
 golang.org/x/net/context
 golang.org/x/net/html
 golang.org/x/net/html/atom
