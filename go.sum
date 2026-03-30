@@ -18,8 +18,8 @@ github.com/bmatcuk/doublestar v1.3.4 h1:gPypJ5xD31uhX6Tf54sDPUOBXTqKH4c9aPY66CyQ
 github.com/bmatcuk/doublestar v1.3.4/go.mod h1:wiQtGV+rzVYxB7WIlirSN++5HPtPlXEo9MEoZQC/PmE=
 github.com/cloudfoundry-community/go-uaa v0.3.6 h1:G4yWO3Axi5eTOvqfWBBSWiA1Mkonlk/q2DxGXIYtbGE=
 github.com/cloudfoundry-community/go-uaa v0.3.6/go.mod h1:EbMPp8sKxKmz0+WKa6qPfdshI8NZYoD4FJAAIbQ9Vl4=
-github.com/cloudfoundry/bosh-cli/v7 v7.9.19 h1:H97nJOuHjK6YCUoQdnpQqNXEruO4GqQlVbvMV9tW+VA=
-github.com/cloudfoundry/bosh-cli/v7 v7.9.19/go.mod h1:bXcsdfYP3B1vMMNuGdgXDgfMUTHuiTwVGwrcNAm0REA=
+github.com/cloudfoundry/bosh-cli/v7 v7.10.1 h1:3mJUsUcag2f5gmN0XxLmVhXPZwaJr3LlH/+PM5MuFnw=
+github.com/cloudfoundry/bosh-cli/v7 v7.10.1/go.mod h1:GIkD6hKyXo1iyvmIiUqH/xXuB6o/b7Ljfbw2DuxfjkQ=
 github.com/cloudfoundry/bosh-utils v0.0.605 h1:ZxScW/SfD4oF4taVUAZ6wu3GM7JY4LdQyK0NKpOcPDo=
 github.com/cloudfoundry/bosh-utils v0.0.605/go.mod h1:FPbFLzoojtan9UEHuvFnpx4ujklB7uTi1aLtYeKwalo=
 github.com/cloudfoundry/go-socks5 v0.0.0-20250423223041-4ad5fea42851 h1:oy59UYcspoP44ggE8DM3kjxl1+sTFd802bbZlBBhBMk=
