@@ -5,7 +5,7 @@ go 1.25.7
 require (
 	code.cloudfoundry.org/brokerapi/v13 v13.0.23
 	code.cloudfoundry.org/credhub-cli v0.0.0-20251215140710-93274ab0250e
-	code.cloudfoundry.org/lager/v3 v3.67.0
+	code.cloudfoundry.org/lager/v3 v3.68.0
 	github.com/blang/semver/v4 v4.0.0
 	github.com/cloudfoundry-community/go-uaa v0.3.6
 	github.com/cloudfoundry/bosh-cli/v7 v7.9.19
@@ -25,7 +25,7 @@ require (
 
 require (
 	code.cloudfoundry.org/tlsconfig v0.52.0 // indirect
-	github.com/Masterminds/semver/v3 v3.4.0 // indirect
+	github.com/Masterminds/semver/v3 v3.5.0 // indirect
 	github.com/bmatcuk/doublestar v1.3.4 // indirect
 	github.com/cloudfoundry/go-socks5 v0.0.0-20250423223041-4ad5fea42851 // indirect
 	github.com/cloudfoundry/socks5-proxy v0.2.173 // indirect
