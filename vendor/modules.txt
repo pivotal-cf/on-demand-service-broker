@@ -179,7 +179,7 @@ github.com/openzipkin/zipkin-go/model
 # github.com/pborman/uuid v1.2.1
 ## explicit
 github.com/pborman/uuid
-# github.com/pivotal-cf/on-demand-services-sdk v0.50.3-0.20260602105321-a200ca3af623
+# github.com/pivotal-cf/on-demand-services-sdk v0.50.3-0.20260612120312-cac225f2b54f
 ## explicit; go 1.25.0
 github.com/pivotal-cf/on-demand-services-sdk/bosh
 github.com/pivotal-cf/on-demand-services-sdk/serviceadapter
