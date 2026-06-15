@@ -14,9 +14,9 @@ require (
 	github.com/gorilla/mux v1.8.1
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.12.2
 	github.com/onsi/ginkgo/v2 v2.30.0
-	github.com/onsi/gomega v1.41.0
+	github.com/onsi/gomega v1.42.0
 	github.com/pborman/uuid v1.2.1
-	github.com/pivotal-cf/on-demand-services-sdk v0.50.3-0.20260612120312-cac225f2b54f
+	github.com/pivotal-cf/on-demand-services-sdk v0.50.3-0.20260615120353-12ea52b622d2
 	github.com/pkg/errors v0.9.1
 	github.com/urfave/negroni v1.0.0
 	github.com/xeipuuv/gojsonschema v1.2.0
