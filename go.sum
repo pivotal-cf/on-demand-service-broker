@@ -20,8 +20,8 @@ github.com/cloudfoundry-community/go-uaa v0.4.0 h1:nrxq6SL2nhrb6YfiUcarD4S/pbs0H
 github.com/cloudfoundry-community/go-uaa v0.4.0/go.mod h1:EupFnFWCKCfnwdgxtjNOPFpr36bTJW7sFYuCXNebH84=
 github.com/cloudfoundry/bosh-cli/v7 v7.9.19 h1:H97nJOuHjK6YCUoQdnpQqNXEruO4GqQlVbvMV9tW+VA=
 github.com/cloudfoundry/bosh-cli/v7 v7.9.19/go.mod h1:bXcsdfYP3B1vMMNuGdgXDgfMUTHuiTwVGwrcNAm0REA=
-github.com/cloudfoundry/bosh-utils v0.0.617 h1:qSZ8LKx/ObCpioQC5TSVWiVb07bTkzM5dmAXMH9e6/Q=
-github.com/cloudfoundry/bosh-utils v0.0.617/go.mod h1:XIgOJw+fCd+6fJd2yGbw/+I7DmHGeSbuOMZtV5ny+ZI=
+github.com/cloudfoundry/bosh-utils v0.0.621 h1:AG/StH7PZEzGc8FBk3qhPu5G4Z9MCMeG6+S2nfOGdZI=
+github.com/cloudfoundry/bosh-utils v0.0.621/go.mod h1:XIgOJw+fCd+6fJd2yGbw/+I7DmHGeSbuOMZtV5ny+ZI=
 github.com/cloudfoundry/go-socks5 v0.0.0-20250423223041-4ad5fea42851 h1:oy59UYcspoP44ggE8DM3kjxl1+sTFd802bbZlBBhBMk=
 github.com/cloudfoundry/go-socks5 v0.0.0-20250423223041-4ad5fea42851/go.mod h1:72EEm1oq5oXqGfu9XGtaRPWEcAFYd/P10cMNln0QhA8=
 github.com/cloudfoundry/socks5-proxy v0.2.178 h1:R5spRnkuVz55rFymTxRbAq2LEFbHlPLuMkdhT8GGxdU=
