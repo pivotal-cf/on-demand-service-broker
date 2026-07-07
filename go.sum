@@ -16,8 +16,8 @@ github.com/blang/semver/v4 v4.0.0 h1:1PFHFE6yCCTv8C1TeyNNarDzntLi7wMI5i/pzqYIsAM
 github.com/blang/semver/v4 v4.0.0/go.mod h1:IbckMUScFkM3pff0VJDNKRiT6TG/YpiHIM2yvyW5YoQ=
 github.com/bmatcuk/doublestar v1.3.4 h1:gPypJ5xD31uhX6Tf54sDPUOBXTqKH4c9aPY66CyQrS0=
 github.com/bmatcuk/doublestar v1.3.4/go.mod h1:wiQtGV+rzVYxB7WIlirSN++5HPtPlXEo9MEoZQC/PmE=
-github.com/cloudfoundry-community/go-uaa v0.4.0 h1:nrxq6SL2nhrb6YfiUcarD4S/pbs0HlvtAnq4hb4ndvY=
-github.com/cloudfoundry-community/go-uaa v0.4.0/go.mod h1:EupFnFWCKCfnwdgxtjNOPFpr36bTJW7sFYuCXNebH84=
+github.com/cloudfoundry-community/go-uaa v0.4.1 h1:Lp3CM1MaHLQ1i5eQo4o4pusIOFxo4PCmCp1V4UAVmhQ=
+github.com/cloudfoundry-community/go-uaa v0.4.1/go.mod h1:/XtePfYbK0nj/03gYCO7YOVqa0g1IZKpi+YlMByTEBg=
 github.com/cloudfoundry/bosh-cli/v7 v7.9.19 h1:H97nJOuHjK6YCUoQdnpQqNXEruO4GqQlVbvMV9tW+VA=
 github.com/cloudfoundry/bosh-cli/v7 v7.9.19/go.mod h1:bXcsdfYP3B1vMMNuGdgXDgfMUTHuiTwVGwrcNAm0REA=
 github.com/cloudfoundry/bosh-utils v0.0.624 h1:uh2U7gjf9p+aE3gVQzuGd4lk22QdIYivkmxDncBDJ1o=
