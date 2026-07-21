@@ -39,7 +39,7 @@ github.com/bmatcuk/doublestar
 ## explicit; go 1.25.0
 github.com/cloudfoundry-community/go-uaa
 github.com/cloudfoundry-community/go-uaa/passwordcredentials
-# github.com/cloudfoundry/bosh-cli/v7 v7.9.19
+# github.com/cloudfoundry/bosh-cli/v7 v7.10.7
 ## explicit; go 1.25.0
 github.com/cloudfoundry/bosh-cli/v7/common/util
 github.com/cloudfoundry/bosh-cli/v7/director
@@ -69,8 +69,8 @@ github.com/cppforlife/go-semi-semantic/version
 github.com/craigfurman/herottp
 # github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 ## explicit
-# github.com/fsnotify/fsnotify v1.9.0
-## explicit; go 1.17
+# github.com/fsnotify/fsnotify v1.10.1
+## explicit; go 1.23
 # github.com/gabriel-vasile/mimetype v1.4.13
 ## explicit; go 1.21
 github.com/gabriel-vasile/mimetype
