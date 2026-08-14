@@ -132,7 +132,7 @@ github.com/maxbrunsfeld/counterfeiter/v6/generator
 # github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d
 ## explicit
 github.com/nu7hatch/gouuid
-# github.com/onsi/ginkgo/v2 v2.32.0
+# github.com/onsi/ginkgo/v2 v2.32.1
 ## explicit; go 1.25.0
 github.com/onsi/ginkgo/v2
 github.com/onsi/ginkgo/v2/config
@@ -179,7 +179,7 @@ github.com/openzipkin/zipkin-go/model
 # github.com/pborman/uuid v1.2.1
 ## explicit
 github.com/pborman/uuid
-# github.com/pivotal-cf/on-demand-services-sdk v0.50.4
+# github.com/pivotal-cf/on-demand-services-sdk v0.50.5-0.20260814120325-ed0c6ca8832c
 ## explicit; go 1.25.0
 github.com/pivotal-cf/on-demand-services-sdk/bosh
 github.com/pivotal-cf/on-demand-services-sdk/serviceadapter
