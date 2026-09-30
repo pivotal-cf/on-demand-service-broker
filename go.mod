@@ -12,7 +12,7 @@ require (
 	github.com/cloudfoundry/bosh-utils v0.0.655
 	github.com/craigfurman/herottp v0.0.0-20190418132442-c546d62f2a8d
 	github.com/gorilla/mux v1.8.1
-	github.com/maxbrunsfeld/counterfeiter/v6 v6.13.0
+	github.com/maxbrunsfeld/counterfeiter/v6 v6.14.0
 	github.com/onsi/ginkgo/v2 v2.33.0
 	github.com/onsi/gomega v1.44.0
 	github.com/pborman/uuid v1.2.1
