@@ -96,8 +96,8 @@ github.com/openzipkin/zipkin-go v0.4.3 h1:9EGwpqkgnwdEIJ+Od7QVSEIH+ocmm5nPat0G7s
 github.com/openzipkin/zipkin-go v0.4.3/go.mod h1:M9wCJZFWCo2RiY+o1eBCEMe0Dp2S5LDHcMZmk3RmK7c=
 github.com/pborman/uuid v1.2.1 h1:+ZZIw58t/ozdjRaXh/3awHfmWRbzYxJoAdNJxe/3pvw=
 github.com/pborman/uuid v1.2.1/go.mod h1:X/NO0urCmaxf9VXbdlT7C2Yzkj2IKimNn4k+gtPdI/k=
-github.com/pivotal-cf/on-demand-services-sdk v0.50.5-0.20260814120325-ed0c6ca8832c h1:Sn8oli1ew6olP7afQsoBy3CvniCepiBg+0Rtb5/US7E=
-github.com/pivotal-cf/on-demand-services-sdk v0.50.5-0.20260814120325-ed0c6ca8832c/go.mod h1:xXFh2OrpH5psoKVIU2IHvf97qd9V/V2QVjzkeCzhORQ=
+github.com/pivotal-cf/on-demand-services-sdk v0.50.5 h1:EayJA67TeA3Bdc4dkNIYs7EnYceQKOpYEdw0uc41wq8=
+github.com/pivotal-cf/on-demand-services-sdk v0.50.5/go.mod h1:xXFh2OrpH5psoKVIU2IHvf97qd9V/V2QVjzkeCzhORQ=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
